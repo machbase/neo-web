@@ -9,7 +9,7 @@ import {
     HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
     HIGHLIGHT_OUTLINE_WIDTH,
     NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
-} from './ChartOptionConstants';
+} from './PanelChartOptionConstants';
 
 type HighlightAreaPoint = {
     name?: string;

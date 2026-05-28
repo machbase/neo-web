@@ -1,6 +1,6 @@
-import type { ChartRow } from '../../domain/ChartDomain';
-import type { TimeRangeMs } from '../../domain/time/TimeTypes';
-import { getTimeRangeCenter } from '../../domain/time/TimeRangeUtils';
+import type { ChartRow } from '../../../domain/ChartDomain';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import { getTimeRangeCenter } from '../../../domain/time/TimeRangeUtils';
 
 export function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {

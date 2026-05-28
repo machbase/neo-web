@@ -4,17 +4,17 @@ import {
     useRef,
     type MutableRefObject,
 } from 'react';
-import type { PanelMarkupHandlers } from '../../domain/PanelDomain';
+import type { PanelMarkupHandlers } from '../../../domain/PanelDomain';
 import type {
     PanelChartBlankClickPayload,
     PanelChartInstance,
-} from './PanelChartRuntimeTypes';
+} from '../types/PanelChartRuntimeTypes';
 import {
     convertPanelChartPixelToTimestamp,
     getPanelChartEventClientPosition,
     getPanelChartEventPixel,
     getPanelChartEventPosition,
-} from './ChartPointerUtils';
+} from '../utils/PanelChartPointerUtils';
 
 export function useBlankChartClickEvent({
     chartAreaRef,

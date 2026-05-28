@@ -1,7 +1,7 @@
 import type {
     PanelChartInstance,
     PanelChartZrElement,
-} from './PanelChartRuntimeTypes';
+} from '../types/PanelChartRuntimeTypes';
 
 const NAVIGATOR_BODY_CURSOR = 'grab';
 const NAVIGATOR_BODY_ACTIVE_CURSOR = 'grabbing';

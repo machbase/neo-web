@@ -64,7 +64,7 @@ function MarkupModal({
     actions: ReactNode;
 }) {
     return (
-        <PanelMarkupPopover position={position} onClose={onClose} closeOnOutsideClick>
+        <PanelMarkupPopover position={position} onClose={onClose}>
             <div className={`panel-markup-modal ${className}`}>
                 <div className="panel-markup-modal__title">{title}</div>
                 <div className="panel-markup-modal__body">{children}</div>

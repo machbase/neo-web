@@ -14,8 +14,8 @@ import {
     PANEL_LEGEND_FADE_ITEM_OPACITY,
     PANEL_LEGEND_FADE_LINE_OPACITY,
     PANEL_LEGEND_FADE_MARK_LINE_OPACITY,
-} from './ChartOptionConstants';
-import { buildPanelLineSeriesOption } from './ChartLineSeriesOptionBuilder';
+} from './PanelChartOptionConstants';
+import { buildPanelLineSeriesOption } from './buildPanelLineSeriesOption';
 
 type ThresholdMarkLineData = Array<{ yAxis: number }>;
 

@@ -21,11 +21,11 @@ import {
     ANNOTATION_LABEL_TEXT_COLOR,
     DEFAULT_NOT_SHOW,
     NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
-} from './ChartOptionConstants';
+} from './PanelChartOptionConstants';
 import {
     buildRenderableSeriesAnnotations,
     type RenderableSeriesAnnotation,
-} from '../PanelSeriesAnnotationLayout';
+} from '../layout/PanelChartAnnotationLayout';
 
 type AnnotationGuideLineData = Array<{
     value: [number, number];

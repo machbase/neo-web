@@ -9,7 +9,7 @@ import {
     getChartLayoutMetrics,
     PANEL_GRID_BOTTOM,
     PANEL_SLIDER_HEIGHT,
-} from '../PanelChartLayoutMetrics';
+} from '../layout/PanelChartLayoutMetrics';
 import {
     LEGEND_TEXT_STYLE,
     PANEL_INSIDE_DATA_ZOOM_ID,
@@ -19,7 +19,7 @@ import {
     PANEL_NAVIGATOR_GRID_ID,
     PANEL_NAVIGATOR_GRID_SIDE,
     PANEL_SLIDER_DATA_ZOOM_ID,
-} from './ChartOptionConstants';
+} from './PanelChartOptionConstants';
 import type { ChartSeriesData } from '../../../domain/ChartDomain';
 
 function isChartSeriesVisible(

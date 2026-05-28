@@ -54,18 +54,64 @@ export async function fetchMainPanelSeriesRows(
     timeRange: TimeRangeMs,
     rollupTableList: string[],
 ): Promise<FetchPanelSeriesRowsResult | undefined> {
-    return fetchResolvedPanelSeriesRows(
-        seriesConfigSet,
-        queryLimit,
+    if (seriesConfigSet.length === 0 || !isConcreteTimeRange(timeRange)) {
+        return undefined;
+    }
+
+    const sUseSampling = requestedRawMode && mainChartSampling.enabled;
+    const sInterval = resolvePanelFetchInterval(
         intervalType,
         xAxis,
+        timeRange,
         chartWidth,
         requestedRawMode,
-        requestedRawMode && mainChartSampling.enabled,
-        mainChartSampling.sample_count,
-        timeRange,
-        rollupTableList,
     );
+    const sDisplayCount = calculateSampleCount(
+        queryLimit,
+        requestedRawMode,
+        xAxis.calculated_data_pixels_per_tick,
+        xAxis.raw_data_pixels_per_tick,
+        chartWidth,
+    );
+    const sLimitDetectionMode = resolveLimitDetectionMode(
+        requestedRawMode,
+        sUseSampling,
+    );
+    const sQueryCount = resolveQueryCount(sDisplayCount, sLimitDetectionMode);
+    const sRawSampling = resolveRawFetchSampling(
+        sUseSampling,
+        mainChartSampling.sample_count,
+    );
+
+    return {
+        seriesFetchResults: await Promise.all(
+            seriesConfigSet.map(async (seriesConfig) =>
+                normalizePanelSeriesFetchResult({
+                    seriesConfig,
+                    fetchResult: requestedRawMode
+                        ? await fetchRawSeriesRows(
+                              seriesConfig,
+                              timeRange,
+                              sInterval,
+                              sQueryCount,
+                              sRawSampling,
+                          )
+                        : await fetchCalculatedSeriesRows(
+                              seriesConfig,
+                              timeRange,
+                              sInterval,
+                              sQueryCount,
+                              rollupTableList,
+                          ),
+                    displayCount: sDisplayCount,
+                    limitDetectionMode: sLimitDetectionMode,
+                }),
+            ),
+        ),
+        interval: sInterval,
+        count: sDisplayCount,
+        isRaw: requestedRawMode,
+    };
 }
 
 export async function fetchNavigatorPanelSeriesRows(
@@ -79,115 +125,64 @@ export async function fetchNavigatorPanelSeriesRows(
     timeRange: TimeRangeMs,
     rollupTableList: string[],
 ): Promise<FetchPanelSeriesRowsResult | undefined> {
-    return fetchResolvedPanelSeriesRows(
-        seriesConfigSet,
-        queryLimit,
-        intervalType,
-        xAxis,
-        chartWidth,
-        requestedRawMode,
-        requestedRawMode,
-        navigatorSampling.sample_count,
-        timeRange,
-        rollupTableList,
-    );
-}
-
-async function fetchResolvedPanelSeriesRows(
-    seriesConfigSet: PanelSeriesDefinition[],
-    queryLimit: number,
-    intervalType: string | undefined,
-    xAxis: PanelXAxis,
-    chartWidth: number,
-    isRaw: boolean,
-    useSampling: boolean,
-    sampleCount: number,
-    timeRange: TimeRangeMs,
-    rollupTableList: string[],
-): Promise<FetchPanelSeriesRowsResult | undefined> {
     if (seriesConfigSet.length === 0 || !isConcreteTimeRange(timeRange)) {
         return undefined;
     }
 
-    const interval = resolvePanelFetchInterval(
+    const sUseSampling = requestedRawMode;
+    const sInterval = resolvePanelFetchInterval(
         intervalType,
         xAxis,
         timeRange,
         chartWidth,
-        isRaw,
+        requestedRawMode,
     );
-    const count = calculateSampleCount(
+    const sDisplayCount = calculateSampleCount(
         queryLimit,
-        isRaw,
+        requestedRawMode,
         xAxis.calculated_data_pixels_per_tick,
         xAxis.raw_data_pixels_per_tick,
         chartWidth,
     );
+    const sLimitDetectionMode = resolveLimitDetectionMode(
+        requestedRawMode,
+        sUseSampling,
+    );
+    const sQueryCount = resolveQueryCount(sDisplayCount, sLimitDetectionMode);
+    const sRawSampling = resolveRawFetchSampling(
+        sUseSampling,
+        navigatorSampling.sample_count,
+    );
 
     return {
-        seriesFetchResults: await fetchPanelSeriesRows({
-            seriesConfigSet: seriesConfigSet,
-            timeRange: timeRange,
-            interval: interval,
-            displayCount: count,
-            isRaw: isRaw,
-            useSampling: useSampling,
-            sampleCount: sampleCount,
-            rollupTableList: rollupTableList,
-        }),
-        interval: interval,
-        count: count,
-        isRaw: isRaw,
-    };
-}
-
-async function fetchPanelSeriesRows({
-    seriesConfigSet,
-    timeRange,
-    interval,
-    displayCount,
-    isRaw,
-    useSampling,
-    sampleCount,
-    rollupTableList,
-}: {
-    seriesConfigSet: PanelSeriesDefinition[];
-    timeRange: TimeRangeMs | undefined;
-    interval: IntervalOption;
-    displayCount: number;
-    isRaw: boolean;
-    useSampling: boolean;
-    sampleCount: number;
-    rollupTableList: string[];
-}): Promise<PanelSeriesFetchResult[]> {
-    const sRawSampling = resolveRawFetchSampling(useSampling, sampleCount);
-    const sLimitDetectionMode = resolveLimitDetectionMode(isRaw, useSampling);
-    const sQueryCount = resolveQueryCount(displayCount, sLimitDetectionMode);
-
-    return Promise.all(
-        seriesConfigSet.map(async (seriesConfig) =>
-            normalizePanelSeriesFetchResult({
-                seriesConfig,
-                fetchResult: isRaw
-                    ? await fetchRawSeriesRows(
-                          seriesConfig,
-                          timeRange,
-                          interval,
-                          sQueryCount,
-                          sRawSampling,
-                      )
-                    : await fetchCalculatedSeriesRows(
-                          seriesConfig,
-                          timeRange,
-                          interval,
-                          sQueryCount,
-                          rollupTableList,
-                      ),
-                displayCount,
-                limitDetectionMode: sLimitDetectionMode,
-            }),
+        seriesFetchResults: await Promise.all(
+            seriesConfigSet.map(async (seriesConfig) =>
+                normalizePanelSeriesFetchResult({
+                    seriesConfig,
+                    fetchResult: requestedRawMode
+                        ? await fetchRawSeriesRows(
+                              seriesConfig,
+                              timeRange,
+                              sInterval,
+                              sQueryCount,
+                              sRawSampling,
+                          )
+                        : await fetchCalculatedSeriesRows(
+                              seriesConfig,
+                              timeRange,
+                              sInterval,
+                              sQueryCount,
+                              rollupTableList,
+                          ),
+                    displayCount: sDisplayCount,
+                    limitDetectionMode: sLimitDetectionMode,
+                }),
+            ),
         ),
-    );
+        interval: sInterval,
+        count: sDisplayCount,
+        isRaw: requestedRawMode,
+    };
 }
 
 function resolveLimitDetectionMode(

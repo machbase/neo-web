@@ -20,9 +20,9 @@ import {
     PANEL_RIGHT_Y_AXIS_ID,
     PANEL_Y_AXIS_SPLIT_COUNT,
     Y_AXIS_LABEL_STYLE,
-} from './ChartOptionConstants';
+} from './PanelChartOptionConstants';
 
-export type ResolvedYAxisRange = {
+type ResolvedYAxisRange = {
     min: number | undefined;
     max: number | undefined;
 };
@@ -110,7 +110,7 @@ function roundAxisBounds(axisBounds: number[]): void {
     );
 }
 
-export function getYAxisValues(
+function getYAxisValues(
     chartData: ChartSeriesData[],
     axes: PanelAxes,
 ): YAxisValueMap {

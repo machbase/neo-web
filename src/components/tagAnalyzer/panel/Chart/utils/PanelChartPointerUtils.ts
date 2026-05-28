@@ -1,14 +1,14 @@
 import type {
     PanelChartAxisPointerPayload,
     PanelChartInstance,
-} from './PanelChartRuntimeTypes';
+} from '../types/PanelChartRuntimeTypes';
 
-export type PanelChartClientPosition = {
+type PanelChartClientPosition = {
     x: number;
     y: number;
 };
 
-export type PanelChartPixelTimestampResult = {
+type PanelChartPixelTimestampResult = {
     timestamp: number | undefined;
     convertedPixel: unknown;
     fallbackFromPixel?: unknown;

@@ -1,16 +1,16 @@
 import type { MutableRefObject } from 'react';
-import type {
-    PanelBrushSelectionEvent,
-    PanelMarkupHandlers,
+import {
     PanelOverlayMode,
-    PanelRangeHandlers,
+    type PanelBrushSelectionEvent,
+    type PanelMarkupHandlers,
+    type PanelRangeHandlers,
 } from '../../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import { isSameTimeRange } from '../../../domain/time/TimeRangeUtils';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
-} from '../OptionBuildHelpers/ChartOptionConstants';
+} from '../options/PanelChartOptionConstants';
 import {
     convertPanelChartPixelToTimestamp,
     getPanelChartAxisPointerTimestamp,
@@ -18,13 +18,13 @@ import {
     getPanelChartEventPosition,
     getPanelChartRecordValue,
     parsePanelChartTimestamp,
-} from '../ChartPointerUtils';
+} from '../utils/PanelChartPointerUtils';
 import {
     extractBrushRange,
     extractDataZoomEventRange,
     extractDataZoomOptionRange,
     hasExplicitDataZoomEventRange,
-} from '../ChartDataZoomUtils';
+} from '../utils/PanelChartDataZoomUtils';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventPayload,
@@ -33,7 +33,7 @@ import type {
     PanelChartHighlightPayload,
     PanelChartInstance,
     PanelChartLegendChangePayload,
-} from '../PanelChartRuntimeTypes';
+} from '../types/PanelChartRuntimeTypes';
 
 type ChartEvents = {
     datazoom: (params: EChartDataZoomEventPayload) => void;
@@ -201,7 +201,7 @@ export function buildChartEvent({
                 return;
             }
 
-            if (overlayMode === 'annotation') {
+            if (overlayMode === PanelOverlayMode.ANNOTATION) {
                 const sTimestamp = getChartClickTimestamp(
                     params,
                     chartAreaRef,
@@ -225,7 +225,7 @@ export function buildChartEvent({
             const sHighlightIndex = parseNonNegativeInteger(params.dataIndex);
 
             if (
-                overlayMode === 'highlight' ||
+                overlayMode === PanelOverlayMode.HIGHLIGHT ||
                 params.seriesId !== HIGHLIGHT_LABEL_SERIES_ID ||
                 sHighlightIndex === undefined
             ) {

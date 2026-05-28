@@ -2,16 +2,16 @@ import type { YAXisComponentOption } from 'echarts';
 import {
     findNearestChartRow,
     getAnnotationAnchorTime,
-} from './ChartSeriesAnnotationUtils';
+} from '../utils/PanelChartSeriesAnnotationUtils';
 import {
     type ChartSeriesData,
-} from '../../domain/ChartDomain';
+} from '../../../domain/ChartDomain';
 import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
-} from '../../domain/SeriesDomain';
-import type { PanelAnnotation } from '../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../domain/time/TimeTypes';
+} from '../../../domain/SeriesDomain';
+import type { PanelAnnotation } from '../../../domain/PanelDomain';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 
 const ANNOTATION_LABEL_HEIGHT = 22;
 const ANNOTATION_LABEL_MIN_WIDTH = 64;

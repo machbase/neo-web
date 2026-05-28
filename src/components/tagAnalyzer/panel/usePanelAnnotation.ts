@@ -14,7 +14,7 @@ import type {
     AnnotationFormState,
 } from './modal/EditMarkupModal';
 
-export type PanelAnnotationSeriesOption = {
+type PanelAnnotationSeriesOption = {
     label: string;
     value: string;
 };

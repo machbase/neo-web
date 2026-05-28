@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
-import type { ChartSeriesData } from '../domain/ChartDomain';
-import type { PanelBrushSelectionEvent, PanelChartHandle, PanelChartState, PanelMarkupHandlers, PanelOverlayMode, PanelRangeHandlers, PanelRangeState } from '../domain/PanelDomain';
-import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
-import { getNavigatorHandleMinimumRangeWidth } from '../board/PanelNavigatorRangeLimits';
-import { buildChartEvent } from './chartBuilder/buildEventCallback/buildChartEvent';
-import type { ChartInfo } from './chartBuilder/ChartTypes';
-import { buildChartOption, buildChartSeriesOption } from './chartBuilder/OptionBuildHelpers/ChartOptionBuilder';
-import { applyPanelNavigatorCursorStyles } from './chartBuilder/PanelNavigatorCursorStyles';
-import type { PanelChartInstance } from './chartBuilder/PanelChartRuntimeTypes';
-import { useBlankChartClickEvent } from './chartBuilder/useBlankChartClickEvent';
-import { usePanelChartInstanceSync } from './chartBuilder/usePanelChartInstanceSync';
+import type { ChartSeriesData } from '../../domain/ChartDomain';
+import { PanelOverlayMode, type PanelBrushSelectionEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeHandlers, type PanelRangeState } from '../../domain/PanelDomain';
+import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
+import { getNavigatorHandleMinimumRangeWidth } from '../../board/PanelNavigatorRangeLimits';
+import { buildChartEvent } from './events/buildPanelChartEvent';
+import type { ChartInfo } from './types/PanelChartTypes';
+import { buildChartOption, buildChartSeriesOption } from './options/buildPanelChartOption';
+import { applyPanelNavigatorCursorStyles } from './utils/PanelNavigatorCursorStyles';
+import type { PanelChartInstance } from './types/PanelChartRuntimeTypes';
+import { useBlankChartClickEvent } from './hooks/useBlankChartClickEvent';
+import { usePanelChartInstanceSync } from './hooks/usePanelChartInstanceSync';
 
 type PanelBodyRefs = {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
@@ -28,7 +28,9 @@ type PanelBodyHandlers = {
     onSelection: (event: PanelBrushSelectionEvent) => unknown;
 };
 
-export type PanelChartInteractionHintMode = Extract<PanelOverlayMode, 'annotation' | 'highlight'>;
+export type PanelChartInteractionHintMode =
+    | PanelOverlayMode.ANNOTATION
+    | PanelOverlayMode.HIGHLIGHT;
 
 export type UsePanelChartRuntimeParams = {
     refs: PanelBodyRefs;
@@ -41,7 +43,7 @@ export type UsePanelChartRuntimeParams = {
     handlers: PanelBodyHandlers;
 };
 
-export type UsePanelChartRuntimeResult = {
+type UsePanelChartRuntimeResult = {
     hintMode: PanelChartInteractionHintMode | undefined;
     cursorHintPosition: { x: number; y: number } | undefined;
     option: ReturnType<typeof buildChartOption>;
@@ -54,21 +56,6 @@ export type UsePanelChartRuntimeResult = {
     };
 };
 
-function useDisplayedNavigatorChartData(
-    isLoading: boolean,
-    navigatorChartData: ChartSeriesData[],
-): ChartSeriesData[] {
-    const readyNavigatorChartDataRef = useRef<ChartSeriesData[]>([]);
-
-    if (!isLoading) {
-        readyNavigatorChartDataRef.current = navigatorChartData;
-    }
-
-    return isLoading && readyNavigatorChartDataRef.current.length > 0
-        ? readyNavigatorChartDataRef.current
-        : navigatorChartData;
-}
-
 export function usePanelChartRuntime({
     refs,
     chartState,
@@ -76,7 +63,6 @@ export function usePanelChartRuntime({
     overlayMode,
     data,
     rangeState,
-    isLoading,
     handlers,
 }: UsePanelChartRuntimeParams): UsePanelChartRuntimeResult {
     const { chartAreaRef, chartApiRef } = refs;
@@ -93,10 +79,6 @@ export function usePanelChartRuntime({
         { x: number; y: number } | undefined
     >();
     const isNumericXAxis = hasNumericBaseTimeSeries(seriesList);
-    const displayedNavigatorChartData = useDisplayedNavigatorChartData(
-        isLoading,
-        navigatorChartData,
-    );
     const chartAreaWidth = chartAreaRef.current?.clientWidth;
     const baseChartInfo = useMemo<ChartInfo>(() => ({
         mainSeriesData: chartData,
@@ -108,7 +90,7 @@ export function usePanelChartRuntime({
         isRaw,
         useNormalize,
         visibleSeries: {},
-        navigatorSeriesData: displayedNavigatorChartData,
+        navigatorSeriesData: navigatorChartData,
         navigatorSelectionMinValueSpan: getNavigatorHandleMinimumRangeWidth({
             navigatorRange,
             chartAreaWidth,
@@ -123,23 +105,27 @@ export function usePanelChartRuntime({
         chartAreaWidth,
         chartData,
         display,
-        displayedNavigatorChartData,
         highlights,
         isNumericXAxis,
         isRaw,
+        navigatorChartData,
         navigatorRange,
         panelRange,
         seriesList,
         useNormalize,
     ]);
     const hintMode =
-        overlayMode === 'annotation' || overlayMode === 'highlight'
+        overlayMode === PanelOverlayMode.ANNOTATION ||
+        overlayMode === PanelOverlayMode.HIGHLIGHT
             ? overlayMode
             : undefined;
     const isSelectionMode =
-        overlayMode === 'dragSelect' || overlayMode === 'highlight';
+        overlayMode === PanelOverlayMode.DRAG_SELECT ||
+        overlayMode === PanelOverlayMode.HIGHLIGHT;
     const isDragZoomEnabled =
-        baseChartInfo.display.use_zoom && !isSelectionMode && overlayMode !== 'annotation';
+        baseChartInfo.display.use_zoom &&
+        !isSelectionMode &&
+        overlayMode !== PanelOverlayMode.ANNOTATION;
     const chartInfo = useMemo(
         () => ({ ...baseChartInfo, visibleSeries }),
         [baseChartInfo, visibleSeries],
@@ -147,7 +133,7 @@ export function usePanelChartRuntime({
     const option = useMemo(() => buildChartOption(chartInfo), [chartInfo]);
     const attachBlankChartClickEvent = useBlankChartClickEvent({
         chartAreaRef,
-        isAnnotationActive: overlayMode === 'annotation',
+        isAnnotationActive: overlayMode === PanelOverlayMode.ANNOTATION,
         isNumericXAxis,
         latestHoverTimestampRef,
         onOpenCreateAnnotation: markupHandlers.onOpenCreateAnnotation,

@@ -1,4 +1,4 @@
-import type { buildChartSeriesOption } from './OptionBuildHelpers/ChartOptionBuilder';
+import type { buildChartSeriesOption } from '../options/buildPanelChartOption';
 
 export type EChartDataZoomEventItem = {
     start: number;
@@ -34,7 +34,7 @@ export type EChartBrushPayload = {
         | undefined;
 };
 
-export type PanelChartBrushOption = {
+type PanelChartBrushOption = {
     brushType: 'lineX' | false;
     brushMode?: 'single';
     xAxisIndex?: number;
@@ -45,12 +45,12 @@ export type PanelChartAction =
     | { type: 'brush'; areas: [] }
     | { type: 'dataZoom'; startValue: number; endValue: number };
 
-export type PanelChartOptionState = {
+type PanelChartOptionState = {
     dataZoom: EChartDataZoomOptionStateItem[] | undefined;
 };
 
-export type PanelChartSeriesOptionPatch = ReturnType<typeof buildChartSeriesOption>;
-export type PanelChartPixelFinder = { xAxisIndex: number } | { gridIndex: number };
+type PanelChartSeriesOptionPatch = ReturnType<typeof buildChartSeriesOption>;
+type PanelChartPixelFinder = { xAxisIndex: number } | { gridIndex: number };
 
 export type PanelChartLegendChangePayload = {
     selected: Record<string, boolean> | undefined;
@@ -136,7 +136,6 @@ export type PanelChartInstance = {
     dispatchAction: (action: PanelChartAction) => void;
     getOption: (() => PanelChartOptionState) | undefined;
     setOption: ((option: PanelChartSeriesOptionPatch, options?: { lazyUpdate?: boolean }) => void) | undefined;
-    showLoading?: (type?: string, options?: PanelChartLoadingOptions) => void;
     hideLoading?: () => void;
     containPixel?: (finder: { gridIndex: number }, value: [number, number]) => boolean;
     convertFromPixel?: (finder: PanelChartPixelFinder, value: [number, number]) => unknown;
@@ -147,16 +146,5 @@ export type PanelChartInstance = {
             getDisplayList?: () => PanelChartZrElement[];
         };
     };
-};
-
-export type PanelChartLoadingOptions = {
-    text?: string;
-    color?: string;
-    textColor?: string;
-    maskColor?: string;
-    fontSize?: number;
-    showSpinner?: boolean;
-    spinnerRadius?: number;
-    lineWidth?: number;
 };
 

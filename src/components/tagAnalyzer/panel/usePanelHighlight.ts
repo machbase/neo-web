@@ -1,7 +1,4 @@
-import {
-    useState,
-    type MutableRefObject,
-} from 'react';
+import type { MutableRefObject } from 'react';
 import type { ContextMenuPosition } from '@/design-system/components';
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
@@ -39,35 +36,25 @@ export function usePanelHighlight({
     isNumericXAxis: boolean;
     onSaveHighlights: (highlights: PanelHighlight[]) => void;
 }): {
-    panelHighlights: PanelHighlight[];
-    activeHighlightEditor: HighlightEditorState | undefined;
-    temporaryHighlight: PanelHighlight | undefined;
     highlightActions: HighlightActions;
     applyHighlightChange: (
         formState: HighlightFormState,
         activeEditor: HighlightEditorState,
+        temporaryHighlight: PanelHighlight | undefined,
     ) => boolean;
-    activateEditHighlightEditor: (
+    buildEditHighlightEditor: (
         position: ContextMenuPosition,
         highlightIndex: number,
-    ) => void;
-    activateCreateHighlightEditor: (startTime: number, endTime: number) => void;
-    clearActiveHighlightEditor: () => void;
+    ) => ActivePanelHighlightEditor;
+    buildCreateHighlightEditor: (
+        startTime: number,
+        endTime: number,
+    ) => ActivePanelHighlightEditor | undefined;
 } {
-    const [activeHighlightEditor, setActiveHighlightEditor] = useState<
-        ActivePanelHighlightEditor | undefined
-    >(undefined);
     const highlightActions = createHighlightActions({
         highlights,
         onSaveHighlights,
     });
-    const panelHighlights =
-        activeHighlightEditor?.temporaryHighlight
-            ? [
-                  ...highlights,
-                  activeHighlightEditor.temporaryHighlight,
-              ]
-            : highlights;
 
     function getChartCenterPosition(): { x: number; y: number } {
         const sChartRect = chartAreaRef.current?.getBoundingClientRect();
@@ -82,27 +69,30 @@ export function usePanelHighlight({
         };
     }
 
-    function activateEditHighlightEditor(
+    function buildEditHighlightEditor(
         position: ContextMenuPosition,
         highlightIndex: number,
-    ): void {
-        setActiveHighlightEditor({
+    ): ActivePanelHighlightEditor {
+        return {
             editor: {
                 position,
                 highlightIndex,
             },
-        });
+        };
     }
 
-    function activateCreateHighlightEditor(startTime: number, endTime: number): void {
+    function buildCreateHighlightEditor(
+        startTime: number,
+        endTime: number,
+    ): ActivePanelHighlightEditor | undefined {
         const sStartTime = Math.min(startTime, endTime);
         const sEndTime = Math.max(startTime, endTime);
 
         if (sEndTime <= sStartTime) {
-            return;
+            return undefined;
         }
 
-        setActiveHighlightEditor({
+        return {
             editor: {
                 position: getChartCenterPosition(),
                 highlightIndex: highlightActions.getHighlightCount(),
@@ -116,16 +106,17 @@ export function usePanelHighlight({
                 fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
                 textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
             },
-        });
+        };
     }
 
     function applyHighlightChange(
         formState: HighlightFormState,
         activeEditor: HighlightEditorState,
+        temporaryHighlight: PanelHighlight | undefined,
     ): boolean {
         const sHighlightIndex = activeEditor.highlightIndex;
         const sIsTemporaryHighlight =
-            activeHighlightEditor?.temporaryHighlight !== undefined &&
+            temporaryHighlight !== undefined &&
             sHighlightIndex === highlightActions.getHighlightCount();
 
         const sNextLabelText =
@@ -148,7 +139,7 @@ export function usePanelHighlight({
         }
 
         const sBaseHighlight = sIsTemporaryHighlight
-            ? getActiveTemporaryHighlight(activeHighlightEditor)
+            ? getActiveTemporaryHighlight(temporaryHighlight)
             : highlightActions.getHighlightByIndex(sHighlightIndex);
         const sNextHighlight = {
             ...sBaseHighlight,
@@ -171,14 +162,10 @@ export function usePanelHighlight({
     }
 
     return {
-        panelHighlights,
-        activeHighlightEditor: activeHighlightEditor?.editor,
-        temporaryHighlight: activeHighlightEditor?.temporaryHighlight,
         highlightActions,
         applyHighlightChange,
-        activateEditHighlightEditor,
-        activateCreateHighlightEditor,
-        clearActiveHighlightEditor: () => setActiveHighlightEditor(undefined),
+        buildEditHighlightEditor,
+        buildCreateHighlightEditor,
     };
 }
 
@@ -234,11 +221,11 @@ function createHighlightActions({
 }
 
 function getActiveTemporaryHighlight(
-    activeHighlightEditor: ActivePanelHighlightEditor | undefined,
+    temporaryHighlight: PanelHighlight | undefined,
 ): PanelHighlight {
-    if (!activeHighlightEditor?.temporaryHighlight) {
+    if (!temporaryHighlight) {
         throw new Error('Expected a temporary highlight editor.');
     }
 
-    return activeHighlightEditor.temporaryHighlight;
+    return temporaryHighlight;
 }

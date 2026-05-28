@@ -3,7 +3,7 @@ import type {
     CallbackDataParams,
     TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import { TOOLTIP_BASE } from './ChartOptionConstants';
+import { TOOLTIP_BASE } from './PanelChartOptionConstants';
 import { formatAxisPointerLabel } from '../../../domain/time/TimeFormatters';
 
 type TooltipValueItem = number | string | undefined;

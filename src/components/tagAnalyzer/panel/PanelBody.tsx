@@ -1,23 +1,24 @@
 import ReactECharts from 'echarts-for-react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
-import { PANEL_GRID_SIDE } from './chartBuilder/OptionBuildHelpers/ChartOptionConstants';
+import { PANEL_GRID_SIDE } from './Chart/options/PanelChartOptionConstants';
 import {
     getChartLayoutMetrics,
     PANEL_CHART_HEIGHT,
-} from './chartBuilder/PanelChartLayoutMetrics';
+} from './Chart/layout/PanelChartLayoutMetrics';
 import {
     usePanelChartRuntime,
     type PanelChartInteractionHintMode,
     type UsePanelChartRuntimeParams,
-} from './usePanelChartRuntime';
+} from './Chart/usePanelChartRuntime';
+import { PanelOverlayMode } from '../domain/PanelDomain';
 
 const PANEL_CHART_INTERACTION_HINT_TEXT: Record<
     PanelChartInteractionHintMode,
     string
 > = {
-    annotation: 'Click to create annotation',
-    highlight: 'Drag to create highlight',
+    [PanelOverlayMode.ANNOTATION]: 'Click to create annotation',
+    [PanelOverlayMode.HIGHLIGHT]: 'Drag to create highlight',
 };
 
 function PanelChartInteractionHint({

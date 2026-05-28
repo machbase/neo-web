@@ -1,37 +1,37 @@
 import type { EChartsOption, SeriesOption, YAXisComponentOption } from 'echarts';
-import type { ChartInfo } from '../ChartTypes';
+import type { ChartInfo } from '../types/PanelChartTypes';
 import {
     HIDDEN_PANEL_TITLE_OPTION,
     HIDDEN_PANEL_TOOLBOX_OPTION,
     PANEL_CHART_BASE_OPTION,
     PANEL_CHART_BRUSH_OPTION,
-} from './ChartOptionConstants';
+} from './PanelChartOptionConstants';
 import {
     buildChartXAxisOption,
     buildChartYAxisOption,
-} from './ChartAxisOptionBuilder';
+} from './buildPanelChartAxisOptions';
 import {
     buildHighlightLabelSeries,
     buildHighlightOverlaySeries,
-} from './ChartHighlightSeriesOptionBuilder';
+} from './buildPanelHighlightSeriesOptions';
 import {
     buildMainSeriesOption,
-} from './ChartMainSeriesOptionBuilder';
+} from './buildPanelMainSeriesOptions';
 import {
     buildNavigatorSeriesOption,
-} from './ChartNavigatorSeriesOptionBuilder';
+} from './buildPanelNavigatorSeriesOptions';
 import {
     buildNavigatorAnnotationLineSeries,
     buildSeriesAnnotationSeries,
-} from './ChartAnnotationSeriesOptionBuilder';
+} from './buildPanelAnnotationSeriesOptions';
 import {
     buildPanelChartDataZoomOption,
     buildPanelChartGridOption,
     buildPanelChartLegendOption,
-} from './PanelChartSectionOptionBuilder';
+} from './buildPanelChartSectionOptions';
 import {
     buildChartTooltipOption,
-} from './ChartTooltipOptionBuilder';
+} from './buildPanelChartTooltipOption';
 
 export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
     const yAxisOption = buildChartYAxisOption(

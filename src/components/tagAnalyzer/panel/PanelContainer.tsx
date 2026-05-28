@@ -1,5 +1,9 @@
 import PanelFooter from './PanelFooter';
-import PanelHeader, { PanelContextMenu } from './PanelHeader';
+import PanelHeader, {
+    PanelContextMenu,
+    PanelActionKey,
+    type PanelHeaderRuntimeState,
+} from './PanelHeader';
 import PanelBody from './PanelBody';
 import PanelEditor from './editor/PanelEditor';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
@@ -15,7 +19,9 @@ import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
 import './PanelChartShell.scss';
 import { useRef, useState, type MouseEvent } from 'react';
 import type {
+    PanelBrushSelectionEvent,
     PanelChartHandle,
+    PanelHighlight,
     PanelInfo,
     PanelMarkupHandlers,
     PanelNavigatorShiftActions,
@@ -29,7 +35,7 @@ import type { SetGlobalTimeRangePayload } from '../domain/BoardDomain';
 import type { IntervalOption } from '../domain/time/TimeTypes';
 import { PanelChartLoadStatus } from '../board/BoardPanelState';
 import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
-import { createPanelBrushSelectionHandler } from './PanelBrushSelection';
+import { handlePanelBrushSelection } from './PanelBrushSelection';
 import { useChartAreaWidthObserver } from '../board/useChartAreaWidthObserver';
 import { usePanelAnnotation } from './usePanelAnnotation';
 import { usePanelEditor } from './usePanelEditor';
@@ -37,7 +43,7 @@ import { usePanelHighlight } from './usePanelHighlight';
 
 import type { ContextMenuPosition } from '@/design-system/components';
 import type { FFTSelectionPayload } from '../domain/ChartDomain';
-import type { PanelOverlayMode } from '../domain/PanelDomain';
+import { PanelOverlayMode } from '../domain/PanelDomain';
 import type { PanelSelectionSummary } from './PanelBrushSelection';
 
 export type PanelContainerRuntimeProps = {
@@ -72,24 +78,42 @@ type PanelContainerProps = {
     actions: PanelContainerActions;
 };
 
+enum PanelPopupMode {
+    NONE = 'NONE',
+    CONTEXT_MENU = 'CONTEXT_MENU',
+    FFT = 'FFT',
+    SELECTION_SUMMARY = 'SELECTION_SUMMARY',
+    HIGHLIGHT_EDITOR = 'HIGHLIGHT_EDITOR',
+    ANNOTATION_EDITOR = 'ANNOTATION_EDITOR',
+    DELETE_CONFIRM = 'DELETE_CONFIRM',
+    EXPORT_CSV = 'EXPORT_CSV',
+}
+
+type PanelPopupState =
+    | { mode: PanelPopupMode.NONE }
+    | { mode: PanelPopupMode.CONTEXT_MENU; position: ContextMenuPosition }
+    | { mode: PanelPopupMode.FFT; selection: FFTSelectionPayload }
+    | { mode: PanelPopupMode.SELECTION_SUMMARY; summary: PanelSelectionSummary }
+    | {
+          mode: PanelPopupMode.HIGHLIGHT_EDITOR;
+          editor: HighlightEditorState;
+          temporaryHighlight?: PanelHighlight | undefined;
+      }
+    | {
+          mode: PanelPopupMode.ANNOTATION_EDITOR;
+          editorMeta: AnnotationEditorMetaState;
+      }
+    | { mode: PanelPopupMode.DELETE_CONFIRM }
+    | { mode: PanelPopupMode.EXPORT_CSV };
+
 type PanelTransientUiState = {
     overlayMode: PanelOverlayMode;
-    contextMenuPosition: ContextMenuPosition | undefined;
-    fftSelection: FFTSelectionPayload | undefined;
-    isDeleteConfirmOpen: boolean;
-    isExportCsvOpen: boolean;
-    selectionSummary: PanelSelectionSummary | undefined;
-    annotationEditorMeta: AnnotationEditorMetaState | undefined;
+    popupState: PanelPopupState;
 };
 
 const INITIAL_PANEL_TRANSIENT_UI: PanelTransientUiState = {
-    overlayMode: 'noOverlay',
-    contextMenuPosition: undefined,
-    fftSelection: undefined,
-    isDeleteConfirmOpen: false,
-    isExportCsvOpen: false,
-    selectionSummary: undefined,
-    annotationEditorMeta: undefined,
+    overlayMode: PanelOverlayMode.NO_OVERLAY,
+    popupState: { mode: PanelPopupMode.NONE },
 };
 
 function getAnnotationEditorKey(annotationEditorMeta: AnnotationEditorMetaState) {
@@ -122,19 +146,23 @@ function usePanelTransientUi() {
         ...transientUi,
         patchTransientUi,
         resetTransientUi: () => setTransientUi(INITIAL_PANEL_TRANSIENT_UI),
-        openDeleteConfirm: () => patchTransientUi({ isDeleteConfirmOpen: true }),
-        openExportCsv: () => patchTransientUi({ isExportCsvOpen: true }),
-        closeContextMenu: () => patchTransientUi({ contextMenuPosition: undefined }),
+        openDeleteConfirm: () =>
+            patchTransientUi({ popupState: { mode: PanelPopupMode.DELETE_CONFIRM } }),
+        openExportCsv: () =>
+            patchTransientUi({ popupState: { mode: PanelPopupMode.EXPORT_CSV } }),
+        closePopup: () =>
+            patchTransientUi({ popupState: { mode: PanelPopupMode.NONE } }),
+        closeContextMenu: () =>
+            patchTransientUi({ popupState: { mode: PanelPopupMode.NONE } }),
         closeAnnotationEditor: () =>
             patchTransientUi({
-                annotationEditorMeta: undefined,
-                overlayMode: 'noOverlay',
+                popupState: { mode: PanelPopupMode.NONE },
+                overlayMode: PanelOverlayMode.NO_OVERLAY,
             }),
         closeSelectionSummary: () =>
             patchTransientUi({
-                selectionSummary: undefined,
-                fftSelection: undefined,
-                overlayMode: 'noOverlay',
+                popupState: { mode: PanelPopupMode.NONE },
+                overlayMode: PanelOverlayMode.NO_OVERLAY,
             }),
     };
 }
@@ -174,29 +202,43 @@ function PanelContainer({
     
     const {
         overlayMode,
-        contextMenuPosition,
-        fftSelection,
-        isDeleteConfirmOpen,
-        isExportCsvOpen,
-        selectionSummary,
-        annotationEditorMeta,
+        popupState,
         patchTransientUi,
         resetTransientUi,
         openDeleteConfirm,
         openExportCsv,
+        closePopup,
         closeContextMenu,
         closeAnnotationEditor,
         closeSelectionSummary,
     } = usePanelTransientUi();
+    const contextMenuPosition =
+        popupState.mode === PanelPopupMode.CONTEXT_MENU
+            ? popupState.position
+            : undefined;
+    const fftSelection =
+        popupState.mode === PanelPopupMode.FFT ? popupState.selection : undefined;
+    const selectionSummary =
+        popupState.mode === PanelPopupMode.SELECTION_SUMMARY
+            ? popupState.summary
+            : undefined;
+    const activeHighlightEditor =
+        popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR
+            ? popupState.editor
+            : undefined;
+    const temporaryHighlight =
+        popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR
+            ? popupState.temporaryHighlight
+            : undefined;
+    const annotationEditorMeta =
+        popupState.mode === PanelPopupMode.ANNOTATION_EDITOR
+            ? popupState.editorMeta
+            : undefined;
     const {
-        panelHighlights,
-        activeHighlightEditor,
-        temporaryHighlight,
         highlightActions,
         applyHighlightChange,
-        activateEditHighlightEditor,
-        activateCreateHighlightEditor,
-        clearActiveHighlightEditor,
+        buildEditHighlightEditor,
+        buildCreateHighlightEditor,
     } = usePanelHighlight({
         highlights: panelInfo.highlights,
         chartAreaRef,
@@ -207,6 +249,9 @@ function PanelContainer({
                 highlights: highlights,
             }),
     });
+    const panelHighlights = temporaryHighlight
+        ? [...panelInfo.highlights, temporaryHighlight]
+        : panelInfo.highlights;
     const {
         annotationAction,
         applyAnnotationChange,
@@ -234,26 +279,34 @@ function PanelContainer({
         onSavePanel,
         reloadPanelEdit,
     });
-    const handleSelection = createPanelBrushSelectionHandler({
-        chartData,
-        seriesList: panelInfo.data.tag_set,
-        chartAreaRef,
-        isHighlightActive: overlayMode === 'highlight',
-        isNumericXAxis,
-        createHighlightFromSelection: activateCreateHighlightEditorFromBrush,
-        closeContextMenu: () => patchTransientUi({ contextMenuPosition: undefined }),
-        closeAnnotationMode: () => patchTransientUi({ overlayMode: 'noOverlay' }),
-        onSelectionSummaryChange: (nextSelectionSummary) => {
-            patchTransientUi({
-                overlayMode: 'dragSelect',
-                selectionSummary: nextSelectionSummary,
-                fftSelection: undefined,
-            });
-        },
-    });
+    const handleSelection = (event: PanelBrushSelectionEvent): boolean =>
+        handlePanelBrushSelection(
+            {
+                chartData,
+                seriesList: panelInfo.data.tag_set,
+                chartAreaRef,
+                overlayMode,
+                isNumericXAxis,
+                createHighlightFromSelection: activateCreateHighlightEditorFromBrush,
+                closeContextMenu: () =>
+                    patchTransientUi({ popupState: { mode: PanelPopupMode.NONE } }),
+                closeAnnotationMode: () =>
+                    patchTransientUi({ overlayMode: PanelOverlayMode.NO_OVERLAY }),
+                onSelectionSummaryChange: (nextSelectionSummary) => {
+                    patchTransientUi({
+                        overlayMode: PanelOverlayMode.DRAG_SELECT,
+                        popupState: {
+                            mode: PanelPopupMode.SELECTION_SUMMARY,
+                            summary: nextSelectionSummary,
+                        },
+                    });
+                },
+            },
+            event,
+        );
     const chartMarkupHandlers: PanelMarkupHandlers = {
         onOpenCreateAnnotation: (position, seriesIndex, timestamp) => {
-            if (overlayMode !== 'annotation') {
+            if (overlayMode !== PanelOverlayMode.ANNOTATION) {
                 return;
             }
 
@@ -275,42 +328,19 @@ function PanelContainer({
     )
         ? resolvedIntervalOption
         : undefined;
-    const panelHeaderState = {
+    const panelHeaderRuntimeState: PanelHeaderRuntimeState = {
         title: panelInfo.meta.chart_title,
         panelRange,
         resolvedIntervalOption: sResolvedIntervalOption,
         canSetGlobalTime: !isNumericXAxis && Boolean(sResolvedIntervalOption),
         canSaveLocal: loadStatus.chart === PanelChartLoadStatus.Ready,
-    };
-    const openFftDialog = selectionSummary
-        ? () => {
-              patchTransientUi({
-                  fftSelection: selectionSummary.selection,
-                  selectionSummary: undefined,
-                  overlayMode: 'noOverlay',
-              });
-          }
-        : undefined;
-    const panelActionState = {
-        headerState: panelHeaderState,
+        canOpenFft: Boolean(selectionSummary),
+        isNumericXAxis,
         overlayMode,
         isEditing,
         isRaw,
         isRawLocked,
         isOverlap,
-    };
-    const panelActionHandlers = {
-        onToggleOverlap,
-        onToggleRaw,
-        onToggleHighlight: () => togglePanelOverlayMode('highlight'),
-        onToggleAnnotation: toggleAnnotationOverlayMode,
-        onToggleDragSelect: () => togglePanelOverlayMode('dragSelect'),
-        onOpenFft: openFftDialog,
-        onSetGlobalTime: setGlobalTimeRange,
-        onRefreshData: refreshData,
-        onRefreshTime: refreshTime,
-        onToggleEdit: toggleEditMode,
-        onOpenDeleteConfirm: openDeleteConfirm,
     };
 
     function setGlobalTimeRange(): void {
@@ -325,12 +355,71 @@ function PanelContainer({
         });
     }
 
-    function resetPanelUi(): void {
-        resetTransientUi();
-        clearActiveHighlightEditor();
+    function openFftDialog(): void {
+        if (!selectionSummary) {
+            return;
+        }
+
+        patchTransientUi({
+            popupState: {
+                mode: PanelPopupMode.FFT,
+                selection: selectionSummary.selection,
+            },
+            overlayMode: PanelOverlayMode.NO_OVERLAY,
+        });
     }
 
-    function togglePanelOverlayMode(mode: 'highlight' | 'annotation' | 'dragSelect'): void {
+    function handlePanelAction(actionKey: PanelActionKey): void {
+        switch (actionKey) {
+            case PanelActionKey.TOGGLE_OVERLAP:
+                onToggleOverlap();
+                return;
+            case PanelActionKey.TOGGLE_RAW:
+                onToggleRaw();
+                return;
+            case PanelActionKey.TOGGLE_HIGHLIGHT:
+                togglePanelOverlayMode(PanelOverlayMode.HIGHLIGHT);
+                return;
+            case PanelActionKey.TOGGLE_ANNOTATION:
+                toggleAnnotationOverlayMode();
+                return;
+            case PanelActionKey.TOGGLE_DRAG_SELECT:
+                togglePanelOverlayMode(PanelOverlayMode.DRAG_SELECT);
+                return;
+            case PanelActionKey.OPEN_FFT:
+                openFftDialog();
+                return;
+            case PanelActionKey.SET_GLOBAL_TIME:
+                setGlobalTimeRange();
+                return;
+            case PanelActionKey.REFRESH_DATA:
+                refreshData();
+                return;
+            case PanelActionKey.REFRESH_TIME:
+                refreshTime();
+                return;
+            case PanelActionKey.TOGGLE_EDIT:
+                toggleEditMode();
+                return;
+            case PanelActionKey.OPEN_EXPORT_CSV:
+                openExportCsv();
+                return;
+            case PanelActionKey.OPEN_DELETE_CONFIRM:
+                openDeleteConfirm();
+                return;
+        }
+    }
+
+    function resetPanelUi(): void {
+        resetTransientUi();
+    }
+
+    function togglePanelOverlayMode(
+        mode:
+            | PanelOverlayMode.HIGHLIGHT
+            | PanelOverlayMode.ANNOTATION
+            | PanelOverlayMode.DRAG_SELECT,
+    ): void {
         const sShouldOpenMode = overlayMode !== mode;
 
         resetPanelUi();
@@ -341,12 +430,12 @@ function PanelContainer({
     }
 
     function toggleAnnotationOverlayMode(): void {
-        if (annotationEditorMeta || overlayMode === 'annotation') {
+        if (annotationEditorMeta || overlayMode === PanelOverlayMode.ANNOTATION) {
             closeAnnotationEditor();
             return;
         }
 
-        togglePanelOverlayMode('annotation');
+        togglePanelOverlayMode(PanelOverlayMode.ANNOTATION);
     }
 
     function activateCreateHighlightEditorFromBrush(
@@ -354,21 +443,31 @@ function PanelContainer({
         endTime: number,
     ): void {
         resetPanelUi();
-        activateCreateHighlightEditor(startTime, endTime);
+        const sHighlightEditor = buildCreateHighlightEditor(startTime, endTime);
+        if (!sHighlightEditor) {
+            return;
+        }
+
+        patchTransientUi({
+            popupState: {
+                mode: PanelPopupMode.HIGHLIGHT_EDITOR,
+                ...sHighlightEditor,
+            },
+        });
     }
 
     function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
         event.stopPropagation();
-        clearActiveHighlightEditor();
         patchTransientUi({
-            annotationEditorMeta: undefined,
-            selectionSummary: undefined,
-            fftSelection: undefined,
-            contextMenuPosition: { x: event.clientX, y: event.clientY },
+            popupState: {
+                mode: PanelPopupMode.CONTEXT_MENU,
+                position: { x: event.clientX, y: event.clientY },
+            },
             overlayMode:
-                overlayMode === 'annotation' || overlayMode === 'dragSelect'
-                    ? 'noOverlay'
+                overlayMode === PanelOverlayMode.ANNOTATION ||
+                overlayMode === PanelOverlayMode.DRAG_SELECT
+                    ? PanelOverlayMode.NO_OVERLAY
                     : overlayMode,
         });
     }
@@ -391,10 +490,25 @@ function PanelContainer({
                 : undefined;
 
         patchTransientUi({
-            annotationEditorMeta: {
-                position,
-                seriesKey: sSeriesKey,
-                timestamp,
+            popupState: {
+                mode: PanelPopupMode.ANNOTATION_EDITOR,
+                editorMeta: {
+                    position,
+                    seriesKey: sSeriesKey,
+                    timestamp,
+                },
+            },
+        });
+    }
+
+    function activateEditHighlightEditor(
+        position: ContextMenuPosition,
+        highlightIndex: number,
+    ): void {
+        patchTransientUi({
+            popupState: {
+                mode: PanelPopupMode.HIGHLIGHT_EDITOR,
+                ...buildEditHighlightEditor(position, highlightIndex),
             },
         });
     }
@@ -406,10 +520,13 @@ function PanelContainer({
         const sAnnotation = annotationAction.getAnnotation(annotationIndex);
 
         patchTransientUi({
-            annotationEditorMeta: {
-                position,
-                seriesKey: sAnnotation.seriesKey,
-                annotationIndex,
+            popupState: {
+                mode: PanelPopupMode.ANNOTATION_EDITOR,
+                editorMeta: {
+                    position,
+                    seriesKey: sAnnotation.seriesKey,
+                    annotationIndex,
+                },
             },
         });
     }
@@ -421,10 +538,8 @@ function PanelContainer({
             onContextMenu={handlePanelContextMenu}
         >
             <PanelHeader
-                {...panelActionState}
-                {...panelActionHandlers}
-                isNumericXAxis={isNumericXAxis}
-                onOpenExportCsv={openExportCsv}
+                runtimeState={panelHeaderRuntimeState}
+                onAction={handlePanelAction}
             />
             {hasMixedXAxisKinds ? (
                 <div className="panel-x-axis-warning">
@@ -484,8 +599,8 @@ function PanelContainer({
             )}
             {contextMenuPosition && (
                 <PanelContextMenu
-                    {...panelActionState}
-                    {...panelActionHandlers}
+                    runtimeState={panelHeaderRuntimeState}
+                    onAction={handlePanelAction}
                     position={contextMenuPosition}
                     onClose={closeContextMenu}
                 />
@@ -496,9 +611,7 @@ function PanelContainer({
                     pStartTime={fftSelection.startTime}
                     pEndTime={fftSelection.endTime}
                     pIsNumericXAxis={isNumericXAxis}
-                    setIsOpen={closeWhenFalse(() =>
-                        patchTransientUi({ fftSelection: undefined }),
-                    )}
+                    setIsOpen={closeWhenFalse(closePopup)}
                 />
             )}
             {selectionSummary && (
@@ -515,9 +628,15 @@ function PanelContainer({
                     activeHighlightEditor={activeHighlightEditor}
                     temporaryHighlight={temporaryHighlight}
                     highlightActions={highlightActions}
-                    onApplyHighlightChange={applyHighlightChange}
-                    onCancel={clearActiveHighlightEditor}
-                    onApplied={clearActiveHighlightEditor}
+                    onApplyHighlightChange={(formState, editor) =>
+                        applyHighlightChange(
+                            formState,
+                            editor,
+                            temporaryHighlight,
+                        )
+                    }
+                    onCancel={closePopup}
+                    onApplied={closePopup}
                     isNumericXAxis={isNumericXAxis}
                 />
             )}
@@ -533,26 +652,22 @@ function PanelContainer({
                     isNumericXAxis={isNumericXAxis}
                 />
             )}
-            {isDeleteConfirmOpen && (
+            {popupState.mode === PanelPopupMode.DELETE_CONFIRM && (
                 <ConfirmModal
                     pIsDarkMode
-                    setIsOpen={closeWhenFalse(() =>
-                        patchTransientUi({ isDeleteConfirmOpen: false }),
-                    )}
+                    setIsOpen={closeWhenFalse(closePopup)}
                     pCallback={onDeletePanel}
                     pContents={
                         <div className="body-content">Do you want to delete this panel?</div>
                     }
                 />
             )}
-            {isExportCsvOpen && (
+            {popupState.mode === PanelPopupMode.EXPORT_CSV && (
                 <SavedToLocalModal
                     pPanelInfo={chartData}
                     pChartRef={panelChartApiRef}
                     pIsDarkMode
-                    setIsOpen={closeWhenFalse(() =>
-                        patchTransientUi({ isExportCsvOpen: false }),
-                    )}
+                    setIsOpen={closeWhenFalse(closePopup)}
                 />
             )}
         </div>

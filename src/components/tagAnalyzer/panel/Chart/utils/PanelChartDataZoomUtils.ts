@@ -1,10 +1,10 @@
-import type { TimeRangeMs } from '../../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventItem,
     EChartDataZoomEventPayload,
     EChartDataZoomOptionStateItem,
-} from './PanelChartRuntimeTypes';
+} from '../types/PanelChartRuntimeTypes';
 
 export function hasExplicitDataZoomEventRange(
     dataZoomState: EChartDataZoomEventPayload,

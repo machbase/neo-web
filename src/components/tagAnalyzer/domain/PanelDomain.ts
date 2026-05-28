@@ -130,11 +130,12 @@ export type PanelInfo = {
     annotations: PanelAnnotation[];
 };
 
-export type PanelOverlayMode =
-    | 'noOverlay'
-    | 'highlight'
-    | 'annotation'
-    | 'dragSelect';
+export enum PanelOverlayMode {
+    NO_OVERLAY = 'noOverlay',
+    HIGHLIGHT = 'highlight',
+    ANNOTATION = 'annotation',
+    DRAG_SELECT = 'dragSelect',
+}
 
 export type PanelZoomActions = {
     onZoomIn: (zoom: number) => void;

@@ -161,9 +161,27 @@ export function useTagAnalyzerBoardPanels({
         dataLoaders: chartDataFetching,
         persistence: { onAppliedRange },
     });
-    const runForEachPanel = (callback: (panelInfo: PanelInfo) => Promise<void>) => {
-        for (const panelInfo of panels) void callback(panelInfo);
-    };
+    function refreshAllPanelData(): void {
+        for (const panelInfo of panels) void rangeMutation.refreshDataRange(panelInfo);
+    }
+
+    function refreshAllPanelTime(): void {
+        for (const panelInfo of panels) void rangeMutation.refreshTimeRange(panelInfo);
+    }
+
+    function applyBoardRangeToPanels(boardTimeToApply: TimeRangeConfig): void {
+        for (const panelInfo of panels) {
+            void rangeMutation.applyBoardRange(panelInfo, boardTimeToApply);
+        }
+    }
+
+    function applyGlobalRangeToPanels(
+        globalTimeRangeToApply: GlobalTimeRangeState,
+    ): void {
+        for (const panelInfo of panels) {
+            void rangeMutation.applyGlobalRange(panelInfo, globalTimeRangeToApply);
+        }
+    }
 
     return {
         getPanelContainerRuntimeProps: rangeMutation.getPanelContainerRuntimeProps,
@@ -173,15 +191,9 @@ export function useTagAnalyzerBoardPanels({
         refreshPanelTime: rangeMutation.refreshTimeRange,
         reloadRawMode: rangeMutation.reloadRawMode,
         reloadPanelEdit: rangeMutation.reloadPanelEdit,
-        refreshAllPanelData: () => runForEachPanel(rangeMutation.refreshDataRange),
-        refreshAllPanelTime: () => runForEachPanel(rangeMutation.refreshTimeRange),
-        applyBoardRangeToPanels: (boardTimeToApply: TimeRangeConfig) =>
-            runForEachPanel((panelInfo) =>
-                rangeMutation.applyBoardRange(panelInfo, boardTimeToApply),
-            ),
-        applyGlobalRangeToPanels: (globalTimeRangeToApply: GlobalTimeRangeState) =>
-            runForEachPanel((panelInfo) =>
-                rangeMutation.applyGlobalRange(panelInfo, globalTimeRangeToApply),
-            ),
+        refreshAllPanelData,
+        refreshAllPanelTime,
+        applyBoardRangeToPanels,
+        applyGlobalRangeToPanels,
     };
 }

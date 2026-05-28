@@ -1,7 +1,10 @@
 import type { MutableRefObject } from 'react';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
-import type { PanelBrushSelectionEvent } from '../domain/PanelDomain';
+import {
+    PanelOverlayMode,
+    type PanelBrushSelectionEvent,
+} from '../domain/PanelDomain';
 import type {
     ChartSeriesData,
     FFTSelectionPayload,
@@ -21,86 +24,76 @@ type BrushSelectionRange = {
     endTime: number;
 };
 
-export function createPanelBrushSelectionHandler({
-    chartData,
-    seriesList,
-    chartAreaRef,
-    isHighlightActive,
-    isNumericXAxis,
-    createHighlightFromSelection,
-    closeContextMenu,
-    closeAnnotationMode,
-    onSelectionSummaryChange,
-}: {
+type PanelBrushSelectionContext = {
     chartData: ChartSeriesData[];
     seriesList: PanelSeriesDefinition[];
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
-    isHighlightActive: boolean;
+    overlayMode: PanelOverlayMode;
     isNumericXAxis: boolean;
     createHighlightFromSelection: (startTime: number, endTime: number) => void;
     closeContextMenu: () => void;
     closeAnnotationMode: () => void;
     onSelectionSummaryChange: (selectionSummary: PanelSelectionSummary) => void;
-}): (event: PanelBrushSelectionEvent) => boolean {
-    return function handlePanelBrushSelection(
-        event: PanelBrushSelectionEvent,
-    ): boolean {
-        const sSelectionRange: BrushSelectionRange = {
-            min: event.min,
-            max: event.max,
-            startTime: isNumericXAxis ? event.min : Math.floor(event.min),
-            endTime: isNumericXAxis ? event.max : Math.ceil(event.max),
-        };
+};
 
-        if (isHighlightActive) {
-            closeContextMenu();
-            closeAnnotationMode();
-            createHighlightFromSelection(
-                sSelectionRange.startTime,
-                sSelectionRange.endTime,
-            );
-            return false;
-        }
+export function handlePanelBrushSelection({
+    chartData,
+    seriesList,
+    chartAreaRef,
+    overlayMode,
+    isNumericXAxis,
+    createHighlightFromSelection,
+    closeContextMenu,
+    closeAnnotationMode,
+    onSelectionSummaryChange,
+}: PanelBrushSelectionContext, event: PanelBrushSelectionEvent): boolean {
+    const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
 
-        const sSelection = buildBrushSelectionSummary(
-            chartData,
-            seriesList,
-            sSelectionRange,
+    if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
+        closeContextMenu();
+        closeAnnotationMode();
+        createHighlightFromSelection(
+            sSelectionRange.startTime,
+            sSelectionRange.endTime,
         );
-
-        if (!sSelection) {
-            Toast.error('There is no data in the selected area.', undefined);
-            return false;
-        }
-
-        onSelectionSummaryChange({
-            selection: sSelection,
-            popoverPosition: getSelectionPopoverPosition(chartAreaRef),
-        });
         return false;
-    };
-}
-
-function buildBrushSelectionSummary(
-    chartData: ChartSeriesData[],
-    seriesList: PanelSeriesDefinition[],
-    range: BrushSelectionRange,
-): FFTSelectionPayload | undefined {
-    const seriesSummaries = buildSeriesSummaryRows(
-        chartData.map((series) => series.data),
-        seriesList,
-        range.min,
-        range.max,
-    );
-
-    if (isEmpty(seriesSummaries)) {
-        return undefined;
     }
 
+    const sSeriesSummaries = buildSeriesSummaryRows(
+        chartData.map((series) => series.data),
+        seriesList,
+        sSelectionRange.min,
+        sSelectionRange.max,
+    );
+
+    if (isEmpty(sSeriesSummaries)) {
+        Toast.error('There is no data in the selected area.', undefined);
+        return false;
+    }
+
+    const sSelection: FFTSelectionPayload = {
+        startTime: sSelectionRange.startTime,
+        endTime: sSelectionRange.endTime,
+        seriesSummaries: sSeriesSummaries,
+    };
+
+    onSelectionSummaryChange({
+        selection: sSelection,
+        popoverPosition: getSelectionPopoverPosition(chartAreaRef),
+    });
+
+    return false;
+}
+
+function getBrushSelectionRange(
+    event: PanelBrushSelectionEvent,
+    isNumericXAxis: boolean,
+): BrushSelectionRange {
     return {
-        startTime: range.startTime,
-        endTime: range.endTime,
-        seriesSummaries,
+        min: event.min,
+        max: event.max,
+        startTime: isNumericXAxis ? event.min : Math.floor(event.min),
+        endTime: isNumericXAxis ? event.max : Math.ceil(event.max),
     };
 }
 

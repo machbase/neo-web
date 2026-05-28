@@ -17,7 +17,7 @@ import {
     type PanelRangeApplyOptions,
     type PanelRangeRefreshOptions,
 } from './BoardPanelState';
-import { createPanelContainerRuntimePropsGetter } from './createPanelContainerRuntimePropsGetter';
+import { getPanelContainerRuntimeProps as buildPanelContainerRuntimeProps } from './getPanelContainerRuntimeProps';
 import { useRangeRefresh } from './useRangeRefresh';
 
 function assertCanRefreshRange(
@@ -508,13 +508,13 @@ export function useBoardPanelRangeMutation({
         });
     }
 
-    const getPanelContainerRuntimeProps = createPanelContainerRuntimePropsGetter({
-        getBoardPanelRecord,
-        refreshVisibleRange,
-    });
-
     return {
-        getPanelContainerRuntimeProps,
+        getPanelContainerRuntimeProps: (panelInfo: PanelInfo) =>
+            buildPanelContainerRuntimeProps({
+                panelInfo,
+                getBoardPanelRecord,
+                refreshVisibleRange,
+            }),
         handleChartAreaWidthChange,
         refreshDataRange,
         refreshTimeRange: rangeRefresh.refreshTimeRange,

@@ -21,7 +21,7 @@ import type {
     PanelZoomActions,
 } from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
-import { getChartLayoutMetrics } from './chartBuilder/PanelChartLayoutMetrics';
+import { getChartLayoutMetrics } from './Chart/layout/PanelChartLayoutMetrics';
 import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 import {
     formatAxisInputValue,

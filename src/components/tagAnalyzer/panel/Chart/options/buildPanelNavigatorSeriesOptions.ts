@@ -6,8 +6,8 @@ import type { ChartSeriesData } from '../../../domain/ChartDomain';
 import {
     PANEL_NAVIGATOR_ACTIVE_OPACITY,
     PANEL_NAVIGATOR_FADE_OPACITY,
-} from './ChartOptionConstants';
-import { buildPanelLineSeriesOption } from './ChartLineSeriesOptionBuilder';
+} from './PanelChartOptionConstants';
+import { buildPanelLineSeriesOption } from './buildPanelLineSeriesOption';
 
 type NavigatorSeriesHoverState = {
     isHoveredSeries: boolean;
