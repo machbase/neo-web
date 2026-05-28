@@ -19,25 +19,8 @@ export enum E_WS_KEY {
     MSG = E_WS_TYPE.MSG,
 }
 export enum E_RPC_METHOD {
-    LLM_GET_PROVIDERS = 'llmGetProviders',
-    LLM_GET_PROVIDER_CONF = 'llmGetProviderConfig',
-    LLM_SET_PROVIDER_CONF = 'llmSetProviderConfig',
-    LLM_GET_MODELS = 'llmGetModels',
-    LLM_ADD_MODELS = 'llmAddModels',
-    LLM_RM_MODELS = 'llmRemoveModels',
-    LLM_GET_LIST_MODELS = 'llmListModels',
-
     MD_RENDER = 'markdownRender',
 }
-export const RPC_LLM_LIST = [
-    E_RPC_METHOD.LLM_GET_PROVIDERS,
-    E_RPC_METHOD.LLM_GET_PROVIDER_CONF,
-    E_RPC_METHOD.LLM_SET_PROVIDER_CONF,
-    E_RPC_METHOD.LLM_GET_MODELS,
-    E_RPC_METHOD.LLM_ADD_MODELS,
-    E_RPC_METHOD.LLM_RM_MODELS,
-    E_RPC_METHOD.LLM_GET_LIST_MODELS,
-];
 
 interface WS_COMM_TYPE {
     type: E_WS_TYPE;

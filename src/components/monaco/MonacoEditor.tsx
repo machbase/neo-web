@@ -4,6 +4,8 @@ import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import scrollbar from '@/design-system/tokens/scrollbar.module.scss';
+import { registerLspLanguages } from '@/lsp/languages';
+import { registerLspProviders } from '@/lsp/monacoProviders';
 export interface MonacoEditorProps {
     pIsActiveTab: boolean;
     pText: string;
@@ -52,6 +54,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         hover: {
             enabled: !pIsReadOnly,
         },
+        fixedOverflowWidgets: true,
         scrollbar: {
             vertical: 'auto' as const,
             horizontal: 'auto' as const,
@@ -68,6 +71,8 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     useEffect(() => {
         if (!sMonaco) return;
+        registerLspLanguages(sMonaco);
+        registerLspProviders(sMonaco);
         sMonaco.editor.defineTheme('my-theme', {
             base: 'vs-dark',
             inherit: true,

@@ -7,7 +7,7 @@ import { Markdown } from '@/components/worksheet/Markdown';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Button, Page } from '@/design-system/components';
 
-type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html' | 'javascript';
+type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html' | 'javascript' | 'jsh';
 
 export interface TextExtensionProps {
     pIsActiveTab: boolean;

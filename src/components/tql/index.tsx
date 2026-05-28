@@ -63,7 +63,7 @@ const Tql = (props: TqlProps) => {
 
     useEffect(() => {
         setText(pCode);
-        setCurrentLang('go');
+        setCurrentLang('tql');
     }, []);
 
     useEffect(() => {

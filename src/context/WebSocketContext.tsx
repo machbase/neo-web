@@ -1,11 +1,21 @@
 import { createContext, useContext, ReactNode, useRef, useCallback, useState, useEffect } from 'react';
 import { useSetRecoilState } from 'recoil';
-import { gWsLog } from '@/recoil/websocket';
+import { E_WS_TYPE, gWsLog } from '@/recoil/websocket';
 import { getId } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 import { useWsRouter } from '@/hooks/websocket/useWsRouter';
 import { useExperiment } from '@/hooks/useExperiment';
 import { showSessionExpiredToast } from '@/api/core';
+import { JsonRpcRequest, JsonRpcResponse, RpcTransportError, setJsonRpcWebSocketCaller } from '@/api/repository/rpc';
+
+interface PendingRpc {
+    method: string;
+    resolve: (response: JsonRpcResponse<unknown>) => void;
+    reject: (error: Error) => void;
+    timer: number;
+    signal?: AbortSignal;
+    abortHandler?: () => void;
+}
 
 interface WebSocketContextType {
     socket: React.MutableRefObject<WebSocket | null>;
@@ -26,6 +36,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const messageHandlerRef = useRef<((data: any) => void) | null>(null);
     const isConnectingRef = useRef<boolean>(false);
     const intentionalCloseRef = useRef<boolean>(false);
+    const pendingRpcRef = useRef<Map<number, PendingRpc>>(new Map());
     const [sMsgBatch, setMsgBatch] = useState<any[]>([]);
     const msgBufferRef = useRef<any[]>([]);
     const batchTimerRef = useRef<number | null>(null);
@@ -34,6 +45,66 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const { getExperiment } = useExperiment();
     const { handleWsMsg } = useWsRouter();
 
+    const createAbortError = useCallback(() => {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        return error;
+    }, []);
+
+    const cleanupPendingRpc = useCallback((id: number, pending: PendingRpc) => {
+        window.clearTimeout(pending.timer);
+        if (pending.abortHandler && pending.signal) {
+            pending.signal.removeEventListener('abort', pending.abortHandler);
+        }
+        pendingRpcRef.current.delete(id);
+    }, []);
+
+    const rejectPendingRpc = useCallback(
+        (message: string) => {
+            pendingRpcRef.current.forEach((pending, id) => {
+                cleanupPendingRpc(id, pending);
+                pending.reject(new RpcTransportError(message));
+            });
+        },
+        [cleanupPendingRpc]
+    );
+
+    /**
+     * Try to resolve an incoming WS message against a pending RPC.
+     * Returns true if the message was consumed (resolve happened),
+     * false otherwise so that the existing useWsRouter handles it
+     * (e.g. RPC_RSP for LLM / markdownRender flows that don't go through
+     * the JSON-RPC primitive yet).
+     */
+    const resolvePendingRpc = useCallback(
+        (message: any): boolean => {
+            if (message?.type !== E_WS_TYPE.RPC_RSP || !message?.rpc) return false;
+            const rpcId = Number(message.rpc.id);
+            if (!Number.isFinite(rpcId)) return false;
+            const pending = pendingRpcRef.current.get(rpcId);
+            if (!pending) return false;
+
+            let sessionMethod = '';
+            if (typeof message.session === 'string') {
+                try {
+                    sessionMethod = JSON.parse(message.session)?.method ?? '';
+                } catch {
+                    sessionMethod = '';
+                }
+            } else if (message.session && typeof message.session === 'object') {
+                sessionMethod = message.session?.method ?? '';
+            }
+            // If a session.method is present and disagrees with the pending method,
+            // leave the message for the existing router (don't claim it).
+            if (sessionMethod && sessionMethod !== pending.method) return false;
+
+            cleanupPendingRpc(rpcId, pending);
+            pending.resolve(message.rpc as JsonRpcResponse<unknown>);
+            return true;
+        },
+        [cleanupPendingRpc]
+    );
+
     const sendMSG = useCallback((message: any) => {
         if (!getExperiment()) return;
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -41,6 +112,70 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         } else {
         }
     }, []);
+
+    /**
+     * Send a JSON-RPC 2.0 request over the current WebSocket and wait for the
+     * matching `rpc_rsp` frame. Intentionally independent of `getExperiment()`
+     * so that LSP and other RPC consumers work regardless of the experiment flag.
+     *
+     * Rejection modes:
+     * - `RpcTransportError` if socket is missing / not OPEN.
+     * - `RpcTransportError` if socket closes before the response arrives.
+     * - `RpcTransportError` after a 10s timeout.
+     * - `AbortError` if the caller-supplied signal aborts.
+     */
+    const callJsonRpc = useCallback(
+        (rpcRequest: JsonRpcRequest, signal?: AbortSignal) => {
+            return new Promise<JsonRpcResponse<unknown>>((resolve, reject) => {
+                const socket = socketRef.current;
+                if (!socket || socket.readyState !== WebSocket.OPEN) {
+                    reject(new RpcTransportError('WebSocket is not connected'));
+                    return;
+                }
+                if (signal?.aborted) {
+                    reject(createAbortError());
+                    return;
+                }
+
+                const timer = window.setTimeout(() => {
+                    const stillPending = pendingRpcRef.current.get(rpcRequest.id);
+                    if (!stillPending) return;
+                    cleanupPendingRpc(rpcRequest.id, stillPending);
+                    reject(new RpcTransportError('WebSocket JSON-RPC request timed out'));
+                }, 10000);
+
+                const pending: PendingRpc = {
+                    method: rpcRequest.method,
+                    resolve,
+                    reject,
+                    timer,
+                    signal,
+                };
+                if (signal) {
+                    pending.abortHandler = () => {
+                        cleanupPendingRpc(rpcRequest.id, pending);
+                        reject(createAbortError());
+                    };
+                    signal.addEventListener('abort', pending.abortHandler, { once: true });
+                }
+
+                pendingRpcRef.current.set(rpcRequest.id, pending);
+                try {
+                    socket.send(
+                        JSON.stringify({
+                            type: E_WS_TYPE.RPC_REQ,
+                            session: JSON.stringify({ method: rpcRequest.method, id: rpcRequest.id }),
+                            rpc: rpcRequest,
+                        })
+                    );
+                } catch (error) {
+                    cleanupPendingRpc(rpcRequest.id, pending);
+                    reject(error instanceof Error ? error : new Error(String(error)));
+                }
+            });
+        },
+        [cleanupPendingRpc, createAbortError]
+    );
 
     // Batch processing: Process buffered messages every 100ms
     const flushMessageBuffer = useCallback(() => {
@@ -64,6 +199,16 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         socketRef.current = new WebSocket(wsUrl);
 
         socketRef.current.onmessage = (event: MessageEvent) => {
+            // Intercept RPC_RSP frames that match a pending JSON-RPC request first.
+            // If resolvePendingRpc returns false (unknown id, mismatched method, or
+            // not RPC_RSP), fall through to the existing router so legacy RPC
+            // consumers (LLM, markdownRender, ...) keep working.
+            try {
+                const parsedMessage = JSON.parse(event.data);
+                if (resolvePendingRpc(parsedMessage)) return;
+            } catch {
+                // Existing router handles parse failures and unknown payloads.
+            }
             if (messageHandlerRef.current) {
                 const sMsg: any = messageHandlerRef.current(event.data);
                 if (sMsg) {
@@ -89,6 +234,9 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         socketRef.current.onclose = () => {
             socketRef.current = null;
             isConnectingRef.current = false;
+            // Reject every pending JSON-RPC call so callers (LSP, etc.) fail
+            // fast instead of hanging until their 10s timeout.
+            rejectPendingRpc('WebSocket connection closed');
             if (intentionalCloseRef.current) {
                 intentionalCloseRef.current = false;
                 return;
@@ -103,11 +251,12 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         socketRef.current.onerror = () => {
             isConnectingRef.current = false;
         };
-    }, [setConsoleList, navigate]);
+    }, [setConsoleList, navigate, resolvePendingRpc, rejectPendingRpc]);
 
     const disconnectWebSocket = useCallback(() => {
         intentionalCloseRef.current = true;
         isConnectingRef.current = false;
+        rejectPendingRpc('WebSocket connection closed');
         if (batchTimerRef.current) {
             cancelAnimationFrame(batchTimerRef.current);
             batchTimerRef.current = null;
@@ -116,7 +265,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
             socketRef.current.close();
             socketRef.current = null;
         }
-    }, []);
+    }, [rejectPendingRpc]);
 
     // Clean up timer on component unmount
     useEffect(() => {
@@ -126,6 +275,14 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
             }
         };
     }, []);
+
+    // Register this provider's callJsonRpc as the JSON-RPC WebSocket caller for
+    // the module-level primitive in `@/api/repository/rpc`. The returned
+    // cleanup function unregisters us when the callback identity changes or
+    // when the provider unmounts.
+    useEffect(() => {
+        return setJsonRpcWebSocketCaller(callJsonRpc);
+    }, [callJsonRpc]);
 
     const value: WebSocketContextType = {
         socket: socketRef,

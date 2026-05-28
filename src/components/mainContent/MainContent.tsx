@@ -495,7 +495,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'js') && (
                                     <TextExtension
                                         pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="javascript"
+                                        pLang="jsh"
                                         pCode={aItem.code}
                                         pHandleSaveModalOpen={handleSaveModalOpen}
                                         setIsOpenModal={setIsSaveModal}
