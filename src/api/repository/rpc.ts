@@ -1,0 +1,206 @@
+/**
+ * JSON-RPC 2.0 primitive for the neo-web transport layer.
+ *
+ * Two transports are supported, picked per call site (no auto-fallback):
+ * - WebSocket (`callJsonRpc`): bidirectional / streaming methods such as `lsp.*`.
+ *   The WS caller is registered by WebSocketContext via `setJsonRpcWebSocketCaller`.
+ *   If it isn't registered or the socket is not connected, `callJsonRpc` rejects
+ *   with `RpcTransportError` — there is intentionally NO REST fallback.
+ * - HTTP (`callHttpRpc`): one-shot req/resp methods (POST `/web/api/rpc`).
+ *   Reuses the shared axios instance (Bearer auth, X-Console-Id, 401 reLogin).
+ *
+ * React callers should route through `useRpc()` (see `@/context/RpcContext`),
+ * which picks the transport by method prefix. The module-level primitive remains
+ * for non-React call sites (e.g. monaco editor provider callbacks).
+ */
+
+import request from '@/api/core';
+
+export interface JsonRpcError {
+    code: number;
+    message: string;
+}
+
+export interface JsonRpcRequest {
+    jsonrpc: '2.0';
+    id: number;
+    method: string;
+    params: any[];
+}
+
+export interface JsonRpcResponse<T> {
+    jsonrpc: '2.0';
+    id: number;
+    result?: T;
+    error?: JsonRpcError;
+}
+
+export interface JsonRpcOptions {
+    signal?: AbortSignal;
+}
+
+/**
+ * Thrown when the JSON-RPC request cannot be transported over WebSocket:
+ * - WebSocket caller not registered yet
+ * - Socket not connected / readyState !== OPEN
+ * - Socket closed while the request was pending (onclose)
+ * - Request timed out before a response was received
+ *
+ * This deliberately does NOT cover AbortSignal cancellation — that surfaces
+ * as a DOMException-like `AbortError` to align with fetch() semantics.
+ */
+export class RpcTransportError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'RpcTransportError';
+    }
+}
+
+export type JsonRpcWebSocketCaller = (
+    rpcRequest: JsonRpcRequest,
+    signal?: AbortSignal
+) => Promise<JsonRpcResponse<unknown>>;
+
+let sRpcId = 0;
+let sWebSocketCaller: JsonRpcWebSocketCaller | null = null;
+
+const nextRpcId = () => {
+    sRpcId += 1;
+    return sRpcId;
+};
+
+/**
+ * Register the WebSocket-backed JSON-RPC caller. Returns a cleanup function
+ * that unregisters the caller if it has not already been replaced.
+ *
+ * Only `WebSocketContext` should call this. Tests may register a stub.
+ */
+export const setJsonRpcWebSocketCaller = (caller: JsonRpcWebSocketCaller | null) => {
+    sWebSocketCaller = caller;
+    return () => {
+        if (sWebSocketCaller === caller) {
+            sWebSocketCaller = null;
+        }
+    };
+};
+
+/**
+ * Issue a JSON-RPC 2.0 request over WebSocket. WS-only — no REST fallback.
+ *
+ * Throws:
+ * - `RpcTransportError` if the WebSocket caller is not registered.
+ * - `RpcTransportError` if the socket is not connected or closes during the call.
+ * - An `AbortError` if the caller-supplied `signal` is aborted.
+ */
+export const callJsonRpc = async <T>(
+    method: string,
+    params: any[],
+    options?: JsonRpcOptions
+): Promise<JsonRpcResponse<T>> => {
+    if (options?.signal?.aborted) {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        throw error;
+    }
+
+    if (!sWebSocketCaller) {
+        throw new RpcTransportError('WebSocket JSON-RPC caller is not registered');
+    }
+
+    const rpcRequest: JsonRpcRequest = {
+        jsonrpc: '2.0',
+        id: nextRpcId(),
+        method,
+        params,
+    };
+
+    return (await sWebSocketCaller(rpcRequest, options?.signal)) as JsonRpcResponse<T>;
+};
+
+/**
+ * Issue a JSON-RPC 2.0 request over HTTP POST `/web/api/rpc`.
+ *
+ * For one-shot req/resp methods. Reuses the shared axios instance so Bearer auth,
+ * X-Console-Id, 401 reLogin, and timeouts behave exactly like other REST calls.
+ *
+ * Most callers should use `rpcCall` (transport-agnostic) instead. Direct use is
+ * fine when the caller has a strong reason to bypass routing (e.g. testing).
+ */
+export const callHttpRpc = async <T>(
+    method: string,
+    params: any[],
+    signal?: AbortSignal
+): Promise<JsonRpcResponse<T>> => {
+    const rpcRequest: JsonRpcRequest = {
+        jsonrpc: '2.0',
+        id: nextRpcId(),
+        method,
+        params,
+    };
+    const response = await request.post('/api/rpc', rpcRequest, { signal });
+    return response.data as JsonRpcResponse<T>;
+};
+
+/**
+ * Methods that MUST go over WebSocket. Membership requires a concrete reason:
+ * server push, streaming response, or session-bound state. Keep the list small
+ * and explicit so transport choice stays auditable from a single location.
+ */
+const WS_METHOD_PREFIXES = ['lsp.'];
+const WS_METHOD_EXACT = new Set<string>([
+    // 'bridge.query',  // 향후 스트리밍 커서 RPC가 추가되면 여기에 등록
+]);
+
+const isWsMethod = (method: string): boolean => {
+    if (WS_METHOD_EXACT.has(method)) return true;
+    return WS_METHOD_PREFIXES.some((prefix) => method.startsWith(prefix));
+};
+
+/**
+ * Transport-agnostic JSON-RPC entry point. Routes to WS or HTTP based on the
+ * method name (see `WS_METHOD_PREFIXES` / `WS_METHOD_EXACT` above).
+ *
+ * Callers — both React components and non-React (monaco provider) callbacks —
+ * should prefer this over `callJsonRpc` / `callHttpRpc` so the transport choice
+ * stays in one place. If the backend later moves a method to a different
+ * transport, only the WS_METHOD_* lists above need to change.
+ */
+export const rpcCall = async <T>(
+    method: string,
+    params: any[],
+    signal?: AbortSignal
+): Promise<JsonRpcResponse<T>> => {
+    if (isWsMethod(method)) {
+        return await callJsonRpc<T>(method, params, { signal });
+    }
+    return await callHttpRpc<T>(method, params, signal);
+};
+
+/**
+ * Method-name registry for JSON-RPC calls.
+ *
+ * Use these constants instead of bare strings so transport routing (see
+ * `WS_METHOD_*` above) and call sites stay in sync. Categories follow the
+ * backend dot-namespace; new categories are added per RPC migration wave.
+ *
+ * Currently only `lsp.*` is migrated. `bridge.*` / `timer.* / key.*` etc.
+ * will be added when each wave from `.notion-plan/3681efd3` lands.
+ */
+export const RpcMethod = {
+    lsp: {
+        diagnostics: 'lsp.diagnostics',
+        completion: 'lsp.completion',
+        hover: 'lsp.hover',
+        signature: 'lsp.signature',
+        metadata: 'lsp.metadata',
+    },
+} as const;
+
+/**
+ * Test-only helper to reset the module-local state between cases.
+ * Production code MUST NOT use this.
+ */
+export const __resetJsonRpcStateForTests = () => {
+    sRpcId = 0;
+    sWebSocketCaller = null;
+};
