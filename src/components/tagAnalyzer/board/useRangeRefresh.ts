@@ -11,10 +11,12 @@ import type { PanelNavigatorRangePair, TimeRangeConfig, TimeRangeMs } from '../d
 import { clampTimeRangeToBounds, isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import type {
     BoardPanelRecord,
+} from './BoardPanelState';
+import type {
     PanelChartDataLoadConfig,
     PanelRangeApplyOptions,
     PanelRangeRefreshOptions,
-} from './BoardPanelState';
+} from '../panel/PanelDataRuntimeState';
 import { hasConcretePanelRangeState } from './BoardPanelState';
 
 type RangeRefreshDependencies = {
@@ -44,9 +46,9 @@ export function useRangeRefresh({
     ): Promise<void> {
         const initialRange = await resolveInitialPanelRange(
             panelInfo.data.tag_set,
-            panelInfo.time.rangeConfig,
-            panelInfo.time.useLastViewedRange
-                ? panelInfo.time.lastViewedRange
+            panelInfo.time.range_config,
+            panelInfo.general.use_last_viewed_range
+                ? panelInfo.general.last_viewed_range
                 : undefined,
             boardTime,
         );
@@ -76,9 +78,12 @@ export function useRangeRefresh({
     }
 
     async function refreshTimeRange(panelInfo: PanelInfo): Promise<void> {
-        const rangeState = getBoardPanelRecord(panelInfo.meta.index_key).rangeState;
+        const rangeState = getBoardPanelRecord(panelInfo.data.index_key).rangeState;
 
-        if (!hasConcretePanelRangeState(rangeState) || !panelInfo.time.useLastViewedRange) {
+        if (
+            !hasConcretePanelRangeState(rangeState) ||
+            !panelInfo.general.use_last_viewed_range
+        ) {
             await refreshFullRange(panelInfo);
             return;
         }

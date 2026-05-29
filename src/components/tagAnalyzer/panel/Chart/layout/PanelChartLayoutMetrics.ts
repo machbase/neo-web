@@ -1,5 +1,7 @@
 export const PANEL_CHART_HEIGHT = 250;
 export const PANEL_GRID_BOTTOM = 20;
+export const PANEL_GRID_SIDE = 35;
+export const PANEL_NAVIGATOR_GRID_SIDE = 58;
 export const PANEL_SLIDER_HEIGHT = 26;
 
 const PANEL_MAIN_TOP = 16;

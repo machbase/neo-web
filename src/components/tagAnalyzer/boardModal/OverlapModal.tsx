@@ -44,6 +44,10 @@ import {
     buildOverlapChartOption,
     type OverlapChartInfo,
 } from './OverlapChartOptionBuilder';
+import {
+    resolvePanelAxesForRuntime,
+    resolvePanelDataForRuntime,
+} from '../domain/PanelDomain';
 
 const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
 
@@ -76,10 +80,10 @@ function OverlapModal({
             const sChartWidth = sAreaChart.current?.clientWidth
                 ? sAreaChart.current.clientWidth
                 : 1;
-            const sLimit = panelInfo.board.data.count;
-            const sPanelBoardAxes = panelInfo.board.axes;
+            const sRuntimeData = resolvePanelDataForRuntime(panelInfo.board.data);
+            const sPanelBoardAxes = resolvePanelAxesForRuntime(panelInfo.board.axes);
             const sCount = calculateSampleCount(
-                sLimit,
+                sRuntimeData.count,
                 panelInfo.isRaw,
                 sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick,
                 sPanelBoardAxes.x_axis.raw_data_pixels_per_tick,
@@ -94,7 +98,7 @@ function OverlapModal({
             }
 
             const sTimeRange = resolveOverlapTimeRange(panelInfo, anchorPanel.duration);
-            const sPanelAxes = anchorPanel.board.axes;
+            const sPanelAxes = resolvePanelAxesForRuntime(anchorPanel.board.axes);
             const sIntervalTime = calculateInterval(
                 sTimeRange.startTime,
                 sTimeRange.endTime,
@@ -205,14 +209,14 @@ function OverlapModal({
         return (
             <OverlapTimeShiftPanel
                 pColorIndex={idx}
-                key={item.board.meta.index_key}
+                key={item.board.data.index_key}
                 pLabel={sFirstTagLabel}
                 pStart={item.start}
                 pDuration={sAnchorPanel.duration}
                 pOnShiftTime={(direction: OverlapShiftDirection, range: number) =>
-                    shiftPanelTime(item.board.meta.index_key, direction, range)
+                    shiftPanelTime(item.board.data.index_key, direction, range)
                 }
-                pOnAlignTime={() => alignPanelTime(item.board.meta.index_key)}
+                pOnAlignTime={() => alignPanelTime(item.board.data.index_key)}
             />
         );
     }

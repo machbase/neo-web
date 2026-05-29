@@ -86,7 +86,7 @@ const TagAnalyzer = ({
                 getNextBoardListWithSavedPanel(
                     prev,
                     newBoardInfo.id,
-                    panelInfo.meta.index_key,
+                    panelInfo.data.index_key,
                     panelInfo,
                 ),
             );

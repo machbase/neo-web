@@ -61,11 +61,17 @@ export function parseLoadedPanelTazVer200(
     const sNormalizedPanelInfo = normalizePersistedPanelInfoV200(panelInfo);
 
     return {
-        meta: {
-            index_key: sNormalizedPanelInfo.meta.panelKey,
+        general: {
             chart_title: sNormalizedPanelInfo.meta.chartTitle,
+            use_zoom: sNormalizedPanelInfo.display.useZoom ?? false,
+            use_last_viewed_range:
+                sNormalizedPanelInfo.time.useLastViewedRange === true,
+            last_viewed_range: sNormalizedPanelInfo.time.lastViewedRange,
+            is_raw: sNormalizedPanelInfo.toolbar.isRaw,
+            use_normalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
         },
         data: {
+            index_key: sNormalizedPanelInfo.meta.panelKey,
             tag_set: (sNormalizedPanelInfo.data.seriesList ?? []).map(
                 createSeriesInfoFromPersistedV200,
             ),
@@ -74,14 +80,8 @@ export function parseLoadedPanelTazVer200(
                 normalizeStoredTimeUnit(sNormalizedPanelInfo.data.intervalType ?? '') ??
                 sNormalizedPanelInfo.data.intervalType,
         },
-        toolbar: {
-            isRaw: sNormalizedPanelInfo.toolbar.isRaw,
-        },
         time: {
-            rangeConfig: sNormalizedPanelInfo.time.rangeConfig,
-            useLastViewedRange:
-                sNormalizedPanelInfo.time.useLastViewedRange === true,
-            lastViewedRange: sNormalizedPanelInfo.time.lastViewedRange,
+            range_config: sNormalizedPanelInfo.time.rangeConfig,
         },
         axes: {
             x_axis: {
@@ -154,7 +154,6 @@ export function parseLoadedPanelTazVer200(
         },
         display: {
             show_legend: sNormalizedPanelInfo.display.showLegend ?? false,
-            use_zoom: sNormalizedPanelInfo.display.useZoom ?? false,
             chart_type: normalizePanelEChartType(sNormalizedPanelInfo.display.chartType),
             connect_nulls: sNormalizedPanelInfo.display.connectNulls ?? false,
             show_point: sNormalizedPanelInfo.display.showPoints ?? false,
@@ -162,7 +161,6 @@ export function parseLoadedPanelTazVer200(
             fill: sNormalizedPanelInfo.display.fill ?? 0,
             stroke: sNormalizedPanelInfo.display.stroke ?? 0,
         },
-        use_normalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
         highlights: clonePanelHighlights(sNormalizedPanelInfo.highlights),
         annotations: createPanelAnnotationsFromPersistedPanel(sNormalizedPanelInfo),
     };

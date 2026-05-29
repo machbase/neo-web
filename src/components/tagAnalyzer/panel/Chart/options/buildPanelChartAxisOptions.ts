@@ -3,8 +3,8 @@ import type {
     XAXisComponentOption,
 } from 'echarts';
 import type {
-    PanelAxes,
-    PanelDisplay,
+    RuntimePanelAxes,
+    RuntimePanelDisplay,
 } from '../../../domain/PanelDomain';
 import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
@@ -44,17 +44,6 @@ const HIDDEN_AXIS_PART = {
     },
 } as const;
 
-function getSeriesValueRange(seriesData: NonEmptyChartSeriesData): [number, number] {
-    return seriesData.reduce<[number, number]>(
-        (seriesValueRange, chartRow) => {
-            if (chartRow[1] < seriesValueRange[0]) seriesValueRange[0] = chartRow[1];
-            if (chartRow[1] > seriesValueRange[1]) seriesValueRange[1] = chartRow[1];
-            return seriesValueRange;
-        },
-        [seriesData[0][1], seriesData[0][1]],
-    );
-}
-
 function getRoundedAxisStep(axisRangeValue: number): number {
     const sReferenceValue = Math.max(
         Math.abs(axisRangeValue) / PANEL_Y_AXIS_SPLIT_COUNT,
@@ -82,7 +71,13 @@ function updateAxisBounds(
     seriesData: NonEmptyChartSeriesData,
     zeroBase: boolean,
 ): void {
-    const [sSeriesMin, sSeriesMax] = getSeriesValueRange(seriesData);
+    const [sSeriesMin, sSeriesMax] = seriesData.reduce<[number, number]>(
+        (seriesValueRange, chartRow) => [
+            Math.min(seriesValueRange[0], chartRow[1]),
+            Math.max(seriesValueRange[1], chartRow[1]),
+        ],
+        [seriesData[0][1], seriesData[0][1]],
+    );
     const sMin = zeroBase ? Math.min(sSeriesMin, 0) : sSeriesMin;
     const sMax = zeroBase ? Math.max(sSeriesMax, 0) : sSeriesMax;
     if (axisBounds[0] === undefined || axisBounds[0] > sMin) axisBounds[0] = sMin;
@@ -112,7 +107,7 @@ function roundAxisBounds(axisBounds: number[]): void {
 
 function getYAxisValues(
     chartData: ChartSeriesData[],
-    axes: PanelAxes,
+    axes: RuntimePanelAxes,
 ): YAxisValueMap {
     const sYAxis: YAxisValueMap = {
         left: [] as number[],
@@ -145,25 +140,7 @@ function getYAxisValues(
     return sYAxis;
 }
 
-function getChartDataInsideRange(
-    chartData: ChartSeriesData[],
-    range: TimeRangeMs | undefined,
-): ChartSeriesData[] {
-    if (!range) {
-        return chartData;
-    }
-
-    return chartData.map((series) => ({
-        ...series,
-        data: series.data.filter(
-            ([timestamp]) =>
-                timestamp >= range.startTime &&
-                timestamp <= range.endTime,
-        ),
-    }));
-}
-
-export function resolveAxisRange(
+function resolveAxisRange(
     manualRange: { min: number; max: number },
     defaultMin: number | undefined,
     defaultMax: number | undefined,
@@ -178,8 +155,8 @@ export function resolveAxisRange(
 // Keeps the main plot and navigator x-axes locked to the same time range.
 export function buildChartXAxisOption(
     navigatorRange: TimeRangeMs,
-    display: PanelDisplay,
-    axes: PanelAxes,
+    display: RuntimePanelDisplay,
+    axes: RuntimePanelAxes,
     isNumericXAxis: boolean,
 ): XAXisComponentOption[] {
     const sAxisType: XAXisComponentOption['type'] = isNumericXAxis ? 'value' : 'time';
@@ -253,14 +230,24 @@ function buildMainYAxisOption({
 }
 
 export function buildChartYAxisOption(
-    axes: PanelAxes,
+    axes: RuntimePanelAxes,
     chartData: ChartSeriesData[],
     isRaw: boolean,
     useNormalize: boolean,
     visibleRange?: TimeRangeMs,
 ): YAXisComponentOption[] {
+    const sChartData = visibleRange
+        ? chartData.map((series) => ({
+              ...series,
+              data: series.data.filter(
+                  ([timestamp]) =>
+                      timestamp >= visibleRange.startTime &&
+                      timestamp <= visibleRange.endTime,
+              ),
+          }))
+        : chartData;
     const sYAxisValues = getYAxisValues(
-        getChartDataInsideRange(chartData, visibleRange),
+        sChartData,
         axes,
     );
     const sLeftAxisRange = resolveAxisRange(

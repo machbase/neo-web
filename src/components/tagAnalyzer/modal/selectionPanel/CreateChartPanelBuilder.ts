@@ -3,8 +3,7 @@ import { DEFAULT_VALUE_RANGE, type PanelEChartType, type PanelInfo } from '../..
 import { hasNumericBaseTimeSeries, type PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
 import { createEmptyTimeRangeConfig } from '../../domain/time/TimeRangeUtils';
-import { toLegacyFlatPanelInfo } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelMapper';
-import type { LegacyFlatPanelInfo } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelTypes';
+import type { PersistedPanelInfoV204 } from '../../persistence/TazPersistenceTypesV204';
 
 const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 const DEFAULT_PANEL_ROW_LIMIT = -1;
@@ -16,11 +15,11 @@ const DEFAULT_SAMPLING_VALUE = 0.01;
 export function buildCreateChartPanel(
     chartType: PanelEChartType,
     selectedSeriesDrafts: TagSelectionDraftItem[],
-): LegacyFlatPanelInfo {
-    return toLegacyFlatPanelInfo(createRuntimePanelInfo(
+): PersistedPanelInfoV204 {
+    return createRuntimePanelInfo(
         chartType,
         buildSeriesDefinitionsFromDrafts(selectedSeriesDrafts),
-    ));
+    );
 }
 
 function createRuntimePanelInfo(
@@ -30,22 +29,22 @@ function createRuntimePanelInfo(
     const sDisplay = createPanelDisplayForChartType(chartType);
 
     return {
-        meta: {
-            index_key: createPanelKey(),
+        general: {
             chart_title: DEFAULT_NEW_PANEL_TITLE,
+            use_zoom: true,
+            use_last_viewed_range: false,
+            last_viewed_range: undefined,
+            is_raw: hasNumericBaseTimeSeries(tagSet),
+            use_normalize: false,
         },
         data: {
+            index_key: createPanelKey(),
             tag_set: tagSet,
             count: DEFAULT_PANEL_ROW_LIMIT,
             interval_type: DEFAULT_PANEL_INTERVAL_TYPE,
         },
-        toolbar: {
-            isRaw: hasNumericBaseTimeSeries(tagSet),
-        },
         time: {
-            rangeConfig: createEmptyTimeRangeConfig(),
-            useLastViewedRange: false,
-            lastViewedRange: undefined,
+            range_config: createEmptyTimeRangeConfig(),
         },
         axes: {
             x_axis: {
@@ -67,7 +66,6 @@ function createRuntimePanelInfo(
         },
         display: {
             show_legend: true,
-            use_zoom: true,
             chart_type: chartType,
             connect_nulls: false,
             show_point: sDisplay.show_point,
@@ -75,7 +73,6 @@ function createRuntimePanelInfo(
             fill: sDisplay.fill,
             stroke: sDisplay.stroke,
         },
-        use_normalize: false,
         highlights: [],
         annotations: [],
     };

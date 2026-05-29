@@ -1,4 +1,5 @@
 import type {
+    PanelInfo,
     PanelEChartType,
     ValueRange,
 } from '../domain/PanelDomain';
@@ -134,7 +135,10 @@ export type PersistedPanelInfoV200 = {
     annotations?: PersistedPanelAnnotationInput[] | undefined;
 };
 
-export type PersistedTazPanelInfo = PersistedPanelInfoV200 | Record<string, unknown>;
+export type PersistedTazPanelInfo =
+    | PersistedPanelInfoV200
+    | PanelInfo
+    | Record<string, unknown>;
 
 export type PersistedTimeBoundaryRecord =
     | TimeRangeConfig['start']

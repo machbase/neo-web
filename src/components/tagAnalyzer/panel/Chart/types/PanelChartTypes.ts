@@ -1,8 +1,8 @@
 import type {
     PanelAnnotation,
-    PanelAxes,
-    PanelDisplay,
     PanelHighlight,
+    RuntimePanelAxes,
+    RuntimePanelDisplay,
 } from '../../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
@@ -13,8 +13,8 @@ export type ChartInfo = {
     seriesDefinitions: PanelSeriesDefinition[];
     panelRange: TimeRangeMs;
     navigatorRange: TimeRangeMs;
-    axes: PanelAxes;
-    display: PanelDisplay;
+    axes: RuntimePanelAxes;
+    display: RuntimePanelDisplay;
     isRaw: boolean;
     useNormalize: boolean;
     visibleSeries: Record<string, boolean>;

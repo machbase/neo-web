@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Checkbox, Input, Page } from '@/design-system/components';
-import type {
-    EditTabPanelType,
-    PanelEditorConfig,
-} from './EditorTypes';
+import { Button, Page } from '@/design-system/components';
+import { EditTabPanelType, type PanelEditorConfig } from './EditorTypes';
 import EditorAxesTab from './editTabs/EditorAxesTab';
 import EditorDataTab from './editTabs/EditorDataTab';
 import EditorDisplayTab from './editTabs/EditorDisplayTab';
+import EditorGeneralTab from './editTabs/EditorGeneralTab';
 import EditorTimeTab from './editTabs/EditorTimeTab';
 import {
     convertPanelStateToEditorConfig,
@@ -14,13 +12,7 @@ import {
 import { EDITOR_TABS } from './EditorConstants';
 import { hasInvalidPanelEditorAxisRange } from './PanelEditorValidation';
 import styles from './PanelEditor.module.scss';
-import type {
-    PanelAxes,
-    PanelData,
-    PanelDisplay,
-    PanelMeta,
-    PanelTime,
-} from '../../domain/PanelDomain';
+import type { PanelInfo } from '../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
@@ -43,40 +35,27 @@ function createEditorConfigDirtyKey(config: PanelEditorConfig): string {
 const PanelEditor = ({
     pOnSaveEditorConfig,
     pOnClose,
-    pPanelMeta,
-    pPanelData,
-    pPanelTime,
-    pPanelAxes,
-    pPanelDisplay,
+    pPanelInfo,
     pIsRawMode,
     pVisiblePanelRange,
 }: {
     pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnClose: () => void;
-    pPanelMeta: PanelMeta;
-    pPanelData: PanelData;
-    pPanelTime: PanelTime;
-    pPanelAxes: PanelAxes;
-    pPanelDisplay: PanelDisplay;
+    pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
     pVisiblePanelRange: TimeRangeMs;
 }) => {
     const sInitialEditorConfig = useMemo(
-        () =>
-            convertPanelStateToEditorConfig({
-                meta: pPanelMeta,
-                data: pPanelData,
-                time: pPanelTime,
-                axes: pPanelAxes,
-                display: pPanelDisplay,
-            }),
-        [pPanelAxes, pPanelData, pPanelDisplay, pPanelMeta, pPanelTime],
+        () => convertPanelStateToEditorConfig(pPanelInfo),
+        [pPanelInfo],
     );
     const sInitialEditorConfigKey = useMemo(
         () => createEditorConfigDirtyKey(sInitialEditorConfig),
         [sInitialEditorConfig],
     );
-    const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
+    const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>(
+        EditTabPanelType.General,
+    );
     const [sGeneralDraft, setGeneralDraft] = useState(
         sInitialEditorConfig.general,
     );
@@ -95,13 +74,21 @@ const PanelEditor = ({
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
     const sEditorConfig = useMemo<PanelEditorConfig>(
         () => ({
+            ...sInitialEditorConfig,
             general: sGeneralDraft,
             data: sDataDraft,
             axes: sAxesDraft,
             display: sDisplayDraft,
             time: sTimeDraft,
         }),
-        [sAxesDraft, sDataDraft, sDisplayDraft, sGeneralDraft, sTimeDraft],
+        [
+            sAxesDraft,
+            sDataDraft,
+            sDisplayDraft,
+            sGeneralDraft,
+            sInitialEditorConfig,
+            sTimeDraft,
+        ],
     );
     const sEditorConfigRef = useRef(sEditorConfig);
     sEditorConfigRef.current = sEditorConfig;
@@ -184,69 +171,20 @@ const PanelEditor = ({
         setDataDraft((prev) => ({ ...prev, tag_set: tagSet }));
     }
 
-    function setGeneralFlag(
-        field: 'use_zoom' | 'use_last_viewed_range',
-        checked: boolean,
-    ): void {
-        setGeneralDraft((prev) => ({
-            ...prev,
-            [field]: checked,
-            ...(field === 'use_last_viewed_range' && !checked
-                ? { last_viewed_range: undefined }
-                : {}),
-        }));
-    }
-
     function renderEditorTabContent() {
         if (!sEditorConfig.data.index_key) {
             throw new Error('Panel editor requires a panel index key.');
         }
 
         switch (sSelectedTab) {
-            case 'General':
+            case EditTabPanelType.General:
                 return (
-                    <section className={styles.section}>
-                        <div className={styles.sectionHeader}>
-                            <span className={styles.sectionTitle}>Chart title</span>
-                        </div>
-                        <div className={styles.controlGrid}>
-                            <Input
-                                aria-label="Chart title"
-                                value={sGeneralDraft.chart_title}
-                                onChange={(event) =>
-                                    setGeneralDraft({
-                                        ...sGeneralDraft,
-                                        chart_title: event.target.value,
-                                    })
-                                }
-                                size="md"
-                                style={{ width: '220px' }}
-                            />
-                        </div>
-                        <div className={styles.controlStack}>
-                            <Checkbox
-                                checked={sGeneralDraft.use_zoom}
-                                onChange={(event) =>
-                                    setGeneralFlag('use_zoom', event.target.checked)
-                                }
-                                label="Use Zoom when dragging"
-                                size="sm"
-                            />
-                            <Checkbox
-                                checked={sGeneralDraft.use_last_viewed_range}
-                                onChange={(event) =>
-                                    setGeneralFlag(
-                                        'use_last_viewed_range',
-                                        event.target.checked,
-                                    )
-                                }
-                                label="Keep Navigator Position"
-                                size="sm"
-                            />
-                        </div>
-                    </section>
+                    <EditorGeneralTab
+                        pGeneralConfig={sGeneralDraft}
+                        pOnChangeGeneralConfig={setGeneralDraft}
+                    />
                 );
-            case 'Data':
+            case EditTabPanelType.Data:
                 return (
                     <EditorDataTab
                         pDataDraft={sDataDraft}
@@ -255,7 +193,7 @@ const PanelEditor = ({
                         pAvailableSourceTableNames={sAvailableSourceTableNames}
                     />
                 );
-            case 'Axes':
+            case EditTabPanelType.Axes:
                 return (
                     <EditorAxesTab
                         pAxesConfig={sEditorConfig.axes}
@@ -265,14 +203,14 @@ const PanelEditor = ({
                         pOnChangeTagSet={updateTagSet}
                     />
                 );
-            case 'Display':
+            case EditTabPanelType.Display:
                 return (
                     <EditorDisplayTab
                         pDisplayConfig={sEditorConfig.display}
                         pOnChangeDisplayConfig={setDisplayDraft}
                     />
                 );
-            case 'Time':
+            case EditTabPanelType.Time:
                 return (
                     <EditorTimeTab
                         pTimeConfig={sEditorConfig.time}
@@ -294,7 +232,7 @@ const PanelEditor = ({
                             <h3 className={styles.title}>Edit panel</h3>
                             <Page.TabContainer style={{ margin: 0 }}>
                                 <Page.TabList className={styles.tabList}>
-                                    {EDITOR_TABS.map((item: EditTabPanelType) => (
+                                    {EDITOR_TABS.map((item) => (
                                         <Page.TabItem
                                             key={item}
                                             active={sSelectedTab === item}

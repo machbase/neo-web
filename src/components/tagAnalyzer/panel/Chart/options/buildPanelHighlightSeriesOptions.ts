@@ -1,12 +1,17 @@
 import type {
+    LineSeriesOption,
+    MarkAreaComponentOption,
+    ScatterSeriesOption,
     SeriesOption,
     YAXisComponentOption,
 } from 'echarts';
-import type { PanelHighlight } from '../../../domain/PanelDomain';
 import {
-    HIGHLIGHT_LABEL_SERIES_STATIC_OPTION,
-    HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
-    HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
+    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+    type PanelHighlight,
+} from '../../../domain/PanelDomain';
+import {
+    DEFAULT_NOT_SHOW,
+    HIGHLIGHT_LABEL_SERIES_ID,
     HIGHLIGHT_OUTLINE_WIDTH,
     NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
 } from './PanelChartOptionConstants';
@@ -35,6 +40,63 @@ type HighlightLabelData = Array<{
 
 type HighlightOverlayTarget = 'main' | 'navigator';
 
+const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
+
+const HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION: LineSeriesOption = {
+    id: 'highlight-overlay',
+    type: 'line',
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    data: [],
+    symbol: 'none',
+    showSymbol: false,
+    silent: true,
+    animation: false,
+    legendHoverLink: false,
+    lineStyle: { width: 0, opacity: 0 },
+    itemStyle: { opacity: 0 },
+    tooltip: DEFAULT_NOT_SHOW,
+    z: 1,
+    emphasis: { disabled: true },
+};
+
+const HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION: MarkAreaComponentOption = {
+    silent: true,
+    itemStyle: { color: 'rgba(253, 181, 50, 0.16)' },
+    label: {
+        ...DEFAULT_NOT_SHOW,
+        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+        fontSize: 10,
+    },
+};
+
+const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
+    id: HIGHLIGHT_LABEL_SERIES_ID,
+    type: 'scatter',
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    symbol: 'circle',
+    symbolSize: 0,
+    animation: false,
+    legendHoverLink: false,
+    itemStyle: {
+        color: TRANSPARENT_COLOR,
+        borderColor: TRANSPARENT_COLOR,
+    },
+    label: {
+        show: true,
+        position: 'inside',
+        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+        fontSize: 10,
+        fontWeight: 600,
+        formatter: '{b}',
+        padding: 0,
+    },
+    emphasis: { scale: false },
+    tooltip: DEFAULT_NOT_SHOW,
+    z: 3,
+};
+
 function isRenderableHighlight(highlight: PanelHighlight): boolean {
     return (
         Number.isFinite(highlight.timeRange.startTime) &&
@@ -55,8 +117,8 @@ function getHighlightAreaData(
                     ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
                     xAxis: highlight.timeRange.startTime,
                     itemStyle: {
-                        color: createHighlightOverlayColor(highlight.fillColor),
-                        borderColor: createHighlightOutlineColor(highlight.fillColor),
+                        color: createColorWithAlpha(highlight.fillColor, 0.16),
+                        borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
                         borderType: 'solid',
                         borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
                     },
@@ -94,14 +156,6 @@ function getHighlightLabelData(
                 color: highlight.textColor,
             },
         }));
-}
-
-function createHighlightOverlayColor(fillColor: string): string {
-    return createColorWithAlpha(fillColor, 0.16);
-}
-
-function createHighlightOutlineColor(fillColor: string): string {
-    return createColorWithAlpha(fillColor, 0.82);
 }
 
 function createColorWithAlpha(color: string, alpha: number): string {

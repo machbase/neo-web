@@ -6,21 +6,15 @@ import type {
 import type {
     PanelAnnotation,
 } from '../../../domain/PanelDomain';
-import type {
-    PanelSeriesDefinition,
+import {
+    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import type { ChartSeriesData } from '../../../domain/ChartDomain';
 import {
-    ANNOTATION_GUIDE_LINE_OPACITY,
-    ANNOTATION_GUIDE_LINE_WIDTH,
-    ANNOTATION_GUIDE_SERIES_ID_PREFIX,
-    ANNOTATION_LABEL_BORDER_WIDTH,
-    ANNOTATION_LABEL_FONT_SIZE,
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
-    ANNOTATION_LABEL_TEXT_COLOR,
     DEFAULT_NOT_SHOW,
-    NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
 } from './PanelChartOptionConstants';
 import {
     buildRenderableSeriesAnnotations,
@@ -45,13 +39,13 @@ type TriggerableScatterLabelOption = NonNullable<ScatterSeriesOption['label']> &
     triggerEvent: true;
 };
 
-type NavigatorAnnotationLineData = Array<{
-    xAxis: number;
-    lineStyle: {
-        color: string;
-        type: 'solid';
-    };
-}>;
+const ANNOTATION_GUIDE_LINE_OPACITY = 0.9;
+const ANNOTATION_GUIDE_LINE_WIDTH = 1.5;
+const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
+const ANNOTATION_LABEL_BORDER_WIDTH = 1;
+const ANNOTATION_LABEL_FONT_SIZE = 11;
+const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;
+const NAVIGATOR_ANNOTATION_LINE_SERIES_ID = 'navigator-annotation-lines';
 
 function buildAnnotationGuideLineData(
     annotations: RenderableSeriesAnnotation[],
@@ -175,18 +169,6 @@ function createAnnotationSeriesGroup(
     ];
 }
 
-function buildNavigatorAnnotationLineData(
-    annotations: RenderableSeriesAnnotation[],
-): NavigatorAnnotationLineData {
-    return annotations.map((annotation) => ({
-        xAxis: annotation.anchorTime,
-        lineStyle: {
-            color: annotation.fillColor,
-            type: 'solid',
-        },
-    }));
-}
-
 export function buildNavigatorAnnotationLineSeries(
     annotations: PanelAnnotation[],
     seriesDefinitions: PanelSeriesDefinition[],
@@ -195,51 +177,53 @@ export function buildNavigatorAnnotationLineSeries(
     navigatorRange: TimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
 ): SeriesOption[] {
-    const sAnnotationLines = buildNavigatorAnnotationLineData(
-        buildRenderableSeriesAnnotations(
-            annotations,
-            seriesDefinitions,
-            chartData,
-            yAxisOptions,
-            navigatorRange,
-            visibleSeries,
-        ),
-    );
+    const sAnnotationLines = buildRenderableSeriesAnnotations(
+        annotations,
+        seriesDefinitions,
+        chartData,
+        yAxisOptions,
+        navigatorRange,
+        visibleSeries,
+    ).map((annotation) => ({
+        xAxis: annotation.anchorTime,
+        lineStyle: {
+            color: annotation.fillColor,
+            type: 'solid' as const,
+        },
+    }));
 
     if (sAnnotationLines.length === 0) {
         return [];
     }
 
-    return [buildNavigatorMarkLineSeries(sAnnotationLines)];
-}
-
-function buildNavigatorMarkLineSeries(markLineData: NavigatorAnnotationLineData): SeriesOption {
-    return {
-        id: NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
-        type: 'line',
-        legendHoverLink: false,
-        silent: true,
-        xAxisIndex: 1,
-        yAxisIndex: 2,
-        data: [],
-        symbol: 'none',
-        showSymbol: false,
-        animation: false,
-        tooltip: DEFAULT_NOT_SHOW,
-        lineStyle: { width: 0, opacity: 0 },
-        itemStyle: { opacity: 0 },
-        markLine: {
+    return [
+        {
+            id: NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
+            type: 'line',
+            legendHoverLink: false,
             silent: true,
+            xAxisIndex: 1,
+            yAxisIndex: 2,
+            data: [],
             symbol: 'none',
-            label: DEFAULT_NOT_SHOW,
-            lineStyle: { width: 2, opacity: 0.95, type: 'solid' },
-            data: markLineData,
+            showSymbol: false,
+            animation: false,
+            tooltip: DEFAULT_NOT_SHOW,
+            lineStyle: { width: 0, opacity: 0 },
+            itemStyle: { opacity: 0 },
+            markLine: {
+                silent: true,
+                symbol: 'none',
+                label: DEFAULT_NOT_SHOW,
+                lineStyle: { width: 2, opacity: 0.95, type: 'solid' },
+                data: sAnnotationLines,
+            },
+            z: 5,
+            emphasis: {
+                disabled: true,
+            },
         },
-        z: 5,
-        emphasis: {
-            disabled: true,
-        },
-    };
+    ];
 }
 
 function createAnnotationBorderColor(fillColor: string): string {

@@ -1,12 +1,15 @@
-import type { SeriesOption } from 'echarts';
 import type {
-    PanelAxes,
-    PanelDisplay,
+    LineSeriesOption,
+    SeriesOption,
+} from 'echarts';
+import type {
+    RuntimePanelAxes,
+    RuntimePanelDisplay,
 } from '../../../domain/PanelDomain';
 import {
     getPanelSeriesDisplayColor,
 } from '../../../domain/SeriesDomain';
-import type { ChartSeriesData } from '../../../domain/ChartDomain';
+import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
 import {
     MAIN_PANEL_SERIES_ID_PREFIX,
     PANEL_HOVER_SYMBOL_SIZE,
@@ -14,13 +17,28 @@ import {
     PANEL_LEGEND_FADE_ITEM_OPACITY,
     PANEL_LEGEND_FADE_LINE_OPACITY,
     PANEL_LEGEND_FADE_MARK_LINE_OPACITY,
+    PANEL_NAVIGATOR_ACTIVE_OPACITY,
+    PANEL_NAVIGATOR_FADE_OPACITY,
 } from './PanelChartOptionConstants';
-import { buildPanelLineSeriesOption } from './buildPanelLineSeriesOption';
 
 type ThresholdMarkLineData = Array<{ yAxis: number }>;
 
+function buildPanelLineSeriesOption({
+    data,
+    ...option
+}: LineSeriesOption & { data: ChartRow[] }): SeriesOption {
+    return {
+        type: 'line',
+        legendHoverLink: false,
+        data,
+        animation: false,
+        sampling: data.length > 1000 ? 'lttb' : undefined,
+        ...option,
+    };
+}
+
 function buildThresholdMarkLineData(
-    axis: PanelAxes['left_y_axis'],
+    axis: RuntimePanelAxes['left_y_axis'],
 ): ThresholdMarkLineData {
     return [
         axis.upper_control_limit.enabled
@@ -34,8 +52,8 @@ function buildThresholdMarkLineData(
 
 export function buildMainSeriesOption(
     chartData: ChartSeriesData[],
-    display: PanelDisplay,
-    axes: PanelAxes,
+    display: RuntimePanelDisplay,
+    axes: RuntimePanelAxes,
     hoveredLegendSeries?: string | undefined,
 ): SeriesOption[] {
     return chartData.map((series, seriesIndex) => {
@@ -73,6 +91,9 @@ export function buildMainSeriesOption(
             data: series.data,
             xAxisIndex: 0,
             yAxisIndex: sYAxisIndex,
+            symbol: 'circle',
+            showSymbol: display.show_point,
+            symbolSize: sSymbolSize,
             lineStyle: {
                 width: sSeriesStroke,
                 color: sSeriesColor,
@@ -82,30 +103,66 @@ export function buildMainSeriesOption(
                 color: sSeriesColor,
                 opacity: sItemOpacity,
             },
-            extra: {
-                symbol: 'circle',
-                showSymbol: display.show_point,
-                symbolSize: sSymbolSize,
-                areaStyle:
-                    display.fill > 0
-                        ? { opacity: sAreaOpacity, color: sSeriesColor }
-                        : undefined,
-                connectNulls: display.connect_nulls,
-                triggerLineEvent: true,
-                z: sIsHoveredSeries ? 4 : 2,
-                markLine:
-                    sMarkLineData.length > 0
-                        ? {
-                              silent: true,
-                              symbol: 'none',
-                              lineStyle: {
-                                  width: 1,
-                                  opacity: sMarkLineOpacity,
-                              },
-                              label: { show: false },
-                              data: sMarkLineData,
-                          }
-                        : undefined,
+            areaStyle:
+                display.fill > 0
+                    ? { opacity: sAreaOpacity, color: sSeriesColor }
+                    : undefined,
+            connectNulls: display.connect_nulls,
+            triggerLineEvent: true,
+            z: sIsHoveredSeries ? 4 : 2,
+            markLine:
+                sMarkLineData.length > 0
+                    ? {
+                          silent: true,
+                          symbol: 'none',
+                          lineStyle: {
+                              width: 1,
+                              opacity: sMarkLineOpacity,
+                          },
+                          label: { show: false },
+                          data: sMarkLineData,
+                      }
+                    : undefined,
+        });
+    });
+}
+
+export function buildNavigatorSeriesOption(
+    chartData: ChartSeriesData[],
+    hoveredLegendSeries?: string | undefined,
+): SeriesOption[] {
+    return chartData.map((series, seriesIndex) => {
+        const sIsLegendHoverActive = Boolean(hoveredLegendSeries);
+        const sIsHoveredSeries = hoveredLegendSeries === series.name;
+        const sOpacity =
+            !sIsLegendHoverActive || sIsHoveredSeries
+                ? PANEL_NAVIGATOR_ACTIVE_OPACITY
+                : PANEL_NAVIGATOR_FADE_OPACITY;
+        const sSeriesColor = getPanelSeriesDisplayColor(series, seriesIndex);
+
+        return buildPanelLineSeriesOption({
+            id: `navigator-series-${seriesIndex}`,
+            name: series.name,
+            data: series.data,
+            xAxisIndex: 1,
+            yAxisIndex: 2,
+            showSymbol: false,
+            silent: true,
+            tooltip: {
+                show: false,
+            },
+            lineStyle: {
+                width: sIsHoveredSeries ? 2 : 1,
+                color: sSeriesColor,
+                opacity: sOpacity,
+            },
+            itemStyle: {
+                color: sSeriesColor,
+                opacity: sOpacity,
+            },
+            z: sIsHoveredSeries ? 3 : 1,
+            emphasis: {
+                disabled: true,
             },
         });
     });

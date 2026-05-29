@@ -46,7 +46,7 @@ const PanelFooter = ({
     pIsLoading,
     pOnNavigatorRangeChange,
     pNavigatorShiftActions,
-    pNavigatorZoomActions,
+    pZoomActions,
     pIsNumericXAxis,
 }: {
     pShowLegend: boolean;
@@ -54,7 +54,7 @@ const PanelFooter = ({
     pIsLoading: boolean;
     pOnNavigatorRangeChange: PanelRangeHandlers['onNavigatorRangeChange'];
     pNavigatorShiftActions: PanelNavigatorShiftActions;
-    pNavigatorZoomActions: PanelZoomActions;
+    pZoomActions: PanelZoomActions;
     pIsNumericXAxis: boolean;
 }) => {
     const [rangeEditor, setRangeEditor] = useState<NavigatorRangeEditor | undefined>(
@@ -69,11 +69,11 @@ const PanelFooter = ({
         Number.isFinite(pNavigatorRange.endTime) &&
         pNavigatorRange.endTime > pNavigatorRange.startTime;
     const navigatorControls = [
-        { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomIn(0.4) },
-        { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomIn(0.2) },
-        { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: pNavigatorZoomActions.onFocus },
-        { key: 'zoomOut2', tooltip: 'Zoom out', icon: <img src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomOut(0.2) },
-        { key: 'zoomOut4', tooltip: 'Zoom out', icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomOut(0.4) },
+        { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.4) },
+        { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.2) },
+        { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: pZoomActions.onFocus },
+        { key: 'zoomOut2', tooltip: 'Zoom out', icon: <img src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomOut(0.2) },
+        { key: 'zoomOut4', tooltip: 'Zoom out', icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomOut(0.4) },
     ];
 
     function openNavigatorRangeEditor(

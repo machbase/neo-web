@@ -1,65 +1,25 @@
-import type { PanelDisplay } from '../../domain/PanelDomain';
-import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
-import type { PanelNavigatorRangePair, TimeRangeConfig } from '../../domain/time/TimeTypes';
+import type {
+    PanelAxes,
+    PanelDisplay,
+    PanelInfo,
+    PanelYAxis,
+} from '../../domain/PanelDomain';
 
-export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
+export enum EditTabPanelType {
+    General = 'General',
+    Data = 'Data',
+    Axes = 'Axes',
+    Display = 'Display',
+    Time = 'Time',
+}
 
-export type EditorNumberInputValue = number | '';
+export type PanelYAxisDraft = PanelYAxis;
 
-export type PanelAxisRangeDraft = { min: EditorNumberInputValue; max: EditorNumberInputValue };
+export type PanelSamplingDraft = PanelAxes['sampling'];
 
-export type PanelAxisThresholdDraft = { enabled: boolean; value: EditorNumberInputValue };
+export type PanelAxesDraft = PanelAxes;
 
-export type PanelYAxisDraft = {
-    zero_base: boolean;
-    show_tickline: boolean;
-    value_range: PanelAxisRangeDraft;
-    raw_data_value_range: PanelAxisRangeDraft;
-    upper_control_limit: PanelAxisThresholdDraft;
-    lower_control_limit: PanelAxisThresholdDraft;
-};
+export type PanelDisplayDraft = PanelDisplay;
 
-export type PanelXAxisDraft = {
-    show_tickline: boolean;
-    raw_data_pixels_per_tick: EditorNumberInputValue;
-    calculated_data_pixels_per_tick: EditorNumberInputValue;
-};
-
-export type PanelSamplingDraft = {
-    enabled: boolean;
-    sample_count: EditorNumberInputValue;
-};
-
-export type PanelAxesDraft = {
-    x_axis: PanelXAxisDraft;
-    sampling: PanelSamplingDraft;
-    main_chart_sampling: PanelSamplingDraft;
-    left_y_axis: PanelYAxisDraft;
-    right_y_axis: PanelYAxisDraft;
-    right_y_axis_enabled: boolean;
-};
-
-export type PanelDisplayDraft = Omit<PanelDisplay, 'point_radius' | 'fill' | 'stroke'> & {
-    point_radius: EditorNumberInputValue;
-    fill: EditorNumberInputValue;
-    stroke: EditorNumberInputValue;
-};
-
-export type PanelEditorConfig = {
-    general: {
-        chart_title: string;
-        use_zoom: boolean;
-        use_last_viewed_range: boolean;
-        last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
-    };
-    data: {
-        index_key: string;
-        tag_set: PanelSeriesDefinition[];
-    };
-    axes: PanelAxesDraft;
-    display: PanelDisplayDraft;
-    time: {
-        range_config: TimeRangeConfig;
-    };
-};
+export type PanelEditorConfig = PanelInfo;
 

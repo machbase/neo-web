@@ -1,6 +1,4 @@
-import type { EditorNumberInputValue } from './EditorTypes';
-
-export const parseEditorNumber = (value: string): EditorNumberInputValue => {
-    return value === '' ? '' : Number(value);
+export const parseEditorNumber = (value: string): number | undefined => {
+    return value === '' ? undefined : Number(value);
 };
 

@@ -1,181 +1,38 @@
-import type {
-    PanelAxes,
-    PanelData,
-    PanelDisplay,
-    PanelMeta,
-    PanelTime,
-    PanelYAxis,
-} from '../../domain/PanelDomain';
-import type {
-    EditorNumberInputValue,
-    PanelAxesDraft,
-    PanelDisplayDraft,
-    PanelEditorConfig,
-    PanelYAxisDraft,
-} from './EditorTypes';
+import type { PanelInfo } from '../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import type { PanelEditorConfig } from './EditorTypes';
 
-export type PanelEditorPanelState = {
-    meta: PanelMeta;
-    data: PanelData;
-    time: PanelTime;
-    axes: PanelAxes;
-    display: PanelDisplay;
-};
+export type PanelEditorPanelState = PanelInfo;
 
-export function convertPanelStateToEditorConfig({
-    meta,
-    data,
-    time,
-    axes,
-    display,
-}: PanelEditorPanelState): PanelEditorConfig {
+export function convertPanelStateToEditorConfig(
+    panelInfo: PanelInfo,
+): PanelEditorConfig {
     return {
-        general: {
-            chart_title: meta.chart_title,
-            use_zoom: display.use_zoom,
-            use_last_viewed_range: time.useLastViewedRange,
-            last_viewed_range: time.lastViewedRange,
-        },
+        ...panelInfo,
         data: {
-            index_key: meta.index_key,
+            ...panelInfo.data,
             tag_set: normalizeTagSetForRightYAxis(
-                data.tag_set,
-                axes.right_y_axis_enabled,
+                panelInfo.data.tag_set,
+                panelInfo.axes.right_y_axis_enabled,
             ),
-        },
-        axes: {
-            x_axis: {
-                show_tickline: axes.x_axis.show_tickline,
-                raw_data_pixels_per_tick: axes.x_axis.raw_data_pixels_per_tick,
-                calculated_data_pixels_per_tick:
-                    axes.x_axis.calculated_data_pixels_per_tick,
-            },
-            sampling: {
-                enabled: true,
-                sample_count: axes.sampling.sample_count,
-            },
-            main_chart_sampling: {
-                enabled: axes.main_chart_sampling.enabled,
-                sample_count: axes.main_chart_sampling.sample_count,
-            },
-            left_y_axis: createYAxisDraft(axes.left_y_axis),
-            right_y_axis: createYAxisDraft(axes.right_y_axis),
-            right_y_axis_enabled: axes.right_y_axis_enabled,
-        },
-        display: display,
-        time: {
-            range_config: time.rangeConfig,
         },
     };
 }
 
 export function mergeEditorConfigIntoPanelState(
-    basePanelState: PanelEditorPanelState,
+    _basePanelState: PanelEditorPanelState,
     editorConfig: PanelEditorConfig,
 ): PanelEditorPanelState {
     return {
-        ...basePanelState,
-        meta: {
-            ...basePanelState.meta,
-            index_key: editorConfig.data.index_key,
-            chart_title: editorConfig.general.chart_title,
-        },
+        ...editorConfig,
         data: {
-            ...basePanelState.data,
+            ...editorConfig.data,
             tag_set: normalizeTagSetForRightYAxis(
                 editorConfig.data.tag_set,
                 editorConfig.axes.right_y_axis_enabled,
             ),
         },
-        time: {
-            ...basePanelState.time,
-            rangeConfig: editorConfig.time.range_config,
-            useLastViewedRange: editorConfig.general.use_last_viewed_range,
-            lastViewedRange: editorConfig.general.last_viewed_range,
-        },
-        axes: mergeAxesDraftIntoPanelAxes(editorConfig.axes),
-        display: {
-            ...mergeDisplayDraftIntoPanelDisplay(editorConfig.display),
-            use_zoom: editorConfig.general.use_zoom,
-        },
     };
-}
-
-function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
-    return {
-        x_axis: {
-            show_tickline: axesDraft.x_axis.show_tickline,
-            raw_data_pixels_per_tick: normalizeDraftNumber(
-                axesDraft.x_axis.raw_data_pixels_per_tick,
-            ),
-            calculated_data_pixels_per_tick: normalizeDraftNumber(
-                axesDraft.x_axis.calculated_data_pixels_per_tick,
-            ),
-        },
-        sampling: {
-            enabled: true,
-            sample_count: normalizeDraftNumber(axesDraft.sampling.sample_count),
-        },
-        main_chart_sampling: {
-            enabled: axesDraft.main_chart_sampling.enabled,
-            sample_count: normalizeDraftNumber(
-                axesDraft.main_chart_sampling.sample_count,
-            ),
-        },
-        left_y_axis: mergeYAxisDraftIntoPanelYAxis(axesDraft.left_y_axis),
-        right_y_axis: mergeYAxisDraftIntoPanelYAxis(axesDraft.right_y_axis),
-        right_y_axis_enabled: axesDraft.right_y_axis_enabled,
-    };
-}
-
-function createYAxisDraft(axis: PanelYAxis): PanelYAxisDraft {
-    return {
-        zero_base: axis.zero_base,
-        show_tickline: axis.show_tickline,
-        value_range: { ...axis.value_range },
-        raw_data_value_range: { ...axis.raw_data_value_range },
-        upper_control_limit: { ...axis.upper_control_limit },
-        lower_control_limit: { ...axis.lower_control_limit },
-    };
-}
-
-function mergeYAxisDraftIntoPanelYAxis(axisDraft: PanelYAxisDraft): PanelYAxis {
-    return {
-        zero_base: axisDraft.zero_base,
-        show_tickline: axisDraft.show_tickline,
-        value_range: {
-            min: normalizeDraftNumber(axisDraft.value_range.min),
-            max: normalizeDraftNumber(axisDraft.value_range.max),
-        },
-        raw_data_value_range: {
-            min: normalizeDraftNumber(axisDraft.raw_data_value_range.min),
-            max: normalizeDraftNumber(axisDraft.raw_data_value_range.max),
-        },
-        upper_control_limit: {
-            enabled: axisDraft.upper_control_limit.enabled,
-            value: normalizeDraftNumber(axisDraft.upper_control_limit.value),
-        },
-        lower_control_limit: {
-            enabled: axisDraft.lower_control_limit.enabled,
-            value: normalizeDraftNumber(axisDraft.lower_control_limit.value),
-        },
-    };
-}
-
-function mergeDisplayDraftIntoPanelDisplay(
-    displayDraft: PanelDisplayDraft,
-): PanelDisplay {
-    return {
-        ...displayDraft,
-        point_radius: normalizeDraftNumber(displayDraft.point_radius),
-        fill: normalizeDraftNumber(displayDraft.fill),
-        stroke: normalizeDraftNumber(displayDraft.stroke),
-    };
-}
-
-function normalizeDraftNumber(value: EditorNumberInputValue): number {
-    return value === '' ? 0 : value;
 }
 
 function normalizeTagSetForRightYAxis(
@@ -189,6 +46,3 @@ function normalizeTagSetForRightYAxis(
               useSecondaryAxis: false,
           }));
 }
-
-
-

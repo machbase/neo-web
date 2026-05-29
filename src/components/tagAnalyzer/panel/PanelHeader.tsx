@@ -36,6 +36,7 @@ export enum PanelActionKey {
     OPEN_EXPORT_CSV = 'OPEN_EXPORT_CSV',
     OPEN_DELETE_CONFIRM = 'OPEN_DELETE_CONFIRM',
 }
+
 enum PanelActionPriority {
     PRIMARY = 'primary',
     SECONDARY = 'secondary',

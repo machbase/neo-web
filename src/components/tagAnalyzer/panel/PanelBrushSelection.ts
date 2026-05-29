@@ -31,8 +31,6 @@ type PanelBrushSelectionContext = {
     overlayMode: PanelOverlayMode;
     isNumericXAxis: boolean;
     createHighlightFromSelection: (startTime: number, endTime: number) => void;
-    closeContextMenu: () => void;
-    closeAnnotationMode: () => void;
     onSelectionSummaryChange: (selectionSummary: PanelSelectionSummary) => void;
 };
 
@@ -43,15 +41,11 @@ export function handlePanelBrushSelection({
     overlayMode,
     isNumericXAxis,
     createHighlightFromSelection,
-    closeContextMenu,
-    closeAnnotationMode,
     onSelectionSummaryChange,
 }: PanelBrushSelectionContext, event: PanelBrushSelectionEvent): boolean {
     const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
 
     if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
-        closeContextMenu();
-        closeAnnotationMode();
         createHighlightFromSelection(
             sSelectionRange.startTime,
             sSelectionRange.endTime,

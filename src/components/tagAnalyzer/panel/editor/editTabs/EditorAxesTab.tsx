@@ -4,7 +4,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { EDITOR_AXIS_COMPACT_INPUT_STYLE, EDITOR_AXIS_THRESHOLD_INPUT_STYLE, EDITOR_RIGHT_AXIS_TRIGGER_STYLE, EDITOR_X_AXIS_INPUT_STYLE } from '../EditorConstants';
 import type {
-    EditorNumberInputValue,
     PanelAxesDraft,
     PanelSamplingDraft,
     PanelYAxisDraft,
@@ -51,8 +50,8 @@ function NumberInput({
     size = 'sm',
     error,
 }: {
-    value: EditorNumberInputValue;
-    onChange: (value: EditorNumberInputValue) => void;
+    value: number | undefined;
+    onChange: (value: number | undefined) => void;
     disabled?: boolean;
     style?: CSSProperties;
     label?: string;
@@ -65,7 +64,7 @@ function NumberInput({
             labelPosition={label ? 'left' : undefined}
             type="number"
             disabled={disabled}
-            value={value}
+            value={value ?? ''}
             variant={error ? 'error' : 'default'}
             aria-invalid={error}
             onChange={(event) => onChange(parseEditorNumber(event.target.value))}
@@ -113,10 +112,6 @@ const EditorAxesTab = ({
     pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
 }) => {
-    const rightEnabled = pAxesConfig.right_y_axis_enabled;
-    const rawDisabled = !pIsRawMode;
-    const calcDisabled = pIsRawMode;
-    const samplingDisabled = !pIsRawMode;
     const patchAxis = <K extends AxisKey>(key: K, patch: Partial<PanelAxesDraft[K]>) =>
         pOnChangeAxesConfig({ ...pAxesConfig, [key]: { ...pAxesConfig[key], ...patch } });
     const patchYAxis = (key: YAxisKey, patch: Partial<PanelYAxisDraft>) =>
@@ -168,7 +163,7 @@ const EditorAxesTab = ({
         disabled: boolean,
     ) => {
         const error = !disabled && isAxisRangeInvalid(axis[rangeKey]);
-        const setEdge = (edge: 'min' | 'max', value: EditorNumberInputValue) =>
+        const setEdge = (edge: 'min' | 'max', value: number | undefined) =>
             patchYAxis(axisKey, { [rangeKey]: { ...axis[rangeKey], [edge]: value } });
 
         return (
@@ -234,7 +229,7 @@ const EditorAxesTab = ({
         );
     };
     const renderRightAxisSeries = () => (
-        <div className={cx(styles.rightAxisSeries, !rightEnabled && styles.disabledControl)}>
+        <div className={cx(styles.rightAxisSeries, !pAxesConfig.right_y_axis_enabled && styles.disabledControl)}>
             <Dropdown.Root
                 options={pTagSet
                     .filter((item) => !item.useSecondaryAxis)
@@ -244,7 +239,7 @@ const EditorAxesTab = ({
                     }))}
                 value="none"
                 onChange={(value) => value !== 'none' && setSeriesAxis(value, true)}
-                disabled={!rightEnabled}
+                disabled={!pAxesConfig.right_y_axis_enabled}
             >
                 <Dropdown.Trigger style={EDITOR_RIGHT_AXIS_TRIGGER_STYLE} />
                 <Dropdown.Menu>
@@ -277,7 +272,7 @@ const EditorAxesTab = ({
             <Section title={title}>
                 {axisKey === 'right_y_axis' && (
                     <Checkbox
-                        checked={rightEnabled}
+                        checked={pAxesConfig.right_y_axis_enabled}
                         onChange={(event) => setRightEnabled(event.target.checked)}
                         label="Enable right Y-axis"
                         size="sm"
@@ -318,40 +313,40 @@ const EditorAxesTab = ({
                     size="sm"
                 />
                 <span className={styles.sectionSubTitle}>Raw</span>
-                {xNumber('raw_data_pixels_per_tick', rawDisabled)}
+                {xNumber('raw_data_pixels_per_tick', !pIsRawMode)}
                 <SamplingRow
                     anchorClass="main-chart-sampling-tooltip"
                     label="Use main chart sampling"
                     content="Main raw chart data uses this as the database sampling value instead of only the raw pixel row cap."
-                    disabled={samplingDisabled}
+                    disabled={!pIsRawMode}
                 >
                     <Checkbox
                         checked={pAxesConfig.main_chart_sampling.enabled}
                         onChange={(event) =>
                             patchAxis('main_chart_sampling', { enabled: event.target.checked })
                         }
-                        disabled={samplingDisabled}
+                        disabled={!pIsRawMode}
                         size="sm"
                     />
                     {samplingNumber(
                         'main_chart_sampling',
                         pAxesConfig.main_chart_sampling,
-                        samplingDisabled || !pAxesConfig.main_chart_sampling.enabled,
+                        !pIsRawMode || !pAxesConfig.main_chart_sampling.enabled,
                     )}
                 </SamplingRow>
                 <SamplingRow
                     anchorClass="navigation-sampling-tooltip"
                     label="Navigation sampling"
                     content="Raw navigator data always uses this as the database sampling value."
-                    disabled={samplingDisabled}
+                    disabled={!pIsRawMode}
                 >
-                    {samplingNumber('sampling', pAxesConfig.sampling, samplingDisabled)}
+                    {samplingNumber('sampling', pAxesConfig.sampling, !pIsRawMode)}
                 </SamplingRow>
                 <span className={styles.sectionSubTitle}>Calculation</span>
-                {xNumber('calculated_data_pixels_per_tick', calcDisabled)}
+                {xNumber('calculated_data_pixels_per_tick', pIsRawMode)}
             </Section>
             {renderYAxis('Left Y-Axis', 'left_y_axis')}
-            {renderYAxis('Right Y-Axis', 'right_y_axis', !rightEnabled)}
+            {renderYAxis('Right Y-Axis', 'right_y_axis', !pAxesConfig.right_y_axis_enabled)}
         </div>
     );
 };

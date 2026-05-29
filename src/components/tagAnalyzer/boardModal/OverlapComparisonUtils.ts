@@ -24,7 +24,7 @@ export function shiftOverlapPanels(
     range: number,
 ): OverlapPanelInfo[] {
     return panelsInfo.map((item) =>
-        panelKey === item.board.meta.index_key
+        panelKey === item.board.data.index_key
             ? {
                   ...item,
                   start: shiftTimestamp(
@@ -41,7 +41,7 @@ export function alignOverlapPanelsToReference(
     referencePanelKey: string,
 ): OverlapPanelInfo[] {
     const sReferencePanel = panelsInfo.find(
-        (item) => item.board.meta.index_key === referencePanelKey,
+        (item) => item.board.data.index_key === referencePanelKey,
     );
 
     if (!sReferencePanel) {
@@ -67,7 +67,7 @@ export function hasOverlapPanelDraftChanged(
 
         return (
             !sAppliedPanel ||
-            sAppliedPanel.board.meta.index_key !== draftPanel.board.meta.index_key ||
+            sAppliedPanel.board.data.index_key !== draftPanel.board.data.index_key ||
             sAppliedPanel.start !== draftPanel.start ||
             sAppliedPanel.duration !== draftPanel.duration ||
             sAppliedPanel.isRaw !== draftPanel.isRaw

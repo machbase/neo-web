@@ -13,10 +13,10 @@ function getPanelStateWithoutNavigatorPersistence(
 ): PanelEditorPanelState {
     return {
         ...panelState,
-        time: {
-            ...panelState.time,
-            useLastViewedRange: false,
-            lastViewedRange: undefined,
+        general: {
+            ...panelState.general,
+            use_last_viewed_range: false,
+            last_viewed_range: undefined,
         },
     };
 }
@@ -36,8 +36,8 @@ function hasPanelTimeRangeConfigChanged(
     nextPanelState: PanelEditorPanelState,
 ): boolean {
     return (
-        JSON.stringify(currentPanelState.time.rangeConfig) !==
-        JSON.stringify(nextPanelState.time.rangeConfig)
+        JSON.stringify(currentPanelState.time.range_config) !==
+        JSON.stringify(nextPanelState.time.range_config)
     );
 }
 
@@ -75,13 +75,7 @@ export function usePanelEditor({
     }
 
     function saveEditedPanelConfig(editorConfig: PanelEditorConfig): void {
-        const sCurrentPanelState = {
-            meta: panelInfo.meta,
-            data: panelInfo.data,
-            time: panelInfo.time,
-            axes: panelInfo.axes,
-            display: panelInfo.display,
-        };
+        const sCurrentPanelState = panelInfo;
         const sNextPanelState = mergeEditorConfigIntoPanelState(
             sCurrentPanelState,
             editorConfig,
@@ -91,7 +85,7 @@ export function usePanelEditor({
             sNextPanelState,
         );
         const sLastViewedRange =
-            sNextPanelState.time.useLastViewedRange &&
+            sNextPanelState.general.use_last_viewed_range &&
             !sHasTimeRangeConfigChanged &&
             isConcreteTimeRange(panelRange) &&
             isConcreteTimeRange(navigatorRange)
@@ -100,12 +94,11 @@ export function usePanelEditor({
                       navigatorRange,
                   }
                 : undefined;
-        const sNextPanelInfo = {
-            ...panelInfo,
+        const sNextPanelInfo: PanelInfo = {
             ...sNextPanelState,
-            time: {
-                ...sNextPanelState.time,
-                lastViewedRange: sLastViewedRange,
+            general: {
+                ...sNextPanelState.general,
+                last_viewed_range: sLastViewedRange,
             },
         };
 

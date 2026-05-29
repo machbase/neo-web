@@ -128,7 +128,7 @@ const EditorDisplayTab = ({
                             label={label}
                             labelPosition="left"
                             type="number"
-                            value={pDisplayConfig[field]}
+                            value={pDisplayConfig[field] ?? ''}
                             onChange={(event) =>
                                 updateCustomStyle({
                                     [field]: parseEditorNumber(event.target.value),

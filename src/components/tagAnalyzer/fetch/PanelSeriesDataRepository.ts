@@ -1,8 +1,8 @@
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import type {
-    PanelSampling,
-    PanelXAxis,
+    RuntimePanelSampling,
+    RuntimePanelXAxis,
 } from '../domain/PanelDomain';
 import {
     isBaseTimeSourceColumns,
@@ -47,8 +47,8 @@ export async function fetchMainPanelSeriesRows(
     seriesConfigSet: PanelSeriesDefinition[],
     queryLimit: number,
     intervalType: string | undefined,
-    xAxis: PanelXAxis,
-    mainChartSampling: PanelSampling,
+    xAxis: RuntimePanelXAxis,
+    mainChartSampling: RuntimePanelSampling,
     chartWidth: number,
     requestedRawMode: boolean,
     timeRange: TimeRangeMs,
@@ -118,8 +118,8 @@ export async function fetchNavigatorPanelSeriesRows(
     seriesConfigSet: PanelSeriesDefinition[],
     queryLimit: number,
     intervalType: string | undefined,
-    xAxis: PanelXAxis,
-    navigatorSampling: PanelSampling,
+    xAxis: RuntimePanelXAxis,
+    navigatorSampling: RuntimePanelSampling,
     chartWidth: number,
     requestedRawMode: boolean,
     timeRange: TimeRangeMs,
@@ -273,7 +273,7 @@ function resolveRawFetchSampling(
 
 function resolvePanelFetchInterval(
     intervalType: string | undefined,
-    xAxis: PanelXAxis,
+    xAxis: RuntimePanelXAxis,
     timeRange: TimeRangeMs,
     chartWidth: number,
     fetchRawMode: boolean,

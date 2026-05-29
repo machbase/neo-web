@@ -11,11 +11,12 @@ import {
 } from './PanelNavigatorRangeLimits';
 import {
     createInitialBoardPanelRecord,
-    PanelChartLoadStatus,
     type BoardPanelRecord,
-    type PanelChartDataState,
 } from './BoardPanelState';
-import { useBoardPanelChartDataFetching } from './useBoardPanelChartDataFetching';
+import {
+    createPanelDataRefreshPolicy,
+    type PanelRangeRefreshOptions,
+} from '../panel/PanelDataRuntimeState';
 import { useBoardPanelRangeMutation } from './useBoardPanelRangeMutation';
 
 export function useTagAnalyzerBoardPanels({
@@ -65,39 +66,6 @@ export function useTagAnalyzerBoardPanels({
         }));
     }
 
-    function updateChartDataState(
-        panelKey: string,
-        patch: Partial<PanelChartDataState>,
-    ): void {
-        updateBoardPanelRecord(panelKey, (record) => ({
-            ...record,
-            chartDataState: {
-                ...record.chartDataState,
-                ...patch,
-            },
-        }));
-    }
-
-    function setChartLoadStatus(
-        panelKey: string,
-        chartLoadStatus: PanelChartLoadStatus,
-    ): void {
-        updateBoardPanelRecord(panelKey, (record) => ({
-            ...record,
-            chartLoadStatus,
-        }));
-    }
-
-    function setNavigatorLoadStatus(
-        panelKey: string,
-        navigatorLoadStatus: PanelChartLoadStatus,
-    ): void {
-        updateBoardPanelRecord(panelKey, (record) => ({
-            ...record,
-            navigatorLoadStatus,
-        }));
-    }
-
     function setChartAreaWidth(
         panelKey: string,
         chartAreaWidth: number | undefined,
@@ -110,14 +78,6 @@ export function useTagAnalyzerBoardPanels({
             ...record,
             chartAreaWidth,
         }));
-    }
-
-    function getChartLoadWidth(panelKey: string): number {
-        const sChartAreaWidth = getBoardPanelRecord(panelKey).chartAreaWidth;
-
-        return typeof sChartAreaWidth === 'number' && sChartAreaWidth > 0
-            ? sChartAreaWidth
-            : 1;
     }
 
     function normalizeNavigatorRangeForVisiblePanel(
@@ -140,16 +100,21 @@ export function useTagAnalyzerBoardPanels({
               );
     }
 
-    const chartDataFetching = useBoardPanelChartDataFetching({
-        context: { rollupTableList },
-        panelStore: {
-            getBoardPanelRecord,
-            getChartLoadWidth,
-            normalizeNavigatorRangeForVisiblePanel,
-            updateChartDataState,
-        },
-        statusStore: { setChartLoadStatus, setNavigatorLoadStatus },
-    });
+    function requestDataRefresh(
+        panelKey: string,
+        options: PanelRangeRefreshOptions = {},
+    ): void {
+        if (options.skipDataRefresh) {
+            return;
+        }
+
+        updateBoardPanelRecord(panelKey, (record) => ({
+            ...record,
+            dataRefreshVersion: record.dataRefreshVersion + 1,
+            dataRefreshPolicy: createPanelDataRefreshPolicy(options),
+        }));
+    }
+
     const rangeMutation = useBoardPanelRangeMutation({
         context: { boardTime, globalTimeRange, isActiveTab },
         panelStore: {
@@ -157,8 +122,8 @@ export function useTagAnalyzerBoardPanels({
             updateRangeState,
             setChartAreaWidth,
             normalizeNavigatorRangeForVisiblePanel,
+            requestDataRefresh,
         },
-        dataLoaders: chartDataFetching,
         persistence: { onAppliedRange },
     });
     function refreshAllPanelData(): void {
@@ -184,7 +149,10 @@ export function useTagAnalyzerBoardPanels({
     }
 
     return {
-        getPanelContainerRuntimeProps: rangeMutation.getPanelContainerRuntimeProps,
+        getPanelContainerRuntimeProps: (panelInfo: PanelInfo) => ({
+            ...rangeMutation.getPanelContainerRuntimeProps(panelInfo),
+            rollupTableList,
+        }),
         handlePanelChartAreaWidthChange:
             rangeMutation.handleChartAreaWidthChange,
         refreshPanelData: rangeMutation.refreshDataRange,

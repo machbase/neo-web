@@ -1,7 +1,7 @@
 import ReactECharts from 'echarts-for-react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
-import { PANEL_GRID_SIDE } from './Chart/options/PanelChartOptionConstants';
+import { PANEL_GRID_SIDE } from './Chart/layout/PanelChartLayoutMetrics';
 import {
     getChartLayoutMetrics,
     PANEL_CHART_HEIGHT,

@@ -1,4 +1,4 @@
-import type { buildChartSeriesOption } from '../options/buildPanelChartOption';
+import type { buildChartSeriesOption } from '../options/buildPanelChartSeriesOption';
 
 export type EChartDataZoomEventItem = {
     start: number;
