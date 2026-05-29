@@ -7,7 +7,7 @@ const urlCache = new Map<string, string>();
 // Packages whose iframe must stay mounted across tab switches so in-memory
 // state (e.g. an LLM chat conversation, open WebSocket) survives deactivation.
 // Add a package name here when its document loses meaningful state on reload.
-const PERSISTENT_PACKAGES = new Set<string>(['neo-pkg-llm-chat']);
+const PERSISTENT_PACKAGES = new Set<string>(['neo-pkg-llm-chat', 'neo-pkg-opcua-client', 'neo-pkg-replication']);
 
 interface AppViewProps {
     pAppName: string;
