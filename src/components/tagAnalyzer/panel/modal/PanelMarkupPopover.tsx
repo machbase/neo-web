@@ -44,11 +44,13 @@ const PanelMarkupPopover = ({
     children,
     onClose,
     draggable = false,
+    outsideCloseIgnoreSelector,
 }: {
     position: PanelMarkupPopoverPosition;
     children: ReactNode;
     onClose: () => void;
     draggable?: boolean;
+    outsideCloseIgnoreSelector?: string;
 }) => {
     const popoverRef = useRef<HTMLDivElement>(null);
     const [adjustedPosition, setAdjustedPosition] = useState(position);
@@ -103,9 +105,20 @@ const PanelMarkupPopover = ({
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent): void => {
+            const eventTarget = event.target;
+
+            if (
+                outsideCloseIgnoreSelector &&
+                eventTarget instanceof Element &&
+                eventTarget.closest(outsideCloseIgnoreSelector)
+            ) {
+                return;
+            }
+
             if (
                 popoverRef.current &&
-                !popoverRef.current.contains(event.target as Node)
+                eventTarget instanceof Node &&
+                !popoverRef.current.contains(eventTarget)
             ) {
                 onClose();
             }
@@ -127,7 +140,7 @@ const PanelMarkupPopover = ({
             document.removeEventListener('keydown', handleEscKey);
             window.removeEventListener('scroll', onClose, true);
         };
-    }, [onClose]);
+    }, [onClose, outsideCloseIgnoreSelector]);
 
     return createPortal(
         <div
@@ -142,7 +155,7 @@ const PanelMarkupPopover = ({
             {draggable && (
                 <button
                     type="button"
-                    aria-label="Drag annotation editor"
+                    aria-label="Drag markup editor"
                     className={styles['dragHandle']}
                     onPointerDown={handleDragStart}
                 >

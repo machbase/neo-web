@@ -21,12 +21,14 @@ export function useBlankChartClickEvent({
     isAnnotationActive,
     isNumericXAxis,
     latestHoverTimestampRef,
+    latestChartClickRef,
     onOpenCreateAnnotation,
 }: {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     isAnnotationActive: boolean;
     isNumericXAxis: boolean;
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
+    latestChartClickRef: MutableRefObject<number>;
     onOpenCreateAnnotation: PanelMarkupHandlers['onOpenCreateAnnotation'];
 }): (instance: PanelChartInstance) => void {
     const sListenerInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
@@ -56,48 +58,55 @@ export function useBlankChartClickEvent({
         }
 
         function handleBlankChartClick(event: PanelChartBlankClickPayload): void {
-            if (!isAnnotationActive || event.target) {
+            if (!isAnnotationActive) {
                 return;
             }
 
             const sChartRect = chartAreaRef.current?.getBoundingClientRect();
             const sPixel = getPanelChartEventPixel(event, sChartRect);
             const sClientPosition = getPanelChartEventClientPosition(event);
+            const sChartClickSequence = latestChartClickRef.current;
 
             if (!sPixel) {
                 return;
             }
 
-            const sIsInsideMainGrid = instance.containPixel
-                ? instance.containPixel({ gridIndex: 0 }, sPixel)
-                : true;
+            window.setTimeout(() => {
+                if (latestChartClickRef.current !== sChartClickSequence) {
+                    return;
+                }
 
-            if (!sIsInsideMainGrid) {
-                return;
-            }
+                const sIsInsideMainGrid = instance.containPixel
+                    ? instance.containPixel({ gridIndex: 0 }, sPixel)
+                    : true;
 
-            const sTimestamp =
-                latestHoverTimestampRef.current ??
-                convertPanelChartPixelToTimestamp(
-                    instance,
-                    sPixel,
-                    isNumericXAxis,
-                ).timestamp;
+                if (!sIsInsideMainGrid) {
+                    return;
+                }
 
-            if (sTimestamp === undefined) {
-                return;
-            }
+                const sTimestamp =
+                    latestHoverTimestampRef.current ??
+                    convertPanelChartPixelToTimestamp(
+                        instance,
+                        sPixel,
+                        isNumericXAxis,
+                    ).timestamp;
 
-            sOpenCreateAnnotationRef.current(
-                getPanelChartEventPosition(
-                    event,
-                    sChartRect,
-                    sPixel,
-                    sClientPosition,
-                ),
-                undefined,
-                sTimestamp,
-            );
+                if (sTimestamp === undefined) {
+                    return;
+                }
+
+                sOpenCreateAnnotationRef.current(
+                    getPanelChartEventPosition(
+                        event,
+                        sChartRect,
+                        sPixel,
+                        sClientPosition,
+                    ),
+                    undefined,
+                    sTimestamp,
+                );
+            }, 0);
         }
 
         sZr.on('click', handleBlankChartClick);
@@ -108,6 +117,7 @@ export function useBlankChartClickEvent({
         chartAreaRef,
         isAnnotationActive,
         isNumericXAxis,
+        latestChartClickRef,
         latestHoverTimestampRef,
         removeBlankChartClickEvent,
     ]);

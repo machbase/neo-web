@@ -14,6 +14,7 @@ import {
     HIGHLIGHT_LABEL_SERIES_ID,
     HIGHLIGHT_OUTLINE_WIDTH,
     NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
+    PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
 } from './PanelChartOptionConstants';
 
 type HighlightAreaPoint = {
@@ -144,18 +145,21 @@ function getHighlightLabelData(
     labelY: number,
 ): HighlightLabelData {
     return (highlights ?? [])
-        .filter(isRenderableHighlight)
-        .map((highlight, highlightIndex) => ({
-            name: highlight.text || 'unnamed',
-            value: [
-                (highlight.timeRange.startTime + highlight.timeRange.endTime) / 2,
-                labelY,
-            ],
-            highlightIndex: highlightIndex,
-            label: {
-                color: highlight.textColor,
-            },
-        }));
+        .flatMap((highlight, highlightIndex) =>
+            isRenderableHighlight(highlight)
+                ? [{
+                      name: highlight.text || 'unnamed',
+                      value: [
+                          (highlight.timeRange.startTime + highlight.timeRange.endTime) / 2,
+                          labelY,
+                      ],
+                      highlightIndex,
+                      label: {
+                          color: highlight.textColor,
+                      },
+                  }]
+                : [],
+        );
 }
 
 function createColorWithAlpha(color: string, alpha: number): string {
@@ -190,7 +194,7 @@ export function buildHighlightOverlaySeries(
             ...(sIsNavigatorTarget
                 ? {
                       id: NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
-                      xAxisIndex: 1,
+                      xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
                       yAxisIndex: 2,
                       z: 0,
                   }

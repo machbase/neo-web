@@ -15,6 +15,7 @@ import type { ChartSeriesData } from '../../../domain/ChartDomain';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     DEFAULT_NOT_SHOW,
+    PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
 } from './PanelChartOptionConstants';
 import {
     buildRenderableSeriesAnnotations,
@@ -202,7 +203,7 @@ export function buildNavigatorAnnotationLineSeries(
             type: 'line',
             legendHoverLink: false,
             silent: true,
-            xAxisIndex: 1,
+            xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
             yAxisIndex: 2,
             data: [],
             symbol: 'none',

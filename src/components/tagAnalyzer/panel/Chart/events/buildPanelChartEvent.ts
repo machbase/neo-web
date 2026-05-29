@@ -13,6 +13,7 @@ import {
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
+    MAIN_PANEL_SERIES_ID_PREFIX,
 } from '../options/PanelChartOptionConstants';
 import {
     convertPanelChartPixelToTimestamp,
@@ -41,6 +42,8 @@ import type {
 type ChartEvents = {
     datazoom: (params: EChartDataZoomEventPayload) => void;
     brushEnd: (params: EChartBrushPayload) => void;
+    mouseover: (params: PanelChartClickPayload) => void;
+    mouseout: (params: PanelChartClickPayload) => void;
     legendselectchanged: (params: PanelChartLegendChangePayload) => void;
     highlight: (params: PanelChartHighlightPayload) => void;
     downplay: (params: PanelChartHighlightPayload) => void;
@@ -64,9 +67,11 @@ type BuildChartEventParams = {
         chartAreaRef: MutableRefObject<HTMLDivElement | null>;
         chartInstanceRef: MutableRefObject<PanelChartInstance | undefined>;
         latestHoverTimestampRef: MutableRefObject<number | undefined>;
+        latestChartClickRef: MutableRefObject<number>;
     };
     rangeHandlers: PanelRangeHandlers;
     markupHandlers: PanelMarkupHandlers;
+    onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
     onSelection: (event: PanelBrushSelectionEvent) => unknown;
     legendState: {
         applyLegendHoverState: (
@@ -78,20 +83,13 @@ type BuildChartEventParams = {
     };
 };
 
-const DEBUG_PANEL_RANGE_REFRESH = true;
-
-function debugPanelRangeRefresh(message: string, payload: unknown): void {
-    if (DEBUG_PANEL_RANGE_REFRESH) {
-        console.log(`[TA datazoom] ${message}`, payload);
-    }
-}
-
 export function buildChartEvent({
     ranges,
     interactionMode,
     chartRefs,
     rangeHandlers,
     markupHandlers,
+    onHoveredMainSeriesChange,
     onSelection,
     legendState,
 }: BuildChartEventParams): ChartEvents {
@@ -102,7 +100,12 @@ export function buildChartEvent({
         isDragZoomEnabled,
         isNumericXAxis,
     } = interactionMode;
-    const { chartAreaRef, chartInstanceRef, latestHoverTimestampRef } = chartRefs;
+    const {
+        chartAreaRef,
+        chartInstanceRef,
+        latestHoverTimestampRef,
+        latestChartClickRef,
+    } = chartRefs;
     const { applyLegendHoverState, setVisibleSeries, visibleSeriesRef } =
         legendState;
 
@@ -125,25 +128,12 @@ export function buildChartEvent({
                 ? isSameDataZoomRange(sRange, panelRange, isNumericXAxis)
                 : false;
 
-            debugPanelRangeRefresh('chart range event', {
-                currentMainRange: panelRange,
-                chartEventRange: sRange,
-                ignoredAsSameRange: sIsSameRange,
-            });
-
             if (
                 !sRange ||
                 sIsSameRange
             ) {
                 return;
             }
-
-            debugPanelRangeRefresh('chart changed range to', {
-                mainRange: {
-                    startTime: sRange.startTime,
-                    endTime: sRange.endTime,
-                },
-            });
 
             rangeHandlers.onPanelRangeChangeFromNavigator({
                 min: sRange.startTime,
@@ -190,6 +180,18 @@ export function buildChartEvent({
             visibleSeriesRef.current = params.selected ?? {};
             setVisibleSeries(params.selected ?? {});
         },
+        mouseover: (params) => {
+            const sMainSeriesName = getMainSeriesName(params);
+
+            if (sMainSeriesName !== undefined) {
+                onHoveredMainSeriesChange(sMainSeriesName);
+            }
+        },
+        mouseout: (params) => {
+            if (getMainSeriesName(params) !== undefined) {
+                onHoveredMainSeriesChange(undefined);
+            }
+        },
         highlight: (params) => {
             if (isLegendHoverPayload(params)) {
                 applyLegendHoverState(
@@ -208,12 +210,16 @@ export function buildChartEvent({
         },
         globalout: () => {
             latestHoverTimestampRef.current = undefined;
+            onHoveredMainSeriesChange(undefined);
         },
         click: (params) => {
             const sChartInstance = chartInstanceRef.current;
             const sChartRect = chartAreaRef.current?.getBoundingClientRect();
             const sPosition = getPanelChartEventPosition(params, sChartRect);
-            const sClickedSeriesIndex = parseNonNegativeInteger(params.seriesIndex);
+            const sClickedSeriesIndex = getSeriesIndexFromSeriesId(
+                params.seriesId,
+                MAIN_PANEL_SERIES_ID_PREFIX,
+            );
             const sIsAnnotationLabelClick =
                 getSeriesIndexFromSeriesId(
                     params.seriesId,
@@ -224,6 +230,7 @@ export function buildChartEvent({
             ) ?? (sIsAnnotationLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
 
             if (sIsAnnotationLabelClick && sAnnotationIndex !== undefined) {
+                latestChartClickRef.current += 1;
                 markupHandlers.onActivateAnnotationEditor(
                     sPosition,
                     sAnnotationIndex,
@@ -254,6 +261,7 @@ export function buildChartEvent({
                     return;
                 }
 
+                latestChartClickRef.current += 1;
                 markupHandlers.onOpenCreateAnnotation(
                     sPosition,
                     sClickedSeriesIndex,
@@ -262,16 +270,20 @@ export function buildChartEvent({
                 return;
             }
 
-            const sHighlightIndex = parseNonNegativeInteger(params.dataIndex);
+            const sIsHighlightLabelClick = params.seriesId === HIGHLIGHT_LABEL_SERIES_ID;
+            const sHighlightIndex = parseNonNegativeInteger(
+                getPanelChartRecordValue(params.data, 'highlightIndex'),
+            ) ?? (sIsHighlightLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
 
             if (
                 overlayMode === PanelOverlayMode.HIGHLIGHT ||
-                params.seriesId !== HIGHLIGHT_LABEL_SERIES_ID ||
+                !sIsHighlightLabelClick ||
                 sHighlightIndex === undefined
             ) {
                 return;
             }
 
+            latestChartClickRef.current += 1;
             markupHandlers.onActivateHighlightEditor(sPosition, sHighlightIndex);
         },
     };
@@ -297,6 +309,21 @@ function isLegendHoverPayload(
     payload: PanelChartHighlightPayload | undefined,
 ): payload is PanelChartHighlightPayload & { excludeSeriesId: string[] } {
     return Array.isArray(payload?.excludeSeriesId);
+}
+
+function getMainSeriesName(payload: PanelChartClickPayload): string | undefined {
+    if (
+        getSeriesIndexFromSeriesId(
+            payload.seriesId,
+            MAIN_PANEL_SERIES_ID_PREFIX,
+        ) === undefined
+    ) {
+        return undefined;
+    }
+
+    const sSeriesName = payload.seriesName?.trim();
+
+    return sSeriesName ? sSeriesName : undefined;
 }
 
 function parseNonNegativeInteger(value: unknown): number | undefined {

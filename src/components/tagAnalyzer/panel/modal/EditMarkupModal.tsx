@@ -287,8 +287,19 @@ export function EditHighlightModal({
             className="panel-markup-modal--highlight"
             position={activeHighlightEditor.position}
             onClose={onCancel}
+            draggable
             actions={(
-                <ModalActions canApply={canApply} onCancel={onCancel} onApply={applyForm} />
+                <ModalActions
+                    canApply={canApply}
+                    onCancel={onCancel}
+                    onApply={applyForm}
+                    deleteAction={temporaryHighlight ? undefined : () => {
+                        highlightActions.deleteHighlightEntry(
+                            activeHighlightEditor.highlightIndex,
+                        );
+                        onApplied();
+                    }}
+                />
             )}
         >
             <TextField

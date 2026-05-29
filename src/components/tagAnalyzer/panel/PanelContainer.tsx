@@ -17,7 +17,7 @@ import {
 } from './modal/EditMarkupModal';
 import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
 import './PanelChartShell.scss';
-import { useRef, useState, type MouseEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { MdBlock, MdCheckCircle } from 'react-icons/md';
 import type {
     PanelBrushSelectionEvent,
@@ -89,37 +89,103 @@ enum PanelPopupMode {
     NONE = 'NONE',
     CONTEXT_MENU = 'CONTEXT_MENU',
     FFT = 'FFT',
-    SELECTION_SUMMARY = 'SELECTION_SUMMARY',
     HIGHLIGHT_EDITOR = 'HIGHLIGHT_EDITOR',
     ANNOTATION_EDITOR = 'ANNOTATION_EDITOR',
     DELETE_CONFIRM = 'DELETE_CONFIRM',
     EXPORT_CSV = 'EXPORT_CSV',
 }
 
-type PanelAnnotationHintState = {
+type PanelMarkupInteractionHintState = {
     x: number;
     y: number;
     isValidTarget: boolean;
+    hoveredMainSeriesName: string | undefined;
+    overlayMode:
+        | PanelOverlayMode.ANNOTATION
+        | PanelOverlayMode.HIGHLIGHT
+        | PanelOverlayMode.DRAG_SELECT;
+};
+
+type PanelMarkupInteractionHintLayout = {
+    width: number;
+    height: number;
+    parentWidth: number;
+    parentHeight: number;
 };
 
 const ANNOTATION_INVALID_TARGET_MESSAGE =
     'Annotation can only be created on the main chart.';
+const HIGHLIGHT_INVALID_TARGET_MESSAGE =
+    'Highlight can only be created on the main chart.';
+const DRAG_SELECT_INVALID_TARGET_MESSAGE =
+    'Selection can only be made on the main chart.';
+const INTERACTION_HINT_MARGIN = 6;
+const INTERACTION_HINT_TOP_MARGIN = 42;
+const INTERACTION_HINT_CURSOR_OFFSET_X = 14;
+const INTERACTION_HINT_CURSOR_OFFSET_Y = -34;
 
-function PanelAnnotationInteractionHint({
+function PanelMarkupInteractionHint({
     hint,
 }: {
-    hint: PanelAnnotationHintState | undefined;
+    hint: PanelMarkupInteractionHintState | undefined;
 }) {
+    const hintRef = useRef<HTMLSpanElement | null>(null);
+    const [layout, setLayout] = useState<
+        PanelMarkupInteractionHintLayout | undefined
+    >(undefined);
+
+    useLayoutEffect(() => {
+        const hintElement = hintRef.current;
+        if (!hint || !hintElement) {
+            return;
+        }
+
+        const hintRect = hintElement.getBoundingClientRect();
+        const parentElement = hintElement.offsetParent;
+        const nextLayout = {
+            width: hintRect.width,
+            height: hintRect.height,
+            parentWidth:
+                parentElement instanceof HTMLElement
+                    ? parentElement.clientWidth
+                    : window.innerWidth,
+            parentHeight:
+                parentElement instanceof HTMLElement
+                    ? parentElement.clientHeight
+                    : window.innerHeight,
+        };
+
+        setLayout((currentLayout) =>
+            isSameInteractionHintLayout(currentLayout, nextLayout)
+                ? currentLayout
+                : nextLayout,
+        );
+    }, [hint]);
+
     if (!hint) {
         return null;
     }
 
+    const left = getClampedInteractionHintCoordinate(
+        hint.x + INTERACTION_HINT_CURSOR_OFFSET_X,
+        layout?.width,
+        layout?.parentWidth,
+        INTERACTION_HINT_MARGIN,
+    );
+    const top = getClampedInteractionHintCoordinate(
+        hint.y + INTERACTION_HINT_CURSOR_OFFSET_Y,
+        layout?.height,
+        layout?.parentHeight,
+        INTERACTION_HINT_TOP_MARGIN,
+    );
+
     return (
         <span
+            ref={hintRef}
             className={`panel-chart-interaction-hint panel-chart-interaction-hint--${hint.isValidTarget ? 'valid' : 'invalid'}`}
             style={{
-                left: hint.x + 14,
-                top: Math.max(6, hint.y - 34),
+                left,
+                top,
             }}
         >
             {hint.isValidTarget ? (
@@ -128,12 +194,67 @@ function PanelAnnotationInteractionHint({
                 <MdBlock size={13} />
             )}
             <span>
-                {hint.isValidTarget
-                    ? 'Click to create annotation'
-                    : ANNOTATION_INVALID_TARGET_MESSAGE}
+                {getPanelMarkupInteractionHintMessage(hint)}
             </span>
         </span>
     );
+}
+
+function isSameInteractionHintLayout(
+    currentLayout: PanelMarkupInteractionHintLayout | undefined,
+    nextLayout: PanelMarkupInteractionHintLayout,
+): boolean {
+    return (
+        currentLayout?.width === nextLayout.width &&
+        currentLayout.height === nextLayout.height &&
+        currentLayout.parentWidth === nextLayout.parentWidth &&
+        currentLayout.parentHeight === nextLayout.parentHeight
+    );
+}
+
+function getClampedInteractionHintCoordinate(
+    requestedCoordinate: number,
+    hintSize: number | undefined,
+    parentSize: number | undefined,
+    minCoordinate: number,
+): number {
+    if (hintSize === undefined || parentSize === undefined) {
+        return Math.max(minCoordinate, requestedCoordinate);
+    }
+
+    const maxCoordinate = Math.max(
+        minCoordinate,
+        parentSize - hintSize - INTERACTION_HINT_MARGIN,
+    );
+
+    return Math.min(
+        Math.max(minCoordinate, requestedCoordinate),
+        maxCoordinate,
+    );
+}
+
+function getPanelMarkupInteractionHintMessage(
+    hint: PanelMarkupInteractionHintState,
+): string {
+    if (hint.overlayMode === PanelOverlayMode.ANNOTATION) {
+        if (hint.isValidTarget && hint.hoveredMainSeriesName) {
+            return `Create annotation on ${hint.hoveredMainSeriesName}`;
+        }
+
+        return hint.isValidTarget
+            ? 'Create annotation here'
+            : ANNOTATION_INVALID_TARGET_MESSAGE;
+    }
+
+    if (hint.overlayMode === PanelOverlayMode.DRAG_SELECT) {
+        return hint.isValidTarget
+            ? 'Drag to select area'
+            : DRAG_SELECT_INVALID_TARGET_MESSAGE;
+    }
+
+    return hint.isValidTarget
+        ? 'Drag to create highlight'
+        : HIGHLIGHT_INVALID_TARGET_MESSAGE;
 }
 
 function PanelContainer({
@@ -211,6 +332,7 @@ function PanelContainer({
     const [selectionSummary, setSelectionSummary] = useState<
         PanelSelectionSummary | undefined
     >(undefined);
+    const [isSelectionSummaryOpen, setIsSelectionSummaryOpen] = useState(false);
     const [activeHighlightEditor, setActiveHighlightEditor] = useState<
         HighlightEditorState | undefined
     >(undefined);
@@ -220,8 +342,11 @@ function PanelContainer({
     const [annotationEditorMeta, setAnnotationEditorMeta] = useState<
         AnnotationEditorMetaState | undefined
     >(undefined);
-    const [annotationHint, setAnnotationHint] = useState<
-        PanelAnnotationHintState | undefined
+    const [markupInteractionHint, setMarkupInteractionHint] = useState<
+        PanelMarkupInteractionHintState | undefined
+    >(undefined);
+    const [hoveredMainSeriesName, setHoveredMainSeriesName] = useState<
+        string | undefined
     >(undefined);
     const {
         highlightActions,
@@ -267,6 +392,7 @@ function PanelContainer({
         onResetPanelUi: () => {
             setOverlayMode(PanelOverlayMode.NO_OVERLAY);
             setActivePopupMode(PanelPopupMode.NONE);
+            setIsSelectionSummaryOpen(false);
         },
         onSavePanel,
         reloadPanelEdit,
@@ -283,7 +409,7 @@ function PanelContainer({
                 onSelectionSummaryChange: (nextSelectionSummary) => {
                     setOverlayMode(PanelOverlayMode.DRAG_SELECT);
                     setSelectionSummary(nextSelectionSummary);
-                    setActivePopupMode(PanelPopupMode.SELECTION_SUMMARY);
+                    setIsSelectionSummaryOpen(true);
                 },
             },
             event,
@@ -318,7 +444,9 @@ function PanelContainer({
         resolvedIntervalOption: sResolvedIntervalOption,
         canSetGlobalTime: !isNumericXAxis && Boolean(sResolvedIntervalOption),
         canSaveLocal: loadStatus.chart === PanelChartLoadStatus.Ready,
-        canOpenFft: Boolean(selectionSummary),
+        canOpenFft:
+            isSelectionSummaryOpen &&
+            Boolean(selectionSummary),
         isNumericXAxis,
         overlayMode,
         isEditing,
@@ -340,11 +468,17 @@ function PanelContainer({
     }
 
     function openFftDialog(): void {
-        const sSelection = selectionSummary!.selection;
+        if (
+            !isSelectionSummaryOpen ||
+            !selectionSummary
+        ) {
+            throw new Error('Cannot open FFT without an open selection summary.');
+        }
+
+        const sSelection = selectionSummary.selection;
 
         setFftSelection(sSelection);
         setActivePopupMode(PanelPopupMode.FFT);
-        setOverlayMode(PanelOverlayMode.NO_OVERLAY);
     }
 
     function handlePanelAction(actionKey: PanelActionKey): void {
@@ -357,32 +491,34 @@ function PanelContainer({
                 return;
             case PanelActionKey.TOGGLE_HIGHLIGHT:
                 setActivePopupMode(PanelPopupMode.NONE);
-                setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-                if (overlayMode !== PanelOverlayMode.HIGHLIGHT) {
-                    setOverlayMode(PanelOverlayMode.HIGHLIGHT);
-                }
+                setIsSelectionSummaryOpen(false);
+                setOverlayMode((currentOverlayMode) =>
+                    currentOverlayMode === PanelOverlayMode.HIGHLIGHT
+                        ? PanelOverlayMode.NO_OVERLAY
+                        : PanelOverlayMode.HIGHLIGHT,
+                );
                 return;
             case PanelActionKey.TOGGLE_ANNOTATION:
-                if (
-                    annotationEditorMeta ||
-                    overlayMode === PanelOverlayMode.ANNOTATION
-                ) {
+                if (annotationEditorMeta) {
                     setAnnotationEditorMeta(undefined);
-                    setActivePopupMode(PanelPopupMode.NONE);
-                    setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-                    return;
                 }
 
                 setActivePopupMode(PanelPopupMode.NONE);
-                setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-                setOverlayMode(PanelOverlayMode.ANNOTATION);
+                setIsSelectionSummaryOpen(false);
+                setOverlayMode((currentOverlayMode) =>
+                    currentOverlayMode === PanelOverlayMode.ANNOTATION
+                        ? PanelOverlayMode.NO_OVERLAY
+                        : PanelOverlayMode.ANNOTATION,
+                );
                 return;
             case PanelActionKey.TOGGLE_DRAG_SELECT:
                 setActivePopupMode(PanelPopupMode.NONE);
-                setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-                if (overlayMode !== PanelOverlayMode.DRAG_SELECT) {
-                    setOverlayMode(PanelOverlayMode.DRAG_SELECT);
-                }
+                setIsSelectionSummaryOpen(false);
+                setOverlayMode((currentOverlayMode) =>
+                    currentOverlayMode === PanelOverlayMode.DRAG_SELECT
+                        ? PanelOverlayMode.NO_OVERLAY
+                        : PanelOverlayMode.DRAG_SELECT,
+                );
                 return;
             case PanelActionKey.OPEN_FFT:
                 openFftDialog();
@@ -436,17 +572,34 @@ function PanelContainer({
     }
 
     function handlePanelMouseMove(event: MouseEvent<HTMLDivElement>): void {
-        if (overlayMode !== PanelOverlayMode.ANNOTATION) {
+        if (
+            overlayMode !== PanelOverlayMode.ANNOTATION &&
+            overlayMode !== PanelOverlayMode.HIGHLIGHT &&
+            overlayMode !== PanelOverlayMode.DRAG_SELECT
+        ) {
             return;
         }
 
         const sPanelRect = event.currentTarget.getBoundingClientRect();
 
-        setAnnotationHint({
+        setMarkupInteractionHint({
             x: event.clientX - sPanelRect.left,
             y: event.clientY - sPanelRect.top,
             isValidTarget: isPointInsideMainChart(event.clientX, event.clientY),
+            hoveredMainSeriesName,
+            overlayMode,
         });
+    }
+
+    function handleHoveredMainSeriesChange(
+        seriesName: string | undefined,
+    ): void {
+        setHoveredMainSeriesName(seriesName);
+        setMarkupInteractionHint((currentHint) =>
+            currentHint
+                ? { ...currentHint, hoveredMainSeriesName: seriesName }
+                : currentHint,
+        );
     }
 
     function handlePanelClickCapture(event: MouseEvent<HTMLDivElement>): void {
@@ -520,11 +673,16 @@ function PanelContainer({
             style={{ border: `0.5px solid ${isOverlap ? '#FDB532' : '#454545'}` }}
             onContextMenu={handlePanelContextMenu}
             onMouseMove={handlePanelMouseMove}
-            onMouseLeave={() => setAnnotationHint(undefined)}
+            onMouseLeave={() => {
+                setHoveredMainSeriesName(undefined);
+                setMarkupInteractionHint(undefined);
+            }}
             onClickCapture={handlePanelClickCapture}
         >
-            {overlayMode === PanelOverlayMode.ANNOTATION && (
-                <PanelAnnotationInteractionHint hint={annotationHint} />
+            {(overlayMode === PanelOverlayMode.ANNOTATION ||
+                overlayMode === PanelOverlayMode.HIGHLIGHT ||
+                overlayMode === PanelOverlayMode.DRAG_SELECT) && (
+                <PanelMarkupInteractionHint hint={markupInteractionHint} />
             )}
             <PanelHeader
                 runtimeState={panelHeaderRuntimeState}
@@ -560,6 +718,7 @@ function PanelContainer({
                     handlers={{
                         rangeHandlers,
                         markupHandlers: chartMarkupHandlers,
+                        onHoveredMainSeriesChange: handleHoveredMainSeriesChange,
                         onSelection: handleSelection,
                     }}
                 />
@@ -607,14 +766,13 @@ function PanelContainer({
                     }}
                 />
             )}
-            {activePopupMode === PanelPopupMode.SELECTION_SUMMARY && (
+            {isSelectionSummaryOpen && selectionSummary && (
                 <SelectionSummaryPopover
-                    selection={selectionSummary!.selection}
-                    position={selectionSummary!.popoverPosition}
+                    selection={selectionSummary.selection}
+                    position={selectionSummary.popoverPosition}
                     isNumericXAxis={isNumericXAxis}
                     onClose={() => {
-                        setActivePopupMode(PanelPopupMode.NONE);
-                        setSelectionSummary(undefined);
+                        setIsSelectionSummaryOpen(false);
                         setOverlayMode(PanelOverlayMode.NO_OVERLAY);
                     }}
                 />

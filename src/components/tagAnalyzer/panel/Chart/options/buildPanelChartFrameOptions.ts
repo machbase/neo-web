@@ -16,6 +16,7 @@ import {
     PANEL_LEGEND_TOP,
     PANEL_MAIN_GRID_ID,
     PANEL_NAVIGATOR_GRID_ID,
+    PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
     PANEL_SLIDER_DATA_ZOOM_ID,
 } from './PanelChartOptionConstants';
 import type { RuntimePanelDisplay } from '../../../domain/PanelDomain';
@@ -136,7 +137,7 @@ function buildPanelChartDataZoomOption(
         {
             id: PANEL_INSIDE_DATA_ZOOM_ID,
             type: 'inside' as const,
-            xAxisIndex: [1],
+            xAxisIndex: [PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX],
             filterMode: 'none' as const,
             ...sPanelRangeDataZoom,
             moveOnMouseMove: false,
@@ -149,7 +150,7 @@ function buildPanelChartDataZoomOption(
         {
             id: PANEL_SLIDER_DATA_ZOOM_ID,
             type: 'slider' as const,
-            xAxisIndex: [1],
+            xAxisIndex: [PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX],
             filterMode: 'none' as const,
             ...sPanelRangeDataZoom,
             realtime: false,

@@ -18,6 +18,7 @@ import {
     PANEL_LEGEND_FADE_LINE_OPACITY,
     PANEL_LEGEND_FADE_MARK_LINE_OPACITY,
     PANEL_NAVIGATOR_ACTIVE_OPACITY,
+    PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
     PANEL_NAVIGATOR_FADE_OPACITY,
 } from './PanelChartOptionConstants';
 
@@ -144,7 +145,7 @@ export function buildNavigatorSeriesOption(
             id: `navigator-series-${seriesIndex}`,
             name: series.name,
             data: series.data,
-            xAxisIndex: 1,
+            xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
             yAxisIndex: 2,
             showSymbol: false,
             silent: true,

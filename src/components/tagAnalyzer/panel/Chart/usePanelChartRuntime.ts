@@ -27,11 +27,9 @@ type PanelBodyData = {
 type PanelBodyHandlers = {
     rangeHandlers: PanelRangeHandlers;
     markupHandlers: PanelMarkupHandlers;
+    onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
     onSelection: (event: PanelBrushSelectionEvent) => unknown;
 };
-
-export type PanelChartInteractionHintMode =
-    PanelOverlayMode.HIGHLIGHT;
 
 export type UsePanelChartRuntimeParams = {
     refs: PanelBodyRefs;
@@ -45,25 +43,13 @@ export type UsePanelChartRuntimeParams = {
 };
 
 type UsePanelChartRuntimeResult = {
-    hintMode: PanelChartInteractionHintMode | undefined;
-    cursorHintPosition: { x: number; y: number } | undefined;
     option: ReturnType<typeof buildChartOption>;
     onEvents: EChartsReactProps['onEvents'];
     handleChartReady: EChartsReactProps['onChartReady'];
     chartMouseHandlers: {
         onMouseDownCapture: (event: MouseEvent<HTMLDivElement>) => void;
-        onMouseMove: (event: MouseEvent<HTMLDivElement>) => void;
-        onMouseLeave: () => void;
     };
 };
-
-const DEBUG_PANEL_RANGE_REFRESH = true;
-
-function debugPanelRangeRefresh(message: string, payload: unknown): void {
-    if (DEBUG_PANEL_RANGE_REFRESH) {
-        console.log(`[TA chart] ${message}`, payload);
-    }
-}
 
 export function usePanelChartRuntime({
     refs,
@@ -77,16 +63,19 @@ export function usePanelChartRuntime({
     const { chartAreaRef, chartApiRef } = refs;
     const { chartData, navigatorChartData } = data;
     const { panelRange, navigatorRange } = rangeState;
-    const { rangeHandlers, markupHandlers, onSelection } = handlers;
+    const {
+        rangeHandlers,
+        markupHandlers,
+        onHoveredMainSeriesChange,
+        onSelection,
+    } = handlers;
     const { axes, display, seriesList, useNormalize, highlights, annotations } =
         chartState;
     const latestHoverTimestampRef = useRef<number | undefined>();
+    const latestChartClickRef = useRef(0);
     const hoveredLegendSeriesRef = useRef<string | undefined>();
     const visibleSeriesRef = useRef<Record<string, boolean>>({});
     const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
-    const [cursorHintPosition, setCursorHintPosition] = useState<
-        { x: number; y: number } | undefined
-    >();
     const isNumericXAxis = hasNumericBaseTimeSeries(seriesList);
     const chartAreaWidth = chartAreaRef.current?.clientWidth;
     const baseChartInfo = useMemo<ChartInfo>(() => ({
@@ -123,10 +112,6 @@ export function usePanelChartRuntime({
         seriesList,
         useNormalize,
     ]);
-    const hintMode =
-        overlayMode === PanelOverlayMode.HIGHLIGHT
-            ? overlayMode
-            : undefined;
     const isSelectionMode =
         overlayMode === PanelOverlayMode.DRAG_SELECT ||
         overlayMode === PanelOverlayMode.HIGHLIGHT;
@@ -144,6 +129,7 @@ export function usePanelChartRuntime({
         isAnnotationActive: overlayMode === PanelOverlayMode.ANNOTATION,
         isNumericXAxis,
         latestHoverTimestampRef,
+        latestChartClickRef,
         onOpenCreateAnnotation: markupHandlers.onOpenCreateAnnotation,
     });
     const {
@@ -160,11 +146,6 @@ export function usePanelChartRuntime({
         if (!chartInstance || !isConcreteTimeRange(panelRange)) {
             return;
         }
-
-        debugPanelRangeRefresh('chart range set to', {
-            mainRange: panelRange,
-            navigatorRange,
-        });
 
         chartInstance.dispatchAction({
             type: 'dataZoom',
@@ -242,18 +223,10 @@ export function usePanelChartRuntime({
     }, [option, applyLegendHoverState]);
 
     useEffect(() => {
-        if (!hintMode) {
-            setCursorHintPosition(undefined);
-        }
-    }, [hintMode]);
-
-    useEffect(() => {
         syncMainChartVisibleRange();
     }, [option, syncMainChartVisibleRange]);
 
     return {
-        hintMode,
-        cursorHintPosition,
         option,
         onEvents: {
             ...buildChartEvent({
@@ -268,9 +241,11 @@ export function usePanelChartRuntime({
                     chartAreaRef,
                     chartInstanceRef,
                     latestHoverTimestampRef,
+                    latestChartClickRef,
                 },
                 rangeHandlers,
                 markupHandlers,
+                onHoveredMainSeriesChange,
                 onSelection,
                 legendState: {
                     applyLegendHoverState,
@@ -296,18 +271,6 @@ export function usePanelChartRuntime({
                     event.stopPropagation();
                 }
             },
-            onMouseMove: (event: MouseEvent<HTMLDivElement>) => {
-                if (!hintMode) {
-                    return;
-                }
-
-                const chartRect = event.currentTarget.getBoundingClientRect();
-                setCursorHintPosition({
-                    x: event.clientX - chartRect.left,
-                    y: event.clientY - chartRect.top,
-                });
-            },
-            onMouseLeave: () => setCursorHintPosition(undefined),
         },
     };
 }

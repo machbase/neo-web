@@ -100,13 +100,6 @@ type LoadRangeData = (
 
 const EMPTY_INTERVAL_OPTION = { IntervalType: '', IntervalValue: 0 } as const;
 const MIN_QUERIED_DATA_RANGE_WIDTH = 1;
-const DEBUG_PANEL_RANGE_REFRESH = true;
-
-function debugPanelRangeRefresh(message: string, payload: unknown): void {
-    if (DEBUG_PANEL_RANGE_REFRESH) {
-        console.log(`[TA range] ${message}`, payload);
-    }
-}
 
 function showLimitReachedWarning(): void {
     Toast.warning('Only limit amount was displayed.', undefined);
@@ -155,10 +148,18 @@ function getMainPanelLoadConfigSignature(
 
 function getNavigatorPanelDataSignature(
     loadConfig: PanelChartDataLoadConfig,
+    rollupTableList: string[],
 ): string {
     return JSON.stringify({
         seriesList: loadConfig.seriesList,
         isRaw: loadConfig.isRaw,
+        ...(!loadConfig.isRaw
+            ? {
+                  intervalType: loadConfig.intervalType,
+                  xAxis: loadConfig.xAxis,
+                  rollupTableList,
+              }
+            : {}),
     });
 }
 
@@ -314,14 +315,6 @@ function analyzeMainQueryResult(
             : {}),
     };
 
-    debugPanelRangeRefresh('received data', {
-        limited: sIsLimitReached,
-        receivedDataRange: sQueriedDataRange,
-        rows: seriesFetchResults.map(({ fetchResult }) =>
-            fetchResult?.data?.rows?.length ?? 0,
-        ),
-    });
-
     return sAnalysis;
 }
 
@@ -408,6 +401,7 @@ function createRangeLoadPlan({
     hasMainLoadConfigChanged,
     hasNavigatorDataLoaded,
     hasNavigatorDataConfigChanged,
+    shouldReloadNavigatorWhenRangeChanges,
 }: {
     currentDataState: PanelChartDataState;
     nextRangeState: PanelRangeState;
@@ -415,6 +409,7 @@ function createRangeLoadPlan({
     hasMainLoadConfigChanged: boolean;
     hasNavigatorDataLoaded: boolean;
     hasNavigatorDataConfigChanged: boolean;
+    shouldReloadNavigatorWhenRangeChanges: boolean;
 }): RangeLoadPlan {
     const sPanelDataOutdated =
         !isConcreteTimeRange(currentDataState.loadedDataRange) ||
@@ -424,10 +419,22 @@ function createRangeLoadPlan({
         );
     const sReloadMain =
         forceReload || hasMainLoadConfigChanged || sPanelDataOutdated;
+    const sNavigatorDataOutdated =
+        shouldReloadNavigatorWhenRangeChanges &&
+        (
+            !isConcreteTimeRange(currentDataState.loadedNavigatorRange) ||
+            !isSameTimeRange(
+                nextRangeState.navigatorRange,
+                currentDataState.loadedNavigatorRange,
+            )
+        );
 
     return {
         reloadMain: sReloadMain,
-        reloadNavigator: !hasNavigatorDataLoaded || hasNavigatorDataConfigChanged,
+        reloadNavigator:
+            !hasNavigatorDataLoaded ||
+            hasNavigatorDataConfigChanged ||
+            sNavigatorDataOutdated,
     };
 }
 
@@ -560,14 +567,6 @@ export function usePanelChartDataRuntime({
                     loadConfig.isRaw || clampPanelRangeToLoadedDataRange,
                 queriedDataRange: getConcreteQueriedDataRange(sMainLoadState),
                 normalizeNavigatorRangeForVisiblePanel,
-            });
-
-            debugPanelRangeRefresh('main range apply', {
-                requestedMainRange: panelRange,
-                receivedDataRange: sMainLoadState.queriedDataRange,
-                appliedMainRange: sAppliedRanges.panelRange,
-                appliedNavigatorRange: sAppliedRanges.navigatorRange,
-                limited: sMainLoadState.isLimitReached === true,
             });
 
             commitPanelLoadResult(sMainLoadState, sAppliedRanges);
@@ -746,7 +745,7 @@ export function usePanelChartDataRuntime({
             rollupTableList,
         );
         const sNavigatorLoadConfigSignature =
-            getNavigatorPanelDataSignature(sLoadConfig);
+            getNavigatorPanelDataSignature(sLoadConfig, rollupTableList);
         const sHasMainLoadConfigChanged =
             lastMainLoadConfigSignatureRef.current !== undefined &&
             lastMainLoadConfigSignatureRef.current !== sMainLoadConfigSignature;
@@ -775,6 +774,7 @@ export function usePanelChartDataRuntime({
             hasNavigatorDataLoaded:
                 lastNavigatorLoadConfigSignatureRef.current !== undefined,
             hasNavigatorDataConfigChanged: sHasNavigatorLoadConfigChanged,
+            shouldReloadNavigatorWhenRangeChanges: !sLoadConfig.isRaw,
         });
 
         if (!sLoadPlan.reloadMain && !sLoadPlan.reloadNavigator) {
@@ -818,13 +818,6 @@ export function usePanelChartDataRuntime({
                 navigatorRange:
                     sRefreshResult.navigatorRange ?? rangeState.navigatorRange,
             };
-
-            debugPanelRangeRefresh('app range after refresh', {
-                previousMainRange: rangeState.panelRange,
-                nextMainRange: sAppliedRange.panelRange,
-                previousNavigatorRange: rangeState.navigatorRange,
-                nextNavigatorRange: sAppliedRange.navigatorRange,
-            });
 
             if (
                 !isSameTimeRange(sAppliedRange.panelRange, rangeState.panelRange) ||

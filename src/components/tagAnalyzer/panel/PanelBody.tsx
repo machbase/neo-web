@@ -8,41 +8,8 @@ import {
 } from './Chart/layout/PanelChartLayoutMetrics';
 import {
     usePanelChartRuntime,
-    type PanelChartInteractionHintMode,
     type UsePanelChartRuntimeParams,
 } from './Chart/usePanelChartRuntime';
-import { PanelOverlayMode } from '../domain/PanelDomain';
-
-const PANEL_CHART_INTERACTION_HINT_TEXT: Record<
-    PanelChartInteractionHintMode,
-    string
-> = {
-    [PanelOverlayMode.HIGHLIGHT]: 'Drag to create highlight',
-};
-
-function PanelChartInteractionHint({
-    mode,
-    position,
-}: {
-    mode: PanelChartInteractionHintMode | undefined;
-    position: { x: number; y: number } | undefined;
-}) {
-    if (!mode || !position) {
-        return null;
-    }
-
-    return (
-        <span
-            className="panel-chart-interaction-hint"
-            style={{
-                left: position.x + 14,
-                top: Math.max(6, position.y - 34),
-            }}
-        >
-            {PANEL_CHART_INTERACTION_HINT_TEXT[mode]}
-        </span>
-    );
-}
 
 function PanelMainChartLoadingOverlay({ showLegend }: { showLegend: boolean }) {
     const layout = getChartLayoutMetrics(showLegend);
@@ -66,8 +33,6 @@ function PanelMainChartLoadingOverlay({ showLegend }: { showLegend: boolean }) {
 const PanelBody = (props: UsePanelChartRuntimeParams) => {
     const { refs, chartState, handlers, isLoading } = props;
     const {
-        hintMode,
-        cursorHintPosition,
         option,
         onEvents,
         handleChartReady,
@@ -89,15 +54,11 @@ const PanelBody = (props: UsePanelChartRuntimeParams) => {
                 ref={refs.chartAreaRef}
                 {...chartMouseHandlers}
             >
-                <PanelChartInteractionHint
-                    mode={hintMode}
-                    position={cursorHintPosition}
-                />
                 <ReactECharts
                     option={option}
                     onEvents={onEvents}
                     onChartReady={handleChartReady}
-                    replaceMerge={['series']}
+                    replaceMerge={['series', 'xAxis', 'yAxis', 'dataZoom']}
                     lazyUpdate
                     style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
                     opts={{ renderer: 'canvas' }}

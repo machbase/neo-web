@@ -142,14 +142,24 @@ async function resolveInitialPanelRange(
     lastViewedRange: Partial<PanelNavigatorRangePair> | undefined,
     boardTime: TimeRangeConfig,
 ): Promise<PanelRangeState> {
-    const timeBoundaryRanges =
-        (await resolveTimeBoundaryRanges(seriesList, boardTime, rangeConfig)) ?? null;
+    const [
+        timeBoundaryRanges,
+        fullDataBoundaryRanges,
+    ] = await Promise.all([
+        resolveTimeBoundaryRanges(seriesList, boardTime, rangeConfig),
+        resolveSeriesTimeBoundaryRanges(seriesList),
+    ]);
+    const resolvedTimeBoundaryRanges = timeBoundaryRanges ?? null;
+    const resolvedFullDataBoundaryRanges =
+        fullDataBoundaryRanges ?? resolvedTimeBoundaryRanges;
     const resolvedRange = resolvePanelTimeRange({
         boardTime,
         panelTime: { rangeConfig },
-        timeBoundaryRanges,
+        timeBoundaryRanges: resolvedTimeBoundaryRanges,
         mode: 'initialize',
     });
+    const fullDataRange =
+        resolveFullDataTimeRange(resolvedFullDataBoundaryRanges) ?? resolvedRange;
     const lastViewedPanelRange = lastViewedRange?.panelRange;
     const lastViewedNavigatorRange = lastViewedRange?.navigatorRange;
 
@@ -160,7 +170,23 @@ async function resolveInitialPanelRange(
         return { panelRange: lastViewedPanelRange, navigatorRange: lastViewedNavigatorRange };
     }
 
-    return { panelRange: resolvedRange, navigatorRange: resolvedRange };
+    return {
+        panelRange: resolvedRange,
+        navigatorRange: getNavigatorRangeContainingPanelRange(
+            resolvedRange,
+            fullDataRange,
+        ),
+    };
+}
+
+function getNavigatorRangeContainingPanelRange(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    return {
+        startTime: Math.min(panelRange.startTime, navigatorRange.startTime),
+        endTime: Math.max(panelRange.endTime, navigatorRange.endTime),
+    };
 }
 
 async function resolveBoardRange(
