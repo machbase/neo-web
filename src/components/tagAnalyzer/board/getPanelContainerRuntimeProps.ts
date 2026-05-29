@@ -13,7 +13,7 @@ type RefreshVisibleRange = (
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,
     options?: PanelRangeRefreshOptions,
-) => Promise<void>;
+) => void;
 
 export function getPanelContainerRuntimeProps({
     panelInfo,
@@ -32,7 +32,7 @@ export function getPanelContainerRuntimeProps({
             rangeState: PanelRangeState,
             options?: PanelRangeRefreshOptions,
         ): void => {
-            void refreshVisibleRange(
+            refreshVisibleRange(
                 panelInfo,
                 rangeState.panelRange,
                 rangeState.navigatorRange,

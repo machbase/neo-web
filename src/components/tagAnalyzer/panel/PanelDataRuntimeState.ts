@@ -10,7 +10,6 @@ export type PanelChartDataLoadConfig = {
     intervalType: string | undefined;
     isRaw: boolean;
     xAxis: RuntimePanelAxes['x_axis'];
-    navigatorSampling: RuntimePanelAxes['sampling'];
     mainChartSampling: RuntimePanelAxes['main_chart_sampling'];
 };
 
@@ -52,10 +51,6 @@ export type PanelDataRefreshResult = {
     isStale: boolean;
     panelRange?: TimeRangeMs | undefined;
     navigatorRange?: TimeRangeMs | undefined;
-};
-
-export type PanelMainDataRefreshResult = PanelDataRefreshResult & {
-    chartData?: ChartSeriesData[] | undefined;
 };
 
 export const DEFAULT_PANEL_DATA_REFRESH_POLICY: PanelDataRefreshPolicy = {

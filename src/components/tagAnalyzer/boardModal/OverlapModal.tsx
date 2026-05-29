@@ -46,7 +46,6 @@ import {
 } from './OverlapChartOptionBuilder';
 import {
     resolvePanelAxesForRuntime,
-    resolvePanelDataForRuntime,
 } from '../domain/PanelDomain';
 
 const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
@@ -80,10 +79,9 @@ function OverlapModal({
             const sChartWidth = sAreaChart.current?.clientWidth
                 ? sAreaChart.current.clientWidth
                 : 1;
-            const sRuntimeData = resolvePanelDataForRuntime(panelInfo.board.data);
             const sPanelBoardAxes = resolvePanelAxesForRuntime(panelInfo.board.axes);
             const sCount = calculateSampleCount(
-                sRuntimeData.count,
+                panelInfo.board.data.count ?? -1,
                 panelInfo.isRaw,
                 sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick,
                 sPanelBoardAxes.x_axis.raw_data_pixels_per_tick,

@@ -18,6 +18,7 @@ import {
 import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
 import './PanelChartShell.scss';
 import { useRef, useState, type MouseEvent } from 'react';
+import { MdBlock, MdCheckCircle } from 'react-icons/md';
 import type {
     PanelBrushSelectionEvent,
     PanelChartHandle,
@@ -46,7 +47,7 @@ import { usePanelHighlight } from './usePanelHighlight';
 import { usePanelChartDataRuntime } from './usePanelChartDataRuntime';
 import { usePanelRangeControls } from './usePanelRangeControls';
 
-import type { ContextMenuPosition } from '@/design-system/components';
+import { Toast, type ContextMenuPosition } from '@/design-system/components';
 import type { FFTSelectionPayload } from '../domain/ChartDomain';
 import { PanelOverlayMode } from '../domain/PanelDomain';
 import type { PanelSelectionSummary } from './PanelBrushSelection';
@@ -93,6 +94,46 @@ enum PanelPopupMode {
     ANNOTATION_EDITOR = 'ANNOTATION_EDITOR',
     DELETE_CONFIRM = 'DELETE_CONFIRM',
     EXPORT_CSV = 'EXPORT_CSV',
+}
+
+type PanelAnnotationHintState = {
+    x: number;
+    y: number;
+    isValidTarget: boolean;
+};
+
+const ANNOTATION_INVALID_TARGET_MESSAGE =
+    'Annotation can only be created on the main chart.';
+
+function PanelAnnotationInteractionHint({
+    hint,
+}: {
+    hint: PanelAnnotationHintState | undefined;
+}) {
+    if (!hint) {
+        return null;
+    }
+
+    return (
+        <span
+            className={`panel-chart-interaction-hint panel-chart-interaction-hint--${hint.isValidTarget ? 'valid' : 'invalid'}`}
+            style={{
+                left: hint.x + 14,
+                top: Math.max(6, hint.y - 34),
+            }}
+        >
+            {hint.isValidTarget ? (
+                <MdCheckCircle size={13} />
+            ) : (
+                <MdBlock size={13} />
+            )}
+            <span>
+                {hint.isValidTarget
+                    ? 'Click to create annotation'
+                    : ANNOTATION_INVALID_TARGET_MESSAGE}
+            </span>
+        </span>
+    );
 }
 
 function PanelContainer({
@@ -178,6 +219,9 @@ function PanelContainer({
     >(undefined);
     const [annotationEditorMeta, setAnnotationEditorMeta] = useState<
         AnnotationEditorMetaState | undefined
+    >(undefined);
+    const [annotationHint, setAnnotationHint] = useState<
+        PanelAnnotationHintState | undefined
     >(undefined);
     const {
         highlightActions,
@@ -387,6 +431,39 @@ function PanelContainer({
         setOverlayMode(PanelOverlayMode.NO_OVERLAY);
     }
 
+    function isPointInsideMainChart(clientX: number, clientY: number): boolean {
+        return panelChartApiRef.current?.isPointInsideMainGrid(clientX, clientY) === true;
+    }
+
+    function handlePanelMouseMove(event: MouseEvent<HTMLDivElement>): void {
+        if (overlayMode !== PanelOverlayMode.ANNOTATION) {
+            return;
+        }
+
+        const sPanelRect = event.currentTarget.getBoundingClientRect();
+
+        setAnnotationHint({
+            x: event.clientX - sPanelRect.left,
+            y: event.clientY - sPanelRect.top,
+            isValidTarget: isPointInsideMainChart(event.clientX, event.clientY),
+        });
+    }
+
+    function handlePanelClickCapture(event: MouseEvent<HTMLDivElement>): void {
+        if (
+            overlayMode !== PanelOverlayMode.ANNOTATION ||
+            isInteractiveElement(event.target)
+        ) {
+            return;
+        }
+
+        if (isPointInsideMainChart(event.clientX, event.clientY)) {
+            return;
+        }
+
+        Toast.error(ANNOTATION_INVALID_TARGET_MESSAGE, undefined);
+    }
+
     function activateCreateAnnotationEditor(
         position: AnnotationEditorMetaState['position'],
         seriesIndex: number | undefined,
@@ -442,7 +519,13 @@ function PanelContainer({
             className="panel-form"
             style={{ border: `0.5px solid ${isOverlap ? '#FDB532' : '#454545'}` }}
             onContextMenu={handlePanelContextMenu}
+            onMouseMove={handlePanelMouseMove}
+            onMouseLeave={() => setAnnotationHint(undefined)}
+            onClickCapture={handlePanelClickCapture}
         >
+            {overlayMode === PanelOverlayMode.ANNOTATION && (
+                <PanelAnnotationInteractionHint hint={annotationHint} />
+            )}
             <PanelHeader
                 runtimeState={panelHeaderRuntimeState}
                 onAction={handlePanelAction}
@@ -609,6 +692,14 @@ function PanelContainer({
                 />
             )}
         </div>
+    );
+}
+
+function isInteractiveElement(target: EventTarget): boolean {
+    return target instanceof Element && Boolean(
+        target.closest(
+            'button, input, select, textarea, a, [role="button"]',
+        ),
     );
 }
 

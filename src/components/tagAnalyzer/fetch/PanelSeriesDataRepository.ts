@@ -42,6 +42,11 @@ const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
     },
 };
 type LimitDetectionMode = 'extra-row' | 'returned-count' | 'none';
+export const RAW_NAVIGATOR_SAMPLE_COUNT = 20000;
+const SECOND_MS = 1000;
+const MINUTE_MS = 60 * SECOND_MS;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
 
 export async function fetchMainPanelSeriesRows(
     seriesConfigSet: PanelSeriesDefinition[],
@@ -119,7 +124,6 @@ export async function fetchNavigatorPanelSeriesRows(
     queryLimit: number,
     intervalType: string | undefined,
     xAxis: RuntimePanelXAxis,
-    navigatorSampling: RuntimePanelSampling,
     chartWidth: number,
     requestedRawMode: boolean,
     timeRange: TimeRangeMs,
@@ -129,30 +133,31 @@ export async function fetchNavigatorPanelSeriesRows(
         return undefined;
     }
 
-    const sUseSampling = requestedRawMode;
-    const sInterval = resolvePanelFetchInterval(
-        intervalType,
-        xAxis,
-        timeRange,
-        chartWidth,
-        requestedRawMode,
-    );
-    const sDisplayCount = calculateSampleCount(
-        queryLimit,
-        requestedRawMode,
-        xAxis.calculated_data_pixels_per_tick,
-        xAxis.raw_data_pixels_per_tick,
-        chartWidth,
-    );
-    const sLimitDetectionMode = resolveLimitDetectionMode(
-        requestedRawMode,
-        sUseSampling,
-    );
+    const sInterval = requestedRawMode
+        ? resolveTimeBucketIntervalForTargetCount(
+              timeRange,
+              RAW_NAVIGATOR_SAMPLE_COUNT,
+          )
+        : resolvePanelFetchInterval(
+              intervalType,
+              xAxis,
+              timeRange,
+              chartWidth,
+              requestedRawMode,
+          );
+    const sDisplayCount = requestedRawMode
+        ? RAW_NAVIGATOR_SAMPLE_COUNT
+        : calculateSampleCount(
+              queryLimit,
+              requestedRawMode,
+              xAxis.calculated_data_pixels_per_tick,
+              xAxis.raw_data_pixels_per_tick,
+              chartWidth,
+          );
+    const sLimitDetectionMode = requestedRawMode
+        ? 'none'
+        : resolveLimitDetectionMode(false, false);
     const sQueryCount = resolveQueryCount(sDisplayCount, sLimitDetectionMode);
-    const sRawSampling = resolveRawFetchSampling(
-        sUseSampling,
-        navigatorSampling.sample_count,
-    );
 
     return {
         seriesFetchResults: await Promise.all(
@@ -160,12 +165,12 @@ export async function fetchNavigatorPanelSeriesRows(
                 normalizePanelSeriesFetchResult({
                     seriesConfig,
                     fetchResult: requestedRawMode
-                        ? await fetchRawSeriesRows(
-                              seriesConfig,
+                        ? await fetchCalculatedSeriesRows(
+                              getRawNavigatorOverviewSeriesConfig(seriesConfig),
                               timeRange,
                               sInterval,
                               sQueryCount,
-                              sRawSampling,
+                              rollupTableList,
                           )
                         : await fetchCalculatedSeriesRows(
                               seriesConfig,
@@ -182,6 +187,58 @@ export async function fetchNavigatorPanelSeriesRows(
         interval: sInterval,
         count: sDisplayCount,
         isRaw: requestedRawMode,
+    };
+}
+
+function getRawNavigatorOverviewSeriesConfig(
+    seriesConfig: PanelSeriesDefinition,
+): PanelSeriesDefinition {
+    return {
+        ...seriesConfig,
+        calculationMode: 'avg',
+    };
+}
+
+function resolveTimeBucketIntervalForTargetCount(
+    timeRange: TimeRangeMs,
+    targetCount: number,
+): IntervalOption {
+    if (targetCount <= 0) {
+        throw new Error('Navigator target sample count must be positive.');
+    }
+
+    const sBucketWidthMs = Math.ceil(
+        (timeRange.endTime - timeRange.startTime) / targetCount,
+    );
+
+    if (!Number.isFinite(sBucketWidthMs) || sBucketWidthMs <= 0) {
+        throw new Error('Navigator range cannot be sampled because it is invalid.');
+    }
+
+    if (sBucketWidthMs <= MINUTE_MS) {
+        return {
+            IntervalType: 'sec',
+            IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / SECOND_MS)),
+        };
+    }
+
+    if (sBucketWidthMs <= HOUR_MS) {
+        return {
+            IntervalType: 'min',
+            IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / MINUTE_MS)),
+        };
+    }
+
+    if (sBucketWidthMs <= DAY_MS) {
+        return {
+            IntervalType: 'hour',
+            IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / HOUR_MS)),
+        };
+    }
+
+    return {
+        IntervalType: 'day',
+        IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / DAY_MS)),
     };
 }
 

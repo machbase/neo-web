@@ -8,6 +8,7 @@
 .panel-markup-modal__title,
 .panel-markup-modal__field { font-size: 12px; color: #afb5bc; }
 .panel-markup-modal__title { margin-bottom: 10px; }
+.panel-markup-modal--draggable .panel-markup-modal__title { padding-left: 24px; }
 .panel-markup-modal__body,
 .panel-markup-modal__field { display: grid; gap: 10px; }
 .panel-markup-modal__field { gap: 4px; }

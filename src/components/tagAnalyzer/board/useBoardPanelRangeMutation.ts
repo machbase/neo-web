@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import type { GlobalTimeRangeState } from '../domain/BoardDomain';
 import {
     resolvePanelAxesForRuntime,
-    resolvePanelDataForRuntime,
     type PanelInfo,
     type PanelRangeState,
 } from '../domain/PanelDomain';
@@ -96,14 +95,14 @@ export function useBoardPanelRangeMutation({
         requestDataRefresh(sPanelKey, options);
     }
 
-    async function applyRange(
+    function applyRange(
         panelInfo: PanelInfo,
         {
             panelRange,
             navigatorRange = panelRange,
-            dataLoadConfigOverride,
+            ...refreshOptions
         }: PanelRangeApplyOptions,
-    ): Promise<void> {
+    ): void {
         const sPanelKey = panelInfo.data.index_key;
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
         assertCanApplyRange(sBoardPanelRecord, panelRange);
@@ -118,13 +117,13 @@ export function useBoardPanelRangeMutation({
             panelInfo,
             { panelRange, navigatorRange: sNavigatorRange },
             {
+                ...refreshOptions,
                 forceReload: true,
-                dataLoadConfigOverride,
             },
         );
     }
 
-    async function refreshVisibleRange(
+    function refreshVisibleRange(
         panelInfo: PanelInfo,
         panelRange: TimeRangeMs,
         navigatorRange: TimeRangeMs,
@@ -136,7 +135,7 @@ export function useBoardPanelRangeMutation({
             clampPanelRangeToLoadedDataRange,
             skipDataRefresh,
         }: PanelRangeRefreshOptions = {},
-    ): Promise<void> {
+    ): void {
         const sPanelKey = panelInfo.data.index_key;
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
         assertCanApplyRange(sBoardPanelRecord, panelRange);
@@ -184,13 +183,13 @@ export function useBoardPanelRangeMutation({
         );
     }
 
-    async function refreshCurrentRange(
+    function refreshCurrentRange(
         panelInfo: PanelInfo,
         options: PanelRangeRefreshOptions = {},
-    ): Promise<void> {
+    ): void {
         const sRangeState = getBoardPanelRecord(panelInfo.data.index_key).rangeState;
 
-        await refreshVisibleRange(
+        refreshVisibleRange(
             panelInfo,
             sRangeState.panelRange,
             sRangeState.navigatorRange,
@@ -206,10 +205,10 @@ export function useBoardPanelRangeMutation({
             return;
         }
 
-        await refreshCurrentRange(panelInfo, {
+        refreshCurrentRange(panelInfo, {
             forceReload: true,
             preserveNavigatorRange: true,
-            forceRawMainSampling: true,
+            clampPanelRangeToLoadedDataRange: panelInfo.general.is_raw,
         });
     }
 
@@ -220,15 +219,15 @@ export function useBoardPanelRangeMutation({
         refreshVisibleRange,
     });
 
-    async function applyGlobalRange(
+    function applyGlobalRange(
         panelInfo: PanelInfo,
         globalTimeRangeToApply: GlobalTimeRangeState,
-    ): Promise<void> {
+    ): void {
         if (hasNumericBaseTimeSeries(panelInfo.data.tag_set)) {
             return;
         }
 
-        await applyRange(panelInfo, {
+        applyRange(panelInfo, {
             panelRange: globalTimeRangeToApply.data,
             navigatorRange: globalTimeRangeToApply.navigator,
         });
@@ -287,9 +286,11 @@ export function useBoardPanelRangeMutation({
             return;
         }
 
-        void refreshCurrentRange(nextPanelInfo, {
+        refreshCurrentRange(nextPanelInfo, {
             forceReload: true,
             preserveNavigatorRange: sShouldPreserveLiveRange,
+            forceRawMainSampling: nextPanelInfo.general.is_raw,
+            clampPanelRangeToLoadedDataRange: nextPanelInfo.general.is_raw,
             dataLoadConfigOverride: {
                 isRaw: nextPanelInfo.general.is_raw,
             },
@@ -297,15 +298,13 @@ export function useBoardPanelRangeMutation({
     }
 
     function reloadPanelEdit(nextPanelInfo: PanelInfo): void {
-        const sRuntimeData = resolvePanelDataForRuntime(nextPanelInfo.data);
         const sRuntimeAxes = resolvePanelAxesForRuntime(nextPanelInfo.axes);
         const sDataLoadConfigOverride: Partial<PanelChartDataLoadConfig> = {
-            seriesList: sRuntimeData.tag_set,
-            queryLimit: sRuntimeData.count,
-            intervalType: sRuntimeData.interval_type,
+            seriesList: nextPanelInfo.data.tag_set,
+            queryLimit: nextPanelInfo.data.count ?? -1,
+            intervalType: nextPanelInfo.data.interval_type,
             isRaw: nextPanelInfo.general.is_raw,
             xAxis: sRuntimeAxes.x_axis,
-            navigatorSampling: sRuntimeAxes.sampling,
             mainChartSampling: sRuntimeAxes.main_chart_sampling,
         };
         const sRangeState = getBoardPanelRecord(nextPanelInfo.data.index_key).rangeState;
@@ -318,9 +317,10 @@ export function useBoardPanelRangeMutation({
             isConcreteTimeRange(sRangeState.navigatorRange);
 
         if (sShouldPreserveLiveRange) {
-            void refreshCurrentRange(nextPanelInfo, {
+            refreshCurrentRange(nextPanelInfo, {
                 forceReload: true,
                 preserveNavigatorRange: true,
+                clampPanelRangeToLoadedDataRange: nextPanelInfo.general.is_raw,
                 dataLoadConfigOverride: sDataLoadConfigOverride,
             });
             return;

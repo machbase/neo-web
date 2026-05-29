@@ -55,6 +55,7 @@ function MarkupModal({
     onClose,
     children,
     actions,
+    draggable = false,
 }: {
     title: string;
     className: string;
@@ -62,10 +63,15 @@ function MarkupModal({
     onClose: () => void;
     children: ReactNode;
     actions: ReactNode;
+    draggable?: boolean;
 }) {
     return (
-        <PanelMarkupPopover position={position} onClose={onClose}>
-            <div className={`panel-markup-modal ${className}`}>
+        <PanelMarkupPopover
+            position={position}
+            onClose={onClose}
+            draggable={draggable}
+        >
+            <div className={`panel-markup-modal ${className} ${draggable ? 'panel-markup-modal--draggable' : ''}`}>
                 <div className="panel-markup-modal__title">{title}</div>
                 <div className="panel-markup-modal__body">{children}</div>
                 <div className="panel-markup-modal__actions">{actions}</div>
@@ -371,6 +377,7 @@ export function EditAnnotationModal({
             className="panel-markup-modal--annotation"
             position={annotationEditorMeta.position}
             onClose={onCancel}
+            draggable
             actions={(
                 <ModalActions
                     canApply={canApply}

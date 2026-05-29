@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
-import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
+import { Input, Dropdown, ColorPicker, Button } from '@/design-system/components';
 import AddTagsModal from '../../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import {
@@ -9,6 +9,7 @@ import {
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
 import type { PanelEditorConfig } from '../EditorTypes';
+import styles from '../PanelEditor.module.scss';
 
 type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
 
@@ -43,78 +44,68 @@ const EditorDataTab = ({
                     const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
                     const updateItem = (field: EditableSeriesField) => (value: string) =>
                         updateSeriesField(item.key, field, value);
+                    const sTableTooltipClass = `taz-table-name-tooltip-${seriesIndex}`;
 
                     return (
-                        <Page
-                            key={item.key}
-                            style={{
-                                borderRadius: '4px',
-                                border: '1px solid #b8c8da41',
-                                gap: '6px',
-                                height: 'auto',
-                                display: 'table',
-                            }}
-                        >
-                            <Page.ContentBlock
-                                style={{ padding: '4px', flexWrap: 'wrap' }}
-                                pHoverNone
-                            >
-                                <Page.DpRow
-                                    style={{
-                                        width: '100%',
-                                        paddingBottom: '8px',
-                                        gap: '8px',
-                                        flexWrap: 'wrap',
-                                    }}
+                        <div key={item.key} className={styles.editorCard}>
+                            <div className={styles.editorWrappedRow}>
+                                <div
+                                    className={[
+                                        styles.editorField,
+                                        pIsRawMode && styles.disabledControl,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' ')}
                                 >
-                                    <div style={{ opacity: pIsRawMode ? 0.45 : 1 }}>
+                                    <span className={styles.editorFieldLabel}>
+                                        Calc Mode
+                                    </span>
+                                    <div className={styles.editorNarrowControl}>
                                         <Dropdown.Root
                                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                                             value={item.calculationMode ?? 'avg'}
                                             onChange={updateItem('calculationMode')}
-                                            label="Calc Mode"
-                                            labelPosition="left"
                                             disabled={pIsRawMode}
                                         >
                                             <Dropdown.Trigger
-                                                style={{ width: '120px' }}
+                                                style={{ width: '112px' }}
                                             />
                                             <Dropdown.Menu>
                                                 <Dropdown.List />
                                             </Dropdown.Menu>
                                         </Dropdown.Root>
                                     </div>
+                                </div>
+                                <div className={styles.editorField}>
+                                    <span
+                                        className={[
+                                            sTableTooltipClass,
+                                            styles.editorFieldLabel,
+                                        ].join(' ')}
+                                    >
+                                        Source Tag Name
+                                        <span className={styles.editorFieldHint}>
+                                            ({item.table})
+                                        </span>
+                                    </span>
+                                    <Tooltip
+                                        anchorSelect={`.${sTableTooltipClass}`}
+                                        content={item.table}
+                                    />
                                     <Input
-                                        label={
-                                            <span
-                                                className={`taz-table-name-tooltip-${item.table}`}
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px',
-                                                }}
-                                            >
-                                                Source Tag Name
-                                                <span style={{ fontSize: '10px' }}>
-                                                    ({item.table})
-                                                </span>
-                                                <Tooltip
-                                                    anchorSelect={`.taz-table-name-tooltip-${item.table}`}
-                                                    content={item.table}
-                                                />
-                                            </span>
-                                        }
-                                        labelPosition="left"
+                                        aria-label="Source Tag Name"
                                         value={item.sourceTagName}
                                         onChange={(event) =>
                                             updateItem('sourceTagName')(event.target.value)
                                         }
                                         size="md"
-                                        style={{ width: '120px', height: '30px' }}
+                                        style={{ width: '128px', height: '30px' }}
                                     />
+                                </div>
+                                <div className={styles.editorField}>
+                                    <span className={styles.editorFieldLabel}>Alias</span>
                                     <Input
-                                        label="Alias"
-                                        labelPosition="left"
+                                        aria-label="Alias"
                                         value={item.alias}
                                         onChange={(event) =>
                                             updateItem('alias')(event.target.value)
@@ -122,28 +113,31 @@ const EditorDataTab = ({
                                         size="sm"
                                         style={{ width: '120px', height: '30px' }}
                                     />
+                                </div>
+                                <div className={styles.editorInlineField}>
+                                    <span className={styles.editorFieldLabel}>Color</span>
                                     <ColorPicker
                                         color={sSeriesColor}
                                         onChange={updateItem('color')}
                                         tooltipContent="Color"
                                     />
-                                    {pDataDraft.tag_set.length !== 1 && (
-                                        <Button
-                                            size="xsm"
-                                            variant="ghost"
-                                            icon={
-                                                <Close size={16} color="#f8f8f8" />
-                                            }
-                                            onClick={() =>
-                                                setTagSet(
-                                                    pDataDraft.tag_set.filter((tag) => tag.key !== item.key),
-                                                )
-                                            }
-                                        />
-                                    )}
-                                </Page.DpRow>
-                            </Page.ContentBlock>
-                        </Page>
+                                </div>
+                                {pDataDraft.tag_set.length !== 1 && (
+                                    <Button
+                                        size="xsm"
+                                        variant="ghost"
+                                        icon={
+                                            <Close size={16} color="#f8f8f8" />
+                                        }
+                                        onClick={() =>
+                                            setTagSet(
+                                                pDataDraft.tag_set.filter((tag) => tag.key !== item.key),
+                                            )
+                                        }
+                                    />
+                                )}
+                            </div>
+                        </div>
                     );
                 })}
             {isModal && (

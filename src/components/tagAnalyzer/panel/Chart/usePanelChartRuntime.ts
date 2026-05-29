@@ -12,6 +12,7 @@ import { applyPanelNavigatorCursorStyles } from './utils/PanelNavigatorCursorSty
 import type { PanelChartInstance } from './types/PanelChartRuntimeTypes';
 import { useBlankChartClickEvent } from './hooks/useBlankChartClickEvent';
 import { usePanelChartInstanceSync } from './hooks/usePanelChartInstanceSync';
+import { isConcreteTimeRange } from '../../domain/time/TimeRangeUtils';
 
 type PanelBodyRefs = {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
@@ -30,8 +31,7 @@ type PanelBodyHandlers = {
 };
 
 export type PanelChartInteractionHintMode =
-    | PanelOverlayMode.ANNOTATION
-    | PanelOverlayMode.HIGHLIGHT;
+    PanelOverlayMode.HIGHLIGHT;
 
 export type UsePanelChartRuntimeParams = {
     refs: PanelBodyRefs;
@@ -56,6 +56,14 @@ type UsePanelChartRuntimeResult = {
         onMouseLeave: () => void;
     };
 };
+
+const DEBUG_PANEL_RANGE_REFRESH = true;
+
+function debugPanelRangeRefresh(message: string, payload: unknown): void {
+    if (DEBUG_PANEL_RANGE_REFRESH) {
+        console.log(`[TA chart] ${message}`, payload);
+    }
+}
 
 export function usePanelChartRuntime({
     refs,
@@ -116,7 +124,6 @@ export function usePanelChartRuntime({
         useNormalize,
     ]);
     const hintMode =
-        overlayMode === PanelOverlayMode.ANNOTATION ||
         overlayMode === PanelOverlayMode.HIGHLIGHT
             ? overlayMode
             : undefined;
@@ -147,6 +154,27 @@ export function usePanelChartRuntime({
         optionRevision: option,
         onChartReady: attachBlankChartClickEvent,
     });
+    const syncMainChartVisibleRange = useCallback((
+        chartInstance: PanelChartInstance | undefined = chartInstanceRef.current,
+    ): void => {
+        if (!chartInstance || !isConcreteTimeRange(panelRange)) {
+            return;
+        }
+
+        debugPanelRangeRefresh('chart range set to', {
+            mainRange: panelRange,
+            navigatorRange,
+        });
+
+        chartInstance.dispatchAction({
+            type: 'dataZoom',
+            startValue: panelRange.startTime,
+            endValue: panelRange.endTime,
+        });
+    }, [
+        chartInstanceRef,
+        panelRange,
+    ]);
     const applyLegendHoverState = useCallback((
         hoveredLegendSeries: string | undefined,
         force = false,
@@ -191,8 +219,21 @@ export function usePanelChartRuntime({
                     name: series.name,
                     visible: visibleSeriesRef.current[series.name] !== false,
                 })),
+            isPointInsideMainGrid: (clientX: number, clientY: number) => {
+                const chartInstance = chartInstanceRef.current;
+                const chartRect = chartAreaRef.current?.getBoundingClientRect();
+
+                if (!chartInstance?.containPixel || !chartRect) {
+                    return false;
+                }
+
+                return chartInstance.containPixel(
+                    { gridIndex: 0 },
+                    [clientX - chartRect.left, clientY - chartRect.top],
+                );
+            },
         };
-    }, [chartApiRef, chartData]);
+    }, [chartApiRef, chartAreaRef, chartData, chartInstanceRef]);
 
     useEffect(() => {
         if (hoveredLegendSeriesRef.current) {
@@ -205,6 +246,10 @@ export function usePanelChartRuntime({
             setCursorHintPosition(undefined);
         }
     }, [hintMode]);
+
+    useEffect(() => {
+        syncMainChartVisibleRange();
+    }, [option, syncMainChartVisibleRange]);
 
     return {
         hintMode,
@@ -238,6 +283,7 @@ export function usePanelChartRuntime({
         handleChartReady: (instance: unknown) => {
             const chartInstance = instance as PanelChartInstance;
             syncChartReady(chartInstance);
+            syncMainChartVisibleRange(chartInstance);
             applyPanelNavigatorCursorStyles(chartInstance);
             if (hoveredLegendSeriesRef.current) {
                 applyLegendHoverState(hoveredLegendSeriesRef.current, true);

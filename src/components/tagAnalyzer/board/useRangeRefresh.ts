@@ -13,7 +13,6 @@ import type {
     BoardPanelRecord,
 } from './BoardPanelState';
 import type {
-    PanelChartDataLoadConfig,
     PanelRangeApplyOptions,
     PanelRangeRefreshOptions,
 } from '../panel/PanelDataRuntimeState';
@@ -25,13 +24,13 @@ type RangeRefreshDependencies = {
     applyRange: (
         panelInfo: PanelInfo,
         options: PanelRangeApplyOptions,
-    ) => Promise<void>;
+    ) => void;
     refreshVisibleRange: (
         panelInfo: PanelInfo,
         panelRange: TimeRangeMs,
         navigatorRange: TimeRangeMs,
         options?: PanelRangeRefreshOptions,
-    ) => Promise<void>;
+    ) => void;
 };
 
 export function useRangeRefresh({
@@ -42,7 +41,7 @@ export function useRangeRefresh({
 }: RangeRefreshDependencies) {
     async function initializeRange(
         panelInfo: PanelInfo,
-        options: { dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig> } = {},
+        options: PanelRangeRefreshOptions = {},
     ): Promise<void> {
         const initialRange = await resolveInitialPanelRange(
             panelInfo.data.tag_set,
@@ -57,10 +56,13 @@ export function useRangeRefresh({
             return;
         }
 
-        await applyRange(panelInfo, {
+        applyRange(panelInfo, {
             panelRange: initialRange.panelRange,
             navigatorRange: initialRange.navigatorRange,
-            dataLoadConfigOverride: options.dataLoadConfigOverride,
+            ...options,
+            clampPanelRangeToLoadedDataRange:
+                options.clampPanelRangeToLoadedDataRange ??
+                panelInfo.general.is_raw,
         });
     }
 
@@ -71,9 +73,10 @@ export function useRangeRefresh({
             return;
         }
 
-        await applyRange(panelInfo, {
+        applyRange(panelInfo, {
             panelRange: fullDataRange,
             navigatorRange: fullDataRange,
+            clampPanelRangeToLoadedDataRange: panelInfo.general.is_raw,
         });
     }
 
@@ -95,10 +98,10 @@ export function useRangeRefresh({
 
         const panelRange = clampTimeRangeToBounds(rangeState.panelRange, fullDataRange);
 
-        await refreshVisibleRange(panelInfo, panelRange, fullDataRange, {
+        refreshVisibleRange(panelInfo, panelRange, fullDataRange, {
             forceReload: true,
             preserveNavigatorRange: true,
-            forceRawMainSampling: true,
+            clampPanelRangeToLoadedDataRange: panelInfo.general.is_raw,
         });
     }
 
@@ -119,7 +122,7 @@ export function useRangeRefresh({
             return;
         }
 
-        await applyRange(panelInfo, {
+        applyRange(panelInfo, {
             panelRange: boardRange,
             navigatorRange: boardRange,
         });

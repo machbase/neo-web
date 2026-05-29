@@ -6,9 +6,6 @@ import EditorDataTab from './editTabs/EditorDataTab';
 import EditorDisplayTab from './editTabs/EditorDisplayTab';
 import EditorGeneralTab from './editTabs/EditorGeneralTab';
 import EditorTimeTab from './editTabs/EditorTimeTab';
-import {
-    convertPanelStateToEditorConfig,
-} from './PanelEditorConfigConverter';
 import { EDITOR_TABS } from './EditorConstants';
 import { hasInvalidPanelEditorAxisRange } from './PanelEditorValidation';
 import styles from './PanelEditor.module.scss';
@@ -46,7 +43,7 @@ const PanelEditor = ({
     pVisiblePanelRange: TimeRangeMs;
 }) => {
     const sInitialEditorConfig = useMemo(
-        () => convertPanelStateToEditorConfig(pPanelInfo),
+        () => pPanelInfo,
         [pPanelInfo],
     );
     const sInitialEditorConfigKey = useMemo(

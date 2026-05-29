@@ -26,6 +26,7 @@ export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
         ...PANEL_CHART_BASE_OPTION,
         ...buildPanelChartFrameOptions(chartInfo),
         xAxis: buildChartXAxisOption(
+            chartInfo.panelRange,
             chartInfo.navigatorRange,
             chartInfo.display,
             chartInfo.axes,

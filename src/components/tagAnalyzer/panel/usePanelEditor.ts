@@ -2,15 +2,12 @@ import { useState } from 'react';
 import type { PanelInfo } from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
+import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import type { PanelEditorConfig } from './editor/EditorTypes';
-import {
-    mergeEditorConfigIntoPanelState,
-    type PanelEditorPanelState,
-} from './editor/PanelEditorConfigConverter';
 
 function getPanelStateWithoutNavigatorPersistence(
-    panelState: PanelEditorPanelState,
-): PanelEditorPanelState {
+    panelState: PanelInfo,
+): PanelInfo {
     return {
         ...panelState,
         general: {
@@ -22,8 +19,8 @@ function getPanelStateWithoutNavigatorPersistence(
 }
 
 function shouldReloadPanelAfterEditorSave(
-    currentPanelState: PanelEditorPanelState,
-    nextPanelState: PanelEditorPanelState,
+    currentPanelState: PanelInfo,
+    nextPanelState: PanelInfo,
 ): boolean {
     return (
         JSON.stringify(getPanelStateWithoutNavigatorPersistence(currentPanelState)) !==
@@ -32,13 +29,22 @@ function shouldReloadPanelAfterEditorSave(
 }
 
 function hasPanelTimeRangeConfigChanged(
-    currentPanelState: PanelEditorPanelState,
-    nextPanelState: PanelEditorPanelState,
+    currentPanelState: PanelInfo,
+    nextPanelState: PanelInfo,
 ): boolean {
     return (
         JSON.stringify(currentPanelState.time.range_config) !==
         JSON.stringify(nextPanelState.time.range_config)
     );
+}
+
+function normalizeTagSetForRightYAxis(
+    tagSet: PanelSeriesDefinition[],
+    rightYAxisEnabled: boolean,
+): PanelSeriesDefinition[] {
+    return rightYAxisEnabled
+        ? tagSet
+        : tagSet.map((series) => ({ ...series, useSecondaryAxis: false }));
 }
 
 export function usePanelEditor({
@@ -76,10 +82,16 @@ export function usePanelEditor({
 
     function saveEditedPanelConfig(editorConfig: PanelEditorConfig): void {
         const sCurrentPanelState = panelInfo;
-        const sNextPanelState = mergeEditorConfigIntoPanelState(
-            sCurrentPanelState,
-            editorConfig,
-        );
+        const sNextPanelState: PanelInfo = {
+            ...editorConfig,
+            data: {
+                ...editorConfig.data,
+                tag_set: normalizeTagSetForRightYAxis(
+                    editorConfig.data.tag_set,
+                    editorConfig.axes.right_y_axis_enabled,
+                ),
+            },
+        };
         const sHasTimeRangeConfigChanged = hasPanelTimeRangeConfigChanged(
             sCurrentPanelState,
             sNextPanelState,

@@ -20,7 +20,7 @@ export const EDITOR_TABS: EditTabPanelType[] = [
 ];
 
 export const EDITOR_X_AXIS_INPUT_STYLE: CSSProperties = {
-    width: '150px',
+    width: '96px',
     height: '30px',
 };
 

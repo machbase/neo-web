@@ -152,8 +152,8 @@ function resolveAxisRange(
     return { min: manualRange.min, max: manualRange.max };
 }
 
-// Keeps the main plot and navigator x-axes locked to the same time range.
 export function buildChartXAxisOption(
+    panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,
     display: RuntimePanelDisplay,
     axes: RuntimePanelAxes,
@@ -166,14 +166,14 @@ export function buildChartXAxisOption(
             id: PANEL_MAIN_X_AXIS_ID,
             type: sAxisType,
             gridIndex: 0,
-            min: navigatorRange.startTime,
-            max: navigatorRange.endTime,
+            min: panelRange.startTime,
+            max: panelRange.endTime,
             axisLine: AXIS_LINE_STYLE,
             axisTick: AXIS_LINE_STYLE,
             axisLabel: {
                 ...PANEL_AXIS_LABEL_STYLE,
                 formatter: (xAxisValue: number) =>
-                    formatAxisValue(xAxisValue, navigatorRange, isNumericXAxis),
+                    formatAxisValue(xAxisValue, panelRange, isNumericXAxis),
             },
             splitLine: {
                 show: display.use_zoom && axes.x_axis.show_tickline,

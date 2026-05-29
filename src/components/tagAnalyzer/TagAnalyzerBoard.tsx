@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
     Calendar,
@@ -141,8 +141,24 @@ const TagAnalyzerBoard = ({
         sOverlapSelections.map((item) => item.panelKey),
     );
     const sRangeText = formatBoardRangeText(pInfo.boardTimeRange);
-    const sRuntimePanels = pInfo.panels.map((panel) =>
-        getPanelInfoWithRawMode(panel, getPanelRawMode(panel)),
+    const sRuntimePanels = useMemo(
+        () =>
+            pInfo.panels.map((panel) => {
+                const sIsRaw =
+                    sPanelRawModeByKey[panel.data.index_key] ??
+                    panel.general.is_raw;
+
+                return panel.general.is_raw === sIsRaw
+                    ? panel
+                    : {
+                          ...panel,
+                          general: {
+                              ...panel.general,
+                              is_raw: sIsRaw,
+                          },
+                      };
+            }),
+        [pInfo.panels, sPanelRawModeByKey],
     );
     const boardPanels = useTagAnalyzerBoardPanels({
         panels: sRuntimePanels,

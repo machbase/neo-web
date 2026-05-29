@@ -17,7 +17,6 @@ const PANEL_CHART_INTERACTION_HINT_TEXT: Record<
     PanelChartInteractionHintMode,
     string
 > = {
-    [PanelOverlayMode.ANNOTATION]: 'Click to create annotation',
     [PanelOverlayMode.HIGHLIGHT]: 'Drag to create highlight',
 };
 

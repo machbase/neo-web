@@ -14,6 +14,7 @@ import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
+import { RAW_NAVIGATOR_SAMPLE_COUNT } from '../../../fetch/PanelSeriesDataRepository';
 import styles from '../PanelEditor.module.scss';
 
 type AxisKey = keyof Pick<
@@ -144,7 +145,7 @@ const EditorAxesTab = ({
         </div>
     );
     const samplingNumber = (
-        key: 'sampling' | 'main_chart_sampling',
+        key: 'main_chart_sampling',
         config: PanelSamplingDraft,
         disabled: boolean,
     ) => (
@@ -312,7 +313,9 @@ const EditorAxesTab = ({
                     label="Displays the X-Axis tick line"
                     size="sm"
                 />
-                <span className={styles.sectionSubTitle}>Raw</span>
+                <span className={styles.axisSubsectionTitle}>Calculation</span>
+                {xNumber('calculated_data_pixels_per_tick', pIsRawMode)}
+                <span className={styles.axisSubsectionTitle}>Raw</span>
                 {xNumber('raw_data_pixels_per_tick', !pIsRawMode)}
                 <SamplingRow
                     anchorClass="main-chart-sampling-tooltip"
@@ -337,13 +340,13 @@ const EditorAxesTab = ({
                 <SamplingRow
                     anchorClass="navigation-sampling-tooltip"
                     label="Navigation sampling"
-                    content="Raw navigator data always uses this as the database sampling value."
+                    content="Raw navigator data always uses fixed sampled loading."
                     disabled={!pIsRawMode}
                 >
-                    {samplingNumber('sampling', pAxesConfig.sampling, !pIsRawMode)}
+                    <span className={styles.editorFixedValue}>
+                        Fixed at {RAW_NAVIGATOR_SAMPLE_COUNT.toLocaleString()}
+                    </span>
                 </SamplingRow>
-                <span className={styles.sectionSubTitle}>Calculation</span>
-                {xNumber('calculated_data_pixels_per_tick', pIsRawMode)}
             </Section>
             {renderYAxis('Left Y-Axis', 'left_y_axis')}
             {renderYAxis('Right Y-Axis', 'right_y_axis', !pAxesConfig.right_y_axis_enabled)}

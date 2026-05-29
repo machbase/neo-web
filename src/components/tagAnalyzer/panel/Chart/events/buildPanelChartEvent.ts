@@ -6,7 +6,10 @@ import {
     type PanelRangeHandlers,
 } from '../../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { isSameTimeRange } from '../../../domain/time/TimeRangeUtils';
+import {
+    getTimeRangeWidth,
+    isSameTimeRange,
+} from '../../../domain/time/TimeRangeUtils';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
@@ -75,6 +78,14 @@ type BuildChartEventParams = {
     };
 };
 
+const DEBUG_PANEL_RANGE_REFRESH = true;
+
+function debugPanelRangeRefresh(message: string, payload: unknown): void {
+    if (DEBUG_PANEL_RANGE_REFRESH) {
+        console.log(`[TA datazoom] ${message}`, payload);
+    }
+}
+
 export function buildChartEvent({
     ranges,
     interactionMode,
@@ -110,10 +121,29 @@ export function buildChartEvent({
                       panelRange,
                       navigatorRange,
                   );
+            const sIsSameRange = sRange
+                ? isSameDataZoomRange(sRange, panelRange, isNumericXAxis)
+                : false;
 
-            if (!sRange || isSameTimeRange(sRange, panelRange)) {
+            debugPanelRangeRefresh('chart range event', {
+                currentMainRange: panelRange,
+                chartEventRange: sRange,
+                ignoredAsSameRange: sIsSameRange,
+            });
+
+            if (
+                !sRange ||
+                sIsSameRange
+            ) {
                 return;
             }
+
+            debugPanelRangeRefresh('chart changed range to', {
+                mainRange: {
+                    startTime: sRange.startTime,
+                    endTime: sRange.endTime,
+                },
+            });
 
             rangeHandlers.onPanelRangeChangeFromNavigator({
                 min: sRange.startTime,
@@ -202,6 +232,16 @@ export function buildChartEvent({
             }
 
             if (overlayMode === PanelOverlayMode.ANNOTATION) {
+                if (
+                    !isMainGridClick(
+                        params,
+                        chartAreaRef,
+                        sChartInstance,
+                    )
+                ) {
+                    return;
+                }
+
                 const sTimestamp = getChartClickTimestamp(
                     params,
                     chartAreaRef,
@@ -237,6 +277,22 @@ export function buildChartEvent({
     };
 }
 
+function isSameDataZoomRange(
+    left: TimeRangeMs,
+    right: TimeRangeMs,
+    isNumericXAxis: boolean,
+): boolean {
+    const sRangeWidth = Math.abs(getTimeRangeWidth(right));
+    const sTolerance = isNumericXAxis
+        ? Math.max(sRangeWidth * 1e-9, Number.EPSILON)
+        : Math.max(sRangeWidth * 1e-9, 1);
+
+    return (
+        Math.abs(left.startTime - right.startTime) <= sTolerance &&
+        Math.abs(left.endTime - right.endTime) <= sTolerance
+    );
+}
+
 function isLegendHoverPayload(
     payload: PanelChartHighlightPayload | undefined,
 ): payload is PanelChartHighlightPayload & { excludeSeriesId: string[] } {
@@ -259,6 +315,20 @@ function getSeriesIndexFromSeriesId(
 
     return parseNonNegativeInteger(
         /^(\d+)/.exec(seriesId.slice(seriesIdPrefix.length))?.[1],
+    );
+}
+
+function isMainGridClick(
+    payload: PanelChartClickPayload,
+    chartAreaRef: MutableRefObject<HTMLDivElement | null>,
+    chartInstance: PanelChartInstance | undefined,
+): boolean {
+    const sChartRect = chartAreaRef.current?.getBoundingClientRect();
+    const sPixel = getPanelChartEventPixel(payload, sChartRect);
+
+    return Boolean(
+        sPixel &&
+        chartInstance?.containPixel?.({ gridIndex: 0 }, sPixel),
     );
 }
 

@@ -143,8 +143,35 @@
 .axesGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px;
+    gap: 8px;
     align-items: start;
+}
+
+.axesGrid .section {
+    gap: 8px;
+}
+
+.axesGrid .controlRow {
+    gap: 6px;
+}
+
+.axesGrid .rangeInputs {
+    gap: 6px;
+}
+
+.axisSubsectionTitle {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 20px;
+    padding: 2px 7px;
+    border-left: 2px solid #fdb532;
+    border-radius: 4px;
+    background: rgba(253, 181, 50, 0.1);
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
 }
 
 .disabledControl {
@@ -189,6 +216,70 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.editorCard {
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    padding: 6px;
+}
+
+.editorWrappedRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 14px;
+}
+
+.editorField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.editorNarrowControl {
+    width: 112px;
+}
+
+.editorFieldLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 14px;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.editorFieldHint {
+    max-width: 70px;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 10px;
+    text-overflow: ellipsis;
+}
+
+.editorInlineField {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+}
+
+.editorFixedValue {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
 }
 
 .seriesCard {

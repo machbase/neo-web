@@ -12,6 +12,7 @@ import {
     ensureMinimumTimeRangeWidth,
     getTimeRangeCenter,
     getTimeRangeWidth,
+    isConcreteTimeRange,
     isTimeRangeOutsideBounds,
     shiftTimeRange,
 } from '../domain/time/TimeRangeUtils';
@@ -79,11 +80,19 @@ export function usePanelRangeControls({
     return {
         rangeHandlers: {
             onPanelRangeChange: (event: PanelRangeChangeEvent) => {
+                const sRequestedPanelRange = createTimeRangeMs(
+                    event.min,
+                    event.max,
+                );
+                if (!isFiniteRangeEvent(sRequestedPanelRange)) {
+                    return;
+                }
+
                 onRangeStateChange(
                     getPanelRangeChangeState(
                         rangeState,
                         chartAreaWidth,
-                        event,
+                        sRequestedPanelRange,
                         false,
                         isNumericXAxis,
                     ),
@@ -94,11 +103,19 @@ export function usePanelRangeControls({
                 );
             },
             onPanelRangeChangeFromNavigator: (event: PanelRangeChangeEvent) => {
+                const sRequestedPanelRange = createTimeRangeMs(
+                    event.min,
+                    event.max,
+                );
+                if (!isFiniteRangeEvent(sRequestedPanelRange)) {
+                    return;
+                }
+
                 onRangeStateChange(
                     getPanelRangeChangeState(
                         rangeState,
                         chartAreaWidth,
-                        event,
+                        sRequestedPanelRange,
                         true,
                         isNumericXAxis,
                     ),
@@ -115,6 +132,9 @@ export function usePanelRangeControls({
                     isNumericXAxis,
                     MIN_NAVIGATOR_RANGE_MS,
                 );
+                if (!isConcreteTimeRange(sNavigatorRange)) {
+                    return;
+                }
 
                 setNavigatorRange(sNavigatorRange);
             },
@@ -217,6 +237,10 @@ export function usePanelRangeControls({
 
 type RangeShiftDirection = -1 | 1;
 
+function isFiniteRangeEvent(range: TimeRangeMs): boolean {
+    return Number.isFinite(range.startTime) && Number.isFinite(range.endTime);
+}
+
 function getRangeShiftOffset(
     range: TimeRangeMs,
     direction: RangeShiftDirection,
@@ -281,11 +305,10 @@ function getShiftedNavigatorRangeState(
 function getPanelRangeChangeState(
     rangeState: PanelRangeState,
     chartAreaWidth: number | undefined,
-    event: PanelRangeChangeEvent,
+    requestedPanelRange: TimeRangeMs,
     preserveNavigatorRange: boolean,
     isNumericXAxis: boolean,
 ): PanelRangeState {
-    const sRequestedPanelRange = createTimeRangeMs(event.min, event.max);
     const sMinimumPanelRangeWidth = preserveNavigatorRange
         ? getNavigatorHandleMinimumRangeWidth({
               navigatorRange: rangeState.navigatorRange,
@@ -296,14 +319,14 @@ function getPanelRangeChangeState(
     const sPanelRange = preserveNavigatorRange
         ? clampTimeRangeToBounds(
               ensureMinimumTimeRangeWidth(
-                  sRequestedPanelRange,
+                  requestedPanelRange,
                   sMinimumPanelRangeWidth,
               ),
               rangeState.navigatorRange,
           )
         : clampTimeRangeToBounds(
               ensureMinimumAxisRangeWidth(
-                  sRequestedPanelRange,
+                  requestedPanelRange,
                   rangeState.navigatorRange,
                   isNumericXAxis,
                   sMinimumPanelRangeWidth,

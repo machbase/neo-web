@@ -3,6 +3,7 @@ import type { PanelEChartType } from '../../../domain/PanelDomain';
 import type { PanelDisplayDraft } from '../EditorTypes';
 import { CHART_TYPE_OPTIONS } from '../EditorConstants';
 import { parseEditorNumber } from '../PanelEditorUtils';
+import styles from '../PanelEditor.module.scss';
 
 const CHART_TYPE_OPTION_STYLE = { width: '80px', height: '64px', borderRadius: '4px', cursor: 'pointer' } as const;
 
@@ -74,7 +75,9 @@ const EditorDisplayTab = ({
         <Page.ContentBlock style={{ padding: 0, margin: 0 }} pHoverNone>
             <Page.DpRow style={{ gap: '20px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <Page.ContentText pContent="Chart Type" />
+                    <div className={styles.sectionHeader}>
+                        <span className={styles.sectionTitle}>Chart Type</span>
+                    </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {CHART_TYPE_OPTIONS.map((option) => {
                             const sIsActive = pDisplayConfig.chart_type === option.type;

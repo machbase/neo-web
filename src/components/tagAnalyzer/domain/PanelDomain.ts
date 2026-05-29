@@ -11,14 +11,12 @@ export type ValueRange = {
 };
 
 export const DEFAULT_VALUE_RANGE: ValueRange = { min: 0, max: 0 };
-const DEFAULT_QUERY_ROW_LIMIT = -1;
 
 const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot', 'Custom'] as const;
 
 export type PanelEChartType = (typeof PANEL_ECHART_TYPE_VALUES)[number];
 
 const DEFAULT_PANEL_ECHART_TYPE: PanelEChartType = 'Line';
-
 const PANEL_ECHART_TYPE_LOOKUP: Record<PanelEChartType, true> = {
     Line: true,
     Zone: true,
@@ -98,62 +96,34 @@ export type PanelDisplay = {
     stroke: number | undefined;
 };
 
-export type RuntimeValueRange = {
-    min: number;
-    max: number;
-};
+type Concrete<T> = { [K in keyof T]: Exclude<T[K], undefined> };
 
-export type RuntimePanelAxisThreshold = {
-    enabled: boolean;
-    value: number;
-};
-
-export type RuntimePanelXAxis = {
-    show_tickline: boolean;
-    raw_data_pixels_per_tick: number;
-    calculated_data_pixels_per_tick: number;
-};
-
-export type RuntimePanelSampling = {
-    enabled: boolean;
-    sample_count: number;
-};
-
-export type RuntimePanelYAxis = {
-    zero_base: boolean;
-    show_tickline: boolean;
+export type RuntimeValueRange = Concrete<ValueRange>;
+export type RuntimePanelAxisThreshold = Concrete<PanelAxisThreshold>;
+export type RuntimePanelXAxis = Concrete<PanelXAxis>;
+export type RuntimePanelSampling = Concrete<PanelSampling>;
+export type RuntimePanelYAxis = Omit<
+    PanelYAxis,
+    | 'value_range'
+    | 'raw_data_value_range'
+    | 'upper_control_limit'
+    | 'lower_control_limit'
+> & {
     value_range: RuntimeValueRange;
     raw_data_value_range: RuntimeValueRange;
     upper_control_limit: RuntimePanelAxisThreshold;
     lower_control_limit: RuntimePanelAxisThreshold;
 };
-
-export type RuntimePanelAxes = {
+export type RuntimePanelAxes = Omit<
+    PanelAxes,
+    'x_axis' | 'sampling' | 'main_chart_sampling' | 'left_y_axis' | 'right_y_axis'
+> & {
     x_axis: RuntimePanelXAxis;
-    sampling: RuntimePanelSampling;
     main_chart_sampling: RuntimePanelSampling;
     left_y_axis: RuntimePanelYAxis;
     right_y_axis: RuntimePanelYAxis;
-    right_y_axis_enabled: boolean;
 };
-
-export type RuntimePanelDisplay = {
-    show_legend: boolean;
-    use_zoom: boolean;
-    chart_type: PanelEChartType;
-    connect_nulls: boolean;
-    show_point: boolean;
-    point_radius: number;
-    fill: number;
-    stroke: number;
-};
-
-export type RuntimePanelData = {
-    index_key: string;
-    tag_set: PanelSeriesDefinition[];
-    count: number;
-    interval_type: string | undefined;
-};
+export type RuntimePanelDisplay = Concrete<PanelDisplay> & { use_zoom: boolean };
 
 export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
 export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
@@ -184,13 +154,6 @@ export type PanelInfo = {
     annotations: PanelAnnotation[];
 };
 
-export function resolvePanelDataForRuntime(data: PanelData): RuntimePanelData {
-    return {
-        ...data,
-        count: data.count ?? DEFAULT_QUERY_ROW_LIMIT,
-    };
-}
-
 export function resolvePanelAxesForRuntime(axes: PanelAxes): RuntimePanelAxes {
     return {
         x_axis: {
@@ -200,10 +163,6 @@ export function resolvePanelAxesForRuntime(axes: PanelAxes): RuntimePanelAxes {
             calculated_data_pixels_per_tick:
                 axes.x_axis.calculated_data_pixels_per_tick ?? 0,
         },
-        sampling: resolvePanelSamplingForRuntime(
-            axes.sampling,
-            'navigator sampling',
-        ),
         main_chart_sampling: resolvePanelSamplingForRuntime(
             axes.main_chart_sampling,
             'main chart sampling',
@@ -358,6 +317,7 @@ export type PanelBrushSelectionEvent = {
 
 export type PanelChartHandle = {
     getVisibleSeries: () => PanelVisibleSeriesItem[];
+    isPointInsideMainGrid: (clientX: number, clientY: number) => boolean;
 };
 
 export type PanelChartState = {

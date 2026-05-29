@@ -136,7 +136,7 @@ function buildPanelChartDataZoomOption(
         {
             id: PANEL_INSIDE_DATA_ZOOM_ID,
             type: 'inside' as const,
-            xAxisIndex: [0],
+            xAxisIndex: [1],
             filterMode: 'none' as const,
             ...sPanelRangeDataZoom,
             moveOnMouseMove: false,
@@ -149,7 +149,7 @@ function buildPanelChartDataZoomOption(
         {
             id: PANEL_SLIDER_DATA_ZOOM_ID,
             type: 'slider' as const,
-            xAxisIndex: [0],
+            xAxisIndex: [1],
             filterMode: 'none' as const,
             ...sPanelRangeDataZoom,
             realtime: false,

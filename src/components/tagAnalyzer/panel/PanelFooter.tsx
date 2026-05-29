@@ -2,15 +2,13 @@ import './PanelFooter.scss';
 import {
     useState,
     type KeyboardEvent,
-    type MouseEvent,
 } from 'react';
 import {
     MdCenterFocusStrong,
     VscChevronLeft,
     VscChevronRight,
 } from '@/assets/icons/Icon';
-import { Button } from '@/design-system/components';
-import { Popover } from '@/design-system/components/Popover';
+import { Button, Toast } from '@/design-system/components';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
@@ -36,8 +34,6 @@ const NAVIGATOR_RANGE_EDGES: NavigatorRangeEdge[] = ['start', 'end'];
 type NavigatorRangeEditor = {
     edge: NavigatorRangeEdge;
     value: string;
-    position: { x: number; y: number };
-    error: string | undefined;
 };
 
 const PanelFooter = ({
@@ -76,10 +72,7 @@ const PanelFooter = ({
         { key: 'zoomOut4', tooltip: 'Zoom out', icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomOut(0.4) },
     ];
 
-    function openNavigatorRangeEditor(
-        edge: NavigatorRangeEdge,
-        event: MouseEvent<HTMLButtonElement>,
-    ): void {
+    function openNavigatorRangeEditor(edge: NavigatorRangeEdge): void {
         const sTimestamp =
             edge === 'start'
                 ? pNavigatorRange.startTime
@@ -92,12 +85,12 @@ const PanelFooter = ({
         setRangeEditor({
             edge,
             value: formatAxisInputValue(sTimestamp, pIsNumericXAxis),
-            position: {
-                x: event.clientX,
-                y: event.clientY - 110,
-            },
-            error: undefined,
         });
+    }
+
+    function discardNavigatorRangeEditorWithError(message: string): void {
+        Toast.error(message, undefined);
+        setRangeEditor(undefined);
     }
 
     function applyNavigatorRangeEditor(): void {
@@ -111,12 +104,11 @@ const PanelFooter = ({
         );
 
         if (sTimestamp === undefined) {
-            setRangeEditor({
-                ...rangeEditor,
-                error: pIsNumericXAxis
+            discardNavigatorRangeEditorWithError(
+                pIsNumericXAxis
                     ? 'Enter a valid numeric value.'
                     : 'Enter a valid local date/time.',
-            });
+            );
             return;
         }
 
@@ -132,10 +124,7 @@ const PanelFooter = ({
                   };
 
         if (sNextRange.startTime >= sNextRange.endTime) {
-            setRangeEditor({
-                ...rangeEditor,
-                error: 'Start must be before end.',
-            });
+            discardNavigatorRangeEditorWithError('Start must be before end.');
             return;
         }
 
@@ -150,6 +139,7 @@ const PanelFooter = ({
         event: KeyboardEvent<HTMLInputElement>,
     ): void {
         if (event.key === 'Enter') {
+            event.preventDefault();
             applyNavigatorRangeEditor();
         }
 
@@ -218,6 +208,36 @@ const PanelFooter = ({
                     const value = edge === 'start'
                         ? pNavigatorRange.startTime
                         : pNavigatorRange.endTime;
+                    const isEditing = rangeEditor?.edge === edge;
+
+                    if (isEditing) {
+                        return (
+                            <span
+                                key={edge}
+                                className={`range-label-inline-editor is-${edge}`}
+                            >
+                                <input
+                                    className="range-label-input"
+                                    value={rangeEditor.value}
+                                    placeholder={
+                                        pIsNumericXAxis
+                                            ? NUMERIC_AXIS_INPUT_FORMAT
+                                            : LOCAL_DATE_TIME_INPUT_FORMAT
+                                    }
+                                    disabled={pIsLoading}
+                                    onChange={(event) =>
+                                        setRangeEditor({
+                                            ...rangeEditor,
+                                            value: event.target.value,
+                                        })
+                                    }
+                                    onBlur={applyNavigatorRangeEditor}
+                                    onKeyDown={handleNavigatorRangeEditorKeyDown}
+                                    autoFocus
+                                />
+                            </span>
+                        );
+                    }
 
                     return (
                         <button
@@ -228,7 +248,7 @@ const PanelFooter = ({
                                 pIsNumericXAxis ? 'value' : 'time'
                             }`}
                             disabled={pIsLoading}
-                            onClick={(event) => openNavigatorRangeEditor(edge, event)}
+                            onClick={() => openNavigatorRangeEditor(edge)}
                         >
                             {sHasNavigatorRange &&
                                 formatRangeBoundaryLabel(value, pIsNumericXAxis)}
@@ -236,65 +256,6 @@ const PanelFooter = ({
                     );
                 })}
             </div>
-            {rangeEditor && (
-                <Popover
-                    isOpen
-                    position={rangeEditor.position}
-                    onClose={() => setRangeEditor(undefined)}
-                    closeOnOutsideClick
-                >
-                    <div className="navigator-range-editor">
-                        <label className="navigator-range-editor__label">
-                            {rangeEditor.edge === 'start'
-                                ? 'Navigator start'
-                                : 'Navigator end'}
-                        </label>
-                        <input
-                            className={`navigator-range-editor__input${
-                                rangeEditor.error ? ' is-invalid' : ''
-                            }`}
-                            value={rangeEditor.value}
-                            placeholder={
-                                pIsNumericXAxis
-                                    ? NUMERIC_AXIS_INPUT_FORMAT
-                                    : LOCAL_DATE_TIME_INPUT_FORMAT
-                            }
-                            disabled={pIsLoading}
-                            onChange={(event) =>
-                                setRangeEditor({
-                                    ...rangeEditor,
-                                    value: event.target.value,
-                                    error: undefined,
-                                })
-                            }
-                            onKeyDown={handleNavigatorRangeEditorKeyDown}
-                            autoFocus
-                        />
-                        {rangeEditor.error && (
-                            <div className="navigator-range-editor__error">
-                                {rangeEditor.error}
-                            </div>
-                        )}
-                        <div className="navigator-range-editor__actions">
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setRangeEditor(undefined)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="primary"
-                                disabled={pIsLoading}
-                                onClick={applyNavigatorRangeEditor}
-                            >
-                                Apply
-                            </Button>
-                        </div>
-                    </div>
-                </Popover>
-            )}
         </div>
     );
 };

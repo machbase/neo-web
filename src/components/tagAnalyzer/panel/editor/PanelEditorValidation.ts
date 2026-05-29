@@ -66,7 +66,6 @@ export function hasInvalidPanelEditorAxisRange(
     editorConfig: PanelEditorConfig,
 ): boolean {
     return (
-        isInvalidSampling(editorConfig.axes.sampling) ||
         isInvalidSampling(editorConfig.axes.main_chart_sampling) ||
         hasInvalidYAxisRange(editorConfig.axes.left_y_axis) ||
         (
