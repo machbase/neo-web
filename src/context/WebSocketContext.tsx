@@ -115,10 +115,13 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
 
     /**
      * Send a JSON-RPC 2.0 request over the current WebSocket and wait for the
-     * matching `rpc_rsp` frame. Intentionally independent of `getExperiment()`
-     * so that LSP and other RPC consumers work regardless of the experiment flag.
+     * matching `rpc_rsp` frame. **Gated by `getExperiment()`** — WS RPC (`lsp.*`, etc.)
+     * only works while the experiment flag is on. When it is off, the call is rejected
+     * immediately with `RpcTransportError`, so the LSP provider degrades gracefully
+     * (no diagnostics/completion).
      *
      * Rejection modes:
+     * - `RpcTransportError` if the experiment flag is off.
      * - `RpcTransportError` if socket is missing / not OPEN.
      * - `RpcTransportError` if socket closes before the response arrives.
      * - `RpcTransportError` after a 10s timeout.
@@ -127,6 +130,10 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const callJsonRpc = useCallback(
         (rpcRequest: JsonRpcRequest, signal?: AbortSignal) => {
             return new Promise<JsonRpcResponse<unknown>>((resolve, reject) => {
+                if (!getExperiment()) {
+                    reject(new RpcTransportError('WebSocket JSON-RPC is disabled (experiment off)'));
+                    return;
+                }
                 const socket = socketRef.current;
                 if (!socket || socket.readyState !== WebSocket.OPEN) {
                     reject(new RpcTransportError('WebSocket is not connected'));
@@ -174,7 +181,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
                 }
             });
         },
-        [cleanupPendingRpc, createAbortError]
+        [cleanupPendingRpc, createAbortError, getExperiment]
     );
 
     // Batch processing: Process buffered messages every 100ms
