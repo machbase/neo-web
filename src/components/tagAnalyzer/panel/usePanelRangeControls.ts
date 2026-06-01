@@ -19,13 +19,13 @@ import {
 import type { PanelRangeRefreshOptions } from './PanelDataRuntimeState';
 import {
     getMinimumNumericRangeWidth,
-    getNavigatorHandleMinimumRangeWidth,
     MIN_PANEL_RANGE_MS,
 } from '../board/PanelNavigatorRangeLimits';
 
 const MIN_NAVIGATOR_RANGE_MS = 1000;
 const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
-const RANGE_SHIFT_FRACTION = 0.1;
+const PANEL_RANGE_SHIFT_FRACTION = 0.3;
+const NAVIGATOR_RANGE_SHIFT_FRACTION = 0.1;
 const MAX_PANEL_END_TIME = 9999999999999;
 
 type CommitPanelRangeState = (
@@ -35,7 +35,6 @@ type CommitPanelRangeState = (
 
 type UsePanelRangeControlsParams = {
     rangeState: PanelRangeState;
-    chartAreaWidth: number | undefined;
     isNumericXAxis: boolean;
     onRangeStateChange: CommitPanelRangeState;
 };
@@ -48,7 +47,6 @@ type PanelRangeControls = {
 
 export function usePanelRangeControls({
     rangeState,
-    chartAreaWidth,
     isNumericXAxis,
     onRangeStateChange,
 }: UsePanelRangeControlsParams): PanelRangeControls {
@@ -93,7 +91,6 @@ export function usePanelRangeControls({
                 onRangeStateChange(
                     getPanelRangeChangeState(
                         rangeState,
-                        chartAreaWidth,
                         sRequestedPanelRange,
                         false,
                         isNumericXAxis,
@@ -116,14 +113,13 @@ export function usePanelRangeControls({
                 onRangeStateChange(
                     getPanelRangeChangeState(
                         rangeState,
-                        chartAreaWidth,
                         sRequestedPanelRange,
                         true,
                         isNumericXAxis,
                     ),
                     {
                         preserveNavigatorRange: true,
-                        clampPanelRangeToLoadedDataRange: true,
+                        clampPanelRangeToLoadedDataRange: false,
                     },
                 );
             },
@@ -248,15 +244,20 @@ function isFiniteRangeEvent(range: TimeRangeMs): boolean {
 function getRangeShiftOffset(
     range: TimeRangeMs,
     direction: RangeShiftDirection,
+    shiftFraction: number,
 ): number {
-    return getTimeRangeWidth(range) * RANGE_SHIFT_FRACTION * direction;
+    return getTimeRangeWidth(range) * shiftFraction * direction;
 }
 
 function getShiftedPanelRangeState(
     rangeState: PanelRangeState,
     direction: RangeShiftDirection,
 ): PanelRangeState {
-    const sOffset = getRangeShiftOffset(rangeState.panelRange, direction);
+    const sOffset = getRangeShiftOffset(
+        rangeState.panelRange,
+        direction,
+        PANEL_RANGE_SHIFT_FRACTION,
+    );
     const sPanelRange = shiftTimeRange(rangeState.panelRange, sOffset);
 
     if (
@@ -300,7 +301,11 @@ function getShiftedNavigatorRangeState(
 ): PanelRangeState {
     const sNavigatorRange = shiftTimeRange(
         rangeState.navigatorRange,
-        getRangeShiftOffset(rangeState.navigatorRange, direction),
+        getRangeShiftOffset(
+            rangeState.navigatorRange,
+            direction,
+            NAVIGATOR_RANGE_SHIFT_FRACTION,
+        ),
     );
 
     return {
@@ -312,32 +317,18 @@ function getShiftedNavigatorRangeState(
 
 function getPanelRangeChangeState(
     rangeState: PanelRangeState,
-    chartAreaWidth: number | undefined,
     requestedPanelRange: TimeRangeMs,
     preserveNavigatorRange: boolean,
     isNumericXAxis: boolean,
 ): PanelRangeState {
-    const sMinimumPanelRangeWidth = preserveNavigatorRange
-        ? getNavigatorHandleMinimumRangeWidth({
-              navigatorRange: rangeState.navigatorRange,
-              chartAreaWidth,
-              isNumericXAxis,
-          })
-        : MIN_PANEL_RANGE_MS;
     const sPanelRange = preserveNavigatorRange
-        ? clampTimeRangeToBounds(
-              ensureMinimumTimeRangeWidth(
-                  requestedPanelRange,
-                  sMinimumPanelRangeWidth,
-              ),
-              rangeState.navigatorRange,
-          )
+        ? clampTimeRangeToBounds(requestedPanelRange, rangeState.navigatorRange)
         : clampTimeRangeToBounds(
               ensureMinimumAxisRangeWidth(
                   requestedPanelRange,
                   rangeState.navigatorRange,
                   isNumericXAxis,
-                  sMinimumPanelRangeWidth,
+                  MIN_PANEL_RANGE_MS,
               ),
               rangeState.navigatorRange,
           );

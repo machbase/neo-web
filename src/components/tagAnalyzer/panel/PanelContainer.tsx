@@ -298,7 +298,6 @@ function PanelContainer({
         zoomActions,
     } = usePanelRangeControls({
         rangeState,
-        chartAreaWidth,
         isNumericXAxis,
         onRangeStateChange,
     });

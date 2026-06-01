@@ -112,7 +112,6 @@ export function buildPanelChartFrameOptions(
         dataZoom: buildPanelChartDataZoomOption(
             chartInfo.display,
             chartInfo.panelRange,
-            chartInfo.navigatorSelectionMinValueSpan,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
         toolbox: HIDDEN_PANEL_TOOLBOX_OPTION,
@@ -123,7 +122,6 @@ export function buildPanelChartFrameOptions(
 function buildPanelChartDataZoomOption(
     display: RuntimePanelDisplay,
     panelRange: TimeRangeMs,
-    navigatorSelectionMinValueSpan: number | undefined,
 ): DataZoomComponentOption[] {
     const sPanelRangeDataZoom =
         panelRange.startTime < panelRange.endTime
@@ -145,7 +143,6 @@ function buildPanelChartDataZoomOption(
             zoomOnMouseWheel: false,
             preventDefaultMouseMove: true,
             disabled: !display.use_zoom,
-            minValueSpan: navigatorSelectionMinValueSpan,
         },
         {
             id: PANEL_SLIDER_DATA_ZOOM_ID,
@@ -160,7 +157,6 @@ function buildPanelChartDataZoomOption(
             height: PANEL_SLIDER_HEIGHT,
             showDetail: false,
             brushSelect: false,
-            minValueSpan: navigatorSelectionMinValueSpan,
             backgroundColor: 'rgba(0, 0, 0, 0)',
             borderColor: '#7a828c',
             fillerColor: 'rgba(104, 119, 138, 0.28)',

@@ -3,7 +3,6 @@ import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../../domain/ChartDomain';
 import { PanelOverlayMode, type PanelBrushSelectionEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeHandlers, type PanelRangeState } from '../../domain/PanelDomain';
 import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
-import { getNavigatorHandleMinimumRangeWidth } from '../../board/PanelNavigatorRangeLimits';
 import { buildChartEvent } from './events/buildPanelChartEvent';
 import type { ChartInfo } from './types/PanelChartTypes';
 import { buildChartOption } from './options/buildPanelChartOption';
@@ -77,7 +76,6 @@ export function usePanelChartRuntime({
     const visibleSeriesRef = useRef<Record<string, boolean>>({});
     const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
     const isNumericXAxis = hasNumericBaseTimeSeries(seriesList);
-    const chartAreaWidth = chartAreaRef.current?.clientWidth;
     const baseChartInfo = useMemo<ChartInfo>(() => ({
         mainSeriesData: chartData,
         seriesDefinitions: seriesList,
@@ -89,18 +87,12 @@ export function usePanelChartRuntime({
         useNormalize,
         visibleSeries: {},
         navigatorSeriesData: navigatorChartData,
-        navigatorSelectionMinValueSpan: getNavigatorHandleMinimumRangeWidth({
-            navigatorRange,
-            chartAreaWidth,
-            isNumericXAxis,
-        }),
         isNumericXAxis,
         highlights,
         annotations,
     }), [
         annotations,
         axes,
-        chartAreaWidth,
         chartData,
         display,
         highlights,

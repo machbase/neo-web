@@ -15,42 +15,6 @@ export function getNavigatorTrackPixelWidth(chartAreaWidth: number): number {
     return Math.max(chartAreaWidth - NAVIGATOR_TRACK_SIDE_OFFSET_PX, 1);
 }
 
-export function getMinimumNavigatorSelectionRangeWidth(
-    navigatorRange: TimeRangeMs,
-    navigatorTrackPixelWidth: number,
-): number {
-    const sNavigatorWidth = getTimeRangeWidth(navigatorRange);
-
-    if (sNavigatorWidth <= 0 || navigatorTrackPixelWidth <= 0) {
-        throw new Error('Cannot calculate navigator selection limit for invalid range.');
-    }
-
-    return sNavigatorWidth * (MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH / navigatorTrackPixelWidth);
-}
-
-export function getNavigatorHandleMinimumRangeWidth({
-    navigatorRange,
-    chartAreaWidth,
-    isNumericXAxis,
-}: {
-    navigatorRange: TimeRangeMs;
-    chartAreaWidth: number | undefined;
-    isNumericXAxis: boolean;
-}): number {
-    const sMinimumAxisRangeWidth = isNumericXAxis
-        ? getMinimumNumericRangeWidth(navigatorRange)
-        : MIN_PANEL_RANGE_MS;
-
-    return typeof chartAreaWidth === 'number' &&
-        chartAreaWidth > 0 &&
-        navigatorRange.endTime > navigatorRange.startTime
-        ? Math.max(
-              getMinimumNavigatorSelectionRangeWidth(navigatorRange, getNavigatorTrackPixelWidth(chartAreaWidth)),
-              sMinimumAxisRangeWidth,
-          )
-        : sMinimumAxisRangeWidth;
-}
-
 export function getMinimumNumericRangeWidth(referenceRange: TimeRangeMs): number {
     const sReferenceWidth = Math.abs(getTimeRangeWidth(referenceRange));
 
