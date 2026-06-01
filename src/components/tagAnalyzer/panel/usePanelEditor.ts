@@ -53,14 +53,14 @@ export function usePanelEditor({
     navigatorRange,
     onResetPanelUi,
     onSavePanel,
-    reloadPanelEdit,
+    reloadAfterEditorSave,
 }: {
     panelInfo: PanelInfo;
     panelRange: TimeRangeMs;
     navigatorRange: TimeRangeMs;
     onResetPanelUi: () => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
-    reloadPanelEdit: (panelInfo: PanelInfo) => void;
+    reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
 }): {
     isEditing: boolean;
     closePanelEditor: () => void;
@@ -116,7 +116,7 @@ export function usePanelEditor({
 
         onSavePanel(sNextPanelInfo);
         if (shouldReloadPanelAfterEditorSave(sCurrentPanelState, sNextPanelState)) {
-            reloadPanelEdit(sNextPanelInfo);
+            reloadAfterEditorSave(sNextPanelInfo);
         }
     }
 

@@ -24,6 +24,16 @@ import {
 
 type ThresholdMarkLineData = Array<{ yAxis: number }>;
 
+function getLegendHoverState(
+    seriesName: string,
+    hoveredLegendSeries: string | undefined,
+): { isLegendHoverActive: boolean; isHoveredSeries: boolean } {
+    return {
+        isLegendHoverActive: Boolean(hoveredLegendSeries),
+        isHoveredSeries: hoveredLegendSeries === seriesName,
+    };
+}
+
 function buildPanelLineSeriesOption({
     data,
     ...option
@@ -62,8 +72,8 @@ export function buildMainSeriesOption(
         const sSymbolSize = display.show_point
             ? sBaseSymbolSize
             : Math.max(sBaseSymbolSize, PANEL_HOVER_SYMBOL_SIZE);
-        const sIsLegendHoverActive = Boolean(hoveredLegendSeries);
-        const sIsHoveredSeries = hoveredLegendSeries === series.name;
+        const { isLegendHoverActive: sIsLegendHoverActive, isHoveredSeries: sIsHoveredSeries } =
+            getLegendHoverState(series.name, hoveredLegendSeries);
         const sSeriesOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_LINE_OPACITY;
         const sItemOpacity =
@@ -133,8 +143,8 @@ export function buildNavigatorSeriesOption(
     hoveredLegendSeries?: string | undefined,
 ): SeriesOption[] {
     return chartData.map((series, seriesIndex) => {
-        const sIsLegendHoverActive = Boolean(hoveredLegendSeries);
-        const sIsHoveredSeries = hoveredLegendSeries === series.name;
+        const { isLegendHoverActive: sIsLegendHoverActive, isHoveredSeries: sIsHoveredSeries } =
+            getLegendHoverState(series.name, hoveredLegendSeries);
         const sOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries
                 ? PANEL_NAVIGATOR_ACTIVE_OPACITY

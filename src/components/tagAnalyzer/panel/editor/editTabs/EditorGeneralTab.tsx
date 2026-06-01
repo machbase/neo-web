@@ -60,7 +60,7 @@ function EditorGeneralTab({
                             event.target.checked,
                         )
                     }
-                    label="Keep Navigator Position"
+                    label="Keep Current View Range"
                     size="sm"
                 />
             </div>

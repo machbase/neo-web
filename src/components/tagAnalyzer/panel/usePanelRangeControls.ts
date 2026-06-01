@@ -16,9 +16,9 @@ import {
     isTimeRangeOutsideBounds,
     shiftTimeRange,
 } from '../domain/time/TimeRangeUtils';
-import type { PanelRangeRefreshOptions } from './PanelDataRuntimeState';
+import type { PanelRangeStateApplyOptions } from './PanelDataRuntimeState';
 import {
-    getMinimumNumericRangeWidth,
+    getMinNumericRangeWidth,
     MIN_PANEL_RANGE_MS,
 } from '../board/PanelNavigatorRangeLimits';
 
@@ -28,15 +28,15 @@ const PANEL_RANGE_SHIFT_FRACTION = 0.3;
 const NAVIGATOR_RANGE_SHIFT_FRACTION = 0.1;
 const MAX_PANEL_END_TIME = 9999999999999;
 
-type CommitPanelRangeState = (
+type ApplyPanelRangeState = (
     rangeState: PanelRangeState,
-    options?: PanelRangeRefreshOptions,
+    options?: PanelRangeStateApplyOptions,
 ) => void;
 
 type UsePanelRangeControlsParams = {
     rangeState: PanelRangeState;
     isNumericXAxis: boolean;
-    onRangeStateChange: CommitPanelRangeState;
+    onRangeStateChange: ApplyPanelRangeState;
 };
 
 type PanelRangeControls = {
@@ -52,7 +52,7 @@ export function usePanelRangeControls({
 }: UsePanelRangeControlsParams): PanelRangeControls {
     const setMainRange = (
         panelRange: TimeRangeMs,
-        options?: PanelRangeRefreshOptions,
+        options?: PanelRangeStateApplyOptions,
     ): void => {
         onRangeStateChange(
             {
@@ -65,7 +65,7 @@ export function usePanelRangeControls({
     };
     const setNavigatorRange = (
         navigatorRange: TimeRangeMs,
-        options?: PanelRangeRefreshOptions,
+        options?: PanelRangeStateApplyOptions,
     ): void => {
         onRangeStateChange(
             {
@@ -97,7 +97,6 @@ export function usePanelRangeControls({
                     ),
                     {
                         preserveNavigatorRange: false,
-                        clampPanelRangeToLoadedDataRange: false,
                     },
                 );
             },
@@ -119,7 +118,6 @@ export function usePanelRangeControls({
                     ),
                     {
                         preserveNavigatorRange: true,
-                        clampPanelRangeToLoadedDataRange: false,
                     },
                 );
             },
@@ -194,7 +192,7 @@ export function usePanelRangeControls({
             onFocus: () => {
                 const sPanelWidth = getTimeRangeWidth(rangeState.panelRange);
                 const sMinimumFocusableWidth = isNumericXAxis
-                    ? getMinimumNumericRangeWidth(rangeState.navigatorRange)
+                    ? getMinNumericRangeWidth(rangeState.navigatorRange)
                     : MIN_FOCUSABLE_PANEL_RANGE_MS;
 
                 if (sPanelWidth < sMinimumFocusableWidth) {
@@ -356,6 +354,6 @@ function ensureMinimumAxisRangeWidth(
 
     return createTimeRangeMs(
         range.startTime,
-        range.startTime + getMinimumNumericRangeWidth(referenceRange),
+        range.startTime + getMinNumericRangeWidth(referenceRange),
     );
 }

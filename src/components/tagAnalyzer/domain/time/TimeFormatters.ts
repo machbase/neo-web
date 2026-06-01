@@ -154,7 +154,7 @@ function formatDurationPart(value: number, suffix: string): string {
     return value === 0 ? '' : `${value}${suffix} `;
 }
 
-function padTimePart(value: number, size = 2): string {
+export function padTimePart(value: number, size = 2): string {
     return String(value).padStart(size, '0');
 }
 

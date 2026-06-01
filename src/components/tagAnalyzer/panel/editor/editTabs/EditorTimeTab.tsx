@@ -8,8 +8,8 @@ import styles from '../PanelEditor.module.scss';
 import {
     formatTimeRangeInputValue,
     parseTimeRangeInputValue,
+    createAbsoluteTimeBoundary,
 } from '../../../domain/time/TimeBoundaryInput';
-import { createAbsoluteTimeBoundary } from '../../../domain/time/TimeBoundaryFactories';
 import type {
     TimeBoundary,
     TimeRangeConfig,

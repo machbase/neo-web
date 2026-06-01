@@ -16,7 +16,7 @@ import {
 } from '../../../PersistenceCloneUtils';
 import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
 import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
-import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeUnitUtils';
+import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
 import type {
     PanelNavigatorRangePair,
     TimeRangeMs,
@@ -72,7 +72,7 @@ export function parseLoadedPanelTazVer200(
         },
         data: {
             index_key: sNormalizedPanelInfo.meta.panelKey,
-            tag_set: (sNormalizedPanelInfo.data.seriesList ?? []).map(
+            tag_set: sNormalizedPanelInfo.data.seriesList.map(
                 createSeriesInfoFromPersistedV200,
             ),
             count: sNormalizedPanelInfo.data.rowLimit ?? -1,
@@ -170,7 +170,7 @@ function createPanelAnnotationsFromPersistedPanel(
     panelInfo: PersistedPanelInfoV200,
 ): PanelAnnotation[] {
     const sPanelAnnotations = clonePanelAnnotations(panelInfo.annotations);
-    const sSeriesAnnotations = (panelInfo.data.seriesList ?? []).flatMap((seriesInfo) =>
+    const sSeriesAnnotations = panelInfo.data.seriesList.flatMap((seriesInfo) =>
         cloneSeriesAnnotations(seriesInfo.annotations).map((annotation) => ({
             ...annotation,
             seriesKey: seriesInfo.seriesKey,
@@ -184,7 +184,7 @@ function normalizePersistedPanelInfoV200(
     panelInfo: PersistedPanelInfoV200,
 ): PersistedPanelInfoV200 {
     const sNormalizedRangeConfig = normalizePersistedTimeRangeConfig(
-        panelInfo.time?.rangeConfig,
+        panelInfo.time.rangeConfig,
     );
     if (!sNormalizedRangeConfig) {
         throw new Error('Unsupported TagAnalyzer .taz panel time rangeConfig shape.');
@@ -194,13 +194,13 @@ function normalizePersistedPanelInfoV200(
         ...panelInfo,
         data: {
             ...panelInfo.data,
-            seriesList: (panelInfo.data.seriesList ?? []).map(
+            seriesList: panelInfo.data.seriesList.map(
                 normalizePersistedSeriesInfoV200,
             ),
             rowLimit: panelInfo.data.rowLimit ?? -1,
         },
         toolbar: {
-            isRaw: panelInfo.toolbar?.isRaw ?? false,
+            isRaw: panelInfo.toolbar.isRaw,
         },
         time: {
             rangeConfig: sNormalizedRangeConfig,

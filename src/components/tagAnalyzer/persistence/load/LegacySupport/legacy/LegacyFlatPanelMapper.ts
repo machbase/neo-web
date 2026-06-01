@@ -18,7 +18,7 @@ import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/
 import {
     formatTimeUnitShortCode,
     normalizeStoredTimeUnit,
-} from '../../../../domain/time/TimeUnitUtils';
+} from '../../../../domain/time/TimeIntervalUtils';
 import { createAbsoluteTimeRangeConfig } from '../../../../domain/time/TimeRangeUtils';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 export function createPanelInfoFromLegacyFlatPanelInfo(

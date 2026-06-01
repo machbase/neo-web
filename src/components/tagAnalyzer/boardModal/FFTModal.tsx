@@ -11,7 +11,7 @@ import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../domain/time/TimeUnitUtils';
+} from '../domain/time/TimeIntervalUtils';
 import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 
 const FFT_INTERVAL_OPTIONS = [

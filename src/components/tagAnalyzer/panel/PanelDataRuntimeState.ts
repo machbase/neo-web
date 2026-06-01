@@ -28,31 +28,18 @@ export enum PanelChartLoadStatus {
     Failed = 'failed',
 }
 
-export type PanelDataRefreshPolicy = {
-    dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
-    forceReload: boolean;
-    preserveNavigatorRange: boolean;
-    forceRawMainSampling: boolean;
-    clampPanelRangeToLoadedDataRange: boolean;
-};
-
-type PanelRangeMutationOptions = Partial<PanelDataRefreshPolicy> & {
-    fullRange?: TimeRangeMs;
-    skipDataRefresh?: boolean;
-};
-
-export type PanelRangeApplyOptions = PanelRangeMutationOptions & {
+export type PanelRangeApplyOptions = {
     panelRange: TimeRangeMs;
     navigatorRange?: TimeRangeMs;
+    fullRange?: TimeRangeMs;
+    preserveNavigatorRange?: boolean;
+    reloadData?: boolean;
 };
 
-export type PanelRangeRefreshOptions = PanelRangeMutationOptions;
-
-export const DEFAULT_PANEL_DATA_REFRESH_POLICY: PanelDataRefreshPolicy = {
-    forceReload: false,
-    preserveNavigatorRange: false,
-    forceRawMainSampling: false,
-    clampPanelRangeToLoadedDataRange: false,
+export type PanelRangeStateApplyOptions = {
+    fullRange?: TimeRangeMs;
+    preserveNavigatorRange?: boolean;
+    reloadData?: boolean;
 };
 
 export const INITIAL_PANEL_CHART_DATA_STATE: PanelChartDataState = {
@@ -62,19 +49,3 @@ export const INITIAL_PANEL_CHART_DATA_STATE: PanelChartDataState = {
     loadedDataRange: EMPTY_TIME_RANGE,
     loadedNavigatorRange: EMPTY_TIME_RANGE,
 };
-
-export function createPanelDataRefreshPolicy(
-    options: PanelRangeRefreshOptions = {},
-): PanelDataRefreshPolicy {
-    return {
-        ...DEFAULT_PANEL_DATA_REFRESH_POLICY,
-        ...(options.dataLoadConfigOverride
-            ? { dataLoadConfigOverride: options.dataLoadConfigOverride }
-            : {}),
-        forceReload: options.forceReload === true,
-        preserveNavigatorRange: options.preserveNavigatorRange === true,
-        forceRawMainSampling: options.forceRawMainSampling === true,
-        clampPanelRangeToLoadedDataRange:
-            options.clampPanelRangeToLoadedDataRange === true,
-    };
-}

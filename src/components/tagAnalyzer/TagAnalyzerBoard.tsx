@@ -50,7 +50,7 @@ const HELP_SECTIONS = [
         items: [
             'Use the time range button to choose the board time range for every panel.',
             'Refresh data reloads the current visible range without changing the time window.',
-            'Refresh time checks the available data range again. Panels with Keep Navigator Position enabled keep the current navigator range.',
+            'Refresh time checks the available data range again. Panels with Keep Current View Range enabled keep the current panel and navigator range.',
         ],
     },
     {
@@ -179,7 +179,7 @@ const TagAnalyzerBoard = ({
 
     function handleApplyBoardTimeRange(timeRange: TimeRangeConfig): void {
         pPanelBoardActions.onSetBoardTimeRange(timeRange);
-        boardPanels.applyBoardRangeToPanels(timeRange);
+        boardPanels.applyBoardTimeToPanels(timeRange);
     }
 
     async function openTazSaveModal(): Promise<void> {
@@ -378,13 +378,13 @@ const TagAnalyzerBoard = ({
 
     function togglePanelRawMode(
         panel: PanelInfo,
-        reloadRawMode: (panelInfo: PanelInfo) => void,
+        reloadAfterRawModeChange: (panelInfo: PanelInfo) => void,
     ): void {
         const sNextRawMode = !getPanelRawMode(panel);
         const sNextPanelInfo = getPanelInfoWithRawMode(panel, sNextRawMode);
 
         setPanelRawMode(panel.data.index_key, sNextRawMode);
-        reloadRawMode(sNextPanelInfo);
+        reloadAfterRawModeChange(sNextPanelInfo);
     }
 
     function togglePanelOverlap(
@@ -615,7 +615,7 @@ const TagAnalyzerBoard = ({
                                     onSavePanel: savePanel,
                                     onSetGlobalTimeRange: handleSetGlobalTimeRange,
                                     onChartAreaWidthChange: (width) =>
-                                        boardPanels.handlePanelChartAreaWidthChange(
+                                        boardPanels.handleChartWidthChange(
                                             sPanelInfo,
                                             width,
                                         ),
@@ -625,11 +625,12 @@ const TagAnalyzerBoard = ({
                                     refreshTime: () => {
                                         void boardPanels.refreshPanelTime(sPanelInfo);
                                     },
-                                    reloadPanelEdit: boardPanels.reloadPanelEdit,
+                                    reloadAfterEditorSave:
+                                        boardPanels.reloadAfterEditorSave,
                                     onToggleRaw: () =>
                                         togglePanelRawMode(
                                             sPanelInfo,
-                                            boardPanels.reloadRawMode,
+                                            boardPanels.reloadAfterRawModeChange,
                                         ),
                                     onDeletePanel: () => deletePanel(sPanelInfo),
                                     onToggleOverlap: () =>

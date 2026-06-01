@@ -1,9 +1,6 @@
 import type { YAXisComponentOption } from 'echarts';
 import {
-    findNearestChartRow,
-    getAnnotationAnchorTime,
-} from '../utils/PanelChartSeriesAnnotationUtils';
-import {
+    type ChartRow,
     type ChartSeriesData,
 } from '../../../domain/ChartDomain';
 import {
@@ -12,6 +9,56 @@ import {
 } from '../../../domain/SeriesDomain';
 import type { PanelAnnotation } from '../../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import { getTimeRangeCenter } from '../../../domain/time/TimeRangeUtils';
+
+function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
+    if (timeRange.endTime > timeRange.startTime) {
+        return getTimeRangeCenter(timeRange);
+    }
+
+    return timeRange.startTime;
+}
+
+function findNearestChartRow(
+    chartRows: ChartRow[],
+    targetTime: number,
+): ChartRow | undefined {
+    if (!Number.isFinite(targetTime)) {
+        throw new Error('Cannot find annotation anchor row for a non-finite time.');
+    }
+
+    if (chartRows.length === 0) {
+        return undefined;
+    }
+
+    let sLowIndex = 0;
+    let sHighIndex = chartRows.length - 1;
+
+    while (sLowIndex <= sHighIndex) {
+        const sMiddleIndex = Math.floor((sLowIndex + sHighIndex) / 2);
+        const sMiddleTime = chartRows[sMiddleIndex]?.[0];
+
+        if (sMiddleTime === targetTime) {
+            return chartRows[sMiddleIndex];
+        }
+
+        if ((sMiddleTime ?? 0) < targetTime) {
+            sLowIndex = sMiddleIndex + 1;
+            continue;
+        }
+
+        sHighIndex = sMiddleIndex - 1;
+    }
+
+    const sNextRow = chartRows[Math.min(sLowIndex, chartRows.length - 1)];
+    const sPreviousRow = chartRows[Math.max(sLowIndex - 1, 0)];
+    const sNextDistance = Math.abs((sNextRow?.[0] ?? Number.POSITIVE_INFINITY) - targetTime);
+    const sPreviousDistance = Math.abs(
+        (sPreviousRow?.[0] ?? Number.POSITIVE_INFINITY) - targetTime,
+    );
+
+    return sPreviousDistance <= sNextDistance ? sPreviousRow : sNextRow;
+}
 
 const ANNOTATION_LABEL_HEIGHT = 22;
 const ANNOTATION_LABEL_MIN_WIDTH = 64;

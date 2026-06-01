@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
-import { Button, type ContextMenuPosition } from '@/design-system/components';
+import { Button, Dropdown, type ContextMenuPosition } from '@/design-system/components';
 import type { PanelAnnotation, PanelHighlight } from '../../domain/PanelDomain';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
@@ -377,6 +377,13 @@ export function EditAnnotationModal({
         onApplied,
     );
     const { state, setField, handleKeyDown, applyForm } = form;
+    const seriesOptions = [
+        {
+            label: 'annotation not selected',
+            value: EMPTY_ANNOTATION_SERIES_VALUE,
+        },
+        ...annotationAction.getSeriesOptions(),
+    ];
     const selectedSeriesKey = state.seriesValue.trim();
     const canApply =
         selectedSeriesKey !== '' &&
@@ -403,21 +410,18 @@ export function EditAnnotationModal({
         >
             <label className="panel-markup-modal__field">
                 Series
-                <select
-                    aria-label="Annotation series"
-                    className="panel-markup-modal__select"
+                <Dropdown.Root
+                    options={seriesOptions}
                     value={state.seriesValue}
-                    onChange={(event) => setField('seriesValue', event.target.value)}
+                    onChange={(value) => setField('seriesValue', value)}
+                    placeholder="annotation not selected"
+                    fullWidth
                 >
-                    <option value={EMPTY_ANNOTATION_SERIES_VALUE}>
-                        annotation not selected
-                    </option>
-                    {annotationAction.getSeriesOptions().map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
+                    <Dropdown.Trigger style={{ height: '32px' }} />
+                    <Dropdown.Menu>
+                        <Dropdown.List />
+                    </Dropdown.Menu>
+                </Dropdown.Root>
             </label>
             <TextField
                 field="timeText"

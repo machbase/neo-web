@@ -35,8 +35,7 @@ import { MIXED_X_AXIS_KIND_WARNING, hasMixedXAxisValueKinds, hasNumericBaseTimeS
 import type { SetGlobalTimeRangePayload } from '../domain/BoardDomain';
 import {
     PanelChartLoadStatus,
-    type PanelDataRefreshPolicy,
-    type PanelRangeRefreshOptions,
+    type PanelRangeStateApplyOptions,
 } from './PanelDataRuntimeState';
 import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
 import { handlePanelBrushSelection } from './PanelBrushSelection';
@@ -56,11 +55,10 @@ export type PanelContainerRuntimeProps = {
     rangeState: PanelRangeState;
     chartAreaWidth: number | undefined;
     dataRefreshVersion: number;
-    dataRefreshPolicy: PanelDataRefreshPolicy;
     rollupTableList: string[];
     onRangeStateChange: (
         rangeState: PanelRangeState,
-        options?: PanelRangeRefreshOptions,
+        options?: PanelRangeStateApplyOptions,
     ) => void;
 };
 
@@ -70,7 +68,7 @@ type PanelContainerActions = {
     onChartAreaWidthChange: (width: number | undefined) => void;
     refreshData: () => void;
     refreshTime: () => void;
-    reloadPanelEdit: (panelInfo: PanelInfo) => void;
+    reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
     onToggleRaw: () => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
     onSetGlobalTimeRange: (payload: SetGlobalTimeRangePayload) => void;
@@ -263,7 +261,6 @@ function PanelContainer({
         rangeState,
         chartAreaWidth,
         dataRefreshVersion,
-        dataRefreshPolicy,
         rollupTableList,
         onRangeStateChange,
     },
@@ -272,7 +269,7 @@ function PanelContainer({
         onChartAreaWidthChange,
         refreshData,
         refreshTime,
-        reloadPanelEdit,
+        reloadAfterEditorSave,
         onToggleRaw,
         onSavePanel,
         onSetGlobalTimeRange,
@@ -312,7 +309,6 @@ function PanelContainer({
         chartAreaWidth,
         rollupTableList,
         dataRefreshVersion,
-        dataRefreshPolicy,
         onRangeStateChange,
     });
 
@@ -394,7 +390,7 @@ function PanelContainer({
             setIsSelectionSummaryOpen(false);
         },
         onSavePanel,
-        reloadPanelEdit,
+        reloadAfterEditorSave,
     });
     const handleSelection = (event: PanelBrushSelectionEvent): boolean =>
         handlePanelBrushSelection(

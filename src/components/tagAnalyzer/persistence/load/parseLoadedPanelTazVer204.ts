@@ -1,5 +1,5 @@
 import type { PanelInfo } from '../../domain/PanelDomain';
-import { normalizeStoredTimeUnit } from '../../domain/time/TimeUnitUtils';
+import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,

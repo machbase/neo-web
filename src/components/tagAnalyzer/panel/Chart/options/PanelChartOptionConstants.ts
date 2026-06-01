@@ -37,7 +37,6 @@ export const PANEL_SLIDER_DATA_ZOOM_ID = 'panel-slider-data-zoom';
 export const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
 export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
 export const NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID = 'navigator-highlight-overlay';
-export const NAVIGATOR_ANNOTATION_LINE_SERIES_ID = 'navigator-annotation-lines';
 export const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
 export const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 export const HIGHLIGHT_OUTLINE_WIDTH = 1;

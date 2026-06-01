@@ -1,23 +1,25 @@
 import { useRef, useState } from 'react';
 import type { GlobalTimeRangeState } from '../domain/BoardDomain';
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
+import { hasNumericBaseTimeSeries, type PanelSeriesDefinition } from '../domain/SeriesDomain';
+import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
+import { convertTimeRangeConfigToTimeRangeMs } from '../domain/time/TimeBoundaryConverters';
+import { resolveFullDataTimeRange } from '../domain/time/PanelTimeRangeResolver';
+import { resolveSeriesTimeBoundaryRanges } from '../domain/time/TimeBoundaryRangeResolver';
 import type {
     TimeRangeConfig,
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
-import {
-    getNavigatorTrackPixelWidth,
-    normalizeNavigatorRangeForPanelRange,
-} from './PanelNavigatorRangeLimits';
+import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import {
     createInitialBoardPanelRecord,
     type BoardPanelRecord,
 } from './BoardPanelState';
-import {
-    createPanelDataRefreshPolicy,
-    type PanelRangeRefreshOptions,
-} from '../panel/PanelDataRuntimeState';
-import { useBoardPanelRangeMutation } from './useBoardPanelRangeMutation';
+import { useApplyPanelRange } from './useApplyPanelRange';
+import { useRangeInit } from './useRangeInit';
+import { useConfigReload } from './useConfigReload';
+import { useRefreshRange } from './useRefreshRange';
+import type { PanelRangeStateApplyOptions } from '../panel/PanelDataRuntimeState';
 
 export function useTagAnalyzerBoardPanels({
     panels,
@@ -39,6 +41,7 @@ export function useTagAnalyzerBoardPanels({
     const boardPanelRecordsRef = useRef<Record<string, BoardPanelRecord>>({});
 
     function getBoardPanelRecord(panelKey: string): BoardPanelRecord {
+        assertPanelKey(panelKey);
         return boardPanelRecordsRef.current[panelKey] ?? createInitialBoardPanelRecord();
     }
 
@@ -46,6 +49,7 @@ export function useTagAnalyzerBoardPanels({
         panelKey: string,
         updater: (record: BoardPanelRecord) => BoardPanelRecord,
     ): void {
+        assertPanelKey(panelKey);
         const sNextRecord = updater(getBoardPanelRecord(panelKey));
         const sNextBoardPanelRecords = {
             ...boardPanelRecordsRef.current,
@@ -56,17 +60,7 @@ export function useTagAnalyzerBoardPanels({
         setBoardPanelRecords(sNextBoardPanelRecords);
     }
 
-    function updateRangeState(panelKey: string, patch: Partial<PanelRangeState>): void {
-        updateBoardPanelRecord(panelKey, (record) => ({
-            ...record,
-            rangeState: {
-                ...record.rangeState,
-                ...patch,
-            },
-        }));
-    }
-
-    function setChartAreaWidth(
+    function setPanelChartAreaWidth(
         panelKey: string,
         chartAreaWidth: number | undefined,
     ): void {
@@ -80,63 +74,98 @@ export function useTagAnalyzerBoardPanels({
         }));
     }
 
-    function normalizeNavigatorRangeForVisiblePanel(
-        panelKey: string,
-        panelRange: TimeRangeMs,
-        navigatorRange: TimeRangeMs,
-    ): TimeRangeMs {
-        const sChartAreaWidth = getBoardPanelRecord(panelKey).chartAreaWidth;
-        const sNavigatorTrackPixelWidth =
-            typeof sChartAreaWidth === 'number' && sChartAreaWidth > 0
-                ? getNavigatorTrackPixelWidth(sChartAreaWidth)
-                : undefined;
+    const { applyPanelRangeState } = useApplyPanelRange({
+        panelStore: {
+            getBoardPanelRecord,
+            updateBoardPanelRecord,
+        },
+        handlers: { onRangeApplied: onAppliedRange },
+    });
+    const {
+        initializePanelRange,
+        handleChartWidthChange,
+    } = useRangeInit({
+        boardTime,
+        globalTimeRange,
+        isActiveTab,
+        getBoardPanelRecord,
+        setPanelChartAreaWidth,
+        applyPanelRangeState,
+        applyGlobalRangeToPanel,
+    });
+    const {
+        refreshPanelData,
+        refreshPanelTime: refreshPanelTimeRange,
+        setFullDataRange,
+    } = useRefreshRange({
+        getBoardPanelRecord,
+        applyPanelRangeState,
+    });
+    const {
+        reloadAfterRawModeChange,
+        reloadAfterEditorSave,
+    } = useConfigReload({
+        getBoardPanelRecord,
+        applyPanelRangeState,
+        initializePanelRange,
+        setFullDataRange,
+    });
 
-        return sNavigatorTrackPixelWidth === undefined
-            ? navigatorRange
-            : normalizeNavigatorRangeForPanelRange(
-                  panelRange,
-                  navigatorRange,
-                  sNavigatorTrackPixelWidth,
-              );
-    }
-
-    function requestDataRefresh(
-        panelKey: string,
-        options: PanelRangeRefreshOptions = {},
+    function applyGlobalRangeToPanel(
+        panelInfo: PanelInfo,
+        globalTimeRangeToApply: GlobalTimeRangeState,
     ): void {
-        if (options.skipDataRefresh) {
+        if (hasNumericBaseTimeSeries(panelInfo.data.tag_set)) {
             return;
         }
 
-        updateBoardPanelRecord(panelKey, (record) => ({
-            ...record,
-            dataRefreshVersion: record.dataRefreshVersion + 1,
-            dataRefreshPolicy: createPanelDataRefreshPolicy(options),
-        }));
+        applyPanelRangeState(panelInfo, {
+            panelRange: globalTimeRangeToApply.data,
+            navigatorRange: globalTimeRangeToApply.navigator,
+            fullRange: globalTimeRangeToApply.navigator,
+        });
     }
 
-    const rangeMutation = useBoardPanelRangeMutation({
-        context: { boardTime, globalTimeRange, isActiveTab },
-        panelStore: {
-            getBoardPanelRecord,
-            updateRangeState,
-            setChartAreaWidth,
-            normalizeNavigatorRangeForVisiblePanel,
-            requestDataRefresh,
-        },
-        persistence: { onAppliedRange },
-    });
+    async function applyBoardTimeToPanel(
+        panelInfo: PanelInfo,
+        boardTimeToApply: TimeRangeConfig,
+    ): Promise<void> {
+        if (hasNumericBaseTimeSeries(panelInfo.data.tag_set)) {
+            return;
+        }
+
+        const boardRange = await resolveBoardTimeRange(
+            panelInfo.data.tag_set,
+            boardTimeToApply,
+        );
+
+        applyPanelRangeState(panelInfo, {
+            panelRange: boardRange,
+            navigatorRange: boardRange,
+            fullRange: boardRange,
+        });
+    }
+
     function refreshAllPanelData(): void {
-        for (const panelInfo of panels) void rangeMutation.refreshDataRange(panelInfo);
+        for (const panelInfo of panels) {
+            void refreshPanelData(panelInfo);
+        }
+    }
+
+    function refreshPanelTime(panelInfo: PanelInfo): void {
+        void refreshPanelTimeRange(
+            panelInfo,
+            panelInfo.general.use_last_viewed_range,
+        );
     }
 
     function refreshAllPanelTime(): void {
-        for (const panelInfo of panels) void rangeMutation.refreshTimeRange(panelInfo);
+        for (const panelInfo of panels) refreshPanelTime(panelInfo);
     }
 
-    function applyBoardRangeToPanels(boardTimeToApply: TimeRangeConfig): void {
+    function applyBoardTimeToPanels(boardTimeToApply: TimeRangeConfig): void {
         for (const panelInfo of panels) {
-            void rangeMutation.applyBoardRange(panelInfo, boardTimeToApply);
+            void applyBoardTimeToPanel(panelInfo, boardTimeToApply);
         }
     }
 
@@ -144,24 +173,71 @@ export function useTagAnalyzerBoardPanels({
         globalTimeRangeToApply: GlobalTimeRangeState,
     ): void {
         for (const panelInfo of panels) {
-            void rangeMutation.applyGlobalRange(panelInfo, globalTimeRangeToApply);
+            applyGlobalRangeToPanel(panelInfo, globalTimeRangeToApply);
         }
     }
 
     return {
         getPanelContainerRuntimeProps: (panelInfo: PanelInfo) => ({
-            ...rangeMutation.getPanelContainerRuntimeProps(panelInfo),
+            ...getPanelRuntimeProps(panelInfo),
             rollupTableList,
         }),
-        handlePanelChartAreaWidthChange:
-            rangeMutation.handleChartAreaWidthChange,
-        refreshPanelData: rangeMutation.refreshDataRange,
-        refreshPanelTime: rangeMutation.refreshTimeRange,
-        reloadRawMode: rangeMutation.reloadRawMode,
-        reloadPanelEdit: rangeMutation.reloadPanelEdit,
+        handleChartWidthChange,
+        refreshPanelData,
+        refreshPanelTime,
+        reloadAfterRawModeChange,
+        reloadAfterEditorSave,
         refreshAllPanelData,
         refreshAllPanelTime,
-        applyBoardRangeToPanels,
+        applyBoardTimeToPanels,
         applyGlobalRangeToPanels,
     };
+
+    function getPanelRuntimeProps(panelInfo: PanelInfo) {
+        const sBoardPanelRecord = getBoardPanelRecord(panelInfo.data.index_key);
+
+        return {
+            rangeState: sBoardPanelRecord.rangeState,
+            chartAreaWidth: sBoardPanelRecord.chartAreaWidth,
+            dataRefreshVersion: sBoardPanelRecord.dataRefreshVersion,
+            onRangeStateChange: (
+                rangeState: PanelRangeState,
+                options?: PanelRangeStateApplyOptions,
+            ): void => {
+                applyPanelRangeState(panelInfo, {
+                    panelRange: rangeState.panelRange,
+                    navigatorRange: rangeState.navigatorRange,
+                    fullRange: options?.fullRange ?? rangeState.fullRange,
+                    preserveNavigatorRange: options?.preserveNavigatorRange,
+                    reloadData: options?.reloadData,
+                });
+            },
+        };
+    }
+}
+
+function assertPanelKey(panelKey: string): void {
+    if (panelKey.length === 0) {
+        throw new Error('Panel key is required.');
+    }
+}
+
+async function resolveBoardTimeRange(
+    seriesList: PanelSeriesDefinition[],
+    boardTime: TimeRangeConfig,
+): Promise<TimeRangeMs> {
+    const boundaryRanges = (await resolveSeriesTimeBoundaryRanges(seriesList)) ?? null;
+    const boardRange = convertTimeRangeConfigToTimeRangeMs(
+        boardTime,
+        boundaryRanges?.end.max.timestamp,
+    );
+    const resolvedRange = isConcreteTimeRange(boardRange)
+        ? boardRange
+        : resolveFullDataTimeRange(boundaryRanges) ?? EMPTY_TIME_RANGE;
+
+    if (!isConcreteTimeRange(resolvedRange)) {
+        throw new Error('Cannot apply board time without a concrete range.');
+    }
+
+    return resolvedRange;
 }

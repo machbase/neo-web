@@ -16,7 +16,7 @@ import {
     createAbsoluteTimeBoundary,
     createAnchoredTimeBoundary,
     createEmptyTimeBoundary,
-} from '../domain/time/TimeBoundaryFactories';
+} from '../domain/time/TimeBoundaryInput';
 import type {
     PersistedPanelAnnotationInput,
     PersistedSeriesAnnotationInput,

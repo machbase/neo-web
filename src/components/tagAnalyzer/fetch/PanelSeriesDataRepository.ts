@@ -14,8 +14,8 @@ import {
     calculateInterval,
     calculateSampleCount,
     getIntervalMs,
+    normalizeStoredTimeUnit,
 } from '../domain/time/TimeIntervalUtils';
-import { normalizeStoredTimeUnit } from '../domain/time/TimeUnitUtils';
 import type {
     IntervalOption,
     TimeRangeMs,

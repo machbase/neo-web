@@ -1,3 +1,5 @@
+import { padTimePart } from './TimeFormatters';
+
 export const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 export const LOCAL_DATE_TIME_INPUT_FORMAT = `${DATE_TIME_INPUT_FORMAT}.SSS`;
 export const NUMERIC_AXIS_INPUT_FORMAT = 'Numeric value';
@@ -5,10 +7,6 @@ export const NUMERIC_AXIS_INPUT_FORMAT = 'Numeric value';
 const LOCAL_DATE_TIME_PATTERN =
     /^(\d{4})(?:-(\d{0,2})(?:-(\d{0,2})(?:[ T](\d{0,2})(?::(\d{0,2})(?::(\d{0,2})(?:\.(\d{0,3}))?)?)?)?)?)?$/;
 const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
-
-function padTimePart(value: number, length: number): string {
-    return String(value).padStart(length, '0');
-}
 
 function parseOptionalTimePart(value: string | undefined): number {
     return value ? Number(value) : 0;
