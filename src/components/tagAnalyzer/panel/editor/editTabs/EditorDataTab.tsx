@@ -8,7 +8,7 @@ import {
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelEditorConfig } from '../EditorTypes';
+import type { PanelEditorConfig } from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 
 type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';

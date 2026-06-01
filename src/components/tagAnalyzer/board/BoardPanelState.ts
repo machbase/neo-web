@@ -16,6 +16,7 @@ export type BoardPanelRecord = {
 export const INITIAL_PANEL_RANGE_STATE: PanelRangeState = {
     panelRange: EMPTY_TIME_RANGE,
     navigatorRange: EMPTY_TIME_RANGE,
+    fullRange: EMPTY_TIME_RANGE,
 };
 
 export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
@@ -28,6 +29,7 @@ export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
 export function hasConcretePanelRangeState(rangeState: PanelRangeState): boolean {
     return (
         isConcreteTimeRange(rangeState.panelRange) &&
-        isConcreteTimeRange(rangeState.navigatorRange)
+        isConcreteTimeRange(rangeState.navigatorRange) &&
+        isConcreteTimeRange(rangeState.fullRange)
     );
 }

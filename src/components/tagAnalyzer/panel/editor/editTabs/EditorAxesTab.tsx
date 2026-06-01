@@ -2,14 +2,16 @@ import { VscWarning } from '@/assets/icons/Icon';
 import { Checkbox, Dropdown, Input } from '@/design-system/components';
 import type { CSSProperties, ReactNode } from 'react';
 import { Tooltip } from 'react-tooltip';
-import { EDITOR_AXIS_COMPACT_INPUT_STYLE, EDITOR_AXIS_THRESHOLD_INPUT_STYLE, EDITOR_RIGHT_AXIS_TRIGGER_STYLE, EDITOR_X_AXIS_INPUT_STYLE } from '../EditorConstants';
-import type {
-    PanelAxesDraft,
-    PanelSamplingDraft,
-    PanelYAxisDraft,
-} from '../EditorTypes';
-import { parseEditorNumber } from '../PanelEditorUtils';
-import { isAxisRangeInvalid } from '../PanelEditorValidation';
+import {
+    EDITOR_AXIS_COMPACT_INPUT_STYLE,
+    EDITOR_AXIS_THRESHOLD_INPUT_STYLE,
+    EDITOR_RIGHT_AXIS_TRIGGER_STYLE,
+    EDITOR_X_AXIS_INPUT_STYLE,
+    parseEditorNumber,
+    type PanelAxesDraft,
+    type PanelSamplingDraft,
+    type PanelYAxisDraft,
+} from '../PanelEditor';
 import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
@@ -30,6 +32,72 @@ const RANGES = [['value_range', 'Custom scale'], ['raw_data_value_range', 'Custo
 const THRESHOLDS = [['upper_control_limit', 'use UCL'], ['lower_control_limit', 'use LCL']] as const;
 const cx = (...classes: Array<string | false | undefined>) =>
     classes.filter(Boolean).join(' ') || undefined;
+
+function isAxisRangeInvalid(range: PanelYAxisDraft['value_range']): boolean {
+    const sMin = range.min;
+    const sMax = range.max;
+    const sHasMin = sMin !== undefined;
+    const sHasMax = sMax !== undefined;
+    const sIsAutoRange =
+        (!sHasMin && !sHasMax) ||
+        (range.min === 0 && range.max === 0);
+
+    if (sIsAutoRange) {
+        return false;
+    }
+
+    if (!sHasMin || !sHasMax) {
+        return true;
+    }
+
+    return (
+        !Number.isFinite(sMin) ||
+        !Number.isFinite(sMax) ||
+        sMin >= sMax
+    );
+}
+
+function isInvalidAxisThreshold(
+    threshold: PanelYAxisDraft['upper_control_limit'],
+): boolean {
+    return (
+        threshold.enabled &&
+        (
+            threshold.value === undefined ||
+            !Number.isFinite(threshold.value)
+        )
+    );
+}
+
+function hasInvalidYAxisRange(axisConfig: PanelYAxisDraft): boolean {
+    return (
+        isAxisRangeInvalid(axisConfig.value_range) ||
+        isAxisRangeInvalid(axisConfig.raw_data_value_range) ||
+        isInvalidAxisThreshold(axisConfig.upper_control_limit) ||
+        isInvalidAxisThreshold(axisConfig.lower_control_limit)
+    );
+}
+
+function isInvalidSampling(sampling: PanelSamplingDraft): boolean {
+    return (
+        sampling.enabled &&
+        (
+            sampling.sample_count === undefined ||
+            !Number.isFinite(sampling.sample_count)
+        )
+    );
+}
+
+export function hasInvalidEditorAxes(axesConfig: PanelAxesDraft): boolean {
+    return (
+        isInvalidSampling(axesConfig.main_chart_sampling) ||
+        hasInvalidYAxisRange(axesConfig.left_y_axis) ||
+        (
+            axesConfig.right_y_axis_enabled &&
+            hasInvalidYAxisRange(axesConfig.right_y_axis)
+        )
+    );
+}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
     return (

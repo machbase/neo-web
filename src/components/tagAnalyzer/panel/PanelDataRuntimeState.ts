@@ -37,6 +37,7 @@ export type PanelDataRefreshPolicy = {
 };
 
 type PanelRangeMutationOptions = Partial<PanelDataRefreshPolicy> & {
+    fullRange?: TimeRangeMs;
     skipDataRefresh?: boolean;
 };
 
@@ -46,12 +47,6 @@ export type PanelRangeApplyOptions = PanelRangeMutationOptions & {
 };
 
 export type PanelRangeRefreshOptions = PanelRangeMutationOptions;
-
-export type PanelDataRefreshResult = {
-    isStale: boolean;
-    panelRange?: TimeRangeMs | undefined;
-    navigatorRange?: TimeRangeMs | undefined;
-};
 
 export const DEFAULT_PANEL_DATA_REFRESH_POLICY: PanelDataRefreshPolicy = {
     forceReload: false,

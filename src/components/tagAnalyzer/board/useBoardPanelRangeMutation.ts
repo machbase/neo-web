@@ -10,6 +10,7 @@ import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/TimeTypes';
 import {
     hasVisibleTimeRangeChanged,
     isConcreteTimeRange,
+    isSameTimeRange,
 } from '../domain/time/TimeRangeUtils';
 import {
     hasConcretePanelRangeState,
@@ -100,6 +101,7 @@ export function useBoardPanelRangeMutation({
         {
             panelRange,
             navigatorRange = panelRange,
+            fullRange,
             ...refreshOptions
         }: PanelRangeApplyOptions,
     ): void {
@@ -115,7 +117,11 @@ export function useBoardPanelRangeMutation({
 
         commitRangeState(
             panelInfo,
-            { panelRange, navigatorRange: sNavigatorRange },
+            {
+                panelRange,
+                navigatorRange: sNavigatorRange,
+                fullRange: fullRange ?? sNavigatorRange,
+            },
             {
                 ...refreshOptions,
                 forceReload: true,
@@ -133,6 +139,7 @@ export function useBoardPanelRangeMutation({
             dataLoadConfigOverride,
             forceRawMainSampling,
             clampPanelRangeToLoadedDataRange,
+            fullRange,
             skipDataRefresh,
         }: PanelRangeRefreshOptions = {},
     ): void {
@@ -148,11 +155,16 @@ export function useBoardPanelRangeMutation({
                   navigatorRange,
               );
         const sCurrentRangeState = sBoardPanelRecord.rangeState;
+        const sFullRange =
+            fullRange ??
+            (isConcreteTimeRange(sCurrentRangeState.fullRange)
+                ? sCurrentRangeState.fullRange
+                : sNavigatorRange);
         const sRangeChanged = hasVisibleTimeRangeChanged(
             panelRange,
             sNavigatorRange,
             sCurrentRangeState,
-        );
+        ) || !isSameTimeRange(sFullRange, sCurrentRangeState.fullRange);
         const sHasLoadConfigOverride = dataLoadConfigOverride !== undefined;
 
         if (
@@ -171,6 +183,7 @@ export function useBoardPanelRangeMutation({
             {
                 panelRange,
                 navigatorRange: sNavigatorRange,
+                fullRange: sFullRange,
             },
             {
                 preserveNavigatorRange,
@@ -230,6 +243,7 @@ export function useBoardPanelRangeMutation({
         applyRange(panelInfo, {
             panelRange: globalTimeRangeToApply.data,
             navigatorRange: globalTimeRangeToApply.navigator,
+            fullRange: globalTimeRangeToApply.navigator,
         });
     }
 

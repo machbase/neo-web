@@ -36,7 +36,10 @@ export function getPanelContainerRuntimeProps({
                 panelInfo,
                 rangeState.panelRange,
                 rangeState.navigatorRange,
-                options,
+                {
+                    ...options,
+                    fullRange: rangeState.fullRange,
+                },
             );
         },
     };

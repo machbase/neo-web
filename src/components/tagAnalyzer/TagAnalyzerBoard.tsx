@@ -455,7 +455,10 @@ const TagAnalyzerBoard = ({
         ) {
             pPanelBoardActions.onPersistPanelState({
                 targetPanelKey: panel.data.index_key,
-                timeInfo: rangeState,
+                timeInfo: {
+                    panelRange: rangeState.panelRange,
+                    navigatorRange: rangeState.navigatorRange,
+                },
                 isRaw: panel.general.is_raw,
             });
         }

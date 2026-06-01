@@ -1,5 +1,5 @@
 import { Checkbox, Input } from '@/design-system/components';
-import type { PanelEditorConfig } from '../EditorTypes';
+import type { PanelEditorConfig } from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 
 type EditorGeneralTabProps = {

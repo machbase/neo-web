@@ -3,7 +3,7 @@ import { Button, DatePicker, QuickTimeRange } from '@/design-system/components';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
-import type { PanelEditorConfig } from '../EditorTypes';
+import type { PanelEditorConfig } from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 import {
     formatTimeRangeInputValue,

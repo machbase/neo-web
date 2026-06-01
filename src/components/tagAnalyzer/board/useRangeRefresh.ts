@@ -59,6 +59,7 @@ export function useRangeRefresh({
         applyRange(panelInfo, {
             panelRange: initialRange.panelRange,
             navigatorRange: initialRange.navigatorRange,
+            fullRange: initialRange.fullRange,
             ...options,
             clampPanelRangeToLoadedDataRange:
                 options.clampPanelRangeToLoadedDataRange ??
@@ -76,6 +77,7 @@ export function useRangeRefresh({
         applyRange(panelInfo, {
             panelRange: fullDataRange,
             navigatorRange: fullDataRange,
+            fullRange: fullDataRange,
             clampPanelRangeToLoadedDataRange: panelInfo.general.is_raw,
         });
     }
@@ -99,6 +101,7 @@ export function useRangeRefresh({
         const panelRange = clampTimeRangeToBounds(rangeState.panelRange, fullDataRange);
 
         refreshVisibleRange(panelInfo, panelRange, fullDataRange, {
+            fullRange: fullDataRange,
             forceReload: true,
             preserveNavigatorRange: true,
             clampPanelRangeToLoadedDataRange: panelInfo.general.is_raw,
@@ -125,6 +128,7 @@ export function useRangeRefresh({
         applyRange(panelInfo, {
             panelRange: boardRange,
             navigatorRange: boardRange,
+            fullRange: boardRange,
         });
     }
 
@@ -167,7 +171,11 @@ async function resolveInitialPanelRange(
         isConcreteTimeRange(lastViewedPanelRange) &&
         isConcreteTimeRange(lastViewedNavigatorRange)
     ) {
-        return { panelRange: lastViewedPanelRange, navigatorRange: lastViewedNavigatorRange };
+        return {
+            panelRange: lastViewedPanelRange,
+            navigatorRange: lastViewedNavigatorRange,
+            fullRange: fullDataRange,
+        };
     }
 
     return {
@@ -176,6 +184,7 @@ async function resolveInitialPanelRange(
             resolvedRange,
             fullDataRange,
         ),
+        fullRange: fullDataRange,
     };
 }
 

@@ -3,7 +3,7 @@ import type { PanelInfo } from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
-import type { PanelEditorConfig } from './editor/EditorTypes';
+import type { PanelEditorConfig } from './editor/PanelEditor';
 
 function getPanelStateWithoutNavigatorPersistence(
     panelState: PanelInfo,

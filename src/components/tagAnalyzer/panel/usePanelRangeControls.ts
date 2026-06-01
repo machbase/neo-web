@@ -60,6 +60,7 @@ export function usePanelRangeControls({
             {
                 panelRange,
                 navigatorRange: rangeState.navigatorRange,
+                fullRange: rangeState.fullRange,
             },
             options,
         );
@@ -72,6 +73,7 @@ export function usePanelRangeControls({
             {
                 panelRange: rangeState.panelRange,
                 navigatorRange,
+                fullRange: rangeState.fullRange,
             },
             options,
         );
@@ -190,6 +192,7 @@ export function usePanelRangeControls({
                 onRangeStateChange({
                     panelRange: sPanelRange,
                     navigatorRange: sNavigatorRange,
+                    fullRange: rangeState.fullRange,
                 });
             },
             onFocus: () => {
@@ -229,6 +232,7 @@ export function usePanelRangeControls({
                 onRangeStateChange({
                     panelRange: sPanelRange,
                     navigatorRange: sNavigatorRange,
+                    fullRange: rangeState.fullRange,
                 });
             },
         },
@@ -265,6 +269,7 @@ function getShiftedPanelRangeState(
                 sPanelRange.startTime,
                 rangeState.navigatorRange.endTime + sOffset,
             ),
+            fullRange: rangeState.fullRange,
         };
     }
 
@@ -278,12 +283,14 @@ function getShiftedPanelRangeState(
                 rangeState.navigatorRange.startTime + sOffset,
                 sPanelRange.endTime,
             ),
+            fullRange: rangeState.fullRange,
         };
     }
 
     return {
         panelRange: sPanelRange,
         navigatorRange: rangeState.navigatorRange,
+        fullRange: rangeState.fullRange,
     };
 }
 
@@ -299,6 +306,7 @@ function getShiftedNavigatorRangeState(
     return {
         panelRange: clampTimeRangeToBounds(rangeState.panelRange, sNavigatorRange),
         navigatorRange: sNavigatorRange,
+        fullRange: rangeState.fullRange,
     };
 }
 
@@ -337,6 +345,7 @@ function getPanelRangeChangeState(
     return {
         panelRange: sPanelRange,
         navigatorRange: rangeState.navigatorRange,
+        fullRange: rangeState.fullRange,
     };
 }
 

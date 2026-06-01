@@ -290,6 +290,7 @@ export type PanelNavigatorShiftActions = {
 export type PanelRangeState = {
     panelRange: TimeRangeMs;
     navigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
 };
 
 export type PanelRangeHandlers = {

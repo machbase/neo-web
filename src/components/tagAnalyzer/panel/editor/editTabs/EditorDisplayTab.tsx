@@ -1,8 +1,10 @@
 import { Checkbox, Input, Page } from '@/design-system/components';
 import type { PanelEChartType } from '../../../domain/PanelDomain';
-import type { PanelDisplayDraft } from '../EditorTypes';
-import { CHART_TYPE_OPTIONS } from '../EditorConstants';
-import { parseEditorNumber } from '../PanelEditorUtils';
+import {
+    CHART_TYPE_OPTIONS,
+    parseEditorNumber,
+    type PanelDisplayDraft,
+} from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 
 const CHART_TYPE_OPTION_STYLE = { width: '80px', height: '64px', borderRadius: '4px', cursor: 'pointer' } as const;
