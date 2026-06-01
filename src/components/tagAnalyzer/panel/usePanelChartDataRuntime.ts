@@ -344,14 +344,12 @@ function analyzeMainQueryResult(
 function getAppliedPanelLoadRanges({
     panelRange,
     requestedNavigatorRange,
-    preserveNavigatorRange,
     shouldClampPanelRangeToLoadedDataRange,
     queriedDataRange,
     normalizeNavigatorRangeForVisiblePanel,
 }: {
     panelRange: TimeRangeMs;
     requestedNavigatorRange: TimeRangeMs;
-    preserveNavigatorRange: boolean;
     shouldClampPanelRangeToLoadedDataRange: boolean;
     queriedDataRange: TimeRangeMs | undefined;
     normalizeNavigatorRangeForVisiblePanel: (
@@ -364,12 +362,10 @@ function getAppliedPanelLoadRanges({
     const sPanelRange = sShouldUseLoadedPanelRange
         ? queriedDataRange
         : panelRange;
-    const sNavigatorRange = preserveNavigatorRange || sShouldUseLoadedPanelRange
-        ? requestedNavigatorRange
-        : normalizeNavigatorRangeForVisiblePanel(
-              sPanelRange,
-              requestedNavigatorRange,
-          );
+    const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+        sPanelRange,
+        requestedNavigatorRange,
+    );
 
     return {
         panelRange: sPanelRange,
@@ -491,7 +487,6 @@ export function usePanelChartDataRuntime({
             const sAppliedRanges = getAppliedPanelLoadRanges({
                 panelRange,
                 requestedNavigatorRange: navigatorRange,
-                preserveNavigatorRange: refreshRequest.preserveNavigatorRange,
                 shouldClampPanelRangeToLoadedDataRange:
                     loadConfig.isRaw ||
                     refreshRequest.clampPanelRangeToLoadedDataRange,

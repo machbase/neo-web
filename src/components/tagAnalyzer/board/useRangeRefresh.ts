@@ -99,8 +99,9 @@ export function useRangeRefresh({
         }
 
         const panelRange = clampTimeRangeToBounds(rangeState.panelRange, fullDataRange);
+        const navigatorRange = clampTimeRangeToBounds(rangeState.navigatorRange, fullDataRange);
 
-        refreshVisibleRange(panelInfo, panelRange, fullDataRange, {
+        refreshVisibleRange(panelInfo, panelRange, navigatorRange, {
             fullRange: fullDataRange,
             forceReload: true,
             preserveNavigatorRange: true,

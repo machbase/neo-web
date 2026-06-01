@@ -62,7 +62,7 @@ export function usePanelChartRuntime({
 }: UsePanelChartRuntimeParams): UsePanelChartRuntimeResult {
     const { chartAreaRef, chartApiRef } = refs;
     const { chartData, navigatorChartData } = data;
-    const { panelRange, navigatorRange, fullRange } = rangeState;
+    const { panelRange, navigatorRange } = rangeState;
     const {
         rangeHandlers,
         markupHandlers,
@@ -152,63 +152,8 @@ export function usePanelChartRuntime({
             startValue: panelRange.startTime,
             endValue: panelRange.endTime,
         });
-
-        const sChartOption = chartInstance.getOption?.() as
-            | {
-                  dataZoom?: Array<{
-                      start?: number;
-                      end?: number;
-                      startValue?: number;
-                      endValue?: number;
-                  }>;
-                  xAxis?: Array<{
-                      id?: string;
-                      min?: number;
-                      max?: number;
-                  }>;
-              }
-            | undefined;
-        const sDataZoom = sChartOption?.dataZoom?.[0];
-        const sXAxis = sChartOption?.xAxis ?? [];
-
-        console.log('[TA nav debug]', {
-            selectedRangeForNavigator: {
-                startTime: sDataZoom?.startValue ?? panelRange.startTime,
-                endTime: sDataZoom?.endValue ?? panelRange.endTime,
-                percentStart: sDataZoom?.start,
-                percentEnd: sDataZoom?.end,
-            },
-            mainChartRange: panelRange,
-            navigatorRange,
-            fullNavigatorRange: fullRange,
-            echartXAxisRanges: {
-                main: sXAxis[0]
-                    ? {
-                          id: sXAxis[0].id,
-                          min: sXAxis[0].min,
-                          max: sXAxis[0].max,
-                      }
-                    : undefined,
-                navigatorSlider: sXAxis[1]
-                    ? {
-                          id: sXAxis[1].id,
-                          min: sXAxis[1].min,
-                          max: sXAxis[1].max,
-                      }
-                    : undefined,
-                navigatorData: sXAxis[2]
-                    ? {
-                          id: sXAxis[2].id,
-                          min: sXAxis[2].min,
-                          max: sXAxis[2].max,
-                      }
-                    : undefined,
-            },
-        });
     }, [
         chartInstanceRef,
-        fullRange,
-        navigatorRange,
         panelRange,
     ]);
     const applyLegendHoverState = useCallback((

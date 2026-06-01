@@ -147,13 +147,11 @@ export function useBoardPanelRangeMutation({
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
         assertCanApplyRange(sBoardPanelRecord, panelRange);
 
-        const sNavigatorRange = preserveNavigatorRange
-            ? navigatorRange
-            : normalizeNavigatorRangeForVisiblePanel(
-                  sPanelKey,
-                  panelRange,
-                  navigatorRange,
-              );
+        const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+            sPanelKey,
+            panelRange,
+            navigatorRange,
+        );
         const sCurrentRangeState = sBoardPanelRecord.rangeState;
         const sFullRange =
             fullRange ??
