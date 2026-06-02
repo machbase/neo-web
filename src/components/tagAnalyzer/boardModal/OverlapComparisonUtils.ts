@@ -9,50 +9,8 @@ import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapPanelSelection,
-    OverlapShiftDirection,
     OverlapSelectionChangePayload,
 } from '../domain/BoardDomain';
-
-function shiftTimestamp(timestamp: number, offsetMs: number): number {
-    return timestamp + offsetMs;
-}
-
-export function shiftOverlapPanels(
-    panelsInfo: OverlapPanelInfo[],
-    panelKey: string,
-    direction: OverlapShiftDirection,
-    range: number,
-): OverlapPanelInfo[] {
-    return panelsInfo.map((item) =>
-        panelKey === item.board.data.index_key
-            ? {
-                  ...item,
-                  start: shiftTimestamp(
-                      item.start,
-                      direction === '+' ? range : -range,
-                  ),
-              }
-            : item,
-    );
-}
-
-export function alignOverlapPanelsToReference(
-    panelsInfo: OverlapPanelInfo[],
-    referencePanelKey: string,
-): OverlapPanelInfo[] {
-    const sReferencePanel = panelsInfo.find(
-        (item) => item.board.data.index_key === referencePanelKey,
-    );
-
-    if (!sReferencePanel) {
-        return panelsInfo;
-    }
-
-    return panelsInfo.map((item) => ({
-        ...item,
-        start: sReferencePanel.start,
-    }));
-}
 
 export function hasOverlapPanelDraftChanged(
     appliedPanelsInfo: OverlapPanelInfo[],

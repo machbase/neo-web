@@ -1,18 +1,21 @@
 import type { PanelInfo } from '../domain/PanelDomain';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
-import type { PanelRangeApplyOptions } from '../panel/PanelDataRuntimeState';
-import { hasValidRangeState, type BoardPanelRecord } from './BoardPanelState';
+import {
+    hasValidRangeState,
+    type ApplyPanelRangeState,
+    type BoardPanelRecord,
+} from './BoardPanelState';
 
-type ApplyPanelRangeState = (
-    panelInfo: PanelInfo,
-    options: PanelRangeApplyOptions,
-) => void;
-
-type PanelReloadAfterConfigChangeDependencies = {
+type ConfigReloadDependencies = {
     getBoardPanelRecord: (panelKey: string) => BoardPanelRecord;
     applyPanelRangeState: ApplyPanelRangeState;
     initializePanelRange: (panelInfo: PanelInfo) => Promise<void>;
     setFullDataRange: (panelInfo: PanelInfo) => Promise<void>;
+};
+
+type ConfigReloadActions = {
+    reloadAfterRawModeChange: (nextPanelInfo: PanelInfo) => void;
+    reloadAfterEditorSave: (nextPanelInfo: PanelInfo) => void;
 };
 
 export function useConfigReload({
@@ -20,7 +23,7 @@ export function useConfigReload({
     applyPanelRangeState,
     initializePanelRange,
     setFullDataRange,
-}: PanelReloadAfterConfigChangeDependencies) {
+}: ConfigReloadDependencies): ConfigReloadActions {
     function reloadAfterRawModeChange(nextPanelInfo: PanelInfo): void {
         const sRangeState =
             getBoardPanelRecord(nextPanelInfo.data.index_key).rangeState;
