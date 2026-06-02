@@ -1,7 +1,6 @@
-import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
+import type { PanelRangeState } from '../domain/PanelDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
-import type { PanelRangeApplyOptions } from '../panel/PanelDataRuntimeState';
 
 export type BoardPanelRecord = {
     rangeState: PanelRangeState;
@@ -9,20 +8,7 @@ export type BoardPanelRecord = {
     dataRefreshVersion: number;
 };
 
-export type BoardPanelStore = {
-    getBoardPanelRecord: (panelKey: string) => BoardPanelRecord;
-    updateBoardPanelRecord: (
-        panelKey: string,
-        updater: (record: BoardPanelRecord) => BoardPanelRecord,
-    ) => void;
-};
-
-export type ApplyPanelRangeState = (
-    panelInfo: PanelInfo,
-    options: PanelRangeApplyOptions,
-) => void;
-
-const INITIAL_PANEL_RANGE_STATE: PanelRangeState = {
+export const INITIAL_PANEL_RANGE_STATE: PanelRangeState = {
     panelRange: EMPTY_TIME_RANGE,
     navigatorRange: EMPTY_TIME_RANGE,
     fullRange: EMPTY_TIME_RANGE,

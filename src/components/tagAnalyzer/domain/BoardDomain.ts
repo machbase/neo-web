@@ -57,6 +57,8 @@ export type OverlapPanelInfo = {
     board: PanelInfo;
 };
 
+export type OverlapShiftDirection = '+' | '-';
+
 export type OverlapSelectionChangePayload =
     | {
           panelKey: string;

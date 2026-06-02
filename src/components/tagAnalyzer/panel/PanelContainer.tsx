@@ -499,6 +499,7 @@ function PanelContainer({
                 }
 
                 setActivePopupMode(PanelPopupMode.NONE);
+                setIsSelectionSummaryOpen(false);
                 setOverlayMode((currentOverlayMode) =>
                     currentOverlayMode === PanelOverlayMode.ANNOTATION
                         ? PanelOverlayMode.NO_OVERLAY
@@ -732,7 +733,7 @@ function PanelContainer({
                     pOnClose={closePanelEditor}
                     pPanelInfo={panelInfo}
                     pIsRawMode={isRaw}
-                    pPanelRange={panelRange}
+                    pVisiblePanelRange={panelRange}
                 />
             )}
             {activePopupMode === PanelPopupMode.CONTEXT_MENU && (

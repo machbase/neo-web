@@ -98,7 +98,6 @@ export function useTagAnalyzerBoardPanels({
         refreshPanelTime: refreshPanelTimeRange,
         setFullDataRange,
     } = useRefreshRange({
-        boardTime,
         getBoardPanelRecord,
         applyPanelRangeState,
     });

@@ -30,7 +30,7 @@ export enum PanelChartLoadStatus {
 
 export type PanelRangeApplyOptions = {
     panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
+    navigatorRange?: TimeRangeMs;
     fullRange?: TimeRangeMs;
     preserveNavigatorRange?: boolean;
     reloadData?: boolean;
