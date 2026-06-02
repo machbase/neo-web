@@ -2,28 +2,25 @@ import { useState } from 'react';
 import type { PanelInfo } from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
-import type { PanelEditorConfig } from './editor/EditorTypes';
-import {
-    mergeEditorConfigIntoPanelState,
-    type PanelEditorPanelState,
-} from './editor/PanelEditorConfigConverter';
+import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
+import type { PanelEditorConfig } from './editor/PanelEditor';
 
 function getPanelStateWithoutNavigatorPersistence(
-    panelState: PanelEditorPanelState,
-): PanelEditorPanelState {
+    panelState: PanelInfo,
+): PanelInfo {
     return {
         ...panelState,
-        time: {
-            ...panelState.time,
-            useLastViewedRange: false,
-            lastViewedRange: undefined,
+        general: {
+            ...panelState.general,
+            use_last_viewed_range: false,
+            last_viewed_range: undefined,
         },
     };
 }
 
 function shouldReloadPanelAfterEditorSave(
-    currentPanelState: PanelEditorPanelState,
-    nextPanelState: PanelEditorPanelState,
+    currentPanelState: PanelInfo,
+    nextPanelState: PanelInfo,
 ): boolean {
     return (
         JSON.stringify(getPanelStateWithoutNavigatorPersistence(currentPanelState)) !==
@@ -32,13 +29,22 @@ function shouldReloadPanelAfterEditorSave(
 }
 
 function hasPanelTimeRangeConfigChanged(
-    currentPanelState: PanelEditorPanelState,
-    nextPanelState: PanelEditorPanelState,
+    currentPanelState: PanelInfo,
+    nextPanelState: PanelInfo,
 ): boolean {
     return (
-        JSON.stringify(currentPanelState.time.rangeConfig) !==
-        JSON.stringify(nextPanelState.time.rangeConfig)
+        JSON.stringify(currentPanelState.time.range_config) !==
+        JSON.stringify(nextPanelState.time.range_config)
     );
+}
+
+function normalizeTagSetForRightYAxis(
+    tagSet: PanelSeriesDefinition[],
+    rightYAxisEnabled: boolean,
+): PanelSeriesDefinition[] {
+    return rightYAxisEnabled
+        ? tagSet
+        : tagSet.map((series) => ({ ...series, useSecondaryAxis: false }));
 }
 
 export function usePanelEditor({
@@ -47,14 +53,14 @@ export function usePanelEditor({
     navigatorRange,
     onResetPanelUi,
     onSavePanel,
-    reloadPanelEdit,
+    reloadAfterEditorSave,
 }: {
     panelInfo: PanelInfo;
     panelRange: TimeRangeMs;
     navigatorRange: TimeRangeMs;
     onResetPanelUi: () => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
-    reloadPanelEdit: (panelInfo: PanelInfo) => void;
+    reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
 }): {
     isEditing: boolean;
     closePanelEditor: () => void;
@@ -75,23 +81,23 @@ export function usePanelEditor({
     }
 
     function saveEditedPanelConfig(editorConfig: PanelEditorConfig): void {
-        const sCurrentPanelState = {
-            meta: panelInfo.meta,
-            data: panelInfo.data,
-            time: panelInfo.time,
-            axes: panelInfo.axes,
-            display: panelInfo.display,
+        const sCurrentPanelState = panelInfo;
+        const sNextPanelState: PanelInfo = {
+            ...editorConfig,
+            data: {
+                ...editorConfig.data,
+                tag_set: normalizeTagSetForRightYAxis(
+                    editorConfig.data.tag_set,
+                    editorConfig.axes.right_y_axis_enabled,
+                ),
+            },
         };
-        const sNextPanelState = mergeEditorConfigIntoPanelState(
-            sCurrentPanelState,
-            editorConfig,
-        );
         const sHasTimeRangeConfigChanged = hasPanelTimeRangeConfigChanged(
             sCurrentPanelState,
             sNextPanelState,
         );
         const sLastViewedRange =
-            sNextPanelState.time.useLastViewedRange &&
+            sNextPanelState.general.use_last_viewed_range &&
             !sHasTimeRangeConfigChanged &&
             isConcreteTimeRange(panelRange) &&
             isConcreteTimeRange(navigatorRange)
@@ -100,18 +106,17 @@ export function usePanelEditor({
                       navigatorRange,
                   }
                 : undefined;
-        const sNextPanelInfo = {
-            ...panelInfo,
+        const sNextPanelInfo: PanelInfo = {
             ...sNextPanelState,
-            time: {
-                ...sNextPanelState.time,
-                lastViewedRange: sLastViewedRange,
+            general: {
+                ...sNextPanelState.general,
+                last_viewed_range: sLastViewedRange,
             },
         };
 
         onSavePanel(sNextPanelInfo);
         if (shouldReloadPanelAfterEditorSave(sCurrentPanelState, sNextPanelState)) {
-            reloadPanelEdit(sNextPanelInfo);
+            reloadAfterEditorSave(sNextPanelInfo);
         }
     }
 

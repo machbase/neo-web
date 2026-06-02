@@ -1,13 +1,19 @@
+import { padTimePart } from './TimeFormatters';
+
 export const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 export const LOCAL_DATE_TIME_INPUT_FORMAT = `${DATE_TIME_INPUT_FORMAT}.SSS`;
 export const NUMERIC_AXIS_INPUT_FORMAT = 'Numeric value';
 
 const LOCAL_DATE_TIME_PATTERN =
-    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2})(?::(\d{1,2})(?::(\d{1,2})(?:\.(\d{1,3}))?)?)?)?$/;
+    /^(\d{4})(?:-(\d{0,2})(?:-(\d{0,2})(?:[ T](\d{0,2})(?::(\d{0,2})(?::(\d{0,2})(?:\.(\d{0,3}))?)?)?)?)?)?$/;
 const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
 
-function padTimePart(value: number, length: number) {
-    return String(value).padStart(length, '0');
+function parseOptionalTimePart(value: string | undefined): number {
+    return value ? Number(value) : 0;
+}
+
+function parseOptionalDatePart(value: string | undefined): number {
+    return value ? Number(value) : 1;
 }
 
 function formatLocalTimestampInput(timestamp: number): string {
@@ -53,24 +59,24 @@ function parseLocalTimestampInput(value: string): number | undefined {
         return undefined;
     }
 
-    if (INTEGER_TIMESTAMP_PATTERN.test(text)) {
-        const timestamp = Number(text);
-        return Number.isSafeInteger(timestamp) ? timestamp : undefined;
-    }
-
     const match = LOCAL_DATE_TIME_PATTERN.exec(text);
 
     if (!match) {
+        if (INTEGER_TIMESTAMP_PATTERN.test(text)) {
+            const timestamp = Number(text);
+            return Number.isSafeInteger(timestamp) ? timestamp : undefined;
+        }
+
         return undefined;
     }
 
     const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-    const hour = Number(match[4] ?? 0);
-    const minute = Number(match[5] ?? 0);
-    const second = Number(match[6] ?? 0);
-    const millisecond = Number((match[7] ?? '0').padEnd(3, '0'));
+    const month = parseOptionalDatePart(match[2]);
+    const day = parseOptionalDatePart(match[3]);
+    const hour = parseOptionalTimePart(match[4]);
+    const minute = parseOptionalTimePart(match[5]);
+    const second = parseOptionalTimePart(match[6]);
+    const millisecond = Number((match[7] || '0').padEnd(3, '0'));
 
     if (
         !Number.isInteger(year) ||

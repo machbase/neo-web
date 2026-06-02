@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LineChart, Play } from '@/assets/icons/Icon';
 import { getTqlChart } from '@/api/repository/machiot';
 import { Spinner } from '@/components/spinner/Spinner';
@@ -11,15 +11,21 @@ import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../domain/time/TimeUnitUtils';
+} from '../domain/time/TimeIntervalUtils';
 import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 
-const FFT_INTERVAL_UNITS: TimeUnit[] = [
+const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,
     TimeUnit.Second,
     TimeUnit.Minute,
     TimeUnit.Hour,
-];
+].map((unit) => ({
+    value: unit,
+    label: formatTimeUnitShortCode(unit),
+}));
+const FFT_FORM_ROW_STYLE = { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '4px' } as const;
+const FFT_SUMMARY_ROW_STYLE = { display: 'flex', flexDirection: 'row', gap: '8px' } as const;
+const FFT_MODAL_STYLE = { minHeight: '200px', height: 'auto', maxHeight: '80vh' } as const;
 
 type FFTModalOption = {
     value: string;
@@ -50,6 +56,81 @@ function buildFftSqlRangeCondition(
     return `{time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')`;
 }
 
+const FFT_2D_QUERY_TEMPLATE = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
+MAPKEY('fft')
+GROUPBYKEY()
+FFT({MinMaxHz})
+CHART(
+    size('100%', '400px'),
+    theme("dark"),
+    chartOption({
+        xAxis: { type: "category", name: "Hz", data: column(0) },
+        yAxis: { name: "Amplitude" },
+        dataZoom: [{ type: "slider", start: 0, end: 10 }],
+        backgroundColor: "#252525",
+        tooltip: { trigger: "axis" },
+        series: [{ type: "line", data: column(1) }]
+    })
+)`;
+
+const FFT_3D_QUERY_TEMPLATE = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
+MAPKEY( roundTime(value(0), '{interval}ms') )
+GROUPBYKEY()
+FFT({MinMaxHz})
+FLATTEN()
+PUSHKEY('fft')
+MAPVALUE(0, list(value(0), value(1), value(2)))
+POPVALUE(1, 2)
+CHART(
+    plugins("gl"),
+    size('100%', '400px'),
+    chartOption({
+        backgroundColor: "#252525",
+        tooltip: { backgroundColor: "rgba(50,50,50,0.9)", borderColor: "#555", textStyle: { color: "#fff" } },
+        xAxis3D: { type: "time", name: "time", nameTextStyle: { color: "#ccc" }, axisLabel: { color: "#aaa" }, axisLine: { lineStyle: { color: "#666" } }, splitLine: { lineStyle: { color: "#444" } }, axisPointer: { lineStyle: { color: "#888" } } },
+        yAxis3D: { type: "value", name: "Hz", nameTextStyle: { color: "#ccc" }, axisLabel: { color: "#aaa" }, axisLine: { lineStyle: { color: "#666" } }, splitLine: { lineStyle: { color: "#444" } }, axisPointer: { lineStyle: { color: "#888" } } },
+        zAxis3D: { type: "value", name: "Amp", nameTextStyle: { color: "#ccc" }, axisLabel: { color: "#aaa" }, axisLine: { lineStyle: { color: "#666" } }, splitLine: { lineStyle: { color: "#444" } }, axisPointer: { lineStyle: { color: "#888" } } },
+        grid3D: { viewControl: {}, light: { main: { intensity: 1.2 }, ambient: { intensity: 0.3 } } },
+        visualMap: { show: true, min: 0, max: 80.0, inRange: { color: ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"] } },
+        series: [{ type: "bar3D", data: column(0), shading: "lambert" }]
+    }),
+    chartJSCode({ document.querySelector('.chart_container').firstChild.style.backgroundColor = '#252525'; })
+)`;
+
+function buildFftMinMaxHz(minHz: string, maxHz: string): string {
+    return minHz === '0' && maxHz === '0'
+        ? ''
+        : `minHz(${minHz}), maxHz(${maxHz})`;
+}
+
+function buildFftQuery({
+    isChart2D,
+    selectedInfo,
+    rangeCondition,
+    minMaxHz,
+    intervalMs,
+}: {
+    isChart2D: boolean;
+    selectedInfo: SelectedRangeSeriesSummary;
+    rangeCondition: string;
+    minMaxHz: string;
+    intervalMs?: string;
+}): string {
+    const sSourceColumns = selectedInfo.sourceColumns;
+    const sNormalizeColumn = (columnName: string) =>
+        isChart2D ? columnName : columnName.toLowerCase();
+
+    return (isChart2D ? FFT_2D_QUERY_TEMPLATE : FFT_3D_QUERY_TEMPLATE)
+        .replace('{tableName}', selectedInfo.table)
+        .replace('{tagName}', selectedInfo.name)
+        .replace('{MinMaxHz}', minMaxHz)
+        .replace('{rangeCondition}', rangeCondition)
+        .replace('{interval}', intervalMs ?? '')
+        .replaceAll('{time}', sNormalizeColumn(sSourceColumns.time))
+        .replace('{value}', sNormalizeColumn(sSourceColumns.value))
+        .replace('{name}', sNormalizeColumn(sSourceColumns.name));
+}
+
 export const FFTModal = ({
     pSeriesSummaries,
     pStartTime,
@@ -63,7 +144,6 @@ export const FFTModal = ({
     pIsNumericXAxis: boolean;
     setIsOpen: (value: boolean) => void;
 }) => {
-    const modalRef = useRef<HTMLDivElement>(null);
     const [sSelectedInfo, setSelectedInfo] = useState<SelectedRangeSeriesSummary | null>(null);
     const [sChartData, setChartData] = useState<any>(null);
     const [sIsChart2D, setIsChart2D] = useState<boolean>(true);
@@ -72,129 +152,17 @@ export const FFTModal = ({
     const [sIntervalUnit, setIntervalUnit] = useState<TimeUnit>(TimeUnit.Millisecond);
     const [sMinHz, setMinHz] = useState<string>('0');
     const [sMaxHz, setMaxHz] = useState<string>('0');
-    const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
-    const sNewEndTime = moment(pEndTime).format('yyyy-MM-DD HH:mm:ss');
     const sRangeLabel = pIsNumericXAxis
         ? `${formatRangeBoundaryLabel(
               pStartTime,
               true,
           )} ~ ${formatRangeBoundaryLabel(pEndTime, true)}`
-        : `${sNewStartTime} ~ ${sNewEndTime}`;
+        : `${moment(pStartTime).format('yyyy-MM-DD HH:mm:ss')} ~ ${moment(pEndTime).format('yyyy-MM-DD HH:mm:ss')}`;
     const sSqlRangeCondition = buildFftSqlRangeCondition(
         pIsNumericXAxis,
         pStartTime,
         pEndTime,
     );
-    const sTql2DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
-MAPKEY('fft')
-GROUPBYKEY()
-FFT({MinMaxHz})
-CHART(
-    size('100%', '400px'),
-    theme("dark"),
-    chartOption({
-        xAxis: {
-            type: "category",
-            name: "Hz",
-            data: column(0)
-        },
-        yAxis: {
-            name: "Amplitude"
-        },
-        dataZoom: [
-            {
-                type: "slider",
-                start: 0,
-                end: 10
-            }
-        ],
-        backgroundColor: "#252525",
-        tooltip: {
-            trigger: "axis"
-        },
-        series: [
-            {
-                type: "line",
-                data: column(1)
-            }
-        ]
-    })
-)`;
-
-    const sTql3DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
-MAPKEY( roundTime(value(0), '{interval}ms') )
-GROUPBYKEY()
-FFT({MinMaxHz})
-FLATTEN()
-PUSHKEY('fft')
-MAPVALUE(0, list(value(0), value(1), value(2)))
-POPVALUE(1, 2)
-CHART(
-    plugins("gl"),
-    size('100%', '400px'),
-    chartOption({
-        backgroundColor: "#252525",
-        tooltip: {
-            backgroundColor: "rgba(50,50,50,0.9)",
-            borderColor: "#555",
-            textStyle: { color: "#fff" }
-        },
-        xAxis3D: {
-            type: "time",
-            name: "time",
-            nameTextStyle: { color: "#ccc" },
-            axisLabel: { color: "#aaa" },
-            axisLine: { lineStyle: { color: "#666" } },
-            splitLine: { lineStyle: { color: "#444" } },
-            axisPointer: { lineStyle: { color: "#888" } }
-        },
-        yAxis3D: {
-            type: "value",
-            name: "Hz",
-            nameTextStyle: { color: "#ccc" },
-            axisLabel: { color: "#aaa" },
-            axisLine: { lineStyle: { color: "#666" } },
-            splitLine: { lineStyle: { color: "#444" } },
-            axisPointer: { lineStyle: { color: "#888" } }
-        },
-        zAxis3D: {
-            type: "value",
-            name: "Amp",
-            nameTextStyle: { color: "#ccc" },
-            axisLabel: { color: "#aaa" },
-            axisLine: { lineStyle: { color: "#666" } },
-            splitLine: { lineStyle: { color: "#444" } },
-            axisPointer: { lineStyle: { color: "#888" } }
-        },
-        grid3D: {
-            viewControl: {},
-            light: {
-                main: { intensity: 1.2 },
-                ambient: { intensity: 0.3 }
-            }
-        },
-        visualMap: {
-            show: true,
-            min: 0,
-            max: 80.0,
-            inRange: {
-                color: ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8",
-                        "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"]
-            }
-        },
-        series: [
-            {
-                type: "bar3D",
-                data: column(0),
-                shading: "lambert"
-            }
-        ]
-    }),
-    chartJSCode({
-        document.querySelector('.chart_container').firstChild.style.backgroundColor = '#252525';
-    })
-)`;
-
     const sDropdownOptions = createFFTModalOptions(pSeriesSummaries);
 
     useEffect(() => {
@@ -205,21 +173,14 @@ CHART(
 
         setSelectedInfo(sInitialSummary);
         getTqlChartData(
-            sTql2DQuery
-                .replace('{tableName}', sInitialSummary.table)
-                .replace('{tagName}', sInitialSummary.name)
-                .replace('{MinMaxHz}', '')
-                .replace('{rangeCondition}', sSqlRangeCondition)
-                .replaceAll('{time}', sInitialSummary.sourceColumns.time)
-                .replace('{value}', sInitialSummary.sourceColumns.value)
-                .replace('{name}', sInitialSummary.sourceColumns.name),
+            buildFftQuery({
+                isChart2D: true,
+                selectedInfo: sInitialSummary,
+                rangeCondition: sSqlRangeCondition,
+                minMaxHz: '',
+            }),
         );
-    }, [pSeriesSummaries, sSqlRangeCondition, sTql2DQuery]);
-
-    const sIntervalOptions = FFT_INTERVAL_UNITS.map((unit) => ({
-        value: unit,
-        label: formatTimeUnitShortCode(unit),
-    }));
+    }, [pSeriesSummaries, sSqlRangeCondition]);
 
     const handleSelectedTag = (value: string) => {
         const sSelectedOption = sDropdownOptions.find(
@@ -263,21 +224,16 @@ CHART(
 
         const sMinHzValue = sMinHz === '' ? '0' : sMinHz;
         const sMaxHzValue = sMaxHz === '' ? '0' : sMaxHz;
-        const sMinMaxHz =
-            sMinHzValue === '0' && sMaxHzValue === '0'
-                ? ''
-                : `minHz(${sMinHzValue}), maxHz(${sMaxHzValue})`;
+        const sMinMaxHz = buildFftMinMaxHz(sMinHzValue, sMaxHzValue);
 
         if (sIsChart2D) {
             getTqlChartData(
-                sTql2DQuery
-                    .replace('{tableName}', sSelectedInfo.table)
-                    .replace('{tagName}', sSelectedInfo.name)
-                    .replace('{MinMaxHz}', sMinMaxHz)
-                    .replace('{rangeCondition}', sSqlRangeCondition)
-                    .replaceAll('{time}', sSelectedInfo.sourceColumns.time)
-                    .replace('{value}', sSelectedInfo.sourceColumns.value)
-                    .replace('{name}', sSelectedInfo.sourceColumns.name),
+                buildFftQuery({
+                    isChart2D: true,
+                    selectedInfo: sSelectedInfo,
+                    rangeCondition: sSqlRangeCondition,
+                    minMaxHz: sMinMaxHz,
+                }),
             );
             return;
         }
@@ -299,19 +255,15 @@ CHART(
             sIntervalUnit,
             Number(sInterval),
         ).toString();
-        const sVisualMax = Math.round(Number(sSelectedInfo.max)).toFixed(1);
 
         getTqlChartData(
-            sTql3DQuery
-                .replace('{tableName}', sSelectedInfo.table)
-                .replace('{tagName}', sSelectedInfo.name)
-                .replace('{MinMaxHz}', sMinMaxHz)
-                .replace('{rangeCondition}', sSqlRangeCondition)
-                .replace('{interval}', sIntervalValue)
-                .replace('{visualMax}', sVisualMax || '1.5')
-                .replaceAll('{time}', sSelectedInfo.sourceColumns.time.toLowerCase())
-                .replace('{value}', sSelectedInfo.sourceColumns.value.toLowerCase())
-                .replace('{name}', sSelectedInfo.sourceColumns.name.toLowerCase()),
+            buildFftQuery({
+                isChart2D: false,
+                selectedInfo: sSelectedInfo,
+                rangeCondition: sSqlRangeCondition,
+                minMaxHz: sMinMaxHz,
+                intervalMs: sIntervalValue,
+            }),
         );
     };
 
@@ -340,12 +292,12 @@ CHART(
     };
 
     return (
-        <div ref={modalRef} className="fft-modal-wrapper">
+        <div className="fft-modal-wrapper">
             <Modal.Root
                 isOpen
                 onClose={() => setIsOpen(false)}
                 size="lg"
-                style={{ minHeight: '200px', height: 'auto', maxHeight: '80vh' }}
+                style={FFT_MODAL_STYLE}
             >
                 <Modal.Header>
                     <Modal.Title>
@@ -355,12 +307,7 @@ CHART(
                 </Modal.Header>
                 <Modal.Body>
                     <Page.DpRowBetween
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            flexWrap: 'wrap',
-                            gap: '4px',
-                        }}
+                        style={FFT_FORM_ROW_STYLE}
                     >
                         <Dropdown.Root
                             options={sDropdownOptions}
@@ -395,12 +342,7 @@ CHART(
                     </Page.DpRowBetween>
 
                     <Page.DpRow
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            flexWrap: 'wrap',
-                            gap: '4px',
-                        }}
+                        style={FFT_FORM_ROW_STYLE}
                     >
                         <Input
                             label="Min Hz"
@@ -423,12 +365,7 @@ CHART(
                         />
                         {!sIsChart2D ? (
                             <Page.DpRow
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'row',
-                                    flexWrap: 'wrap',
-                                    gap: '4px',
-                                }}
+                                style={FFT_FORM_ROW_STYLE}
                             >
                                 <Input
                                     label="Interval"
@@ -438,7 +375,7 @@ CHART(
                                     onChange={(event) => setInterval(event.target.value)}
                                 />
                                 <Dropdown.Root
-                                    options={sIntervalOptions}
+                                    options={FFT_INTERVAL_OPTIONS}
                                     value={sIntervalUnit}
                                     onChange={handleSelectInterval}
                                     placeholder="Unit"
@@ -452,20 +389,20 @@ CHART(
                         ) : null}
                     </Page.DpRow>
                     <Page.Space />
-                    <Page.DpRow style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
+                    <Page.DpRow style={FFT_SUMMARY_ROW_STYLE}>
                         <Page.ContentText pContent={`Min: ${sSelectedInfo?.min}`} />
                         <Page.ContentText pContent={`Max: ${sSelectedInfo?.max}`} />
                         <Page.ContentText pContent={`Avg: ${sSelectedInfo?.avg}`} />
                         <Page.ContentText pContent={sRangeLabel} />
                     </Page.DpRow>
-                    {sIsLoading ? (
+                    {sIsLoading && (
                         <div className="loading-center">
                             <Spinner />
                         </div>
-                    ) : null}
-                    {!sIsLoading && sChartData ? (
+                    )}
+                    {!sIsLoading && sChartData && (
                         <ShowVisualization pData={sChartData} pLoopMode={false} />
-                    ) : null}
+                    )}
                 </Modal.Body>
                 <Modal.Footer>
                     <Modal.Cancel />

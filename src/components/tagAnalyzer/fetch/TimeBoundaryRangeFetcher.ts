@@ -10,7 +10,7 @@ import type {
 } from './FetchContracts';
 import type { FetchedTimeBoundaryRange } from '../domain/time/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../domain/SeriesDomain';
-import { createAbsoluteTimeBoundary } from '../domain/time/TimeBoundaryFactories';
+import { createAbsoluteTimeBoundary } from '../domain/time/TimeBoundaryInput';
 import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/TimeConstants';
 
 function groupBoundarySeriesByTable<T extends BoundarySeries>(

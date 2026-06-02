@@ -57,16 +57,6 @@ export type OverlapPanelInfo = {
     board: PanelInfo;
 };
 
-export type OverlapShiftDirection = '+' | '-';
-
-export type OverlapOffsetParts = {
-    days: number;
-    hours: number;
-    minutes: number;
-    seconds: number;
-    milliseconds: number;
-};
-
 export type OverlapSelectionChangePayload =
     | {
           panelKey: string;

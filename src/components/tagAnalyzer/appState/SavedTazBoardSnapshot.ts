@@ -3,7 +3,7 @@ import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
 import type {
     PersistedTazBoardInfo,
 } from '../persistence/TazPersistenceTypesV200';
-import type { PersistedTazBoardInfoV203 } from '../persistence/TazPersistenceTypesV203';
+import type { PersistedTazBoardInfoV204 } from '../persistence/TazPersistenceTypesV204';
 import { createTazSavePayload } from '../persistence/save/createTazSavePayload';
 import { mapBoardToPersistedTaz } from '../persistence/save/mapBoardToPersistedTaz';
 
@@ -56,7 +56,7 @@ export function createTazSavedCodeFromBoardInfo(board: BoardInfo): string {
 
 function createSavedTazBoardSnapshot<TBoard extends SaveableTazBoard>(
     board: TBoard,
-    savePayload: PersistedTazBoardInfoV203,
+    savePayload: PersistedTazBoardInfoV204,
     fileName: string,
     filePath: string,
 ): TBoard {

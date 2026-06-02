@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
     Calendar,
@@ -50,7 +50,7 @@ const HELP_SECTIONS = [
         items: [
             'Use the time range button to choose the board time range for every panel.',
             'Refresh data reloads the current visible range without changing the time window.',
-            'Refresh time checks the available data range again. Panels with Keep Navigator Position enabled keep the current navigator range.',
+            'Refresh time checks the available data range again. Panels with Keep Current View Range enabled keep the current panel and navigator range.',
         ],
     },
     {
@@ -141,8 +141,24 @@ const TagAnalyzerBoard = ({
         sOverlapSelections.map((item) => item.panelKey),
     );
     const sRangeText = formatBoardRangeText(pInfo.boardTimeRange);
-    const sRuntimePanels = pInfo.panels.map((panel) =>
-        getPanelInfoWithRawMode(panel, getPanelRawMode(panel)),
+    const sRuntimePanels = useMemo(
+        () =>
+            pInfo.panels.map((panel) => {
+                const sIsRaw =
+                    sPanelRawModeByKey[panel.data.index_key] ??
+                    panel.general.is_raw;
+
+                return panel.general.is_raw === sIsRaw
+                    ? panel
+                    : {
+                          ...panel,
+                          general: {
+                              ...panel.general,
+                              is_raw: sIsRaw,
+                          },
+                      };
+            }),
+        [pInfo.panels, sPanelRawModeByKey],
     );
     const boardPanels = useTagAnalyzerBoardPanels({
         panels: sRuntimePanels,
@@ -163,7 +179,7 @@ const TagAnalyzerBoard = ({
 
     function handleApplyBoardTimeRange(timeRange: TimeRangeConfig): void {
         pPanelBoardActions.onSetBoardTimeRange(timeRange);
-        boardPanels.applyBoardRangeToPanels(timeRange);
+        boardPanels.applyBoardTimeToPanels(timeRange);
     }
 
     async function openTazSaveModal(): Promise<void> {
@@ -266,7 +282,7 @@ const TagAnalyzerBoard = ({
             .map((selection) =>
                 pInfo.panels.find(
                     (selectedPanel) =>
-                        selectedPanel.meta.index_key === selection.panelKey,
+                        selectedPanel.data.index_key === selection.panelKey,
                 ),
             )
             .filter((selectedPanel): selectedPanel is PanelInfo =>
@@ -293,17 +309,17 @@ const TagAnalyzerBoard = ({
     }
 
     function getPanelRawMode(panel: PanelInfo): boolean {
-        return sPanelRawModeByKey[panel.meta.index_key] ?? panel.toolbar.isRaw;
+        return sPanelRawModeByKey[panel.data.index_key] ?? panel.general.is_raw;
     }
 
     function getPanelInfoWithRawMode(panel: PanelInfo, isRaw: boolean): PanelInfo {
-        return panel.toolbar.isRaw === isRaw
+        return panel.general.is_raw === isRaw
             ? panel
             : {
                   ...panel,
-                  toolbar: {
-                      ...panel.toolbar,
-                      isRaw,
+                  general: {
+                      ...panel.general,
+                      is_raw: isRaw,
                   },
               };
     }
@@ -311,7 +327,7 @@ const TagAnalyzerBoard = ({
     function getSelectedOverlapPanels(): OverlapPanelInfo[] {
         return sOverlapSelections.flatMap((selection) => {
             const sPanel = pInfo.panels.find(
-                (panel) => panel.meta.index_key === selection.panelKey,
+                (panel) => panel.data.index_key === selection.panelKey,
             );
 
             if (!sPanel) {
@@ -356,19 +372,19 @@ const TagAnalyzerBoard = ({
     }
 
     function savePanel(panel: PanelInfo): void {
-        setPanelRawMode(panel.meta.index_key, panel.toolbar.isRaw);
+        setPanelRawMode(panel.data.index_key, panel.general.is_raw);
         pPanelBoardActions.onSavePanel(panel);
     }
 
     function togglePanelRawMode(
         panel: PanelInfo,
-        reloadRawMode: (panelInfo: PanelInfo) => void,
+        reloadAfterRawModeChange: (panelInfo: PanelInfo) => void,
     ): void {
         const sNextRawMode = !getPanelRawMode(panel);
         const sNextPanelInfo = getPanelInfoWithRawMode(panel, sNextRawMode);
 
-        setPanelRawMode(panel.meta.index_key, sNextRawMode);
-        reloadRawMode(sNextPanelInfo);
+        setPanelRawMode(panel.data.index_key, sNextRawMode);
+        reloadAfterRawModeChange(sNextPanelInfo);
     }
 
     function togglePanelOverlap(
@@ -376,13 +392,13 @@ const TagAnalyzerBoard = ({
         rangeState: PanelRangeState,
         isRaw: boolean,
     ): void {
-        const sIsAlreadySelected = sSelectedPanelKeys.has(panel.meta.index_key);
+        const sIsAlreadySelected = sSelectedPanelKeys.has(panel.data.index_key);
 
         if (sIsAlreadySelected) {
             updateOverlapSelection({
                 start: rangeState.panelRange.startTime,
                 end: rangeState.panelRange.endTime,
-                panelKey: panel.meta.index_key,
+                panelKey: panel.data.index_key,
                 isRaw,
                 changeType: undefined,
             });
@@ -411,20 +427,20 @@ const TagAnalyzerBoard = ({
         updateOverlapSelection({
             start: rangeState.panelRange.startTime,
             end: rangeState.panelRange.endTime,
-            panelKey: panel.meta.index_key,
+            panelKey: panel.data.index_key,
             isRaw,
             changeType: undefined,
         });
     }
 
     function deletePanel(panel: PanelInfo): void {
-        clearPanelRawMode(panel.meta.index_key);
+        clearPanelRawMode(panel.data.index_key);
         updateOverlapSelection({
-            panelKey: panel.meta.index_key,
+            panelKey: panel.data.index_key,
             changeType: 'delete',
         });
         pPanelBoardActions.onDeletePanel({
-            panelKey: panel.meta.index_key,
+            panelKey: panel.data.index_key,
         });
     }
 
@@ -433,19 +449,22 @@ const TagAnalyzerBoard = ({
         rangeState: PanelRangeState,
     ): void {
         if (
-            panel.time.useLastViewedRange &&
+            panel.general.use_last_viewed_range &&
             isConcreteTimeRange(rangeState.panelRange) &&
             isConcreteTimeRange(rangeState.navigatorRange)
         ) {
             pPanelBoardActions.onPersistPanelState({
-                targetPanelKey: panel.meta.index_key,
-                timeInfo: rangeState,
-                isRaw: panel.toolbar.isRaw,
+                targetPanelKey: panel.data.index_key,
+                timeInfo: {
+                    panelRange: rangeState.panelRange,
+                    navigatorRange: rangeState.navigatorRange,
+                },
+                isRaw: panel.general.is_raw,
             });
         }
 
         if (
-            !sSelectedPanelKeys.has(panel.meta.index_key) ||
+            !sSelectedPanelKeys.has(panel.data.index_key) ||
             !isConcreteTimeRange(rangeState.panelRange)
         ) {
             return;
@@ -454,8 +473,8 @@ const TagAnalyzerBoard = ({
         updateOverlapSelection({
             start: rangeState.panelRange.startTime,
             end: rangeState.panelRange.endTime,
-            panelKey: panel.meta.index_key,
-            isRaw: panel.toolbar.isRaw,
+            panelKey: panel.data.index_key,
+            isRaw: panel.general.is_raw,
             changeType: 'changed',
         });
     }
@@ -572,15 +591,15 @@ const TagAnalyzerBoard = ({
             <Page.Body>
                 {sRuntimePanels.map((sPanelInfo) => {
                     const sIsOverlap = sSelectedPanelKeys.has(
-                        sPanelInfo.meta.index_key,
+                        sPanelInfo.data.index_key,
                     );
-                    const sIsRaw = sPanelInfo.toolbar.isRaw;
+                    const sIsRaw = sPanelInfo.general.is_raw;
                     const sPanelRuntimeProps =
                         boardPanels.getPanelContainerRuntimeProps(sPanelInfo);
 
                     return (
                         <Page.ContentBlock
-                            key={sPanelInfo.meta.index_key}
+                            key={sPanelInfo.data.index_key}
                             pHoverNone
                             style={{ padding: '24px 32px' }}
                         >
@@ -596,7 +615,7 @@ const TagAnalyzerBoard = ({
                                     onSavePanel: savePanel,
                                     onSetGlobalTimeRange: handleSetGlobalTimeRange,
                                     onChartAreaWidthChange: (width) =>
-                                        boardPanels.handlePanelChartAreaWidthChange(
+                                        boardPanels.handleChartWidthChange(
                                             sPanelInfo,
                                             width,
                                         ),
@@ -606,11 +625,12 @@ const TagAnalyzerBoard = ({
                                     refreshTime: () => {
                                         void boardPanels.refreshPanelTime(sPanelInfo);
                                     },
-                                    reloadPanelEdit: boardPanels.reloadPanelEdit,
+                                    reloadAfterEditorSave:
+                                        boardPanels.reloadAfterEditorSave,
                                     onToggleRaw: () =>
                                         togglePanelRawMode(
                                             sPanelInfo,
-                                            boardPanels.reloadRawMode,
+                                            boardPanels.reloadAfterRawModeChange,
                                         ),
                                     onDeletePanel: () => deletePanel(sPanelInfo),
                                     onToggleOverlap: () =>
@@ -689,7 +709,7 @@ const TagAnalyzerBoard = ({
                     key={sOverlapPanels
                         .map((panel) =>
                             [
-                                panel.board.meta.index_key,
+                                panel.board.data.index_key,
                                 panel.start,
                                 panel.duration,
                                 panel.isRaw,

@@ -1,12 +1,12 @@
 import { Close } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
-import { Popover } from '@/design-system/components/Popover';
 import moment from 'moment';
 import type { FFTSelectionPayload } from '../../domain/ChartDomain';
 import {
     formatAxisPointerLabel,
     formatRangeSpanLabel,
 } from '../../domain/time/TimeFormatters';
+import PanelMarkupPopover from './PanelMarkupPopover';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
 
@@ -22,14 +22,37 @@ export function SelectionSummaryPopover({
     onClose: () => void;
 }) {
     return (
-        <Popover
-            isOpen
+        <PanelMarkupPopover
             position={position}
             onClose={onClose}
+            draggable
+            outsideCloseIgnoreSelector=".panel-header"
         >
-            <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
-                <Page.DpRow style={{ justifyContent: 'end' }}>
-                    <Button size="sm" variant="ghost" onClick={onClose} icon={<Close size={16} />} />
+            <Page
+                style={{
+                    minWidth: 280,
+                    backgroundColor: '#1f1d1d',
+                    border: '1px solid #454545',
+                    borderRadius: 4,
+                    padding: '8px 10px 10px 30px',
+                }}
+            >
+                <Page.DpRow style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                    <Page.ContentText
+                        pContent="Selection Summary"
+                        style={{
+                            color: '#f8f8f8',
+                            fontSize: 15,
+                            fontWeight: 600,
+                        }}
+                    />
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={onClose}
+                        icon={<Close size={16} />}
+                        style={{ position: 'absolute', right: 0 }}
+                    />
                 </Page.DpRow>
                 <Page.ContentDesc>
                     {isNumericXAxis
@@ -69,6 +92,6 @@ export function SelectionSummaryPopover({
                     </Page.DpRow>
                 ))}
             </Page>
-        </Popover>
+        </PanelMarkupPopover>
     );
 }

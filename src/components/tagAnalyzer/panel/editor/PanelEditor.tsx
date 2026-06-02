@@ -1,23 +1,75 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import PanelEditorSettings from './sections/PanelEditorSettings';
-import { Page } from '@/design-system/components';
-import type {
-    EditTabPanelType,
-    PanelEditorConfig,
-} from './EditorTypes';
-import {
-    convertPanelStateToEditorConfig,
-} from './PanelEditorConfigConverter';
-import { EDITOR_TABS } from './EditorConstants';
-import { hasInvalidPanelEditorAxisRange } from './PanelEditorValidation';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Button, Page } from '@/design-system/components';
+import InnerLine from '@/assets/image/img_chart_01.png';
+import Scatter from '@/assets/image/img_chart_02.png';
+import Line from '@/assets/image/img_chart_03.png';
+import EditorAxesTab, { hasInvalidEditorAxes } from './editTabs/EditorAxesTab';
+import EditorDataTab from './editTabs/EditorDataTab';
+import EditorDisplayTab from './editTabs/EditorDisplayTab';
+import EditorGeneralTab from './editTabs/EditorGeneralTab';
+import EditorTimeTab from './editTabs/EditorTimeTab';
+import styles from './PanelEditor.module.scss';
 import type {
     PanelAxes,
-    PanelData,
     PanelDisplay,
-    PanelMeta,
-    PanelTime,
+    PanelEChartType,
+    PanelInfo,
+    PanelYAxis,
 } from '../../domain/PanelDomain';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
+
+export enum EditTabPanelType {
+    General = 'General',
+    Data = 'Data',
+    Axes = 'Axes',
+    Display = 'Display',
+    Time = 'Time',
+}
+
+export type PanelYAxisDraft = PanelYAxis;
+
+export type PanelSamplingDraft = PanelAxes['sampling'];
+
+export type PanelAxesDraft = PanelAxes;
+
+export type PanelDisplayDraft = PanelDisplay;
+
+export type PanelEditorConfig = PanelInfo;
+
+type ChartTypeOption = {
+    type: PanelEChartType;
+    src?: string;
+    alt: string;
+};
+
+export const EDITOR_X_AXIS_INPUT_STYLE: CSSProperties = {
+    width: '96px',
+    height: '30px',
+};
+
+export const EDITOR_AXIS_COMPACT_INPUT_STYLE: CSSProperties = {
+    width: '48px',
+};
+
+export const EDITOR_AXIS_THRESHOLD_INPUT_STYLE: CSSProperties = {
+    width: '80px',
+};
+
+export const EDITOR_RIGHT_AXIS_TRIGGER_STYLE: CSSProperties = {
+    width: '200px',
+};
+
+export const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
+    { type: 'Zone', src: InnerLine, alt: 'Zone Chart' },
+    { type: 'Dot', src: Scatter, alt: 'Dot Chart' },
+    { type: 'Line', src: Line, alt: 'Line Chart' },
+    { type: 'Custom', alt: 'Custom Chart' },
+];
+
+export const parseEditorNumber = (value: string): number | undefined => {
+    return value === '' ? undefined : Number(value);
+};
 
 function normalizeConfigForDirtyCheck(
     config: PanelEditorConfig,
@@ -38,51 +90,68 @@ function createEditorConfigDirtyKey(config: PanelEditorConfig): string {
 const PanelEditor = ({
     pOnSaveEditorConfig,
     pOnClose,
-    pPanelMeta,
-    pPanelData,
-    pPanelTime,
-    pPanelAxes,
-    pPanelDisplay,
+    pPanelInfo,
     pIsRawMode,
+    pPanelRange,
 }: {
     pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnClose: () => void;
-    pPanelMeta: PanelMeta;
-    pPanelData: PanelData;
-    pPanelTime: PanelTime;
-    pPanelAxes: PanelAxes;
-    pPanelDisplay: PanelDisplay;
+    pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
+    pPanelRange: TimeRangeMs;
 }) => {
     const sInitialEditorConfig = useMemo(
-        () =>
-            convertPanelStateToEditorConfig({
-                meta: pPanelMeta,
-                data: pPanelData,
-                time: pPanelTime,
-                axes: pPanelAxes,
-                display: pPanelDisplay,
-            }),
-        [pPanelAxes, pPanelData, pPanelDisplay, pPanelMeta, pPanelTime],
+        () => pPanelInfo,
+        [pPanelInfo],
     );
     const sInitialEditorConfigKey = useMemo(
         () => createEditorConfigDirtyKey(sInitialEditorConfig),
         [sInitialEditorConfig],
     );
-    const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
-    const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(
-        sInitialEditorConfig,
+    const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>(
+        EditTabPanelType.General,
+    );
+    const [sGeneralDraft, setGeneralDraft] = useState(
+        sInitialEditorConfig.general,
+    );
+    const [sDataDraft, setDataDraft] = useState(sInitialEditorConfig.data);
+    const [sAxesDraft, setAxesDraft] = useState(sInitialEditorConfig.axes);
+    const [sDisplayDraft, setDisplayDraft] = useState(
+        sInitialEditorConfig.display,
+    );
+    const [sTimeDraft, setTimeDraft] = useState(
+        sInitialEditorConfig.time,
     );
     const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(
         sInitialEditorConfigKey,
     );
     const sAppliedEditorConfigKeyRef = useRef(sInitialEditorConfigKey);
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
+    const sEditorConfig = useMemo<PanelEditorConfig>(
+        () => ({
+            ...sInitialEditorConfig,
+            general: sGeneralDraft,
+            data: sDataDraft,
+            axes: sAxesDraft,
+            display: sDisplayDraft,
+            time: sTimeDraft,
+        }),
+        [
+            sAxesDraft,
+            sDataDraft,
+            sDisplayDraft,
+            sGeneralDraft,
+            sInitialEditorConfig,
+            sTimeDraft,
+        ],
+    );
+    const sEditorConfigRef = useRef(sEditorConfig);
+    sEditorConfigRef.current = sEditorConfig;
     const sEditorConfigKey = useMemo(
         () => createEditorConfigDirtyKey(sEditorConfig),
         [sEditorConfig],
     );
-    const sHasInvalidAxisRange = hasInvalidPanelEditorAxisRange(sEditorConfig);
+    const sHasInvalidAxisRange = hasInvalidEditorAxes(sEditorConfig.axes);
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidAxisRange;
     const sApplyButtonTitle = !sHasEditorChanges
@@ -102,7 +171,7 @@ const PanelEditor = ({
     };
 
     const discardEditorChanges = () => {
-        setEditorConfig(sInitialEditorConfig);
+        setEditorDraft(sInitialEditorConfig);
         pOnClose();
     };
 
@@ -127,111 +196,145 @@ const PanelEditor = ({
     }, []);
 
     useEffect(() => {
-        const sPreviousAppliedEditorConfigKey = sAppliedEditorConfigKeyRef.current;
+        function syncExternalPanelChangesWhenDraftIsClean(): void {
+            const sPreviousAppliedEditorConfigKey =
+                sAppliedEditorConfigKeyRef.current;
 
-        sAppliedEditorConfigKeyRef.current = sInitialEditorConfigKey;
-        setAppliedEditorConfigKey(sInitialEditorConfigKey);
-        setEditorConfig((currentEditorConfig) =>
-            createEditorConfigDirtyKey(currentEditorConfig) === sPreviousAppliedEditorConfigKey
-                ? sInitialEditorConfig
-                : currentEditorConfig,
-        );
-    }, [sInitialEditorConfig, sInitialEditorConfigKey]);
+            sAppliedEditorConfigKeyRef.current = sInitialEditorConfigKey;
+            setAppliedEditorConfigKey(sInitialEditorConfigKey);
+
+            if (
+                createEditorConfigDirtyKey(sEditorConfigRef.current) ===
+                sPreviousAppliedEditorConfigKey
+            ) {
+                setEditorDraft(sInitialEditorConfig);
+            }
+        }
+
+        syncExternalPanelChangesWhenDraftIsClean();
+    }, [sEditorConfigRef, sInitialEditorConfig, sInitialEditorConfigKey]);
+
+    function setEditorDraft(config: PanelEditorConfig): void {
+        setGeneralDraft(config.general);
+        setDataDraft(config.data);
+        setAxesDraft(config.axes);
+        setDisplayDraft(config.display);
+        setTimeDraft(config.time);
+    }
+
+    function updateTagSet(tagSet: PanelEditorConfig['data']['tag_set']): void {
+        setDataDraft((prev) => ({ ...prev, tag_set: tagSet }));
+    }
+
+    function renderEditorTabContent() {
+        if (!sEditorConfig.data.index_key) {
+            throw new Error('Panel editor requires a panel index key.');
+        }
+
+        switch (sSelectedTab) {
+            case EditTabPanelType.General:
+                return (
+                    <EditorGeneralTab
+                        pGeneralConfig={sGeneralDraft}
+                        pOnChangeGeneralConfig={setGeneralDraft}
+                    />
+                );
+            case EditTabPanelType.Data:
+                return (
+                    <EditorDataTab
+                        pDataDraft={sDataDraft}
+                        pIsRawMode={pIsRawMode}
+                        pOnChangeDataDraft={setDataDraft}
+                        pAvailableSourceTableNames={sAvailableSourceTableNames}
+                    />
+                );
+            case EditTabPanelType.Axes:
+                return (
+                    <EditorAxesTab
+                        pAxesConfig={sEditorConfig.axes}
+                        pTagSet={sEditorConfig.data.tag_set}
+                        pIsRawMode={pIsRawMode}
+                        pOnChangeAxesConfig={setAxesDraft}
+                        pOnChangeTagSet={updateTagSet}
+                    />
+                );
+            case EditTabPanelType.Display:
+                return (
+                    <EditorDisplayTab
+                        pDisplayConfig={sEditorConfig.display}
+                        pOnChangeDisplayConfig={setDisplayDraft}
+                    />
+                );
+            case EditTabPanelType.Time:
+                return (
+                    <EditorTimeTab
+                        pTimeConfig={sEditorConfig.time}
+                        pPanelRange={pPanelRange}
+                        pOnChangeTimeConfig={setTimeDraft}
+                    />
+                );
+            default:
+                throw new Error(`Unsupported panel editor tab: ${sSelectedTab}`);
+        }
+    }
 
     return (
-        <div
-            style={{
-                width: '100%',
-                marginTop: '16px',
-                border: '0.5px solid #454545',
-                borderRadius: '8px',
-                backgroundColor: 'var(--color-background-primary)',
-                overflow: 'hidden',
-            }}
-        >
-            <Page style={{ width: '100%' }}>
+        <div className={styles.editor}>
+            <Page className={styles.editorPage}>
                 <Page.Header>
-                    <Page.DpRow
-                        style={{
-                            flex: 1,
-                            minWidth: 0,
-                            alignItems: 'center',
-                            gap: '12px',
-                            flexWrap: 'wrap',
-                        }}
-                    >
-                        <span>Edit panel</span>
-                        <Page.TabContainer style={{ margin: 0 }}>
-                            <Page.TabList style={{ flexWrap: 'wrap' }}>
-                                {EDITOR_TABS.map((item: EditTabPanelType) => (
-                                    <Page.TabItem
-                                        key={item}
-                                        active={sSelectedTab === item}
-                                        onClick={() => setSelectedTab(item)}
-                                    >
-                                        {item}
-                                    </Page.TabItem>
-                                ))}
-                            </Page.TabList>
-                        </Page.TabContainer>
-                    </Page.DpRow>
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-end',
-                            gap: '4px',
-                            minWidth: '154px',
-                        }}
-                    >
-                        <div
-                            title={sApplyButtonTitle}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                            }}
-                        >
-                            <Page.TextButton
-                                pText="Discard"
-                                pType="DELETE"
-                                pCallback={discardEditorChanges}
-                                pWidth="75px"
-                                mb="0px"
-                                mr="4px"
-                            />
-                            <Page.TextButton
-                                pText="Apply"
-                                pType="CREATE"
-                                pCallback={saveEditorChanges}
-                                pIsDisable={!sCanApplyEditorChanges}
-                                pWidth="65px"
-                                mb="0px"
-                                mr="0px"
-                            />
+                    <div className={styles.header}>
+                        <div className={styles.headerMain}>
+                            <h3 className={styles.title}>Edit panel</h3>
+                            <Page.TabContainer style={{ margin: 0 }}>
+                                <Page.TabList className={styles.tabList}>
+                                    {Object.values(EditTabPanelType).map((item) => (
+                                        <Page.TabItem
+                                            key={item}
+                                            active={sSelectedTab === item}
+                                            onClick={() => setSelectedTab(item)}
+                                        >
+                                            {item}
+                                        </Page.TabItem>
+                                    ))}
+                                </Page.TabList>
+                            </Page.TabContainer>
                         </div>
-                        <span
-                            style={{
-                                minHeight: '14px',
-                                maxWidth: '190px',
-                                color: '#fdb532',
-                                fontSize: '11px',
-                                lineHeight: '14px',
-                                visibility: sHasEditorChanges ? 'visible' : 'hidden',
-                            }}
-                        >
-                            Update has not been applied.
-                        </span>
+                        <div className={styles.actions}>
+                            <div
+                                title={sApplyButtonTitle}
+                                className={styles.buttonRow}
+                            >
+                                <span
+                                    className={[
+                                        styles.dirtyMessage,
+                                        !sHasEditorChanges && styles.dirtyMessageHidden,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' ')}
+                                >
+                                    Update has not been applied.
+                                </span>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={discardEditorChanges}
+                                >
+                                    Discard
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    disabled={!sCanApplyEditorChanges}
+                                    onClick={saveEditorChanges}
+                                >
+                                    Apply
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </Page.Header>
 
-                <PanelEditorSettings
-                    pSelectedTab={sSelectedTab}
-                    pEditorConfig={sEditorConfig}
-                    pSetEditorConfig={setEditorConfig}
-                    pAvailableSourceTableNames={sAvailableSourceTableNames}
-                    pIsRawMode={pIsRawMode}
-                />
+                <div className={styles.content}>{renderEditorTabContent()}</div>
             </Page>
         </div>
     );

@@ -45,26 +45,9 @@ export type OverlapChartInfo = {
     includeZeroInYAxisRange: boolean;
 };
 
-const OVERLAP_CHART_COLORS = [
-    '#EB5757',
-    '#6FCF97',
-    '#9C8FFF',
-    '#F5AA64',
-    '#BB6BD9',
-    '#B4B4B4',
-    '#FFD95F',
-    '#2D9CDB',
-    '#C3A080',
-    '#B4B4B4',
-    '#6B6B6B',
-];
+const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
 const OVERLAP_Y_AXIS_SPLIT_COUNT = 5;
-const COMPACT_AXIS_UNITS = [
-    { value: 1_000_000_000_000, suffix: 'T' },
-    { value: 1_000_000_000, suffix: 'B' },
-    { value: 1_000_000, suffix: 'M' },
-    { value: 1_000, suffix: 'K' },
-] as const;
+const COMPACT_AXIS_UNITS = [{ value: 1_000_000_000_000, suffix: 'T' }, { value: 1_000_000_000, suffix: 'B' }, { value: 1_000_000, suffix: 'M' }, { value: 1_000, suffix: 'K' }] as const;
 const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 1,
 });
@@ -96,14 +79,7 @@ const AXIS_SPLIT_LINE_STYLE = {
     color: '#323333',
     width: 1,
 } satisfies AxisSplitLineStyleOption;
-const TOOLTIP_BASE: TooltipComponentOption = {
-    trigger: 'axis',
-    confine: true,
-    backgroundColor: '#1f1d1d',
-    borderColor: '#292929',
-    borderWidth: 1,
-    textStyle: TOOLTIP_TEXT_STYLE,
-};
+const TOOLTIP_BASE: TooltipComponentOption = { trigger: 'axis', confine: true, backgroundColor: '#1f1d1d', borderColor: '#292929', borderWidth: 1, textStyle: TOOLTIP_TEXT_STYLE };
 const OVERLAP_CHART_BASE_OPTION = {
     animation: false,
     backgroundColor: '#2a2a2a',
@@ -125,17 +101,15 @@ const OVERLAP_GRID_OPTION = {
 const OVERLAP_TOOLBOX_OPTION = {
     ...DEFAULT_NOT_SHOW,
 } satisfies ToolboxComponentOption;
-const OVERLAP_DATA_ZOOM_OPTION = [
-    {
-        type: 'inside',
-        xAxisIndex: [0],
-        filterMode: 'none',
-        zoomOnMouseWheel: true,
-        moveOnMouseWheel: false,
-        moveOnMouseMove: false,
-        preventDefaultMouseMove: true,
-    },
-] satisfies DataZoomComponentOption[];
+const OVERLAP_DATA_ZOOM_OPTION = [{
+    type: 'inside',
+    xAxisIndex: [0],
+    filterMode: 'none',
+    zoomOnMouseWheel: true,
+    moveOnMouseWheel: false,
+    moveOnMouseMove: false,
+    preventDefaultMouseMove: true,
+}] satisfies DataZoomComponentOption[];
 const OVERLAP_X_AXIS_STATIC_OPTION = {
     type: 'time',
     axisLine: AXIS_LINE_STYLE,
@@ -249,43 +223,24 @@ function resolveOverlapChartYAxisRange(
     };
 }
 
-function normalizeTooltipFormatterParams<T>(
+function getOverlapTooltipParams(
     tooltipFormatterParams: TopLevelFormatterParams,
-    mapTooltipParam: (tooltipCallbackParam: CallbackDataParams) => T,
-): T[] {
+): OverlapTooltipParam[] {
     const sTooltipParams = Array.isArray(tooltipFormatterParams)
         ? tooltipFormatterParams
         : [tooltipFormatterParams];
 
-    return sTooltipParams.map((tooltipCallbackParam) =>
-        mapTooltipParam(tooltipCallbackParam as CallbackDataParams),
-    );
-}
+    return sTooltipParams.map((tooltipCallbackParam) => {
+        const sParam = tooltipCallbackParam as CallbackDataParams;
 
-function getTooltipColorString(
-    tooltipColor: CallbackDataParams['color'],
-): string | undefined {
-    return typeof tooltipColor === 'string' ? tooltipColor : undefined;
-}
-
-function isTooltipValueItem(tooltipValueItem: unknown): tooltipValueItem is TooltipValueItem {
-    return (
-        tooltipValueItem === undefined ||
-        typeof tooltipValueItem === 'number' ||
-        typeof tooltipValueItem === 'string'
-    );
-}
-
-function isTooltipPrimitiveArrayValue(
-    callbackValue: CallbackDataParams['value'],
-): callbackValue is TooltipArrayValue {
-    return Array.isArray(callbackValue) && callbackValue.every(isTooltipValueItem);
-}
-
-function getTooltipPrimitiveArrayValue(
-    callbackValue: CallbackDataParams['value'],
-): TooltipArrayValue | undefined {
-    return isTooltipPrimitiveArrayValue(callbackValue) ? callbackValue : undefined;
+        return {
+            color: typeof sParam.color === 'string' ? sParam.color : undefined,
+            seriesIndex: sParam.seriesIndex,
+            value: Array.isArray(sParam.value)
+                ? (sParam.value as TooltipArrayValue)
+                : undefined,
+        };
+    });
 }
 
 function getOverlapTooltipOriginalTimestamp(
@@ -317,14 +272,7 @@ function formatOverlapTooltip(
     chartData: ChartSeriesData[],
     seriesStartTimeList: number[],
 ): string {
-    const sTooltipRows = normalizeTooltipFormatterParams(
-        tooltipFormatterParams,
-        (tooltipCallbackParam: CallbackDataParams): OverlapTooltipParam => ({
-            color: getTooltipColorString(tooltipCallbackParam.color),
-            seriesIndex: tooltipCallbackParam.seriesIndex,
-            value: getTooltipPrimitiveArrayValue(tooltipCallbackParam.value),
-        }),
-    )
+    const sTooltipRows = getOverlapTooltipParams(tooltipFormatterParams)
         .map((tooltipItem) =>
             formatOverlapTooltipRow(tooltipItem, chartData, seriesStartTimeList),
         )

@@ -1,18 +1,8 @@
-import { useState, type ChangeEvent } from 'react';
-import {
-    MdCenterFocusStrong,
-    VscChevronLeft,
-    VscChevronRight,
-} from '@/assets/icons/Icon';
+import { useEffect, useState } from 'react';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import { Page } from '@/design-system/components';
-import type {
-    OverlapOffsetParts,
-    OverlapShiftDirection,
-} from '../domain/BoardDomain';
 import { formatLocalTimestampWithMilliseconds } from '../domain/time/TimeFormatters';
-import { buildOverlapOffsetMilliseconds } from './OverlapComparisonUtils';
 
 const OVERLAP_TIME_SHIFT_COLORS = [
     '#EB5757',
@@ -28,32 +18,24 @@ const OVERLAP_TIME_SHIFT_COLORS = [
     '#6B6B6B',
 ];
 
-type OffsetField = keyof OverlapOffsetParts;
+const PANEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } as const;
+const LABEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' } as const;
+const CONTROL_ROW_STYLE = { alignItems: 'center', gap: '6px' } as const;
+const OFFSET_LABEL_STYLE = { display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px' } as const;
+const OFFSET_INPUT_STYLE = { width: '86px', height: '30px' } as const;
 
-const DEFAULT_OFFSET_INPUT: Record<OffsetField, string> = {
-    days: '0',
-    hours: '0',
-    minutes: '0',
-    seconds: '0',
-    milliseconds: '0',
-};
+function parseShiftOffsetInput(value: string): number {
+    if (value.trim() === '') {
+        throw new Error('Overlap shift offset is required.');
+    }
 
-const OFFSET_FIELDS: Array<{
-    key: OffsetField;
-    label: string;
-    width: string;
-}> = [
-    { key: 'days', label: 'd', width: '46px' },
-    { key: 'hours', label: 'h', width: '46px' },
-    { key: 'minutes', label: 'm', width: '46px' },
-    { key: 'seconds', label: 's', width: '46px' },
-    { key: 'milliseconds', label: 'ms', width: '58px' },
-];
-
-function parseOffsetInput(value: string): number {
     const sParsedValue = Number(value);
 
-    return Number.isFinite(sParsedValue) ? sParsedValue : 0;
+    if (!Number.isFinite(sParsedValue)) {
+        throw new Error('Overlap shift offset must be a finite number of milliseconds.');
+    }
+
+    return sParsedValue;
 }
 
 const OverlapTimeShiftPanel = ({
@@ -61,58 +43,35 @@ const OverlapTimeShiftPanel = ({
     pLabel,
     pStart,
     pDuration,
-    pOnShiftTime,
-    pOnAlignTime,
+    pShiftOffsetMs,
+    pOnSetShiftOffset,
 }: {
     pColorIndex: number;
     pLabel: string;
     pStart: number;
     pDuration: number;
-    pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
-    pOnAlignTime: () => void;
+    pShiftOffsetMs: number;
+    pOnSetShiftOffset: (offsetMs: number) => void;
 }): JSX.Element => {
-    const [sOffsetInput, setOffsetInput] = useState<Record<OffsetField, string>>({
-        ...DEFAULT_OFFSET_INPUT,
-    });
+    const [sOffsetMillisecondsInput, setOffsetMillisecondsInput] = useState(
+        () => String(pShiftOffsetMs),
+    );
 
-    const getShiftAmount = (): number => {
-        return buildOverlapOffsetMilliseconds({
-            days: parseOffsetInput(sOffsetInput.days),
-            hours: parseOffsetInput(sOffsetInput.hours),
-            minutes: parseOffsetInput(sOffsetInput.minutes),
-            seconds: parseOffsetInput(sOffsetInput.seconds),
-            milliseconds: parseOffsetInput(sOffsetInput.milliseconds),
-        });
-    };
+    useEffect(() => {
+        setOffsetMillisecondsInput(String(pShiftOffsetMs));
+    }, [pShiftOffsetMs]);
 
-    const updateOffsetInput = function updateOffsetInput(
-        field: OffsetField,
-        event: ChangeEvent<HTMLInputElement>,
-    ): void {
-        setOffsetInput((currentOffsetInput) => ({
-            ...currentOffsetInput,
-            [field]: event.target.value,
-        }));
-    };
+    function applyShiftOffset(): void {
+        pOnSetShiftOffset(parseShiftOffsetInput(sOffsetMillisecondsInput));
+    }
 
     return (
         <div>
             <Page.DpRow
-                style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '8px',
-                }}
+                style={PANEL_ROW_STYLE}
             >
                 <Page.DpRow
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: '8px',
-                    }}
+                    style={LABEL_ROW_STYLE}
                 >
                     <div
                         style={{
@@ -126,57 +85,31 @@ const OverlapTimeShiftPanel = ({
                     {formatLocalTimestampWithMilliseconds(pStart + pDuration)}{' '}
                 </Page.DpRow>
                 <Page.DpRow
-                    style={{
-                        alignItems: 'center',
-                        gap: '6px',
-                    }}
+                    style={CONTROL_ROW_STYLE}
                 >
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={<MdCenterFocusStrong size={14} />}
-                        onClick={pOnAlignTime}
-                        isToolTip
-                        toolTipContent="Align all rows to this start"
-                        aria-label="Align all rows to this start"
-                    />
                     <Button.Group>
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={<VscChevronLeft size={16} />}
-                            onClick={() => pOnShiftTime('-', getShiftAmount())}
-                            aria-label="Previous"
-                        />
-                        {OFFSET_FIELDS.map((field) => (
-                            <label
-                                key={field.key}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '3px',
-                                    fontSize: '11px',
-                                }}
-                            >
-                                <Input
-                                    type="number"
-                                    value={sOffsetInput[field.key]}
-                                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                                        updateOffsetInput(field.key, event)
+                        <label style={OFFSET_LABEL_STYLE}>
+                            <Input
+                                type="number"
+                                value={sOffsetMillisecondsInput}
+                                onChange={(event) => setOffsetMillisecondsInput(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        applyShiftOffset();
                                     }
-                                    size="md"
-                                    style={{ width: field.width, height: '30px' }}
-                                />
-                                {field.label}
-                            </label>
-                        ))}
+                                }}
+                                size="md"
+                                style={OFFSET_INPUT_STYLE}
+                            />
+                            ms
+                        </label>
                         <Button
                             variant="secondary"
                             size="sm"
-                            icon={<VscChevronRight size={16} />}
-                            onClick={() => pOnShiftTime('+', getShiftAmount())}
-                            aria-label="Next"
-                        />
+                            onClick={applyShiftOffset}
+                        >
+                            Shift
+                        </Button>
                     </Button.Group>
                 </Page.DpRow>
             </Page.DpRow>

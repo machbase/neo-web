@@ -1,0 +1,397 @@
+.editor {
+    width: 100%;
+    margin-top: 16px;
+    overflow: hidden;
+    border: 0.5px solid #454545;
+    border-radius: 8px;
+    background: var(--color-background-primary);
+}
+
+.editorPage {
+    width: 100%;
+    background: transparent;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.headerMain {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.title {
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+.tabList {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.buttonRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dirtyMessage {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    max-width: 180px;
+    color: #fdb532;
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.dirtyMessageHidden {
+    visibility: hidden;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-sizing: border-box;
+    height: 320px;
+    padding: 8px 16px 16px;
+    overflow-y: auto;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding: 4px;
+}
+
+.sectionHeader {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 22px;
+    padding: 3px 8px 3px 7px;
+    border-left: 2px solid #4199ff;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(184, 200, 218, 0.12);
+}
+
+.sectionTitle {
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.sectionSubTitle {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+}
+
+.controlStack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.controlRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.controlGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, max-content));
+    gap: 12px 18px;
+    align-items: start;
+}
+
+.axesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px;
+    align-items: start;
+}
+
+.axesGrid .section {
+    gap: 8px;
+}
+
+.axesGrid .controlRow {
+    gap: 6px;
+}
+
+.axesGrid .rangeInputs {
+    gap: 6px;
+}
+
+.axisSubsectionTitle {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 20px;
+    padding: 2px 7px;
+    border-left: 2px solid #fdb532;
+    border-radius: 4px;
+    background: rgba(253, 181, 50, 0.1);
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+}
+
+.disabledControl {
+    opacity: 0.45;
+}
+
+.mutedLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.rangeField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.rangeInputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rangeSeparator {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+}
+
+.fieldError {
+    color: #ff6b6b;
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.seriesList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.editorCard {
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    padding: 6px;
+}
+
+.editorWrappedRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 14px;
+}
+
+.editorField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.editorNarrowControl {
+    width: 112px;
+}
+
+.editorFieldLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 14px;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.editorFieldHint {
+    max-width: 70px;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 10px;
+    text-overflow: ellipsis;
+}
+
+.editorInlineField {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+}
+
+.editorFixedValue {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.seriesCard {
+    display: grid;
+    grid-template-columns: minmax(130px, 150px) minmax(160px, 1fr) minmax(130px, 160px) auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 6px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+}
+
+.sourceLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.sourceTable {
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.addSeriesButton {
+    height: 48px;
+}
+
+.displayLayout,
+.timeLayout {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(240px, 0.9fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.chartTypeGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(76px, 1fr));
+    gap: 8px;
+}
+
+.chartTypeButton {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    padding: 6px;
+    color: inherit;
+    font: inherit;
+    font-size: 11px;
+    line-height: 14px;
+    cursor: pointer;
+    border: 0.5px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+}
+
+.chartTypeButtonActive {
+    border-color: #4199ff;
+    box-shadow: inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5);
+}
+
+.chartTypeImage {
+    width: 100%;
+    max-height: 64px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.rightAxisSeries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.rightAxisSeriesList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rightAxisSeriesItem {
+    min-width: 0;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 860px) {
+    .header {
+        align-items: flex-start;
+    }
+
+    .actions {
+        flex-shrink: 0;
+    }
+
+    .displayLayout,
+    .timeLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .seriesCard {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+}

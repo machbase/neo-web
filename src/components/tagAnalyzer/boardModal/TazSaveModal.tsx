@@ -35,6 +35,24 @@ export type TazSaveModalInitialState = {
     fileList: FileListItem[];
 };
 
+function renderFileItemIcon(fileItem: FileListItem): JSX.Element {
+    const sIcon = fileItem.type === 'dir'
+        ? fileItem.gitClone
+            ? icons('gitClosedDirectory')
+            : <TreeFolder />
+        : icons(fileItem.type.replace('.', ''));
+
+    return (
+        <Button
+            forceOpacity
+            disabled
+            size="sm"
+            variant="none"
+            icon={sIcon}
+        />
+    );
+}
+
 function TazSaveModal({
     initialState,
     onClose,
@@ -194,33 +212,7 @@ function TazSaveModal({
                                 onClick={(event) => void handleSelectFile(event, fileItem)}
                             >
                                 <div className="taz-save-modal__file-name">
-                                    {fileItem.type === 'dir' ? (
-                                        fileItem.gitClone ? (
-                                            <Button
-                                                forceOpacity
-                                                disabled
-                                                size="sm"
-                                                variant="none"
-                                                icon={icons('gitClosedDirectory')}
-                                            />
-                                        ) : (
-                                            <Button
-                                                forceOpacity
-                                                disabled
-                                                size="sm"
-                                                variant="none"
-                                                icon={<TreeFolder />}
-                                            />
-                                        )
-                                    ) : (
-                                        <Button
-                                            forceOpacity
-                                            disabled
-                                            size="sm"
-                                            variant="none"
-                                            icon={icons(fileItem.type.replace('.', ''))}
-                                        />
-                                    )}
+                                    {renderFileItemIcon(fileItem)}
                                     <span>{fileItem.name}</span>
                                 </div>
                                 <span className="taz-save-modal__file-modified">
