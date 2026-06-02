@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type CSSProperties } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import type {
     TagSelectionPanelViewModel,
     UseTagSelectionStateOptions,
@@ -32,14 +32,14 @@ export function useTagSelectionPanelState({
         isSameSelectedTag,
     });
 
-    const handleAvailableTagSelect = useCallback(async (tagName: string) => {
+    const handleAvailableTagSelect = async (tagName: string) => {
             if (tagSearch.isAtSelectionLimit) {
                 onSelectionLimitReached?.();
                 return;
             }
 
             await tagSearch.addTag(tagName);
-        }, [onSelectionLimitReached, tagSearch]);
+        };
 
     const viewModel = useMemo<TagSelectionPanelViewModel>(
         () => ({
@@ -59,6 +59,9 @@ export function useTagSelectionPanelState({
                 selectedTimeColumn: tagSearch.sourceColumns?.time ?? '',
                 selectedValueColumn: tagSearch.sourceColumns?.value ?? '',
                 selectedJsonKey: tagSearch.sourceColumns?.jsonKey ?? '',
+                selectedTimeColumnKindLabel: tagSearch.selectedTimeColumnKindLabel,
+                selectedValueColumnSummaryLabel:
+                    tagSearch.selectedValueColumnSummaryLabel,
                 selectedJsonKeySummaryLabel: tagSearch.selectedJsonKeySummaryLabel,
                 jsonKeyInputValue: tagSearch.jsonKeyInputValue,
                 isJsonValue: tagSearch.isJsonValue,

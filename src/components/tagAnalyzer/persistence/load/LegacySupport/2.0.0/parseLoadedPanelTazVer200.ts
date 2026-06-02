@@ -16,7 +16,7 @@ import {
 } from '../../../PersistenceCloneUtils';
 import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
 import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
-import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
+import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeUnitUtils';
 import type {
     PanelNavigatorRangePair,
     TimeRangeMs,
@@ -61,18 +61,12 @@ export function parseLoadedPanelTazVer200(
     const sNormalizedPanelInfo = normalizePersistedPanelInfoV200(panelInfo);
 
     return {
-        general: {
+        meta: {
+            index_key: sNormalizedPanelInfo.meta.panelKey,
             chart_title: sNormalizedPanelInfo.meta.chartTitle,
-            use_zoom: sNormalizedPanelInfo.display.useZoom ?? false,
-            use_last_viewed_range:
-                sNormalizedPanelInfo.time.useLastViewedRange === true,
-            last_viewed_range: sNormalizedPanelInfo.time.lastViewedRange,
-            is_raw: sNormalizedPanelInfo.toolbar.isRaw,
-            use_normalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
         },
         data: {
-            index_key: sNormalizedPanelInfo.meta.panelKey,
-            tag_set: sNormalizedPanelInfo.data.seriesList.map(
+            tag_set: (sNormalizedPanelInfo.data.seriesList ?? []).map(
                 createSeriesInfoFromPersistedV200,
             ),
             count: sNormalizedPanelInfo.data.rowLimit ?? -1,
@@ -80,8 +74,14 @@ export function parseLoadedPanelTazVer200(
                 normalizeStoredTimeUnit(sNormalizedPanelInfo.data.intervalType ?? '') ??
                 sNormalizedPanelInfo.data.intervalType,
         },
+        toolbar: {
+            isRaw: sNormalizedPanelInfo.toolbar.isRaw,
+        },
         time: {
-            range_config: sNormalizedPanelInfo.time.rangeConfig,
+            rangeConfig: sNormalizedPanelInfo.time.rangeConfig,
+            useLastViewedRange:
+                sNormalizedPanelInfo.time.useLastViewedRange === true,
+            lastViewedRange: sNormalizedPanelInfo.time.lastViewedRange,
         },
         axes: {
             x_axis: {
@@ -154,6 +154,7 @@ export function parseLoadedPanelTazVer200(
         },
         display: {
             show_legend: sNormalizedPanelInfo.display.showLegend ?? false,
+            use_zoom: sNormalizedPanelInfo.display.useZoom ?? false,
             chart_type: normalizePanelEChartType(sNormalizedPanelInfo.display.chartType),
             connect_nulls: sNormalizedPanelInfo.display.connectNulls ?? false,
             show_point: sNormalizedPanelInfo.display.showPoints ?? false,
@@ -161,6 +162,7 @@ export function parseLoadedPanelTazVer200(
             fill: sNormalizedPanelInfo.display.fill ?? 0,
             stroke: sNormalizedPanelInfo.display.stroke ?? 0,
         },
+        use_normalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
         highlights: clonePanelHighlights(sNormalizedPanelInfo.highlights),
         annotations: createPanelAnnotationsFromPersistedPanel(sNormalizedPanelInfo),
     };
@@ -170,7 +172,7 @@ function createPanelAnnotationsFromPersistedPanel(
     panelInfo: PersistedPanelInfoV200,
 ): PanelAnnotation[] {
     const sPanelAnnotations = clonePanelAnnotations(panelInfo.annotations);
-    const sSeriesAnnotations = panelInfo.data.seriesList.flatMap((seriesInfo) =>
+    const sSeriesAnnotations = (panelInfo.data.seriesList ?? []).flatMap((seriesInfo) =>
         cloneSeriesAnnotations(seriesInfo.annotations).map((annotation) => ({
             ...annotation,
             seriesKey: seriesInfo.seriesKey,
@@ -184,7 +186,7 @@ function normalizePersistedPanelInfoV200(
     panelInfo: PersistedPanelInfoV200,
 ): PersistedPanelInfoV200 {
     const sNormalizedRangeConfig = normalizePersistedTimeRangeConfig(
-        panelInfo.time.rangeConfig,
+        panelInfo.time?.rangeConfig,
     );
     if (!sNormalizedRangeConfig) {
         throw new Error('Unsupported TagAnalyzer .taz panel time rangeConfig shape.');
@@ -194,13 +196,13 @@ function normalizePersistedPanelInfoV200(
         ...panelInfo,
         data: {
             ...panelInfo.data,
-            seriesList: panelInfo.data.seriesList.map(
+            seriesList: (panelInfo.data.seriesList ?? []).map(
                 normalizePersistedSeriesInfoV200,
             ),
             rowLimit: panelInfo.data.rowLimit ?? -1,
         },
         toolbar: {
-            isRaw: panelInfo.toolbar.isRaw,
+            isRaw: panelInfo.toolbar?.isRaw ?? false,
         },
         time: {
             rangeConfig: sNormalizedRangeConfig,

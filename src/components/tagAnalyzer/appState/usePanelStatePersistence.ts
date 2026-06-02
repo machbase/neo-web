@@ -25,10 +25,10 @@ function hasPersistedTimeRangeChanged(
     timeInfo: PanelNavigatorRangePair,
     isRaw: boolean,
 ): boolean {
-    const sCurrentLastViewedRange = panel.general.last_viewed_range;
+    const sCurrentLastViewedRange = panel.time.lastViewedRange;
 
     return (
-        panel.general.is_raw !== isRaw ||
+        panel.toolbar.isRaw !== isRaw ||
         !sCurrentLastViewedRange?.panelRange ||
         !sCurrentLastViewedRange?.navigatorRange ||
         !isSameTimeRange(sCurrentLastViewedRange.panelRange, timeInfo.panelRange) ||
@@ -43,7 +43,7 @@ function applyPendingTimeRangeUpdates(
     let sHasChanges = false;
 
     const sNextPanels = panels.map((panel) => {
-        const sPendingUpdate = pendingUpdates[panel.data.index_key];
+        const sPendingUpdate = pendingUpdates[panel.meta.index_key];
         if (!sPendingUpdate) {
             return panel;
         }
@@ -61,10 +61,13 @@ function applyPendingTimeRangeUpdates(
         sHasChanges = true;
         return {
             ...panel,
-            general: {
-                ...panel.general,
-                is_raw: sPendingUpdate.isRaw,
-                last_viewed_range: {
+            toolbar: {
+                ...panel.toolbar,
+                isRaw: sPendingUpdate.isRaw,
+            },
+            time: {
+                ...panel.time,
+                lastViewedRange: {
                     ...sPendingUpdate.timeInfo,
                 },
             },
@@ -120,7 +123,7 @@ export function usePanelStatePersistence({
     }: PersistPanelStatePayload): void {
         const sBoardInfo = latestBoardInfoRef.current;
         const sPanel = sBoardInfo?.panels.find(
-            (item) => item.data.index_key === targetPanelKey,
+            (item) => item.meta.index_key === targetPanelKey,
         );
 
         if (sPanel && !hasPersistedTimeRangeChanged(sPanel, timeInfo, isRaw)) {

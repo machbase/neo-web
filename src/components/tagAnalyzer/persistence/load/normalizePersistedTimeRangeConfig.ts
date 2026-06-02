@@ -2,7 +2,7 @@ import {
     createAbsoluteTimeBoundary,
     createAnchoredTimeBoundary,
     createEmptyTimeBoundary,
-} from '../../domain/time/TimeBoundaryInput';
+} from '../../domain/time/TimeBoundaryFactories';
 import {
     TimeUnit,
     type LastTimeBoundary,
@@ -13,7 +13,7 @@ import {
 import {
     getTimeUnitMilliseconds,
     normalizeStoredTimeUnit,
-} from '../../domain/time/TimeIntervalUtils';
+} from '../../domain/time/TimeUnitUtils';
 import { createTimeRangeConfig } from '../../domain/time/TimeRangeUtils';
 
 type PersistedBoundaryRecord = Record<string, unknown>;

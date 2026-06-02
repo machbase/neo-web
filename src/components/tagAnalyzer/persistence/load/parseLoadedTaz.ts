@@ -3,7 +3,6 @@ import type { PanelInfo } from '../../domain/PanelDomain';
 import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
 import { isLegacyFlatPanelTaz, isLegacyNestedPanelTaz, parseLoadedLegacyPanelTaz } from './LegacySupport/legacy/parseLoadedLegacyPanelTaz';
 import { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 } from './LegacySupport/2.0.0/parseLoadedPanelTazVer200';
-import { isPersistedPanelInfoV204, parseLoadedPanelTazVer204 } from './parseLoadedPanelTazVer204';
 import type {
     PersistedBoardTimeRange,
     PersistedTazBoardInfo,
@@ -12,14 +11,8 @@ import type {
 import type { TimeRangeConfig } from '../../domain/time/TimeTypes';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryInput';
 
-export const TAZ_FORMAT_VERSION = '2.0.4';
-const SUPPORTED_TAZ_FORMAT_VERSIONS = [
-    '2.0.0',
-    '2.0.1',
-    '2.0.2',
-    '2.0.3',
-    TAZ_FORMAT_VERSION,
-] as const;
+export const TAZ_FORMAT_VERSION = '2.0.3';
+const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', '2.0.1', '2.0.2', TAZ_FORMAT_VERSION] as const;
 
 export type PersistedTazVersion = (typeof SUPPORTED_TAZ_FORMAT_VERSIONS)[number];
 
@@ -42,10 +35,6 @@ export function parseLoadedTaz(boardInfo: PersistedTazBoardInfo): BoardInfo {
 }
 
 export function parseLoadedPanelTaz(panelInfo: unknown): PanelInfo {
-    if (isPersistedPanelInfoV204(panelInfo)) {
-        return parseLoadedPanelTazVer204(panelInfo);
-    }
-
     if (isPersistedPanelInfoV200(panelInfo)) {
         return parseLoadedPanelTazVer200(panelInfo);
     }

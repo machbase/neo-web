@@ -4,25 +4,21 @@ import { ADMIN_ID } from '@/utils/constants';
 import { extractJsonPathsFromSamples } from '@/utils/dashboardJsonValue';
 import { createTagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
 import { showRequestError } from '../../feedback/RequestErrorPresenter';
-import { EMPTY_TAG_SELECTION_COLUMNS, TAG_SEARCH_PAGE_LIMIT } from './TagSelectionConstants';
-import type { TagSearchItem, TagSelectionColumnMetadataRow, TagSelectionSourceColumns } from './TagSelectionTypes';
-
-type TableNameResponse = { success?: boolean; data?: { rows?: TagSelectionColumnMetadataRow[] }; message?: string };
-
-type TagTotalResponse = { success?: boolean; data?: { rows?: Array<[number]> } };
-
-type TagPaginationRow = [string | number, string];
-
-type TagPaginationResponse = { success?: boolean; data?: { rows?: TagPaginationRow[] } };
-
-type TagSearchColumnsResult = { columns: TagSelectionSourceColumns | undefined; tableColumns: TagSelectionColumnMetadataRow[]; errorMessage: string | undefined };
-
-type TagSearchPageParams = { table: string; searchText: string; page: number; columns: TagSelectionSourceColumns };
-
-type TagSearchPageResult = { items: TagSearchItem[]; total: number; columns: TagSelectionSourceColumns; errorMessage: string | undefined };
-
-type JsonColumnSamplesResponse = { success?: boolean; data?: { rows?: Array<[unknown]> } };
-
+import {
+    EMPTY_TAG_SELECTION_COLUMNS,
+    TAG_SEARCH_PAGE_LIMIT,
+} from './TagSelectionConstants';
+import type {
+    TagSearchItem,
+    TagPaginationResponse,
+    TagPaginationRow,
+    TagSearchColumnsResult,
+    TagSearchPageParams,
+    TagSearchPageResult,
+    TagSelectionSourceColumns,
+    TableNameResponse,
+    TagTotalResponse,
+} from './TagSelectionTypes';
 export async function fetchTableName(tableName: string): Promise<TableNameResponse> {
     let sDatabaseIdQuery = '';
     let sResolvedTableName = tableName;
@@ -106,43 +102,36 @@ export async function getSourceTagTotal(
     );
 }
 
-const emptyColumnsResult = (errorMessage?: string): TagSearchColumnsResult => ({
-    columns: undefined,
-    tableColumns: [],
-    errorMessage,
-});
-
+export const tagSearchApi = {
+    fetchTableName,
+    fetchDashboardJsonColumnSamples,
+    getTagPagination,
+    getTagTotal,
+    getSourceTagPagination,
+    getSourceTagTotal,
+};
 function buildTableColumns(
-    rows: TagSelectionColumnMetadataRow[] | undefined,
+    rows: Array<[string, number, number] | [string, number] | string[]> | undefined,
     currentColumns?: Partial<TagSelectionSourceColumns>,
 ): TagSelectionSourceColumns {
     const sColumnInfo = createTagAnalyzerColumnInfo(rows ?? [], currentColumns);
 
     return {
-        name: sColumnInfo.name || getColumnName(rows?.[0]),
-        time: sColumnInfo.time || getColumnName(rows?.[1]),
+        name: sColumnInfo.name || rows?.[0]?.[0] || '',
+        time: sColumnInfo.time || rows?.[1]?.[0] || '',
         timeType: sColumnInfo.timeType,
         timeBaseTime: sColumnInfo.timeBaseTime,
-        value: sColumnInfo.value || getColumnName(rows?.[2]),
+        value: sColumnInfo.value || rows?.[2]?.[0] || '',
         jsonKey: sColumnInfo.jsonKey ?? currentColumns?.jsonKey ?? '',
     };
 }
-function getColumnName(row: TagSelectionColumnMetadataRow | undefined): string {
-    const sColumnName = row?.[0];
-    return typeof sColumnName === 'string' ? sColumnName : '';
-}
 function getTagTotalFromResponse(response: TagTotalResponse): number {
-    const sTotal = response.data?.rows?.[0]?.[0];
-    if (typeof sTotal !== 'number') {
-        throw new Error('Tag total response did not contain a numeric total.');
-    }
-
-    return sTotal;
+    return response.data?.rows?.[0]?.[0] ?? 0;
 }
 function isSuccessfulTagSearchResponse(
     response: { success?: boolean | undefined },
 ): boolean {
-    return response.success === true;
+    return response.success !== false;
 }
 function normalizeTagSearchItems(
     rows: TagPaginationRow[] | undefined,
@@ -157,12 +146,20 @@ export async function fetchTagSearchColumns(
     currentColumns?: Partial<TagSelectionSourceColumns>,
 ): Promise<TagSearchColumnsResult> {
     if (!table) {
-        return emptyColumnsResult();
+        return {
+            columns: undefined,
+            tableColumns: [],
+            errorMessage: undefined,
+        };
     }
 
-    const sResponse = await fetchTableName(table);
+    const sResponse = await tagSearchApi.fetchTableName(table);
     if (!sResponse.success) {
-        return emptyColumnsResult(sResponse.message ?? '');
+        return {
+            columns: undefined,
+            tableColumns: [],
+            errorMessage: sResponse.message ?? '',
+        };
     }
     const sRows = sResponse.data?.rows ?? [];
 
@@ -177,18 +174,18 @@ export async function fetchJsonColumnPaths(
     valueColumn: string,
 ): Promise<string[]> {
     if (!table || !valueColumn) {
-        throw new Error('Cannot fetch JSON column paths without table and value column.');
+        return [];
     }
 
-    const sResponse = await fetchDashboardJsonColumnSamples(
+    const sResponse: any = await tagSearchApi.fetchDashboardJsonColumnSamples(
         table,
         valueColumn,
-    ) as JsonColumnSamplesResponse;
+    );
     if (!sResponse?.success) {
-        throw new Error('Failed to fetch JSON column paths.');
+        return [];
     }
 
-    const sSamples = sResponse.data?.rows?.map((row) => row[0]) ?? [];
+    const sSamples = sResponse.data?.rows?.map((row: any) => row?.[0]) ?? [];
     return extractJsonPathsFromSamples(sSamples);
 }
 export async function fetchTagSearchPage({
@@ -198,16 +195,19 @@ export async function fetchTagSearchPage({
     columns,
 }: TagSearchPageParams): Promise<TagSearchPageResult> {
     if (!table) {
-        return { items: [], total: 0, columns: EMPTY_TAG_SELECTION_COLUMNS, errorMessage: undefined };
+        return {
+            items: [],
+            total: 0,
+            columns: EMPTY_TAG_SELECTION_COLUMNS,
+            errorMessage: undefined,
+        };
     }
 
     const [sTotalResponse, sPageResponse] = await Promise.all([
-        getTagTotal(table, searchText, columns.name, true),
-        getTagPagination(table, searchText, page, columns.name, true),
+        tagSearchApi.getTagTotal(table, searchText, columns.name, true),
+        tagSearchApi.getTagPagination(table, searchText, page, columns.name, true),
     ]);
-    const sPrimaryTotal = isSuccessfulTagSearchResponse(sTotalResponse)
-        ? getTagTotalFromResponse(sTotalResponse)
-        : 0;
+    const sPrimaryTotal = getTagTotalFromResponse(sTotalResponse);
 
     if (
         isSuccessfulTagSearchResponse(sTotalResponse) &&
@@ -223,28 +223,19 @@ export async function fetchTagSearchPage({
     }
 
     const [sSourceTotalResponse, sSourcePageResponse] = await Promise.all([
-        getSourceTagTotal(table, searchText, columns.name),
-        getSourceTagPagination(table, searchText, page, columns.name),
+        tagSearchApi.getSourceTagTotal(table, searchText, columns.name),
+        tagSearchApi.getSourceTagPagination(table, searchText, page, columns.name),
     ]);
 
-    if (
-        !isSuccessfulTagSearchResponse(sSourceTotalResponse) ||
-        !isSuccessfulTagSearchResponse(sSourcePageResponse)
-    ) {
-        throw new Error('Tag search response was unsuccessful.');
-    }
-
     return {
-        items: normalizeTagSearchItems(sSourcePageResponse.data?.rows),
+        items: isSuccessfulTagSearchResponse(sSourcePageResponse)
+            ? normalizeTagSearchItems(sSourcePageResponse.data?.rows)
+            : [],
         total: getTagTotalFromResponse(sSourceTotalResponse),
         columns,
         errorMessage: undefined,
     };
 }
-
-const tagSearchCondition = (tagFilter: string, sourceColumn: string) =>
-    tagFilter ? `${sourceColumn} like '%${tagFilter}%'` : undefined;
-
 function getMetaTableName(sourceTableName: string): string {
     const sSplitName = sourceTableName.split('.');
     const sTableName = '_' + sSplitName.at(-1) + '_META';
@@ -253,17 +244,21 @@ function getMetaTableName(sourceTableName: string): string {
     return sSplitName.join('.');
 }
 function buildTagSearchWhereClause(tagFilter: string, sourceColumn: string): string {
-    const sCondition = tagSearchCondition(tagFilter, sourceColumn);
-    return sCondition ? ` where ${sCondition}` : '';
+    if (!tagFilter) {
+        return '';
+    }
+
+    return ` where ${sourceColumn} like '%${tagFilter}%'`;
 }
 function buildSourceTagSearchWhereClause(
     tagFilter: string,
     sourceColumn: string,
 ): string {
     const sConditions = [`${sourceColumn} IS NOT NULL`];
-    const sTagCondition = tagSearchCondition(tagFilter, sourceColumn);
 
-    if (sTagCondition) sConditions.push(sTagCondition);
+    if (tagFilter) {
+        sConditions.push(`${sourceColumn} like '%${tagFilter}%'`);
+    }
 
     return ` where ${sConditions.join(' and ')}`;
 }

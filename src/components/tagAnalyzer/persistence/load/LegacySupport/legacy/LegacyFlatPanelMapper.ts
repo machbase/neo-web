@@ -18,7 +18,7 @@ import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/
 import {
     formatTimeUnitShortCode,
     normalizeStoredTimeUnit,
-} from '../../../../domain/time/TimeIntervalUtils';
+} from '../../../../domain/time/TimeUnitUtils';
 import { createAbsoluteTimeRangeConfig } from '../../../../domain/time/TimeRangeUtils';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 export function createPanelInfoFromLegacyFlatPanelInfo(
@@ -27,57 +27,70 @@ export function createPanelInfoFromLegacyFlatPanelInfo(
     return createNormalizedLegacyPanelInfo(normalizeLegacyFlatPanelInfo(panelInfo));
 }
 export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo {
-    const sRangeConfig = panelInfo.time.range_config;
+    const sRangeConfig = panelInfo.time.rangeConfig;
 
     return {
-        index_key: panelInfo.data.index_key,
-        chart_title: panelInfo.general.chart_title,
+        index_key: panelInfo.meta.index_key,
+        chart_title: panelInfo.meta.chart_title,
         tag_set: toLegacySeriesConfigs(panelInfo.data.tag_set),
         range_bgn: serializeLegacyTimeBoundaryValue(sRangeConfig.start),
         range_end: serializeLegacyTimeBoundaryValue(sRangeConfig.end),
-        raw_keeper: panelInfo.general.is_raw,
-        time_keeper: panelInfo.general.last_viewed_range,
-        default_range: createLegacyDefaultRange(panelInfo.time.range_config),
+        raw_keeper: resolveLegacyRawKeeper(panelInfo),
+        time_keeper: panelInfo.time.lastViewedRange,
+        default_range: createLegacyDefaultRange(panelInfo.time.rangeConfig),
         count: panelInfo.data.count,
         interval_type: panelInfo.data.interval_type,
         interval_value: 1,
         show_legend: toLegacyBoolean(panelInfo.display.show_legend),
-        use_zoom: toLegacyBoolean(panelInfo.general.use_zoom),
+        use_zoom: toLegacyBoolean(panelInfo.display.use_zoom),
         connect_nulls: toLegacyBoolean(panelInfo.display.connect_nulls),
-        use_normalize: toLegacyBoolean(panelInfo.general.use_normalize),
-        use_time_keeper: toLegacyBoolean(panelInfo.general.use_last_viewed_range),
+        use_normalize: toLegacyBoolean(panelInfo.use_normalize),
+        use_time_keeper: toLegacyBoolean(panelInfo.time.useLastViewedRange),
         show_x_tickline: toLegacyBoolean(panelInfo.axes.x_axis.show_tickline),
-        pixels_per_tick_raw: toLegacyNumberValue(panelInfo.axes.x_axis.raw_data_pixels_per_tick),
-        pixels_per_tick: toLegacyNumberValue(panelInfo.axes.x_axis.calculated_data_pixels_per_tick),
+        pixels_per_tick_raw: panelInfo.axes.x_axis.raw_data_pixels_per_tick,
+        pixels_per_tick: panelInfo.axes.x_axis.calculated_data_pixels_per_tick,
         use_sampling: panelInfo.axes.sampling.enabled,
-        sampling_value: toLegacyNumberValue(panelInfo.axes.sampling.sample_count),
+        sampling_value: panelInfo.axes.sampling.sample_count,
         zero_base: toLegacyBoolean(panelInfo.axes.left_y_axis.zero_base),
         show_y_tickline: toLegacyBoolean(panelInfo.axes.left_y_axis.show_tickline),
-        custom_min: toLegacyNumberValue(panelInfo.axes.left_y_axis.value_range.min),
-        custom_max: toLegacyNumberValue(panelInfo.axes.left_y_axis.value_range.max),
-        custom_drilldown_min: toLegacyNumberValue(panelInfo.axes.left_y_axis.raw_data_value_range.min),
-        custom_drilldown_max: toLegacyNumberValue(panelInfo.axes.left_y_axis.raw_data_value_range.max),
+        custom_min: panelInfo.axes.left_y_axis.value_range.min,
+        custom_max: panelInfo.axes.left_y_axis.value_range.max,
+        custom_drilldown_min: panelInfo.axes.left_y_axis.raw_data_value_range.min,
+        custom_drilldown_max: panelInfo.axes.left_y_axis.raw_data_value_range.max,
         use_ucl: toLegacyBoolean(panelInfo.axes.left_y_axis.upper_control_limit.enabled),
-        ucl_value: toLegacyNumberValue(panelInfo.axes.left_y_axis.upper_control_limit.value),
+        ucl_value: panelInfo.axes.left_y_axis.upper_control_limit.value,
         use_lcl: toLegacyBoolean(panelInfo.axes.left_y_axis.lower_control_limit.enabled),
-        lcl_value: toLegacyNumberValue(panelInfo.axes.left_y_axis.lower_control_limit.value),
+        lcl_value: panelInfo.axes.left_y_axis.lower_control_limit.value,
         use_right_y2: toLegacyBoolean(panelInfo.axes.right_y_axis_enabled),
         zero_base2: toLegacyBoolean(panelInfo.axes.right_y_axis.zero_base),
         show_y_tickline2: toLegacyBoolean(panelInfo.axes.right_y_axis.show_tickline),
-        custom_min2: toLegacyNumberValue(panelInfo.axes.right_y_axis.value_range.min),
-        custom_max2: toLegacyNumberValue(panelInfo.axes.right_y_axis.value_range.max),
-        custom_drilldown_min2: toLegacyNumberValue(panelInfo.axes.right_y_axis.raw_data_value_range.min),
-        custom_drilldown_max2: toLegacyNumberValue(panelInfo.axes.right_y_axis.raw_data_value_range.max),
+        custom_min2: panelInfo.axes.right_y_axis.value_range.min,
+        custom_max2: panelInfo.axes.right_y_axis.value_range.max,
+        custom_drilldown_min2: panelInfo.axes.right_y_axis.raw_data_value_range.min,
+        custom_drilldown_max2: panelInfo.axes.right_y_axis.raw_data_value_range.max,
         use_ucl2: toLegacyBoolean(panelInfo.axes.right_y_axis.upper_control_limit.enabled),
-        ucl2_value: toLegacyNumberValue(panelInfo.axes.right_y_axis.upper_control_limit.value),
+        ucl2_value: panelInfo.axes.right_y_axis.upper_control_limit.value,
         use_lcl2: toLegacyBoolean(panelInfo.axes.right_y_axis.lower_control_limit.enabled),
-        lcl2_value: toLegacyNumberValue(panelInfo.axes.right_y_axis.lower_control_limit.value),
+        lcl2_value: panelInfo.axes.right_y_axis.lower_control_limit.value,
         chart_type: panelInfo.display.chart_type,
         show_point: toLegacyBoolean(panelInfo.display.show_point),
-        point_radius: toLegacyNumberValue(panelInfo.display.point_radius),
-        fill: toLegacyNumberValue(panelInfo.display.fill),
-        stroke: toLegacyNumberValue(panelInfo.display.stroke),
+        point_radius: panelInfo.display.point_radius,
+        fill: panelInfo.display.fill,
+        stroke: panelInfo.display.stroke,
     };
+}
+
+function resolveLegacyRawKeeper(panelInfo: PanelInfo): boolean {
+    const sLegacyPanelInfo = panelInfo as PanelInfo & {
+        data?: {
+            raw_keeper?: boolean;
+        };
+        toolbar?: {
+            isRaw?: boolean;
+        };
+    };
+
+    return sLegacyPanelInfo.toolbar?.isRaw ?? sLegacyPanelInfo.data?.raw_keeper ?? false;
 }
 
 function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
@@ -144,22 +157,22 @@ function createNormalizedLegacyPanelInfo(
     panelInfo: ReturnType<typeof normalizeLegacyFlatPanelInfo>,
 ): PanelInfo {
     return {
-        general: {
+        meta: {
+            index_key: panelInfo.index_key,
             chart_title: panelInfo.chart_title,
-            use_zoom: panelInfo.use_zoom,
-            use_last_viewed_range: panelInfo.use_time_keeper,
-            last_viewed_range: panelInfo.time_keeper,
-            is_raw: panelInfo.raw_keeper,
-            use_normalize: panelInfo.use_normalize,
         },
         data: {
-            index_key: panelInfo.index_key,
             tag_set: panelInfo.tag_set,
             count: panelInfo.count,
             interval_type: panelInfo.interval_type,
         },
+        toolbar: {
+            isRaw: panelInfo.raw_keeper,
+        },
         time: {
-            range_config: panelInfo.range_config,
+            rangeConfig: panelInfo.range_config,
+            useLastViewedRange: panelInfo.use_time_keeper,
+            lastViewedRange: panelInfo.time_keeper,
         },
         axes: {
             x_axis: {
@@ -219,6 +232,7 @@ function createNormalizedLegacyPanelInfo(
         },
         display: {
             show_legend: panelInfo.show_legend,
+            use_zoom: panelInfo.use_zoom,
             chart_type: panelInfo.chart_type,
             connect_nulls: panelInfo.connect_nulls,
             show_point: panelInfo.show_point,
@@ -226,6 +240,7 @@ function createNormalizedLegacyPanelInfo(
             fill: panelInfo.fill,
             stroke: panelInfo.stroke,
         },
+        use_normalize: panelInfo.use_normalize,
         highlights: [],
         annotations: [],
     };
@@ -237,10 +252,6 @@ function normalizeNumericValue(value: number | string | undefined): number {
     }
 
     return typeof value === 'number' ? value : Number(value);
-}
-
-function toLegacyNumberValue(value: number | undefined): number {
-    return value ?? 0;
 }
 
 function normalizeLegacyLastViewedRange(
@@ -272,11 +283,7 @@ function hasLegacyStoredRange(panelInfo: LegacyFlatPanelInfo): boolean {
 function createAbsoluteRangeConfigFromValueRange(
     valueRange: ValueRange | undefined,
 ): TimeRangeConfig | undefined {
-    if (
-        !valueRange ||
-        valueRange.min === undefined ||
-        valueRange.max === undefined
-    ) {
+    if (!valueRange) {
         return undefined;
     }
 

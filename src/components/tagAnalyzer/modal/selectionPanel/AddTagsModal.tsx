@@ -1,6 +1,8 @@
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Modal, Toast } from '@/design-system/components';
-import { getTagSelectionErrorMessage } from '../seriesSelection/tagSelectionPresentation';
+import {
+    getTagSelectionErrorMessage,
+} from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
 import {
@@ -56,15 +58,13 @@ const AddTagsModal = ({
             return;
         }
 
-        pOnChangeTagSet(
-            mergeSelectedTagsIntoTagSet(pTagSet, sTagSearch.selectedSeriesDrafts),
-        );
+        pOnChangeTagSet(mergeSelectedTagsIntoTagSet(pTagSet, sTagSearch.selectedSeriesDrafts));
         pCloseModal();
     };
 
     return (
         <Modal.Root
-            isOpen
+            isOpen={true}
             onClose={pCloseModal}
             style={{ maxWidth: '600px', width: '100%' }}
         >
@@ -76,11 +76,19 @@ const AddTagsModal = ({
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
-                <TagSelectionPanel viewModel={tagSelectionPanelViewModel} />
+                <TagSelectionPanel
+                    viewModel={tagSelectionPanelViewModel}
+                />
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Confirm onClick={setPanels}>OK</Modal.Confirm>
-                <Modal.Cancel>Cancel</Modal.Cancel>
+                <Modal.Confirm
+                    onClick={setPanels}
+                >
+                    OK
+                </Modal.Confirm>
+                <Modal.Cancel>
+                    Cancel
+                </Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );

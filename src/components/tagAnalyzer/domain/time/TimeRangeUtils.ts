@@ -1,7 +1,7 @@
 import {
     createAbsoluteTimeBoundary,
     createEmptyTimeBoundary,
-} from './TimeBoundaryInput';
+} from './TimeBoundaryFactories';
 import type { TimeRangeMs, TimeRangeConfig } from './TimeTypes';
 
 export function createTimeRangeMs(

@@ -1,8 +1,9 @@
 import type { SeriesFetchColumnMap } from '../FetchContracts';
 import type { TimeRangeNs } from '../../domain/time/TimeTypes';
 import { getIntervalMs } from '../../domain/time/TimeIntervalUtils';
+import { ADMIN_ID } from '@/utils/constants';
 import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
-import { asRecord, getRollupMetadataLookupKey } from '../RollupTableLookup';
+import { getConfiguredRollupVersion } from '../RollupVersionConfig';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 import {
     M_TIME_ALIAS,
@@ -27,6 +28,17 @@ type RollupValue = number | string;
 type RollupTableEntry = {
     VALUE?: RollupValue[] | undefined;
     EXT_TYPE?: RollupValue[] | undefined;
+};
+
+type ParsedRollupTableName = {
+    databaseName: string;
+    userName: string;
+    tableName: string;
+};
+
+type RollupMetadataLookupKey = {
+    userName: string;
+    tableName: string;
 };
 
 type CalculationSqlContext = {
@@ -272,7 +284,7 @@ function buildCalculationSqlContext(
     };
 }
 
-function buildTimeGroupKeySql(
+function buildAggregateTimeGroupKeySql(
     sourceColumnMap: SeriesFetchColumnMap,
     intervalUnit: string,
     intervalSize: number,
@@ -280,7 +292,6 @@ function buildTimeGroupKeySql(
     usesNumericBaseTime: boolean,
     fetchTimeRange: TimeRangeNs,
     requestedRowCount: number,
-    buildNonRollupNonNumericSql: () => string,
 ): string {
     if (useRollup) {
         return buildRollupTimeGroupKeySqlPart(
@@ -296,33 +307,11 @@ function buildTimeGroupKeySql(
               fetchTimeRange,
               requestedRowCount,
           )
-        : buildNonRollupNonNumericSql();
-}
-
-function buildAggregateTimeGroupKeySql(
-    sourceColumnMap: SeriesFetchColumnMap,
-    intervalUnit: string,
-    intervalSize: number,
-    useRollup: boolean,
-    usesNumericBaseTime: boolean,
-    fetchTimeRange: TimeRangeNs,
-    requestedRowCount: number,
-): string {
-    return buildTimeGroupKeySql(
-        sourceColumnMap,
-        intervalUnit,
-        intervalSize,
-        useRollup,
-        usesNumericBaseTime,
-        fetchTimeRange,
-        requestedRowCount,
-        () =>
-            buildTruncatedTimeGroupKeySqlPart(
-                sourceColumnMap.time,
-                intervalUnit,
-                intervalSize,
-            ),
-    );
+        : buildTruncatedTimeGroupKeySqlPart(
+              sourceColumnMap.time,
+              intervalUnit,
+              intervalSize,
+          );
 }
 
 function buildScaledTimeGroupKeySql(
@@ -335,21 +324,25 @@ function buildScaledTimeGroupKeySql(
     fetchTimeRange: TimeRangeNs,
     requestedRowCount: number,
 ): string {
-    return buildTimeGroupKeySql(
-        sourceColumnMap,
-        intervalUnit,
-        intervalSize,
-        useRollup,
-        usesNumericBaseTime,
-        fetchTimeRange,
-        requestedRowCount,
-        () =>
-            buildNonRollupScaledTimeGroupKeySql(
-                sourceColumnMap.time,
-                intervalSize,
-                nonRollupBucketIntervalSeconds,
-            ),
-    );
+    if (useRollup) {
+        return buildRollupTimeGroupKeySqlPart(
+            sourceColumnMap.time,
+            intervalUnit,
+            intervalSize,
+        );
+    }
+
+    return usesNumericBaseTime
+        ? buildNumericBaseTimeGroupKeySql(
+              sourceColumnMap.time,
+              fetchTimeRange,
+              requestedRowCount,
+          )
+        : buildNonRollupScaledTimeGroupKeySql(
+              sourceColumnMap.time,
+              intervalSize,
+              nonRollupBucketIntervalSeconds,
+          );
 }
 
 function buildNumericBaseTimeGroupKeySql(
@@ -471,7 +464,7 @@ function findRollupTableEntry(
         return undefined;
     }
 
-    const sLookupKey = getRollupMetadataLookupKey(tableName);
+    const sLookupKey = getRollupMetadataKey(tableName);
     if (!sLookupKey) {
         return undefined;
     }
@@ -482,6 +475,59 @@ function findRollupTableEntry(
     }
 
     return asRollupTableEntry(sUserEntry[sLookupKey.tableName]);
+}
+
+function getRollupMetadataKey(tableName: string): RollupMetadataLookupKey | undefined {
+    const sParsedTableName = parseRollupTableName(tableName);
+    if (!sParsedTableName) {
+        return undefined;
+    }
+
+    const sRollupVersion = getConfiguredRollupVersion();
+    if (
+        sRollupVersion === 'OLD' &&
+        sParsedTableName.databaseName.toUpperCase() !== 'MACHBASEDB'
+    ) {
+        return undefined;
+    }
+
+    const sTableNameForLookup = sRollupVersion === 'RECENT'
+        ? `${sParsedTableName.databaseName}.${sParsedTableName.tableName}`
+        : sParsedTableName.tableName;
+
+    return {
+        userName: sParsedTableName.userName,
+        tableName: sTableNameForLookup,
+    };
+}
+
+function parseRollupTableName(tableName: string): ParsedRollupTableName | undefined {
+    const sTableSegments = tableName.split('.');
+    const sTableName = sTableSegments.at(-1);
+    if (!sTableName) {
+        return undefined;
+    }
+
+    const sDatabaseName = sTableSegments.length > 2
+        ? sTableSegments.at(-3) ?? 'MACHBASEDB'
+        : 'MACHBASEDB';
+    const sUserName = sTableSegments.length > 1
+        ? sTableSegments.at(-2) ?? ADMIN_ID.toUpperCase()
+        : ADMIN_ID.toUpperCase();
+
+    return {
+        databaseName: sDatabaseName,
+        userName: sUserName,
+        tableName: sTableName,
+    };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+    }
+
+    return value as Record<string, unknown>;
 }
 
 function asRollupTableEntry(value: unknown): RollupTableEntry | undefined {

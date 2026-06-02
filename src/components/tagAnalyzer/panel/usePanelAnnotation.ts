@@ -12,9 +12,9 @@ import {
 import type {
     AnnotationEditorMetaState,
     AnnotationFormState,
-} from './modal/EditMarkupModal';
+} from './modal/EditAnnotationModal';
 
-type PanelAnnotationSeriesOption = {
+export type PanelAnnotationSeriesOption = {
     label: string;
     value: string;
 };

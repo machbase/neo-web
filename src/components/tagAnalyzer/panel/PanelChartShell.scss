@@ -44,9 +44,6 @@
 .panel-chart-interaction-hint {
     position: absolute;
     z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 5px;
     pointer-events: none;
     padding: 5px 8px;
     border: 1px solid rgba(253, 181, 50, 0.45);
@@ -57,20 +54,6 @@
     line-height: 14px;
     white-space: nowrap;
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
-
-    svg {
-        flex: 0 0 auto;
-    }
-}
-
-.panel-chart-interaction-hint--valid {
-    border-color: rgba(87, 214, 141, 0.5);
-    color: #57d68d;
-}
-
-.panel-chart-interaction-hint--invalid {
-    border-color: rgba(255, 138, 61, 0.5);
-    color: #ff8a3d;
 }
 
 .panel-main-chart-loading-overlay {

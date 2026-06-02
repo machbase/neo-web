@@ -7,6 +7,9 @@ import {
     TimeRangeMs,
     TimeUnit,
 } from './TimeTypes';
+import {
+    getTimeUnitMilliseconds,
+} from './TimeUnitUtils';
 
 export function convertTimeRangeConfigToTimeRangeMs(
     rangeConfig: TimeRangeConfig,
@@ -35,7 +38,7 @@ function subtractTimeUnit(
 ): number {
     switch (unit) {
         case TimeUnit.Millisecond:
-            return moment(anchorTime).subtract(amount, 'millisecond').valueOf();
+            return anchorTime - getTimeUnitMilliseconds(unit, amount);
         case TimeUnit.Second:
             return moment(anchorTime).subtract(amount, 'second').valueOf();
         case TimeUnit.Minute:

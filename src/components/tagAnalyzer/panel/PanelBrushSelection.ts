@@ -1,10 +1,7 @@
 import type { MutableRefObject } from 'react';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
-import {
-    PanelOverlayMode,
-    type PanelBrushSelectionEvent,
-} from '../domain/PanelDomain';
+import type { PanelBrushSelectionEvent } from '../domain/PanelDomain';
 import type {
     ChartSeriesData,
     FFTSelectionPayload,
@@ -24,59 +21,59 @@ type BrushSelectionRange = {
     endTime: number;
 };
 
-type PanelBrushSelectionContext = {
-    chartData: ChartSeriesData[];
-    seriesList: PanelSeriesDefinition[];
-    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
-    overlayMode: PanelOverlayMode;
-    isNumericXAxis: boolean;
-    createHighlightFromSelection: (startTime: number, endTime: number) => void;
-    onSelectionSummaryChange: (selectionSummary: PanelSelectionSummary) => void;
-};
-
-export function handlePanelBrushSelection({
+export function createPanelBrushSelectionHandler({
     chartData,
     seriesList,
     chartAreaRef,
-    overlayMode,
+    isHighlightActive,
     isNumericXAxis,
     createHighlightFromSelection,
+    closeContextMenu,
+    closeAnnotationMode,
     onSelectionSummaryChange,
-}: PanelBrushSelectionContext, event: PanelBrushSelectionEvent): boolean {
-    const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
+}: {
+    chartData: ChartSeriesData[];
+    seriesList: PanelSeriesDefinition[];
+    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
+    isHighlightActive: boolean;
+    isNumericXAxis: boolean;
+    createHighlightFromSelection: (startTime: number, endTime: number) => void;
+    closeContextMenu: () => void;
+    closeAnnotationMode: () => void;
+    onSelectionSummaryChange: (selectionSummary: PanelSelectionSummary) => void;
+}): (event: PanelBrushSelectionEvent) => boolean {
+    return function handlePanelBrushSelection(
+        event: PanelBrushSelectionEvent,
+    ): boolean {
+        const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
 
-    if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
-        createHighlightFromSelection(
-            sSelectionRange.startTime,
-            sSelectionRange.endTime,
+        if (isHighlightActive) {
+            closeContextMenu();
+            closeAnnotationMode();
+            createHighlightFromSelection(
+                sSelectionRange.startTime,
+                sSelectionRange.endTime,
+            );
+            return false;
+        }
+
+        const sSelection = buildBrushSelectionSummary(
+            chartData,
+            seriesList,
+            sSelectionRange,
         );
+
+        if (!sSelection) {
+            Toast.error('There is no data in the selected area.', undefined);
+            return false;
+        }
+
+        onSelectionSummaryChange({
+            selection: sSelection,
+            popoverPosition: getSelectionPopoverPosition(chartAreaRef),
+        });
         return false;
-    }
-
-    const sSeriesSummaries = buildSeriesSummaryRows(
-        chartData.map((series) => series.data),
-        seriesList,
-        sSelectionRange.min,
-        sSelectionRange.max,
-    );
-
-    if (isEmpty(sSeriesSummaries)) {
-        Toast.error('There is no data in the selected area.', undefined);
-        return false;
-    }
-
-    const sSelection: FFTSelectionPayload = {
-        startTime: sSelectionRange.startTime,
-        endTime: sSelectionRange.endTime,
-        seriesSummaries: sSeriesSummaries,
     };
-
-    onSelectionSummaryChange({
-        selection: sSelection,
-        popoverPosition: getSelectionPopoverPosition(chartAreaRef),
-    });
-
-    return false;
 }
 
 function getBrushSelectionRange(
@@ -91,21 +88,40 @@ function getBrushSelectionRange(
     };
 }
 
+function buildBrushSelectionSummary(
+    chartData: ChartSeriesData[],
+    seriesList: PanelSeriesDefinition[],
+    range: BrushSelectionRange,
+): FFTSelectionPayload | undefined {
+    const seriesSummaries = buildSeriesSummaryRows(
+        chartData.map((series) => series.data),
+        seriesList,
+        range.min,
+        range.max,
+    );
+
+    if (isEmpty(seriesSummaries)) {
+        return undefined;
+    }
+
+    return {
+        startTime: range.startTime,
+        endTime: range.endTime,
+        seriesSummaries,
+    };
+}
+
 function buildSeriesSummaryRows(
     seriesDataList: Array<ChartSeriesData['data']>,
-    seriesList: PanelSeriesDefinition[],
+    tagSet: PanelSeriesDefinition[],
     startTime: number,
     endTime: number,
 ): SelectedRangeSeriesSummary[] {
-    if (seriesDataList.length !== seriesList.length) {
-        throw new Error(
-            `Brush selection series mismatch: ${seriesDataList.length} chart series for ${seriesList.length} panel series.`,
-        );
-    }
+    const sSummaryRows: SelectedRangeSeriesSummary[] = [];
 
-    return seriesDataList.flatMap((seriesData, index) => {
-        const sSeriesConfig = seriesList[index];
-        if (sSeriesConfig === undefined) {
+    seriesDataList.forEach((seriesData, index) => {
+        const sTagConfig = tagSet[index];
+        if (sTagConfig === undefined) {
             throw new Error(`Missing series config for chart data index ${index}.`);
         }
 
@@ -114,7 +130,7 @@ function buildSeriesSummaryRows(
             .map((row) => row[1]);
 
         if (sSelectedValues.length === 0) {
-            return [];
+            return;
         }
 
         const sTotalValue = sSelectedValues.reduce(
@@ -122,17 +138,19 @@ function buildSeriesSummaryRows(
             0,
         );
 
-        return [{
+        sSummaryRows.push({
             seriesIndex: index,
-            table: sSeriesConfig.table,
-            name: sSeriesConfig.sourceTagName,
-            alias: sSeriesConfig.alias,
-            sourceColumns: sSeriesConfig.sourceColumns,
+            table: sTagConfig.table,
+            name: sTagConfig.sourceTagName,
+            alias: sTagConfig.alias,
+            sourceColumns: sTagConfig.sourceColumns,
             min: Math.min(...sSelectedValues).toFixed(5),
             max: Math.max(...sSelectedValues).toFixed(5),
             avg: (sTotalValue / sSelectedValues.length).toFixed(5),
-        }];
+        });
     });
+
+    return sSummaryRows;
 }
 
 function getSelectionPopoverPosition(

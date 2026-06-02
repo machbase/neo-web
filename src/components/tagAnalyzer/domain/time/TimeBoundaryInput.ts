@@ -1,51 +1,23 @@
 import moment from 'moment';
 import {
     TimeUnit,
-    type AbsoluteTimeBoundary,
-    type EmptyTimeBoundary,
     type LastTimeBoundary,
     type NowTimeBoundary,
     type TimeBoundary,
     type TimeRangeConfig,
 } from './TimeTypes';
 import { DATE_TIME_INPUT_FORMAT } from './TimeInputFormatters';
-import { normalizeTimeUnit, formatTimeUnitShortCode } from './TimeIntervalUtils';
+import { normalizeTimeUnit, formatTimeUnitShortCode } from './TimeUnitUtils';
+import {
+    createAbsoluteTimeBoundary,
+    createAnchoredTimeBoundary,
+    createEmptyTimeBoundary,
+} from './TimeBoundaryFactories';
 import { createTimeRangeConfig } from './TimeRangeUtils';
 
 export type TimeBoundaryInputValue = string | number;
 
 const RELATIVE_TIME_PATTERN = /^([A-Za-z]+)(?:-(\d+)(ms|s|m|h|d|w|M|y))?$/;
-
-export function createEmptyTimeBoundary(): EmptyTimeBoundary {
-    return { kind: 'empty' };
-}
-
-export function createAbsoluteTimeBoundary(
-    timestamp: number,
-): AbsoluteTimeBoundary {
-    return {
-        kind: 'absolute',
-        timestamp,
-    };
-}
-
-export function createAnchoredTimeBoundary(
-    kind: NowTimeBoundary['kind'] | LastTimeBoundary['kind'],
-    amount: number,
-    unit: TimeUnit,
-): NowTimeBoundary | LastTimeBoundary {
-    return kind === 'now'
-        ? {
-              kind: 'now',
-              amount,
-              unit,
-          }
-        : {
-              kind: 'last',
-              amount,
-              unit,
-          };
-}
 
 export function formatTimeRangeInputValue(boundary: TimeBoundary): string {
     if (boundary.kind === 'empty') {
