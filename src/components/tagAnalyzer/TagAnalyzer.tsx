@@ -11,27 +11,15 @@ import {
 import { gFileTree } from '@/recoil/fileTree';
 import TagAnalyzerBoard from './TagAnalyzerBoard';
 import { Page, Toast } from '@/design-system/components';
-import type {
-    BoardActions,
-    BoardInfo,
-} from './domain/BoardDomain';
+import type { BoardInfo } from './domain/BoardDomain';
 import {
     type GlobalBoardListState,
-    getNextBoardListWithAppendedPersistedPanel,
-    getNextBoardListWithPersistedBoardInfo,
     getNextBoardListWithSavedBoard,
-    getNextBoardListWithSavedPanel,
-    getNextBoardListWithBoardTimeRange,
-    getNextBoardListWithoutPanel,
 } from './appState/gBoardListUpdater';
 import { TAZ_FORMAT_VERSION, parseLoadedTaz } from './persistence/load/parseLoadedTaz';
-import type {
-    PersistedTazPanelInfo,
-    PersistedTazBoardInfo,
-} from './persistence/TazPersistenceTypesV200';
+import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
 import type { SaveableTazBoard } from './appState/SavedTazBoardSnapshot';
 import { useTagAnalyzerMetadata } from './appState/useTagAnalyzerMetadata';
-import { usePanelStatePersistence } from './appState/usePanelStatePersistence';
 
 const TagAnalyzer = ({
     pInfo,
@@ -57,14 +45,6 @@ const TagAnalyzer = ({
         [pInfo],
     );
     const sIsActiveTab = sSelectedTab === newBoardInfo.id;
-    const schedulePersistPanelState = usePanelStatePersistence({
-        boardInfo: newBoardInfo,
-        updateBoardList,
-    });
-
-    useEffect(() => {
-        updateBoardList((prev) => getNextBoardListWithPersistedBoardInfo(prev, newBoardInfo));
-    }, [newBoardInfo, updateBoardList]);
 
     useEffect(() => {
         if (!shouldWarnAboutOlderTazVersion(pInfo)) {
@@ -75,37 +55,8 @@ const TagAnalyzer = ({
             `Loaded older TAZ format (${pInfo.version ?? 'legacy'}). Current format is ${TAZ_FORMAT_VERSION}. Save the board to update it.`,
             undefined,
         );
-    }, [pInfo.id, pInfo.panels?.length, pInfo.version]);
+    }, [pInfo]);
 
-    const sPanelBoardActions: BoardActions = {
-        onDeletePanel: ({ panelKey }) =>
-            updateBoardList((prev) => getNextBoardListWithoutPanel(prev, newBoardInfo.id, panelKey)),
-        onPersistPanelState: schedulePersistPanelState,
-        onSavePanel: (panelInfo) => {
-            updateBoardList((prev) =>
-                getNextBoardListWithSavedPanel(
-                    prev,
-                    newBoardInfo.id,
-                    panelInfo.data.index_key,
-                    panelInfo,
-                ),
-            );
-        },
-        onSetBoardTimeRange: (timeRange) => {
-            updateBoardList((prev) =>
-                getNextBoardListWithBoardTimeRange(prev, newBoardInfo.id, timeRange),
-            );
-        },
-    };
-    const appendNewPanelToBoard = (panel: PersistedTazPanelInfo) => {
-        updateBoardList((prev) =>
-            getNextBoardListWithAppendedPersistedPanel(
-                prev,
-                newBoardInfo.id,
-                panel,
-            ),
-        );
-    };
     const handleSavedBoard = (savedBoard: SaveableTazBoard): void => {
         updateBoardList((prev) =>
             getNextBoardListWithSavedBoard(
@@ -121,9 +72,7 @@ const TagAnalyzer = ({
                 <Page>
                     <TagAnalyzerBoard
                         pInfo={newBoardInfo}
-                        pSaveableBoard={pInfo as SaveableTazBoard}
                         pIsActiveTab={sIsActiveTab}
-                        pPanelBoardActions={sPanelBoardActions}
                         pRollupTableList={rollupTableList}
                         pRecentModalPath={sRecentModalPath}
                         pFileTree={sFileTree}
@@ -131,7 +80,6 @@ const TagAnalyzer = ({
                         pOnFileTreeChange={setGlobalFileTree}
                         pOnRecentModalPathChange={setRecentModalPath}
                         pAvailableSourceTableNames={availableSourceTableNames}
-                        pOnAppendPanel={appendNewPanelToBoard}
                     />
                 </Page>
             </div>
