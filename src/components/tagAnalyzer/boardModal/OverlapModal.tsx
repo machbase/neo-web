@@ -4,13 +4,15 @@ import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import type { OverlapPanelInfo } from '../domain/BoardDomain';
+import type { OverlapPanelInfo, OverlapShiftDirection } from '../domain/BoardDomain';
 import {
+    alignOverlapPanelsToReference,
     alignOverlapTime,
     buildOverlapLoadState,
     hasOverlapPanelDraftChanged,
     mapOverlapRows,
     resolveOverlapTimeRange,
+    shiftOverlapPanels,
 } from './OverlapComparisonUtils';
 import {
     buildChartSeriesData,
@@ -43,17 +45,9 @@ function OverlapModal({
     const [sSeriesData, setSeriesData] = useState<ChartSeriesData[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sHasLoadedInitialDataRef = useRef(false);
-    const sInitialPanelStartByKeyRef = useRef<Map<string, number> | null>(null);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sAppliedPanelsInfo, setAppliedPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
     const [sDraftPanelsInfo, setDraftPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
-
-    if (sInitialPanelStartByKeyRef.current === null) {
-        sInitialPanelStartByKeyRef.current = createInitialPanelStartByKey(pPanelsInfo);
-    }
-
-    const sInitialPanelStartByKey = sInitialPanelStartByKeyRef.current;
-
     const fetchOverlapPanelData = async function fetchOverlapPanelData(
         panelInfo: OverlapPanelInfo,
         anchorPanel: OverlapPanelInfo,
@@ -139,40 +133,19 @@ function OverlapModal({
         setStartTimeList(sLoadState.startTimes);
         setSeriesData(sLoadState.chartSeries);
     };
-    const setPanelShiftOffset = function setPanelShiftOffset(
+    const shiftPanelTime = function shiftPanelTime(
         panelKey: string,
-        offsetMs: number,
+        type: OverlapShiftDirection,
+        range: number,
     ): void {
-        if (!Number.isFinite(offsetMs)) {
-            throw new Error('Overlap shift offset must be a finite number of milliseconds.');
-        }
-
-        const sInitialStart = getInitialPanelStart(sInitialPanelStartByKey, panelKey);
-        const sNextStart = sInitialStart + offsetMs;
-
-        setDraftPanelsInfo((currentPanelsInfo) => {
-            let sDidUpdatePanel = false;
-            const sNextPanelsInfo = currentPanelsInfo.map((panelInfo) => {
-                if (panelInfo.board.data.index_key !== panelKey) {
-                    return panelInfo;
-                }
-
-                sDidUpdatePanel = true;
-
-                return panelInfo.start === sNextStart
-                    ? panelInfo
-                    : {
-                          ...panelInfo,
-                          start: sNextStart,
-                      };
-            });
-
-            if (!sDidUpdatePanel) {
-                throw new Error(`Cannot shift missing overlap panel: ${panelKey}`);
-            }
-
-            return sNextPanelsInfo;
-        });
+        setDraftPanelsInfo((currentPanelsInfo) =>
+            shiftOverlapPanels(currentPanelsInfo, panelKey, type, range),
+        );
+    };
+    const alignPanelTime = function alignPanelTime(panelKey: string): void {
+        setDraftPanelsInfo((currentPanelsInfo) =>
+            alignOverlapPanelsToReference(currentPanelsInfo, panelKey),
+        );
     };
     const applyDraftPanelTime = function applyDraftPanelTime(): void {
         if (!hasOverlapPanelDraftChanged(sAppliedPanelsInfo, sDraftPanelsInfo)) {
@@ -196,23 +169,18 @@ function OverlapModal({
     function renderOverlapTimeShiftPanel(item: OverlapPanelInfo, idx: number): JSX.Element {
         const sFirstTag = item.board.data.tag_set[0];
         const sFirstTagLabel = sFirstTag?.alias || sFirstTag?.sourceTagName || '';
-        const sPanelKey = item.board.data.index_key;
-        const sShiftOffsetMs = item.start - getInitialPanelStart(
-            sInitialPanelStartByKey,
-            sPanelKey,
-        );
 
         return (
             <OverlapTimeShiftPanel
                 pColorIndex={idx}
-                key={sPanelKey}
+                key={item.board.data.index_key}
                 pLabel={sFirstTagLabel}
                 pStart={item.start}
                 pDuration={sAnchorPanel.duration}
-                pShiftOffsetMs={sShiftOffsetMs}
-                pOnSetShiftOffset={(offsetMs: number) =>
-                    setPanelShiftOffset(sPanelKey, offsetMs)
+                pOnShiftTime={(direction: OverlapShiftDirection, range: number) =>
+                    shiftPanelTime(item.board.data.index_key, direction, range)
                 }
+                pOnAlignTime={() => alignPanelTime(item.board.data.index_key)}
             />
         );
     }
@@ -309,35 +277,6 @@ function OverlapModal({
             </Modal.Footer>
         </Modal.Root>
     );
-}
-
-function createInitialPanelStartByKey(panelsInfo: OverlapPanelInfo[]): Map<string, number> {
-    const sPanelStartByKey = new Map<string, number>();
-
-    panelsInfo.forEach((panelInfo) => {
-        const sPanelKey = panelInfo.board.data.index_key;
-
-        if (sPanelStartByKey.has(sPanelKey)) {
-            throw new Error(`Duplicate overlap panel key: ${sPanelKey}`);
-        }
-
-        sPanelStartByKey.set(sPanelKey, panelInfo.start);
-    });
-
-    return sPanelStartByKey;
-}
-
-function getInitialPanelStart(
-    panelStartByKey: Map<string, number>,
-    panelKey: string,
-): number {
-    const sInitialPanelStart = panelStartByKey.get(panelKey);
-
-    if (sInitialPanelStart === undefined) {
-        throw new Error(`Cannot find initial start for overlap panel: ${panelKey}`);
-    }
-
-    return sInitialPanelStart;
 }
 
 export default OverlapModal;

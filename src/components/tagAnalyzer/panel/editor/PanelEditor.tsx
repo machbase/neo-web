@@ -92,13 +92,13 @@ const PanelEditor = ({
     pOnClose,
     pPanelInfo,
     pIsRawMode,
-    pPanelRange,
+    pVisiblePanelRange,
 }: {
     pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnClose: () => void;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
-    pPanelRange: TimeRangeMs;
+    pVisiblePanelRange: TimeRangeMs;
 }) => {
     const sInitialEditorConfig = useMemo(
         () => pPanelInfo,
@@ -269,7 +269,7 @@ const PanelEditor = ({
                 return (
                     <EditorTimeTab
                         pTimeConfig={sEditorConfig.time}
-                        pPanelRange={pPanelRange}
+                        pVisiblePanelRange={pVisiblePanelRange}
                         pOnChangeTimeConfig={setTimeDraft}
                     />
                 );

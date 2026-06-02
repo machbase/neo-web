@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import {
+    MdCenterFocusStrong,
+    VscChevronLeft,
+    VscChevronRight,
+} from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import { Page } from '@/design-system/components';
+import type { OverlapShiftDirection } from '../domain/BoardDomain';
 import { formatLocalTimestampWithMilliseconds } from '../domain/time/TimeFormatters';
 
 const OVERLAP_TIME_SHIFT_COLORS = [
@@ -18,24 +24,17 @@ const OVERLAP_TIME_SHIFT_COLORS = [
     '#6B6B6B',
 ];
 
+const DEFAULT_OFFSET_MILLISECONDS_INPUT = '0';
 const PANEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } as const;
 const LABEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' } as const;
 const CONTROL_ROW_STYLE = { alignItems: 'center', gap: '6px' } as const;
 const OFFSET_LABEL_STYLE = { display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px' } as const;
 const OFFSET_INPUT_STYLE = { width: '86px', height: '30px' } as const;
 
-function parseShiftOffsetInput(value: string): number {
-    if (value.trim() === '') {
-        throw new Error('Overlap shift offset is required.');
-    }
-
+function parseOffsetInput(value: string): number {
     const sParsedValue = Number(value);
 
-    if (!Number.isFinite(sParsedValue)) {
-        throw new Error('Overlap shift offset must be a finite number of milliseconds.');
-    }
-
-    return sParsedValue;
+    return Number.isFinite(sParsedValue) ? sParsedValue : 0;
 }
 
 const OverlapTimeShiftPanel = ({
@@ -43,27 +42,21 @@ const OverlapTimeShiftPanel = ({
     pLabel,
     pStart,
     pDuration,
-    pShiftOffsetMs,
-    pOnSetShiftOffset,
+    pOnShiftTime,
+    pOnAlignTime,
 }: {
     pColorIndex: number;
     pLabel: string;
     pStart: number;
     pDuration: number;
-    pShiftOffsetMs: number;
-    pOnSetShiftOffset: (offsetMs: number) => void;
+    pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
+    pOnAlignTime: () => void;
 }): JSX.Element => {
     const [sOffsetMillisecondsInput, setOffsetMillisecondsInput] = useState(
-        () => String(pShiftOffsetMs),
+        DEFAULT_OFFSET_MILLISECONDS_INPUT,
     );
 
-    useEffect(() => {
-        setOffsetMillisecondsInput(String(pShiftOffsetMs));
-    }, [pShiftOffsetMs]);
-
-    function applyShiftOffset(): void {
-        pOnSetShiftOffset(parseShiftOffsetInput(sOffsetMillisecondsInput));
-    }
+    const sShiftAmount = parseOffsetInput(sOffsetMillisecondsInput);
 
     return (
         <div>
@@ -87,17 +80,28 @@ const OverlapTimeShiftPanel = ({
                 <Page.DpRow
                     style={CONTROL_ROW_STYLE}
                 >
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<MdCenterFocusStrong size={14} />}
+                        onClick={pOnAlignTime}
+                        isToolTip
+                        toolTipContent="Align all rows to this start"
+                        aria-label="Align all rows to this start"
+                    />
                     <Button.Group>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={<VscChevronLeft size={16} />}
+                            onClick={() => pOnShiftTime('-', sShiftAmount)}
+                            aria-label="Previous"
+                        />
                         <label style={OFFSET_LABEL_STYLE}>
                             <Input
                                 type="number"
                                 value={sOffsetMillisecondsInput}
                                 onChange={(event) => setOffsetMillisecondsInput(event.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                        applyShiftOffset();
-                                    }
-                                }}
                                 size="md"
                                 style={OFFSET_INPUT_STYLE}
                             />
@@ -106,10 +110,10 @@ const OverlapTimeShiftPanel = ({
                         <Button
                             variant="secondary"
                             size="sm"
-                            onClick={applyShiftOffset}
-                        >
-                            Shift
-                        </Button>
+                            icon={<VscChevronRight size={16} />}
+                            onClick={() => pOnShiftTime('+', sShiftAmount)}
+                            aria-label="Next"
+                        />
                     </Button.Group>
                 </Page.DpRow>
             </Page.DpRow>
