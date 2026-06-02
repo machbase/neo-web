@@ -380,7 +380,6 @@ export const useTagSelectionState = ({
         selectedTable,
         setSelectedTable: changeTable,
         tableOptions,
-        tableColumns,
         availableTags,
         tagTotal,
         tagInputValue,
