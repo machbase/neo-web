@@ -34,26 +34,26 @@ const DEFAULT_TIME_INPUT_PLACEHOLDER = 'YYYY-MM-DD HH:mm:ss';
 
 const EditorTimeTab = ({
     pTimeConfig,
-    pVisiblePanelRange,
+    pPanelRange,
     pOnChangeTimeConfig,
 }: {
     pTimeConfig: PanelEditorConfig['time'];
-    pVisiblePanelRange: TimeRangeMs;
+    pPanelRange: TimeRangeMs;
     pOnChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
 }) => {
     const sInitialInputValues = getTimeInputValues(
         pTimeConfig,
-        pVisiblePanelRange,
+        pPanelRange,
     );
     const [sStartTime, setStartTime] = useState(sInitialInputValues.startTime);
     const [sEndTime, setEndTime] = useState(sInitialInputValues.endTime);
-    const sInputValues = getTimeInputValues(pTimeConfig, pVisiblePanelRange);
+    const sInputValues = getTimeInputValues(pTimeConfig, pPanelRange);
 
     useEffect(() => {
-        const sNextInputValues = getTimeInputValues(pTimeConfig, pVisiblePanelRange);
+        const sNextInputValues = getTimeInputValues(pTimeConfig, pPanelRange);
         setStartTime(sNextInputValues.startTime);
         setEndTime(sNextInputValues.endTime);
-    }, [pTimeConfig, pVisiblePanelRange]);
+    }, [pTimeConfig, pPanelRange]);
 
     function updateTimeInput(field: TimeInputField, value: string): void {
         const sBoundary = parseTimeRangeInputValue(value);
@@ -180,18 +180,18 @@ function getTimeConfigWithUpdatedBoundary(
 
 function getTimeInputValues(
     timeConfig: PanelEditorConfig['time'],
-    visiblePanelRange: TimeRangeMs,
+    panelRange: TimeRangeMs,
 ): TimeInputValues {
     const sIsEmptyTimeRange = isEmptyTimeRangeConfig(timeConfig.range_config);
 
     return {
         startTime: formatTimeRangeInputValue(timeConfig.range_config.start),
         endTime: formatTimeRangeInputValue(timeConfig.range_config.end),
-        startPlaceholder: sIsEmptyTimeRange && isConcreteTimeRange(visiblePanelRange)
-            ? formatTimestampInputPlaceholder(visiblePanelRange.startTime)
+        startPlaceholder: sIsEmptyTimeRange && isConcreteTimeRange(panelRange)
+            ? formatTimestampInputPlaceholder(panelRange.startTime)
             : DEFAULT_TIME_INPUT_PLACEHOLDER,
-        endPlaceholder: sIsEmptyTimeRange && isConcreteTimeRange(visiblePanelRange)
-            ? formatTimestampInputPlaceholder(visiblePanelRange.endTime)
+        endPlaceholder: sIsEmptyTimeRange && isConcreteTimeRange(panelRange)
+            ? formatTimestampInputPlaceholder(panelRange.endTime)
             : DEFAULT_TIME_INPUT_PLACEHOLDER,
     };
 }
