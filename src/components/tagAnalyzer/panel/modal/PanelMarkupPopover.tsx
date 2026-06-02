@@ -45,12 +45,14 @@ const PanelMarkupPopover = ({
     onClose,
     draggable = false,
     outsideCloseIgnoreSelector,
+    closeOnScroll = true,
 }: {
     position: PanelMarkupPopoverPosition;
     children: ReactNode;
     onClose: () => void;
     draggable?: boolean;
     outsideCloseIgnoreSelector?: string;
+    closeOnScroll?: boolean;
 }) => {
     const popoverRef = useRef<HTMLDivElement>(null);
     const [adjustedPosition, setAdjustedPosition] = useState(position);
@@ -132,15 +134,19 @@ const PanelMarkupPopover = ({
             document.addEventListener('mousedown', handleClickOutside);
         }, 0);
         document.addEventListener('keydown', handleEscKey);
-        window.addEventListener('scroll', onClose, true);
+        if (closeOnScroll) {
+            window.addEventListener('scroll', onClose, true);
+        }
 
         return () => {
             window.clearTimeout(timeoutId);
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleEscKey);
-            window.removeEventListener('scroll', onClose, true);
+            if (closeOnScroll) {
+                window.removeEventListener('scroll', onClose, true);
+            }
         };
-    }, [onClose, outsideCloseIgnoreSelector]);
+    }, [closeOnScroll, onClose, outsideCloseIgnoreSelector]);
 
     return createPortal(
         <div

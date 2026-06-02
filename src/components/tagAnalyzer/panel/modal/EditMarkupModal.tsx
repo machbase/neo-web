@@ -47,6 +47,7 @@ export type AnnotationFormState = {
 
 const EMPTY_ANNOTATION_SERIES_VALUE = '';
 const COLOR_FIELDS = [['fillColor', 'Fill color', 'fill'], ['textColor', 'Text color', 'text']] as const;
+const MARKUP_DROPDOWN_MENU_CLASS = 'panel-markup-modal__dropdown-menu';
 
 function MarkupModal({
     title,
@@ -56,6 +57,8 @@ function MarkupModal({
     children,
     actions,
     draggable = false,
+    outsideCloseIgnoreSelector,
+    closeOnScroll,
 }: {
     title: string;
     className: string;
@@ -64,12 +67,16 @@ function MarkupModal({
     children: ReactNode;
     actions: ReactNode;
     draggable?: boolean;
+    outsideCloseIgnoreSelector?: string;
+    closeOnScroll?: boolean;
 }) {
     return (
         <PanelMarkupPopover
             position={position}
             onClose={onClose}
             draggable={draggable}
+            outsideCloseIgnoreSelector={outsideCloseIgnoreSelector}
+            closeOnScroll={closeOnScroll}
         >
             <div className={`panel-markup-modal ${className} ${draggable ? 'panel-markup-modal--draggable' : ''}`}>
                 <div className="panel-markup-modal__title">{title}</div>
@@ -396,6 +403,8 @@ export function EditAnnotationModal({
             position={annotationEditorMeta.position}
             onClose={onCancel}
             draggable
+            outsideCloseIgnoreSelector={`.${MARKUP_DROPDOWN_MENU_CLASS}`}
+            closeOnScroll={false}
             actions={(
                 <ModalActions
                     canApply={canApply}
@@ -418,7 +427,7 @@ export function EditAnnotationModal({
                     fullWidth
                 >
                     <Dropdown.Trigger style={{ height: '32px' }} />
-                    <Dropdown.Menu>
+                    <Dropdown.Menu className={MARKUP_DROPDOWN_MENU_CLASS}>
                         <Dropdown.List />
                     </Dropdown.Menu>
                 </Dropdown.Root>

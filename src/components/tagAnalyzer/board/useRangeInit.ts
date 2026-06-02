@@ -13,15 +13,13 @@ import type {
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
-import type { PanelRangeApplyOptions } from '../panel/PanelDataRuntimeState';
-import { hasValidRangeState, type BoardPanelRecord } from './BoardPanelState';
+import {
+    hasValidRangeState,
+    type ApplyPanelRangeState,
+    type BoardPanelRecord,
+} from './BoardPanelState';
 
-type ApplyPanelRangeState = (
-    panelInfo: PanelInfo,
-    options: PanelRangeApplyOptions,
-) => void;
-
-type PanelRangeInitializationDependencies = {
+type RangeInitDependencies = {
     boardTime: TimeRangeConfig;
     globalTimeRange: GlobalTimeRangeState | undefined;
     isActiveTab: boolean;
@@ -37,6 +35,14 @@ type PanelRangeInitializationDependencies = {
     ) => void;
 };
 
+type RangeInitActions = {
+    initializePanelRange: (panelInfo: PanelInfo) => Promise<void>;
+    handleChartWidthChange: (
+        panelInfo: PanelInfo,
+        width: number | undefined,
+    ) => void;
+};
+
 export function useRangeInit({
     boardTime,
     globalTimeRange,
@@ -45,7 +51,7 @@ export function useRangeInit({
     setPanelChartAreaWidth,
     applyPanelRangeState,
     applyGlobalRangeToPanel,
-}: PanelRangeInitializationDependencies) {
+}: RangeInitDependencies): RangeInitActions {
     const initializedPanelKeysRef = useRef<Record<string, true>>({});
 
     async function initializePanelRange(panelInfo: PanelInfo): Promise<void> {
