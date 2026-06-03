@@ -88,13 +88,13 @@ function createEditorConfigDirtyKey(config: PanelEditorConfig): string {
 }
 
 const PanelEditor = ({
-    pOnSaveEditorConfig,
+    pOnApplyEditorConfig,
     pOnClose,
     pPanelInfo,
     pIsRawMode,
     pPanelRange,
 }: {
-    pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => void;
+    pOnApplyEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnClose: () => void;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
@@ -160,12 +160,12 @@ const PanelEditor = ({
         ? 'Fix invalid values before applying'
         : undefined;
 
-    const saveEditorChanges = () => {
+    const applyEditorChanges = () => {
         if (!sCanApplyEditorChanges) {
             return;
         }
 
-        pOnSaveEditorConfig(sEditorConfig);
+        pOnApplyEditorConfig(sEditorConfig);
         sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
         setAppliedEditorConfigKey(sEditorConfigKey);
     };
@@ -325,7 +325,7 @@ const PanelEditor = ({
                                     variant="primary"
                                     size="sm"
                                     disabled={!sCanApplyEditorChanges}
-                                    onClick={saveEditorChanges}
+                                    onClick={applyEditorChanges}
                                 >
                                     Apply
                                 </Button>

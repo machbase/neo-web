@@ -1,7 +1,7 @@
 import type { MutableRefObject } from 'react';
 import {
     PanelOverlayMode,
-    type PanelBrushSelectionEvent,
+    type PanelRangeChangeEvent,
     type PanelMarkupHandlers,
     type PanelRangeHandlers,
 } from '../../../domain/PanelDomain';
@@ -72,7 +72,7 @@ type BuildChartEventParams = {
     rangeHandlers: PanelRangeHandlers;
     markupHandlers: PanelMarkupHandlers;
     onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
-    onSelection: (event: PanelBrushSelectionEvent) => unknown;
+    onSelection: (event: PanelRangeChangeEvent) => unknown;
     legendState: {
         applyLegendHoverState: (
             hoveredLegendSeries: string | undefined,

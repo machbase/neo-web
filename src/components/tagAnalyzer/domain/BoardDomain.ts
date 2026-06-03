@@ -39,7 +39,7 @@ export type SetGlobalTimeRangePayload = {
 export type BoardActions = {
     onDeletePanel: (payload: { panelKey: string }) => void;
     onPersistPanelState: (payload: PersistPanelStatePayload) => void;
-    onSavePanel: (panelInfo: PanelInfo) => void;
+    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
     onSetBoardTimeRange: (timeRange: TimeRangeConfig) => void;
 };
 

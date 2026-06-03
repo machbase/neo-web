@@ -119,16 +119,9 @@ export function usePanelHighlight({
             temporaryHighlight !== undefined &&
             sHighlightIndex === highlightActions.getHighlightCount();
 
-        const sNextLabelText =
-            formState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
-        const sNextStartTime = parseAxisInputValue(
-            formState.startTimeText,
-            isNumericXAxis,
-        );
-        const sNextEndTime = parseAxisInputValue(
-            formState.endTimeText,
-            isNumericXAxis,
-        );
+        const sNextLabelText = formState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
+        const sNextStartTime = parseAxisInputValue(formState.startTimeText, isNumericXAxis);
+        const sNextEndTime = parseAxisInputValue(formState.endTimeText, isNumericXAxis);
 
         if (
             sNextStartTime === undefined ||
@@ -190,10 +183,7 @@ function createHighlightActions({
         onSaveHighlights([...highlights, highlight]);
     }
 
-    function updateHighlightEntry(
-        index: number,
-        highlight: PanelHighlight,
-    ): void {
+    function updateHighlightEntry(index: number, highlight: PanelHighlight): void {
         getHighlightByIndex(index);
 
         onSaveHighlights(
@@ -206,9 +196,7 @@ function createHighlightActions({
     function deleteHighlightEntry(index: number): void {
         getHighlightByIndex(index);
 
-        onSaveHighlights(
-            highlights.filter((_highlight, currentIndex) => currentIndex !== index),
-        );
+        onSaveHighlights(highlights.filter((_highlight, currentIndex) => currentIndex !== index));
     }
 
     return {

@@ -14,12 +14,12 @@ import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import {
     createInitialBoardPanelRecord,
     type BoardPanelRecord,
+    type PanelRangeStateApplyOptions,
 } from './BoardPanelState';
 import { useApplyPanelRange } from './useApplyPanelRange';
 import { useRangeInit } from './useRangeInit';
 import { useConfigReload } from './useConfigReload';
 import { useRefreshRange } from './useRefreshRange';
-import type { PanelRangeStateApplyOptions } from '../panel/PanelDataRuntimeState';
 
 export function useTagAnalyzerBoardPanels({
     panels,

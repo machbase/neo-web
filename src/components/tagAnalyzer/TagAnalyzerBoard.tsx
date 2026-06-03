@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
     Calendar,
@@ -46,6 +46,15 @@ import {
     parseLoadedTaz,
 } from './persistence/load/parseLoadedTaz';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
+
+const SAVE_ERROR_MESSAGE = 'Failed to save TAZ file. Please try again.';
+const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
+const OVERLAP_AXIS_MISMATCH_MESSAGE =
+    'Overlap can only compare panels with the same x-axis type.';
+
+type BoardSaveResult =
+    | Awaited<ReturnType<typeof saveTaz>>
+    | Awaited<ReturnType<typeof saveAsTaz>>;
 
 type TagAnalyzerBoardProps = {
     pInfo: BoardInfo;
@@ -96,12 +105,16 @@ const TagAnalyzerBoard = ({
         onAppliedRange: handleRuntimeAppliedRange,
     });
 
-    function refreshAllPanelData(): void {
-        boardPanels.refreshAllPanelData();
-    }
+    function updateRuntimePanels(
+        updatePanels: (panels: PanelInfo[]) => PanelInfo[],
+    ): void {
+        setRuntimeBoardInfo((prev) => {
+            const sNextPanels = updatePanels(prev.panels);
 
-    function refreshAllPanelTime(): void {
-        boardPanels.refreshAllPanelTime();
+            return sNextPanels === prev.panels
+                ? prev
+                : { ...prev, panels: sNextPanels };
+        });
     }
 
     function handleApplyBoardTimeRange(timeRange: TimeRangeConfig): void {
@@ -128,6 +141,17 @@ const TagAnalyzerBoard = ({
         pOnSavedBoard(savedBoard);
     }, [pOnSavedBoard]);
 
+    const finishBoardSave = useCallback((result: BoardSaveResult): boolean => {
+        if (!result.success || !result.savedBoard) {
+            Toast.error(SAVE_ERROR_MESSAGE);
+            return false;
+        }
+
+        applySavedRuntimeBoard(result.savedBoard);
+        Toast.success(SAVE_SUCCESS_MESSAGE);
+        return true;
+    }, [applySavedRuntimeBoard]);
+
     const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
         if (!sRuntimeBoardInfo.path) {
             await openTazSaveModal();
@@ -135,20 +159,12 @@ const TagAnalyzerBoard = ({
         }
 
         try {
-            const sSaveResult = await saveTaz(sRuntimeBoardInfo);
-            if (!sSaveResult.success || !sSaveResult.savedBoard) {
-                Toast.error('Failed to save TAZ file. Please try again.');
-                return false;
-            }
-
-            applySavedRuntimeBoard(sSaveResult.savedBoard);
-            Toast.success('TAZ file saved successfully.');
-            return true;
+            return finishBoardSave(await saveTaz(sRuntimeBoardInfo));
         } catch {
-            Toast.error('Failed to save TAZ file. Please try again.');
+            Toast.error(SAVE_ERROR_MESSAGE);
             return false;
         }
-    }, [applySavedRuntimeBoard, openTazSaveModal, sRuntimeBoardInfo]);
+    }, [finishBoardSave, openTazSaveModal, sRuntimeBoardInfo]);
 
     const saveCurrentTazBoardAs = useCallback(async (
         directoryPath: string,
@@ -160,13 +176,9 @@ const TagAnalyzerBoard = ({
                 directoryPath,
                 fileName,
             });
-            if (!sSaveResult.success || !sSaveResult.savedBoard) {
-                Toast.error('Failed to save TAZ file. Please try again.');
+            if (!finishBoardSave(sSaveResult)) {
                 return false;
             }
-
-            applySavedRuntimeBoard(sSaveResult.savedBoard);
-            Toast.success('TAZ file saved successfully.');
 
             const sUpdatedTreeResult = await TreeFetchDrilling(
                 pFileTree,
@@ -178,10 +190,10 @@ const TagAnalyzerBoard = ({
             }
             return true;
         } catch {
-            Toast.error('Failed to save TAZ file. Please try again.');
+            Toast.error(SAVE_ERROR_MESSAGE);
             return false;
         }
-    }, [applySavedRuntimeBoard, pFileTree, pOnFileTreeChange, sRuntimeBoardInfo]);
+    }, [finishBoardSave, pFileTree, pOnFileTreeChange, sRuntimeBoardInfo]);
 
     function handleSetGlobalTimeRange(
         payload: SetGlobalTimeRangePayload,
@@ -200,6 +212,21 @@ const TagAnalyzerBoard = ({
         payload: OverlapSelectionChangePayload,
     ): void {
         setOverlapSelections((prev) => getNextOverlapSelections(prev, payload));
+    }
+
+    function selectOverlapFromRange(
+        panel: PanelInfo,
+        panelRange: PanelRangeState['panelRange'],
+        isRaw: boolean,
+        changeType: OverlapSelectionChangePayload['changeType'],
+    ): void {
+        updateOverlapSelection({
+            start: panelRange.startTime,
+            end: panelRange.endTime,
+            panelKey: panel.data.index_key,
+            isRaw,
+            changeType,
+        });
     }
 
     function getPanelOverlapAxisKind(panel: PanelInfo) {
@@ -227,7 +254,7 @@ const TagAnalyzerBoard = ({
             .find((axisKind) => axisKind !== undefined);
 
         return sSelectedAxisKind && sSelectedAxisKind !== sPanelAxisKind
-            ? 'Overlap can only compare panels with the same x-axis type.'
+            ? OVERLAP_AXIS_MISMATCH_MESSAGE
             : undefined;
     }
 
@@ -239,7 +266,7 @@ const TagAnalyzerBoard = ({
             .filter((axisKind) => axisKind !== undefined);
 
         return new Set(sAxisKinds).size > 1
-            ? 'Overlap can only compare panels with the same x-axis type.'
+            ? OVERLAP_AXIS_MISMATCH_MESSAGE
             : undefined;
     }
 
@@ -276,30 +303,25 @@ const TagAnalyzerBoard = ({
         });
     }
 
-    function savePanel(panel: PanelInfo): void {
-        setRuntimeBoardInfo((prev) => ({
-            ...prev,
-            panels: replaceRuntimePanel(prev.panels, panel),
-        }));
+    function applyRuntimePanelInfo(panel: PanelInfo): void {
+        updateRuntimePanels((panels) =>
+            updatePanelByKey(panels, panel.data.index_key, () => panel),
+        );
     }
 
     function appendPanel(panel: PersistedTazPanelInfo): void {
         const sPanelInfo = parseLoadedPanelTaz(panel);
 
-        setRuntimeBoardInfo((prev) => ({
-            ...prev,
-            panels: prev.panels.concat(sPanelInfo),
-        }));
+        updateRuntimePanels((panels) => panels.concat(sPanelInfo));
     }
 
     function togglePanelRawMode(
         panel: PanelInfo,
         reloadAfterRawModeChange: (panelInfo: PanelInfo) => void,
     ): void {
-        const sNextRawMode = !panel.general.is_raw;
-        const sNextPanelInfo = getPanelInfoWithRawMode(panel, sNextRawMode);
+        const sNextPanelInfo = getPanelInfoWithRawMode(panel, !panel.general.is_raw);
 
-        savePanel(sNextPanelInfo);
+        applyRuntimePanelInfo(sNextPanelInfo);
         reloadAfterRawModeChange(sNextPanelInfo);
     }
 
@@ -308,45 +330,28 @@ const TagAnalyzerBoard = ({
         rangeState: PanelRangeState,
         isRaw: boolean,
     ): void {
-        const sIsAlreadySelected = sSelectedPanelKeys.has(panel.data.index_key);
+        if (!sSelectedPanelKeys.has(panel.data.index_key)) {
+            if (hasMixedXAxisValueKinds(panel.data.tag_set)) {
+                Toast.warning(
+                    `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled for this panel.`,
+                    undefined,
+                );
+                return;
+            }
 
-        if (sIsAlreadySelected) {
-            updateOverlapSelection({
-                start: rangeState.panelRange.startTime,
-                end: rangeState.panelRange.endTime,
-                panelKey: panel.data.index_key,
-                isRaw,
-                changeType: undefined,
-            });
-            return;
+            if (panel.data.tag_set.length !== 1) {
+                Toast.warning('Overlap requires a single-series panel.', undefined);
+                return;
+            }
+
+            const sAxisKindMismatchMessage = getOverlapAxisKindMismatchMessage(panel);
+            if (sAxisKindMismatchMessage) {
+                Toast.warning(sAxisKindMismatchMessage, undefined);
+                return;
+            }
         }
 
-        if (hasMixedXAxisValueKinds(panel.data.tag_set)) {
-            Toast.warning(
-                `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled for this panel.`,
-                undefined,
-            );
-            return;
-        }
-
-        if (panel.data.tag_set.length !== 1) {
-            Toast.warning('Overlap requires a single-series panel.', undefined);
-            return;
-        }
-
-        const sAxisKindMismatchMessage = getOverlapAxisKindMismatchMessage(panel);
-        if (sAxisKindMismatchMessage) {
-            Toast.warning(sAxisKindMismatchMessage, undefined);
-            return;
-        }
-
-        updateOverlapSelection({
-            start: rangeState.panelRange.startTime,
-            end: rangeState.panelRange.endTime,
-            panelKey: panel.data.index_key,
-            isRaw,
-            changeType: undefined,
-        });
+        selectOverlapFromRange(panel, rangeState.panelRange, isRaw, undefined);
     }
 
     function deletePanel(panel: PanelInfo): void {
@@ -354,10 +359,9 @@ const TagAnalyzerBoard = ({
             panelKey: panel.data.index_key,
             changeType: 'delete',
         });
-        setRuntimeBoardInfo((prev) => ({
-            ...prev,
-            panels: removeRuntimePanel(prev.panels, panel.data.index_key),
-        }));
+        updateRuntimePanels((panels) =>
+            removeRuntimePanel(panels, panel.data.index_key),
+        );
     }
 
     function handleRuntimeAppliedRange(
@@ -369,20 +373,9 @@ const TagAnalyzerBoard = ({
             isConcreteTimeRange(rangeState.panelRange) &&
             isConcreteTimeRange(rangeState.navigatorRange)
         ) {
-            setRuntimeBoardInfo((prev) => {
-                const sNextPanels = applyRuntimePanelLastViewedRange(
-                    prev.panels,
-                    panel,
-                    rangeState,
-                );
-
-                return sNextPanels === prev.panels
-                    ? prev
-                    : {
-                          ...prev,
-                          panels: sNextPanels,
-                      };
-            });
+            updateRuntimePanels((panels) =>
+                applyRuntimePanelLastViewedRange(panels, panel, rangeState),
+            );
         }
 
         if (
@@ -392,13 +385,12 @@ const TagAnalyzerBoard = ({
             return;
         }
 
-        updateOverlapSelection({
-            start: rangeState.panelRange.startTime,
-            end: rangeState.panelRange.endTime,
-            panelKey: panel.data.index_key,
-            isRaw: panel.general.is_raw,
-            changeType: 'changed',
-        });
+        selectOverlapFromRange(
+            panel,
+            rangeState.panelRange,
+            panel.general.is_raw,
+            'changed',
+        );
     }
 
     const sOverlapPanels = getSelectedOverlapPanels();
@@ -443,6 +435,54 @@ const TagAnalyzerBoard = ({
         };
     }, [pIsActiveTab, saveCurrentTazBoard]);
 
+    const sHeaderActions: Array<{
+        key: string;
+        tooltip: string;
+        icon: ReactNode;
+        onClick: () => void;
+        disabled?: boolean;
+        ariaLabel?: string;
+    }> = [
+        {
+            key: 'refresh-data',
+            tooltip: 'Refresh data',
+            icon: <Refresh size={15} />,
+            onClick: boardPanels.refreshAllPanelData,
+        },
+        {
+            key: 'refresh-time',
+            tooltip: 'Refresh time',
+            icon: <LuTimerReset size={16} />,
+            onClick: boardPanels.refreshAllPanelTime,
+        },
+        {
+            key: 'save',
+            tooltip: 'Save',
+            icon: <Save size={16} />,
+            onClick: () => void saveCurrentTazBoard(),
+        },
+        {
+            key: 'save-as',
+            tooltip: 'Save as',
+            icon: <SaveAs size={16} />,
+            onClick: () => void openTazSaveModal(),
+        },
+        {
+            key: 'overlap',
+            tooltip: sOverlapCompatibilityMessage ?? 'Overlap chart',
+            icon: <MdOutlineStackedLineChart size={16} />,
+            onClick: openOverlapChart,
+            disabled: sOverlapPanels.length === 0,
+        },
+        {
+            key: 'help',
+            tooltip: 'help',
+            icon: <Help size={16} />,
+            onClick: () => setIsHelpModalOpen(true),
+            ariaLabel: 'Open help',
+        },
+    ];
+
     return (
         <>
             <Page.Header>
@@ -456,58 +496,19 @@ const TagAnalyzerBoard = ({
                         <Calendar style={{ paddingRight: '8px' }} />
                         {sRangeText || 'Time range not set'}
                     </Button>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Refresh data"
-                        icon={<Refresh size={15} />}
-                        onClick={refreshAllPanelData}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Refresh time"
-                        icon={<LuTimerReset size={16} />}
-                        onClick={refreshAllPanelTime}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Save"
-                        icon={<Save size={16} />}
-                        onClick={() => void saveCurrentTazBoard()}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Save as"
-                        icon={<SaveAs size={16} />}
-                        onClick={() => void openTazSaveModal()}
-                    />
-                    <Button
-                        disabled={sOverlapPanels.length === 0}
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={
-                            sOverlapCompatibilityMessage ?? 'Overlap chart'
-                        }
-                        icon={<MdOutlineStackedLineChart size={16} />}
-                        onClick={openOverlapChart}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="help"
-                        icon={<Help size={16} />}
-                        onClick={() => setIsHelpModalOpen(true)}
-                        aria-label="Open help"
-                    />
+                    {sHeaderActions.map((action) => (
+                        <Button
+                            key={action.key}
+                            size="icon"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={action.tooltip}
+                            icon={action.icon}
+                            onClick={action.onClick}
+                            disabled={action.disabled}
+                            aria-label={action.ariaLabel}
+                        />
+                    ))}
                 </Button.Group>
             </Page.Header>
             <Page.Body>
@@ -534,7 +535,7 @@ const TagAnalyzerBoard = ({
                                     isOverlap: sIsOverlap,
                                 }}
                                 actions={{
-                                    onSavePanel: savePanel,
+                                    onApplyPanelInfo: applyRuntimePanelInfo,
                                     onSetGlobalTimeRange: handleSetGlobalTimeRange,
                                     onChartAreaWidthChange: (width) =>
                                         boardPanels.handleChartWidthChange(
@@ -580,7 +581,7 @@ const TagAnalyzerBoard = ({
                     />
                     {sIsNewPanelModal && (
                         <CreateChartModal
-                            key={pAvailableSourceTableNames.join('\u0000')}
+                            key={pAvailableSourceTableNames.join(String.fromCharCode(0))}
                             onClose={() => setIsNewPanelModal(false)}
                             pOnAppendPanel={appendPanel}
                             pAvailableSourceTableNames={pAvailableSourceTableNames}
@@ -630,51 +631,50 @@ const TagAnalyzerBoard = ({
     );
 };
 
-function replaceRuntimePanel(
-    panels: PanelInfo[],
-    panelInfo: PanelInfo,
-): PanelInfo[] {
-    const sPanelKey = panelInfo.data.index_key;
-    if (sPanelKey.length === 0) {
-        throw new Error('Cannot save a TagAnalyzer panel without an index key.');
+function assertPanelKey(panelKey: string): void {
+    if (panelKey.length === 0) {
+        throw new Error('TagAnalyzer panel is missing an index key.');
     }
+}
 
-    let sWasReplaced = false;
+function updatePanelByKey(
+    panels: PanelInfo[],
+    panelKey: string,
+    updatePanel: (panel: PanelInfo) => PanelInfo,
+): PanelInfo[] {
+    assertPanelKey(panelKey);
+
+    let sWasMatched = false;
+    let sHasChanges = false;
     const sNextPanels = panels.map((panel) => {
-        if (panel.data.index_key !== sPanelKey) {
+        if (panel.data.index_key !== panelKey) {
             return panel;
         }
 
-        sWasReplaced = true;
-        return panelInfo;
+        sWasMatched = true;
+        const sUpdatedPanel = updatePanel(panel);
+        if (sUpdatedPanel !== panel) {
+            sHasChanges = true;
+        }
+
+        return sUpdatedPanel;
     });
 
-    if (!sWasReplaced) {
-        throw new Error(`Cannot save missing TagAnalyzer panel: ${sPanelKey}`);
+    if (!sWasMatched) {
+        throw new Error(`Cannot update missing TagAnalyzer panel: ${panelKey}`);
     }
 
-    return sNextPanels;
+    return sHasChanges ? sNextPanels : panels;
 }
 
 function removeRuntimePanel(
     panels: PanelInfo[],
     panelKey: string,
 ): PanelInfo[] {
-    if (panelKey.length === 0) {
-        throw new Error('Cannot delete a TagAnalyzer panel without an index key.');
-    }
+    assertPanelKey(panelKey);
 
-    let sWasRemoved = false;
-    const sNextPanels = panels.filter((panel) => {
-        const sShouldKeepPanel = panel.data.index_key !== panelKey;
-        if (!sShouldKeepPanel) {
-            sWasRemoved = true;
-        }
-
-        return sShouldKeepPanel;
-    });
-
-    if (!sWasRemoved) {
+    const sNextPanels = panels.filter((panel) => panel.data.index_key !== panelKey);
+    if (sNextPanels.length === panels.length) {
         throw new Error(`Cannot delete missing TagAnalyzer panel: ${panelKey}`);
     }
 
@@ -686,34 +686,16 @@ function applyRuntimePanelLastViewedRange(
     panelInfo: PanelInfo,
     rangeState: PanelRangeState,
 ): PanelInfo[] {
-    const sPanelKey = panelInfo.data.index_key;
-    if (sPanelKey.length === 0) {
-        throw new Error('Cannot persist a TagAnalyzer panel range without an index key.');
-    }
-
-    let sWasMatched = false;
-    let sHasChanges = false;
-    const sNextPanels = panels.map((panel) => {
-        if (panel.data.index_key !== sPanelKey) {
-            return panel;
-        }
-
-        sWasMatched = true;
+    return updatePanelByKey(panels, panelInfo.data.index_key, (panel) => {
         const sCurrentLastViewedRange = panel.general.last_viewed_range;
         const sCurrentPanelRange = sCurrentLastViewedRange?.panelRange;
         const sCurrentNavigatorRange = sCurrentLastViewedRange?.navigatorRange;
         const sHasSamePanelRange =
             isConcreteTimeRange(sCurrentPanelRange) &&
-            isSameTimeRange(
-                sCurrentPanelRange,
-                rangeState.panelRange,
-            );
+            isSameTimeRange(sCurrentPanelRange, rangeState.panelRange);
         const sHasSameNavigatorRange =
             isConcreteTimeRange(sCurrentNavigatorRange) &&
-            isSameTimeRange(
-                sCurrentNavigatorRange,
-                rangeState.navigatorRange,
-            );
+            isSameTimeRange(sCurrentNavigatorRange, rangeState.navigatorRange);
 
         if (
             panel.general.is_raw === panelInfo.general.is_raw &&
@@ -723,7 +705,6 @@ function applyRuntimePanelLastViewedRange(
             return panel;
         }
 
-        sHasChanges = true;
         return {
             ...panel,
             general: {
@@ -736,12 +717,6 @@ function applyRuntimePanelLastViewedRange(
             },
         };
     });
-
-    if (!sWasMatched) {
-        throw new Error(`Cannot persist range for missing TagAnalyzer panel: ${sPanelKey}`);
-    }
-
-    return sHasChanges ? sNextPanels : panels;
 }
 
 export default TagAnalyzerBoard;

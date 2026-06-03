@@ -2,8 +2,8 @@ import { useCallback, useMemo, type CSSProperties } from 'react';
 import type {
     TagSelectionPanelViewModel,
     UseTagSelectionStateOptions,
-} from '../seriesSelection/TagSelectionTypes';
-import { useTagSelectionState } from '../seriesSelection/useTagSelectionState';
+} from './TagSelectionTypes';
+import { useTagSelectionState } from './useTagSelectionState';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../domain/SeriesDomain';
 
 type UseTagSelectionPanelStateOptions = {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../../domain/ChartDomain';
-import { PanelOverlayMode, type PanelBrushSelectionEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeHandlers, type PanelRangeState } from '../../domain/PanelDomain';
+import { PanelOverlayMode, type PanelRangeChangeEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeHandlers, type PanelRangeState } from '../../domain/PanelDomain';
 import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
 import { buildChartEvent } from './events/buildPanelChartEvent';
 import type { ChartInfo } from './types/PanelChartTypes';
@@ -27,7 +27,7 @@ type PanelBodyHandlers = {
     rangeHandlers: PanelRangeHandlers;
     markupHandlers: PanelMarkupHandlers;
     onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
-    onSelection: (event: PanelBrushSelectionEvent) => unknown;
+    onSelection: (event: PanelRangeChangeEvent) => unknown;
 };
 
 export type UsePanelChartRuntimeParams = {

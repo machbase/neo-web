@@ -5,14 +5,8 @@ import {
     type PanelSeriesDefinition,
 } from '../domain/SeriesDomain';
 import type { PanelAnnotation } from '../domain/PanelDomain';
-import {
-    formatAxisInputValue,
-    parseAxisInputValue,
-} from '../domain/time/TimeInputFormatters';
-import type {
-    AnnotationEditorMetaState,
-    AnnotationFormState,
-} from './modal/EditMarkupModal';
+import { formatAxisInputValue, parseAxisInputValue } from '../domain/time/TimeInputFormatters';
+import type { AnnotationEditorMetaState, AnnotationFormState } from './modal/EditMarkupModal';
 
 type PanelAnnotationSeriesOption = {
     label: string;
@@ -23,10 +17,7 @@ export type PanelAnnotationAction = {
     getAnnotation: (annotationIndex: number) => PanelAnnotation;
     getSeriesOptions: () => PanelAnnotationSeriesOption[];
     addAnnotationEntry: (annotation: PanelAnnotation) => void;
-    updateAnnotationEntry: (
-        annotationIndex: number,
-        annotation: PanelAnnotation,
-    ) => void;
+    updateAnnotationEntry: (annotationIndex: number, annotation: PanelAnnotation) => void;
     deleteAnnotationEntry: (annotationIndex: number) => void;
 };
 
@@ -60,10 +51,7 @@ export function usePanelAnnotation({
         annotationEditorMeta: AnnotationEditorMetaState,
         selectedSeriesKey: string,
     ): boolean {
-        const sAnnotationTimestamp = parseAxisInputValue(
-            formState.timeText,
-            isNumericXAxis,
-        );
+        const sAnnotationTimestamp = parseAxisInputValue(formState.timeText, isNumericXAxis);
 
         if (sAnnotationTimestamp === undefined) {
             return false;
@@ -155,10 +143,7 @@ function createPanelAnnotationAction({
         onSaveAnnotations([...annotations, { ...annotation }]);
     }
 
-    function updateAnnotationEntry(
-        annotationIndex: number,
-        annotation: PanelAnnotation,
-    ): void {
+    function updateAnnotationEntry(annotationIndex: number, annotation: PanelAnnotation): void {
         getAnnotation(annotationIndex);
 
         if (!seriesList.some((seriesInfo) => seriesInfo.key === annotation.seriesKey)) {
@@ -167,9 +152,7 @@ function createPanelAnnotationAction({
 
         onSaveAnnotations(
             annotations.map((currentAnnotation, currentAnnotationIndex) =>
-                currentAnnotationIndex === annotationIndex
-                    ? { ...annotation }
-                    : currentAnnotation,
+                currentAnnotationIndex === annotationIndex ? { ...annotation } : currentAnnotation,
             ),
         );
     }
@@ -179,8 +162,7 @@ function createPanelAnnotationAction({
 
         onSaveAnnotations(
             annotations.filter(
-                (_annotation, currentAnnotationIndex) =>
-                    currentAnnotationIndex !== annotationIndex,
+                (_annotation, currentAnnotationIndex) => currentAnnotationIndex !== annotationIndex,
             ),
         );
     }

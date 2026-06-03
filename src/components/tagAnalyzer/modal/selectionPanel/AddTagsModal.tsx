@@ -1,8 +1,9 @@
 import { BiSolidChart } from '@/assets/icons/Icon';
-import { Modal, Toast } from '@/design-system/components';
+import { Modal } from '@/design-system/components';
 import { getTagSelectionErrorMessage } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
-import { useTagSelectionPanelState } from './useTagSelectionPanelState';
+import { useTagSelectionPanelState } from '../seriesSelection/useTagSelectionPanelState';
+import { rejectWithToast } from './tagSelectionModalFeedback';
 import {
     buildSeriesDefinitionsFromDrafts,
     mergeSelectedTagsIntoTagSet,
@@ -39,8 +40,7 @@ const AddTagsModal = ({
             sTagSearch.selectedSeriesDrafts.length,
             sMaxSelectedCount,
         );
-        if (sSelectionError) {
-            Toast.error(sSelectionError, undefined);
+        if (rejectWithToast(sSelectionError)) {
             return;
         }
 
@@ -51,8 +51,7 @@ const AddTagsModal = ({
             ...pTagSet,
             ...sNewSeriesDefinitions,
         ]);
-        if (sAxisKindWarning) {
-            Toast.error(sAxisKindWarning, undefined);
+        if (rejectWithToast(sAxisKindWarning)) {
             return;
         }
 
