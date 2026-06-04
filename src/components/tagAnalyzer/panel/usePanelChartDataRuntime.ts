@@ -196,7 +196,7 @@ function useLoadRequests() {
     };
 }
 
-function applyRawSampling(
+function applyRawRowCap(
     loadConfig: PanelChartDataLoadConfig,
 ): PanelChartDataLoadConfig {
     if (!loadConfig.isRaw) {
@@ -206,10 +206,6 @@ function applyRawSampling(
     return {
         ...loadConfig,
         queryLimit: RAW_NAVIGATOR_SAMPLE_COUNT,
-        mainChartSampling: {
-            enabled: true,
-            sample_count: RAW_NAVIGATOR_SAMPLE_COUNT,
-        },
     };
 }
 
@@ -484,7 +480,7 @@ export function usePanelChartDataRuntime({
 
         try {
             const sMainLoadState = await loadMainSeriesData(
-                applyRawSampling(loadConfig),
+                applyRawRowCap(loadConfig),
                 getChartLoadWidth(),
                 panelRange,
                 rollupTableList,

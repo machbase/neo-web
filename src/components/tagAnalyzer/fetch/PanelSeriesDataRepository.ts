@@ -43,6 +43,7 @@ const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
 };
 type LimitDetectionMode = 'extra-row' | 'returned-count' | 'none';
 export const RAW_NAVIGATOR_SAMPLE_COUNT = 20000;
+export const RAW_NAVIGATOR_SAMPLING_VALUE = 0.01;
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -133,11 +134,11 @@ export async function fetchNavigatorPanelSeriesRows(
         return undefined;
     }
 
-    const sUseSampledRawNavigatorRows = seriesConfigSet.some((seriesConfig) =>
+    const sUsesNumericBaseTime = seriesConfigSet.some((seriesConfig) =>
         isNumericBaseTimeSourceColumns(seriesConfig.sourceColumns),
     );
     const sUseNavigatorOverviewCount =
-        requestedRawMode || sUseSampledRawNavigatorRows;
+        requestedRawMode || sUsesNumericBaseTime;
     const sInterval = sUseNavigatorOverviewCount
         ? resolveTimeBucketIntervalForTargetCount(
               timeRange,
@@ -165,7 +166,7 @@ export async function fetchNavigatorPanelSeriesRows(
     const sQueryCount = resolveQueryCount(sDisplayCount, sLimitDetectionMode);
     const sRawNavigatorSampling = resolveRawFetchSampling(
         true,
-        RAW_NAVIGATOR_SAMPLE_COUNT,
+        RAW_NAVIGATOR_SAMPLING_VALUE,
     );
 
     return {
@@ -173,7 +174,7 @@ export async function fetchNavigatorPanelSeriesRows(
             seriesConfigSet.map(async (seriesConfig) => {
                 let sFetchResult: ChartFetchResponse;
 
-                if (sUseSampledRawNavigatorRows) {
+                if (sUsesNumericBaseTime) {
                     sFetchResult = await fetchRawSeriesRows(
                         seriesConfig,
                         timeRange,

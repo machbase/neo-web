@@ -16,7 +16,10 @@ import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import { RAW_NAVIGATOR_SAMPLE_COUNT } from '../../../fetch/PanelSeriesDataRepository';
+import {
+    RAW_NAVIGATOR_SAMPLE_COUNT,
+    RAW_NAVIGATOR_SAMPLING_VALUE,
+} from '../../../fetch/PanelSeriesDataRepository';
 import styles from '../PanelEditor.module.scss';
 
 type AxisKey = keyof Pick<
@@ -408,11 +411,12 @@ const EditorAxesTab = ({
                 <SamplingRow
                     anchorClass="navigation-sampling-tooltip"
                     label="Navigation sampling"
-                    content="Raw navigator data always uses fixed sampled loading."
+                    content="Raw navigator data uses fixed database sampling and a fixed row cap."
                     disabled={!pIsRawMode}
                 >
                     <span className={styles.editorFixedValue}>
-                        Fixed at {RAW_NAVIGATOR_SAMPLE_COUNT.toLocaleString()}
+                        Sampling {RAW_NAVIGATOR_SAMPLING_VALUE}, cap{' '}
+                        {RAW_NAVIGATOR_SAMPLE_COUNT.toLocaleString()}
                     </span>
                 </SamplingRow>
             </Section>
