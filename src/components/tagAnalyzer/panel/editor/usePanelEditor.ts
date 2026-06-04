@@ -30,6 +30,7 @@ export function usePanelEditor({
     navigatorRange,
     onResetPanelUi,
     onApplyPanelInfo,
+    onSavePanelInfo,
     reloadAfterEditorSave,
 }: {
     panelInfo: PanelInfo;
@@ -37,12 +38,14 @@ export function usePanelEditor({
     navigatorRange: TimeRangeMs;
     onResetPanelUi: () => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;
+    onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
     reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
 }): {
     isEditing: boolean;
     closePanelEditor: () => void;
     toggleEditMode: () => void;
     applyEditedPanelConfig: (editorConfig: PanelEditorConfig) => void;
+    saveEditedPanelConfig: (editorConfig: PanelEditorConfig) => Promise<boolean>;
 } {
     const [isEditing, setIsEditing] = useState(false);
 
@@ -57,7 +60,7 @@ export function usePanelEditor({
         setIsEditing(sShouldOpenEditor);
     }
 
-    function applyEditedPanelConfig(editorConfig: PanelEditorConfig): void {
+    function buildAppliedPanelInfo(editorConfig: PanelEditorConfig): PanelInfo {
         const sCurrentPanelState = panelInfo;
         const sNextPanelState: PanelInfo = {
             ...editorConfig,
@@ -91,8 +94,24 @@ export function usePanelEditor({
             },
         };
 
+        return sNextPanelInfo;
+    }
+
+    function applyEditedPanelConfig(editorConfig: PanelEditorConfig): void {
+        const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
+
         onApplyPanelInfo(sNextPanelInfo);
         reloadAfterEditorSave(sNextPanelInfo);
+    }
+
+    async function saveEditedPanelConfig(
+        editorConfig: PanelEditorConfig,
+    ): Promise<boolean> {
+        const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
+
+        onApplyPanelInfo(sNextPanelInfo);
+        reloadAfterEditorSave(sNextPanelInfo);
+        return onSavePanelInfo(sNextPanelInfo);
     }
 
     return {
@@ -100,5 +119,6 @@ export function usePanelEditor({
         closePanelEditor,
         toggleEditMode,
         applyEditedPanelConfig,
+        saveEditedPanelConfig,
     };
 }

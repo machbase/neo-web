@@ -166,6 +166,32 @@ const TagAnalyzerBoard = ({
             return false;
         }
     }, [finishBoardSave, openTazSaveModal, sRuntimeBoardInfo]);
+    const saveCurrentTazBoardWithPanel = useCallback(async (
+        panel: PanelInfo,
+    ): Promise<boolean> => {
+        const sBoardToSave: BoardInfo = {
+            ...sRuntimeBoardInfo,
+            panels: updatePanelByKey(
+                sRuntimeBoardInfo.panels,
+                panel.data.index_key,
+                () => panel,
+            ),
+        };
+
+        setRuntimeBoardInfo(sBoardToSave);
+
+        if (!sBoardToSave.path) {
+            await openTazSaveModal();
+            return false;
+        }
+
+        try {
+            return finishBoardSave(await saveTaz(sBoardToSave));
+        } catch {
+            Toast.error(SAVE_ERROR_MESSAGE);
+            return false;
+        }
+    }, [finishBoardSave, openTazSaveModal, sRuntimeBoardInfo]);
 
     const saveCurrentTazBoardAs = useCallback(async (
         directoryPath: string,
@@ -550,6 +576,7 @@ const TagAnalyzerBoard = ({
                                     refreshTime: () => {
                                         void boardPanels.refreshPanelTime(sPanelInfo);
                                     },
+                                    onSavePanelInfo: saveCurrentTazBoardWithPanel,
                                     reloadAfterEditorSave:
                                         boardPanels.reloadAfterEditorSave,
                                     onToggleRaw: () =>

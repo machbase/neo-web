@@ -76,6 +76,7 @@ type PanelContainerActions = {
     onChartAreaWidthChange: (width: number | undefined) => void;
     refreshData: () => void;
     refreshTime: () => void;
+    onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
     reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
     onToggleRaw: () => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;
@@ -115,6 +116,7 @@ function PanelContainer({
         onChartAreaWidthChange,
         refreshData,
         refreshTime,
+        onSavePanelInfo,
         reloadAfterEditorSave,
         onToggleRaw,
         onApplyPanelInfo,
@@ -229,6 +231,7 @@ function PanelContainer({
         closePanelEditor,
         toggleEditMode,
         applyEditedPanelConfig,
+        saveEditedPanelConfig,
     } = usePanelEditor({
         panelInfo,
         panelRange,
@@ -239,6 +242,7 @@ function PanelContainer({
             setIsSelectionSummaryOpen(false);
         },
         onApplyPanelInfo,
+        onSavePanelInfo,
         reloadAfterEditorSave,
     });
     const sResolvedIntervalOption = hasResolvedIntervalOption(
@@ -578,6 +582,7 @@ function PanelContainer({
             {isEditing && (
                 <PanelEditor
                     pOnApplyEditorConfig={applyEditedPanelConfig}
+                    pOnSaveEditorConfig={saveEditedPanelConfig}
                     pOnClose={closePanelEditor}
                     pPanelInfo={panelInfo}
                     pIsRawMode={isRaw}

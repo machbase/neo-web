@@ -96,7 +96,7 @@ function EditorGeneralTab({
                 <div className={styles.savedRangePreview}>
                     <div className={styles.savedRangeWarning}>
                         {pCanKeepCurrentViewRange
-                            ? 'This will make the Save button save the current range of the chart in the TAZ file.'
+                            ? 'When enabled, the Save button stores the chart’s current visible time range in the TAZ file.'
                             : 'You do not have the TAZ file saved yet. Save the board before using Keep Current View Range.'}
                     </div>
                 </div>

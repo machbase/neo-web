@@ -89,6 +89,7 @@ function createEditorConfigDirtyKey(config: PanelEditorConfig): string {
 
 const PanelEditor = ({
     pOnApplyEditorConfig,
+    pOnSaveEditorConfig,
     pOnClose,
     pPanelInfo,
     pIsRawMode,
@@ -96,6 +97,7 @@ const PanelEditor = ({
     pCanKeepCurrentViewRange,
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelEditorConfig) => void;
+    pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => Promise<boolean>;
     pOnClose: () => void;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
@@ -127,6 +129,10 @@ const PanelEditor = ({
     const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(
         sInitialEditorConfigKey,
     );
+    const [sHasAppliedUnsavedChanges, setHasAppliedUnsavedChanges] =
+        useState(false);
+    const [sSaveMessage, setSaveMessage] = useState<string | undefined>(undefined);
+    const [sIsSaving, setIsSaving] = useState(false);
     const sAppliedEditorConfigKeyRef = useRef(sInitialEditorConfigKey);
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
     const sEditorConfig = useMemo<PanelEditorConfig>(
@@ -156,6 +162,13 @@ const PanelEditor = ({
     const sHasInvalidAxisRange = hasInvalidEditorAxes(sEditorConfig.axes);
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidAxisRange;
+    const sStatusMessage = sSaveMessage ??
+        (sHasEditorChanges
+            ? 'Press Apply to Apply Change'
+            : undefined);
+    const sShowRuntimeSaveMessage =
+        !sStatusMessage && sHasAppliedUnsavedChanges;
+    const sHasStatusMessage = Boolean(sStatusMessage) || sShowRuntimeSaveMessage;
     const sApplyButtonTitle = !sHasEditorChanges
         ? 'There is no update'
         : sHasInvalidAxisRange
@@ -167,15 +180,46 @@ const PanelEditor = ({
             return;
         }
 
+        setSaveMessage(undefined);
         pOnApplyEditorConfig(sEditorConfig);
         sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
         setAppliedEditorConfigKey(sEditorConfigKey);
+        setHasAppliedUnsavedChanges(true);
+    };
+
+    const saveEditorChanges = async () => {
+        if (sHasInvalidAxisRange || sIsSaving) {
+            return;
+        }
+
+        setIsSaving(true);
+        setSaveMessage(undefined);
+        const sDidSave = await pOnSaveEditorConfig(sEditorConfig).finally(() =>
+            setIsSaving(false),
+        );
+
+        if (!sDidSave) {
+            sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
+            setAppliedEditorConfigKey(sEditorConfigKey);
+            setHasAppliedUnsavedChanges(true);
+            return;
+        }
+
+        sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
+        setAppliedEditorConfigKey(sEditorConfigKey);
+        setHasAppliedUnsavedChanges(false);
+        setSaveMessage('Draft config saved.');
+        pOnClose();
     };
 
     const discardEditorChanges = () => {
         setEditorDraft(sInitialEditorConfig);
         pOnClose();
     };
+
+    useEffect(() => {
+        setSaveMessage(undefined);
+    }, [sEditorConfigKey]);
 
     useEffect(() => {
         let sIsActive = true;
@@ -310,19 +354,25 @@ const PanelEditor = ({
                                 <span
                                     className={[
                                         styles.dirtyMessage,
-                                        !sHasEditorChanges && styles.dirtyMessageHidden,
+                                        sSaveMessage && styles.savedMessage,
+                                        !sHasStatusMessage && styles.dirtyMessageHidden,
                                     ]
                                         .filter(Boolean)
                                         .join(' ')}
                                 >
-                                    Update has not been applied.
+                                    {sStatusMessage ?? (
+                                        <>
+                                            <span>Applied to this session only.</span>
+                                            <span>Save the TAZ file to keep this change.</span>
+                                        </>
+                                    )}
                                 </span>
                                 <Button
-                                    variant="secondary"
+                                    variant="danger"
                                     size="sm"
                                     onClick={discardEditorChanges}
                                 >
-                                    Discard
+                                    Close
                                 </Button>
                                 <Button
                                     variant="primary"
@@ -331,6 +381,14 @@ const PanelEditor = ({
                                     onClick={applyEditorChanges}
                                 >
                                     Apply
+                                </Button>
+                                <Button
+                                    variant="success"
+                                    size="sm"
+                                    disabled={sHasInvalidAxisRange || sIsSaving}
+                                    onClick={() => void saveEditorChanges()}
+                                >
+                                    {sIsSaving ? 'Saving' : 'Save'}
                                 </Button>
                             </div>
                         </div>
