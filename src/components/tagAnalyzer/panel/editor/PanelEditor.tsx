@@ -93,12 +93,14 @@ const PanelEditor = ({
     pPanelInfo,
     pIsRawMode,
     pPanelRange,
+    pCanKeepCurrentViewRange,
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnClose: () => void;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
     pPanelRange: TimeRangeMs;
+    pCanKeepCurrentViewRange: boolean;
 }) => {
     const sInitialEditorConfig = useMemo(
         () => pPanelInfo,
@@ -236,6 +238,7 @@ const PanelEditor = ({
                 return (
                     <EditorGeneralTab
                         pGeneralConfig={sGeneralDraft}
+                        pCanKeepCurrentViewRange={pCanKeepCurrentViewRange}
                         pOnChangeGeneralConfig={setGeneralDraft}
                     />
                 );

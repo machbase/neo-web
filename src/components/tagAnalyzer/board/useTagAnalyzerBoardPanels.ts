@@ -154,10 +154,7 @@ export function useTagAnalyzerBoardPanels({
     }
 
     function refreshPanelTime(panelInfo: PanelInfo): void {
-        void refreshPanelTimeRange(
-            panelInfo,
-            panelInfo.general.use_last_viewed_range,
-        );
+        void refreshPanelTimeRange(panelInfo);
     }
 
     function refreshAllPanelTime(): void {

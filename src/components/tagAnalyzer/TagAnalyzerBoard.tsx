@@ -96,6 +96,7 @@ const TagAnalyzerBoard = ({
         sOverlapSelections.map((item) => item.panelKey),
     );
     const sRangeText = formatBoardRangeText(sRuntimeBoardInfo.boardTimeRange);
+    const sHasSavedTazFile = Boolean(sRuntimeBoardInfo.path);
     const boardPanels = useTagAnalyzerBoardPanels({
         panels: sRuntimePanels,
         boardTime: sRuntimeBoardInfo.boardTimeRange,
@@ -533,6 +534,7 @@ const TagAnalyzerBoard = ({
                                     isRaw: sIsRaw,
                                     isRawLocked: false,
                                     isOverlap: sIsOverlap,
+                                    canKeepCurrentViewRange: sHasSavedTazFile,
                                 }}
                                 actions={{
                                     onApplyPanelInfo: applyRuntimePanelInfo,

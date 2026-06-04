@@ -69,6 +69,7 @@ type PanelContainerStateProps = {
     isRaw: boolean;
     isRawLocked: boolean;
     isOverlap: boolean;
+    canKeepCurrentViewRange: boolean;
 };
 
 type PanelContainerActions = {
@@ -109,7 +110,7 @@ function PanelContainer({
         rollupTableList,
         onRangeStateChange,
     },
-    state: { isRaw, isRawLocked, isOverlap },
+    state: { isRaw, isRawLocked, isOverlap, canKeepCurrentViewRange },
     actions: {
         onChartAreaWidthChange,
         refreshData,
@@ -581,6 +582,7 @@ function PanelContainer({
                     pPanelInfo={panelInfo}
                     pIsRawMode={isRaw}
                     pPanelRange={panelRange}
+                    pCanKeepCurrentViewRange={canKeepCurrentViewRange}
                 />
             )}
             {activePopupMode === PanelPopupMode.CONTEXT_MENU && (

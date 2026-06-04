@@ -6,7 +6,7 @@ const HELP_SECTIONS = [
         items: [
             'Use the time range button to choose the board time range for every panel.',
             'Refresh data reloads the current visible range without changing the time window.',
-            'Refresh time checks the available data range again. Panels with Keep Current View Range enabled keep the current panel and navigator range.',
+            'Refresh time checks the available data range again and reapplies the configured time range.',
         ],
     },
     {

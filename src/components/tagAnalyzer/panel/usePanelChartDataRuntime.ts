@@ -29,7 +29,10 @@ import {
     fetchNavigatorPanelSeriesRows,
 } from '../fetch/PanelSeriesDataRepository';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
-import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
+import {
+    hasNumericBaseTimeSeries,
+    type PanelSeriesDefinition,
+} from '../domain/SeriesDomain';
 import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import type {
     FetchPanelSeriesRowsResult,
@@ -175,7 +178,7 @@ function getNavigatorDataRange(
     loadConfig: PanelChartDataLoadConfig,
     rangeState: PanelRangeState,
 ): TimeRangeMs {
-    return loadConfig.isRaw
+    return loadConfig.isRaw || hasNumericBaseTimeSeries(loadConfig.seriesList)
         ? rangeState.fullRange
         : rangeState.navigatorRange;
 }
