@@ -32,14 +32,21 @@ function buildSampledRawSeriesSqlPart(
     const sSampleLimit = requestedRowCount > 0
         ? requestedRowCount
         : RAW_SAMPLE_FALLBACK_LIMIT;
-
-    return buildQuerySql(
+    const sLimitedSampleSql = buildQuerySql(
         buildSelectSqlPart('*'),
         buildSubSqlTargetSqlPart(rawSeriesSql),
         '',
         '',
-        buildOrderBySqlPart(sortOrder),
+        '',
         buildLimitSqlPart(sSampleLimit),
+    );
+
+    return buildQuerySql(
+        buildSelectSqlPart('*'),
+        buildSubSqlTargetSqlPart(sLimitedSampleSql),
+        '',
+        '',
+        buildOrderBySqlPart(sortOrder),
     );
 }
 

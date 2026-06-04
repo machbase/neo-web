@@ -28,17 +28,48 @@ import {
     fetchMainPanelSeriesRows,
     fetchNavigatorPanelSeriesRows,
 } from '../fetch/PanelSeriesDataRepository';
+import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
+import {
+    hasNumericBaseTimeSeries,
+    type PanelSeriesDefinition,
+} from '../domain/SeriesDomain';
+import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import type {
     FetchPanelSeriesRowsResult,
     PanelSeriesFetchResult,
 } from '../fetch/FetchContracts';
-import {
-    INITIAL_PANEL_CHART_DATA_STATE,
-    PanelChartLoadStatus,
-    type PanelChartDataLoadConfig,
-    type PanelChartDataState,
-    type PanelRangeStateApplyOptions,
-} from './PanelDataRuntimeState';
+
+type PanelChartDataLoadConfig = {
+    seriesList: PanelSeriesDefinition[];
+    queryLimit: number;
+    intervalType: string | undefined;
+    isRaw: boolean;
+    xAxis: ReturnType<typeof resolvePanelAxesForRuntime>['x_axis'];
+    mainChartSampling: ReturnType<typeof resolvePanelAxesForRuntime>['main_chart_sampling'];
+};
+
+type PanelChartDataState = {
+    chartData: ChartSeriesData[];
+    navigatorChartData: ChartSeriesData[];
+    resolvedIntervalOption: IntervalOption | undefined;
+    loadedDataRange: TimeRangeMs;
+    loadedNavigatorRange: TimeRangeMs;
+};
+
+export enum PanelChartLoadStatus {
+    Idle = 'idle',
+    Loading = 'loading',
+    Ready = 'ready',
+    Failed = 'failed',
+}
+
+const INITIAL_PANEL_CHART_DATA_STATE: PanelChartDataState = {
+    chartData: [],
+    navigatorChartData: [],
+    resolvedIntervalOption: undefined,
+    loadedDataRange: EMPTY_TIME_RANGE,
+    loadedNavigatorRange: EMPTY_TIME_RANGE,
+};
 
 type UsePanelChartDataRuntimeParams = {
     panelInfo: PanelInfo;
@@ -147,7 +178,7 @@ function getNavigatorDataRange(
     loadConfig: PanelChartDataLoadConfig,
     rangeState: PanelRangeState,
 ): TimeRangeMs {
-    return loadConfig.isRaw
+    return loadConfig.isRaw || hasNumericBaseTimeSeries(loadConfig.seriesList)
         ? rangeState.fullRange
         : rangeState.navigatorRange;
 }
@@ -165,7 +196,7 @@ function useLoadRequests() {
     };
 }
 
-function applyRawSampling(
+function applyRawRowCap(
     loadConfig: PanelChartDataLoadConfig,
 ): PanelChartDataLoadConfig {
     if (!loadConfig.isRaw) {
@@ -175,10 +206,6 @@ function applyRawSampling(
     return {
         ...loadConfig,
         queryLimit: RAW_NAVIGATOR_SAMPLE_COUNT,
-        mainChartSampling: {
-            enabled: true,
-            sample_count: RAW_NAVIGATOR_SAMPLE_COUNT,
-        },
     };
 }
 
@@ -453,7 +480,7 @@ export function usePanelChartDataRuntime({
 
         try {
             const sMainLoadState = await loadMainSeriesData(
-                applyRawSampling(loadConfig),
+                applyRawRowCap(loadConfig),
                 getChartLoadWidth(),
                 panelRange,
                 rollupTableList,

@@ -1,10 +1,11 @@
 import moment from 'moment';
-import type { TimeRangeMs } from './TimeTypes';
+import type { TimeRangeConfig, TimeRangeMs } from './TimeTypes';
 import {
     HOUR_IN_MS,
     MINUTE_IN_MS,
     SECOND_IN_MS,
 } from './TimeConstants';
+import { formatTimeRangeInputValue } from './TimeBoundaryInput';
 
 const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
 const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;
@@ -122,6 +123,32 @@ export function formatRangeSpanLabel(
     return isNumericAxis
         ? formatNumericAxisLabel(endTime - startTime)
         : formatDurationLabel(startTime, endTime);
+}
+
+export function formatBoardRangeText(rangeConfig: TimeRangeConfig): string {
+    if (
+        rangeConfig.start.kind === 'empty' ||
+        rangeConfig.end.kind === 'empty'
+    ) {
+        return '';
+    }
+
+    if (
+        rangeConfig.start.kind === 'absolute' &&
+        rangeConfig.end.kind === 'absolute'
+    ) {
+        if (
+            rangeConfig.start.timestamp <= 0 ||
+            rangeConfig.end.timestamp <= 0 ||
+            rangeConfig.end.timestamp < rangeConfig.start.timestamp
+        ) {
+            return '';
+        }
+
+        return `${formatLocalRangeLabel(rangeConfig.start.timestamp)}~${formatLocalRangeLabel(rangeConfig.end.timestamp)}`;
+    }
+
+    return `${formatTimeRangeInputValue(rangeConfig.start)}~${formatTimeRangeInputValue(rangeConfig.end)}`;
 }
 
 export function formatElapsedTimeLabel(

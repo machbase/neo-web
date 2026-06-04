@@ -1,3 +1,8 @@
+import { useRef, useState, type MouseEvent } from 'react';
+import { PanelMarkupInteractionHint, ANNOTATION_INVALID_TARGET_MESSAGE, type PanelMarkupInteractionHintState } from './PanelMarkupInteractionHint';
+import { Toast, type ContextMenuPosition } from '@/design-system/components';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import PanelFooter from './PanelFooter';
 import PanelHeader, {
     PanelContextMenu,
@@ -6,8 +11,6 @@ import PanelHeader, {
 } from './PanelHeader';
 import PanelBody from './PanelBody';
 import PanelEditor from './editor/PanelEditor';
-import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { FFTModal } from '../boardModal/FFTModal';
 import {
     EditAnnotationModal,
@@ -16,11 +19,10 @@ import {
     type HighlightEditorState,
 } from './modal/EditMarkupModal';
 import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
-import './PanelChartShell.scss';
-import { useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
-import { MdBlock, MdCheckCircle } from 'react-icons/md';
+import type { FFTSelectionPayload } from '../domain/ChartDomain';
+import type { SetGlobalTimeRangePayload } from '../domain/BoardDomain';
 import type {
-    PanelBrushSelectionEvent,
+    PanelRangeChangeEvent,
     PanelChartHandle,
     PanelHighlight,
     PanelInfo,
@@ -28,28 +30,29 @@ import type {
     PanelRangeState,
 } from '../domain/PanelDomain';
 import {
+    PanelOverlayMode,
     resolvePanelAxesForRuntime,
     resolvePanelDisplayForRuntime,
 } from '../domain/PanelDomain';
-import { MIXED_X_AXIS_KIND_WARNING, hasMixedXAxisValueKinds, hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
-import type { SetGlobalTimeRangePayload } from '../domain/BoardDomain';
 import {
-    PanelChartLoadStatus,
-    type PanelRangeStateApplyOptions,
-} from './PanelDataRuntimeState';
+    MIXED_X_AXIS_KIND_WARNING,
+    hasMixedXAxisValueKinds,
+    hasNumericBaseTimeSeries,
+} from '../domain/SeriesDomain';
+import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
 import { handlePanelBrushSelection } from './PanelBrushSelection';
+import type { PanelSelectionSummary } from './PanelBrushSelection';
 import { useChartAreaWidthObserver } from '../board/useChartAreaWidthObserver';
 import { usePanelAnnotation } from './usePanelAnnotation';
-import { usePanelEditor } from './usePanelEditor';
+import { usePanelEditor } from './editor/usePanelEditor';
 import { usePanelHighlight } from './usePanelHighlight';
-import { usePanelChartDataRuntime } from './usePanelChartDataRuntime';
+import {
+    PanelChartLoadStatus,
+    usePanelChartDataRuntime,
+} from './usePanelChartDataRuntime';
 import { usePanelRangeControls } from './usePanelRangeControls';
-
-import { Toast, type ContextMenuPosition } from '@/design-system/components';
-import type { FFTSelectionPayload } from '../domain/ChartDomain';
-import { PanelOverlayMode } from '../domain/PanelDomain';
-import type { PanelSelectionSummary } from './PanelBrushSelection';
+import './PanelChartShell.scss';
 
 export type PanelContainerRuntimeProps = {
     rangeState: PanelRangeState;
@@ -62,15 +65,21 @@ export type PanelContainerRuntimeProps = {
     ) => void;
 };
 
-type PanelContainerStateProps = { isRaw: boolean; isRawLocked: boolean; isOverlap: boolean };
+type PanelContainerStateProps = {
+    isRaw: boolean;
+    isRawLocked: boolean;
+    isOverlap: boolean;
+    canKeepCurrentViewRange: boolean;
+};
 
 type PanelContainerActions = {
     onChartAreaWidthChange: (width: number | undefined) => void;
     refreshData: () => void;
     refreshTime: () => void;
+    onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
     reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
     onToggleRaw: () => void;
-    onSavePanel: (panelInfo: PanelInfo) => void;
+    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
     onSetGlobalTimeRange: (payload: SetGlobalTimeRangePayload) => void;
     onDeletePanel: () => void;
     onToggleOverlap: () => void;
@@ -93,168 +102,6 @@ enum PanelPopupMode {
     EXPORT_CSV = 'EXPORT_CSV',
 }
 
-type PanelMarkupInteractionHintState = {
-    x: number;
-    y: number;
-    isValidTarget: boolean;
-    hoveredMainSeriesName: string | undefined;
-    overlayMode:
-        | PanelOverlayMode.ANNOTATION
-        | PanelOverlayMode.HIGHLIGHT
-        | PanelOverlayMode.DRAG_SELECT;
-};
-
-type PanelMarkupInteractionHintLayout = {
-    width: number;
-    height: number;
-    parentWidth: number;
-    parentHeight: number;
-};
-
-const ANNOTATION_INVALID_TARGET_MESSAGE =
-    'Annotation can only be created on the main chart.';
-const HIGHLIGHT_INVALID_TARGET_MESSAGE =
-    'Highlight can only be created on the main chart.';
-const DRAG_SELECT_INVALID_TARGET_MESSAGE =
-    'Selection can only be made on the main chart.';
-const INTERACTION_HINT_MARGIN = 6;
-const INTERACTION_HINT_TOP_MARGIN = 42;
-const INTERACTION_HINT_CURSOR_OFFSET_X = 14;
-const INTERACTION_HINT_CURSOR_OFFSET_Y = -34;
-
-function PanelMarkupInteractionHint({
-    hint,
-}: {
-    hint: PanelMarkupInteractionHintState | undefined;
-}) {
-    const hintRef = useRef<HTMLSpanElement | null>(null);
-    const [layout, setLayout] = useState<
-        PanelMarkupInteractionHintLayout | undefined
-    >(undefined);
-
-    useLayoutEffect(() => {
-        const hintElement = hintRef.current;
-        if (!hint || !hintElement) {
-            return;
-        }
-
-        const hintRect = hintElement.getBoundingClientRect();
-        const parentElement = hintElement.offsetParent;
-        const nextLayout = {
-            width: hintRect.width,
-            height: hintRect.height,
-            parentWidth:
-                parentElement instanceof HTMLElement
-                    ? parentElement.clientWidth
-                    : window.innerWidth,
-            parentHeight:
-                parentElement instanceof HTMLElement
-                    ? parentElement.clientHeight
-                    : window.innerHeight,
-        };
-
-        setLayout((currentLayout) =>
-            isSameInteractionHintLayout(currentLayout, nextLayout)
-                ? currentLayout
-                : nextLayout,
-        );
-    }, [hint]);
-
-    if (!hint) {
-        return null;
-    }
-
-    const left = getClampedInteractionHintCoordinate(
-        hint.x + INTERACTION_HINT_CURSOR_OFFSET_X,
-        layout?.width,
-        layout?.parentWidth,
-        INTERACTION_HINT_MARGIN,
-    );
-    const top = getClampedInteractionHintCoordinate(
-        hint.y + INTERACTION_HINT_CURSOR_OFFSET_Y,
-        layout?.height,
-        layout?.parentHeight,
-        INTERACTION_HINT_TOP_MARGIN,
-    );
-
-    return (
-        <span
-            ref={hintRef}
-            className={`panel-chart-interaction-hint panel-chart-interaction-hint--${hint.isValidTarget ? 'valid' : 'invalid'}`}
-            style={{
-                left,
-                top,
-            }}
-        >
-            {hint.isValidTarget ? (
-                <MdCheckCircle size={13} />
-            ) : (
-                <MdBlock size={13} />
-            )}
-            <span>
-                {getPanelMarkupInteractionHintMessage(hint)}
-            </span>
-        </span>
-    );
-}
-
-function isSameInteractionHintLayout(
-    currentLayout: PanelMarkupInteractionHintLayout | undefined,
-    nextLayout: PanelMarkupInteractionHintLayout,
-): boolean {
-    return (
-        currentLayout?.width === nextLayout.width &&
-        currentLayout.height === nextLayout.height &&
-        currentLayout.parentWidth === nextLayout.parentWidth &&
-        currentLayout.parentHeight === nextLayout.parentHeight
-    );
-}
-
-function getClampedInteractionHintCoordinate(
-    requestedCoordinate: number,
-    hintSize: number | undefined,
-    parentSize: number | undefined,
-    minCoordinate: number,
-): number {
-    if (hintSize === undefined || parentSize === undefined) {
-        return Math.max(minCoordinate, requestedCoordinate);
-    }
-
-    const maxCoordinate = Math.max(
-        minCoordinate,
-        parentSize - hintSize - INTERACTION_HINT_MARGIN,
-    );
-
-    return Math.min(
-        Math.max(minCoordinate, requestedCoordinate),
-        maxCoordinate,
-    );
-}
-
-function getPanelMarkupInteractionHintMessage(
-    hint: PanelMarkupInteractionHintState,
-): string {
-    if (hint.overlayMode === PanelOverlayMode.ANNOTATION) {
-        if (hint.isValidTarget && hint.hoveredMainSeriesName) {
-            return `Create annotation on ${hint.hoveredMainSeriesName}`;
-        }
-
-        return hint.isValidTarget
-            ? 'Create annotation here'
-            : ANNOTATION_INVALID_TARGET_MESSAGE;
-    }
-
-    if (hint.overlayMode === PanelOverlayMode.DRAG_SELECT) {
-        return hint.isValidTarget
-            ? 'Drag to select area'
-            : DRAG_SELECT_INVALID_TARGET_MESSAGE;
-    }
-
-    return hint.isValidTarget
-        ? 'Drag to create highlight'
-        : HIGHLIGHT_INVALID_TARGET_MESSAGE;
-}
-
 function PanelContainer({
     panelInfo,
     runtime: {
@@ -264,22 +111,24 @@ function PanelContainer({
         rollupTableList,
         onRangeStateChange,
     },
-    state: { isRaw, isRawLocked, isOverlap },
+    state: { isRaw, isRawLocked, isOverlap, canKeepCurrentViewRange },
     actions: {
         onChartAreaWidthChange,
         refreshData,
         refreshTime,
+        onSavePanelInfo,
         reloadAfterEditorSave,
         onToggleRaw,
-        onSavePanel,
+        onApplyPanelInfo,
         onSetGlobalTimeRange,
         onDeletePanel,
         onToggleOverlap,
     },
 }: PanelContainerProps) {
-    const { panelRange, navigatorRange } = rangeState;
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
+    const { panelRange, navigatorRange } = rangeState;
+
     const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.data.tag_set);
     const isNumericXAxis =
         !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.data.tag_set);
@@ -288,6 +137,39 @@ function PanelContainer({
         panelInfo.display,
         panelInfo.general.use_zoom,
     );
+
+    const [overlayMode, setOverlayMode] = useState<PanelOverlayMode>(
+        PanelOverlayMode.NO_OVERLAY,
+    );
+    const [activePopupMode, setActivePopupMode] = useState<PanelPopupMode>(
+        PanelPopupMode.NONE,
+    );
+    const [contextMenuPosition, setContextMenuPosition] = useState<
+        ContextMenuPosition | undefined
+    >(undefined);
+    const [selectionSummary, setSelectionSummary] = useState<
+        PanelSelectionSummary | undefined
+    >(undefined);
+    const [isSelectionSummaryOpen, setIsSelectionSummaryOpen] = useState(false);
+    const [fftSelection, setFftSelection] = useState<
+        FFTSelectionPayload | undefined
+    >(undefined);
+    const [activeHighlightEditor, setActiveHighlightEditor] = useState<
+        HighlightEditorState | undefined
+    >(undefined);
+    const [temporaryHighlight, setTemporaryHighlight] = useState<
+        PanelHighlight | undefined
+    >(undefined);
+    const [annotationEditorMeta, setAnnotationEditorMeta] = useState<
+        AnnotationEditorMetaState | undefined
+    >(undefined);
+    const [markupInteractionHint, setMarkupInteractionHint] = useState<
+        PanelMarkupInteractionHintState | undefined
+    >(undefined);
+    const [hoveredMainSeriesName, setHoveredMainSeriesName] = useState<
+        string | undefined
+    >(undefined);
+
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
     const {
         rangeHandlers,
@@ -311,38 +193,6 @@ function PanelContainer({
         dataRefreshVersion,
         onRangeStateChange,
     });
-
-    const [overlayMode, setOverlayMode] = useState<PanelOverlayMode>(
-        PanelOverlayMode.NO_OVERLAY,
-    );
-    const [activePopupMode, setActivePopupMode] = useState<PanelPopupMode>(
-        PanelPopupMode.NONE,
-    );
-    const [contextMenuPosition, setContextMenuPosition] = useState<
-        ContextMenuPosition | undefined
-    >(undefined);
-    const [fftSelection, setFftSelection] = useState<
-        FFTSelectionPayload | undefined
-    >(undefined);
-    const [selectionSummary, setSelectionSummary] = useState<
-        PanelSelectionSummary | undefined
-    >(undefined);
-    const [isSelectionSummaryOpen, setIsSelectionSummaryOpen] = useState(false);
-    const [activeHighlightEditor, setActiveHighlightEditor] = useState<
-        HighlightEditorState | undefined
-    >(undefined);
-    const [temporaryHighlight, setTemporaryHighlight] = useState<
-        PanelHighlight | undefined
-    >(undefined);
-    const [annotationEditorMeta, setAnnotationEditorMeta] = useState<
-        AnnotationEditorMetaState | undefined
-    >(undefined);
-    const [markupInteractionHint, setMarkupInteractionHint] = useState<
-        PanelMarkupInteractionHintState | undefined
-    >(undefined);
-    const [hoveredMainSeriesName, setHoveredMainSeriesName] = useState<
-        string | undefined
-    >(undefined);
     const {
         highlightActions,
         applyHighlightChange,
@@ -353,7 +203,7 @@ function PanelContainer({
         chartAreaRef,
         isNumericXAxis,
         onSaveHighlights: (highlights) =>
-            onSavePanel({
+            onApplyPanelInfo({
                 ...panelInfo,
                 highlights: highlights,
             }),
@@ -361,6 +211,7 @@ function PanelContainer({
     const panelHighlights = temporaryHighlight
         ? [...panelInfo.highlights, temporaryHighlight]
         : panelInfo.highlights;
+
     const {
         annotationAction,
         applyAnnotationChange,
@@ -370,7 +221,7 @@ function PanelContainer({
         seriesList: panelInfo.data.tag_set,
         isNumericXAxis,
         onSaveAnnotations: (annotations) =>
-            onSavePanel({
+            onApplyPanelInfo({
                 ...panelInfo,
                 annotations,
             }),
@@ -379,6 +230,7 @@ function PanelContainer({
         isEditing,
         closePanelEditor,
         toggleEditMode,
+        applyEditedPanelConfig,
         saveEditedPanelConfig,
     } = usePanelEditor({
         panelInfo,
@@ -389,10 +241,33 @@ function PanelContainer({
             setActivePopupMode(PanelPopupMode.NONE);
             setIsSelectionSummaryOpen(false);
         },
-        onSavePanel,
+        onApplyPanelInfo,
+        onSavePanelInfo,
         reloadAfterEditorSave,
     });
-    const handleSelection = (event: PanelBrushSelectionEvent): boolean =>
+    const sResolvedIntervalOption = hasResolvedIntervalOption(
+        resolvedIntervalOption,
+    )
+        ? resolvedIntervalOption
+        : undefined;
+    const panelHeaderRuntimeState: PanelHeaderRuntimeState = {
+        title: panelInfo.general.chart_title,
+        panelRange,
+        resolvedIntervalOption: sResolvedIntervalOption,
+        canSetGlobalTime: !isNumericXAxis && Boolean(sResolvedIntervalOption),
+        canSaveLocal: loadStatus.chart === PanelChartLoadStatus.Ready,
+        canOpenFft:
+            isSelectionSummaryOpen &&
+            Boolean(selectionSummary),
+        isNumericXAxis,
+        overlayMode,
+        isEditing,
+        isRaw,
+        isRawLocked,
+        isOverlap,
+    };
+
+    const handleSelection = (event: PanelRangeChangeEvent): boolean =>
         handlePanelBrushSelection(
             {
                 chartData,
@@ -426,28 +301,6 @@ function PanelContainer({
             setOverlayMode(PanelOverlayMode.NO_OVERLAY);
             activateEditAnnotationEditor(position, annotationIndex);
         },
-    };
-
-    const sResolvedIntervalOption = hasResolvedIntervalOption(
-        resolvedIntervalOption,
-    )
-        ? resolvedIntervalOption
-        : undefined;
-    const panelHeaderRuntimeState: PanelHeaderRuntimeState = {
-        title: panelInfo.general.chart_title,
-        panelRange,
-        resolvedIntervalOption: sResolvedIntervalOption,
-        canSetGlobalTime: !isNumericXAxis && Boolean(sResolvedIntervalOption),
-        canSaveLocal: loadStatus.chart === PanelChartLoadStatus.Ready,
-        canOpenFft:
-            isSelectionSummaryOpen &&
-            Boolean(selectionSummary),
-        isNumericXAxis,
-        overlayMode,
-        isEditing,
-        isRaw,
-        isRawLocked,
-        isOverlap,
     };
 
     function setGlobalTimeRange(): void {
@@ -728,11 +581,13 @@ function PanelContainer({
             </div>
             {isEditing && (
                 <PanelEditor
+                    pOnApplyEditorConfig={applyEditedPanelConfig}
                     pOnSaveEditorConfig={saveEditedPanelConfig}
                     pOnClose={closePanelEditor}
                     pPanelInfo={panelInfo}
                     pIsRawMode={isRaw}
                     pPanelRange={panelRange}
+                    pCanKeepCurrentViewRange={canKeepCurrentViewRange}
                 />
             )}
             {activePopupMode === PanelPopupMode.CONTEXT_MENU && (

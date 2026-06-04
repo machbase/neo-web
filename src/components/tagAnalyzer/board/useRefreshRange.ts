@@ -9,7 +9,7 @@ import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
 } from '../domain/time/TimeBoundaryRangeResolver';
-import { clampTimeRangeToBounds, isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
+import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import {
     hasValidRangeState,
     type ApplyPanelRangeState,
@@ -24,10 +24,7 @@ type RefreshRangeDependencies = {
 
 type RefreshRangeActions = {
     refreshPanelData: (panelInfo: PanelInfo) => Promise<void>;
-    refreshPanelTime: (
-        panelInfo: PanelInfo,
-        keepCurrentViewRange: boolean,
-    ) => Promise<void>;
+    refreshPanelTime: (panelInfo: PanelInfo) => Promise<void>;
     setFullDataRange: (panelInfo: PanelInfo) => Promise<void>;
 };
 
@@ -66,42 +63,14 @@ export function useRefreshRange({
         });
     }
 
-    async function refreshPanelTime(
-        panelInfo: PanelInfo,
-        keepCurrentViewRange: boolean,
-    ): Promise<void> {
-        const rangeState = getBoardPanelRecord(panelInfo.data.index_key).rangeState;
-        const shouldApplyCurrentViewRange =
-            keepCurrentViewRange && !hasConfiguredTimeRange(boardTime);
+    async function refreshPanelTime(panelInfo: PanelInfo): Promise<void> {
         const refreshedRange = await resolveRefreshedRange(
             panelInfo.data.tag_set,
             panelInfo.time.range_config,
             boardTime,
         );
-        const { fullRange } = refreshedRange;
 
-        if (!isConcreteTimeRange(fullRange)) {
-            throw new Error('Cannot refresh panel time without a concrete full range.');
-        }
-
-        if (shouldApplyCurrentViewRange && !hasValidRangeState(rangeState)) {
-            throw new Error('Cannot keep current view range without a valid range state.');
-        }
-
-        if (!shouldApplyCurrentViewRange) {
-            await applyConfiguredTimeRange(panelInfo, refreshedRange);
-            return;
-        }
-
-        applyPanelRangeState(panelInfo, {
-            panelRange: clampTimeRangeToBounds(rangeState.panelRange, fullRange),
-            navigatorRange: clampTimeRangeToBounds(
-                rangeState.navigatorRange,
-                fullRange,
-            ),
-            fullRange,
-            preserveNavigatorRange: true,
-        });
+        await applyConfiguredTimeRange(panelInfo, refreshedRange);
     }
 
     return {

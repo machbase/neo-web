@@ -126,9 +126,15 @@
         background-color: #2b2b2b;
         border: 1px solid #3a3a3a;
         border-radius: t.$border-radius-base;
+        color: t.$text-primary;
+        font-family: inherit;
         cursor: pointer;
         box-sizing: border-box;
         transition: border-color 0.15s ease;
+
+        &::placeholder {
+            color: t.$text-disabled;
+        }
 
         &:hover:not(:disabled) {
             border-color: #5a5a5a;
@@ -142,6 +148,14 @@
         &:disabled {
             @include t.disabled-state;
             cursor: not-allowed;
+        }
+
+        &:-webkit-autofill,
+        &:-webkit-autofill:hover,
+        &:-webkit-autofill:focus {
+            -webkit-text-fill-color: t.$text-primary;
+            -webkit-box-shadow: 0 0 0 1000px #2b2b2b inset;
+            transition: background-color 5000s ease-in-out 0s;
         }
     }
 

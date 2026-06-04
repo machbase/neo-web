@@ -43,6 +43,7 @@ const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
 };
 type LimitDetectionMode = 'extra-row' | 'returned-count' | 'none';
 export const RAW_NAVIGATOR_SAMPLE_COUNT = 20000;
+export const RAW_NAVIGATOR_SAMPLING_VALUE = 0.01;
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -133,7 +134,12 @@ export async function fetchNavigatorPanelSeriesRows(
         return undefined;
     }
 
-    const sInterval = requestedRawMode
+    const sUsesNumericBaseTime = seriesConfigSet.some((seriesConfig) =>
+        isNumericBaseTimeSourceColumns(seriesConfig.sourceColumns),
+    );
+    const sUseNavigatorOverviewCount =
+        requestedRawMode || sUsesNumericBaseTime;
+    const sInterval = sUseNavigatorOverviewCount
         ? resolveTimeBucketIntervalForTargetCount(
               timeRange,
               RAW_NAVIGATOR_SAMPLE_COUNT,
@@ -145,7 +151,7 @@ export async function fetchNavigatorPanelSeriesRows(
               chartWidth,
               requestedRawMode,
           );
-    const sDisplayCount = requestedRawMode
+    const sDisplayCount = sUseNavigatorOverviewCount
         ? RAW_NAVIGATOR_SAMPLE_COUNT
         : calculateSampleCount(
               queryLimit,
@@ -154,35 +160,53 @@ export async function fetchNavigatorPanelSeriesRows(
               xAxis.raw_data_pixels_per_tick,
               chartWidth,
           );
-    const sLimitDetectionMode = requestedRawMode
+    const sLimitDetectionMode = sUseNavigatorOverviewCount
         ? 'none'
         : resolveLimitDetectionMode(false, false);
     const sQueryCount = resolveQueryCount(sDisplayCount, sLimitDetectionMode);
+    const sRawNavigatorSampling = resolveRawFetchSampling(
+        true,
+        RAW_NAVIGATOR_SAMPLING_VALUE,
+    );
 
     return {
         seriesFetchResults: await Promise.all(
-            seriesConfigSet.map(async (seriesConfig) =>
-                normalizePanelSeriesFetchResult({
+            seriesConfigSet.map(async (seriesConfig) => {
+                let sFetchResult: ChartFetchResponse;
+
+                if (sUsesNumericBaseTime) {
+                    sFetchResult = await fetchRawSeriesRows(
+                        seriesConfig,
+                        timeRange,
+                        sInterval,
+                        sQueryCount,
+                        sRawNavigatorSampling,
+                    );
+                } else if (requestedRawMode) {
+                    sFetchResult = await fetchCalculatedSeriesRows(
+                        getRawNavigatorOverviewSeriesConfig(seriesConfig),
+                        timeRange,
+                        sInterval,
+                        sQueryCount,
+                        rollupTableList,
+                    );
+                } else {
+                    sFetchResult = await fetchCalculatedSeriesRows(
+                        seriesConfig,
+                        timeRange,
+                        sInterval,
+                        sQueryCount,
+                        rollupTableList,
+                    );
+                }
+
+                return normalizePanelSeriesFetchResult({
                     seriesConfig,
-                    fetchResult: requestedRawMode
-                        ? await fetchCalculatedSeriesRows(
-                              getRawNavigatorOverviewSeriesConfig(seriesConfig),
-                              timeRange,
-                              sInterval,
-                              sQueryCount,
-                              rollupTableList,
-                          )
-                        : await fetchCalculatedSeriesRows(
-                              seriesConfig,
-                              timeRange,
-                              sInterval,
-                              sQueryCount,
-                              rollupTableList,
-                          ),
+                    fetchResult: sFetchResult,
                     displayCount: sDisplayCount,
                     limitDetectionMode: sLimitDetectionMode,
-                }),
-            ),
+                });
+            }),
         ),
         interval: sInterval,
         count: sDisplayCount,

@@ -16,7 +16,7 @@ import {
     isTimeRangeOutsideBounds,
     shiftTimeRange,
 } from '../domain/time/TimeRangeUtils';
-import type { PanelRangeStateApplyOptions } from './PanelDataRuntimeState';
+import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import {
     getMinNumericRangeWidth,
     MIN_PANEL_RANGE_MS,
