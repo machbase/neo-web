@@ -23,7 +23,7 @@ type TagSearchPageResult = { items: TagSearchItem[]; total: number; columns: Tag
 
 type JsonColumnSamplesResponse = { success?: boolean; data?: { rows?: Array<[unknown]> } };
 
-export async function fetchTableName(tableName: string): Promise<TableNameResponse> {
+async function fetchTableName(tableName: string): Promise<TableNameResponse> {
     let sDatabaseIdQuery = '';
     let sResolvedTableName = tableName;
     let sUserName = ADMIN_ID.toUpperCase();
@@ -51,7 +51,7 @@ export async function fetchTableName(tableName: string): Promise<TableNameRespon
 
     return sResponse as unknown as TableNameResponse;
 }
-export async function getTagPagination(
+async function getTagPagination(
     tableName: string,
     tagFilter: string,
     pageNumber: number,
@@ -67,7 +67,7 @@ export async function getTagPagination(
         suppressRequestError,
     );
 }
-export async function getTagTotal(
+async function getTagTotal(
     tableName: string,
     tagFilter: string,
     sourceColumn: string,
@@ -81,7 +81,7 @@ export async function getTagTotal(
         suppressRequestError,
     );
 }
-export async function getSourceTagPagination(
+async function getSourceTagPagination(
     tableName: string,
     tagFilter: string,
     pageNumber: number,
@@ -94,7 +94,7 @@ export async function getSourceTagPagination(
         `select ${sourceColumn}, ${sourceColumn} from (select distinct ${sourceColumn} from ${tableName}${sWhereClause} ORDER BY ${sourceColumn}) LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
     );
 }
-export async function getSourceTagTotal(
+async function getSourceTagTotal(
     tableName: string,
     tagFilter: string,
     sourceColumn: string,

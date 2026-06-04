@@ -5,11 +5,11 @@ import {
     isConcreteTimeRange,
     isSameTimeRange,
 } from '../domain/time/TimeRangeUtils';
-import type { PanelRangeApplyOptions } from '../panel/PanelDataRuntimeState';
 import type {
     ApplyPanelRangeState,
     BoardPanelRecord,
     BoardPanelStore,
+    PanelRangeApplyOptions,
 } from './BoardPanelState';
 import {
     getNavigatorTrackWidth,
@@ -26,17 +26,13 @@ type ApplyPanelRangeDependencies = {
     };
 };
 
-export function useApplyPanelRange({
-    panelStore,
-    handlers,
-}: ApplyPanelRangeDependencies): { applyPanelRangeState: ApplyPanelRangeState } {
+export function useApplyPanelRange({ panelStore, handlers }: ApplyPanelRangeDependencies): {
+    applyPanelRangeState: ApplyPanelRangeState;
+} {
     const { getBoardPanelRecord, updateBoardPanelRecord } = panelStore;
     const { onRangeApplied } = handlers;
 
-    function applyPanelRangeState(
-        panelInfo: PanelInfo,
-        options: PanelRangeApplyOptions,
-    ): void {
+    function applyPanelRangeState(panelInfo: PanelInfo, options: PanelRangeApplyOptions): void {
         const sPanelKey = panelInfo.data.index_key;
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
         const sNextRangeState = resolveRangeState(sBoardPanelRecord, options);
@@ -87,19 +83,12 @@ function resolveRangeState(
 
     const sNavigatorRange = options.preserveNavigatorRange
         ? options.navigatorRange
-        : getNavigatorRangeForPanel(
-              boardPanelRecord,
-              sPanelRange,
-              options.navigatorRange,
-          );
+        : getNavigatorRangeForPanel(boardPanelRecord, sPanelRange, options.navigatorRange);
 
     return {
         panelRange: sPanelRange,
         navigatorRange: sNavigatorRange,
-        fullRange: getNextFullDataRange(
-            boardPanelRecord.rangeState.fullRange,
-            options.fullRange,
-        ),
+        fullRange: getNextFullDataRange(boardPanelRecord.rangeState.fullRange, options.fullRange),
     };
 }
 
@@ -140,16 +129,9 @@ function getNavigatorRangeForPanel(
 
     if (
         sNavigatorTrackPixelWidth !== undefined &&
-        isSelectionTooSmall(
-            panelRange,
-            sNavigatorRange,
-            sNavigatorTrackPixelWidth,
-        )
+        isSelectionTooSmall(panelRange, sNavigatorRange, sNavigatorTrackPixelWidth)
     ) {
-        sNavigatorRange = getZoomedNavigator(
-            panelRange,
-            sNavigatorTrackPixelWidth,
-        );
+        sNavigatorRange = getZoomedNavigator(panelRange, sNavigatorTrackPixelWidth);
     }
 
     return sNavigatorRange;

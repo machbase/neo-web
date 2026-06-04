@@ -96,34 +96,54 @@ export type PanelDisplay = {
     stroke: number | undefined;
 };
 
-type Concrete<T> = { [K in keyof T]: Exclude<T[K], undefined> };
+export type RuntimeValueRange = {
+    min: number;
+    max: number;
+};
 
-export type RuntimeValueRange = Concrete<ValueRange>;
-export type RuntimePanelAxisThreshold = Concrete<PanelAxisThreshold>;
-export type RuntimePanelXAxis = Concrete<PanelXAxis>;
-export type RuntimePanelSampling = Concrete<PanelSampling>;
-export type RuntimePanelYAxis = Omit<
-    PanelYAxis,
-    | 'value_range'
-    | 'raw_data_value_range'
-    | 'upper_control_limit'
-    | 'lower_control_limit'
-> & {
+export type RuntimePanelAxisThreshold = {
+    enabled: boolean;
+    value: number;
+};
+
+export type RuntimePanelXAxis = {
+    show_tickline: boolean;
+    raw_data_pixels_per_tick: number;
+    calculated_data_pixels_per_tick: number;
+};
+
+export type RuntimePanelSampling = {
+    enabled: boolean;
+    sample_count: number;
+};
+
+export type RuntimePanelYAxis = {
+    zero_base: boolean;
+    show_tickline: boolean;
     value_range: RuntimeValueRange;
     raw_data_value_range: RuntimeValueRange;
     upper_control_limit: RuntimePanelAxisThreshold;
     lower_control_limit: RuntimePanelAxisThreshold;
 };
-export type RuntimePanelAxes = Omit<
-    PanelAxes,
-    'x_axis' | 'sampling' | 'main_chart_sampling' | 'left_y_axis' | 'right_y_axis'
-> & {
+
+export type RuntimePanelAxes = {
     x_axis: RuntimePanelXAxis;
     main_chart_sampling: RuntimePanelSampling;
     left_y_axis: RuntimePanelYAxis;
     right_y_axis: RuntimePanelYAxis;
+    right_y_axis_enabled: boolean;
 };
-export type RuntimePanelDisplay = Concrete<PanelDisplay> & { use_zoom: boolean };
+
+export type RuntimePanelDisplay = {
+    show_legend: boolean;
+    chart_type: PanelEChartType;
+    connect_nulls: boolean;
+    show_point: boolean;
+    point_radius: number;
+    fill: number;
+    stroke: number;
+    use_zoom: boolean;
+};
 
 export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
 export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
@@ -311,11 +331,6 @@ export type PanelRangeChangeEvent = {
     max: number;
 };
 
-export type PanelBrushSelectionEvent = {
-    min: number;
-    max: number;
-};
-
 export type PanelChartHandle = {
     getVisibleSeries: () => PanelVisibleSeriesItem[];
     isPointInsideMainGrid: (clientX: number, clientY: number) => boolean;
@@ -330,18 +345,23 @@ export type PanelChartState = {
     annotations: PanelAnnotation[];
 };
 
+export type PanelPoint = {
+    x: number;
+    y: number;
+};
+
 export type PanelMarkupHandlers = {
     onOpenCreateAnnotation: (
-        position: { x: number; y: number },
+        position: PanelPoint,
         seriesIndex: number | undefined,
         timestamp: number,
     ) => unknown;
     onActivateHighlightEditor: (
-        position: { x: number; y: number },
+        position: PanelPoint,
         highlightIndex: number,
     ) => unknown;
     onActivateAnnotationEditor: (
-        position: { x: number; y: number },
+        position: PanelPoint,
         annotationIndex: number,
     ) => unknown;
 };

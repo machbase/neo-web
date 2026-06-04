@@ -7,7 +7,8 @@ import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { buildTagSelectionLimitError, getTagSelectionErrorMessage } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
-import { useTagSelectionPanelState } from './useTagSelectionPanelState';
+import { useTagSelectionPanelState } from '../seriesSelection/useTagSelectionPanelState';
+import { rejectWithToast } from './tagSelectionModalFeedback';
 import { fetchMinMaxTable } from '../../fetch/TimeBoundaryRangeFetcher';
 import { buildCreateChartPanel } from './CreateChartPanelBuilder';
 import type { PanelEChartType } from '../../domain/PanelDomain';
@@ -64,16 +65,14 @@ function CreateChartModal({
             sTagSearch.selectedSeriesDrafts.length,
             CREATE_CHART_MAX_SELECTED_COUNT,
         );
-        if (sSelectionError) {
-            Toast.error(sSelectionError, undefined);
+        if (rejectWithToast(sSelectionError)) {
             return;
         }
 
         const sAxisKindWarning = getMixedXAxisValueKindWarning(
             sTagSearch.selectedSeriesDrafts,
         );
-        if (sAxisKindWarning) {
-            Toast.error(sAxisKindWarning, undefined);
+        if (rejectWithToast(sAxisKindWarning)) {
             return;
         }
 

@@ -1,20 +1,46 @@
+import { useEffect } from 'react';
 import { Checkbox, Input } from '@/design-system/components';
 import type { PanelEditorConfig } from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 
 type EditorGeneralTabProps = {
     pGeneralConfig: PanelEditorConfig['general'];
+    pCanKeepCurrentViewRange: boolean;
     pOnChangeGeneralConfig: (generalConfig: PanelEditorConfig['general']) => void;
 };
 
 function EditorGeneralTab({
     pGeneralConfig,
+    pCanKeepCurrentViewRange,
     pOnChangeGeneralConfig,
 }: EditorGeneralTabProps) {
+    useEffect(() => {
+        if (
+            pCanKeepCurrentViewRange ||
+            !pGeneralConfig.use_last_viewed_range
+        ) {
+            return;
+        }
+
+        pOnChangeGeneralConfig({
+            ...pGeneralConfig,
+            use_last_viewed_range: false,
+            last_viewed_range: undefined,
+        });
+    }, [pCanKeepCurrentViewRange, pGeneralConfig, pOnChangeGeneralConfig]);
+
     function setGeneralFlag(
         field: 'use_zoom' | 'use_last_viewed_range',
         checked: boolean,
     ): void {
+        if (
+            field === 'use_last_viewed_range' &&
+            checked &&
+            !pCanKeepCurrentViewRange
+        ) {
+            throw new Error('Cannot keep current view range before saving a TAZ file.');
+        }
+
         pOnChangeGeneralConfig({
             ...pGeneralConfig,
             [field]: checked,
@@ -53,7 +79,11 @@ function EditorGeneralTab({
                     size="sm"
                 />
                 <Checkbox
-                    checked={pGeneralConfig.use_last_viewed_range}
+                    checked={
+                        pCanKeepCurrentViewRange &&
+                        pGeneralConfig.use_last_viewed_range
+                    }
+                    disabled={!pCanKeepCurrentViewRange}
                     onChange={(event) =>
                         setGeneralFlag(
                             'use_last_viewed_range',
@@ -63,6 +93,13 @@ function EditorGeneralTab({
                     label="Keep Current View Range"
                     size="sm"
                 />
+                <div className={styles.savedRangePreview}>
+                    <div className={styles.savedRangeWarning}>
+                        {pCanKeepCurrentViewRange
+                            ? 'When enabled, the Save button stores the chart’s current visible time range in the TAZ file.'
+                            : 'You do not have the TAZ file saved yet. Save the board before using Keep Current View Range.'}
+                    </div>
+                </div>
             </div>
         </section>
     );

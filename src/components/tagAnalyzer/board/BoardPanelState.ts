@@ -1,7 +1,21 @@
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
-import type { PanelRangeApplyOptions } from '../panel/PanelDataRuntimeState';
+import type { TimeRangeMs } from '../domain/time/TimeTypes';
+
+export type PanelRangeApplyOptions = {
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
+    fullRange?: TimeRangeMs;
+    preserveNavigatorRange?: boolean;
+    reloadData?: boolean;
+};
+
+export type PanelRangeStateApplyOptions = {
+    fullRange?: TimeRangeMs;
+    preserveNavigatorRange?: boolean;
+    reloadData?: boolean;
+};
 
 export type BoardPanelRecord = {
     rangeState: PanelRangeState;

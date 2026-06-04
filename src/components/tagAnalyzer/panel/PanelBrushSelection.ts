@@ -3,7 +3,7 @@ import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
 import {
     PanelOverlayMode,
-    type PanelBrushSelectionEvent,
+    type PanelRangeChangeEvent,
 } from '../domain/PanelDomain';
 import type {
     ChartSeriesData,
@@ -42,7 +42,7 @@ export function handlePanelBrushSelection({
     isNumericXAxis,
     createHighlightFromSelection,
     onSelectionSummaryChange,
-}: PanelBrushSelectionContext, event: PanelBrushSelectionEvent): boolean {
+}: PanelBrushSelectionContext, event: PanelRangeChangeEvent): boolean {
     const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
 
     if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
@@ -80,7 +80,7 @@ export function handlePanelBrushSelection({
 }
 
 function getBrushSelectionRange(
-    event: PanelBrushSelectionEvent,
+    event: PanelRangeChangeEvent,
     isNumericXAxis: boolean,
 ): BrushSelectionRange {
     return {

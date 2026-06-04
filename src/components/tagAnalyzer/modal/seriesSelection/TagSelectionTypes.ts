@@ -3,7 +3,7 @@ import type { DropdownOption } from '@/design-system/hooks/useDropdown';
 
 export type TagSearchItem = { id: string; name: string };
 
-export type TagSelectionColumnMetadataRow = [string, number, ...unknown[]] | string[];
+export type TagSelectionColumnMetadataRow = [name: string, type: number, ...rest: unknown[]] | string[];
 
 export type TagSelectionSourceColumns = {
     name: string;
