@@ -57,7 +57,7 @@ export function parseLoadedPanelTazVer204(
         ...panelInfo,
         general: {
             ...panelInfo.general,
-            is_order_by: panelInfo.general.is_order_by ?? true,
+            is_order_by: panelInfo.general.is_order_by ?? false,
         },
         data: {
             ...panelInfo.data,

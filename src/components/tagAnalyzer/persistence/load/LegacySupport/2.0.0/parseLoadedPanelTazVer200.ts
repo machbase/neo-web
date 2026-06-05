@@ -68,7 +68,7 @@ export function parseLoadedPanelTazVer200(
                 sNormalizedPanelInfo.time.useLastViewedRange === true,
             last_viewed_range: sNormalizedPanelInfo.time.lastViewedRange,
             is_raw: sNormalizedPanelInfo.toolbar.isRaw,
-            is_order_by: true,
+            is_order_by: false,
             use_normalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
         },
         data: {
