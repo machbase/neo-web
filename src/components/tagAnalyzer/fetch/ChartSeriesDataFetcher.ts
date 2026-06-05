@@ -334,14 +334,6 @@ async function executeChartFetchSql(
         url: '/api/tql/taz',
         data: tqlCsvPayload,
     })) as ChartFetchApiResponse;
-
-    console.log('[TagAnalyzer raw query response]', {
-        sql: querySql,
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-    });
-
     const parsedResponse = parseChartCsvResponse(response);
 
     console.log('[TagAnalyzer query result]', {
