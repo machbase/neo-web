@@ -30,8 +30,6 @@ type ResolvedYAxisRange = {
     max: number | undefined;
 };
 
-type NonEmptyChartSeriesData = [ChartRow, ...ChartRow[]];
-
 type YAxisValueMap = {
     left: number[];
     right: number[];
@@ -71,16 +69,19 @@ function getRoundedAxisStep(axisRangeValue: number): number {
 
 function updateAxisBounds(
     axisBounds: number[],
-    seriesData: NonEmptyChartSeriesData,
+    seriesData: ChartRow[],
     zeroBase: boolean,
 ): void {
-    const [sSeriesMin, sSeriesMax] = seriesData.reduce<[number, number]>(
-        (seriesValueRange, chartRow) => [
-            Math.min(seriesValueRange[0], chartRow[1]),
-            Math.max(seriesValueRange[1], chartRow[1]),
-        ],
-        [seriesData[0][1], seriesData[0][1]],
-    );
+    const sValues = seriesData
+        .map((chartRow) => chartRow[1])
+        .filter((value): value is number => value !== null);
+
+    if (sValues.length === 0) {
+        return;
+    }
+
+    const sSeriesMin = Math.min(...sValues);
+    const sSeriesMax = Math.max(...sValues);
     const sMin = zeroBase ? Math.min(sSeriesMin, 0) : sSeriesMin;
     const sMax = zeroBase ? Math.max(sSeriesMax, 0) : sSeriesMax;
     if (axisBounds[0] === undefined || axisBounds[0] > sMin) axisBounds[0] = sMin;
@@ -119,7 +120,6 @@ function getYAxisValues(
 
     chartData.forEach((series) => {
         if (!series.data?.length) return;
-        const sSeriesData = series.data as NonEmptyChartSeriesData;
         const sYAxisIndex = series.yAxis ?? 0;
         const sAxisValues = sYAxisIndex === 0
             ? sYAxis.left
@@ -130,7 +130,7 @@ function getYAxisValues(
         if (!sAxisValues) throw new Error(`Unsupported Y-axis index: ${sYAxisIndex}.`);
         updateAxisBounds(
             sAxisValues,
-            sSeriesData,
+            series.data,
             sYAxisIndex === 0
                 ? axes.left_y_axis.zero_base
                 : axes.right_y_axis.zero_base,

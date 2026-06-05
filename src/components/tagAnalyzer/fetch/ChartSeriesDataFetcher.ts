@@ -189,7 +189,7 @@ function parseChartCsvResponse(
         throw new Error(getChartFetchErrorMessage(apiResponse));
     }
 
-    const rows = TagzCsvParser(apiResponse.data);
+    const rows = normalizeChartFetchRows(TagzCsvParser(apiResponse.data));
     validateChartFetchRows(rows);
 
     return {
@@ -273,13 +273,35 @@ function validateChartFetchRows(rows: unknown): asserts rows is TagFetchRow[] {
             !Array.isArray(row) ||
             row.length < 2 ||
             typeof row[0] !== 'number' ||
-            typeof row[1] !== 'number' ||
+            (typeof row[1] !== 'number' && row[1] !== null) ||
             !Number.isFinite(row[0]) ||
-            !Number.isFinite(row[1])
+            (typeof row[1] === 'number' && !Number.isFinite(row[1]))
         ) {
             throw new Error(MALFORMED_CHART_DATA_MESSAGE);
         }
     }
+}
+
+function normalizeChartFetchRows(rows: unknown): unknown {
+    if (!Array.isArray(rows)) {
+        return rows;
+    }
+
+    return rows.map((row) => {
+        if (!Array.isArray(row)) {
+            return row;
+        }
+
+        return row.map((cell, index) =>
+            index === 1 && isDatabaseNullText(cell)
+                ? null
+                : cell,
+        );
+    });
+}
+
+function isDatabaseNullText(value: unknown): boolean {
+    return typeof value === 'string' && value.trim().toUpperCase() === 'NULL';
 }
 
 async function executeChartFetchSql(

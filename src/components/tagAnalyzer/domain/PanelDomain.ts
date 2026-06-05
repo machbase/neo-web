@@ -38,6 +38,7 @@ export type PanelGeneral = {
     use_last_viewed_range: boolean;
     last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
     is_raw: boolean;
+    is_order_by: boolean;
     use_normalize: boolean;
 };
 
@@ -341,6 +342,7 @@ export type PanelChartState = {
     display: RuntimePanelDisplay;
     seriesList: PanelSeriesDefinition[];
     useNormalize: boolean;
+    useOrderBy: boolean;
     highlights: PanelHighlight[];
     annotations: PanelAnnotation[];
 };
