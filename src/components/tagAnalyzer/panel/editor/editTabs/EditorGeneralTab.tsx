@@ -6,12 +6,14 @@ import styles from '../PanelEditor.module.scss';
 type EditorGeneralTabProps = {
     pGeneralConfig: PanelEditorConfig['general'];
     pCanKeepCurrentViewRange: boolean;
+    pIsRawMode: boolean;
     pOnChangeGeneralConfig: (generalConfig: PanelEditorConfig['general']) => void;
 };
 
 function EditorGeneralTab({
     pGeneralConfig,
     pCanKeepCurrentViewRange,
+    pIsRawMode,
     pOnChangeGeneralConfig,
 }: EditorGeneralTabProps) {
     useEffect(() => {
@@ -30,7 +32,7 @@ function EditorGeneralTab({
     }, [pCanKeepCurrentViewRange, pGeneralConfig, pOnChangeGeneralConfig]);
 
     function setGeneralFlag(
-        field: 'use_zoom' | 'use_last_viewed_range',
+        field: 'use_zoom' | 'use_last_viewed_range' | 'is_order_by',
         checked: boolean,
     ): void {
         if (
@@ -39,6 +41,10 @@ function EditorGeneralTab({
             !pCanKeepCurrentViewRange
         ) {
             throw new Error('Cannot keep current view range before saving a TAZ file.');
+        }
+
+        if (field === 'is_order_by' && !pIsRawMode) {
+            throw new Error('Raw order by can only be changed in raw mode.');
         }
 
         pOnChangeGeneralConfig({
@@ -78,6 +84,23 @@ function EditorGeneralTab({
                     label="Use Zoom when dragging"
                     size="sm"
                 />
+                <span
+                    title={
+                        pIsRawMode
+                            ? undefined
+                            : 'This option is only for raw data.'
+                    }
+                >
+                    <Checkbox
+                        checked={pIsRawMode ? pGeneralConfig.is_order_by : true}
+                        disabled={!pIsRawMode}
+                        onChange={(event) =>
+                            setGeneralFlag('is_order_by', event.target.checked)
+                        }
+                        label="Order raw data by time"
+                        size="sm"
+                    />
+                </span>
                 <Checkbox
                     checked={
                         pCanKeepCurrentViewRange &&

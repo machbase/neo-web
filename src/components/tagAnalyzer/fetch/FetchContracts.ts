@@ -7,7 +7,7 @@ import type {
     UnixMilliseconds,
 } from '../domain/time/TimeTypes';
 
-export type TagFetchRow = [number, number, ...unknown[]] | number[];
+export type TagFetchRow = [number, number | null, ...unknown[]];
 
 export type ChartFetchResponse = {
     data:

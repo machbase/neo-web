@@ -26,14 +26,13 @@ type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<
     NonNullable<XAXisComponentOption['splitLine']>['lineStyle']
 >;
-type TooltipValueItem = number | string | undefined;
+type TooltipValueItem = number | string | null | undefined;
 type TooltipArrayValue = Array<TooltipValueItem>;
 type OverlapTooltipParam = Partial<{
     seriesIndex: number;
     value: TooltipArrayValue;
     color: string;
 }>;
-type NonEmptyChartSeriesData = [ChartRow, ...ChartRow[]];
 type OverlapChartYAxisRange = {
     min: number | undefined;
     max: number | undefined;
@@ -131,15 +130,16 @@ const OVERLAP_Y_AXIS_STATIC_OPTION = {
     scale: true,
 } satisfies YAXisComponentOption;
 
-function getSeriesValueRange(seriesData: NonEmptyChartSeriesData): [number, number] {
-    return seriesData.reduce<[number, number]>(
-        (seriesValueRange, chartRow) => {
-            if (chartRow[1] < seriesValueRange[0]) seriesValueRange[0] = chartRow[1];
-            if (chartRow[1] > seriesValueRange[1]) seriesValueRange[1] = chartRow[1];
-            return seriesValueRange;
-        },
-        [seriesData[0][1], seriesData[0][1]],
-    );
+function getSeriesValueRange(seriesData: ChartRow[]): [number, number] | undefined {
+    const sValues = seriesData
+        .map((chartRow) => chartRow[1])
+        .filter((value): value is number => value !== null);
+
+    if (sValues.length === 0) {
+        return undefined;
+    }
+
+    return [Math.min(...sValues), Math.max(...sValues)];
 }
 
 function getRoundedAxisStep(axisRangeValue: number): number {
@@ -166,10 +166,15 @@ function getRoundedAxisStep(axisRangeValue: number): number {
 
 function updateYAxisBounds(
     axisBounds: number[],
-    seriesData: NonEmptyChartSeriesData,
+    seriesData: ChartRow[],
     includeZeroInRange: boolean,
 ): void {
-    const [sSeriesMin, sSeriesMax] = getSeriesValueRange(seriesData);
+    const sSeriesValueRange = getSeriesValueRange(seriesData);
+    if (!sSeriesValueRange) {
+        return;
+    }
+
+    const [sSeriesMin, sSeriesMax] = sSeriesValueRange;
     const sMin = includeZeroInRange ? Math.min(sSeriesMin, 0) : sSeriesMin;
     const sMax = includeZeroInRange ? Math.max(sSeriesMax, 0) : sSeriesMax;
 
@@ -211,7 +216,7 @@ function resolveOverlapChartYAxisRange(
 
         updateYAxisBounds(
             sYAxisBounds,
-            series.data as NonEmptyChartSeriesData,
+            series.data,
             includeZeroInRange,
         );
     });

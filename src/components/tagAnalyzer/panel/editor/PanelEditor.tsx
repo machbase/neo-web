@@ -283,6 +283,7 @@ const PanelEditor = ({
                     <EditorGeneralTab
                         pGeneralConfig={sGeneralDraft}
                         pCanKeepCurrentViewRange={pCanKeepCurrentViewRange}
+                        pIsRawMode={pIsRawMode}
                         pOnChangeGeneralConfig={setGeneralDraft}
                     />
                 );

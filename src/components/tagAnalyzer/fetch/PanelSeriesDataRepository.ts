@@ -57,6 +57,7 @@ export async function fetchMainPanelSeriesRows(
     mainChartSampling: RuntimePanelSampling,
     chartWidth: number,
     requestedRawMode: boolean,
+    useOrderBy: boolean,
     timeRange: TimeRangeMs,
     rollupTableList: string[],
 ): Promise<FetchPanelSeriesRowsResult | undefined> {
@@ -101,6 +102,7 @@ export async function fetchMainPanelSeriesRows(
                               sInterval,
                               sQueryCount,
                               sRawSampling,
+                              useOrderBy,
                           )
                         : await fetchCalculatedSeriesRows(
                               seriesConfig,
@@ -181,6 +183,7 @@ export async function fetchNavigatorPanelSeriesRows(
                         sInterval,
                         sQueryCount,
                         sRawNavigatorSampling,
+                        true,
                     );
                 } else if (requestedRawMode) {
                     sFetchResult = await fetchCalculatedSeriesRows(
@@ -488,6 +491,7 @@ export async function fetchRawSeriesRows(
     interval: IntervalOption,
     count: number,
     sampling: RawFetchSampling,
+    useOrderBy: boolean,
 ): Promise<ChartFetchResponse> {
     if (!isConcreteTimeRange(timeRange)) {
         return EMPTY_CHART_FETCH_RESPONSE;
@@ -504,7 +508,7 @@ export async function fetchRawSeriesRows(
         ...interval,
         columnMap: sourceColumns,
         Count: count,
-        SortOrder: SortOrderEnum.Ascending,
+        SortOrder: useOrderBy ? SortOrderEnum.Ascending : SortOrderEnum.Unsorted,
         sampling: sampling,
     };
 
