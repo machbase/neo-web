@@ -111,7 +111,8 @@ function buildSeriesSummaryRows(
 
         const sSelectedValues = seriesData
             .filter((row) => startTime <= row[0] && endTime >= row[0])
-            .map((row) => row[1]);
+            .map((row) => row[1])
+            .filter((value): value is number => value !== null);
 
         if (sSelectedValues.length === 0) {
             return [];
