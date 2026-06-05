@@ -35,7 +35,6 @@ function createRuntimePanelInfo(
             use_last_viewed_range: false,
             last_viewed_range: undefined,
             is_raw: hasNumericBaseTimeSeries(tagSet),
-            is_order_by: true,
             use_normalize: false,
         },
         data: {

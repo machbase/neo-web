@@ -104,7 +104,6 @@ function OverlapModal({
                   sIntervalTime,
                   sCount,
                   RAW_FETCH_SAMPLING_DISABLED,
-                  panelInfo.board.general.is_order_by,
               )
             : await fetchCalculatedSeriesRows(
                   sTagSetElement,

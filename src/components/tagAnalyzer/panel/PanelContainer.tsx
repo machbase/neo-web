@@ -551,7 +551,6 @@ function PanelContainer({
                         display: runtimeDisplay,
                         seriesList: panelInfo.data.tag_set,
                         useNormalize: panelInfo.general.use_normalize,
-                        useOrderBy: isRaw ? panelInfo.general.is_order_by : true,
                         highlights: panelHighlights,
                         annotations: panelInfo.annotations,
                     }}
