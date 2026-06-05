@@ -26,6 +26,8 @@ export function isPersistedPanelInfoV204(
         typeof sGeneral.use_zoom === 'boolean' &&
         typeof sGeneral.use_last_viewed_range === 'boolean' &&
         typeof sGeneral.is_raw === 'boolean' &&
+        (sGeneral.is_order_by === undefined ||
+            typeof sGeneral.is_order_by === 'boolean') &&
         typeof sGeneral.use_normalize === 'boolean' &&
         !!sData &&
         typeof sData === 'object' &&
@@ -53,6 +55,10 @@ export function parseLoadedPanelTazVer204(
 
     return {
         ...panelInfo,
+        general: {
+            ...panelInfo.general,
+            is_order_by: panelInfo.general.is_order_by ?? true,
+        },
         data: {
             ...panelInfo.data,
             interval_type:

@@ -25,6 +25,13 @@ import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/TimeConstants';
 const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
 const USER_PRESENTED_ERROR_KEY = 'tagAnalyzerUserPresented';
 
+type DebugChartFetchRow = {
+    time: string;
+    rawTime: number;
+    value: number;
+    rawRow: TagFetchRow;
+};
+
 export async function fetchCalculationData(calculationRequest: CalculationFetchRequest) {
     const {
         Table: sTableName,
@@ -282,6 +289,42 @@ function validateChartFetchRows(rows: unknown): asserts rows is TagFetchRow[] {
     }
 }
 
+function padDebugTimePart(value: number, length: number): string {
+    return String(value).padStart(length, '0');
+}
+
+function formatDebugTimestamp(timestamp: number): string {
+    const date = new Date(timestamp);
+
+    if (!Number.isFinite(date.getTime())) {
+        return String(timestamp);
+    }
+
+    return [
+        [
+            padDebugTimePart(date.getFullYear(), 4),
+            padDebugTimePart(date.getMonth() + 1, 2),
+            padDebugTimePart(date.getDate(), 2),
+        ].join('-'),
+        [
+            padDebugTimePart(date.getHours(), 2),
+            padDebugTimePart(date.getMinutes(), 2),
+            padDebugTimePart(date.getSeconds(), 2),
+        ].join(':') + `.${padDebugTimePart(date.getMilliseconds(), 3)}`,
+    ].join(' ');
+}
+
+function createDebugChartFetchRows(
+    rows: TagFetchRow[] | undefined,
+): DebugChartFetchRow[] {
+    return (rows ?? []).map((row) => ({
+        time: formatDebugTimestamp(row[0]),
+        rawTime: row[0],
+        value: row[1],
+        rawRow: row,
+    }));
+}
+
 async function executeChartFetchSql(
     querySql: string,
 ): Promise<ChartFetchResponse | undefined> {
@@ -291,6 +334,13 @@ async function executeChartFetchSql(
         url: '/api/tql/taz',
         data: tqlCsvPayload,
     })) as ChartFetchApiResponse;
+    const parsedResponse = parseChartCsvResponse(response);
 
-    return parseChartCsvResponse(response);
+    console.log('[TagAnalyzer query result]', {
+        sql: querySql,
+        rowCount: parsedResponse?.data?.rows?.length ?? 0,
+        rows: createDebugChartFetchRows(parsedResponse?.data?.rows),
+    });
+
+    return parsedResponse;
 }
