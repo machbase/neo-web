@@ -150,7 +150,7 @@ function createNormalizedLegacyPanelInfo(
             use_last_viewed_range: panelInfo.use_time_keeper,
             last_viewed_range: panelInfo.time_keeper,
             is_raw: panelInfo.raw_keeper,
-            is_order_by: false,
+            is_order_by: true,
             use_normalize: panelInfo.use_normalize,
         },
         data: {
