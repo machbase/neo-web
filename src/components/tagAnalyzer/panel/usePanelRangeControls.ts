@@ -1,5 +1,3 @@
-import { useRef } from 'react';
-import { Toast } from '@/design-system/components';
 import type {
     PanelNavigatorShiftActions,
     PanelRangeChangeEvent,
@@ -29,9 +27,6 @@ const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
 const PANEL_RANGE_SHIFT_FRACTION = 0.3;
 const NAVIGATOR_RANGE_SHIFT_FRACTION = 0.1;
 const MAX_PANEL_END_TIME = 9999999999999;
-const PANEL_NOT_INITIALIZED_DRAG_MESSAGE =
-    'Panel is not fully initialized; cannot drag yet.';
-const PANEL_NOT_INITIALIZED_TOAST_INTERVAL_MS = 2000;
 
 type ApplyPanelRangeState = (
     rangeState: PanelRangeState,
@@ -55,22 +50,6 @@ export function usePanelRangeControls({
     isNumericXAxis,
     onRangeStateChange,
 }: UsePanelRangeControlsParams): PanelRangeControls {
-    const lastNotInitializedToastTimeRef = useRef(0);
-
-    function showPanelNotInitializedToast(): void {
-        const sCurrentTime = Date.now();
-
-        if (
-            sCurrentTime - lastNotInitializedToastTimeRef.current <
-            PANEL_NOT_INITIALIZED_TOAST_INTERVAL_MS
-        ) {
-            return;
-        }
-
-        lastNotInitializedToastTimeRef.current = sCurrentTime;
-        Toast.warning(PANEL_NOT_INITIALIZED_DRAG_MESSAGE, undefined);
-    }
-
     const setMainRange = (
         panelRange: TimeRangeMs,
         options?: PanelRangeStateApplyOptions,
@@ -101,11 +80,6 @@ export function usePanelRangeControls({
     return {
         rangeHandlers: {
             onPanelRangeChange: (event: PanelRangeChangeEvent) => {
-                if (!hasConcreteInteractiveRangeState(rangeState)) {
-                    showPanelNotInitializedToast();
-                    return;
-                }
-
                 const sRequestedPanelRange = createTimeRangeMs(
                     event.min,
                     event.max,
@@ -127,11 +101,6 @@ export function usePanelRangeControls({
                 );
             },
             onPanelRangeChangeFromNavigator: (event: PanelRangeChangeEvent) => {
-                if (!hasConcreteInteractiveRangeState(rangeState)) {
-                    showPanelNotInitializedToast();
-                    return;
-                }
-
                 const sRequestedPanelRange = createTimeRangeMs(
                     event.min,
                     event.max,
@@ -153,11 +122,6 @@ export function usePanelRangeControls({
                 );
             },
             onNavigatorRangeChange: (event: PanelRangeChangeEvent) => {
-                if (!isConcreteTimeRange(rangeState.panelRange)) {
-                    showPanelNotInitializedToast();
-                    return;
-                }
-
                 const sNavigatorRange = ensureMinimumAxisRangeWidth(
                     createTimeRangeMs(event.min, event.max),
                     rangeState.navigatorRange,
@@ -270,13 +234,6 @@ export function usePanelRangeControls({
 }
 
 type RangeShiftDirection = -1 | 1;
-
-function hasConcreteInteractiveRangeState(rangeState: PanelRangeState): boolean {
-    return (
-        isConcreteTimeRange(rangeState.panelRange) &&
-        isConcreteTimeRange(rangeState.navigatorRange)
-    );
-}
 
 function isFiniteRangeEvent(range: TimeRangeMs): boolean {
     return Number.isFinite(range.startTime) && Number.isFinite(range.endTime);

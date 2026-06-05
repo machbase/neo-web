@@ -44,7 +44,6 @@ type PanelChartDataLoadConfig = {
     queryLimit: number;
     intervalType: string | undefined;
     isRaw: boolean;
-    useOrderBy: boolean;
     xAxis: ReturnType<typeof resolvePanelAxesForRuntime>['x_axis'];
     mainChartSampling: ReturnType<typeof resolvePanelAxesForRuntime>['main_chart_sampling'];
 };
@@ -143,9 +142,6 @@ function getPanelLoadConfig(panelInfo: PanelInfo): PanelChartDataLoadConfig {
         queryLimit: panelInfo.data.count ?? -1,
         intervalType: panelInfo.data.interval_type,
         isRaw: panelInfo.general.is_raw,
-        useOrderBy: panelInfo.general.is_raw
-            ? panelInfo.general.is_order_by
-            : true,
         xAxis: sRuntimeAxes.x_axis,
         mainChartSampling: sRuntimeAxes.main_chart_sampling,
     };
@@ -227,7 +223,6 @@ async function loadMainSeriesData(
         loadConfig.mainChartSampling,
         chartWidth,
         loadConfig.isRaw,
-        loadConfig.useOrderBy,
         timeRange,
         rollupTableList,
     );

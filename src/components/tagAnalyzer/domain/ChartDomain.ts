@@ -4,7 +4,7 @@ import type {
     PanelSeriesSourceColumns,
 } from './SeriesDomain';
 
-export type ChartRow = [number, number | null];
+export type ChartRow = [number, number];
 
 export type ChartSeriesData = {
     name: string;
