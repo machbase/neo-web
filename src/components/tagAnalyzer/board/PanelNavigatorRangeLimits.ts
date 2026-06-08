@@ -9,6 +9,7 @@ import {
 export const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
 export const MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH = 36;
 export const MIN_PANEL_RANGE_MS = 10;
+const TARGET_NAVIGATOR_SELECTION_PIXEL_WIDTH = 40;
 const MIN_NUMERIC_RANGE_AMOUNT = 0.000001;
 const NUMERIC_RANGE_AMOUNT_FRACTION = 0.000001;
 
@@ -43,19 +44,40 @@ export function limitNavigatorRangeAmountForSelection(
     navigatorRange: TimeRangeMs,
     navigatorPixelWidth: number,
 ): TimeRangeMs {
+    const sPanelTotalRangeAmount = getTimeRangeWidth(panelRange);
     const sNavigatorTotalRangeAmount = getTimeRangeWidth(navigatorRange);
-    const sMaxNavigatorTotalRangeAmount =
-        getMaxNavigatorTotalRangeAmount(panelRange, navigatorPixelWidth);
+    const sNavigatorPixelWidth = Math.max(navigatorPixelWidth, 1);
+    const sMinimumSelectionPixelWidth = Math.min(
+        MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH,
+        sNavigatorPixelWidth,
+    );
+    const sTargetSelectionPixelWidth = Math.min(
+        Math.max(
+            TARGET_NAVIGATOR_SELECTION_PIXEL_WIDTH,
+            MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH,
+        ),
+        sNavigatorPixelWidth,
+    );
 
-    if (sNavigatorTotalRangeAmount <= sMaxNavigatorTotalRangeAmount) {
+    if (sPanelTotalRangeAmount <= 0) {
+        throw new Error('Cannot limit navigator range amount for an invalid panel range.');
+    }
+
+    const sMaxAllowedNavigatorTotalRangeAmount =
+        (sPanelTotalRangeAmount * sNavigatorPixelWidth) /
+        sMinimumSelectionPixelWidth;
+    if (sNavigatorTotalRangeAmount <= sMaxAllowedNavigatorTotalRangeAmount) {
         return navigatorRange;
     }
 
+    const sTargetNavigatorTotalRangeAmount =
+        (sPanelTotalRangeAmount * sNavigatorPixelWidth) /
+        sTargetSelectionPixelWidth;
     const sNavigatorCenter = getTimeRangeCenter(navigatorRange);
 
     return createTimeRangeMs(
-        sNavigatorCenter - sMaxNavigatorTotalRangeAmount / 2,
-        sNavigatorCenter + sMaxNavigatorTotalRangeAmount / 2,
+        sNavigatorCenter - sTargetNavigatorTotalRangeAmount / 2,
+        sNavigatorCenter + sTargetNavigatorTotalRangeAmount / 2,
     );
 }
 
@@ -83,23 +105,5 @@ export function recenterNavigatorRangeIfPanelOutside(
     return createTimeRangeMs(
         sPanelCenterTime - sNextNavigatorTotalRangeAmount / 2,
         sPanelCenterTime + sNextNavigatorTotalRangeAmount / 2,
-    );
-}
-
-function getMaxNavigatorTotalRangeAmount(
-    panelRange: TimeRangeMs,
-    navigatorPixelWidth: number,
-): number {
-    const sPanelTotalRangeAmount = getTimeRangeWidth(panelRange);
-    const sMinimumSelectionRatio =
-        MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH / Math.max(navigatorPixelWidth, 1);
-
-    if (sPanelTotalRangeAmount <= 0 || sMinimumSelectionRatio <= 0) {
-        throw new Error('Cannot limit navigator range amount for an invalid panel range.');
-    }
-
-    return Math.max(
-        sPanelTotalRangeAmount,
-        sPanelTotalRangeAmount / Math.min(sMinimumSelectionRatio, 1),
     );
 }

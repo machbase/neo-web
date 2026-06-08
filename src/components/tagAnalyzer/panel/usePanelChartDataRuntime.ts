@@ -91,7 +91,7 @@ type MainPanelSeriesLoadResult = {
     chartData: ChartSeriesData[];
     resolvedIntervalOption: IntervalOption;
     isLimitReached?: boolean | undefined;
-    queriedDataRange?: TimeRangeMs | undefined;
+    appliedPanelRange?: TimeRangeMs | undefined;
 };
 
 type NavigatorPanelSeriesLoadResult = { chartData: ChartSeriesData[] };
@@ -113,6 +113,7 @@ type MainPanelDataLoadResult = {
 
 const EMPTY_INTERVAL_OPTION = { IntervalType: '', IntervalValue: 0 } as const;
 const MIN_QUERIED_DATA_RANGE_WIDTH = 1;
+const RAW_DATA_RANGE_SHRINK_THRESHOLD = 0.1;
 
 function getChartLoadErrorMessage(error: unknown): string {
     return error instanceof Error && error.message
@@ -235,6 +236,9 @@ async function loadMainSeriesData(
     const sQueryAnalysis = analyzeMainQueryResult(
         sFetchResult.seriesFetchResults,
     );
+    const sAppliedPanelRange = loadConfig.isRaw
+        ? resolveRawDataRange(timeRange, sQueryAnalysis.queriedDataRange)
+        : undefined;
 
     return {
         chartData: mapRowsToSeriesData(sFetchResult),
@@ -242,8 +246,8 @@ async function loadMainSeriesData(
         ...(sQueryAnalysis.isLimitReached
             ? { isLimitReached: true }
             : {}),
-        ...(sQueryAnalysis.queriedDataRange
-            ? { queriedDataRange: sQueryAnalysis.queriedDataRange }
+        ...(sAppliedPanelRange
+            ? { appliedPanelRange: sAppliedPanelRange }
             : {}),
     };
 }
@@ -331,27 +335,33 @@ function analyzeMainQueryResult(
     return sAnalysis;
 }
 
-function getAppliedRanges({
-    panelRange,
-    requestedNavigatorRange,
-    shouldClampPanelRangeToLoadedDataRange,
-    queriedDataRange,
-}: {
-    panelRange: TimeRangeMs;
-    requestedNavigatorRange: TimeRangeMs;
-    shouldClampPanelRangeToLoadedDataRange: boolean;
-    queriedDataRange: TimeRangeMs | undefined;
-}): AppliedPanelLoadRanges {
-    const sShouldUseLoadedPanelRange =
-        shouldClampPanelRangeToLoadedDataRange && queriedDataRange !== undefined;
-    const sPanelRange = sShouldUseLoadedPanelRange
-        ? queriedDataRange
-        : panelRange;
+function resolveRawDataRange(
+    queryRange: TimeRangeMs,
+    queriedDataRange: TimeRangeMs | undefined,
+): TimeRangeMs {
+    if (!queriedDataRange) {
+        return queryRange;
+    }
 
-    return {
-        panelRange: sPanelRange,
-        navigatorRange: requestedNavigatorRange,
-    };
+    const sQueryRangeAmount = queryRange.endTime - queryRange.startTime;
+    if (sQueryRangeAmount <= 0) {
+        throw new Error('Cannot resolve raw data range for an invalid query range.');
+    }
+
+    const sMissingStartAmount = Math.max(
+        queriedDataRange.startTime - queryRange.startTime,
+        0,
+    );
+    const sMissingEndAmount = Math.max(
+        queryRange.endTime - queriedDataRange.endTime,
+        0,
+    );
+    const sShrinkAmount = sMissingStartAmount + sMissingEndAmount;
+    const sShrinkRatio = sShrinkAmount / sQueryRangeAmount;
+    const sShouldUseQueriedDataRange =
+        sShrinkRatio > RAW_DATA_RANGE_SHRINK_THRESHOLD;
+
+    return sShouldUseQueriedDataRange ? queriedDataRange : queryRange;
 }
 
 export function usePanelChartDataRuntime({
@@ -442,19 +452,10 @@ export function usePanelChartDataRuntime({
                 };
             }
 
-            const sShouldClampPanelRangeToLoadedDataRange =
-                loadConfig.isRaw;
-            const sAppliedRanges = getAppliedRanges({
-                panelRange,
-                requestedNavigatorRange: navigatorRange,
-                shouldClampPanelRangeToLoadedDataRange:
-                    sShouldClampPanelRangeToLoadedDataRange,
-                queriedDataRange: isConcreteTimeRange(
-                    sMainLoadState.queriedDataRange,
-                )
-                    ? sMainLoadState.queriedDataRange
-                    : undefined,
-            });
+            const sAppliedRanges = {
+                panelRange: sMainLoadState.appliedPanelRange ?? panelRange,
+                navigatorRange,
+            };
 
             applyPanelLoadResult(sMainLoadState, sAppliedRanges);
             setChartLoadStatus(PanelChartLoadStatus.Ready);
