@@ -37,7 +37,6 @@ export function useConfigReload({
             panelRange: sRangeState.panelRange,
             navigatorRange: sRangeState.navigatorRange,
             fullRange: sRangeState.fullRange,
-            preserveNavigatorRange: nextPanelInfo.general.use_last_viewed_range,
         });
     }
 
@@ -56,7 +55,6 @@ export function useConfigReload({
                 panelRange: sRangeState.panelRange,
                 navigatorRange: sRangeState.navigatorRange,
                 fullRange: sRangeState.fullRange,
-                preserveNavigatorRange: true,
             });
             return;
         }

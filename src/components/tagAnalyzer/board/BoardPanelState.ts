@@ -7,13 +7,11 @@ export type PanelRangeApplyOptions = {
     panelRange: TimeRangeMs;
     navigatorRange: TimeRangeMs;
     fullRange?: TimeRangeMs;
-    preserveNavigatorRange?: boolean;
     reloadData?: boolean;
 };
 
 export type PanelRangeStateApplyOptions = {
     fullRange?: TimeRangeMs;
-    preserveNavigatorRange?: boolean;
     reloadData?: boolean;
 };
 

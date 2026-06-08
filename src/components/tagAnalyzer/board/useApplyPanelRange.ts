@@ -79,9 +79,11 @@ function resolveRangeState(
         throw new Error('Cannot apply an invalid navigator range.');
     }
 
-    const sNavigatorRange = options.preserveNavigatorRange
-        ? options.navigatorRange
-        : getNavigatorRangeForPanel(boardPanelRecord, sPanelRange, options.navigatorRange);
+    const sNavigatorRange = getNavigatorRangeForPanel(
+        boardPanelRecord,
+        sPanelRange,
+        options.navigatorRange,
+    );
 
     return {
         panelRange: sPanelRange,

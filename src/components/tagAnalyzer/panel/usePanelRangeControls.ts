@@ -118,12 +118,8 @@ export function usePanelRangeControls({
                     getPanelRangeChangeState(
                         rangeState,
                         sRequestedPanelRange,
-                        false,
                         isNumericXAxis,
                     ),
-                    {
-                        preserveNavigatorRange: false,
-                    },
                 );
             },
             onPanelRangeChangeFromNavigator: (event: PanelRangeChangeEvent) => {
@@ -144,12 +140,8 @@ export function usePanelRangeControls({
                     getPanelRangeChangeState(
                         rangeState,
                         sRequestedPanelRange,
-                        true,
                         isNumericXAxis,
                     ),
-                    {
-                        preserveNavigatorRange: true,
-                    },
                 );
             },
             onNavigatorRangeChange: (event: PanelRangeChangeEvent) => {
@@ -359,20 +351,17 @@ function getShiftedNavigatorRangeState(
 function getPanelRangeChangeState(
     rangeState: PanelRangeState,
     requestedPanelRange: TimeRangeMs,
-    preserveNavigatorRange: boolean,
     isNumericXAxis: boolean,
 ): PanelRangeState {
-    const sPanelRange = preserveNavigatorRange
-        ? clampTimeRangeToBounds(requestedPanelRange, rangeState.navigatorRange)
-        : clampTimeRangeToBounds(
-              ensureMinimumAxisRangeWidth(
-                  requestedPanelRange,
-                  rangeState.navigatorRange,
-                  isNumericXAxis,
-                  MIN_PANEL_RANGE_MS,
-              ),
-              rangeState.navigatorRange,
-          );
+    const sPanelRange = clampTimeRangeToBounds(
+        ensureMinimumAxisRangeWidth(
+            requestedPanelRange,
+            rangeState.navigatorRange,
+            isNumericXAxis,
+            MIN_PANEL_RANGE_MS,
+        ),
+        rangeState.navigatorRange,
+    );
 
     return {
         panelRange: sPanelRange,

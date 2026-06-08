@@ -206,7 +206,6 @@ export function useTagAnalyzerBoardPanels({
                     panelRange: rangeState.panelRange,
                     navigatorRange: rangeState.navigatorRange,
                     fullRange: options?.fullRange ?? rangeState.fullRange,
-                    preserveNavigatorRange: options?.preserveNavigatorRange,
                     reloadData: options?.reloadData,
                 });
             },
