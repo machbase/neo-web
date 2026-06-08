@@ -13,10 +13,8 @@ import type {
 } from './BoardPanelState';
 import {
     getNavigatorTrackWidth,
-    getRecenteredNavigator,
-    getZoomedNavigator,
-    isPanelOutsideNavigator,
-    isSelectionTooSmall,
+    limitNavigatorRangeAmountForSelection,
+    recenterNavigatorRangeIfPanelOutside,
 } from './PanelNavigatorRangeLimits';
 
 type ApplyPanelRangeDependencies = {
@@ -123,16 +121,13 @@ function getNavigatorRangeForPanel(
             : undefined;
     let sNavigatorRange = navigatorRange;
 
-    if (isPanelOutsideNavigator(panelRange, sNavigatorRange)) {
-        sNavigatorRange = getRecenteredNavigator(panelRange, sNavigatorRange);
+    if (sNavigatorTrackPixelWidth !== undefined) {
+        sNavigatorRange = limitNavigatorRangeAmountForSelection(
+            panelRange,
+            sNavigatorRange,
+            sNavigatorTrackPixelWidth,
+        );
     }
 
-    if (
-        sNavigatorTrackPixelWidth !== undefined &&
-        isSelectionTooSmall(panelRange, sNavigatorRange, sNavigatorTrackPixelWidth)
-    ) {
-        sNavigatorRange = getZoomedNavigator(panelRange, sNavigatorTrackPixelWidth);
-    }
-
-    return sNavigatorRange;
+    return recenterNavigatorRangeIfPanelOutside(panelRange, sNavigatorRange);
 }

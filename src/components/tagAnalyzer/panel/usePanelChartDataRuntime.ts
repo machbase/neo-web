@@ -17,13 +17,6 @@ import {
     isSameTimeRange,
 } from '../domain/time/TimeRangeUtils';
 import {
-    getNavigatorTrackWidth,
-    getRecenteredNavigator,
-    getZoomedNavigator,
-    isPanelOutsideNavigator,
-    isSelectionTooSmall,
-} from '../board/PanelNavigatorRangeLimits';
-import {
     RAW_NAVIGATOR_SAMPLE_COUNT,
     fetchMainPanelSeriesRows,
     fetchNavigatorPanelSeriesRows,
@@ -342,35 +335,22 @@ function getAppliedRanges({
     panelRange,
     requestedNavigatorRange,
     shouldClampPanelRangeToLoadedDataRange,
-    shouldUseFittedNavigator,
     queriedDataRange,
-    getNavigatorRangeForPanel,
 }: {
     panelRange: TimeRangeMs;
     requestedNavigatorRange: TimeRangeMs;
     shouldClampPanelRangeToLoadedDataRange: boolean;
-    shouldUseFittedNavigator: boolean;
     queriedDataRange: TimeRangeMs | undefined;
-    getNavigatorRangeForPanel: (
-        panelRange: TimeRangeMs,
-        navigatorRange: TimeRangeMs,
-    ) => TimeRangeMs;
 }): AppliedPanelLoadRanges {
     const sShouldUseLoadedPanelRange =
         shouldClampPanelRangeToLoadedDataRange && queriedDataRange !== undefined;
     const sPanelRange = sShouldUseLoadedPanelRange
         ? queriedDataRange
         : panelRange;
-    const sNavigatorRange = shouldUseFittedNavigator
-        ? getNavigatorRangeForPanel(
-              sPanelRange,
-              requestedNavigatorRange,
-          )
-        : requestedNavigatorRange;
 
     return {
         panelRange: sPanelRange,
-        navigatorRange: sNavigatorRange,
+        navigatorRange: requestedNavigatorRange,
     };
 }
 
@@ -409,41 +389,6 @@ export function usePanelChartDataRuntime({
         return typeof chartAreaWidth === 'number' && chartAreaWidth > 0
             ? chartAreaWidth
             : 1;
-    }
-
-    function getNavigatorRangeForPanel(
-        panelRange: TimeRangeMs,
-        navigatorRange: TimeRangeMs,
-    ): TimeRangeMs {
-        const sNavigatorTrackPixelWidth =
-            typeof chartAreaWidth === 'number' && chartAreaWidth > 0
-                ? getNavigatorTrackWidth(chartAreaWidth)
-                : undefined;
-
-        let sNavigatorRange = navigatorRange;
-
-        if (isPanelOutsideNavigator(panelRange, sNavigatorRange)) {
-            sNavigatorRange = getRecenteredNavigator(
-                panelRange,
-                sNavigatorRange,
-            );
-        }
-
-        if (
-            sNavigatorTrackPixelWidth !== undefined &&
-            isSelectionTooSmall(
-                panelRange,
-                sNavigatorRange,
-                sNavigatorTrackPixelWidth,
-            )
-        ) {
-            sNavigatorRange = getZoomedNavigator(
-                panelRange,
-                sNavigatorTrackPixelWidth,
-            );
-        }
-
-        return sNavigatorRange;
     }
 
     function applyPanelLoadResult(
@@ -504,14 +449,11 @@ export function usePanelChartDataRuntime({
                 requestedNavigatorRange: navigatorRange,
                 shouldClampPanelRangeToLoadedDataRange:
                     sShouldClampPanelRangeToLoadedDataRange,
-                shouldUseFittedNavigator:
-                    sShouldClampPanelRangeToLoadedDataRange,
                 queriedDataRange: isConcreteTimeRange(
                     sMainLoadState.queriedDataRange,
                 )
                     ? sMainLoadState.queriedDataRange
                     : undefined,
-                getNavigatorRangeForPanel,
             });
 
             applyPanelLoadResult(sMainLoadState, sAppliedRanges);
@@ -692,7 +634,6 @@ export function usePanelChartDataRuntime({
                         fullRange: rangeState.fullRange,
                     },
                     {
-                        preserveNavigatorRange: true,
                         reloadData: false,
                     },
                 );

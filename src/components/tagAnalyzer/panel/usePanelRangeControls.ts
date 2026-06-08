@@ -20,7 +20,7 @@ import {
 } from '../domain/time/TimeRangeUtils';
 import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import {
-    getMinNumericRangeWidth,
+    getMinNumericRangeAmount,
     MIN_PANEL_RANGE_MS,
 } from '../board/PanelNavigatorRangeLimits';
 
@@ -226,37 +226,37 @@ export function usePanelRangeControls({
                 });
             },
             onFocus: () => {
-                const sPanelWidth = getTimeRangeWidth(rangeState.panelRange);
-                const sMinimumFocusableWidth = isNumericXAxis
-                    ? getMinNumericRangeWidth(rangeState.navigatorRange)
+                const sPanelTotalRangeAmount = getTimeRangeWidth(rangeState.panelRange);
+                const sMinimumFocusableRangeAmount = isNumericXAxis
+                    ? getMinNumericRangeAmount(rangeState.navigatorRange)
                     : MIN_FOCUSABLE_PANEL_RANGE_MS;
 
-                if (sPanelWidth < sMinimumFocusableWidth) {
+                if (sPanelTotalRangeAmount < sMinimumFocusableRangeAmount) {
                     return;
                 }
 
                 const sPanelCenterTime = getTimeRangeCenter(rangeState.panelRange);
-                const sFocusedNavigatorWidth = Math.min(
+                const sFocusedNavigatorTotalRangeAmount = Math.min(
                     Math.max(
-                        sPanelWidth,
+                        sPanelTotalRangeAmount,
                         getTimeRangeWidth(rangeState.navigatorRange) / 2,
                     ),
                     getTimeRangeWidth(rangeState.navigatorRange),
                 );
                 const sNavigatorStartTime = Math.min(
                     Math.max(
-                        sPanelCenterTime - sFocusedNavigatorWidth / 2,
+                        sPanelCenterTime - sFocusedNavigatorTotalRangeAmount / 2,
                         rangeState.navigatorRange.startTime,
                     ),
-                    rangeState.navigatorRange.endTime - sFocusedNavigatorWidth,
+                    rangeState.navigatorRange.endTime - sFocusedNavigatorTotalRangeAmount,
                 );
                 const sPanelRange = createTimeRangeMs(
-                    sPanelCenterTime - sPanelWidth * 0.1,
-                    sPanelCenterTime + sPanelWidth * 0.1,
+                    sPanelCenterTime - sPanelTotalRangeAmount * 0.1,
+                    sPanelCenterTime + sPanelTotalRangeAmount * 0.1,
                 );
                 const sNavigatorRange = createTimeRangeMs(
                     sNavigatorStartTime,
-                    sNavigatorStartTime + sFocusedNavigatorWidth,
+                    sNavigatorStartTime + sFocusedNavigatorTotalRangeAmount,
                 );
 
                 onRangeStateChange({
@@ -397,6 +397,6 @@ function ensureMinimumAxisRangeWidth(
 
     return createTimeRangeMs(
         range.startTime,
-        range.startTime + getMinNumericRangeWidth(referenceRange),
+        range.startTime + getMinNumericRangeAmount(referenceRange),
     );
 }
