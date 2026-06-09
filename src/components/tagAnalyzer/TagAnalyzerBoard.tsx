@@ -112,9 +112,11 @@ const TagAnalyzerBoard = ({
         setRuntimeBoardInfo((prev) => {
             const sNextPanels = updatePanels(prev.panels);
 
-            return sNextPanels === prev.panels
-                ? prev
-                : { ...prev, panels: sNextPanels };
+            if (sNextPanels === prev.panels) {
+                return prev;
+            }
+
+            return { ...prev, panels: sNextPanels };
         });
     }
 
@@ -280,9 +282,11 @@ const TagAnalyzerBoard = ({
             .map(getPanelOverlapAxisKind)
             .find((axisKind) => axisKind !== undefined);
 
-        return sSelectedAxisKind && sSelectedAxisKind !== sPanelAxisKind
-            ? OVERLAP_AXIS_MISMATCH_MESSAGE
-            : undefined;
+        if (sSelectedAxisKind && sSelectedAxisKind !== sPanelAxisKind) {
+            return OVERLAP_AXIS_MISMATCH_MESSAGE;
+        }
+
+        return undefined;
     }
 
     function getOverlapPanelsCompatibilityMessage(
@@ -292,21 +296,25 @@ const TagAnalyzerBoard = ({
             .map((panel) => getPanelOverlapAxisKind(panel.board))
             .filter((axisKind) => axisKind !== undefined);
 
-        return new Set(sAxisKinds).size > 1
-            ? OVERLAP_AXIS_MISMATCH_MESSAGE
-            : undefined;
+        if (new Set(sAxisKinds).size > 1) {
+            return OVERLAP_AXIS_MISMATCH_MESSAGE;
+        }
+
+        return undefined;
     }
 
     function getPanelInfoWithRawMode(panel: PanelInfo, isRaw: boolean): PanelInfo {
-        return panel.general.is_raw === isRaw
-            ? panel
-            : {
-                  ...panel,
-                  general: {
-                      ...panel.general,
-                      is_raw: isRaw,
-                  },
-              };
+        if (panel.general.is_raw === isRaw) {
+            return panel;
+        }
+
+        return {
+            ...panel,
+            general: {
+                ...panel.general,
+                is_raw: isRaw,
+            },
+        };
     }
 
     function getSelectedOverlapPanels(): OverlapPanelInfo[] {
@@ -693,7 +701,11 @@ function updatePanelByKey(
         throw new Error(`Cannot update missing TagAnalyzer panel: ${panelKey}`);
     }
 
-    return sHasChanges ? sNextPanels : panels;
+    if (sHasChanges) {
+        return sNextPanels;
+    }
+
+    return panels;
 }
 
 function removeRuntimePanel(

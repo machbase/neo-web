@@ -206,6 +206,8 @@ export function useTagAnalyzerBoardPanels({
                     panelRange: rangeState.panelRange,
                     navigatorRange: rangeState.navigatorRange,
                     fullRange: options?.fullRange ?? rangeState.fullRange,
+                    navigatorSelectionCenterRatio:
+                        options?.navigatorSelectionCenterRatio,
                     reloadData: options?.reloadData,
                 });
             },

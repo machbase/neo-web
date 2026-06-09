@@ -578,6 +578,7 @@ export function usePanelChartDataRuntime({
             sMainConfigChanged ||
             sMainRangeNeedsData;
         const sShouldReloadNavigator =
+            sIsExplicitReloadRequest ||
             lastNavigatorLoadConfigSignatureRef.current === undefined ||
             sNavigatorConfigChanged ||
             sNavigatorRangeNeedsData;
@@ -587,21 +588,29 @@ export function usePanelChartDataRuntime({
         }
 
         void (async () => {
-            const sNavigatorLoadIsStale = sShouldReloadNavigator
-                ? await loadNavigatorData(sLoadConfig, sNavigatorDataRange)
-                : false;
-            if (sNavigatorLoadIsStale) {
-                return;
+            let sNavigatorLoadPromise: Promise<boolean> = Promise.resolve(false);
+            if (sShouldReloadNavigator) {
+                sNavigatorLoadPromise = loadNavigatorData(
+                    sLoadConfig,
+                    sNavigatorDataRange,
+                );
             }
 
-            const sMainResult = sShouldReloadMain
-                ? await loadMainPanelData(
-                      sLoadConfig,
-                      rangeState.panelRange,
-                      rangeState.navigatorRange,
-                  )
-                : undefined;
-            if (sMainResult?.isStale) {
+            let sMainLoadPromise: Promise<MainPanelDataLoadResult | undefined> =
+                Promise.resolve(undefined);
+            if (sShouldReloadMain) {
+                sMainLoadPromise = loadMainPanelData(
+                    sLoadConfig,
+                    rangeState.panelRange,
+                    rangeState.navigatorRange,
+                );
+            }
+
+            const [sNavigatorLoadIsStale, sMainResult] = await Promise.all([
+                sNavigatorLoadPromise,
+                sMainLoadPromise,
+            ]);
+            if (sNavigatorLoadIsStale || sMainResult?.isStale) {
                 return;
             }
 

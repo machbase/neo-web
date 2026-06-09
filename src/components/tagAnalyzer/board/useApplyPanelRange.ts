@@ -83,6 +83,7 @@ function resolveRangeState(
         boardPanelRecord,
         sPanelRange,
         options.navigatorRange,
+        options.navigatorSelectionCenterRatio,
     );
 
     return {
@@ -115,6 +116,7 @@ function getNavigatorRangeForPanel(
     boardPanelRecord: BoardPanelRecord,
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,
+    navigatorSelectionCenterRatio: number | undefined,
 ): TimeRangeMs {
     const sChartAreaWidth = boardPanelRecord.chartAreaWidth;
     const sNavigatorTrackPixelWidth =
@@ -128,8 +130,13 @@ function getNavigatorRangeForPanel(
             panelRange,
             sNavigatorRange,
             sNavigatorTrackPixelWidth,
+            navigatorSelectionCenterRatio,
         );
     }
 
-    return recenterNavigatorRangeIfPanelOutside(panelRange, sNavigatorRange);
+    return recenterNavigatorRangeIfPanelOutside(
+        panelRange,
+        sNavigatorRange,
+        navigatorSelectionCenterRatio,
+    );
 }
