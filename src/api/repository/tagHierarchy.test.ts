@@ -1,6 +1,7 @@
 import {
     HIERARCHY_RESERVED_NAME,
     buildAttachTagsSql,
+    buildCreateJsonMetadataColumnSql,
     buildDetachTagsSql,
     buildGetDirectHierarchyTagsSql,
     buildGetUnassignedTagsByDocumentSql,
@@ -12,10 +13,13 @@ import {
     buildMoveTagsToHierarchyPathSql,
     buildRenameHierarchyValueSql,
     buildUpdateHierarchyTemplateSql,
+    canRemoveHierarchySchemaKey,
+    canRemoveHierarchyValueNode,
     escapeSqlString,
     flattenHierarchyTemplate,
     getHierarchyDocumentPaths,
     getHierarchyTemplatePaths,
+    hierarchyTreeHasDepth,
     parseHierarchyDocument,
     parseHierarchyTemplateTree,
     validateHierarchyDocument,
@@ -100,7 +104,7 @@ describe('tagHierarchy SQL builders', () => {
 
     test('builds document unassigned SQL from root value nodes', () => {
         expect(buildGetUnassignedTagsByDocumentSql(config, document)).toBe(
-            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.country' as H_COUNTRY from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where H_COUNTRY is null or length(H_COUNTRY) = 0 or not (H_COUNTRY = 'Korea' or H_COUNTRY = 'Japan') order by NAME"
+            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.country' as H_COUNTRY, ASSET->'$.city' as H_CITY, ASSET->'$.factory' as H_FACTORY from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where not ((H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and (H_CITY is null or length(H_CITY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and (H_FACTORY is null or length(H_FACTORY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and H_FACTORY is not null and length(H_FACTORY) > 0 and H_FACTORY = 'Factory-A') or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and H_FACTORY is not null and length(H_FACTORY) > 0 and H_FACTORY = 'Factory-B') or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Busan' and (H_FACTORY is null or length(H_FACTORY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Japan' and (H_CITY is null or length(H_CITY) = 0))) order by NAME"
         );
     });
 
@@ -132,6 +136,26 @@ describe('tagHierarchy SQL builders', () => {
         expect(buildUpdateHierarchyTemplateSql(config, { site: { line: {} } })).toBe(
             "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = '{\"site\":{\"line\":{}}}' where NAME = '__machbase_hierarchy__'"
         );
+    });
+
+    test('builds metadata JSON column creation SQL', () => {
+        expect(buildCreateJsonMetadataColumnSql(config.tableName)).toBe('ALTER TABLE MACHBASEDB.SYS.SENSOR_TAG METADATA ADD COLUMN (ASSET JSON)');
+    });
+});
+
+describe('tagHierarchy edit guards', () => {
+    test('only allows removing leaf value nodes', () => {
+        expect(canRemoveHierarchyValueNode(document.tree[0])).toBe(false);
+        expect(canRemoveHierarchyValueNode(document.tree[0].children[0].children[0])).toBe(true);
+    });
+
+    test('only allows removing the deepest empty schema key', () => {
+        expect(hierarchyTreeHasDepth(document.tree, 0)).toBe(true);
+        expect(hierarchyTreeHasDepth(document.tree, 2)).toBe(true);
+        expect(hierarchyTreeHasDepth(document.tree, 3)).toBe(false);
+        expect(canRemoveHierarchySchemaKey(document.schema, document.tree, 1)).toBe(false);
+        expect(canRemoveHierarchySchemaKey(document.schema, document.tree, 2)).toBe(false);
+        expect(canRemoveHierarchySchemaKey(document.schema.concat('sensor'), document.tree, 3)).toBe(true);
     });
 });
 

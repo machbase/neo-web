@@ -77,10 +77,14 @@ export const MetaTablePage = ({
     const mSpecColumn = useMemo(() => {
         return pMMetaColInfo?.rows?.find((row: STR_NUM_ARR_TYPE) => String(row?.[0] ?? '').toUpperCase() === 'SPEC')?.[0];
     }, [pMMetaColInfo]);
+    const mHasAssetMetaColumn = useMemo(() => {
+        return Boolean(pMMetaColInfo?.rows?.some((row: STR_NUM_ARR_TYPE) => String(row?.[0] ?? '').toUpperCase() === 'ASSET'));
+    }, [pMMetaColInfo]);
     const mLogicalTableName = useMemo(() => {
         return `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
     }, [mTableInfo]);
     const sCanOpenTagAnalyzer = useMemo(() => canOpenTagAnalyzerFromMetaColumns(pMColInfo?.rows), [pMColInfo]);
+    const mCanEditHierarchy = useMemo(() => CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG, [mTableInfo]);
 
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
@@ -438,6 +442,7 @@ export const MetaTablePage = ({
                                         onRowDelete={handleDeleteMeta}
                                         infiniteScroll={{ onLoadMore: handleEndOfContent, hasMore: sHasMoreData }}
                                         onSave={handleUpdateMeta}
+                                        scrollX={false}
                                         v$Callback={allowedV$() ? (i) => handleVirtualModal(i, false) : undefined}
                                     />
                                 ) : null}
@@ -460,10 +465,10 @@ export const MetaTablePage = ({
                                     tableName={mLogicalTableName}
                                     nameColumn={pMColInfo?.rows?.[0]?.[0] ?? 'NAME'}
                                     jsonColumns={mJsonMetaColumns}
+                                    hasAssetColumn={mHasAssetMetaColumn}
                                     specColumn={mSpecColumn}
-                                    canEdit={allowedV$()}
-                                    canOpenTagAnalyzer={sCanOpenTagAnalyzer}
-                                    onOpenTagAnalyzer={FetchTagMinMax}
+                                    canEdit={mCanEditHierarchy}
+                                    onMetadataSchemaChange={() => pRefresh.set((prev) => prev + 1)}
                                 />
                             </Tabs.Panel>
                         </Tabs.Content>

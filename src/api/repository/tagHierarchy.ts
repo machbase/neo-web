@@ -1,6 +1,7 @@
 import { fetchQuery, fetchTqlQuery } from './database';
 
 export const HIERARCHY_RESERVED_NAME = '__machbase_hierarchy__';
+export const DEFAULT_HIERARCHY_JSON_COLUMN = 'ASSET';
 export const DEFAULT_HIERARCHY_TEMPLATE = {
     world: {
         city: {
@@ -85,6 +86,11 @@ const quoteSql = (value: string) => `'${escapeSqlString(value)}'`;
 
 const metadataTable = (tableName: string) => `${tableName} METADATA`;
 
+const assertSafeIdentifier = (value: string) => {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) throw new Error(`Unsafe SQL identifier: ${value}`);
+    return value;
+};
+
 const jsonPath = (key: string) => `$.${key}`;
 
 const jsonValueExpr = (jsonColumn: string, key: string) => `${jsonColumn}->'${jsonPath(key)}'`;
@@ -111,6 +117,9 @@ export const buildCreateHierarchyTemplateSql = ({ tableName, nameColumn, jsonCol
 
 export const buildUpdateHierarchyTemplateSql = ({ tableName, nameColumn, jsonColumn }: HierarchyQueryConfig, template: HierarchyTemplate | HierarchyDocument) =>
     `update ${metadataTable(tableName)} set ${jsonColumn} = ${quoteSql(JSON.stringify(template))} where ${nameColumn} = ${quoteSql(HIERARCHY_RESERVED_NAME)}`;
+
+export const buildCreateJsonMetadataColumnSql = (tableName: string, columnName = DEFAULT_HIERARCHY_JSON_COLUMN) =>
+    `ALTER TABLE ${tableName} METADATA ADD COLUMN (${assertSafeIdentifier(columnName)} JSON)`;
 
 export const buildGetHierarchyChildrenSql = (config: HierarchyQueryConfig, keys: string[], parentPath: HierarchyPathItem[]) => {
     const childKey = keys[parentPath.length];
@@ -336,6 +345,22 @@ export const getHierarchyDocumentPaths = (document: HierarchyDocument): Hierarch
     return walk(document.tree);
 };
 
+export const hierarchyTreeHasDepth = (nodes: HierarchyValueNode[], targetDepth: number, currentDepth = 0): boolean => {
+    if (targetDepth < 0) return false;
+    return nodes.some((node) => currentDepth === targetDepth || hierarchyTreeHasDepth(node.children, targetDepth, currentDepth + 1));
+};
+
+export const canRemoveHierarchyValueNode = (node: HierarchyValueNode) => node.children.length === 0;
+
+export const canRemoveHierarchySchemaKey = (schema: string[], tree: HierarchyValueNode[], index: number) =>
+    index === schema.length - 1 && !hierarchyTreeHasDepth(tree, index);
+
+const valuePathsFromTree = (nodes: HierarchyValueNode[], parent: HierarchyPathItem[] = []): HierarchyPathItem[][] =>
+    nodes.flatMap((node) => {
+        const path = parent.concat({ key: node.key, value: node.value });
+        return [path].concat(valuePathsFromTree(node.children, path));
+    });
+
 export const validateHierarchyDocument = (document: HierarchyDocument): HierarchyValidationIssue[] => {
     const issues: HierarchyValidationIssue[] = [];
     const seenSchema = new Set<string>();
@@ -371,21 +396,25 @@ export const validateHierarchyDocument = (document: HierarchyDocument): Hierarch
     return issues;
 };
 
-const rootValuesFromDocument = (document: HierarchyDocument) => document.tree.filter((node) => node.key === document.schema[0] && node.value.trim()).map((node) => node.value);
-
 const buildDocumentUnassignedAliasCondition = (document: HierarchyDocument) => {
-    const rootKey = document.schema[0];
-    const rootValues = rootValuesFromDocument(document);
-    if (!rootKey || rootValues.length === 0) return '(1 = 1)';
+    const paths = valuePathsFromTree(document.tree);
+    const assignedNodeConditions = paths.map((path) => {
+        const nextKey = document.schema[path.length];
+        const pathMatches = path.map((item) => {
+            const alias = jsonAlias(item.key);
+            return `${alias} is not null and length(${alias}) > 0 and ${alias} = ${quoteSql(item.value)}`;
+        });
+        const nextIsEmpty = nextKey ? [`(${jsonAlias(nextKey)} is null or length(${jsonAlias(nextKey)}) = 0)`] : [];
 
-    const rootAlias = jsonAlias(rootKey);
-    return `${rootAlias} is null or length(${rootAlias}) = 0 or not (${rootValues.map((value) => `${rootAlias} = ${quoteSql(value)}`).join(' or ')})`;
+        return `(${pathMatches.concat(nextIsEmpty).join(' and ')})`;
+    });
+
+    return assignedNodeConditions.length === 0 ? '(1 = 1)' : `not (${assignedNodeConditions.join(' or ')})`;
 };
 
 const buildDocumentUnassignedSourceSql = (config: HierarchyQueryConfig, document: HierarchyDocument) => {
     const columns = [config.nameColumn, config.jsonColumn, config.specColumn].filter(Boolean);
-    const keys = document.schema.slice(0, 1);
-    const aliasSelects = keys.map((key) => `${jsonValueExpr(config.jsonColumn, key)} as ${jsonAlias(key)}`);
+    const aliasSelects = document.schema.map((key) => `${jsonValueExpr(config.jsonColumn, key)} as ${jsonAlias(key)}`);
 
     return `select ${columns.concat(aliasSelects).join(', ')} from ${metadataTable(config.tableName)}${buildWhereClause(baseWhere(config.nameColumn))}`;
 };
@@ -506,6 +535,8 @@ export const createHierarchyTemplate = async (config: HierarchyQueryConfig, temp
     fetchQuery(buildCreateHierarchyTemplateSql(config, template));
 
 export const updateHierarchyTemplate = async (config: HierarchyQueryConfig, template: HierarchyTemplate | HierarchyDocument) => fetchQuery(buildUpdateHierarchyTemplateSql(config, template));
+
+export const createJsonMetadataColumn = async (tableName: string, columnName = DEFAULT_HIERARCHY_JSON_COLUMN) => fetchQuery(buildCreateJsonMetadataColumnSql(tableName, columnName));
 
 export const getHierarchyChildren = async (config: HierarchyQueryConfig, keys: string[], parentPath: HierarchyPathItem[]) => {
     const { svrState, svrData, svrReason } = await fetchQuery(buildGetHierarchyChildrenSql(config, keys, parentPath));

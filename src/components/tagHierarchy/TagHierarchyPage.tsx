@@ -4,25 +4,25 @@ import { MdWarningAmber } from 'react-icons/md';
 import { Button, CommonTable, IconButton, Modal, Toast } from '@/design-system/components';
 import {
     DEFAULT_HIERARCHY_DOCUMENT,
-    HIERARCHY_RESERVED_NAME,
+    DEFAULT_HIERARCHY_JSON_COLUMN,
     attachTagsToPath,
     buildAttachTagsSql,
-    buildDetachTagsSql,
+    buildCreateJsonMetadataColumnSql,
     buildGetDirectHierarchyTagsSql,
     buildGetHierarchyTagsSql,
     buildGetUnassignedTagsByDocumentSql,
     buildMoveTagsToHierarchyPathSql,
-    buildRenameHierarchyValueSql,
+    canRemoveHierarchySchemaKey,
+    canRemoveHierarchyValueNode,
     createHierarchyTemplate,
-    detachTagsFromHierarchy,
+    createJsonMetadataColumn,
     getDirectHierarchyTags,
-    getHierarchyTagCount,
     getHierarchyTags,
     getHierarchyTemplate,
     getUnassignedTagCountByDocument,
     getUnassignedTagsByDocument,
+    hierarchyTreeHasDepth,
     moveTagsToHierarchyPath,
-    renameHierarchyValue,
     updateHierarchyTemplate,
     validateHierarchyDocument,
     type HierarchyChildRow,
@@ -35,8 +35,8 @@ import {
 } from '@/api/repository/tagHierarchy';
 import styles from './TagHierarchyPage.module.scss';
 
-type DetailTab = 'tags' | 'metadata' | 'query' | 'validation';
-type ModalState = 'attach' | 'detach' | 'rename' | undefined;
+type DetailTab = 'tags' | 'query' | 'validation';
+type ModalState = 'attach' | undefined;
 
 type JsonMetaColumn = {
     name: string;
@@ -55,15 +55,16 @@ type TagHierarchyPageProps = {
     tableName: string;
     nameColumn: string;
     jsonColumns: JsonMetaColumn[];
+    hasAssetColumn: boolean;
     specColumn?: string;
     canEdit: boolean;
-    canOpenTagAnalyzer: boolean;
-    onOpenTagAnalyzer?: (tagName: string) => void;
+    onMetadataSchemaChange?: () => void;
 };
 
 const EMPTY_SELECTED_NODE: SelectedNode = { path: [] };
 const ROOT_KEY = '__root__';
 const UNASSIGNED_TREE_KEY = '__unassigned__';
+const VISIBLE_DETAIL_TABS: DetailTab[] = ['tags', 'query'];
 
 const pathKey = (path: HierarchyPathItem[]) => (path.length === 0 ? ROOT_KEY : path.map((item) => `${item.key}=${item.value}`).join('/'));
 
@@ -81,14 +82,19 @@ const tagTableData = (rows: HierarchyTagRow[]) => ({
     types: ['string', 'string', 'string'],
 });
 
-const selectedTagNames = (rows: string[][]) => rows.map((row) => row[0]).filter((name) => name && name !== HIERARCHY_RESERVED_NAME);
-
 const defaultJsonColumnName = (columns: JsonMetaColumn[]) => columns.find((column) => column.name.toLowerCase() === 'asset')?.name ?? columns[0]?.name ?? '';
 
 const pathOptionLabel = (keys: string[]) => keys.join(' / ');
 
 const cloneValueTree = (nodes: HierarchyValueNode[]): HierarchyValueNode[] =>
     nodes.map((node) => ({ key: node.key, value: node.value, children: cloneValueTree(node.children) }));
+
+const nodeAtPath = (nodes: HierarchyValueNode[], nodePath: number[]): HierarchyValueNode | undefined => {
+    const [head, ...tail] = nodePath;
+    const node = nodes[head];
+    if (!node || tail.length === 0) return node;
+    return nodeAtPath(node.children, tail);
+};
 
 const normalizeTreeKeys = (nodes: HierarchyValueNode[], schema: string[], depth = 0): HierarchyValueNode[] =>
     nodes.map((node) => ({ ...node, key: schema[depth] ?? node.key, children: normalizeTreeKeys(node.children, schema, depth + 1) }));
@@ -105,42 +111,6 @@ const valuePathsFromTree = (nodes: HierarchyValueNode[], parentPath: HierarchyPa
         const path = parentPath.concat({ key: node.key, value: node.value });
         return [path].concat(valuePathsFromTree(node.children, path));
     });
-
-const TextInputModal = ({
-    title,
-    value,
-    placeholder,
-    loading,
-    confirmText,
-    onValueChange,
-    onClose,
-    onConfirm,
-}: {
-    title: string;
-    value: string;
-    placeholder?: string;
-    loading: boolean;
-    confirmText: string;
-    onValueChange: (value: string) => void;
-    onClose: () => void;
-    onConfirm: () => void;
-}) => (
-    <Modal.Root isOpen onClose={onClose} size="md">
-        <Modal.Header>
-            <Modal.Title>{title}</Modal.Title>
-            <Modal.Close />
-        </Modal.Header>
-        <Modal.Body>
-            <textarea className={styles.textarea} value={value} placeholder={placeholder} onChange={(event) => onValueChange(event.target.value)} />
-        </Modal.Body>
-        <Modal.Footer>
-            <Modal.Confirm loading={loading} disabled={!value.trim()} onClick={onConfirm}>
-                {confirmText}
-            </Modal.Confirm>
-            <Modal.Cancel onClick={onClose}>Cancel</Modal.Cancel>
-        </Modal.Footer>
-    </Modal.Root>
-);
 
 const AttachTagsModal = ({
     tagNames,
@@ -208,45 +178,15 @@ const AttachTagsModal = ({
     );
 };
 
-const ConfirmActionModal = ({
-    title,
-    body,
-    loading,
-    confirmText,
-    onClose,
-    onConfirm,
-}: {
-    title: string;
-    body: React.ReactNode;
-    loading: boolean;
-    confirmText: string;
-    onClose: () => void;
-    onConfirm: () => void;
-}) => (
-    <Modal.Root isOpen onClose={onClose} size="md">
-        <Modal.Header>
-            <Modal.Title>{title}</Modal.Title>
-            <Modal.Close />
-        </Modal.Header>
-        <Modal.Body>{body}</Modal.Body>
-        <Modal.Footer>
-            <Modal.Confirm loading={loading} onClick={onConfirm}>
-                {confirmText}
-            </Modal.Confirm>
-            <Modal.Cancel onClick={onClose}>Cancel</Modal.Cancel>
-        </Modal.Footer>
-    </Modal.Root>
-);
-
 export const TagHierarchyPage = ({
     active,
     tableName,
     nameColumn,
     jsonColumns,
+    hasAssetColumn,
     specColumn,
     canEdit,
-    canOpenTagAnalyzer,
-    onOpenTagAnalyzer,
+    onMetadataSchemaChange,
 }: TagHierarchyPageProps) => {
     const [sJsonColumn, setJsonColumn] = useState(defaultJsonColumnName(jsonColumns));
     const [sKeys, setKeys] = useState<string[]>([]);
@@ -261,8 +201,6 @@ export const TagHierarchyPage = ({
     const [sExpandedPathKeys, setExpandedPathKeys] = useState<Set<string>>(new Set());
     const [sSelectedNode, setSelectedNode] = useState<SelectedNode>(EMPTY_SELECTED_NODE);
     const [sTags, setTags] = useState<HierarchyTagRow[]>([]);
-    const [sSelectedRows, setSelectedRows] = useState<string[][]>([]);
-    const [sTagCount, setTagCount] = useState(0);
     const [sUnassignedCount, setUnassignedCount] = useState(0);
     const [sSearchText, setSearchText] = useState('');
     const [sActiveTab, setActiveTab] = useState<DetailTab>('tags');
@@ -276,6 +214,7 @@ export const TagHierarchyPage = ({
     const [sAttachPathOptions, setAttachPathOptions] = useState<string[][]>([]);
     const [sAttachPathIndex, setAttachPathIndex] = useState(0);
     const [sIsSaving, setIsSaving] = useState(false);
+    const [sIsCreatingAssetColumn, setIsCreatingAssetColumn] = useState(false);
     const expandedPathKeysRef = useRef(sExpandedPathKeys);
 
     const mConfig = useMemo<HierarchyQueryConfig>(
@@ -288,11 +227,8 @@ export const TagHierarchyPage = ({
         [nameColumn, sJsonColumn, specColumn, tableName]
     );
 
-    const mSelectedTagNames = useMemo(() => selectedTagNames(sSelectedRows), [sSelectedRows]);
     const mSelectedPathKey = pathKey(sSelectedNode.path);
     const mHasTemplate = sKeys.length > 0;
-    const mCanActOnSelectedTags = canEdit && mSelectedTagNames.length > 0;
-    const mCanAttach = canEdit && !sSelectedNode.isUnassigned && sSelectedNode.path.length > 0;
 
     useEffect(() => {
         const nextColumn = defaultJsonColumnName(jsonColumns);
@@ -308,16 +244,14 @@ export const TagHierarchyPage = ({
             if (node.isUnassigned) {
                 if (!document) return;
                 setLastQuery(buildGetUnassignedTagsByDocumentSql(mConfig, document));
-                const [count, tags] = await Promise.all([getUnassignedTagCountByDocument(mConfig, document), getUnassignedTagsByDocument(mConfig, document)]);
-                setTagCount(count);
+                const tags = await getUnassignedTagsByDocument(mConfig, document);
                 setTags(tags.rows);
                 if (!tags.success) setError(tags.reason ?? 'Failed to load unassigned tags.');
                 return;
             }
 
             setLastQuery(buildGetHierarchyTagsSql(mConfig, node.path));
-            const [count, tags] = await Promise.all([getHierarchyTagCount(mConfig, node.path), getHierarchyTags(mConfig, node.path)]);
-            setTagCount(count);
+            const tags = await getHierarchyTags(mConfig, node.path);
             setTags(tags.rows);
             if (!tags.success) setError(tags.reason ?? 'Failed to load hierarchy tags.');
         },
@@ -376,7 +310,6 @@ export const TagHierarchyPage = ({
 
         setIsLoading(true);
         setError('');
-        setSelectedRows([]);
         setTagLinksByPath({});
 
         const templateResult = await getHierarchyTemplate(mConfig);
@@ -398,7 +331,6 @@ export const TagHierarchyPage = ({
             setValueTreeDraft([]);
             setIssues((templateResult.issues as HierarchyValidationIssue[] | undefined) ?? [{ level: 'blocking', message: 'No schema/tree hierarchy document found. Recreate the tree.' }]);
             setTags([]);
-            setTagCount(0);
             setUnassignedCount(0);
             setIsLoading(false);
             return;
@@ -415,7 +347,6 @@ export const TagHierarchyPage = ({
 
         if (keys.length === 0) {
             setTags([]);
-            setTagCount(0);
             setUnassignedCount(0);
             setIsLoading(false);
             return;
@@ -479,32 +410,18 @@ export const TagHierarchyPage = ({
 
     const handleSelectNode = async (node: SelectedNode) => {
         setSelectedNode(node);
-        setSelectedRows([]);
         setError('');
         if (node.isSkeleton) {
             setTags([]);
-            setTagCount(0);
             setLastQuery('Template skeleton node. Fill hierarchy values in Attach Tags to create concrete metadata paths.');
             return;
         }
         await loadTagsForNode(node, sHierarchyDocument);
     };
 
-    const openAttachModal = () => {
-        const attachKeys = sKeys;
-        const values = Object.fromEntries(attachKeys.map((key) => [key, sSelectedNode.path.find((item) => item.key === key)?.value ?? '']));
-        setAttachKeys(attachKeys);
-        setAttachPathOptions([]);
-        setAttachPathIndex(0);
-        setAttachValues(values);
-        setModalValue('');
-        setModal('attach');
-    };
-
     const openMoveTagModal = (row: HierarchyTagRow) => {
         const pathOptions = sKeys.length > 0 ? [sKeys] : [];
         const attachKeys = pathOptions[0] ?? [];
-        setSelectedRows([[row.name, row.asset, row.spec ?? '']]);
         setAttachPathOptions(pathOptions);
         setAttachPathIndex(0);
         setAttachKeys(attachKeys);
@@ -531,6 +448,7 @@ export const TagHierarchyPage = ({
         setSchemaDraft(sKeys.length > 0 ? sKeys : DEFAULT_HIERARCHY_DOCUMENT.schema);
         setValueTreeDraft(cloneValueTree(sValueTree));
         setIsTemplateEditing(false);
+        setActiveTab('tags');
     };
 
     const updateTemplateDraftAtPath = (nodePath: number[], update: (node: HierarchyValueNode) => HierarchyValueNode) => {
@@ -556,6 +474,8 @@ export const TagHierarchyPage = ({
     };
 
     const addTemplateDraftSibling = (nodePath: number[]) => {
+        if (nodePath.length <= 1) return;
+
         const insertSibling = (nodes: HierarchyValueNode[], depth = 0): HierarchyValueNode[] => {
             if (depth === nodePath.length - 1) {
                 const current = nodes[nodePath[depth]];
@@ -571,6 +491,9 @@ export const TagHierarchyPage = ({
     };
 
     const removeTemplateDraftNode = (nodePath: number[]) => {
+        const node = nodeAtPath(sValueTreeDraft, nodePath);
+        if (!node || !canRemoveHierarchyValueNode(node)) return;
+
         const removeNode = (nodes: HierarchyValueNode[], depth = 0): HierarchyValueNode[] => {
             if (depth === nodePath.length - 1) return nodes.filter((_, index) => index !== nodePath[depth]);
             return nodes.map((node, index) => (index === nodePath[depth] ? { ...node, children: removeNode(node.children, depth + 1) } : node));
@@ -588,7 +511,14 @@ export const TagHierarchyPage = ({
     };
 
     const removeSchemaDraftKey = (index: number) => {
+        if (!canRemoveHierarchySchemaKey(sSchemaDraft, sValueTreeDraft, index)) return;
         setSchemaDraft((prev) => prev.filter((_, keyIndex) => keyIndex !== index));
+    };
+
+    const schemaKeyRemoveReason = (index: number) => {
+        if (index !== sSchemaDraft.length - 1) return 'Remove schema keys from the deepest depth first.';
+        if (hierarchyTreeHasDepth(sValueTreeDraft, index)) return 'Remove all tree nodes at this depth before removing the schema key.';
+        return '';
     };
 
     const saveTemplateEdit = async () => {
@@ -604,6 +534,7 @@ export const TagHierarchyPage = ({
             Toast.success('Hierarchy template updated.');
             setIsTemplateEditing(false);
             await refreshHierarchy();
+            setActiveTab('tags');
         } else {
             setError(result.svrReason ?? 'Failed to update hierarchy template.');
         }
@@ -628,6 +559,23 @@ export const TagHierarchyPage = ({
         setIsTemplateEditing(true);
         setActiveTab('validation');
         setIsSaving(false);
+    };
+
+    const handleCreateAssetColumn = async () => {
+        if (!canEdit || hasAssetColumn) return;
+
+        setIsCreatingAssetColumn(true);
+        setError('');
+        setLastQuery(buildCreateJsonMetadataColumnSql(tableName, DEFAULT_HIERARCHY_JSON_COLUMN));
+        const result = await createJsonMetadataColumn(tableName, DEFAULT_HIERARCHY_JSON_COLUMN);
+        if (result.svrState) {
+            Toast.success('ASSET metadata column created.');
+            setJsonColumn(DEFAULT_HIERARCHY_JSON_COLUMN);
+            onMetadataSchemaChange?.();
+        } else {
+            setError(result.svrReason ?? 'Failed to create ASSET metadata column.');
+        }
+        setIsCreatingAssetColumn(false);
     };
 
     const handleAttach = async () => {
@@ -672,39 +620,6 @@ export const TagHierarchyPage = ({
             await refreshHierarchy();
         } else {
             setError(result.svrReason ?? 'Failed to move tag.');
-        }
-        setIsSaving(false);
-    };
-
-    const handleDetach = async () => {
-        setIsSaving(true);
-        setLastQuery(buildDetachTagsSql(mConfig, mSelectedTagNames, sKeys));
-        const result = await detachTagsFromHierarchy(mConfig, mSelectedTagNames, sKeys);
-        if (result.svrState) {
-            Toast.success('Tags detached.');
-            setModal(undefined);
-            await refreshHierarchy();
-            await handleSelectNode({ isUnassigned: true, path: [] });
-        } else {
-            setError(result.svrReason ?? 'Failed to detach tags.');
-        }
-        setIsSaving(false);
-    };
-
-    const handleRename = async () => {
-        const current = sSelectedNode.path.at(-1);
-        if (!current || !sModalValue.trim()) return;
-
-        setIsSaving(true);
-        setLastQuery(buildRenameHierarchyValueSql(mConfig, sSelectedNode.path, current.key, current.value, sModalValue.trim()));
-        const result = await renameHierarchyValue(mConfig, sSelectedNode.path, current.key, current.value, sModalValue.trim());
-        if (result.svrState) {
-            Toast.success('Hierarchy value renamed.');
-            setModal(undefined);
-            setModalValue('');
-            await refreshHierarchy();
-        } else {
-            setError(result.svrReason ?? 'Failed to rename hierarchy value.');
         }
         setIsSaving(false);
     };
@@ -788,9 +703,7 @@ export const TagHierarchyPage = ({
                     type="button"
                     className={styles.tagLinkButton}
                     onClick={() => {
-                        setSelectedRows([[row.name, row.asset, row.spec ?? '']]);
                         setTags([row]);
-                        setTagCount(1);
                     }}
                 >
                     <FiTag />
@@ -822,9 +735,7 @@ export const TagHierarchyPage = ({
                     type="button"
                     className={styles.tagLinkButton}
                     onClick={() => {
-                        setSelectedRows([[row.name, row.asset, row.spec ?? '']]);
                         setTags([row]);
-                        setTagCount(1);
                     }}
                 >
                     <FiTag />
@@ -837,32 +748,58 @@ export const TagHierarchyPage = ({
         ));
     };
 
-    const renderTemplateEditorNode = (node: HierarchyValueNode, nodePath: number[], depth: number): React.ReactNode => (
-        <React.Fragment key={`template-edit-${nodePath.join('-')}`}>
-            <div className={styles.templateEditorRow} style={{ marginLeft: depth * 16 }}>
-                <span className={styles.label}>{node.key}</span>
-                <input
-                    className={styles.input}
-                    style={{ flex: 1 }}
-                    value={node.value}
-                    onChange={(event) => updateTemplateDraftAtPath(nodePath, (current) => ({ ...current, value: event.target.value }))}
-                />
-                <Button size="sm" variant="secondary" disabled={depth + 1 >= sSchemaDraft.length} onClick={() => addTemplateDraftNode(nodePath)}>
-                    Add Child
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => addTemplateDraftSibling(nodePath)}>
-                    Add Sibling
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => removeTemplateDraftNode(nodePath)}>
-                    Remove
-                </Button>
-            </div>
-            {node.children.map((child, index) => renderTemplateEditorNode(child, nodePath.concat(index), depth + 1))}
-        </React.Fragment>
-    );
+    const renderTemplateEditorNode = (node: HierarchyValueNode, nodePath: number[], depth: number): React.ReactNode => {
+        const canRemoveNode = canRemoveHierarchyValueNode(node);
+
+        return (
+            <React.Fragment key={`template-edit-${nodePath.join('-')}`}>
+                <div className={styles.templateEditorRow} style={{ marginLeft: depth * 16 }}>
+                    <span className={styles.label}>{node.key}</span>
+                    <input
+                        className={styles.input}
+                        style={{ flex: 1 }}
+                        value={node.value}
+                        onChange={(event) => updateTemplateDraftAtPath(nodePath, (current) => ({ ...current, value: event.target.value }))}
+                    />
+                    <Button size="sm" variant="secondary" disabled={depth + 1 >= sSchemaDraft.length} onClick={() => addTemplateDraftNode(nodePath)}>
+                        Add Child
+                    </Button>
+                    <Button size="sm" variant="secondary" disabled={depth === 0} onClick={() => addTemplateDraftSibling(nodePath)}>
+                        Add Sibling
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={!canRemoveNode}
+                        title={canRemoveNode ? undefined : 'Remove child tree nodes before removing this node.'}
+                        onClick={() => removeTemplateDraftNode(nodePath)}
+                    >
+                        Remove
+                    </Button>
+                </div>
+                {node.children.map((child, index) => renderTemplateEditorNode(child, nodePath.concat(index), depth + 1))}
+            </React.Fragment>
+        );
+    };
 
     if (jsonColumns.length === 0) {
-        return <div className={styles.message}>Hierarchy requires a JSON metadata column.</div>;
+        return (
+            <div className={styles.container}>
+                <div className={styles.emptyState}>
+                    <div className={styles.emptyTitle}>Hierarchy requires a JSON metadata column</div>
+                    <div className={styles.emptyText}>
+                        {hasAssetColumn
+                            ? `${DEFAULT_HIERARCHY_JSON_COLUMN} already exists, but it is not a JSON metadata column. Use a JSON metadata column for hierarchy.`
+                            : `Create ${DEFAULT_HIERARCHY_JSON_COLUMN} as a JSON metadata column to store tag hierarchy values.`}
+                    </div>
+                    {sError ? <div className={styles.error}>{sError}</div> : null}
+                    <Button size="sm" variant="primary" disabled={!canEdit || hasAssetColumn} loading={sIsCreatingAssetColumn} onClick={handleCreateAssetColumn}>
+                        Create {DEFAULT_HIERARCHY_JSON_COLUMN}
+                    </Button>
+                    {sLastQuery ? <pre className={styles.queryBox}>{sLastQuery}</pre> : null}
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -877,6 +814,11 @@ export const TagHierarchyPage = ({
                             </option>
                         ))}
                     </select>
+                    {!hasAssetColumn ? (
+                        <Button size="sm" variant="secondary" disabled={!canEdit} loading={sIsCreatingAssetColumn} onClick={handleCreateAssetColumn}>
+                            Create {DEFAULT_HIERARCHY_JSON_COLUMN}
+                        </Button>
+                    ) : null}
                 </div>
                 <div className={styles.actions}>
                     {!mHasTemplate ? (
@@ -959,32 +901,9 @@ export const TagHierarchyPage = ({
                     <div className={styles.details}>
                         <div className={styles.summary}>
                             <div className={styles.path}>{selectedNodeLabel(sSelectedNode)}</div>
-                            <div className={styles.actions}>
-                                <span className={styles.label}>Count: {sTagCount.toLocaleString()}</span>
-                                <Button size="sm" variant="secondary" disabled={!canOpenTagAnalyzer || mSelectedTagNames.length !== 1} onClick={() => onOpenTagAnalyzer?.(mSelectedTagNames[0])}>
-                                    Open Analyzer
-                                </Button>
-                                <Button size="sm" variant="secondary" disabled={!mCanAttach} onClick={openAttachModal}>
-                                    Attach Tags
-                                </Button>
-                                <Button size="sm" variant="secondary" disabled={!mCanActOnSelectedTags} onClick={() => setModal('detach')}>
-                                    Detach
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    disabled={!canEdit || sSelectedNode.isUnassigned || sSelectedNode.path.length === 0}
-                                    onClick={() => {
-                                        setModalValue(sSelectedNode.path.at(-1)?.value ?? '');
-                                        setModal('rename');
-                                    }}
-                                >
-                                    Rename Value
-                                </Button>
-                            </div>
                         </div>
                         <div className={styles.tabs}>
-                            {(['tags', 'metadata', 'query', 'validation'] as DetailTab[]).map((tab) => (
+                            {VISIBLE_DETAIL_TABS.map((tab) => (
                                 <button key={tab} type="button" className={[styles.tab, sActiveTab === tab ? styles.activeTab : ''].filter(Boolean).join(' ')} onClick={() => setActiveTab(tab)}>
                                     {tab[0].toUpperCase() + tab.slice(1)}
                                 </button>
@@ -993,10 +912,7 @@ export const TagHierarchyPage = ({
                         <div className={styles.panel}>
                             {sError ? <div className={styles.error}>{sError}</div> : null}
                             {sActiveTab === 'tags' ? (
-                                <CommonTable data={tagTableData(sTags)} showRowNumber showCopyButton activeRow onRowSelect={(row) => setSelectedRows([row])} emptyMessage="No tags." />
-                            ) : null}
-                            {sActiveTab === 'metadata' ? (
-                                <CommonTable data={tagTableData(sTags)} showRowNumber showCopyButton textWrap maxRows={20} emptyMessage="No metadata." />
+                                <CommonTable data={tagTableData(sTags)} showRowNumber showCopyButton activeRow emptyMessage="No tags." />
                             ) : null}
                             {sActiveTab === 'query' ? <pre className={styles.query}>{sLastQuery || 'No query executed.'}</pre> : null}
                             {sActiveTab === 'validation' ? (
@@ -1005,15 +921,24 @@ export const TagHierarchyPage = ({
                                         <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
                                             <div className={styles.label}>Edit schema and value tree. Save updates the reserved `__machbase_hierarchy__` row.</div>
                                             <div style={{ display: 'grid', gap: 6 }}>
-                                                {sSchemaDraft.map((key, index) => (
-                                                    <div key={`schema-${index}`} className={styles.templateEditorRow}>
-                                                        <span className={styles.label}>Depth {index + 1}</span>
-                                                        <input className={styles.input} style={{ flex: 1 }} value={key} onChange={(event) => updateSchemaDraft(index, event.target.value)} />
-                                                        <Button size="sm" variant="secondary" onClick={() => removeSchemaDraftKey(index)}>
-                                                            Remove
-                                                        </Button>
-                                                    </div>
-                                                ))}
+                                                {sSchemaDraft.map((key, index) => {
+                                                    const canRemoveSchemaKey = canRemoveHierarchySchemaKey(sSchemaDraft, sValueTreeDraft, index);
+                                                    return (
+                                                        <div key={`schema-${index}`} className={styles.templateEditorRow}>
+                                                            <span className={styles.label}>Depth {index + 1}</span>
+                                                            <input className={styles.input} style={{ flex: 1 }} value={key} onChange={(event) => updateSchemaDraft(index, event.target.value)} />
+                                                            <Button
+                                                                size="sm"
+                                                                variant="secondary"
+                                                                disabled={!canRemoveSchemaKey}
+                                                                title={canRemoveSchemaKey ? undefined : schemaKeyRemoveReason(index)}
+                                                                onClick={() => removeSchemaDraftKey(index)}
+                                                            >
+                                                                Remove
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                             <div className={styles.actions}>
                                                 <Button size="sm" variant="secondary" onClick={addSchemaDraftKey}>
@@ -1022,7 +947,7 @@ export const TagHierarchyPage = ({
                                             </div>
                                             {sValueTreeDraft.map((node, index) => renderTemplateEditorNode(node, [index], 0))}
                                             <div className={styles.actions}>
-                                                <Button size="sm" variant="secondary" onClick={() => addTemplateDraftNode()}>
+                                                <Button size="sm" variant="secondary" disabled={sValueTreeDraft.length > 0} onClick={() => addTemplateDraftNode()}>
                                                     Add Root
                                                 </Button>
                                                 <Button size="sm" variant="primary" loading={sIsSaving} onClick={saveTemplateEdit}>
@@ -1066,30 +991,6 @@ export const TagHierarchyPage = ({
                         setAttachPathIndex(0);
                     }}
                     onConfirm={handleAttach}
-                />
-            ) : null}
-            {sModal === 'detach' ? (
-                <ConfirmActionModal
-                    title="Detach tags"
-                    body={<div>Detach {mSelectedTagNames.length.toLocaleString()} selected tag(s) by setting hierarchy values to empty strings?</div>}
-                    loading={sIsSaving}
-                    confirmText="Detach"
-                    onClose={() => setModal(undefined)}
-                    onConfirm={handleDetach}
-                />
-            ) : null}
-            {sModal === 'rename' ? (
-                <TextInputModal
-                    title="Rename hierarchy value"
-                    value={sModalValue}
-                    loading={sIsSaving}
-                    confirmText="Rename"
-                    onValueChange={setModalValue}
-                    onClose={() => {
-                        setModal(undefined);
-                        setModalValue('');
-                    }}
-                    onConfirm={handleRename}
                 />
             ) : null}
         </div>
