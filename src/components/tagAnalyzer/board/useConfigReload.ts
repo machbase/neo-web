@@ -9,7 +9,7 @@ import {
 type ConfigReloadDependencies = {
     getBoardPanelRecord: (panelKey: string) => BoardPanelRecord;
     applyPanelRangeState: ApplyPanelRangeState;
-    initializePanelRange: (panelInfo: PanelInfo) => Promise<void>;
+    resolveAndApplyPanelRange: (panelInfo: PanelInfo) => Promise<void>;
     setFullDataRange: (panelInfo: PanelInfo) => Promise<void>;
 };
 
@@ -21,7 +21,7 @@ type ConfigReloadActions = {
 export function useConfigReload({
     getBoardPanelRecord,
     applyPanelRangeState,
-    initializePanelRange,
+    resolveAndApplyPanelRange,
     setFullDataRange,
 }: ConfigReloadDependencies): ConfigReloadActions {
     function reloadAfterRawModeChange(nextPanelInfo: PanelInfo): void {
@@ -61,7 +61,7 @@ export function useConfigReload({
             return;
         }
 
-        void initializePanelRange(nextPanelInfo);
+        void resolveAndApplyPanelRange(nextPanelInfo);
     }
 
     return {

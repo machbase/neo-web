@@ -336,14 +336,11 @@ function getPanelRangeChangeState(
     requestedPanelRange: TimeRangeMs,
     isNumericXAxis: boolean,
 ): PanelRangeState {
-    const sPanelRange = clampTimeRangeToBounds(
-        ensureMinimumAxisRangeWidth(
-            requestedPanelRange,
-            rangeState.navigatorRange,
-            isNumericXAxis,
-            MIN_PANEL_RANGE_MS,
-        ),
+    const sPanelRange = ensureMinimumAxisRangeWidth(
+        requestedPanelRange,
         rangeState.navigatorRange,
+        isNumericXAxis,
+        MIN_PANEL_RANGE_MS,
     );
 
     return {
