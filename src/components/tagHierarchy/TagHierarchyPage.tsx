@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiChevronDown, FiChevronRight, FiRefreshCcw, FiTag } from 'react-icons/fi';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FiChevronDown, FiChevronRight, FiChevronsDown, FiRefreshCcw, FiTag } from 'react-icons/fi';
 import { MdWarningAmber } from 'react-icons/md';
-import { Button, CommonTable, Modal, Toast } from '@/design-system/components';
+import { Button, CommonTable, IconButton, Modal, Toast } from '@/design-system/components';
 import {
     DEFAULT_HIERARCHY_DOCUMENT,
     HIERARCHY_RESERVED_NAME,
@@ -99,6 +99,12 @@ const childrenForValuePath = (nodes: HierarchyValueNode[], path: HierarchyPathIt
     const node = nodes.find((item) => item.key === head.key && item.value === head.value);
     return node ? childrenForValuePath(node.children, tail) : [];
 };
+
+const valuePathsFromTree = (nodes: HierarchyValueNode[], parentPath: HierarchyPathItem[] = []): HierarchyPathItem[][] =>
+    nodes.flatMap((node) => {
+        const path = parentPath.concat({ key: node.key, value: node.value });
+        return [path].concat(valuePathsFromTree(node.children, path));
+    });
 
 const TextInputModal = ({
     title,
@@ -270,6 +276,7 @@ export const TagHierarchyPage = ({
     const [sAttachPathOptions, setAttachPathOptions] = useState<string[][]>([]);
     const [sAttachPathIndex, setAttachPathIndex] = useState(0);
     const [sIsSaving, setIsSaving] = useState(false);
+    const expandedPathKeysRef = useRef(sExpandedPathKeys);
 
     const mConfig = useMemo<HierarchyQueryConfig>(
         () => ({
@@ -292,6 +299,10 @@ export const TagHierarchyPage = ({
         setJsonColumn((prev) => prev || nextColumn);
     }, [jsonColumns]);
 
+    useEffect(() => {
+        expandedPathKeysRef.current = sExpandedPathKeys;
+    }, [sExpandedPathKeys]);
+
     const loadTagsForNode = useCallback(
         async (node: SelectedNode, document?: HierarchyDocument) => {
             if (node.isUnassigned) {
@@ -309,6 +320,40 @@ export const TagHierarchyPage = ({
             setTagCount(count);
             setTags(tags.rows);
             if (!tags.success) setError(tags.reason ?? 'Failed to load hierarchy tags.');
+        },
+        [mConfig]
+    );
+
+    const loadTagLinksForPaths = useCallback(
+        async (document: HierarchyDocument, paths: HierarchyPathItem[][], options: { includeUnassigned?: boolean } = {}) => {
+            const uniquePaths = Array.from(new Map(paths.map((path) => [pathKey(path), path])).values());
+            const nextLinks: Record<string, HierarchyTagRow[]> = {};
+
+            const results = await Promise.all(
+                uniquePaths.map(async (path) => ({
+                    key: pathKey(path),
+                    result: await getDirectHierarchyTags(mConfig, document.schema, path),
+                }))
+            );
+
+            results.forEach(({ key, result }) => {
+                if (result.success) {
+                    nextLinks[key] = result.rows;
+                } else {
+                    setError(result.reason ?? 'Failed to load tag links.');
+                }
+            });
+
+            if (options.includeUnassigned) {
+                const unassigned = await getUnassignedTagsByDocument(mConfig, document);
+                if (unassigned.success) {
+                    nextLinks[UNASSIGNED_TREE_KEY] = unassigned.rows;
+                } else {
+                    setError(unassigned.reason ?? 'Failed to load unassigned tags.');
+                }
+            }
+
+            setTagLinksByPath((prev) => ({ ...prev, ...nextLinks }));
         },
         [mConfig]
     );
@@ -377,9 +422,17 @@ export const TagHierarchyPage = ({
         }
 
         setSelectedNode(EMPTY_SELECTED_NODE);
-        await Promise.all([loadTagsForNode(EMPTY_SELECTED_NODE, document), getUnassignedTagCountByDocument(mConfig, document).then(setUnassignedCount)]);
+        const expandedKeys = expandedPathKeysRef.current;
+        const expandedPaths = valuePathsFromTree(document.tree).filter((path) => expandedKeys.has(pathKey(path)));
+        const shouldReloadUnassignedLinks = expandedKeys.has(UNASSIGNED_TREE_KEY);
+
+        await Promise.all([
+            loadTagsForNode(EMPTY_SELECTED_NODE, document),
+            getUnassignedTagCountByDocument(mConfig, document).then(setUnassignedCount),
+            loadTagLinksForPaths(document, expandedPaths, { includeUnassigned: shouldReloadUnassignedLinks }),
+        ]);
         setIsLoading(false);
-    }, [active, loadTagsForNode, mConfig, sJsonColumn]);
+    }, [active, loadTagLinksForPaths, loadTagsForNode, mConfig, sJsonColumn]);
 
     useEffect(() => {
         if (active) refreshHierarchy();
@@ -392,14 +445,9 @@ export const TagHierarchyPage = ({
             nextExpanded.delete(key);
         } else {
             nextExpanded.add(key);
-            if (!sTagLinksByPath[key]) {
+            if (sHierarchyDocument && !sTagLinksByPath[key]) {
                 setLastQuery(buildGetDirectHierarchyTagsSql(mConfig, sKeys, node.path));
-                const result = await getDirectHierarchyTags(mConfig, sKeys, node.path);
-                if (result.success) {
-                    setTagLinksByPath((prev) => ({ ...prev, [key]: result.rows }));
-                } else {
-                    setError(result.reason ?? 'Failed to load tag links.');
-                }
+                await loadTagLinksForPaths(sHierarchyDocument, [node.path]);
             }
         }
         setExpandedPathKeys(nextExpanded);
@@ -414,6 +462,19 @@ export const TagHierarchyPage = ({
             await loadUnassignedTagLinks();
         }
         setExpandedPathKeys(nextExpanded);
+    };
+
+    const handleExpandAllTree = async () => {
+        if (!sHierarchyDocument) return;
+
+        const paths = valuePathsFromTree(sHierarchyDocument.tree);
+        const nextExpanded = new Set(paths.map(pathKey));
+        nextExpanded.add(UNASSIGNED_TREE_KEY);
+        setExpandedPathKeys(nextExpanded);
+        setIsLoading(true);
+        setError('');
+        await loadTagLinksForPaths(sHierarchyDocument, paths, { includeUnassigned: true });
+        setIsLoading(false);
     };
 
     const handleSelectNode = async (node: SelectedNode) => {
@@ -713,20 +774,32 @@ export const TagHierarchyPage = ({
         const filteredRows = sSearchText ? rows.filter((row) => row.name.toLowerCase().includes(sSearchText.toLowerCase())) : rows;
 
         return filteredRows.map((row) => (
-            <button
+            <div
                 key={`${pathKey(parentPath)}::tag::${row.name}`}
-                type="button"
                 className={[styles.node, styles.tagNode].join(' ')}
                 style={{ paddingLeft: `${6 + depth * 16}px` }}
-                onClick={() => {
-                    setSelectedRows([[row.name, row.asset, row.spec ?? '']]);
-                    if (canOpenTagAnalyzer) onOpenTagAnalyzer?.(row.name);
+                draggable={canEdit}
+                onDragStart={(event) => {
+                    event.dataTransfer.setData('text/plain', row.name);
+                    event.dataTransfer.effectAllowed = 'move';
                 }}
             >
-                <FiTag />
-                <span>{row.name}</span>
-                <span className={styles.nodeMeta}>tag</span>
-            </button>
+                <button
+                    type="button"
+                    className={styles.tagLinkButton}
+                    onClick={() => {
+                        setSelectedRows([[row.name, row.asset, row.spec ?? '']]);
+                        setTags([row]);
+                        setTagCount(1);
+                    }}
+                >
+                    <FiTag />
+                    <span>{row.name}</span>
+                </button>
+                <button type="button" className={styles.inlineAction} disabled={!canEdit} onClick={() => openMoveTagModal(row)}>
+                    Move
+                </button>
+            </div>
         ));
     };
 
@@ -837,8 +910,28 @@ export const TagHierarchyPage = ({
             ) : (
                 <div className={styles.body}>
                     <div className={styles.treePane}>
-                        <div className={styles.search}>
+                        <div className={styles.treeHeader}>
                             <input className={styles.input} style={{ width: '100%' }} value={sSearchText} placeholder="Search nodes" onChange={(event) => setSearchText(event.target.value)} />
+                            <div className={styles.treeActions}>
+                                <IconButton
+                                    aria-label="Expand all tree nodes"
+                                    title="Expand all"
+                                    size="icon"
+                                    variant="ghost"
+                                    icon={<FiChevronsDown />}
+                                    disabled={sIsLoading || !mHasTemplate}
+                                    onClick={handleExpandAllTree}
+                                />
+                                <IconButton
+                                    aria-label="Refresh tree"
+                                    title="Refresh tree"
+                                    size="icon"
+                                    variant="ghost"
+                                    icon={<FiRefreshCcw />}
+                                    disabled={sIsLoading}
+                                    onClick={refreshHierarchy}
+                                />
+                            </div>
                         </div>
                         <div className={styles.tree}>
                             {sValueTree.length === 0 ? <div className={styles.message}>Tree is empty. Click Edit Tree, then Add Root to create the first node.</div> : null}
