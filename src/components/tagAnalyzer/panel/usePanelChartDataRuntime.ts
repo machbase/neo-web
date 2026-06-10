@@ -22,10 +22,7 @@ import {
     fetchNavigatorPanelSeriesRows,
 } from '../fetch/PanelSeriesDataRepository';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
-import {
-    hasNumericBaseTimeSeries,
-    type PanelSeriesDefinition,
-} from '../domain/SeriesDomain';
+import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import type {
     FetchPanelSeriesRowsResult,
@@ -145,40 +142,10 @@ function getPanelLoadConfig(panelInfo: PanelInfo): PanelChartDataLoadConfig {
     };
 }
 
-function getMainLoadSignature(
-    loadConfig: PanelChartDataLoadConfig,
-    rollupTableList: string[],
-): string {
-    return JSON.stringify({
-        loadConfig,
-        rollupTableList,
-    });
-}
-
-function getNavLoadSignature(
-    loadConfig: PanelChartDataLoadConfig,
-    rollupTableList: string[],
-): string {
-    return JSON.stringify({
-        seriesList: loadConfig.seriesList,
-        isRaw: loadConfig.isRaw,
-        ...(!loadConfig.isRaw
-            ? {
-                  intervalType: loadConfig.intervalType,
-                  xAxis: loadConfig.xAxis,
-                  rollupTableList,
-              }
-            : {}),
-    });
-}
-
 function getNavigatorDataRange(
-    loadConfig: PanelChartDataLoadConfig,
     rangeState: PanelRangeState,
 ): TimeRangeMs {
-    return loadConfig.isRaw || hasNumericBaseTimeSeries(loadConfig.seriesList)
-        ? rangeState.fullRange
-        : rangeState.navigatorRange;
+    return rangeState.fullRange;
 }
 
 function useLoadRequests() {
@@ -381,13 +348,7 @@ export function usePanelChartDataRuntime({
     const [navigatorLoadStatus, setNavigatorLoadStatus] =
         useState<PanelChartLoadStatus>(PanelChartLoadStatus.Idle);
     const chartDataStateRef = useRef(chartDataState);
-    const lastMainLoadConfigSignatureRef = useRef<string | undefined>(undefined);
-    const lastNavigatorLoadConfigSignatureRef = useRef<string | undefined>(
-        undefined,
-    );
-    const lastHandledDataRefreshVersionRef = useRef<number | undefined>(
-        undefined,
-    );
+    const lastHandledDataRefreshVersionRef = useRef(dataRefreshVersion);
     const onRangeStateChangeRef = useRef(onRangeStateChange);
     const panelLoadRequests = useLoadRequests();
     const navigatorLoadRequests = useLoadRequests();
@@ -539,49 +500,22 @@ export function usePanelChartDataRuntime({
             return;
         }
 
-        const sIsExplicitReloadRequest =
+        const sDataRefreshVersionChanged =
             lastHandledDataRefreshVersionRef.current !== dataRefreshVersion;
         const sLoadConfig = getPanelLoadConfig(panelInfo);
-        const sMainLoadConfigSignature = getMainLoadSignature(
-            sLoadConfig,
-            rollupTableList,
+        const sNavigatorDataRange = getNavigatorDataRange(rangeState);
+        const sMainRangeNeedsData = !isSameTimeRange(
+            rangeState.panelRange,
+            chartDataStateRef.current.loadedDataRange,
         );
-        const sNavigatorLoadConfigSignature = getNavLoadSignature(
-            sLoadConfig,
-            rollupTableList,
+        const sNavigatorRangeNeedsData = !isSameTimeRange(
+            sNavigatorDataRange,
+            chartDataStateRef.current.loadedNavigatorRange,
         );
-        const sNavigatorDataRange = getNavigatorDataRange(sLoadConfig, rangeState);
-        const sMainConfigChanged =
-            lastMainLoadConfigSignatureRef.current !== undefined &&
-            lastMainLoadConfigSignatureRef.current !==
-                sMainLoadConfigSignature;
-        const sNavigatorConfigChanged =
-            lastNavigatorLoadConfigSignatureRef.current !== undefined &&
-            lastNavigatorLoadConfigSignatureRef.current !==
-                sNavigatorLoadConfigSignature;
-        const sMainRangeNeedsData =
-            !isConcreteTimeRange(chartDataStateRef.current.loadedDataRange) ||
-            !isSameTimeRange(
-                rangeState.panelRange,
-                chartDataStateRef.current.loadedDataRange,
-            );
-        const sNavigatorRangeNeedsData =
-            !isConcreteTimeRange(
-                chartDataStateRef.current.loadedNavigatorRange,
-            ) ||
-            !isSameTimeRange(
-                sNavigatorDataRange,
-                chartDataStateRef.current.loadedNavigatorRange,
-            );
         const sShouldReloadMain =
-            sIsExplicitReloadRequest ||
-            sMainConfigChanged ||
-            sMainRangeNeedsData;
+            sDataRefreshVersionChanged || sMainRangeNeedsData;
         const sShouldReloadNavigator =
-            sIsExplicitReloadRequest ||
-            lastNavigatorLoadConfigSignatureRef.current === undefined ||
-            sNavigatorConfigChanged ||
-            sNavigatorRangeNeedsData;
+            sDataRefreshVersionChanged || sNavigatorRangeNeedsData;
 
         if (!sShouldReloadMain && !sShouldReloadNavigator) {
             return;
@@ -615,14 +549,6 @@ export function usePanelChartDataRuntime({
             }
 
             lastHandledDataRefreshVersionRef.current = dataRefreshVersion;
-            if (sShouldReloadMain) {
-                lastMainLoadConfigSignatureRef.current =
-                    sMainLoadConfigSignature;
-            }
-            if (sShouldReloadNavigator) {
-                lastNavigatorLoadConfigSignatureRef.current =
-                    sNavigatorLoadConfigSignature;
-            }
 
             const sAppliedRanges = sMainResult?.appliedRanges;
             if (

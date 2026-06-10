@@ -35,7 +35,7 @@ export function useApplyPanelRange({ panelStore, handlers }: ApplyPanelRangeDepe
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
         const sNextRangeState = resolveRangeState(sBoardPanelRecord, options);
         const sCurrentRangeState = sBoardPanelRecord.rangeState;
-        const sReloadData = options.reloadData !== false;
+        const sReloadData = options.reloadData === true;
 
         const sRangeChanged =
             hasVisibleTimeRangeChanged(

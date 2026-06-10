@@ -59,6 +59,7 @@ export function useRefreshRange({
             panelRange: rangeState.panelRange,
             navigatorRange: rangeState.navigatorRange,
             fullRange: rangeState.fullRange,
+            reloadData: true,
         });
     }
 

@@ -37,6 +37,7 @@ export function useConfigReload({
             panelRange: sRangeState.panelRange,
             navigatorRange: sRangeState.navigatorRange,
             fullRange: sRangeState.fullRange,
+            reloadData: true,
         });
     }
 
@@ -55,6 +56,7 @@ export function useConfigReload({
                 panelRange: sRangeState.panelRange,
                 navigatorRange: sRangeState.navigatorRange,
                 fullRange: sRangeState.fullRange,
+                reloadData: true,
             });
             return;
         }

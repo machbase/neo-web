@@ -72,6 +72,7 @@ export function useRangeInit({
             panelRange: initialRange.panelRange,
             navigatorRange: initialRange.navigatorRange,
             fullRange: initialRange.fullRange,
+            reloadData: true,
         });
     }
 
