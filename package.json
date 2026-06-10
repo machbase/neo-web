@@ -21,6 +21,11 @@
         "@types/echarts": "^4.9.22",
         "@types/papaparse": "^5.3.14",
         "@types/react-grid-layout": "^1.3.2",
+        "@xterm/addon-attach": "^0.12.0",
+        "@xterm/addon-fit": "^0.11.0",
+        "@xterm/addon-web-links": "^0.12.0",
+        "@xterm/addon-webgl": "^0.19.0",
+        "@xterm/xterm": "^6.0.0",
         "axios": "^1.7.7",
         "dompurify": "^3.2.7",
         "echarts": "^5.6.0",
@@ -45,11 +50,6 @@
         "split-pane-react": "^0.1.3",
         "styled-components": "^6.1.0",
         "vite-plugin-monaco-editor": "^1.1.0",
-        "@xterm/xterm": "^6.0.0",
-        "@xterm/addon-attach": "^0.12.0",
-        "@xterm/addon-fit": "^0.11.0",
-        "@xterm/addon-web-links": "^0.12.0",
-        "@xterm/addon-webgl": "^0.19.0",
         "yet-another-react-lightbox": "^3.12.1"
     },
     "devDependencies": {
@@ -80,7 +80,7 @@
         "react-test-renderer": "^18.2.0",
         "ts-jest": "^29.1.1",
         "typescript": "^5.0.2",
-        "vite": "^7.1.7",
+        "vite": "^7.3.5",
         "vite-plugin-svgr": "^4.5.0"
     },
     "jest": {

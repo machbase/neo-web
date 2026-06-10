@@ -770,7 +770,13 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         </Button.Group>
                     </Page.Header>
                     {mColList ? (
-                        <MetaTablePage pIsActiveTab={pIsActiveTab} pMTableInfo={mTableInfo} pMColInfo={mColList} pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }} />
+                        <MetaTablePage
+                            pIsActiveTab={pIsActiveTab}
+                            pMTableInfo={mTableInfo}
+                            pMColInfo={mColList}
+                            pMMetaColInfo={mMetaColList}
+                            pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }}
+                        />
                     ) : null}
                 </Pane>
             </SplitPane>

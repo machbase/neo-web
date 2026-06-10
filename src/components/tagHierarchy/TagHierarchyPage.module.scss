@@ -1,0 +1,254 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: #2b2b2b;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.toolbarGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.label {
+    color: #d8d8d8;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.select,
+.input,
+.textarea {
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 4px;
+    background: #1f1f1f;
+    color: #ededed;
+    font-size: 12px;
+}
+
+.select,
+.input {
+    height: 28px;
+    padding: 0 8px;
+}
+
+.textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 8px;
+    resize: vertical;
+    font-family: monospace;
+}
+
+.body {
+    display: grid;
+    grid-template-columns: minmax(220px, 30%) minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+}
+
+.treePane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.search {
+    padding: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tree {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 6px;
+}
+
+.node {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 28px;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #dfdfdf;
+    text-align: left;
+    cursor: pointer;
+}
+
+.node:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.selected {
+    background: rgba(77, 163, 255, 0.18);
+}
+
+.nodeMeta {
+    margin-left: auto;
+    color: #9da3aa;
+    font-size: 11px;
+}
+
+.tagNode {
+    color: #8fc7ff;
+}
+
+.tagNode:hover {
+    text-decoration: underline;
+}
+
+.tagLinkButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.inlineAction {
+    border: 1px solid rgba(143, 199, 255, 0.35);
+    border-radius: 4px;
+    background: transparent;
+    color: #8fc7ff;
+    font-size: 11px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.inlineAction:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.path {
+    color: #f2f2f2;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px 0;
+}
+
+.tab {
+    border: 0;
+    border-radius: 4px 4px 0 0;
+    padding: 6px 10px;
+    background: #3a3a3a;
+    color: #cfcfcf;
+    cursor: pointer;
+}
+
+.activeTab {
+    background: #4a4a4a;
+    color: #fff;
+}
+
+.panel {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 12px 12px;
+}
+
+.message {
+    padding: 16px;
+    color: #c9c9c9;
+    font-size: 13px;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 18px;
+    color: #d8d8d8;
+}
+
+.emptyTitle {
+    color: #f2f2f2;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.emptyText {
+    max-width: 560px;
+    color: #c9c9c9;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.error {
+    color: #ff7b7b;
+}
+
+.warning {
+    color: #ffd36a;
+}
+
+.query {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #e5e5e5;
+    font-size: 12px;
+}
+
+.templateEditorRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-bottom: 6px;
+}
