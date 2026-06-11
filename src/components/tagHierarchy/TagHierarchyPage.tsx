@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FiChevronDown, FiChevronRight, FiChevronsDown, FiRefreshCcw, FiTag } from 'react-icons/fi';
-import { MdWarningAmber } from 'react-icons/md';
 import { Button, CommonTable, IconButton, Modal, Toast } from '@/design-system/components';
 import {
     DEFAULT_HIERARCHY_DOCUMENT,
@@ -250,6 +249,12 @@ export const TagHierarchyPage = ({
                 return;
             }
 
+            if (node.path.length === 0) {
+                setTags([]);
+                setLastQuery('');
+                return;
+            }
+
             setLastQuery(buildGetHierarchyTagsSql(mConfig, node.path));
             const tags = await getHierarchyTags(mConfig, node.path);
             setTags(tags.rows);
@@ -310,6 +315,7 @@ export const TagHierarchyPage = ({
 
         setIsLoading(true);
         setError('');
+        setLastQuery('');
         setTagLinksByPath({});
 
         const templateResult = await getHierarchyTemplate(mConfig);
@@ -318,6 +324,7 @@ export const TagHierarchyPage = ({
             setKeys([]);
             setHierarchyDocument(undefined);
             setValueTree([]);
+            setTags([]);
             setIssues([{ level: 'blocking', message: templateResult.reason ?? 'Failed to load hierarchy template.' }]);
             setIsLoading(false);
             return;
@@ -532,9 +539,11 @@ export const TagHierarchyPage = ({
         const result = await updateHierarchyTemplate(mConfig, document);
         if (result.svrState) {
             Toast.success('Hierarchy template updated.');
-            setIsTemplateEditing(false);
             await refreshHierarchy();
-            setActiveTab('tags');
+            setSchemaDraft(document.schema);
+            setValueTreeDraft(cloneValueTree(document.tree));
+            setIsTemplateEditing(true);
+            setActiveTab('validation');
         } else {
             setError(result.svrReason ?? 'Failed to update hierarchy template.');
         }
@@ -821,11 +830,6 @@ export const TagHierarchyPage = ({
                     ) : null}
                 </div>
                 <div className={styles.actions}>
-                    {!mHasTemplate ? (
-                        <Button size="sm" variant="primary" disabled={!canEdit} loading={sIsSaving} onClick={handleInitializeHierarchy}>
-                            {sHasHierarchyRow ? 'Reset Tree' : 'Initialize Tree'}
-                        </Button>
-                    ) : null}
                     {mHasTemplate ? (
                         <Button size="sm" variant="secondary" disabled={!canEdit || sIsTemplateEditing} onClick={startTemplateEdit}>
                             Edit Tree
@@ -891,7 +895,6 @@ export const TagHierarchyPage = ({
                                 >
                                     {sExpandedPathKeys.has(UNASSIGNED_TREE_KEY) ? <FiChevronDown /> : <FiChevronRight />}
                                 </span>
-                                <MdWarningAmber />
                                 <span>Unassigned Tags</span>
                                 <span className={styles.nodeMeta}>{sUnassignedCount}</span>
                             </button>
