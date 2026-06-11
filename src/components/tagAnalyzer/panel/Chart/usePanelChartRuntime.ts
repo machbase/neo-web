@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent, type WheelEvent } from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../../domain/ChartDomain';
 import { PanelOverlayMode, type PanelRangeChangeEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeHandlers, type PanelRangeState } from '../../domain/PanelDomain';
@@ -11,7 +11,11 @@ import { applyPanelNavigatorCursorStyles } from './utils/PanelNavigatorCursorSty
 import type { PanelChartInstance } from './types/PanelChartRuntimeTypes';
 import { useBlankChartClickEvent } from './hooks/useBlankChartClickEvent';
 import { usePanelChartInstanceSync } from './hooks/usePanelChartInstanceSync';
-import { isConcreteTimeRange } from '../../domain/time/TimeRangeUtils';
+import {
+    getTimeRangeWidth,
+    isConcreteTimeRange,
+} from '../../domain/time/TimeRangeUtils';
+import { convertPanelChartPixelToTimestamp } from './utils/PanelChartPointerUtils';
 
 type PanelBodyRefs = {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
@@ -47,8 +51,12 @@ type UsePanelChartRuntimeResult = {
     handleChartReady: EChartsReactProps['onChartReady'];
     chartMouseHandlers: {
         onMouseDownCapture: (event: MouseEvent<HTMLDivElement>) => void;
+        onWheel: (event: WheelEvent<HTMLDivElement>) => void;
     };
 };
+
+const PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR = 0.82;
+const PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR = 1.22;
 
 export function usePanelChartRuntime({
     refs,
@@ -76,6 +84,13 @@ export function usePanelChartRuntime({
     const visibleSeriesRef = useRef<Record<string, boolean>>({});
     const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
     const isNumericXAxis = hasNumericBaseTimeSeries(seriesList);
+    const isSelectionMode =
+        overlayMode === PanelOverlayMode.DRAG_SELECT ||
+        overlayMode === PanelOverlayMode.HIGHLIGHT;
+    const isDragZoomEnabled =
+        display.use_zoom &&
+        !isSelectionMode &&
+        overlayMode !== PanelOverlayMode.ANNOTATION;
     const baseChartInfo = useMemo<ChartInfo>(() => ({
         mainSeriesData: chartData,
         seriesDefinitions: seriesList,
@@ -88,6 +103,7 @@ export function usePanelChartRuntime({
         visibleSeries: {},
         navigatorSeriesData: navigatorChartData,
         isNumericXAxis,
+        isWheelZoomEnabled: isDragZoomEnabled,
         highlights,
         annotations,
     }), [
@@ -97,6 +113,7 @@ export function usePanelChartRuntime({
         display,
         highlights,
         isNumericXAxis,
+        isDragZoomEnabled,
         isRaw,
         navigatorChartData,
         navigatorRange,
@@ -104,13 +121,6 @@ export function usePanelChartRuntime({
         seriesList,
         useNormalize,
     ]);
-    const isSelectionMode =
-        overlayMode === PanelOverlayMode.DRAG_SELECT ||
-        overlayMode === PanelOverlayMode.HIGHLIGHT;
-    const isDragZoomEnabled =
-        baseChartInfo.display.use_zoom &&
-        !isSelectionMode &&
-        overlayMode !== PanelOverlayMode.ANNOTATION;
     const chartInfo = useMemo(
         () => ({ ...baseChartInfo, visibleSeries }),
         [baseChartInfo, visibleSeries],
@@ -174,6 +184,64 @@ export function usePanelChartRuntime({
             { lazyUpdate: true },
         );
     }, [baseChartInfo, chartInstanceRef]);
+    const handleMouseWheelZoom = useCallback((event: WheelEvent<HTMLDivElement>): void => {
+        if (
+            event.deltaY === 0 ||
+            !isDragZoomEnabled ||
+            !isConcreteTimeRange(panelRange)
+        ) {
+            return;
+        }
+
+        const chartInstance = chartInstanceRef.current;
+        const chartRect = chartAreaRef.current?.getBoundingClientRect();
+        if (!chartInstance?.containPixel || !chartRect) {
+            return;
+        }
+
+        const sPixel: [number, number] = [
+            event.clientX - chartRect.left,
+            event.clientY - chartRect.top,
+        ];
+        if (!chartInstance.containPixel({ gridIndex: 0 }, sPixel)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const sCurrentWidth = getTimeRangeWidth(panelRange);
+        if (sCurrentWidth <= 0) {
+            return;
+        }
+
+        const sAnchorTime =
+            convertPanelChartPixelToTimestamp(
+                chartInstance,
+                sPixel,
+                isNumericXAxis,
+            ).timestamp ??
+            panelRange.startTime + sCurrentWidth / 2;
+        const sAnchorRatio =
+            (sAnchorTime - panelRange.startTime) / sCurrentWidth;
+        const sZoomFactor = event.deltaY < 0
+            ? PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR
+            : PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR;
+        const sNextWidth = sCurrentWidth * sZoomFactor;
+        const sNextStart = sAnchorTime - sNextWidth * sAnchorRatio;
+
+        rangeHandlers.onPanelRangeChange({
+            min: sNextStart,
+            max: sNextStart + sNextWidth,
+        });
+    }, [
+        chartAreaRef,
+        chartInstanceRef,
+        isDragZoomEnabled,
+        isNumericXAxis,
+        panelRange,
+        rangeHandlers,
+    ]);
 
     useEffect(() => {
         const nextVisibleSeries = {
@@ -263,6 +331,7 @@ export function usePanelChartRuntime({
                     event.stopPropagation();
                 }
             },
+            onWheel: handleMouseWheelZoom,
         },
     };
 }

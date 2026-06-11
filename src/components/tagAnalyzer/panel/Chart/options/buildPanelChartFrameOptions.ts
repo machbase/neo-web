@@ -112,6 +112,7 @@ export function buildPanelChartFrameOptions(
         dataZoom: buildPanelChartDataZoomOption(
             chartInfo.display,
             chartInfo.panelRange,
+            chartInfo.isWheelZoomEnabled,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
         toolbox: HIDDEN_PANEL_TOOLBOX_OPTION,
@@ -122,6 +123,7 @@ export function buildPanelChartFrameOptions(
 function buildPanelChartDataZoomOption(
     display: RuntimePanelDisplay,
     panelRange: TimeRangeMs,
+    isWheelZoomEnabled: boolean,
 ): DataZoomComponentOption[] {
     const sPanelRangeDataZoom =
         panelRange.startTime < panelRange.endTime
@@ -140,7 +142,7 @@ function buildPanelChartDataZoomOption(
             ...sPanelRangeDataZoom,
             moveOnMouseMove: false,
             moveOnMouseWheel: false,
-            zoomOnMouseWheel: false,
+            zoomOnMouseWheel: isWheelZoomEnabled,
             preventDefaultMouseMove: true,
             disabled: !display.use_zoom,
         },

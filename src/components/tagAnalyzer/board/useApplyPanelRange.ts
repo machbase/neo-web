@@ -1,6 +1,8 @@
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import {
+    clampTimeRangeToBounds,
+    createTimeRangeMs,
     hasVisibleTimeRangeChanged,
     isConcreteTimeRange,
     isSameTimeRange,
@@ -13,10 +15,8 @@ import type {
 } from './BoardPanelState';
 import {
     getNavigatorTrackWidth,
-    getRecenteredNavigator,
-    getZoomedNavigator,
-    isPanelOutsideNavigator,
-    isSelectionTooSmall,
+    limitNavigatorRangeAmountForSelection,
+    recenterNavigatorRangeIfPanelOutside,
 } from './PanelNavigatorRangeLimits';
 
 type ApplyPanelRangeDependencies = {
@@ -37,7 +37,7 @@ export function useApplyPanelRange({ panelStore, handlers }: ApplyPanelRangeDepe
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
         const sNextRangeState = resolveRangeState(sBoardPanelRecord, options);
         const sCurrentRangeState = sBoardPanelRecord.rangeState;
-        const sReloadData = options.reloadData !== false;
+        const sReloadData = options.reloadData === true;
 
         const sRangeChanged =
             hasVisibleTimeRangeChanged(
@@ -67,13 +67,11 @@ function resolveRangeState(
     boardPanelRecord: BoardPanelRecord,
     options: PanelRangeApplyOptions,
 ): PanelRangeState {
-    const sPanelRange = options.panelRange;
-
     if (!boardPanelRecord.chartAreaWidth) {
         throw new Error('Cannot apply panel range before chart width is measured.');
     }
 
-    if (!isConcreteTimeRange(sPanelRange)) {
+    if (!isConcreteTimeRange(options.panelRange)) {
         throw new Error('Cannot apply an invalid panel range.');
     }
 
@@ -81,14 +79,23 @@ function resolveRangeState(
         throw new Error('Cannot apply an invalid navigator range.');
     }
 
-    const sNavigatorRange = options.preserveNavigatorRange
-        ? options.navigatorRange
-        : getNavigatorRangeForPanel(boardPanelRecord, sPanelRange, options.navigatorRange);
+    const sFullRange = getNextFullDataRange(
+        boardPanelRecord.rangeState.fullRange,
+        options.fullRange,
+    );
+    const sPanelRange = clampTimeRangeToBounds(options.panelRange, sFullRange);
+    const sNavigatorRange = getNavigatorRangeForPanel(
+        boardPanelRecord,
+        sPanelRange,
+        options.navigatorRange,
+        sFullRange,
+        options.navigatorSelectionCenterRatio,
+    );
 
     return {
         panelRange: sPanelRange,
         navigatorRange: sNavigatorRange,
-        fullRange: getNextFullDataRange(boardPanelRecord.rangeState.fullRange, options.fullRange),
+        fullRange: sFullRange,
     };
 }
 
@@ -115,24 +122,44 @@ function getNavigatorRangeForPanel(
     boardPanelRecord: BoardPanelRecord,
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,
+    fullRange: TimeRangeMs,
+    navigatorSelectionCenterRatio: number | undefined,
 ): TimeRangeMs {
     const sChartAreaWidth = boardPanelRecord.chartAreaWidth;
     const sNavigatorTrackPixelWidth =
         typeof sChartAreaWidth === 'number' && sChartAreaWidth > 0
             ? getNavigatorTrackWidth(sChartAreaWidth)
             : undefined;
-    let sNavigatorRange = navigatorRange;
+    let sNavigatorRange = clampTimeRangeToBounds(
+        growNavigatorRangeToContainPanel(panelRange, navigatorRange),
+        fullRange,
+    );
 
-    if (isPanelOutsideNavigator(panelRange, sNavigatorRange)) {
-        sNavigatorRange = getRecenteredNavigator(panelRange, sNavigatorRange);
+    if (sNavigatorTrackPixelWidth !== undefined) {
+        sNavigatorRange = limitNavigatorRangeAmountForSelection(
+            panelRange,
+            sNavigatorRange,
+            sNavigatorTrackPixelWidth,
+            navigatorSelectionCenterRatio,
+        );
     }
 
-    if (
-        sNavigatorTrackPixelWidth !== undefined &&
-        isSelectionTooSmall(panelRange, sNavigatorRange, sNavigatorTrackPixelWidth)
-    ) {
-        sNavigatorRange = getZoomedNavigator(panelRange, sNavigatorTrackPixelWidth);
-    }
+    return clampTimeRangeToBounds(
+        recenterNavigatorRangeIfPanelOutside(
+            panelRange,
+            sNavigatorRange,
+            navigatorSelectionCenterRatio,
+        ),
+        fullRange,
+    );
+}
 
-    return sNavigatorRange;
+function growNavigatorRangeToContainPanel(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    return createTimeRangeMs(
+        Math.min(navigatorRange.startTime, panelRange.startTime),
+        Math.max(navigatorRange.endTime, panelRange.endTime),
+    );
 }

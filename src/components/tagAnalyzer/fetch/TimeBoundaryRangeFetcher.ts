@@ -75,9 +75,11 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
 
     const rows = data.data?.rows as Array<[number | null, number | null]> | undefined;
 
-    return sHasNumericBaseTime
-        ? createTimeBoundaryRangeFromMillisecondRows(rows)
-        : createTimeBoundaryRangeFromNanosecondRows(rows);
+    if (sHasNumericBaseTime) {
+        return createTimeBoundaryRangeFromMillisecondRows(rows);
+    }
+
+    return createTimeBoundaryRangeFromNanosecondRows(rows);
 }
 
 export async function fetchVirtualStatTable(

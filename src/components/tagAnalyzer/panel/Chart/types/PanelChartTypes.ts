@@ -20,6 +20,7 @@ export type ChartInfo = {
     visibleSeries: Record<string, boolean>;
     navigatorSeriesData: ChartSeriesData[];
     isNumericXAxis: boolean;
+    isWheelZoomEnabled: boolean;
     hoveredLegendSeries?: string;
     highlights: PanelHighlight[];
     annotations: PanelAnnotation[];

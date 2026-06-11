@@ -1,20 +1,16 @@
 import type { PanelInfo } from '../domain/PanelDomain';
-import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/TimeTypes';
-import {
-    resolveFullDataTimeRange,
-    resolvePanelTimeRange,
-} from '../domain/time/PanelTimeRangeResolver';
-import {
-    resolveSeriesTimeBoundaryRanges,
-    resolveTimeBoundaryRanges,
-} from '../domain/time/TimeBoundaryRangeResolver';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import {
     hasValidRangeState,
     type ApplyPanelRangeState,
     type BoardPanelRecord,
 } from './BoardPanelState';
+import {
+    getCoveringNavigatorRange,
+    resolveConfiguredPanelRange,
+    resolveFullRange,
+} from './PanelRangeResolver';
 
 type RefreshRangeDependencies = {
     boardTime: TimeRangeConfig;
@@ -59,16 +55,16 @@ export function useRefreshRange({
             panelRange: rangeState.panelRange,
             navigatorRange: rangeState.navigatorRange,
             fullRange: rangeState.fullRange,
-            preserveNavigatorRange: true,
+            reloadData: true,
         });
     }
 
     async function refreshPanelTime(panelInfo: PanelInfo): Promise<void> {
-        const refreshedRange = await resolveRefreshedRange(
-            panelInfo.data.tag_set,
-            panelInfo.time.range_config,
+        const refreshedRange = await resolveConfiguredPanelRange({
+            seriesList: panelInfo.data.tag_set,
+            panelTime: panelInfo.time.range_config,
             boardTime,
-        );
+        });
 
         await applyConfiguredTimeRange(panelInfo, refreshedRange);
     }
@@ -85,11 +81,11 @@ export function useRefreshRange({
     ): Promise<void> {
         const range =
             refreshedRange ??
-            await resolveRefreshedRange(
-                panelInfo.data.tag_set,
-                panelInfo.time.range_config,
+            await resolveConfiguredPanelRange({
+                seriesList: panelInfo.data.tag_set,
+                panelTime: panelInfo.time.range_config,
                 boardTime,
-            );
+            });
 
         applyPanelRangeState(panelInfo, {
             panelRange: range.panelRange,
@@ -100,70 +96,4 @@ export function useRefreshRange({
             fullRange: range.fullRange,
         });
     }
-}
-
-async function resolveFullRange(
-    seriesList: PanelSeriesDefinition[],
-): Promise<TimeRangeMs | undefined> {
-    const boundaryRanges = (await resolveSeriesTimeBoundaryRanges(seriesList)) ?? null;
-
-    return resolveFullDataTimeRange(boundaryRanges);
-}
-
-async function resolveRefreshedRange(
-    seriesList: PanelSeriesDefinition[],
-    panelTime: TimeRangeConfig,
-    boardTime: TimeRangeConfig,
-): Promise<{ panelRange: TimeRangeMs; fullRange: TimeRangeMs }> {
-    const shouldUseBoardTime = hasConfiguredTimeRange(boardTime);
-    const activeTimeConfig = shouldUseBoardTime ? boardTime : panelTime;
-    const [
-        timeBoundaryRanges,
-        fullDataBoundaryRanges,
-    ] = await Promise.all([
-        resolveTimeBoundaryRanges(seriesList, boardTime, activeTimeConfig),
-        resolveSeriesTimeBoundaryRanges(seriesList),
-    ]);
-    const resolvedTimeBoundaryRanges = timeBoundaryRanges ?? null;
-    const resolvedPanelRange = resolvePanelTimeRange({
-        boardTime,
-        panelTime: { rangeConfig: activeTimeConfig },
-        timeBoundaryRanges: resolvedTimeBoundaryRanges,
-        mode: 'reset',
-    });
-    const resolvedFullRange =
-        (shouldUseBoardTime
-            ? resolvedPanelRange
-            : resolveFullDataTimeRange(
-                  fullDataBoundaryRanges ?? resolvedTimeBoundaryRanges,
-              )) ??
-        resolvedPanelRange;
-
-    if (!isConcreteTimeRange(resolvedPanelRange)) {
-        throw new Error('Cannot refresh panel time without a concrete panel range.');
-    }
-
-    if (!isConcreteTimeRange(resolvedFullRange)) {
-        throw new Error('Cannot refresh panel time without a concrete full range.');
-    }
-
-    return {
-        panelRange: resolvedPanelRange,
-        fullRange: resolvedFullRange,
-    };
-}
-
-function hasConfiguredTimeRange(timeRangeConfig: TimeRangeConfig): boolean {
-    return timeRangeConfig.start.kind !== 'empty' ||
-        timeRangeConfig.end.kind !== 'empty';
-}
-
-function getCoveringNavigatorRange(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
-): TimeRangeMs {
-    return {
-        startTime: Math.min(panelRange.startTime, navigatorRange.startTime),
-        endTime: Math.max(panelRange.endTime, navigatorRange.endTime),
-    };
 }

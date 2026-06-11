@@ -27,13 +27,19 @@ export function parseRollupTableName(tableName: string): ParsedRollupTableName |
         return undefined;
     }
 
+    let sDatabaseName = 'MACHBASEDB';
+    if (sTableSegments.length > 2) {
+        sDatabaseName = sTableSegments.at(-3) ?? 'MACHBASEDB';
+    }
+
+    let sUserName = ADMIN_ID.toUpperCase();
+    if (sTableSegments.length > 1) {
+        sUserName = sTableSegments.at(-2) ?? ADMIN_ID.toUpperCase();
+    }
+
     return {
-        databaseName: sTableSegments.length > 2
-            ? sTableSegments.at(-3) ?? 'MACHBASEDB'
-            : 'MACHBASEDB',
-        userName: sTableSegments.length > 1
-            ? sTableSegments.at(-2) ?? ADMIN_ID.toUpperCase()
-            : ADMIN_ID.toUpperCase(),
+        databaseName: sDatabaseName,
+        userName: sUserName,
         tableName: sTableName,
     };
 }
@@ -54,9 +60,10 @@ export function getRollupMetadataLookupKey(
         return undefined;
     }
 
-    const sTableNameForLookup = sRollupVersion === 'RECENT'
-        ? `${sParsedTableName.databaseName}.${sParsedTableName.tableName}`
-        : sParsedTableName.tableName;
+    let sTableNameForLookup = sParsedTableName.tableName;
+    if (sRollupVersion === 'RECENT') {
+        sTableNameForLookup = `${sParsedTableName.databaseName}.${sParsedTableName.tableName}`;
+    }
 
     return {
         userName: sParsedTableName.userName,
