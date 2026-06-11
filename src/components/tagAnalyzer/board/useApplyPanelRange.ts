@@ -1,7 +1,6 @@
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import {
-    clampTimeRangeToBounds,
     createTimeRangeMs,
     hasVisibleTimeRangeChanged,
     isConcreteTimeRange,
@@ -83,12 +82,11 @@ function resolveRangeState(
         boardPanelRecord.rangeState.fullRange,
         options.fullRange,
     );
-    const sPanelRange = clampTimeRangeToBounds(options.panelRange, sFullRange);
+    const sPanelRange = options.panelRange;
     const sNavigatorRange = getNavigatorRangeForPanel(
         boardPanelRecord,
         sPanelRange,
         options.navigatorRange,
-        sFullRange,
         options.navigatorSelectionCenterRatio,
     );
 
@@ -122,7 +120,6 @@ function getNavigatorRangeForPanel(
     boardPanelRecord: BoardPanelRecord,
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,
-    fullRange: TimeRangeMs,
     navigatorSelectionCenterRatio: number | undefined,
 ): TimeRangeMs {
     const sChartAreaWidth = boardPanelRecord.chartAreaWidth;
@@ -130,9 +127,9 @@ function getNavigatorRangeForPanel(
         typeof sChartAreaWidth === 'number' && sChartAreaWidth > 0
             ? getNavigatorTrackWidth(sChartAreaWidth)
             : undefined;
-    let sNavigatorRange = clampTimeRangeToBounds(
-        growNavigatorRangeToContainPanel(panelRange, navigatorRange),
-        fullRange,
+    let sNavigatorRange = growNavigatorRangeToContainPanel(
+        panelRange,
+        navigatorRange,
     );
 
     if (sNavigatorTrackPixelWidth !== undefined) {
@@ -144,13 +141,10 @@ function getNavigatorRangeForPanel(
         );
     }
 
-    return clampTimeRangeToBounds(
-        recenterNavigatorRangeIfPanelOutside(
-            panelRange,
-            sNavigatorRange,
-            navigatorSelectionCenterRatio,
-        ),
-        fullRange,
+    return recenterNavigatorRangeIfPanelOutside(
+        panelRange,
+        sNavigatorRange,
+        navigatorSelectionCenterRatio,
     );
 }
 
