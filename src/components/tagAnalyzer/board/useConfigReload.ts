@@ -1,10 +1,13 @@
 import type { PanelInfo } from '../domain/PanelDomain';
-import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import {
     hasValidRangeState,
     type ApplyPanelRangeState,
     type BoardPanelRecord,
 } from './BoardPanelState';
+
+export type ReloadAfterEditorSaveOptions = {
+    preserveCurrentVisibleRange: boolean;
+};
 
 type ConfigReloadDependencies = {
     getBoardPanelRecord: (panelKey: string) => BoardPanelRecord;
@@ -15,7 +18,10 @@ type ConfigReloadDependencies = {
 
 type ConfigReloadActions = {
     reloadAfterRawModeChange: (nextPanelInfo: PanelInfo) => void;
-    reloadAfterEditorSave: (nextPanelInfo: PanelInfo) => void;
+    reloadAfterEditorSave: (
+        nextPanelInfo: PanelInfo,
+        options: ReloadAfterEditorSaveOptions,
+    ) => void;
 };
 
 export function useConfigReload({
@@ -41,17 +47,14 @@ export function useConfigReload({
         });
     }
 
-    function reloadAfterEditorSave(nextPanelInfo: PanelInfo): void {
+    function reloadAfterEditorSave(
+        nextPanelInfo: PanelInfo,
+        options: ReloadAfterEditorSaveOptions,
+    ): void {
         const sRangeState =
             getBoardPanelRecord(nextPanelInfo.data.index_key).rangeState;
-        const sLastViewedRange = nextPanelInfo.general.last_viewed_range;
-        const sShouldPreserveLiveRange =
-            nextPanelInfo.general.use_last_viewed_range &&
-            isConcreteTimeRange(sLastViewedRange?.panelRange) &&
-            isConcreteTimeRange(sLastViewedRange?.navigatorRange) &&
-            hasValidRangeState(sRangeState);
 
-        if (sShouldPreserveLiveRange) {
+        if (options.preserveCurrentVisibleRange && hasValidRangeState(sRangeState)) {
             applyPanelRangeState(nextPanelInfo, {
                 panelRange: sRangeState.panelRange,
                 navigatorRange: sRangeState.navigatorRange,

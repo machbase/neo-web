@@ -148,6 +148,7 @@ export type RuntimePanelDisplay = {
 
 export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
 export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
+export const DEFAULT_PANEL_HIGHLIGHT_LABEL = 'unnamed';
 
 export type PanelHighlight = {
     text: string;
@@ -314,12 +315,13 @@ export type PanelRangeState = {
     fullRange: TimeRangeMs;
 };
 
-export type PanelRangeHandlers = {
-    onPanelRangeChange: (event: PanelRangeChangeEvent) => unknown;
-    onPanelRangeChangeFromNavigator: (event: PanelRangeChangeEvent) => unknown;
-    onNavigatorRangeChange: (event: PanelRangeChangeEvent) => unknown;
-    onShiftPanelRangeLeft: () => void;
-    onShiftPanelRangeRight: () => void;
+export type PanelRangeActions = {
+    applyMainZoomRange: (event: PanelRangeChangeEvent) => unknown;
+    applyMainNavigatorSelectionRange: (event: PanelRangeChangeEvent) => unknown;
+    applyExactMainRange: (event: PanelRangeChangeEvent) => unknown;
+    applyExactNavigatorRange: (event: PanelRangeChangeEvent) => unknown;
+    shiftMainRangeLeft: () => void;
+    shiftMainRangeRight: () => void;
 };
 
 type PanelVisibleSeriesItem = {

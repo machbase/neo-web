@@ -5,7 +5,7 @@ import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelect
 import { createEmptyTimeRangeConfig } from '../../domain/time/TimeRangeUtils';
 import type { PersistedPanelInfoV204 } from '../../persistence/TazPersistenceTypesV204';
 
-const DEFAULT_NEW_PANEL_TITLE = 'New chart';
+export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 const DEFAULT_PANEL_ROW_LIMIT = -1;
 const DEFAULT_PANEL_INTERVAL_TYPE = '';
 const DEFAULT_RAW_PIXELS_PER_TICK = 0.1;
@@ -15,22 +15,25 @@ const DEFAULT_SAMPLING_VALUE = 0.01;
 export function buildCreateChartPanel(
     chartType: PanelEChartType,
     selectedSeriesDrafts: TagSelectionDraftItem[],
+    chartTitle: string = DEFAULT_NEW_PANEL_TITLE,
 ): PersistedPanelInfoV204 {
     return createRuntimePanelInfo(
         chartType,
         buildSeriesDefinitionsFromDrafts(selectedSeriesDrafts),
+        normalizeChartTitle(chartTitle),
     );
 }
 
 function createRuntimePanelInfo(
     chartType: PanelEChartType,
     tagSet: PanelSeriesDefinition[],
+    chartTitle: string,
 ): PanelInfo {
     const sDisplay = createPanelDisplayForChartType(chartType);
 
     return {
         general: {
-            chart_title: DEFAULT_NEW_PANEL_TITLE,
+            chart_title: chartTitle,
             use_zoom: true,
             use_last_viewed_range: false,
             last_viewed_range: undefined,
@@ -77,6 +80,12 @@ function createRuntimePanelInfo(
         highlights: [],
         annotations: [],
     };
+}
+
+function normalizeChartTitle(chartTitle: string): string {
+    const sTitle = chartTitle.trim();
+
+    return sTitle.length > 0 ? sTitle : DEFAULT_NEW_PANEL_TITLE;
 }
 
 function createPanelDisplayForChartType(

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button, DatePicker, QuickTimeRange } from '@/design-system/components';
+import { Button, QuickTimeRange } from '@/design-system/components';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
+import TagAnalyzerDatePicker from '../../../datePicker/TagAnalyzerDatePicker';
 import type { PanelEditorConfig } from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 import {
@@ -22,7 +23,6 @@ import {
 } from '../../../domain/time/TimeRangeUtils';
 
 type TimeInputField = 'start' | 'end';
-type TimeInputEvent = { target: { value: string } };
 type TimeInputValues = {
     startTime: string;
     endTime: string;
@@ -100,31 +100,29 @@ const EditorTimeTab = ({
         <div className={styles.timeLayout}>
             <section className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <span className={styles.sectionTitle}>Custom time range</span>
+                    <span className={styles.sectionTitle}>
+                        Panel configured time range
+                    </span>
                 </div>
                 <div className={styles.controlStack}>
                     <div className={styles.controlRow}>
-                        <DatePicker
-                            pLabel="From"
-                            pTopPixel={-370}
-                            pTimeValue={sStartTime}
+                        <TagAnalyzerDatePicker
+                            label="From"
+                            topPixel={-370}
+                            value={sStartTime}
                             placeholder={sInputValues.startPlaceholder}
-                            onChange={(event: TimeInputEvent) =>
-                                updateTimeInput('start', event.target.value)
-                            }
-                            pSetApply={(date: string) => applyTimeInput('start', date)}
+                            onChange={(value) => updateTimeInput('start', value)}
+                            onApply={(value) => applyTimeInput('start', value)}
                         />
                     </div>
                     <div className={styles.controlRow}>
-                        <DatePicker
-                            pLabel="To"
-                            pTopPixel={-370}
-                            pTimeValue={sEndTime}
+                        <TagAnalyzerDatePicker
+                            label="To"
+                            topPixel={-370}
+                            value={sEndTime}
                             placeholder={sInputValues.endPlaceholder}
-                            onChange={(event: TimeInputEvent) =>
-                                updateTimeInput('end', event.target.value)
-                            }
-                            pSetApply={(date: string) => applyTimeInput('end', date)}
+                            onChange={(value) => updateTimeInput('end', value)}
+                            onApply={(value) => applyTimeInput('end', value)}
                         />
                     </div>
                     <div className={styles.controlRow}>
@@ -137,7 +135,9 @@ const EditorTimeTab = ({
             </section>
             <section className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <span className={styles.sectionTitle}>Quick range</span>
+                    <span className={styles.sectionTitle}>
+                        Quick panel configured range
+                    </span>
                 </div>
                 <QuickTimeRange
                     options={TIME_RANGE}

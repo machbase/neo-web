@@ -12,18 +12,27 @@ import type {
     TimeRangeConfig,
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
-import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
+import {
+    createTimeRangeMs,
+    getTimeRangeCenter,
+    getTimeRangeWidth,
+    isConcreteTimeRange,
+} from '../domain/time/TimeRangeUtils';
+
+const INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO = 0.25;
 
 export async function resolveConcretePanelRangeState({
     seriesList,
     rangeConfig,
     lastViewedRange,
     boardTime,
+    applyInitialMainChartWindow = false,
 }: {
     seriesList: PanelSeriesDefinition[];
     rangeConfig: TimeRangeConfig;
     lastViewedRange: Partial<PanelNavigatorRangePair> | undefined;
     boardTime: TimeRangeConfig;
+    applyInitialMainChartWindow?: boolean;
 }): Promise<PanelRangeState> {
     const [
         timeBoundaryRanges,
@@ -43,17 +52,27 @@ export async function resolveConcretePanelRangeState({
     });
     const fullDataRange =
         resolveFullDataTimeRange(resolvedFullDataBoundaryRanges) ?? resolvedRange;
-    const lastViewedPanelRange = lastViewedRange?.panelRange;
-    const lastViewedNavigatorRange = lastViewedRange?.navigatorRange;
     let resolvedRangeState: PanelRangeState;
 
-    if (
-        isConcreteTimeRange(lastViewedPanelRange) &&
-        isConcreteTimeRange(lastViewedNavigatorRange)
+    if (hasConcreteLastViewedRange(lastViewedRange)) {
+        resolvedRangeState = {
+            panelRange: lastViewedRange.panelRange,
+            navigatorRange: lastViewedRange.navigatorRange,
+            fullRange: fullDataRange,
+        };
+    } else if (
+        shouldApplyInitialMainChartWindow({
+            applyInitialMainChartWindow,
+            rangeConfig,
+            boardTime,
+        })
     ) {
         resolvedRangeState = {
-            panelRange: lastViewedPanelRange,
-            navigatorRange: lastViewedNavigatorRange,
+            panelRange: createCenteredRangeByRatio(
+                fullDataRange,
+                INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO,
+            ),
+            navigatorRange: fullDataRange,
             fullRange: fullDataRange,
         };
     } else {
@@ -160,6 +179,44 @@ export function getCoveringNavigatorRange(
 function hasConfiguredTimeRange(timeRangeConfig: TimeRangeConfig): boolean {
     return timeRangeConfig.start.kind !== 'empty' ||
         timeRangeConfig.end.kind !== 'empty';
+}
+
+function hasConcreteLastViewedRange(
+    lastViewedRange: Partial<PanelNavigatorRangePair> | undefined,
+): lastViewedRange is PanelNavigatorRangePair {
+    return (
+        isConcreteTimeRange(lastViewedRange?.panelRange) &&
+        isConcreteTimeRange(lastViewedRange?.navigatorRange)
+    );
+}
+
+function shouldApplyInitialMainChartWindow({
+    applyInitialMainChartWindow,
+    rangeConfig,
+    boardTime,
+}: {
+    applyInitialMainChartWindow: boolean;
+    rangeConfig: TimeRangeConfig;
+    boardTime: TimeRangeConfig;
+}): boolean {
+    return (
+        applyInitialMainChartWindow &&
+        !hasConfiguredTimeRange(rangeConfig) &&
+        !hasConfiguredTimeRange(boardTime)
+    );
+}
+
+function createCenteredRangeByRatio(
+    range: TimeRangeMs,
+    visibleRangeRatio: number,
+): TimeRangeMs {
+    const sRangeCenter = getTimeRangeCenter(range);
+    const sVisibleRangeWidth = getTimeRangeWidth(range) * visibleRangeRatio;
+
+    return createTimeRangeMs(
+        sRangeCenter - sVisibleRangeWidth / 2,
+        sRangeCenter + sVisibleRangeWidth / 2,
+    );
 }
 
 function assertConcretePanelRangeState(rangeState: PanelRangeState): void {

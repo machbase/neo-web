@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type AnimationEvent,
+    type CSSProperties,
+} from 'react';
 import { Button, Page } from '@/design-system/components';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
@@ -36,6 +43,8 @@ export type PanelAxesDraft = PanelAxes;
 export type PanelDisplayDraft = PanelDisplay;
 
 export type PanelEditorConfig = PanelInfo;
+
+export type PanelEditorAnimationState = 'opening' | 'closing';
 
 type ChartTypeOption = {
     type: PanelEChartType;
@@ -91,18 +100,20 @@ const PanelEditor = ({
     pOnApplyEditorConfig,
     pOnSaveEditorConfig,
     pOnClose,
+    pOnAnimationEnd,
+    pAnimationState,
     pPanelInfo,
     pIsRawMode,
     pPanelRange,
-    pCanKeepCurrentViewRange,
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => Promise<boolean>;
     pOnClose: () => void;
+    pOnAnimationEnd: () => void;
+    pAnimationState: PanelEditorAnimationState;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
     pPanelRange: TimeRangeMs;
-    pCanKeepCurrentViewRange: boolean;
 }) => {
     const sInitialEditorConfig = useMemo(
         () => pPanelInfo,
@@ -164,16 +175,22 @@ const PanelEditor = ({
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidAxisRange;
     const sStatusMessage = sSaveMessage ??
         (sHasEditorChanges
-            ? 'Press Apply to Apply Change'
+            ? 'Press Apply to apply this session only.'
             : undefined);
     const sShowRuntimeSaveMessage =
         !sStatusMessage && sHasAppliedUnsavedChanges;
     const sHasStatusMessage = Boolean(sStatusMessage) || sShowRuntimeSaveMessage;
     const sApplyButtonTitle = !sHasEditorChanges
-        ? 'There is no update'
+        ? 'There are no changes to apply'
         : sHasInvalidAxisRange
         ? 'Fix invalid values before applying'
         : undefined;
+    const sEditorClassName = [
+        styles.editor,
+        pAnimationState === 'closing'
+            ? styles.editorClosing
+            : styles.editorOpening,
+    ].join(' ');
 
     const applyEditorChanges = () => {
         if (!sCanApplyEditorChanges) {
@@ -208,7 +225,7 @@ const PanelEditor = ({
         sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
         setAppliedEditorConfigKey(sEditorConfigKey);
         setHasAppliedUnsavedChanges(false);
-        setSaveMessage('Draft config saved.');
+        setSaveMessage('Saved to TAZ.');
         pOnClose();
     };
 
@@ -216,6 +233,18 @@ const PanelEditor = ({
         setEditorDraft(sInitialEditorConfig);
         pOnClose();
     };
+
+    function handleEditorAnimationEnd(
+        event: AnimationEvent<HTMLDivElement>,
+    ): void {
+        if (event.currentTarget !== event.target) {
+            return;
+        }
+
+        if (pAnimationState === 'closing') {
+            pOnAnimationEnd();
+        }
+    }
 
     useEffect(() => {
         setSaveMessage(undefined);
@@ -282,7 +311,6 @@ const PanelEditor = ({
                 return (
                     <EditorGeneralTab
                         pGeneralConfig={sGeneralDraft}
-                        pCanKeepCurrentViewRange={pCanKeepCurrentViewRange}
                         pIsRawMode={pIsRawMode}
                         pOnChangeGeneralConfig={setGeneralDraft}
                     />
@@ -327,7 +355,10 @@ const PanelEditor = ({
     }
 
     return (
-        <div className={styles.editor}>
+        <div
+            className={sEditorClassName}
+            onAnimationEnd={handleEditorAnimationEnd}
+        >
             <Page className={styles.editorPage}>
                 <Page.Header>
                     <div className={styles.header}>
@@ -364,7 +395,7 @@ const PanelEditor = ({
                                     {sStatusMessage ?? (
                                         <>
                                             <span>Applied to this session only.</span>
-                                            <span>Save the TAZ file to keep this change.</span>
+                                            <span>Save to TAZ to keep this change.</span>
                                         </>
                                     )}
                                 </span>

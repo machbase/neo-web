@@ -42,7 +42,11 @@ function buildPanelLineSeriesOption({
         type: 'line',
         legendHoverLink: false,
         data,
-        animation: false,
+        animation: true,
+        animationDuration: 280,
+        animationDurationUpdate: 180,
+        animationEasing: 'cubicOut',
+        animationEasingUpdate: 'cubicOut',
         sampling: data.length > 1000 ? 'lttb' : undefined,
         ...option,
     };

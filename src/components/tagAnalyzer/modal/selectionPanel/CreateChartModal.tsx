@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Modal } from '@/design-system/components/Modal';
-import { Button, Toast } from '@/design-system/components';
+import { Button, Input, Toast } from '@/design-system/components';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
@@ -10,7 +10,10 @@ import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from '../seriesSelection/useTagSelectionPanelState';
 import { rejectWithToast } from './tagSelectionModalFeedback';
 import { fetchMinMaxTable } from '../../fetch/TimeBoundaryRangeFetcher';
-import { buildCreateChartPanel } from './CreateChartPanelBuilder';
+import {
+    DEFAULT_NEW_PANEL_TITLE,
+    buildCreateChartPanel,
+} from './CreateChartPanelBuilder';
 import type { PanelEChartType } from '../../domain/PanelDomain';
 import { getMixedXAxisValueKindWarning } from '../../domain/SeriesDomain';
 import type { PersistedTazPanelInfo } from '../../persistence/TazPersistenceTypesV200';
@@ -32,6 +35,7 @@ function CreateChartModal({
     pAvailableSourceTableNames: string[];
 }) {
     const [sSelectedChartType, setSelectedChartType] = useState<PanelEChartType>('Line');
+    const [sChartTitle, setChartTitle] = useState(DEFAULT_NEW_PANEL_TITLE);
     const { tagSearch: sTagSearch, viewModel: tagSelectionPanelViewModel } =
         useTagSelectionPanelState({
             tables: pAvailableSourceTableNames,
@@ -83,6 +87,7 @@ function CreateChartModal({
         const sNewPanel = buildCreateChartPanel(
             sSelectedChartType,
             sTagSearch.selectedSeriesDrafts,
+            sChartTitle,
         );
         pOnAppendPanel(sNewPanel);
         onClose();
@@ -102,6 +107,14 @@ function CreateChartModal({
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
+                <Input
+                    label="Chart name"
+                    value={sChartTitle}
+                    onChange={(event) => setChartTitle(event.target.value)}
+                    fullWidth
+                    size="md"
+                    style={{ marginBottom: 12 }}
+                />
                 <TagSelectionPanel
                     chartControl={
                         <Button.Group label="Chart" labelPosition="left">

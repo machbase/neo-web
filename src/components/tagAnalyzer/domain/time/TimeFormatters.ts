@@ -22,12 +22,21 @@ const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
 const STANDARD_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 4,
 });
+const NUMERIC_COMPACT_VISIBLE_SPAN_THRESHOLD = 10_000;
+const NUMERIC_MAX_FRACTION_DIGITS = 8;
+const STANDARD_NUMBER_FORMATTERS_BY_FRACTION_DIGITS = new Map<
+    number,
+    Intl.NumberFormat
+>([[4, STANDARD_NUMBER_FORMATTER]]);
 
 function formatLocalRangeLabel(value: number): string {
     return moment(value).format('YYYY-MM-DD HH:mm:ss');
 }
 
-function formatNumericAxisLabel(value: number | string): string {
+function formatNumericAxisLabel(
+    value: number | string,
+    visibleRange?: TimeRangeMs,
+): string {
     const sNumericValue = Number(value);
 
     if (!Number.isFinite(sNumericValue)) {
@@ -39,9 +48,16 @@ function formatNumericAxisLabel(value: number | string): string {
     const sUnitIndex = COMPACT_NUMBER_UNITS.findIndex(
         (unit) => sAbsoluteValue >= unit.value,
     );
+    const sVisibleSpan = getVisibleNumericSpan(visibleRange);
 
-    if (sUnitIndex === -1) {
-        return STANDARD_NUMBER_FORMATTER.format(sNormalizedValue);
+    if (
+        sUnitIndex === -1 ||
+        (
+            sVisibleSpan !== undefined &&
+            sVisibleSpan < NUMERIC_COMPACT_VISIBLE_SPAN_THRESHOLD
+        )
+    ) {
+        return formatStandardNumericAxisLabel(sNormalizedValue, sVisibleSpan);
     }
 
     const sUnit = COMPACT_NUMBER_UNITS[
@@ -58,8 +74,11 @@ function formatNumericAxisLabel(value: number | string): string {
 export function formatRangeBoundaryLabel(
     value: number,
     isNumericAxis: boolean,
+    visibleRange?: TimeRangeMs,
 ): string {
-    return isNumericAxis ? formatNumericAxisLabel(value) : formatLocalRangeLabel(value);
+    return isNumericAxis
+        ? formatNumericAxisLabel(value, visibleRange)
+        : formatLocalRangeLabel(value);
 }
 
 export function formatLocalTimestampWithMilliseconds(value: number): string {
@@ -73,9 +92,10 @@ export function formatLocalTimestampWithMilliseconds(value: number): string {
 export function formatAxisPointerLabel(
     value: number,
     isNumericAxis: boolean,
+    visibleRange?: TimeRangeMs,
 ): string {
     return isNumericAxis
-        ? formatNumericAxisLabel(value)
+        ? formatNumericAxisLabel(value, visibleRange)
         : formatLocalTimestampWithMilliseconds(value);
 }
 
@@ -102,7 +122,9 @@ export function formatAxisValue(
     range: TimeRangeMs,
     isNumericAxis: boolean,
 ): string {
-    return isNumericAxis ? formatNumericAxisLabel(value) : formatAxisTime(value, range);
+    return isNumericAxis
+        ? formatNumericAxisLabel(value, range)
+        : formatAxisTime(value, range);
 }
 
 function formatDurationLabel(startTime: number, endTime: number): string {
@@ -197,4 +219,68 @@ function shouldUseNextLargerNumericUnit(
         Math.round((absoluteValue / COMPACT_NUMBER_UNITS[unitIndex].value) * 10) / 10;
 
     return sRoundedScaledValue >= 1000;
+}
+
+function formatStandardNumericAxisLabel(
+    value: number,
+    visibleSpan: number | undefined,
+): string {
+    const sFractionDigits = getNumericAxisFractionDigits(visibleSpan);
+    return getStandardNumberFormatter(sFractionDigits).format(value);
+}
+
+function getStandardNumberFormatter(fractionDigits: number): Intl.NumberFormat {
+    const sExistingFormatter =
+        STANDARD_NUMBER_FORMATTERS_BY_FRACTION_DIGITS.get(fractionDigits);
+
+    if (sExistingFormatter) {
+        return sExistingFormatter;
+    }
+
+    const sFormatter = new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: fractionDigits,
+    });
+    STANDARD_NUMBER_FORMATTERS_BY_FRACTION_DIGITS.set(
+        fractionDigits,
+        sFormatter,
+    );
+
+    return sFormatter;
+}
+
+function getVisibleNumericSpan(
+    visibleRange: TimeRangeMs | undefined,
+): number | undefined {
+    if (!visibleRange) {
+        return undefined;
+    }
+
+    const sVisibleSpan = visibleRange.endTime - visibleRange.startTime;
+
+    return Number.isFinite(sVisibleSpan) && sVisibleSpan > 0
+        ? sVisibleSpan
+        : undefined;
+}
+
+function getNumericAxisFractionDigits(
+    visibleSpan: number | undefined,
+): number {
+    if (visibleSpan === undefined) {
+        return 4;
+    }
+
+    if (visibleSpan >= 100) {
+        return 0;
+    }
+
+    if (visibleSpan >= 10) {
+        return 1;
+    }
+
+    if (visibleSpan >= 1) {
+        return 2;
+    }
+
+    const sFractionDigits = Math.ceil(Math.abs(Math.log10(visibleSpan))) + 2;
+    return Math.min(sFractionDigits, NUMERIC_MAX_FRACTION_DIGITS);
 }

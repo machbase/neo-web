@@ -5,6 +5,17 @@
     border: 0.5px solid #454545;
     border-radius: 8px;
     background: var(--color-background-primary);
+    transform-origin: top center;
+    will-change: max-height, opacity, transform, margin-top;
+}
+
+.editorOpening {
+    animation: panelEditorSlideDown 180ms ease-out both;
+}
+
+.editorClosing {
+    pointer-events: none;
+    animation: panelEditorSlideUp 150ms ease-in both;
 }
 
 .editorPage {
@@ -417,5 +428,44 @@
     .seriesCard {
         grid-template-columns: 1fr;
         align-items: stretch;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .editorOpening,
+    .editorClosing {
+        animation-duration: 1ms;
+    }
+}
+
+@keyframes panelEditorSlideDown {
+    from {
+        max-height: 0;
+        margin-top: 0;
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+
+    to {
+        max-height: 640px;
+        margin-top: 16px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes panelEditorSlideUp {
+    from {
+        max-height: 640px;
+        margin-top: 16px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        max-height: 0;
+        margin-top: 0;
+        opacity: 0;
+        transform: translateY(-14px);
     }
 }

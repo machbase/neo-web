@@ -1,21 +1,4 @@
-import { useState } from 'react';
-import { Calendar, VscTrash } from '@/assets/icons/Icon';
-import {
-    Button,
-    DatePicker,
-    Modal,
-    Page,
-    QuickTimeRange,
-    Toast,
-    type QuickTimeRangeOption,
-} from '@/design-system/components';
-import { TIME_RANGE } from '@/utils/constants';
-import {
-    formatTimeRangeInputValue,
-    parseTimeBoundaryInputValue,
-    parseTimeRangeConfigFromBoundaryValues,
-    type TimeBoundaryInputValue,
-} from '../domain/time/TimeBoundaryInput';
+import TimeRangeModal from './TimeRangeModal';
 import type { TimeRangeConfig } from '../domain/time/TimeTypes';
 
 type BoardTimeRangeModalProps = {
@@ -29,89 +12,13 @@ export default function BoardTimeRangeModal({
     onApply,
     onClose,
 }: BoardTimeRangeModalProps) {
-    const [startTimeText, setStartTimeText] = useState<TimeBoundaryInputValue>(
-        () => formatTimeRangeInputValue(boardTimeRange.start),
-    );
-    const [endTimeText, setEndTimeText] = useState<TimeBoundaryInputValue>(
-        () => formatTimeRangeInputValue(boardTimeRange.end),
-    );
-
-    function handleQuickTime(option: QuickTimeRangeOption) {
-        setStartTimeText(String(option.value[0] ?? ''));
-        setEndTimeText(String(option.value[1] ?? ''));
-    }
-
-    function handleReset() {
-        setStartTimeText('');
-        setEndTimeText('');
-    }
-
-    function handleApply() {
-        if (
-            !isValidTimeBoundaryInput(startTimeText) ||
-            !isValidTimeBoundaryInput(endTimeText)
-        ) {
-            Toast.error('Please check the entered time.');
-            return;
-        }
-
-        onApply(parseTimeRangeConfigFromBoundaryValues(startTimeText, endTimeText));
-        onClose();
-    }
-
     return (
-        <Modal.Root isOpen={true} onClose={onClose}>
-            <Modal.Header>
-                <Modal.Title>
-                    <Calendar />
-                    Time Range
-                </Modal.Title>
-                <Modal.Close />
-            </Modal.Header>
-            <Modal.Body>
-                <DatePicker
-                    pLabel="From"
-                    pTopPixel={32}
-                    pTimeValue={String(startTimeText)}
-                    onChange={(event: { target: { value: string } }) =>
-                        setStartTimeText(event.target.value)
-                    }
-                    pSetApply={(date: TimeBoundaryInputValue) => setStartTimeText(date)}
-                />
-                <DatePicker
-                    pLabel="To"
-                    pTopPixel={32}
-                    pTimeValue={String(endTimeText)}
-                    onChange={(event: { target: { value: string } }) =>
-                        setEndTimeText(event.target.value)
-                    }
-                    pSetApply={(date: TimeBoundaryInputValue) => setEndTimeText(date)}
-                />
-                <Page.Space />
-                <QuickTimeRange
-                    options={TIME_RANGE}
-                    onSelect={handleQuickTime}
-                    title="Quick Range"
-                />
-            </Modal.Body>
-            <Modal.Footer style={{ justifyContent: 'space-between' }}>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={<VscTrash size={16} />}
-                    onClick={handleReset}
-                >
-                    Reset
-                </Button>
-                <Button.Group>
-                    <Modal.Confirm onClick={handleApply}>Apply</Modal.Confirm>
-                    <Modal.Cancel>Cancel</Modal.Cancel>
-                </Button.Group>
-            </Modal.Footer>
-        </Modal.Root>
+        <TimeRangeModal
+            rangeKind="time"
+            title="Board Time Range"
+            timeRange={boardTimeRange}
+            onApply={onApply}
+            onClose={onClose}
+        />
     );
-}
-
-function isValidTimeBoundaryInput(value: TimeBoundaryInputValue): boolean {
-    return parseTimeBoundaryInputValue(value) !== undefined;
 }

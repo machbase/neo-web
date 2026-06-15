@@ -1,0 +1,29 @@
+.tag-analyzer-board-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+
+    &__actions {
+        flex: 0 1 auto;
+    }
+
+    &__dirty-message {
+        flex: 0 0 auto;
+        min-width: max-content;
+        color: #fdb532;
+        font-size: 12px;
+        font-weight: 500;
+        overflow: visible;
+        white-space: nowrap;
+    }
+
+    &__save-button--dirty {
+        color: #fdb532 !important;
+
+        svg {
+            color: #fdb532 !important;
+        }
+    }
+}

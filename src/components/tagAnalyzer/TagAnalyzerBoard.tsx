@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import './TagAnalyzerBoard.scss';
+import {
+    useCallback,
+    useEffect,
+    useState,
+    type ReactNode,
+} from 'react';
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
     Calendar,
@@ -39,7 +45,10 @@ import {
 import { useTagAnalyzerBoardPanels } from './board/useTagAnalyzerBoardPanels';
 import { getNextOverlapSelections } from './boardModal/OverlapComparisonUtils';
 import type { PersistedTazPanelInfo } from './persistence/TazPersistenceTypesV200';
-import type { SaveableTazBoard } from './appState/SavedTazBoardSnapshot';
+import {
+    createTazSavedCodeFromBoardInfo,
+    type SaveableTazBoard,
+} from './appState/SavedTazBoardSnapshot';
 import { saveTaz, saveAsTaz } from './appState/saveTazBoard';
 import {
     parseLoadedPanelTaz,
@@ -91,12 +100,14 @@ const TagAnalyzerBoard = ({
         useState<TazSaveModalInitialState | undefined>(undefined);
     const [sRuntimeBoardInfo, setRuntimeBoardInfo] =
         useState<BoardInfo>(() => pInfo);
+    const [sSavedRuntimeBoardCode, setSavedRuntimeBoardCode] = useState(
+        () => createTazSavedCodeFromBoardInfo(pInfo),
+    );
     const sRuntimePanels = sRuntimeBoardInfo.panels;
     const sSelectedPanelKeys = new Set(
         sOverlapSelections.map((item) => item.panelKey),
     );
     const sRangeText = formatBoardRangeText(sRuntimeBoardInfo.boardTimeRange);
-    const sHasSavedTazFile = Boolean(sRuntimeBoardInfo.path);
     const boardPanels = useTagAnalyzerBoardPanels({
         panels: sRuntimePanels,
         boardTime: sRuntimeBoardInfo.boardTimeRange,
@@ -105,6 +116,10 @@ const TagAnalyzerBoard = ({
         rollupTableList: pRollupTableList,
         onAppliedRange: handleRuntimeAppliedRange,
     });
+    const sRuntimeBoardInfoForSave = getBoardInfoForTazSave(sRuntimeBoardInfo);
+    const sIsRuntimeBoardDirty =
+        createTazSavedCodeFromBoardInfo(sRuntimeBoardInfoForSave) !==
+        sSavedRuntimeBoardCode;
 
     function updateRuntimePanels(
         updatePanels: (panels: PanelInfo[]) => PanelInfo[],
@@ -140,7 +155,12 @@ const TagAnalyzerBoard = ({
     }, [pRecentModalPath, sRuntimeBoardInfo.name, sRuntimeBoardInfo.path]);
 
     const applySavedRuntimeBoard = useCallback((savedBoard: SaveableTazBoard): void => {
-        setRuntimeBoardInfo(parseLoadedTaz(savedBoard));
+        const sSavedRuntimeBoard = parseLoadedTaz(savedBoard);
+
+        setRuntimeBoardInfo(sSavedRuntimeBoard);
+        setSavedRuntimeBoardCode(
+            createTazSavedCodeFromBoardInfo(sSavedRuntimeBoard),
+        );
         pOnSavedBoard(savedBoard);
     }, [pOnSavedBoard]);
 
@@ -155,23 +175,29 @@ const TagAnalyzerBoard = ({
         return true;
     }, [applySavedRuntimeBoard]);
 
+    const saveBoardToCurrentTazPath = useCallback(async (
+        boardInfo: BoardInfo,
+    ): Promise<boolean> => {
+        try {
+            return finishBoardSave(await saveTaz(getBoardInfoForTazSave(boardInfo)));
+        } catch {
+            Toast.error(SAVE_ERROR_MESSAGE);
+            return false;
+        }
+    }, [boardPanels, finishBoardSave]);
+
     const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
         if (!sRuntimeBoardInfo.path) {
             await openTazSaveModal();
             return false;
         }
 
-        try {
-            return finishBoardSave(await saveTaz(sRuntimeBoardInfo));
-        } catch {
-            Toast.error(SAVE_ERROR_MESSAGE);
-            return false;
-        }
-    }, [finishBoardSave, openTazSaveModal, sRuntimeBoardInfo]);
+        return saveBoardToCurrentTazPath(sRuntimeBoardInfo);
+    }, [openTazSaveModal, saveBoardToCurrentTazPath, sRuntimeBoardInfo]);
     const saveCurrentTazBoardWithPanel = useCallback(async (
         panel: PanelInfo,
     ): Promise<boolean> => {
-        const sBoardToSave: BoardInfo = {
+        const sBoardWithPanel: BoardInfo = {
             ...sRuntimeBoardInfo,
             panels: updatePanelByKey(
                 sRuntimeBoardInfo.panels,
@@ -180,20 +206,14 @@ const TagAnalyzerBoard = ({
             ),
         };
 
-        setRuntimeBoardInfo(sBoardToSave);
-
-        if (!sBoardToSave.path) {
+        if (!sBoardWithPanel.path) {
+            setRuntimeBoardInfo(sBoardWithPanel);
             await openTazSaveModal();
             return false;
         }
 
-        try {
-            return finishBoardSave(await saveTaz(sBoardToSave));
-        } catch {
-            Toast.error(SAVE_ERROR_MESSAGE);
-            return false;
-        }
-    }, [finishBoardSave, openTazSaveModal, sRuntimeBoardInfo]);
+        return saveBoardToCurrentTazPath(sBoardWithPanel);
+    }, [openTazSaveModal, saveBoardToCurrentTazPath, sRuntimeBoardInfo]);
 
     const saveCurrentTazBoardAs = useCallback(async (
         directoryPath: string,
@@ -201,7 +221,7 @@ const TagAnalyzerBoard = ({
     ): Promise<boolean> => {
         try {
             const sSaveResult = await saveAsTaz({
-                board: sRuntimeBoardInfo,
+                board: getBoardInfoForTazSave(sRuntimeBoardInfo),
                 directoryPath,
                 fileName,
             });
@@ -222,7 +242,32 @@ const TagAnalyzerBoard = ({
             Toast.error(SAVE_ERROR_MESSAGE);
             return false;
         }
-    }, [finishBoardSave, pFileTree, pOnFileTreeChange, sRuntimeBoardInfo]);
+    }, [boardPanels, finishBoardSave, pFileTree, pOnFileTreeChange, sRuntimeBoardInfo]);
+
+    function getBoardInfoForTazSave(boardInfo: BoardInfo): BoardInfo {
+        let sHasPanelChanges = false;
+        const sPanelsForSave = boardInfo.panels.map((panel) => {
+            const sNextPanel = getPanelWithCurrentVisibleRangeForSave(
+                panel,
+                boardPanels.getPanelRangeState(panel),
+            );
+
+            if (sNextPanel !== panel) {
+                sHasPanelChanges = true;
+            }
+
+            return sNextPanel;
+        });
+
+        if (!sHasPanelChanges) {
+            return boardInfo;
+        }
+
+        return {
+            ...boardInfo,
+            panels: sPanelsForSave,
+        };
+    }
 
     function handleSetGlobalTimeRange(
         payload: SetGlobalTimeRangePayload,
@@ -404,16 +449,6 @@ const TagAnalyzerBoard = ({
         rangeState: PanelRangeState,
     ): void {
         if (
-            panel.general.use_last_viewed_range &&
-            isConcreteTimeRange(rangeState.panelRange) &&
-            isConcreteTimeRange(rangeState.navigatorRange)
-        ) {
-            updateRuntimePanels((panels) =>
-                applyRuntimePanelLastViewedRange(panels, panel, rangeState),
-            );
-        }
-
-        if (
             !sSelectedPanelKeys.has(panel.data.index_key) ||
             !isConcreteTimeRange(rangeState.panelRange)
         ) {
@@ -521,30 +556,51 @@ const TagAnalyzerBoard = ({
     return (
         <>
             <Page.Header>
-                <Page.Space />
-                <Button.Group>
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIsTimeRangeModalOpen(true)}
-                    >
-                        <Calendar style={{ paddingRight: '8px' }} />
-                        {sRangeText || 'Time range not set'}
-                    </Button>
-                    {sHeaderActions.map((action) => (
+                <div className="tag-analyzer-board-header">
+                    <Page.Space />
+                    {sIsRuntimeBoardDirty && (
+                        <span className="tag-analyzer-board-header__dirty-message">
+                            Runtime change not saved to TAZ
+                        </span>
+                    )}
+                    <Button.Group className="tag-analyzer-board-header__actions">
                         <Button
-                            key={action.key}
-                            size="icon"
+                            size="sm"
                             variant="ghost"
-                            isToolTip
-                            toolTipContent={action.tooltip}
-                            icon={action.icon}
-                            onClick={action.onClick}
-                            disabled={action.disabled}
-                            aria-label={action.ariaLabel}
-                        />
-                    ))}
-                </Button.Group>
+                            onClick={() => setIsTimeRangeModalOpen(true)}
+                        >
+                            <Calendar style={{ paddingRight: '8px' }} />
+                            {sRangeText || 'Board time range not set'}
+                        </Button>
+                        {sHeaderActions.map((action) => {
+                            const sIsDirtySaveButton =
+                                action.key === 'save' && sIsRuntimeBoardDirty;
+
+                            return (
+                                <Button
+                                    key={action.key}
+                                    className={
+                                        sIsDirtySaveButton
+                                            ? 'tag-analyzer-board-header__save-button--dirty'
+                                            : undefined
+                                    }
+                                    size="icon"
+                                    variant="ghost"
+                                    isToolTip
+                                    toolTipContent={
+                                        sIsDirtySaveButton
+                                            ? 'Save runtime changes to TAZ'
+                                            : action.tooltip
+                                    }
+                                    icon={action.icon}
+                                    onClick={action.onClick}
+                                    disabled={action.disabled}
+                                    aria-label={action.ariaLabel}
+                                />
+                            );
+                        })}
+                    </Button.Group>
+                </div>
             </Page.Header>
             <Page.Body>
                 {sRuntimePanels.map((sPanelInfo) => {
@@ -568,7 +624,6 @@ const TagAnalyzerBoard = ({
                                     isRaw: sIsRaw,
                                     isRawLocked: false,
                                     isOverlap: sIsOverlap,
-                                    canKeepCurrentViewRange: sHasSavedTazFile,
                                 }}
                                 actions={{
                                     onApplyPanelInfo: applyRuntimePanelInfo,
@@ -615,7 +670,9 @@ const TagAnalyzerBoard = ({
                         icon={<PlusCircle size={16} />}
                         onClick={() => setIsNewPanelModal(true)}
                         style={{ height: '60px' }}
-                    />
+                    >
+                        New Chart
+                    </Button>
                     {sIsNewPanelModal && (
                         <CreateChartModal
                             key={pAvailableSourceTableNames.join(String.fromCharCode(0))}
@@ -722,42 +779,42 @@ function removeRuntimePanel(
     return sNextPanels;
 }
 
-function applyRuntimePanelLastViewedRange(
-    panels: PanelInfo[],
-    panelInfo: PanelInfo,
+function getPanelWithCurrentVisibleRangeForSave(
+    panel: PanelInfo,
     rangeState: PanelRangeState,
-): PanelInfo[] {
-    return updatePanelByKey(panels, panelInfo.data.index_key, (panel) => {
-        const sCurrentLastViewedRange = panel.general.last_viewed_range;
-        const sCurrentPanelRange = sCurrentLastViewedRange?.panelRange;
-        const sCurrentNavigatorRange = sCurrentLastViewedRange?.navigatorRange;
-        const sHasSamePanelRange =
-            isConcreteTimeRange(sCurrentPanelRange) &&
-            isSameTimeRange(sCurrentPanelRange, rangeState.panelRange);
-        const sHasSameNavigatorRange =
-            isConcreteTimeRange(sCurrentNavigatorRange) &&
-            isSameTimeRange(sCurrentNavigatorRange, rangeState.navigatorRange);
+): PanelInfo {
+    if (
+        !panel.general.use_last_viewed_range ||
+        !isConcreteTimeRange(rangeState.panelRange) ||
+        !isConcreteTimeRange(rangeState.navigatorRange)
+    ) {
+        return panel;
+    }
 
-        if (
-            panel.general.is_raw === panelInfo.general.is_raw &&
-            sHasSamePanelRange &&
-            sHasSameNavigatorRange
-        ) {
-            return panel;
-        }
+    const sCurrentLastViewedRange = panel.general.last_viewed_range;
+    const sCurrentPanelRange = sCurrentLastViewedRange?.panelRange;
+    const sCurrentNavigatorRange = sCurrentLastViewedRange?.navigatorRange;
+    const sHasSamePanelRange =
+        isConcreteTimeRange(sCurrentPanelRange) &&
+        isSameTimeRange(sCurrentPanelRange, rangeState.panelRange);
+    const sHasSameNavigatorRange =
+        isConcreteTimeRange(sCurrentNavigatorRange) &&
+        isSameTimeRange(sCurrentNavigatorRange, rangeState.navigatorRange);
 
-        return {
-            ...panel,
-            general: {
-                ...panel.general,
-                is_raw: panelInfo.general.is_raw,
-                last_viewed_range: {
-                    panelRange: rangeState.panelRange,
-                    navigatorRange: rangeState.navigatorRange,
-                },
+    if (sHasSamePanelRange && sHasSameNavigatorRange) {
+        return panel;
+    }
+
+    return {
+        ...panel,
+        general: {
+            ...panel.general,
+            last_viewed_range: {
+                panelRange: rangeState.panelRange,
+                navigatorRange: rangeState.navigatorRange,
             },
-        };
-    });
+        },
+    };
 }
 
 export default TagAnalyzerBoard;

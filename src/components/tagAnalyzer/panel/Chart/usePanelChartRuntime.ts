@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent, type WheelEvent } from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../../domain/ChartDomain';
-import { PanelOverlayMode, type PanelRangeChangeEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeHandlers, type PanelRangeState } from '../../domain/PanelDomain';
+import { PanelOverlayMode, type PanelRangeActions, type PanelRangeChangeEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeState } from '../../domain/PanelDomain';
 import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
 import { buildChartEvent } from './events/buildPanelChartEvent';
 import type { ChartInfo } from './types/PanelChartTypes';
@@ -28,7 +28,7 @@ type PanelBodyData = {
 };
 
 type PanelBodyHandlers = {
-    rangeHandlers: PanelRangeHandlers;
+    rangeActions: PanelRangeActions;
     markupHandlers: PanelMarkupHandlers;
     onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
     onSelection: (event: PanelRangeChangeEvent) => unknown;
@@ -71,7 +71,7 @@ export function usePanelChartRuntime({
     const { chartData, navigatorChartData } = data;
     const { panelRange, navigatorRange } = rangeState;
     const {
-        rangeHandlers,
+        rangeActions,
         markupHandlers,
         onHoveredMainSeriesChange,
         onSelection,
@@ -230,7 +230,7 @@ export function usePanelChartRuntime({
         const sNextWidth = sCurrentWidth * sZoomFactor;
         const sNextStart = sAnchorTime - sNextWidth * sAnchorRatio;
 
-        rangeHandlers.onPanelRangeChange({
+        rangeActions.applyMainZoomRange({
             min: sNextStart,
             max: sNextStart + sNextWidth,
         });
@@ -240,7 +240,7 @@ export function usePanelChartRuntime({
         isDragZoomEnabled,
         isNumericXAxis,
         panelRange,
-        rangeHandlers,
+        rangeActions,
     ]);
 
     useEffect(() => {
@@ -303,7 +303,7 @@ export function usePanelChartRuntime({
                     latestHoverTimestampRef,
                     latestChartClickRef,
                 },
-                rangeHandlers,
+                rangeActions,
                 markupHandlers,
                 onHoveredMainSeriesChange,
                 onSelection,

@@ -16,6 +16,10 @@ import {
     resolveConcretePanelRangeState,
 } from './PanelRangeResolver';
 
+type ResolvePanelRangeOptions = {
+    applyInitialMainChartWindow?: boolean;
+};
+
 export function useTagAnalyzerBoardPanels({
     panels,
     boardTime,
@@ -96,7 +100,10 @@ export function useTagAnalyzerBoardPanels({
         setFullDataRange,
     });
 
-    async function resolveAndApplyPanelRange(panelInfo: PanelInfo): Promise<void> {
+    async function resolveAndApplyPanelRange(
+        panelInfo: PanelInfo,
+        options?: ResolvePanelRangeOptions,
+    ): Promise<void> {
         const sRangeState = await resolveConcretePanelRangeState({
             seriesList: panelInfo.data.tag_set,
             rangeConfig: panelInfo.time.range_config,
@@ -104,6 +111,8 @@ export function useTagAnalyzerBoardPanels({
                 ? panelInfo.general.last_viewed_range
                 : undefined,
             boardTime,
+            applyInitialMainChartWindow:
+                options?.applyInitialMainChartWindow === true,
         });
 
         applyPanelRangeState(panelInfo, {
@@ -139,7 +148,9 @@ export function useTagAnalyzerBoardPanels({
         initializedPanelKeysRef.current[sPanelKey] = true;
 
         if (panelInfo.general.use_last_viewed_range) {
-            void resolveAndApplyPanelRange(panelInfo);
+            void resolveAndApplyPanelRange(panelInfo, {
+                applyInitialMainChartWindow: true,
+            });
             return;
         }
 
@@ -151,7 +162,9 @@ export function useTagAnalyzerBoardPanels({
             return;
         }
 
-        void resolveAndApplyPanelRange(panelInfo);
+        void resolveAndApplyPanelRange(panelInfo, {
+            applyInitialMainChartWindow: true,
+        });
     }
 
     function applyGlobalRangeToPanel(
@@ -231,6 +244,8 @@ export function useTagAnalyzerBoardPanels({
         refreshAllPanelTime,
         applyBoardTimeToPanels,
         applyGlobalRangeToPanels,
+        getPanelRangeState: (panelInfo: PanelInfo) =>
+            getBoardPanelRecord(panelInfo.data.index_key).rangeState,
     };
 
     function getPanelRuntimeProps(panelInfo: PanelInfo) {

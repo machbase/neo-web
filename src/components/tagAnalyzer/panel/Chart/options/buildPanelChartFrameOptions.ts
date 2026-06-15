@@ -108,7 +108,10 @@ export function buildPanelChartFrameOptions(
                 ]),
             ),
         },
-        tooltip: buildChartTooltipOption(chartInfo.isNumericXAxis),
+        tooltip: buildChartTooltipOption(
+            chartInfo.isNumericXAxis,
+            chartInfo.panelRange,
+        ),
         dataZoom: buildPanelChartDataZoomOption(
             chartInfo.display,
             chartInfo.panelRange,
@@ -232,6 +235,7 @@ function getMainSeriesTooltipItems(
 function formatChartTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     isNumericXAxis: boolean,
+    panelRange: TimeRangeMs,
 ): string {
     const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
     if (sMainSeriesItems.length === 0) {
@@ -242,6 +246,7 @@ function formatChartTooltip(
     const sTime = formatAxisPointerLabel(
         Number(sFirstValue?.[0] ?? sMainSeriesItems[0].axisValue),
         isNumericXAxis,
+        panelRange,
     );
 
     return `<div>
@@ -254,6 +259,7 @@ function formatChartTooltip(
 
 function buildChartTooltipOption(
     isNumericXAxis: boolean,
+    panelRange: TimeRangeMs,
 ): TooltipComponentOption {
     return {
         ...TOOLTIP_BASE,
@@ -265,6 +271,10 @@ function buildChartTooltipOption(
             },
         },
         formatter: (tooltipFormatterParams) =>
-            formatChartTooltip(tooltipFormatterParams, isNumericXAxis),
+            formatChartTooltip(
+                tooltipFormatterParams,
+                isNumericXAxis,
+                panelRange,
+            ),
     };
 }

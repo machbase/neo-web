@@ -47,7 +47,7 @@ const PanelBody = (props: UsePanelChartRuntimeParams) => {
                 isToolTip
                 toolTipContent="Move range backward"
                 icon={<VscChevronLeft size={16} />}
-                onClick={handlers.rangeHandlers.onShiftPanelRangeLeft}
+                onClick={handlers.rangeActions.shiftMainRangeLeft}
             />
             <div
                 className="chart-body"
@@ -75,7 +75,7 @@ const PanelBody = (props: UsePanelChartRuntimeParams) => {
                 isToolTip
                 toolTipContent="Move range forward"
                 icon={<VscChevronRight size={16} />}
-                onClick={handlers.rangeHandlers.onShiftPanelRangeRight}
+                onClick={handlers.rangeActions.shiftMainRangeRight}
             />
         </div>
     );

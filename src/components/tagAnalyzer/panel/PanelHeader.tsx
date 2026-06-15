@@ -1,6 +1,14 @@
 import './PanelChartHeader.scss';
-import type { CSSProperties, ReactNode } from 'react';
 import {
+    useEffect,
+    useRef,
+    useState,
+    type CSSProperties,
+    type KeyboardEvent,
+    type ReactNode,
+} from 'react';
+import {
+    Check,
     Delete,
     Download,
     GearFill,
@@ -23,7 +31,6 @@ import type {
 import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 
 export enum PanelActionKey {
-    TOGGLE_OVERLAP = 'TOGGLE_OVERLAP',
     TOGGLE_RAW = 'TOGGLE_RAW',
     TOGGLE_HIGHLIGHT = 'TOGGLE_HIGHLIGHT',
     TOGGLE_ANNOTATION = 'TOGGLE_ANNOTATION',
@@ -37,7 +44,7 @@ export enum PanelActionKey {
     OPEN_DELETE_CONFIRM = 'OPEN_DELETE_CONFIRM',
 }
 
-enum PanelActionPriority {
+enum PanelActionVisibilityPriority {
     PRIMARY = 'primary',
     SECONDARY = 'secondary',
     WIDE = 'wide',
@@ -63,7 +70,7 @@ type PanelActionDescriptor = {
     label: string;
     tooltip?: string;
     icon: ReactNode;
-    priority: PanelActionPriority;
+    visibilityPriority: PanelActionVisibilityPriority;
     active?: boolean;
     disabled?: boolean;
     className?: string;
@@ -72,7 +79,6 @@ type PanelActionDescriptor = {
 };
 
 const PANEL_CONTEXT_ACTION_KEYS: PanelActionKey[] = [
-    PanelActionKey.TOGGLE_OVERLAP,
     PanelActionKey.TOGGLE_RAW,
     PanelActionKey.TOGGLE_DRAG_SELECT,
     PanelActionKey.OPEN_FFT,
@@ -89,26 +95,11 @@ function buildPanelActions(
     state: PanelHeaderRuntimeState,
     options: { showExportCsv?: boolean } = {},
 ): PanelActionDescriptor[] {
-    const sOverlapLabel = state.isOverlap
-        ? 'Disable overlap mode'
-        : 'Enable overlap mode';
     const sRawLabel = state.isRaw
         ? 'Disable raw data mode'
         : 'Enable raw data mode';
     const sEditLabel = state.isEditing ? 'Close editor' : 'Open editor';
     const sActions: PanelActionDescriptor[] = [
-        {
-            key: PanelActionKey.TOGGLE_OVERLAP,
-            label: sOverlapLabel,
-            icon: (
-                <MdFlagCircle
-                    size={15}
-                    style={{ color: state.isOverlap ? '#fdb532' : undefined }}
-                />
-            ),
-            priority: PanelActionPriority.SECONDARY,
-            active: state.isOverlap,
-        },
         {
             key: PanelActionKey.TOGGLE_RAW,
             label: sRawLabel,
@@ -123,7 +114,7 @@ function buildPanelActions(
                     RAW
                 </span>
             ),
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.isRaw,
             disabled: state.isRawLocked,
             className: 'panel-header__action--raw',
@@ -134,7 +125,7 @@ function buildPanelActions(
             label: 'Highlight',
             tooltip: 'Drag on chart to create highlight',
             icon: <MdFlagCircle size={15} />,
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.HIGHLIGHT,
         },
         {
@@ -142,7 +133,7 @@ function buildPanelActions(
             label: 'Annotation',
             tooltip: 'Click chart to create annotation',
             icon: <VscNote size={15} />,
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.ANNOTATION,
         },
         {
@@ -153,7 +144,7 @@ function buildPanelActions(
                 : 'Enable range selection',
             tooltip: 'Select data range for stats and FFT',
             icon: <PiSelectionPlusBold size={18} />,
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.DRAG_SELECT,
             buttonStyle: DRAG_SELECT_BUTTON_STYLE,
         },
@@ -162,41 +153,41 @@ function buildPanelActions(
             label: 'FFT chart',
             contextLabel: 'Open FFT chart',
             icon: <LineChart size={16} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
             disabled: !state.canOpenFft,
         },
         {
             key: PanelActionKey.SET_GLOBAL_TIME,
             label: 'Set global time',
             icon: <TbTimezone size={15} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
             disabled: !state.canSetGlobalTime,
         },
         {
             key: PanelActionKey.REFRESH_DATA,
             label: 'Refresh data',
             icon: <Refresh size={14} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
         },
         {
             key: PanelActionKey.REFRESH_TIME,
             label: 'Refresh time',
             icon: <LuTimerReset size={16} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
         },
         {
             key: PanelActionKey.TOGGLE_EDIT,
             label: sEditLabel,
             contextLabel: state.isEditing ? 'Close editor' : 'Edit panel',
             icon: <GearFill size={14} />,
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.isEditing,
         },
         {
             key: PanelActionKey.OPEN_DELETE_CONFIRM,
             label: 'Delete panel',
             icon: <Delete size={16} />,
-            priority: PanelActionPriority.WIDE,
+            visibilityPriority: PanelActionVisibilityPriority.WIDE,
         },
     ];
 
@@ -205,7 +196,7 @@ function buildPanelActions(
             key: PanelActionKey.OPEN_EXPORT_CSV,
             label: 'Export CSV',
             icon: <Download size={16} />,
-            priority: PanelActionPriority.WIDE,
+            visibilityPriority: PanelActionVisibilityPriority.WIDE,
         });
     }
 
@@ -227,7 +218,7 @@ function getAction(
 function getActionClass(action: PanelActionDescriptor): string {
     return [
         'panel-header__action',
-        `panel-header__action--${action.priority}`,
+        `panel-header__action--${action.visibilityPriority}`,
         action.className,
         action.active ? 'panel-header__action--active' : undefined,
     ]
@@ -301,6 +292,9 @@ function PanelHeaderMoreMenu({
 type PanelHeaderProps = {
     runtimeState: PanelHeaderRuntimeState;
     onAction: (actionKey: PanelActionKey) => void;
+    onToggleOverlap: () => void;
+    onRenamePanelTitle: (title: string) => void;
+    onOpenTimeRangeModal: () => void;
 };
 
 const PanelHeader = (props: PanelHeaderProps) => {
@@ -308,16 +302,28 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const {
         runtimeState,
         onAction,
+        onToggleOverlap,
+        onRenamePanelTitle,
+        onOpenTimeRangeModal,
     } = props;
-    const sTimeText = Number.isFinite(runtimeState.panelRange.startTime) &&
+    const [isRenamingTitle, setIsRenamingTitle] = useState(false);
+    const [titleDraft, setTitleDraft] = useState(runtimeState.title);
+    const titleInputRef = useRef<HTMLInputElement | null>(null);
+    const titleRenameCloseReasonRef = useRef<'apply' | 'cancel' | undefined>(
+        undefined,
+    );
+    const sHasPanelRange = Number.isFinite(runtimeState.panelRange.startTime) &&
         Number.isFinite(runtimeState.panelRange.endTime) &&
-        runtimeState.panelRange.endTime > runtimeState.panelRange.startTime
+        runtimeState.panelRange.endTime > runtimeState.panelRange.startTime;
+    const sTimeText = sHasPanelRange
         ? `${formatRangeBoundaryLabel(
               runtimeState.panelRange.startTime,
               runtimeState.isNumericXAxis,
+              runtimeState.panelRange,
           )} ~ ${formatRangeBoundaryLabel(
               runtimeState.panelRange.endTime,
               runtimeState.isNumericXAxis,
+              runtimeState.panelRange,
           )}`
         : '';
     const sIntervalText =
@@ -331,42 +337,140 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const sActions = buildPanelActions(runtimeState, {
         showExportCsv: getExperiment(),
     });
-    const sHeaderActions = sActions.filter(
-        (action) => action.key !== PanelActionKey.TOGGLE_OVERLAP,
+    const sMoreActions = sActions.filter(
+        (action) =>
+            action.visibilityPriority !==
+            PanelActionVisibilityPriority.PRIMARY,
     );
-    const sMoreActions = [
-        getAction(sActions, PanelActionKey.TOGGLE_OVERLAP),
-        ...sHeaderActions.filter(
-            (action) => action.priority !== PanelActionPriority.PRIMARY,
-        ),
-    ];
-    const sOverlapLabel = getAction(
-        sActions,
-        PanelActionKey.TOGGLE_OVERLAP,
-    ).label;
+    const sOverlapLabel = runtimeState.isOverlap
+        ? 'Remove from overlap chart'
+        : 'Add to overlap chart';
+    const sOverlapBoxClassName = [
+        'panel-header__overlap-box',
+        runtimeState.isOverlap ? 'panel-header__overlap-box--active' : undefined,
+    ]
+        .filter(Boolean)
+        .join(' ');
+
+    useEffect(() => {
+        if (!isRenamingTitle) {
+            setTitleDraft(runtimeState.title);
+        }
+    }, [isRenamingTitle, runtimeState.title]);
+
+    useEffect(() => {
+        if (!isRenamingTitle) {
+            return;
+        }
+
+        titleInputRef.current?.focus();
+        titleInputRef.current?.select();
+    }, [isRenamingTitle]);
+
+    function openTitleRename(): void {
+        titleRenameCloseReasonRef.current = undefined;
+        setTitleDraft(runtimeState.title);
+        setIsRenamingTitle(true);
+    }
+
+    function applyTitleRename(): void {
+        if (titleRenameCloseReasonRef.current !== undefined) {
+            return;
+        }
+
+        titleRenameCloseReasonRef.current = 'apply';
+        const sNextTitle = titleDraft.trim();
+
+        setIsRenamingTitle(false);
+
+        if (sNextTitle.length === 0 || sNextTitle === runtimeState.title) {
+            setTitleDraft(runtimeState.title);
+            return;
+        }
+
+        onRenamePanelTitle(sNextTitle);
+    }
+
+    function cancelTitleRename(): void {
+        if (titleRenameCloseReasonRef.current !== undefined) {
+            return;
+        }
+
+        titleRenameCloseReasonRef.current = 'cancel';
+        setTitleDraft(runtimeState.title);
+        setIsRenamingTitle(false);
+    }
+
+    function handleTitleRenameKeyDown(
+        event: KeyboardEvent<HTMLInputElement>,
+    ): void {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            applyTitleRename();
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            cancelTitleRename();
+        }
+    }
 
     return (
         <div className="panel-header">
-            <Button
-                aria-label={sOverlapLabel}
-                className="panel-header__title-button"
-                size="fit"
-                variant="ghost"
-                isToolTip
-                toolTipContent={`${runtimeState.title} - ${sOverlapLabel}`}
-                active={runtimeState.isOverlap}
-                icon={
-                    <span
-                        className="panel-header__title"
-                        title={runtimeState.title}
+            <div className="panel-header__title-group">
+                <button
+                    type="button"
+                    className={sOverlapBoxClassName}
+                    title={sOverlapLabel}
+                    aria-label={sOverlapLabel}
+                    aria-pressed={runtimeState.isOverlap}
+                    onClick={onToggleOverlap}
+                >
+                    {runtimeState.isOverlap && <Check size={11} />}
+                </button>
+                {isRenamingTitle ? (
+                    <input
+                        ref={titleInputRef}
+                        className="panel-header__title-input"
+                        value={titleDraft}
+                        aria-label="Chart title"
+                        onChange={(event) => setTitleDraft(event.target.value)}
+                        onBlur={applyTitleRename}
+                        onKeyDown={handleTitleRenameKeyDown}
+                    />
+                ) : (
+                    <button
+                        type="button"
+                        className="panel-header__title-button"
+                        title="Rename chart"
+                        onClick={openTitleRename}
                     >
-                        {runtimeState.title}
-                    </span>
-                }
-                onClick={() => onAction(PanelActionKey.TOGGLE_OVERLAP)}
-            />
+                        <span
+                            className="panel-header__title"
+                            title={runtimeState.title}
+                        >
+                            {runtimeState.title}
+                        </span>
+                    </button>
+                )}
+            </div>
             <div className="panel-header__time" title={sTimeSummaryText}>
-                {sTimeText}
+                <span className="panel-header__time-part">
+                    <button
+                        type="button"
+                        className="panel-header__time-button panel-header__time-range-button"
+                        title={
+                            runtimeState.isNumericXAxis
+                                ? 'Set current visible main chart value range'
+                                : 'Set current visible main chart range'
+                        }
+                        disabled={!sHasPanelRange}
+                        onClick={onOpenTimeRangeModal}
+                    >
+                        {sTimeText}
+                    </button>
+                </span>
                 {sIntervalText && (
                     <span className="panel-header__interval">
                         {` (interval: ${sIntervalText})`}
@@ -374,7 +478,7 @@ const PanelHeader = (props: PanelHeaderProps) => {
                 )}
             </div>
             <div className="panel-header__actions">
-                {sHeaderActions.map((action) => (
+                {sActions.map((action) => (
                     <PanelHeaderActionButton
                         key={action.key}
                         action={action}

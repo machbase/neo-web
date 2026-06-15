@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import type { PanelInfo } from '../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../domain/time/TimeTypes';
-import { isConcreteTimeRange } from '../../domain/time/TimeRangeUtils';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import type { ReloadAfterEditorSaveOptions } from '../../board/useConfigReload';
 import type { PanelEditorConfig } from './PanelEditor';
 
 function hasPanelTimeRangeConfigChanged(
@@ -24,42 +22,23 @@ function normalizeTagSetForRightYAxis(
         : tagSet.map((series) => ({ ...series, useSecondaryAxis: false }));
 }
 
-export function usePanelEditor({
+export function usePanelEditorActions({
     panelInfo,
-    panelRange,
-    navigatorRange,
-    onResetPanelUi,
     onApplyPanelInfo,
     onSavePanelInfo,
     reloadAfterEditorSave,
 }: {
     panelInfo: PanelInfo;
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    onResetPanelUi: () => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;
     onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
-    reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
+    reloadAfterEditorSave: (
+        panelInfo: PanelInfo,
+        options: ReloadAfterEditorSaveOptions,
+    ) => void;
 }): {
-    isEditing: boolean;
-    closePanelEditor: () => void;
-    toggleEditMode: () => void;
     applyEditedPanelConfig: (editorConfig: PanelEditorConfig) => void;
     saveEditedPanelConfig: (editorConfig: PanelEditorConfig) => Promise<boolean>;
 } {
-    const [isEditing, setIsEditing] = useState(false);
-
-    function closePanelEditor(): void {
-        setIsEditing(false);
-    }
-
-    function toggleEditMode(): void {
-        const sShouldOpenEditor = !isEditing;
-
-        onResetPanelUi();
-        setIsEditing(sShouldOpenEditor);
-    }
-
     function buildAppliedPanelInfo(editorConfig: PanelEditorConfig): PanelInfo {
         const sCurrentPanelState = panelInfo;
         const sNextPanelState: PanelInfo = {
@@ -76,32 +55,39 @@ export function usePanelEditor({
             sCurrentPanelState,
             sNextPanelState,
         );
-        const sLastViewedRange =
-            sNextPanelState.general.use_last_viewed_range &&
-            !sHasTimeRangeConfigChanged &&
-            isConcreteTimeRange(panelRange) &&
-            isConcreteTimeRange(navigatorRange)
-                ? {
-                      panelRange,
-                      navigatorRange,
-                  }
-                : undefined;
+        const sShouldClearLastViewedRange =
+            !sNextPanelState.general.use_last_viewed_range ||
+            sHasTimeRangeConfigChanged;
         const sNextPanelInfo: PanelInfo = {
             ...sNextPanelState,
             general: {
                 ...sNextPanelState.general,
-                last_viewed_range: sLastViewedRange,
+                last_viewed_range: sShouldClearLastViewedRange
+                    ? undefined
+                    : sNextPanelState.general.last_viewed_range,
             },
         };
 
         return sNextPanelInfo;
     }
 
+    function getReloadAfterEditorSaveOptions(
+        nextPanelInfo: PanelInfo,
+    ): ReloadAfterEditorSaveOptions {
+        return {
+            preserveCurrentVisibleRange:
+                !hasPanelTimeRangeConfigChanged(panelInfo, nextPanelInfo),
+        };
+    }
+
     function applyEditedPanelConfig(editorConfig: PanelEditorConfig): void {
         const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
 
         onApplyPanelInfo(sNextPanelInfo);
-        reloadAfterEditorSave(sNextPanelInfo);
+        reloadAfterEditorSave(
+            sNextPanelInfo,
+            getReloadAfterEditorSaveOptions(sNextPanelInfo),
+        );
     }
 
     async function saveEditedPanelConfig(
@@ -110,14 +96,14 @@ export function usePanelEditor({
         const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
 
         onApplyPanelInfo(sNextPanelInfo);
-        reloadAfterEditorSave(sNextPanelInfo);
+        reloadAfterEditorSave(
+            sNextPanelInfo,
+            getReloadAfterEditorSaveOptions(sNextPanelInfo),
+        );
         return onSavePanelInfo(sNextPanelInfo);
     }
 
     return {
-        isEditing,
-        closePanelEditor,
-        toggleEditMode,
         applyEditedPanelConfig,
         saveEditedPanelConfig,
     };

@@ -1,7 +1,6 @@
 import type { PanelInfo } from './PanelDomain';
 import type {
     IntervalOption,
-    PanelNavigatorRangePair,
     TimeRangeConfig,
     TimeRangeMs,
 } from './time/TimeTypes';
@@ -24,23 +23,10 @@ export type GlobalTimeRangeState = {
     interval: IntervalOption;
 };
 
-export type PersistPanelStatePayload = {
-    targetPanelKey: string;
-    timeInfo: PanelNavigatorRangePair;
-    isRaw: boolean;
-};
-
 export type SetGlobalTimeRangePayload = {
     dataTime: TimeRangeMs;
     navigatorTime: TimeRangeMs;
     interval: IntervalOption;
-};
-
-export type BoardActions = {
-    onDeletePanel: (payload: { panelKey: string }) => void;
-    onPersistPanelState: (payload: PersistPanelStatePayload) => void;
-    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetBoardTimeRange: (timeRange: TimeRangeConfig) => void;
 };
 
 export type OverlapPanelSelection = {

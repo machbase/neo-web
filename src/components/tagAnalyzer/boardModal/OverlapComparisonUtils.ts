@@ -35,23 +35,28 @@ export function hasOverlapPanelDraftChanged(
 
 export function buildOverlapLoadState(results: OverlapLoadResult[]): {
     chartSeries: ChartSeriesData[];
-    startTimes: number[];
+    originTimes: number[];
+    emptySeriesLabels: string[];
 } {
     const sChartSeriesList: ChartSeriesData[] = [];
-    const sStartTimes: number[] = [];
+    const sOriginTimes: number[] = [];
+    const sEmptySeriesLabels: string[] = [];
 
     results.forEach((result) => {
-        if (typeof result.startTime === 'number') {
-            sStartTimes.push(result.startTime);
-        }
-        if (result.chartSeries) {
+        if (typeof result.originTime === 'number' && result.chartSeries) {
+            sOriginTimes.push(result.originTime);
             sChartSeriesList.push(result.chartSeries);
+        }
+
+        if (result.emptySeriesLabel) {
+            sEmptySeriesLabels.push(result.emptySeriesLabel);
         }
     });
 
     return {
         chartSeries: sChartSeriesList,
-        startTimes: sStartTimes,
+        originTimes: sOriginTimes,
+        emptySeriesLabels: sEmptySeriesLabels,
     };
 }
 export function resolveOverlapTimeRange(
@@ -74,9 +79,9 @@ export function alignOverlapTime(time: number, interval: IntervalOption): number
 }
 export function mapOverlapRows(
     rows: ChartRow[] | undefined,
-    seriesStartTime: number,
+    originTime: number,
 ): ChartRow[] {
-    return rows?.map(([aTimestamp, aValue]) => [aTimestamp - seriesStartTime, aValue]) ?? [];
+    return rows?.map(([aTimestamp, aValue]) => [aTimestamp - originTime, aValue]) ?? [];
 }
 export function getNextOverlapSelections(
     selections: OverlapPanelSelection[],

@@ -8,7 +8,11 @@ import { buildPanelChartFrameOptions } from './buildPanelChartFrameOptions';
 import { buildChartSeriesOption } from './buildPanelChartSeriesOption';
 
 const PANEL_CHART_BASE_OPTION: EChartsOption = {
-    animation: false,
+    animation: true,
+    animationDuration: 280,
+    animationDurationUpdate: 180,
+    animationEasing: 'cubicOut',
+    animationEasingUpdate: 'cubicOut',
     backgroundColor: '#252525',
     textStyle: { fontFamily: 'Open Sans, Helvetica, Arial, sans-serif' },
 };

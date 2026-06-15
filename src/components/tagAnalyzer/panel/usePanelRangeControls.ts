@@ -2,8 +2,8 @@ import { useRef } from 'react';
 import { Toast } from '@/design-system/components';
 import type {
     PanelNavigatorShiftActions,
+    PanelRangeActions,
     PanelRangeChangeEvent,
-    PanelRangeHandlers,
     PanelRangeState,
     PanelZoomActions,
 } from '../domain/PanelDomain';
@@ -43,7 +43,7 @@ type UsePanelRangeControlsParams = {
 };
 
 type PanelRangeControls = {
-    rangeHandlers: PanelRangeHandlers;
+    rangeActions: PanelRangeActions;
     navigatorShiftActions: PanelNavigatorShiftActions;
     zoomActions: PanelZoomActions;
 };
@@ -82,87 +82,112 @@ export function usePanelRangeControls({
             options,
         );
     };
-    const setNavigatorRange = (
-        navigatorRange: TimeRangeMs,
-        options?: PanelRangeStateApplyOptions,
-    ): void => {
-        onRangeStateChange(
-            {
-                panelRange: rangeState.panelRange,
-                navigatorRange,
-                fullRange: rangeState.fullRange,
-            },
-            options,
+    function getFiniteEventRange(
+        event: PanelRangeChangeEvent,
+    ): TimeRangeMs | undefined {
+        const sRange = createTimeRangeMs(event.min, event.max);
+
+        return isFiniteRangeEvent(sRange) ? sRange : undefined;
+    }
+
+    function getMinimumAxisRangeFromEvent(
+        event: PanelRangeChangeEvent,
+        referenceRange: TimeRangeMs,
+        minimumDateTimeRangeMs: number,
+    ): TimeRangeMs | undefined {
+        const sRequestedRange = getFiniteEventRange(event);
+
+        if (sRequestedRange === undefined) {
+            return undefined;
+        }
+
+        const sRange = ensureMinimumAxisRangeWidth(
+            sRequestedRange,
+            referenceRange,
+            isNumericXAxis,
+            minimumDateTimeRangeMs,
         );
-    };
+
+        return isConcreteTimeRange(sRange) ? sRange : undefined;
+    }
+
+    function applyMainRangeWithinNavigator(event: PanelRangeChangeEvent): void {
+        if (!hasConcreteInteractiveRangeState(rangeState)) {
+            showPanelNotInitializedToast();
+            return;
+        }
+
+        const sPanelRange = getMinimumAxisRangeFromEvent(
+            event,
+            rangeState.navigatorRange,
+            MIN_PANEL_RANGE_MS,
+        );
+        if (sPanelRange === undefined) {
+            return;
+        }
+
+        setMainRange(sPanelRange);
+    }
+
+    function applyExactMainRange(event: PanelRangeChangeEvent): void {
+        if (!hasConcreteInteractiveRangeState(rangeState)) {
+            showPanelNotInitializedToast();
+            return;
+        }
+
+        const sPanelRange = getMinimumAxisRangeFromEvent(
+            event,
+            rangeState.navigatorRange,
+            MIN_PANEL_RANGE_MS,
+        );
+        if (sPanelRange === undefined) {
+            return;
+        }
+
+        onRangeStateChange({
+            panelRange: sPanelRange,
+            navigatorRange: getNavigatorRangeForExactMainRange(
+                sPanelRange,
+                rangeState.navigatorRange,
+            ),
+            fullRange: rangeState.fullRange,
+        });
+    }
+
+    function applyExactNavigatorRange(event: PanelRangeChangeEvent): void {
+        if (!hasConcreteInteractiveRangeState(rangeState)) {
+            showPanelNotInitializedToast();
+            return;
+        }
+
+        const sNavigatorRange = getMinimumAxisRangeFromEvent(
+            event,
+            rangeState.navigatorRange,
+            MIN_NAVIGATOR_RANGE_MS,
+        );
+        if (sNavigatorRange === undefined) {
+            return;
+        }
+
+        onRangeStateChange({
+            panelRange: getPanelRangeForExactNavigatorRange(
+                rangeState.panelRange,
+                sNavigatorRange,
+            ),
+            navigatorRange: sNavigatorRange,
+            fullRange: rangeState.fullRange,
+        });
+    }
 
     return {
-        rangeHandlers: {
-            onPanelRangeChange: (event: PanelRangeChangeEvent) => {
-                if (!hasConcreteInteractiveRangeState(rangeState)) {
-                    showPanelNotInitializedToast();
-                    return;
-                }
-
-                const sRequestedPanelRange = createTimeRangeMs(
-                    event.min,
-                    event.max,
-                );
-                if (!isFiniteRangeEvent(sRequestedPanelRange)) {
-                    return;
-                }
-
-                onRangeStateChange(
-                    getPanelRangeChangeState(
-                        rangeState,
-                        sRequestedPanelRange,
-                        isNumericXAxis,
-                    ),
-                );
-            },
-            onPanelRangeChangeFromNavigator: (event: PanelRangeChangeEvent) => {
-                if (!hasConcreteInteractiveRangeState(rangeState)) {
-                    showPanelNotInitializedToast();
-                    return;
-                }
-
-                const sRequestedPanelRange = createTimeRangeMs(
-                    event.min,
-                    event.max,
-                );
-                if (!isFiniteRangeEvent(sRequestedPanelRange)) {
-                    return;
-                }
-
-                onRangeStateChange(
-                    getPanelRangeChangeState(
-                        rangeState,
-                        sRequestedPanelRange,
-                        isNumericXAxis,
-                    ),
-                );
-            },
-            onNavigatorRangeChange: (event: PanelRangeChangeEvent) => {
-                if (!isConcreteTimeRange(rangeState.panelRange)) {
-                    showPanelNotInitializedToast();
-                    return;
-                }
-
-                const sNavigatorRange = ensureMinimumAxisRangeWidth(
-                    createTimeRangeMs(event.min, event.max),
-                    rangeState.navigatorRange,
-                    isNumericXAxis,
-                    MIN_NAVIGATOR_RANGE_MS,
-                );
-                if (!isConcreteTimeRange(sNavigatorRange)) {
-                    return;
-                }
-
-                setNavigatorRange(sNavigatorRange);
-            },
-            onShiftPanelRangeLeft: () =>
+        rangeActions: {
+            applyMainZoomRange: applyMainRangeWithinNavigator,
+            applyMainNavigatorSelectionRange: applyMainRangeWithinNavigator,
+            applyExactMainRange,
+            applyExactNavigatorRange,
+            shiftMainRangeLeft: () =>
                 onRangeStateChange(getShiftedPanelRangeState(rangeState, -1)),
-            onShiftPanelRangeRight: () =>
+            shiftMainRangeRight: () =>
                 onRangeStateChange(getShiftedPanelRangeState(rangeState, 1)),
         },
         navigatorShiftActions: {
@@ -227,6 +252,23 @@ export function usePanelRangeControls({
             },
         },
     };
+}
+
+function getNavigatorRangeForExactMainRange(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    return createTimeRangeMs(
+        Math.min(panelRange.startTime, navigatorRange.startTime),
+        Math.max(panelRange.endTime, navigatorRange.endTime),
+    );
+}
+
+function getPanelRangeForExactNavigatorRange(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    return clampTimeRangeToBounds(panelRange, navigatorRange);
 }
 
 type RangeShiftDirection = -1 | 1;
@@ -327,25 +369,6 @@ function getShiftedNavigatorRangeState(
     return {
         panelRange: clampTimeRangeToBounds(rangeState.panelRange, sNavigatorRange),
         navigatorRange: sNavigatorRange,
-        fullRange: rangeState.fullRange,
-    };
-}
-
-function getPanelRangeChangeState(
-    rangeState: PanelRangeState,
-    requestedPanelRange: TimeRangeMs,
-    isNumericXAxis: boolean,
-): PanelRangeState {
-    const sPanelRange = ensureMinimumAxisRangeWidth(
-        requestedPanelRange,
-        rangeState.navigatorRange,
-        isNumericXAxis,
-        MIN_PANEL_RANGE_MS,
-    );
-
-    return {
-        panelRange: sPanelRange,
-        navigatorRange: rangeState.navigatorRange,
         fullRange: rangeState.fullRange,
     };
 }

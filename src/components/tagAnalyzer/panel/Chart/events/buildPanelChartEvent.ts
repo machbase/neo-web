@@ -3,7 +3,7 @@ import {
     PanelOverlayMode,
     type PanelRangeChangeEvent,
     type PanelMarkupHandlers,
-    type PanelRangeHandlers,
+    type PanelRangeActions,
 } from '../../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import {
@@ -69,7 +69,7 @@ type BuildChartEventParams = {
         latestHoverTimestampRef: MutableRefObject<number | undefined>;
         latestChartClickRef: MutableRefObject<number>;
     };
-    rangeHandlers: PanelRangeHandlers;
+    rangeActions: PanelRangeActions;
     markupHandlers: PanelMarkupHandlers;
     onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
     onSelection: (event: PanelRangeChangeEvent) => unknown;
@@ -87,7 +87,7 @@ export function buildChartEvent({
     ranges,
     interactionMode,
     chartRefs,
-    rangeHandlers,
+    rangeActions,
     markupHandlers,
     onHoveredMainSeriesChange,
     onSelection,
@@ -135,7 +135,7 @@ export function buildChartEvent({
                 return;
             }
 
-            rangeHandlers.onPanelRangeChangeFromNavigator({
+            rangeActions.applyMainNavigatorSelectionRange({
                 min: sRange.startTime,
                 max: sRange.endTime,
             });
@@ -171,7 +171,7 @@ export function buildChartEvent({
                 return;
             }
 
-            rangeHandlers.onPanelRangeChange({
+            rangeActions.applyMainZoomRange({
                 min: sRange.startTime,
                 max: sRange.endTime,
             });
