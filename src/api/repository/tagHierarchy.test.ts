@@ -2,6 +2,9 @@ import {
     HIERARCHY_RESERVED_NAME,
     buildAttachTagsSql,
     buildCreateJsonMetadataColumnSql,
+    buildCreateJsonPathIndexSql,
+    buildDropJsonPathIndexSql,
+    buildHierarchyIndexName,
     buildDetachTagsSql,
     buildGetDirectHierarchyTagsSql,
     buildGetUnassignedTagsByDocumentSql,
@@ -13,9 +16,18 @@ import {
     buildMoveTagsToHierarchyPathSql,
     buildRenameHierarchyValueSql,
     buildUpdateHierarchyTemplateSql,
+    canIndentHierarchyValueNode,
+    canOutdentHierarchyValueNode,
     canRemoveHierarchySchemaKey,
     canRemoveHierarchyValueNode,
     escapeSqlString,
+    hierarchyValueSubtreeHeight,
+    indentHierarchyValueNode,
+    insertHierarchyValueChild,
+    insertHierarchyValueSibling,
+    moveHierarchyValueNode,
+    outdentHierarchyValueNode,
+    removeHierarchyValueNodeAt,
     flattenHierarchyTemplate,
     getHierarchyDocumentPaths,
     getHierarchyTemplatePaths,
@@ -143,6 +155,34 @@ describe('tagHierarchy SQL builders', () => {
     });
 });
 
+describe('tagHierarchy JSON-path index DDL', () => {
+    const shortConfig: HierarchyQueryConfig = { tableName: 'TAG', nameColumn: 'NAME', jsonColumn: 'ASSET', specColumn: 'SPEC' };
+
+    test('builds create index SQL on the metadata JSON path', () => {
+        expect(buildCreateJsonPathIndexSql(shortConfig, 'country')).toBe("CREATE INDEX HIDX_TAG_ASSET_COUNTRY ON TAG METADATA (ASSET->'$.country')");
+    });
+
+    test('builds drop index SQL with the same derived name', () => {
+        expect(buildDropJsonPathIndexSql(shortConfig, 'country')).toBe('DROP INDEX HIDX_TAG_ASSET_COUNTRY');
+    });
+
+    test('derives a deterministic, distinct, safe index name within the length limit', () => {
+        const first = buildHierarchyIndexName(config, 'country');
+        const second = buildHierarchyIndexName(config, 'country');
+        const other = buildHierarchyIndexName(config, 'city');
+        expect(first).toBe(second);
+        expect(first).not.toBe(other);
+        expect(first.length).toBeLessThanOrEqual(40);
+        expect(first.startsWith('HIDX_')).toBe(true);
+        expect(/^[A-Za-z_][A-Za-z0-9_]*$/.test(first)).toBe(true);
+    });
+
+    test('rejects an unsafe schema key', () => {
+        expect(() => buildHierarchyIndexName(config, "bad'key")).toThrow();
+        expect(() => buildCreateJsonPathIndexSql(config, 'bad-key')).toThrow();
+    });
+});
+
 describe('tagHierarchy edit guards', () => {
     test('only allows removing leaf value nodes', () => {
         expect(canRemoveHierarchyValueNode(document.tree[0])).toBe(false);
@@ -188,7 +228,26 @@ describe('tagHierarchy template helpers', () => {
                 schema: ['country', 'city'],
                 tree: [{ key: 'city', value: 'Seoul', children: [] }],
             })
-        ).toEqual(expect.arrayContaining([{ level: 'blocking', message: 'Hierarchy node "Seoul" uses key "city", expected "country".' }]));
+        ).toEqual(expect.arrayContaining([{ level: 'blocking', message: 'Hierarchy node "Seoul" uses key "city", expected "country".', path: [0] }]));
+    });
+
+    test('tags node-level issues with their numeric tree path', () => {
+        const issues = validateHierarchyDocument({
+            schema: ['country', 'city'],
+            tree: [
+                {
+                    key: 'country',
+                    value: 'Korea',
+                    children: [{ key: 'city', value: '  ', children: [] }],
+                },
+            ],
+        });
+        // The empty grandchild value is reported against [0, 0].
+        expect(issues).toEqual(
+            expect.arrayContaining([
+                { level: 'blocking', message: 'Hierarchy node at depth 2 contains an empty value.', path: [0, 0] },
+            ]),
+        );
     });
 
     test('flattens the issue 1351 hierarchy template order', () => {
@@ -273,5 +332,114 @@ describe('tagHierarchy template helpers', () => {
         const issues = validateHierarchyTemplate({ world: { [HIERARCHY_RESERVED_NAME]: {} } });
 
         expect(issues).toEqual(expect.arrayContaining([{ level: 'blocking', message: 'Hierarchy key cannot use the reserved row name.' }]));
+    });
+});
+
+describe('tagHierarchy value-tree edits', () => {
+    // Reads a node by numeric path: tree[0,0,1] -> Factory-B etc.
+    const valueAt = (tree: HierarchyDocument['tree'], path: number[]) => {
+        let list = tree;
+        let node = list[path[0]];
+        for (let i = 1; i < path.length; i += 1) {
+            list = node.children;
+            node = list[path[i]];
+        }
+        return node;
+    };
+
+    test('subtree height counts the deepest descendant', () => {
+        expect(hierarchyValueSubtreeHeight(document.tree[0])).toBe(2); // Korea > Seoul > Factory
+        expect(hierarchyValueSubtreeHeight(document.tree[0].children[0])).toBe(1); // Seoul > Factory
+        expect(hierarchyValueSubtreeHeight(document.tree[1])).toBe(0); // Japan (leaf)
+    });
+
+    test('inserts an empty sibling at the same depth and focuses it', () => {
+        const { tree, focusPath } = insertHierarchyValueSibling(document.tree, [0, 0, 0], document.schema);
+        expect(focusPath).toEqual([0, 0, 1]);
+        expect(valueAt(tree, [0, 0, 1])).toEqual({ key: 'factory', value: '', children: [] });
+        expect(valueAt(tree, [0, 0, 2]).value).toBe('Factory-B'); // original shifted down
+    });
+
+    test('never inserts a sibling at the root (single depth-1 node)', () => {
+        const result = insertHierarchyValueSibling(document.tree, [1], document.schema);
+        expect(result.focusPath).toBeNull();
+        expect(result.tree).toBe(document.tree); // unchanged
+    });
+
+    test('adds a first child (depth 2) when the root cannot take a sibling', () => {
+        const singleRoot = [{ key: 'country', value: 'qqq', children: [] }];
+        const seeded = insertHierarchyValueChild(singleRoot, [0], ['country', 'city'])!;
+        expect(seeded.focusPath).toEqual([0, 0]);
+        expect(valueAt(seeded.tree, [0, 0])).toEqual({ key: 'city', value: '', children: [] });
+
+        // Prepends, so existing children shift back.
+        const withChild = insertHierarchyValueChild(document.tree, [0], document.schema)!;
+        expect(withChild.focusPath).toEqual([0, 0]);
+        expect(valueAt(withChild.tree, [0, 0]).value).toBe('');
+        expect(valueAt(withChild.tree, [0, 1]).value).toBe('Seoul');
+
+        // A single-level schema has no room for a child.
+        expect(insertHierarchyValueChild(singleRoot, [0], ['country'])).toBeNull();
+    });
+
+    test('guards indent against missing previous sibling and schema overflow', () => {
+        expect(canIndentHierarchyValueNode(document.tree, [0, 0, 0], 3)).toBe(false); // no prev sibling
+        expect(canIndentHierarchyValueNode(document.tree, [0, 0, 1], 3)).toBe(false); // would exceed schema depth
+        expect(canIndentHierarchyValueNode(document.tree, [0, 1], 3)).toBe(true); // Busan under Seoul
+        expect(indentHierarchyValueNode(document.tree, [0, 0, 0], document.schema)).toBeNull();
+    });
+
+    test('indents a node under its previous sibling', () => {
+        const result = indentHierarchyValueNode(document.tree, [0, 1], document.schema);
+        expect(result).not.toBeNull();
+        const { tree, focusPath } = result!;
+        expect(focusPath).toEqual([0, 0, 2]);
+        expect(valueAt(tree, [0, 0, 2]).value).toBe('Busan'); // appended after Seoul's children
+        expect(valueAt(tree, [0]).children).toHaveLength(1); // Korea now only has Seoul
+    });
+
+    test('outdents a node to sit after its parent, never to a new root', () => {
+        expect(canOutdentHierarchyValueNode([0])).toBe(false); // root
+        expect(canOutdentHierarchyValueNode([0, 1])).toBe(false); // depth 2 -> would create a 2nd root
+        expect(canOutdentHierarchyValueNode([0, 0, 0])).toBe(true); // depth 3 -> ok
+        expect(outdentHierarchyValueNode(document.tree, [0, 1])).toBeNull();
+
+        const result = outdentHierarchyValueNode(document.tree, [0, 0, 1]); // Factory-B
+        const { tree, focusPath } = result!;
+        expect(focusPath).toEqual([0, 1]); // sits right after Seoul under Korea
+        expect(valueAt(tree, [0, 1]).value).toBe('Factory-B');
+        expect(valueAt(tree, [0, 0]).children).toHaveLength(1); // Seoul kept Factory-A only
+    });
+
+    test('reorders a node among its siblings, carrying its subtree', () => {
+        // Move Factory-A (with no children) down past Factory-B.
+        const down = moveHierarchyValueNode(document.tree, [0, 0, 0], 1)!;
+        expect(down.focusPath).toEqual([0, 0, 1]);
+        expect(valueAt(down.tree, [0, 0, 0]).value).toBe('Factory-B');
+        expect(valueAt(down.tree, [0, 0, 1]).value).toBe('Factory-A');
+
+        // Move Seoul (subtree) down past Busan; its children come along.
+        const seoulDown = moveHierarchyValueNode(document.tree, [0, 0], 1)!;
+        expect(seoulDown.focusPath).toEqual([0, 1]);
+        expect(valueAt(seoulDown.tree, [0, 1]).value).toBe('Seoul');
+        expect(valueAt(seoulDown.tree, [0, 1]).children).toHaveLength(2);
+        expect(valueAt(seoulDown.tree, [0, 0]).value).toBe('Busan');
+
+        // Boundaries: first sibling up / last sibling down -> no-op.
+        expect(moveHierarchyValueNode(document.tree, [0, 0, 0], -1)).toBeNull();
+        expect(moveHierarchyValueNode(document.tree, [0, 1], 1)).toBeNull();
+    });
+
+    test('removes a node and focuses the row above it', () => {
+        // previous sibling (leaf) becomes the focus target
+        expect(removeHierarchyValueNodeAt(document.tree, [0, 0, 1]).focusPath).toEqual([0, 0, 0]);
+        // no previous sibling -> focus the parent
+        expect(removeHierarchyValueNodeAt(document.tree, [0, 0, 0]).focusPath).toEqual([0, 0]);
+        // first root with nothing above -> null
+        expect(removeHierarchyValueNodeAt(document.tree, [0]).focusPath).toBeNull();
+        // previous root's deepest tail (Korea > Seoul > Busan)
+        expect(removeHierarchyValueNodeAt(document.tree, [1]).focusPath).toEqual([0, 1]);
+        const { tree } = removeHierarchyValueNodeAt(document.tree, [0, 0, 1]);
+        expect(valueAt(tree, [0, 0]).children).toHaveLength(1);
     });
 });

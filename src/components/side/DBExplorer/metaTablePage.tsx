@@ -1,4 +1,4 @@
-import { Page, Toast, CommonTable, Tabs } from '@/design-system/components';
+import { Page, Toast, CommonTable } from '@/design-system/components';
 import { canOpenTagAnalyzerFromMetaColumns, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, GenTazDefault, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
@@ -9,6 +9,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { BiInfoCircle } from 'react-icons/bi';
 import { StatzTableModal } from './statzTableModal';
 import { TagHierarchyPage } from '@/components/tagHierarchy/TagHierarchyPage';
+import { HIERARCHY_RESERVED_NAME } from '@/api/repository/tagHierarchy';
 
 type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
 const IGNORE_COL_LIST = ['_ID'];
@@ -20,12 +21,14 @@ export const MetaTablePage = ({
     pRefresh,
     pMColInfo,
     pMMetaColInfo,
+    pMetaView = 'table',
 }: {
     pIsActiveTab: boolean;
     pMTableInfo: any;
     pRefresh: { state: number; set: React.Dispatch<React.SetStateAction<number>> };
     pMColInfo: any;
     pMMetaColInfo?: any;
+    pMetaView?: 'table' | 'hierarchy';
 }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -39,7 +42,6 @@ export const MetaTablePage = ({
     const [sHasMoreData, setHasMoreData] = useState<boolean>(true);
     const [sIsOpenConfirm, setIsOpenConfirm] = useState<boolean>(false);
     const [sDelInfo, setDelInfo] = useState<string>('');
-    const [sMetaViewTab, setMetaViewTab] = useState<'table' | 'hierarchy'>('table');
     const sSearchIIFE = useRef(false);
     const [sVirtualModal, setVirtualModal] = useState<{ state: boolean; filter: string; table: any; recordCnt: number }>({
         state: false,
@@ -94,7 +96,7 @@ export const MetaTablePage = ({
             const currentFilter = opt?.filter !== undefined ? opt.filter : sFilter;
             const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
                 pMColInfo?.rows?.[0]?.[0]
-            } LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
+            } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select * from ${sTargetTable} order by _id asc`;
             const { svrState, svrData } = await fetchTqlQuery(sQuery, currentPage);
 
@@ -118,7 +120,7 @@ export const MetaTablePage = ({
             const currentFilter = filter !== undefined ? filter : sFilter;
             const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
                 pMColInfo?.rows?.[0]?.[0]
-            } LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
+            } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select count(*) from ${sTargetTable}`;
             const { svrState, svrData } = await fetchQuery(sQuery);
             if (svrState) setMetaTableCnt(svrData?.rows?.[0]?.[0] ?? 0);
@@ -346,23 +348,11 @@ export const MetaTablePage = ({
             style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}
         >
             {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
-                <>
-                    <Tabs.Root selectedTab={sMetaViewTab} onTabSelect={(tab) => setMetaViewTab(tab.id as 'table' | 'hierarchy')}>
-                        <Tabs.Header variant="sub">
-                            <Tabs.List>
-                                <Tabs.Item value="table" variant="sub">
-                                    Table
-                                </Tabs.Item>
-                                <Tabs.Item value="hierarchy" variant="sub">
-                                    Hierarchy
-                                </Tabs.Item>
-                            </Tabs.List>
-                        </Tabs.Header>
-                        <Tabs.Content>
-                            <Tabs.Panel tabId="table">
-                                <Page.Body fixed>
+                pMetaView !== 'hierarchy' ? (
+                    <>
+                                <Page.Body fixed={!sModUpdateInfo.isOpen} fullHeight={sModUpdateInfo.isOpen}>
                                     <Page.ContentBlock pHoverNone>
-                                        <Page.SubTitle>Meta table</Page.SubTitle>
+                                        <Page.SubTitle>Meta Table</Page.SubTitle>
                                     </Page.ContentBlock>
                                     {sModUpdateInfo.isOpen ? (
                                         <>
@@ -431,7 +421,7 @@ export const MetaTablePage = ({
                                         {!sModUpdateInfo.isOpen && sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
                                     </Page.ContentBlock>
                                 </Page.Body>
-                                {sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
+                                {!sModUpdateInfo.isOpen && sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
                                     <CommonTable
                                         data={mMetaTableInfo!}
                                         editable={allowedV$()}
@@ -458,10 +448,10 @@ export const MetaTablePage = ({
                                         }
                                     />
                                 ) : null}
-                            </Tabs.Panel>
-                            <Tabs.Panel tabId="hierarchy">
+                        </>
+                    ) : (
                                 <TagHierarchyPage
-                                    active={pIsActiveTab && sMetaViewTab === 'hierarchy'}
+                                    active={pIsActiveTab && pMetaView === 'hierarchy'}
                                     tableName={mLogicalTableName}
                                     nameColumn={pMColInfo?.rows?.[0]?.[0] ?? 'NAME'}
                                     jsonColumns={mJsonMetaColumns}
@@ -470,11 +460,8 @@ export const MetaTablePage = ({
                                     canEdit={mCanEditHierarchy}
                                     onMetadataSchemaChange={() => pRefresh.set((prev) => prev + 1)}
                                 />
-                            </Tabs.Panel>
-                        </Tabs.Content>
-                    </Tabs.Root>
-                </>
-            ) : null}
+                    )
+                ) : null}
             {sVirtualModal?.state ? <StatzTableModal pModalInfo={sVirtualModal} pSetModalInfo={setVirtualModal} /> : null}
         </div>
     );

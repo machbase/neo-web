@@ -1,26 +1,62 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FiChevronDown, FiChevronRight, FiChevronsDown, FiRefreshCcw, FiTag } from 'react-icons/fi';
-import { Button, CommonTable, IconButton, Modal, Toast } from '@/design-system/components';
+import {
+    FiChevronRight,
+    FiChevronsDown,
+    FiCornerDownRight,
+    FiCornerUpLeft,
+    FiLayers,
+    FiMoreHorizontal,
+    FiPlus,
+    FiRotateCcw,
+    FiSearch,
+    FiTag,
+    FiTrash2,
+    FiX,
+} from 'react-icons/fi';
+import { Virtuoso } from 'react-virtuoso';
+import {
+    Button,
+    CommonTable,
+    Dropdown,
+    IconButton,
+    Input,
+    Pane,
+    SplitPane,
+    Toast,
+} from '@/design-system/components';
+import { Refresh } from '@/assets/icons/Icon';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import {
     DEFAULT_HIERARCHY_DOCUMENT,
     DEFAULT_HIERARCHY_JSON_COLUMN,
-    attachTagsToPath,
-    buildAttachTagsSql,
     buildCreateJsonMetadataColumnSql,
+    buildDetachTagsSql,
+    detachTagsFromHierarchy,
     buildGetDirectHierarchyTagsSql,
     buildGetHierarchyTagsSql,
     buildGetUnassignedTagsByDocumentSql,
     buildMoveTagsToHierarchyPathSql,
+    canIndentHierarchyValueNode,
+    canOutdentHierarchyValueNode,
     canRemoveHierarchySchemaKey,
     canRemoveHierarchyValueNode,
     createHierarchyTemplate,
+    indentHierarchyValueNode,
+    insertHierarchyValueChild,
+    insertHierarchyValueSibling,
+    moveHierarchyValueNode,
+    outdentHierarchyValueNode,
+    removeHierarchyValueNodeAt,
     createJsonMetadataColumn,
+    createJsonPathIndex,
+    dropJsonPathIndex,
     getDirectHierarchyTags,
     getHierarchyTags,
     getHierarchyTemplate,
     getUnassignedTagCountByDocument,
     getUnassignedTagsByDocument,
     hierarchyTreeHasDepth,
+    HIERARCHY_PAGE_SIZE,
     moveTagsToHierarchyPath,
     updateHierarchyTemplate,
     validateHierarchyDocument,
@@ -34,8 +70,7 @@ import {
 } from '@/api/repository/tagHierarchy';
 import styles from './TagHierarchyPage.module.scss';
 
-type DetailTab = 'tags' | 'query' | 'validation';
-type ModalState = 'attach' | undefined;
+type DetailTab = 'tags' | 'query';
 
 type JsonMetaColumn = {
     name: string;
@@ -45,9 +80,21 @@ type JsonMetaColumn = {
 type SelectedNode = {
     path: HierarchyPathItem[];
     isUnassigned?: boolean;
-    isSkeleton?: boolean;
-    templateKeyPath?: string[];
 };
+
+// One visible row of the tree pane once the value tree and its loaded tag links
+// are flattened into a single pre-order list — the flat shape react-virtuoso
+// consumes (it can't virtualize the old nested renderNode recursion).
+type TreeFlatRow =
+    | { kind: 'node'; rowKey: string; node: HierarchyChildRow; depth: number }
+    | {
+          kind: 'tag';
+          rowKey: string;
+          row: HierarchyTagRow;
+          depth: number;
+          parentKey: string;
+          orderedNames: string[];
+      };
 
 type TagHierarchyPageProps = {
     active: boolean;
@@ -65,13 +112,41 @@ const ROOT_KEY = '__root__';
 const UNASSIGNED_TREE_KEY = '__unassigned__';
 const VISIBLE_DETAIL_TABS: DetailTab[] = ['tags', 'query'];
 
-const pathKey = (path: HierarchyPathItem[]) => (path.length === 0 ? ROOT_KEY : path.map((item) => `${item.key}=${item.value}`).join('/'));
+// Above this many rows the tree / unassigned panes switch to react-virtuoso
+// virtualization; shorter lists render plainly (mirrors TableInfo's > 50 rule,
+// avoiding Virtuoso's resize-observer overhead on tiny lists).
+const VIRTUALIZE_ROW_THRESHOLD = 50;
 
-const pathLabel = (path: HierarchyPathItem[]) => (path.length === 0 ? 'Root' : path.map((item) => item.value).join(' / '));
+// Value-tree outliner geometry: per-depth indent and where the vertical guide
+// line sits (the depth badge is 18px wide, so its centre is +9).
+const TREE_INDENT_PX = 28;
+const TREE_GUIDE_OFFSET_PX = 9;
+
+// The reorder modifier is the Alt key on every platform (event.altKey); only the
+// label differs — ⌥ on macOS, "Alt" elsewhere.
+const IS_MAC =
+    typeof navigator !== 'undefined' && /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent || '');
+const ALT_KEY_LABEL = IS_MAC ? '⌥' : 'Alt';
+
+// Pre-order list of every value-tree node's numeric path (for arrow-key navigation).
+const flattenValueTreePaths = (nodes: HierarchyValueNode[], parent: number[] = []): number[][] =>
+    nodes.flatMap((node, index) => {
+        const path = parent.concat(index);
+        return [path, ...flattenValueTreePaths(node.children, path)];
+    });
+
+// Spring-loaded folders: how long a dragged tag must hover a collapsed node
+// before that node auto-expands so a descendant becomes a drop target.
+const HOVER_EXPAND_MS = 500;
+
+const pathKey = (path: HierarchyPathItem[]) =>
+    path.length === 0 ? ROOT_KEY : path.map((item) => `${item.key}=${item.value}`).join('/');
+
+const pathLabel = (path: HierarchyPathItem[]) =>
+    path.length === 0 ? 'Root' : path.map((item) => item.value).join(' / ');
 
 const selectedNodeLabel = (node: SelectedNode) => {
     if (node.isUnassigned) return 'Unassigned Tags';
-    if (node.isSkeleton) return node.templateKeyPath?.join(' / ') ?? 'Template';
     return pathLabel(node.path);
 };
 
@@ -81,101 +156,45 @@ const tagTableData = (rows: HierarchyTagRow[]) => ({
     types: ['string', 'string', 'string'],
 });
 
-const defaultJsonColumnName = (columns: JsonMetaColumn[]) => columns.find((column) => column.name.toLowerCase() === 'asset')?.name ?? columns[0]?.name ?? '';
-
-const pathOptionLabel = (keys: string[]) => keys.join(' / ');
+const defaultJsonColumnName = (columns: JsonMetaColumn[]) =>
+    columns.find((column) => column.name.toLowerCase() === 'asset')?.name ?? columns[0]?.name ?? '';
 
 const cloneValueTree = (nodes: HierarchyValueNode[]): HierarchyValueNode[] =>
-    nodes.map((node) => ({ key: node.key, value: node.value, children: cloneValueTree(node.children) }));
+    nodes.map((node) => ({
+        key: node.key,
+        value: node.value,
+        children: cloneValueTree(node.children),
+    }));
 
-const nodeAtPath = (nodes: HierarchyValueNode[], nodePath: number[]): HierarchyValueNode | undefined => {
-    const [head, ...tail] = nodePath;
-    const node = nodes[head];
-    if (!node || tail.length === 0) return node;
-    return nodeAtPath(node.children, tail);
-};
+const normalizeTreeKeys = (
+    nodes: HierarchyValueNode[],
+    schema: string[],
+    depth = 0,
+): HierarchyValueNode[] =>
+    nodes.map((node) => ({
+        ...node,
+        key: schema[depth] ?? node.key,
+        children: normalizeTreeKeys(node.children, schema, depth + 1),
+    }));
 
-const normalizeTreeKeys = (nodes: HierarchyValueNode[], schema: string[], depth = 0): HierarchyValueNode[] =>
-    nodes.map((node) => ({ ...node, key: schema[depth] ?? node.key, children: normalizeTreeKeys(node.children, schema, depth + 1) }));
-
-const childrenForValuePath = (nodes: HierarchyValueNode[], path: HierarchyPathItem[]): HierarchyValueNode[] => {
+const childrenForValuePath = (
+    nodes: HierarchyValueNode[],
+    path: HierarchyPathItem[],
+): HierarchyValueNode[] => {
     if (path.length === 0) return nodes;
     const [head, ...tail] = path;
     const node = nodes.find((item) => item.key === head.key && item.value === head.value);
     return node ? childrenForValuePath(node.children, tail) : [];
 };
 
-const valuePathsFromTree = (nodes: HierarchyValueNode[], parentPath: HierarchyPathItem[] = []): HierarchyPathItem[][] =>
+const valuePathsFromTree = (
+    nodes: HierarchyValueNode[],
+    parentPath: HierarchyPathItem[] = [],
+): HierarchyPathItem[][] =>
     nodes.flatMap((node) => {
         const path = parentPath.concat({ key: node.key, value: node.value });
         return [path].concat(valuePathsFromTree(node.children, path));
     });
-
-const AttachTagsModal = ({
-    tagNames,
-    values,
-    keys,
-    pathOptions,
-    selectedPathIndex,
-    loading,
-    onTagNamesChange,
-    onValueChange,
-    onPathChange,
-    onClose,
-    onConfirm,
-}: {
-    tagNames: string;
-    values: Record<string, string>;
-    keys: string[];
-    pathOptions?: string[][];
-    selectedPathIndex?: number;
-    loading: boolean;
-    onTagNamesChange: (value: string) => void;
-    onValueChange: (key: string, value: string) => void;
-    onPathChange?: (index: number) => void;
-    onClose: () => void;
-    onConfirm: () => void;
-}) => {
-    const isComplete = tagNames.trim() && keys.every((key) => values[key]?.trim());
-
-    return (
-        <Modal.Root isOpen onClose={onClose} size="lg">
-            <Modal.Header>
-                <Modal.Title>Attach tags</Modal.Title>
-                <Modal.Close />
-            </Modal.Header>
-            <Modal.Body>
-                <div style={{ display: 'grid', gap: 8 }}>
-                    <textarea className={styles.textarea} value={tagNames} placeholder="TAG_01, TAG_02" onChange={(event) => onTagNamesChange(event.target.value)} />
-                    {pathOptions && pathOptions.length > 1 ? (
-                        <label className={styles.label}>
-                            Path
-                            <select className={styles.select} style={{ width: '100%', marginTop: 4 }} value={selectedPathIndex ?? 0} onChange={(event) => onPathChange?.(Number(event.target.value))}>
-                                {pathOptions.map((path, index) => (
-                                    <option key={path.join('/')} value={index}>
-                                        {pathOptionLabel(path)}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    ) : null}
-                    {keys.map((key) => (
-                        <label key={key} className={styles.label}>
-                            {key}
-                            <input className={styles.input} style={{ width: '100%', marginTop: 4 }} value={values[key] ?? ''} onChange={(event) => onValueChange(key, event.target.value)} />
-                        </label>
-                    ))}
-                </div>
-            </Modal.Body>
-            <Modal.Footer>
-                <Modal.Confirm loading={loading} disabled={!isComplete} onClick={onConfirm}>
-                    Attach
-                </Modal.Confirm>
-                <Modal.Cancel onClick={onClose}>Cancel</Modal.Cancel>
-            </Modal.Footer>
-        </Modal.Root>
-    );
-};
 
 export const TagHierarchyPage = ({
     active,
@@ -200,21 +219,41 @@ export const TagHierarchyPage = ({
     const [sExpandedPathKeys, setExpandedPathKeys] = useState<Set<string>>(new Set());
     const [sSelectedNode, setSelectedNode] = useState<SelectedNode>(EMPTY_SELECTED_NODE);
     const [sTags, setTags] = useState<HierarchyTagRow[]>([]);
+    const [sTagPage, setTagPage] = useState(0);
+    const [sTagHasMore, setTagHasMore] = useState(false);
     const [sUnassignedCount, setUnassignedCount] = useState(0);
     const [sSearchText, setSearchText] = useState('');
     const [sActiveTab, setActiveTab] = useState<DetailTab>('tags');
     const [sLastQuery, setLastQuery] = useState('');
     const [sError, setError] = useState('');
     const [sIsLoading, setIsLoading] = useState(false);
-    const [sModal, setModal] = useState<ModalState>();
-    const [sModalValue, setModalValue] = useState('');
-    const [sAttachValues, setAttachValues] = useState<Record<string, string>>({});
-    const [sAttachKeys, setAttachKeys] = useState<string[]>([]);
-    const [sAttachPathOptions, setAttachPathOptions] = useState<string[][]>([]);
-    const [sAttachPathIndex, setAttachPathIndex] = useState(0);
+    // Tag selection (checkbox + SHIFT range) drives the placement panel.
+    const [sSelectedTagNames, setSelectedTagNames] = useState<Set<string>>(new Set());
+    const [sSelectionAnchor, setSelectionAnchor] = useState<string>('');
+    const [sPlacementTargetKey, setPlacementTargetKey] = useState<string>('');
+    const [sDetailOpen, setDetailOpen] = useState(false);
+    // Resizable split between the tree pane (left) and the detail pane (right).
+    // Controlled sizes: percentages on first render, px once the user drags the sash.
+    const [sPaneSizes, setPaneSizes] = useState<(string | number)[]>(['32%', '68%']);
+    const [sDragOverKey, setDragOverKey] = useState<string>('');
+    const [sSchemaEditorOpen, setSchemaEditorOpen] = useState(false);
+    // Index of a freshly added schema level to focus once it renders (set by "Add level").
+    const [sFocusSchemaIndex, setFocusSchemaIndex] = useState<number | null>(null);
+    // Numeric path of the value-tree row to focus after a keyboard/structural edit.
+    const [sFocusTreePath, setFocusTreePath] = useState<number[] | null>(null);
     const [sIsSaving, setIsSaving] = useState(false);
     const [sIsCreatingAssetColumn, setIsCreatingAssetColumn] = useState(false);
     const expandedPathKeysRef = useRef(sExpandedPathKeys);
+    // Tracks which JSON column has already received its "expand all on first load" default,
+    // so a fresh load (or a column switch) starts fully expanded while later refreshes
+    // (e.g. after placing/detaching tags) preserve whatever the user manually collapsed.
+    const autoExpandedColumnRef = useRef('');
+    // Pending spring-load timer for the collapsed node currently hovered during a tag drag.
+    const hoverExpandRef = useRef<{ key: string; timer: number } | null>(null);
+    // Live DOM refs for each schema-level input, keyed by depth index (for auto-focus on add).
+    const schemaInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    // Live DOM refs for each value-tree input, keyed by numeric path string (e.g. "0-2-1").
+    const treeInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
     const mConfig = useMemo<HierarchyQueryConfig>(
         () => ({
@@ -223,11 +262,130 @@ export const TagHierarchyPage = ({
             jsonColumn: sJsonColumn,
             specColumn,
         }),
-        [nameColumn, sJsonColumn, specColumn, tableName]
+        [nameColumn, sJsonColumn, specColumn, tableName],
     );
 
     const mSelectedPathKey = pathKey(sSelectedNode.path);
     const mHasTemplate = sKeys.length > 0;
+
+    // Placement-panel derivations: all selectable target nodes, the currently chosen target path,
+    // which selected tags are already placed (for the unassign/detach action).
+    const mAllValuePaths = useMemo(() => valuePathsFromTree(sValueTree), [sValueTree]);
+    const mPlacedTagNames = useMemo(() => {
+        const placed = new Set<string>();
+        Object.entries(sTagLinksByPath).forEach(([key, rows]) => {
+            if (key === UNASSIGNED_TREE_KEY) return;
+            rows.forEach((row) => placed.add(row.name));
+        });
+        return placed;
+    }, [sTagLinksByPath]);
+    const mPlacementTargetPath = useMemo(
+        () => mAllValuePaths.find((path) => pathKey(path) === sPlacementTargetKey) ?? [],
+        [mAllValuePaths, sPlacementTargetKey],
+    );
+    const mPlacedSelectedNames = useMemo(
+        () => Array.from(sSelectedTagNames).filter((name) => mPlacedTagNames.has(name)),
+        [sSelectedTagNames, mPlacedTagNames],
+    );
+    // Search-filtered unassigned tag rows (and just their names, derived) — both
+    // the list render and the "Select all" affordances key off this.
+    const mUnassignedRows = useMemo(() => {
+        const rows = sTagLinksByPath[UNASSIGNED_TREE_KEY] ?? [];
+        return sSearchText
+            ? rows.filter((row) => row.name.toLowerCase().includes(sSearchText.toLowerCase()))
+            : rows;
+    }, [sTagLinksByPath, sSearchText]);
+    const mUnassignedNames = useMemo(
+        () => mUnassignedRows.map((row) => row.name),
+        [mUnassignedRows],
+    );
+    // Flatten the value tree + its loaded tag links into the pre-order list of
+    // currently-visible rows (respecting expand state + search). Replaces the old
+    // renderNode/renderTagLinks/renderChildLayer recursion so the tree pane can be
+    // virtualized: a node row is followed by its tag rows then its child subtree.
+    const mTreeRows = useMemo<TreeFlatRow[]>(() => {
+        const search = sSearchText.toLowerCase();
+        const walk = (parentPath: HierarchyPathItem[], depth: number): TreeFlatRow[] => {
+            const out: TreeFlatRow[] = [];
+            childrenForValuePath(sValueTree, parentPath).forEach((child) => {
+                const path = parentPath.concat({ key: child.key, value: child.value });
+                const key = pathKey(path);
+                const matchesSearch =
+                    !search ||
+                    child.value.toLowerCase().includes(search) ||
+                    child.key.toLowerCase().includes(search);
+                if (matchesSearch) {
+                    out.push({
+                        kind: 'node',
+                        rowKey: key,
+                        node: { key: child.key, value: child.value, path, tagCount: 0 },
+                        depth,
+                    });
+                }
+                // An expanded node still reveals its descendants even when its own
+                // label fails the search filter (matches the old recursion).
+                if (sExpandedPathKeys.has(key)) {
+                    const links = sTagLinksByPath[key] ?? [];
+                    const filtered = search
+                        ? links.filter((row) => row.name.toLowerCase().includes(search))
+                        : links;
+                    const orderedNames = filtered.map((row) => row.name);
+                    filtered.forEach((row) =>
+                        out.push({
+                            kind: 'tag',
+                            rowKey: `${key}::tag::${row.name}`,
+                            row,
+                            depth: depth + 1,
+                            parentKey: key,
+                            orderedNames,
+                        }),
+                    );
+                    out.push(...walk(path, depth + 1));
+                }
+            });
+            return out;
+        };
+        return walk([], 0);
+    }, [sValueTree, sExpandedPathKeys, sSearchText, sTagLinksByPath]);
+    const mAllUnassignedSelected =
+        mUnassignedNames.length > 0 &&
+        mUnassignedNames.every((name) => sSelectedTagNames.has(name));
+    // Live validation of the in-progress draft (keys normalized to the schema first,
+    // exactly as Save does) so inline row errors update as you type. Outside editing
+    // we fall back to whatever the load/save path put in sIssues.
+    const mEditIssues = useMemo(() => {
+        if (!sIsTemplateEditing) return sIssues;
+        const schema = sSchemaDraft.map((key) => key.trim());
+        return validateHierarchyDocument({
+            schema,
+            tree: normalizeTreeKeys(sValueTreeDraft, schema),
+        });
+    }, [sIsTemplateEditing, sSchemaDraft, sValueTreeDraft, sIssues]);
+    // pathKey -> messages, so each tree row can render its own issue(s) inline.
+    const mTreeErrorMap = useMemo(() => {
+        const map = new Map<string, string[]>();
+        mEditIssues.forEach((issue) => {
+            if (!issue.path) return;
+            const key = issue.path.join('-');
+            map.set(key, (map.get(key) ?? []).concat(issue.message));
+        });
+        return map;
+    }, [mEditIssues]);
+    // schemaIndex -> messages, so each schema input can render its own issue(s) inline.
+    const mSchemaErrorMap = useMemo(() => {
+        const map = new Map<number, string[]>();
+        mEditIssues.forEach((issue) => {
+            if (issue.schemaIndex === undefined) return;
+            map.set(issue.schemaIndex, (map.get(issue.schemaIndex) ?? []).concat(issue.message));
+        });
+        return map;
+    }, [mEditIssues]);
+    // Issues tied to neither a value node nor a schema key (truly global) stay in the list below.
+    const mGlobalIssues = useMemo(
+        () => mEditIssues.filter((issue) => !issue.path && issue.schemaIndex === undefined),
+        [mEditIssues],
+    );
+    const mBlockingCount = mEditIssues.filter((issue) => issue.level === 'blocking').length;
 
     useEffect(() => {
         const nextColumn = defaultJsonColumnName(jsonColumns);
@@ -238,41 +396,91 @@ export const TagHierarchyPage = ({
         expandedPathKeysRef.current = sExpandedPathKeys;
     }, [sExpandedPathKeys]);
 
+    // Auto-focus (and select) a schema level right after "Add level" renders it.
+    useEffect(() => {
+        if (sFocusSchemaIndex === null) return;
+        const input = schemaInputRefs.current[sFocusSchemaIndex];
+        if (input) {
+            input.focus();
+            input.select();
+        }
+        setFocusSchemaIndex(null);
+    }, [sFocusSchemaIndex]);
+
+    // Focus the value-tree row queued by the last outliner edit, caret at line end.
+    useEffect(() => {
+        if (!sFocusTreePath) return;
+        const input = treeInputRefs.current.get(sFocusTreePath.join('-'));
+        if (input) {
+            input.focus();
+            const end = input.value.length;
+            input.setSelectionRange(end, end);
+        }
+        setFocusTreePath(null);
+    }, [sFocusTreePath]);
+
+    // Clear any pending spring-load timer on unmount.
+    useEffect(
+        () => () => {
+            if (hoverExpandRef.current) window.clearTimeout(hoverExpandRef.current.timer);
+        },
+        [],
+    );
+
     const loadTagsForNode = useCallback(
-        async (node: SelectedNode, document?: HierarchyDocument) => {
+        async (node: SelectedNode, document?: HierarchyDocument, page = 0) => {
+            const applyRows = (rows: HierarchyTagRow[]) => {
+                setTags((prev) => (page > 0 ? prev.concat(rows) : rows));
+                setTagHasMore(rows.length === HIERARCHY_PAGE_SIZE);
+            };
+
             if (node.isUnassigned) {
                 if (!document) return;
                 setLastQuery(buildGetUnassignedTagsByDocumentSql(mConfig, document));
-                const tags = await getUnassignedTagsByDocument(mConfig, document);
-                setTags(tags.rows);
+                const tags = await getUnassignedTagsByDocument(mConfig, document, page);
+                applyRows(tags.rows);
                 if (!tags.success) setError(tags.reason ?? 'Failed to load unassigned tags.');
                 return;
             }
 
             if (node.path.length === 0) {
                 setTags([]);
+                setTagHasMore(false);
                 setLastQuery('');
                 return;
             }
 
             setLastQuery(buildGetHierarchyTagsSql(mConfig, node.path));
-            const tags = await getHierarchyTags(mConfig, node.path);
-            setTags(tags.rows);
+            const tags = await getHierarchyTags(mConfig, node.path, page);
+            applyRows(tags.rows);
             if (!tags.success) setError(tags.reason ?? 'Failed to load hierarchy tags.');
         },
-        [mConfig]
+        [mConfig],
     );
 
+    const loadMoreTags = useCallback(() => {
+        if (!sTagHasMore) return;
+        const nextPage = sTagPage + 1;
+        setTagPage(nextPage);
+        loadTagsForNode(sSelectedNode, sHierarchyDocument, nextPage);
+    }, [sTagHasMore, sTagPage, sSelectedNode, sHierarchyDocument, loadTagsForNode]);
+
     const loadTagLinksForPaths = useCallback(
-        async (document: HierarchyDocument, paths: HierarchyPathItem[][], options: { includeUnassigned?: boolean } = {}) => {
-            const uniquePaths = Array.from(new Map(paths.map((path) => [pathKey(path), path])).values());
+        async (
+            document: HierarchyDocument,
+            paths: HierarchyPathItem[][],
+            options: { includeUnassigned?: boolean } = {},
+        ) => {
+            const uniquePaths = Array.from(
+                new Map(paths.map((path) => [pathKey(path), path])).values(),
+            );
             const nextLinks: Record<string, HierarchyTagRow[]> = {};
 
             const results = await Promise.all(
                 uniquePaths.map(async (path) => ({
                     key: pathKey(path),
                     result: await getDirectHierarchyTags(mConfig, document.schema, path),
-                }))
+                })),
             );
 
             results.forEach(({ key, result }) => {
@@ -294,21 +502,8 @@ export const TagHierarchyPage = ({
 
             setTagLinksByPath((prev) => ({ ...prev, ...nextLinks }));
         },
-        [mConfig]
+        [mConfig],
     );
-
-    const loadUnassignedTagLinks = useCallback(async () => {
-        if (!sHierarchyDocument) return;
-        if (sTagLinksByPath[UNASSIGNED_TREE_KEY]) return;
-
-        setLastQuery(buildGetUnassignedTagsByDocumentSql(mConfig, sHierarchyDocument));
-        const result = await getUnassignedTagsByDocument(mConfig, sHierarchyDocument);
-        if (result.success) {
-            setTagLinksByPath((prev) => ({ ...prev, [UNASSIGNED_TREE_KEY]: result.rows }));
-        } else {
-            setError(result.reason ?? 'Failed to load unassigned tags.');
-        }
-    }, [mConfig, sHierarchyDocument, sTagLinksByPath]);
 
     const refreshHierarchy = useCallback(async () => {
         if (!active || !sJsonColumn) return;
@@ -325,7 +520,12 @@ export const TagHierarchyPage = ({
             setHierarchyDocument(undefined);
             setValueTree([]);
             setTags([]);
-            setIssues([{ level: 'blocking', message: templateResult.reason ?? 'Failed to load hierarchy template.' }]);
+            setIssues([
+                {
+                    level: 'blocking',
+                    message: templateResult.reason ?? 'Failed to load hierarchy template.',
+                },
+            ]);
             setIsLoading(false);
             return;
         }
@@ -336,7 +536,14 @@ export const TagHierarchyPage = ({
             setValueTree([]);
             setSchemaDraft(DEFAULT_HIERARCHY_DOCUMENT.schema);
             setValueTreeDraft([]);
-            setIssues((templateResult.issues as HierarchyValidationIssue[] | undefined) ?? [{ level: 'blocking', message: 'No schema/tree hierarchy document found. Recreate the tree.' }]);
+            setIssues(
+                (templateResult.issues as HierarchyValidationIssue[] | undefined) ?? [
+                    {
+                        level: 'blocking',
+                        message: 'No schema/tree hierarchy document found. Recreate the tree.',
+                    },
+                ],
+            );
             setTags([]);
             setUnassignedCount(0);
             setIsLoading(false);
@@ -360,14 +567,31 @@ export const TagHierarchyPage = ({
         }
 
         setSelectedNode(EMPTY_SELECTED_NODE);
-        const expandedKeys = expandedPathKeysRef.current;
-        const expandedPaths = valuePathsFromTree(document.tree).filter((path) => expandedKeys.has(pathKey(path)));
-        const shouldReloadUnassignedLinks = expandedKeys.has(UNASSIGNED_TREE_KEY);
+        const allPaths = valuePathsFromTree(document.tree);
+        // First load (or a column switch) auto-expands only the top level (the single root): its
+        // immediate structure shows at once while deeper nodes load lazily on expand. Expanding the
+        // whole tree up front fired one tag-link query per node — a storm on large trees. Users can
+        // still open everything on demand via the "Expand all" control. Later refreshes keep the
+        // user's current expand/collapse state.
+        const shouldAutoExpand = autoExpandedColumnRef.current !== sJsonColumn;
+        let expandedPaths: HierarchyPathItem[][];
+        if (shouldAutoExpand) {
+            autoExpandedColumnRef.current = sJsonColumn;
+            const topLevelPaths = allPaths.filter((path) => path.length === 1);
+            const nextExpanded = new Set(topLevelPaths.map(pathKey));
+            nextExpanded.add(UNASSIGNED_TREE_KEY);
+            setExpandedPathKeys(nextExpanded);
+            expandedPaths = topLevelPaths;
+        } else {
+            const expandedKeys = expandedPathKeysRef.current;
+            expandedPaths = allPaths.filter((path) => expandedKeys.has(pathKey(path)));
+        }
 
         await Promise.all([
             loadTagsForNode(EMPTY_SELECTED_NODE, document),
             getUnassignedTagCountByDocument(mConfig, document).then(setUnassignedCount),
-            loadTagLinksForPaths(document, expandedPaths, { includeUnassigned: shouldReloadUnassignedLinks }),
+            // Unassigned tags always render in their own bottom pane, so always load their links.
+            loadTagLinksForPaths(document, expandedPaths, { includeUnassigned: true }),
         ]);
         setIsLoading(false);
     }, [active, loadTagLinksForPaths, loadTagsForNode, mConfig, sJsonColumn]);
@@ -391,15 +615,50 @@ export const TagHierarchyPage = ({
         setExpandedPathKeys(nextExpanded);
     };
 
-    const handleToggleUnassigned = async () => {
-        const nextExpanded = new Set(sExpandedPathKeys);
-        if (nextExpanded.has(UNASSIGNED_TREE_KEY)) {
-            nextExpanded.delete(UNASSIGNED_TREE_KEY);
-        } else {
-            nextExpanded.add(UNASSIGNED_TREE_KEY);
-            await loadUnassignedTagLinks();
+    // Expand every node along `path` (all ancestors + the node itself) so a tag
+    // dropped onto a collapsed branch is visible after the move. The ref is updated
+    // synchronously so the refresh that follows loads the newly-expanded links.
+    const expandPathToTarget = (path: HierarchyPathItem[]) => {
+        if (path.length === 0) return;
+        const next = new Set(expandedPathKeysRef.current);
+        for (let i = 1; i <= path.length; i += 1) next.add(pathKey(path.slice(0, i)));
+        expandedPathKeysRef.current = next;
+        setExpandedPathKeys(next);
+    };
+
+    // Spring-loaded folders: while dragging a tag, hovering a collapsed node for
+    // HOVER_EXPAND_MS auto-expands it so deeper drop targets appear. Applies at any
+    // depth — leaf-level nodes open too (revealing their tags), so the deepest
+    // branches are reachable without pre-expanding.
+    const disarmHoverExpand = () => {
+        if (hoverExpandRef.current) {
+            window.clearTimeout(hoverExpandRef.current.timer);
+            hoverExpandRef.current = null;
         }
-        setExpandedPathKeys(nextExpanded);
+    };
+
+    const armHoverExpand = (node: HierarchyChildRow) => {
+        const key = pathKey(node.path);
+        // Already-open nodes have nothing to spring; only collapsed nodes arm.
+        if (expandedPathKeysRef.current.has(key)) {
+            disarmHoverExpand();
+            return;
+        }
+        // Still over the same node — let the running countdown finish.
+        if (hoverExpandRef.current?.key === key) return;
+        disarmHoverExpand();
+        const timer = window.setTimeout(() => {
+            hoverExpandRef.current = null;
+            const next = new Set(expandedPathKeysRef.current);
+            if (next.has(key)) return;
+            next.add(key);
+            expandedPathKeysRef.current = next;
+            setExpandedPathKeys(next);
+            if (sHierarchyDocument && !sTagLinksByPath[key]) {
+                loadTagLinksForPaths(sHierarchyDocument, [node.path]);
+            }
+        }, HOVER_EXPAND_MS);
+        hoverExpandRef.current = { key, timer };
     };
 
     const handleExpandAllTree = async () => {
@@ -418,47 +677,123 @@ export const TagHierarchyPage = ({
     const handleSelectNode = async (node: SelectedNode) => {
         setSelectedNode(node);
         setError('');
-        if (node.isSkeleton) {
-            setTags([]);
-            setLastQuery('Template skeleton node. Fill hierarchy values in Attach Tags to create concrete metadata paths.');
-            return;
+        setTagPage(0);
+        setTagHasMore(false);
+        if (!node.isUnassigned && node.path.length > 0) setPlacementTargetKey(pathKey(node.path));
+        await loadTagsForNode(node, sHierarchyDocument, 0);
+    };
+
+    // Phase 6: the per-row/per-node "⋯" opens the tags + query detail view.
+    const openNodeDetail = async (node: SelectedNode) => {
+        clearTagSelection();
+        setDetailOpen(true);
+        setActiveTab('tags');
+        await handleSelectNode(node);
+    };
+
+    const openTagDetail = (row: HierarchyTagRow) => {
+        clearTagSelection();
+        setDetailOpen(true);
+        setActiveTab('tags');
+        setTags([row]);
+        setTagHasMore(false);
+        setLastQuery('');
+    };
+
+    // Phase 5: checkbox + SHIFT range tag selection.
+    const handleTagRowSelect = (tagName: string, orderedNames: string[], shiftKey: boolean) => {
+        setDetailOpen(false);
+        setSelectedTagNames((prev) => {
+            const next = new Set(prev);
+            if (
+                shiftKey &&
+                sSelectionAnchor &&
+                orderedNames.includes(sSelectionAnchor) &&
+                orderedNames.includes(tagName)
+            ) {
+                const start = orderedNames.indexOf(sSelectionAnchor);
+                const end = orderedNames.indexOf(tagName);
+                const [lo, hi] = start <= end ? [start, end] : [end, start];
+                for (let i = lo; i <= hi; i += 1) next.add(orderedNames[i]);
+            } else if (next.has(tagName)) {
+                next.delete(tagName);
+            } else {
+                next.add(tagName);
+            }
+            return next;
+        });
+        if (!shiftKey) setSelectionAnchor(tagName);
+    };
+
+    const toggleSelectAll = (names: string[]) => {
+        setDetailOpen(false);
+        setSelectedTagNames((prev) => {
+            const allSelected = names.length > 0 && names.every((name) => prev.has(name));
+            const next = new Set(prev);
+            if (allSelected) names.forEach((name) => next.delete(name));
+            else names.forEach((name) => next.add(name));
+            return next;
+        });
+    };
+
+    const handlePlaceSelectedTags = async () => {
+        const names = Array.from(sSelectedTagNames);
+        if (names.length === 0 || mPlacementTargetPath.length === 0 || sKeys.length === 0) return;
+        setIsSaving(true);
+        setLastQuery(buildMoveTagsToHierarchyPathSql(mConfig, names, sKeys, mPlacementTargetPath));
+        const result = await moveTagsToHierarchyPath(mConfig, names, sKeys, mPlacementTargetPath);
+        if (result.svrState) {
+            Toast.success(`${names.length} tag(s) placed.`);
+            clearTagSelection();
+            expandPathToTarget(mPlacementTargetPath);
+            await refreshHierarchy();
+        } else {
+            setError(result.svrReason ?? 'Failed to place tags.');
         }
-        await loadTagsForNode(node, sHierarchyDocument);
+        setIsSaving(false);
     };
 
-    const openMoveTagModal = (row: HierarchyTagRow) => {
-        const pathOptions = sKeys.length > 0 ? [sKeys] : [];
-        const attachKeys = pathOptions[0] ?? [];
-        setAttachPathOptions(pathOptions);
-        setAttachPathIndex(0);
-        setAttachKeys(attachKeys);
-        setAttachValues(Object.fromEntries(attachKeys.map((key) => [key, ''])));
-        setModalValue(row.name);
-        setModal('attach');
+    const handleDetachSelectedTags = async () => {
+        const names = mPlacedSelectedNames;
+        if (names.length === 0 || sKeys.length === 0) return;
+        setIsSaving(true);
+        setLastQuery(buildDetachTagsSql(mConfig, names, sKeys));
+        const result = await detachTagsFromHierarchy(mConfig, names, sKeys);
+        if (result.svrState) {
+            Toast.success(`${names.length} tag(s) moved to unassigned.`);
+            clearTagSelection();
+            await refreshHierarchy();
+        } else {
+            setError(result.svrReason ?? 'Failed to unassign tags.');
+        }
+        setIsSaving(false);
     };
 
-    const handleAttachPathChange = (index: number) => {
-        const attachKeys = sAttachPathOptions[index] ?? [];
-        setAttachPathIndex(index);
-        setAttachKeys(attachKeys);
-        setAttachValues((prev) => Object.fromEntries(attachKeys.map((key) => [key, prev[key] ?? ''])));
+    const clearTagSelection = () => {
+        setSelectedTagNames(new Set());
+        setSelectionAnchor('');
     };
 
     const startTemplateEdit = () => {
         setSchemaDraft(sKeys.length > 0 ? sKeys : DEFAULT_HIERARCHY_DOCUMENT.schema);
         setValueTreeDraft(cloneValueTree(sValueTree));
+        // editing screen never shows tags (Phase 7): drop selection + detail before entering.
+        clearTagSelection();
+        setDetailOpen(false);
+        setSchemaEditorOpen(false);
         setIsTemplateEditing(true);
-        setActiveTab('validation');
     };
 
     const cancelTemplateEdit = () => {
         setSchemaDraft(sKeys.length > 0 ? sKeys : DEFAULT_HIERARCHY_DOCUMENT.schema);
         setValueTreeDraft(cloneValueTree(sValueTree));
         setIsTemplateEditing(false);
-        setActiveTab('tags');
     };
 
-    const updateTemplateDraftAtPath = (nodePath: number[], update: (node: HierarchyValueNode) => HierarchyValueNode) => {
+    const updateTemplateDraftAtPath = (
+        nodePath: number[],
+        update: (node: HierarchyValueNode) => HierarchyValueNode,
+    ) => {
         const updateNodes = (nodes: HierarchyValueNode[], depth = 0): HierarchyValueNode[] =>
             nodes.map((node, index) => {
                 if (index !== nodePath[depth]) return node;
@@ -469,44 +804,98 @@ export const TagHierarchyPage = ({
         setValueTreeDraft((prev) => updateNodes(prev));
     };
 
-    const addTemplateDraftNode = (parentPath?: number[]) => {
-        const depth = parentPath ? parentPath.length : 0;
-        const newNode = { key: sSchemaDraft[depth] ?? 'new_level', value: 'new_value', children: [] };
-        if (!parentPath) {
-            setValueTreeDraft((prev) => prev.concat(newNode));
+    // --- Keyboard outliner for the value tree -------------------------------
+    // Enter=sibling, Tab=indent, Shift+Tab=outdent, Backspace(empty leaf)=delete.
+    // Each op replaces the draft and queues the affected row for focus.
+    const handleTreeAddRoot = () => {
+        // Only one depth-1 node may exist, so this seeds the root only when empty.
+        if (sValueTreeDraft.length > 0) return;
+        setFocusTreePath([0]);
+        setValueTreeDraft([{ key: sSchemaDraft[0] ?? '', value: '', children: [] }]);
+    };
+
+    const handleTreeSibling = (path: number[]) => {
+        // The root can't take a sibling (single depth-1 node), so Enter there seeds
+        // a first child one level deeper instead — the only keyboard path from a
+        // freshly created root into the rest of the tree.
+        if (path.length === 1) {
+            const result = insertHierarchyValueChild(sValueTreeDraft, path, sSchemaDraft);
+            if (!result) return;
+            setValueTreeDraft(result.tree);
+            setFocusTreePath(result.focusPath);
             return;
         }
-
-        updateTemplateDraftAtPath(parentPath, (node) => ({ ...node, children: node.children.concat(newNode) }));
+        const { tree, focusPath } = insertHierarchyValueSibling(
+            sValueTreeDraft,
+            path,
+            sSchemaDraft,
+        );
+        setValueTreeDraft(tree);
+        setFocusTreePath(focusPath);
     };
 
-    const addTemplateDraftSibling = (nodePath: number[]) => {
-        if (nodePath.length <= 1) return;
+    const handleTreeIndent = (path: number[]) => {
+        const result = indentHierarchyValueNode(sValueTreeDraft, path, sSchemaDraft);
+        if (!result) return;
+        setValueTreeDraft(result.tree);
+        setFocusTreePath(result.focusPath);
+    };
 
-        const insertSibling = (nodes: HierarchyValueNode[], depth = 0): HierarchyValueNode[] => {
-            if (depth === nodePath.length - 1) {
-                const current = nodes[nodePath[depth]];
-                const next = nodes.slice();
-                next.splice(nodePath[depth] + 1, 0, { key: current?.key ?? sSchemaDraft[depth] ?? 'new_level', value: 'new_value', children: [] });
-                return next;
+    const handleTreeOutdent = (path: number[]) => {
+        const result = outdentHierarchyValueNode(sValueTreeDraft, path);
+        if (!result) return;
+        setValueTreeDraft(result.tree);
+        setFocusTreePath(result.focusPath);
+    };
+
+    const handleTreeDelete = (path: number[], node: HierarchyValueNode) => {
+        if (!canRemoveHierarchyValueNode(node)) return;
+        const { tree, focusPath } = removeHierarchyValueNodeAt(sValueTreeDraft, path);
+        setValueTreeDraft(tree);
+        setFocusTreePath(focusPath ?? (tree.length > 0 ? [0] : null));
+    };
+
+    const handleTreeMove = (path: number[], direction: 1 | -1) => {
+        const result = moveHierarchyValueNode(sValueTreeDraft, path, direction);
+        if (!result) return;
+        setValueTreeDraft(result.tree);
+        setFocusTreePath(result.focusPath);
+    };
+
+    const handleTreeKeyDown = (
+        event: React.KeyboardEvent<HTMLInputElement>,
+        path: number[],
+        node: HierarchyValueNode,
+    ) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            handleTreeSibling(path);
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            if (event.shiftKey) handleTreeOutdent(path);
+            else handleTreeIndent(path);
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const direction: 1 | -1 = event.key === 'ArrowDown' ? 1 : -1;
+            // Alt+Arrow reorders the active row. Exclude Ctrl+Alt so Windows/EU
+            // AltGr (which also sets altKey) doesn't move rows while typing.
+            if (event.altKey && !event.ctrlKey) {
+                handleTreeMove(path, direction);
+            } else {
+                // Arrow: move focus between rows in pre-order (no structural change).
+                const paths = flattenValueTreePaths(sValueTreeDraft);
+                const current = paths.findIndex((p) => p.join('-') === path.join('-'));
+                const target = current + direction;
+                if (target >= 0 && target < paths.length) setFocusTreePath(paths[target]);
             }
-
-            return nodes.map((node, index) => (index === nodePath[depth] ? { ...node, children: insertSibling(node.children, depth + 1) } : node));
-        };
-
-        setValueTreeDraft((prev) => insertSibling(prev));
-    };
-
-    const removeTemplateDraftNode = (nodePath: number[]) => {
-        const node = nodeAtPath(sValueTreeDraft, nodePath);
-        if (!node || !canRemoveHierarchyValueNode(node)) return;
-
-        const removeNode = (nodes: HierarchyValueNode[], depth = 0): HierarchyValueNode[] => {
-            if (depth === nodePath.length - 1) return nodes.filter((_, index) => index !== nodePath[depth]);
-            return nodes.map((node, index) => (index === nodePath[depth] ? { ...node, children: removeNode(node.children, depth + 1) } : node));
-        };
-
-        setValueTreeDraft((prev) => removeNode(prev));
+        } else if (
+            event.key === 'Backspace' &&
+            node.value === '' &&
+            canRemoveHierarchyValueNode(node)
+        ) {
+            event.preventDefault();
+            handleTreeDelete(path, node);
+        }
     };
 
     const updateSchemaDraft = (index: number, value: string) => {
@@ -514,6 +903,8 @@ export const TagHierarchyPage = ({
     };
 
     const addSchemaDraftKey = () => {
+        // The appended level lands at the current end, so its index is the pre-add length.
+        setFocusSchemaIndex(sSchemaDraft.length);
         setSchemaDraft((prev) => prev.concat(`level_${prev.length + 1}`));
     };
 
@@ -523,27 +914,76 @@ export const TagHierarchyPage = ({
     };
 
     const schemaKeyRemoveReason = (index: number) => {
-        if (index !== sSchemaDraft.length - 1) return 'Remove schema keys from the deepest depth first.';
-        if (hierarchyTreeHasDepth(sValueTreeDraft, index)) return 'Remove all tree nodes at this depth before removing the schema key.';
+        if (index !== sSchemaDraft.length - 1)
+            return 'Remove schema keys from the deepest depth first.';
+        if (hierarchyTreeHasDepth(sValueTreeDraft, index))
+            return 'Remove all tree nodes at this depth before removing the schema key.';
         return '';
     };
 
+    // JSON-path index lifecycle: on persist, create an index for each newly added schema key and
+    // drop the index for each removed key. Index failures are NON-FATAL — a saved document must not
+    // be rolled back by an index hiccup; failures surface as validation warnings instead.
+    const applySchemaIndexLifecycle = async (previousSchema: string[], nextSchema: string[]) => {
+        const addedKeys = nextSchema.filter((key) => key && !previousSchema.includes(key));
+        const removedKeys = previousSchema.filter((key) => key && !nextSchema.includes(key));
+        const sqls: string[] = [];
+        const warnings: string[] = [];
+        for (const key of addedKeys) {
+            const res = await createJsonPathIndex(mConfig, key);
+            sqls.push(res.sql);
+            if (!res.success)
+                warnings.push(`Index create failed for "${key}": ${res.reason ?? 'unknown error'}`);
+        }
+        for (const key of removedKeys) {
+            const res = await dropJsonPathIndex(mConfig, key);
+            sqls.push(res.sql);
+            if (!res.success)
+                warnings.push(`Index drop failed for "${key}": ${res.reason ?? 'unknown error'}`);
+        }
+
+        return { sqls, warnings };
+    };
+
     const saveTemplateEdit = async () => {
-        const document = { schema: sSchemaDraft.map((key) => key.trim()), tree: normalizeTreeKeys(sValueTreeDraft, sSchemaDraft.map((key) => key.trim())) };
+        const document = {
+            schema: sSchemaDraft.map((key) => key.trim()),
+            tree: normalizeTreeKeys(
+                sValueTreeDraft,
+                sSchemaDraft.map((key) => key.trim()),
+            ),
+        };
         const issues = validateHierarchyDocument(document);
         setIssues(issues);
 
         if (issues.some((issue) => issue.level === 'blocking')) return;
 
         setIsSaving(true);
+        const previousSchema = sKeys;
         const result = await updateHierarchyTemplate(mConfig, document);
         if (result.svrState) {
-            Toast.success('Hierarchy template updated.');
+            const { sqls, warnings } = await applySchemaIndexLifecycle(
+                previousSchema,
+                document.schema,
+            );
             await refreshHierarchy();
             setSchemaDraft(document.schema);
             setValueTreeDraft(cloneValueTree(document.tree));
             setIsTemplateEditing(true);
-            setActiveTab('validation');
+            setSchemaEditorOpen(false);
+            if (sqls.length > 0) setLastQuery(sqls.join(';\n'));
+            if (warnings.length > 0) {
+                setIssues((prev) =>
+                    prev.concat(
+                        warnings.map((message) => ({ level: 'warning' as const, message })),
+                    ),
+                );
+                Toast.warning(
+                    'Hierarchy saved, but some index operations failed. See validation notes.',
+                );
+            } else {
+                Toast.success('Hierarchy template updated.');
+            }
         } else {
             setError(result.svrReason ?? 'Failed to update hierarchy template.');
         }
@@ -553,20 +993,32 @@ export const TagHierarchyPage = ({
     const handleInitializeHierarchy = async () => {
         setIsSaving(true);
         const document = DEFAULT_HIERARCHY_DOCUMENT;
-        const result = sHasHierarchyRow ? await updateHierarchyTemplate(mConfig, document) : await createHierarchyTemplate(mConfig, document);
-        const finalResult = !sHasHierarchyRow && !result.svrState ? await updateHierarchyTemplate(mConfig, document) : result;
+        const previousSchema = sKeys;
+        const result = sHasHierarchyRow
+            ? await updateHierarchyTemplate(mConfig, document)
+            : await createHierarchyTemplate(mConfig, document);
+        const finalResult =
+            !sHasHierarchyRow && !result.svrState
+                ? await updateHierarchyTemplate(mConfig, document)
+                : result;
         if (!finalResult.svrState) {
             setError(finalResult.svrReason ?? 'Failed to initialize hierarchy.');
             setIsSaving(false);
             return;
         }
 
+        const { sqls, warnings } = await applySchemaIndexLifecycle(previousSchema, document.schema);
         Toast.success(sHasHierarchyRow ? 'Hierarchy reset.' : 'Hierarchy initialized.');
         await refreshHierarchy();
         setSchemaDraft(document.schema);
         setValueTreeDraft(cloneValueTree(document.tree));
         setIsTemplateEditing(true);
-        setActiveTab('validation');
+        setSchemaEditorOpen(false);
+        if (sqls.length > 0) setLastQuery(sqls.join(';\n'));
+        if (warnings.length > 0)
+            setIssues((prev) =>
+                prev.concat(warnings.map((message) => ({ level: 'warning' as const, message }))),
+            );
         setIsSaving(false);
     };
 
@@ -587,222 +1039,324 @@ export const TagHierarchyPage = ({
         setIsCreatingAssetColumn(false);
     };
 
-    const handleAttach = async () => {
-        const names = sModalValue
-            .split(/[,\n]/)
+    // Drag payload: when the dragged tag is part of a multi-selection, carry the whole selection
+    // (newline-joined) so a single drag moves every selected tag at once.
+    const dragPayloadFor = (tagName: string) =>
+        sSelectedTagNames.has(tagName) && sSelectedTagNames.size > 1
+            ? Array.from(sSelectedTagNames).join('\n')
+            : tagName;
+    const parseDragPayload = (data: string) =>
+        data
+            .split('\n')
             .map((name) => name.trim())
             .filter(Boolean);
-        if (names.length === 0 || sSelectedNode.isUnassigned) return;
 
-        const targetPath = sAttachKeys.map((key) => ({ key, value: sAttachValues[key]?.trim() ?? '' }));
-        if (targetPath.some((item) => !item.value)) {
-            setError('All hierarchy values are required before attaching tags.');
-            return;
+    // Start a tag drag. For a multi-tag drag, show a "{n} tags" badge as the drag image
+    // instead of the single dragged row (so the user can see how many are moving).
+    const startTagDrag = (event: React.DragEvent<HTMLDivElement>, tagName: string) => {
+        const payload = dragPayloadFor(tagName);
+        event.dataTransfer.setData('text/plain', payload);
+        event.dataTransfer.effectAllowed = 'move';
+
+        const count = parseDragPayload(payload).length;
+        if (count > 1) {
+            const ghost = document.createElement('div');
+            ghost.textContent = `${count} tags`;
+            ghost.className = styles.dragGhost;
+            document.body.appendChild(ghost);
+            event.dataTransfer.setDragImage(ghost, 12, 12);
+            window.setTimeout(() => ghost.remove(), 0);
         }
+    };
+
+    const handleDropTagsOnNode = async (payload: string, targetPath: HierarchyPathItem[]) => {
+        const names = parseDragPayload(payload);
+        if (!canEdit || names.length === 0 || sKeys.length === 0) return;
 
         setIsSaving(true);
-        setLastQuery(buildAttachTagsSql(mConfig, names, targetPath));
-        const result = await attachTagsToPath(mConfig, names, targetPath);
+        setLastQuery(buildMoveTagsToHierarchyPathSql(mConfig, names, sKeys, targetPath));
+        const result = await moveTagsToHierarchyPath(mConfig, names, sKeys, targetPath);
         if (result.svrState) {
-            Toast.success('Tags attached.');
-            setModal(undefined);
-            setModalValue('');
-            setAttachValues({});
-            setAttachKeys([]);
-            setAttachPathOptions([]);
-            setAttachPathIndex(0);
+            Toast.success(`${names.length} tag(s) moved.`);
+            clearTagSelection();
+            expandPathToTarget(targetPath);
             await refreshHierarchy();
         } else {
-            setError(result.svrReason ?? 'Failed to attach tags.');
+            setError(result.svrReason ?? 'Failed to move tags.');
         }
         setIsSaving(false);
     };
 
-    const handleDropTagOnNode = async (tagName: string, targetPath: HierarchyPathItem[]) => {
-        if (!canEdit || !tagName || sKeys.length === 0) return;
+    // Dropping onto "Unassigned Tags" detaches the dragged tag(s) from the hierarchy.
+    const handleDropTagsOnUnassigned = async (payload: string) => {
+        const names = parseDragPayload(payload);
+        if (!canEdit || names.length === 0 || sKeys.length === 0) return;
 
         setIsSaving(true);
-        setLastQuery(buildMoveTagsToHierarchyPathSql(mConfig, [tagName], sKeys, targetPath));
-        const result = await moveTagsToHierarchyPath(mConfig, [tagName], sKeys, targetPath);
+        setLastQuery(buildDetachTagsSql(mConfig, names, sKeys));
+        const result = await detachTagsFromHierarchy(mConfig, names, sKeys);
         if (result.svrState) {
-            Toast.success('Tag moved.');
+            Toast.success(`${names.length} tag(s) moved to unassigned.`);
+            clearTagSelection();
             await refreshHierarchy();
         } else {
-            setError(result.svrReason ?? 'Failed to move tag.');
+            setError(result.svrReason ?? 'Failed to unassign tags.');
         }
         setIsSaving(false);
     };
 
-    const renderNode = (node: HierarchyChildRow, depth: number): React.ReactNode => {
+    // Single tree-node row (no recursion — descendants are flattened into mTreeRows).
+    const renderTreeNodeRow = (node: HierarchyChildRow, depth: number): React.ReactNode => {
         const key = pathKey(node.path);
-        const valueChildren = childrenForValuePath(sValueTree, node.path);
-        const canExpand = true;
         const isExpanded = sExpandedPathKeys.has(key);
-        const isSelected = mSelectedPathKey === key && !sSelectedNode.isUnassigned && !sSelectedNode.isSkeleton;
-        const matchesSearch = !sSearchText || node.value.toLowerCase().includes(sSearchText.toLowerCase()) || node.key.toLowerCase().includes(sSearchText.toLowerCase());
+        const isSelected = mSelectedPathKey === key && !sSelectedNode.isUnassigned;
 
         return (
-            <React.Fragment key={key}>
-                {matchesSearch ? (
-                    <button
-                        type="button"
-                        className={[styles.node, isSelected ? styles.selected : ''].filter(Boolean).join(' ')}
-                        style={{ paddingLeft: `${6 + depth * 16}px` }}
-                        onClick={() => handleSelectNode({ path: node.path })}
-                        onContextMenu={(event) => {
-                            event.preventDefault();
-                            startTemplateEdit();
-                        }}
-                        onDragOver={(event) => {
-                            if (canEdit) event.preventDefault();
-                        }}
-                        onDrop={(event) => {
-                            event.preventDefault();
-                            handleDropTagOnNode(event.dataTransfer.getData('text/plain'), node.path);
-                        }}
-                    >
-                        <span
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                handleToggleNode(node);
-                            }}
-                        >
-                            {canExpand ? isExpanded ? <FiChevronDown /> : <FiChevronRight /> : <span style={{ display: 'inline-block', width: 16 }} />}
-                        </span>
-                        <span>{node.value}</span>
-                        <span className={styles.nodeMeta}>{node.key}</span>
-                    </button>
-                ) : null}
-                {isExpanded ? (
-                    <>
-                        {renderTagLinks(node.path, depth + 1)}
-                        {valueChildren.length > 0 ? renderChildLayer(node.path, depth + 1) : null}
-                    </>
-                ) : null}
-            </React.Fragment>
-        );
-    };
-
-    const renderChildLayer = (parentPath: HierarchyPathItem[], depth: number): React.ReactNode => {
-        const valueChildren = childrenForValuePath(sValueTree, parentPath);
-        const rows = valueChildren.map((child) => {
-            const path = parentPath.concat({ key: child.key, value: child.value });
-            return { key: child.key, value: child.value, path, tagCount: 0 };
-        });
-
-        return <>{rows.map((child) => renderNode(child, depth))}</>;
-    };
-
-    const renderTagLinks = (parentPath: HierarchyPathItem[], depth: number): React.ReactNode => {
-        const rows = sTagLinksByPath[pathKey(parentPath)] ?? [];
-        const filteredRows = sSearchText ? rows.filter((row) => row.name.toLowerCase().includes(sSearchText.toLowerCase())) : rows;
-
-        return filteredRows.map((row) => (
             <div
-                key={`${pathKey(parentPath)}::tag::${row.name}`}
-                className={[styles.node, styles.tagNode].join(' ')}
+                className={[
+                    styles.node,
+                    isSelected ? styles.selected : '',
+                    sDragOverKey === key ? styles.dragOver : '',
+                ]
+                    .filter(Boolean)
+                    .join(' ')}
                 style={{ paddingLeft: `${6 + depth * 16}px` }}
-                draggable={canEdit}
-                onDragStart={(event) => {
-                    event.dataTransfer.setData('text/plain', row.name);
-                    event.dataTransfer.effectAllowed = 'move';
+                onClick={() => {
+                    handleSelectNode({ path: node.path });
+                    handleToggleNode(node);
+                }}
+                onContextMenu={(event) => {
+                    event.preventDefault();
+                    startTemplateEdit();
+                }}
+                onDragOver={(event) => {
+                    if (canEdit) {
+                        event.preventDefault();
+                        setDragOverKey(key);
+                        armHoverExpand(node);
+                    }
+                }}
+                onDragLeave={(event) => {
+                    setDragOverKey((current) => (current === key ? '' : current));
+                    // Cancel the spring-load only when genuinely leaving the node
+                    // (not when the pointer moves onto one of its inner spans).
+                    const related = event.relatedTarget as Node | null;
+                    if (
+                        hoverExpandRef.current?.key === key &&
+                        !event.currentTarget.contains(related)
+                    ) {
+                        disarmHoverExpand();
+                    }
+                }}
+                onDrop={(event) => {
+                    event.preventDefault();
+                    setDragOverKey('');
+                    disarmHoverExpand();
+                    handleDropTagsOnNode(event.dataTransfer.getData('text/plain'), node.path);
                 }}
             >
-                <button
-                    type="button"
-                    className={styles.tagLinkButton}
-                    onClick={() => {
-                        setTags([row]);
+                <span
+                    className={styles.nodeToggle}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        handleToggleNode(node);
                     }}
                 >
-                    <FiTag />
-                    <span>{row.name}</span>
-                </button>
-                <button type="button" className={styles.inlineAction} disabled={!canEdit} onClick={() => openMoveTagModal(row)}>
-                    Move
-                </button>
-            </div>
-        ));
-    };
-
-    const renderUnassignedTagLinks = (depth: number): React.ReactNode => {
-        const rows = sTagLinksByPath[UNASSIGNED_TREE_KEY] ?? [];
-        const filteredRows = sSearchText ? rows.filter((row) => row.name.toLowerCase().includes(sSearchText.toLowerCase())) : rows;
-
-        return filteredRows.map((row) => (
-            <div
-                key={`${UNASSIGNED_TREE_KEY}::tag::${row.name}`}
-                className={[styles.node, styles.tagNode].join(' ')}
-                style={{ paddingLeft: `${6 + depth * 16}px` }}
-                draggable={canEdit}
-                onDragStart={(event) => {
-                    event.dataTransfer.setData('text/plain', row.name);
-                    event.dataTransfer.effectAllowed = 'move';
-                }}
-            >
-                <button
-                    type="button"
-                    className={styles.tagLinkButton}
-                    onClick={() => {
-                        setTags([row]);
-                    }}
-                >
-                    <FiTag />
-                    <span>{row.name}</span>
-                </button>
-                <button type="button" className={styles.inlineAction} disabled={!canEdit} onClick={() => openMoveTagModal(row)}>
-                    Move
-                </button>
-            </div>
-        ));
-    };
-
-    const renderTemplateEditorNode = (node: HierarchyValueNode, nodePath: number[], depth: number): React.ReactNode => {
-        const canRemoveNode = canRemoveHierarchyValueNode(node);
-
-        return (
-            <React.Fragment key={`template-edit-${nodePath.join('-')}`}>
-                <div className={styles.templateEditorRow} style={{ marginLeft: depth * 16 }}>
-                    <span className={styles.label}>{node.key}</span>
-                    <input
-                        className={styles.input}
-                        style={{ flex: 1 }}
-                        value={node.value}
-                        onChange={(event) => updateTemplateDraftAtPath(nodePath, (current) => ({ ...current, value: event.target.value }))}
+                    <FiChevronRight
+                        className={[styles.chevron, isExpanded ? styles.chevronExpanded : '']
+                            .filter(Boolean)
+                            .join(' ')}
                     />
-                    <Button size="sm" variant="secondary" disabled={depth + 1 >= sSchemaDraft.length} onClick={() => addTemplateDraftNode(nodePath)}>
-                        Add Child
-                    </Button>
-                    <Button size="sm" variant="secondary" disabled={depth === 0} onClick={() => addTemplateDraftSibling(nodePath)}>
-                        Add Sibling
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={!canRemoveNode}
-                        title={canRemoveNode ? undefined : 'Remove child tree nodes before removing this node.'}
-                        onClick={() => removeTemplateDraftNode(nodePath)}
-                    >
-                        Remove
-                    </Button>
-                </div>
-                {node.children.map((child, index) => renderTemplateEditorNode(child, nodePath.concat(index), depth + 1))}
-            </React.Fragment>
+                </span>
+                <span className={styles.nodeLabel}>
+                    <span>{node.value}</span>
+                    <span className={styles.nodeMeta}>{node.key}</span>
+                </span>
+                <IconButton
+                    className={styles.rowAction}
+                    aria-label={`Details for ${node.value}`}
+                    title="Details"
+                    size="icon"
+                    variant="ghost"
+                    icon={<FiMoreHorizontal />}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        openNodeDetail({ path: node.path });
+                    }}
+                />
+            </div>
         );
+    };
+
+    const renderTagRow = (
+        row: HierarchyTagRow,
+        keyPrefix: string,
+        depth: number,
+        orderedNames: string[],
+    ): React.ReactNode => {
+        const isSelected = sSelectedTagNames.has(row.name);
+        return (
+            <div
+                key={`${keyPrefix}::tag::${row.name}`}
+                className={[styles.node, styles.tagNode, isSelected ? styles.selected : '']
+                    .filter(Boolean)
+                    .join(' ')}
+                style={{ paddingLeft: `${6 + depth * 16}px` }}
+                draggable={canEdit}
+                onClick={(event) => handleTagRowSelect(row.name, orderedNames, event.shiftKey)}
+                onDragStart={(event) => startTagDrag(event, row.name)}
+                // Drag ended anywhere (drop or ESC-cancel): drop any pending spring-load.
+                onDragEnd={() => {
+                    disarmHoverExpand();
+                    setDragOverKey('');
+                }}
+            >
+                <input
+                    type="checkbox"
+                    className={styles.tagCheckbox}
+                    checked={isSelected}
+                    readOnly
+                    tabIndex={-1}
+                    aria-label={`Select ${row.name}`}
+                />
+                <span className={styles.tagLinkButton}>
+                    <FiTag />
+                    <span>{row.name}</span>
+                </span>
+                <IconButton
+                    className={styles.rowAction}
+                    aria-label={`Details for ${row.name}`}
+                    title="Details"
+                    size="icon"
+                    variant="ghost"
+                    icon={<FiMoreHorizontal />}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        openTagDetail(row);
+                    }}
+                />
+            </div>
+        );
+    };
+
+    // Render one flattened tree row (node or tag link) for both the virtualized
+    // and the plain-map code paths.
+    const renderTreeFlatRow = (item: TreeFlatRow): React.ReactNode =>
+        item.kind === 'node'
+            ? renderTreeNodeRow(item.node, item.depth)
+            : renderTagRow(item.row, item.parentKey, item.depth, item.orderedNames);
+
+    // Pre-order render of one outliner row + its descendants (flattened into one list).
+    const renderTreeEditorNode = (node: HierarchyValueNode, path: number[]): React.ReactNode[] => {
+        const key = path.join('-');
+        const depth = path.length; // 1-based, drives the badge number + indent
+        const canIndent = canIndentHierarchyValueNode(sValueTreeDraft, path, sSchemaDraft.length);
+        const canOutdent = canOutdentHierarchyValueNode(path);
+        const canDelete = canRemoveHierarchyValueNode(node);
+        const errors = mTreeErrorMap.get(key);
+
+        const rows: React.ReactNode[] = [
+            <div key={`tree-${key}`} className={styles.treeRowWrap}>
+                <div
+                    className={styles.treeRow}
+                    style={{ paddingLeft: (depth - 1) * TREE_INDENT_PX }}
+                >
+                    {Array.from({ length: depth - 1 }, (_, level) => (
+                        <span
+                            key={`guide-${level}`}
+                            className={styles.treeGuide}
+                            style={{ left: level * TREE_INDENT_PX + TREE_GUIDE_OFFSET_PX }}
+                            aria-hidden
+                        />
+                    ))}
+                    <span className={styles.schemaChipIndex}>{depth}</span>
+                    <Input
+                        ref={(el) => {
+                            if (el) treeInputRefs.current.set(key, el);
+                            else treeInputRefs.current.delete(key);
+                        }}
+                        className={styles.treeInput}
+                        size="sm"
+                        variant={errors ? 'error' : 'default'}
+                        value={node.value}
+                        placeholder={sSchemaDraft[depth - 1] ?? 'value'}
+                        onChange={(event) =>
+                            updateTemplateDraftAtPath(path, (current) => ({
+                                ...current,
+                                value: event.target.value,
+                            }))
+                        }
+                        onKeyDown={(event) => handleTreeKeyDown(event, path, node)}
+                    />
+                    <div className={styles.treeRowActions}>
+                        <IconButton
+                            className={styles.treeRowAction}
+                            aria-label="Indent (Tab)"
+                            title="Indent (Tab)"
+                            size="icon"
+                            variant="ghost"
+                            disabled={!canIndent}
+                            icon={<FiCornerDownRight />}
+                            onClick={() => handleTreeIndent(path)}
+                        />
+                        <IconButton
+                            className={styles.treeRowAction}
+                            aria-label="Outdent (Shift+Tab)"
+                            title="Outdent (Shift+Tab)"
+                            size="icon"
+                            variant="ghost"
+                            disabled={!canOutdent}
+                            icon={<FiCornerUpLeft />}
+                            onClick={() => handleTreeOutdent(path)}
+                        />
+                        <IconButton
+                            className={styles.treeRowAction}
+                            aria-label="Delete row"
+                            title={canDelete ? 'Delete row' : 'Delete child rows first.'}
+                            size="icon"
+                            variant="ghost"
+                            disabled={!canDelete}
+                            icon={<FiTrash2 />}
+                            onClick={() => handleTreeDelete(path, node)}
+                        />
+                    </div>
+                </div>
+                {errors ? (
+                    <div
+                        className={styles.treeRowError}
+                        style={{ paddingLeft: (depth - 1) * TREE_INDENT_PX + TREE_INDENT_PX }}
+                    >
+                        {errors.join(' · ')}
+                    </div>
+                ) : null}
+            </div>,
+        ];
+        node.children.forEach((child, index) => {
+            rows.push(...renderTreeEditorNode(child, path.concat(index)));
+        });
+        return rows;
     };
 
     if (jsonColumns.length === 0) {
         return (
             <div className={styles.container}>
                 <div className={styles.emptyState}>
-                    <div className={styles.emptyTitle}>Hierarchy requires a JSON metadata column</div>
+                    <div className={styles.emptyTitle}>
+                        Hierarchy requires a JSON metadata column
+                    </div>
                     <div className={styles.emptyText}>
                         {hasAssetColumn
                             ? `${DEFAULT_HIERARCHY_JSON_COLUMN} already exists, but it is not a JSON metadata column. Use a JSON metadata column for hierarchy.`
                             : `Create ${DEFAULT_HIERARCHY_JSON_COLUMN} as a JSON metadata column to store tag hierarchy values.`}
                     </div>
                     {sError ? <div className={styles.error}>{sError}</div> : null}
-                    <Button size="sm" variant="primary" disabled={!canEdit || hasAssetColumn} loading={sIsCreatingAssetColumn} onClick={handleCreateAssetColumn}>
+                    <Button
+                        size="sm"
+                        variant="primary"
+                        disabled={!canEdit || hasAssetColumn}
+                        loading={sIsCreatingAssetColumn}
+                        onClick={handleCreateAssetColumn}
+                    >
                         Create {DEFAULT_HIERARCHY_JSON_COLUMN}
                     </Button>
                     {sLastQuery ? <pre className={styles.queryBox}>{sLastQuery}</pre> : null}
@@ -814,188 +1368,712 @@ export const TagHierarchyPage = ({
     return (
         <div className={styles.container}>
             <div className={styles.toolbar}>
-                <div className={styles.toolbarGroup}>
-                    <span className={styles.label}>{tableName}</span>
-                    <select className={styles.select} value={sJsonColumn} onChange={(event) => setJsonColumn(event.target.value)}>
-                        {jsonColumns.map((column) => (
-                            <option key={column.name} value={column.name}>
-                                {column.name}
-                            </option>
-                        ))}
-                    </select>
-                    {!hasAssetColumn ? (
-                        <Button size="sm" variant="secondary" disabled={!canEdit} loading={sIsCreatingAssetColumn} onClick={handleCreateAssetColumn}>
-                            Create {DEFAULT_HIERARCHY_JSON_COLUMN}
-                        </Button>
-                    ) : null}
-                </div>
-                <div className={styles.actions}>
-                    {mHasTemplate ? (
-                        <Button size="sm" variant="secondary" disabled={!canEdit || sIsTemplateEditing} onClick={startTemplateEdit}>
-                            Edit Tree
-                        </Button>
-                    ) : null}
-                    <Button size="sm" variant="secondary" icon={<FiRefreshCcw />} loading={sIsLoading} onClick={refreshHierarchy}>
-                        Refresh
+                {/* <div className={styles.toolbarGroup}> */}
+                <Dropdown.Root
+                    options={jsonColumns.map((column) => ({
+                        label: column.name,
+                        value: column.name,
+                    }))}
+                    value={sJsonColumn}
+                    onChange={(value) => setJsonColumn(value)}
+                    disabled={sIsTemplateEditing}
+                >
+                    <Dropdown.Trigger style={{ height: '30px' }} />
+                    <Dropdown.Menu>
+                        <Dropdown.List />
+                    </Dropdown.Menu>
+                </Dropdown.Root>
+                {!hasAssetColumn ? (
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={!canEdit}
+                        loading={sIsCreatingAssetColumn}
+                        onClick={handleCreateAssetColumn}
+                    >
+                        Create {DEFAULT_HIERARCHY_JSON_COLUMN}
                     </Button>
-                </div>
+                ) : null}
+                {/* </div> */}
+                {sIsTemplateEditing ? (
+                    <div className={styles.toolbarEditActions}>
+                        <span className={styles.editorStatus}>
+                            <span
+                                className={
+                                    mBlockingCount > 0 ? styles.statusDotError : styles.statusDotOk
+                                }
+                            />
+                            {mBlockingCount > 0
+                                ? `${mBlockingCount} validation issue${mBlockingCount > 1 ? 's' : ''}`
+                                : 'No validation issues.'}
+                        </span>
+                        <Button.Group>
+                            <Button
+                                size="sm"
+                                variant="primary"
+                                loading={sIsSaving}
+                                onClick={saveTemplateEdit}
+                            >
+                                Save Tree
+                            </Button>
+                            <Button size="sm" variant="secondary" onClick={cancelTemplateEdit}>
+                                Cancel
+                            </Button>
+                        </Button.Group>
+                    </div>
+                ) : (
+                    <Button.Group>
+                        {mHasTemplate ? (
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={!canEdit}
+                                onClick={startTemplateEdit}
+                            >
+                                Edit Tree
+                            </Button>
+                        ) : (
+                            // Empty state has no in-tree search refresh icon, so keep a
+                            // toolbar Refresh here as the only way to re-check the column.
+                            <Button
+                                size="sm"
+                                variant="secondary"
+                                loading={sIsLoading}
+                                onClick={refreshHierarchy}
+                            >
+                                Refresh
+                            </Button>
+                        )}
+                    </Button.Group>
+                )}
             </div>
             {!mHasTemplate ? (
                 <div className={styles.emptyState}>
-                    <div className={styles.emptyTitle}>{sHasHierarchyRow ? 'Tree data needs reset' : 'Tree is not set up yet'}</div>
+                    <div className={styles.emptyTitle}>
+                        {sHasHierarchyRow ? 'Tree data needs reset' : 'Tree is not set up yet'}
+                    </div>
                     <div className={styles.emptyText}>
                         {sHasHierarchyRow
                             ? `The hierarchy data in ${sJsonColumn} is not in the current tree format. Reset it to start from a clean tree.`
                             : `Start a hierarchy tree for ${sJsonColumn}. A default schema and first root node will be created automatically.`}
                     </div>
                     {sError ? <div className={styles.error}>{sError}</div> : null}
-                    <Button size="sm" variant="primary" disabled={!canEdit} loading={sIsSaving} onClick={handleInitializeHierarchy}>
+                    <Button
+                        size="sm"
+                        variant="primary"
+                        disabled={!canEdit}
+                        loading={sIsSaving}
+                        onClick={handleInitializeHierarchy}
+                    >
                         {sHasHierarchyRow ? 'Reset Tree' : 'Start Tree Setup'}
                     </Button>
                 </div>
             ) : (
-                <div className={styles.body}>
-                    <div className={styles.treePane}>
-                        <div className={styles.treeHeader}>
-                            <input className={styles.input} style={{ width: '100%' }} value={sSearchText} placeholder="Search nodes" onChange={(event) => setSearchText(event.target.value)} />
-                            <div className={styles.treeActions}>
-                                <IconButton
-                                    aria-label="Expand all tree nodes"
-                                    title="Expand all"
-                                    size="icon"
-                                    variant="ghost"
-                                    icon={<FiChevronsDown />}
-                                    disabled={sIsLoading || !mHasTemplate}
-                                    onClick={handleExpandAllTree}
-                                />
-                                <IconButton
-                                    aria-label="Refresh tree"
-                                    title="Refresh tree"
-                                    size="icon"
-                                    variant="ghost"
-                                    icon={<FiRefreshCcw />}
-                                    disabled={sIsLoading}
-                                    onClick={refreshHierarchy}
-                                />
+                <SplitPane
+                    split="vertical"
+                    sizes={sIsTemplateEditing ? ['0%', '100%'] : sPaneSizes}
+                    onChange={setPaneSizes}
+                    allowResize={!sIsTemplateEditing}
+                >
+                    <Pane minSize={sIsTemplateEditing ? 0 : 240}>
+                        {!sIsTemplateEditing ? (
+                            <div className={styles.treePane}>
+                                <div className={styles.treeHeader} style={{ padding: '7px' }}>
+                                    <Input
+                                        size="sm"
+                                        fullWidth
+                                        leftIcon={<FiSearch />}
+                                        placeholder="Search nodes"
+                                        value={sSearchText}
+                                        onChange={(event) => setSearchText(event.target.value)}
+                                        rightIcon={
+                                            <Button.Group>
+                                                <IconButton
+                                                    className={styles.searchAction}
+                                                    aria-label="Expand all tree nodes"
+                                                    title="Expand all"
+                                                    size="xsm"
+                                                    variant="ghost"
+                                                    icon={<FiChevronsDown size={10} />}
+                                                    disabled={sIsLoading || !mHasTemplate}
+                                                    onClick={handleExpandAllTree}
+                                                />
+                                                <IconButton
+                                                    className={styles.searchAction}
+                                                    aria-label="Refresh tree"
+                                                    title="Refresh tree"
+                                                    size="xsm"
+                                                    variant="ghost"
+                                                    icon={<Refresh size={10} />}
+                                                    disabled={sIsLoading}
+                                                    onClick={refreshHierarchy}
+                                                />
+                                            </Button.Group>
+                                        }
+                                    />
+                                </div>
+                                <div className={styles.treeSplit}>
+                                    <div className={styles.treeSection}>
+                                        {sValueTree.length === 0 ? (
+                                            <div className={styles.message}>
+                                                Tree is empty. Use Edit Tree to set up the
+                                                hierarchy.
+                                            </div>
+                                        ) : mTreeRows.length > VIRTUALIZE_ROW_THRESHOLD ? (
+                                            <Virtuoso
+                                                className="scrollbar-dark"
+                                                style={{ height: '100%' }}
+                                                data={mTreeRows}
+                                                itemContent={(_, item) => renderTreeFlatRow(item)}
+                                            />
+                                        ) : (
+                                            mTreeRows.map((item) => (
+                                                <React.Fragment key={item.rowKey}>
+                                                    {renderTreeFlatRow(item)}
+                                                </React.Fragment>
+                                            ))
+                                        )}
+                                    </div>
+                                    <div
+                                        className={[
+                                            styles.unassignedPane,
+                                            sDragOverKey === UNASSIGNED_TREE_KEY
+                                                ? styles.dragOver
+                                                : '',
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ')}
+                                        onDragOver={(event) => {
+                                            if (canEdit) {
+                                                event.preventDefault();
+                                                setDragOverKey(UNASSIGNED_TREE_KEY);
+                                            }
+                                        }}
+                                        onDragLeave={() =>
+                                            setDragOverKey((current) =>
+                                                current === UNASSIGNED_TREE_KEY ? '' : current,
+                                            )
+                                        }
+                                        onDrop={(event) => {
+                                            event.preventDefault();
+                                            setDragOverKey('');
+                                            handleDropTagsOnUnassigned(
+                                                event.dataTransfer.getData('text/plain'),
+                                            );
+                                        }}
+                                    >
+                                        {/* Header is not clickable: detail opens via the ⋯ button only. */}
+                                        <div className={styles.unassignedHeader}>
+                                            <FiTag className={styles.unassignedIcon} />
+                                            <span
+                                                className={styles.unassignedTitle}
+                                                title="Unassigned Tags"
+                                            >
+                                                Unassigned Tags
+                                            </span>
+                                            <span className={styles.unassignedCount}>
+                                                {sUnassignedCount}
+                                            </span>
+                                            {mUnassignedNames.length > 0 ? (
+                                                <label className={styles.selectAll}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={mAllUnassignedSelected}
+                                                        readOnly
+                                                        onClick={() =>
+                                                            toggleSelectAll(mUnassignedNames)
+                                                        }
+                                                    />
+                                                    Select all
+                                                </label>
+                                            ) : null}
+                                            <IconButton
+                                                className={styles.unassignedDetailBtn}
+                                                aria-label="Details for unassigned tags"
+                                                title="Details"
+                                                size="icon"
+                                                variant="ghost"
+                                                icon={<FiMoreHorizontal />}
+                                                onClick={() =>
+                                                    openNodeDetail({ isUnassigned: true, path: [] })
+                                                }
+                                            />
+                                        </div>
+                                        <div className={styles.unassignedList}>
+                                            {mUnassignedRows.length === 0 ? (
+                                                <div className={styles.message}>
+                                                    No unassigned tags.
+                                                </div>
+                                            ) : mUnassignedRows.length >
+                                              VIRTUALIZE_ROW_THRESHOLD ? (
+                                                <Virtuoso
+                                                    className="scrollbar-dark"
+                                                    style={{ height: '100%' }}
+                                                    data={mUnassignedRows}
+                                                    itemContent={(_, row) =>
+                                                        renderTagRow(
+                                                            row,
+                                                            UNASSIGNED_TREE_KEY,
+                                                            0,
+                                                            mUnassignedNames,
+                                                        )
+                                                    }
+                                                />
+                                            ) : (
+                                                mUnassignedRows.map((row) =>
+                                                    renderTagRow(
+                                                        row,
+                                                        UNASSIGNED_TREE_KEY,
+                                                        0,
+                                                        mUnassignedNames,
+                                                    ),
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className={styles.tree}>
-                            {sValueTree.length === 0 ? <div className={styles.message}>Tree is empty. Click Edit Tree, then Add Root to create the first node.</div> : null}
-                            {renderChildLayer([], 0)}
-                            <button
-                                type="button"
-                                className={[styles.node, sSelectedNode.isUnassigned ? styles.selected : ''].filter(Boolean).join(' ')}
-                                onClick={() => handleSelectNode({ isUnassigned: true, path: [] })}
-                            >
-                                <span
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        handleToggleUnassigned();
-                                    }}
-                                >
-                                    {sExpandedPathKeys.has(UNASSIGNED_TREE_KEY) ? <FiChevronDown /> : <FiChevronRight />}
-                                </span>
-                                <span>Unassigned Tags</span>
-                                <span className={styles.nodeMeta}>{sUnassignedCount}</span>
-                            </button>
-                            {sExpandedPathKeys.has(UNASSIGNED_TREE_KEY) ? renderUnassignedTagLinks(1) : null}
-                        </div>
-                    </div>
-                    <div className={styles.details}>
-                        <div className={styles.summary}>
-                            <div className={styles.path}>{selectedNodeLabel(sSelectedNode)}</div>
-                        </div>
-                        <div className={styles.tabs}>
-                            {VISIBLE_DETAIL_TABS.map((tab) => (
-                                <button key={tab} type="button" className={[styles.tab, sActiveTab === tab ? styles.activeTab : ''].filter(Boolean).join(' ')} onClick={() => setActiveTab(tab)}>
-                                    {tab[0].toUpperCase() + tab.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-                        <div className={styles.panel}>
-                            {sError ? <div className={styles.error}>{sError}</div> : null}
-                            {sActiveTab === 'tags' ? (
-                                <CommonTable data={tagTableData(sTags)} showRowNumber showCopyButton activeRow emptyMessage="No tags." />
-                            ) : null}
-                            {sActiveTab === 'query' ? <pre className={styles.query}>{sLastQuery || 'No query executed.'}</pre> : null}
-                            {sActiveTab === 'validation' ? (
-                                <div>
-                                    {sIsTemplateEditing ? (
-                                        <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
-                                            <div className={styles.label}>Edit schema and value tree. Save updates the reserved `__machbase_hierarchy__` row.</div>
-                                            <div style={{ display: 'grid', gap: 6 }}>
-                                                {sSchemaDraft.map((key, index) => {
-                                                    const canRemoveSchemaKey = canRemoveHierarchySchemaKey(sSchemaDraft, sValueTreeDraft, index);
-                                                    return (
-                                                        <div key={`schema-${index}`} className={styles.templateEditorRow}>
-                                                            <span className={styles.label}>Depth {index + 1}</span>
-                                                            <input className={styles.input} style={{ flex: 1 }} value={key} onChange={(event) => updateSchemaDraft(index, event.target.value)} />
-                                                            <Button
-                                                                size="sm"
-                                                                variant="secondary"
-                                                                disabled={!canRemoveSchemaKey}
-                                                                title={canRemoveSchemaKey ? undefined : schemaKeyRemoveReason(index)}
-                                                                onClick={() => removeSchemaDraftKey(index)}
+                        ) : null}
+                    </Pane>
+                    <Pane minSize={320}>
+                        <div className={styles.details}>
+                            {sIsTemplateEditing ? (
+                                <div className={styles.editorScroll}>
+                                    {sError ? <div className={styles.error}>{sError}</div> : null}
+                                    <div style={{ display: 'grid', gap: 8 }}>
+                                        <div className={styles.label}>
+                                            Edit schema and value tree. Save updates the reserved{' '}
+                                            <code>__machbase_hierarchy__</code> row.
+                                        </div>
+                                        <div className={styles.schemaSection}>
+                                            <button
+                                                type="button"
+                                                className={styles.schemaHeader}
+                                                onClick={() => setSchemaEditorOpen((open) => !open)}
+                                            >
+                                                <FiChevronRight
+                                                    className={[
+                                                        styles.chevron,
+                                                        sSchemaEditorOpen
+                                                            ? styles.chevronExpanded
+                                                            : '',
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' ')}
+                                                />
+                                                <FiLayers className={styles.schemaIcon} />
+                                                <span className={styles.schemaTitle}>SCHEMA</span>
+                                                <span className={styles.schemaLevels}>
+                                                    · {sSchemaDraft.length} levels
+                                                </span>
+                                                {!sSchemaEditorOpen ? (
+                                                    <span className={styles.schemaBreadcrumb}>
+                                                        {sSchemaDraft.map((key, index) => (
+                                                            <span
+                                                                key={`schema-chip-${index}`}
+                                                                className={styles.schemaChip}
                                                             >
-                                                                Remove
-                                                            </Button>
-                                                        </div>
-                                                    );
-                                                })}
+                                                                <span
+                                                                    className={
+                                                                        styles.schemaChipIndex
+                                                                    }
+                                                                >
+                                                                    {index + 1}
+                                                                </span>
+                                                                {key}
+                                                            </span>
+                                                        ))}
+                                                    </span>
+                                                ) : null}
+                                                <span className={styles.schemaToggleLabel}>
+                                                    {sSchemaEditorOpen
+                                                        ? 'Collapse'
+                                                        : 'Expand to edit'}
+                                                </span>
+                                            </button>
+                                            <div
+                                                className={[
+                                                    styles.schemaCollapse,
+                                                    sSchemaEditorOpen
+                                                        ? styles.schemaCollapseOpen
+                                                        : '',
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' ')}
+                                            >
+                                                <div className={styles.schemaCollapseInner}>
+                                                    <div className={styles.schemaEditList}>
+                                                        {sSchemaDraft.map((key, index) => {
+                                                            const canRemoveSchemaKey =
+                                                                canRemoveHierarchySchemaKey(
+                                                                    sSchemaDraft,
+                                                                    sValueTreeDraft,
+                                                                    index,
+                                                                );
+                                                            const schemaErrors =
+                                                                mSchemaErrorMap.get(index);
+                                                            return (
+                                                                <div
+                                                                    key={`schema-${index}`}
+                                                                    className={
+                                                                        styles.schemaEditRowWrap
+                                                                    }
+                                                                    style={{
+                                                                        marginLeft: index * 22,
+                                                                    }}
+                                                                >
+                                                                    <div
+                                                                        className={[
+                                                                            styles.schemaEditRow,
+                                                                            index > 0
+                                                                                ? styles.schemaEditRowChild
+                                                                                : '',
+                                                                        ]
+                                                                            .filter(Boolean)
+                                                                            .join(' ')}
+                                                                    >
+                                                                        <Input
+                                                                            variant={
+                                                                                schemaErrors
+                                                                                    ? 'error'
+                                                                                    : 'default'
+                                                                            }
+                                                                            ref={(el) => {
+                                                                                schemaInputRefs.current[
+                                                                                    index
+                                                                                ] = el;
+                                                                            }}
+                                                                            className={
+                                                                                styles.schemaEditInput
+                                                                            }
+                                                                            size="sm"
+                                                                            fullWidth
+                                                                            value={key}
+                                                                            onChange={(event) =>
+                                                                                updateSchemaDraft(
+                                                                                    index,
+                                                                                    event.target
+                                                                                        .value,
+                                                                                )
+                                                                            }
+                                                                            addonBefore={
+                                                                                <span
+                                                                                    className={
+                                                                                        styles.schemaBadge
+                                                                                    }
+                                                                                >
+                                                                                    <span
+                                                                                        className={
+                                                                                            styles.schemaChipIndex
+                                                                                        }
+                                                                                    >
+                                                                                        {index + 1}
+                                                                                    </span>
+                                                                                </span>
+                                                                            }
+                                                                            addonAfter={
+                                                                                <span
+                                                                                    className={
+                                                                                        styles.schemaRowMeta
+                                                                                    }
+                                                                                >
+                                                                                    <span
+                                                                                        className={
+                                                                                            styles.schemaDepth
+                                                                                        }
+                                                                                    >
+                                                                                        depth{' '}
+                                                                                        {index + 1}
+                                                                                    </span>
+                                                                                    <IconButton
+                                                                                        className={
+                                                                                            styles.schemaRemove
+                                                                                        }
+                                                                                        aria-label={`Remove level ${index + 1}`}
+                                                                                        title={
+                                                                                            canRemoveSchemaKey
+                                                                                                ? 'Remove level'
+                                                                                                : schemaKeyRemoveReason(
+                                                                                                      index,
+                                                                                                  )
+                                                                                        }
+                                                                                        size="icon"
+                                                                                        variant="ghost"
+                                                                                        disabled={
+                                                                                            !canRemoveSchemaKey
+                                                                                        }
+                                                                                        icon={
+                                                                                            <FiX />
+                                                                                        }
+                                                                                        onClick={() =>
+                                                                                            removeSchemaDraftKey(
+                                                                                                index,
+                                                                                            )
+                                                                                        }
+                                                                                    />
+                                                                                </span>
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                    {schemaErrors ? (
+                                                                        <div
+                                                                            className={
+                                                                                styles.schemaRowError
+                                                                            }
+                                                                        >
+                                                                            {schemaErrors.join(
+                                                                                ' · ',
+                                                                            )}
+                                                                        </div>
+                                                                    ) : null}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        <button
+                                                            type="button"
+                                                            className={styles.schemaAddLevel}
+                                                            style={{
+                                                                marginLeft:
+                                                                    Math.max(
+                                                                        0,
+                                                                        sSchemaDraft.length - 1,
+                                                                    ) * 22,
+                                                            }}
+                                                            onClick={addSchemaDraftKey}
+                                                        >
+                                                            <FiPlus />
+                                                            Add level
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className={styles.actions}>
-                                                <Button size="sm" variant="secondary" onClick={addSchemaDraftKey}>
-                                                    Add Schema Key
-                                                </Button>
+                                        </div>
+                                        <div className={styles.treeEditor}>
+                                            <div className={styles.treeHints}>
+                                                <span className={styles.treeHint}>
+                                                    <kbd className={styles.kbd}>Enter</kbd> New row
+                                                </span>
+                                                <span className={styles.treeHint}>
+                                                    <kbd className={styles.kbd}>Tab</kbd> Indent
+                                                </span>
+                                                <span className={styles.treeHint}>
+                                                    <kbd className={styles.kbd}>⇧Tab</kbd> Outdent
+                                                </span>
+                                                <span className={styles.treeHint}>
+                                                    <kbd className={styles.kbd}>↑↓</kbd> Navigate
+                                                </span>
+                                                <span className={styles.treeHint}>
+                                                    <kbd className={styles.kbd}>
+                                                        {ALT_KEY_LABEL}↑↓
+                                                    </kbd>{' '}
+                                                    Move row
+                                                </span>
+                                                <span className={styles.treeHint}>
+                                                    <kbd className={styles.kbd}>⌫</kbd> Delete empty
+                                                </span>
                                             </div>
-                                            {sValueTreeDraft.map((node, index) => renderTemplateEditorNode(node, [index], 0))}
-                                            <div className={styles.actions}>
-                                                <Button size="sm" variant="secondary" disabled={sValueTreeDraft.length > 0} onClick={() => addTemplateDraftNode()}>
-                                                    Add Root
-                                                </Button>
-                                                <Button size="sm" variant="primary" loading={sIsSaving} onClick={saveTemplateEdit}>
-                                                    Save Tree
-                                                </Button>
-                                                <Button size="sm" variant="secondary" onClick={cancelTemplateEdit}>
-                                                    Cancel
-                                                </Button>
+                                            <div className={styles.treeRows}>
+                                                {sValueTreeDraft.flatMap((node, index) =>
+                                                    renderTreeEditorNode(node, [index]),
+                                                )}
+                                                {sValueTreeDraft.length === 0 ? (
+                                                    <button
+                                                        type="button"
+                                                        className={styles.schemaAddLevel}
+                                                        onClick={handleTreeAddRoot}
+                                                    >
+                                                        <FiPlus />
+                                                        Add row
+                                                    </button>
+                                                ) : null}
                                             </div>
+                                        </div>
+                                        {/* Node-level issues render inline on their row; only
+                                        schema/global issues and warnings remain here. */}
+                                        {[
+                                            ...mGlobalIssues,
+                                            ...sIssues.filter((issue) => issue.level === 'warning'),
+                                        ].map((issue, index) => (
+                                            <div
+                                                key={`${issue.level}-${index}`}
+                                                className={
+                                                    issue.level === 'blocking'
+                                                        ? styles.error
+                                                        : styles.warning
+                                                }
+                                            >
+                                                {issue.level}: {issue.message}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : sSelectedTagNames.size > 0 ? (
+                                <div className={styles.panel}>
+                                    {sError ? <div className={styles.error}>{sError}</div> : null}
+                                    <div className={styles.placementHeader}>
+                                        <strong>{sSelectedTagNames.size} selected</strong>
+                                        <span className={styles.placementCount}>
+                                            · {mPlacedSelectedNames.length} placed
+                                        </span>
+                                    </div>
+                                    <div className={styles.placementHint}>
+                                        Choose where to place (or move) the tags. You can also drag
+                                        them onto the tree on the left.
+                                    </div>
+                                    <div className={styles.label}>Target location</div>
+                                    <div className={styles.placementTargets}>
+                                        {mAllValuePaths.map((path) => {
+                                            const key = pathKey(path);
+                                            const last = path[path.length - 1];
+                                            return (
+                                                <label
+                                                    key={key}
+                                                    className={[
+                                                        styles.placementTarget,
+                                                        sPlacementTargetKey === key
+                                                            ? styles.selected
+                                                            : '',
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' ')}
+                                                    style={{
+                                                        paddingLeft: `${6 + (path.length - 1) * 16}px`,
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="placement-target"
+                                                        checked={sPlacementTargetKey === key}
+                                                        onChange={() => setPlacementTargetKey(key)}
+                                                    />
+                                                    <span>{last.value}</span>
+                                                    <span className={styles.nodeMeta}>
+                                                        {last.key}
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    {mPlacementTargetPath.length > 0 ? (
+                                        <div className={styles.placementBreadcrumb}>
+                                            <FiCornerDownRight /> Target{' '}
+                                            <span>
+                                                {mPlacementTargetPath
+                                                    .map((item) => item.value)
+                                                    .join(' › ')}
+                                            </span>
                                         </div>
                                     ) : null}
-                                    {sIssues.length === 0 ? <div className={styles.message}>No validation issues.</div> : null}
-                                    {sIssues.map((issue, index) => (
-                                        <div key={`${issue.level}-${index}`} className={issue.level === 'blocking' ? styles.error : styles.warning}>
-                                            {issue.level}: {issue.message}
-                                        </div>
-                                    ))}
+                                    <div className={styles.placementBar}>
+                                        <Button
+                                            className={styles.placementPrimary}
+                                            variant="primary"
+                                            loading={sIsSaving}
+                                            disabled={!canEdit || mPlacementTargetPath.length === 0}
+                                            onClick={handlePlaceSelectedTags}
+                                        >
+                                            Place {sSelectedTagNames.size} here
+                                        </Button>
+                                        <Button variant="secondary" onClick={clearTagSelection}>
+                                            Clear
+                                        </Button>
+                                    </div>
+                                    {mPlacedSelectedNames.length > 0 ? (
+                                        <Button
+                                            className={styles.placementFull}
+                                            variant="secondary"
+                                            icon={<FiRotateCcw />}
+                                            loading={sIsSaving}
+                                            disabled={!canEdit}
+                                            onClick={handleDetachSelectedTags}
+                                        >
+                                            Unassign ( {mPlacedSelectedNames.length} )
+                                        </Button>
+                                    ) : null}
+                                    <div className={styles.placementFootHint}>
+                                        <FiTag /> Click a tag to select. Shift+click for a range, or
+                                        use Select all.
+                                    </div>
                                 </div>
-                            ) : null}
+                            ) : sDetailOpen ? (
+                                <>
+                                    <div className={styles.summary}>
+                                        <div className={styles.path}>
+                                            {selectedNodeLabel(sSelectedNode)}
+                                        </div>
+                                    </div>
+                                    <div className={styles.tabs}>
+                                        {VISIBLE_DETAIL_TABS.map((tab) => (
+                                            <button
+                                                key={tab}
+                                                type="button"
+                                                className={[
+                                                    styles.tab,
+                                                    sActiveTab === tab ? styles.activeTab : '',
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(' ')}
+                                                onClick={() => setActiveTab(tab)}
+                                            >
+                                                {tab[0].toUpperCase() + tab.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className={styles.panel}>
+                                        {sError ? (
+                                            <div className={styles.error}>{sError}</div>
+                                        ) : null}
+                                        {sActiveTab === 'tags' ? (
+                                            <div className={styles.detailTableWrap}>
+                                                <CommonTable
+                                                    data={tagTableData(sTags)}
+                                                    showRowNumber
+                                                    showCopyButton
+                                                    activeRow
+                                                    style={{ padding: 0, height: '100%' }}
+                                                    emptyMessage="No tags."
+                                                    // Virtualized rows + paged loading on scroll-end,
+                                                    // the same pattern as the SQL result table. (Plain
+                                                    // infiniteScroll disables CommonTable's row
+                                                    // virtualization; onEndReached keeps it on.)
+                                                    onEndReached={loadMoreTags}
+                                                />
+                                            </div>
+                                        ) : null}
+                                        {sActiveTab === 'query' ? (
+                                            sLastQuery ? (
+                                                <div className={styles.queryWrapper}>
+                                                    <Button.Copy
+                                                        className={styles.queryCopy}
+                                                        size="side"
+                                                        variant="ghost"
+                                                        aria-label="Copy query"
+                                                        onClick={() => ClipboardCopy(sLastQuery)}
+                                                    />
+                                                    <pre className={styles.query}>{sLastQuery}</pre>
+                                                </div>
+                                            ) : (
+                                                <div className={styles.queryEmpty}>
+                                                    No query executed.
+                                                </div>
+                                            )
+                                        ) : null}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className={styles.panel}>
+                                    {sError ? <div className={styles.error}>{sError}</div> : null}
+                                    <div className={styles.message}>
+                                        Click a tag to select it for placement. Shift+click for a
+                                        range, or use Select all. Use ⋯ on a node or tag to view
+                                        tag/query details.
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                </div>
+                    </Pane>
+                </SplitPane>
             )}
-            {sModal === 'attach' ? (
-                <AttachTagsModal
-                    tagNames={sModalValue}
-                    values={sAttachValues}
-                    keys={sAttachKeys}
-                    pathOptions={sAttachPathOptions}
-                    selectedPathIndex={sAttachPathIndex}
-                    loading={sIsSaving}
-                    onTagNamesChange={setModalValue}
-                    onValueChange={(key, value) => setAttachValues((prev) => ({ ...prev, [key]: value }))}
-                    onPathChange={handleAttachPathChange}
-                    onClose={() => {
-                        setModal(undefined);
-                        setModalValue('');
-                        setAttachValues({});
-                        setAttachKeys([]);
-                        setAttachPathOptions([]);
-                        setAttachPathIndex(0);
-                    }}
-                    onConfirm={handleAttach}
-                />
-            ) : null}
         </div>
     );
 };

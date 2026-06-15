@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { LuFlipVertical } from 'react-icons/lu';
-import { Button, Page, CommonTable } from '@/design-system/components';
+import { Button, Page, CommonTable, Tabs } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -8,7 +8,17 @@ import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
 import { Refresh } from '@/assets/icons/Icon';
 import { MetaTablePage } from './metaTablePage';
-import { buildQualifiedTableName, CheckIndexFlag, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, E_TABLE_TYPE_COLOR, FetchCommonType, normalizeLogicalLengthInfo, resolveDisplayColumnInfo } from './utils';
+import {
+    buildQualifiedTableName,
+    CheckIndexFlag,
+    CheckTableFlag,
+    E_TABLE_INFO,
+    E_TABLE_TYPE,
+    E_TABLE_TYPE_COLOR,
+    FetchCommonType,
+    normalizeLogicalLengthInfo,
+    resolveDisplayColumnInfo,
+} from './utils';
 import { Tooltip } from 'react-tooltip';
 import { BiInfoCircle } from 'react-icons/bi';
 import { getUserName } from '@/utils';
@@ -31,7 +41,8 @@ const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) 
     );
 };
 
-const buildLogicalLengthQuery = (qualifiedTableName: string) => `show table ${qualifiedTableName} -a;`;
+const buildLogicalLengthQuery = (qualifiedTableName: string) =>
+    `show table ${qualifiedTableName} -a;`;
 
 const buildLogicalLengthQueries = ({
     dbName,
@@ -49,7 +60,8 @@ const buildLogicalLengthQueries = ({
     const normalizedUserName = userName?.toUpperCase();
     const normalizedCurrentUserName = currentUserName?.toUpperCase();
     const isLocalDatabase = databaseId === -1;
-    const isCurrentUserTable = !!normalizedUserName && normalizedUserName === normalizedCurrentUserName;
+    const isCurrentUserTable =
+        !!normalizedUserName && normalizedUserName === normalizedCurrentUserName;
 
     const candidates = [
         dbName && userName ? `${dbName}.${userName}.${tableName}` : '',
@@ -76,7 +88,15 @@ const RollupNameCell = ({ row, columns }: { row: (string | number)[]; columns: s
             <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>{rollupValue}</span>
-                    <BiInfoCircle data-tooltip-id={tooltipId} style={{ cursor: 'help', color: '#888', minWidth: '12px', maxWidth: '12px' }} />
+                    <BiInfoCircle
+                        data-tooltip-id={tooltipId}
+                        style={{
+                            cursor: 'help',
+                            color: '#888',
+                            minWidth: '12px',
+                            maxWidth: '12px',
+                        }}
+                    />
                 </div>
                 <Tooltip id={tooltipId} place="top" style={{ maxWidth: '400px', zIndex: 9999 }}>
                     <div>
@@ -116,14 +136,36 @@ const RollupGapCell = ({ row, columns }: { row: (string | number)[]; columns: st
 
         return (
             <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: '6px',
+                    }}
+                >
                     <span>{gapSum.toLocaleString()}</span>
-                    <BiInfoCircle data-tooltip-id={tooltipId} style={{ cursor: 'help', color: '#888', minWidth: '12px', maxWidth: '12px' }} />
+                    <BiInfoCircle
+                        data-tooltip-id={tooltipId}
+                        style={{
+                            cursor: 'help',
+                            color: '#888',
+                            minWidth: '12px',
+                            maxWidth: '12px',
+                        }}
+                    />
                 </div>
                 <Tooltip id={tooltipId} place="top" style={{ maxWidth: '500px', zIndex: 9999 }}>
                     <div>
-                        <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>Total: {gapSum.toLocaleString()}</div>
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '8px' }}>
+                        <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>
+                            Total: {gapSum.toLocaleString()}
+                        </div>
+                        <div
+                            style={{
+                                borderTop: '1px solid rgba(255,255,255,0.2)',
+                                paddingTop: '8px',
+                            }}
+                        >
                             <strong>Details:</strong>
                             <div>
                                 {gapArray.map((val: number, idx: number) => {
@@ -131,7 +173,9 @@ const RollupGapCell = ({ row, columns }: { row: (string | number)[]; columns: st
                                     return (
                                         <div key={idx} style={{ whiteSpace: 'nowrap' }}>
                                             <span>{src}</span>
-                                            <span style={{ fontWeight: 'bold', marginLeft: '8px' }}>{val.toLocaleString()}</span>
+                                            <span style={{ fontWeight: 'bold', marginLeft: '8px' }}>
+                                                {val.toLocaleString()}
+                                            </span>
                                         </div>
                                     );
                                 })}
@@ -163,9 +207,16 @@ const RollupPredicateCell = ({ row, columns }: { row: (string | number)[]; colum
     return (
         <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <BiInfoCircle data-tooltip-id={tooltipId} style={{ cursor: 'help', color: '#888', minWidth: '12px', maxWidth: '12px' }} />
+                <BiInfoCircle
+                    data-tooltip-id={tooltipId}
+                    style={{ cursor: 'help', color: '#888', minWidth: '12px', maxWidth: '12px' }}
+                />
             </div>
-            <Tooltip id={tooltipId} place="top" style={{ maxWidth: '500px', zIndex: 9999, whiteSpace: 'pre-wrap' }}>
+            <Tooltip
+                id={tooltipId}
+                place="top"
+                style={{ maxWidth: '500px', zIndex: 9999, whiteSpace: 'pre-wrap' }}
+            >
                 {predicateValue}
             </Tooltip>
         </>
@@ -175,16 +226,25 @@ const RollupPredicateCell = ({ row, columns }: { row: (string | number)[]; colum
 export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab: boolean }) => {
     const [sLastFetchTime, setLastFetchTime] = useState<string>('');
     const [isVertical, setIsVertical] = useState<boolean>(true);
-    const [sRecordInfo, setRecordInfo] = useState<{ cnt: number; min: number; max: number }>({ cnt: 0, min: 0, max: 0 });
+    const [sMetaView, setMetaView] = useState<'table' | 'hierarchy'>('table');
+    const [sRecordInfo, setRecordInfo] = useState<{ cnt: number; min: number; max: number }>({
+        cnt: 0,
+        min: 0,
+        max: 0,
+    });
     const [sRefreshCnt, setRefreshCnt] = useState<number>(0);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['60%', '40%']);
     const [sIsHiddenCol, setIsHiddenCol] = useState<boolean>(true);
     const [sRawColumnInfo, setRawColumnInfo] = useState<FetchCommonType>();
-    const [sLogicalLengthCandidates, setLogicalLengthCandidates] = useState<Array<FetchCommonType | undefined>>([]);
+    const [sLogicalLengthCandidates, setLogicalLengthCandidates] = useState<
+        Array<FetchCommonType | undefined>
+    >([]);
     const [sTagIndexGap, setTagIndexGap] = useState<FetchCommonType>();
     const [sIndexInfo, setIndexInfo] = useState<FetchCommonType>();
     const [sRollupInfo, setRollupInfo] = useState<FetchCommonType>();
-    const [sErrMsg, setErrMsg] = useState<{ key: 'ROLLUP' | undefined; value: string | undefined }>({ key: undefined, value: undefined });
+    const [sErrMsg, setErrMsg] = useState<{ key: 'ROLLUP' | undefined; value: string | undefined }>(
+        { key: undefined, value: undefined },
+    );
     const [sRetentionInfo, setRetentionInfo] = useState<FetchCommonType>();
     const [sViewSqlInfo, setViewSqlInfo] = useState<FetchCommonType>();
     const sBodyRef = useRef(null);
@@ -255,20 +315,26 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     }, [sRawColumnInfo, sLogicalLengthCandidates]);
     const mMetaColList = mMetaColumnSection?.columnInfo;
     const mColErrMsg = useMemo(() => {
-        if (mMainColumnSection?.status === 'missing') return 'logical LENGTH lookup failed. showing BYTE values in LENGTH.';
-        if (mMainColumnSection?.status === 'partial') return 'some logical LENGTH values are unavailable. showing BYTE values for missing columns.';
+        if (mMainColumnSection?.status === 'missing')
+            return 'logical LENGTH lookup failed. showing BYTE values in LENGTH.';
+        if (mMainColumnSection?.status === 'partial')
+            return 'some logical LENGTH values are unavailable. showing BYTE values for missing columns.';
         return '';
     }, [mMainColumnSection]);
     const mMetaColErrMsg = useMemo(() => {
-        if (mMetaColumnSection?.status === 'missing') return 'logical LENGTH lookup failed. showing BYTE values in LENGTH.';
-        if (mMetaColumnSection?.status === 'partial') return 'some logical LENGTH values are unavailable. showing BYTE values for missing columns.';
+        if (mMetaColumnSection?.status === 'missing')
+            return 'logical LENGTH lookup failed. showing BYTE values in LENGTH.';
+        if (mMetaColumnSection?.status === 'partial')
+            return 'some logical LENGTH values are unavailable. showing BYTE values for missing columns.';
         return '';
     }, [mMetaColumnSection]);
 
     const FetchRecordCount = async () => {
         let sSubCol = '';
-        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) sSubCol = `, MIN(${mColList?.rows?.[1]?.[0]}) as MIN, MAX(${mColList?.rows?.[1]?.[0]}) as MAX`;
-        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG) sSubCol = ', MIN(_ARRIVAL_TIME) as MIN, MAX(_ARRIVAL_TIME) as MAX';
+        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG)
+            sSubCol = `, MIN(${mColList?.rows?.[1]?.[0]}) as MIN, MAX(${mColList?.rows?.[1]?.[0]}) as MAX`;
+        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG)
+            sSubCol = ', MIN(_ARRIVAL_TIME) as MIN, MAX(_ARRIVAL_TIME) as MAX';
         const sQuery = `SELECT COUNT(*) as CNT ${sSubCol} FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) {
@@ -302,7 +368,9 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         }
 
         const logicalLengthCandidates: Array<FetchCommonType | undefined> = [
-            primaryLogicalLengthResult.svrState ? normalizeLogicalLengthInfo(primaryLogicalLengthResult.svrData) : undefined,
+            primaryLogicalLengthResult.svrState
+                ? normalizeLogicalLengthInfo(primaryLogicalLengthResult.svrData)
+                : undefined,
         ];
 
         for (const logicalLengthQuery of logicalLengthQueries.slice(1)) {
@@ -325,18 +393,39 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         if (svrState) {
             svrData.rows.map((row: (string | number)[], idx: number) => {
                 const tableValue = row[svrData.columns.indexOf('TABLE')];
-                if (tableValue === null || tableValue === undefined || Number.isNaN(tableValue as number)) return row;
-                else return (row[svrData.columns.indexOf('TABLE')] = `DATA${idx} (${row[svrData.columns.indexOf('TABLE')]})`);
+                if (
+                    tableValue === null ||
+                    tableValue === undefined ||
+                    Number.isNaN(tableValue as number)
+                )
+                    return row;
+                else
+                    return (row[svrData.columns.indexOf('TABLE')] =
+                        `DATA${idx} (${row[svrData.columns.indexOf('TABLE')]})`);
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const tableValue = row[svrData.columns.indexOf('MEMORY_GAP')];
-                if (tableValue === null || tableValue === undefined || Number.isNaN(tableValue as number)) return row;
-                else return (row[svrData.columns.indexOf('MEMORY_GAP')] = row[svrData.columns.indexOf('MEMORY_GAP')].toLocaleString() ?? '0');
+                if (
+                    tableValue === null ||
+                    tableValue === undefined ||
+                    Number.isNaN(tableValue as number)
+                )
+                    return row;
+                else
+                    return (row[svrData.columns.indexOf('MEMORY_GAP')] =
+                        row[svrData.columns.indexOf('MEMORY_GAP')].toLocaleString() ?? '0');
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const tableValue = row[svrData.columns.indexOf('DISK_GAP')];
-                if (tableValue === null || tableValue === undefined || Number.isNaN(tableValue as number)) return row;
-                else return (row[svrData.columns.indexOf('DISK_GAP')] = row[svrData.columns.indexOf('DISK_GAP')].toLocaleString() ?? '0');
+                if (
+                    tableValue === null ||
+                    tableValue === undefined ||
+                    Number.isNaN(tableValue as number)
+                )
+                    return row;
+                else
+                    return (row[svrData.columns.indexOf('DISK_GAP')] =
+                        row[svrData.columns.indexOf('DISK_GAP')].toLocaleString() ?? '0');
             });
             setTagIndexGap(svrData);
         } else setTagIndexGap(undefined);
@@ -346,7 +435,10 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         let sQuery = `select i.name as 'NAME', i.type as TYPE, c.name as 'COLUMN', '' as 'DESC' from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${
             mTableInfo[E_TABLE_INFO.DB_ID]
         } and c.table_id=${mTableInfo[E_TABLE_INFO.TB_ID]}`;
-        if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG && mTableInfo[E_TABLE_INFO.DB_ID] === -1)
+        if (
+            CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG &&
+            mTableInfo[E_TABLE_INFO.DB_ID] === -1
+        )
             sQuery = `SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', SUM(vi.TABLE_END_RID - vi.DISK_INDEX_END_RID) AS DISK_GAP FROM (SELECT * from V$STORAGE_TAG_INDEX where index_id <> 4294967295) as vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id WHERE c.table_id=${
                 mTableInfo[E_TABLE_INFO.TB_ID]
             } and c.DATABASE_ID = ${mTableInfo[E_TABLE_INFO.DB_ID]} ) as sub ON vi.INDEX_ID = sub.index_id group by sub.name, sub.TYPE, sub.COLUMN_NAME`;
@@ -360,14 +452,29 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         if (svrState) {
             svrData.rows.map((row: (string | number)[]) => {
                 const typeValue = row[svrData.columns.indexOf('TYPE')];
-                if (typeValue === null || typeValue === undefined || Number.isNaN(typeValue as number)) return row;
-                else return (row[svrData.columns.indexOf('TYPE')] = CheckIndexFlag(typeValue as number));
+                if (
+                    typeValue === null ||
+                    typeValue === undefined ||
+                    Number.isNaN(typeValue as number)
+                )
+                    return row;
+                else
+                    return (row[svrData.columns.indexOf('TYPE')] = CheckIndexFlag(
+                        typeValue as number,
+                    ));
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const tableValue = row[svrData.columns.indexOf('DISK_GAP')];
-                if (tableValue === null || tableValue === undefined || Number.isNaN(tableValue as number)) return row;
+                if (
+                    tableValue === null ||
+                    tableValue === undefined ||
+                    Number.isNaN(tableValue as number)
+                )
+                    return row;
                 else {
-                    if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) return (row[svrData.columns.indexOf('DISK_GAP')] = row[svrData.columns.indexOf('DISK_GAP')].toLocaleString() ?? '0');
+                    if (mTableInfo[E_TABLE_INFO.DB_ID] === -1)
+                        return (row[svrData.columns.indexOf('DISK_GAP')] =
+                            row[svrData.columns.indexOf('DISK_GAP')].toLocaleString() ?? '0');
                     else return (row[svrData.columns.indexOf('DISK_GAP')] = '-');
                 }
             });
@@ -376,7 +483,10 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     };
     const FetchRollup = async () => {
         const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
-        const sDatabaseIdCondition = sRollupVersion === 'OLD' ? '' : ` A.DATABASE_ID=C.DATABASE_ID AND A.DATABASE_ID=${mTableInfo[E_TABLE_INFO.DB_ID]} AND `;
+        const sDatabaseIdCondition =
+            sRollupVersion === 'OLD'
+                ? ''
+                : ` A.DATABASE_ID=C.DATABASE_ID AND A.DATABASE_ID=${mTableInfo[E_TABLE_INFO.DB_ID]} AND `;
         const sQuery = `SELECT
                             C.ROLLUP_TABLE AS 'ROLLUP',
                             C.SOURCE_TABLE AS 'SRC',        
@@ -449,8 +559,16 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
             // Apply INTERVAL formatting
             mergedRows.forEach((row: (string | number)[]) => {
                 const intervalValue = row[svrData.columns.indexOf('INTERVAL')];
-                if (intervalValue !== null && intervalValue !== undefined && !Number.isNaN(intervalValue as number) && typeof intervalValue === 'number') {
-                    row[svrData.columns.indexOf('INTERVAL')] = formatDuration(intervalValue as number, 'ms');
+                if (
+                    intervalValue !== null &&
+                    intervalValue !== undefined &&
+                    !Number.isNaN(intervalValue as number) &&
+                    typeof intervalValue === 'number'
+                ) {
+                    row[svrData.columns.indexOf('INTERVAL')] = formatDuration(
+                        intervalValue as number,
+                        'ms',
+                    );
                 }
             });
 
@@ -465,18 +583,44 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         if (svrState) {
             svrData.rows.map((row: (string | number)[]) => {
                 const durationValue = row[svrData.columns.indexOf('DURATION')];
-                if (durationValue === null || durationValue === undefined || Number.isNaN(durationValue as number)) return row;
-                else return (row[svrData.columns.indexOf('DURATION')] = formatDuration(durationValue as number, 's'));
+                if (
+                    durationValue === null ||
+                    durationValue === undefined ||
+                    Number.isNaN(durationValue as number)
+                )
+                    return row;
+                else
+                    return (row[svrData.columns.indexOf('DURATION')] = formatDuration(
+                        durationValue as number,
+                        's',
+                    ));
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const intervalValue = row[svrData.columns.indexOf('INTERVAL')];
-                if (intervalValue === null || intervalValue === undefined || Number.isNaN(intervalValue as number)) return row;
-                else return (row[svrData.columns.indexOf('INTERVAL')] = formatDuration(intervalValue as number, 's'));
+                if (
+                    intervalValue === null ||
+                    intervalValue === undefined ||
+                    Number.isNaN(intervalValue as number)
+                )
+                    return row;
+                else
+                    return (row[svrData.columns.indexOf('INTERVAL')] = formatDuration(
+                        intervalValue as number,
+                        's',
+                    ));
             });
             svrData.rows.map((row: (string | number)[]) => {
                 const lastDeletedTime = row[svrData.columns.indexOf('LAST_DELETED_TIME')];
-                if (lastDeletedTime === null || lastDeletedTime === undefined || Number.isNaN(lastDeletedTime as number)) return row;
-                else return (row[svrData.columns.indexOf('LAST_DELETED_TIME')] = moment((lastDeletedTime as number) / 1000000).format('YYYY-MM-DD HH:mm:ss'));
+                if (
+                    lastDeletedTime === null ||
+                    lastDeletedTime === undefined ||
+                    Number.isNaN(lastDeletedTime as number)
+                )
+                    return row;
+                else
+                    return (row[svrData.columns.indexOf('LAST_DELETED_TIME')] = moment(
+                        (lastDeletedTime as number) / 1000000,
+                    ).format('YYYY-MM-DD HH:mm:ss'));
             });
             setRetentionInfo(svrData);
         } else setRetentionInfo(undefined);
@@ -486,13 +630,18 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
             mTableInfo[E_TABLE_INFO.DB_NM]
         }') and USER_NAME=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and VIEW_NAME=upper('${mTableInfo[E_TABLE_INFO.TB_NM]}') limit 1`;
         const { svrState, svrData } = await fetchQuery(sQuery);
-        const sViewSqlIdx = svrData?.columns?.findIndex((aColumn: string) => aColumn.toUpperCase() === 'VIEW_SQL') ?? -1;
+        const sViewSqlIdx =
+            svrData?.columns?.findIndex(
+                (aColumn: string) => aColumn.toUpperCase() === 'VIEW_SQL',
+            ) ?? -1;
         const sRows = svrData?.rows ?? [];
 
         if (svrState && sRows.length > 0) {
             setViewSqlInfo({
                 columns: ['VIEW_SQL'],
-                rows: sRows.map((aRow: (string | number)[]) => [aRow[sViewSqlIdx >= 0 ? sViewSqlIdx : 0]]),
+                rows: sRows.map((aRow: (string | number)[]) => [
+                    aRow[sViewSqlIdx >= 0 ? sViewSqlIdx : 0],
+                ]),
                 types: ['string'],
             });
             return;
@@ -522,7 +671,10 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         const originalRow = item.__originalRow || item;
         const originalColumns = item.__originalColumns || sRollupInfo?.columns;
         const sRollupName = originalRow[originalColumns?.indexOf('ROLLUP') as number];
-        const sCommand = originalRow[originalColumns?.indexOf('ENABLED') as number] === 0 ? 'ROLLUP_START' : 'ROLLUP_STOP';
+        const sCommand =
+            originalRow[originalColumns?.indexOf('ENABLED') as number] === 0
+                ? 'ROLLUP_START'
+                : 'ROLLUP_STOP';
         FetchRollupState(sRollupName as string, sCommand as string);
     };
     const rollupStateElement = (item: any) => {
@@ -530,18 +682,28 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         const originalRow = item.__originalRow || item;
         const originalColumns = item.__originalColumns || sRollupInfo?.columns;
         const enabledValue = originalRow[originalColumns?.indexOf('ENABLED') as number];
-        const sReadOnly = mTableInfo[E_TABLE_INFO.DB_ID] !== -1 || mTableInfo[E_TABLE_INFO.USER_NM]?.toUpperCase() !== getUserName()?.toUpperCase();
+        const sReadOnly =
+            mTableInfo[E_TABLE_INFO.DB_ID] !== -1 ||
+            mTableInfo[E_TABLE_INFO.USER_NM]?.toUpperCase() !== getUserName()?.toUpperCase();
 
         if (enabledValue === 1)
             return (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '8px' }}>
-                    <Page.Switch pReadOnly={sReadOnly} pState={true} pCallback={(e) => handleRollupState(e, item)} />
+                    <Page.Switch
+                        pReadOnly={sReadOnly}
+                        pState={true}
+                        pCallback={(e) => handleRollupState(e, item)}
+                    />
                 </div>
             );
         else
             return (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '8px' }}>
-                    <Page.Switch pReadOnly={sReadOnly} pState={false} pCallback={(e) => handleRollupState(e, item)} />
+                    <Page.Switch
+                        pReadOnly={sReadOnly}
+                        pState={false}
+                        pCallback={(e) => handleRollupState(e, item)}
+                    />
                 </div>
             );
     };
@@ -560,12 +722,18 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) FetchRetention();
                 else setRetentionInfo(undefined);
                 // Cond rollup (TAG)
-                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) FetchRollup();
+                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG)
+                    FetchRollup();
                 else setRollupInfo(undefined);
                 // Cond index (MACHBASEDB) (TAG)
-                if (mTableInfo[E_TABLE_INFO.DB_ID] === -1 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) FetchIndexGapForTag();
+                if (
+                    mTableInfo[E_TABLE_INFO.DB_ID] === -1 &&
+                    CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG
+                )
+                    FetchIndexGapForTag();
                 else setTagIndexGap(undefined);
-                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.VIEW) FetchViewSql();
+                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.VIEW)
+                    FetchViewSql();
                 else setViewSqlInfo(undefined);
             } else {
                 setRecordInfo({ cnt: 0, min: 0, max: 0 });
@@ -590,18 +758,35 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
 
     return (
         <Page pRef={sBodyRef}>
-            <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
+            <SplitPane
+                sashRender={() => Resizer()}
+                split={isVertical ? 'vertical' : 'horizontal'}
+                sizes={sGroupWidth}
+                onChange={setGroupWidth}
+            >
                 <Pane minSize={500} style={{ display: 'flex', flexDirection: 'column' }}>
                     <Page.Header />
                     <Page.Body fixed>
                         <Page.ContentBlock pHoverNone>
                             <Page.DpRowBetween style={{ flexWrap: 'wrap' }}>
-                                <Page.DpRow style={{ gap: '8px', display: 'flex', flexDirection: 'row', alignItems: 'center', textWrap: 'nowrap' }}>
+                                <Page.DpRow
+                                    style={{
+                                        gap: '8px',
+                                        display: 'flex',
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        textWrap: 'nowrap',
+                                    }}
+                                >
                                     <Page.SubTitle>Table</Page.SubTitle>
                                     <BadgeSelectorItem
                                         item={{
                                             name: CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]),
-                                            color: E_TABLE_TYPE_COLOR[CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) as keyof typeof E_TABLE_TYPE_COLOR],
+                                            color: E_TABLE_TYPE_COLOR[
+                                                CheckTableFlag(
+                                                    mTableInfo[E_TABLE_INFO.TB_TYPE],
+                                                ) as keyof typeof E_TABLE_TYPE_COLOR
+                                            ],
                                         }}
                                     />
                                     <Page.ContentTitle>{`${mTableInfo[E_TABLE_INFO.TB_NM]}`}</Page.ContentTitle>
@@ -614,9 +799,19 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         onClick={handleCopyTableName}
                                     />
                                 </Page.DpRow>
-                                <Page.DpRow style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', justifyContent: 'end', flex: 1 }}>
+                                <Page.DpRow
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'end',
+                                        justifyContent: 'end',
+                                        flex: 1,
+                                    }}
+                                >
                                     <Page.DpRow style={{ gap: '4px' }}>
-                                        <Page.ContentDesc>Record: {sRecordInfo?.cnt?.toLocaleString() ?? '0'}</Page.ContentDesc>
+                                        <Page.ContentDesc>
+                                            Record: {sRecordInfo?.cnt?.toLocaleString() ?? '0'}
+                                        </Page.ContentDesc>
                                         <Button
                                             size="xsm"
                                             variant="ghost"
@@ -626,15 +821,27 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                             onClick={() => setRefreshCnt(sRefreshCnt + 1)}
                                         />
                                     </Page.DpRow>
-                                    {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ||
-                                    CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG ? (
+                                    {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) ===
+                                        E_TABLE_TYPE.TAG ||
+                                    CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) ===
+                                        E_TABLE_TYPE.LOG ? (
                                         <Page.DpRowBetween>
                                             <Page.Space />
                                             <div style={{ textWrap: 'nowrap' }}>
                                                 <Page.ContentDesc>
-                                                    {sRecordInfo?.min > 0 ? moment((sRecordInfo?.min as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
+                                                    {sRecordInfo?.min > 0
+                                                        ? moment(
+                                                              (sRecordInfo?.min as number) /
+                                                                  1000000,
+                                                          ).format('YYYY-MM-DD HH:mm:ss')
+                                                        : 'N/A'}
                                                     {' ~ '}
-                                                    {sRecordInfo?.max > 0 ? moment((sRecordInfo?.max as number) / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A'}
+                                                    {sRecordInfo?.max > 0
+                                                        ? moment(
+                                                              (sRecordInfo?.max as number) /
+                                                                  1000000,
+                                                          ).format('YYYY-MM-DD HH:mm:ss')
+                                                        : 'N/A'}
                                                 </Page.ContentDesc>
                                             </div>
                                         </Page.DpRowBetween>
@@ -644,7 +851,16 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         </Page.ContentBlock>
                         <Page.Hr />
                     </Page.Body>
-                    <div className="scrollbar-dark-border" style={{ display: 'flex', flexDirection: 'column', overflow: 'auto', flex: 1, height: 'calc(100% - 130px)' }}>
+                    <div
+                        className="scrollbar-dark-border"
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'auto',
+                            flex: 1,
+                            height: 'calc(100% - 130px)',
+                        }}
+                    >
                         {/* COLUMN */}
                         {mColList?.rows && mColList?.rows?.length > 0 && (
                             <Page.ContentBlock>
@@ -653,32 +869,54 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     <Button
                                         size="xsm"
                                         variant="ghost"
-                                        icon={sIsHiddenCol ? <TbEyeMinus size={16} /> : <TbEyeOff size={16} />}
+                                        icon={
+                                            sIsHiddenCol ? (
+                                                <TbEyeMinus size={16} />
+                                            ) : (
+                                                <TbEyeOff size={16} />
+                                            )
+                                        }
                                         onClick={() => {
                                             setIsHiddenCol(!sIsHiddenCol);
                                         }}
                                     />
                                 </Page.DpRowBetween>
-                                <CommonTable scrollX={false} cellWidthFix data={{ columns: mColList?.columns, rows: mColList.rows }} />
-                            {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
-                        </Page.ContentBlock>
-                    )}
-                    {/* VIEW SQL */}
-                    {sViewSqlInfo?.rows && sViewSqlInfo?.rows?.length > 0 && (
-                        <Page.ContentBlock>
-                            <Page.DpRow>
-                                <Page.ContentTitle>View SQL</Page.ContentTitle>
-                            </Page.DpRow>
-                            <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: [], rows: sViewSqlInfo.rows }} />
-                        </Page.ContentBlock>
-                    )}
-                    {/* COLUMN (META) */}
-                    {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
+                                <CommonTable
+                                    scrollX={false}
+                                    cellWidthFix
+                                    data={{ columns: mColList?.columns, rows: mColList.rows }}
+                                />
+                                {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
+                            </Page.ContentBlock>
+                        )}
+                        {/* VIEW SQL */}
+                        {sViewSqlInfo?.rows && sViewSqlInfo?.rows?.length > 0 && (
+                            <Page.ContentBlock>
+                                <Page.DpRow>
+                                    <Page.ContentTitle>View SQL</Page.ContentTitle>
+                                </Page.DpRow>
+                                <CommonTable
+                                    scrollX={false}
+                                    cellWidthFix
+                                    textWrap
+                                    data={{ columns: [], rows: sViewSqlInfo.rows }}
+                                />
+                            </Page.ContentBlock>
+                        )}
+                        {/* COLUMN (META) */}
+                        {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.DpRow>
                                     <Page.ContentTitle>Meta Column</Page.ContentTitle>
                                 </Page.DpRow>
-                                <CommonTable scrollX={false} cellWidthFix data={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
+                                <CommonTable
+                                    scrollX={false}
+                                    cellWidthFix
+                                    data={{
+                                        columns: mMetaColList?.columns,
+                                        rows: mMetaColList.rows,
+                                    }}
+                                />
                                 {mMetaColErrMsg ? <Page.TextResErr pText={mMetaColErrMsg} /> : null}
                             </Page.ContentBlock>
                         )}
@@ -688,14 +926,26 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                 <Page.DpRow>
                                     <Page.ContentTitle>tag index gap</Page.ContentTitle>
                                 </Page.DpRow>
-                                <CommonTable scrollX={false} cellWidthFix data={{ columns: sTagIndexGap?.columns, rows: sTagIndexGap.rows }} />
+                                <CommonTable
+                                    scrollX={false}
+                                    cellWidthFix
+                                    data={{
+                                        columns: sTagIndexGap?.columns,
+                                        rows: sTagIndexGap.rows,
+                                    }}
+                                />
                             </Page.ContentBlock>
                         )}
                         {/* INDEX */}
                         {sIndexInfo?.rows && sIndexInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>indexes</Page.ContentTitle>
-                                <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
+                                <CommonTable
+                                    scrollX={false}
+                                    cellWidthFix
+                                    textWrap
+                                    data={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }}
+                                />
                             </Page.ContentBlock>
                         )}
                         {/* ROLLUP */}
@@ -706,48 +956,104 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     scrollX={false}
                                     cellWidthFix
                                     data={{
-                                        columns: sRollupInfo.columns.filter((col: string) => col !== 'SRC').map((col: string) => (col === 'PREDICATE' ? '' : col)),
+                                        columns: sRollupInfo.columns
+                                            .filter((col: string) => col !== 'SRC')
+                                            .map((col: string) => (col === 'PREDICATE' ? '' : col)),
                                         rows: sRollupInfo.rows.map((row: (string | number)[]) => {
                                             const srcIdx = sRollupInfo.columns.indexOf('SRC');
                                             // Store original row for custom renderers to access
-                                            const filteredRow = row.filter((_: any, idx: number) => idx !== srcIdx);
+                                            const filteredRow = row.filter(
+                                                (_: any, idx: number) => idx !== srcIdx,
+                                            );
                                             (filteredRow as any).__originalRow = row;
-                                            (filteredRow as any).__originalColumns = sRollupInfo.columns;
+                                            (filteredRow as any).__originalColumns =
+                                                sRollupInfo.columns;
                                             return filteredRow;
                                         }),
                                     }}
                                     cellRenderers={[
                                         {
                                             column: 'ROLLUP',
-                                            render: (row: any) => <RollupNameCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            render: (row: any) => (
+                                                <RollupNameCell
+                                                    row={row.__originalRow || row}
+                                                    columns={
+                                                        row.__originalColumns || sRollupInfo.columns
+                                                    }
+                                                />
+                                            ),
                                         },
                                         {
                                             column: 'GAP',
-                                            render: (row: any) => <RollupGapCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            render: (row: any) => (
+                                                <RollupGapCell
+                                                    row={row.__originalRow || row}
+                                                    columns={
+                                                        row.__originalColumns || sRollupInfo.columns
+                                                    }
+                                                />
+                                            ),
                                         },
-                                        { column: 'ENABLED', maxWidth: '100px', render: rollupStateElement },
+                                        {
+                                            column: 'ENABLED',
+                                            maxWidth: '100px',
+                                            render: rollupStateElement,
+                                        },
                                         {
                                             column: '',
                                             maxWidth: '30px',
-                                            render: (row: any) => <RollupPredicateCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            render: (row: any) => (
+                                                <RollupPredicateCell
+                                                    row={row.__originalRow || row}
+                                                    columns={
+                                                        row.__originalColumns || sRollupInfo.columns
+                                                    }
+                                                />
+                                            ),
                                         },
                                     ]}
                                 />
-                                {sErrMsg?.key === 'ROLLUP' ? <Page.TextResErr pText={sErrMsg?.value ?? ''} /> : null}
+                                {sErrMsg?.key === 'ROLLUP' ? (
+                                    <Page.TextResErr pText={sErrMsg?.value ?? ''} />
+                                ) : null}
                             </Page.ContentBlock>
                         )}
                         {/* RETENTION */}
                         {sRetentionInfo?.rows && sRetentionInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Retention</Page.ContentTitle>
-                                <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
+                                <CommonTable
+                                    scrollX={false}
+                                    cellWidthFix
+                                    textWrap
+                                    data={{
+                                        columns: sRetentionInfo?.columns,
+                                        rows: sRetentionInfo.rows,
+                                    }}
+                                />
                             </Page.ContentBlock>
                         )}
                     </div>
                 </Pane>
                 <Pane minSize={500}>
                     <Page.Header>
-                        <Page.Space />
+                        {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
+                            <Tabs.Root
+                                selectedTab={sMetaView}
+                                onTabSelect={(tab) => setMetaView(tab.id as 'table' | 'hierarchy')}
+                            >
+                                <Tabs.Header variant="sub">
+                                    <Tabs.List>
+                                        <Tabs.Item value="table" variant="sub">
+                                            Meta Table
+                                        </Tabs.Item>
+                                        <Tabs.Item value="hierarchy" variant="sub">
+                                            Hierarchy
+                                        </Tabs.Item>
+                                    </Tabs.List>
+                                </Tabs.Header>
+                            </Tabs.Root>
+                        ) : null}
                         <Button.Group>
                             <Button
                                 size="sm"
@@ -775,6 +1081,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                             pMTableInfo={mTableInfo}
                             pMColInfo={mColList}
                             pMMetaColInfo={mMetaColList}
+                            pMetaView={sMetaView}
                             pRefresh={{ state: sRefreshCnt, set: setRefreshCnt }}
                         />
                     ) : null}
