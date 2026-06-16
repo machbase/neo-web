@@ -12,6 +12,8 @@ import {
     buildHierarchyTemplateFromTree,
     buildGetHierarchyChildrenSql,
     buildGetHierarchyTagsSql,
+    buildScanHierarchyMetadataSql,
+    pickHierarchyColumn,
     buildGetUnassignedTagsSql,
     buildMoveTagsToHierarchyPathSql,
     buildRenameHierarchyValueSql,
@@ -81,25 +83,36 @@ describe('tagHierarchy SQL builders', () => {
 
     test('builds lazy child lookup SQL', () => {
         expect(buildGetHierarchyChildrenSql(config, ['world', 'city', 'factory'], path)).toBe(
-            "select VALUE, count(*) as COUNT from (select ASSET->'$.world' as H_WORLD, ASSET->'$.city' as H_CITY, ASSET->'$.factory' as VALUE from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where H_WORLD = 'Global' and H_CITY = 'Seoul' and VALUE is not null and length(VALUE) > 0 group by VALUE order by VALUE"
+            "select VALUE, count(*) as COUNT from (select ASSET->'$.world' as H_WORLD, ASSET->'$.city' as H_CITY, ASSET->'$.factory' as VALUE from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where H_WORLD = 'Global' and H_CITY = 'Seoul' and VALUE is not null and length(VALUE) > 0 group by VALUE order by VALUE",
         );
     });
 
     test('builds tag list SQL with reserved row excluded', () => {
         expect(buildGetHierarchyTagsSql(config, path)).toBe(
-            "select NAME, ASSET, SPEC from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__' and ASSET->'$.world' = 'Global' and ASSET->'$.city' = 'Seoul' order by NAME"
+            "select NAME, ASSET, SPEC from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__' and ASSET->'$.world' = 'Global' and ASSET->'$.city' = 'Seoul' order by NAME",
         );
+    });
+
+    test('paginates with native SQL LIMIT offset,count (page given)', () => {
+        // page 2, PAGE_SIZE 50 ⇒ offset 100, count 50, appended after ORDER BY.
+        expect(buildGetHierarchyTagsSql(config, path, 2)).toMatch(/ order by NAME limit 100, 50$/);
+        // Unassigned query paginates the same way (page 1 ⇒ offset 50).
+        expect(buildGetUnassignedTagsByDocumentSql(config, document, '', 1)).toMatch(
+            / order by NAME limit 50, 50$/,
+        );
+        // No page ⇒ no LIMIT (e.g. the tree node-link query loads all).
+        expect(buildGetHierarchyTagsSql(config, path)).not.toContain('limit');
     });
 
     test('builds direct tag list SQL with next level empty', () => {
         expect(buildGetDirectHierarchyTagsSql(config, ['world', 'city', 'factory'], path)).toBe(
-            "select NAME, ASSET, SPEC from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__' and ASSET->'$.world' = 'Global' and ASSET->'$.city' = 'Seoul' and (ASSET->'$.factory' is null or length(ASSET->'$.factory') = 0) order by NAME"
+            "select NAME, ASSET, SPEC from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__' and ASSET->'$.world' = 'Global' and ASSET->'$.city' = 'Seoul' and (ASSET->'$.factory' is null or length(ASSET->'$.factory') = 0) order by NAME",
         );
     });
 
     test('builds unassigned SQL using null or empty string policy', () => {
         expect(buildGetUnassignedTagsSql(config, ['world', 'city'])).toBe(
-            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.world' as H_WORLD, ASSET->'$.city' as H_CITY from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where not ((H_WORLD is not null and length(H_WORLD) > 0 and H_CITY is not null and length(H_CITY) > 0)) order by NAME"
+            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.world' as H_WORLD, ASSET->'$.city' as H_CITY from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where not ((H_WORLD is not null and length(H_WORLD) > 0 and H_CITY is not null and length(H_CITY) > 0)) order by NAME",
         );
     });
 
@@ -108,62 +121,124 @@ describe('tagHierarchy SQL builders', () => {
             buildGetUnassignedTagsSql(config, [
                 ['site', 'line'],
                 ['site', 'area'],
-            ])
+            ]),
         ).toBe(
-            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.site' as H_SITE, ASSET->'$.line' as H_LINE, ASSET->'$.area' as H_AREA from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where not ((H_SITE is not null and length(H_SITE) > 0 and H_LINE is not null and length(H_LINE) > 0) or (H_SITE is not null and length(H_SITE) > 0 and H_AREA is not null and length(H_AREA) > 0)) order by NAME"
+            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.site' as H_SITE, ASSET->'$.line' as H_LINE, ASSET->'$.area' as H_AREA from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where not ((H_SITE is not null and length(H_SITE) > 0 and H_LINE is not null and length(H_LINE) > 0) or (H_SITE is not null and length(H_SITE) > 0 and H_AREA is not null and length(H_AREA) > 0)) order by NAME",
         );
+    });
+
+    test('appends a server-side NAME LIKE filter when a search term is given', () => {
+        const sql = buildGetUnassignedTagsByDocumentSql(config, document, "Bar'n");
+        // Contains-match with the single quote escaped; combined onto the existing where via "and".
+        expect(sql).toContain("and NAME LIKE '%Bar''n%'");
+        // No/blank search ⇒ no LIKE clause.
+        expect(buildGetUnassignedTagsByDocumentSql(config, document)).not.toContain('LIKE');
+        expect(buildGetUnassignedTagsByDocumentSql(config, document, '   ')).not.toContain('LIKE');
     });
 
     test('builds document unassigned SQL from root value nodes', () => {
         expect(buildGetUnassignedTagsByDocumentSql(config, document)).toBe(
-            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.country' as H_COUNTRY, ASSET->'$.city' as H_CITY, ASSET->'$.factory' as H_FACTORY from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where not ((H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and (H_CITY is null or length(H_CITY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and (H_FACTORY is null or length(H_FACTORY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and H_FACTORY is not null and length(H_FACTORY) > 0 and H_FACTORY = 'Factory-A') or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and H_FACTORY is not null and length(H_FACTORY) > 0 and H_FACTORY = 'Factory-B') or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Busan' and (H_FACTORY is null or length(H_FACTORY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Japan' and (H_CITY is null or length(H_CITY) = 0))) order by NAME"
+            "select NAME, ASSET, SPEC from (select NAME, ASSET, SPEC, ASSET->'$.country' as H_COUNTRY, ASSET->'$.city' as H_CITY, ASSET->'$.factory' as H_FACTORY from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME <> '__machbase_hierarchy__') where not ((H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and (H_CITY is null or length(H_CITY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and (H_FACTORY is null or length(H_FACTORY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and H_FACTORY is not null and length(H_FACTORY) > 0 and H_FACTORY = 'Factory-A') or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Seoul' and H_FACTORY is not null and length(H_FACTORY) > 0 and H_FACTORY = 'Factory-B') or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Korea' and H_CITY is not null and length(H_CITY) > 0 and H_CITY = 'Busan' and (H_FACTORY is null or length(H_FACTORY) = 0)) or (H_COUNTRY is not null and length(H_COUNTRY) > 0 and H_COUNTRY = 'Japan' and (H_CITY is null or length(H_CITY) = 0))) order by NAME",
         );
     });
 
     test('builds attach SQL using json_set for target path', () => {
         expect(buildAttachTagsSql(config, ['TAG_01', "TAG'02"], path)).toBe(
-            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(json_set(nvl(ASSET, '{}'), '$.world', 'Global'), '$.city', 'Seoul') where NAME in ('TAG_01', 'TAG''02') and NAME <> '__machbase_hierarchy__'"
+            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(json_set(nvl(ASSET, '{}'), '$.world', 'Global'), '$.city', 'Seoul') where NAME in ('TAG_01', 'TAG''02') and NAME <> '__machbase_hierarchy__'",
         );
     });
 
     test('builds drag-drop move SQL with empty remaining schema keys', () => {
-        expect(buildMoveTagsToHierarchyPathSql(config, ['TAG_01'], document.schema, [{ key: 'country', value: 'Korea' }])).toBe(
-            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(json_set(json_set(nvl(ASSET, '{}'), '$.country', 'Korea'), '$.city', ''), '$.factory', '') where NAME in ('TAG_01') and NAME <> '__machbase_hierarchy__'"
+        expect(
+            buildMoveTagsToHierarchyPathSql(config, ['TAG_01'], document.schema, [
+                { key: 'country', value: 'Korea' },
+            ]),
+        ).toBe(
+            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(json_set(json_set(nvl(ASSET, '{}'), '$.country', 'Korea'), '$.city', ''), '$.factory', '') where NAME in ('TAG_01') and NAME <> '__machbase_hierarchy__'",
         );
     });
 
     test('builds detach SQL by setting hierarchy keys to empty strings', () => {
         expect(buildDetachTagsSql(config, ['TAG_01'], ['world', 'city'])).toBe(
-            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(json_set(nvl(ASSET, '{}'), '$.world', ''), '$.city', '') where NAME in ('TAG_01') and NAME <> '__machbase_hierarchy__'"
+            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(json_set(nvl(ASSET, '{}'), '$.world', ''), '$.city', '') where NAME in ('TAG_01') and NAME <> '__machbase_hierarchy__'",
         );
     });
 
     test('builds value rename SQL without changing hierarchy keys', () => {
         expect(buildRenameHierarchyValueSql(config, path, 'city', 'Seoul', 'Busan')).toBe(
-            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(ASSET, '$.city', 'Busan') where NAME <> '__machbase_hierarchy__' and ASSET->'$.world' = 'Global' and ASSET->'$.city' = 'Seoul'"
+            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = json_set(ASSET, '$.city', 'Busan') where NAME <> '__machbase_hierarchy__' and ASSET->'$.world' = 'Global' and ASSET->'$.city' = 'Seoul'",
         );
     });
 
     test('builds template update SQL for the reserved row', () => {
         expect(buildUpdateHierarchyTemplateSql(config, { site: { line: {} } })).toBe(
-            "update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = '{\"site\":{\"line\":{}}}' where NAME = '__machbase_hierarchy__'"
+            'update MACHBASEDB.SYS.SENSOR_TAG METADATA set ASSET = \'{"site":{"line":{}}}\' where NAME = \'__machbase_hierarchy__\'',
         );
     });
 
     test('builds metadata JSON column creation SQL', () => {
-        expect(buildCreateJsonMetadataColumnSql(config.tableName)).toBe('ALTER TABLE MACHBASEDB.SYS.SENSOR_TAG METADATA ADD COLUMN (ASSET JSON)');
+        expect(buildCreateJsonMetadataColumnSql(config.tableName)).toBe(
+            'ALTER TABLE MACHBASEDB.SYS.SENSOR_TAG METADATA ADD COLUMN (ASSET JSON)',
+        );
+    });
+
+    test('builds scan SQL reading the whole reserved row', () => {
+        expect(buildScanHierarchyMetadataSql(config)).toBe(
+            "select * from MACHBASEDB.SYS.SENSOR_TAG METADATA where NAME = '__machbase_hierarchy__'",
+        );
+    });
+});
+
+describe('pickHierarchyColumn (content-based column detection)', () => {
+    const hierDoc = (column: string) => JSON.stringify({ schema: ['country'], tree: [], column });
+
+    test('finds the column whose cell is a hierarchy doc (skips text/other-json cells)', () => {
+        const columns = ['NAME', 'SPEC', 'SENSOR_META', 'ASSET'];
+        const row = [
+            '__machbase_hierarchy__', // NAME (text)
+            'some spec', // SPEC (text)
+            '{"unit":"C","scale":1}', // other json, no schema/tree/column
+            hierDoc('ASSET'),
+        ];
+        expect(pickHierarchyColumn(columns, row)?.name).toBe('ASSET');
+    });
+
+    test('requires the column marker key — schema+tree alone is not enough', () => {
+        const row = [JSON.stringify({ schema: ['country'], tree: [] })];
+        expect(pickHierarchyColumn(['ASSET'], row)).toBeNull();
+    });
+
+    test('prefers the self-identifying cell over a stray copy in another column', () => {
+        // Both columns hold a doc, but only ZZZZZ self-identifies (column === its own name);
+        // ASSET carries a stale copy that points at ZZZZZ, so it must not win.
+        const columns = ['ASSET', 'ZZZZZ'];
+        const row = [hierDoc('ZZZZZ'), hierDoc('ZZZZZ')];
+        expect(pickHierarchyColumn(columns, row)?.name).toBe('ZZZZZ');
+    });
+
+    test('returns null when no cell qualifies', () => {
+        expect(pickHierarchyColumn(['NAME', 'SPEC'], ['x', 'y'])).toBeNull();
     });
 });
 
 describe('tagHierarchy JSON-path index DDL', () => {
-    const shortConfig: HierarchyQueryConfig = { tableName: 'TAG', nameColumn: 'NAME', jsonColumn: 'ASSET', specColumn: 'SPEC' };
+    const shortConfig: HierarchyQueryConfig = {
+        tableName: 'TAG',
+        nameColumn: 'NAME',
+        jsonColumn: 'ASSET',
+        specColumn: 'SPEC',
+    };
 
     test('builds create index SQL on the metadata JSON path', () => {
-        expect(buildCreateJsonPathIndexSql(shortConfig, 'country')).toBe("CREATE INDEX HIDX_TAG_ASSET_COUNTRY ON TAG METADATA (ASSET->'$.country')");
+        expect(buildCreateJsonPathIndexSql(shortConfig, 'country')).toBe(
+            "CREATE INDEX HIDX_TAG_ASSET_COUNTRY ON TAG METADATA (ASSET->'$.country')",
+        );
     });
 
     test('builds drop index SQL with the same derived name', () => {
-        expect(buildDropJsonPathIndexSql(shortConfig, 'country')).toBe('DROP INDEX HIDX_TAG_ASSET_COUNTRY');
+        expect(buildDropJsonPathIndexSql(shortConfig, 'country')).toBe(
+            'DROP INDEX HIDX_TAG_ASSET_COUNTRY',
+        );
     });
 
     test('derives a deterministic, distinct, safe index name within the length limit', () => {
@@ -195,7 +270,9 @@ describe('tagHierarchy edit guards', () => {
         expect(hierarchyTreeHasDepth(document.tree, 3)).toBe(false);
         expect(canRemoveHierarchySchemaKey(document.schema, document.tree, 1)).toBe(false);
         expect(canRemoveHierarchySchemaKey(document.schema, document.tree, 2)).toBe(false);
-        expect(canRemoveHierarchySchemaKey(document.schema.concat('sensor'), document.tree, 3)).toBe(true);
+        expect(
+            canRemoveHierarchySchemaKey(document.schema.concat('sensor'), document.tree, 3),
+        ).toBe(true);
     });
 });
 
@@ -221,14 +298,33 @@ describe('tagHierarchy template helpers', () => {
         ]);
     });
 
+    test('carries the recorded column through parse, and omits it when absent', () => {
+        const withColumn = { ...document, column: 'KKKKK' };
+        expect(parseHierarchyDocument(withColumn)).toEqual({
+            mode: 'document',
+            document: withColumn,
+        });
+        expect(
+            (parseHierarchyDocument(document) as { document: { column?: string } }).document.column,
+        ).toBeUndefined();
+    });
+
     test('validates schema/tree key depth matching', () => {
         expect(validateHierarchyDocument(document)).toEqual([]);
         expect(
             validateHierarchyDocument({
                 schema: ['country', 'city'],
                 tree: [{ key: 'city', value: 'Seoul', children: [] }],
-            })
-        ).toEqual(expect.arrayContaining([{ level: 'blocking', message: 'Hierarchy node "Seoul" uses key "city", expected "country".', path: [0] }]));
+            }),
+        ).toEqual(
+            expect.arrayContaining([
+                {
+                    level: 'blocking',
+                    message: 'Hierarchy node "Seoul" uses key "city", expected "country".',
+                    path: [0],
+                },
+            ]),
+        );
     });
 
     test('tags node-level issues with their numeric tree path', () => {
@@ -245,7 +341,11 @@ describe('tagHierarchy template helpers', () => {
         // The empty grandchild value is reported against [0, 0].
         expect(issues).toEqual(
             expect.arrayContaining([
-                { level: 'blocking', message: 'Hierarchy node at depth 2 contains an empty value.', path: [0, 0] },
+                {
+                    level: 'blocking',
+                    message: 'Hierarchy node at depth 2 contains an empty value.',
+                    path: [0, 0],
+                },
             ]),
         );
     });
@@ -262,7 +362,7 @@ describe('tagHierarchy template helpers', () => {
                         },
                     },
                 },
-            })
+            }),
         ).toEqual(['world', 'city', 'factory', 'equipment', 'sensor']);
     });
 
@@ -319,7 +419,7 @@ describe('tagHierarchy template helpers', () => {
                         { key: 'area', children: [] },
                     ],
                 },
-            ])
+            ]),
         ).toEqual({
             site: {
                 line: {},
@@ -331,7 +431,11 @@ describe('tagHierarchy template helpers', () => {
     test('blocks invalid template keys', () => {
         const issues = validateHierarchyTemplate({ world: { [HIERARCHY_RESERVED_NAME]: {} } });
 
-        expect(issues).toEqual(expect.arrayContaining([{ level: 'blocking', message: 'Hierarchy key cannot use the reserved row name.' }]));
+        expect(issues).toEqual(
+            expect.arrayContaining([
+                { level: 'blocking', message: 'Hierarchy key cannot use the reserved row name.' },
+            ]),
+        );
     });
 });
 
@@ -354,7 +458,11 @@ describe('tagHierarchy value-tree edits', () => {
     });
 
     test('inserts an empty sibling at the same depth and focuses it', () => {
-        const { tree, focusPath } = insertHierarchyValueSibling(document.tree, [0, 0, 0], document.schema);
+        const { tree, focusPath } = insertHierarchyValueSibling(
+            document.tree,
+            [0, 0, 0],
+            document.schema,
+        );
         expect(focusPath).toEqual([0, 0, 1]);
         expect(valueAt(tree, [0, 0, 1])).toEqual({ key: 'factory', value: '', children: [] });
         expect(valueAt(tree, [0, 0, 2]).value).toBe('Factory-B'); // original shifted down

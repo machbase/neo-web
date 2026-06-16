@@ -17,7 +17,6 @@ import { Virtuoso } from 'react-virtuoso';
 import {
     Button,
     CommonTable,
-    Dropdown,
     IconButton,
     Input,
     Pane,
@@ -156,9 +155,6 @@ const tagTableData = (rows: HierarchyTagRow[]) => ({
     types: ['string', 'string', 'string'],
 });
 
-const defaultJsonColumnName = (columns: JsonMetaColumn[]) =>
-    columns.find((column) => column.name.toLowerCase() === 'asset')?.name ?? columns[0]?.name ?? '';
-
 const cloneValueTree = (nodes: HierarchyValueNode[]): HierarchyValueNode[] =>
     nodes.map((node) => ({
         key: node.key,
@@ -206,7 +202,9 @@ export const TagHierarchyPage = ({
     canEdit,
     onMetadataSchemaChange,
 }: TagHierarchyPageProps) => {
-    const [sJsonColumn, setJsonColumn] = useState(defaultJsonColumnName(jsonColumns));
+    // Value column for the single hierarchy. Defaults to ASSET; refreshHierarchy adopts the
+    // document's `column` field once the template loads (the JSON-column picker was removed).
+    const [sJsonColumn, setJsonColumn] = useState(DEFAULT_HIERARCHY_JSON_COLUMN);
     const [sKeys, setKeys] = useState<string[]>([]);
     const [sHierarchyDocument, setHierarchyDocument] = useState<HierarchyDocument | undefined>();
     const [sHasHierarchyRow, setHasHierarchyRow] = useState(false);
@@ -221,8 +219,20 @@ export const TagHierarchyPage = ({
     const [sTags, setTags] = useState<HierarchyTagRow[]>([]);
     const [sTagPage, setTagPage] = useState(0);
     const [sTagHasMore, setTagHasMore] = useState(false);
+    // Loading flag for the detail tag table (initial fetch + paged "load more") — drives the
+    // progress bar and, via loadingMoreTagsRef, blocks overlapping page requests.
+    const [sIsLoadingTags, setIsLoadingTags] = useState(false);
     const [sUnassignedCount, setUnassignedCount] = useState(0);
+    // Unfiltered total of unassigned tags — drives whether the search box / Select-all show, so they
+    // don't flicker away when a search matches 0 or the term is cleared (sUnassignedCount is filtered).
+    const [sUnassignedTotal, setUnassignedTotal] = useState(0);
+    // Infinite-scroll paging state for the unassigned-tags list.
+    const [sUnassignedPage, setUnassignedPage] = useState(0);
+    const [sUnassignedHasMore, setUnassignedHasMore] = useState(false);
+    const [sIsLoadingUnassigned, setIsLoadingUnassigned] = useState(false);
     const [sSearchText, setSearchText] = useState('');
+    // Dedicated search for the unassigned-tags pane (separate from the tree's "Search nodes").
+    const [sUnassignedSearch, setUnassignedSearch] = useState('');
     const [sActiveTab, setActiveTab] = useState<DetailTab>('tags');
     const [sLastQuery, setLastQuery] = useState('');
     const [sError, setError] = useState('');
@@ -243,7 +253,18 @@ export const TagHierarchyPage = ({
     const [sFocusTreePath, setFocusTreePath] = useState<number[] | null>(null);
     const [sIsSaving, setIsSaving] = useState(false);
     const [sIsCreatingAssetColumn, setIsCreatingAssetColumn] = useState(false);
+    // Name of the json metadata column to create for the hierarchy. Defaults to ASSET but the user
+    // may freely rename it before creating (the hierarchy then lives in whatever column they pick).
+    const [sNewColumnName, setNewColumnName] = useState(DEFAULT_HIERARCHY_JSON_COLUMN);
     const expandedPathKeysRef = useRef(sExpandedPathKeys);
+    // Synchronous guard so onEndReached can't fire a new "load more" page request before the
+    // in-flight one resolves (state updates are async; a ref blocks the burst immediately).
+    const loadingMoreTagsRef = useRef(false);
+    // Same in-flight guard for the unassigned-tags infinite scroll.
+    const loadingMoreUnassignedRef = useRef(false);
+    // Monotonic id for unassigned (re)loads: a newer search/refresh supersedes older in-flight
+    // requests so out-of-order responses (and stale "load more" appends) are discarded.
+    const unassignedReqRef = useRef(0);
     // Tracks which JSON column has already received its "expand all on first load" default,
     // so a fresh load (or a column switch) starts fully expanded while later refreshes
     // (e.g. after placing/detaching tags) preserve whatever the user manually collapsed.
@@ -267,6 +288,12 @@ export const TagHierarchyPage = ({
 
     const mSelectedPathKey = pathKey(sSelectedNode.path);
     const mHasTemplate = sKeys.length > 0;
+    // Mirrors the repository's assertSafeIdentifier rule so we only enable Create for a name the
+    // ALTER TABLE … ADD COLUMN statement will accept.
+    const isValidColumnName = /^[A-Za-z_][A-Za-z0-9_]*$/.test(sNewColumnName.trim());
+    // An empty schema is an error state the user must fix, so the SCHEMA editor is forced open then;
+    // otherwise it respects the user's manual collapse/expand toggle.
+    const mSchemaEditorOpen = sSchemaEditorOpen || sSchemaDraft.length === 0;
 
     // Placement-panel derivations: all selectable target nodes, the currently chosen target path,
     // which selected tags are already placed (for the unassign/detach action).
@@ -287,14 +314,12 @@ export const TagHierarchyPage = ({
         () => Array.from(sSelectedTagNames).filter((name) => mPlacedTagNames.has(name)),
         [sSelectedTagNames, mPlacedTagNames],
     );
-    // Search-filtered unassigned tag rows (and just their names, derived) — both
-    // the list render and the "Select all" affordances key off this.
-    const mUnassignedRows = useMemo(() => {
-        const rows = sTagLinksByPath[UNASSIGNED_TREE_KEY] ?? [];
-        return sSearchText
-            ? rows.filter((row) => row.name.toLowerCase().includes(sSearchText.toLowerCase()))
-            : rows;
-    }, [sTagLinksByPath, sSearchText]);
+    // Unassigned tag rows as loaded — filtering is done server-side (NAME LIKE) so these are
+    // already the matching rows for the current search; no client-side filter here.
+    const mUnassignedRows = useMemo(
+        () => sTagLinksByPath[UNASSIGNED_TREE_KEY] ?? [],
+        [sTagLinksByPath],
+    );
     const mUnassignedNames = useMemo(
         () => mUnassignedRows.map((row) => row.name),
         [mUnassignedRows],
@@ -388,11 +413,6 @@ export const TagHierarchyPage = ({
     const mBlockingCount = mEditIssues.filter((issue) => issue.level === 'blocking').length;
 
     useEffect(() => {
-        const nextColumn = defaultJsonColumnName(jsonColumns);
-        setJsonColumn((prev) => prev || nextColumn);
-    }, [jsonColumns]);
-
-    useEffect(() => {
         expandedPathKeysRef.current = sExpandedPathKeys;
     }, [sExpandedPathKeys]);
 
@@ -434,43 +454,49 @@ export const TagHierarchyPage = ({
                 setTagHasMore(rows.length === HIERARCHY_PAGE_SIZE);
             };
 
-            if (node.isUnassigned) {
-                if (!document) return;
-                setLastQuery(buildGetUnassignedTagsByDocumentSql(mConfig, document));
-                const tags = await getUnassignedTagsByDocument(mConfig, document, page);
+            setIsLoadingTags(true);
+            try {
+                if (node.isUnassigned) {
+                    if (!document) return;
+                    setLastQuery(buildGetUnassignedTagsByDocumentSql(mConfig, document));
+                    const tags = await getUnassignedTagsByDocument(mConfig, document, page);
+                    applyRows(tags.rows);
+                    if (!tags.success) setError(tags.reason ?? 'Failed to load unassigned tags.');
+                    return;
+                }
+
+                if (node.path.length === 0) {
+                    setTags([]);
+                    setTagHasMore(false);
+                    setLastQuery('');
+                    return;
+                }
+
+                setLastQuery(buildGetHierarchyTagsSql(mConfig, node.path));
+                const tags = await getHierarchyTags(mConfig, node.path, page);
                 applyRows(tags.rows);
-                if (!tags.success) setError(tags.reason ?? 'Failed to load unassigned tags.');
-                return;
+                if (!tags.success) setError(tags.reason ?? 'Failed to load hierarchy tags.');
+            } finally {
+                setIsLoadingTags(false);
             }
-
-            if (node.path.length === 0) {
-                setTags([]);
-                setTagHasMore(false);
-                setLastQuery('');
-                return;
-            }
-
-            setLastQuery(buildGetHierarchyTagsSql(mConfig, node.path));
-            const tags = await getHierarchyTags(mConfig, node.path, page);
-            applyRows(tags.rows);
-            if (!tags.success) setError(tags.reason ?? 'Failed to load hierarchy tags.');
         },
         [mConfig],
     );
 
     const loadMoreTags = useCallback(() => {
-        if (!sTagHasMore) return;
+        // Block overlapping page requests: onEndReached fires repeatedly while pinned at the bottom,
+        // so without this guard the next page(s) would be requested before the current one returns.
+        if (!sTagHasMore || loadingMoreTagsRef.current) return;
+        loadingMoreTagsRef.current = true;
         const nextPage = sTagPage + 1;
         setTagPage(nextPage);
-        loadTagsForNode(sSelectedNode, sHierarchyDocument, nextPage);
+        loadTagsForNode(sSelectedNode, sHierarchyDocument, nextPage).finally(() => {
+            loadingMoreTagsRef.current = false;
+        });
     }, [sTagHasMore, sTagPage, sSelectedNode, sHierarchyDocument, loadTagsForNode]);
 
     const loadTagLinksForPaths = useCallback(
-        async (
-            document: HierarchyDocument,
-            paths: HierarchyPathItem[][],
-            options: { includeUnassigned?: boolean } = {},
-        ) => {
+        async (document: HierarchyDocument, paths: HierarchyPathItem[][]) => {
             const uniquePaths = Array.from(
                 new Map(paths.map((path) => [pathKey(path), path])).values(),
             );
@@ -491,28 +517,92 @@ export const TagHierarchyPage = ({
                 }
             });
 
-            if (options.includeUnassigned) {
-                const unassigned = await getUnassignedTagsByDocument(mConfig, document);
-                if (unassigned.success) {
-                    nextLinks[UNASSIGNED_TREE_KEY] = unassigned.rows;
-                } else {
-                    setError(unassigned.reason ?? 'Failed to load unassigned tags.');
-                }
-            }
-
             setTagLinksByPath((prev) => ({ ...prev, ...nextLinks }));
         },
         [mConfig],
     );
 
+    // Infinite scroll for the unassigned-tags list: fetch the next page and append it. The ref guard
+    // blocks overlapping requests (endReached fires repeatedly at the bottom) — same fix as the
+    // detail table's loadMoreTags.
+    // (Re)loads the unassigned list from page 0 for the given search: server-side NAME LIKE filter,
+    // so both the COUNT and the rows reflect the full match set. Replaces the list and resets paging.
+    // unassignedReqRef discards stale/out-of-order responses when search or document changes mid-flight.
+    const reloadUnassigned = useCallback(
+        async (search: string) => {
+            if (!sHierarchyDocument) return;
+            const reqId = (unassignedReqRef.current += 1);
+            setIsLoadingUnassigned(true);
+            try {
+                const [count, tags] = await Promise.all([
+                    getUnassignedTagCountByDocument(mConfig, sHierarchyDocument, search),
+                    getUnassignedTagsByDocument(mConfig, sHierarchyDocument, 0, search),
+                ]);
+                if (reqId !== unassignedReqRef.current) return; // superseded by a newer reload
+                setUnassignedCount(count);
+                // An empty search returns the unfiltered total — capture it for visibility gating.
+                if (!search.trim()) setUnassignedTotal(count);
+                if (tags.success) {
+                    setUnassignedPage(0);
+                    setUnassignedHasMore(tags.rows.length === HIERARCHY_PAGE_SIZE);
+                    setTagLinksByPath((prev) => ({ ...prev, [UNASSIGNED_TREE_KEY]: tags.rows }));
+                } else {
+                    setError(tags.reason ?? 'Failed to load unassigned tags.');
+                }
+            } finally {
+                if (reqId === unassignedReqRef.current) setIsLoadingUnassigned(false);
+            }
+        },
+        [mConfig, sHierarchyDocument],
+    );
+
+    const loadMoreUnassigned = useCallback(() => {
+        if (!sUnassignedHasMore || loadingMoreUnassignedRef.current || !sHierarchyDocument) return;
+        loadingMoreUnassignedRef.current = true;
+        const reqId = unassignedReqRef.current;
+        const nextPage = sUnassignedPage + 1;
+        setIsLoadingUnassigned(true);
+        getUnassignedTagsByDocument(mConfig, sHierarchyDocument, nextPage, sUnassignedSearch)
+            .then((res) => {
+                // A reload (search/refresh) happened while this page was in flight — drop it.
+                if (reqId !== unassignedReqRef.current) return;
+                if (!res.success) {
+                    setError(res.reason ?? 'Failed to load more unassigned tags.');
+                    return;
+                }
+                setUnassignedPage(nextPage);
+                setUnassignedHasMore(res.rows.length === HIERARCHY_PAGE_SIZE);
+                setTagLinksByPath((prev) => ({
+                    ...prev,
+                    [UNASSIGNED_TREE_KEY]: (prev[UNASSIGNED_TREE_KEY] ?? []).concat(res.rows),
+                }));
+            })
+            .finally(() => {
+                loadingMoreUnassignedRef.current = false;
+                if (reqId === unassignedReqRef.current) setIsLoadingUnassigned(false);
+            });
+    }, [sUnassignedHasMore, sUnassignedPage, sHierarchyDocument, sUnassignedSearch, mConfig]);
+
+    // Debounced server-side reload of the unassigned list whenever the search term changes (or the
+    // hierarchy document reloads, e.g. after placing/detaching tags). The TAKE/DROP paging in
+    // reloadUnassigned/loadMoreUnassigned then operates on the filtered result set.
+    useEffect(() => {
+        if (!sHierarchyDocument) return;
+        const timer = window.setTimeout(() => reloadUnassigned(sUnassignedSearch), 300);
+        return () => window.clearTimeout(timer);
+    }, [sUnassignedSearch, reloadUnassigned, sHierarchyDocument]);
+
     const refreshHierarchy = useCallback(async () => {
-        if (!active || !sJsonColumn) return;
+        if (!active || jsonColumns.length === 0) return;
 
         setIsLoading(true);
         setError('');
         setLastQuery('');
         setTagLinksByPath({});
 
+        // One SELECT * reads the whole reserved row and discovers, by content, which json column
+        // actually holds the hierarchy (templateResult.column). The value column is thus derived
+        // from data, not from pre-seeded state.
         const templateResult = await getHierarchyTemplate(mConfig);
         setHasHierarchyRow(Boolean(templateResult.hasRow));
         if (!templateResult.success) {
@@ -526,6 +616,23 @@ export const TagHierarchyPage = ({
                     message: templateResult.reason ?? 'Failed to load hierarchy template.',
                 },
             ]);
+            setIsLoading(false);
+            return;
+        }
+
+        // Adopt the value column: the one the hierarchy lives in, else (none yet) keep the column the
+        // user just created/selected if still present, else ASSET, else the first json column — the
+        // target the setup flow creates into. Switching re-runs this load so value queries use it.
+        const columnNames = jsonColumns.map((col) => col.name);
+        const targetColumn =
+            templateResult.column ??
+            (columnNames.includes(sJsonColumn)
+                ? sJsonColumn
+                : columnNames.includes(DEFAULT_HIERARCHY_JSON_COLUMN)
+                  ? DEFAULT_HIERARCHY_JSON_COLUMN
+                  : columnNames[0]);
+        if (targetColumn && targetColumn !== sJsonColumn) {
+            setJsonColumn(targetColumn);
             setIsLoading(false);
             return;
         }
@@ -587,14 +694,14 @@ export const TagHierarchyPage = ({
             expandedPaths = allPaths.filter((path) => expandedKeys.has(pathKey(path)));
         }
 
+        // Unassigned tags (count + rows) are loaded separately by the debounced reloadUnassigned
+        // effect — it owns the server-side search + paging — so we don't fetch them here.
         await Promise.all([
             loadTagsForNode(EMPTY_SELECTED_NODE, document),
-            getUnassignedTagCountByDocument(mConfig, document).then(setUnassignedCount),
-            // Unassigned tags always render in their own bottom pane, so always load their links.
-            loadTagLinksForPaths(document, expandedPaths, { includeUnassigned: true }),
+            loadTagLinksForPaths(document, expandedPaths),
         ]);
         setIsLoading(false);
-    }, [active, loadTagLinksForPaths, loadTagsForNode, mConfig, sJsonColumn]);
+    }, [active, jsonColumns, loadTagLinksForPaths, loadTagsForNode, mConfig, sJsonColumn]);
 
     useEffect(() => {
         if (active) refreshHierarchy();
@@ -670,7 +777,7 @@ export const TagHierarchyPage = ({
         setExpandedPathKeys(nextExpanded);
         setIsLoading(true);
         setError('');
-        await loadTagLinksForPaths(sHierarchyDocument, paths, { includeUnassigned: true });
+        await loadTagLinksForPaths(sHierarchyDocument, paths);
         setIsLoading(false);
     };
 
@@ -903,6 +1010,9 @@ export const TagHierarchyPage = ({
     };
 
     const addSchemaDraftKey = () => {
+        // Keep the SCHEMA editor open: once the first level is added the "empty ⇒ forced open" rule
+        // no longer applies, so without this the section would collapse mid-edit.
+        setSchemaEditorOpen(true);
         // The appended level lands at the current end, so its index is the pre-add length.
         setFocusSchemaIndex(sSchemaDraft.length);
         setSchemaDraft((prev) => prev.concat(`level_${prev.length + 1}`));
@@ -952,6 +1062,8 @@ export const TagHierarchyPage = ({
                 sValueTreeDraft,
                 sSchemaDraft.map((key) => key.trim()),
             ),
+            // Record the json column this hierarchy lives in (the one we're writing to).
+            column: sJsonColumn,
         };
         const issues = validateHierarchyDocument(document);
         setIssues(issues);
@@ -992,7 +1104,10 @@ export const TagHierarchyPage = ({
 
     const handleInitializeHierarchy = async () => {
         setIsSaving(true);
-        const document = DEFAULT_HIERARCHY_DOCUMENT;
+        // 맨 처음 생성 시 기본 스키마/트리(country/city/… + 'New Country')를 넣지 않고 빈 상태로 시작.
+        // 기본값으로 되돌리려면 아래 한 줄을 사용:
+        // const document = { ...DEFAULT_HIERARCHY_DOCUMENT, column: sJsonColumn };
+        const document = { schema: [], tree: [], column: sJsonColumn };
         const previousSchema = sKeys;
         const result = sHasHierarchyRow
             ? await updateHierarchyTemplate(mConfig, document)
@@ -1023,18 +1138,19 @@ export const TagHierarchyPage = ({
     };
 
     const handleCreateAssetColumn = async () => {
-        if (!canEdit || hasAssetColumn) return;
+        const columnName = sNewColumnName.trim();
+        if (!canEdit || !isValidColumnName) return;
 
         setIsCreatingAssetColumn(true);
         setError('');
-        setLastQuery(buildCreateJsonMetadataColumnSql(tableName, DEFAULT_HIERARCHY_JSON_COLUMN));
-        const result = await createJsonMetadataColumn(tableName, DEFAULT_HIERARCHY_JSON_COLUMN);
+        setLastQuery(buildCreateJsonMetadataColumnSql(tableName, columnName));
+        const result = await createJsonMetadataColumn(tableName, columnName);
         if (result.svrState) {
-            Toast.success('ASSET metadata column created.');
-            setJsonColumn(DEFAULT_HIERARCHY_JSON_COLUMN);
+            Toast.success(`${columnName} metadata column created.`);
+            setJsonColumn(columnName);
             onMetadataSchemaChange?.();
         } else {
-            setError(result.svrReason ?? 'Failed to create ASSET metadata column.');
+            setError(result.svrReason ?? `Failed to create ${columnName} metadata column.`);
         }
         setIsCreatingAssetColumn(false);
     };
@@ -1346,20 +1462,29 @@ export const TagHierarchyPage = ({
                     </div>
                     <div className={styles.emptyText}>
                         {hasAssetColumn
-                            ? `${DEFAULT_HIERARCHY_JSON_COLUMN} already exists, but it is not a JSON metadata column. Use a JSON metadata column for hierarchy.`
-                            : `Create ${DEFAULT_HIERARCHY_JSON_COLUMN} as a JSON metadata column to store tag hierarchy values.`}
+                            ? `${DEFAULT_HIERARCHY_JSON_COLUMN} already exists, but it is not a JSON metadata column. Create a JSON metadata column for the hierarchy.`
+                            : `Create a JSON metadata column to store tag hierarchy values (default ${DEFAULT_HIERARCHY_JSON_COLUMN}).`}
                     </div>
                     {sError ? <div className={styles.error}>{sError}</div> : null}
-                    <Button
-                        size="sm"
-                        variant="primary"
-                        disabled={!canEdit || hasAssetColumn}
-                        loading={sIsCreatingAssetColumn}
-                        onClick={handleCreateAssetColumn}
-                    >
-                        Create {DEFAULT_HIERARCHY_JSON_COLUMN}
-                    </Button>
-                    {sLastQuery ? <pre className={styles.queryBox}>{sLastQuery}</pre> : null}
+                    <Button.Group>
+                        {/* Hierarchy column name — defaults to ASSET, freely editable before Create. */}
+                        <Input
+                            value={sNewColumnName}
+                            placeholder={DEFAULT_HIERARCHY_JSON_COLUMN}
+                            variant={isValidColumnName ? 'default' : 'error'}
+                            onChange={(event) => setNewColumnName(event.target.value)}
+                        />
+                        <Button
+                            size="sm"
+                            variant="primary"
+                            disabled={!canEdit || !isValidColumnName}
+                            loading={sIsCreatingAssetColumn}
+                            onClick={handleCreateAssetColumn}
+                        >
+                            Create
+                        </Button>
+                    </Button.Group>
+                    {/* {sLastQuery ? <pre className={styles.queryBox}>{sLastQuery}</pre> : null} */}
                 </div>
             </div>
         );
@@ -1367,63 +1492,41 @@ export const TagHierarchyPage = ({
 
     return (
         <div className={styles.container}>
-            <div className={styles.toolbar}>
-                {/* <div className={styles.toolbarGroup}> */}
-                <Dropdown.Root
-                    options={jsonColumns.map((column) => ({
-                        label: column.name,
-                        value: column.name,
-                    }))}
-                    value={sJsonColumn}
-                    onChange={(value) => setJsonColumn(value)}
-                    disabled={sIsTemplateEditing}
-                >
-                    <Dropdown.Trigger style={{ height: '30px' }} />
-                    <Dropdown.Menu>
-                        <Dropdown.List />
-                    </Dropdown.Menu>
-                </Dropdown.Root>
-                {!hasAssetColumn ? (
-                    <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={!canEdit}
-                        loading={sIsCreatingAssetColumn}
-                        onClick={handleCreateAssetColumn}
-                    >
-                        Create {DEFAULT_HIERARCHY_JSON_COLUMN}
-                    </Button>
-                ) : null}
-                {/* </div> */}
-                {sIsTemplateEditing ? (
-                    <div className={styles.toolbarEditActions}>
-                        <span className={styles.editorStatus}>
-                            <span
-                                className={
-                                    mBlockingCount > 0 ? styles.statusDotError : styles.statusDotOk
-                                }
-                            />
-                            {mBlockingCount > 0
-                                ? `${mBlockingCount} validation issue${mBlockingCount > 1 ? 's' : ''}`
-                                : 'No validation issues.'}
-                        </span>
+            {sIsTemplateEditing || mHasTemplate ? (
+                <div className={styles.toolbar}>
+                    <div />
+                    {sIsTemplateEditing ? (
+                        <div className={styles.toolbarEditActions}>
+                            <span className={styles.editorStatus}>
+                                <span
+                                    className={
+                                        mBlockingCount > 0
+                                            ? styles.statusDotError
+                                            : styles.statusDotOk
+                                    }
+                                />
+                                {mBlockingCount > 0
+                                    ? `${mBlockingCount} validation issue${mBlockingCount > 1 ? 's' : ''}`
+                                    : 'No validation issues.'}
+                            </span>
+                            <Button.Group>
+                                <Button
+                                    size="sm"
+                                    variant="primary"
+                                    loading={sIsSaving}
+                                    onClick={saveTemplateEdit}
+                                >
+                                    Save Tree
+                                </Button>
+                                <Button size="sm" variant="secondary" onClick={cancelTemplateEdit}>
+                                    Cancel
+                                </Button>
+                            </Button.Group>
+                        </div>
+                    ) : (
+                        // Edit + refresh only matter once a tree exists (guaranteed by the outer
+                        // guard); before setup the toolbar bar isn't rendered at all.
                         <Button.Group>
-                            <Button
-                                size="sm"
-                                variant="primary"
-                                loading={sIsSaving}
-                                onClick={saveTemplateEdit}
-                            >
-                                Save Tree
-                            </Button>
-                            <Button size="sm" variant="secondary" onClick={cancelTemplateEdit}>
-                                Cancel
-                            </Button>
-                        </Button.Group>
-                    </div>
-                ) : (
-                    <Button.Group>
-                        {mHasTemplate ? (
                             <Button
                                 size="sm"
                                 variant="secondary"
@@ -1432,22 +1535,21 @@ export const TagHierarchyPage = ({
                             >
                                 Edit Tree
                             </Button>
-                        ) : (
-                            // Empty state has no in-tree search refresh icon, so keep a
-                            // toolbar Refresh here as the only way to re-check the column.
-                            <Button
+                            <IconButton
                                 size="sm"
                                 variant="secondary"
+                                aria-label="Refresh tree"
+                                title="Refresh tree"
+                                style={{ width: '28px', height: '28px' }}
+                                icon={<Refresh style={{ padding: '2px' }} />}
                                 loading={sIsLoading}
                                 onClick={refreshHierarchy}
-                            >
-                                Refresh
-                            </Button>
-                        )}
-                    </Button.Group>
-                )}
-            </div>
-            {!mHasTemplate ? (
+                            />
+                        </Button.Group>
+                    )}
+                </div>
+            ) : null}
+            {!mHasTemplate && !sIsTemplateEditing ? (
                 <div className={styles.emptyState}>
                     <div className={styles.emptyTitle}>
                         {sHasHierarchyRow ? 'Tree data needs reset' : 'Tree is not set up yet'}
@@ -1487,28 +1589,16 @@ export const TagHierarchyPage = ({
                                         value={sSearchText}
                                         onChange={(event) => setSearchText(event.target.value)}
                                         rightIcon={
-                                            <Button.Group>
-                                                <IconButton
-                                                    className={styles.searchAction}
-                                                    aria-label="Expand all tree nodes"
-                                                    title="Expand all"
-                                                    size="xsm"
-                                                    variant="ghost"
-                                                    icon={<FiChevronsDown size={10} />}
-                                                    disabled={sIsLoading || !mHasTemplate}
-                                                    onClick={handleExpandAllTree}
-                                                />
-                                                <IconButton
-                                                    className={styles.searchAction}
-                                                    aria-label="Refresh tree"
-                                                    title="Refresh tree"
-                                                    size="xsm"
-                                                    variant="ghost"
-                                                    icon={<Refresh size={10} />}
-                                                    disabled={sIsLoading}
-                                                    onClick={refreshHierarchy}
-                                                />
-                                            </Button.Group>
+                                            <IconButton
+                                                className={styles.searchAction}
+                                                aria-label="Expand all tree nodes"
+                                                title="Expand all"
+                                                size="xsm"
+                                                variant="ghost"
+                                                icon={<FiChevronsDown size={10} />}
+                                                disabled={sIsLoading || !mHasTemplate}
+                                                onClick={handleExpandAllTree}
+                                            />
                                         }
                                     />
                                 </div>
@@ -1571,15 +1661,17 @@ export const TagHierarchyPage = ({
                                             >
                                                 Unassigned Tags
                                             </span>
+                                            {/* Server-side count: reflects the search (NAME LIKE) total. */}
                                             <span className={styles.unassignedCount}>
                                                 {sUnassignedCount}
                                             </span>
-                                            {mUnassignedNames.length > 0 ? (
+                                            {sUnassignedTotal > 0 ? (
                                                 <label className={styles.selectAll}>
                                                     <input
                                                         type="checkbox"
                                                         checked={mAllUnassignedSelected}
                                                         readOnly
+                                                        disabled={mUnassignedNames.length === 0}
                                                         onClick={() =>
                                                             toggleSelectAll(mUnassignedNames)
                                                         }
@@ -1599,36 +1691,87 @@ export const TagHierarchyPage = ({
                                                 }
                                             />
                                         </div>
-                                        <div className={styles.unassignedList}>
-                                            {mUnassignedRows.length === 0 ? (
-                                                <div className={styles.message}>
-                                                    No unassigned tags.
-                                                </div>
-                                            ) : mUnassignedRows.length >
-                                              VIRTUALIZE_ROW_THRESHOLD ? (
-                                                <Virtuoso
-                                                    className="scrollbar-dark"
-                                                    style={{ height: '100%' }}
-                                                    data={mUnassignedRows}
-                                                    itemContent={(_, row) =>
+                                        {sUnassignedTotal > 0 ? (
+                                            <div className={styles.unassignedSearch}>
+                                                <Input
+                                                    size="sm"
+                                                    fullWidth
+                                                    leftIcon={<FiSearch />}
+                                                    placeholder="Search unassigned tags"
+                                                    value={sUnassignedSearch}
+                                                    onChange={(event) =>
+                                                        setUnassignedSearch(event.target.value)
+                                                    }
+                                                    rightIcon={
+                                                        // Always render the clear button so its
+                                                        // slot is reserved — toggling only its
+                                                        // visibility keeps the input height fixed
+                                                        // (no layout jump when text appears).
+                                                        <IconButton
+                                                            className={styles.searchAction}
+                                                            aria-label="Clear unassigned search"
+                                                            title="Clear"
+                                                            size="xsm"
+                                                            variant="ghost"
+                                                            icon={<FiX size={10} />}
+                                                            disabled={!sUnassignedSearch}
+                                                            style={{
+                                                                visibility: sUnassignedSearch
+                                                                    ? 'visible'
+                                                                    : 'hidden',
+                                                            }}
+                                                            onClick={() => setUnassignedSearch('')}
+                                                        />
+                                                    }
+                                                />
+                                            </div>
+                                        ) : null}
+                                        <div className={styles.unassignedListWrap}>
+                                            {sIsLoadingUnassigned ? (
+                                                <div
+                                                    className={styles.tableProgress}
+                                                    role="progressbar"
+                                                    aria-label="Loading unassigned tags"
+                                                />
+                                            ) : null}
+                                            <div className={styles.unassignedList}>
+                                                {mUnassignedRows.length === 0 ? (
+                                                    <div className={styles.message}>
+                                                        {sUnassignedSearch
+                                                            ? 'No tags match the search.'
+                                                            : 'No unassigned tags.'}
+                                                    </div>
+                                                ) : mUnassignedRows.length >
+                                                      VIRTUALIZE_ROW_THRESHOLD ||
+                                                  sUnassignedHasMore ? (
+                                                    // Virtualize when the list is long OR more pages
+                                                    // remain — the latter keeps endReached available
+                                                    // even at exactly one full page (50).
+                                                    <Virtuoso
+                                                        className="scrollbar-dark"
+                                                        style={{ height: '100%' }}
+                                                        data={mUnassignedRows}
+                                                        endReached={loadMoreUnassigned}
+                                                        itemContent={(_, row) =>
+                                                            renderTagRow(
+                                                                row,
+                                                                UNASSIGNED_TREE_KEY,
+                                                                0,
+                                                                mUnassignedNames,
+                                                            )
+                                                        }
+                                                    />
+                                                ) : (
+                                                    mUnassignedRows.map((row) =>
                                                         renderTagRow(
                                                             row,
                                                             UNASSIGNED_TREE_KEY,
                                                             0,
                                                             mUnassignedNames,
-                                                        )
-                                                    }
-                                                />
-                                            ) : (
-                                                mUnassignedRows.map((row) =>
-                                                    renderTagRow(
-                                                        row,
-                                                        UNASSIGNED_TREE_KEY,
-                                                        0,
-                                                        mUnassignedNames,
-                                                    ),
-                                                )
-                                            )}
+                                                        ),
+                                                    )
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1654,7 +1797,7 @@ export const TagHierarchyPage = ({
                                                 <FiChevronRight
                                                     className={[
                                                         styles.chevron,
-                                                        sSchemaEditorOpen
+                                                        mSchemaEditorOpen
                                                             ? styles.chevronExpanded
                                                             : '',
                                                     ]
@@ -1666,7 +1809,7 @@ export const TagHierarchyPage = ({
                                                 <span className={styles.schemaLevels}>
                                                     · {sSchemaDraft.length} levels
                                                 </span>
-                                                {!sSchemaEditorOpen ? (
+                                                {!mSchemaEditorOpen ? (
                                                     <span className={styles.schemaBreadcrumb}>
                                                         {sSchemaDraft.map((key, index) => (
                                                             <span
@@ -1686,7 +1829,7 @@ export const TagHierarchyPage = ({
                                                     </span>
                                                 ) : null}
                                                 <span className={styles.schemaToggleLabel}>
-                                                    {sSchemaEditorOpen
+                                                    {mSchemaEditorOpen
                                                         ? 'Collapse'
                                                         : 'Expand to edit'}
                                                 </span>
@@ -1694,7 +1837,7 @@ export const TagHierarchyPage = ({
                                             <div
                                                 className={[
                                                     styles.schemaCollapse,
-                                                    sSchemaEditorOpen
+                                                    mSchemaEditorOpen
                                                         ? styles.schemaCollapseOpen
                                                         : '',
                                                 ]
@@ -2025,6 +2168,13 @@ export const TagHierarchyPage = ({
                                         ) : null}
                                         {sActiveTab === 'tags' ? (
                                             <div className={styles.detailTableWrap}>
+                                                {sIsLoadingTags ? (
+                                                    <div
+                                                        className={styles.tableProgress}
+                                                        role="progressbar"
+                                                        aria-label="Loading tags"
+                                                    />
+                                                ) : null}
                                                 <CommonTable
                                                     data={tagTableData(sTags)}
                                                     showRowNumber

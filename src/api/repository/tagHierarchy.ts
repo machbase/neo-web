@@ -1,4 +1,4 @@
-import { fetchQuery, fetchTqlQuery } from './database';
+import { fetchQuery } from './database';
 
 export const HIERARCHY_RESERVED_NAME = '__machbase_hierarchy__';
 export const DEFAULT_HIERARCHY_JSON_COLUMN = 'ASSET';
@@ -26,6 +26,9 @@ export interface HierarchyTemplate {
 export type HierarchyDocument = {
     schema: string[];
     tree: HierarchyValueNode[];
+    // The json metadata column this hierarchy is stored in. On load the column is located by scanning
+    // the reserved row's cells (pickHierarchyColumn); this value also self-identifies that column.
+    column?: string;
 };
 
 export type HierarchyValueNode = {
@@ -126,6 +129,11 @@ const baseWhere = (nameColumn: string) => [`${nameColumn} <> ${quoteSql(HIERARCH
 const buildWhereClause = (conditions: string[]) =>
     conditions.length > 0 ? ` where ${conditions.join(' and ')}` : '';
 
+// Native SQL paging: `limit <offset>, <count>`. The server applies it during the scan — faster than
+// post-processing with the TQL DROP/TAKE pipeline. Omitted when page is undefined (return all rows).
+const limitClause = (page?: number) =>
+    page === undefined ? '' : ` limit ${page * PAGE_SIZE}, ${PAGE_SIZE}`;
+
 const writableJsonExpr = (jsonColumn: string) => `nvl(${jsonColumn}, '{}')`;
 
 const nestedJsonSet = (jsonColumn: string, values: HierarchyPathItem[]) =>
@@ -135,12 +143,11 @@ const nestedJsonSet = (jsonColumn: string, values: HierarchyPathItem[]) =>
         writableJsonExpr(jsonColumn),
     );
 
-export const buildGetHierarchyTemplateSql = ({
-    tableName,
-    nameColumn,
-    jsonColumn,
-}: HierarchyQueryConfig) =>
-    `select ${jsonColumn} from ${metadataTable(tableName)} where ${nameColumn} = ${quoteSql(HIERARCHY_RESERVED_NAME)}`;
+// Reads the whole reserved row (SELECT *) so the hierarchy column can be discovered by content:
+// the value column is chosen by the user at creation (not fixed to ASSET), so we neither assume its
+// name nor depend on the caller pre-classifying which columns are JSON — we inspect the cells.
+export const buildScanHierarchyMetadataSql = ({ tableName, nameColumn }: HierarchyQueryConfig) =>
+    `select * from ${metadataTable(tableName)} where ${nameColumn} = ${quoteSql(HIERARCHY_RESERVED_NAME)}`;
 
 export const buildCreateHierarchyTemplateSql = (
     { tableName, nameColumn, jsonColumn }: HierarchyQueryConfig,
@@ -205,13 +212,14 @@ export const buildGetHierarchyChildrenSql = (
 export const buildGetHierarchyTagsSql = (
     config: HierarchyQueryConfig,
     path: HierarchyPathItem[],
+    page?: number,
 ) => {
     const columns = [config.nameColumn, config.jsonColumn, config.specColumn]
         .filter(Boolean)
         .join(', ');
     const conditions = baseWhere(config.nameColumn).concat(pathConditions(config.jsonColumn, path));
 
-    return `select ${columns} from ${metadataTable(config.tableName)}${buildWhereClause(conditions)} order by ${config.nameColumn}`;
+    return `select ${columns} from ${metadataTable(config.tableName)}${buildWhereClause(conditions)} order by ${config.nameColumn}${limitClause(page)}`;
 };
 
 export const buildGetDirectHierarchyTagsSql = (
@@ -460,6 +468,7 @@ export const parseHierarchyDocument = (template: unknown): HierarchyParseResult 
             document: {
                 schema: candidate.schema.map((key) => String(key ?? '')),
                 tree: normalizeNodes(candidate.tree),
+                ...(candidate.column ? { column: String(candidate.column) } : {}),
             },
         };
     }
@@ -836,25 +845,43 @@ const buildDocumentUnassignedSourceSql = (
     return `select ${columns.concat(aliasSelects).join(', ')} from ${metadataTable(config.tableName)}${buildWhereClause(baseWhere(config.nameColumn))}`;
 };
 
+// Optional case-contains filter on the tag name, applied server-side so search + the COUNT both
+// reflect the full result set (not just loaded pages). Empty search ⇒ no condition.
+const nameLikeCondition = (nameColumn: string, search?: string) => {
+    const term = (search ?? '').trim();
+    return term ? `${nameColumn} LIKE '%${escapeSqlString(term)}%'` : '';
+};
+
 export const buildGetUnassignedTagsByDocumentSql = (
     config: HierarchyQueryConfig,
     document: HierarchyDocument,
+    search?: string,
+    page?: number,
 ) => {
     const columns = [config.nameColumn, config.jsonColumn, config.specColumn]
         .filter(Boolean)
         .join(', ');
     const innerSql = buildDocumentUnassignedSourceSql(config, document);
+    const conditions = [
+        buildDocumentUnassignedAliasCondition(document),
+        nameLikeCondition(config.nameColumn, search),
+    ].filter(Boolean);
 
-    return `select ${columns} from (${innerSql})${buildWhereClause([buildDocumentUnassignedAliasCondition(document)])} order by ${config.nameColumn}`;
+    return `select ${columns} from (${innerSql})${buildWhereClause(conditions)} order by ${config.nameColumn}${limitClause(page)}`;
 };
 
 export const buildGetUnassignedTagCountByDocumentSql = (
     config: HierarchyQueryConfig,
     document: HierarchyDocument,
+    search?: string,
 ) => {
     const innerSql = buildDocumentUnassignedSourceSql(config, document);
+    const conditions = [
+        buildDocumentUnassignedAliasCondition(document),
+        nameLikeCondition(config.nameColumn, search),
+    ].filter(Boolean);
 
-    return `select count(*) as COUNT from (${innerSql})${buildWhereClause([buildDocumentUnassignedAliasCondition(document)])}`;
+    return `select count(*) as COUNT from (${innerSql})${buildWhereClause(conditions)}`;
 };
 
 export const validateHierarchyTemplate = (template: unknown): HierarchyValidationIssue[] => {
@@ -916,79 +943,90 @@ const normalizeRows = (data: any, config: HierarchyQueryConfig): HierarchyTagRow
     }));
 };
 
-export const getHierarchyTemplate = async (config: HierarchyQueryConfig) => {
-    const { svrState, svrData, svrReason } = await fetchQuery(buildGetHierarchyTemplateSql(config));
-    if (!svrState)
-        return { success: false, reason: svrReason, template: undefined, keys: [], hasRow: false };
-
-    const hasRow = (svrData?.rows ?? []).length > 0;
-    const rawTemplate = firstCell(svrData);
-    if (!rawTemplate) return { success: true, template: undefined, keys: [], hasRow };
-
+// A reserved-row cell is "JSON object" if it's already an object, or a string whose first non-space
+// char is '{' that parses cleanly. Cheap '{' pre-filter skips text columns (NAME/SPEC) before JSON.parse.
+const parseJsonObjectCell = (raw: unknown): Record<string, unknown> | null => {
+    if (raw && typeof raw === 'object' && !Array.isArray(raw))
+        return raw as Record<string, unknown>;
+    if (typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    if (trimmed[0] !== '{') return null;
     try {
-        const template = typeof rawTemplate === 'string' ? JSON.parse(rawTemplate) : rawTemplate;
-        const parsed = parseHierarchyDocument(template);
-        if (parsed.mode === 'document' && parsed.document) {
-            return {
-                success: true,
-                template,
-                document: parsed.document,
-                tree: parsed.document.tree,
-                paths: [parsed.document.schema],
-                keys: parsed.document.schema,
-                issues: validateHierarchyDocument(parsed.document),
-                mode: parsed.mode,
-                hasRow,
-            };
-        }
-        if (parsed.mode === 'legacy') {
-            return {
-                success: true,
-                template,
-                legacyTemplate: parsed.legacyTemplate,
-                tree: [],
-                paths: [],
-                keys: [],
-                issues: [
-                    {
-                        level: 'blocking',
-                        message:
-                            'Legacy hierarchy template detected. Recreate the tree using the schema/tree format.',
-                    },
-                ],
-                mode: parsed.mode,
-                hasRow,
-            };
-        }
-        if (parsed.mode === 'invalid') {
-            return {
-                success: false,
-                reason: parsed.reason ?? 'Hierarchy document is invalid.',
-                template: undefined,
-                keys: [],
-                hasRow,
-            };
-        }
-
-        const tree = parseHierarchyTemplateTree(template);
-        return {
-            success: true,
-            template,
-            tree,
-            paths: getHierarchyTemplatePaths(template),
-            keys: getUniqueHierarchyKeys(tree),
-            issues: validateHierarchyTemplate(template),
-            hasRow,
-        };
+        const obj = JSON.parse(trimmed);
+        return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : null;
     } catch {
+        return null;
+    }
+};
+
+// Given a SELECT * result (column names + their reserved-row cells), pick the json column that holds
+// the hierarchy: a cell that is a JSON object with schema[] + tree[] + column (string). The `column`
+// key doubles as a marker — ordinary payload json won't carry all three — and we prefer the cell that
+// self-identifies (its `column` === its own column name) so a stray copy in another column can't win.
+export const pickHierarchyColumn = (
+    columns: string[],
+    row: unknown[],
+): { name: string; doc: Record<string, unknown> } | null => {
+    const candidates = columns
+        .map((name, i) => ({ name, doc: parseJsonObjectCell(row[i]) }))
+        .filter(
+            (entry): entry is { name: string; doc: Record<string, unknown> } =>
+                !!entry.doc &&
+                Array.isArray(entry.doc.schema) &&
+                Array.isArray(entry.doc.tree) &&
+                typeof entry.doc.column === 'string',
+        );
+    return candidates.find((entry) => entry.doc.column === entry.name) ?? candidates[0] ?? null;
+};
+
+// Loads the single hierarchy by reading the whole reserved row (SELECT *) and discovering, by
+// content, which json column holds it (see pickHierarchyColumn). Returns the resolved `column` so the
+// caller derives the value column from data, not from a guess.
+export const getHierarchyTemplate = async (config: HierarchyQueryConfig) => {
+    const { svrState, svrData, svrReason } = await fetchQuery(
+        buildScanHierarchyMetadataSql(config),
+    );
+    if (!svrState)
         return {
             success: false,
-            reason: 'Hierarchy template JSON parse failed.',
+            reason: svrReason,
+            column: undefined,
             template: undefined,
             keys: [],
+            hasRow: false,
+        };
+
+    const columns: string[] = svrData?.columns ?? [];
+    const row: unknown[] = svrData?.rows?.[0] ?? [];
+    const hasRow = (svrData?.rows ?? []).length > 0;
+
+    const chosen = pickHierarchyColumn(columns, row);
+    if (!chosen) return { success: true, column: undefined, template: undefined, keys: [], hasRow };
+
+    const parsed = parseHierarchyDocument(chosen.doc);
+    if (parsed.mode === 'document' && parsed.document) {
+        return {
+            success: true,
+            column: chosen.name,
+            template: chosen.doc,
+            document: parsed.document,
+            tree: parsed.document.tree,
+            paths: [parsed.document.schema],
+            keys: parsed.document.schema,
+            issues: validateHierarchyDocument(parsed.document),
+            mode: parsed.mode,
             hasRow,
         };
     }
+    // A cell that matched the marker keys but won't parse cleanly is corrupt — surface it.
+    return {
+        success: false,
+        reason: parsed.mode === 'invalid' ? parsed.reason : 'Hierarchy document is invalid.',
+        column: chosen.name,
+        template: chosen.doc,
+        keys: [],
+        hasRow,
+    };
 };
 
 export const createHierarchyTemplate = async (
@@ -1070,25 +1108,22 @@ export const getHierarchyTags = async (
     path: HierarchyPathItem[],
     page = 0,
 ) => {
-    const { svrState, svrData, svrReason } = await fetchTqlQuery(
-        buildGetHierarchyTagsSql(config, path),
-        page,
-        PAGE_SIZE,
+    const { svrState, svrData, svrReason } = await fetchQuery(
+        buildGetHierarchyTagsSql(config, path, page),
     );
     if (!svrState) return { success: false, reason: svrReason, rows: [] as HierarchyTagRow[] };
     return { success: true, rows: normalizeRows(svrData, config) };
 };
 
+// Tree node tag-links: no paging — the collapse/expand UI already bounds how much is requested, so
+// we load all tags directly under the node (a single query, no LIMIT).
 export const getDirectHierarchyTags = async (
     config: HierarchyQueryConfig,
     schema: string[],
     path: HierarchyPathItem[],
-    page = 0,
 ) => {
-    const { svrState, svrData, svrReason } = await fetchTqlQuery(
+    const { svrState, svrData, svrReason } = await fetchQuery(
         buildGetDirectHierarchyTagsSql(config, schema, path),
-        page,
-        PAGE_SIZE,
     );
     if (!svrState) return { success: false, reason: svrReason, rows: [] as HierarchyTagRow[] };
     return { success: true, rows: normalizeRows(svrData, config) };
@@ -1106,11 +1141,10 @@ export const getUnassignedTagsByDocument = async (
     config: HierarchyQueryConfig,
     document: HierarchyDocument,
     page = 0,
+    search?: string,
 ) => {
-    const { svrState, svrData, svrReason } = await fetchTqlQuery(
-        buildGetUnassignedTagsByDocumentSql(config, document),
-        page,
-        PAGE_SIZE,
+    const { svrState, svrData, svrReason } = await fetchQuery(
+        buildGetUnassignedTagsByDocumentSql(config, document, search, page),
     );
     if (!svrState) return { success: false, reason: svrReason, rows: [] as HierarchyTagRow[] };
     return { success: true, rows: normalizeRows(svrData, config) };
@@ -1119,9 +1153,10 @@ export const getUnassignedTagsByDocument = async (
 export const getUnassignedTagCountByDocument = async (
     config: HierarchyQueryConfig,
     document: HierarchyDocument,
+    search?: string,
 ) => {
     const { svrState, svrData } = await fetchQuery(
-        buildGetUnassignedTagCountByDocumentSql(config, document),
+        buildGetUnassignedTagCountByDocumentSql(config, document, search),
     );
     return svrState ? Number(firstCell(svrData) ?? 0) : 0;
 };

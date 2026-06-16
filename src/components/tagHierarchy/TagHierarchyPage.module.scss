@@ -180,6 +180,23 @@
     }
 }
 
+/* Dedicated search row for the unassigned-tags pane (independent of the tree's "Search nodes"). */
+.unassignedSearch {
+    flex: 0 0 auto;
+    padding: t.$spacing-6 t.$spacing-8;
+    border-bottom: 1px solid t.$border-color-light;
+}
+
+/* Wraps the list so the loading progress bar can sit at its top (below the search), without
+   scrolling with the list content and without shifting layout. */
+.unassignedListWrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .unassignedList {
     flex: 1;
     min-height: 0;
@@ -463,6 +480,11 @@
    copy-cell convention: Button.Copy that fades in on hover). */
 .queryWrapper {
     position: relative;
+    // Fill the panel so the inner <pre> can cap its own height and scroll
+    // internally. Without this the whole .panel scrolled, carrying the
+    // absolutely-positioned copy button (pinned to this wrapper) out of view.
+    height: 100%;
+    min-height: 0;
 
     &:hover .queryCopy,
     &:focus-within .queryCopy {
@@ -472,6 +494,13 @@
 
 .query {
     margin: 0;
+    // Cap at the wrapper height and scroll inside the code block itself, so the
+    // copy button stays pinned/visible no matter how long the query is.
+    // <pre> defaults to content-box (the global border-box rule only targets
+    // <div>), so set it explicitly or border+padding would overflow max-height.
+    box-sizing: border-box;
+    max-height: 100%;
+    overflow: auto;
     padding: t.$spacing-8;
     padding-right: 32px;
     white-space: pre-wrap;
@@ -1037,7 +1066,40 @@
 /* Fill the panel so CommonTable's virtualized scroller (height:100% override)
    has a definite height to measure against, instead of growing unbounded. */
 .detailTableWrap {
+    position: relative;
     height: 100%;
+}
+
+/* Indeterminate progress bar shown at the top of the tag table while a page is loading. */
+.tableProgress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    overflow: hidden;
+    z-index: 2;
+    background: t.$border-color-light;
+    pointer-events: none;
+}
+
+.tableProgress::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    background: t.$primary-hover;
+    animation: tableProgressSlide 1s linear infinite;
+}
+
+@keyframes tableProgressSlide {
+    from {
+        left: -40%;
+    }
+    to {
+        left: 100%;
+    }
 }
 
 /* Detail tag table: keep headers on one line with a sensible minimum column width
