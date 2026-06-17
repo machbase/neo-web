@@ -29,6 +29,7 @@ import { BackupDatabase } from '../database/backup';
 import { AppInfo } from '../side/AppStore/info';
 import { AppView } from '../appView/AppView';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
+import DataViewerPage from '../dataViewer/DataViewerPage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
 import { SaveModal } from '../side/FileExplorer/SaveModal';
@@ -514,6 +515,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'appView') && <AppView pAppName={aItem.code?.appName} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
+                                {checkExtension(aItem.type, 'DataViewer') && <DataViewerPage pCode={aItem.code} embedded />}
                                 {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
                                 {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'event') && (
