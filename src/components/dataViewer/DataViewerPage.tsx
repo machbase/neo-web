@@ -536,7 +536,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                         <button type="button" onClick={() => navigate(-1)} className="data-viewer-back-button" aria-label="Back">
                             <ArrowLeft className="icon-base" />
                         </button>
-                        <MdQueryStats className="text-primary icon-base" />
+                        <MdQueryStats className="text-primary" />
                         <h2 className="page-title truncate">{headerLabels.title}</h2>
                         {headerLabels.detail ? <span className="badge badge-muted truncate">{headerLabels.detail}</span> : null}
                     </div>

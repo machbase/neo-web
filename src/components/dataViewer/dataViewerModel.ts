@@ -64,7 +64,7 @@ export function buildDataViewerHeaderLabels(jobName: string | undefined, tableNa
     const table = String(tableName || '').trim();
     return {
         title: job || table,
-        detail: table,
+        detail: job && table ? table : '',
     };
 }
 
