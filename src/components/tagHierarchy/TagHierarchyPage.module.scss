@@ -1,0 +1,1158 @@
+@use '@/design-system/tokens' as t;
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    // Match the surrounding Page content area (design-system Page uses $bg-tab-active = #252525)
+    background: t.$bg-secondary;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: t.$spacing-8;
+    padding: t.$spacing-8 t.$spacing-12;
+    border-bottom: 1px solid t.$border-color-default;
+}
+
+.toolbarGroup {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    min-width: 0;
+}
+
+/* Edit-mode toolbar cluster: validation status sits next to Save/Cancel so the
+   gating relationship (blocking issues -> can't save) is visible at the action. */
+.toolbarEditActions {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-10;
+}
+
+.label {
+    color: t.$text-secondary;
+    font-size: t.$font-size-sm;
+    white-space: nowrap;
+}
+
+.select,
+.input,
+.textarea {
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-sm;
+    background: t.$bg-input-dark;
+    color: t.$text-primary;
+    font-size: t.$font-size-sm;
+}
+
+.select,
+.input {
+    height: 28px;
+    padding: 0 t.$spacing-8;
+}
+
+.textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: t.$spacing-8;
+    resize: vertical;
+    font-family: monospace;
+}
+
+.treePane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    // The divider line is drawn by the SplitPane sash, so no border-right here
+    // (it would otherwise double up next to the sash).
+}
+
+.treeHeader {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    padding: t.$spacing-8;
+    border-bottom: 1px solid t.$border-color-light;
+}
+
+.treeActions {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-4;
+    flex: 0 0 auto;
+}
+
+/* Expand-all / refresh icons rendered inside the search Input's right slot.
+   Box size only — the icon (svg) size is controlled by the `size` prop on the
+   icon element in the JSX (e.g. <Refresh size={10} />), not here. */
+// Holds the Collapse all + Expand all buttons in the search input's single right-icon slot.
+.searchActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.searchAction {
+    flex: 0 0 auto;
+    width: 20px;
+    min-width: 20px;
+    max-width: 20px;
+    height: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    padding: 0;
+    aspect-ratio: 1;
+}
+
+.tree {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: t.$spacing-6;
+}
+
+/* Split tree pane: hierarchy (top) + unassigned tags (bottom), each scrolls independently */
+.treeSplit {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.treeSection {
+    flex: 1 1 50%;
+    min-height: 0;
+    overflow: auto;
+    padding: 0;
+    border-bottom: 1px solid t.$border-color-default;
+}
+
+.unassignedPane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 50%;
+    min-height: 0;
+}
+
+.unassignedHeader {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex: 0 0 auto;
+    padding: t.$spacing-6 t.$spacing-8;
+    border-bottom: 1px solid t.$border-color-light;
+    color: t.$text-secondary;
+    font-size: t.$font-size-base;
+    // Not a clickable row: detail opens via the ⋯ button only, so the title/icon/count
+    // stay on the default cursor with no hover highlight. Interactive children (Select
+    // all, ⋯ button) carry their own pointer cursor.
+}
+
+// Left group: icon + title + total count, kept together on the left. Grows to push the
+// right group (selected count + Select all + ⋯) to the far edge.
+.unassignedHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+// Right group: selection feedback + controls, pinned right.
+.unassignedHeaderRight {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex: 0 0 auto;
+}
+
+.unassignedIcon {
+    flex: 0 0 auto;
+    color: t.$primary-hover;
+}
+
+.unassignedTitle {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.unassignedCount {
+    flex: 0 0 auto;
+    color: t.$text-muted;
+    font-size: t.$font-size-xs;
+}
+
+// Selected-tag count, shown only when something is selected. Accent color so it reads as an
+// active state against the muted total to its left.
+.selectedCount {
+    flex: 0 0 auto;
+    color: t.$primary-hover;
+    font-size: t.$font-size-xs;
+    white-space: nowrap;
+}
+
+.unassignedHeader .unassignedDetailBtn {
+    flex: 0 0 auto;
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    min-height: 20px;
+    padding: 0;
+    aspect-ratio: 1;
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* Dedicated search row for the unassigned-tags pane (independent of the tree's "Search nodes"). */
+.unassignedSearch {
+    flex: 0 0 auto;
+    padding: t.$spacing-6 t.$spacing-8;
+    border-bottom: 1px solid t.$border-color-light;
+}
+
+/* Wraps the list so the loading progress bar can sit at its top (below the search), without
+   scrolling with the list content and without shifting layout. */
+.unassignedListWrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.unassignedList {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0;
+}
+
+/* Generic row used by tree nodes, tag rows, and the unassigned header */
+.node {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-4;
+    width: 100%;
+    min-height: 24px;
+    padding: t.$spacing-2 t.$spacing-6;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: t.$text-secondary;
+    font-size: t.$font-size-base;
+    text-align: left;
+    cursor: pointer;
+}
+
+.node:hover {
+    background: t.$bg-hover;
+}
+
+/* Force pointer across the whole interactive row (tree nodes, tag rows) including
+   their text/tag spans.
+   The design-system Page sets `.page-wrapper span { cursor: default }` (specificity
+   0,1,1), which leaks onto these descendant spans and overrides a plain `.node *`
+   (0,1,0). Scoping under `.container` raises the specificity to (0,2,0) so the pointer
+   wins — and keeps the fix confined to the hierarchy view (no design-system change).
+   The unassigned header is intentionally excluded: it is not a clickable row. */
+.container .node,
+.container .node * {
+    cursor: pointer;
+}
+
+/* Drag-and-drop drop target indicator */
+.dragOver {
+    background: rgba(0, 95, 184, 0.16);
+    box-shadow: inset 0 0 0 2px t.$border-color-active;
+}
+
+/* Strong highlight = the single active node (tree focus / radio target) */
+.selected {
+    background: t.$bg-active;
+    color: t.$text-active;
+}
+
+/* Subtler highlight = multi-selected tag rows (checkbox selection) */
+.tagNode.selected {
+    background: t.$bg-hover-block;
+    color: t.$text-primary;
+}
+
+.nodeMeta {
+    margin-left: auto;
+    padding-left: t.$spacing-8;
+    color: t.$text-muted;
+    font-size: t.$font-size-xs;
+    white-space: nowrap;
+}
+
+.nodeToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 16px;
+    color: t.$text-tertiary;
+    cursor: pointer;
+}
+
+/* Collapse arrow: single chevron rotated with a transition (animates on expand/collapse) */
+.chevron {
+    transition: transform 0.15s ease;
+}
+
+.chevronExpanded {
+    transform: rotate(90deg);
+}
+
+.nodeLabel {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    // node value: truncate with ellipsis (key label stays pinned right via .nodeMeta)
+    > span:first-child {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.tagNode {
+    color: t.$text-secondary;
+
+    .tagLinkButton svg {
+        color: t.$primary-hover;
+        flex: 0 0 auto;
+    }
+}
+
+.tagLinkButton {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    // tag name: truncate with ellipsis instead of overflowing
+    > span {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.tagCheckbox {
+    flex: 0 0 auto;
+    margin: 0 t.$spacing-4 0 t.$spacing-6;
+    accent-color: t.$primary-base;
+    cursor: pointer;
+}
+
+.selectAll {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-4;
+    flex: 0 0 auto;
+    padding: t.$spacing-2 t.$spacing-4;
+    border-radius: t.$border-radius-base;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-xs;
+    cursor: pointer;
+
+    input {
+        accent-color: t.$primary-base;
+        cursor: pointer;
+    }
+
+    &:hover {
+        background: t.$bg-hover;
+        color: t.$text-primary;
+    }
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+
+.summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: t.$spacing-8;
+    padding: t.$spacing-12;
+    border-bottom: 1px solid t.$border-color-default;
+}
+
+.path {
+    color: t.$text-primary;
+    font-size: t.$font-size-base;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex-wrap: wrap;
+    margin-top: t.$spacing-8;
+}
+
+.tabs {
+    display: flex;
+    gap: t.$spacing-4;
+    padding: t.$spacing-8 t.$spacing-12 0;
+}
+
+.tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: t.$border-radius-base t.$border-radius-base 0 0;
+    padding: t.$spacing-6 t.$spacing-10;
+    background: t.$bg-elevated;
+    color: t.$text-secondary;
+    font-size: t.$font-size-sm;
+    cursor: pointer;
+}
+
+.activeTab {
+    background: t.$bg-sub-tab-active;
+    color: t.$text-primary;
+    border-bottom-color: t.$primary-base;
+}
+
+.panel {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: t.$spacing-8 t.$spacing-12 t.$spacing-12;
+}
+
+.message {
+    padding: t.$spacing-16;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-base;
+    line-height: 1.5;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: t.$spacing-10;
+    padding: t.$spacing-20;
+    color: t.$text-secondary;
+}
+
+.emptyTitle {
+    color: t.$text-primary;
+    font-size: t.$font-size-md;
+    font-weight: 600;
+}
+
+.emptyText {
+    max-width: 560px;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-base;
+    line-height: 1.5;
+}
+
+.error {
+    color: t.$error-main;
+    font-size: t.$font-size-sm;
+}
+
+.warning {
+    color: t.$warning-main;
+    font-size: t.$font-size-sm;
+}
+
+/* Query tab placeholder when no SQL has run yet */
+.queryEmpty {
+    padding: t.$spacing-8;
+    color: t.$text-muted;
+    font-size: t.$font-size-sm;
+}
+
+/* Query code block with a hover-revealed copy button (matches the table
+   copy-cell convention: Button.Copy that fades in on hover). */
+.queryWrapper {
+    position: relative;
+    // Fill the panel so the inner <pre> can cap its own height and scroll
+    // internally. Without this the whole .panel scrolled, carrying the
+    // absolutely-positioned copy button (pinned to this wrapper) out of view.
+    height: 100%;
+    min-height: 0;
+
+    &:hover .queryCopy,
+    &:focus-within .queryCopy {
+        opacity: 1;
+    }
+}
+
+.query {
+    margin: 0;
+    // Cap at the wrapper height and scroll inside the code block itself, so the
+    // copy button stays pinned/visible no matter how long the query is.
+    // <pre> defaults to content-box (the global border-box rule only targets
+    // <div>), so set it explicitly or border+padding would overflow max-height.
+    box-sizing: border-box;
+    max-height: 100%;
+    overflow: auto;
+    padding: t.$spacing-8;
+    padding-right: 32px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: t.$text-secondary;
+    font-size: t.$font-size-sm;
+    font-family: monospace;
+    line-height: 1.5;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-base;
+    background: t.$bg-secondary;
+}
+
+.queryCopy {
+    position: absolute;
+    top: t.$spacing-6;
+    right: t.$spacing-6;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+/* Raw SQL preview for the column-creation hint (not a copy block) */
+.queryBox {
+    margin: 0;
+    margin-top: t.$spacing-8;
+    padding: t.$spacing-8;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: t.$text-secondary;
+    font-size: t.$font-size-sm;
+    font-family: monospace;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-base;
+    background: t.$bg-secondary;
+}
+
+.templateEditorRow {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    min-width: 0;
+    margin-bottom: t.$spacing-6;
+}
+
+/* Schema editor: collapsed breadcrumb / expanded ladder */
+.schemaSection {
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-md;
+    padding: t.$spacing-4;
+}
+
+.schemaHeader {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    // border-box: <button> defaults to content-box (the global border-box rule
+    // only targets <div>), so width:100% + padding would overflow.
+    box-sizing: border-box;
+    width: 100%;
+    // Fixed height so the hover area matches whether or not the collapsed-state
+    // breadcrumb chips (taller than the bare title row) are rendered.
+    min-height: 32px;
+    padding: t.$spacing-4 t.$spacing-8;
+    border: 0;
+    border-radius: t.$border-radius-base;
+    background: transparent;
+    color: t.$text-secondary;
+    text-align: left;
+    cursor: pointer;
+    // Collapsible header: a hover highlight signals that the whole SCHEMA row
+    // toggles the editor open/closed.
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: t.$bg-hover;
+    }
+}
+
+.schemaIcon {
+    flex: 0 0 auto;
+    color: t.$text-tertiary;
+}
+
+/* "N levels" meta sits next to the SCHEMA title (no margin-left:auto push) */
+.schemaLevels {
+    flex: 0 0 auto;
+    color: t.$text-muted;
+    font-size: t.$font-size-xs;
+    white-space: nowrap;
+}
+
+.schemaTitle {
+    font-size: t.$font-size-xs;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: t.$text-tertiary;
+}
+
+.schemaBreadcrumb {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.schemaChip {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-4;
+    padding: 1px t.$spacing-6 1px 2px;
+    border-radius: t.$border-radius-round;
+    background: t.$bg-hover;
+    color: t.$text-secondary;
+    font-size: t.$font-size-sm;
+}
+
+.schemaChipIndex {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    // Fixed square on a content-box span = a true circle. The previous
+    // min-width + horizontal padding stretched single digits into an oval.
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: t.$border-radius-circle;
+    background: t.$primary-base;
+    color: t.$color-white;
+    font-size: t.$font-size-xs;
+    line-height: 1;
+}
+
+.schemaToggleLabel {
+    margin-left: auto;
+    flex: 0 0 auto;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-xs;
+}
+
+/* Expand/collapse animation: grid-rows 0fr -> 1fr animates height without
+   measuring content, so it works on both open and close. */
+.schemaCollapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.22s ease;
+}
+
+.schemaCollapseOpen {
+    grid-template-rows: 1fr;
+}
+
+.schemaCollapseInner {
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.schemaCollapseOpen .schemaCollapseInner {
+    opacity: 1;
+}
+
+/* Schema editor: expanded ladder (staircase indent + tree connectors) */
+.schemaEditList {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-6;
+    margin-top: t.$spacing-8;
+}
+
+.schemaEditRowWrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.schemaEditRow {
+    position: relative;
+    min-width: 0;
+}
+
+/* Inline validation message under a schema input (mirrors .treeRowError) */
+.schemaRowError {
+    margin-top: t.$spacing-2;
+    color: t.$error-main;
+    font-size: t.$font-size-xs;
+    line-height: 1.4;
+}
+
+/* Tree connector: elbow rising from under the parent box into this child's row */
+.schemaEditRowChild::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    bottom: 50%;
+    width: 11px;
+    height: calc(50% + #{t.$spacing-6});
+    border-left: 1px solid t.$border-color-light;
+    border-bottom: 1px solid t.$border-color-light;
+    border-bottom-left-radius: 6px;
+    pointer-events: none;
+}
+
+.schemaEditInput {
+    width: 100%;
+}
+
+/* Blue index badge sits in the DS Input's left addon slot (small gap to value) */
+.schemaBadge {
+    display: inline-flex;
+    margin-right: t.$spacing-6;
+}
+
+/* "depth N" + (hover-revealed) remove live in the DS Input's right addon slot */
+.schemaRowMeta {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-6;
+}
+
+.schemaDepth {
+    color: t.$text-muted;
+    font-size: t.$font-size-xs;
+    white-space: nowrap;
+}
+
+.schemaRowMeta .schemaRemove {
+    flex: 0 0 auto;
+    width: 18px;
+    min-width: 18px;
+    height: 18px;
+    min-height: 18px;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+
+    svg {
+        width: 13px;
+        height: 13px;
+    }
+}
+
+.schemaEditRow:hover .schemaRemove:not(:disabled),
+.schemaEditRow:focus-within .schemaRemove:not(:disabled) {
+    opacity: 1;
+}
+
+/* Ghost "Add level" continuing the staircase indent */
+.schemaAddLevel {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: t.$spacing-6;
+    margin-top: t.$spacing-2;
+    padding: t.$spacing-6 t.$spacing-12;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-base;
+    background: transparent;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+
+    svg {
+        flex: 0 0 auto;
+    }
+
+    &:hover {
+        background: t.$bg-hover;
+        border-color: t.$border-color-active;
+        color: t.$text-secondary;
+    }
+}
+
+/* Value-tree outliner (keyboard editor below the schema) */
+.treeEditor {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+    padding-top: t.$spacing-12;
+}
+
+/* Keyboard-hint bar: Enter / Tab / Shift+Tab / Backspace affordances */
+.treeHints {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: t.$spacing-8;
+    color: t.$text-muted;
+    font-size: t.$font-size-xs;
+}
+
+.treeHint {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-4;
+
+    /* Middot separators between hints (not after the last one) */
+    &:not(:last-child)::after {
+        content: '·';
+        margin-left: t.$spacing-4;
+        color: t.$text-disabled;
+    }
+}
+
+.kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    padding: 1px t.$spacing-4;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-sm;
+    background: t.$bg-elevated;
+    color: t.$text-secondary;
+    font-family: inherit;
+    font-size: t.$font-size-xs;
+    line-height: 1.4;
+}
+
+.treeRows {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-4;
+}
+
+/* Wraps a row + its inline validation message so the message sits directly
+   under the input instead of in a long list at the bottom of the editor. */
+.treeRowWrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.treeRow {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    min-width: 0;
+}
+
+.treeRowError {
+    margin-top: t.$spacing-2;
+    color: t.$error-main;
+    font-size: t.$font-size-xs;
+    line-height: 1.4;
+}
+
+/* Vertical indent guide: one per ancestor depth. Every row draws its ancestors'
+   guides, so the line runs continuously down a branch's whole subtree. The top
+   extends up through the row gap to meet the row above; the last descendant ends
+   the line (no deeper row draws it). */
+.treeGuide {
+    position: absolute;
+    top: calc(-1 * #{t.$spacing-4});
+    bottom: 0;
+    width: 1px;
+    background: t.$border-color-default;
+    pointer-events: none;
+}
+
+.treeInput {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Per-row indent/outdent/delete: faint until the row is hovered/focused */
+.treeRowActions {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-2;
+    flex: 0 0 auto;
+}
+
+.treeRowActions .treeRowAction {
+    flex: 0 0 auto;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
+    padding: 0;
+    color: t.$text-tertiary;
+    opacity: 0.45;
+    transition:
+        opacity 0.15s ease,
+        color 0.15s ease;
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    &:disabled {
+        opacity: 0.18;
+    }
+}
+
+.treeRow:hover .treeRowAction:not(:disabled),
+.treeRow:focus-within .treeRowAction:not(:disabled) {
+    opacity: 1;
+}
+
+/* Placement panel */
+.placementHint {
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+    margin-bottom: t.$spacing-8;
+    line-height: 1.5;
+}
+
+.placementTargets {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-2;
+    margin: t.$spacing-6 0;
+    max-height: 320px;
+    overflow: auto;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-base;
+    padding: t.$spacing-4;
+}
+
+.placementTarget {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    min-height: 28px;
+    padding: t.$spacing-4 t.$spacing-6;
+    border-radius: t.$border-radius-base;
+    color: t.$text-secondary;
+    font-size: t.$font-size-base;
+    cursor: pointer;
+
+    input {
+        accent-color: t.$primary-base;
+        cursor: pointer;
+    }
+}
+
+.placementTarget:hover {
+    background: t.$bg-hover;
+}
+
+.placementBreadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: t.$spacing-4;
+    margin: t.$spacing-8 0;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+
+    span {
+        color: t.$text-primary;
+    }
+}
+
+/* Per-row detail action ("⋯"): keep it a small fixed square so the hover area is not wide */
+.node .rowAction {
+    flex: 0 0 auto;
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    min-height: 20px;
+    padding: 0;
+    aspect-ratio: 1;
+
+    svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* Placement panel header + buttons */
+.placementHeader {
+    display: flex;
+    align-items: baseline;
+    gap: t.$spacing-6;
+    margin-bottom: t.$spacing-8;
+    color: t.$text-primary;
+    font-size: t.$font-size-md;
+
+    strong {
+        font-weight: 600;
+    }
+}
+
+.placementCount {
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+}
+
+.placementBar {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    margin-top: t.$spacing-10;
+}
+
+.placementPrimary {
+    flex: 1;
+}
+
+.placementFull {
+    width: 100%;
+    margin-top: t.$spacing-6;
+}
+
+.placementFootHint {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    margin-top: t.$spacing-16;
+    color: t.$text-muted;
+    font-size: t.$font-size-sm;
+    line-height: 1.5;
+}
+
+/* Tree editor scroll body. In edit mode the SplitPane collapses the tree pane to
+   0% (sizes=['0%','100%']) so the editor fills the width; Save/Cancel + validation
+   status live in the top toolbar, so there is no editor footer. */
+.editorScroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: t.$spacing-8 t.$spacing-12 t.$spacing-12;
+}
+
+.editorStatus {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+    white-space: nowrap;
+}
+
+.statusDotOk,
+.statusDotError {
+    width: 8px;
+    height: 8px;
+    border-radius: t.$border-radius-circle;
+    flex: 0 0 auto;
+}
+
+.statusDotOk {
+    background: t.$success-main;
+}
+
+.statusDotError {
+    background: t.$error-main;
+}
+
+/* Fill the panel so CommonTable's virtualized scroller (height:100% override)
+   has a definite height to measure against, instead of growing unbounded. */
+.detailTableWrap {
+    position: relative;
+    height: 100%;
+}
+
+/* Indeterminate progress bar shown at the top of the tag table while a page is loading. */
+.tableProgress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    overflow: hidden;
+    z-index: 2;
+    background: t.$border-color-light;
+    pointer-events: none;
+}
+
+.tableProgress::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    background: t.$primary-hover;
+    animation: tableProgressSlide 1s linear infinite;
+}
+
+@keyframes tableProgressSlide {
+    from {
+        left: -40%;
+    }
+    to {
+        left: 100%;
+    }
+}
+
+/* Detail tag table: keep headers on one line with a sensible minimum column width
+   (prevents the SPEC header from collapsing into vertical letters) */
+.detailTableWrap th {
+    white-space: nowrap;
+    min-width: 56px;
+}
+
+/* Drag image badge shown when dragging multiple tags at once */
+.dragGhost {
+    position: absolute;
+    top: -1000px;
+    left: -1000px;
+    padding: t.$spacing-4 t.$spacing-10;
+    border-radius: t.$border-radius-base;
+    background: t.$primary-base;
+    color: t.$color-white;
+    font-size: t.$font-size-sm;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+}
