@@ -34,6 +34,8 @@ async function openDataViewer(page: import('@playwright/test').Page, tableName: 
     await expect(page.getByRole('button', { name: `DATA: ${tableName}` })).toBeVisible();
     await expect(dataViewer.locator('.page-title')).toHaveText(tableName);
     await expect(dataViewer.locator('.data-viewer-header-title .badge-muted')).toHaveCount(0);
+    await expect(dataViewer.locator('.data-viewer-back-button')).toHaveCount(0);
+    await expect(dataViewer.getByRole('button', { name: 'Back' })).toHaveCount(0);
     return dataViewer;
 }
 

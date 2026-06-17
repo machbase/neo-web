@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import Highcharts from 'highcharts/highstock';
 import HighchartsBoost from 'highcharts/modules/boost';
 import HighchartsReact from 'highcharts-react-official';
 import {
-    ArrowLeft,
     MdCalendarMonth,
     MdKeyboardDoubleArrowLeft,
     MdKeyboardDoubleArrowRight,
@@ -377,7 +376,6 @@ interface DataViewerPageProps {
 }
 
 export default function DataViewerPage({ pCode, embedded = false }: DataViewerPageProps) {
-    const navigate = useNavigate();
     const [params] = useSearchParams();
     const dbName = pCode?.dbName ?? getParam(params, 'db');
     const userName = pCode?.userName ?? getParam(params, 'user');
@@ -533,9 +531,6 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             <header className="page-header">
                 <div className="page-header-inner">
                     <div className="data-viewer-header-title">
-                        <button type="button" onClick={() => navigate(-1)} className="data-viewer-back-button" aria-label="Back">
-                            <ArrowLeft className="icon-base" />
-                        </button>
                         <MdQueryStats className="text-primary" />
                         <h2 className="page-title truncate">{headerLabels.title}</h2>
                         {headerLabels.detail ? <span className="badge badge-muted truncate">{headerLabels.detail}</span> : null}

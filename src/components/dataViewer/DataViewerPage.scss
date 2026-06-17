@@ -628,25 +628,6 @@
     min-width: 0;
 }
 
-.neo-data-viewer .data-viewer-back-button {
-    width: 26px;
-    height: 26px;
-    padding: var(--spacing-4);
-    border: 0;
-    border-radius: var(--radius-base);
-    background: transparent;
-    color: var(--color-on-surface);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    cursor: pointer;
-}
-
-.neo-data-viewer .data-viewer-back-button:hover {
-    background-color: var(--color-surface-hover);
-}
-
 .neo-data-viewer .page-title {
     margin: 0;
     font-size: var(--font-size-lg);
