@@ -845,7 +845,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     <div className="data-viewer-layout">
                         <aside className="form-card data-viewer-tags">
                             {!assetHierarchy ? (
-                                <div className="form-card-header">
+                                <div className="form-card-header data-viewer-tags-header">
                                     <span className="section-dot" />
                                     Tags
                                 </div>

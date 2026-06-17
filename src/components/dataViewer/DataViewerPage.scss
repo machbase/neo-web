@@ -736,12 +736,17 @@
     align-items: center;
     gap: var(--spacing-8);
     color: var(--color-on-surface);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: var(--spacing-20);
     line-height: 1;
+}
+
+.neo-data-viewer .data-viewer-tags-header {
+    min-height: 15px;
+    margin-bottom: 0;
 }
 
 .neo-data-viewer .section-dot {
