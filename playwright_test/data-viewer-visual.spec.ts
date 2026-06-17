@@ -26,8 +26,8 @@ async function openDataViewer(page: import('@playwright/test').Page, tableName: 
     await expect(tableItem).toBeVisible();
     await tableItem.click();
 
-    await expect(page.getByRole('button', { name: 'Open Data Viewer' })).toBeVisible();
-    await page.getByRole('button', { name: 'Open Data Viewer' }).click();
+    await expect(page.getByRole('button', { name: 'Open Data Viewer', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Open Data Viewer', exact: true }).click();
 
     const dataViewer = page.locator('.neo-data-viewer');
     await expect(dataViewer).toBeVisible();
@@ -38,6 +38,43 @@ async function openDataViewer(page: import('@playwright/test').Page, tableName: 
     await expect(dataViewer.getByRole('button', { name: 'Back' })).toHaveCount(0);
     return dataViewer;
 }
+
+async function openDataViewerFromExplorerIcon(page: import('@playwright/test').Page, tableName: string) {
+    await page.setViewportSize({ width: 1162, height: 607 });
+    await page.goto(BASE_URL);
+
+    const userInput = page.getByPlaceholder('User');
+    const loginVisible = await userInput
+        .waitFor({ state: 'visible', timeout: 5_000 })
+        .then(() => true)
+        .catch(() => false);
+    if (loginVisible) {
+        await userInput.fill(USER_ID);
+        await page.getByPlaceholder('Password').fill(PASSWORD);
+        await page.getByRole('button', { name: 'SIGN IN' }).click();
+        await expect(page.getByRole('button', { name: 'DBEXPLORER' })).toBeVisible();
+    }
+
+    await page.getByRole('button', { name: 'DBEXPLORER' }).click();
+    const iconButton = page.getByRole('button', { name: `Open Data Viewer for ${tableName}` });
+    await expect(iconButton).toBeVisible();
+    await iconButton.hover();
+    await expect(page.getByText('Open Data Viewer').last()).toBeVisible();
+    await iconButton.click();
+
+    const dataViewer = page.locator('.neo-data-viewer');
+    await expect(dataViewer).toBeVisible();
+    await expect(page.getByRole('button', { name: `DATA: ${tableName}` })).toBeVisible();
+    await expect(dataViewer.locator('.page-title')).toHaveText(tableName);
+    return dataViewer;
+}
+
+test('DB Explorer tag table icon opens Data Viewer', async ({ page }) => {
+    const dataViewer = await openDataViewerFromExplorerIcon(page, TABLE_NAME);
+
+    await expect(dataViewer.locator('.data-viewer-back-button')).toHaveCount(0);
+    await expect(dataViewer.getByRole('button', { name: 'Back' })).toHaveCount(0);
+});
 
 test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ page }) => {
     const dataViewer = await openDataViewer(page, TABLE_NAME);

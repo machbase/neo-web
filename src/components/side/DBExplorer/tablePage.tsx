@@ -293,13 +293,14 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             currentUserName: getUserName(),
         });
     }, [mTableInfo]);
+    const mIsTagTable = useMemo(() => CheckTableFlag(mTableInfo?.[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG, [mTableInfo]);
 
     const handleCopyTableName = () => {
         if (!mQualifiedTableName) return;
         ClipboardCopy(mQualifiedTableName);
     };
     const handleOpenDataViewer = () => {
-        if (!mTableInfo) return;
+        if (!mTableInfo || !mIsTagTable) return;
         const code = {
             dbName: String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
             userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
@@ -851,15 +852,17 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         toolTipContent={`Copy "${mQualifiedTableName}"`}
                                         onClick={handleCopyTableName}
                                     />
-                                    <Button
-                                        size="xsm"
-                                        variant="ghost"
-                                        icon={<VscGraphLine size={14} />}
-                                        isToolTip
-                                        toolTipContent="Open Data Viewer"
-                                        onClick={handleOpenDataViewer}
-                                        aria-label="Open Data Viewer"
-                                    />
+                                    {mIsTagTable && (
+                                        <Button
+                                            size="xsm"
+                                            variant="ghost"
+                                            icon={<VscGraphLine size={14} />}
+                                            isToolTip
+                                            toolTipContent="Open Data Viewer"
+                                            onClick={handleOpenDataViewer}
+                                            aria-label="Open Data Viewer"
+                                        />
+                                    )}
                                 </Page.DpRow>
                                 <Page.DpRow
                                     style={{

@@ -158,6 +158,24 @@
     height: 16px;
 }
 
+.table-data-viewer-icon-button {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.table-data-viewer-icon-button svg {
+    width: 16px;
+    height: 16px;
+}
+
 .db-wrap:hover {
     background-color: #242424;
 }
