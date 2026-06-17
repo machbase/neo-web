@@ -48,10 +48,16 @@ export const Button = ({
     labelPosition = 'left',
     ...props
 }: ButtonProps) => {
+    // Generate unique IDs (replace colons for CSS selector compatibility)
+    const uniqueId = React.useId().replace(/:/g, '');
+    const buttonId = props.id || (label ? `button-${uniqueId}` : undefined);
+    const tooltipId = `tooltip-${uniqueId}`;
+    const tooltipStyle = toolTipMaxWidth && toolTipMaxWidth < 500 ? { width: `${toolTipMaxWidth}px` } : undefined;
     const buttonClasses = [
         styles.button,
         styles[`button--${variant}`],
         styles[`button--${size}`],
+        isToolTip && `tooltip-${tooltipId}`,
         loading && styles['button--loading'],
         active && styles['button--active'],
         fullWidth && styles['button--full-width'],
@@ -61,12 +67,6 @@ export const Button = ({
     ]
         .filter(Boolean)
         .join(' ');
-
-    // Generate unique IDs (replace colons for CSS selector compatibility)
-    const uniqueId = React.useId().replace(/:/g, '');
-    const buttonId = props.id || (label ? `button-${uniqueId}` : undefined);
-    const tooltipId = `tooltip-${uniqueId}`;
-    const tooltipStyle = toolTipMaxWidth && toolTipMaxWidth < 500 ? { width: `${toolTipMaxWidth}px` } : undefined;
 
     const buttonElement = (
         <>
@@ -78,7 +78,7 @@ export const Button = ({
                 ) : (
                     <>
                         {isToolTip && icon ? (
-                            <div className={`tooltip-${tooltipId} tooltip-icon`} style={{ display: 'flex' }}>
+                            <div className="tooltip-icon" style={{ display: 'flex' }}>
                                 <div className={styles['button__icon']}>{icon}</div>
                             </div>
                         ) : (

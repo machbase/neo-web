@@ -13,9 +13,10 @@ import type {
     PanelNavigatorShiftActions,
     PanelZoomActions,
 } from '../domain/PanelDomain';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import { getChartLayoutMetrics } from './Chart/layout/PanelChartLayoutMetrics';
-import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
+import { formatRangeBoundaryLabel } from '../domain/time/formatting/TimeFormatters';
+import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 const RANGE_LABEL_EDGES = ['start', 'end'] as const;
@@ -41,10 +42,7 @@ const PanelFooter = ({
     const sToolbarTop = `${sLayout.toolbarTop}px`;
     const sNavigatorShiftTop = `${sLayout.sliderTop + 1}px`;
     const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
-    const sHasNavigatorRange =
-        Number.isFinite(pNavigatorRange.startTime) &&
-        Number.isFinite(pNavigatorRange.endTime) &&
-        pNavigatorRange.endTime > pNavigatorRange.startTime;
+    const sHasNavigatorRange = isValidTimeRange(pNavigatorRange);
     const navigatorControls = [
         { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.4) },
         { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.2) },

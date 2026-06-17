@@ -15,13 +15,13 @@ import {
     parseTimeBoundaryInputValue,
     parseTimeRangeConfigFromBoundaryValues,
     type TimeBoundaryInputValue,
-} from '../domain/time/TimeBoundaryInput';
+} from '../domain/time/boundary/TimeBoundaryInput';
 import {
     formatAxisInputValue,
     NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
-} from '../domain/time/TimeInputFormatters';
-import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/TimeTypes';
+} from '../domain/time/formatting/TimeInputFormatters';
+import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/model/TimeTypes';
 import TagAnalyzerDatePicker from '../datePicker/TagAnalyzerDatePicker';
 
 type BaseRangeModalProps = {

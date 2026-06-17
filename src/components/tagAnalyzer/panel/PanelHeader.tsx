@@ -27,8 +27,9 @@ import { PanelOverlayMode } from '../domain/PanelDomain';
 import type {
     IntervalOption,
     TimeRangeMs,
-} from '../domain/time/TimeTypes';
-import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
+} from '../domain/time/model/TimeTypes';
+import { formatRangeBoundaryLabel } from '../domain/time/formatting/TimeFormatters';
+import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
 
 export enum PanelActionKey {
     TOGGLE_RAW = 'TOGGLE_RAW',
@@ -312,9 +313,7 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const titleRenameCloseReasonRef = useRef<'apply' | 'cancel' | undefined>(
         undefined,
     );
-    const sHasPanelRange = Number.isFinite(runtimeState.panelRange.startTime) &&
-        Number.isFinite(runtimeState.panelRange.endTime) &&
-        runtimeState.panelRange.endTime > runtimeState.panelRange.startTime;
+    const sHasPanelRange = isValidTimeRange(runtimeState.panelRange);
     const sTimeText = sHasPanelRange
         ? `${formatRangeBoundaryLabel(
               runtimeState.panelRange.startTime,

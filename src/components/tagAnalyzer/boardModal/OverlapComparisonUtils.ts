@@ -1,15 +1,14 @@
-import { getIntervalMs } from '../domain/time/TimeIntervalUtils';
-import { createTimeRangeMs } from '../domain/time/TimeRangeUtils';
+import { createTimeRangeMs } from '../domain/time/range/TimeRangeUtils';
 import type {
     ChartRow,
     ChartSeriesData,
     OverlapLoadResult,
 } from '../domain/ChartDomain';
-import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import type {
     OverlapPanelInfo,
+    OverlapPanelSelectionChangePayload,
     OverlapPanelSelection,
-    OverlapSelectionChangePayload,
 } from '../domain/BoardDomain';
 
 export function hasOverlapPanelDraftChanged(
@@ -35,28 +34,23 @@ export function hasOverlapPanelDraftChanged(
 
 export function buildOverlapLoadState(results: OverlapLoadResult[]): {
     chartSeries: ChartSeriesData[];
-    originTimes: number[];
-    emptySeriesLabels: string[];
+    startTimes: number[];
 } {
     const sChartSeriesList: ChartSeriesData[] = [];
-    const sOriginTimes: number[] = [];
-    const sEmptySeriesLabels: string[] = [];
+    const sStartTimes: number[] = [];
 
     results.forEach((result) => {
-        if (typeof result.originTime === 'number' && result.chartSeries) {
-            sOriginTimes.push(result.originTime);
-            sChartSeriesList.push(result.chartSeries);
+        if (typeof result.originTime === 'number') {
+            sStartTimes.push(result.originTime);
         }
-
-        if (result.emptySeriesLabel) {
-            sEmptySeriesLabels.push(result.emptySeriesLabel);
+        if (result.chartSeries) {
+            sChartSeriesList.push(result.chartSeries);
         }
     });
 
     return {
         chartSeries: sChartSeriesList,
-        originTimes: sOriginTimes,
-        emptySeriesLabels: sEmptySeriesLabels,
+        startTimes: sStartTimes,
     };
 }
 export function resolveOverlapTimeRange(
@@ -68,24 +62,15 @@ export function resolveOverlapTimeRange(
         panelInfo.start + anchorDuration,
     );
 }
-export function alignOverlapTime(time: number, interval: IntervalOption): number {
-    const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
-
-    if (sIntervalMs <= 0) {
-        return time;
-    }
-
-    return Math.floor(time / sIntervalMs) * sIntervalMs;
-}
 export function mapOverlapRows(
     rows: ChartRow[] | undefined,
-    originTime: number,
+    seriesStartTime: number,
 ): ChartRow[] {
-    return rows?.map(([aTimestamp, aValue]) => [aTimestamp - originTime, aValue]) ?? [];
+    return rows?.map(([aTimestamp, aValue]) => [aTimestamp - seriesStartTime, aValue]) ?? [];
 }
 export function getNextOverlapSelections(
     selections: OverlapPanelSelection[],
-    payload: OverlapSelectionChangePayload,
+    payload: OverlapPanelSelectionChangePayload,
 ): OverlapPanelSelection[] {
     const { panelKey, changeType } = payload;
 

@@ -8,7 +8,7 @@ import {
 import {
     formatAxisInputValue,
     parseAxisInputValue,
-} from '../../domain/time/TimeInputFormatters';
+} from '../../domain/time/formatting/TimeInputFormatters';
 import type {
     PanelAnnotationCrud,
     PanelAnnotationSeriesOption,

@@ -1,5 +1,5 @@
 import type { PanelInfo } from '../../domain/PanelDomain';
-import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
+import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
 import type { PersistedPanelInfoV204 } from '../TazPersistenceTypesV204';
 
 export function mapPanelToPersistedTaz(

@@ -5,11 +5,11 @@ import {
     type PanelMarkupHandlers,
     type PanelRangeActions,
 } from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
 import {
     getTimeRangeWidth,
     isSameTimeRange,
-} from '../../../domain/time/TimeRangeUtils';
+} from '../../../domain/time/range/TimeRangeUtils';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,

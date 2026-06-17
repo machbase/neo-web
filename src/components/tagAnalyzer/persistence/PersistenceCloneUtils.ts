@@ -11,12 +11,12 @@ import {
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
 } from '../domain/SeriesDomain';
-import type { TimeBoundary } from '../domain/time/TimeTypes';
+import type { TimeBoundary } from '../domain/time/model/TimeTypes';
 import {
     createAbsoluteTimeBoundary,
     createAnchoredTimeBoundary,
     createEmptyTimeBoundary,
-} from '../domain/time/TimeBoundaryInput';
+} from '../domain/time/boundary/TimeBoundaryInput';
 import type {
     PersistedPanelAnnotationInput,
     PersistedSeriesAnnotationInput,

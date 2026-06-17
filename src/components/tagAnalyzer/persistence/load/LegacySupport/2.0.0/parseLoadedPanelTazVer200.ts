@@ -16,11 +16,11 @@ import {
 } from '../../../PersistenceCloneUtils';
 import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
 import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
-import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
+import { normalizeStoredTimeUnit } from '../../../../domain/time/interval/TimeIntervalUtils';
 import type {
     PanelNavigatorRangePair,
     TimeRangeMs,
-} from '../../../../domain/time/TimeTypes';
+} from '../../../../domain/time/model/TimeTypes';
 
 export function isPersistedPanelInfoV200(
     panelInfo: unknown,

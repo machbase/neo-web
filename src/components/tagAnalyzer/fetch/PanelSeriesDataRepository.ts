@@ -9,17 +9,18 @@ import {
     isNumericBaseTimeSourceColumns,
     type PanelSeriesDefinition,
 } from '../domain/SeriesDomain';
-import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
+import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
 import {
     calculateInterval,
     calculateSampleCount,
     getIntervalMs,
     normalizeStoredTimeUnit,
-} from '../domain/time/TimeIntervalUtils';
+} from '../domain/time/interval/TimeIntervalUtils';
 import type {
     IntervalOption,
     TimeRangeMs,
-} from '../domain/time/TimeTypes';
+} from '../domain/time/model/TimeTypes';
+import { TimeUnit } from '../domain/time/model/TimeTypes';
 import { addAdminSchemaIfNeeded } from './TableNameSchema';
 import {
     fetchCalculationData,
@@ -61,7 +62,7 @@ export async function fetchMainPanelSeriesRows(
     timeRange: TimeRangeMs,
     rollupTableList: string[],
 ): Promise<FetchPanelSeriesRowsResult | undefined> {
-    if (seriesConfigSet.length === 0 || !isConcreteTimeRange(timeRange)) {
+    if (seriesConfigSet.length === 0 || !isValidTimeRange(timeRange)) {
         return undefined;
     }
 
@@ -132,7 +133,7 @@ export async function fetchNavigatorPanelSeriesRows(
     timeRange: TimeRangeMs,
     rollupTableList: string[],
 ): Promise<FetchPanelSeriesRowsResult | undefined> {
-    if (seriesConfigSet.length === 0 || !isConcreteTimeRange(timeRange)) {
+    if (seriesConfigSet.length === 0 || !isValidTimeRange(timeRange)) {
         return undefined;
     }
 
@@ -244,27 +245,27 @@ function resolveTimeBucketIntervalForTargetCount(
 
     if (sBucketWidthMs <= MINUTE_MS) {
         return {
-            IntervalType: 'sec',
+            IntervalType: TimeUnit.Second,
             IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / SECOND_MS)),
         };
     }
 
     if (sBucketWidthMs <= HOUR_MS) {
         return {
-            IntervalType: 'min',
+            IntervalType: TimeUnit.Minute,
             IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / MINUTE_MS)),
         };
     }
 
     if (sBucketWidthMs <= DAY_MS) {
         return {
-            IntervalType: 'hour',
+            IntervalType: TimeUnit.Hour,
             IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / HOUR_MS)),
         };
     }
 
     return {
-        IntervalType: 'day',
+        IntervalType: TimeUnit.Day,
         IntervalValue: Math.max(1, Math.ceil(sBucketWidthMs / DAY_MS)),
     };
 }
@@ -377,16 +378,16 @@ function resolvePanelFetchInterval(
         return calculatedInterval;
     }
 
-    const explicitInterval = resolveExplicitFetchInterval(
-        normalizeStoredTimeUnit(sIntervalType) ?? sIntervalType,
-        calculatedInterval,
-    );
+    const sExplicitIntervalUnit = normalizeStoredTimeUnit(sIntervalType);
+    const explicitInterval = sExplicitIntervalUnit
+        ? resolveExplicitFetchInterval(sExplicitIntervalUnit, calculatedInterval)
+        : undefined;
 
     return explicitInterval ?? calculatedInterval;
 }
 
 function resolveExplicitFetchInterval(
-    intervalType: string,
+    intervalType: TimeUnit,
     calculatedInterval: IntervalOption,
 ): IntervalOption | undefined {
     const intervalUnitMs = getIntervalMs(intervalType, 1);
@@ -418,7 +419,7 @@ export async function fetchCalculatedSeriesRows(
     count: number,
     rollupTableList: string[],
 ): Promise<ChartFetchResponse> {
-    if (!isConcreteTimeRange(timeRange)) {
+    if (!isValidTimeRange(timeRange)) {
         return EMPTY_CHART_FETCH_RESPONSE;
     }
 
@@ -493,7 +494,7 @@ export async function fetchRawSeriesRows(
     sampling: RawFetchSampling,
     useOrderBy: boolean,
 ): Promise<ChartFetchResponse> {
-    if (!isConcreteTimeRange(timeRange)) {
+    if (!isValidTimeRange(timeRange)) {
         return EMPTY_CHART_FETCH_RESPONSE;
     }
 

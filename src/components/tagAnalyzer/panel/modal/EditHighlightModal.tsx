@@ -5,7 +5,11 @@ import {
 import {
     formatAxisInputValue,
     parseAxisInputValue,
-} from '../../domain/time/TimeInputFormatters';
+} from '../../domain/time/formatting/TimeInputFormatters';
+import {
+    createTimeRangeMs,
+    isValidTimeRange,
+} from '../../domain/time/range/TimeRangeUtils';
 import type { PanelHighlightCrud } from '../usePanelHighlight';
 import {
     ColorFields,
@@ -56,21 +60,17 @@ function convertHighlightFormStateToPanelHighlight(
 ): PanelHighlight | undefined {
     const startTime = parseAxisInputValue(formState.startTimeText, isNumericXAxis);
     const endTime = parseAxisInputValue(formState.endTimeText, isNumericXAxis);
+    const timeRange = startTime !== undefined && endTime !== undefined
+        ? createTimeRangeMs(startTime, endTime)
+        : undefined;
 
-    if (
-        startTime === undefined ||
-        endTime === undefined ||
-        endTime <= startTime
-    ) {
+    if (!isValidTimeRange(timeRange)) {
         return undefined;
     }
 
     return {
         text: formState.labelText.trim() || DEFAULT_PANEL_HIGHLIGHT_LABEL,
-        timeRange: {
-            startTime,
-            endTime,
-        },
+        timeRange,
         fillColor: formState.fillColor,
         textColor: formState.textColor,
     };
@@ -136,7 +136,10 @@ export function EditHighlightModal({
     const { state, setField, handleKeyDown, applyForm } = form;
     const startTime = parseAxisInputValue(state.startTimeText, isNumericXAxis);
     const endTime = parseAxisInputValue(state.endTimeText, isNumericXAxis);
-    const canApply = startTime !== undefined && endTime !== undefined && endTime > startTime;
+    const timeRange = startTime !== undefined && endTime !== undefined
+        ? createTimeRangeMs(startTime, endTime)
+        : undefined;
+    const canApply = isValidTimeRange(timeRange);
     const timePlaceholder = getAxisPlaceholder(isNumericXAxis);
 
     return (

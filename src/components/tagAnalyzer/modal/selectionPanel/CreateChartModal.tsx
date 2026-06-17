@@ -9,7 +9,7 @@ import { buildTagSelectionLimitError, getTagSelectionErrorMessage } from '../ser
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from '../seriesSelection/useTagSelectionPanelState';
 import { rejectWithToast } from './tagSelectionModalFeedback';
-import { fetchMinMaxTable } from '../../fetch/TimeBoundaryRangeFetcher';
+import { fetchSeriesDataTimeRange } from '../../fetch/DataTimeRangeFetcher';
 import {
     DEFAULT_NEW_PANEL_TITLE,
     buildCreateChartPanel,
@@ -50,13 +50,13 @@ function CreateChartModal({
                 ),
         });
     const validateSelectedSeriesHaveData = async (): Promise<boolean> => {
-        const sBoundarySeries = sTagSearch.selectedSeriesDrafts.map((seriesDraft) => ({
+        const sDataRangeSeries = sTagSearch.selectedSeriesDrafts.map((seriesDraft) => ({
             table: seriesDraft.table,
             sourceTagName: seriesDraft.sourceTagName,
             sourceColumns: seriesDraft.sourceColumns,
         }));
-        const sFetchedTimeBoundaryRange = await fetchMinMaxTable(sBoundarySeries);
-        if (!sFetchedTimeBoundaryRange) {
+        const sDataTimeRange = await fetchSeriesDataTimeRange(sDataRangeSeries);
+        if (!sDataTimeRange) {
             Toast.error('Please insert Data.', undefined);
             return false;
         }

@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../domain/PanelDomain';
+import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
 import {
     hasValidRangeState,
     type ApplyPanelRangeState,
@@ -12,7 +12,7 @@ export type ReloadAfterEditorSaveOptions = {
 type ConfigReloadDependencies = {
     getBoardPanelRecord: (panelKey: string) => BoardPanelRecord;
     applyPanelRangeState: ApplyPanelRangeState;
-    resolveAndApplyPanelRange: (panelInfo: PanelInfo) => Promise<void>;
+    resolvePanelRangeState: (panelInfo: PanelInfo) => Promise<PanelRangeState>;
     setFullDataRange: (panelInfo: PanelInfo) => Promise<void>;
 };
 
@@ -27,7 +27,7 @@ type ConfigReloadActions = {
 export function useConfigReload({
     getBoardPanelRecord,
     applyPanelRangeState,
-    resolveAndApplyPanelRange,
+    resolvePanelRangeState,
     setFullDataRange,
 }: ConfigReloadDependencies): ConfigReloadActions {
     function reloadAfterRawModeChange(nextPanelInfo: PanelInfo): void {
@@ -64,7 +64,14 @@ export function useConfigReload({
             return;
         }
 
-        void resolveAndApplyPanelRange(nextPanelInfo);
+        void (async () => {
+            const sResolvedRangeState = await resolvePanelRangeState(nextPanelInfo);
+
+            applyPanelRangeState(nextPanelInfo, {
+                ...sResolvedRangeState,
+                reloadData: true,
+            });
+        })();
     }
 
     return {

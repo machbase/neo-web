@@ -2,7 +2,7 @@ import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
     TimeRangeMs,
-} from './time/TimeTypes';
+} from './time/model/TimeTypes';
 import type { PanelSeriesDefinition } from './SeriesDomain';
 
 export type ValueRange = {

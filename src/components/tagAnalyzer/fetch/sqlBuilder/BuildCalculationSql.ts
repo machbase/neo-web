@@ -1,6 +1,6 @@
 import type { SeriesFetchColumnMap } from '../FetchContracts';
-import type { TimeRangeNs } from '../../domain/time/TimeTypes';
-import { getIntervalMs } from '../../domain/time/TimeIntervalUtils';
+import type { TimeRangeNs } from '../../domain/time/model/TimeTypes';
+import { getIntervalMs } from '../../domain/time/interval/TimeIntervalUtils';
 import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import { asRecord, getRollupMetadataLookupKey } from '../RollupTableLookup';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';

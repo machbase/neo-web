@@ -20,8 +20,8 @@ import {
     PANEL_SLIDER_DATA_ZOOM_ID,
 } from './PanelChartOptionConstants';
 import type { RuntimePanelDisplay } from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisPointerLabel } from '../../../domain/time/TimeFormatters';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import { formatAxisPointerLabel } from '../../../domain/time/formatting/TimeFormatters';
 import {
     getChartLayoutMetrics,
     PANEL_GRID_BOTTOM,

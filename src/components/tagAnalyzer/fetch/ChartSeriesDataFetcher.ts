@@ -18,9 +18,9 @@ import {
     type TagFetchRow,
 } from './FetchContracts';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
-import type { TimeRangeMs, TimeRangeNs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs, TimeRangeNs } from '../domain/time/model/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../domain/SeriesDomain';
-import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/TimeConstants';
+import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/model/TimeConstants';
 
 const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
 const USER_PRESENTED_ERROR_KEY = 'tagAnalyzerUserPresented';

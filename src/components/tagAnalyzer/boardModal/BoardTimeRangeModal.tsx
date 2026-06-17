@@ -1,5 +1,5 @@
 import TimeRangeModal from './TimeRangeModal';
-import type { TimeRangeConfig } from '../domain/time/TimeTypes';
+import type { TimeRangeConfig } from '../domain/time/model/TimeTypes';
 
 type BoardTimeRangeModalProps = {
     boardTimeRange: TimeRangeConfig;

@@ -3,7 +3,7 @@ import type {
     IntervalOption,
     TimeRangeConfig,
     TimeRangeMs,
-} from './time/TimeTypes';
+} from './time/model/TimeTypes';
 
 export type BoardInfo = {
     id: string;
@@ -36,28 +36,20 @@ export type OverlapPanelSelection = {
     isRaw: boolean;
 };
 
-export type OverlapPanelInfo = {
-    start: number;
-    duration: number;
-    isRaw: boolean;
+export type OverlapPanelInfo = OverlapPanelSelection & {
     board: PanelInfo;
 };
 
-export type OverlapSelectionChangePayload =
-    | {
-          panelKey: string;
-          start: number;
-          end: number;
-          isRaw: boolean;
-          changeType: undefined;
-      }
-    | {
-          start: number;
-          end: number;
-          panelKey: string;
-          isRaw: boolean;
-          changeType: 'changed';
-      }
+export type OverlapPanelRangeSelectionPayload = {
+    panelKey: string;
+    start: number;
+    end: number;
+    isRaw: boolean;
+};
+
+export type OverlapPanelSelectionChangePayload =
+    | (OverlapPanelRangeSelectionPayload & { changeType: undefined })
+    | (OverlapPanelRangeSelectionPayload & { changeType: 'changed' })
     | {
           panelKey: string;
           changeType: 'delete';

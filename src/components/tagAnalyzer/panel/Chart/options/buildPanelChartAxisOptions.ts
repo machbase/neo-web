@@ -7,8 +7,8 @@ import type {
     RuntimePanelDisplay,
 } from '../../../domain/PanelDomain';
 import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisValue } from '../../../domain/time/TimeFormatters';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import { formatAxisValue } from '../../../domain/time/formatting/TimeFormatters';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,

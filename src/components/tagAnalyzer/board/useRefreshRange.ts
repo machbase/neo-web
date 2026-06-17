@@ -1,6 +1,6 @@
 import type { PanelInfo } from '../domain/PanelDomain';
-import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/TimeTypes';
-import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
+import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/model/TimeTypes';
+import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
 import {
     hasValidRangeState,
     type ApplyPanelRangeState,
@@ -32,7 +32,7 @@ export function useRefreshRange({
     async function setFullDataRange(panelInfo: PanelInfo): Promise<void> {
         const fullDataRange = await resolveFullRange(panelInfo.data.tag_set);
 
-        if (!isConcreteTimeRange(fullDataRange)) {
+        if (!isValidTimeRange(fullDataRange)) {
             throw new Error('Cannot set full data range without a concrete range.');
         }
 

@@ -6,13 +6,13 @@ import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/com
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
 import type { SelectedRangeSeriesSummary } from '../domain/ChartDomain';
-import { TimeUnit } from '../domain/time/TimeTypes';
+import { TimeUnit } from '../domain/time/model/TimeTypes';
 import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../domain/time/TimeIntervalUtils';
-import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
+} from '../domain/time/interval/TimeIntervalUtils';
+import { formatRangeBoundaryLabel } from '../domain/time/formatting/TimeFormatters';
 
 const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,

@@ -54,7 +54,7 @@ export type PanelSeriesDefinition = {
     [key: string]: unknown;
 };
 
-type SeriesKeyAxisKind = 'datetime' | 'double';
+export type SeriesKeyAxisKind = 'datetime' | 'double';
 
 type SeriesWithSourceColumns = {
     sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;

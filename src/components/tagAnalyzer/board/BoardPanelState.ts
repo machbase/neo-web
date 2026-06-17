@@ -1,7 +1,7 @@
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
-import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
-import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
+import { EMPTY_TIME_RANGE } from '../domain/time/model/TimeConstants';
+import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 
 export type PanelRangeApplyOptions = {
     panelRange: TimeRangeMs;
@@ -50,8 +50,8 @@ export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
 
 export function hasValidRangeState(rangeState: PanelRangeState): boolean {
     return (
-        isConcreteTimeRange(rangeState.panelRange) &&
-        isConcreteTimeRange(rangeState.navigatorRange) &&
-        isConcreteTimeRange(rangeState.fullRange)
+        isValidTimeRange(rangeState.panelRange) &&
+        isValidTimeRange(rangeState.navigatorRange) &&
+        isValidTimeRange(rangeState.fullRange)
     );
 }

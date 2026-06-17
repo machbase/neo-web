@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import { Page } from '@/design-system/components';
-import { formatLocalTimestampWithMilliseconds } from '../domain/time/TimeFormatters';
+import { formatLocalTimestampWithMilliseconds } from '../domain/time/formatting/TimeFormatters';
 
 const OVERLAP_TIME_SHIFT_COLORS = [
     '#EB5757',
@@ -23,12 +23,6 @@ const LABEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', alignItems: 'ce
 const CONTROL_ROW_STYLE = { alignItems: 'center', gap: '6px' } as const;
 const OFFSET_LABEL_STYLE = { display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px' } as const;
 const OFFSET_INPUT_STYLE = { width: '86px', height: '30px' } as const;
-const NUDGE_BUTTONS = [
-    { label: '-1m', offsetMs: -60_000 },
-    { label: '-1s', offsetMs: -1_000 },
-    { label: '+1s', offsetMs: 1_000 },
-    { label: '+1m', offsetMs: 60_000 },
-] as const;
 
 function parseShiftOffsetInput(value: string): number {
     if (value.trim() === '') {
@@ -71,23 +65,6 @@ const OverlapTimeShiftPanel = ({
         pOnSetShiftOffset(parseShiftOffsetInput(sOffsetMillisecondsInput));
     }
 
-    function getCurrentShiftOffset(): number {
-        try {
-            return parseShiftOffsetInput(sOffsetMillisecondsInput);
-        } catch {
-            return pShiftOffsetMs;
-        }
-    }
-
-    function setShiftOffset(offsetMs: number): void {
-        setOffsetMillisecondsInput(String(offsetMs));
-        pOnSetShiftOffset(offsetMs);
-    }
-
-    function nudgeShiftOffset(offsetMs: number): void {
-        setShiftOffset(getCurrentShiftOffset() + offsetMs);
-    }
-
     return (
         <div>
             <Page.DpRow
@@ -111,18 +88,6 @@ const OverlapTimeShiftPanel = ({
                     style={CONTROL_ROW_STYLE}
                 >
                     <Button.Group>
-                        {NUDGE_BUTTONS.map((nudgeButton) => (
-                            <Button
-                                key={nudgeButton.label}
-                                variant="secondary"
-                                size="xsm"
-                                onClick={() => nudgeShiftOffset(nudgeButton.offsetMs)}
-                                isToolTip
-                                toolTipContent={`Nudge ${nudgeButton.label}`}
-                            >
-                                {nudgeButton.label}
-                            </Button>
-                        ))}
                         <label style={OFFSET_LABEL_STYLE}>
                             <Input
                                 type="number"

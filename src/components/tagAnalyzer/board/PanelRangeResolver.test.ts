@@ -1,38 +1,44 @@
-import {
-    resolveSeriesTimeBoundaryRanges,
-    resolveTimeBoundaryRanges,
-} from '../domain/time/TimeBoundaryRangeResolver';
-import type {
-    AbsoluteTimeBoundary,
-    FetchedTimeBoundaryRange,
-} from '../domain/time/TimeTypes';
+import { fetchSeriesDataTimeRange } from '../fetch/DataTimeRangeFetcher';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import {
     createAbsoluteTimeRangeConfig,
     createEmptyTimeRangeConfig,
     createTimeRangeMs,
-} from '../domain/time/TimeRangeUtils';
+} from '../domain/time/range/TimeRangeUtils';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import { resolveConcretePanelRangeState } from './PanelRangeResolver';
 
-jest.mock('../domain/time/TimeBoundaryRangeResolver', () => ({
-    resolveTimeBoundaryRanges: jest.fn(),
-    resolveSeriesTimeBoundaryRanges: jest.fn(),
+jest.mock('../fetch/DataTimeRangeFetcher', () => ({
+    fetchSeriesDataTimeRange: jest.fn(),
 }));
 
-const sMockResolveTimeBoundaryRanges =
-    resolveTimeBoundaryRanges as jest.MockedFunction<typeof resolveTimeBoundaryRanges>;
-const sMockResolveSeriesTimeBoundaryRanges =
-    resolveSeriesTimeBoundaryRanges as jest.MockedFunction<typeof resolveSeriesTimeBoundaryRanges>;
+const sMockFetchSeriesDataTimeRange =
+    fetchSeriesDataTimeRange as jest.MockedFunction<typeof fetchSeriesDataTimeRange>;
 
 const EMPTY_RANGE_CONFIG = createEmptyTimeRangeConfig();
-const SERIES_LIST: PanelSeriesDefinition[] = [];
+const SERIES_LIST: PanelSeriesDefinition[] = [
+    {
+        key: 'series-1',
+        table: 'table_1',
+        sourceTagName: 'tag_1',
+        alias: 'tag_1',
+        calculationMode: 'avg',
+        useSecondaryAxis: false,
+        id: 'series-1',
+        useRollupTable: false,
+        sourceColumns: {
+            name: 'NAME',
+            time: 'TIME',
+            value: 'VALUE',
+        },
+    },
+];
 
 describe('resolveConcretePanelRangeState', () => {
     beforeEach(() => {
-        const sFullBoundaryRange = createBoundaryRange(0, 400);
+        const sFullDataTimeRange = createDataTimeRange(0, 400);
 
-        sMockResolveTimeBoundaryRanges.mockResolvedValue(sFullBoundaryRange);
-        sMockResolveSeriesTimeBoundaryRanges.mockResolvedValue(sFullBoundaryRange);
+        sMockFetchSeriesDataTimeRange.mockResolvedValue(sFullDataTimeRange);
     });
 
     afterEach(() => {
@@ -122,22 +128,9 @@ describe('resolveConcretePanelRangeState', () => {
     });
 });
 
-function createBoundaryRange(
+function createDataTimeRange(
     startTime: number,
     endTime: number,
-): FetchedTimeBoundaryRange {
-    return {
-        start: {
-            min: createBoundaryTimestamp(startTime),
-            max: createBoundaryTimestamp(startTime),
-        },
-        end: {
-            min: createBoundaryTimestamp(endTime),
-            max: createBoundaryTimestamp(endTime),
-        },
-    };
-}
-
-function createBoundaryTimestamp(timestamp: number): AbsoluteTimeBoundary {
-    return { kind: 'absolute', timestamp };
+): TimeRangeMs {
+    return createTimeRangeMs(startTime, endTime);
 }

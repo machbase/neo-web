@@ -20,6 +20,7 @@ import PanelContainer from './panel/PanelContainer';
 import BoardTimeRangeModal from './boardModal/BoardTimeRangeModal';
 import TagAnalyzerHelpModal from './boardModal/TagAnalyzerHelpModal';
 import OverlapModal from './boardModal/OverlapModal';
+import { getNextOverlapSelections } from './boardModal/OverlapComparisonUtils';
 import CreateChartModal from './modal/selectionPanel/CreateChartModal';
 import TazSaveModal, {
     loadTazSaveModalInitialState,
@@ -30,12 +31,13 @@ import type {
     GlobalTimeRangeState,
     OverlapPanelInfo,
     OverlapPanelSelection,
-    OverlapSelectionChangePayload,
+    OverlapPanelSelectionChangePayload,
     SetGlobalTimeRangePayload,
 } from './domain/BoardDomain';
-import type { TimeRangeConfig } from './domain/time/TimeTypes';
-import { formatBoardRangeText } from './domain/time/TimeFormatters';
-import { isConcreteTimeRange, isSameTimeRange } from './domain/time/TimeRangeUtils';
+import type { TimeRangeConfig } from './domain/time/model/TimeTypes';
+import { ensureUniquePanelIndexKeys } from './domain/PanelIdentity';
+import { formatBoardRangeText } from './domain/time/boundary/TimeBoundaryInput';
+import { isValidTimeRange, isSameTimeRange } from './domain/time/range/TimeRangeUtils';
 import type { PanelInfo, PanelRangeState } from './domain/PanelDomain';
 import {
     MIXED_X_AXIS_KIND_WARNING,
@@ -43,7 +45,6 @@ import {
     hasMixedXAxisValueKinds,
 } from './domain/SeriesDomain';
 import { useTagAnalyzerBoardPanels } from './board/useTagAnalyzerBoardPanels';
-import { getNextOverlapSelections } from './boardModal/OverlapComparisonUtils';
 import type { PersistedTazPanelInfo } from './persistence/TazPersistenceTypesV200';
 import {
     createTazSavedCodeFromBoardInfo,
@@ -283,7 +284,7 @@ const TagAnalyzerBoard = ({
     }
 
     function updateOverlapSelection(
-        payload: OverlapSelectionChangePayload,
+        payload: OverlapPanelSelectionChangePayload,
     ): void {
         setOverlapSelections((prev) => getNextOverlapSelections(prev, payload));
     }
@@ -292,7 +293,7 @@ const TagAnalyzerBoard = ({
         panel: PanelInfo,
         panelRange: PanelRangeState['panelRange'],
         isRaw: boolean,
-        changeType: OverlapSelectionChangePayload['changeType'],
+        changeType: OverlapPanelSelectionChangePayload['changeType'],
     ): void {
         updateOverlapSelection({
             start: panelRange.startTime,
@@ -377,6 +378,7 @@ const TagAnalyzerBoard = ({
                     start: selection.start,
                     duration: selection.duration,
                     isRaw: selection.isRaw,
+                    panelKey: selection.panelKey,
                     board: getPanelInfoWithRawMode(sPanel, selection.isRaw),
                 },
             ];
@@ -392,7 +394,9 @@ const TagAnalyzerBoard = ({
     function appendPanel(panel: PersistedTazPanelInfo): void {
         const sPanelInfo = parseLoadedPanelTaz(panel);
 
-        updateRuntimePanels((panels) => panels.concat(sPanelInfo));
+        updateRuntimePanels((panels) =>
+            ensureUniquePanelIndexKeys(panels.concat(sPanelInfo)),
+        );
     }
 
     function togglePanelRawMode(
@@ -411,6 +415,11 @@ const TagAnalyzerBoard = ({
         isRaw: boolean,
     ): void {
         if (!sSelectedPanelKeys.has(panel.data.index_key)) {
+            if (!hasConcreteOverlapRangeState(rangeState)) {
+                Toast.warning('Overlap requires a loaded chart range.', undefined);
+                return;
+            }
+
             if (hasMixedXAxisValueKinds(panel.data.tag_set)) {
                 Toast.warning(
                     `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled for this panel.`,
@@ -450,7 +459,7 @@ const TagAnalyzerBoard = ({
     ): void {
         if (
             !sSelectedPanelKeys.has(panel.data.index_key) ||
-            !isConcreteTimeRange(rangeState.panelRange)
+            !hasConcreteOverlapRangeState(rangeState)
         ) {
             return;
         }
@@ -785,8 +794,8 @@ function getPanelWithCurrentVisibleRangeForSave(
 ): PanelInfo {
     if (
         !panel.general.use_last_viewed_range ||
-        !isConcreteTimeRange(rangeState.panelRange) ||
-        !isConcreteTimeRange(rangeState.navigatorRange)
+        !isValidTimeRange(rangeState.panelRange) ||
+        !isValidTimeRange(rangeState.navigatorRange)
     ) {
         return panel;
     }
@@ -795,10 +804,10 @@ function getPanelWithCurrentVisibleRangeForSave(
     const sCurrentPanelRange = sCurrentLastViewedRange?.panelRange;
     const sCurrentNavigatorRange = sCurrentLastViewedRange?.navigatorRange;
     const sHasSamePanelRange =
-        isConcreteTimeRange(sCurrentPanelRange) &&
+        isValidTimeRange(sCurrentPanelRange) &&
         isSameTimeRange(sCurrentPanelRange, rangeState.panelRange);
     const sHasSameNavigatorRange =
-        isConcreteTimeRange(sCurrentNavigatorRange) &&
+        isValidTimeRange(sCurrentNavigatorRange) &&
         isSameTimeRange(sCurrentNavigatorRange, rangeState.navigatorRange);
 
     if (sHasSamePanelRange && sHasSameNavigatorRange) {
@@ -815,6 +824,14 @@ function getPanelWithCurrentVisibleRangeForSave(
             },
         },
     };
+}
+
+function hasConcreteOverlapRangeState(rangeState: PanelRangeState): boolean {
+    return (
+        isValidTimeRange(rangeState.panelRange) &&
+        isValidTimeRange(rangeState.navigatorRange) &&
+        isValidTimeRange(rangeState.fullRange)
+    );
 }
 
 export default TagAnalyzerBoard;

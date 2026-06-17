@@ -7,16 +7,16 @@ import type {
     PanelRangeState,
     PanelZoomActions,
 } from '../domain/PanelDomain';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import {
     clampTimeRangeToBounds,
     createTimeRangeMs,
     ensureMinimumTimeRangeWidth,
     getTimeRangeCenter,
     getTimeRangeWidth,
-    isConcreteTimeRange,
+    isValidTimeRange,
     shiftTimeRange,
-} from '../domain/time/TimeRangeUtils';
+} from '../domain/time/range/TimeRangeUtils';
 import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import {
     getMinimumRangeAmount,
@@ -108,7 +108,7 @@ export function usePanelRangeControls({
             minimumDateTimeRangeMs,
         );
 
-        return isConcreteTimeRange(sRange) ? sRange : undefined;
+        return isValidTimeRange(sRange) ? sRange : undefined;
     }
 
     function applyMainRangeWithinNavigator(event: PanelRangeChangeEvent): void {
@@ -275,8 +275,8 @@ type RangeShiftDirection = -1 | 1;
 
 function hasConcreteInteractiveRangeState(rangeState: PanelRangeState): boolean {
     return (
-        isConcreteTimeRange(rangeState.panelRange) &&
-        isConcreteTimeRange(rangeState.navigatorRange)
+        isValidTimeRange(rangeState.panelRange) &&
+        isValidTimeRange(rangeState.navigatorRange)
     );
 }
 

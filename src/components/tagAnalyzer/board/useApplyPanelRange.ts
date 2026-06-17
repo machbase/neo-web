@@ -1,11 +1,11 @@
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import {
     createTimeRangeMs,
     hasVisibleTimeRangeChanged,
-    isConcreteTimeRange,
+    isValidTimeRange,
     isSameTimeRange,
-} from '../domain/time/TimeRangeUtils';
+} from '../domain/time/range/TimeRangeUtils';
 import type {
     ApplyPanelRangeState,
     BoardPanelRecord,
@@ -70,11 +70,11 @@ function resolveRangeState(
         throw new Error('Cannot apply panel range before chart width is measured.');
     }
 
-    if (!isConcreteTimeRange(options.panelRange)) {
+    if (!isValidTimeRange(options.panelRange)) {
         throw new Error('Cannot apply an invalid panel range.');
     }
 
-    if (!isConcreteTimeRange(options.navigatorRange)) {
+    if (!isValidTimeRange(options.navigatorRange)) {
         throw new Error('Cannot apply an invalid navigator range.');
     }
 
@@ -102,14 +102,14 @@ function getNextFullDataRange(
     requestedFullDataRange: TimeRangeMs | undefined,
 ): TimeRangeMs {
     if (requestedFullDataRange !== undefined) {
-        if (!isConcreteTimeRange(requestedFullDataRange)) {
+        if (!isValidTimeRange(requestedFullDataRange)) {
             throw new Error('Cannot apply an invalid full range.');
         }
 
         return requestedFullDataRange;
     }
 
-    if (!isConcreteTimeRange(currentFullDataRange)) {
+    if (!isValidTimeRange(currentFullDataRange)) {
         throw new Error('Cannot preserve full data range before it is initialized.');
     }
 

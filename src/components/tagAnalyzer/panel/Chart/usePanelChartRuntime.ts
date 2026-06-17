@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent, type WheelEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../../domain/ChartDomain';
 import { PanelOverlayMode, type PanelRangeActions, type PanelRangeChangeEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers, type PanelRangeState } from '../../domain/PanelDomain';
@@ -13,8 +13,8 @@ import { useBlankChartClickEvent } from './hooks/useBlankChartClickEvent';
 import { usePanelChartInstanceSync } from './hooks/usePanelChartInstanceSync';
 import {
     getTimeRangeWidth,
-    isConcreteTimeRange,
-} from '../../domain/time/TimeRangeUtils';
+    isValidTimeRange,
+} from '../../domain/time/range/TimeRangeUtils';
 import { convertPanelChartPixelToTimestamp } from './utils/PanelChartPointerUtils';
 
 type PanelBodyRefs = {
@@ -51,7 +51,6 @@ type UsePanelChartRuntimeResult = {
     handleChartReady: EChartsReactProps['onChartReady'];
     chartMouseHandlers: {
         onMouseDownCapture: (event: MouseEvent<HTMLDivElement>) => void;
-        onWheel: (event: WheelEvent<HTMLDivElement>) => void;
     };
 };
 
@@ -145,7 +144,7 @@ export function usePanelChartRuntime({
     const syncMainChartVisibleRange = useCallback((
         chartInstance: PanelChartInstance | undefined = chartInstanceRef.current,
     ): void => {
-        if (!chartInstance || !isConcreteTimeRange(panelRange)) {
+        if (!chartInstance || !isValidTimeRange(panelRange)) {
             return;
         }
 
@@ -184,11 +183,11 @@ export function usePanelChartRuntime({
             { lazyUpdate: true },
         );
     }, [baseChartInfo, chartInstanceRef]);
-    const handleMouseWheelZoom = useCallback((event: WheelEvent<HTMLDivElement>): void => {
+    const handleMouseWheelZoom = useCallback((event: WheelEvent): void => {
         if (
             event.deltaY === 0 ||
             !isDragZoomEnabled ||
-            !isConcreteTimeRange(panelRange)
+            !isValidTimeRange(panelRange)
         ) {
             return;
         }
@@ -242,6 +241,21 @@ export function usePanelChartRuntime({
         panelRange,
         rangeActions,
     ]);
+
+    useEffect(() => {
+        const chartArea = chartAreaRef.current;
+        if (!chartArea) {
+            return;
+        }
+
+        chartArea.addEventListener('wheel', handleMouseWheelZoom, {
+            passive: false,
+        });
+
+        return () => {
+            chartArea.removeEventListener('wheel', handleMouseWheelZoom);
+        };
+    }, [chartAreaRef, handleMouseWheelZoom]);
 
     useEffect(() => {
         const nextVisibleSeries = {
@@ -331,7 +345,6 @@ export function usePanelChartRuntime({
                     event.stopPropagation();
                 }
             },
-            onWheel: handleMouseWheelZoom,
         },
     };
 }

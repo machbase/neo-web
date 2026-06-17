@@ -1,11 +1,11 @@
 import moment from 'moment';
-import type { TimeRangeConfig, TimeRangeMs } from './TimeTypes';
+import type { TimeRangeMs } from '../model/TimeTypes';
 import {
     HOUR_IN_MS,
     MINUTE_IN_MS,
     SECOND_IN_MS,
-} from './TimeConstants';
-import { formatTimeRangeInputValue } from './TimeBoundaryInput';
+} from '../model/TimeConstants';
+import { getTimeRangeWidth } from '../range/TimeRangeUtils';
 
 const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
 const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;
@@ -29,10 +29,6 @@ const STANDARD_NUMBER_FORMATTERS_BY_FRACTION_DIGITS = new Map<
     Intl.NumberFormat
 >([[4, STANDARD_NUMBER_FORMATTER]]);
 
-function formatLocalRangeLabel(value: number): string {
-    return moment(value).format('YYYY-MM-DD HH:mm:ss');
-}
-
 function formatNumericAxisLabel(
     value: number | string,
     visibleRange?: TimeRangeMs,
@@ -48,7 +44,15 @@ function formatNumericAxisLabel(
     const sUnitIndex = COMPACT_NUMBER_UNITS.findIndex(
         (unit) => sAbsoluteValue >= unit.value,
     );
-    const sVisibleSpan = getVisibleNumericSpan(visibleRange);
+    const sRawVisibleSpan = visibleRange
+        ? getTimeRangeWidth(visibleRange)
+        : undefined;
+    const sVisibleSpan =
+        typeof sRawVisibleSpan === 'number' &&
+        Number.isFinite(sRawVisibleSpan) &&
+        sRawVisibleSpan > 0
+            ? sRawVisibleSpan
+            : undefined;
 
     if (
         sUnitIndex === -1 ||
@@ -57,7 +61,8 @@ function formatNumericAxisLabel(
             sVisibleSpan < NUMERIC_COMPACT_VISIBLE_SPAN_THRESHOLD
         )
     ) {
-        return formatStandardNumericAxisLabel(sNormalizedValue, sVisibleSpan);
+        const sFractionDigits = getNumericAxisFractionDigits(sVisibleSpan);
+        return getStandardNumberFormatter(sFractionDigits).format(sNormalizedValue);
     }
 
     const sUnit = COMPACT_NUMBER_UNITS[
@@ -78,7 +83,7 @@ export function formatRangeBoundaryLabel(
 ): string {
     return isNumericAxis
         ? formatNumericAxisLabel(value, visibleRange)
-        : formatLocalRangeLabel(value);
+        : moment(value).format('YYYY-MM-DD HH:mm:ss');
 }
 
 export function formatLocalTimestampWithMilliseconds(value: number): string {
@@ -100,7 +105,7 @@ export function formatAxisPointerLabel(
 }
 
 function formatAxisTime(value: number, range: TimeRangeMs): string {
-    const sVisibleSpan = range.endTime - range.startTime;
+    const sVisibleSpan = getTimeRangeWidth(range);
 
     if (sVisibleSpan <= AXIS_SECOND_LABEL_SPAN_MS) {
         return moment(value).format('HH:mm:ss');
@@ -130,11 +135,14 @@ export function formatAxisValue(
 function formatDurationLabel(startTime: number, endTime: number): string {
     const sDuration = moment.duration(endTime - startTime);
     const sDays = Math.floor(sDuration.asDays());
+    const sDayText = sDays === 0 ? '' : `${sDays}d `;
+    const sHourText = sDuration.hours() === 0 ? '' : `${sDuration.hours()}h `;
+    const sMinuteText = sDuration.minutes() === 0 ? '' : `${sDuration.minutes()}m `;
+    const sSecondText = sDuration.seconds() === 0 ? '' : `${sDuration.seconds()}s `;
+    const sMillisecondText =
+        sDuration.milliseconds() === 0 ? '' : ` ${sDuration.milliseconds()}ms`;
 
-    return `${formatDurationPart(sDays, 'd')}${formatDurationPart(sDuration.hours(), 'h')}${formatDurationPart(sDuration.minutes(), 'm')}${formatDurationPart(
-        sDuration.seconds(),
-        's',
-    )}${sDuration.milliseconds() === 0 ? '' : ` ${sDuration.milliseconds()}ms`}`;
+    return `${sDayText}${sHourText}${sMinuteText}${sSecondText}${sMillisecondText}`;
 }
 
 export function formatRangeSpanLabel(
@@ -147,38 +155,12 @@ export function formatRangeSpanLabel(
         : formatDurationLabel(startTime, endTime);
 }
 
-export function formatBoardRangeText(rangeConfig: TimeRangeConfig): string {
-    if (
-        rangeConfig.start.kind === 'empty' ||
-        rangeConfig.end.kind === 'empty'
-    ) {
-        return '';
-    }
-
-    if (
-        rangeConfig.start.kind === 'absolute' &&
-        rangeConfig.end.kind === 'absolute'
-    ) {
-        if (
-            rangeConfig.start.timestamp <= 0 ||
-            rangeConfig.end.timestamp <= 0 ||
-            rangeConfig.end.timestamp < rangeConfig.start.timestamp
-        ) {
-            return '';
-        }
-
-        return `${formatLocalRangeLabel(rangeConfig.start.timestamp)}~${formatLocalRangeLabel(rangeConfig.end.timestamp)}`;
-    }
-
-    return `${formatTimeRangeInputValue(rangeConfig.start)}~${formatTimeRangeInputValue(rangeConfig.end)}`;
-}
-
 export function formatElapsedTimeLabel(
-    elapsedMs: number | string,
+    elapsedMs: number | string | Date | null | undefined,
     tickInterval?: number,
 ): string {
     const sElapsedMs = Number(elapsedMs);
-    if (!Number.isFinite(sElapsedMs)) return String(elapsedMs);
+    if (!Number.isFinite(sElapsedMs)) return String(elapsedMs ?? '');
 
     const sSign = sElapsedMs < 0 ? '-' : '';
     const sAbsMs = Math.floor(Math.abs(sElapsedMs));
@@ -199,11 +181,7 @@ export function formatElapsedTimeLabel(
     return sBase;
 }
 
-function formatDurationPart(value: number, suffix: string): string {
-    return value === 0 ? '' : `${value}${suffix} `;
-}
-
-export function padTimePart(value: number, size = 2): string {
+function padTimePart(value: number, size = 2): string {
     return String(value).padStart(size, '0');
 }
 
@@ -219,14 +197,6 @@ function shouldUseNextLargerNumericUnit(
         Math.round((absoluteValue / COMPACT_NUMBER_UNITS[unitIndex].value) * 10) / 10;
 
     return sRoundedScaledValue >= 1000;
-}
-
-function formatStandardNumericAxisLabel(
-    value: number,
-    visibleSpan: number | undefined,
-): string {
-    const sFractionDigits = getNumericAxisFractionDigits(visibleSpan);
-    return getStandardNumberFormatter(sFractionDigits).format(value);
 }
 
 function getStandardNumberFormatter(fractionDigits: number): Intl.NumberFormat {
@@ -246,20 +216,6 @@ function getStandardNumberFormatter(fractionDigits: number): Intl.NumberFormat {
     );
 
     return sFormatter;
-}
-
-function getVisibleNumericSpan(
-    visibleRange: TimeRangeMs | undefined,
-): number | undefined {
-    if (!visibleRange) {
-        return undefined;
-    }
-
-    const sVisibleSpan = visibleRange.endTime - visibleRange.startTime;
-
-    return Number.isFinite(sVisibleSpan) && sVisibleSpan > 0
-        ? sVisibleSpan
-        : undefined;
 }
 
 function getNumericAxisFractionDigits(

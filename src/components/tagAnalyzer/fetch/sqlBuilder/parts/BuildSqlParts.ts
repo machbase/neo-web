@@ -6,7 +6,7 @@ import {
     normalizeRollupIntervalUnit,
     normalizeTruncatedIntervalUnit,
 } from '../SqlIntervalUnitUtils';
-import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/TimeConstants';
+import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/model/TimeConstants';
 
 const NANOSECONDS_PER_SECOND = 1000 * NANOSECONDS_PER_MILLISECOND;
 

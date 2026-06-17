@@ -1,10 +1,10 @@
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import {
     createTimeRangeMs,
     getTimeRangeCenter,
     getTimeRangeWidth,
     isTimeRangeOutsideBounds,
-} from '../domain/time/TimeRangeUtils';
+} from '../domain/time/range/TimeRangeUtils';
 
 export const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
 export const MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH = 36;

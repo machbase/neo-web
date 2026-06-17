@@ -6,7 +6,7 @@ import type {
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
-} from '../domain/time/TimeTypes';
+} from '../domain/time/model/TimeTypes';
 
 type PersistedTimeBoundaryInputValue = string | number | '';
 

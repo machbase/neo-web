@@ -20,11 +20,11 @@ import {
 } from './parts/BuildSqlParts';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 
-export function buildGroupedSeriesTimeBoundarySql(tableTagMap: TableTagMap[]): string {
-    return tableTagMap.map((info) => buildTableTimeBoundarySql(info)).join(` ${UNION_ALL_KEYWORD} `);
+export function buildGroupedSeriesDataTimeRangeSql(tableTagMap: TableTagMap[]): string {
+    return tableTagMap.map((info) => buildTableDataTimeRangeSql(info)).join(` ${UNION_ALL_KEYWORD} `);
 }
 
-export function buildVirtualStatOrMountedTableBoundarySql(
+export function buildVirtualStatOrMountedTableDataTimeRangeSql(
     tableName: string,
     tagNameList: string[],
     timeColumnName = TIME_COLUMN_NAME,
@@ -49,21 +49,21 @@ export function buildVirtualStatOrMountedTableBoundarySql(
     );
 }
 
-function buildTableTimeBoundarySql(info: TableTagMap): string {
+function buildTableDataTimeRangeSql(info: TableTagMap): string {
     const sTableInfo = info.table.split('.');
 
     if (isNumericBaseTimeSourceColumns(info.cols)) {
-        return buildNumericBaseTimeBoundarySql(info, sTableInfo);
+        return buildNumericBaseTimeRangeSql(info, sTableInfo);
     }
 
     if (sTableInfo.length === 3) {
-        return buildMountedDatabaseTimeBoundarySql(info, sTableInfo);
+        return buildMountedDatabaseTimeRangeSql(info, sTableInfo);
     }
 
-    return buildMachbaseStatTimeBoundarySql(info, sTableInfo);
+    return buildMachbaseStatTimeRangeSql(info, sTableInfo);
 }
 
-function buildNumericBaseTimeBoundarySql(
+function buildNumericBaseTimeRangeSql(
     info: TableTagMap,
     tableInfo: string[],
 ): string {
@@ -82,7 +82,7 @@ function buildNumericBaseTimeBoundarySql(
     );
 }
 
-function buildMountedDatabaseTimeBoundarySql(
+function buildMountedDatabaseTimeRangeSql(
     info: TableTagMap,
     tableInfo: string[],
 ): string {
@@ -122,7 +122,7 @@ function buildMountedDatabaseTimeBoundarySql(
     );
 }
 
-function buildMachbaseStatTimeBoundarySql(
+function buildMachbaseStatTimeRangeSql(
     info: TableTagMap,
     tableInfo: string[],
 ): string {

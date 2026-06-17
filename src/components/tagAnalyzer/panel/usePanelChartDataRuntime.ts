@@ -10,18 +10,21 @@ import {
     type PanelInfo,
     type PanelRangeState,
 } from '../domain/PanelDomain';
-import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
-import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
+import type { IntervalOption, TimeRangeMs } from '../domain/time/model/TimeTypes';
+import { hasResolvedIntervalOption } from '../domain/time/interval/TimeIntervalUtils';
 import {
-    isConcreteTimeRange,
+    createTimeRangeMs,
+    ensureMinimumTimeRangeWidth,
+    getTimeRangeWidth,
+    isValidTimeRange,
     isSameTimeRange,
-} from '../domain/time/TimeRangeUtils';
+} from '../domain/time/range/TimeRangeUtils';
 import {
     RAW_NAVIGATOR_SAMPLE_COUNT,
     fetchMainPanelSeriesRows,
     fetchNavigatorPanelSeriesRows,
 } from '../fetch/PanelSeriesDataRepository';
-import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
+import { EMPTY_TIME_RANGE } from '../domain/time/model/TimeConstants';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import type {
@@ -86,7 +89,7 @@ type UsePanelChartDataRuntimeResult = {
 
 type MainPanelSeriesLoadResult = {
     chartData: ChartSeriesData[];
-    resolvedIntervalOption: IntervalOption;
+    resolvedIntervalOption?: IntervalOption | undefined;
     isLimitReached?: boolean | undefined;
     appliedPanelRange?: TimeRangeMs | undefined;
 };
@@ -108,7 +111,6 @@ type MainPanelDataLoadResult = {
     appliedRanges?: AppliedPanelLoadRanges | undefined;
 };
 
-const EMPTY_INTERVAL_OPTION = { IntervalType: '', IntervalValue: 0 } as const;
 const MIN_QUERIED_DATA_RANGE_WIDTH = 1;
 const RAW_DATA_RANGE_SHRINK_THRESHOLD = 0.1;
 
@@ -196,7 +198,6 @@ async function loadMainSeriesData(
     if (!sFetchResult) {
         return {
             chartData: [],
-            resolvedIntervalOption: EMPTY_INTERVAL_OPTION,
         };
     }
 
@@ -284,13 +285,10 @@ function analyzeMainQueryResult(
         !Number.isFinite(sStartTime) ||
         !Number.isFinite(sEndTime)
             ? undefined
-            : {
-                  startTime: sStartTime,
-                  endTime: Math.max(
-                      sEndTime,
-                      sStartTime + MIN_QUERIED_DATA_RANGE_WIDTH,
-                  ),
-              };
+            : ensureMinimumTimeRangeWidth(
+                  createTimeRangeMs(sStartTime, sEndTime),
+                  MIN_QUERIED_DATA_RANGE_WIDTH,
+              );
 
     const sAnalysis = {
         isLimitReached: sIsLimitReached,
@@ -310,7 +308,7 @@ function resolveRawDataRange(
         return queryRange;
     }
 
-    const sQueryRangeAmount = queryRange.endTime - queryRange.startTime;
+    const sQueryRangeAmount = getTimeRangeWidth(queryRange);
     if (sQueryRangeAmount <= 0) {
         throw new Error('Cannot resolve raw data range for an invalid query range.');
     }
@@ -493,9 +491,9 @@ export function usePanelChartDataRuntime({
     useEffect(() => {
         if (
             chartAreaWidth === undefined ||
-            !isConcreteTimeRange(rangeState.panelRange) ||
-            !isConcreteTimeRange(rangeState.navigatorRange) ||
-            !isConcreteTimeRange(rangeState.fullRange)
+            !isValidTimeRange(rangeState.panelRange) ||
+            !isValidTimeRange(rangeState.navigatorRange) ||
+            !isValidTimeRange(rangeState.fullRange)
         ) {
             return;
         }

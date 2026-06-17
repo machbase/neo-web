@@ -8,8 +8,8 @@ import {
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
 import type { PanelAnnotation } from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { getTimeRangeCenter } from '../../../domain/time/TimeRangeUtils';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import { getTimeRangeCenter } from '../../../domain/time/range/TimeRangeUtils';
 
 function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {

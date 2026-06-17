@@ -1,8 +1,8 @@
 import {
     createAbsoluteTimeBoundary,
     createEmptyTimeBoundary,
-} from './TimeBoundaryInput';
-import type { TimeRangeMs, TimeRangeConfig } from './TimeTypes';
+} from '../boundary/TimeBoundaryInput';
+import type { TimeRangeMs, TimeRangeConfig } from '../model/TimeTypes';
 
 export function createTimeRangeMs(
     startTime: number,
@@ -102,8 +102,8 @@ export function clampTimeRangeToBounds(
     return range;
 }
 
-export function isConcreteTimeRange(
-    timeRange: TimeRangeMs | undefined,
+export function isValidTimeRange(
+    timeRange: TimeRangeMs | null | undefined,
 ): timeRange is TimeRangeMs {
     if (!timeRange) {
         return false;
@@ -120,8 +120,41 @@ export function isConcreteTimeRange(
 export function isSameTimeRange(
     left: TimeRangeMs,
     right: TimeRangeMs,
+    toleranceMs = 0,
 ): boolean {
-    return left.startTime === right.startTime && left.endTime === right.endTime;
+    const sToleranceMs = Number.isFinite(toleranceMs)
+        ? Math.max(toleranceMs, 0)
+        : 0;
+
+    if (sToleranceMs <= 0) {
+        return left.startTime === right.startTime && left.endTime === right.endTime;
+    }
+
+    return (
+        Math.abs(left.startTime - right.startTime) <= sToleranceMs &&
+        Math.abs(left.endTime - right.endTime) <= sToleranceMs
+    );
+}
+
+function getTimeRangeDurationExtremum(
+    ranges: TimeRangeMs[],
+    selectDuration: (...durations: number[]) => number,
+): number {
+    const sPositiveDurations = ranges
+        .map(getTimeRangeWidth)
+        .filter((duration) => Number.isFinite(duration) && duration > 0);
+
+    return sPositiveDurations.length > 0
+        ? selectDuration(...sPositiveDurations)
+        : ranges[0] ? getTimeRangeWidth(ranges[0]) : 0;
+}
+
+export function getSmallestTimeRangeDuration(ranges: TimeRangeMs[]): number {
+    return getTimeRangeDurationExtremum(ranges, Math.min);
+}
+
+export function getLargestTimeRangeDuration(ranges: TimeRangeMs[]): number {
+    return getTimeRangeDurationExtremum(ranges, Math.max);
 }
 
 export function hasVisibleTimeRangeChanged(

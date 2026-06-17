@@ -42,17 +42,20 @@ import {
 } from '../domain/SeriesDomain';
 import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
 import type { ReloadAfterEditorSaveOptions } from '../board/useConfigReload';
-import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
+import { hasResolvedIntervalOption } from '../domain/time/interval/TimeIntervalUtils';
 import type {
     IntervalOption,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../domain/time/TimeTypes';
-import { convertTimeRangeConfigToTimeRangeMs } from '../domain/time/TimeBoundaryConverters';
+} from '../domain/time/model/TimeTypes';
+import {
+    canResolveTimeRangeConfig,
+    resolveTimeRangeConfig,
+} from '../domain/time/resolution/TimeRangeConfigResolver';
 import {
     createAbsoluteTimeRangeConfig,
-    isConcreteTimeRange,
-} from '../domain/time/TimeRangeUtils';
+    isValidTimeRange,
+} from '../domain/time/range/TimeRangeUtils';
 import { buildSelectionSummaryPayload } from './PanelBrushSelection';
 import { useChartAreaWidthObserver } from '../board/useChartAreaWidthObserver';
 import { usePanelAnnotation } from './usePanelAnnotation';
@@ -273,7 +276,7 @@ function PanelContainer({
 
         switch (target) {
             case PanelRuntimeTimeRangeTarget.MAIN_CHART:
-                if (!isConcreteTimeRange(panelRange)) {
+                if (!isValidTimeRange(panelRange)) {
                     return undefined;
                 }
 
@@ -285,7 +288,7 @@ function PanelContainer({
                 };
 
             case PanelRuntimeTimeRangeTarget.NAVIGATOR:
-                if (!isConcreteTimeRange(navigatorRange)) {
+                if (!isValidTimeRange(navigatorRange)) {
                     return undefined;
                 }
 
@@ -323,18 +326,27 @@ function PanelContainer({
             return false;
         }
 
-        const sLastAnchorTime = isConcreteTimeRange(rangeState.fullRange)
+        const sLastAnchorTime = isValidTimeRange(rangeState.fullRange)
             ? rangeState.fullRange.endTime
             : undefined;
-        const sTimeRange = convertTimeRangeConfigToTimeRangeMs(
-            timeRangeConfig,
-            sLastAnchorTime,
-        );
+        const sTimeRangeResolutionOptions = {
+            lastAnchorTime: sLastAnchorTime,
+        };
 
-        if (!isConcreteTimeRange(sTimeRange)) {
+        if (
+            !canResolveTimeRangeConfig(
+                timeRangeConfig,
+                sTimeRangeResolutionOptions,
+            )
+        ) {
             Toast.error('Please check the entered time.');
             return false;
         }
+
+        const sTimeRange = resolveTimeRangeConfig(
+            timeRangeConfig,
+            sTimeRangeResolutionOptions,
+        );
 
         return applyRuntimeConcreteRange(sTimeRange);
     }

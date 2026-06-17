@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { GlobalTimeRangeState } from '../domain/BoardDomain';
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
 import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
-import type { TimeRangeConfig } from '../domain/time/TimeTypes';
+import type { TimeRangeConfig } from '../domain/time/model/TimeTypes';
 import {
     createInitialBoardPanelRecord,
     type BoardPanelRecord,
@@ -96,15 +96,15 @@ export function useTagAnalyzerBoardPanels({
     } = useConfigReload({
         getBoardPanelRecord,
         applyPanelRangeState,
-        resolveAndApplyPanelRange,
+        resolvePanelRangeState,
         setFullDataRange,
     });
 
-    async function resolveAndApplyPanelRange(
+    async function resolvePanelRangeState(
         panelInfo: PanelInfo,
         options?: ResolvePanelRangeOptions,
-    ): Promise<void> {
-        const sRangeState = await resolveConcretePanelRangeState({
+    ): Promise<PanelRangeState> {
+        return resolveConcretePanelRangeState({
             seriesList: panelInfo.data.tag_set,
             rangeConfig: panelInfo.time.range_config,
             lastViewedRange: panelInfo.general.use_last_viewed_range
@@ -113,13 +113,6 @@ export function useTagAnalyzerBoardPanels({
             boardTime,
             applyInitialMainChartWindow:
                 options?.applyInitialMainChartWindow === true,
-        });
-
-        applyPanelRangeState(panelInfo, {
-            panelRange: sRangeState.panelRange,
-            navigatorRange: sRangeState.navigatorRange,
-            fullRange: sRangeState.fullRange,
-            reloadData: true,
         });
     }
 
@@ -148,9 +141,16 @@ export function useTagAnalyzerBoardPanels({
         initializedPanelKeysRef.current[sPanelKey] = true;
 
         if (panelInfo.general.use_last_viewed_range) {
-            void resolveAndApplyPanelRange(panelInfo, {
-                applyInitialMainChartWindow: true,
-            });
+            void (async () => {
+                const sResolvedRangeState = await resolvePanelRangeState(panelInfo, {
+                    applyInitialMainChartWindow: true,
+                });
+
+                applyPanelRangeState(panelInfo, {
+                    ...sResolvedRangeState,
+                    reloadData: true,
+                });
+            })();
             return;
         }
 
@@ -162,9 +162,16 @@ export function useTagAnalyzerBoardPanels({
             return;
         }
 
-        void resolveAndApplyPanelRange(panelInfo, {
-            applyInitialMainChartWindow: true,
-        });
+        void (async () => {
+            const sResolvedRangeState = await resolvePanelRangeState(panelInfo, {
+                applyInitialMainChartWindow: true,
+            });
+
+            applyPanelRangeState(panelInfo, {
+                ...sResolvedRangeState,
+                reloadData: true,
+            });
+        })();
     }
 
     function applyGlobalRangeToPanel(

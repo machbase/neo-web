@@ -5,7 +5,7 @@ import type {
 import type {
     IntervalOption,
     UnixMilliseconds,
-} from '../domain/time/TimeTypes';
+} from '../domain/time/model/TimeTypes';
 
 export type TagFetchRow = [number, number | null, ...unknown[]];
 
@@ -84,7 +84,7 @@ export type FetchPanelSeriesRowsResult = {
     isRaw: boolean;
 };
 
-export type BoundarySeries = {
+export type DataRangeSeries = {
     table: string;
     sourceTagName: string | undefined;
     sourceColumns: PanelSeriesSourceColumns;

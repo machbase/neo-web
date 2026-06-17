@@ -10,7 +10,7 @@ import {
     createAbsoluteTimeBoundary,
     formatTimeRangeInputValue,
     parseTimeRangeInputValue,
-} from '../domain/time/TimeBoundaryInput';
+} from '../domain/time/boundary/TimeBoundaryInput';
 
 type TagAnalyzerDatePickerProps = {
     label?: string;

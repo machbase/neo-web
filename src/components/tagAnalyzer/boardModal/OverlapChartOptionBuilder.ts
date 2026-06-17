@@ -17,11 +17,10 @@ import type {
     ChartRow,
     ChartSeriesData,
 } from '../domain/ChartDomain';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import {
     formatElapsedTimeLabel,
     formatLocalTimestampWithMilliseconds,
-} from '../domain/time/TimeFormatters';
+} from '../domain/time/formatting/TimeFormatters';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<
@@ -38,16 +37,25 @@ type OverlapChartYAxisRange = {
     min: number | undefined;
     max: number | undefined;
 };
+type OverlapChartXAxisRange = {
+    startTime: number;
+    endTime: number;
+};
+type OverlapChartXAxisRanges = {
+    dataRange: OverlapChartXAxisRange;
+    axisRange: OverlapChartXAxisRange;
+};
 
 export type OverlapChartInfo = {
     seriesData: ChartSeriesData[];
     seriesStartTimeList: number[];
     includeZeroInYAxisRange: boolean;
-    xAxisRange: TimeRangeMs | undefined;
 };
 
 const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
 const OVERLAP_Y_AXIS_SPLIT_COUNT = 5;
+const OVERLAP_EMPTY_X_AXIS_PADDING_RATIO = 4;
+const OVERLAP_MIN_EMPTY_X_AXIS_PADDING_MS = 1_000;
 const COMPACT_AXIS_UNITS = [{ value: 1_000_000_000_000, suffix: 'T' }, { value: 1_000_000_000, suffix: 'B' }, { value: 1_000_000, suffix: 'M' }, { value: 1_000, suffix: 'K' }] as const;
 const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 1,
@@ -97,15 +105,11 @@ const OVERLAP_GRID_OPTION = {
     left: 35,
     right: 18,
     top: 42,
-    bottom: 58,
+    bottom: 28,
 } satisfies GridComponentOption;
 const OVERLAP_TOOLBOX_OPTION = {
     ...DEFAULT_NOT_SHOW,
 } satisfies ToolboxComponentOption;
-const OVERLAP_SLIDER_BOTTOM = 10;
-const OVERLAP_SLIDER_HEIGHT = 22;
-const OVERLAP_EMPTY_NAVIGATION_PADDING_RATIO = 4;
-const OVERLAP_MIN_EMPTY_NAVIGATION_PADDING_MS = 1_000;
 const OVERLAP_X_AXIS_STATIC_OPTION = {
     type: 'time',
     axisLine: AXIS_LINE_STYLE,
@@ -225,6 +229,49 @@ function resolveOverlapChartYAxisRange(
     };
 }
 
+function resolveOverlapChartXAxisRanges(
+    chartData: ChartSeriesData[],
+): OverlapChartXAxisRanges | undefined {
+    const sTimestamps = chartData.flatMap((series) =>
+        series.data.map(([timestamp]) => timestamp),
+    );
+
+    if (sTimestamps.length === 0) {
+        return undefined;
+    }
+
+    const sDataStartTime = Math.min(...sTimestamps);
+    const sDataEndTime = Math.max(...sTimestamps);
+
+    if (
+        !Number.isFinite(sDataStartTime) ||
+        !Number.isFinite(sDataEndTime)
+    ) {
+        return undefined;
+    }
+
+    const sDataWidth = sDataEndTime - sDataStartTime;
+    if (sDataWidth <= 0) {
+        return undefined;
+    }
+
+    const sPadding = Math.max(
+        sDataWidth * OVERLAP_EMPTY_X_AXIS_PADDING_RATIO,
+        OVERLAP_MIN_EMPTY_X_AXIS_PADDING_MS,
+    );
+
+    return {
+        dataRange: {
+            startTime: sDataStartTime,
+            endTime: sDataEndTime,
+        },
+        axisRange: {
+            startTime: sDataStartTime - sPadding,
+            endTime: sDataEndTime + sPadding,
+        },
+    };
+}
+
 function getOverlapTooltipParams(
     tooltipFormatterParams: TopLevelFormatterParams,
 ): OverlapTooltipParam[] {
@@ -299,62 +346,25 @@ function buildOverlapTooltipOption(
 }
 
 function buildOverlapDataZoomOption(
-    xAxisRange: TimeRangeMs | undefined,
+    visibleRange: OverlapChartXAxisRange | undefined,
 ): DataZoomComponentOption[] {
-    const sInitialWindow = xAxisRange
+    const sInitialWindow = visibleRange
         ? {
-              startValue: xAxisRange.startTime,
-              endValue: xAxisRange.endTime,
+              startValue: visibleRange.startTime,
+              endValue: visibleRange.endTime,
           }
         : {};
 
-    return [
-        {
-            type: 'inside',
-            xAxisIndex: [0],
-            filterMode: 'none',
-            zoomOnMouseWheel: true,
-            moveOnMouseWheel: 'shift',
-            moveOnMouseMove: true,
-            preventDefaultMouseMove: true,
-            ...sInitialWindow,
-        },
-        {
-            type: 'slider',
-            xAxisIndex: [0],
-            filterMode: 'none',
-            realtime: true,
-            bottom: OVERLAP_SLIDER_BOTTOM,
-            height: OVERLAP_SLIDER_HEIGHT,
-            showDetail: false,
-            showDataShadow: false,
-            brushSelect: false,
-            borderColor: '#7a828c',
-            fillerColor: 'rgba(104, 119, 138, 0.28)',
-            backgroundColor: 'rgba(0, 0, 0, 0)',
-            handleSize: 18,
-            ...sInitialWindow,
-        },
-    ];
-}
-
-function buildOverlapNavigationXAxisRange(
-    xAxisRange: TimeRangeMs | undefined,
-): TimeRangeMs | undefined {
-    if (!xAxisRange || xAxisRange.endTime <= xAxisRange.startTime) {
-        return undefined;
-    }
-
-    const sVisibleWidth = xAxisRange.endTime - xAxisRange.startTime;
-    const sPadding = Math.max(
-        sVisibleWidth * OVERLAP_EMPTY_NAVIGATION_PADDING_RATIO,
-        OVERLAP_MIN_EMPTY_NAVIGATION_PADDING_MS,
-    );
-
-    return {
-        startTime: xAxisRange.startTime - sPadding,
-        endTime: xAxisRange.endTime + sPadding,
-    };
+    return [{
+        type: 'inside',
+        xAxisIndex: [0],
+        filterMode: 'none',
+        zoomOnMouseWheel: true,
+        moveOnMouseWheel: false,
+        moveOnMouseMove: false,
+        preventDefaultMouseMove: true,
+        ...sInitialWindow,
+    }];
 }
 
 function formatYAxisLabel(value: string | number): string {
@@ -402,8 +412,8 @@ function shouldUseNextLargerUnit(
 export function buildOverlapChartOption(
     overlapChartInfo: OverlapChartInfo,
 ): EChartsOption {
-    const sNavigationXAxisRange = buildOverlapNavigationXAxisRange(
-        overlapChartInfo.xAxisRange,
+    const sXAxisRanges = resolveOverlapChartXAxisRanges(
+        overlapChartInfo.seriesData,
     );
     const sYAxisRange = resolveOverlapChartYAxisRange(
         overlapChartInfo.seriesData,
@@ -442,8 +452,8 @@ export function buildOverlapChartOption(
         ),
         xAxis: {
             ...OVERLAP_X_AXIS_STATIC_OPTION,
-            min: sNavigationXAxisRange?.startTime,
-            max: sNavigationXAxisRange?.endTime,
+            min: sXAxisRanges?.axisRange.startTime,
+            max: sXAxisRanges?.axisRange.endTime,
             axisLabel: {
                 ...OVERLAP_X_AXIS_STATIC_OPTION.axisLabel,
                 formatter: (overlapXAxisValue: number) =>
@@ -457,6 +467,6 @@ export function buildOverlapChartOption(
         },
         series: sSeries,
         toolbox: OVERLAP_TOOLBOX_OPTION,
-        dataZoom: buildOverlapDataZoomOption(overlapChartInfo.xAxisRange),
+        dataZoom: buildOverlapDataZoomOption(sXAxisRanges?.dataRange),
     };
 }

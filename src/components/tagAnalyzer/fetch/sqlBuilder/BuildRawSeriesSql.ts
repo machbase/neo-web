@@ -17,8 +17,8 @@ import {
     buildTableTargetSqlPart,
     buildTimeRangeConditionSql,
 } from './parts/BuildSqlParts';
-import type { TimeRangeNs } from '../../domain/time/TimeTypes';
-import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/TimeConstants';
+import type { TimeRangeNs } from '../../domain/time/model/TimeTypes';
+import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/model/TimeConstants';
 import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 

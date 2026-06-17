@@ -23,7 +23,7 @@ import type {
     PanelInfo,
     PanelYAxis,
 } from '../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../../domain/time/model/TimeTypes';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
 export enum EditTabPanelType {

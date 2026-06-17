@@ -13,13 +13,13 @@ import type {
     PanelNavigatorRangePair,
     TimeBoundary,
     TimeRangeConfig,
-} from '../../../../domain/time/TimeTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/TimeBoundaryInput';
+} from '../../../../domain/time/model/TimeTypes';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/boundary/TimeBoundaryInput';
 import {
     formatTimeUnitShortCode,
     normalizeStoredTimeUnit,
-} from '../../../../domain/time/TimeIntervalUtils';
-import { createAbsoluteTimeRangeConfig } from '../../../../domain/time/TimeRangeUtils';
+} from '../../../../domain/time/interval/TimeIntervalUtils';
+import { createAbsoluteTimeRangeConfig } from '../../../../domain/time/range/TimeRangeUtils';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 export function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,

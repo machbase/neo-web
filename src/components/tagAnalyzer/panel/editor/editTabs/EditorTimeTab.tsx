@@ -10,17 +10,17 @@ import {
     formatTimeRangeInputValue,
     parseTimeRangeInputValue,
     createAbsoluteTimeBoundary,
-} from '../../../domain/time/TimeBoundaryInput';
+} from '../../../domain/time/boundary/TimeBoundaryInput';
 import type {
     TimeBoundary,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../../../domain/time/TimeTypes';
+} from '../../../domain/time/model/TimeTypes';
 import {
     createEmptyTimeRangeConfig,
     createTimeRangeConfig,
-    isConcreteTimeRange,
-} from '../../../domain/time/TimeRangeUtils';
+    isValidTimeRange,
+} from '../../../domain/time/range/TimeRangeUtils';
 
 type TimeInputField = 'start' | 'end';
 type TimeInputValues = {
@@ -187,10 +187,10 @@ function getTimeInputValues(
     return {
         startTime: formatTimeRangeInputValue(timeConfig.range_config.start),
         endTime: formatTimeRangeInputValue(timeConfig.range_config.end),
-        startPlaceholder: sIsEmptyTimeRange && isConcreteTimeRange(panelRange)
+        startPlaceholder: sIsEmptyTimeRange && isValidTimeRange(panelRange)
             ? formatTimestampInputPlaceholder(panelRange.startTime)
             : DEFAULT_TIME_INPUT_PLACEHOLDER,
-        endPlaceholder: sIsEmptyTimeRange && isConcreteTimeRange(panelRange)
+        endPlaceholder: sIsEmptyTimeRange && isValidTimeRange(panelRange)
             ? formatTimestampInputPlaceholder(panelRange.endTime)
             : DEFAULT_TIME_INPUT_PLACEHOLDER,
     };

@@ -23,16 +23,6 @@ export type TimeRangeNs = {
     endTime: UnixNanoseconds;
 };
 
-type AbsoluteTimeBoundaryRange = {
-    min: AbsoluteTimeBoundary;
-    max: AbsoluteTimeBoundary;
-};
-
-export type FetchedTimeBoundaryRange = {
-    start: AbsoluteTimeBoundaryRange;
-    end: AbsoluteTimeBoundaryRange;
-};
-
 export type EmptyTimeBoundary = {
     kind: 'empty';
 };
@@ -66,7 +56,7 @@ export type TimeRangeConfig = {
 };
 
 export type IntervalOption = {
-    IntervalType: string;
+    IntervalType: TimeUnit;
     IntervalValue: number;
 };
 

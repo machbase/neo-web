@@ -9,11 +9,8 @@ import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
-import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import type { OverlapPanelInfo } from '../domain/BoardDomain';
 import {
-    alignOverlapTime,
     buildOverlapLoadState,
     hasOverlapPanelDraftChanged,
     mapOverlapRows,
@@ -21,81 +18,58 @@ import {
 } from './OverlapComparisonUtils';
 import {
     buildChartSeriesData,
-    type ChartRow,
     mapRowsToChartData,
     type ChartSeriesData,
     type OverlapLoadResult,
 } from '../domain/ChartDomain';
-import {
-    calculateInterval,
-    calculateSampleCount,
-    getIntervalMs,
-} from '../domain/time/TimeIntervalUtils';
+import { calculateInterval, calculateSampleCount } from '../domain/time/interval/TimeIntervalUtils';
 import { fetchCalculatedSeriesRows, fetchRawSeriesRows } from '../fetch/PanelSeriesDataRepository';
 import type { RawFetchSampling } from '../fetch/FetchContracts';
 import { buildOverlapChartOption, type OverlapChartInfo } from './OverlapChartOptionBuilder';
 import { resolvePanelAxesForRuntime } from '../domain/PanelDomain';
-import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
-import { createTimeRangeMs } from '../domain/time/TimeRangeUtils';
 
 const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
-const EMPTY_OVERLAP_DATA_STATUS_STYLE = {
-    margin: '8px 0',
-    padding: '8px 10px',
-    border: '1px solid rgba(253, 181, 50, 0.35)',
-    borderRadius: '4px',
-    background: 'rgba(253, 181, 50, 0.08)',
-    color: '#fdb532',
-    fontSize: '11px',
-    lineHeight: '16px',
-} as const;
-const OVERLAP_TOOLBAR_STYLE = {
+const OVERLAP_CHART_SHIFT_FRACTION = 0.3;
+const OVERLAP_CHART_CONTAINER_STYLE = { position: 'relative' } as const;
+const OVERLAP_CHART_SIDE_CONTROLS_STYLE = {
+    position: 'absolute',
+    left: '6px',
+    right: '6px',
+    top: '50%',
+    zIndex: 2,
     display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginBottom: '8px',
+    justifyContent: 'space-between',
+    transform: 'translateY(-50%)',
+    pointerEvents: 'none',
 } as const;
-const OVERLAP_INTERVAL_LABEL_STYLE = {
-    color: '#afb5bc',
-    fontSize: '11px',
-    lineHeight: '16px',
+const OVERLAP_CHART_SIDE_BUTTON_STYLE = {
+    pointerEvents: 'auto',
 } as const;
-const OVERLAP_TOOLBAR_BUTTON_ICON_STYLE = {
-    width: '18px',
-    height: '18px',
-} as const;
-const OVERLAP_SHIFT_FRACTION = 0.3;
-const OVERLAP_ZOOM_IN_FACTOR = 0.7;
-const OVERLAP_ZOOM_OUT_FACTOR = 1.4;
+
+type RangeShiftDirection = -1 | 1;
+type OverlapChartDataZoomState = {
+    startValue?: number | string | Date;
+    endValue?: number | string | Date;
+};
+type OverlapChartVisibleRange = {
+    startTime: number;
+    endTime: number;
+};
+type OverlapChartInstance = {
+    dispatchAction: (action: {
+        type: 'dataZoom';
+        startValue: number;
+        endValue: number;
+    }) => void;
+    getOption?: () => {
+        dataZoom?: OverlapChartDataZoomState[];
+    };
+};
 
 type OverlapModalProps = {
     pSetIsModal: Dispatch<SetStateAction<boolean>>;
     pPanelsInfo: OverlapPanelInfo[];
     pRollupTableList: string[];
-};
-
-enum OverlapAlignmentMode {
-    PRESERVE_OFFSET = 'PRESERVE_OFFSET',
-    ALIGN_START = 'ALIGN_START',
-}
-
-type OverlapPanelFetchPlan = {
-    panelInfo: OverlapPanelInfo;
-    timeRange: TimeRangeMs;
-    interval: IntervalOption;
-    count: number;
-};
-
-type OverlapChartDataZoomState = {
-    startValue?: number | string | Date;
-    endValue?: number | string | Date;
-};
-
-type OverlapChartInstance = {
-    dispatchAction: (action: { type: 'dataZoom'; startValue: number; endValue: number }) => void;
-    getOption?: () => {
-        dataZoom?: OverlapChartDataZoomState[];
-    };
 };
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
@@ -111,12 +85,7 @@ function OverlapModal({
     const sOverlapChartInstanceRef = useRef<OverlapChartInstance | null>(null);
     const sHasLoadedInitialDataRef = useRef(false);
     const sInitialPanelStartByKeyRef = useRef<Map<string, number> | null>(null);
-    const [sOriginTimeList, setOriginTimeList] = useState<number[]>([]);
-    const [sEmptySeriesLabels, setEmptySeriesLabels] = useState<string[]>([]);
-    const [sSharedFetchInterval, setSharedFetchInterval] = useState<IntervalOption | undefined>();
-    const [sAlignmentMode, setAlignmentMode] = useState<OverlapAlignmentMode>(
-        OverlapAlignmentMode.ALIGN_START,
-    );
+    const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sAppliedPanelsInfo, setAppliedPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
     const [sDraftPanelsInfo, setDraftPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
 
@@ -125,109 +94,93 @@ function OverlapModal({
     }
 
     const sInitialPanelStartByKey = sInitialPanelStartByKeyRef.current;
-    const getCurrentChartWidth = function getCurrentChartWidth(): number {
-        return sAreaChart.current?.clientWidth ?? 1;
-    };
 
     const fetchOverlapPanelData = async function fetchOverlapPanelData(
-        fetchPlan: OverlapPanelFetchPlan,
+        panelInfo: OverlapPanelInfo,
         anchorPanel: OverlapPanelInfo,
-        sharedInterval: IntervalOption,
-        alignmentMode: OverlapAlignmentMode,
     ): Promise<OverlapLoadResult> {
-        const { panelInfo, timeRange, count } = fetchPlan;
+        const sChartWidth = sAreaChart.current?.clientWidth ? sAreaChart.current.clientWidth : 1;
+        const sPanelBoardAxes = resolvePanelAxesForRuntime(panelInfo.board.axes);
+        const sCount = calculateSampleCount(
+            panelInfo.board.data.count ?? -1,
+            panelInfo.isRaw,
+            sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick,
+            sPanelBoardAxes.x_axis.raw_data_pixels_per_tick,
+            sChartWidth,
+        );
         const sTagSet = panelInfo.board.data.tag_set;
         if (sTagSet.length === 0) {
             return {
                 originTime: undefined,
                 chartSeries: undefined,
-                emptySeriesLabel: getOverlapPanelLabel(panelInfo),
+                emptySeriesLabel: undefined,
             };
         }
 
+        const sTimeRange = resolveOverlapTimeRange(panelInfo, anchorPanel.duration);
+        const sPanelAxes = resolvePanelAxesForRuntime(anchorPanel.board.axes);
+        const sIntervalTime = calculateInterval(
+            sTimeRange.startTime,
+            sTimeRange.endTime,
+            sChartWidth,
+            panelInfo.isRaw,
+            Number(sPanelAxes.x_axis.calculated_data_pixels_per_tick),
+            Number(sPanelAxes.x_axis.raw_data_pixels_per_tick),
+            undefined,
+        );
+
         const sTagSetElement = sTagSet[0];
-        const sFetchTimeRange = panelInfo.isRaw
-            ? {
-                  startTime: Math.round(timeRange.startTime),
-                  endTime: Math.round(timeRange.endTime),
-              }
-            : {
-                  startTime: alignOverlapTime(Math.round(timeRange.startTime), sharedInterval),
-                  endTime: alignOverlapTime(Math.round(timeRange.endTime), sharedInterval),
-              };
+        const sFetchTimeRange = {
+            startTime: Math.round(sTimeRange.startTime),
+            endTime: Math.round(sTimeRange.endTime),
+        };
         const sFetchResult = panelInfo.isRaw
             ? await fetchRawSeriesRows(
                   sTagSetElement,
                   sFetchTimeRange,
-                  sharedInterval,
-                  count,
+                  sIntervalTime,
+                  sCount,
                   RAW_FETCH_SAMPLING_DISABLED,
                   panelInfo.board.general.is_order_by,
               )
             : await fetchCalculatedSeriesRows(
                   sTagSetElement,
                   sFetchTimeRange,
-                  sharedInterval,
-                  count,
+                  sIntervalTime,
+                  sCount,
                   pRollupTableList,
               );
 
-        const sOriginTime = getOverlapMappingOrigin(
-            panelInfo,
-            anchorPanel,
-            sFetchTimeRange.startTime,
-            alignmentMode,
-        );
-
+        const sSeriesStartTime = panelInfo.start;
         const sChartRows = mapRowsToChartData(sFetchResult.data?.rows);
-        const sOverlapRows = mapOverlapRows(sChartRows, sOriginTime);
-        const sChartSeries = buildChartSeriesData(
-            sTagSetElement,
-            sOverlapRows,
-            panelInfo.isRaw,
-            false,
+        const sDisplayRows = panelInfo.isRaw
+            ? sChartRows
+            : clampChartRowsToTimeRange(sChartRows, sTimeRange);
+
+        const sOverlapRows = mapOverlapRows(
+            sDisplayRows,
+            sSeriesStartTime,
         );
 
         return {
-            originTime: sOriginTime,
-            chartSeries: sChartSeries,
-            emptySeriesLabel: hasVisibleOverlapRows(sOverlapRows)
-                ? undefined
-                : sChartSeries.name,
+            originTime: sSeriesStartTime,
+            chartSeries: buildChartSeriesData(sTagSetElement, sOverlapRows, panelInfo.isRaw, false),
+            emptySeriesLabel: undefined,
         };
     };
     const loadOverlapData = async function loadOverlapData(
         panelsInfo: OverlapPanelInfo[],
-        alignmentMode: OverlapAlignmentMode = sAlignmentMode,
     ): Promise<void> {
         if (!panelsInfo.length) return;
 
         const sAnchorPanel = panelsInfo[0];
-        const sComparisonDuration = getSmallestOverlapDuration(panelsInfo);
-        const sFetchPlans = panelsInfo.map((panelInfo) =>
-            createOverlapPanelFetchPlan(
-                panelInfo,
-                sComparisonDuration,
-                getCurrentChartWidth(),
-            ),
-        );
-        const sSharedInterval = getSmallestOverlapInterval(sFetchPlans);
-        setSharedFetchInterval(sSharedInterval);
         const sLoadResults = await Promise.all(
-            sFetchPlans.map((fetchPlan) =>
-                fetchOverlapPanelData(
-                    fetchPlan,
-                    sAnchorPanel,
-                    sSharedInterval,
-                    alignmentMode,
-                ),
-            ),
+            panelsInfo.map((panelInfo) => fetchOverlapPanelData(panelInfo, sAnchorPanel)),
         );
         const sLoadState = buildOverlapLoadState(sLoadResults);
 
-        setOriginTimeList(sLoadState.originTimes);
+        setStartTimeList(sLoadState.startTimes);
         setSeriesData(sLoadState.chartSeries);
-        setEmptySeriesLabels(sLoadState.emptySeriesLabels);
     };
     const setPanelShiftOffset = function setPanelShiftOffset(
         panelKey: string,
@@ -264,81 +217,15 @@ function OverlapModal({
             return sNextPanelsInfo;
         });
     };
-    const toggleAlignmentMode = function toggleAlignmentMode(): void {
-        const sNextAlignmentMode =
-            sAlignmentMode === OverlapAlignmentMode.ALIGN_START
-                ? OverlapAlignmentMode.PRESERVE_OFFSET
-                : OverlapAlignmentMode.ALIGN_START;
-
-        setAlignmentMode(sNextAlignmentMode);
-        setOriginTimeList([]);
-        setSeriesData([]);
-        setEmptySeriesLabels([]);
-        setSharedFetchInterval(undefined);
-        void loadOverlapData(sAppliedPanelsInfo, sNextAlignmentMode);
-    };
     const applyDraftPanelTime = function applyDraftPanelTime(): void {
         if (!hasOverlapPanelDraftChanged(sAppliedPanelsInfo, sDraftPanelsInfo)) {
             return;
         }
 
-        setOriginTimeList([]);
+        setStartTimeList([]);
         setSeriesData([]);
-        setEmptySeriesLabels([]);
-        setSharedFetchInterval(undefined);
         setAppliedPanelsInfo(sDraftPanelsInfo);
         void loadOverlapData(sDraftPanelsInfo);
-    };
-    const handleOverlapChartReady = function handleOverlapChartReady(instance: unknown): void {
-        sOverlapChartInstanceRef.current = instance as OverlapChartInstance;
-    };
-    const applyOverlapChartZoom = function applyOverlapChartZoom(zoomFactor: number): void {
-        const sCurrentRange = getCurrentOverlapChartVisibleRange(
-            sOverlapChartInstanceRef.current,
-            sOverlapChartInfo.xAxisRange,
-        );
-
-        if (!sCurrentRange) {
-            return;
-        }
-
-        const sCurrentWidth = sCurrentRange.endTime - sCurrentRange.startTime;
-        if (sCurrentWidth <= 0) {
-            return;
-        }
-
-        const sNextWidth = sCurrentWidth * zoomFactor;
-        const sCenterTime = sCurrentRange.startTime + sCurrentWidth / 2;
-        const sNextStartTime = sCenterTime - sNextWidth / 2;
-
-        sOverlapChartInstanceRef.current?.dispatchAction({
-            type: 'dataZoom',
-            startValue: sNextStartTime,
-            endValue: sNextStartTime + sNextWidth,
-        });
-    };
-    const applyOverlapChartShift = function applyOverlapChartShift(direction: -1 | 1): void {
-        const sCurrentRange = getCurrentOverlapChartVisibleRange(
-            sOverlapChartInstanceRef.current,
-            sOverlapChartInfo.xAxisRange,
-        );
-
-        if (!sCurrentRange) {
-            return;
-        }
-
-        const sCurrentWidth = sCurrentRange.endTime - sCurrentRange.startTime;
-        if (sCurrentWidth <= 0) {
-            return;
-        }
-
-        const sOffset = sCurrentWidth * OVERLAP_SHIFT_FRACTION * direction;
-
-        sOverlapChartInstanceRef.current?.dispatchAction({
-            type: 'dataZoom',
-            startValue: sCurrentRange.startTime + sOffset,
-            endValue: sCurrentRange.endTime + sOffset,
-        });
     };
     const handleAreaChartRef = (element: HTMLDivElement | null): void => {
         sAreaChart.current = element;
@@ -348,6 +235,38 @@ function OverlapModal({
 
         sHasLoadedInitialDataRef.current = true;
         void loadOverlapData(sAppliedPanelsInfo);
+    };
+    const handleOverlapChartReady = function handleOverlapChartReady(
+        instance: unknown,
+    ): void {
+        sOverlapChartInstanceRef.current = instance as OverlapChartInstance;
+    };
+    const shiftOverlapChart = function shiftOverlapChart(
+        direction: RangeShiftDirection,
+    ): void {
+        const sVisibleRange = getCurrentOverlapChartVisibleRange(
+            sOverlapChartInstanceRef.current,
+            sSeriesData,
+        );
+
+        if (!sVisibleRange) {
+            return;
+        }
+
+        const sVisibleRangeWidth =
+            sVisibleRange.endTime - sVisibleRange.startTime;
+        if (sVisibleRangeWidth <= 0) {
+            return;
+        }
+
+        const sOffset =
+            sVisibleRangeWidth * OVERLAP_CHART_SHIFT_FRACTION * direction;
+
+        sOverlapChartInstanceRef.current?.dispatchAction({
+            type: 'dataZoom',
+            startValue: sVisibleRange.startTime + sOffset,
+            endValue: sVisibleRange.endTime + sOffset,
+        });
     };
     function renderOverlapTimeShiftPanel(item: OverlapPanelInfo, idx: number): JSX.Element {
         const sFirstTag = item.board.data.tag_set[0];
@@ -364,7 +283,7 @@ function OverlapModal({
                 key={sPanelKey}
                 pLabel={sFirstTagLabel}
                 pStart={item.start}
-                pDuration={sDraftComparisonDuration}
+                pDuration={sAnchorPanel.duration}
                 pShiftOffsetMs={sShiftOffsetMs}
                 pOnSetShiftOffset={(offsetMs: number) =>
                     setPanelShiftOffset(sPanelKey, offsetMs)
@@ -373,31 +292,20 @@ function OverlapModal({
         );
     }
 
+    const sAnchorPanel = sDraftPanelsInfo[0];
     const sAppliedAnchorPanel = sAppliedPanelsInfo[0];
-    const sDraftComparisonDuration = getSmallestOverlapDuration(sDraftPanelsInfo);
     const sCanRenderChart = Boolean(
-        sAppliedAnchorPanel && sSeriesData.length > 0,
+        sAppliedAnchorPanel && sSeriesData[sAppliedPanelsInfo.length - 1],
     );
-    const sIsAlignStartMode = sAlignmentMode === OverlapAlignmentMode.ALIGN_START;
     const sHasDraftChanges = hasOverlapPanelDraftChanged(sAppliedPanelsInfo, sDraftPanelsInfo);
     const sChartWidth = sAreaChart.current?.clientWidth ?? 0;
     const sOverlapChartInfo = useMemo<OverlapChartInfo>(
         () => ({
             seriesData: sSeriesData,
-            seriesStartTimeList: sOriginTimeList,
+            seriesStartTimeList: sStartTimeList,
             includeZeroInYAxisRange: sAppliedAnchorPanel?.board.axes.left_y_axis.zero_base ?? false,
-            xAxisRange: getOverlapXAxisRange(
-                sAppliedPanelsInfo,
-                sAlignmentMode,
-            ),
         }),
-        [
-            sAlignmentMode,
-            sAppliedAnchorPanel?.board.axes.left_y_axis.zero_base,
-            sAppliedPanelsInfo,
-            sOriginTimeList,
-            sSeriesData,
-        ],
+        [sAppliedAnchorPanel?.board.axes.left_y_axis.zero_base, sSeriesData, sStartTimeList],
     );
 
     return (
@@ -416,99 +324,57 @@ function OverlapModal({
             </Modal.Header>
             <Modal.Body>
                 <Page.ContentBlock pHoverNone>
-                    <div style={OVERLAP_TOOLBAR_STYLE}>
-                        <Button
-                            variant="secondary"
-                            size="xsm"
-                            icon={<Refresh size={12} />}
-                            onClick={() => void loadOverlapData(sAppliedPanelsInfo)}
-                            isToolTip
-                            toolTipContent="Refresh data"
-                            aria-label="Refresh data"
-                        />
-                        <Button
-                            variant="secondary"
-                            size="xsm"
-                            icon={<VscChevronLeft size={16} />}
-                            disabled={!sCanRenderChart}
-                            onClick={() => applyOverlapChartShift(-1)}
-                            isToolTip
-                            toolTipContent="Shift left"
-                            aria-label="Shift left"
-                        />
-                        <Button
-                            variant="secondary"
-                            size="xsm"
-                            icon={<img src={ZoomInTwo} style={OVERLAP_TOOLBAR_BUTTON_ICON_STYLE} />}
-                            disabled={!sCanRenderChart}
-                            onClick={() => applyOverlapChartZoom(OVERLAP_ZOOM_IN_FACTOR)}
-                            isToolTip
-                            toolTipContent="Zoom in"
-                            aria-label="Zoom in"
-                        />
-                        <Button
-                            variant="secondary"
-                            size="xsm"
-                            icon={<img src={ZoomOutTwo} style={OVERLAP_TOOLBAR_BUTTON_ICON_STYLE} />}
-                            disabled={!sCanRenderChart}
-                            onClick={() => applyOverlapChartZoom(OVERLAP_ZOOM_OUT_FACTOR)}
-                            isToolTip
-                            toolTipContent="Zoom out"
-                            aria-label="Zoom out"
-                        />
-                        <Button
-                            variant="secondary"
-                            size="xsm"
-                            icon={<VscChevronRight size={16} />}
-                            disabled={!sCanRenderChart}
-                            onClick={() => applyOverlapChartShift(1)}
-                            isToolTip
-                            toolTipContent="Shift right"
-                            aria-label="Shift right"
-                        />
-                        <Button
-                            variant="secondary"
-                            size="xsm"
-                            active={sIsAlignStartMode}
-                            onClick={toggleAlignmentMode}
-                            isToolTip
-                            toolTipContent={
-                                sIsAlignStartMode
-                                    ? 'Show selected panel offsets'
-                                    : 'Align all series starts to elapsed 0'
-                            }
-                        >
-                            {sIsAlignStartMode ? 'Preserve offset' : 'Align start'}
-                        </Button>
-                        {sSharedFetchInterval && (
-                            <span style={OVERLAP_INTERVAL_LABEL_STYLE}>
-                                Fetch interval: {formatOverlapIntervalLabel(sSharedFetchInterval)}
-                            </span>
-                        )}
-                    </div>
+                    <Button
+                        variant="secondary"
+                        size="xsm"
+                        icon={<Refresh size={12} />}
+                        onClick={() => void loadOverlapData(sAppliedPanelsInfo)}
+                        isToolTip
+                        toolTipContent="Refresh data"
+                        aria-label="Refresh data"
+                    />
                     <div ref={handleAreaChartRef}>
-                        {sCanRenderChart && (
-                            <ReactECharts
-                                option={buildOverlapChartOption(sOverlapChartInfo)}
-                                notMerge
-                                lazyUpdate
-                                onChartReady={handleOverlapChartReady}
-                                style={{
-                                    width: sChartWidth ? `${sChartWidth - 10}px` : '100%',
-                                    height: 300,
-                                }}
-                                opts={{ renderer: 'canvas' }}
-                            />
-                        )}
-                        {sEmptySeriesLabels.length > 0 && (
-                            <div style={EMPTY_OVERLAP_DATA_STATUS_STYLE}>
-                                {sEmptySeriesLabels.map((seriesLabel, index) => (
-                                    <div key={`${seriesLabel}-${index}`}>
-                                        {seriesLabel}: No overlap data for selected range.
+                        <div style={OVERLAP_CHART_CONTAINER_STYLE}>
+                            {sCanRenderChart && (
+                                <>
+                                    <ReactECharts
+                                        option={buildOverlapChartOption(sOverlapChartInfo)}
+                                        notMerge
+                                        lazyUpdate
+                                        onChartReady={handleOverlapChartReady}
+                                        style={{
+                                            width: sChartWidth ? `${sChartWidth - 10}px` : '100%',
+                                            height: 300,
+                                        }}
+                                        opts={{ renderer: 'canvas' }}
+                                    />
+                                    <div style={OVERLAP_CHART_SIDE_CONTROLS_STYLE}>
+                                        <Button
+                                            variant="secondary"
+                                            size="xsm"
+                                            icon={<VscChevronLeft size={16} />}
+                                            disabled={!sCanRenderChart}
+                                            onClick={() => shiftOverlapChart(-1)}
+                                            isToolTip
+                                            toolTipContent="Shift overlap chart left"
+                                            aria-label="Shift overlap chart left"
+                                            style={OVERLAP_CHART_SIDE_BUTTON_STYLE}
+                                        />
+                                        <Button
+                                            variant="secondary"
+                                            size="xsm"
+                                            icon={<VscChevronRight size={16} />}
+                                            disabled={!sCanRenderChart}
+                                            onClick={() => shiftOverlapChart(1)}
+                                            isToolTip
+                                            toolTipContent="Shift overlap chart right"
+                                            aria-label="Shift overlap chart right"
+                                            style={OVERLAP_CHART_SIDE_BUTTON_STYLE}
+                                        />
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                </>
+                            )}
+                        </div>
                         {sDraftPanelsInfo.map(renderOverlapTimeShiftPanel)}
                     </div>
                 </Page.ContentBlock>
@@ -549,21 +415,6 @@ function OverlapModal({
     );
 }
 
-function getOverlapPanelLabel(panelInfo: OverlapPanelInfo): string {
-    const sFirstTag = panelInfo.board.data.tag_set[0];
-
-    return (
-        sFirstTag?.alias ||
-        sFirstTag?.sourceTagName ||
-        panelInfo.board.general.chart_title ||
-        panelInfo.board.data.index_key
-    );
-}
-
-function hasVisibleOverlapRows(rows: ChartRow[]): boolean {
-    return rows.some(([, value]) => value !== null);
-}
-
 function createInitialPanelStartByKey(panelsInfo: OverlapPanelInfo[]): Map<string, number> {
     const sPanelStartByKey = new Map<string, number>();
 
@@ -593,116 +444,10 @@ function getInitialPanelStart(
     return sInitialPanelStart;
 }
 
-function createOverlapPanelFetchPlan(
-    panelInfo: OverlapPanelInfo,
-    anchorDuration: number,
-    chartWidth: number,
-): OverlapPanelFetchPlan {
-    const sPanelBoardAxes = resolvePanelAxesForRuntime(panelInfo.board.axes);
-    const sTimeRange = resolveOverlapTimeRange(panelInfo, anchorDuration);
-    const sInterval = calculateInterval(
-        sTimeRange.startTime,
-        sTimeRange.endTime,
-        chartWidth,
-        panelInfo.isRaw,
-        Number(sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick),
-        Number(sPanelBoardAxes.x_axis.raw_data_pixels_per_tick),
-        undefined,
-    );
-    const sCount = calculateSampleCount(
-        panelInfo.board.data.count ?? -1,
-        panelInfo.isRaw,
-        sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick,
-        sPanelBoardAxes.x_axis.raw_data_pixels_per_tick,
-        chartWidth,
-    );
-
-    return {
-        panelInfo,
-        timeRange: sTimeRange,
-        interval: sInterval,
-        count: sCount,
-    };
-}
-
-function getSmallestOverlapInterval(fetchPlans: OverlapPanelFetchPlan[]): IntervalOption {
-    if (fetchPlans.length === 0) {
-        throw new Error('Cannot resolve overlap interval without panels.');
-    }
-
-    return fetchPlans.reduce((smallestPlan, currentPlan) => {
-        const sSmallestMs = getPositiveIntervalMs(smallestPlan.interval);
-        const sCurrentMs = getPositiveIntervalMs(currentPlan.interval);
-
-        return sCurrentMs < sSmallestMs ? currentPlan : smallestPlan;
-    }).interval;
-}
-
-function getPositiveIntervalMs(interval: IntervalOption): number {
-    const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
-
-    return sIntervalMs > 0 ? sIntervalMs : Number.POSITIVE_INFINITY;
-}
-
-function formatOverlapIntervalLabel(interval: IntervalOption): string {
-    return `${interval.IntervalValue} ${interval.IntervalType}`;
-}
-
-function getSmallestOverlapDuration(panelsInfo: OverlapPanelInfo[]): number {
-    const sPositiveDurations = panelsInfo
-        .map((panelInfo) => panelInfo.duration)
-        .filter((duration) => Number.isFinite(duration) && duration > 0);
-
-    if (sPositiveDurations.length === 0) {
-        return panelsInfo[0]?.duration ?? 0;
-    }
-
-    return Math.min(...sPositiveDurations);
-}
-
-function getOverlapMappingOrigin(
-    panelInfo: OverlapPanelInfo,
-    anchorPanel: OverlapPanelInfo,
-    fetchStartTime: number,
-    alignmentMode: OverlapAlignmentMode,
-): number {
-    if (alignmentMode === OverlapAlignmentMode.PRESERVE_OFFSET) {
-        return anchorPanel.start;
-    }
-
-    return panelInfo.isRaw ? panelInfo.start : fetchStartTime;
-}
-
-function getOverlapXAxisRange(
-    panelsInfo: OverlapPanelInfo[],
-    alignmentMode: OverlapAlignmentMode,
-): TimeRangeMs | undefined {
-    const sAnchorPanel = panelsInfo[0];
-
-    if (!sAnchorPanel) {
-        return undefined;
-    }
-
-    if (alignmentMode === OverlapAlignmentMode.ALIGN_START) {
-        return createTimeRangeMs(0, getSmallestOverlapDuration(panelsInfo));
-    }
-
-    const sStartOffsets = panelsInfo.map((panelInfo) => panelInfo.start - sAnchorPanel.start);
-    const sComparisonDuration = getSmallestOverlapDuration(panelsInfo);
-    const sEndOffsets = panelsInfo.map((panelInfo) =>
-        panelInfo.start + sComparisonDuration - sAnchorPanel.start,
-    );
-
-    return createTimeRangeMs(
-        Math.min(...sStartOffsets),
-        Math.max(...sEndOffsets),
-    );
-}
-
 function getCurrentOverlapChartVisibleRange(
     chartInstance: OverlapChartInstance | null,
-    fallbackRange: TimeRangeMs | undefined,
-): TimeRangeMs | undefined {
+    seriesData: ChartSeriesData[],
+): OverlapChartVisibleRange | undefined {
     const sDataZoomState = chartInstance?.getOption?.()?.dataZoom?.[0];
     const sStartTime = getFiniteChartRangeValue(sDataZoomState?.startValue);
     const sEndTime = getFiniteChartRangeValue(sDataZoomState?.endValue);
@@ -712,16 +457,59 @@ function getCurrentOverlapChartVisibleRange(
         sEndTime !== undefined &&
         sEndTime > sStartTime
     ) {
-        return createTimeRangeMs(sStartTime, sEndTime);
+        return {
+            startTime: sStartTime,
+            endTime: sEndTime,
+        };
     }
 
-    return fallbackRange;
+    return getOverlapSeriesDataRange(seriesData);
 }
 
-function getFiniteChartRangeValue(value: number | string | Date | undefined): number | undefined {
+function getOverlapSeriesDataRange(
+    seriesData: ChartSeriesData[],
+): OverlapChartVisibleRange | undefined {
+    const sTimestamps = seriesData.flatMap((series) =>
+        series.data.map(([timestamp]) => timestamp),
+    );
+
+    if (sTimestamps.length === 0) {
+        return undefined;
+    }
+
+    const sStartTime = Math.min(...sTimestamps);
+    const sEndTime = Math.max(...sTimestamps);
+
+    if (!Number.isFinite(sStartTime) || !Number.isFinite(sEndTime)) {
+        return undefined;
+    }
+
+    if (sEndTime <= sStartTime) {
+        return undefined;
+    }
+
+    return {
+        startTime: sStartTime,
+        endTime: sEndTime,
+    };
+}
+
+function getFiniteChartRangeValue(
+    value: number | string | Date | undefined,
+): number | undefined {
     const sValue = value instanceof Date ? value.getTime() : Number(value);
 
     return Number.isFinite(sValue) ? sValue : undefined;
+}
+
+function clampChartRowsToTimeRange(
+    rows: ChartSeriesData['data'],
+    timeRange: OverlapChartVisibleRange,
+): ChartSeriesData['data'] {
+    return rows.map(([timestamp, value]) => [
+        Math.min(Math.max(timestamp, timeRange.startTime), timeRange.endTime),
+        value,
+    ]);
 }
 
 export default OverlapModal;

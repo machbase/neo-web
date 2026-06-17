@@ -1,8 +1,9 @@
 import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
 import { DEFAULT_VALUE_RANGE, type PanelEChartType, type PanelInfo } from '../../domain/PanelDomain';
+import { createPanelIndexKey } from '../../domain/PanelIdentity';
 import { hasNumericBaseTimeSeries, type PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
-import { createEmptyTimeRangeConfig } from '../../domain/time/TimeRangeUtils';
+import { createEmptyTimeRangeConfig } from '../../domain/time/range/TimeRangeUtils';
 import type { PersistedPanelInfoV204 } from '../../persistence/TazPersistenceTypesV204';
 
 export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
@@ -42,7 +43,7 @@ function createRuntimePanelInfo(
             use_normalize: false,
         },
         data: {
-            index_key: createPanelKey(),
+            index_key: createPanelIndexKey(),
             tag_set: tagSet,
             count: DEFAULT_PANEL_ROW_LIMIT,
             interval_type: DEFAULT_PANEL_INTERVAL_TYPE,
@@ -123,6 +124,3 @@ function createBaseYAxisConfig(zeroBase: boolean): PanelInfo['axes']['left_y_axi
     };
 }
 
-function createPanelKey(): string {
-    return String(Date.now() + Math.round(Math.random() * 1000));
-}

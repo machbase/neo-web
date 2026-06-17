@@ -10,7 +10,7 @@ import { Button, type ContextMenuPosition } from '@/design-system/components';
 import {
     LOCAL_DATE_TIME_INPUT_FORMAT,
     NUMERIC_AXIS_INPUT_FORMAT,
-} from '../../domain/time/TimeInputFormatters';
+} from '../../domain/time/formatting/TimeInputFormatters';
 import PanelMarkupPopover from './PanelMarkupPopover';
 import './PanelMarkupModal.scss';
 
