@@ -170,3 +170,28 @@ export async function queryTagData({
         pageSize,
     };
 }
+
+export async function queryTagBoundaryTime({
+    dbName,
+    userName,
+    tableName,
+    name,
+    direction,
+    tagColumn = 'NAME',
+    timeColumn = 'TIME',
+}: DataViewerTableParams & {
+    name: string;
+    direction: 'latest' | 'oldest';
+    tagColumn?: string;
+    timeColumn?: string;
+}): Promise<unknown> {
+    const table = buildQualifiedTableName({ dbName, userName, tableName });
+    const tagColumnExpr = normalizeIdentifier(tagColumn, 'NAME');
+    const timeColumnExpr = normalizeIdentifier(timeColumn, 'TIME');
+    const order = direction === 'latest' ? 'desc' : 'asc';
+    const sql = `select ${timeColumnExpr} as time from ${table} where ${tagColumnExpr} = '${escapeSqlString(name)}' order by ${timeColumnExpr} ${order} limit 1`;
+    const { svrState, svrData, svrReason } = await fetchTqlWithoutConsole(sql);
+    if (!svrState) throw new Error(svrReason || 'Failed to load time range base');
+
+    return normalizeRows(svrData)[0]?.time;
+}

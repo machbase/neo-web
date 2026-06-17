@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Highcharts from 'highcharts/highstock';
 import HighchartsBoost from 'highcharts/modules/boost';
@@ -6,7 +6,6 @@ import HighchartsReact from 'highcharts-react-official';
 import {
     ArrowLeft,
     MdCalendarMonth,
-    Close,
     MdKeyboardDoubleArrowLeft,
     MdKeyboardDoubleArrowRight,
     VscChevronDown,
@@ -14,13 +13,12 @@ import {
     VscChevronRight,
 } from '@/assets/icons/Icon';
 import { MdPublic, MdQueryStats } from 'react-icons/md';
-import { DataViewerAssetHierarchy, DataViewerTag, listTableTags, queryTagData } from './dataViewerApi';
+import NeoTimeRangeModal from '@/components/modal/TimeRangeModal';
+import { TimeZoneModal as NeoTimeZoneModal } from '@/components/modal/TimeZoneModal';
+import { DataViewerAssetHierarchy, DataViewerTag, listTableTags, queryTagBoundaryTime, queryTagData } from './dataViewerApi';
 import {
     DEFAULT_TIME_FORMAT,
     DEFAULT_TIME_ZONE,
-    QUICK_TIME_RANGE_GROUPS,
-    TIME_FORMATS,
-    TIME_ZONE_OPTIONS,
     buildAssetTreeRows,
     buildTagChartSeries,
     buildDataViewerHeaderLabels,
@@ -32,6 +30,7 @@ import {
     getTimeFormatLabel,
     getTimeZoneLabel,
     resolveTimeRangeInput,
+    toDataViewerDate,
 } from './dataViewerModel';
 import './DataViewerPage.scss';
 
@@ -42,74 +41,11 @@ if (typeof applyHighchartsBoost === 'function') {
 
 const RESULT_PAGE_SIZE = 100;
 const MIN_CHART_HEIGHT = 260;
-const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 type ResultRow = Record<string, unknown>;
-type PickerTarget = 'from' | 'to';
-type PickerState = {
-    target: PickerTarget;
-    year: number;
-    month: number;
-    day: number;
-    hour: number;
-    minute: number;
-    second: number;
-    position: { top: number; left: number };
-};
+type DataViewerTimeRange = { from: string | number; to: string | number };
 
 const getParam = (params: URLSearchParams, key: string) => params.get(key)?.trim() ?? '';
-
-const padDatePart = (value: number) => String(value).padStart(2, '0');
-
-const clampTimePart = (value: string, min: number, max: number) => {
-    const next = Number(value);
-    if (!Number.isFinite(next)) return min;
-    return Math.min(Math.max(Math.floor(next), min), max);
-};
-
-const getPickerParts = (value: string) => {
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
-    if (match) {
-        return {
-            year: Number(match[1]),
-            month: Number(match[2]) - 1,
-            day: Number(match[3]),
-            hour: Number(match[4]),
-            minute: Number(match[5]),
-            second: Number(match[6] || '0'),
-        };
-    }
-
-    const fallback = new Date();
-    return {
-        year: fallback.getFullYear(),
-        month: fallback.getMonth(),
-        day: fallback.getDate(),
-        hour: fallback.getHours(),
-        minute: fallback.getMinutes(),
-        second: fallback.getSeconds(),
-    };
-};
-
-const formatPickerParts = (parts: PickerState) =>
-    `${parts.year}-${padDatePart(parts.month + 1)}-${padDatePart(parts.day)} ${padDatePart(parts.hour)}:${padDatePart(parts.minute)}:${padDatePart(parts.second)}`;
-
-const buildCalendarDays = (year: number, month: number) => {
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const cells: Array<number | null> = Array(firstDay).fill(null);
-
-    for (let day = 1; day <= daysInMonth; day += 1) {
-        cells.push(day);
-    }
-
-    while (cells.length % 7 !== 0) {
-        cells.push(null);
-    }
-
-    return cells;
-};
 
 function ResultPagination({
     page,
@@ -175,239 +111,20 @@ function TimeRangeModal({
     onApply,
     onClose,
 }: {
-    range: { from: string; to: string };
-    onApply: (range: { from: string; to: string }) => void;
+    range: DataViewerTimeRange;
+    onApply: (range: DataViewerTimeRange) => void;
     onClose: () => void;
 }) {
-    const [from, setFrom] = useState(range.from);
-    const [to, setTo] = useState(range.to);
-    const [error, setError] = useState('');
-    const [picker, setPicker] = useState<PickerState | null>(null);
-
-    const handleQuickRange = (option: (typeof QUICK_TIME_RANGE_GROUPS)[number][number]) => {
-        setFrom(option.value[0]);
-        setTo(option.value[1]);
-        setError('');
-        setPicker(null);
-    };
-
-    const openDatePicker = (target: PickerTarget, event: MouseEvent<HTMLButtonElement>) => {
-        const sourceValue = target === 'from' ? from : to;
-        const parts = getPickerParts(sourceValue);
-        const rect = event.currentTarget.parentElement?.getBoundingClientRect() ?? event.currentTarget.getBoundingClientRect();
-        const popoverWidth = 560;
-        const popoverHeight = 420;
-        const top = Math.min(Math.max(16, rect.bottom + 32), Math.max(16, window.innerHeight - popoverHeight - 16));
-        const left = Math.min(Math.max(16, rect.left), Math.max(16, window.innerWidth - popoverWidth - 16));
-
-        setPicker({
-            target,
-            ...parts,
-            position: { top, left },
-        });
-    };
-
-    const setPickerPart = (key: 'hour' | 'minute' | 'second', value: string) => {
-        setPicker((prev) => {
-            if (!prev) return prev;
-            const next = { ...prev };
-
-            if (key === 'hour') next.hour = clampTimePart(value, 0, 23);
-            if (key === 'minute') next.minute = clampTimePart(value, 0, 59);
-            if (key === 'second') next.second = clampTimePart(value, 0, 59);
-
-            return next;
-        });
-    };
-
-    const movePickerMonth = (amount: number) => {
-        setPicker((prev) => {
-            if (!prev) return prev;
-            const nextDate = new Date(prev.year, prev.month + amount, 1);
-            const daysInNextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-            return {
-                ...prev,
-                year: nextDate.getFullYear(),
-                month: nextDate.getMonth(),
-                day: Math.min(prev.day, daysInNextMonth),
-            };
-        });
-    };
-
-    const choosePickerDay = (day: number) => {
-        setPicker((prev) => (prev ? { ...prev, day } : prev));
-    };
-
-    const applyPicker = () => {
-        if (!picker) return;
-        const nextValue = formatPickerParts(picker);
-
-        if (picker.target === 'from') setFrom(nextValue);
-        else setTo(nextValue);
-
-        setError('');
-        setPicker(null);
-    };
-
-    const apply = () => {
-        const baseDate = new Date();
-        const nextFrom = resolveTimeRangeInput(from, baseDate);
-        const nextTo = resolveTimeRangeInput(to, baseDate);
-        if (nextFrom === null || nextTo === null) {
-            setError('Please check the entered time.');
-            return;
-        }
-        if (new Date(nextFrom).getTime() > new Date(nextTo).getTime()) {
-            setError('From should be earlier than To.');
-            return;
-        }
-        onApply({ from: from.trim(), to: to.trim() });
-    };
-
     return (
-        <div className="modal-overlay data-viewer-time-overlay">
-            <div className="modal modal-md data-viewer-time-modal animate-fade-in">
-                <div className="modal-header">
-                    <div className="modal-header-title">
-                        <MdCalendarMonth className="icon-sm text-primary" />
-                        <span>Time Range</span>
-                    </div>
-                    <button type="button" className="btn-icon-sm" onClick={onClose} aria-label="Close">
-                        <Close className="icon-sm" />
-                    </button>
-                </div>
-
-                <div className="modal-body data-viewer-time-body">
-                    <div className="data-viewer-time-fields">
-                        <label className="data-viewer-time-field">
-                            <span>From</span>
-                            <div className="input-icon-wrap">
-                                <input
-                                    type="text"
-                                    value={from}
-                                    onChange={(event) => {
-                                        setFrom(event.target.value);
-                                        setError('');
-                                    }}
-                                    placeholder="YYYY-MM-DD HH:mm:ss"
-                                />
-                                <button type="button" className="data-viewer-date-icon-button" aria-label="Open date picker" onClick={(event) => openDatePicker('from', event)}>
-                                    <MdCalendarMonth className="icon-sm" />
-                                </button>
-                            </div>
-                        </label>
-                        <label className="data-viewer-time-field">
-                            <span>To</span>
-                            <div className="input-icon-wrap">
-                                <input
-                                    type="text"
-                                    value={to}
-                                    onChange={(event) => {
-                                        setTo(event.target.value);
-                                        setError('');
-                                    }}
-                                    placeholder="YYYY-MM-DD HH:mm:ss"
-                                />
-                                <button type="button" className="data-viewer-date-icon-button" aria-label="Open date picker" onClick={(event) => openDatePicker('to', event)}>
-                                    <MdCalendarMonth className="icon-sm" />
-                                </button>
-                            </div>
-                        </label>
-                    </div>
-                    {error ? <div className="error-box">{error}</div> : null}
-                    <div className="data-viewer-quick-range">
-                        <div className="data-viewer-quick-range-title">Quick Range</div>
-                        <div className="data-viewer-quick-range-grid">
-                            {QUICK_TIME_RANGE_GROUPS.map((group, groupIndex) => (
-                                <div key={groupIndex} className="data-viewer-quick-range-group">
-                                    {group.map((option) => (
-                                        <button
-                                            key={option.key}
-                                            type="button"
-                                            className="data-viewer-quick-range-button"
-                                            onClick={() => handleQuickRange(option)}
-                                        >
-                                            {option.name}
-                                        </button>
-                                    ))}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    {picker ? (
-                        <div className="data-viewer-date-picker-popover" style={{ top: picker.position.top, left: picker.position.left }}>
-                            <div className="data-viewer-date-picker-content">
-                                <div className="data-viewer-date-picker-form">
-                                    <div className="data-viewer-date-picker-calendar">
-                                        <div className="data-viewer-date-picker-calendar-header">
-                                            <button type="button" className="btn-icon-sm" onClick={() => movePickerMonth(-1)}>
-                                                <VscChevronLeft className="icon-sm" />
-                                            </button>
-                                            <span>{`${MONTH_LABELS[picker.month]} ${picker.year}`}</span>
-                                            <button type="button" className="btn-icon-sm" onClick={() => movePickerMonth(1)}>
-                                                <VscChevronRight className="icon-sm" />
-                                            </button>
-                                        </div>
-                                        <div className="data-viewer-date-picker-weekdays">
-                                            {WEEKDAY_LABELS.map((label, index) => (
-                                                <span key={`${label}-${index}`}>{label}</span>
-                                            ))}
-                                        </div>
-                                        <div className="data-viewer-date-picker-days">
-                                            {buildCalendarDays(picker.year, picker.month).map((day, index) =>
-                                                day ? (
-                                                    <button
-                                                        key={`${picker.year}-${picker.month}-${day}`}
-                                                        type="button"
-                                                        className={`data-viewer-date-picker-day${day === picker.day ? ' is-selected' : ''}`}
-                                                        onClick={() => choosePickerDay(day)}
-                                                    >
-                                                        {day}
-                                                    </button>
-                                                ) : (
-                                                    <span key={`empty-${index}`} />
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="data-viewer-date-picker-time">
-                                        <label>
-                                            <span>Hour</span>
-                                            <input type="number" min="0" max="23" value={padDatePart(picker.hour)} onChange={(event) => setPickerPart('hour', event.target.value)} />
-                                        </label>
-                                        <label>
-                                            <span>Minute</span>
-                                            <input type="number" min="0" max="59" value={padDatePart(picker.minute)} onChange={(event) => setPickerPart('minute', event.target.value)} />
-                                        </label>
-                                        <label>
-                                            <span>Second</span>
-                                            <input type="number" min="0" max="59" value={padDatePart(picker.second)} onChange={(event) => setPickerPart('second', event.target.value)} />
-                                        </label>
-                                    </div>
-                                </div>
-                                <div className="data-viewer-date-picker-actions">
-                                    <button type="button" className="btn btn-primary" onClick={applyPicker}>
-                                        Apply
-                                    </button>
-                                    <button type="button" className="btn btn-secondary" onClick={() => setPicker(null)}>
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ) : null}
-                </div>
-
-                <div className="modal-footer">
-                    <button type="button" className="btn btn-primary" onClick={apply}>
-                        Apply
-                    </button>
-                    <button type="button" className="btn btn-secondary" onClick={onClose}>
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
+        <NeoTimeRangeModal
+            pSetTimeRangeModal={(open) => {
+                if (!open) onClose();
+            }}
+            pStartTime={range.from}
+            pEndTime={range.to}
+            pSetTime={() => undefined}
+            pSaveCallback={(from, to) => onApply({ from: from ?? '', to: to ?? '' })}
+        />
     );
 }
 
@@ -422,57 +139,16 @@ function FormatTimezoneModal({
     onApply: (next: { timeFormat: string; timeZone: string }) => void;
     onClose: () => void;
 }) {
-    const [nextFormat, setNextFormat] = useState(timeFormat);
-    const [nextZone, setNextZone] = useState(timeZone);
-
     return (
-        <div className="modal-overlay data-viewer-time-overlay">
-            <div className="modal modal-md data-viewer-time-modal data-viewer-format-modal animate-fade-in">
-                <div className="modal-header">
-                    <div className="modal-header-title">
-                        <MdPublic className="icon-sm text-primary" />
-                        <span>Format &amp; Timezone</span>
-                    </div>
-                    <button type="button" className="btn-icon-sm" onClick={onClose} aria-label="Close">
-                        <Close className="icon-sm" />
-                    </button>
-                </div>
-
-                <div className="modal-body data-viewer-format-body">
-                    <div className="data-viewer-format-fields">
-                        <label className="data-viewer-select-field">
-                            <span>Time format</span>
-                            <select value={nextFormat} onChange={(event) => setNextFormat(event.target.value)}>
-                                {TIME_FORMATS.map((format) => (
-                                    <option key={format.value} value={format.value}>
-                                        {format.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="data-viewer-select-field">
-                            <span>Time zone</span>
-                            <select value={nextZone} onChange={(event) => setNextZone(event.target.value)}>
-                                {TIME_ZONE_OPTIONS.map((zone) => (
-                                    <option key={zone.value} value={zone.value}>
-                                        {zone.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
-                </div>
-
-                <div className="modal-footer">
-                    <button type="button" className="btn btn-primary" onClick={() => onApply({ timeFormat: nextFormat, timeZone: nextZone })}>
-                        Apply
-                    </button>
-                    <button type="button" className="btn btn-secondary" onClick={onClose}>
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
+        <NeoTimeZoneModal
+            isOpen={true}
+            formatInitValue={timeFormat}
+            zoneInitValue={timeZone}
+            onClose={(next) => {
+                if (next.timeFormat === timeFormat && next.timeZone === timeZone) onClose();
+                else onApply(next);
+            }}
+        />
     );
 }
 
@@ -721,9 +397,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const [selectedTagName, setSelectedTagName] = useState('');
     const [mode, setMode] = useState<'raw' | 'chart'>('raw');
     const [page, setPage] = useState(1);
-    const [range, setRange] = useState({ from: '', to: '' });
+    const [range, setRange] = useState<DataViewerTimeRange>({ from: '', to: '' });
     const [rangeOpen, setRangeOpen] = useState(false);
-    const [backwardScan, setBackwardScan] = useState(true);
+    const [backwardScan, setBackwardScan] = useState(false);
     const [timeFormat, setTimeFormat] = useState(DEFAULT_TIME_FORMAT);
     const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
     const [formatOpen, setFormatOpen] = useState(false);
@@ -783,11 +459,38 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         setLoading(true);
         setError('');
         try {
-            const baseDate = new Date();
-            const from = resolveTimeRangeInput(range.from, baseDate);
-            const to = resolveTimeRangeInput(range.to, baseDate);
+            const nowDate = new Date();
+            let lastBaseDate: Date | null | undefined;
+            const resolveQueryRange = async (value: unknown) => {
+                const text = String(value ?? '').trim();
+                if (!text.startsWith('last')) return resolveTimeRangeInput(value, nowDate);
+
+                if (lastBaseDate === undefined) {
+                    const latestTime = await queryTagBoundaryTime({
+                        dbName,
+                        userName,
+                        tableName,
+                        name: selectedTagName,
+                        direction: 'latest',
+                        tagColumn,
+                        timeColumn,
+                    });
+                    lastBaseDate = toDataViewerDate(latestTime);
+                }
+
+                if (!lastBaseDate) return null;
+                return resolveTimeRangeInput(value, lastBaseDate);
+            };
+
+            const from = await resolveQueryRange(range.from);
+            const to = await resolveQueryRange(range.to);
             if (from === null || to === null) {
                 setError('Please check the entered time.');
+                setRows([]);
+                return;
+            }
+            if (from && to && new Date(from).getTime() > new Date(to).getTime()) {
+                setError('From should be earlier than To.');
                 setRows([]);
                 return;
             }

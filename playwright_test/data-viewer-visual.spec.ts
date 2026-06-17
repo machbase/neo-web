@@ -46,6 +46,8 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
     await expect(dataViewer.locator('.data-viewer-tag-list')).toContainText('Data_Type_Examples_8_Bit_Device_R_Registers_Boolean2');
     await expect(dataViewer.getByText('Backward')).toBeVisible();
     await expect(dataViewer.getByText('Forward')).toBeVisible();
+    await expect(dataViewer.locator('.data-viewer-scan-control')).toHaveAttribute('aria-label', 'Scan direction: Forward');
+    await expect(dataViewer.locator('.data-viewer-scan-switch')).toHaveClass(/active/);
     await expect(dataViewer.getByRole('button', { name: 'Set time range' })).toContainText('Time range not set');
     await expect(dataViewer.locator('.pagination-input')).toHaveValue('1');
     await expect(dataViewer).not.toContainText('[object Object]');
@@ -143,33 +145,35 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
     });
 
     await dataViewer.getByRole('button', { name: 'Set time format and timezone' }).click();
-    const formatModal = dataViewer.locator('.data-viewer-format-modal');
+    const formatModal = page.getByRole('dialog').filter({ hasText: 'Format & Timezone' });
     await expect(formatModal).toBeVisible();
     await expect(formatModal).toHaveScreenshot('db-explorer-data-viewer-format-modal.png', {
         animations: 'disabled',
         maxDiffPixelRatio: 0.02,
     });
-    await formatModal.getByRole('button', { name: 'Close' }).click();
+    await formatModal.getByRole('button', { name: 'Close modal' }).click();
 
+    const tqlRequests: string[] = [];
+    page.on('request', (request) => {
+        if (request.url().includes('/api/tql')) {
+            tqlRequests.push(request.postData() || '');
+        }
+    });
     await dataViewer.getByRole('button', { name: 'Set time range' }).click();
-    const timeModal = dataViewer.locator('.data-viewer-time-modal').filter({ hasText: 'Time Range' });
+    const timeModal = page.getByRole('dialog').filter({ hasText: 'Time Range' });
     await expect(timeModal).toBeVisible();
     await expect(timeModal).toHaveScreenshot('db-explorer-data-viewer-time-modal.png', {
         animations: 'disabled',
         maxDiffPixelRatio: 0.02,
     });
 
-    await timeModal.locator('.data-viewer-time-field').filter({ hasText: 'From' }).locator('input').fill('2026-06-16 00:00:00');
-    const pickerButtons = timeModal.getByRole('button', { name: 'Open date picker' });
-    await expect(pickerButtons).toHaveCount(2);
-    await pickerButtons.nth(0).click();
-    const datePicker = dataViewer.locator('.data-viewer-date-picker-content');
-    await expect(datePicker).toBeVisible();
-    await expect(datePicker).toContainText('Jun 2026');
-    await expect(datePicker).toHaveScreenshot('db-explorer-data-viewer-date-picker.png', {
-        animations: 'disabled',
-        maxDiffPixelRatio: 0.02,
-    });
+    await timeModal.getByLabel('From').fill('2026-06-16 00:00:00');
+    await timeModal.getByLabel('To').fill('2026-06-16 00:10:00');
+    await timeModal.getByRole('button', { name: 'Apply' }).click();
+    await expect(dataViewer.getByRole('button', { name: 'Set time range' })).toContainText('2026-06-16 00:00:00 ~ 2026-06-16 00:10:00');
+    await expect
+        .poll(() => tqlRequests.some((body) => body.includes("TO_TIMESTAMP('2026-06-16 00:00:00')") && body.includes("TO_TIMESTAMP('2026-06-16 00:10:00')")))
+        .toBe(true);
 });
 
 test('DB Explorer Data Viewer shows asset hierarchy only in the Asset tab', async ({ page }) => {

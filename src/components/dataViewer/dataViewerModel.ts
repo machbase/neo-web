@@ -7,10 +7,19 @@ export const TIME_FORMATS = [
     { label: 'TIMESTAMP(ms)', value: 'ms' },
     { label: 'TIMESTAMP(s)', value: 's' },
     { label: 'YYYY-MM-DD', value: '2006-01-02' },
+    { label: 'YYYY-DD-MM', value: '2006-02-01' },
+    { label: 'DD-MM-YYYY', value: '02-01-2006' },
+    { label: 'MM-DD-YYYY', value: '01-02-2006' },
+    { label: 'YY-DD-MM', value: '06-02-01' },
+    { label: 'YY-MM-DD', value: '06-01-02' },
+    { label: 'MM-DD-YY', value: '01-02-06' },
+    { label: 'DD-MM-YY', value: '02-01-06' },
     { label: 'YYYY-MM-DD HH:MI:SS', value: '2006-01-02 15:04:05' },
     { label: 'YYYY-MM-DD HH:MI:SS.SSS', value: '2006-01-02 15:04:05.000' },
     { label: 'YYYY-MM-DD HH:MI:SS.SSSSSS', value: '2006-01-02 15:04:05.000000' },
     { label: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', value: '2006-01-02 15:04:05.000000000' },
+    { label: 'YYYY-MM-DD HH', value: '2006-01-02 15' },
+    { label: 'YYYY-MM-DD HH:MI', value: '2006-01-02 15:04' },
     { label: 'HH:MI:SS', value: '03:04:05' },
 ];
 
@@ -63,15 +72,27 @@ export function getScanDirectionLabel(backwardScan: boolean) {
     return backwardScan ? 'Backward' : 'Forward';
 }
 
-export function formatTimeRangeLabel(from: string, to: string) {
+export function formatTimeRangeLabel(from: unknown, to: unknown) {
     if (!from && !to) return 'Time range not set';
-    return `${from || 'Start'} ~ ${to || 'End'}`;
+    return `${formatTimeRangeBoundaryLabel(from, 'Start')} ~ ${formatTimeRangeBoundaryLabel(to, 'End')}`;
 }
 
-export function resolveTimeRangeInput(value: string, baseDate = new Date()) {
-    const text = value.trim();
+function formatTimeRangeBoundaryLabel(value: unknown, fallback: string) {
+    if (!value) return fallback;
+    if (typeof value !== 'number') return String(value);
+    if (!Number.isFinite(value)) return fallback;
+    return formatDateTimeForSql(new Date(value));
+}
+
+export function resolveTimeRangeInput(value: unknown, baseDate = new Date()) {
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) return null;
+        return formatDateTimeForSql(new Date(value));
+    }
+
+    const text = String(value ?? '').trim();
     if (!text) return '';
-    if (text === 'now' || text === 'last') return text;
+    if (text === 'now' || text === 'last') return formatDateTimeForSql(baseDate);
 
     const relative = text.match(/^(now|last)-(\d+)(s|m|h|d|M|y)$/);
     if (relative) {
@@ -126,6 +147,13 @@ export function buildTagChartSeries(rows: Record<string, unknown>[] = []) {
         name,
         data: data.sort((a, b) => a[0] - b[0]),
     }));
+}
+
+export function toDataViewerDate(value: unknown): Date | null {
+    const epochMs = toEpochMs(value);
+    if (!Number.isFinite(epochMs)) return null;
+    const date = new Date(epochMs);
+    return Number.isNaN(date.getTime()) ? null : date;
 }
 
 export type DataViewerTreeRow =
