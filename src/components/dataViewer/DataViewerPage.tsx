@@ -14,15 +14,18 @@ import {
 import { MdPublic, MdQueryStats } from 'react-icons/md';
 import NeoTimeRangeModal from '@/components/modal/TimeRangeModal';
 import { TimeZoneModal as NeoTimeZoneModal } from '@/components/modal/TimeZoneModal';
-import { DataViewerAssetHierarchy, DataViewerTag, listTableTags, queryTagBoundaryTime, queryTagData } from './dataViewerApi';
+import { DataViewerAssetHierarchy, DataViewerTag, listTableTags, queryTagBoundaryTime, queryTagData, queryTagDataTotal } from './dataViewerApi';
 import {
     DEFAULT_TIME_FORMAT,
     DEFAULT_TIME_ZONE,
     buildAssetTreeRows,
+    buildDataViewerChartXAxis,
     buildTagChartSeries,
     buildDataViewerHeaderLabels,
+    buildRawResultColumns,
     filterDataViewerTags,
     filterVisibleAssetRows,
+    formatDataViewerAxisTime,
     formatDataViewerTime,
     formatTimeRangeLabel,
     getScanDirectionLabel,
@@ -48,17 +51,23 @@ const getParam = (params: URLSearchParams, key: string) => params.get(key)?.trim
 
 function ResultPagination({
     page,
+    pageSize,
     rowCount,
     loading,
+    endLoading,
     onPage,
+    onEndPage,
 }: {
     page: number;
+    pageSize: number;
     rowCount: number;
     loading: boolean;
+    endLoading: boolean;
     onPage: (page: number) => void;
+    onEndPage: () => void;
 }) {
     const [value, setValue] = useState(String(page));
-    const hasNextPage = rowCount >= RESULT_PAGE_SIZE;
+    const hasNextPage = rowCount >= pageSize;
 
     useEffect(() => {
         setValue(String(page));
@@ -95,10 +104,10 @@ function ResultPagination({
                 className="pagination-input"
                 aria-label="Current result page"
             />
-            <button type="button" className="btn btn-sm btn-ghost" disabled={!hasNextPage || loading} onClick={() => go(page + 1)} aria-label="Next page">
+            <button type="button" className="btn btn-sm btn-ghost" disabled={!hasNextPage || loading || endLoading} onClick={() => go(page + 1)} aria-label="Next page">
                 <VscChevronRight className="icon-sm" />
             </button>
-            <button type="button" className="btn btn-sm btn-ghost" disabled={!hasNextPage || loading} onClick={() => go(page + 1)} aria-label="Forward page">
+            <button type="button" className="btn btn-sm btn-ghost" disabled={loading || endLoading} onClick={onEndPage} aria-label="Move to end page" title="Move to end page">
                 <MdKeyboardDoubleArrowRight className="icon-sm" />
             </button>
         </div>
@@ -151,7 +160,17 @@ function FormatTimezoneModal({
     );
 }
 
-function TagLineChart({ rows, timeFormat, timeZone }: { rows: ResultRow[]; timeFormat: string; timeZone: string }) {
+function TagLineChart({
+    rows,
+    timeFormat,
+    timeZone,
+    timeRange,
+}: {
+    rows: ResultRow[];
+    timeFormat: string;
+    timeZone: string;
+    timeRange: DataViewerTimeRange;
+}) {
     const chartRef = useRef<HighchartsReact.RefObject>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [chartSize, setChartSize] = useState({ width: 0, height: MIN_CHART_HEIGHT });
@@ -183,7 +202,7 @@ function TagLineChart({ rows, timeFormat, timeZone }: { rows: ResultRow[]; timeF
     const options = useMemo<Highcharts.Options | null>(() => {
         if (allPoints.length === 0) return null;
 
-        const xValues = allPoints.map((point) => point[0]);
+        const xAxisRange = buildDataViewerChartXAxis(allPoints, timeRange);
         const yValues = allPoints.map((point) => point[1]);
         const yMin = Math.floor(Math.min(...yValues) * 1000) / 1000;
         const yMax = Math.ceil(Math.max(...yValues) * 1000) / 1000;
@@ -197,7 +216,6 @@ function TagLineChart({ rows, timeFormat, timeZone }: { rows: ResultRow[]; timeF
                 width: chartSize.width || undefined,
                 spacing: [10, 10, 15, 10],
                 type: 'line',
-                zoomType: 'x',
                 animation: false,
                 style: {
                     fontFamily: 'Open Sans, Helvetica, Arial, sans-serif',
@@ -259,8 +277,9 @@ function TagLineChart({ rows, timeFormat, timeZone }: { rows: ResultRow[]; timeF
                 gridLineWidth: 1,
                 gridLineColor: '#323333',
                 lineColor: '#323333',
-                min: Math.min(...xValues),
-                max: Math.max(...xValues),
+                min: xAxisRange.min,
+                max: xAxisRange.max,
+                tickInterval: xAxisRange.tickInterval,
                 crosshair: {
                     snap: false,
                     width: 0.5,
@@ -269,7 +288,7 @@ function TagLineChart({ rows, timeFormat, timeZone }: { rows: ResultRow[]; timeF
                 labels: {
                     align: 'center',
                     formatter: function () {
-                        return formatDataViewerTime(this.value, timeFormat, timeZone);
+                        return formatDataViewerAxisTime(this.value, xAxisRange, timeZone);
                     },
                     style: {
                         color: '#f8f8f8',
@@ -345,7 +364,7 @@ function TagLineChart({ rows, timeFormat, timeZone }: { rows: ResultRow[]; timeF
                 enabled: false,
             },
         };
-    }, [allPoints, chartSize.height, chartSize.width, series, timeFormat, timeZone]);
+    }, [allPoints, chartSize.height, chartSize.width, series, timeFormat, timeRange, timeZone]);
 
     if (!options) {
         return <div className="empty-state">No numeric data on this page</div>;
@@ -402,7 +421,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
     const [formatOpen, setFormatOpen] = useState(false);
     const [rows, setRows] = useState<ResultRow[]>([]);
+    const [chartTimeRange, setChartTimeRange] = useState<DataViewerTimeRange>({ from: '', to: '' });
     const [loading, setLoading] = useState(false);
+    const [endLoading, setEndLoading] = useState(false);
     const [error, setError] = useState('');
 
     const visibleTags = useMemo(() => {
@@ -449,49 +470,58 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         };
     }, [dbName, metaTagColumn, tableName, userName]);
 
+    const resolveEffectiveRange = useCallback(async () => {
+        const nowDate = new Date();
+        let lastBaseDate: Date | null | undefined;
+        const resolveQueryRange = async (value: unknown) => {
+            const text = String(value ?? '').trim();
+            if (!text.startsWith('last')) return resolveTimeRangeInput(value, nowDate);
+
+            if (lastBaseDate === undefined) {
+                const latestTime = await queryTagBoundaryTime({
+                    dbName,
+                    userName,
+                    tableName,
+                    name: selectedTagName,
+                    direction: 'latest',
+                    tagColumn,
+                    timeColumn,
+                });
+                lastBaseDate = toDataViewerDate(latestTime);
+            }
+
+            if (!lastBaseDate) return null;
+            return resolveTimeRangeInput(value, lastBaseDate);
+        };
+
+        const from = await resolveQueryRange(range.from);
+        const to = await resolveQueryRange(range.to);
+        return { from, to };
+    }, [dbName, range.from, range.to, selectedTagName, tableName, tagColumn, timeColumn, userName]);
+
     const fetchRows = useCallback(async () => {
         if (!dbName || !userName || !tableName || !selectedTagName) {
             setRows([]);
+            setChartTimeRange({ from: '', to: '' });
             return;
         }
         setLoading(true);
         setError('');
         try {
-            const nowDate = new Date();
-            let lastBaseDate: Date | null | undefined;
-            const resolveQueryRange = async (value: unknown) => {
-                const text = String(value ?? '').trim();
-                if (!text.startsWith('last')) return resolveTimeRangeInput(value, nowDate);
-
-                if (lastBaseDate === undefined) {
-                    const latestTime = await queryTagBoundaryTime({
-                        dbName,
-                        userName,
-                        tableName,
-                        name: selectedTagName,
-                        direction: 'latest',
-                        tagColumn,
-                        timeColumn,
-                    });
-                    lastBaseDate = toDataViewerDate(latestTime);
-                }
-
-                if (!lastBaseDate) return null;
-                return resolveTimeRangeInput(value, lastBaseDate);
-            };
-
-            const from = await resolveQueryRange(range.from);
-            const to = await resolveQueryRange(range.to);
+            const { from, to } = await resolveEffectiveRange();
             if (from === null || to === null) {
                 setError('Please check the entered time.');
                 setRows([]);
+                setChartTimeRange({ from: '', to: '' });
                 return;
             }
             if (from && to && new Date(from).getTime() > new Date(to).getTime()) {
                 setError('From should be earlier than To.');
                 setRows([]);
+                setChartTimeRange({ from: '', to: '' });
                 return;
             }
+            setChartTimeRange({ from: from || '', to: to || '' });
             const result = await queryTagData({
                 dbName,
                 userName,
@@ -509,11 +539,12 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setRows(result.rows);
         } catch (err: any) {
             setRows([]);
+            setChartTimeRange({ from: '', to: '' });
             setError(err?.message || 'Failed to load data');
         } finally {
             setLoading(false);
         }
-    }, [backwardScan, dbName, page, range.from, range.to, selectedTagName, tableName, tagColumn, timeColumn, userName, valueColumn]);
+    }, [backwardScan, dbName, page, resolveEffectiveRange, selectedTagName, tableName, tagColumn, timeColumn, userName, valueColumn]);
 
     useEffect(() => {
         fetchRows();
@@ -525,6 +556,46 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
 
     const timeRangeButtonText = formatTimeRangeLabel(range.from, range.to);
     const timeFormatButtonText = `${getTimeFormatLabel(timeFormat)} / ${getTimeZoneLabel(timeZone)}`;
+    const handleEndPage = useCallback(async () => {
+        if (!dbName || !userName || !tableName || !selectedTagName || endLoading) return;
+        setEndLoading(true);
+        setError('');
+        try {
+            const { from, to } = await resolveEffectiveRange();
+            if (from === null || to === null) {
+                setError('Please check the entered time.');
+                return;
+            }
+            if (from && to && new Date(from).getTime() > new Date(to).getTime()) {
+                setError('From should be earlier than To.');
+                return;
+            }
+            const result = await queryTagDataTotal({
+                dbName,
+                userName,
+                tableName,
+                name: selectedTagName,
+                from,
+                to,
+                pageSize: RESULT_PAGE_SIZE,
+                tagColumn,
+                timeColumn,
+            });
+            const lastPage = Number(result.lastPage || 1);
+            setPage(Number.isFinite(lastPage) ? Math.max(1, Math.floor(lastPage)) : 1);
+        } catch (err: any) {
+            setError(err?.message || 'Failed to calculate end page');
+        } finally {
+            setEndLoading(false);
+        }
+    }, [dbName, endLoading, resolveEffectiveRange, selectedTagName, tableName, tagColumn, timeColumn, userName]);
+    const rawColumns = useMemo(
+        () =>
+            buildRawResultColumns(rows, {
+                hiddenKeys: assetHierarchy ? [assetHierarchy.column || 'asset'] : [],
+            }),
+        [assetHierarchy, rows],
+    );
 
     return (
         <div className={`neo-data-viewer${embedded ? ' neo-data-viewer-embedded-tab' : ''}`}>
@@ -680,35 +751,37 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                 <div className="table-card data-viewer-raw-card">
                                     <div className="table-card-body">
                                         <table className="table-clean data-viewer-raw-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Time</th>
-                                                    <th>Name</th>
-                                                    <th>Value</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {rows.map((row, index) => (
-                                                    <tr key={`${row.time}-${index}`}>
-                                                        <td className="mono">{formatDataViewerTime(row.time, timeFormat, timeZone)}</td>
-                                                        <td className="mono">{String(row.name ?? '')}</td>
-                                                        <td className="mono">{String(row.value ?? '')}</td>
-                                                    </tr>
-                                                ))}
+	                                            <thead>
+	                                                <tr>
+	                                                    {rawColumns.map((column) => (
+	                                                        <th key={column.key}>{column.label}</th>
+	                                                    ))}
+	                                                </tr>
+	                                            </thead>
+	                                            <tbody>
+	                                                {rows.map((row, index) => (
+	                                                    <tr key={`${row.time}-${index}`}>
+	                                                        {rawColumns.map((column) => (
+	                                                            <td key={column.key} className="mono">
+	                                                                {column.key === 'time' ? formatDataViewerTime(row[column.key], timeFormat, timeZone) : String(row[column.key] ?? '')}
+	                                                            </td>
+	                                                        ))}
+	                                                    </tr>
+	                                                ))}
                                             </tbody>
                                         </table>
                                         {loading ? <div className="empty-state">Loading...</div> : null}
                                         {!loading && rows.length === 0 ? <div className="empty-state">No data</div> : null}
                                     </div>
-                                    <ResultPagination page={page} rowCount={rows.length} loading={loading} onPage={setPage} />
+                                    <ResultPagination page={page} pageSize={RESULT_PAGE_SIZE} rowCount={rows.length} loading={loading} endLoading={endLoading} onPage={setPage} onEndPage={handleEndPage} />
                                 </div>
                             ) : null}
                             {selectedTagName && mode === 'chart' ? (
                                 <div className="table-card data-viewer-chart-card">
                                     <div className="table-card-body">
-                                        {loading ? <div className="empty-state">Loading...</div> : <TagLineChart rows={rows} timeFormat={timeFormat} timeZone={timeZone} />}
+                                        {loading ? <div className="empty-state">Loading...</div> : <TagLineChart rows={rows} timeFormat={timeFormat} timeZone={timeZone} timeRange={chartTimeRange} />}
                                     </div>
-                                    <ResultPagination page={page} rowCount={rows.length} loading={loading} onPage={setPage} />
+                                    <ResultPagination page={page} pageSize={RESULT_PAGE_SIZE} rowCount={rows.length} loading={loading} endLoading={endLoading} onPage={setPage} onEndPage={handleEndPage} />
                                 </div>
                             ) : null}
                         </section>

@@ -31,6 +31,12 @@ export interface DataViewerResult {
     pageSize: number;
 }
 
+export interface DataViewerTotalResult {
+    total: number;
+    pageSize: number;
+    lastPage: number;
+}
+
 const escapeSqlString = (value: string) => value.replace(/'/g, "''");
 const normalizeIdentifier = (value: string | undefined, fallback: string) => {
     const next = value?.trim() || fallback;
@@ -84,6 +90,31 @@ const normalizeAssetHierarchy = (row: Record<string, unknown>): DataViewerAssetH
     }
 
     return undefined;
+};
+
+const buildTagDataWhere = ({
+    name,
+    from,
+    to,
+    tagColumn = 'NAME',
+    timeColumn = 'TIME',
+}: {
+    name: string;
+    from?: string;
+    to?: string;
+    tagColumn?: string;
+    timeColumn?: string;
+}) => {
+    const tagColumnExpr = normalizeIdentifier(tagColumn, 'NAME');
+    const timeColumnExpr = normalizeIdentifier(timeColumn, 'TIME');
+    const where = [`${tagColumnExpr} = '${escapeSqlString(name)}'`];
+    if (from && from !== 'last' && from !== 'now') where.push(`${timeColumnExpr} >= TO_TIMESTAMP('${escapeSqlString(from)}')`);
+    if (to && to !== 'last' && to !== 'now') where.push(`${timeColumnExpr} <= TO_TIMESTAMP('${escapeSqlString(to)}')`);
+    return {
+        tagColumnExpr,
+        timeColumnExpr,
+        where,
+    };
 };
 
 export async function listTableTags(params: DataViewerTableParams & { tagColumn?: string }): Promise<DataViewerTagList> {
@@ -152,12 +183,8 @@ export async function queryTagData({
     valueColumn?: string;
 }): Promise<DataViewerResult> {
     const table = buildQualifiedTableName({ dbName, userName, tableName });
-    const tagColumnExpr = normalizeIdentifier(tagColumn, 'NAME');
-    const timeColumnExpr = normalizeIdentifier(timeColumn, 'TIME');
     const valueColumnExpr = normalizeIdentifier(valueColumn, 'VALUE');
-    const where = [`${tagColumnExpr} = '${escapeSqlString(name)}'`];
-    if (from && from !== 'last' && from !== 'now') where.push(`${timeColumnExpr} >= TO_TIMESTAMP('${escapeSqlString(from)}')`);
-    if (to && to !== 'last' && to !== 'now') where.push(`${timeColumnExpr} <= TO_TIMESTAMP('${escapeSqlString(to)}')`);
+    const { tagColumnExpr, timeColumnExpr, where } = buildTagDataWhere({ name, from, to, tagColumn, timeColumn });
     const offset = Math.max(0, page - 1) * pageSize;
     const order = direction === 'latest' ? 'desc' : 'asc';
     const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${where.join(' and ')} order by ${timeColumnExpr} ${order} limit ${offset}, ${pageSize}`;
@@ -168,6 +195,41 @@ export async function queryTagData({
         rows: normalizeRows(svrData),
         page,
         pageSize,
+    };
+}
+
+export async function queryTagDataTotal({
+    dbName,
+    userName,
+    tableName,
+    name,
+    from,
+    to,
+    pageSize = SQL_BASE_LIMIT,
+    tagColumn = 'NAME',
+    timeColumn = 'TIME',
+}: DataViewerTableParams & {
+    name: string;
+    from?: string;
+    to?: string;
+    pageSize?: number;
+    tagColumn?: string;
+    timeColumn?: string;
+}): Promise<DataViewerTotalResult> {
+    const table = buildQualifiedTableName({ dbName, userName, tableName });
+    const { where } = buildTagDataWhere({ name, from, to, tagColumn, timeColumn });
+    const sql = `select count(*) as row_count from ${table} where ${where.join(' and ')}`;
+    const { svrState, svrData, svrReason } = await fetchTqlWithoutConsole(sql);
+    if (!svrState) throw new Error(svrReason || 'Failed to calculate end page');
+
+    const row = normalizeRows(svrData)[0] || {};
+    const total = Number(row.row_count ?? row.count ?? Object.values(row)[0] ?? 0);
+    const safeTotal = Number.isFinite(total) ? Math.max(0, Math.floor(total)) : 0;
+    const safePageSize = Math.max(1, Math.floor(pageSize));
+    return {
+        total: safeTotal,
+        pageSize: safePageSize,
+        lastPage: Math.max(1, Math.ceil(safeTotal / safePageSize)),
     };
 }
 

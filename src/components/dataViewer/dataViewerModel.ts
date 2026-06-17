@@ -68,6 +68,48 @@ export function buildDataViewerHeaderLabels(jobName: string | undefined, tableNa
     };
 }
 
+const RAW_COLUMN_ORDER = ['time', 'name', 'value'];
+const INTERNAL_RAW_RESULT_KEYS = new Set(['buffer', 'names']);
+
+function formatRawColumnLabel(key: string) {
+    return String(key || '')
+        .split('_')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+}
+
+export function buildRawResultColumns(rows: Record<string, unknown>[] = [], options: { hiddenKeys?: string[]; hideAssetMetadata?: boolean } = {}) {
+    const keys: string[] = [];
+    const seen = new Set<string>();
+    const hiddenKeys = new Set(
+        (options.hiddenKeys || [])
+            .map((key) => String(key || '').trim().toLowerCase())
+            .filter(Boolean),
+    );
+    if (options.hideAssetMetadata) hiddenKeys.add('asset');
+
+    for (const row of rows) {
+        if (!row || typeof row !== 'object') continue;
+        for (const key of Object.keys(row)) {
+            const normalizedKey = String(key).toLowerCase();
+            if (INTERNAL_RAW_RESULT_KEYS.has(normalizedKey)) continue;
+            if (hiddenKeys.has(normalizedKey)) continue;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            keys.push(key);
+        }
+    }
+
+    const orderedKeys =
+        keys.length > 0 ? [...RAW_COLUMN_ORDER.filter((key) => seen.has(key)), ...keys.filter((key) => !RAW_COLUMN_ORDER.includes(key))] : RAW_COLUMN_ORDER;
+
+    return orderedKeys.map((key) => ({
+        key,
+        label: formatRawColumnLabel(key),
+    }));
+}
+
 export function getScanDirectionLabel(backwardScan: boolean) {
     return backwardScan ? 'Backward' : 'Forward';
 }
@@ -147,6 +189,55 @@ export function buildTagChartSeries(rows: Record<string, unknown>[] = []) {
         name,
         data: data.sort((a, b) => a[0] - b[0]),
     }));
+}
+
+const SECOND_MS = 1000;
+const MINUTE_MS = 60 * SECOND_MS;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+function chooseTimeTickInterval(duration: number) {
+    if (!Number.isFinite(duration) || duration <= 0) return undefined;
+    if (duration <= 10 * SECOND_MS) return SECOND_MS;
+    if (duration <= MINUTE_MS) return 10 * SECOND_MS;
+    if (duration <= 5 * MINUTE_MS) return MINUTE_MS;
+    if (duration <= 10 * MINUTE_MS) return 2 * MINUTE_MS;
+    if (duration <= HOUR_MS) return 10 * MINUTE_MS;
+    if (duration <= 3 * HOUR_MS) return 30 * MINUTE_MS;
+    if (duration <= DAY_MS) return 3 * HOUR_MS;
+    if (duration <= 3 * DAY_MS) return 12 * HOUR_MS;
+    if (duration <= 31 * DAY_MS) return 7 * DAY_MS;
+    if (duration <= 366 * DAY_MS) return 30 * DAY_MS;
+    return 90 * DAY_MS;
+}
+
+export function buildDataViewerChartXAxis(points: Array<[number, number] | { x?: number }> = [], range: { from?: unknown; to?: unknown } = {}) {
+    const pointTimes = points
+        .map((point) => (Array.isArray(point) ? point[0] : point?.x))
+        .filter((value): value is number => Number.isFinite(value));
+    const rangeFrom = toEpochMs(range.from);
+    const rangeTo = toEpochMs(range.to);
+
+    let min = Number.isFinite(rangeFrom) ? rangeFrom : undefined;
+    let max = Number.isFinite(rangeTo) ? rangeTo : undefined;
+
+    if (min === undefined && pointTimes.length > 0) min = Math.min(...pointTimes);
+    if (max === undefined && pointTimes.length > 0) max = Math.max(...pointTimes);
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return {};
+    let axisMin = Number(min);
+    let axisMax = Number(max);
+
+    if (axisMin > axisMax) {
+        const tmp = axisMin;
+        axisMin = axisMax;
+        axisMax = tmp;
+    }
+
+    return {
+        min: axisMin,
+        max: axisMax,
+        tickInterval: chooseTimeTickInterval(axisMax - axisMin),
+    };
 }
 
 export function toDataViewerDate(value: unknown): Date | null {
@@ -314,8 +405,31 @@ export function formatDataViewerTime(value: unknown, timeFormat: string, timeZon
         }, {});
 
     const base = `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+    if (timeFormat === '03:04:05') return `${parts.hour}:${parts.minute}:${parts.second}`;
+    if (timeFormat === '2006-01-02') return `${parts.year}-${parts.month}-${parts.day}`;
+    if (timeFormat === '2006-01-02 15:04') return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
     if (!timeFormat.includes('.')) return base;
     return `${base}.${String(date.getMilliseconds()).padStart(3, '0')}`;
+}
+
+export function formatDataViewerAxisTime(value: unknown, range: { min?: unknown; max?: unknown; from?: unknown; to?: unknown } = {}, timeZone = DEFAULT_TIME_ZONE) {
+    const startTime = toEpochMs(range.min ?? range.from);
+    const endTime = toEpochMs(range.max ?? range.to);
+    const span = Number.isFinite(startTime) && Number.isFinite(endTime) ? endTime - startTime : 0;
+
+    if (span <= HOUR_MS) {
+        return formatDataViewerTime(value, '03:04:05', timeZone);
+    }
+
+    if (span <= DAY_MS) {
+        return formatDataViewerTime(value, '2006-01-02 15:04', timeZone).slice(11);
+    }
+
+    if (span <= 30 * DAY_MS) {
+        return formatDataViewerTime(value, '2006-01-02 15:04', timeZone).slice(5);
+    }
+
+    return formatDataViewerTime(value, '2006-01-02', timeZone);
 }
 
 function formatDateTimeForSql(date: Date) {
