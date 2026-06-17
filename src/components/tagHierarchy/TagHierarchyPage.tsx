@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     FiChevronRight,
-    FiChevronsDown,
     FiCornerDownRight,
     FiCornerUpLeft,
     FiLayers,
@@ -13,6 +12,7 @@ import {
     FiTrash2,
     FiX,
 } from 'react-icons/fi';
+import { LuChevronsDownUp, LuChevronsUpDown } from 'react-icons/lu';
 import { Virtuoso } from 'react-virtuoso';
 import {
     Button,
@@ -375,6 +375,14 @@ export const TagHierarchyPage = ({
     const mAllUnassignedSelected =
         mUnassignedNames.length > 0 &&
         mUnassignedNames.every((name) => sSelectedTagNames.has(name));
+    // How many of the currently-loaded unassigned tags are selected. Shown next to "Select all" so the
+    // partial nature is transparent: infinite scroll only loads a page at a time, so "Select all" can
+    // only ever select the loaded rows — comparing this against the total above makes that visible
+    // (e.g. "50 selected" vs a total of 51 means one more page is still unloaded).
+    const mSelectedUnassignedCount = useMemo(
+        () => mUnassignedNames.filter((name) => sSelectedTagNames.has(name)).length,
+        [mUnassignedNames, sSelectedTagNames],
+    );
     // Live validation of the in-progress draft (keys normalized to the schema first,
     // exactly as Save does) so inline row errors update as you type. Outside editing
     // we fall back to whatever the load/save path put in sIssues.
@@ -779,6 +787,14 @@ export const TagHierarchyPage = ({
         setError('');
         await loadTagLinksForPaths(sHierarchyDocument, paths);
         setIsLoading(false);
+    };
+
+    // Collapse every tree node in one click (the symmetric counterpart of Expand all). No fetch is
+    // needed — collapsing only hides already-loaded rows. UNASSIGNED_TREE_KEY isn't read for the
+    // unassigned panel's visibility (it renders off sUnassignedTotal), so clearing the whole set is
+    // safe and leaves that panel untouched.
+    const handleCollapseAllTree = () => {
+        setExpandedPathKeys(new Set());
     };
 
     const handleSelectNode = async (node: SelectedNode) => {
@@ -1589,16 +1605,28 @@ export const TagHierarchyPage = ({
                                         value={sSearchText}
                                         onChange={(event) => setSearchText(event.target.value)}
                                         rightIcon={
-                                            <IconButton
-                                                className={styles.searchAction}
-                                                aria-label="Expand all tree nodes"
-                                                title="Expand all"
-                                                size="xsm"
-                                                variant="ghost"
-                                                icon={<FiChevronsDown size={10} />}
-                                                disabled={sIsLoading || !mHasTemplate}
-                                                onClick={handleExpandAllTree}
-                                            />
+                                            <span className={styles.searchActions}>
+                                                <IconButton
+                                                    className={styles.searchAction}
+                                                    aria-label="Collapse all tree nodes"
+                                                    title="Collapse all"
+                                                    size="xsm"
+                                                    variant="ghost"
+                                                    icon={<LuChevronsDownUp size={10} />}
+                                                    disabled={sIsLoading || !mHasTemplate}
+                                                    onClick={handleCollapseAllTree}
+                                                />
+                                                <IconButton
+                                                    className={styles.searchAction}
+                                                    aria-label="Expand all tree nodes"
+                                                    title="Expand all"
+                                                    size="xsm"
+                                                    variant="ghost"
+                                                    icon={<LuChevronsUpDown size={10} />}
+                                                    disabled={sIsLoading || !mHasTemplate}
+                                                    onClick={handleExpandAllTree}
+                                                />
+                                            </span>
                                         }
                                     />
                                 </div>
@@ -1654,42 +1682,62 @@ export const TagHierarchyPage = ({
                                     >
                                         {/* Header is not clickable: detail opens via the ⋯ button only. */}
                                         <div className={styles.unassignedHeader}>
-                                            <FiTag className={styles.unassignedIcon} />
-                                            <span
-                                                className={styles.unassignedTitle}
-                                                title="Unassigned Tags"
-                                            >
-                                                Unassigned Tags
-                                            </span>
-                                            {/* Server-side count: reflects the search (NAME LIKE) total. */}
-                                            <span className={styles.unassignedCount}>
-                                                {sUnassignedCount}
-                                            </span>
-                                            {sUnassignedTotal > 0 ? (
-                                                <label className={styles.selectAll}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={mAllUnassignedSelected}
-                                                        readOnly
-                                                        disabled={mUnassignedNames.length === 0}
-                                                        onClick={() =>
-                                                            toggleSelectAll(mUnassignedNames)
-                                                        }
-                                                    />
-                                                    Select all
-                                                </label>
-                                            ) : null}
-                                            <IconButton
-                                                className={styles.unassignedDetailBtn}
-                                                aria-label="Details for unassigned tags"
-                                                title="Details"
-                                                size="icon"
-                                                variant="ghost"
-                                                icon={<FiMoreHorizontal />}
-                                                onClick={() =>
-                                                    openNodeDetail({ isUnassigned: true, path: [] })
-                                                }
-                                            />
+                                            <div className={styles.unassignedHeaderLeft}>
+                                                <FiTag className={styles.unassignedIcon} />
+                                                <span
+                                                    className={styles.unassignedTitle}
+                                                    title="Unassigned Tags"
+                                                >
+                                                    Unassigned Tags
+                                                </span>
+                                                {/* Server-side total (reflects the search NAME LIKE
+                                                    filter), pinned left next to the title. */}
+                                                <span className={styles.unassignedCount}>
+                                                    {sUnassignedCount}
+                                                </span>
+                                            </div>
+                                            <div className={styles.unassignedHeaderRight}>
+                                                {sUnassignedTotal > 0 ? (
+                                                    <>
+                                                        {/* Selected count vs the total above makes the
+                                                            partial select-all transparent: with infinite
+                                                            scroll only loaded rows can be selected. */}
+                                                        {mSelectedUnassignedCount > 0 ? (
+                                                            <span className={styles.selectedCount}>
+                                                                {mSelectedUnassignedCount} selected
+                                                            </span>
+                                                        ) : null}
+                                                        <label className={styles.selectAll}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={mAllUnassignedSelected}
+                                                                readOnly
+                                                                disabled={
+                                                                    mUnassignedNames.length === 0
+                                                                }
+                                                                onClick={() =>
+                                                                    toggleSelectAll(mUnassignedNames)
+                                                                }
+                                                            />
+                                                            Select all
+                                                        </label>
+                                                    </>
+                                                ) : null}
+                                                <IconButton
+                                                    className={styles.unassignedDetailBtn}
+                                                    aria-label="Details for unassigned tags"
+                                                    title="Details"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    icon={<FiMoreHorizontal />}
+                                                    onClick={() =>
+                                                        openNodeDetail({
+                                                            isUnassigned: true,
+                                                            path: [],
+                                                        })
+                                                    }
+                                                />
+                                            </div>
                                         </div>
                                         {sUnassignedTotal > 0 ? (
                                             <div className={styles.unassignedSearch}>

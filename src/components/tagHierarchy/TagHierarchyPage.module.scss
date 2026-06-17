@@ -90,6 +90,13 @@
 /* Expand-all / refresh icons rendered inside the search Input's right slot.
    Box size only — the icon (svg) size is controlled by the `size` prop on the
    icon element in the JSX (e.g. <Refresh size={10} />), not here. */
+// Holds the Collapse all + Expand all buttons in the search input's single right-icon slot.
+.searchActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
 .searchAction {
     flex: 0 0 auto;
     width: 20px;
@@ -146,13 +153,31 @@
     // all, ⋯ button) carry their own pointer cursor.
 }
 
+// Left group: icon + title + total count, kept together on the left. Grows to push the
+// right group (selected count + Select all + ⋯) to the far edge.
+.unassignedHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+// Right group: selection feedback + controls, pinned right.
+.unassignedHeaderRight {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    flex: 0 0 auto;
+}
+
 .unassignedIcon {
     flex: 0 0 auto;
     color: t.$primary-hover;
 }
 
 .unassignedTitle {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
@@ -163,6 +188,15 @@
     flex: 0 0 auto;
     color: t.$text-muted;
     font-size: t.$font-size-xs;
+}
+
+// Selected-tag count, shown only when something is selected. Accent color so it reads as an
+// active state against the muted total to its left.
+.selectedCount {
+    flex: 0 0 auto;
+    color: t.$primary-hover;
+    font-size: t.$font-size-xs;
+    white-space: nowrap;
 }
 
 .unassignedHeader .unassignedDetailBtn {
@@ -349,7 +383,6 @@
     align-items: center;
     gap: t.$spacing-4;
     flex: 0 0 auto;
-    margin-left: auto;
     padding: t.$spacing-2 t.$spacing-4;
     border-radius: t.$border-radius-base;
     color: t.$text-tertiary;
