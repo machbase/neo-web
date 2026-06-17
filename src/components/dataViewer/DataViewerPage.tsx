@@ -737,7 +737,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
 
     const assetRows = useMemo(() => {
         if (!assetHierarchy) return [];
-        return filterVisibleAssetRows(buildAssetTreeRows(tags, assetHierarchy.schema, tagFilter), collapsedAssetFolders);
+        return filterVisibleAssetRows(buildAssetTreeRows(tags, assetHierarchy, tagFilter), collapsedAssetFolders);
     }, [assetHierarchy, collapsedAssetFolders, tagFilter, tags]);
 
     const toggleAssetFolder = useCallback((folderId: string) => {

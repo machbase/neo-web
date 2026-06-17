@@ -155,48 +155,102 @@ export function filterDataViewerTags<T extends { name: string; dataType?: string
 
 export function buildAssetTreeRows(
     tags: Array<{ name: string; dataType?: string; asset?: Record<string, unknown> }>,
-    schema: string[] = [],
+    assetHierarchy: { schema?: string[]; tree?: unknown[] } | undefined,
     filter: string,
 ): DataViewerTreeRow[] {
+    const schema = Array.isArray(assetHierarchy?.schema) ? assetHierarchy.schema.map((key) => String(key).trim()).filter(Boolean) : [];
+    const tree = Array.isArray(assetHierarchy?.tree) ? assetHierarchy.tree : [];
+    if (schema.length === 0 || tree.length === 0) return [];
+
     const q = filter.trim().toLowerCase();
     const rows: DataViewerTreeRow[] = [];
-    const folderIds = new Set<string>();
-    const folderIdForPath = (path: string[]) => `folder:${path.join('/')}`;
+    const assetPathKey = (parts: Array<{ key: string; value: string }>) => parts.map((part) => `${part.key}=${part.value}`).join('/');
+    const folderIdForPath = (path: Array<{ key: string; value: string }>) => `asset-folder:${assetPathKey(path)}`;
 
-    const pushFolder = (path: string[], depth: number) => {
-        const id = folderIdForPath(path);
-        if (folderIds.has(id)) return;
-        folderIds.add(id);
-        rows.push({
-            type: 'folder',
-            id,
-            label: path[path.length - 1],
-            depth,
-            path,
-            parentIds: path.slice(0, -1).map((_, index) => folderIdForPath(path.slice(0, index + 1))),
+    const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+    const collectFolders = (nodes: unknown[], path: Array<{ key: string; value: string }> = [], depth = 0, folders = new Map<string, unknown>()) => {
+        if (!Array.isArray(nodes) || depth >= schema.length) return folders;
+        nodes.forEach((node) => {
+            if (!isRecord(node)) return;
+            const key = String(node.key || '').trim();
+            const value = String(node.value || '').trim();
+            if (!key || !value || key !== schema[depth]) return;
+            const nextPath = [...path, { key, value }];
+            folders.set(assetPathKey(nextPath), node);
+            collectFolders(Array.isArray(node.children) ? node.children : [], nextPath, depth + 1, folders);
+        });
+        return folders;
+    };
+
+    const folders = collectFolders(tree);
+    const deepestFolderKey = (asset: Record<string, unknown> | undefined) => {
+        if (!asset) return '';
+        const path: Array<{ key: string; value: string }> = [];
+        let deepest = '';
+        let deepestNode: unknown = null;
+
+        for (const key of schema) {
+            const value = String(asset[key] ?? '').trim();
+            if (!value) break;
+            path.push({ key, value });
+            const folderKey = assetPathKey(path);
+            if (!folders.has(folderKey)) {
+                return isRecord(deepestNode) && Array.isArray(deepestNode.children) && deepestNode.children.length > 0 ? '' : deepest;
+            }
+            deepest = folderKey;
+            deepestNode = folders.get(folderKey);
+        }
+
+        return deepest;
+    };
+
+    const tagsByFolder = new Map<string, Array<{ name: string; dataType?: string }>>();
+    tags.forEach((tag) => {
+        const folderKey = deepestFolderKey(tag.asset);
+        if (!folderKey) return;
+        const pathText = folderKey.toLowerCase();
+        const searchable = [tag.name, tag.dataType, pathText].filter(Boolean).join(' ').toLowerCase();
+        if (q && !searchable.includes(q)) return;
+        if (!tagsByFolder.has(folderKey)) tagsByFolder.set(folderKey, []);
+        tagsByFolder.get(folderKey)?.push({ name: tag.name, dataType: tag.dataType });
+    });
+
+    const walk = (nodes: unknown[], path: Array<{ key: string; value: string }> = [], depth = 0) => {
+        if (!Array.isArray(nodes) || depth >= schema.length) return;
+        nodes.forEach((node) => {
+            if (!isRecord(node)) return;
+            const key = String(node.key || '').trim();
+            const value = String(node.value || '').trim();
+            if (!key || !value || key !== schema[depth]) return;
+            const nextPath = [...path, { key, value }];
+            const folderKey = assetPathKey(nextPath);
+            const parentIds = nextPath.slice(0, -1).map((_, index) => folderIdForPath(nextPath.slice(0, index + 1)));
+            rows.push({
+                type: 'folder',
+                id: folderIdForPath(nextPath),
+                label: value,
+                depth,
+                path: nextPath.map((part) => part.value),
+                parentIds,
+            });
+
+            (tagsByFolder.get(folderKey) || []).forEach((tag) => {
+                rows.push({
+                    type: 'tag',
+                    id: `asset-tag:${folderKey}:${tag.name}`,
+                    label: tag.name,
+                    depth: depth + 1,
+                    name: tag.name,
+                    dataType: tag.dataType,
+                    parentIds: [...parentIds, folderIdForPath(nextPath)],
+                });
+            });
+
+            walk(Array.isArray(node.children) ? node.children : [], nextPath, depth + 1);
         });
     };
 
-    tags.forEach((tag) => {
-        const asset = tag.asset ?? {};
-        const path = schema.map((key) => String(asset[key] ?? '').trim()).filter(Boolean);
-        const searchable = [tag.name, tag.dataType, ...path].filter(Boolean).join(' ').toLowerCase();
-        if (q && !searchable.includes(q)) return;
-
-        path.forEach((_, index) => {
-            pushFolder(path.slice(0, index + 1), index);
-        });
-
-        rows.push({
-            type: 'tag',
-            id: `tag:${tag.name}`,
-            label: tag.name,
-            depth: path.length,
-            name: tag.name,
-            dataType: tag.dataType,
-            parentIds: path.map((_, index) => folderIdForPath(path.slice(0, index + 1))),
-        });
-    });
+    walk(tree);
 
     return rows;
 }
