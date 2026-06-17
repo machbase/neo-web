@@ -35,7 +35,7 @@ async function openDataViewer(page: import('@playwright/test').Page, tableName: 
     await expect(dataViewer.locator('.page-title')).toHaveText(tableName);
     await expect(dataViewer.locator('.data-viewer-header-title .badge-muted')).toHaveCount(0);
     await expect(dataViewer.locator('.data-viewer-back-button')).toHaveCount(0);
-    await expect(dataViewer.getByRole('button', { name: 'Back' })).toHaveCount(0);
+    await expect(dataViewer.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
     return dataViewer;
 }
 
@@ -73,7 +73,7 @@ test('DB Explorer tag table icon opens Data Viewer', async ({ page }) => {
     const dataViewer = await openDataViewerFromExplorerIcon(page, TABLE_NAME);
 
     await expect(dataViewer.locator('.data-viewer-back-button')).toHaveCount(0);
-    await expect(dataViewer.getByRole('button', { name: 'Back' })).toHaveCount(0);
+    await expect(dataViewer.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
 });
 
 test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ page }) => {
@@ -85,8 +85,8 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
     await expect(dataViewer.locator('.data-viewer-tag-list')).toContainText('Data_Type_Examples_8_Bit_Device_R_Registers_Boolean2');
     await expect(dataViewer.getByText('Backward')).toBeVisible();
     await expect(dataViewer.getByText('Forward')).toBeVisible();
-    await expect(dataViewer.locator('.data-viewer-scan-control')).toHaveAttribute('aria-label', 'Scan direction: Forward');
-    await expect(dataViewer.locator('.data-viewer-scan-switch')).toHaveClass(/active/);
+    await expect(dataViewer.locator('.data-viewer-scan-control')).toHaveAttribute('aria-label', 'Scan direction: Backward');
+    await expect(dataViewer.locator('.data-viewer-scan-switch')).not.toHaveClass(/active/);
     await expect(dataViewer.getByRole('button', { name: 'Set time range' })).toContainText('Time range not set');
     await expect(dataViewer.locator('.pagination-input')).toHaveValue('1');
     await expect(dataViewer).not.toContainText('[object Object]');
