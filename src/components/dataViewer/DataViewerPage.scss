@@ -3,8 +3,8 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: #191b1f;
-    color: #e7e8ea;
+    background: #1e1e1e;
+    color: #f1f1f1;
     font-size: var(--font-size-base);
     --color-surface: #1e1e1e;
     --color-surface-alt: #252525;
@@ -78,7 +78,7 @@
 .neo-data-viewer-embedded-tab {
     width: 100%;
     height: 100%;
-    background: #191b1f;
+    background: #1e1e1e;
 }
 
 .neo-data-viewer-header {
@@ -651,12 +651,18 @@
     margin: 0;
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
-    line-height: 1.25;
+    line-height: 1;
     color: var(--color-on-surface);
 }
 
 .neo-data-viewer .text-primary {
     color: var(--color-primary);
+}
+
+.neo-data-viewer .data-viewer-header-title > svg.text-primary {
+    color: var(--color-primary);
+    fill: currentColor;
+    stroke: currentColor;
 }
 
 .neo-data-viewer .truncate {
