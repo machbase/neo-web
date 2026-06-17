@@ -59,6 +59,7 @@
     --shadow-switch: 1px 2px 3px #00000020;
     --size-control-height: 32px;
     --size-control-height-sm: 26px;
+    --size-checkbox: 13px;
     --size-switch-width: 28px;
     --size-switch-height: 13px;
     --size-switch-button: 9px;
@@ -826,11 +827,40 @@
 }
 
 .neo-data-viewer .data-viewer-tag-row input[type='checkbox'] {
-    width: 13px;
-    height: 13px;
+    width: var(--size-checkbox);
+    height: var(--size-checkbox);
+    min-width: var(--size-checkbox);
+    min-height: var(--size-checkbox);
+    padding: 0;
     margin: 0;
     accent-color: var(--color-primary);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface-alt);
     cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    vertical-align: middle;
+    transform: translateY(0.5px);
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.neo-data-viewer .data-viewer-tag-row input[type='checkbox']:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.neo-data-viewer .data-viewer-tag-row input[type='checkbox']:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 1px;
+    width: 4px;
+    height: 7px;
+    border: solid #fff;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
 }
 
 .neo-data-viewer .node-tree-row {
