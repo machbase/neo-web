@@ -11,7 +11,7 @@ import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { E_TABLE_INFO, TableTypeOrderList, buildQualifiedTableName, getTableTypeColor } from './utils';
+import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildQualifiedTableName, getTableTypeColor } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Tooltip } from 'react-tooltip';
@@ -261,6 +261,58 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
         setSelectedTab(sApplyTabID);
     };
 
+    const handleOpenDataViewer = (e: React.MouseEvent, aTableInfo: (number | string)[]) => {
+        e.stopPropagation();
+        if (CheckTableFlag(Number(aTableInfo[E_TABLE_INFO.TB_TYPE])) !== E_TABLE_TYPE.TAG) return;
+
+        const code = {
+            dbName: String(aTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
+            userName: String(aTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
+            tableName: String(aTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
+            tableType: E_TABLE_TYPE.TAG,
+            databaseId: String(aTableInfo[E_TABLE_INFO.DB_ID] ?? ''),
+            tagColumn: 'NAME',
+            timeColumn: 'TIME',
+            valueColumn: 'VALUE',
+            metaTagColumn: 'NAME',
+        };
+        const existing = sBoardList.find((board) => board.type === 'DataViewer');
+        if (existing) {
+            setBoardList((boardList) =>
+                boardList.map((board) =>
+                    board.id === existing.id
+                        ? {
+                              ...board,
+                              name: `DATA: ${code.tableName}`,
+                              code,
+                              savedCode: false,
+                          }
+                        : board,
+                ),
+            );
+            setSelectedTab(existing.id);
+            return;
+        }
+
+        const id = generateUUID();
+        setBoardList([
+            ...sBoardList,
+            {
+                id,
+                type: 'DataViewer',
+                name: `DATA: ${code.tableName}`,
+                path: '',
+                code,
+                panels: [],
+                range_bgn: '',
+                range_end: '',
+                sheet: [],
+                savedCode: false,
+            },
+        ]);
+        setSelectedTab(id);
+    };
+
     const handleUnmountModal = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsUnmount(true);
@@ -314,6 +366,7 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
                             pShowHiddenObj={pShowHiddenObj}
                             pRefresh={pRefresh}
                             pHandleDBTablePage={handleDBTablePage}
+                            pHandleOpenDataViewer={handleOpenDataViewer}
                             pContextMenu={pContextMenu}
                         />
                     );
@@ -328,6 +381,7 @@ interface UserDivPropsType {
     pShowUserIcon: boolean;
     pRefresh: number;
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
+    pHandleOpenDataViewer: (e: React.MouseEvent, aTableInfo: (number | string)[]) => void;
     pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
 }
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
@@ -375,6 +429,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     pPriv={aTable[7] ?? ''}
                                                     pRefresh={props.pRefresh}
                                                     pHandleDBTablePage={props.pHandleDBTablePage}
+                                                    pHandleOpenDataViewer={props.pHandleOpenDataViewer}
                                                     pContextMenu={props.pContextMenu}
                                                 />
                                             )}
@@ -401,6 +456,7 @@ interface TableDivPropsType {
     pTable: (string | number)[];
     pRefresh: number;
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
+    pHandleOpenDataViewer: (e: React.MouseEvent, aTableInfo: (number | string)[]) => void;
     pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
 }
 const DISABLED_TABLE_TYPES = ['exception'];
@@ -410,6 +466,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const [sRecordCount, setRecordCount] = useState<number>(0);
     const sPriv = props?.pPriv && props.pPriv !== '' ? props.pPriv?.split('|')?.[1].trim() : '';
     const sIsDisabled = DISABLED_TABLE_TYPES.includes(props.pTableType);
+    const sIsTagTable = CheckTableFlag(Number(props.pTable[E_TABLE_INFO.TB_TYPE])) === E_TABLE_TYPE.TAG;
 
     const handleTableDetail = () => {
         if (sIsDisabled) return;
@@ -439,7 +496,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     return (
         <>
             <Side.Item
-                tooltip={props.pTableType + ' table ' + sPriv}
+                tooltip={sIsTagTable ? undefined : props.pTableType + ' table ' + sPriv}
                 tooltipPlace="top"
                 paddingLeft={40}
                 onClick={handleTableDetail}
@@ -448,7 +505,30 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
             >
                 <Side.ItemContent>
                     {sIsDisabled ? <div style={{ minWidth: '16px', maxWidth: '16px', marginRight: '2px' }} /> : <Side.ItemArrow isOpen={sIsOpen} />}
-                    <Side.ItemIcon>{props.pTableIcon}</Side.ItemIcon>
+                    <Side.ItemIcon>
+                        {sIsTagTable && !sIsDisabled ? (
+                            <>
+                                <button
+                                    type="button"
+                                    className={`table-data-viewer-icon-button table-data-viewer-icon-${props.pId}`}
+                                    aria-label={`Open Data Viewer for ${props.pTable[E_TABLE_INFO.TB_NM]}`}
+                                    onClick={(e) => props.pHandleOpenDataViewer(e, props.pTable)}
+                                >
+                                    {props.pTableIcon}
+                                </button>
+                                <Tooltip
+                                    place="top"
+                                    positionStrategy="fixed"
+                                    anchorSelect={`.table-data-viewer-icon-${props.pId}`}
+                                    content="Open Data Viewer"
+                                    delayShow={500}
+                                    style={{ zIndex: 9999 }}
+                                />
+                            </>
+                        ) : (
+                            props.pTableIcon
+                        )}
+                    </Side.ItemIcon>
                     <TableNameCopy pTable={props.pTable} disabled={sIsDisabled} />
                 </Side.ItemContent>
                 {!sIsDisabled && (

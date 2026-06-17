@@ -6,7 +6,7 @@ import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
-import { Refresh } from '@/assets/icons/Icon';
+import { Refresh, VscGraphLine } from '@/assets/icons/Icon';
 import { MetaTablePage } from './metaTablePage';
 import {
     buildQualifiedTableName,
@@ -21,8 +21,10 @@ import {
 } from './utils';
 import { Tooltip } from 'react-tooltip';
 import { BiInfoCircle } from 'react-icons/bi';
-import { getUserName } from '@/utils';
+import { generateUUID, getUserName } from '@/utils';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 
 const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) => {
     return (
@@ -224,6 +226,8 @@ const RollupPredicateCell = ({ row, columns }: { row: (string | number)[]; colum
 };
 
 export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab: boolean }) => {
+    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sLastFetchTime, setLastFetchTime] = useState<string>('');
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sMetaView, setMetaView] = useState<'table' | 'hierarchy'>('table');
@@ -289,10 +293,60 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             currentUserName: getUserName(),
         });
     }, [mTableInfo]);
+    const mIsTagTable = useMemo(() => CheckTableFlag(mTableInfo?.[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG, [mTableInfo]);
 
     const handleCopyTableName = () => {
         if (!mQualifiedTableName) return;
         ClipboardCopy(mQualifiedTableName);
+    };
+    const handleOpenDataViewer = () => {
+        if (!mTableInfo || !mIsTagTable) return;
+        const code = {
+            dbName: String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
+            userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
+            tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
+            tableType: String(CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) ?? ''),
+            databaseId: String(mTableInfo[E_TABLE_INFO.DB_ID] ?? ''),
+            tagColumn: String(mColList?.rows?.[0]?.[0] ?? 'NAME'),
+            timeColumn: String(mColList?.rows?.[1]?.[0] ?? 'TIME'),
+            valueColumn: String(mColList?.rows?.[2]?.[0] ?? 'VALUE'),
+            metaTagColumn: 'NAME',
+        };
+        const existing = sBoardList.find((board) => board.type === 'DataViewer');
+        if (existing) {
+            setBoardList((boardList) =>
+                boardList.map((board) =>
+                    board.id === existing.id
+                        ? {
+                              ...board,
+                              name: `DATA: ${code.tableName}`,
+                              code,
+                              savedCode: false,
+                          }
+                        : board,
+                ),
+            );
+            setSelectedTab(existing.id);
+            return;
+        }
+
+        const id = generateUUID();
+        setBoardList([
+            ...sBoardList,
+            {
+                id,
+                type: 'DataViewer',
+                name: `DATA: ${code.tableName}`,
+                path: '',
+                code,
+                panels: [],
+                range_bgn: '',
+                range_end: '',
+                sheet: [],
+                savedCode: false,
+            },
+        ]);
+        setSelectedTab(id);
     };
     // Memoization column list
     const mMainColumnSection = useMemo(() => {
@@ -798,6 +852,17 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         toolTipContent={`Copy "${mQualifiedTableName}"`}
                                         onClick={handleCopyTableName}
                                     />
+                                    {mIsTagTable && (
+                                        <Button
+                                            size="xsm"
+                                            variant="ghost"
+                                            icon={<VscGraphLine size={14} />}
+                                            isToolTip
+                                            toolTipContent="Open Data Viewer"
+                                            onClick={handleOpenDataViewer}
+                                            aria-label="Open Data Viewer"
+                                        />
+                                    )}
                                 </Page.DpRow>
                                 <Page.DpRow
                                     style={{
