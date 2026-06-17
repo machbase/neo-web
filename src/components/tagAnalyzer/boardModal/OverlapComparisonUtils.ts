@@ -64,9 +64,8 @@ export function resolveOverlapTimeRange(
 }
 export function mapOverlapRows(
     rows: ChartRow[] | undefined,
-    seriesStartTime: number,
 ): ChartRow[] {
-    return rows?.map(([aTimestamp, aValue]) => [aTimestamp - seriesStartTime, aValue]) ?? [];
+    return rows ?? [];
 }
 export function getNextOverlapSelections(
     selections: OverlapPanelSelection[],

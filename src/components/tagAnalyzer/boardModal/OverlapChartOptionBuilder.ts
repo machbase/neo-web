@@ -18,7 +18,7 @@ import type {
     ChartSeriesData,
 } from '../domain/ChartDomain';
 import {
-    formatElapsedTimeLabel,
+    formatAxisValue,
     formatLocalTimestampWithMilliseconds,
 } from '../domain/time/formatting/TimeFormatters';
 
@@ -292,38 +292,32 @@ function getOverlapTooltipParams(
     });
 }
 
-function getOverlapTooltipOriginalTimestamp(
+function getOverlapTooltipTimestamp(
     tooltipItem: OverlapTooltipParam,
-    seriesStartTime: number,
 ): number {
-    return Number(tooltipItem.value?.[0] ?? 0) + seriesStartTime;
+    return Number(tooltipItem.value?.[0] ?? 0);
 }
 
 function formatOverlapTooltipRow(
     tooltipItem: OverlapTooltipParam,
     chartData: ChartSeriesData[],
-    seriesStartTimeList: number[],
 ): string {
     const sSeriesIndex = tooltipItem.seriesIndex ?? 0;
     const sSeriesName = chartData[sSeriesIndex]?.name ?? '';
-    const sOriginalTimestamp = getOverlapTooltipOriginalTimestamp(
-        tooltipItem,
-        seriesStartTimeList[sSeriesIndex] ?? 0,
-    );
+    const sTimestamp = getOverlapTooltipTimestamp(tooltipItem);
 
     return `<div style="color:${tooltipItem.color}">${sSeriesName} : ${formatLocalTimestampWithMilliseconds(
-        sOriginalTimestamp,
+        sTimestamp,
     )} : ${tooltipItem.value?.[1] ?? ''}</div>`;
 }
 
 function formatOverlapTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     chartData: ChartSeriesData[],
-    seriesStartTimeList: number[],
 ): string {
     const sTooltipRows = getOverlapTooltipParams(tooltipFormatterParams)
         .map((tooltipItem) =>
-            formatOverlapTooltipRow(tooltipItem, chartData, seriesStartTimeList),
+            formatOverlapTooltipRow(tooltipItem, chartData),
         )
         .join('<br/>');
 
@@ -332,7 +326,6 @@ function formatOverlapTooltip(
 
 function buildOverlapTooltipOption(
     chartData: ChartSeriesData[],
-    seriesStartTimeList: number[],
 ): TooltipComponentOption {
     return {
         ...TOOLTIP_BASE,
@@ -340,7 +333,6 @@ function buildOverlapTooltipOption(
             formatOverlapTooltip(
                 tooltipFormatterParams,
                 chartData,
-                seriesStartTimeList,
             ),
     };
 }
@@ -365,6 +357,21 @@ function buildOverlapDataZoomOption(
         preventDefaultMouseMove: true,
         ...sInitialWindow,
     }];
+}
+
+function formatOverlapXAxisLabel(
+    xAxisValue: number,
+    visibleRange: OverlapChartXAxisRange | undefined,
+): string {
+    if (!visibleRange) {
+        return String(xAxisValue);
+    }
+
+    return formatAxisValue(
+        xAxisValue,
+        visibleRange,
+        false,
+    );
 }
 
 function formatYAxisLabel(value: string | number): string {
@@ -446,10 +453,7 @@ export function buildOverlapChartOption(
         ...OVERLAP_CHART_BASE_OPTION,
         grid: OVERLAP_GRID_OPTION,
         legend: OVERLAP_LEGEND_OPTION,
-        tooltip: buildOverlapTooltipOption(
-            overlapChartInfo.seriesData,
-            overlapChartInfo.seriesStartTimeList,
-        ),
+        tooltip: buildOverlapTooltipOption(overlapChartInfo.seriesData),
         xAxis: {
             ...OVERLAP_X_AXIS_STATIC_OPTION,
             min: sXAxisRanges?.axisRange.startTime,
@@ -457,7 +461,10 @@ export function buildOverlapChartOption(
             axisLabel: {
                 ...OVERLAP_X_AXIS_STATIC_OPTION.axisLabel,
                 formatter: (overlapXAxisValue: number) =>
-                    formatElapsedTimeLabel(overlapXAxisValue),
+                    formatOverlapXAxisLabel(
+                        overlapXAxisValue,
+                        sXAxisRanges?.axisRange,
+                    ),
             },
         },
         yAxis: {

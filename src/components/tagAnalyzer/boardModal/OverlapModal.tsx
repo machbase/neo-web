@@ -157,10 +157,7 @@ function OverlapModal({
             ? sChartRows
             : clampChartRowsToTimeRange(sChartRows, sTimeRange);
 
-        const sOverlapRows = mapOverlapRows(
-            sDisplayRows,
-            sSeriesStartTime,
-        );
+        const sOverlapRows = mapOverlapRows(sDisplayRows);
 
         return {
             originTime: sSeriesStartTime,
