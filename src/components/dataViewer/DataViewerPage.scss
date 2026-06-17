@@ -804,6 +804,7 @@
     background-color: var(--color-surface-input);
     color: var(--color-on-surface);
     font-size: var(--font-size-base);
+    line-height: var(--font-size-base);
 }
 
 .neo-data-viewer .data-viewer-tag-list {
@@ -824,7 +825,7 @@
     cursor: pointer;
     color: var(--color-on-surface-secondary);
     font-size: var(--font-size-base);
-    line-height: 20px;
+    line-height: 1.5;
 }
 
 .neo-data-viewer .data-viewer-tag-row:hover {
@@ -851,6 +852,8 @@
     position: relative;
     flex-shrink: 0;
     vertical-align: middle;
+    font-size: var(--font-size-base);
+    line-height: var(--size-checkbox);
     transform: translateY(0.5px);
     appearance: none;
     -webkit-appearance: none;
@@ -920,6 +923,7 @@
     gap: var(--spacing-6);
     font-family: var(--font-family-mono);
     font-size: var(--font-size-sm);
+    line-height: 18px;
 }
 
 .neo-data-viewer .badge {
