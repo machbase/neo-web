@@ -101,6 +101,8 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
             table: readRect('.data-viewer-raw-card'),
             tagSearchInput: readRect('.data-viewer-tag-search input'),
             tagList: readRect('.data-viewer-tag-list'),
+            headerBackground: getComputedStyle(root.querySelector('.page-header') as Element).backgroundColor,
+            bodyBackground: getComputedStyle(root.querySelector('.page-body-full.data-viewer-body') as Element).backgroundColor,
         };
     });
 
@@ -129,6 +131,7 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
     expect(toolbar.width).toBe(table.width);
     expect(tagSearchInput.x).toBe(tagList.x);
     expect(tagSearchInput.right).toBe(tagList.right);
+    expect(layoutMetrics.bodyBackground).toBe(layoutMetrics.headerBackground);
 
     await page.addStyleTag({
         content: `
