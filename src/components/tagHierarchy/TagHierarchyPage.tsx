@@ -92,6 +92,9 @@ type TreeFlatRow =
           row: HierarchyTagRow;
           depth: number;
           parentKey: string;
+          // The placed-under node's path, so the detail pane can show the tag's
+          // location in its breadcrumb (parentKey is only the string form).
+          parentPath: HierarchyPathItem[];
           orderedNames: string[];
       };
 
@@ -362,6 +365,7 @@ export const TagHierarchyPage = ({
                             row,
                             depth: depth + 1,
                             parentKey: key,
+                            parentPath: path,
                             orderedNames,
                         }),
                     );
@@ -814,10 +818,16 @@ export const TagHierarchyPage = ({
         await handleSelectNode(node);
     };
 
-    const openTagDetail = (row: HierarchyTagRow) => {
+    const openTagDetail = (row: HierarchyTagRow, parentNode: SelectedNode) => {
         clearTagSelection();
         setDetailOpen(true);
         setActiveTab('tags');
+        // Point the breadcrumb at the node this tag is placed under (or "Unassigned
+        // Tags" for the unassigned list). We set the selected node directly (not via
+        // handleSelectNode) so loadTagsForNode doesn't refetch the whole node and
+        // overwrite the single-row setTags below.
+        setSelectedNode(parentNode);
+        setTagPage(0);
         setTags([row]);
         setTagHasMore(false);
         setLastQuery('');
@@ -1325,6 +1335,7 @@ export const TagHierarchyPage = ({
         keyPrefix: string,
         depth: number,
         orderedNames: string[],
+        parentNode: SelectedNode,
     ): React.ReactNode => {
         const isSelected = sSelectedTagNames.has(row.name);
         return (
@@ -1364,7 +1375,7 @@ export const TagHierarchyPage = ({
                     icon={<FiMoreHorizontal />}
                     onClick={(event) => {
                         event.stopPropagation();
-                        openTagDetail(row);
+                        openTagDetail(row, parentNode);
                     }}
                 />
             </div>
@@ -1376,7 +1387,13 @@ export const TagHierarchyPage = ({
     const renderTreeFlatRow = (item: TreeFlatRow): React.ReactNode =>
         item.kind === 'node'
             ? renderTreeNodeRow(item.node, item.depth)
-            : renderTagRow(item.row, item.parentKey, item.depth, item.orderedNames);
+            : renderTagRow(
+                  item.row,
+                  item.parentKey,
+                  item.depth,
+                  item.orderedNames,
+                  { path: item.parentPath },
+              );
 
     // Pre-order render of one outliner row + its descendants (flattened into one list).
     const renderTreeEditorNode = (node: HierarchyValueNode, path: number[]): React.ReactNode[] => {
@@ -1806,6 +1823,7 @@ export const TagHierarchyPage = ({
                                                                 UNASSIGNED_TREE_KEY,
                                                                 0,
                                                                 mUnassignedNames,
+                                                                { path: [], isUnassigned: true },
                                                             )
                                                         }
                                                     />
@@ -1816,6 +1834,7 @@ export const TagHierarchyPage = ({
                                                             UNASSIGNED_TREE_KEY,
                                                             0,
                                                             mUnassignedNames,
+                                                            { path: [], isUnassigned: true },
                                                         ),
                                                     )
                                                 )}
