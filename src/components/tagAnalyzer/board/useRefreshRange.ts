@@ -1,15 +1,14 @@
 import type { PanelInfo } from '../domain/PanelDomain';
-import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/model/TimeTypes';
-import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
+import type { TimeRangeConfig } from '../domain/time/model/TimeTypes';
 import {
     hasValidRangeState,
     type ApplyPanelRangeState,
     type BoardPanelRecord,
 } from './BoardPanelState';
+import { showPanelFullRangeUnavailableToast } from './PanelRangeFeedback';
 import {
-    getCoveringNavigatorRange,
-    resolveConfiguredPanelRange,
-    resolveFullRange,
+    getFullRangeFromSeries,
+    resolveConcretePanelRangeState,
 } from './PanelRangeResolver';
 
 type RefreshRangeDependencies = {
@@ -30,16 +29,17 @@ export function useRefreshRange({
     applyPanelRangeState,
 }: RefreshRangeDependencies): RefreshRangeActions {
     async function setFullDataRange(panelInfo: PanelInfo): Promise<void> {
-        const fullDataRange = await resolveFullRange(panelInfo.data.tag_set);
+        const fullRange = await getFullRangeFromSeries(panelInfo.data.tag_set);
 
-        if (!isValidTimeRange(fullDataRange)) {
-            throw new Error('Cannot set full data range without a concrete range.');
+        if (!fullRange) {
+            showPanelFullRangeUnavailableToast();
+            return;
         }
 
         applyPanelRangeState(panelInfo, {
-            panelRange: fullDataRange,
-            navigatorRange: fullDataRange,
-            fullRange: fullDataRange,
+            panelRange: fullRange,
+            navigatorRange: fullRange,
+            fullRange,
         });
     }
 
@@ -60,13 +60,7 @@ export function useRefreshRange({
     }
 
     async function refreshPanelTime(panelInfo: PanelInfo): Promise<void> {
-        const refreshedRange = await resolveConfiguredPanelRange({
-            seriesList: panelInfo.data.tag_set,
-            panelTime: panelInfo.time.range_config,
-            boardTime,
-        });
-
-        await applyConfiguredTimeRange(panelInfo, refreshedRange);
+        await applyConfiguredTimeRange(panelInfo, true);
     }
 
     return {
@@ -77,23 +71,27 @@ export function useRefreshRange({
 
     async function applyConfiguredTimeRange(
         panelInfo: PanelInfo,
-        refreshedRange?: { panelRange: TimeRangeMs; fullRange: TimeRangeMs },
+        useInitialWindowOnFullDataFallback = false,
     ): Promise<void> {
-        const range =
-            refreshedRange ??
-            await resolveConfiguredPanelRange({
-                seriesList: panelInfo.data.tag_set,
-                panelTime: panelInfo.time.range_config,
-                boardTime,
-            });
+        const fullRange = await getFullRangeFromSeries(panelInfo.data.tag_set);
+
+        if (!fullRange) {
+            showPanelFullRangeUnavailableToast();
+            return;
+        }
+
+        const rangeState = resolveConcretePanelRangeState({
+            fullRange,
+            rangeConfig: panelInfo.time.range_config,
+            lastViewedRange: undefined,
+            boardTime,
+            applyInitialMainChartWindow: useInitialWindowOnFullDataFallback,
+        });
 
         applyPanelRangeState(panelInfo, {
-            panelRange: range.panelRange,
-            navigatorRange: getCoveringNavigatorRange(
-                range.panelRange,
-                range.fullRange,
-            ),
-            fullRange: range.fullRange,
+            panelRange: rangeState.panelRange,
+            navigatorRange: rangeState.navigatorRange,
+            fullRange: rangeState.fullRange,
         });
     }
 }

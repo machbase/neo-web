@@ -15,31 +15,20 @@ export function canResolveTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig,
     options: { lastAnchorTime?: number } = {},
 ): boolean {
-    return resolveTimeRangeConfigOrUndefined(timeRangeConfig, options) !== undefined;
+    try {
+        resolveTimeRangeConfig(timeRangeConfig, options);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 export function resolveTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig,
     options: { lastAnchorTime?: number } = {},
 ): TimeRangeMs {
-    const sResolvedRange = resolveTimeRangeConfigOrUndefined(
-        timeRangeConfig,
-        options,
-    );
-
-    if (!sResolvedRange) {
-        throw new Error('Time range config cannot resolve to a concrete range.');
-    }
-
-    return sResolvedRange;
-}
-
-function resolveTimeRangeConfigOrUndefined(
-    timeRangeConfig: TimeRangeConfig,
-    options: { lastAnchorTime?: number },
-): TimeRangeMs | undefined {
     if (hasEmptyBoundary(timeRangeConfig)) {
-        return undefined;
+        throw new Error('Time range config cannot resolve to a concrete range.');
     }
 
     const sLastAnchorTime = Number.isFinite(options.lastAnchorTime)
@@ -47,7 +36,7 @@ function resolveTimeRangeConfigOrUndefined(
         : undefined;
 
     if (hasLastBoundary(timeRangeConfig) && sLastAnchorTime === undefined) {
-        return undefined;
+        throw new Error('Time range config cannot resolve to a concrete range.');
     }
 
     const sCurrentTime = moment().valueOf();
@@ -64,7 +53,11 @@ function resolveTimeRangeConfigOrUndefined(
 
     const sResolvedRange = createTimeRangeMs(sStartTime, sEndTime);
 
-    return isValidTimeRange(sResolvedRange) ? sResolvedRange : undefined;
+    if (!isValidTimeRange(sResolvedRange)) {
+        throw new Error('Time range config cannot resolve to a concrete range.');
+    }
+
+    return sResolvedRange;
 }
 
 function resolveTimeBoundaryToTimestamp(

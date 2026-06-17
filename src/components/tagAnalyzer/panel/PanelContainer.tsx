@@ -81,7 +81,6 @@ export type PanelContainerRuntimeProps = {
 
 type PanelContainerStateProps = {
     isRaw: boolean;
-    isRawLocked: boolean;
     isOverlap: boolean;
 };
 
@@ -89,6 +88,7 @@ type PanelContainerActions = {
     onChartAreaWidthChange: (width: number | undefined) => void;
     refreshData: () => void;
     refreshTime: () => void;
+    expandFullRange: () => void;
     onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
     reloadAfterEditorSave: (
         panelInfo: PanelInfo,
@@ -131,13 +131,13 @@ function PanelContainer({
     },
     state: {
         isRaw,
-        isRawLocked,
         isOverlap,
     },
     actions: {
         onChartAreaWidthChange,
         refreshData,
         refreshTime,
+        expandFullRange,
         onSavePanelInfo,
         reloadAfterEditorSave,
         onToggleRaw,
@@ -154,6 +154,17 @@ function PanelContainer({
     const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.data.tag_set);
     const isNumericXAxis =
         !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.data.tag_set);
+    const effectiveIsRaw = isNumericXAxis || isRaw;
+    const runtimePanelInfo: PanelInfo =
+        effectiveIsRaw === panelInfo.general.is_raw
+            ? panelInfo
+            : {
+                  ...panelInfo,
+                  general: {
+                      ...panelInfo.general,
+                      is_raw: effectiveIsRaw,
+                  },
+              };
     const runtimeAxes = resolvePanelAxesForRuntime(panelInfo.axes);
     const runtimeDisplay = resolvePanelDisplayForRuntime(
         panelInfo.display,
@@ -197,7 +208,7 @@ function PanelContainer({
         resolvedIntervalOption,
         loadStatus,
     } = usePanelChartDataRuntime({
-        panelInfo,
+        panelInfo: runtimePanelInfo,
         rangeState,
         chartAreaWidth,
         rollupTableList,
@@ -260,8 +271,7 @@ function PanelContainer({
         isNumericXAxis,
         overlayMode,
         isEditing,
-        isRaw,
-        isRawLocked,
+        isRaw: effectiveIsRaw,
         isOverlap,
     };
     const runtimeTimeRangeModal =
@@ -530,6 +540,10 @@ function PanelContainer({
     function handlePanelAction(actionKey: PanelActionKey): void {
         switch (actionKey) {
             case PanelActionKey.TOGGLE_RAW:
+                if (isNumericXAxis) {
+                    return;
+                }
+
                 onToggleRaw();
                 return;
             case PanelActionKey.TOGGLE_HIGHLIGHT:
@@ -554,6 +568,9 @@ function PanelContainer({
                 return;
             case PanelActionKey.REFRESH_TIME:
                 refreshTime();
+                return;
+            case PanelActionKey.EXPAND_FULL_RANGE:
+                expandFullRange();
                 return;
             case PanelActionKey.TOGGLE_EDIT:
                 togglePanelEditor();
@@ -771,11 +788,13 @@ function PanelContainer({
                         display: runtimeDisplay,
                         seriesList: panelInfo.data.tag_set,
                         useNormalize: panelInfo.general.use_normalize,
-                        useOrderBy: isRaw ? panelInfo.general.is_order_by : true,
+                        useOrderBy: effectiveIsRaw
+                            ? panelInfo.general.is_order_by
+                            : true,
                         highlights: panelHighlights,
                         annotations: panelInfo.annotations,
                     }}
-                    isRaw={isRaw}
+                    isRaw={effectiveIsRaw}
                     overlayMode={overlayMode}
                     data={{
                         chartData,
@@ -812,7 +831,7 @@ function PanelContainer({
                     pOnClose={closePanelEditor}
                     pOnAnimationEnd={finishPanelEditorClose}
                     pPanelInfo={panelInfo}
-                    pIsRawMode={isRaw}
+                    pIsRawMode={effectiveIsRaw}
                     pPanelRange={panelRange}
                 />
             )}

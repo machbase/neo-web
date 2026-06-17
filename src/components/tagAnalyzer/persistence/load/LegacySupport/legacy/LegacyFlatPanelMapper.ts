@@ -15,6 +15,7 @@ import type {
     TimeRangeConfig,
 } from '../../../../domain/time/model/TimeTypes';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/boundary/TimeBoundaryInput';
+import { normalizePanelNavigatorRangePair } from '../../../../domain/time/boundary/TimeBoundaryValidate';
 import {
     formatTimeUnitShortCode,
     normalizeStoredTimeUnit,
@@ -245,9 +246,9 @@ function toLegacyNumberValue(value: number | undefined): number {
 }
 
 function normalizeLegacyLastViewedRange(
-    lastViewedRange: Partial<PanelNavigatorRangePair> | '' | undefined,
-): Partial<PanelNavigatorRangePair> | undefined {
-    return lastViewedRange === '' ? undefined : lastViewedRange;
+    lastViewedRange: unknown,
+): PanelNavigatorRangePair | undefined {
+    return normalizePanelNavigatorRangePair(lastViewedRange);
 }
 
 function resolveLegacyRangeConfig(

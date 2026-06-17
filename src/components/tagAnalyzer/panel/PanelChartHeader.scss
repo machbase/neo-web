@@ -162,6 +162,7 @@
     }
 
     &__action,
+    &__extra,
     &__more {
         display: inline-flex;
         flex: 0 0 auto;
@@ -172,6 +173,37 @@
             color: #fdb532 !important;
             background-color: rgba(253, 181, 50, 0.12) !important;
         }
+
+        svg,
+        .panel-header__raw-label {
+            color: #fdb532 !important;
+        }
+    }
+
+    &__extra {
+        button {
+            min-width: 62px;
+            max-width: none;
+            height: 22px;
+            padding-inline: 6px;
+            white-space: nowrap;
+        }
+    }
+
+    &__extra--active {
+        button {
+            color: #fdb532 !important;
+            background-color: rgba(253, 181, 50, 0.12) !important;
+        }
+
+        svg {
+            color: #fdb532 !important;
+        }
+    }
+
+    &__extra-item--active {
+        color: #fdb532 !important;
+        background-color: rgba(253, 181, 50, 0.12) !important;
 
         svg,
         .panel-header__raw-label {

@@ -8,6 +8,7 @@ import {
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
     Calendar,
+    GoArrowBoth,
     PlusCircle,
     Save,
     Refresh,
@@ -535,6 +536,12 @@ const TagAnalyzerBoard = ({
             onClick: boardPanels.refreshAllPanelTime,
         },
         {
+            key: 'expand-full-range',
+            tooltip: 'Expand all panels to full data range',
+            icon: <GoArrowBoth size={15} />,
+            onClick: boardPanels.expandAllPanelFullRanges,
+        },
+        {
             key: 'save',
             tooltip: 'Save',
             icon: <Save size={16} />,
@@ -631,7 +638,6 @@ const TagAnalyzerBoard = ({
                                 runtime={sPanelRuntimeProps}
                                 state={{
                                     isRaw: sIsRaw,
-                                    isRawLocked: false,
                                     isOverlap: sIsOverlap,
                                 }}
                                 actions={{
@@ -647,6 +653,9 @@ const TagAnalyzerBoard = ({
                                     },
                                     refreshTime: () => {
                                         void boardPanels.refreshPanelTime(sPanelInfo);
+                                    },
+                                    expandFullRange: () => {
+                                        void boardPanels.expandPanelFullRange(sPanelInfo);
                                     },
                                     onSavePanelInfo: saveCurrentTazBoardWithPanel,
                                     reloadAfterEditorSave:

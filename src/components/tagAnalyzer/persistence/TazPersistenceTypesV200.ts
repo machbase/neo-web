@@ -4,7 +4,6 @@ import type {
     ValueRange,
 } from '../domain/PanelDomain';
 import type {
-    PanelNavigatorRangePair,
     TimeRangeConfig,
 } from '../domain/time/model/TimeTypes';
 
@@ -64,7 +63,7 @@ export type PersistedPanelToolbarV200 = {
 export type PersistedPanelTimeV200 = {
     rangeConfig: TimeRangeConfig;
     useLastViewedRange?: boolean | undefined;
-    lastViewedRange?: Partial<PanelNavigatorRangePair> | undefined;
+    lastViewedRange?: unknown;
 };
 
 export type PersistedPanelAxisThresholdV200 = {

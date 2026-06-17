@@ -1,5 +1,6 @@
 import type { PanelInfo } from '../../domain/PanelDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
+import { normalizePanelNavigatorRangePair } from '../../domain/time/boundary/TimeBoundaryValidate';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,
@@ -58,6 +59,9 @@ export function parseLoadedPanelTazVer204(
         general: {
             ...panelInfo.general,
             is_order_by: panelInfo.general.is_order_by ?? false,
+            last_viewed_range: normalizePanelNavigatorRangePair(
+                panelInfo.general.last_viewed_range,
+            ),
         },
         data: {
             ...panelInfo.data,

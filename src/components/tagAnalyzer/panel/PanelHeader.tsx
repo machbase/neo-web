@@ -9,12 +9,14 @@ import {
 } from 'react';
 import {
     Check,
+    CiCircleMore,
     Delete,
     Download,
     GearFill,
+    GoArrowBoth,
     LineChart,
     LuTimerReset,
-    MdFlagCircle,
+    PiHighlighterLight,
     PiSelectionPlusBold,
     Refresh,
     TbTimezone,
@@ -40,6 +42,7 @@ export enum PanelActionKey {
     SET_GLOBAL_TIME = 'SET_GLOBAL_TIME',
     REFRESH_DATA = 'REFRESH_DATA',
     REFRESH_TIME = 'REFRESH_TIME',
+    EXPAND_FULL_RANGE = 'EXPAND_FULL_RANGE',
     TOGGLE_EDIT = 'TOGGLE_EDIT',
     OPEN_EXPORT_CSV = 'OPEN_EXPORT_CSV',
     OPEN_DELETE_CONFIRM = 'OPEN_DELETE_CONFIRM',
@@ -62,7 +65,6 @@ export type PanelHeaderRuntimeState = {
     overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
-    isRawLocked: boolean;
     isOverlap: boolean;
 };
 
@@ -86,9 +88,17 @@ const PANEL_CONTEXT_ACTION_KEYS: PanelActionKey[] = [
     PanelActionKey.SET_GLOBAL_TIME,
     PanelActionKey.REFRESH_DATA,
     PanelActionKey.REFRESH_TIME,
+    PanelActionKey.EXPAND_FULL_RANGE,
     PanelActionKey.TOGGLE_EDIT,
     PanelActionKey.OPEN_DELETE_CONFIRM,
 ];
+const PANEL_EXTRA_ACTION_KEYS = new Set<PanelActionKey>([
+    PanelActionKey.TOGGLE_HIGHLIGHT,
+    PanelActionKey.TOGGLE_ANNOTATION,
+    PanelActionKey.SET_GLOBAL_TIME,
+    PanelActionKey.REFRESH_DATA,
+    PanelActionKey.EXPAND_FULL_RANGE,
+]);
 const RAW_BUTTON_STYLE = { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 } as const;
 const DRAG_SELECT_BUTTON_STYLE = { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 } as const;
 
@@ -104,7 +114,7 @@ function buildPanelActions(
         {
             key: PanelActionKey.TOGGLE_RAW,
             label: sRawLabel,
-            tooltip: state.isRawLocked
+            tooltip: state.isNumericXAxis
                 ? 'Raw mode is required for numeric x-axis'
                 : undefined,
             icon: (
@@ -117,7 +127,7 @@ function buildPanelActions(
             ),
             visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.isRaw,
-            disabled: state.isRawLocked,
+            disabled: state.isNumericXAxis,
             className: 'panel-header__action--raw',
             buttonStyle: RAW_BUTTON_STYLE,
         },
@@ -125,7 +135,7 @@ function buildPanelActions(
             key: PanelActionKey.TOGGLE_HIGHLIGHT,
             label: 'Highlight',
             tooltip: 'Drag on chart to create highlight',
-            icon: <MdFlagCircle size={15} />,
+            icon: <PiHighlighterLight size={16} />,
             visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.HIGHLIGHT,
         },
@@ -166,7 +176,7 @@ function buildPanelActions(
         },
         {
             key: PanelActionKey.REFRESH_DATA,
-            label: 'Refresh data',
+            label: 'Reload data',
             icon: <Refresh size={14} />,
             visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
         },
@@ -174,6 +184,12 @@ function buildPanelActions(
             key: PanelActionKey.REFRESH_TIME,
             label: 'Refresh time',
             icon: <LuTimerReset size={16} />,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
+        },
+        {
+            key: PanelActionKey.EXPAND_FULL_RANGE,
+            label: 'Expand to full data range',
+            icon: <GoArrowBoth size={15} />,
             visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
         },
         {
@@ -290,6 +306,58 @@ function PanelHeaderMoreMenu({
     );
 }
 
+function PanelHeaderExtraMenu({
+    actions,
+    onAction,
+}: {
+    actions: PanelActionDescriptor[];
+    onAction: (actionKey: PanelActionKey) => void;
+}) {
+    const sIsActive = actions.some((action) => action.active === true);
+    const sClassName = [
+        'panel-header__extra',
+        sIsActive ? 'panel-header__extra--active' : undefined,
+    ]
+        .filter(Boolean)
+        .join(' ');
+
+    return (
+        <span className={sClassName}>
+            <Menu.Root>
+                <Menu.Trigger>
+                    <Button
+                        aria-label="Extra panel actions"
+                        size="xsm"
+                        variant="ghost"
+                        active={sIsActive}
+                        icon={<CiCircleMore size={15} />}
+                        iconPosition="right"
+                    >
+                        Extra
+                    </Button>
+                </Menu.Trigger>
+                <Menu.Content align="right">
+                    {actions.map((action) => (
+                        <Menu.Item
+                            key={action.key}
+                            className={
+                                action.active
+                                    ? 'panel-header__extra-item--active'
+                                    : undefined
+                            }
+                            disabled={action.disabled}
+                            icon={action.icon}
+                            onClick={() => onAction(action.key)}
+                        >
+                            {action.contextLabel ?? action.label}
+                        </Menu.Item>
+                    ))}
+                </Menu.Content>
+            </Menu.Root>
+        </span>
+    );
+}
+
 type PanelHeaderProps = {
     runtimeState: PanelHeaderRuntimeState;
     onAction: (actionKey: PanelActionKey) => void;
@@ -336,8 +404,15 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const sActions = buildPanelActions(runtimeState, {
         showExportCsv: getExperiment(),
     });
+    const sDirectActions = sActions.filter(
+        (action) => !PANEL_EXTRA_ACTION_KEYS.has(action.key),
+    );
+    const sExtraActions = sActions.filter((action) =>
+        PANEL_EXTRA_ACTION_KEYS.has(action.key),
+    );
     const sMoreActions = sActions.filter(
         (action) =>
+            !PANEL_EXTRA_ACTION_KEYS.has(action.key) &&
             action.visibilityPriority !==
             PanelActionVisibilityPriority.PRIMARY,
     );
@@ -477,13 +552,17 @@ const PanelHeader = (props: PanelHeaderProps) => {
                 )}
             </div>
             <div className="panel-header__actions">
-                {sActions.map((action) => (
+                {sDirectActions.map((action) => (
                     <PanelHeaderActionButton
                         key={action.key}
                         action={action}
                         onAction={onAction}
                     />
                 ))}
+                <PanelHeaderExtraMenu
+                    actions={sExtraActions}
+                    onAction={onAction}
+                />
                 <PanelHeaderMoreMenu
                     actions={sMoreActions}
                     onAction={onAction}

@@ -3,10 +3,7 @@ import type {
     PanelEChartType,
     ValueRange,
 } from '../../../../domain/PanelDomain';
-import type {
-    PanelNavigatorRangePair,
-    TimeRangeConfig,
-} from '../../../../domain/time/model/TimeTypes';
+import type { TimeRangeConfig } from '../../../../domain/time/model/TimeTypes';
 
 type LegacyStoredTimeBoundaryValue = string | number | '';
 
@@ -17,7 +14,7 @@ export type LegacyFlatPanelInfo = {
     range_bgn: LegacyStoredTimeBoundaryValue;
     range_end: LegacyStoredTimeBoundaryValue;
     raw_keeper: boolean | undefined;
-    time_keeper: Partial<PanelNavigatorRangePair> | '' | undefined;
+    time_keeper: unknown;
     default_range: ValueRange | undefined;
     count: number | undefined;
     interval_type: string | undefined;

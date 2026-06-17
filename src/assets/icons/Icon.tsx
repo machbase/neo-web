@@ -98,7 +98,7 @@ export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp, IoLo
 
 export { IoMdShare as Share, IoMdCheckmark as Checkmark } from 'react-icons/io';
 
-export { PiFileCsvThin, PiSelectionPlusBold } from 'react-icons/pi';
+export { PiFileCsvThin, PiHighlighterLight, PiSelectionPlusBold } from 'react-icons/pi';
 
 export { BiLineChart as LineChart, BiDownload, BiLink, BiPlay as Play, BiSolidDownArrow, BiSolidChart, BiSolidEdit } from 'react-icons/bi';
 
@@ -123,7 +123,7 @@ export {
 
 export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
-export { GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber, GoPlus } from 'react-icons/go';
+export { GoArrowBoth, GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber, GoPlus } from 'react-icons/go';
 
 export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
 
@@ -134,6 +134,8 @@ export { FaFolderOpen as FolderOpen, FaFolder as Folder, FaArrowRotateRight as R
 export { BsGit, BsTable, BsArrowsExpand, BsArrowsCollapse } from 'react-icons/bs';
 
 export { CgRename as Rename } from 'react-icons/cg';
+
+export { CiCircleMore } from 'react-icons/ci';
 
 export { TfiLayoutColumn3Alt } from 'react-icons/tfi';
 

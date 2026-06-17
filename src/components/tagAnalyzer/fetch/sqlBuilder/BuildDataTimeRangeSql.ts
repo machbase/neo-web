@@ -40,12 +40,11 @@ export function buildVirtualStatOrMountedTableDataTimeRangeSql(
 
     const sDatabaseName = sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0];
     const sSourceTableName = sSplitTable.at(-1);
-    const sTagFilter = tagNameList.join("','");
 
-    return buildQuerySql(
-        buildSelectSqlPart(`${MIN_TIME_COLUMN_NAME}, ${MAX_TIME_COLUMN_NAME}`),
-        buildTableTargetSqlPart(`${sDatabaseName}.V$${sSourceTableName}_STAT`),
-        `${WHERE_KEYWORD} ${NAME_COLUMN_NAME} IN ('${sTagFilter}')`,
+    return buildVirtualStatTimeRangeSql(
+        sDatabaseName,
+        String(sSourceTableName),
+        tagNameList,
     );
 }
 
@@ -130,14 +129,40 @@ function buildMachbaseStatTimeRangeSql(
     const sUserName = tableInfo.length === 2
         ? tableInfo[0]
         : ADMIN_ID.toUpperCase();
-    const sTags = info.tags.map((tag) => `'${tag}'`).join(',');
+
+    return buildVirtualStatTimeRangeSql(sUserName, sTableName, info.tags);
+}
+
+function buildVirtualStatTimeRangeSql(
+    userName: string,
+    tableName: string,
+    tagNameList: string[],
+): string {
+    const sTags = tagNameList.map((tag) => `'${tag}'`).join(',');
+    const sVirtualStatTableName = buildVirtualStatTableName(userName, tableName);
 
     return buildQuerySql(
         buildSelectSqlPart([
-            `MIN(min_time) ${AS_KEYWORD} ${MIN_TIME_RESULT_ALIAS}`,
-            `MAX(max_time) ${AS_KEYWORD} ${MAX_TIME_RESULT_ALIAS}`,
+            `MIN(${MIN_TIME_COLUMN_NAME}) ${AS_KEYWORD} ${MIN_TIME_RESULT_ALIAS}`,
+            `MAX(${MAX_TIME_COLUMN_NAME}) ${AS_KEYWORD} ${MAX_TIME_RESULT_ALIAS}`,
         ].join(', ')),
-        buildTableTargetSqlPart(`${sUserName}.v$${sTableName}_stat`),
+        buildTableTargetSqlPart(sVirtualStatTableName),
         `${WHERE_KEYWORD} ${NAME_COLUMN_NAME} IN (${sTags})`,
     );
+}
+
+function buildVirtualStatTableName(
+    userName: string,
+    tableName: string,
+): string {
+    const sSourceTableName = getVirtualStatSourceTableName(tableName);
+
+    return `${userName}.V$${sSourceTableName}_STAT`;
+}
+
+function getVirtualStatSourceTableName(tableName: string): string {
+    const sTableName = tableName.split('.').at(-1) ?? tableName;
+    const sVirtualStatMatch = sTableName.match(/^V\$(.*)_STAT$/i);
+
+    return sVirtualStatMatch ? sVirtualStatMatch[1] : sTableName;
 }

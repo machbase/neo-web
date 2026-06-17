@@ -1,10 +1,13 @@
 import type { PanelRangeState } from '../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
-import { EMPTY_TIME_RANGE } from '../domain/time/model/TimeConstants';
 import {
     canResolveTimeRangeConfig,
     resolveTimeRangeConfig,
 } from '../domain/time/resolution/TimeRangeConfigResolver';
+import {
+    hasCompleteTimeRangeConfig,
+    shouldApplyInitialMainChartWindow,
+} from '../domain/time/boundary/TimeBoundaryValidate';
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
@@ -20,83 +23,87 @@ import {
 
 const INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO = 0.25;
 
-export async function resolveConcretePanelRangeState({
-    seriesList,
+export function resolveConcretePanelRangeState({
+    fullRange,
     rangeConfig,
     lastViewedRange,
     boardTime,
     applyInitialMainChartWindow = false,
 }: {
-    seriesList: PanelSeriesDefinition[];
+    fullRange: TimeRangeMs;
     rangeConfig: TimeRangeConfig;
-    lastViewedRange: Partial<PanelNavigatorRangePair> | undefined;
+    lastViewedRange: PanelNavigatorRangePair | undefined;
     boardTime: TimeRangeConfig;
     applyInitialMainChartWindow?: boolean;
-}): Promise<PanelRangeState> {
-    const fullDataTimeRange = await fetchPanelSeriesDataTimeRange(seriesList);
-    const activeTimeConfig = hasCompleteTimeRangeConfig(rangeConfig)
-        ? rangeConfig
-        : boardTime;
+}): PanelRangeState {
     const timeRangeResolutionOptions = {
-        lastAnchorTime: fullDataTimeRange?.endTime,
+        lastAnchorTime: fullRange.endTime,
     };
-    const fallbackRange = isValidTimeRange(fullDataTimeRange)
-        ? fullDataTimeRange
-        : EMPTY_TIME_RANGE;
-    const resolvedRange = canResolveTimeRangeConfig(
-        activeTimeConfig,
-        timeRangeResolutionOptions,
-    )
-        ? resolveTimeRangeConfig(activeTimeConfig, timeRangeResolutionOptions)
-        : fallbackRange;
-    const fullDataRange =
-        isValidTimeRange(fullDataTimeRange) ? fullDataTimeRange : resolvedRange;
-    let resolvedRangeState: PanelRangeState;
 
-    if (hasConcreteLastViewedRange(lastViewedRange)) {
-        resolvedRangeState = {
+    if (lastViewedRange) {
+        return assertConcretePanelRangeState({
             panelRange: lastViewedRange.panelRange,
             navigatorRange: lastViewedRange.navigatorRange,
-            fullRange: fullDataRange,
-        };
-    } else if (
+            fullRange,
+        });
+    }
+
+    const panelRange = resolveConfiguredTimeRange(
+        rangeConfig,
+        timeRangeResolutionOptions,
+    );
+
+    if (panelRange) {
+        return assertConcretePanelRangeState({
+            panelRange,
+            navigatorRange: getCoveringNavigatorRange(panelRange, fullRange),
+            fullRange,
+        });
+    }
+
+    const boardRange = resolveConfiguredTimeRange(
+        boardTime,
+        timeRangeResolutionOptions,
+    );
+
+    if (boardRange) {
+        return assertConcretePanelRangeState({
+            panelRange: boardRange,
+            navigatorRange: getCoveringNavigatorRange(boardRange, fullRange),
+            fullRange,
+        });
+    }
+
+    if (
         shouldApplyInitialMainChartWindow({
             applyInitialMainChartWindow,
             rangeConfig,
             boardTime,
         })
     ) {
-        resolvedRangeState = {
+        return assertConcretePanelRangeState({
             panelRange: createCenteredRangeByRatio(
-                fullDataRange,
+                fullRange,
                 INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO,
             ),
-            navigatorRange: fullDataRange,
-            fullRange: fullDataRange,
-        };
-    } else {
-        resolvedRangeState = {
-            panelRange: resolvedRange,
-            navigatorRange: getCoveringNavigatorRange(
-                resolvedRange,
-                fullDataRange,
-            ),
-            fullRange: fullDataRange,
-        };
+            navigatorRange: fullRange,
+            fullRange,
+        });
     }
 
-    assertConcretePanelRangeState(resolvedRangeState);
-
-    return resolvedRangeState;
+    return assertConcretePanelRangeState({
+        panelRange: fullRange,
+        navigatorRange: fullRange,
+        fullRange,
+    });
 }
 
-export async function resolveBoardTimeRange(
-    seriesList: PanelSeriesDefinition[],
+export function resolveBoardTimeRange(
     boardTime: TimeRangeConfig,
-): Promise<TimeRangeMs> {
-    const dataTimeRange = await fetchPanelSeriesDataTimeRange(seriesList);
+    fullRange: TimeRangeMs,
+): TimeRangeMs {
     const sBoardTimeResolutionOptions = {
-        lastAnchorTime: dataTimeRange?.endTime,
+        lastAnchorTime: fullRange.endTime,
     };
     const boardRange = canResolveTimeRangeConfig(
         boardTime,
@@ -104,8 +111,7 @@ export async function resolveBoardTimeRange(
     )
         ? resolveTimeRangeConfig(boardTime, sBoardTimeResolutionOptions)
         : undefined;
-    const resolvedRange = boardRange ??
-        (isValidTimeRange(dataTimeRange) ? dataTimeRange : EMPTY_TIME_RANGE);
+    const resolvedRange = boardRange ?? fullRange;
 
     if (!isValidTimeRange(resolvedRange)) {
         throw new Error('Cannot apply board time without a concrete range.');
@@ -114,58 +120,16 @@ export async function resolveBoardTimeRange(
     return resolvedRange;
 }
 
-export async function resolveFullRange(
+export async function getFullRangeFromSeries(
     seriesList: PanelSeriesDefinition[],
 ): Promise<TimeRangeMs | undefined> {
-    const dataTimeRange = await fetchPanelSeriesDataTimeRange(seriesList);
+    if (seriesList.length === 0) {
+        return undefined;
+    }
+
+    const dataTimeRange = await fetchSeriesDataTimeRange(seriesList);
 
     return isValidTimeRange(dataTimeRange) ? dataTimeRange : undefined;
-}
-
-export async function resolveConfiguredPanelRange({
-    seriesList,
-    panelTime,
-    boardTime,
-}: {
-    seriesList: PanelSeriesDefinition[];
-    panelTime: TimeRangeConfig;
-    boardTime: TimeRangeConfig;
-}): Promise<{ panelRange: TimeRangeMs; fullRange: TimeRangeMs }> {
-    const shouldUseBoardTime = hasConfiguredTimeRange(boardTime);
-    const activeTimeConfig = shouldUseBoardTime ? boardTime : panelTime;
-    const fullDataTimeRange =
-        !shouldUseBoardTime || !canResolveTimeRangeConfig(activeTimeConfig)
-            ? await fetchPanelSeriesDataTimeRange(seriesList)
-            : undefined;
-    const timeRangeResolutionOptions = {
-        lastAnchorTime: fullDataTimeRange?.endTime,
-    };
-    const fallbackPanelRange = isValidTimeRange(fullDataTimeRange)
-        ? fullDataTimeRange
-        : EMPTY_TIME_RANGE;
-    const resolvedPanelRange = canResolveTimeRangeConfig(
-        activeTimeConfig,
-        timeRangeResolutionOptions,
-    )
-        ? resolveTimeRangeConfig(activeTimeConfig, timeRangeResolutionOptions)
-        : fallbackPanelRange;
-    const resolvedFullRange =
-        !shouldUseBoardTime && isValidTimeRange(fullDataTimeRange)
-            ? fullDataTimeRange
-            : resolvedPanelRange;
-
-    if (!isValidTimeRange(resolvedPanelRange)) {
-        throw new Error('Cannot resolve panel time without a concrete panel range.');
-    }
-
-    if (!isValidTimeRange(resolvedFullRange)) {
-        throw new Error('Cannot resolve panel time without a concrete full range.');
-    }
-
-    return {
-        panelRange: resolvedPanelRange,
-        fullRange: resolvedFullRange,
-    };
 }
 
 export function getCoveringNavigatorRange(
@@ -178,49 +142,19 @@ export function getCoveringNavigatorRange(
     };
 }
 
-async function fetchPanelSeriesDataTimeRange(
-    seriesList: PanelSeriesDefinition[],
-): Promise<TimeRangeMs | undefined> {
-    if (seriesList.length === 0) {
+function resolveConfiguredTimeRange(
+    timeRangeConfig: TimeRangeConfig,
+    timeRangeResolutionOptions: { lastAnchorTime?: number },
+): TimeRangeMs | undefined {
+    if (!hasCompleteTimeRangeConfig(timeRangeConfig)) {
         return undefined;
     }
 
-    return fetchSeriesDataTimeRange(seriesList);
-}
+    if (!canResolveTimeRangeConfig(timeRangeConfig, timeRangeResolutionOptions)) {
+        return undefined;
+    }
 
-function hasConfiguredTimeRange(timeRangeConfig: TimeRangeConfig): boolean {
-    return timeRangeConfig.start.kind !== 'empty' ||
-        timeRangeConfig.end.kind !== 'empty';
-}
-
-function hasCompleteTimeRangeConfig(timeRangeConfig: TimeRangeConfig): boolean {
-    return timeRangeConfig.start.kind !== 'empty' &&
-        timeRangeConfig.end.kind !== 'empty';
-}
-
-function hasConcreteLastViewedRange(
-    lastViewedRange: Partial<PanelNavigatorRangePair> | undefined,
-): lastViewedRange is PanelNavigatorRangePair {
-    return (
-        isValidTimeRange(lastViewedRange?.panelRange) &&
-        isValidTimeRange(lastViewedRange?.navigatorRange)
-    );
-}
-
-function shouldApplyInitialMainChartWindow({
-    applyInitialMainChartWindow,
-    rangeConfig,
-    boardTime,
-}: {
-    applyInitialMainChartWindow: boolean;
-    rangeConfig: TimeRangeConfig;
-    boardTime: TimeRangeConfig;
-}): boolean {
-    return (
-        applyInitialMainChartWindow &&
-        !hasConfiguredTimeRange(rangeConfig) &&
-        !hasConfiguredTimeRange(boardTime)
-    );
+    return resolveTimeRangeConfig(timeRangeConfig, timeRangeResolutionOptions);
 }
 
 function createCenteredRangeByRatio(
@@ -236,7 +170,9 @@ function createCenteredRangeByRatio(
     );
 }
 
-function assertConcretePanelRangeState(rangeState: PanelRangeState): void {
+function assertConcretePanelRangeState(
+    rangeState: PanelRangeState,
+): PanelRangeState {
     if (
         !isValidTimeRange(rangeState.panelRange) ||
         !isValidTimeRange(rangeState.navigatorRange) ||
@@ -244,4 +180,6 @@ function assertConcretePanelRangeState(rangeState: PanelRangeState): void {
     ) {
         throw new Error('Cannot resolve panel without a concrete range.');
     }
+
+    return rangeState;
 }

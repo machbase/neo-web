@@ -36,7 +36,7 @@ export type PanelGeneral = {
     chart_title: string;
     use_zoom: boolean;
     use_last_viewed_range: boolean;
-    last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
+    last_viewed_range: PanelNavigatorRangePair | undefined;
     is_raw: boolean;
     is_order_by: boolean;
     use_normalize: boolean;

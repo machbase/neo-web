@@ -17,10 +17,14 @@ import {
 import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
 import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
 import { normalizeStoredTimeUnit } from '../../../../domain/time/interval/TimeIntervalUtils';
-import type {
-    PanelNavigatorRangePair,
-    TimeRangeMs,
-} from '../../../../domain/time/model/TimeTypes';
+import type { PanelNavigatorRangePair } from '../../../../domain/time/model/TimeTypes';
+import { normalizePanelNavigatorRangePair } from '../../../../domain/time/boundary/TimeBoundaryValidate';
+
+type NormalizedPersistedPanelInfoV200 = PersistedPanelInfoV200 & {
+    time: PersistedPanelInfoV200['time'] & {
+        lastViewedRange: PanelNavigatorRangePair | undefined;
+    };
+};
 
 export function isPersistedPanelInfoV200(
     panelInfo: unknown,
@@ -183,7 +187,7 @@ function createPanelAnnotationsFromPersistedPanel(
 
 function normalizePersistedPanelInfoV200(
     panelInfo: PersistedPanelInfoV200,
-): PersistedPanelInfoV200 {
+): NormalizedPersistedPanelInfoV200 {
     const sNormalizedRangeConfig = normalizePersistedTimeRangeConfig(
         panelInfo.time.rangeConfig,
     );
@@ -215,38 +219,9 @@ function normalizePersistedPanelInfoV200(
 }
 
 function normalizePersistedLastViewedRange(
-    lastViewedRange: Partial<PanelNavigatorRangePair> | undefined,
-): Partial<PanelNavigatorRangePair> | undefined {
-    const sPanelRange = normalizePersistedTimeRange(lastViewedRange?.panelRange);
-    const sNavigatorRange = normalizePersistedTimeRange(
-        lastViewedRange?.navigatorRange,
-    );
-
-    if (!sPanelRange && !sNavigatorRange) {
-        return undefined;
-    }
-
-    return {
-        panelRange: sPanelRange,
-        navigatorRange: sNavigatorRange,
-    };
-}
-
-function normalizePersistedTimeRange(
-    timeRange: TimeRangeMs | undefined,
-): TimeRangeMs | undefined {
-    if (
-        !timeRange ||
-        typeof timeRange.startTime !== 'number' ||
-        typeof timeRange.endTime !== 'number'
-    ) {
-        return undefined;
-    }
-
-    return {
-        startTime: timeRange.startTime,
-        endTime: timeRange.endTime,
-    };
+    lastViewedRange: unknown,
+): PanelNavigatorRangePair | undefined {
+    return normalizePanelNavigatorRangePair(lastViewedRange);
 }
 
 function normalizePersistedSeriesInfoV200(

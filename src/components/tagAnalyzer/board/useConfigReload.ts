@@ -12,7 +12,9 @@ export type ReloadAfterEditorSaveOptions = {
 type ConfigReloadDependencies = {
     getBoardPanelRecord: (panelKey: string) => BoardPanelRecord;
     applyPanelRangeState: ApplyPanelRangeState;
-    resolvePanelRangeState: (panelInfo: PanelInfo) => Promise<PanelRangeState>;
+    resolvePanelRangeState: (
+        panelInfo: PanelInfo,
+    ) => Promise<PanelRangeState | undefined>;
     setFullDataRange: (panelInfo: PanelInfo) => Promise<void>;
 };
 
@@ -66,6 +68,10 @@ export function useConfigReload({
 
         void (async () => {
             const sResolvedRangeState = await resolvePanelRangeState(nextPanelInfo);
+
+            if (!sResolvedRangeState) {
+                return;
+            }
 
             applyPanelRangeState(nextPanelInfo, {
                 ...sResolvedRangeState,
