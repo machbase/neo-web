@@ -11,6 +11,18 @@ export interface DataViewerTag {
     name: string;
     nodeId?: string;
     dataType?: string;
+    asset?: Record<string, unknown>;
+}
+
+export interface DataViewerAssetHierarchy {
+    column: string;
+    schema: string[];
+    tree?: unknown[];
+}
+
+export interface DataViewerTagList {
+    tags: DataViewerTag[];
+    assetHierarchy?: DataViewerAssetHierarchy;
 }
 
 export interface DataViewerResult {
@@ -44,22 +56,75 @@ const pickDataTypeValue = (row: Record<string, unknown>) => {
     return dataType === null || dataType === undefined ? undefined : String(dataType);
 };
 
-export async function listTableTags(params: DataViewerTableParams & { tagColumn?: string }): Promise<DataViewerTag[]> {
+const parseJsonObject = (value: unknown): Record<string, unknown> | undefined => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+    if (typeof value !== 'string' || !value.trim().startsWith('{')) return undefined;
+
+    try {
+        const parsed = JSON.parse(value);
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+const normalizeAssetHierarchy = (row: Record<string, unknown>): DataViewerAssetHierarchy | undefined => {
+    for (const value of Object.values(row)) {
+        const parsed = parseJsonObject(value);
+        if (!parsed) continue;
+        const schema = Array.isArray(parsed.schema) ? parsed.schema.map((item) => String(item)).filter(Boolean) : [];
+        const tree = Array.isArray(parsed.tree) ? parsed.tree : undefined;
+        if (schema.length === 0 && !tree) continue;
+
+        return {
+            column: String(parsed.column || 'asset').toLowerCase(),
+            schema,
+            tree,
+        };
+    }
+
+    return undefined;
+};
+
+export async function listTableTags(params: DataViewerTableParams & { tagColumn?: string }): Promise<DataViewerTagList> {
     const metaTable = buildQualifiedMetaTableName(params);
     const tagColumn = normalizeIdentifier(params.tagColumn, 'NAME');
     const { svrState, svrData, svrReason } = await fetchQuery(`select * from ${metaTable} where ${tagColumn} is not null order by _id asc limit 10000`);
     if (!svrState) throw new Error(svrReason || 'Failed to load tags');
 
-    return normalizeRows(svrData)
-        .map((row) => {
-            const name = String(row[tagColumn.toLowerCase()] ?? row.name ?? '');
+    let assetHierarchy: DataViewerAssetHierarchy | undefined;
+    const rows = normalizeRows(svrData);
+    const tags = rows
+        .map((row): DataViewerTag | null => {
+            const name = String(row.name ?? row[tagColumn.toLowerCase()] ?? '').trim();
+            if (!name) return null;
+            if (name === '__machbase_hierarchy__') {
+                assetHierarchy = normalizeAssetHierarchy(row);
+                return null;
+            }
+
+            const assetColumn = assetHierarchy?.column ?? 'asset';
             return {
                 name,
                 nodeId: name,
                 dataType: pickDataTypeValue(row),
+                asset: parseJsonObject(row[assetColumn]),
             };
         })
-        .filter((tag) => tag.name !== '');
+        .filter((tag): tag is DataViewerTag => tag !== null);
+
+    if (assetHierarchy) {
+        const hierarchy = assetHierarchy;
+        return {
+            tags: tags.map((tag) => ({
+                ...tag,
+                asset: tag.asset ?? parseJsonObject(rows.find((row) => String(row.name ?? '').trim() === tag.name)?.[hierarchy.column]),
+            })),
+            assetHierarchy: hierarchy,
+        };
+    }
+
+    return { tags };
 }
 
 export async function queryTagData({

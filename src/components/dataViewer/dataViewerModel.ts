@@ -128,6 +128,84 @@ export function buildTagChartSeries(rows: Record<string, unknown>[] = []) {
     }));
 }
 
+export type DataViewerTreeRow =
+    | {
+          type: 'folder';
+          id: string;
+          label: string;
+          depth: number;
+          path: string[];
+          parentIds: string[];
+      }
+    | {
+          type: 'tag';
+          id: string;
+          label: string;
+          depth: number;
+          name: string;
+          dataType?: string;
+          parentIds: string[];
+      };
+
+export function filterDataViewerTags<T extends { name: string; dataType?: string }>(tags: T[], filter: string) {
+    const q = filter.trim().toLowerCase();
+    if (!q) return tags;
+    return tags.filter((tag) => tag.name.toLowerCase().includes(q) || tag.dataType?.toLowerCase().includes(q));
+}
+
+export function buildAssetTreeRows(
+    tags: Array<{ name: string; dataType?: string; asset?: Record<string, unknown> }>,
+    schema: string[] = [],
+    filter: string,
+): DataViewerTreeRow[] {
+    const q = filter.trim().toLowerCase();
+    const rows: DataViewerTreeRow[] = [];
+    const folderIds = new Set<string>();
+    const folderIdForPath = (path: string[]) => `folder:${path.join('/')}`;
+
+    const pushFolder = (path: string[], depth: number) => {
+        const id = folderIdForPath(path);
+        if (folderIds.has(id)) return;
+        folderIds.add(id);
+        rows.push({
+            type: 'folder',
+            id,
+            label: path[path.length - 1],
+            depth,
+            path,
+            parentIds: path.slice(0, -1).map((_, index) => folderIdForPath(path.slice(0, index + 1))),
+        });
+    };
+
+    tags.forEach((tag) => {
+        const asset = tag.asset ?? {};
+        const path = schema.map((key) => String(asset[key] ?? '').trim()).filter(Boolean);
+        const searchable = [tag.name, tag.dataType, ...path].filter(Boolean).join(' ').toLowerCase();
+        if (q && !searchable.includes(q)) return;
+
+        path.forEach((_, index) => {
+            pushFolder(path.slice(0, index + 1), index);
+        });
+
+        rows.push({
+            type: 'tag',
+            id: `tag:${tag.name}`,
+            label: tag.name,
+            depth: path.length,
+            name: tag.name,
+            dataType: tag.dataType,
+            parentIds: path.map((_, index) => folderIdForPath(path.slice(0, index + 1))),
+        });
+    });
+
+    return rows;
+}
+
+export function filterVisibleAssetRows(rows: DataViewerTreeRow[], collapsedFolderIds: Set<string>) {
+    if (collapsedFolderIds.size === 0) return rows;
+    return rows.filter((row) => !row.parentIds.some((id) => collapsedFolderIds.has(id)));
+}
+
 export function formatDataViewerTime(value: unknown, timeFormat: string, timeZone: string) {
     if (value === null || value === undefined || value === '') return '';
     if (timeFormat === 'ns' || timeFormat === 'us' || timeFormat === 'ms' || timeFormat === 's') return String(value);

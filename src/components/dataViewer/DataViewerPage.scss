@@ -748,6 +748,41 @@
     flex-shrink: 0;
 }
 
+.neo-data-viewer .data-viewer-tag-tabs {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spacing-24);
+    padding: 0;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.neo-data-viewer .data-viewer-tag-tab {
+    min-height: 40px;
+    padding: 0 var(--spacing-4);
+    border: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-on-surface-tertiary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-tag-tab:hover {
+    background-color: transparent;
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .data-viewer-tag-tab.is-active {
+    background-color: transparent;
+    border-bottom-color: var(--color-primary);
+    color: var(--color-on-surface);
+}
+
 .neo-data-viewer .data-viewer-tag-search input,
 .neo-data-viewer .neo-data-viewer-modal input,
 .neo-data-viewer .neo-data-viewer-modal select {
@@ -788,6 +823,14 @@
 .neo-data-viewer .data-viewer-tag-row.is-active {
     background-color: var(--color-surface-active);
     color: var(--color-on-primary);
+}
+
+.neo-data-viewer .data-viewer-tag-row input[type='checkbox'] {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    accent-color: var(--color-primary);
+    cursor: pointer;
 }
 
 .neo-data-viewer .node-tree-row {

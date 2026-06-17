@@ -309,7 +309,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             tagColumn: String(mColList?.rows?.[0]?.[0] ?? 'NAME'),
             timeColumn: String(mColList?.rows?.[1]?.[0] ?? 'TIME'),
             valueColumn: String(mColList?.rows?.[2]?.[0] ?? 'VALUE'),
-            metaTagColumn: String(mMetaColList?.rows?.[0]?.[0] ?? mColList?.rows?.[0]?.[0] ?? 'NAME'),
+            metaTagColumn: 'NAME',
         };
         const existing = sBoardList.find((board) => board.type === 'DataViewer');
         if (existing) {

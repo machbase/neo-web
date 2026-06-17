@@ -5,7 +5,7 @@ const USER_ID = process.env.NEO_WEB_USER ?? 'sys';
 const PASSWORD = process.env.NEO_WEB_PASSWORD ?? 'manager';
 const TABLE_NAME = process.env.NEO_WEB_DATA_VIEWER_TABLE ?? 'EXAMPLE_OPCUA_TAG';
 
-test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ page }) => {
+async function openDataViewer(page: import('@playwright/test').Page, tableName: string) {
     await page.setViewportSize({ width: 1920, height: 963 });
     await page.goto(BASE_URL);
 
@@ -22,7 +22,7 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
     }
 
     await page.getByRole('button', { name: 'DBEXPLORER' }).click();
-    const tableItem = page.getByText(TABLE_NAME, { exact: true });
+    const tableItem = page.getByText(tableName, { exact: true });
     await expect(tableItem).toBeVisible();
     await tableItem.click();
 
@@ -31,9 +31,15 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
 
     const dataViewer = page.locator('.neo-data-viewer');
     await expect(dataViewer).toBeVisible();
-    await expect(page.getByRole('button', { name: `DATA: ${TABLE_NAME}` })).toBeVisible();
-    await expect(dataViewer.locator('.page-title')).toHaveText(TABLE_NAME);
-    await expect(dataViewer.locator('.badge-muted')).toHaveText(TABLE_NAME);
+    await expect(page.getByRole('button', { name: `DATA: ${tableName}` })).toBeVisible();
+    await expect(dataViewer.locator('.page-title')).toHaveText(tableName);
+    await expect(dataViewer.locator('.badge-muted')).toHaveText(tableName);
+    return dataViewer;
+}
+
+test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ page }) => {
+    const dataViewer = await openDataViewer(page, TABLE_NAME);
+
     await expect(dataViewer.locator('.form-card-header').filter({ hasText: 'Tags' })).toBeVisible();
     await expect(dataViewer.locator('.data-viewer-tag-list .node-tree-row-folder')).toHaveCount(0);
     await expect(dataViewer.locator('.data-viewer-tag-list button.node-tree-toggle')).toHaveCount(0);
@@ -164,4 +170,43 @@ test('DB Explorer Data Viewer matches the OPC UA Data Viewer surface', async ({ 
         animations: 'disabled',
         maxDiffPixelRatio: 0.02,
     });
+});
+
+test('DB Explorer Data Viewer shows asset hierarchy only in the Asset tab', async ({ page }) => {
+    const dataViewer = await openDataViewer(page, 'ASSET_TEST_TAG');
+
+    await expect(dataViewer.getByRole('tab', { name: 'Tags' })).toBeVisible();
+    await expect(dataViewer.getByRole('tab', { name: 'Asset' })).toBeVisible();
+    await expect(dataViewer.getByRole('tab', { name: 'Tags' })).toHaveClass(/is-active/);
+    await expect(dataViewer.locator('.data-viewer-tag-list')).toContainText('KR.SEOUL.FA.BOILER01.TEMP');
+    await expect(dataViewer.locator('.data-viewer-tag-list')).toContainText('KR.SEOUL.FA.BOILER01.PRESS');
+    await expect(dataViewer.locator('.data-viewer-tag-list .node-tree-row-folder')).toHaveCount(0);
+    await expect(dataViewer.locator('.data-viewer-tag-list button.node-tree-toggle')).toHaveCount(0);
+    await expect(dataViewer).not.toContainText('__machbase_hierarchy__');
+    await expect(dataViewer).not.toContainText('{"column"');
+    await expect(dataViewer).not.toContainText('{"country"');
+
+    await dataViewer.getByRole('tab', { name: 'Asset' }).click();
+    await expect(dataViewer.getByRole('tab', { name: 'Asset' })).toHaveClass(/is-active/);
+    await expect(dataViewer.locator('.data-viewer-tag-list .node-tree-row-folder')).toContainText(['Korea', 'Seoul', 'Factory-A', 'Boiler-01']);
+    await expect(dataViewer.locator('.data-viewer-tag-list')).toContainText('KR.SEOUL.FA.BOILER01.TEMP');
+    await expect(dataViewer.locator('.data-viewer-tag-list')).toContainText('KR.SEOUL.FA.BOILER01.PRESS');
+
+    const layoutMetrics = await dataViewer.evaluate((root) => {
+        const tagSearchInput = root.querySelector('.data-viewer-tag-search input')?.getBoundingClientRect();
+        const tagList = root.querySelector('.data-viewer-tag-list')?.getBoundingClientRect();
+        return tagSearchInput && tagList
+            ? {
+                  searchX: Math.round(tagSearchInput.x),
+                  searchRight: Math.round(tagSearchInput.right),
+                  listX: Math.round(tagList.x),
+                  listRight: Math.round(tagList.right),
+              }
+            : null;
+    });
+
+    expect(layoutMetrics).not.toBeNull();
+    if (!layoutMetrics) throw new Error('Asset tag layout metrics are incomplete');
+    expect(layoutMetrics.searchX).toBe(layoutMetrics.listX);
+    expect(layoutMetrics.searchRight).toBe(layoutMetrics.listRight);
 });

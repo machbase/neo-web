@@ -9,19 +9,23 @@ import {
     Close,
     MdKeyboardDoubleArrowLeft,
     MdKeyboardDoubleArrowRight,
+    VscChevronDown,
     VscChevronLeft,
     VscChevronRight,
 } from '@/assets/icons/Icon';
 import { MdPublic, MdQueryStats } from 'react-icons/md';
-import { DataViewerTag, listTableTags, queryTagData } from './dataViewerApi';
+import { DataViewerAssetHierarchy, DataViewerTag, listTableTags, queryTagData } from './dataViewerApi';
 import {
     DEFAULT_TIME_FORMAT,
     DEFAULT_TIME_ZONE,
     QUICK_TIME_RANGE_GROUPS,
     TIME_FORMATS,
     TIME_ZONE_OPTIONS,
+    buildAssetTreeRows,
     buildTagChartSeries,
     buildDataViewerHeaderLabels,
+    filterDataViewerTags,
+    filterVisibleAssetRows,
     formatDataViewerTime,
     formatTimeRangeLabel,
     getScanDirectionLabel,
@@ -709,8 +713,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const headerLabels = buildDataViewerHeaderLabels(pCode?.jobName ?? pCode?.collectorId, tableName);
 
     const [tags, setTags] = useState<DataViewerTag[]>([]);
+    const [assetHierarchy, setAssetHierarchy] = useState<DataViewerAssetHierarchy | undefined>();
     const [tagsLoading, setTagsLoading] = useState(false);
     const [tagFilter, setTagFilter] = useState('');
+    const [activeTagTab, setActiveTagTab] = useState<'tags' | 'asset'>('tags');
+    const [collapsedAssetFolders, setCollapsedAssetFolders] = useState<Set<string>>(() => new Set());
     const [selectedTagName, setSelectedTagName] = useState('');
     const [mode, setMode] = useState<'raw' | 'chart'>('raw');
     const [page, setPage] = useState(1);
@@ -725,10 +732,22 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const [error, setError] = useState('');
 
     const visibleTags = useMemo(() => {
-        const q = tagFilter.trim().toLowerCase();
-        if (!q) return tags;
-        return tags.filter((tag) => tag.name.toLowerCase().includes(q) || tag.dataType?.toLowerCase().includes(q));
+        return filterDataViewerTags(tags, tagFilter);
     }, [tagFilter, tags]);
+
+    const assetRows = useMemo(() => {
+        if (!assetHierarchy) return [];
+        return filterVisibleAssetRows(buildAssetTreeRows(tags, assetHierarchy.schema, tagFilter), collapsedAssetFolders);
+    }, [assetHierarchy, collapsedAssetFolders, tagFilter, tags]);
+
+    const toggleAssetFolder = useCallback((folderId: string) => {
+        setCollapsedAssetFolders((prev) => {
+            const next = new Set(prev);
+            if (next.has(folderId)) next.delete(folderId);
+            else next.add(folderId);
+            return next;
+        });
+    }, []);
 
     useEffect(() => {
         if (!dbName || !userName || !tableName) return;
@@ -736,10 +755,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         setTagsLoading(true);
         setError('');
         listTableTags({ dbName, userName, tableName, tagColumn: metaTagColumn })
-            .then((nextTags) => {
+            .then((result) => {
                 if (!alive) return;
-                setTags(nextTags);
-                setSelectedTagName(nextTags[0]?.name ?? '');
+                setTags(result.tags);
+                setAssetHierarchy(result.assetHierarchy);
+                setActiveTagTab('tags');
+                setCollapsedAssetFolders((prev) => (prev.size === 0 ? prev : new Set()));
+                setSelectedTagName(result.tags[0]?.name ?? '');
             })
             .catch((err) => {
                 if (!alive) return;
@@ -822,121 +844,177 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 <div className="page-body-inner">
                     <div className="data-viewer-layout">
                         <aside className="form-card data-viewer-tags">
-                            <div className="form-card-header">
-                                <span className="section-dot" />
-                                Tags
-                            </div>
+                            {!assetHierarchy ? (
+                                <div className="form-card-header">
+                                    <span className="section-dot" />
+                                    Tags
+                                </div>
+                            ) : null}
+                            {assetHierarchy ? (
+                                <div className="data-viewer-tag-tabs" role="tablist" aria-label="Tag views">
+                                    <button
+                                        type="button"
+                                        className={`data-viewer-tag-tab ${activeTagTab === 'tags' ? 'is-active' : ''}`}
+                                        onClick={() => setActiveTagTab('tags')}
+                                        role="tab"
+                                        aria-selected={activeTagTab === 'tags'}
+                                    >
+                                        Tags
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`data-viewer-tag-tab ${activeTagTab === 'asset' ? 'is-active' : ''}`}
+                                        onClick={() => setActiveTagTab('asset')}
+                                        role="tab"
+                                        aria-selected={activeTagTab === 'asset'}
+                                    >
+                                        Asset
+                                    </button>
+                                </div>
+                            ) : null}
                             <div className="data-viewer-tag-search">
                                 <input className="w-full" value={tagFilter} onChange={(event) => setTagFilter(event.target.value)} placeholder="Filter tags..." />
                             </div>
                             <div className="data-viewer-tag-list">
                                 {tagsLoading ? <div className="empty-state">Loading tags...</div> : null}
-                                {!tagsLoading && visibleTags.length === 0 ? <div className="empty-state">No tags</div> : null}
-                                {visibleTags.map((tag) => {
-                                    const checked = selectedTagName === tag.name;
-                                    return (
-                                        <label key={`tag:${tag.name}`} className={`data-viewer-tag-row ${checked ? 'is-active' : ''}`} title={tag.name}>
-                                            <span className="node-tree-toggle">
-                                                <input type="checkbox" checked={checked} onChange={() => setSelectedTagName(tag.name)} aria-label={`${tag.name} select`} />
-                                            </span>
-                                            <span className="node-tree-label truncate">{tag.name}</span>
-                                            {tag.dataType ? <span className="badge badge-success">{tag.dataType}</span> : null}
-                                        </label>
-                                    );
-                                })}
+                                {!tagsLoading && activeTagTab === 'tags' && visibleTags.length === 0 ? <div className="empty-state">No tags</div> : null}
+                                {!tagsLoading && activeTagTab === 'asset' && assetRows.length === 0 ? <div className="empty-state">No asset tags</div> : null}
+                                {activeTagTab === 'tags'
+                                    ? visibleTags.map((tag) => {
+                                          const checked = selectedTagName === tag.name;
+                                          return (
+                                              <label key={`tag:${tag.name}`} className={`data-viewer-tag-row ${checked ? 'is-active' : ''}`} title={tag.name}>
+                                                  <span className="node-tree-toggle">
+                                                      <input type="checkbox" checked={checked} onChange={() => setSelectedTagName(tag.name)} aria-label={`${tag.name} select`} />
+                                                  </span>
+                                                  <span className="node-tree-label truncate">{tag.name}</span>
+                                                  {tag.dataType ? <span className="badge badge-success">{tag.dataType}</span> : null}
+                                              </label>
+                                          );
+                                      })
+                                    : assetRows.map((row) => {
+                                          const paddingLeft = row.depth * 16;
+                                          if (row.type === 'folder') {
+                                              const collapsed = collapsedAssetFolders.has(row.id);
+                                              return (
+                                                  <div key={row.id} className="node-tree-row node-tree-row-folder" style={{ paddingLeft }} title={row.label}>
+                                                      <button type="button" className="node-tree-toggle" onClick={() => toggleAssetFolder(row.id)} aria-label={`${row.label} ${collapsed ? 'expand' : 'collapse'}`}>
+                                                          {collapsed ? <VscChevronRight className="icon-sm" /> : <VscChevronDown className="icon-sm" />}
+                                                      </button>
+                                                      <span className="node-tree-label truncate">{row.label}</span>
+                                                  </div>
+                                              );
+                                          }
+
+                                          const checked = selectedTagName === row.name;
+                                          return (
+                                              <label
+                                                  key={row.id}
+                                                  className={`data-viewer-tag-row ${checked ? 'is-active' : ''}`}
+                                                  style={{ paddingLeft }}
+                                                  title={row.name}
+                                              >
+                                                  <span className="node-tree-toggle">
+                                                      <input type="checkbox" checked={checked} onChange={() => setSelectedTagName(row.name)} aria-label={`${row.name} select`} />
+                                                  </span>
+                                                  <span className="node-tree-label truncate">{row.label}</span>
+                                                  {row.dataType ? <span className="badge badge-success">{row.dataType}</span> : null}
+                                              </label>
+                                          );
+                                      })}
                             </div>
                         </aside>
 
                         <section className="form-card data-viewer-results">
-                        <div className="data-viewer-toolbar">
-                            <div className="data-viewer-title-row">
-                                <div className="data-viewer-title-actions">
-                                    {mode === 'raw' ? (
-                                        <div className="data-viewer-scan-control" role="group" aria-label={`Scan direction: ${getScanDirectionLabel(backwardScan)}`}>
-                                            <span className={`data-viewer-scan-label ${backwardScan ? 'is-active' : ''}`}>Backward</span>
+                            <div className="data-viewer-toolbar">
+                                <div className="data-viewer-title-row">
+                                    <div className="data-viewer-title-actions">
+                                        {mode === 'raw' ? (
+                                            <div className="data-viewer-scan-control" role="group" aria-label={`Scan direction: ${getScanDirectionLabel(backwardScan)}`}>
+                                                <span className={`data-viewer-scan-label ${backwardScan ? 'is-active' : ''}`}>Backward</span>
+                                                <button
+                                                    type="button"
+                                                    className={`switch data-viewer-scan-switch ${!backwardScan ? 'active' : ''}`}
+                                                    onClick={() => setBackwardScan((prev) => !prev)}
+                                                    aria-label={`Scan direction: ${getScanDirectionLabel(backwardScan)}`}
+                                                    aria-pressed={!backwardScan}
+                                                >
+                                                    <div className="switch-thumb" />
+                                                </button>
+                                                <span className={`data-viewer-scan-label ${!backwardScan ? 'is-active' : ''}`}>Forward</span>
+                                            </div>
+                                        ) : null}
+                                        <div className="data-viewer-query-controls">
                                             <button
                                                 type="button"
-                                                className={`switch data-viewer-scan-switch ${!backwardScan ? 'active' : ''}`}
-                                                onClick={() => setBackwardScan((prev) => !prev)}
-                                                aria-label={`Scan direction: ${getScanDirectionLabel(backwardScan)}`}
-                                                aria-pressed={!backwardScan}
+                                                className="btn btn-sm btn-ghost data-viewer-format-button"
+                                                title={timeFormatButtonText}
+                                                onClick={() => setFormatOpen(true)}
+                                                aria-label="Set time format and timezone"
                                             >
-                                                <div className="switch-thumb" />
+                                                <MdPublic className="icon-sm" />
                                             </button>
-                                            <span className={`data-viewer-scan-label ${!backwardScan ? 'is-active' : ''}`}>Forward</span>
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-ghost data-viewer-time-range-button"
+                                                title={timeRangeButtonText}
+                                                onClick={() => setRangeOpen(true)}
+                                                aria-label="Set time range"
+                                            >
+                                                <MdCalendarMonth className="icon-sm" />
+                                                <span>{timeRangeButtonText}</span>
+                                            </button>
                                         </div>
-                                    ) : null}
-                                    <div className="data-viewer-query-controls">
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-ghost data-viewer-format-button"
-                                            title={timeFormatButtonText}
-                                            onClick={() => setFormatOpen(true)}
-                                            aria-label="Set time format and timezone"
-                                        >
-                                            <MdPublic className="icon-sm" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-ghost data-viewer-time-range-button"
-                                            title={timeRangeButtonText}
-                                            onClick={() => setRangeOpen(true)}
-                                            aria-label="Set time range"
-                                        >
-                                            <MdCalendarMonth className="icon-sm" />
-                                            <span>{timeRangeButtonText}</span>
-                                        </button>
-                                    </div>
-                                    <div className="log-level-group" role="tablist" aria-label="Result mode">
-                                        <button type="button" className={`log-level-item ${mode === 'raw' ? 'is-included' : 'is-excluded'}`} onClick={() => setMode('raw')}>
-                                            Raw
-                                        </button>
-                                        <button type="button" className={`log-level-item ${mode === 'chart' ? 'is-included' : 'is-excluded'}`} onClick={() => setMode('chart')}>
-                                            Chart
-                                        </button>
+                                        <div className="log-level-group" role="tablist" aria-label="Result mode">
+                                            <button type="button" className={`log-level-item ${mode === 'raw' ? 'is-included' : 'is-excluded'}`} onClick={() => setMode('raw')}>
+                                                Raw
+                                            </button>
+                                            <button type="button" className={`log-level-item ${mode === 'chart' ? 'is-included' : 'is-excluded'}`} onClick={() => setMode('chart')}>
+                                                Chart
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        {error ? <div className="error-box">{error}</div> : null}
-                        {!selectedTagName && !error ? <div className="empty-state">Database table and tag are required</div> : null}
-                        {selectedTagName && mode === 'raw' ? (
-                            <div className="table-card data-viewer-raw-card">
-                                <div className="table-card-body">
-                                    <table className="table-clean data-viewer-raw-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Time</th>
-                                                <th>Name</th>
-                                                <th>Value</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rows.map((row, index) => (
-                                                <tr key={`${row.time}-${index}`}>
-                                                    <td className="mono">{formatDataViewerTime(row.time, timeFormat, timeZone)}</td>
-                                                    <td className="mono">{String(row.name ?? '')}</td>
-                                                    <td className="mono">{String(row.value ?? '')}</td>
+                            {error ? <div className="error-box">{error}</div> : null}
+                            {!selectedTagName && !error ? <div className="empty-state">Database table and tag are required</div> : null}
+                            {selectedTagName && mode === 'raw' ? (
+                                <div className="table-card data-viewer-raw-card">
+                                    <div className="table-card-body">
+                                        <table className="table-clean data-viewer-raw-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Time</th>
+                                                    <th>Name</th>
+                                                    <th>Value</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    {loading ? <div className="empty-state">Loading...</div> : null}
-                                    {!loading && rows.length === 0 ? <div className="empty-state">No data</div> : null}
+                                            </thead>
+                                            <tbody>
+                                                {rows.map((row, index) => (
+                                                    <tr key={`${row.time}-${index}`}>
+                                                        <td className="mono">{formatDataViewerTime(row.time, timeFormat, timeZone)}</td>
+                                                        <td className="mono">{String(row.name ?? '')}</td>
+                                                        <td className="mono">{String(row.value ?? '')}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        {loading ? <div className="empty-state">Loading...</div> : null}
+                                        {!loading && rows.length === 0 ? <div className="empty-state">No data</div> : null}
+                                    </div>
+                                    <ResultPagination page={page} rowCount={rows.length} loading={loading} onPage={setPage} />
                                 </div>
-                                <ResultPagination page={page} rowCount={rows.length} loading={loading} onPage={setPage} />
-                            </div>
-                        ) : null}
-                        {selectedTagName && mode === 'chart' ? (
-                            <div className="table-card data-viewer-chart-card">
-                                <div className="table-card-body">
-                                    {loading ? <div className="empty-state">Loading...</div> : <TagLineChart rows={rows} timeFormat={timeFormat} timeZone={timeZone} />}
+                            ) : null}
+                            {selectedTagName && mode === 'chart' ? (
+                                <div className="table-card data-viewer-chart-card">
+                                    <div className="table-card-body">
+                                        {loading ? <div className="empty-state">Loading...</div> : <TagLineChart rows={rows} timeFormat={timeFormat} timeZone={timeZone} />}
+                                    </div>
+                                    <ResultPagination page={page} rowCount={rows.length} loading={loading} onPage={setPage} />
                                 </div>
-                                <ResultPagination page={page} rowCount={rows.length} loading={loading} onPage={setPage} />
-                            </div>
-                        ) : null}
-                    </section>
-                </div>
+                            ) : null}
+                        </section>
+                    </div>
                 </div>
             </main>
 
