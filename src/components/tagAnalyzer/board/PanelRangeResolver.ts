@@ -81,10 +81,14 @@ export function resolveConcretePanelRangeState({
             boardTime,
         })
     ) {
+        const sFullRangeCenter = getTimeRangeCenter(fullRange);
+        const sInitialMainChartWindowWidth =
+            getTimeRangeWidth(fullRange) * INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO;
+
         return assertConcretePanelRangeState({
-            panelRange: createCenteredRangeByRatio(
-                fullRange,
-                INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO,
+            panelRange: createTimeRangeMs(
+                sFullRangeCenter - sInitialMainChartWindowWidth / 2,
+                sFullRangeCenter + sInitialMainChartWindowWidth / 2,
             ),
             navigatorRange: fullRange,
             fullRange,
@@ -105,19 +109,16 @@ export function resolveBoardTimeRange(
     const sBoardTimeResolutionOptions = {
         lastAnchorTime: fullRange.endTime,
     };
-    const boardRange = canResolveTimeRangeConfig(
+    const boardRange = resolveConfiguredTimeRange(
         boardTime,
         sBoardTimeResolutionOptions,
-    )
-        ? resolveTimeRangeConfig(boardTime, sBoardTimeResolutionOptions)
-        : undefined;
-    const resolvedRange = boardRange ?? fullRange;
+    );
 
-    if (!isValidTimeRange(resolvedRange)) {
-        throw new Error('Cannot apply board time without a concrete range.');
+    if (!boardRange) {
+        throw new Error('Cannot apply board time without a concrete board range.');
     }
 
-    return resolvedRange;
+    return boardRange;
 }
 
 export async function getFullRangeFromSeries(
@@ -155,19 +156,6 @@ function resolveConfiguredTimeRange(
     }
 
     return resolveTimeRangeConfig(timeRangeConfig, timeRangeResolutionOptions);
-}
-
-function createCenteredRangeByRatio(
-    range: TimeRangeMs,
-    visibleRangeRatio: number,
-): TimeRangeMs {
-    const sRangeCenter = getTimeRangeCenter(range);
-    const sVisibleRangeWidth = getTimeRangeWidth(range) * visibleRangeRatio;
-
-    return createTimeRangeMs(
-        sRangeCenter - sVisibleRangeWidth / 2,
-        sRangeCenter + sVisibleRangeWidth / 2,
-    );
 }
 
 function assertConcretePanelRangeState(

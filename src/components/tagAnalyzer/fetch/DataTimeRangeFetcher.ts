@@ -85,12 +85,10 @@ export async function fetchSeriesDataTimeRange<T extends DataRangeSeries>(
 export async function fetchVirtualStatDataTimeRange(
     tableName: string,
     tagNameList: string[],
-    timeColumnName?: string,
 ): Promise<TimeRangeMs | undefined> {
     const sql = buildVirtualStatOrMountedTableDataTimeRangeSql(
         tableName,
         tagNameList,
-        timeColumnName,
     );
     const data = await request({
         method: 'GET',
