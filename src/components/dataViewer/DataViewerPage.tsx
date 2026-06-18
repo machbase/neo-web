@@ -637,7 +637,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                         role="tab"
                                         aria-selected={activeTagTab === 'asset'}
                                     >
-                                        Asset
+                                        Hierarchy
                                     </button>
                                 </div>
                             ) : null}
