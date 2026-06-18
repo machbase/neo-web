@@ -85,8 +85,8 @@ function buildVirtualStatTimeRangeSql(
 
     return buildQuerySql(
         buildSelectSqlPart([
-            `MIN(${MIN_TIME_COLUMN_NAME}) ${AS_KEYWORD} ${MIN_TIME_RESULT_ALIAS}`,
-            `MAX(${MAX_TIME_COLUMN_NAME}) ${AS_KEYWORD} ${MAX_TIME_RESULT_ALIAS}`,
+            `${MIN_TIME_COLUMN_NAME} ${AS_KEYWORD} ${MIN_TIME_RESULT_ALIAS}`,
+            `${MAX_TIME_COLUMN_NAME} ${AS_KEYWORD} ${MAX_TIME_RESULT_ALIAS}`,
         ].join(', ')),
         buildTableTargetSqlPart(sVirtualStatTableName),
         `${WHERE_KEYWORD} ${NAME_COLUMN_NAME} ${IN_KEYWORD} (${sTags})`,

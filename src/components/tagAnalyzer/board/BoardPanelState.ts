@@ -1,20 +1,15 @@
-import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
+import type { PanelRangeState } from '../domain/PanelDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/model/TimeConstants';
 import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
-import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 
-export type PanelRangeApplyOptions = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    fullRange?: TimeRangeMs;
+export type ApplyPanelRangeRequest = {
+    panelKey: string;
+    rangeState: PanelRangeState;
     navigatorSelectionCenterRatio?: number;
-    reloadData?: boolean;
 };
 
-export type PanelRangeStateApplyOptions = {
-    fullRange?: TimeRangeMs;
+export type PanelRangeChangeOptions = {
     navigatorSelectionCenterRatio?: number;
-    reloadData?: boolean;
 };
 
 export type BoardPanelRecord = {
@@ -31,10 +26,11 @@ export type BoardPanelStore = {
     ) => void;
 };
 
-export type ApplyPanelRangeState = (
-    panelInfo: PanelInfo,
-    options: PanelRangeApplyOptions,
-) => void;
+export type ApplyPanelRange = (
+    request: ApplyPanelRangeRequest,
+) => PanelRangeState | undefined;
+
+export type RequestPanelDataRefresh = (panelKey: string) => void;
 
 const INITIAL_PANEL_RANGE_STATE: PanelRangeState = {
     panelRange: EMPTY_TIME_RANGE,

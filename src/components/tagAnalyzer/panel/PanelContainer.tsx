@@ -40,8 +40,7 @@ import {
     hasMixedXAxisValueKinds,
     hasNumericBaseTimeSeries,
 } from '../domain/SeriesDomain';
-import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
-import type { ReloadAfterEditorSaveOptions } from '../board/useConfigReload';
+import type { PanelRangeChangeOptions } from '../board/BoardPanelState';
 import { hasResolvedIntervalOption } from '../domain/time/interval/TimeIntervalUtils';
 import type {
     IntervalOption,
@@ -75,7 +74,7 @@ export type PanelContainerRuntimeProps = {
     rollupTableList: string[];
     onRangeStateChange: (
         rangeState: PanelRangeState,
-        options?: PanelRangeStateApplyOptions,
+        options?: PanelRangeChangeOptions,
     ) => void;
 };
 
@@ -92,7 +91,7 @@ type PanelContainerActions = {
     onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
     reloadAfterEditorSave: (
         panelInfo: PanelInfo,
-        options: ReloadAfterEditorSaveOptions,
+        preserveCurrentVisibleRange: boolean,
     ) => void;
     onToggleRaw: () => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;

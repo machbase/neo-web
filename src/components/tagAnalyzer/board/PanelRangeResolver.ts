@@ -4,12 +4,16 @@ import {
     canResolveTimeRangeConfig,
     resolveTimeRangeConfig,
 } from '../domain/time/resolution/TimeRangeConfigResolver';
+import { resolvePanelRangeConfig } from '../domain/time/resolution/PanelRangeConfigResolver';
 import {
     hasCompleteTimeRangeConfig,
     shouldApplyInitialMainChartWindow,
 } from '../domain/time/boundary/TimeBoundaryValidate';
+import { isTimestampRangeConfig } from '../domain/time/range/PanelRangeConfigUtils';
 import type {
+    AxisRange,
     PanelNavigatorRangePair,
+    PanelRangeConfig,
     TimeRangeConfig,
     TimeRangeMs,
 } from '../domain/time/model/TimeTypes';
@@ -30,48 +34,53 @@ export function resolveConcretePanelRangeState({
     boardTime,
     applyInitialMainChartWindow = false,
 }: {
-    fullRange: TimeRangeMs;
-    rangeConfig: TimeRangeConfig;
+    fullRange: AxisRange;
+    rangeConfig: PanelRangeConfig;
     lastViewedRange: PanelNavigatorRangePair | undefined;
     boardTime: TimeRangeConfig;
     applyInitialMainChartWindow?: boolean;
 }): PanelRangeState {
-    const timeRangeResolutionOptions = {
-        lastAnchorTime: fullRange.endTime,
-    };
-
     if (lastViewedRange) {
-        return assertConcretePanelRangeState({
+        const rangeState = {
             panelRange: lastViewedRange.panelRange,
             navigatorRange: lastViewedRange.navigatorRange,
             fullRange,
-        });
+        };
+
+        assertConcretePanelRangeState(rangeState);
+        return rangeState;
     }
 
-    const panelRange = resolveConfiguredTimeRange(
-        rangeConfig,
-        timeRangeResolutionOptions,
-    );
+    const panelRange = resolvePanelRangeConfig(rangeConfig, fullRange);
 
     if (panelRange) {
-        return assertConcretePanelRangeState({
+        const rangeState = {
             panelRange,
             navigatorRange: getCoveringNavigatorRange(panelRange, fullRange),
             fullRange,
-        });
+        };
+
+        assertConcretePanelRangeState(rangeState);
+        return rangeState;
     }
 
+    const timeRangeResolutionOptions = {
+        lastAnchorTime: fullRange.endTime,
+    };
     const boardRange = resolveConfiguredTimeRange(
         boardTime,
         timeRangeResolutionOptions,
     );
 
-    if (boardRange) {
-        return assertConcretePanelRangeState({
+    if (isTimestampRangeConfig(rangeConfig) && boardRange) {
+        const rangeState = {
             panelRange: boardRange,
             navigatorRange: getCoveringNavigatorRange(boardRange, fullRange),
             fullRange,
-        });
+        };
+
+        assertConcretePanelRangeState(rangeState);
+        return rangeState;
     }
 
     if (
@@ -85,21 +94,27 @@ export function resolveConcretePanelRangeState({
         const sInitialMainChartWindowWidth =
             getTimeRangeWidth(fullRange) * INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO;
 
-        return assertConcretePanelRangeState({
+        const rangeState = {
             panelRange: createTimeRangeMs(
                 sFullRangeCenter - sInitialMainChartWindowWidth / 2,
                 sFullRangeCenter + sInitialMainChartWindowWidth / 2,
             ),
             navigatorRange: fullRange,
             fullRange,
-        });
+        };
+
+        assertConcretePanelRangeState(rangeState);
+        return rangeState;
     }
 
-    return assertConcretePanelRangeState({
+    const rangeState = {
         panelRange: fullRange,
         navigatorRange: fullRange,
         fullRange,
-    });
+    };
+
+    assertConcretePanelRangeState(rangeState);
+    return rangeState;
 }
 
 export function resolveBoardTimeRange(
@@ -134,9 +149,9 @@ export async function getFullRangeFromSeries(
 }
 
 export function getCoveringNavigatorRange(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
-): TimeRangeMs {
+    panelRange: AxisRange,
+    navigatorRange: AxisRange,
+): AxisRange {
     return {
         startTime: Math.min(panelRange.startTime, navigatorRange.startTime),
         endTime: Math.max(panelRange.endTime, navigatorRange.endTime),
@@ -160,7 +175,7 @@ function resolveConfiguredTimeRange(
 
 function assertConcretePanelRangeState(
     rangeState: PanelRangeState,
-): PanelRangeState {
+): void {
     if (
         !isValidTimeRange(rangeState.panelRange) ||
         !isValidTimeRange(rangeState.navigatorRange) ||
@@ -168,6 +183,4 @@ function assertConcretePanelRangeState(
     ) {
         throw new Error('Cannot resolve panel without a concrete range.');
     }
-
-    return rangeState;
 }

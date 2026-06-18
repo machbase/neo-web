@@ -164,6 +164,13 @@
     align-items: start;
 }
 
+.dataSettingGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    align-items: start;
+}
+
 .axesGrid .section {
     gap: 8px;
 }
@@ -421,6 +428,7 @@
     }
 
     .displayLayout,
+    .dataSettingGrid,
     .timeLayout {
         grid-template-columns: 1fr;
     }

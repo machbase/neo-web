@@ -5,6 +5,7 @@ import {
 } from '../../../../domain/PanelDomain';
 import {
     DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
+    shouldUseNumericPanelRangeConfig,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
 } from '../../../../domain/SeriesDomain';
@@ -15,13 +16,17 @@ import {
     cloneValueRangeOrDefault,
 } from '../../../PersistenceCloneUtils';
 import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
-import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
+import { normalizePersistedPanelRangeConfig } from '../../normalizePersistedPanelRangeConfig';
 import { normalizeStoredTimeUnit } from '../../../../domain/time/interval/TimeIntervalUtils';
-import type { PanelNavigatorRangePair } from '../../../../domain/time/model/TimeTypes';
+import type {
+    PanelNavigatorRangePair,
+    PanelRangeConfig,
+} from '../../../../domain/time/model/TimeTypes';
 import { normalizePanelNavigatorRangePair } from '../../../../domain/time/boundary/TimeBoundaryValidate';
 
-type NormalizedPersistedPanelInfoV200 = PersistedPanelInfoV200 & {
-    time: PersistedPanelInfoV200['time'] & {
+type NormalizedPersistedPanelInfoV200 = Omit<PersistedPanelInfoV200, 'time'> & {
+    time: Omit<PersistedPanelInfoV200['time'], 'rangeConfig'> & {
+        rangeConfig: PanelRangeConfig;
         lastViewedRange: PanelNavigatorRangePair | undefined;
     };
 };
@@ -94,6 +99,8 @@ export function parseLoadedPanelTazVer200(
                 raw_data_pixels_per_tick:
                     sNormalizedPanelInfo.axes.xAxis.rawDataPixelsPerTick ?? 0,
                 calculated_data_pixels_per_tick:
+                    sNormalizedPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
+                calculated_navigator_pixels_per_tick:
                     sNormalizedPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
             },
             sampling: {
@@ -172,7 +179,10 @@ export function parseLoadedPanelTazVer200(
 }
 
 function createPanelAnnotationsFromPersistedPanel(
-    panelInfo: PersistedPanelInfoV200,
+    panelInfo: {
+        annotations?: PersistedPanelInfoV200['annotations'];
+        data: Pick<PersistedPanelInfoV200['data'], 'seriesList'>;
+    },
 ): PanelAnnotation[] {
     const sPanelAnnotations = clonePanelAnnotations(panelInfo.annotations);
     const sSeriesAnnotations = panelInfo.data.seriesList.flatMap((seriesInfo) =>
@@ -188,8 +198,12 @@ function createPanelAnnotationsFromPersistedPanel(
 function normalizePersistedPanelInfoV200(
     panelInfo: PersistedPanelInfoV200,
 ): NormalizedPersistedPanelInfoV200 {
-    const sNormalizedRangeConfig = normalizePersistedTimeRangeConfig(
+    const sNormalizedSeriesList = panelInfo.data.seriesList.map(
+        normalizePersistedSeriesInfoV200,
+    );
+    const sNormalizedRangeConfig = normalizePersistedPanelRangeConfig(
         panelInfo.time.rangeConfig,
+        shouldUseNumericPanelRangeConfig(sNormalizedSeriesList),
     );
     if (!sNormalizedRangeConfig) {
         throw new Error('Unsupported TagAnalyzer .taz panel time rangeConfig shape.');
@@ -199,9 +213,7 @@ function normalizePersistedPanelInfoV200(
         ...panelInfo,
         data: {
             ...panelInfo.data,
-            seriesList: panelInfo.data.seriesList.map(
-                normalizePersistedSeriesInfoV200,
-            ),
+            seriesList: sNormalizedSeriesList,
             rowLimit: panelInfo.data.rowLimit ?? -1,
         },
         toolbar: {

@@ -1,6 +1,7 @@
 import type {
+    AxisRange,
     PanelNavigatorRangePair,
-    TimeRangeConfig,
+    PanelRangeConfig,
     TimeRangeMs,
 } from './time/model/TimeTypes';
 import type { PanelSeriesDefinition } from './SeriesDomain';
@@ -50,7 +51,7 @@ export type PanelData = {
 };
 
 export type PanelTime = {
-    range_config: TimeRangeConfig;
+    range_config: PanelRangeConfig;
 };
 
 export type PanelAxisThreshold = {
@@ -62,6 +63,7 @@ export type PanelXAxis = {
     show_tickline: boolean;
     raw_data_pixels_per_tick: number | undefined;
     calculated_data_pixels_per_tick: number | undefined;
+    calculated_navigator_pixels_per_tick: number | undefined;
 };
 
 export type PanelSampling = {
@@ -111,6 +113,7 @@ export type RuntimePanelXAxis = {
     show_tickline: boolean;
     raw_data_pixels_per_tick: number;
     calculated_data_pixels_per_tick: number;
+    calculated_navigator_pixels_per_tick: number;
 };
 
 export type RuntimePanelSampling = {
@@ -184,6 +187,8 @@ export function resolvePanelAxesForRuntime(axes: PanelAxes): RuntimePanelAxes {
                 axes.x_axis.raw_data_pixels_per_tick ?? 0,
             calculated_data_pixels_per_tick:
                 axes.x_axis.calculated_data_pixels_per_tick ?? 0,
+            calculated_navigator_pixels_per_tick:
+                axes.x_axis.calculated_navigator_pixels_per_tick ?? 0,
         },
         main_chart_sampling: resolvePanelSamplingForRuntime(
             axes.main_chart_sampling,
@@ -310,9 +315,9 @@ export type PanelNavigatorShiftActions = {
 };
 
 export type PanelRangeState = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    fullRange: TimeRangeMs;
+    panelRange: AxisRange;
+    navigatorRange: AxisRange;
+    fullRange: AxisRange;
 };
 
 export type PanelRangeActions = {

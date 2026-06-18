@@ -400,14 +400,14 @@ const TagAnalyzerBoard = ({
         );
     }
 
-    function togglePanelRawMode(
-        panel: PanelInfo,
-        reloadAfterRawModeChange: (panelInfo: PanelInfo) => void,
-    ): void {
+    function togglePanelRawMode(panel: PanelInfo): void {
         const sNextPanelInfo = getPanelInfoWithRawMode(panel, !panel.general.is_raw);
 
         applyRuntimePanelInfo(sNextPanelInfo);
-        reloadAfterRawModeChange(sNextPanelInfo);
+        handleRuntimeAppliedRange(
+            sNextPanelInfo,
+            boardPanels.getPanelRangeState(sNextPanelInfo),
+        );
     }
 
     function togglePanelOverlap(
@@ -660,11 +660,7 @@ const TagAnalyzerBoard = ({
                                     onSavePanelInfo: saveCurrentTazBoardWithPanel,
                                     reloadAfterEditorSave:
                                         boardPanels.reloadAfterEditorSave,
-                                    onToggleRaw: () =>
-                                        togglePanelRawMode(
-                                            sPanelInfo,
-                                            boardPanels.reloadAfterRawModeChange,
-                                        ),
+                                    onToggleRaw: () => togglePanelRawMode(sPanelInfo),
                                     onDeletePanel: () => deletePanel(sPanelInfo),
                                     onToggleOverlap: () =>
                                         togglePanelOverlap(

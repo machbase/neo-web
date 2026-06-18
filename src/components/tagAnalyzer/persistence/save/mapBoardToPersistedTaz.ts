@@ -4,12 +4,12 @@ import { cloneTimeBoundary } from '../PersistenceCloneUtils';
 import type {
     PersistedBoardTimeRange,
 } from '../TazPersistenceTypesV200';
-import type { PersistedTazBoardInfoV204 } from '../TazPersistenceTypesV204';
+import type { PersistedTazBoardInfoV205 } from '../TazPersistenceTypesV205';
 import { TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
 import type { TimeRangeConfig } from '../../domain/time/model/TimeTypes';
 export function mapBoardToPersistedTaz(
     boardInfo: BoardInfo,
-): PersistedTazBoardInfoV204 {
+): PersistedTazBoardInfoV205 {
     return {
         id: boardInfo.id,
         type: boardInfo.type,

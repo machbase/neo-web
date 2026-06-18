@@ -18,6 +18,11 @@ export type TimeRangeMs = {
     endTime: UnixMilliseconds;
 };
 
+export type AxisRange = {
+    startTime: number;
+    endTime: number;
+};
+
 export type TimeRangeNs = {
     startTime: UnixNanoseconds;
     endTime: UnixNanoseconds;
@@ -55,13 +60,39 @@ export type TimeRangeConfig = {
     end: TimeBoundary;
 };
 
+export type TimestampRangeBoundary =
+    | { kind: 'timestamp_empty'; value: number }
+    | { kind: 'timestamp_absolute'; value: number }
+    | { kind: 'timestamp_now'; value: number }
+    | { kind: 'timestamp_data_end'; value: number };
+
+export type NumericRangeBoundary =
+    | { kind: 'numeric_empty'; value: number }
+    | { kind: 'numeric_value'; value: number }
+    | { kind: 'numeric_data_start'; value: number }
+    | { kind: 'numeric_data_end'; value: number };
+
+export type PanelRangeBoundary = TimestampRangeBoundary | NumericRangeBoundary;
+
+export type TimestampRangeConfig = {
+    start: TimestampRangeBoundary;
+    end: TimestampRangeBoundary;
+};
+
+export type NumericRangeConfig = {
+    start: NumericRangeBoundary;
+    end: NumericRangeBoundary;
+};
+
+export type PanelRangeConfig = TimestampRangeConfig | NumericRangeConfig;
+
 export type IntervalOption = {
     IntervalType: TimeUnit;
     IntervalValue: number;
 };
 
 export type PanelNavigatorRangePair = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
+    panelRange: AxisRange;
+    navigatorRange: AxisRange;
 };
 

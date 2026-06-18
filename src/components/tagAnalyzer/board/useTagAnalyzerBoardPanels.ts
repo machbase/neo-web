@@ -5,11 +5,11 @@ import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
 import type { TimeRangeConfig } from '../domain/time/model/TimeTypes';
 import {
     createInitialBoardPanelRecord,
+    hasValidRangeState,
     type BoardPanelRecord,
-    type PanelRangeStateApplyOptions,
+    type PanelRangeChangeOptions,
 } from './BoardPanelState';
 import { useApplyPanelRange } from './useApplyPanelRange';
-import { useConfigReload } from './useConfigReload';
 import { useRefreshRange } from './useRefreshRange';
 import { showPanelFullRangeUnavailableToast } from './PanelRangeFeedback';
 import {
@@ -77,13 +77,35 @@ export function useTagAnalyzerBoardPanels({
         }));
     }
 
-    const { applyPanelRangeState } = useApplyPanelRange({
+    const {
+        applyPanelRange,
+        requestPanelDataRefresh,
+    } = useApplyPanelRange({
         panelStore: {
             getBoardPanelRecord,
             updateBoardPanelRecord,
         },
-        handlers: { onRangeApplied: onAppliedRange },
     });
+
+    function applyPanelRangeToPanel(
+        panelInfo: PanelInfo,
+        rangeState: PanelRangeState,
+        options?: PanelRangeChangeOptions,
+    ): PanelRangeState | undefined {
+        const sAppliedRangeState = applyPanelRange({
+            panelKey: panelInfo.data.index_key,
+            rangeState,
+            navigatorSelectionCenterRatio:
+                options?.navigatorSelectionCenterRatio,
+        });
+
+        if (sAppliedRangeState) {
+            onAppliedRange(panelInfo, sAppliedRangeState);
+        }
+
+        return sAppliedRangeState;
+    }
+
     const {
         refreshPanelData,
         refreshPanelTime: refreshPanelTimeRange,
@@ -91,18 +113,9 @@ export function useTagAnalyzerBoardPanels({
     } = useRefreshRange({
         boardTime,
         getBoardPanelRecord,
-        applyPanelRangeState,
+        applyPanelRangeToPanel,
+        requestPanelDataRefresh,
     });
-    const {
-        reloadAfterRawModeChange,
-        reloadAfterEditorSave,
-    } = useConfigReload({
-        getBoardPanelRecord,
-        applyPanelRangeState,
-        resolvePanelRangeState,
-        setFullDataRange,
-    });
-
     async function resolvePanelRangeState(
         panelInfo: PanelInfo,
         options?: ResolvePanelRangeOptions,
@@ -124,6 +137,28 @@ export function useTagAnalyzerBoardPanels({
             applyInitialMainChartWindow:
                 options?.applyInitialMainChartWindow === true,
         });
+    }
+
+    function reloadAfterEditorSave(
+        nextPanelInfo: PanelInfo,
+        preserveCurrentVisibleRange: boolean,
+    ): void {
+        const sRangeState =
+            getBoardPanelRecord(nextPanelInfo.data.index_key).rangeState;
+
+        if (preserveCurrentVisibleRange && hasValidRangeState(sRangeState)) {
+            return;
+        }
+
+        void (async () => {
+            const sResolvedRangeState = await resolvePanelRangeState(nextPanelInfo);
+
+            if (!sResolvedRangeState) {
+                return;
+            }
+
+            applyPanelRangeToPanel(nextPanelInfo, sResolvedRangeState);
+        })();
     }
 
     function handleChartWidthChange(
@@ -160,10 +195,7 @@ export function useTagAnalyzerBoardPanels({
                     return;
                 }
 
-                applyPanelRangeState(panelInfo, {
-                    ...sResolvedRangeState,
-                    reloadData: true,
-                });
+                applyPanelRangeToPanel(panelInfo, sResolvedRangeState);
             })();
             return;
         }
@@ -185,10 +217,7 @@ export function useTagAnalyzerBoardPanels({
                 return;
             }
 
-            applyPanelRangeState(panelInfo, {
-                ...sResolvedRangeState,
-                reloadData: true,
-            });
+            applyPanelRangeToPanel(panelInfo, sResolvedRangeState);
         })();
     }
 
@@ -207,7 +236,7 @@ export function useTagAnalyzerBoardPanels({
             return;
         }
 
-        applyPanelRangeState(panelInfo, {
+        applyPanelRangeToPanel(panelInfo, {
             panelRange: globalTimeRangeToApply.data,
             navigatorRange: getCoveringNavigatorRange(
                 globalTimeRangeToApply.navigator,
@@ -234,7 +263,7 @@ export function useTagAnalyzerBoardPanels({
 
         const boardRange = resolveBoardTimeRange(boardTimeToApply, fullRange);
 
-        applyPanelRangeState(panelInfo, {
+        applyPanelRangeToPanel(panelInfo, {
             panelRange: boardRange,
             navigatorRange: getCoveringNavigatorRange(boardRange, fullRange),
             fullRange,
@@ -286,7 +315,6 @@ export function useTagAnalyzerBoardPanels({
         refreshPanelData,
         refreshPanelTime,
         expandPanelFullRange,
-        reloadAfterRawModeChange,
         reloadAfterEditorSave,
         refreshAllPanelData,
         refreshAllPanelTime,
@@ -306,16 +334,9 @@ export function useTagAnalyzerBoardPanels({
             dataRefreshVersion: sBoardPanelRecord.dataRefreshVersion,
             onRangeStateChange: (
                 rangeState: PanelRangeState,
-                options?: PanelRangeStateApplyOptions,
+                options?: PanelRangeChangeOptions,
             ): void => {
-                applyPanelRangeState(panelInfo, {
-                    panelRange: rangeState.panelRange,
-                    navigatorRange: rangeState.navigatorRange,
-                    fullRange: options?.fullRange ?? rangeState.fullRange,
-                    navigatorSelectionCenterRatio:
-                        options?.navigatorSelectionCenterRatio,
-                    reloadData: options?.reloadData,
-                });
+                applyPanelRangeToPanel(panelInfo, rangeState, options);
             },
         };
     }

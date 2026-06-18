@@ -1,9 +1,14 @@
 import type {
     PanelNavigatorRangePair,
+    PanelRangeConfig,
     TimeRangeConfig,
     TimeRangeMs,
 } from '../model/TimeTypes';
 import { isValidTimeRange } from '../range/TimeRangeUtils';
+import {
+    isEmptyPanelRangeConfig,
+    isNumericRangeConfig,
+} from '../range/PanelRangeConfigUtils';
 
 export function hasCompleteTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig,
@@ -68,13 +73,13 @@ export function shouldApplyInitialMainChartWindow({
     boardTime,
 }: {
     applyInitialMainChartWindow: boolean;
-    rangeConfig: TimeRangeConfig;
+    rangeConfig: PanelRangeConfig;
     boardTime: TimeRangeConfig;
 }): boolean {
     return (
         applyInitialMainChartWindow &&
-        hasNoTimeRangeConfig(rangeConfig) &&
-        hasNoTimeRangeConfig(boardTime)
+        isEmptyPanelRangeConfig(rangeConfig) &&
+        (isNumericRangeConfig(rangeConfig) || hasNoTimeRangeConfig(boardTime))
     );
 }
 

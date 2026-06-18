@@ -107,4 +107,3 @@ export function cloneTimeBoundary(boundary: TimeBoundary): TimeBoundary {
             );
     }
 }
-

@@ -3,7 +3,7 @@ import {
     createTimeRangeMs,
     getTimeRangeCenter,
     getTimeRangeWidth,
-    isTimeRangeOutsideBounds,
+    isTimeRangeWithinTimeRange,
 } from '../domain/time/range/TimeRangeUtils';
 
 export const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
@@ -35,13 +35,6 @@ export function getMinimumRangeAmount(
         : 0;
 
     return Math.max(sRelativeRangeAmount, floorRangeAmount);
-}
-
-export function isPanelOutsideNavigator(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
-): boolean {
-    return isTimeRangeOutsideBounds(panelRange, navigatorRange);
 }
 
 export function limitNavigatorRangeAmountForSelection(
@@ -99,7 +92,7 @@ export function recenterNavigatorRangeIfPanelOutside(
     navigatorRange: TimeRangeMs,
     selectionCenterRatio?: number,
 ): TimeRangeMs {
-    if (!isPanelOutsideNavigator(panelRange, navigatorRange)) {
+    if (isTimeRangeWithinTimeRange(panelRange, navigatorRange)) {
         return navigatorRange;
     }
 

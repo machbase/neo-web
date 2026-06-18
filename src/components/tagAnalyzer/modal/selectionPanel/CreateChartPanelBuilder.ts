@@ -1,23 +1,32 @@
 import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
 import { DEFAULT_VALUE_RANGE, type PanelEChartType, type PanelInfo } from '../../domain/PanelDomain';
 import { createPanelIndexKey } from '../../domain/PanelIdentity';
-import { hasNumericBaseTimeSeries, type PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import {
+    shouldUseNumericPanelRangeConfig,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
-import { createEmptyTimeRangeConfig } from '../../domain/time/range/TimeRangeUtils';
-import type { PersistedPanelInfoV204 } from '../../persistence/TazPersistenceTypesV204';
+import {
+    createNumericRangeBoundary,
+    createNumericRangeConfig,
+    createTimestampRangeBoundary,
+    createTimestampRangeConfig,
+} from '../../domain/time/range/PanelRangeConfigUtils';
+import type { PersistedPanelInfoV205 } from '../../persistence/TazPersistenceTypesV205';
 
 export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 const DEFAULT_PANEL_ROW_LIMIT = -1;
 const DEFAULT_PANEL_INTERVAL_TYPE = '';
 const DEFAULT_RAW_PIXELS_PER_TICK = 0.1;
 const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
+const DEFAULT_CALCULATED_NAVIGATOR_PIXELS_PER_TICK = 3;
 const DEFAULT_SAMPLING_VALUE = 0.01;
 
 export function buildCreateChartPanel(
     chartType: PanelEChartType,
     selectedSeriesDrafts: TagSelectionDraftItem[],
     chartTitle: string = DEFAULT_NEW_PANEL_TITLE,
-): PersistedPanelInfoV204 {
+): PersistedPanelInfoV205 {
     return createRuntimePanelInfo(
         chartType,
         buildSeriesDefinitionsFromDrafts(selectedSeriesDrafts),
@@ -31,6 +40,7 @@ function createRuntimePanelInfo(
     chartTitle: string,
 ): PanelInfo {
     const sDisplay = createPanelDisplayForChartType(chartType);
+    const sIsNumericXAxis = shouldUseNumericPanelRangeConfig(tagSet);
 
     return {
         general: {
@@ -38,7 +48,7 @@ function createRuntimePanelInfo(
             use_zoom: true,
             use_last_viewed_range: false,
             last_viewed_range: undefined,
-            is_raw: hasNumericBaseTimeSeries(tagSet),
+            is_raw: sIsNumericXAxis,
             is_order_by: false,
             use_normalize: false,
         },
@@ -49,13 +59,23 @@ function createRuntimePanelInfo(
             interval_type: DEFAULT_PANEL_INTERVAL_TYPE,
         },
         time: {
-            range_config: createEmptyTimeRangeConfig(),
+            range_config: sIsNumericXAxis
+                ? createNumericRangeConfig(
+                      createNumericRangeBoundary('numeric_empty'),
+                      createNumericRangeBoundary('numeric_empty'),
+                  )
+                : createTimestampRangeConfig(
+                      createTimestampRangeBoundary('timestamp_empty'),
+                      createTimestampRangeBoundary('timestamp_empty'),
+                  ),
         },
         axes: {
             x_axis: {
                 show_tickline: true,
                 raw_data_pixels_per_tick: DEFAULT_RAW_PIXELS_PER_TICK,
                 calculated_data_pixels_per_tick: DEFAULT_CALCULATED_PIXELS_PER_TICK,
+                calculated_navigator_pixels_per_tick:
+                    DEFAULT_CALCULATED_NAVIGATOR_PIXELS_PER_TICK,
             },
             sampling: {
                 enabled: true,

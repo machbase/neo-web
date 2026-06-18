@@ -1,12 +1,12 @@
 import { postFileList } from '@/api/repository/api';
-import type { PersistedTazBoardInfoV204 } from '../TazPersistenceTypesV204';
+import type { PersistedTazBoardInfoV205 } from '../TazPersistenceTypesV205';
 
 type TazFileSaveResult = {
     success: boolean;
 };
 
 type SaveTazFileParams = {
-    payload: PersistedTazBoardInfoV204;
+    payload: PersistedTazBoardInfoV205;
     directoryPath: string;
     fileName: string;
 };

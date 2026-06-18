@@ -6,7 +6,8 @@ import {
     clonePanelHighlights,
 } from '../PersistenceCloneUtils';
 import type { PersistedPanelInfoV204 } from '../TazPersistenceTypesV204';
-import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
+import { normalizePersistedPanelRangeConfig } from './normalizePersistedPanelRangeConfig';
+import { shouldUseNumericPanelRangeConfig } from '../../domain/SeriesDomain';
 
 export function isPersistedPanelInfoV204(
     panelInfo: unknown,
@@ -47,8 +48,9 @@ export function isPersistedPanelInfoV204(
 export function parseLoadedPanelTazVer204(
     panelInfo: PersistedPanelInfoV204,
 ): PanelInfo {
-    const sRangeConfig = normalizePersistedTimeRangeConfig(
+    const sRangeConfig = normalizePersistedPanelRangeConfig(
         panelInfo.time.range_config,
+        shouldUseNumericPanelRangeConfig(panelInfo.data.tag_set),
     );
     if (!sRangeConfig) {
         throw new Error('Unsupported TagAnalyzer .taz panel time range_config shape.');

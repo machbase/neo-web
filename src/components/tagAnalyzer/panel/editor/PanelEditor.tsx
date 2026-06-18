@@ -11,6 +11,7 @@ import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import EditorAxesTab, { hasInvalidEditorAxes } from './editTabs/EditorAxesTab';
+import EditorDataSettingTab from './editTabs/EditorDataSettingTab';
 import EditorDataTab from './editTabs/EditorDataTab';
 import EditorDisplayTab from './editTabs/EditorDisplayTab';
 import EditorGeneralTab from './editTabs/EditorGeneralTab';
@@ -23,12 +24,14 @@ import type {
     PanelInfo,
     PanelYAxis,
 } from '../../domain/PanelDomain';
+import { shouldUseNumericPanelRangeConfig } from '../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../domain/time/model/TimeTypes';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
 export enum EditTabPanelType {
     General = 'General',
     Data = 'Data',
+    DataSetting = 'Data Setting',
     Axes = 'Axes',
     Display = 'Display',
     Time = 'Time',
@@ -171,6 +174,9 @@ const PanelEditor = ({
         [sEditorConfig],
     );
     const sHasInvalidAxisRange = hasInvalidEditorAxes(sEditorConfig.axes);
+    const sIsNumericXAxis = shouldUseNumericPanelRangeConfig(
+        sEditorConfig.data.tag_set,
+    );
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidAxisRange;
     const sStatusMessage = sSaveMessage ??
@@ -329,9 +335,17 @@ const PanelEditor = ({
                     <EditorAxesTab
                         pAxesConfig={sEditorConfig.axes}
                         pTagSet={sEditorConfig.data.tag_set}
-                        pIsRawMode={pIsRawMode}
                         pOnChangeAxesConfig={setAxesDraft}
                         pOnChangeTagSet={updateTagSet}
+                    />
+                );
+            case EditTabPanelType.DataSetting:
+                return (
+                    <EditorDataSettingTab
+                        pAxesConfig={sEditorConfig.axes}
+                        pIsRawMode={pIsRawMode}
+                        pIsNumericXAxis={sIsNumericXAxis}
+                        pOnChangeAxesConfig={setAxesDraft}
                     />
                 );
             case EditTabPanelType.Display:
@@ -345,6 +359,7 @@ const PanelEditor = ({
                 return (
                     <EditorTimeTab
                         pTimeConfig={sEditorConfig.time}
+                        pIsNumericXAxis={sIsNumericXAxis}
                         pPanelRange={pPanelRange}
                         pOnChangeTimeConfig={setTimeDraft}
                     />

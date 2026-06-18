@@ -1,10 +1,11 @@
 import type { PanelInfo } from '../../domain/PanelDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
-import type { PersistedPanelInfoV204 } from '../TazPersistenceTypesV204';
+import { clonePanelRangeConfig } from '../../domain/time/range/PanelRangeConfigUtils';
+import type { PersistedPanelInfoV205 } from '../TazPersistenceTypesV205';
 
 export function mapPanelToPersistedTaz(
     panelInfo: PanelInfo,
-): PersistedPanelInfoV204 {
+): PersistedPanelInfoV205 {
     return {
         ...panelInfo,
         data: {
@@ -12,6 +13,9 @@ export function mapPanelToPersistedTaz(
             interval_type:
                 normalizeStoredTimeUnit(panelInfo.data.interval_type ?? '') ??
                 panelInfo.data.interval_type,
+        },
+        time: {
+            range_config: clonePanelRangeConfig(panelInfo.time.range_config),
         },
     };
 }

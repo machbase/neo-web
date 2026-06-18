@@ -133,6 +133,12 @@ export function getSeriesListKeyAxisKind(
     return getSeriesKeyAxisKind(seriesList[0]?.sourceColumns);
 }
 
+export function shouldUseNumericPanelRangeConfig(
+    seriesList: SeriesWithSourceColumns[] = [],
+): boolean {
+    return !hasMixedXAxisValueKinds(seriesList) && hasNumericBaseTimeSeries(seriesList);
+}
+
 const TAG_ANALYZER_LINE_COLORS = [
     '#367FEB',
     '#EB5757',

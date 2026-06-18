@@ -17,7 +17,7 @@ import {
     isValidTimeRange,
     shiftTimeRange,
 } from '../domain/time/range/TimeRangeUtils';
-import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
+import type { PanelRangeChangeOptions } from '../board/BoardPanelState';
 import {
     getMinimumRangeAmount,
     MIN_NUMERIC_RANGE_AMOUNT,
@@ -31,15 +31,15 @@ const PANEL_NOT_INITIALIZED_DRAG_MESSAGE =
     'Panel is not fully initialized; cannot drag yet.';
 const PANEL_NOT_INITIALIZED_TOAST_INTERVAL_MS = 2000;
 
-type ApplyPanelRangeState = (
+type ApplyPanelRangeChange = (
     rangeState: PanelRangeState,
-    options?: PanelRangeStateApplyOptions,
+    options?: PanelRangeChangeOptions,
 ) => void;
 
 type UsePanelRangeControlsParams = {
     rangeState: PanelRangeState;
     isNumericXAxis: boolean;
-    onRangeStateChange: ApplyPanelRangeState;
+    onRangeStateChange: ApplyPanelRangeChange;
 };
 
 type PanelRangeControls = {
@@ -71,7 +71,7 @@ export function usePanelRangeControls({
 
     const setMainRange = (
         panelRange: TimeRangeMs,
-        options?: PanelRangeStateApplyOptions,
+        options?: PanelRangeChangeOptions,
     ): void => {
         onRangeStateChange(
             {

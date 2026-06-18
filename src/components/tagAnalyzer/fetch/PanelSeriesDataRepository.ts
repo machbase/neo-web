@@ -153,13 +153,14 @@ export async function fetchNavigatorPanelSeriesRows(
               timeRange,
               chartWidth,
               requestedRawMode,
+              xAxis.calculated_navigator_pixels_per_tick,
           );
     const sDisplayCount = sUseNavigatorOverviewCount
         ? RAW_NAVIGATOR_SAMPLE_COUNT
         : calculateSampleCount(
               queryLimit,
               requestedRawMode,
-              xAxis.calculated_data_pixels_per_tick,
+              xAxis.calculated_navigator_pixels_per_tick,
               xAxis.raw_data_pixels_per_tick,
               chartWidth,
           );
@@ -177,7 +178,7 @@ export async function fetchNavigatorPanelSeriesRows(
             seriesConfigSet.map(async (seriesConfig) => {
                 let sFetchResult: ChartFetchResponse;
 
-                if (sUsesNumericBaseTime) {
+                if (requestedRawMode || sUsesNumericBaseTime) {
                     sFetchResult = await fetchRawSeriesRows(
                         seriesConfig,
                         timeRange,
@@ -185,14 +186,6 @@ export async function fetchNavigatorPanelSeriesRows(
                         sQueryCount,
                         sRawNavigatorSampling,
                         true,
-                    );
-                } else if (requestedRawMode) {
-                    sFetchResult = await fetchCalculatedSeriesRows(
-                        getRawNavigatorOverviewSeriesConfig(seriesConfig),
-                        timeRange,
-                        sInterval,
-                        sQueryCount,
-                        rollupTableList,
                     );
                 } else {
                     sFetchResult = await fetchCalculatedSeriesRows(
@@ -215,15 +208,6 @@ export async function fetchNavigatorPanelSeriesRows(
         interval: sInterval,
         count: sDisplayCount,
         isRaw: requestedRawMode,
-    };
-}
-
-function getRawNavigatorOverviewSeriesConfig(
-    seriesConfig: PanelSeriesDefinition,
-): PanelSeriesDefinition {
-    return {
-        ...seriesConfig,
-        calculationMode: 'avg',
     };
 }
 
@@ -362,13 +346,14 @@ function resolvePanelFetchInterval(
     timeRange: TimeRangeMs,
     chartWidth: number,
     fetchRawMode: boolean,
+    calculatedPixelsPerTick = xAxis.calculated_data_pixels_per_tick,
 ): IntervalOption {
     const calculatedInterval = calculateInterval(
         timeRange.startTime,
         timeRange.endTime,
         chartWidth,
         fetchRawMode,
-        xAxis.calculated_data_pixels_per_tick,
+        calculatedPixelsPerTick,
         xAxis.raw_data_pixels_per_tick,
         false,
     );

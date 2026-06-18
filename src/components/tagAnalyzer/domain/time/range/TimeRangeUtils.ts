@@ -73,11 +73,14 @@ export function shiftTimeRange(
     );
 }
 
-export function isTimeRangeOutsideBounds(
-    range: TimeRangeMs,
-    bounds: TimeRangeMs,
+export function isTimeRangeWithinTimeRange(
+    innerRange: TimeRangeMs,
+    outerRange: TimeRangeMs,
 ): boolean {
-    return range.startTime < bounds.startTime || range.endTime > bounds.endTime;
+    return (
+        innerRange.startTime >= outerRange.startTime &&
+        innerRange.endTime <= outerRange.endTime
+    );
 }
 
 export function clampTimeRangeToBounds(

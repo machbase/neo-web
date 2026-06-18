@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, QuickTimeRange } from '@/design-system/components';
+import { Button, Input, QuickTimeRange } from '@/design-system/components';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
@@ -7,32 +7,102 @@ import TagAnalyzerDatePicker from '../../../datePicker/TagAnalyzerDatePicker';
 import type { PanelEditorConfig } from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 import {
+    createAbsoluteTimeBoundary,
+    createAnchoredTimeBoundary,
     formatTimeRangeInputValue,
     parseTimeRangeInputValue,
-    createAbsoluteTimeBoundary,
 } from '../../../domain/time/boundary/TimeBoundaryInput';
-import type {
-    TimeBoundary,
-    TimeRangeConfig,
-    TimeRangeMs,
+import {
+    formatAxisInputValue,
+    parseAxisInputValue,
+} from '../../../domain/time/formatting/TimeInputFormatters';
+import {
+    TimeUnit,
+    type NumericRangeBoundary,
+    type NumericRangeConfig,
+    type PanelRangeConfig,
+    type TimeBoundary,
+    type TimeRangeMs,
+    type TimestampRangeBoundary,
+    type TimestampRangeConfig,
 } from '../../../domain/time/model/TimeTypes';
 import {
-    createEmptyTimeRangeConfig,
-    createTimeRangeConfig,
-    isValidTimeRange,
-} from '../../../domain/time/range/TimeRangeUtils';
+    createNumericRangeBoundary,
+    createNumericRangeConfig,
+    createTimestampRangeBoundary,
+    createTimestampRangeBoundaryFromTimeBoundary,
+    createTimestampRangeConfig,
+    isEmptyPanelRangeConfig,
+    isNumericRangeConfig,
+    isTimestampRangeConfig,
+} from '../../../domain/time/range/PanelRangeConfigUtils';
+import { isValidTimeRange } from '../../../domain/time/range/TimeRangeUtils';
 
 type TimeInputField = 'start' | 'end';
-type TimeInputValues = {
+type TimestampInputValues = {
     startTime: string;
     endTime: string;
     startPlaceholder: string;
     endPlaceholder: string;
 };
+type NumericInputValues = {
+    startValue: string;
+    endValue: string;
+};
 
 const DEFAULT_TIME_INPUT_PLACEHOLDER = 'YYYY-MM-DD HH:mm:ss';
+const NUMERIC_BOUNDARY_INPUT_PLACEHOLDER = '20, first, first-10, last-10';
+const NUMERIC_ANCHORED_BOUNDARY_PATTERN =
+    /^(first|last)(?:-((?:\d+\.?\d*)|(?:\.\d+)))?$/i;
+const DEFAULT_NUMERIC_INPUT_VALUES: NumericInputValues = {
+    startValue: '',
+    endValue: '',
+};
+const NUMERIC_QUICK_RANGE: QuickTimeRangeOption[][] = [
+    [
+        { key: 'first-10', name: 'First 10', value: ['first', 'first-10'] },
+        { key: 'last-10', name: 'Last 10', value: ['last-10', 'last'] },
+    ],
+    [
+        { key: 'first-100', name: 'First 100', value: ['first', 'first-100'] },
+        { key: 'last-100', name: 'Last 100', value: ['last-100', 'last'] },
+    ],
+    [
+        { key: 'first-1000', name: 'First 1000', value: ['first', 'first-1000'] },
+        { key: 'last-1000', name: 'Last 1000', value: ['last-1000', 'last'] },
+    ],
+];
 
 const EditorTimeTab = ({
+    pTimeConfig,
+    pIsNumericXAxis,
+    pPanelRange,
+    pOnChangeTimeConfig,
+}: {
+    pTimeConfig: PanelEditorConfig['time'];
+    pIsNumericXAxis: boolean;
+    pPanelRange: TimeRangeMs;
+    pOnChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
+}) => {
+    if (pIsNumericXAxis) {
+        return (
+            <NumericRangeConfigEditor
+                pTimeConfig={pTimeConfig}
+                pOnChangeTimeConfig={pOnChangeTimeConfig}
+            />
+        );
+    }
+
+    return (
+        <TimestampRangeConfigEditor
+            pTimeConfig={pTimeConfig}
+            pPanelRange={pPanelRange}
+            pOnChangeTimeConfig={pOnChangeTimeConfig}
+        />
+    );
+};
+
+function TimestampRangeConfigEditor({
     pTimeConfig,
     pPanelRange,
     pOnChangeTimeConfig,
@@ -40,26 +110,33 @@ const EditorTimeTab = ({
     pTimeConfig: PanelEditorConfig['time'];
     pPanelRange: TimeRangeMs;
     pOnChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
-}) => {
-    const sInitialInputValues = getTimeInputValues(
-        pTimeConfig,
+}) {
+    const sRangeConfig = getTimestampRangeConfig(pTimeConfig.range_config);
+    const sInitialInputValues = getTimestampInputValues(
+        sRangeConfig,
         pPanelRange,
     );
     const [sStartTime, setStartTime] = useState(sInitialInputValues.startTime);
     const [sEndTime, setEndTime] = useState(sInitialInputValues.endTime);
-    const sInputValues = getTimeInputValues(pTimeConfig, pPanelRange);
+    const sInputValues = getTimestampInputValues(sRangeConfig, pPanelRange);
 
     useEffect(() => {
-        const sNextInputValues = getTimeInputValues(pTimeConfig, pPanelRange);
+        const sNextInputValues = getTimestampInputValues(sRangeConfig, pPanelRange);
         setStartTime(sNextInputValues.startTime);
         setEndTime(sNextInputValues.endTime);
-    }, [pTimeConfig, pPanelRange]);
+    }, [pTimeConfig.range_config, pPanelRange]);
 
     function updateTimeInput(field: TimeInputField, value: string): void {
         const sBoundary = parseTimeRangeInputValue(value);
         if (sBoundary) {
             pOnChangeTimeConfig(
-                getTimeConfigWithUpdatedBoundary(pTimeConfig, field, sBoundary),
+                createTimeConfig(
+                    getTimestampConfigWithUpdatedBoundary(
+                        sRangeConfig,
+                        field,
+                        createTimestampRangeBoundaryFromTimeBoundary(sBoundary),
+                    ),
+                ),
             );
         }
 
@@ -68,10 +145,14 @@ const EditorTimeTab = ({
 
     function applyTimeInput(field: TimeInputField, value: string): void {
         pOnChangeTimeConfig(
-            getTimeConfigWithUpdatedBoundary(
-                pTimeConfig,
-                field,
-                parseRequiredTimeBoundary(value),
+            createTimeConfig(
+                getTimestampConfigWithUpdatedBoundary(
+                    sRangeConfig,
+                    field,
+                    createTimestampRangeBoundaryFromTimeBoundary(
+                        parseRequiredTimeBoundary(value),
+                    ),
+                ),
             ),
         );
         setTimeInputValue(field, value, setStartTime, setEndTime);
@@ -81,8 +162,14 @@ const EditorTimeTab = ({
         const [sStartValue = '', sEndValue = ''] = option.value;
         pOnChangeTimeConfig(
             createTimeConfig(
-                parseRequiredTimeBoundary(sStartValue),
-                parseRequiredTimeBoundary(sEndValue),
+                createTimestampRangeConfig(
+                    createTimestampRangeBoundaryFromTimeBoundary(
+                        parseRequiredTimeBoundary(sStartValue),
+                    ),
+                    createTimestampRangeBoundaryFromTimeBoundary(
+                        parseRequiredTimeBoundary(sEndValue),
+                    ),
+                ),
             ),
         );
         setStartTime(sStartValue);
@@ -90,8 +177,14 @@ const EditorTimeTab = ({
     }
 
     function clearTimeRange(): void {
-        const sRangeConfig = createEmptyTimeRangeConfig();
-        pOnChangeTimeConfig(createTimeConfig(sRangeConfig.start, sRangeConfig.end));
+        pOnChangeTimeConfig(
+            createTimeConfig(
+                createTimestampRangeConfig(
+                    createTimestampRangeBoundary('timestamp_empty'),
+                    createTimestampRangeBoundary('timestamp_empty'),
+                ),
+            ),
+        );
         setStartTime('');
         setEndTime('');
     }
@@ -147,13 +240,139 @@ const EditorTimeTab = ({
             </section>
         </div>
     );
-};
+}
+
+function NumericRangeConfigEditor({
+    pTimeConfig,
+    pOnChangeTimeConfig,
+}: {
+    pTimeConfig: PanelEditorConfig['time'];
+    pOnChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
+}) {
+    const sRangeConfig = getNumericRangeConfig(pTimeConfig.range_config);
+    const [sInputValues, setInputValues] = useState(
+        () => getNumericInputValues(sRangeConfig),
+    );
+
+    useEffect(() => {
+        setInputValues(getNumericInputValues(sRangeConfig));
+    }, [pTimeConfig.range_config]);
+
+    function updateNumericBoundaryInput(
+        field: 'startValue' | 'endValue',
+        value: string,
+    ): void {
+        const nextInputValues = {
+            ...sInputValues,
+            [field]: value,
+        };
+
+        setInputValues(nextInputValues);
+        const sRangeConfig = createNumericRangeConfigFromBoundaryInput(
+            nextInputValues.startValue,
+            nextInputValues.endValue,
+        );
+
+        if (sRangeConfig) {
+            pOnChangeTimeConfig(createTimeConfig(sRangeConfig));
+        }
+    }
+
+    function applyQuickNumericRange(option: QuickTimeRangeOption): void {
+        const [sStartValue = '', sEndValue = ''] = option.value;
+        const sRangeConfig = createNumericRangeConfigFromBoundaryInput(
+            sStartValue,
+            sEndValue,
+        );
+
+        if (!sRangeConfig) {
+            return;
+        }
+
+        setInputValues({
+            startValue: sStartValue,
+            endValue: sEndValue,
+        });
+        pOnChangeTimeConfig(createTimeConfig(sRangeConfig));
+    }
+
+    function clearNumericRange(): void {
+        setInputValues(DEFAULT_NUMERIC_INPUT_VALUES);
+        pOnChangeTimeConfig(
+            createTimeConfig(
+                createNumericRangeConfig(
+                    createNumericRangeBoundary('numeric_empty'),
+                    createNumericRangeBoundary('numeric_empty'),
+                ),
+            ),
+        );
+    }
+
+    return (
+        <div className={styles.timeLayout}>
+            <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                    <span className={styles.sectionTitle}>
+                        Panel configured value range
+                    </span>
+                </div>
+                <div className={styles.controlStack}>
+                    <div className={styles.controlRow}>
+                        <Input
+                            label="From"
+                            labelPosition="left"
+                            value={sInputValues.startValue}
+                            placeholder={NUMERIC_BOUNDARY_INPUT_PLACEHOLDER}
+                            onChange={(event) =>
+                                updateNumericBoundaryInput(
+                                    'startValue',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </div>
+                    <div className={styles.controlRow}>
+                        <Input
+                            label="To"
+                            labelPosition="left"
+                            value={sInputValues.endValue}
+                            placeholder={NUMERIC_BOUNDARY_INPUT_PLACEHOLDER}
+                            onChange={(event) =>
+                                updateNumericBoundaryInput(
+                                    'endValue',
+                                    event.target.value,
+                                )
+                            }
+                        />
+                    </div>
+                    <div className={styles.controlRow}>
+                        <Button variant="ghost" onClick={clearNumericRange}>
+                            <VscTrash size={16} />
+                            <span>Clear</span>
+                        </Button>
+                    </div>
+                </div>
+            </section>
+            <section className={styles.section}>
+                <div className={styles.sectionHeader}>
+                    <span className={styles.sectionTitle}>
+                        Quick panel configured range
+                    </span>
+                </div>
+                <QuickTimeRange
+                    options={NUMERIC_QUICK_RANGE}
+                    onSelect={applyQuickNumericRange}
+                    title=""
+                />
+            </section>
+        </div>
+    );
+}
 
 function createTimeConfig(
-    startBoundary: TimeBoundary,
-    endBoundary: TimeBoundary,
+    rangeConfig: PanelRangeConfig,
 ): PanelEditorConfig['time'] {
-    return { range_config: createTimeRangeConfig(startBoundary, endBoundary) };
+    return { range_config: rangeConfig };
 }
 
 function parseRequiredTimeBoundary(value: string): TimeBoundary {
@@ -165,28 +384,50 @@ function parseRequiredTimeBoundary(value: string): TimeBoundary {
     return sBoundary;
 }
 
-function getTimeConfigWithUpdatedBoundary(
-    timeConfig: PanelEditorConfig['time'],
+function getTimestampConfigWithUpdatedBoundary(
+    rangeConfig: TimestampRangeConfig,
     field: TimeInputField,
-    boundary: TimeBoundary,
-): PanelEditorConfig['time'] {
+    boundary: TimestampRangeBoundary,
+): TimestampRangeConfig {
     const sStartBoundary =
-        field === 'start' ? boundary : timeConfig.range_config.start;
+        field === 'start' ? boundary : rangeConfig.start;
     const sEndBoundary =
-        field === 'end' ? boundary : timeConfig.range_config.end;
+        field === 'end' ? boundary : rangeConfig.end;
 
-    return createTimeConfig(sStartBoundary, sEndBoundary);
+    return createTimestampRangeConfig(sStartBoundary, sEndBoundary);
 }
 
-function getTimeInputValues(
-    timeConfig: PanelEditorConfig['time'],
+function getTimestampRangeConfig(
+    rangeConfig: PanelRangeConfig,
+): TimestampRangeConfig {
+    return isTimestampRangeConfig(rangeConfig)
+        ? rangeConfig
+        : createTimestampRangeConfig(
+              createTimestampRangeBoundary('timestamp_empty'),
+              createTimestampRangeBoundary('timestamp_empty'),
+          );
+}
+
+function getNumericRangeConfig(
+    rangeConfig: PanelRangeConfig,
+): NumericRangeConfig {
+    return isNumericRangeConfig(rangeConfig)
+        ? rangeConfig
+        : createNumericRangeConfig(
+              createNumericRangeBoundary('numeric_empty'),
+              createNumericRangeBoundary('numeric_empty'),
+          );
+}
+
+function getTimestampInputValues(
+    rangeConfig: TimestampRangeConfig,
     panelRange: TimeRangeMs,
-): TimeInputValues {
-    const sIsEmptyTimeRange = isEmptyTimeRangeConfig(timeConfig.range_config);
+): TimestampInputValues {
+    const sIsEmptyTimeRange = isEmptyPanelRangeConfig(rangeConfig);
 
     return {
-        startTime: formatTimeRangeInputValue(timeConfig.range_config.start),
-        endTime: formatTimeRangeInputValue(timeConfig.range_config.end),
+        startTime: formatTimestampRangeBoundaryInputValue(rangeConfig.start),
+        endTime: formatTimestampRangeBoundaryInputValue(rangeConfig.end),
         startPlaceholder: sIsEmptyTimeRange && isValidTimeRange(panelRange)
             ? formatTimestampInputPlaceholder(panelRange.startTime)
             : DEFAULT_TIME_INPUT_PLACEHOLDER,
@@ -196,11 +437,31 @@ function getTimeInputValues(
     };
 }
 
-function isEmptyTimeRangeConfig(timeRangeConfig: TimeRangeConfig): boolean {
-    return (
-        timeRangeConfig.start.kind === 'empty' &&
-        timeRangeConfig.end.kind === 'empty'
-    );
+function formatTimestampRangeBoundaryInputValue(
+    boundary: TimestampRangeBoundary,
+): string {
+    switch (boundary.kind) {
+        case 'timestamp_empty':
+            return '';
+        case 'timestamp_absolute':
+            return formatTimestampInputPlaceholder(boundary.value);
+        case 'timestamp_now':
+            return formatTimeRangeInputValue(
+                createAnchoredTimeBoundary(
+                    'now',
+                    Math.max(Math.abs(boundary.value), 0),
+                    TimeUnit.Millisecond,
+                ),
+            );
+        case 'timestamp_data_end':
+            return formatTimeRangeInputValue(
+                createAnchoredTimeBoundary(
+                    'last',
+                    Math.max(Math.abs(boundary.value), 0),
+                    TimeUnit.Millisecond,
+                ),
+            );
+    }
 }
 
 function formatTimestampInputPlaceholder(timestamp: number): string {
@@ -219,6 +480,135 @@ function setTimeInputValue(
     }
 
     setEndTime(value);
+}
+
+function getNumericInputValues(
+    rangeConfig: NumericRangeConfig,
+): NumericInputValues {
+    return {
+        startValue: formatNumericBoundaryInputValue(rangeConfig.start),
+        endValue: formatNumericBoundaryInputValue(rangeConfig.end),
+    };
+}
+
+function createNumericRangeConfigFromBoundaryInput(
+    startValue: string,
+    endValue: string,
+): NumericRangeConfig | undefined {
+    const sStartBoundary = parseNumericBoundaryInputValue(startValue);
+    const sEndBoundary = parseNumericBoundaryInputValue(endValue);
+
+    if (!sStartBoundary || !sEndBoundary) {
+        return undefined;
+    }
+
+    if (
+        sStartBoundary.kind === 'numeric_empty' &&
+        sEndBoundary.kind === 'numeric_empty'
+    ) {
+        return createNumericRangeConfig(
+            createNumericRangeBoundary('numeric_empty'),
+            createNumericRangeBoundary('numeric_empty'),
+        );
+    }
+
+    if (
+        sStartBoundary.kind === 'numeric_empty' ||
+        sEndBoundary.kind === 'numeric_empty' ||
+        !isNumericBoundaryRangeValid(sStartBoundary, sEndBoundary)
+    ) {
+        return undefined;
+    }
+
+    return createNumericRangeConfig(sStartBoundary, sEndBoundary);
+}
+
+function parseNumericBoundaryInputValue(
+    value: string,
+): NumericRangeBoundary | undefined {
+    const sText = value.trim();
+    if (sText === '') {
+        return createNumericRangeBoundary('numeric_empty');
+    }
+
+    const sAnchoredBoundary = parseNumericAnchoredBoundaryInputValue(sText);
+    if (sAnchoredBoundary) {
+        return sAnchoredBoundary;
+    }
+
+    const sValue = parseAxisInputValue(sText, true);
+    return sValue === undefined
+        ? undefined
+        : createNumericRangeBoundary('numeric_value', sValue);
+}
+
+function parseNumericAnchoredBoundaryInputValue(
+    value: string,
+): NumericRangeBoundary | undefined {
+    const sMatch = value.match(NUMERIC_ANCHORED_BOUNDARY_PATTERN);
+    if (!sMatch) {
+        return undefined;
+    }
+
+    const sAnchor = sMatch[1].toLowerCase();
+    const sAmount = sMatch[2] ? Number(sMatch[2]) : 0;
+    if (!Number.isFinite(sAmount) || sAmount < 0) {
+        return undefined;
+    }
+
+    return sAnchor === 'first'
+        ? createNumericRangeBoundary('numeric_data_start', sAmount)
+        : createNumericRangeBoundary(
+              'numeric_data_end',
+              sAmount === 0 ? 0 : -sAmount,
+          );
+}
+
+function isNumericBoundaryRangeValid(
+    startBoundary: NumericRangeBoundary,
+    endBoundary: NumericRangeBoundary,
+): boolean {
+    if (
+        startBoundary.kind === 'numeric_value' &&
+        endBoundary.kind === 'numeric_value'
+    ) {
+        return startBoundary.value < endBoundary.value;
+    }
+
+    if (
+        startBoundary.kind === 'numeric_data_start' &&
+        endBoundary.kind === 'numeric_data_start'
+    ) {
+        return startBoundary.value < endBoundary.value;
+    }
+
+    if (
+        startBoundary.kind === 'numeric_data_end' &&
+        endBoundary.kind === 'numeric_data_end'
+    ) {
+        return startBoundary.value < endBoundary.value;
+    }
+
+    return true;
+}
+
+function formatNumericBoundaryInputValue(
+    boundary: NumericRangeBoundary,
+): string {
+    switch (boundary.kind) {
+        case 'numeric_empty':
+            return '';
+        case 'numeric_value':
+            return formatAxisInputValue(boundary.value, true);
+        case 'numeric_data_start':
+            return boundary.value === 0
+                ? 'first'
+                : `first-${formatAxisInputValue(boundary.value, true)}`;
+        case 'numeric_data_end':
+            return boundary.value === 0
+                ? 'last'
+                : `last-${formatAxisInputValue(Math.abs(boundary.value), true)}`;
+    }
 }
 
 export default EditorTimeTab;

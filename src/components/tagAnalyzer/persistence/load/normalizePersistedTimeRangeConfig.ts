@@ -14,7 +14,9 @@ import {
     getTimeUnitMilliseconds,
     normalizeStoredTimeUnit,
 } from '../../domain/time/interval/TimeIntervalUtils';
-import { createTimeRangeConfig } from '../../domain/time/range/TimeRangeUtils';
+import {
+    createTimeRangeConfig,
+} from '../../domain/time/range/TimeRangeUtils';
 
 type PersistedBoundaryRecord = Record<string, unknown>;
 

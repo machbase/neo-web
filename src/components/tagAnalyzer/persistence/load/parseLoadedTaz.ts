@@ -13,12 +13,13 @@ import type {
 import type { TimeRangeConfig } from '../../domain/time/model/TimeTypes';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/boundary/TimeBoundaryInput';
 
-export const TAZ_FORMAT_VERSION = '2.0.4';
+export const TAZ_FORMAT_VERSION = '2.0.5';
 const SUPPORTED_TAZ_FORMAT_VERSIONS = [
     '2.0.0',
     '2.0.1',
     '2.0.2',
     '2.0.3',
+    '2.0.4',
     TAZ_FORMAT_VERSION,
 ] as const;
 
