@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    FiArrowLeft,
     FiChevronRight,
     FiCornerDownRight,
-    FiCornerUpLeft,
     FiLayers,
     FiMoreHorizontal,
     FiPlus,
@@ -12,8 +12,14 @@ import {
     FiTrash2,
     FiX,
 } from 'react-icons/fi';
-import { LuChevronsDownUp, LuChevronsUpDown } from 'react-icons/lu';
+import {
+    LuChevronsDownUp,
+    LuChevronsUpDown,
+    LuChevronsLeft,
+    LuChevronsRight,
+} from 'react-icons/lu';
 import { Virtuoso } from 'react-virtuoso';
+import { Tooltip } from 'react-tooltip';
 import {
     Button,
     CommonTable,
@@ -194,6 +200,41 @@ const valuePathsFromTree = (
         const path = parentPath.concat({ key: node.key, value: node.value });
         return [path].concat(valuePathsFromTree(node.children, path));
     });
+
+// Custom row-action icons (exact SVG provided by design): sibling = vertical bar
+// + plus (same level), child = corner/subtree bend + plus (one level deeper).
+// Sized to 14px via `.treeRowAction svg` and inherits color via currentColor.
+const AddSiblingIcon = () => (
+    <svg
+        viewBox="0 0 24 24"
+        width="1em"
+        height="1em"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M6 3v18" />
+        <path d="M14 8v8M10 12h8" />
+    </svg>
+);
+
+const AddChildIcon = () => (
+    <svg
+        viewBox="0 0 24 24"
+        width="1em"
+        height="1em"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <path d="M6 3v7a3 3 0 0 0 3 3h2" />
+        <path d="M17 11.5v7M13.5 15h7" />
+    </svg>
+);
 
 export const TagHierarchyPage = ({
     active,
@@ -917,9 +958,15 @@ export const TagHierarchyPage = ({
         setIsTemplateEditing(true);
     };
 
-    const cancelTemplateEdit = () => {
+    // Revert the draft to the original snapshot while staying in edit mode.
+    const resetTemplateEdit = () => {
         setSchemaDraft(sKeys.length > 0 ? sKeys : DEFAULT_HIERARCHY_DOCUMENT.schema);
         setValueTreeDraft(cloneValueTree(sValueTree));
+    };
+
+    // Revert the draft and leave edit mode (the former cancel behaviour).
+    const backFromTemplateEdit = () => {
+        resetTemplateEdit();
         setIsTemplateEditing(false);
     };
 
@@ -969,6 +1016,15 @@ export const TagHierarchyPage = ({
 
     const handleTreeIndent = (path: number[]) => {
         const result = indentHierarchyValueNode(sValueTreeDraft, path, sSchemaDraft);
+        if (!result) return;
+        setValueTreeDraft(result.tree);
+        setFocusTreePath(result.focusPath);
+    };
+
+    const handleTreeChild = (path: number[]) => {
+        // Inserts a first child one level deeper. Returns null when the child
+        // would exceed the schema's max depth, so guard like indent.
+        const result = insertHierarchyValueChild(sValueTreeDraft, path, sSchemaDraft);
         if (!result) return;
         setValueTreeDraft(result.tree);
         setFocusTreePath(result.focusPath);
@@ -1387,13 +1443,9 @@ export const TagHierarchyPage = ({
     const renderTreeFlatRow = (item: TreeFlatRow): React.ReactNode =>
         item.kind === 'node'
             ? renderTreeNodeRow(item.node, item.depth)
-            : renderTagRow(
-                  item.row,
-                  item.parentKey,
-                  item.depth,
-                  item.orderedNames,
-                  { path: item.parentPath },
-              );
+            : renderTagRow(item.row, item.parentKey, item.depth, item.orderedNames, {
+                  path: item.parentPath,
+              });
 
     // Pre-order render of one outliner row + its descendants (flattened into one list).
     const renderTreeEditorNode = (node: HierarchyValueNode, path: number[]): React.ReactNode[] => {
@@ -1438,36 +1490,89 @@ export const TagHierarchyPage = ({
                         onKeyDown={(event) => handleTreeKeyDown(event, path, node)}
                     />
                     <div className={styles.treeRowActions}>
-                        <IconButton
-                            className={styles.treeRowAction}
-                            aria-label="Indent (Tab)"
-                            title="Indent (Tab)"
-                            size="icon"
-                            variant="ghost"
-                            disabled={!canIndent}
-                            icon={<FiCornerDownRight />}
-                            onClick={() => handleTreeIndent(path)}
-                        />
-                        <IconButton
-                            className={styles.treeRowAction}
-                            aria-label="Outdent (Shift+Tab)"
-                            title="Outdent (Shift+Tab)"
-                            size="icon"
-                            variant="ghost"
-                            disabled={!canOutdent}
-                            icon={<FiCornerUpLeft />}
-                            onClick={() => handleTreeOutdent(path)}
-                        />
-                        <IconButton
-                            className={styles.treeRowAction}
-                            aria-label="Delete row"
-                            title={canDelete ? 'Delete row' : 'Delete child rows first.'}
-                            size="icon"
-                            variant="ghost"
-                            disabled={!canDelete}
-                            icon={<FiTrash2 />}
-                            onClick={() => handleTreeDelete(path, node)}
-                        />
+                        {/* Each button is wrapped in a span anchor so the tooltip
+                            hover area covers the whole 24x24 button, not just the
+                            inner 14px icon (IconButton's isToolTip anchors the icon). */}
+                        <span
+                            className={styles.treeRowActionTip}
+                            data-tooltip-id="tagHierarchyTreeRowTip"
+                            data-tooltip-content="Indent (Tab)"
+                        >
+                            <IconButton
+                                className={styles.treeRowAction}
+                                aria-label="Indent (Tab)"
+                                size="icon"
+                                variant="ghost"
+                                disabled={!canIndent}
+                                icon={<LuChevronsRight />}
+                                onClick={() => handleTreeIndent(path)}
+                            />
+                        </span>
+                        <span
+                            className={styles.treeRowActionTip}
+                            data-tooltip-id="tagHierarchyTreeRowTip"
+                            data-tooltip-content="Outdent (Shift+Tab)"
+                        >
+                            <IconButton
+                                className={styles.treeRowAction}
+                                aria-label="Outdent (Shift+Tab)"
+                                size="icon"
+                                variant="ghost"
+                                disabled={!canOutdent}
+                                icon={<LuChevronsLeft />}
+                                onClick={() => handleTreeOutdent(path)}
+                            />
+                        </span>
+                        {/* Sibling button is disabled at the root (single depth-1
+                            node); keyboard Enter there still falls back to seeding
+                            a first child via handleTreeSibling — intentional split. */}
+                        <span
+                            className={styles.treeRowActionTip}
+                            data-tooltip-id="tagHierarchyTreeRowTip"
+                            data-tooltip-content="Add sibling row — same level (Enter)"
+                        >
+                            <IconButton
+                                className={styles.treeRowAction}
+                                aria-label="Add sibling (Enter)"
+                                size="icon"
+                                variant="ghost"
+                                disabled={path.length <= 1}
+                                icon={<AddSiblingIcon />}
+                                onClick={() => handleTreeSibling(path)}
+                            />
+                        </span>
+                        <span
+                            className={styles.treeRowActionTip}
+                            data-tooltip-id="tagHierarchyTreeRowTip"
+                            data-tooltip-content="Add child row — one level deeper"
+                        >
+                            <IconButton
+                                className={styles.treeRowAction}
+                                aria-label="Add child"
+                                size="icon"
+                                variant="ghost"
+                                disabled={path.length + 1 > sSchemaDraft.length}
+                                icon={<AddChildIcon />}
+                                onClick={() => handleTreeChild(path)}
+                            />
+                        </span>
+                        <span
+                            className={styles.treeRowActionTip}
+                            data-tooltip-id="tagHierarchyTreeRowTip"
+                            data-tooltip-content={
+                                canDelete ? 'Delete row' : 'Delete child rows first'
+                            }
+                        >
+                            <IconButton
+                                className={styles.treeRowAction}
+                                aria-label="Delete row"
+                                size="icon"
+                                variant="ghost"
+                                disabled={!canDelete}
+                                icon={<FiTrash2 />}
+                                onClick={() => handleTreeDelete(path, node)}
+                            />
+                        </span>
                     </div>
                 </div>
                 {errors ? (
@@ -1525,60 +1630,84 @@ export const TagHierarchyPage = ({
 
     return (
         <div className={styles.container}>
+            {/* Single shared tooltip for the per-row action buttons (anchored via
+                data-tooltip-id on each button's wrapping span). */}
+            <Tooltip
+                id="tagHierarchyTreeRowTip"
+                className="tooltip-div"
+                place="top"
+                delayShow={300}
+            />
             {sIsTemplateEditing || mHasTemplate ? (
                 <div className={styles.toolbar}>
-                    <div />
                     {sIsTemplateEditing ? (
-                        <div className={styles.toolbarEditActions}>
-                            <span className={styles.editorStatus}>
-                                <span
-                                    className={
-                                        mBlockingCount > 0
-                                            ? styles.statusDotError
-                                            : styles.statusDotOk
-                                    }
-                                />
-                                {mBlockingCount > 0
-                                    ? `${mBlockingCount} validation issue${mBlockingCount > 1 ? 's' : ''}`
-                                    : 'No validation issues.'}
-                            </span>
-                            <Button.Group>
-                                <Button
-                                    size="sm"
-                                    variant="primary"
-                                    loading={sIsSaving}
-                                    onClick={saveTemplateEdit}
-                                >
-                                    Save Tree
-                                </Button>
-                                <Button size="sm" variant="secondary" onClick={cancelTemplateEdit}>
-                                    Cancel
-                                </Button>
-                            </Button.Group>
-                        </div>
-                    ) : (
-                        // Edit + refresh only matter once a tree exists (guaranteed by the outer
-                        // guard); before setup the toolbar bar isn't rendered at all.
-                        <Button.Group>
+                        <>
                             <Button
                                 size="sm"
                                 variant="secondary"
-                                disabled={!canEdit}
-                                onClick={startTemplateEdit}
+                                icon={<FiArrowLeft />}
+                                onClick={backFromTemplateEdit}
                             >
-                                Edit Tree
+                                Back
                             </Button>
-                            <IconButton
-                                size="sm"
-                                variant="secondary"
-                                aria-label="Refresh tree"
-                                title="Refresh tree"
-                                style={{ width: '28px', height: '28px' }}
-                                icon={<Refresh style={{ padding: '2px' }} />}
-                                loading={sIsLoading}
-                                onClick={refreshHierarchy}
-                            />
-                        </Button.Group>
+                            <div className={styles.toolbarEditActions}>
+                                <span className={styles.editorStatus}>
+                                    <span
+                                        className={
+                                            mBlockingCount > 0
+                                                ? styles.statusDotError
+                                                : styles.statusDotOk
+                                        }
+                                    />
+                                    {mBlockingCount > 0
+                                        ? `${mBlockingCount} validation issue${mBlockingCount > 1 ? 's' : ''}`
+                                        : 'No validation issues.'}
+                                </span>
+                                <Button.Group>
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        loading={sIsSaving}
+                                        onClick={saveTemplateEdit}
+                                    >
+                                        Save Tree
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        onClick={resetTemplateEdit}
+                                    >
+                                        Discard
+                                    </Button>
+                                </Button.Group>
+                            </div>
+                        </>
+                    ) : (
+                        // Edit + refresh only matter once a tree exists (guaranteed by the outer
+                        // guard); before setup the toolbar bar isn't rendered at all.
+                        <>
+                            <div />
+                            <Button.Group>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    disabled={!canEdit}
+                                    onClick={startTemplateEdit}
+                                >
+                                    Edit Tree
+                                </Button>
+                                <IconButton
+                                    size="sm"
+                                    variant="secondary"
+                                    aria-label="Refresh tree"
+                                    title="Refresh tree"
+                                    style={{ width: '28px', height: '28px' }}
+                                    icon={<Refresh style={{ padding: '2px' }} />}
+                                    loading={sIsLoading}
+                                    onClick={refreshHierarchy}
+                                />
+                            </Button.Group>
+                        </>
                     )}
                 </div>
             ) : null}
@@ -1733,7 +1862,9 @@ export const TagHierarchyPage = ({
                                                                     mUnassignedNames.length === 0
                                                                 }
                                                                 onClick={() =>
-                                                                    toggleSelectAll(mUnassignedNames)
+                                                                    toggleSelectAll(
+                                                                        mUnassignedNames,
+                                                                    )
                                                                 }
                                                             />
                                                             Select all

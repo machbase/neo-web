@@ -917,6 +917,12 @@
     flex: 0 0 auto;
 }
 
+.treeRowActionTip {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
 .treeRowActions .treeRowAction {
     flex: 0 0 auto;
     width: 24px;
