@@ -95,6 +95,7 @@ const Tql = (props: TqlProps) => {
 
     const getTqlData = useCallback(async (aText: string) => {
         setIsPrettier(false);
+        setHeader(true);
         setLoadState(true);
         HandleResutTypeAndTxt('Processing...', false);
 
