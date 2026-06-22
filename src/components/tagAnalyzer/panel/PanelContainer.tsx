@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent } from 'react';
+import { useMemo, useRef, useState, type MouseEvent } from 'react';
 import { PanelMarkupInteractionHint, ANNOTATION_INVALID_TARGET_MESSAGE, type PanelMarkupInteractionHintState } from './PanelMarkupInteractionHint';
 import { Toast, type ContextMenuPosition } from '@/design-system/components';
 import PanelFooter from './PanelFooter';
@@ -8,9 +8,6 @@ import PanelHeader, {
 } from './PanelHeader';
 import PanelBody from './PanelBody';
 import PanelEditor from './editor/PanelEditor';
-import type {
-    AnnotationEditorMetaState,
-} from './modal/PanelMarkupModalTypes';
 import {
     PanelPopupMode,
     PanelPopups,
@@ -22,7 +19,6 @@ import type { SetGlobalTimeRangePayload } from '../domain/BoardDomain';
 import type {
     PanelRangeChangeEvent,
     PanelChartHandle,
-    PanelHighlight,
     PanelInfo,
     PanelMarkupHandlers,
     PanelRangeState,
@@ -41,6 +37,7 @@ import {
     hasNumericBaseTimeSeries,
 } from '../domain/SeriesDomain';
 import type { PanelRangeChangeOptions } from '../board/BoardPanelState';
+import type { RollupTableMap } from '../fetch/FetchContracts';
 import { hasResolvedIntervalOption } from '../domain/time/interval/TimeIntervalUtils';
 import type {
     IntervalOption,
@@ -68,10 +65,11 @@ import { usePanelRangeControls } from './usePanelRangeControls';
 import './PanelChartShell.scss';
 
 export type PanelContainerRuntimeProps = {
+    isActive: boolean;
     rangeState: PanelRangeState;
     chartAreaWidth: number | undefined;
     dataRefreshVersion: number;
-    rollupTableList: string[];
+    rollupTableList: RollupTableMap;
     onRangeStateChange: (
         rangeState: PanelRangeState,
         options?: PanelRangeChangeOptions,
@@ -122,6 +120,7 @@ type PanelRuntimeTimeRangeModal = {
 function PanelContainer({
     panelInfo,
     runtime: {
+        isActive,
         rangeState,
         chartAreaWidth,
         dataRefreshVersion,
@@ -148,26 +147,37 @@ function PanelContainer({
 }: PanelContainerProps) {
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
-    const { panelRange, navigatorRange } = rangeState;
 
-    const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.data.tag_set);
+    const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.query.tagSet);
     const isNumericXAxis =
-        !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.data.tag_set);
+        !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.query.tagSet);
     const effectiveIsRaw = isNumericXAxis || isRaw;
     const runtimePanelInfo: PanelInfo =
-        effectiveIsRaw === panelInfo.general.is_raw
+        effectiveIsRaw === panelInfo.mode.isRaw
             ? panelInfo
             : {
                   ...panelInfo,
-                  general: {
-                      ...panelInfo.general,
-                      is_raw: effectiveIsRaw,
+                  mode: {
+                      ...panelInfo.mode,
+                      isRaw: effectiveIsRaw,
                   },
               };
-    const runtimeAxes = resolvePanelAxesForRuntime(panelInfo.axes);
-    const runtimeDisplay = resolvePanelDisplayForRuntime(
-        panelInfo.display,
-        panelInfo.general.use_zoom,
+    const runtimeAxes = useMemo(
+        () =>
+            resolvePanelAxesForRuntime(
+                panelInfo.axes,
+                panelInfo.display.pixelsPerTick,
+                panelInfo.display.mainChartSampling,
+            ),
+        [
+            panelInfo.axes,
+            panelInfo.display.mainChartSampling,
+            panelInfo.display.pixelsPerTick,
+        ],
+    );
+    const runtimeDisplay = useMemo(
+        () => resolvePanelDisplayForRuntime(panelInfo.display),
+        [panelInfo.display],
     );
 
     const [overlayMode, setOverlayMode] = useState<PanelOverlayMode>(
@@ -193,25 +203,33 @@ function PanelContainer({
 
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
     const {
-        rangeActions,
-        navigatorShiftActions,
-        zoomActions,
-    } = usePanelRangeControls({
-        rangeState,
-        isNumericXAxis,
-        onRangeStateChange,
-    });
-    const {
         chartData,
+        visibleChartData,
         navigatorChartData,
+        displayRangeState,
         resolvedIntervalOption,
         loadStatus,
     } = usePanelChartDataRuntime({
         panelInfo: runtimePanelInfo,
+        isActive,
         rangeState,
         chartAreaWidth,
         rollupTableList,
         dataRefreshVersion,
+        onRangeStateChange,
+    });
+    const {
+        displayPanelRange,
+        displayNavigatorRange,
+    } = displayRangeState;
+    const {
+        rangeActions,
+        navigatorShiftActions,
+        zoomActions,
+    } = usePanelRangeControls({
+        requestRangeState: rangeState,
+        displayRangeState,
+        isNumericXAxis,
         onRangeStateChange,
     });
     const { highlightCrud } = usePanelHighlight(
@@ -228,7 +246,7 @@ function PanelContainer({
         annotationSeriesOptions,
     } = usePanelAnnotation(
         panelInfo.annotations,
-        panelInfo.data.tag_set,
+        panelInfo.query.tagSet,
         (annotations) =>
             onApplyPanelInfo({
                 ...panelInfo,
@@ -249,20 +267,18 @@ function PanelContainer({
         sResolvedIntervalOption = resolvedIntervalOption;
     }
 
-    let panelHighlights: PanelHighlight[] = panelInfo.highlights;
-    if (
+    const draftHighlight =
         popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR &&
         popupState.draftHighlight !== undefined
-    ) {
-        panelHighlights = [...panelInfo.highlights, popupState.draftHighlight];
-    }
+            ? popupState.draftHighlight
+            : undefined;
 
     const isEditing = isEditorMounted && !isEditorClosing;
     const isOverlayModeActive = overlayMode !== PanelOverlayMode.NO_OVERLAY;
 
     const panelHeaderRuntimeState: PanelHeaderRuntimeState = {
-        title: panelInfo.general.chart_title,
-        panelRange,
+        title: panelInfo.title,
+        panelRange: displayPanelRange,
         resolvedIntervalOption: sResolvedIntervalOption,
         canSetGlobalTime: !isNumericXAxis && sResolvedIntervalOption !== undefined,
         canSaveLocal: loadStatus.chart === PanelChartLoadStatus.Ready,
@@ -273,9 +289,6 @@ function PanelContainer({
         isRaw: effectiveIsRaw,
         isOverlap,
     };
-    const runtimeTimeRangeModal =
-        getRuntimeTimeRangeModal(timeRangeModalTarget);
-
     function getRuntimeTimeRangeModal(
         target: PanelRuntimeTimeRangeTarget | undefined,
     ): PanelRuntimeTimeRangeModal | undefined {
@@ -285,7 +298,7 @@ function PanelContainer({
 
         switch (target) {
             case PanelRuntimeTimeRangeTarget.MAIN_CHART:
-                if (!isValidTimeRange(panelRange)) {
+                if (!isValidTimeRange(displayPanelRange)) {
                     return undefined;
                 }
 
@@ -293,11 +306,11 @@ function PanelContainer({
                     title: isNumericXAxis
                         ? 'Current Visible Main Chart Value Range'
                         : 'Current Visible Main Chart Range',
-                    range: panelRange,
+                    range: displayPanelRange,
                 };
 
             case PanelRuntimeTimeRangeTarget.NAVIGATOR:
-                if (!isValidTimeRange(navigatorRange)) {
+                if (!isValidTimeRange(displayNavigatorRange)) {
                     return undefined;
                 }
 
@@ -305,7 +318,7 @@ function PanelContainer({
                     title: isNumericXAxis
                         ? 'Current Visible Navigator Value Range'
                         : 'Current Visible Navigator Range',
-                    range: navigatorRange,
+                    range: displayNavigatorRange,
                 };
         }
     }
@@ -324,8 +337,25 @@ function PanelContainer({
         setTimeRangeModalTarget(undefined);
     }
 
-    function applyRuntimeNumericRange(numericRange: TimeRangeMs): boolean {
-        return applyRuntimeConcreteRange(numericRange);
+    function applyRuntimeConcreteRange(range: TimeRangeMs): boolean {
+        if (timeRangeModalTarget === undefined) {
+            return false;
+        }
+
+        const sRangeChangeEvent: PanelRangeChangeEvent = {
+            min: range.startTime,
+            max: range.endTime,
+        };
+
+        switch (timeRangeModalTarget) {
+            case PanelRuntimeTimeRangeTarget.MAIN_CHART:
+                rangeActions.applyExactMainRange(sRangeChangeEvent);
+                return true;
+
+            case PanelRuntimeTimeRangeTarget.NAVIGATOR:
+                rangeActions.applyExactNavigatorRange(sRangeChangeEvent);
+                return true;
+        }
     }
 
     function applyRuntimeTimeRangeConfig(
@@ -360,27 +390,6 @@ function PanelContainer({
         return applyRuntimeConcreteRange(sTimeRange);
     }
 
-    function applyRuntimeConcreteRange(range: TimeRangeMs): boolean {
-        if (timeRangeModalTarget === undefined) {
-            return false;
-        }
-
-        const sRangeChangeEvent: PanelRangeChangeEvent = {
-            min: range.startTime,
-            max: range.endTime,
-        };
-
-        switch (timeRangeModalTarget) {
-            case PanelRuntimeTimeRangeTarget.MAIN_CHART:
-                rangeActions.applyExactMainRange(sRangeChangeEvent);
-                return true;
-
-            case PanelRuntimeTimeRangeTarget.NAVIGATOR:
-                rangeActions.applyExactNavigatorRange(sRangeChangeEvent);
-                return true;
-        }
-    }
-
     function handleSelection(event: PanelRangeChangeEvent): boolean {
         switch (overlayMode) {
             case PanelOverlayMode.HIGHLIGHT:
@@ -400,8 +409,8 @@ function PanelContainer({
     function openSelectionSummaryFromBrush(event: PanelRangeChangeEvent): void {
         const sSelection = buildSelectionSummaryPayload(
             event,
-            chartData,
-            panelInfo.data.tag_set,
+            visibleChartData,
+            panelInfo.query.tagSet,
             isNumericXAxis,
         );
 
@@ -418,22 +427,9 @@ function PanelContainer({
     }
 
     const chartMarkupHandlers: PanelMarkupHandlers = {
-        onOpenCreateAnnotation: (position, seriesIndex, timestamp) => {
-            setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-            openCreateAnnotationEditor(
-                position,
-                seriesIndex,
-                timestamp,
-            );
-        },
-        onActivateHighlightEditor: (position, highlightIndex) => {
-            setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-            openEditHighlightEditor(position, highlightIndex);
-        },
-        onActivateAnnotationEditor: (position, annotationIndex) => {
-            setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-            openEditAnnotationEditor(position, annotationIndex);
-        },
+        onOpenCreateAnnotation: openCreateAnnotationEditor,
+        onActivateHighlightEditor: openEditHighlightEditor,
+        onActivateAnnotationEditor: openEditAnnotationEditor,
     };
 
     function setGlobalTimeRange(): void {
@@ -442,8 +438,8 @@ function PanelContainer({
         }
 
         onSetGlobalTimeRange({
-            dataTime: panelRange,
-            navigatorTime: navigatorRange,
+            dataTime: displayPanelRange,
+            navigatorTime: displayNavigatorRange,
             interval: sResolvedIntervalOption,
         });
     }
@@ -486,11 +482,6 @@ function PanelContainer({
         );
     }
 
-    function openPanelEditor(): void {
-        setIsEditorMounted(true);
-        setIsEditorClosing(false);
-    }
-
     function closePanelEditor(): void {
         if (!isEditorMounted) {
             return;
@@ -510,11 +501,11 @@ function PanelContainer({
 
     function togglePanelEditor(): void {
         if (isEditorMounted && !isEditorClosing) {
-            closePanelEditor();
-            return;
+            setIsEditorClosing(true);
+        } else {
+            setIsEditorMounted(true);
+            setIsEditorClosing(false);
         }
-
-        openPanelEditor();
     }
 
     function renamePanelTitle(title: string): void {
@@ -522,17 +513,14 @@ function PanelContainer({
 
         if (
             sNextTitle.length === 0 ||
-            sNextTitle === panelInfo.general.chart_title
+            sNextTitle === panelInfo.title
         ) {
             return;
         }
 
         onApplyPanelInfo({
             ...panelInfo,
-            general: {
-                ...panelInfo.general,
-                chart_title: sNextTitle,
-            },
+            title: sNextTitle,
         });
     }
 
@@ -635,10 +623,11 @@ function PanelContainer({
     }
 
     function handlePanelClickCapture(event: MouseEvent<HTMLDivElement>): void {
-        if (
-            overlayMode !== PanelOverlayMode.ANNOTATION ||
-            isInteractiveElement(event.target)
-        ) {
+        const sTarget = event.target;
+        const sIsInteractiveTarget =
+            sTarget instanceof Element &&
+            sTarget.closest('button, input, select, textarea, a, [role="button"]') !== null;
+        if (overlayMode !== PanelOverlayMode.ANNOTATION || sIsInteractiveTarget) {
             return;
         }
 
@@ -650,22 +639,23 @@ function PanelContainer({
     }
 
     function openCreateAnnotationEditor(
-        position: AnnotationEditorMetaState['position'],
+        position: ContextMenuPosition,
         seriesIndex: number | undefined,
         timestamp: number,
     ): void {
         if (
             seriesIndex !== undefined &&
-            (seriesIndex < 0 || seriesIndex >= panelInfo.data.tag_set.length)
+            (seriesIndex < 0 || seriesIndex >= panelInfo.query.tagSet.length)
         ) {
             throw new Error(`Invalid annotation series index: ${seriesIndex}.`);
         }
 
         const sSeriesKey =
             seriesIndex !== undefined
-                ? panelInfo.data.tag_set[seriesIndex].key
+                ? panelInfo.query.tagSet[seriesIndex].key
                 : undefined;
 
+        setOverlayMode(PanelOverlayMode.NO_OVERLAY);
         setPopupState({
             mode: PanelPopupMode.ANNOTATION_EDITOR,
             editorMeta: {
@@ -677,11 +667,12 @@ function PanelContainer({
     }
 
     function openEditAnnotationEditor(
-        position: AnnotationEditorMetaState['position'],
+        position: ContextMenuPosition,
         annotationIndex: number,
     ): void {
         const sAnnotation = annotationCrud.getAnnotation(annotationIndex);
 
+        setOverlayMode(PanelOverlayMode.NO_OVERLAY);
         setPopupState({
             mode: PanelPopupMode.ANNOTATION_EDITOR,
             editorMeta: {
@@ -696,6 +687,7 @@ function PanelContainer({
         position: ContextMenuPosition,
         highlightIndex: number,
     ): void {
+        setOverlayMode(PanelOverlayMode.NO_OVERLAY);
         setPopupState({
             mode: PanelPopupMode.HIGHLIGHT_EDITOR,
             editor: {
@@ -745,6 +737,8 @@ function PanelContainer({
         });
     }
 
+    const runtimeTimeRangeModal = getRuntimeTimeRangeModal(timeRangeModalTarget);
+
     return (
         <div
             className="panel-form"
@@ -785,12 +779,13 @@ function PanelContainer({
                     chartState={{
                         axes: runtimeAxes,
                         display: runtimeDisplay,
-                        seriesList: panelInfo.data.tag_set,
-                        useNormalize: panelInfo.general.use_normalize,
+                        seriesList: panelInfo.query.tagSet,
+                        useNormalize: panelInfo.mode.useNormalize,
                         useOrderBy: effectiveIsRaw
-                            ? panelInfo.general.is_order_by
+                            ? panelInfo.mode.isOrderBy
                             : true,
-                        highlights: panelHighlights,
+                        highlights: panelInfo.highlights,
+                        draftHighlight,
                         annotations: panelInfo.annotations,
                     }}
                     isRaw={effectiveIsRaw}
@@ -799,7 +794,7 @@ function PanelContainer({
                         chartData,
                         navigatorChartData,
                     }}
-                    rangeState={rangeState}
+                    rangeState={displayRangeState}
                     isLoading={loadStatus.chart === PanelChartLoadStatus.Loading}
                     handlers={{
                         rangeActions,
@@ -809,8 +804,8 @@ function PanelContainer({
                     }}
                 />
                 <PanelFooter
-                    pShowLegend={panelInfo.display.show_legend}
-                    pNavigatorRange={navigatorRange}
+                    pShowLegend={panelInfo.display.showLegend}
+                    pNavigatorRange={displayNavigatorRange}
                     pIsLoading={loadStatus.navigator === PanelChartLoadStatus.Loading}
                     pOnOpenTimeRangeModal={() =>
                         openRuntimeTimeRangeModal(
@@ -831,7 +826,7 @@ function PanelContainer({
                     pOnAnimationEnd={finishPanelEditorClose}
                     pPanelInfo={panelInfo}
                     pIsRawMode={effectiveIsRaw}
-                    pPanelRange={panelRange}
+                    pPanelRange={displayPanelRange}
                 />
             )}
             {runtimeTimeRangeModal !== undefined &&
@@ -840,7 +835,7 @@ function PanelContainer({
                         rangeKind="numeric"
                         title={runtimeTimeRangeModal.title}
                         numericRange={runtimeTimeRangeModal.range}
-                        onApply={applyRuntimeNumericRange}
+                        onApply={applyRuntimeConcreteRange}
                         onClose={closeRuntimeTimeRangeModal}
                     />
                 ) : (
@@ -870,18 +865,10 @@ function PanelContainer({
                     setOverlayMode(PanelOverlayMode.NO_OVERLAY);
                 }}
                 onDeletePanel={onDeletePanel}
-                chartData={chartData}
+                chartData={visibleChartData}
                 panelChartApiRef={panelChartApiRef}
             />
         </div>
-    );
-}
-
-function isInteractiveElement(target: EventTarget): boolean {
-    return target instanceof Element && Boolean(
-        target.closest(
-            'button, input, select, textarea, a, [role="button"]',
-        ),
     );
 }
 

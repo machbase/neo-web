@@ -68,69 +68,55 @@ export function parseLoadedPanelTazVer200(
     panelInfo: PersistedPanelInfoV200,
 ): PanelInfo {
     const sNormalizedPanelInfo = normalizePersistedPanelInfoV200(panelInfo);
+    const sTagSet = sNormalizedPanelInfo.data.seriesList.map(
+        createSeriesInfoFromPersistedV200,
+    );
+    const sMainChartSampling =
+        sNormalizedPanelInfo.axes.mainChartSampling ??
+        sNormalizedPanelInfo.axes.sampling;
 
     return {
-        general: {
-            chart_title: sNormalizedPanelInfo.meta.chartTitle,
-            use_zoom: sNormalizedPanelInfo.display.useZoom ?? false,
-            use_last_viewed_range:
-                sNormalizedPanelInfo.time.useLastViewedRange === true,
-            last_viewed_range: sNormalizedPanelInfo.time.lastViewedRange,
-            is_raw: sNormalizedPanelInfo.toolbar.isRaw,
-            is_order_by: true,
-            use_normalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
-        },
-        data: {
-            index_key: sNormalizedPanelInfo.meta.panelKey,
-            tag_set: sNormalizedPanelInfo.data.seriesList.map(
-                createSeriesInfoFromPersistedV200,
-            ),
+        key: sNormalizedPanelInfo.meta.panelKey,
+        title: sNormalizedPanelInfo.meta.chartTitle,
+        query: {
+            tagSet: sTagSet,
             count: sNormalizedPanelInfo.data.rowLimit ?? -1,
-            interval_type:
+            intervalType:
                 normalizeStoredTimeUnit(sNormalizedPanelInfo.data.intervalType ?? '') ??
                 sNormalizedPanelInfo.data.intervalType,
         },
-        time: {
-            range_config: sNormalizedPanelInfo.time.rangeConfig,
+        mode: {
+            isRaw: sNormalizedPanelInfo.toolbar.isRaw,
+            isOrderBy: true,
+            useNormalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
+        },
+        timeRange: {
+            ...sNormalizedPanelInfo.time.rangeConfig,
+            useLastViewedRange:
+                sNormalizedPanelInfo.time.useLastViewedRange === true,
+            lastViewedRange: sNormalizedPanelInfo.time.lastViewedRange,
         },
         axes: {
-            x_axis: {
-                show_tickline: sNormalizedPanelInfo.axes.xAxis.showTickLine ?? false,
-                raw_data_pixels_per_tick:
-                    sNormalizedPanelInfo.axes.xAxis.rawDataPixelsPerTick ?? 0,
-                calculated_data_pixels_per_tick:
-                    sNormalizedPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
-                calculated_navigator_pixels_per_tick:
-                    sNormalizedPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
+            x: {
+                showTickline: sNormalizedPanelInfo.axes.xAxis.showTickLine ?? false,
             },
-            sampling: {
-                enabled: sNormalizedPanelInfo.axes.sampling?.enabled ?? true,
-                sample_count: sNormalizedPanelInfo.axes.sampling?.sampleCount ?? 0,
-            },
-            main_chart_sampling: {
-                enabled: sNormalizedPanelInfo.axes.mainChartSampling?.enabled ?? false,
-                sample_count:
-                    sNormalizedPanelInfo.axes.mainChartSampling?.sampleCount ??
-                    sNormalizedPanelInfo.axes.sampling?.sampleCount ??
-                    0,
-            },
-            left_y_axis: {
-                zero_base: sNormalizedPanelInfo.axes.leftYAxis.zeroBase ?? false,
-                show_tickline: sNormalizedPanelInfo.axes.leftYAxis.showTickLine ?? false,
-                value_range: cloneValueRangeOrDefault(
+            leftY: {
+                zeroBase: sNormalizedPanelInfo.axes.leftYAxis.zeroBase ?? false,
+                showTickline: sNormalizedPanelInfo.axes.leftYAxis.showTickLine ?? false,
+                valueRange: cloneValueRangeOrDefault(
                     sNormalizedPanelInfo.axes.leftYAxis.valueRange,
                 ),
-                raw_data_value_range: cloneValueRangeOrDefault(
+                rawValueRange: cloneValueRangeOrDefault(
                     sNormalizedPanelInfo.axes.leftYAxis.rawDataValueRange,
                 ),
-                upper_control_limit: {
+                upperControlLimit: {
                     enabled:
                         sNormalizedPanelInfo.axes.leftYAxis.upperControlLimit.enabled ??
                         false,
                     value:
                         sNormalizedPanelInfo.axes.leftYAxis.upperControlLimit.value ?? 0,
                 },
-                lower_control_limit: {
+                lowerControlLimit: {
                     enabled:
                         sNormalizedPanelInfo.axes.leftYAxis.lowerControlLimit.enabled ??
                         false,
@@ -138,24 +124,25 @@ export function parseLoadedPanelTazVer200(
                         sNormalizedPanelInfo.axes.leftYAxis.lowerControlLimit.value ?? 0,
                 },
             },
-            right_y_axis_enabled: sNormalizedPanelInfo.axes.rightYAxis.enabled ?? false,
-            right_y_axis: {
-                zero_base: sNormalizedPanelInfo.axes.rightYAxis.zeroBase ?? false,
-                show_tickline: sNormalizedPanelInfo.axes.rightYAxis.showTickLine ?? false,
-                value_range: cloneValueRangeOrDefault(
+            rightY: {
+                enabled: sNormalizedPanelInfo.axes.rightYAxis.enabled ?? false,
+                zeroBase: sNormalizedPanelInfo.axes.rightYAxis.zeroBase ?? false,
+                showTickline:
+                    sNormalizedPanelInfo.axes.rightYAxis.showTickLine ?? false,
+                valueRange: cloneValueRangeOrDefault(
                     sNormalizedPanelInfo.axes.rightYAxis.valueRange,
                 ),
-                raw_data_value_range: cloneValueRangeOrDefault(
+                rawValueRange: cloneValueRangeOrDefault(
                     sNormalizedPanelInfo.axes.rightYAxis.rawDataValueRange,
                 ),
-                upper_control_limit: {
+                upperControlLimit: {
                     enabled:
                         sNormalizedPanelInfo.axes.rightYAxis.upperControlLimit.enabled ??
                         false,
                     value:
                         sNormalizedPanelInfo.axes.rightYAxis.upperControlLimit.value ?? 0,
                 },
-                lower_control_limit: {
+                lowerControlLimit: {
                     enabled:
                         sNormalizedPanelInfo.axes.rightYAxis.lowerControlLimit.enabled ??
                         false,
@@ -165,13 +152,25 @@ export function parseLoadedPanelTazVer200(
             },
         },
         display: {
-            show_legend: sNormalizedPanelInfo.display.showLegend ?? false,
-            chart_type: normalizePanelEChartType(sNormalizedPanelInfo.display.chartType),
-            connect_nulls: sNormalizedPanelInfo.display.connectNulls ?? false,
-            show_point: sNormalizedPanelInfo.display.showPoints ?? false,
-            point_radius: sNormalizedPanelInfo.display.pointRadius ?? 0,
+            chartType: normalizePanelEChartType(sNormalizedPanelInfo.display.chartType),
+            showLegend: sNormalizedPanelInfo.display.showLegend ?? false,
+            showPoint: sNormalizedPanelInfo.display.showPoints ?? false,
+            pointRadius: sNormalizedPanelInfo.display.pointRadius ?? 0,
             fill: sNormalizedPanelInfo.display.fill ?? 0,
             stroke: sNormalizedPanelInfo.display.stroke ?? 0,
+            connectNulls: sNormalizedPanelInfo.display.connectNulls ?? false,
+            useZoom: sNormalizedPanelInfo.display.useZoom ?? false,
+            pixelsPerTick: {
+                raw: sNormalizedPanelInfo.axes.xAxis.rawDataPixelsPerTick ?? 0,
+                calculated:
+                    sNormalizedPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
+                calculatedNavigator:
+                    sNormalizedPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
+            },
+            mainChartSampling: {
+                enabled: sMainChartSampling?.enabled ?? false,
+                sampleCount: sMainChartSampling?.sampleCount ?? 0,
+            },
         },
         highlights: clonePanelHighlights(sNormalizedPanelInfo.highlights),
         annotations: createPanelAnnotationsFromPersistedPanel(sNormalizedPanelInfo),
@@ -206,7 +205,7 @@ function normalizePersistedPanelInfoV200(
         shouldUseNumericPanelRangeConfig(sNormalizedSeriesList),
     );
     if (!sNormalizedRangeConfig) {
-        throw new Error('Unsupported TagAnalyzer .taz panel time rangeConfig shape.');
+        throw new Error('Invalid TagAnalyzer .taz panel time rangeConfig structure.');
     }
 
     return {

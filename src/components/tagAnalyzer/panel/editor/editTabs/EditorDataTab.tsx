@@ -14,33 +14,32 @@ import styles from '../PanelEditor.module.scss';
 type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
 
 const EditorDataTab = ({
-    pDataDraft,
+    pQueryDraft,
     pIsRawMode,
-    pOnChangeDataDraft,
+    pOnChangeQueryDraft,
     pAvailableSourceTableNames,
 }: {
-    pDataDraft: PanelEditorConfig['data'];
+    pQueryDraft: PanelEditorConfig['query'];
     pIsRawMode: boolean;
-    pOnChangeDataDraft: (dataDraft: PanelEditorConfig['data']) => void;
+    pOnChangeQueryDraft: (queryDraft: PanelEditorConfig['query']) => void;
     pAvailableSourceTableNames: string[];
 }) => {
     const [isModal, setIsModal] = useState(false);
 
-    const setTagSet = (tag_set: PanelSeriesDefinition[]) => {
-        pOnChangeDataDraft({ ...pDataDraft, tag_set });
+    const setTagSet = (tagSet: PanelSeriesDefinition[]) => {
+        pOnChangeQueryDraft({ ...pQueryDraft, tagSet });
     };
 
     const updateSeriesField = (key: string, field: EditableSeriesField, value: string) =>
         setTagSet(
-            pDataDraft.tag_set.map((item: PanelSeriesDefinition) =>
+            pQueryDraft.tagSet.map((item: PanelSeriesDefinition) =>
                 item.key === key ? { ...item, [field]: value } : item,
             ),
         );
 
     return (
         <>
-            {pDataDraft.index_key &&
-                pDataDraft.tag_set.map((item: PanelSeriesDefinition, seriesIndex: number) => {
+            {pQueryDraft.tagSet.map((item: PanelSeriesDefinition, seriesIndex: number) => {
                     const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
                     const updateItem = (field: EditableSeriesField) => (value: string) =>
                         updateSeriesField(item.key, field, value);
@@ -122,7 +121,7 @@ const EditorDataTab = ({
                                         tooltipContent="Color"
                                     />
                                 </div>
-                                {pDataDraft.tag_set.length !== 1 && (
+                                {pQueryDraft.tagSet.length !== 1 && (
                                     <Button
                                         size="xsm"
                                         variant="ghost"
@@ -131,7 +130,7 @@ const EditorDataTab = ({
                                         }
                                         onClick={() =>
                                             setTagSet(
-                                                pDataDraft.tag_set.filter((tag) => tag.key !== item.key),
+                                                pQueryDraft.tagSet.filter((tag) => tag.key !== item.key),
                                             )
                                         }
                                     />
@@ -144,7 +143,7 @@ const EditorDataTab = ({
                 <AddTagsModal
                     key={pAvailableSourceTableNames.join('\u0000')}
                     pCloseModal={() => setIsModal(false)}
-                    pTagSet={pDataDraft.tag_set}
+                    pTagSet={pQueryDraft.tagSet}
                     pOnChangeTagSet={setTagSet}
                     pAvailableSourceTableNames={pAvailableSourceTableNames}
                 />

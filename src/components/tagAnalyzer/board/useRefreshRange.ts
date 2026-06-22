@@ -34,7 +34,7 @@ export function useRefreshRange({
     requestPanelDataRefresh,
 }: RefreshRangeDependencies): RefreshRangeActions {
     async function setFullDataRange(panelInfo: PanelInfo): Promise<void> {
-        const fullRange = await getFullRangeFromSeries(panelInfo.data.tag_set);
+        const fullRange = await getFullRangeFromSeries(panelInfo.query.tagSet);
 
         if (!fullRange) {
             showPanelFullRangeUnavailableToast();
@@ -42,21 +42,21 @@ export function useRefreshRange({
         }
 
         applyPanelRangeToPanel(panelInfo, {
-            panelRange: fullRange,
-            navigatorRange: fullRange,
+            requestPanelRange: fullRange,
+            requestNavigatorRange: fullRange,
             fullRange,
         });
     }
 
     async function refreshPanelData(panelInfo: PanelInfo): Promise<void> {
-        const rangeState = getBoardPanelRecord(panelInfo.data.index_key).rangeState;
+        const rangeState = getBoardPanelRecord(panelInfo.key).rangeState;
 
         if (!hasValidRangeState(rangeState)) {
             await applyConfiguredTimeRange(panelInfo);
             return;
         }
 
-        requestPanelDataRefresh(panelInfo.data.index_key);
+        requestPanelDataRefresh(panelInfo.key);
     }
 
     async function refreshPanelTime(panelInfo: PanelInfo): Promise<void> {
@@ -73,7 +73,7 @@ export function useRefreshRange({
         panelInfo: PanelInfo,
         useInitialWindowOnFullDataFallback = false,
     ): Promise<void> {
-        const fullRange = await getFullRangeFromSeries(panelInfo.data.tag_set);
+        const fullRange = await getFullRangeFromSeries(panelInfo.query.tagSet);
 
         if (!fullRange) {
             showPanelFullRangeUnavailableToast();
@@ -82,15 +82,15 @@ export function useRefreshRange({
 
         const rangeState = resolveConcretePanelRangeState({
             fullRange,
-            rangeConfig: panelInfo.time.range_config,
+            rangeConfig: panelInfo.timeRange,
             lastViewedRange: undefined,
             boardTime,
             applyInitialMainChartWindow: useInitialWindowOnFullDataFallback,
         });
 
         applyPanelRangeToPanel(panelInfo, {
-            panelRange: rangeState.panelRange,
-            navigatorRange: rangeState.navigatorRange,
+            requestPanelRange: rangeState.requestPanelRange,
+            requestNavigatorRange: rangeState.requestNavigatorRange,
             fullRange: rangeState.fullRange,
         });
     }

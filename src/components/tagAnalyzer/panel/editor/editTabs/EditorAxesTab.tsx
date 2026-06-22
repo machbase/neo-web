@@ -17,19 +17,19 @@ import styles from '../PanelEditor.module.scss';
 
 type AxisKey = keyof Pick<
     PanelAxesDraft,
-    'x_axis' | 'left_y_axis' | 'right_y_axis'
+    'x' | 'leftY' | 'rightY'
 >;
-type YAxisKey = 'left_y_axis' | 'right_y_axis';
-type RangeKey = 'value_range' | 'raw_data_value_range';
-type ThresholdKey = 'upper_control_limit' | 'lower_control_limit';
+type YAxisKey = 'leftY' | 'rightY';
+type RangeKey = 'valueRange' | 'rawValueRange';
+type ThresholdKey = 'upperControlLimit' | 'lowerControlLimit';
 
-const AXIS_FLAGS = [['zero_base', 'The scale of the Y-axis start at zero'], ['show_tickline', 'Displays the Y-Axis tick line']] as const;
-const RANGES = [['value_range', 'Custom scale'], ['raw_data_value_range', 'Custom scale for raw data chart']] as const;
-const THRESHOLDS = [['upper_control_limit', 'use UCL'], ['lower_control_limit', 'use LCL']] as const;
+const AXIS_FLAGS = [['zeroBase', 'The scale of the Y-axis start at zero'], ['showTickline', 'Displays the Y-Axis tick line']] as const;
+const RANGES = [['valueRange', 'Custom scale'], ['rawValueRange', 'Custom scale for raw data chart']] as const;
+const THRESHOLDS = [['upperControlLimit', 'use UCL'], ['lowerControlLimit', 'use LCL']] as const;
 const cx = (...classes: Array<string | false | undefined>) =>
     classes.filter(Boolean).join(' ') || undefined;
 
-function isAxisRangeInvalid(range: PanelYAxisDraft['value_range']): boolean {
+function isAxisRangeInvalid(range: PanelYAxisDraft['valueRange']): boolean {
     const sMin = range.min;
     const sMax = range.max;
     const sHasMin = sMin !== undefined;
@@ -54,7 +54,7 @@ function isAxisRangeInvalid(range: PanelYAxisDraft['value_range']): boolean {
 }
 
 function isInvalidAxisThreshold(
-    threshold: PanelYAxisDraft['upper_control_limit'],
+    threshold: PanelYAxisDraft['upperControlLimit'],
 ): boolean {
     return (
         threshold.enabled &&
@@ -67,10 +67,10 @@ function isInvalidAxisThreshold(
 
 function hasInvalidYAxisRange(axisConfig: PanelYAxisDraft): boolean {
     return (
-        isAxisRangeInvalid(axisConfig.value_range) ||
-        isAxisRangeInvalid(axisConfig.raw_data_value_range) ||
-        isInvalidAxisThreshold(axisConfig.upper_control_limit) ||
-        isInvalidAxisThreshold(axisConfig.lower_control_limit)
+        isAxisRangeInvalid(axisConfig.valueRange) ||
+        isAxisRangeInvalid(axisConfig.rawValueRange) ||
+        isInvalidAxisThreshold(axisConfig.upperControlLimit) ||
+        isInvalidAxisThreshold(axisConfig.lowerControlLimit)
     );
 }
 
@@ -78,19 +78,22 @@ function isInvalidSampling(sampling: PanelSamplingDraft): boolean {
     return (
         sampling.enabled &&
         (
-            sampling.sample_count === undefined ||
-            !Number.isFinite(sampling.sample_count)
+            sampling.sampleCount === undefined ||
+            !Number.isFinite(sampling.sampleCount)
         )
     );
 }
 
-export function hasInvalidEditorAxes(axesConfig: PanelAxesDraft): boolean {
+export function hasInvalidEditorAxes(
+    axesConfig: PanelAxesDraft,
+    mainChartSampling: PanelSamplingDraft,
+): boolean {
     return (
-        isInvalidSampling(axesConfig.main_chart_sampling) ||
-        hasInvalidYAxisRange(axesConfig.left_y_axis) ||
+        isInvalidSampling(mainChartSampling) ||
+        hasInvalidYAxisRange(axesConfig.leftY) ||
         (
-            axesConfig.right_y_axis_enabled &&
-            hasInvalidYAxisRange(axesConfig.right_y_axis)
+            axesConfig.rightY.enabled &&
+            hasInvalidYAxisRange(axesConfig.rightY)
         )
     );
 }
@@ -158,7 +161,13 @@ const EditorAxesTab = ({
         if (!checked) {
             pOnChangeTagSet(pTagSet.map((tag) => ({ ...tag, useSecondaryAxis: false })));
         }
-        pOnChangeAxesConfig({ ...pAxesConfig, right_y_axis_enabled: checked });
+        pOnChangeAxesConfig({
+            ...pAxesConfig,
+            rightY: {
+                ...pAxesConfig.rightY,
+                enabled: checked,
+            },
+        });
     };
     const setSeriesAxis = (seriesKey: string, useSecondaryAxis: boolean) =>
         pOnChangeTagSet(
@@ -182,7 +191,7 @@ const EditorAxesTab = ({
                 <div className={styles.rangeInputs}>
                     <span
                         className={styles.mutedLabel}
-                        style={disabled && rangeKey === 'raw_data_value_range' ? { minWidth: '100px' } : undefined}
+                        style={disabled && rangeKey === 'rawValueRange' ? { minWidth: '100px' } : undefined}
                     >
                         {label}
                     </span>
@@ -240,7 +249,7 @@ const EditorAxesTab = ({
         );
     };
     const renderRightAxisSeries = () => (
-        <div className={cx(styles.rightAxisSeries, !pAxesConfig.right_y_axis_enabled && styles.disabledControl)}>
+        <div className={cx(styles.rightAxisSeries, !pAxesConfig.rightY.enabled && styles.disabledControl)}>
             <Dropdown.Root
                 options={pTagSet
                     .filter((item) => !item.useSecondaryAxis)
@@ -250,7 +259,7 @@ const EditorAxesTab = ({
                     }))}
                 value="none"
                 onChange={(value) => value !== 'none' && setSeriesAxis(value, true)}
-                disabled={!pAxesConfig.right_y_axis_enabled}
+                disabled={!pAxesConfig.rightY.enabled}
             >
                 <Dropdown.Trigger style={EDITOR_RIGHT_AXIS_TRIGGER_STYLE} />
                 <Dropdown.Menu>
@@ -281,9 +290,9 @@ const EditorAxesTab = ({
 
         return (
             <Section title={title}>
-                {axisKey === 'right_y_axis' && (
+                {axisKey === 'rightY' && (
                     <Checkbox
-                        checked={pAxesConfig.right_y_axis_enabled}
+                        checked={pAxesConfig.rightY.enabled}
                         onChange={(event) => setRightEnabled(event.target.checked)}
                         label="Enable right Y-axis"
                         size="sm"
@@ -307,7 +316,7 @@ const EditorAxesTab = ({
                         renderThreshold(axisKey, axis, thresholdKey, label, disabled),
                     )}
                 </div>
-                {axisKey === 'right_y_axis' && renderRightAxisSeries()}
+                {axisKey === 'rightY' && renderRightAxisSeries()}
             </Section>
         );
     };
@@ -316,16 +325,16 @@ const EditorAxesTab = ({
         <div className={styles.axesGrid}>
             <Section title="X-Axis">
                 <Checkbox
-                    checked={pAxesConfig.x_axis.show_tickline}
+                    checked={pAxesConfig.x.showTickline}
                     onChange={(event) =>
-                        patchAxis('x_axis', { show_tickline: event.target.checked })
+                        patchAxis('x', { showTickline: event.target.checked })
                     }
                     label="Displays the X-Axis tick line"
                     size="sm"
                 />
             </Section>
-            {renderYAxis('Left Y-Axis', 'left_y_axis')}
-            {renderYAxis('Right Y-Axis', 'right_y_axis', !pAxesConfig.right_y_axis_enabled)}
+            {renderYAxis('Left Y-Axis', 'leftY')}
+            {renderYAxis('Right Y-Axis', 'rightY', !pAxesConfig.rightY.enabled)}
         </div>
     );
 };

@@ -161,15 +161,21 @@ export function getLargestTimeRangeDuration(ranges: TimeRangeMs[]): number {
 }
 
 export function hasVisibleTimeRangeChanged(
-    nextPanelRange: TimeRangeMs,
-    nextNavigatorRange: TimeRangeMs,
+    nextRequestPanelRange: TimeRangeMs,
+    nextRequestNavigatorRange: TimeRangeMs,
     currentRangeState: {
-        panelRange: TimeRangeMs;
-        navigatorRange: TimeRangeMs;
+        requestPanelRange: TimeRangeMs;
+        requestNavigatorRange: TimeRangeMs;
     },
 ): boolean {
     return (
-        !isSameTimeRange(nextPanelRange, currentRangeState.panelRange) ||
-        !isSameTimeRange(nextNavigatorRange, currentRangeState.navigatorRange)
+        !isSameTimeRange(
+            nextRequestPanelRange,
+            currentRangeState.requestPanelRange,
+        ) ||
+        !isSameTimeRange(
+            nextRequestNavigatorRange,
+            currentRangeState.requestNavigatorRange,
+        )
     );
 }

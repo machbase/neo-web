@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../../domain/PanelDomain';
+import type { PanelInfo, PanelTimeRange } from '../../domain/PanelDomain';
 import {
     shouldUseNumericPanelRangeConfig,
     type PanelSeriesDefinition,
@@ -19,9 +19,16 @@ function hasPanelTimeRangeConfigChanged(
     nextPanelState: PanelInfo,
 ): boolean {
     return (
-        JSON.stringify(currentPanelState.time.range_config) !==
-        JSON.stringify(nextPanelState.time.range_config)
+        getRangeConfigKey(currentPanelState.timeRange) !==
+        getRangeConfigKey(nextPanelState.timeRange)
     );
+}
+
+function getRangeConfigKey(timeRange: PanelTimeRange): string {
+    return JSON.stringify({
+        start: timeRange.start,
+        end: timeRange.end,
+    });
 }
 
 function normalizeTagSetForRightYAxis(
@@ -76,20 +83,23 @@ export function usePanelEditorActions({
     function buildAppliedPanelInfo(editorConfig: PanelEditorConfig): PanelInfo {
         const sCurrentPanelState = panelInfo;
         const sNormalizedTagSet = normalizeTagSetForRightYAxis(
-            editorConfig.data.tag_set,
-            editorConfig.axes.right_y_axis_enabled,
+            editorConfig.query.tagSet,
+            editorConfig.axes.rightY.enabled,
+        );
+        const sNormalizedRangeConfig = normalizeRangeConfigForSeries(
+            editorConfig.timeRange,
+            sNormalizedTagSet,
         );
         const sNextPanelState: PanelInfo = {
             ...editorConfig,
-            data: {
-                ...editorConfig.data,
-                tag_set: sNormalizedTagSet,
+            query: {
+                ...editorConfig.query,
+                tagSet: sNormalizedTagSet,
             },
-            time: {
-                range_config: normalizeRangeConfigForSeries(
-                    editorConfig.time.range_config,
-                    sNormalizedTagSet,
-                ),
+            timeRange: {
+                ...sNormalizedRangeConfig,
+                useLastViewedRange: editorConfig.timeRange.useLastViewedRange,
+                lastViewedRange: editorConfig.timeRange.lastViewedRange,
             },
         };
         const sHasTimeRangeConfigChanged = hasPanelTimeRangeConfigChanged(
@@ -97,15 +107,15 @@ export function usePanelEditorActions({
             sNextPanelState,
         );
         const sShouldClearLastViewedRange =
-            !sNextPanelState.general.use_last_viewed_range ||
+            !sNextPanelState.timeRange.useLastViewedRange ||
             sHasTimeRangeConfigChanged;
         const sNextPanelInfo: PanelInfo = {
             ...sNextPanelState,
-            general: {
-                ...sNextPanelState.general,
-                last_viewed_range: sShouldClearLastViewedRange
+            timeRange: {
+                ...sNextPanelState.timeRange,
+                lastViewedRange: sShouldClearLastViewedRange
                     ? undefined
-                    : sNextPanelState.general.last_viewed_range,
+                    : sNextPanelState.timeRange.lastViewedRange,
             },
         };
 

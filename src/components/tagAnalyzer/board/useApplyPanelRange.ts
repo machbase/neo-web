@@ -1,7 +1,6 @@
 import type { PanelRangeState } from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import {
-    createTimeRangeMs,
     hasVisibleTimeRangeChanged,
     isValidTimeRange,
     isSameTimeRange,
@@ -9,14 +8,14 @@ import {
 import type {
     ApplyPanelRange,
     ApplyPanelRangeRequest,
+    PanelRangeApplyResult,
     BoardPanelRecord,
     BoardPanelStore,
     RequestPanelDataRefresh,
 } from './BoardPanelState';
 import {
     getNavigatorTrackWidth,
-    limitNavigatorRangeAmountForSelection,
-    recenterNavigatorRangeIfPanelOutside,
+    resolveNavigatorRangeForPanel,
 } from './PanelNavigatorRangeLimits';
 
 type ApplyPanelRangeDependencies = {
@@ -31,27 +30,21 @@ export function useApplyPanelRange({ panelStore }: ApplyPanelRangeDependencies):
 
     function applyPanelRange(
         request: ApplyPanelRangeRequest,
-    ): PanelRangeState | undefined {
+    ): PanelRangeApplyResult {
         const sBoardPanelRecord = getBoardPanelRecord(request.panelKey);
-        const sNextRangeState = resolveRangeState(sBoardPanelRecord, request);
-        const sCurrentRangeState = sBoardPanelRecord.rangeState;
+        const sApplyResult = resolvePanelRangeApplyResult(
+            sBoardPanelRecord,
+            request,
+        );
 
-        const sRangeChanged =
-            hasVisibleTimeRangeChanged(
-                sNextRangeState.panelRange,
-                sNextRangeState.navigatorRange,
-                sCurrentRangeState,
-            ) || !isSameTimeRange(sNextRangeState.fullRange, sCurrentRangeState.fullRange);
-
-        if (!sRangeChanged) {
-            return undefined;
+        if (sApplyResult.didChange) {
+            updateBoardPanelRecord(request.panelKey, (record) => ({
+                ...record,
+                rangeState: sApplyResult.resolvedRangeState,
+            }));
         }
 
-        updateBoardPanelRecord(request.panelKey, (record) => ({
-            ...record,
-            rangeState: sNextRangeState,
-        }));
-        return sNextRangeState;
+        return sApplyResult;
     }
 
     function requestPanelDataRefresh(panelKey: string): void {
@@ -67,6 +60,25 @@ export function useApplyPanelRange({ panelStore }: ApplyPanelRangeDependencies):
     };
 }
 
+export function resolvePanelRangeApplyResult(
+    boardPanelRecord: BoardPanelRecord,
+    request: ApplyPanelRangeRequest,
+): PanelRangeApplyResult {
+    const sResolvedRangeState = resolveRangeState(boardPanelRecord, request);
+    const sCurrentRangeState = boardPanelRecord.rangeState;
+    const sDidChange =
+        hasVisibleTimeRangeChanged(
+            sResolvedRangeState.requestPanelRange,
+            sResolvedRangeState.requestNavigatorRange,
+            sCurrentRangeState,
+        ) || !isSameTimeRange(sResolvedRangeState.fullRange, sCurrentRangeState.fullRange);
+
+    return {
+        resolvedRangeState: sResolvedRangeState,
+        didChange: sDidChange,
+    };
+}
+
 function resolveRangeState(
     boardPanelRecord: BoardPanelRecord,
     request: ApplyPanelRangeRequest,
@@ -75,11 +87,11 @@ function resolveRangeState(
         throw new Error('Cannot apply panel range before chart width is measured.');
     }
 
-    if (!isValidTimeRange(request.rangeState.panelRange)) {
+    if (!isValidTimeRange(request.rangeState.requestPanelRange)) {
         throw new Error('Cannot apply an invalid panel range.');
     }
 
-    if (!isValidTimeRange(request.rangeState.navigatorRange)) {
+    if (!isValidTimeRange(request.rangeState.requestNavigatorRange)) {
         throw new Error('Cannot apply an invalid navigator range.');
     }
 
@@ -87,17 +99,17 @@ function resolveRangeState(
         throw new Error('Cannot apply an invalid full range.');
     }
 
-
+    const sPanelRange = request.rangeState.requestPanelRange;
     const sNavigatorRange = getNavigatorRangeForPanel(
         boardPanelRecord,
-        request.rangeState.panelRange,
-        request.rangeState.navigatorRange,
+        sPanelRange,
+        request.rangeState.requestNavigatorRange,
         request.navigatorSelectionCenterRatio,
     );
 
     return {
-        panelRange: request.rangeState.panelRange,
-        navigatorRange: sNavigatorRange,
+        requestPanelRange: sPanelRange,
+        requestNavigatorRange: sNavigatorRange,
         fullRange: request.rangeState.fullRange,
     };
 }
@@ -113,33 +125,10 @@ function getNavigatorRangeForPanel(
         typeof sChartAreaWidth === 'number' && sChartAreaWidth > 0
             ? getNavigatorTrackWidth(sChartAreaWidth)
             : undefined;
-    let sNavigatorRange = growNavigatorRangeToContainPanel(
+    return resolveNavigatorRangeForPanel(
         panelRange,
         navigatorRange,
-    );
-
-    if (sNavigatorTrackPixelWidth !== undefined) {
-        sNavigatorRange = limitNavigatorRangeAmountForSelection(
-            panelRange,
-            sNavigatorRange,
-            sNavigatorTrackPixelWidth,
-            navigatorSelectionCenterRatio,
-        );
-    }
-
-    return recenterNavigatorRangeIfPanelOutside(
-        panelRange,
-        sNavigatorRange,
+        sNavigatorTrackPixelWidth,
         navigatorSelectionCenterRatio,
-    );
-}
-
-function growNavigatorRangeToContainPanel(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
-): TimeRangeMs {
-    return createTimeRangeMs(
-        Math.min(navigatorRange.startTime, panelRange.startTime),
-        Math.max(navigatorRange.endTime, panelRange.endTime),
     );
 }

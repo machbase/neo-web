@@ -6,9 +6,15 @@ import {
     formatAxisPointerLabel,
     formatRangeSpanLabel,
 } from '../../domain/time/formatting/TimeFormatters';
-import PanelMarkupPopover from './PanelMarkupPopover';
+import PanelPopover from './PanelPopover';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
+const SUMMARY_FIELD_LABELS: Record<(typeof SUMMARY_FIELDS)[number], string> = {
+    name: 'Name',
+    min: 'Min',
+    max: 'Max',
+    avg: 'Avg',
+};
 
 export function SelectionSummaryPopover({
     selection,
@@ -22,76 +28,68 @@ export function SelectionSummaryPopover({
     onClose: () => void;
 }) {
     return (
-        <PanelMarkupPopover
+        <PanelPopover
+            title="Selection Summary"
             position={position}
             onClose={onClose}
             draggable
+            size="compact"
             outsideCloseIgnoreSelector=".panel-header"
+            headerAction={(
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onClose}
+                    icon={<Close size={16} />}
+                />
+            )}
         >
-            <Page
+            <Page.ContentDesc>
+                {isNumericXAxis
+                    ? formatAxisPointerLabel(selection.startTime, true)
+                    : moment(selection.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')}{' '}
+                ~{' '}
+                {isNumericXAxis
+                    ? formatAxisPointerLabel(selection.endTime, true)
+                    : moment(selection.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+            </Page.ContentDesc>
+            <Page.DpRow style={{ justifyContent: 'center' }}>
+                <Page.ContentDesc>
+                    {`( ${formatRangeSpanLabel(
+                        selection.startTime,
+                        selection.endTime,
+                        isNumericXAxis,
+                    )} )`}
+                </Page.ContentDesc>
+            </Page.DpRow>
+            <Page.Space />
+            <div
                 style={{
-                    minWidth: 280,
-                    backgroundColor: '#1f1d1d',
-                    border: '1px solid #454545',
-                    borderRadius: 4,
-                    padding: '8px 10px 10px 30px',
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(88px, 1.4fr) repeat(3, minmax(72px, 1fr))',
+                    gap: '6px 10px',
+                    alignItems: 'baseline',
                 }}
             >
-                <Page.DpRow style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                {SUMMARY_FIELDS.map((field) => (
+                    <Page.ContentDesc key={field}>
+                        {SUMMARY_FIELD_LABELS[field]}
+                    </Page.ContentDesc>
+                ))}
+            {selection.seriesSummaries.map((item, index) => (
+                SUMMARY_FIELDS.map((field) => (
                     <Page.ContentText
-                        pContent="Selection Summary"
+                        key={`${item.name}-${index}-${field}`}
+                        pContent={item[field] ?? ''}
                         style={{
-                            color: '#f8f8f8',
-                            fontSize: 15,
-                            fontWeight: 600,
+                            minWidth: 0,
+                            overflowWrap: 'anywhere',
+                            textAlign: field === 'name' ? 'left' : 'right',
                         }}
                     />
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={onClose}
-                        icon={<Close size={16} />}
-                        style={{ position: 'absolute', right: 0 }}
-                    />
-                </Page.DpRow>
-                <Page.ContentDesc>
-                    {isNumericXAxis
-                        ? formatAxisPointerLabel(selection.startTime, true)
-                        : moment(selection.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')}{' '}
-                    ~{' '}
-                    {isNumericXAxis
-                        ? formatAxisPointerLabel(selection.endTime, true)
-                        : moment(selection.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
-                </Page.ContentDesc>
-                <Page.DpRow style={{ justifyContent: 'center' }}>
-                    <Page.ContentDesc>
-                        {`( ${formatRangeSpanLabel(
-                            selection.startTime,
-                            selection.endTime,
-                            isNumericXAxis,
-                        )} )`}
-                    </Page.ContentDesc>
-                </Page.DpRow>
-                <Page.Space />
-                <Page.DpRow>
-                    {SUMMARY_FIELDS.map((field) => (
-                        <Page.DpRow key={field} style={{ flex: 1 }}>
-                            {field}
-                        </Page.DpRow>
-                    ))}
-                </Page.DpRow>
-                {selection.seriesSummaries.map((item, index) => (
-                    <Page.DpRow key={item.name + index}>
-                        {SUMMARY_FIELDS.map((field) => (
-                            <Page.ContentText
-                                key={field}
-                                pContent={item[field] ?? ''}
-                                style={{ flex: 1 }}
-                            />
-                        ))}
-                    </Page.DpRow>
-                ))}
-            </Page>
-        </PanelMarkupPopover>
+                ))
+            ))}
+            </div>
+        </PanelPopover>
     );
 }

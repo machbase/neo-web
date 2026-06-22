@@ -42,8 +42,8 @@ export function resolveConcretePanelRangeState({
 }): PanelRangeState {
     if (lastViewedRange) {
         const rangeState = {
-            panelRange: lastViewedRange.panelRange,
-            navigatorRange: lastViewedRange.navigatorRange,
+            requestPanelRange: lastViewedRange.panelRange,
+            requestNavigatorRange: lastViewedRange.navigatorRange,
             fullRange,
         };
 
@@ -55,8 +55,8 @@ export function resolveConcretePanelRangeState({
 
     if (panelRange) {
         const rangeState = {
-            panelRange,
-            navigatorRange: getCoveringNavigatorRange(panelRange, fullRange),
+            requestPanelRange: panelRange,
+            requestNavigatorRange: getCoveringNavigatorRange(panelRange, fullRange),
             fullRange,
         };
 
@@ -74,8 +74,8 @@ export function resolveConcretePanelRangeState({
 
     if (isTimestampRangeConfig(rangeConfig) && boardRange) {
         const rangeState = {
-            panelRange: boardRange,
-            navigatorRange: getCoveringNavigatorRange(boardRange, fullRange),
+            requestPanelRange: boardRange,
+            requestNavigatorRange: getCoveringNavigatorRange(boardRange, fullRange),
             fullRange,
         };
 
@@ -95,11 +95,11 @@ export function resolveConcretePanelRangeState({
             getTimeRangeWidth(fullRange) * INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO;
 
         const rangeState = {
-            panelRange: createTimeRangeMs(
+            requestPanelRange: createTimeRangeMs(
                 sFullRangeCenter - sInitialMainChartWindowWidth / 2,
                 sFullRangeCenter + sInitialMainChartWindowWidth / 2,
             ),
-            navigatorRange: fullRange,
+            requestNavigatorRange: fullRange,
             fullRange,
         };
 
@@ -108,8 +108,8 @@ export function resolveConcretePanelRangeState({
     }
 
     const rangeState = {
-        panelRange: fullRange,
-        navigatorRange: fullRange,
+        requestPanelRange: fullRange,
+        requestNavigatorRange: fullRange,
         fullRange,
     };
 
@@ -177,8 +177,8 @@ function assertConcretePanelRangeState(
     rangeState: PanelRangeState,
 ): void {
     if (
-        !isValidTimeRange(rangeState.panelRange) ||
-        !isValidTimeRange(rangeState.navigatorRange) ||
+        !isValidTimeRange(rangeState.requestPanelRange) ||
+        !isValidTimeRange(rangeState.requestNavigatorRange) ||
         !isValidTimeRange(rangeState.fullRange)
     ) {
         throw new Error('Cannot resolve panel without a concrete range.');

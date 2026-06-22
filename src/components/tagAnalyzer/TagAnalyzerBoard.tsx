@@ -46,6 +46,7 @@ import {
     hasMixedXAxisValueKinds,
 } from './domain/SeriesDomain';
 import { useTagAnalyzerBoardPanels } from './board/useTagAnalyzerBoardPanels';
+import type { RollupTableMap } from './fetch/FetchContracts';
 import type { PersistedTazPanelInfo } from './persistence/TazPersistenceTypesV200';
 import {
     createTazSavedCodeFromBoardInfo,
@@ -76,7 +77,7 @@ type TagAnalyzerBoardProps = {
     pOnFileTreeChange: (tree: any) => void;
     pOnRecentModalPathChange: (path: string) => void;
     pAvailableSourceTableNames: string[];
-    pRollupTableList: string[];
+    pRollupTableList: RollupTableMap;
 };
 
 const TagAnalyzerBoard = ({
@@ -203,7 +204,7 @@ const TagAnalyzerBoard = ({
             ...sRuntimeBoardInfo,
             panels: updatePanelByKey(
                 sRuntimeBoardInfo.panels,
-                panel.data.index_key,
+                panel.key,
                 () => panel,
             ),
         };
@@ -292,21 +293,21 @@ const TagAnalyzerBoard = ({
 
     function selectOverlapFromRange(
         panel: PanelInfo,
-        panelRange: PanelRangeState['panelRange'],
+        panelRange: PanelRangeState['requestPanelRange'],
         isRaw: boolean,
         changeType: OverlapPanelSelectionChangePayload['changeType'],
     ): void {
         updateOverlapSelection({
             start: panelRange.startTime,
             end: panelRange.endTime,
-            panelKey: panel.data.index_key,
+            panelKey: panel.key,
             isRaw,
             changeType,
         });
     }
 
     function getPanelOverlapAxisKind(panel: PanelInfo) {
-        return getSeriesListKeyAxisKind(panel.data.tag_set);
+        return getSeriesListKeyAxisKind(panel.query.tagSet);
     }
 
     function getOverlapAxisKindMismatchMessage(panel: PanelInfo): string | undefined {
@@ -320,7 +321,7 @@ const TagAnalyzerBoard = ({
             .map((selection) =>
                 sRuntimePanels.find(
                     (selectedPanel) =>
-                        selectedPanel.data.index_key === selection.panelKey,
+                        selectedPanel.key === selection.panelKey,
                 ),
             )
             .filter((selectedPanel): selectedPanel is PanelInfo =>
@@ -351,15 +352,15 @@ const TagAnalyzerBoard = ({
     }
 
     function getPanelInfoWithRawMode(panel: PanelInfo, isRaw: boolean): PanelInfo {
-        if (panel.general.is_raw === isRaw) {
+        if (panel.mode.isRaw === isRaw) {
             return panel;
         }
 
         return {
             ...panel,
-            general: {
-                ...panel.general,
-                is_raw: isRaw,
+            mode: {
+                ...panel.mode,
+                isRaw,
             },
         };
     }
@@ -367,7 +368,7 @@ const TagAnalyzerBoard = ({
     function getSelectedOverlapPanels(): OverlapPanelInfo[] {
         return sOverlapSelections.flatMap((selection) => {
             const sPanel = sRuntimePanels.find(
-                (panel) => panel.data.index_key === selection.panelKey,
+                (panel) => panel.key === selection.panelKey,
             );
 
             if (!sPanel) {
@@ -388,7 +389,7 @@ const TagAnalyzerBoard = ({
 
     function applyRuntimePanelInfo(panel: PanelInfo): void {
         updateRuntimePanels((panels) =>
-            updatePanelByKey(panels, panel.data.index_key, () => panel),
+            updatePanelByKey(panels, panel.key, () => panel),
         );
     }
 
@@ -401,7 +402,7 @@ const TagAnalyzerBoard = ({
     }
 
     function togglePanelRawMode(panel: PanelInfo): void {
-        const sNextPanelInfo = getPanelInfoWithRawMode(panel, !panel.general.is_raw);
+        const sNextPanelInfo = getPanelInfoWithRawMode(panel, !panel.mode.isRaw);
 
         applyRuntimePanelInfo(sNextPanelInfo);
         handleRuntimeAppliedRange(
@@ -415,13 +416,13 @@ const TagAnalyzerBoard = ({
         rangeState: PanelRangeState,
         isRaw: boolean,
     ): void {
-        if (!sSelectedPanelKeys.has(panel.data.index_key)) {
+        if (!sSelectedPanelKeys.has(panel.key)) {
             if (!hasConcreteOverlapRangeState(rangeState)) {
                 Toast.warning('Overlap requires a loaded chart range.', undefined);
                 return;
             }
 
-            if (hasMixedXAxisValueKinds(panel.data.tag_set)) {
+            if (hasMixedXAxisValueKinds(panel.query.tagSet)) {
                 Toast.warning(
                     `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled for this panel.`,
                     undefined,
@@ -429,7 +430,7 @@ const TagAnalyzerBoard = ({
                 return;
             }
 
-            if (panel.data.tag_set.length !== 1) {
+            if (panel.query.tagSet.length !== 1) {
                 Toast.warning('Overlap requires a single-series panel.', undefined);
                 return;
             }
@@ -441,16 +442,21 @@ const TagAnalyzerBoard = ({
             }
         }
 
-        selectOverlapFromRange(panel, rangeState.panelRange, isRaw, undefined);
+        selectOverlapFromRange(
+            panel,
+            rangeState.requestPanelRange,
+            isRaw,
+            undefined,
+        );
     }
 
     function deletePanel(panel: PanelInfo): void {
         updateOverlapSelection({
-            panelKey: panel.data.index_key,
+            panelKey: panel.key,
             changeType: 'delete',
         });
         updateRuntimePanels((panels) =>
-            removeRuntimePanel(panels, panel.data.index_key),
+            removeRuntimePanel(panels, panel.key),
         );
     }
 
@@ -459,7 +465,7 @@ const TagAnalyzerBoard = ({
         rangeState: PanelRangeState,
     ): void {
         if (
-            !sSelectedPanelKeys.has(panel.data.index_key) ||
+            !sSelectedPanelKeys.has(panel.key) ||
             !hasConcreteOverlapRangeState(rangeState)
         ) {
             return;
@@ -467,8 +473,8 @@ const TagAnalyzerBoard = ({
 
         selectOverlapFromRange(
             panel,
-            rangeState.panelRange,
-            panel.general.is_raw,
+            rangeState.requestPanelRange,
+            panel.mode.isRaw,
             'changed',
         );
     }
@@ -621,15 +627,15 @@ const TagAnalyzerBoard = ({
             <Page.Body>
                 {sRuntimePanels.map((sPanelInfo) => {
                     const sIsOverlap = sSelectedPanelKeys.has(
-                        sPanelInfo.data.index_key,
+                        sPanelInfo.key,
                     );
-                    const sIsRaw = sPanelInfo.general.is_raw;
+                    const sIsRaw = sPanelInfo.mode.isRaw;
                     const sPanelRuntimeProps =
                         boardPanels.getPanelContainerRuntimeProps(sPanelInfo);
 
                     return (
                         <Page.ContentBlock
-                            key={sPanelInfo.data.index_key}
+                            key={sPanelInfo.key}
                             pHoverNone
                             style={{ padding: '24px 32px' }}
                         >
@@ -714,7 +720,7 @@ const TagAnalyzerBoard = ({
                     key={sOverlapPanels
                         .map((panel) =>
                             [
-                                panel.board.data.index_key,
+                                panel.board.key,
                                 panel.start,
                                 panel.duration,
                                 panel.isRaw,
@@ -755,7 +761,7 @@ function updatePanelByKey(
     let sWasMatched = false;
     let sHasChanges = false;
     const sNextPanels = panels.map((panel) => {
-        if (panel.data.index_key !== panelKey) {
+        if (panel.key !== panelKey) {
             return panel;
         }
 
@@ -785,7 +791,7 @@ function removeRuntimePanel(
 ): PanelInfo[] {
     assertPanelKey(panelKey);
 
-    const sNextPanels = panels.filter((panel) => panel.data.index_key !== panelKey);
+    const sNextPanels = panels.filter((panel) => panel.key !== panelKey);
     if (sNextPanels.length === panels.length) {
         throw new Error(`Cannot delete missing TagAnalyzer panel: ${panelKey}`);
     }
@@ -798,22 +804,22 @@ function getPanelWithCurrentVisibleRangeForSave(
     rangeState: PanelRangeState,
 ): PanelInfo {
     if (
-        !panel.general.use_last_viewed_range ||
-        !isValidTimeRange(rangeState.panelRange) ||
-        !isValidTimeRange(rangeState.navigatorRange)
+        !panel.timeRange.useLastViewedRange ||
+        !isValidTimeRange(rangeState.requestPanelRange) ||
+        !isValidTimeRange(rangeState.requestNavigatorRange)
     ) {
         return panel;
     }
 
-    const sCurrentLastViewedRange = panel.general.last_viewed_range;
+    const sCurrentLastViewedRange = panel.timeRange.lastViewedRange;
     const sCurrentPanelRange = sCurrentLastViewedRange?.panelRange;
     const sCurrentNavigatorRange = sCurrentLastViewedRange?.navigatorRange;
     const sHasSamePanelRange =
         isValidTimeRange(sCurrentPanelRange) &&
-        isSameTimeRange(sCurrentPanelRange, rangeState.panelRange);
+        isSameTimeRange(sCurrentPanelRange, rangeState.requestPanelRange);
     const sHasSameNavigatorRange =
         isValidTimeRange(sCurrentNavigatorRange) &&
-        isSameTimeRange(sCurrentNavigatorRange, rangeState.navigatorRange);
+        isSameTimeRange(sCurrentNavigatorRange, rangeState.requestNavigatorRange);
 
     if (sHasSamePanelRange && sHasSameNavigatorRange) {
         return panel;
@@ -821,11 +827,11 @@ function getPanelWithCurrentVisibleRangeForSave(
 
     return {
         ...panel,
-        general: {
-            ...panel.general,
-            last_viewed_range: {
-                panelRange: rangeState.panelRange,
-                navigatorRange: rangeState.navigatorRange,
+        timeRange: {
+            ...panel.timeRange,
+            lastViewedRange: {
+                panelRange: rangeState.requestPanelRange,
+                navigatorRange: rangeState.requestNavigatorRange,
             },
         },
     };
@@ -833,8 +839,8 @@ function getPanelWithCurrentVisibleRangeForSave(
 
 function hasConcreteOverlapRangeState(rangeState: PanelRangeState): boolean {
     return (
-        isValidTimeRange(rangeState.panelRange) &&
-        isValidTimeRange(rangeState.navigatorRange) &&
+        isValidTimeRange(rangeState.requestPanelRange) &&
+        isValidTimeRange(rangeState.requestNavigatorRange) &&
         isValidTimeRange(rangeState.fullRange)
     );
 }

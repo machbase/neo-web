@@ -1,4 +1,4 @@
-import type { SeriesFetchColumnMap } from '../FetchContracts';
+import type { RollupTableMap, SeriesFetchColumnMap } from '../FetchContracts';
 import type { TimeRangeNs } from '../../domain/time/model/TimeTypes';
 import { getIntervalMs } from '../../domain/time/interval/TimeIntervalUtils';
 import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
@@ -12,15 +12,15 @@ import {
     buildAverageSubSql,
     buildCountOuterSql,
     buildCountSubSql,
+    buildDateBinTimeGroupKeySqlPart,
     buildFirstLastOuterSql,
     buildFirstLastSubSql,
-    buildNonRollupScaledTimeGroupKeySql,
     buildNonRollupTimeGroupKeySqlInfo,
     buildRollupTimeGroupKeySqlInfo,
     buildRollupTimeGroupKeySqlPart,
     buildSourceWhereSqlPart,
-    buildTruncatedTimeGroupKeySqlPart,
 } from './parts/BuildSqlParts';
+import { buildSqlIdentifierPath } from './SqlTextUtils';
 
 type RollupValue = number | string;
 
@@ -29,10 +29,12 @@ type RollupTableEntry = {
     EXT_TYPE?: RollupValue[] | undefined;
 };
 
+type TimeAxisSqlKind = 'numeric' | 'datetime';
+
 type CalculationSqlContext = {
     timeGroupKeySqlInfo: ReturnType<typeof buildRollupTimeGroupKeySqlInfo>;
     sourceWhereSql: string;
-    usesNumericBaseTime: boolean;
+    timeAxisKind: TimeAxisSqlKind;
 };
 
 export function buildAggregateCalculationSql(
@@ -59,12 +61,12 @@ export function buildAggregateCalculationSql(
         intervalUnit,
         intervalSize,
         useRollup,
-        context.usesNumericBaseTime,
+        context.timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
     );
     const valueExpressionSql = toSqlValueExpressionForAggregator(
-        sourceColumnMap.value,
+        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
         calculationMode,
         sourceColumnMap.jsonKey,
     );
@@ -81,7 +83,7 @@ export function buildAggregateCalculationSql(
         subSql,
         context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
-        !context.usesNumericBaseTime,
+        context.timeAxisKind === 'datetime',
     );
 }
 
@@ -108,13 +110,12 @@ export function buildAverageCalculationSql(
         intervalUnit,
         intervalSize,
         useRollup,
-        context.usesNumericBaseTime,
-        context.timeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
+        context.timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
     );
     const valueExpressionSql = toSqlValueExpressionForAggregator(
-        sourceColumnMap.value,
+        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
         'avg',
         sourceColumnMap.jsonKey,
     );
@@ -129,7 +130,7 @@ export function buildAverageCalculationSql(
         subSql,
         context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
-        !context.usesNumericBaseTime,
+        context.timeAxisKind === 'datetime',
     );
 }
 
@@ -156,13 +157,12 @@ export function buildCountCalculationSql(
         intervalUnit,
         intervalSize,
         useRollup,
-        context.usesNumericBaseTime,
-        context.timeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
+        context.timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
     );
     const valueExpressionSql = toSqlValueExpressionForAggregator(
-        sourceColumnMap.value,
+        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
         'cnt',
         sourceColumnMap.jsonKey,
     );
@@ -177,7 +177,7 @@ export function buildCountCalculationSql(
         subSql,
         context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
-        !context.usesNumericBaseTime,
+        context.timeAxisKind === 'datetime',
     );
 }
 
@@ -191,7 +191,7 @@ export function buildFirstLastCalculationSql(
     intervalSize: number,
     useRollup: boolean,
     sourceColumnMap: SeriesFetchColumnMap,
-    rollupTableList: string[],
+    rollupTableList: RollupTableMap,
 ): string {
     const context = buildCalculationSqlContext(
         sourceColumnMap,
@@ -214,12 +214,12 @@ export function buildFirstLastCalculationSql(
               intervalUnit,
               intervalSize,
               false,
-              context.usesNumericBaseTime,
+              context.timeAxisKind,
               fetchTimeRange,
               requestedRowCount,
           );
     const valueExpressionSql = toSqlValueExpressionForAggregator(
-        sourceColumnMap.value,
+        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
         calculationMode,
         sourceColumnMap.jsonKey,
     );
@@ -237,7 +237,7 @@ export function buildFirstLastCalculationSql(
         subSql,
         context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
-        !context.usesNumericBaseTime,
+        context.timeAxisKind === 'datetime',
     );
 }
 
@@ -268,35 +268,8 @@ function buildCalculationSqlContext(
             fetchTimeRange.endTime,
             !sUsesNumericBaseTime,
         ),
-        usesNumericBaseTime: sUsesNumericBaseTime,
+        timeAxisKind: sUsesNumericBaseTime ? 'numeric' : 'datetime',
     };
-}
-
-function buildTimeGroupKeySql(
-    sourceColumnMap: SeriesFetchColumnMap,
-    intervalUnit: string,
-    intervalSize: number,
-    useRollup: boolean,
-    usesNumericBaseTime: boolean,
-    fetchTimeRange: TimeRangeNs,
-    requestedRowCount: number,
-    buildNonRollupNonNumericSql: () => string,
-): string {
-    if (useRollup) {
-        return buildRollupTimeGroupKeySqlPart(
-            sourceColumnMap.time,
-            intervalUnit,
-            intervalSize,
-        );
-    }
-
-    return usesNumericBaseTime
-        ? buildNumericBaseTimeGroupKeySql(
-              sourceColumnMap.time,
-              fetchTimeRange,
-              requestedRowCount,
-          )
-        : buildNonRollupNonNumericSql();
 }
 
 function buildAggregateTimeGroupKeySql(
@@ -304,25 +277,19 @@ function buildAggregateTimeGroupKeySql(
     intervalUnit: string,
     intervalSize: number,
     useRollup: boolean,
-    usesNumericBaseTime: boolean,
+    timeAxisKind: TimeAxisSqlKind,
     fetchTimeRange: TimeRangeNs,
     requestedRowCount: number,
 ): string {
-    return buildTimeGroupKeySql(
+    return buildAxisTimeGroupKeySql({
         sourceColumnMap,
         intervalUnit,
         intervalSize,
         useRollup,
-        usesNumericBaseTime,
+        timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
-        () =>
-            buildTruncatedTimeGroupKeySqlPart(
-                sourceColumnMap.time,
-                intervalUnit,
-                intervalSize,
-            ),
-    );
+    });
 }
 
 function buildScaledTimeGroupKeySql(
@@ -330,48 +297,119 @@ function buildScaledTimeGroupKeySql(
     intervalUnit: string,
     intervalSize: number,
     useRollup: boolean,
-    usesNumericBaseTime: boolean,
-    nonRollupBucketIntervalSeconds: number,
+    timeAxisKind: TimeAxisSqlKind,
     fetchTimeRange: TimeRangeNs,
     requestedRowCount: number,
 ): string {
-    return buildTimeGroupKeySql(
+    return buildAxisTimeGroupKeySql({
         sourceColumnMap,
         intervalUnit,
         intervalSize,
         useRollup,
-        usesNumericBaseTime,
+        timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
-        () =>
-            buildNonRollupScaledTimeGroupKeySql(
-                sourceColumnMap.time,
-                intervalSize,
-                nonRollupBucketIntervalSeconds,
-            ),
-    );
+    });
 }
 
+type BuildAxisTimeGroupKeySqlParams = {
+    sourceColumnMap: SeriesFetchColumnMap;
+    intervalUnit: string;
+    intervalSize: number;
+    useRollup: boolean;
+    timeAxisKind: TimeAxisSqlKind;
+    fetchTimeRange: TimeRangeNs;
+    requestedRowCount: number;
+};
+
+function buildAxisTimeGroupKeySql({
+    sourceColumnMap,
+    intervalUnit,
+    intervalSize,
+    useRollup,
+    timeAxisKind,
+    fetchTimeRange,
+    requestedRowCount,
+}: BuildAxisTimeGroupKeySqlParams): string {
+    return timeAxisKind === 'numeric'
+        ? buildNumericTimeGroupKeySql(
+              sourceColumnMap.time,
+              intervalUnit,
+              intervalSize,
+              useRollup,
+              fetchTimeRange,
+              requestedRowCount,
+          )
+        : buildDateTimeGroupKeySql(
+              sourceColumnMap.time,
+              intervalUnit,
+              intervalSize,
+              useRollup,
+          );
+}
+
+function buildDateTimeGroupKeySql(
+    timeColumnName: string,
+    intervalUnit: string,
+    intervalSize: number,
+    useRollup: boolean,
+): string {
+    return useRollup
+        ? buildRollupTimeGroupKeySqlPart(
+              timeColumnName,
+              intervalUnit,
+              intervalSize,
+          )
+        : buildDateBinTimeGroupKeySqlPart(
+              timeColumnName,
+              intervalUnit,
+              intervalSize,
+          );
+}
+
+function buildNumericTimeGroupKeySql(
+    timeColumnName: string,
+    intervalUnit: string,
+    intervalSize: number,
+    useRollup: boolean,
+    fetchTimeRange: TimeRangeNs,
+    requestedRowCount: number,
+): string {
+    return useRollup
+        ? buildRollupTimeGroupKeySqlPart(
+              timeColumnName,
+              intervalUnit,
+              intervalSize,
+          )
+        : buildNumericBaseTimeGroupKeySql(
+              timeColumnName,
+              fetchTimeRange,
+              requestedRowCount,
+          );
+}
 function buildNumericBaseTimeGroupKeySql(
     timeColumnName: string,
     fetchTimeRange: TimeRangeNs,
     requestedRowCount: number,
 ): string {
+    const sStartTime = getNumericBaseTimeRangeValue(fetchTimeRange.startTime);
     const sBucketSize = getNumericBaseTimeBucketSize(
         fetchTimeRange,
         requestedRowCount,
     );
 
     return sBucketSize > 0
-        ? `(${timeColumnName} - ${fetchTimeRange.startTime}) / (${sBucketSize}) * (${sBucketSize}) + ${fetchTimeRange.startTime}`
-        : timeColumnName;
+        ? `(${buildSqlIdentifierPath(timeColumnName, 'SQL time column')} - ${sStartTime}) / (${sBucketSize}) * (${sBucketSize}) + ${sStartTime}`
+        : buildSqlIdentifierPath(timeColumnName, 'SQL time column');
 }
 
 function getNumericBaseTimeBucketSize(
     fetchTimeRange: TimeRangeNs,
     requestedRowCount: number,
 ): number {
-    const sRangeWidth = fetchTimeRange.endTime - fetchTimeRange.startTime;
+    const sStartTime = getNumericBaseTimeRangeValue(fetchTimeRange.startTime);
+    const sEndTime = getNumericBaseTimeRangeValue(fetchTimeRange.endTime);
+    const sRangeWidth = sEndTime - sStartTime;
     if (sRangeWidth <= 0 || requestedRowCount <= 0) {
         return 0;
     }
@@ -383,9 +421,13 @@ function getNumericBaseTimeBucketSize(
         : 0;
 }
 
+function getNumericBaseTimeRangeValue(value: TimeRangeNs['startTime']): number {
+    return typeof value === 'number' ? value : Number(value);
+}
+
 function shouldUseRollupTimeGroupKey(
     useRollup: boolean,
-    rollupTableList: string[],
+    rollupTableList: RollupTableMap,
     sourceTableName: string,
     intervalUnit: string,
     intervalSize: number,

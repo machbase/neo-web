@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Toast } from '@/design-system/components';
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
 import { fetchJsonColumnPaths, fetchTagSearchColumns, fetchTagSearchPage } from './TagSelectionSearchRepository';
-import { EMPTY_TAG_SELECTION_COLUMNS } from './TagSelectionConstants';
+import {
+    EMPTY_TAG_SELECTION_COLUMNS,
+    TAG_SEARCH_PAGE_LIMIT,
+} from './TagSelectionConstants';
 import {
     createTagAnalyzerColumnInfo,
     isTagAnalyzerJsonValue,
@@ -46,6 +49,7 @@ export const useTagSelectionState = ({
     const rollupMetadata = useRollupMetadata();
     const [reloadKey, setReloadKey] = useState(0);
     const [axisKindWarning, setAxisKindWarning] = useState<string | undefined>(getMixedXAxisValueKindWarning(existingSeries));
+    const resultLimitWarningKeyRef = useRef<string | undefined>(undefined);
 
     const getAxisKindWarningForDrafts = (
         drafts: TagSelectionDraftItem[],
@@ -153,6 +157,18 @@ export const useTagSelectionState = ({
         setSourceColumns(sTagPage.columns);
         updateTotal(sTagPage.total);
         setAvailableTags(sTagPage.items);
+
+        if (tagPagination === 1 && sTagPage.total >= TAG_SEARCH_PAGE_LIMIT) {
+            const sWarningKey = `${selectedTable}:${tagInputValue}:${sTagPage.total}`;
+
+            if (resultLimitWarningKeyRef.current !== sWarningKey) {
+                resultLimitWarningKeyRef.current = sWarningKey;
+                Toast.warning(
+                    `Showing ${TAG_SEARCH_PAGE_LIMIT} tags. Search to narrow ${sTagPage.total.toLocaleString()} results.`,
+                    undefined,
+                );
+            }
+        }
     };
     const handleSearch = () => {
         if (tagPagination > 1) {

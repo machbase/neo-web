@@ -12,7 +12,7 @@ export function ensureUniquePanelIndexKeys(panels: PanelInfo[]): PanelInfo[] {
     const sUsedPanelKeys = new Set<string>();
     let sDidChangePanelKey = false;
     const sNextPanels = panels.map((panel) => {
-        const sPanelKey = panel.data.index_key;
+        const sPanelKey = panel.key;
 
         if (sPanelKey.trim().length > 0 && !sUsedPanelKeys.has(sPanelKey)) {
             sUsedPanelKeys.add(sPanelKey);
@@ -26,10 +26,7 @@ export function ensureUniquePanelIndexKeys(panels: PanelInfo[]): PanelInfo[] {
 
         return {
             ...panel,
-            data: {
-                ...panel.data,
-                index_key: sNextPanelKey,
-            },
+            key: sNextPanelKey,
         };
     });
 

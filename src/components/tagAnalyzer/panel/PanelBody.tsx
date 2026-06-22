@@ -65,7 +65,7 @@ const PanelBody = (props: UsePanelChartRuntimeParams) => {
                 />
                 {isLoading && (
                     <PanelMainChartLoadingOverlay
-                        showLegend={chartState.display.show_legend}
+                        showLegend={chartState.display.showLegend}
                     />
                 )}
             </div>

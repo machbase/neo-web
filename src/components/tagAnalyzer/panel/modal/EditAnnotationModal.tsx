@@ -1,4 +1,5 @@
-import { Dropdown } from '@/design-system/components';
+import { useState, type KeyboardEvent } from 'react';
+import { Button, Dropdown, type ContextMenuPosition } from '@/design-system/components';
 import type { PanelAnnotation } from '../../domain/PanelDomain';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
@@ -7,28 +8,34 @@ import {
 } from '../../domain/SeriesDomain';
 import {
     formatAxisInputValue,
+    LOCAL_DATE_TIME_INPUT_FORMAT,
+    NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
 } from '../../domain/time/formatting/TimeInputFormatters';
 import type {
     PanelAnnotationCrud,
     PanelAnnotationSeriesOption,
 } from '../usePanelAnnotation';
-import {
-    ColorFields,
-    getAxisPlaceholder,
-    ModalActions,
-    PanelMarkupModal,
-    TextField,
-    useFocusedInput,
-    useMarkupForm,
-} from './PanelMarkupModalPrimitives';
-import type {
-    AnnotationEditorMetaState,
-    AnnotationFormState,
-} from './PanelMarkupModalTypes';
+import PanelPopover from './PanelPopover';
+
+export type AnnotationEditorMetaState = {
+    position: ContextMenuPosition;
+    seriesKey?: string;
+    annotationIndex?: number;
+    timestamp?: number;
+};
+
+type AnnotationFormState = {
+    seriesValue: string;
+    timeText: string;
+    labelText: string;
+    fillColor: string;
+    textColor: string;
+    clip: boolean;
+};
 
 const EMPTY_ANNOTATION_SERIES_VALUE = '';
-const MARKUP_DROPDOWN_MENU_CLASS = 'panel-markup-modal__dropdown-menu';
+const MARKUP_DROPDOWN_MENU_CLASS = 'panel-popover-form__dropdown-menu';
 
 function createAnnotationFormState(
     editorMeta: AnnotationEditorMetaState,
@@ -108,7 +115,6 @@ export function EditAnnotationModal({
     onApplied: () => void;
     isNumericXAxis: boolean;
 }) {
-    const inputRef = useFocusedInput();
     const annotationIndex = annotationEditorMeta.annotationIndex;
     const annotation = annotationIndex === undefined
         ? undefined
@@ -140,13 +146,9 @@ export function EditAnnotationModal({
         return true;
     }
 
-    const form = useMarkupForm<AnnotationFormState>(
-        () => createAnnotationFormState(annotationEditorMeta, annotation, isNumericXAxis),
-        saveAnnotation,
-        onCancel,
-        onApplied,
+    const [state, setState] = useState(() =>
+        createAnnotationFormState(annotationEditorMeta, annotation, isNumericXAxis),
     );
-    const { state, setField, handleKeyDown, applyForm } = form;
     const seriesOptions = [
         {
             label: 'annotation not selected',
@@ -158,6 +160,21 @@ export function EditAnnotationModal({
     const canApply =
         selectedSeriesKey !== '' &&
         parseAxisInputValue(state.timeText, isNumericXAxis) !== undefined;
+    const timePlaceholder = isNumericXAxis
+        ? NUMERIC_AXIS_INPUT_FORMAT
+        : LOCAL_DATE_TIME_INPUT_FORMAT;
+
+    function applyForm(): void {
+        if (saveAnnotation(state)) {
+            onApplied();
+        }
+    }
+
+    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+        if (event.key === 'Enter') applyForm();
+        if (event.key === 'Escape') onCancel();
+    }
+
     function deleteAnnotation(): void {
         if (annotationIndex === undefined) {
             throw new Error('Cannot delete annotation without an annotation index.');
@@ -168,29 +185,41 @@ export function EditAnnotationModal({
     }
 
     return (
-        <PanelMarkupModal
+        <PanelPopover
             title="Edit annotation"
-            className="panel-markup-modal--annotation"
             position={annotationEditorMeta.position}
             onClose={onCancel}
             draggable
+            size="wide"
             outsideCloseIgnoreSelector={`.${MARKUP_DROPDOWN_MENU_CLASS}`}
             closeOnScroll={false}
             actions={(
-                <ModalActions
-                    canApply={canApply}
-                    onCancel={onCancel}
-                    onApply={applyForm}
-                    deleteAction={annotation ? deleteAnnotation : undefined}
-                />
+                <>
+                    {annotation !== undefined && (
+                        <Button size="sm" variant="ghost" onClick={deleteAnnotation}>
+                            Delete
+                        </Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={onCancel}>
+                        Cancel
+                    </Button>
+                    <Button size="sm" disabled={!canApply} onClick={applyForm}>
+                        Apply
+                    </Button>
+                </>
             )}
         >
-            <label className="panel-markup-modal__field">
+            <label className="panel-popover-form__field">
                 Series
                 <Dropdown.Root
                     options={seriesOptions}
                     value={state.seriesValue}
-                    onChange={(value) => setField('seriesValue', value)}
+                    onChange={(value) =>
+                        setState((currentState) => ({
+                            ...currentState,
+                            seriesValue: value,
+                        }))
+                    }
                     placeholder="annotation not selected"
                     fullWidth
                 >
@@ -200,34 +229,87 @@ export function EditAnnotationModal({
                     </Dropdown.Menu>
                 </Dropdown.Root>
             </label>
-            <TextField
-                field="timeText"
-                label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
-                placeholder={getAxisPlaceholder(isNumericXAxis)}
-                state={state}
-                setField={setField}
-                onKeyDown={handleKeyDown}
-            />
-            <TextField
-                field="labelText"
-                label="Text"
-                inputRef={inputRef}
-                state={state}
-                setField={setField}
-                onKeyDown={handleKeyDown}
-            />
-            <ColorFields state={state} ariaPrefix="Annotation" setField={setField} />
-            <label className="panel-markup-modal__checkbox-field">
+            <label className="panel-popover-form__field">
+                {isNumericXAxis ? 'Axis value' : 'Time (Local)'}
+                <input
+                    aria-label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
+                    className="panel-popover-form__input"
+                    placeholder={timePlaceholder}
+                    value={state.timeText}
+                    onChange={(event) =>
+                        setState((currentState) => ({
+                            ...currentState,
+                            timeText: event.target.value,
+                        }))
+                    }
+                    onKeyDown={handleKeyDown}
+                />
+            </label>
+            <label className="panel-popover-form__field">
+                Text
+                <input
+                    aria-label="Text"
+                    autoFocus
+                    className="panel-popover-form__input"
+                    value={state.labelText}
+                    onChange={(event) =>
+                        setState((currentState) => ({
+                            ...currentState,
+                            labelText: event.target.value,
+                        }))
+                    }
+                    onFocus={(event) => event.currentTarget.select()}
+                    onKeyDown={handleKeyDown}
+                />
+            </label>
+            <div className="panel-popover-form__row panel-popover-form__row--two">
+                <label className="panel-popover-form__field">
+                    Fill color
+                    <input
+                        aria-label="Annotation fill color"
+                        className="panel-popover-form__color-input"
+                        type="color"
+                        value={state.fillColor}
+                        onChange={(event) =>
+                            setState((currentState) => ({
+                                ...currentState,
+                                fillColor: event.target.value,
+                            }))
+                        }
+                    />
+                </label>
+                <label className="panel-popover-form__field">
+                    Text color
+                    <input
+                        aria-label="Annotation text color"
+                        className="panel-popover-form__color-input"
+                        type="color"
+                        value={state.textColor}
+                        onChange={(event) =>
+                            setState((currentState) => ({
+                                ...currentState,
+                                textColor: event.target.value,
+                            }))
+                        }
+                    />
+                </label>
+            </div>
+            <label className="panel-popover-form__checkbox-field">
                 <input
                     aria-label="Clip annotation to panel range"
                     type="checkbox"
                     checked={state.clip}
-                    onChange={(event) => setField('clip', event.target.checked)}
+                    onChange={(event) =>
+                        setState((currentState) => ({
+                            ...currentState,
+                            clip: event.target.checked,
+                        }))
+                    }
                 />
                 Clip to panel range
             </label>
             <div
-                className="panel-markup-modal__preview"
+                className="panel-popover-form__preview"
                 style={{
                     backgroundColor: state.fillColor,
                     borderColor: state.fillColor,
@@ -236,6 +318,6 @@ export function EditAnnotationModal({
             >
                 {state.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL}
             </div>
-        </PanelMarkupModal>
+        </PanelPopover>
     );
 }

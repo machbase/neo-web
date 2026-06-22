@@ -26,15 +26,20 @@ export type BoardPanelStore = {
     ) => void;
 };
 
+export type PanelRangeApplyResult = {
+    resolvedRangeState: PanelRangeState;
+    didChange: boolean;
+};
+
 export type ApplyPanelRange = (
     request: ApplyPanelRangeRequest,
-) => PanelRangeState | undefined;
+) => PanelRangeApplyResult;
 
 export type RequestPanelDataRefresh = (panelKey: string) => void;
 
 const INITIAL_PANEL_RANGE_STATE: PanelRangeState = {
-    panelRange: EMPTY_TIME_RANGE,
-    navigatorRange: EMPTY_TIME_RANGE,
+    requestPanelRange: EMPTY_TIME_RANGE,
+    requestNavigatorRange: EMPTY_TIME_RANGE,
     fullRange: EMPTY_TIME_RANGE,
 };
 
@@ -46,8 +51,8 @@ export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
 
 export function hasValidRangeState(rangeState: PanelRangeState): boolean {
     return (
-        isValidTimeRange(rangeState.panelRange) &&
-        isValidTimeRange(rangeState.navigatorRange) &&
+        isValidTimeRange(rangeState.requestPanelRange) &&
+        isValidTimeRange(rangeState.requestNavigatorRange) &&
         isValidTimeRange(rangeState.fullRange)
     );
 }

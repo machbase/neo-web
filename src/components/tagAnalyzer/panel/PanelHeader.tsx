@@ -102,6 +102,12 @@ const PANEL_EXTRA_ACTION_KEYS = new Set<PanelActionKey>([
 const RAW_BUTTON_STYLE = { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 } as const;
 const DRAG_SELECT_BUTTON_STYLE = { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 } as const;
 
+function joinClassNames(
+    ...names: Array<string | false | undefined | null>
+): string {
+    return names.filter(Boolean).join(' ');
+}
+
 function buildPanelActions(
     state: PanelHeaderRuntimeState,
     options: { showExportCsv?: boolean } = {},
@@ -220,27 +226,56 @@ function buildPanelActions(
     return sActions;
 }
 
-function getAction(
-    actions: PanelActionDescriptor[],
-    key: PanelActionKey,
-): PanelActionDescriptor {
-    const sAction = actions.find((action) => action.key === key);
-    if (!sAction) {
-        throw new Error(`Missing panel action: ${key}`);
+function partitionPanelActions(actions: PanelActionDescriptor[]): {
+    direct: PanelActionDescriptor[];
+    extra: PanelActionDescriptor[];
+    more: PanelActionDescriptor[];
+} {
+    const sDirect: PanelActionDescriptor[] = [];
+    const sExtra: PanelActionDescriptor[] = [];
+    const sMore: PanelActionDescriptor[] = [];
+
+    for (const action of actions) {
+        if (PANEL_EXTRA_ACTION_KEYS.has(action.key)) {
+            sExtra.push(action);
+        } else {
+            sDirect.push(action);
+            if (action.visibilityPriority !== PanelActionVisibilityPriority.PRIMARY) {
+                sMore.push(action);
+            }
+        }
     }
 
-    return sAction;
+    return { direct: sDirect, extra: sExtra, more: sMore };
 }
 
 function getActionClass(action: PanelActionDescriptor): string {
-    return [
+    return joinClassNames(
         'panel-header__action',
         `panel-header__action--${action.visibilityPriority}`,
         action.className,
-        action.active ? 'panel-header__action--active' : undefined,
-    ]
-        .filter(Boolean)
-        .join(' ');
+        action.active && 'panel-header__action--active',
+    );
+}
+
+function formatPanelTimeText(state: PanelHeaderRuntimeState): string {
+    if (!isValidTimeRange(state.panelRange)) return '';
+    const sStart = formatRangeBoundaryLabel(
+        state.panelRange.startTime,
+        state.isNumericXAxis,
+        state.panelRange,
+    );
+    const sEnd = formatRangeBoundaryLabel(
+        state.panelRange.endTime,
+        state.isNumericXAxis,
+        state.panelRange,
+    );
+    return `${sStart} ~ ${sEnd}`;
+}
+
+function formatIntervalText(state: PanelHeaderRuntimeState): string {
+    if (state.isRaw || !state.resolvedIntervalOption) return '';
+    return `${state.resolvedIntervalOption.IntervalValue}${state.resolvedIntervalOption.IntervalType}`;
 }
 
 function PanelHeaderActionButton({
@@ -268,88 +303,72 @@ function PanelHeaderActionButton({
     );
 }
 
-function PanelHeaderMoreMenu({
-    actions,
-    onAction,
-}: {
+type PanelHeaderMenuProps = {
     actions: PanelActionDescriptor[];
     onAction: (actionKey: PanelActionKey) => void;
-}) {
+    containerClassName: string;
+    activeContainerClassName?: string;
+    activeItemClassName: string;
+    triggerAriaLabel: string;
+    triggerIcon: ReactNode;
+    triggerLabel?: string;
+    triggerIconPosition?: 'right';
+    triggerToolTipContent?: string;
+    showActiveOnTrigger?: boolean;
+    getItemLabel?: (action: PanelActionDescriptor) => string;
+};
+
+function PanelHeaderMenu({
+    actions,
+    onAction,
+    containerClassName,
+    activeContainerClassName,
+    activeItemClassName,
+    triggerAriaLabel,
+    triggerIcon,
+    triggerLabel,
+    triggerIconPosition,
+    triggerToolTipContent,
+    showActiveOnTrigger,
+    getItemLabel,
+}: PanelHeaderMenuProps) {
+    const sIsActive =
+        (showActiveOnTrigger ?? false) &&
+        actions.some((action) => action.active === true);
+    const sResolveLabel = getItemLabel ?? ((action) => action.label);
+
     return (
-        <span className="panel-header__more">
+        <span
+            className={joinClassNames(
+                containerClassName,
+                sIsActive && activeContainerClassName,
+            )}
+        >
             <Menu.Root>
                 <Menu.Trigger>
                     <Button
-                        aria-label="More panel actions"
+                        aria-label={triggerAriaLabel}
                         size="xsm"
                         variant="ghost"
-                        isToolTip
-                        toolTipContent="More"
-                        icon={<VscThreeBars size={15} />}
-                    />
-                </Menu.Trigger>
-                <Menu.Content align="right">
-                    {actions.map((action) => (
-                        <Menu.Item
-                            key={action.key}
-                            className={action.active ? 'selected' : undefined}
-                            disabled={action.disabled}
-                            icon={action.icon}
-                            onClick={() => onAction(action.key)}
-                        >
-                            {action.label}
-                        </Menu.Item>
-                    ))}
-                </Menu.Content>
-            </Menu.Root>
-        </span>
-    );
-}
-
-function PanelHeaderExtraMenu({
-    actions,
-    onAction,
-}: {
-    actions: PanelActionDescriptor[];
-    onAction: (actionKey: PanelActionKey) => void;
-}) {
-    const sIsActive = actions.some((action) => action.active === true);
-    const sClassName = [
-        'panel-header__extra',
-        sIsActive ? 'panel-header__extra--active' : undefined,
-    ]
-        .filter(Boolean)
-        .join(' ');
-
-    return (
-        <span className={sClassName}>
-            <Menu.Root>
-                <Menu.Trigger>
-                    <Button
-                        aria-label="Extra panel actions"
-                        size="xsm"
-                        variant="ghost"
-                        active={sIsActive}
-                        icon={<CiCircleMore size={15} />}
-                        iconPosition="right"
+                        isToolTip={triggerToolTipContent !== undefined}
+                        toolTipContent={triggerToolTipContent}
+                        active={showActiveOnTrigger ? sIsActive : undefined}
+                        icon={triggerIcon}
+                        iconPosition={triggerIconPosition}
                     >
-                        Extra
+                        {triggerLabel}
                     </Button>
                 </Menu.Trigger>
                 <Menu.Content align="right">
                     {actions.map((action) => (
                         <Menu.Item
                             key={action.key}
-                            className={
-                                action.active
-                                    ? 'panel-header__extra-item--active'
-                                    : undefined
-                            }
+                            className={action.active ? activeItemClassName : undefined}
                             disabled={action.disabled}
                             icon={action.icon}
                             onClick={() => onAction(action.key)}
                         >
-                            {action.contextLabel ?? action.label}
+                            {sResolveLabel(action)}
                         </Menu.Item>
                     ))}
                 </Menu.Content>
@@ -378,25 +397,10 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const [isRenamingTitle, setIsRenamingTitle] = useState(false);
     const [titleDraft, setTitleDraft] = useState(runtimeState.title);
     const titleInputRef = useRef<HTMLInputElement | null>(null);
-    const titleRenameCloseReasonRef = useRef<'apply' | 'cancel' | undefined>(
-        undefined,
-    );
+    const titleRenameClosingRef = useRef(false);
     const sHasPanelRange = isValidTimeRange(runtimeState.panelRange);
-    const sTimeText = sHasPanelRange
-        ? `${formatRangeBoundaryLabel(
-              runtimeState.panelRange.startTime,
-              runtimeState.isNumericXAxis,
-              runtimeState.panelRange,
-          )} ~ ${formatRangeBoundaryLabel(
-              runtimeState.panelRange.endTime,
-              runtimeState.isNumericXAxis,
-              runtimeState.panelRange,
-          )}`
-        : '';
-    const sIntervalText =
-        !runtimeState.isRaw && runtimeState.resolvedIntervalOption
-            ? `${runtimeState.resolvedIntervalOption.IntervalValue}${runtimeState.resolvedIntervalOption.IntervalType}`
-            : '';
+    const sTimeText = formatPanelTimeText(runtimeState);
+    const sIntervalText = formatIntervalText(runtimeState);
     const sTimeSummaryText =
         sTimeText && sIntervalText
             ? `${sTimeText} (interval: ${sIntervalText})`
@@ -404,27 +408,18 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const sActions = buildPanelActions(runtimeState, {
         showExportCsv: getExperiment(),
     });
-    const sDirectActions = sActions.filter(
-        (action) => !PANEL_EXTRA_ACTION_KEYS.has(action.key),
-    );
-    const sExtraActions = sActions.filter((action) =>
-        PANEL_EXTRA_ACTION_KEYS.has(action.key),
-    );
-    const sMoreActions = sActions.filter(
-        (action) =>
-            !PANEL_EXTRA_ACTION_KEYS.has(action.key) &&
-            action.visibilityPriority !==
-            PanelActionVisibilityPriority.PRIMARY,
-    );
+    const {
+        direct: sDirectActions,
+        extra: sExtraActions,
+        more: sMoreActions,
+    } = partitionPanelActions(sActions);
     const sOverlapLabel = runtimeState.isOverlap
         ? 'Remove from overlap chart'
         : 'Add to overlap chart';
-    const sOverlapBoxClassName = [
+    const sOverlapBoxClassName = joinClassNames(
         'panel-header__overlap-box',
-        runtimeState.isOverlap ? 'panel-header__overlap-box--active' : undefined,
-    ]
-        .filter(Boolean)
-        .join(' ');
+        runtimeState.isOverlap && 'panel-header__overlap-box--active',
+    );
 
     useEffect(() => {
         if (!isRenamingTitle) {
@@ -436,41 +431,31 @@ const PanelHeader = (props: PanelHeaderProps) => {
         if (!isRenamingTitle) {
             return;
         }
-
         titleInputRef.current?.focus();
         titleInputRef.current?.select();
     }, [isRenamingTitle]);
 
     function openTitleRename(): void {
-        titleRenameCloseReasonRef.current = undefined;
+        titleRenameClosingRef.current = false;
         setTitleDraft(runtimeState.title);
         setIsRenamingTitle(true);
     }
 
     function applyTitleRename(): void {
-        if (titleRenameCloseReasonRef.current !== undefined) {
-            return;
-        }
-
-        titleRenameCloseReasonRef.current = 'apply';
+        if (titleRenameClosingRef.current) return;
+        titleRenameClosingRef.current = true;
         const sNextTitle = titleDraft.trim();
-
         setIsRenamingTitle(false);
-
         if (sNextTitle.length === 0 || sNextTitle === runtimeState.title) {
             setTitleDraft(runtimeState.title);
             return;
         }
-
         onRenamePanelTitle(sNextTitle);
     }
 
     function cancelTitleRename(): void {
-        if (titleRenameCloseReasonRef.current !== undefined) {
-            return;
-        }
-
-        titleRenameCloseReasonRef.current = 'cancel';
+        if (titleRenameClosingRef.current) return;
+        titleRenameClosingRef.current = true;
         setTitleDraft(runtimeState.title);
         setIsRenamingTitle(false);
     }
@@ -483,7 +468,6 @@ const PanelHeader = (props: PanelHeaderProps) => {
             applyTitleRename();
             return;
         }
-
         if (event.key === 'Escape') {
             event.preventDefault();
             cancelTitleRename();
@@ -559,13 +543,27 @@ const PanelHeader = (props: PanelHeaderProps) => {
                         onAction={onAction}
                     />
                 ))}
-                <PanelHeaderExtraMenu
+                <PanelHeaderMenu
                     actions={sExtraActions}
                     onAction={onAction}
+                    containerClassName="panel-header__extra"
+                    activeContainerClassName="panel-header__extra--active"
+                    activeItemClassName="panel-header__extra-item--active"
+                    triggerAriaLabel="Extra panel actions"
+                    triggerIcon={<CiCircleMore size={15} />}
+                    triggerLabel="Extra"
+                    triggerIconPosition="right"
+                    showActiveOnTrigger
+                    getItemLabel={(action) => action.contextLabel ?? action.label}
                 />
-                <PanelHeaderMoreMenu
+                <PanelHeaderMenu
                     actions={sMoreActions}
                     onAction={onAction}
+                    containerClassName="panel-header__more"
+                    activeItemClassName="selected"
+                    triggerAriaLabel="More panel actions"
+                    triggerIcon={<VscThreeBars size={15} />}
+                    triggerToolTipContent="More"
                 />
             </div>
         </div>
@@ -591,15 +589,15 @@ export function PanelContextMenu(props: PanelContextMenuProps) {
     return (
         <ContextMenu isOpen position={position} onClose={onClose}>
             {PANEL_CONTEXT_ACTION_KEYS.map((key) => {
-                const action = getAction(sActions, key);
-
+                const sAction = sActions.find((action) => action.key === key);
+                if (!sAction) return null;
                 return (
                     <ContextMenu.Item
-                        key={action.key}
-                        onClick={() => runActionAfterClose(action.key)}
-                        disabled={action.disabled}
+                        key={sAction.key}
+                        onClick={() => runActionAfterClose(sAction.key)}
+                        disabled={sAction.disabled}
                     >
-                        {action.contextLabel ?? action.label}
+                        {sAction.contextLabel ?? sAction.label}
                     </ContextMenu.Item>
                 );
             })}

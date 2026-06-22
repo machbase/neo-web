@@ -38,7 +38,7 @@ export type CalculationFetchRequest = {
     columnMap: SeriesFetchColumnMap;
     Count: number;
     isRollup: boolean;
-    RollupList: string[];
+    RollupList: RollupTableMap;
 };
 
 export type RawFetchSampling =

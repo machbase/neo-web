@@ -8,19 +8,26 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { MdDragIndicator } from 'react-icons/md';
-import styles from './PanelMarkupPopover.module.scss';
+import styles from './PanelPopover.module.scss';
 
-type PanelMarkupPopoverPosition = {
+type PanelPopoverPosition = {
     x: number;
     y: number;
 };
 
+type PanelPopoverSize = 'compact' | 'default' | 'wide';
+
+const PANEL_POPOVER_MIN_WIDTH: Record<PanelPopoverSize, number> = {
+    compact: 280,
+    default: 320,
+    wide: 360,
+};
 const VIEWPORT_MARGIN = 10;
 
 function clampPopoverPosition(
-    position: PanelMarkupPopoverPosition,
+    position: PanelPopoverPosition,
     popoverElement: HTMLDivElement | null,
-): PanelMarkupPopoverPosition {
+): PanelPopoverPosition {
     const popoverRect = popoverElement?.getBoundingClientRect();
     const popoverWidth = popoverRect?.width ?? 0;
     const popoverHeight = popoverRect?.height ?? 0;
@@ -39,20 +46,28 @@ function clampPopoverPosition(
     };
 }
 
-const PanelMarkupPopover = ({
+const PanelPopover = ({
+    title,
     position,
     children,
+    actions,
+    headerAction,
     onClose,
     draggable = false,
     outsideCloseIgnoreSelector,
     closeOnScroll = true,
+    size = 'default',
 }: {
-    position: PanelMarkupPopoverPosition;
+    title?: ReactNode;
+    position: PanelPopoverPosition;
     children: ReactNode;
+    actions?: ReactNode;
+    headerAction?: ReactNode;
     onClose: () => void;
     draggable?: boolean;
     outsideCloseIgnoreSelector?: string;
     closeOnScroll?: boolean;
+    size?: PanelPopoverSize;
 }) => {
     const popoverRef = useRef<HTMLDivElement>(null);
     const [adjustedPosition, setAdjustedPosition] = useState(position);
@@ -65,7 +80,7 @@ const PanelMarkupPopover = ({
         setAdjustedPosition(clampPopoverPosition(position, popoverRef.current));
     }, [position]);
 
-    function handleDragStart(event: ReactPointerEvent<HTMLButtonElement>): void {
+    function handlePopoverDragStart(event: ReactPointerEvent<HTMLButtonElement>): void {
         if (!draggable) {
             return;
         }
@@ -76,7 +91,7 @@ const PanelMarkupPopover = ({
         const sStartPointer = { x: event.clientX, y: event.clientY };
         const sStartPosition = adjustedPosition;
 
-        function handlePointerMove(pointerEvent: PointerEvent): void {
+        function handlePopoverPointerMove(pointerEvent: PointerEvent): void {
             setAdjustedPosition(
                 clampPopoverPosition(
                     {
@@ -94,15 +109,15 @@ const PanelMarkupPopover = ({
             );
         }
 
-        function handlePointerUp(): void {
-            document.removeEventListener('pointermove', handlePointerMove);
-            document.removeEventListener('pointerup', handlePointerUp);
+        function handlePopoverPointerUp(): void {
+            document.removeEventListener('pointermove', handlePopoverPointerMove);
+            document.removeEventListener('pointerup', handlePopoverPointerUp);
             document.body.classList.remove(styles['dragging']);
         }
 
         document.body.classList.add(styles['dragging']);
-        document.addEventListener('pointermove', handlePointerMove);
-        document.addEventListener('pointerup', handlePointerUp);
+        document.addEventListener('pointermove', handlePopoverPointerMove);
+        document.addEventListener('pointerup', handlePopoverPointerUp);
     }
 
     useEffect(() => {
@@ -163,15 +178,37 @@ const PanelMarkupPopover = ({
                     type="button"
                     aria-label="Drag markup editor"
                     className={styles['dragHandle']}
-                    onPointerDown={handleDragStart}
+                    onPointerDown={handlePopoverDragStart}
                 >
                     <MdDragIndicator size={18} />
                 </button>
             )}
-            {children}
+            <div
+                className={`${styles['frame']} ${draggable ? styles['frame--draggable'] : ''}`}
+                style={{
+                    minWidth: PANEL_POPOVER_MIN_WIDTH[size],
+                }}
+            >
+                {(title !== undefined || headerAction !== undefined) && (
+                    <div className={styles['header']}>
+                        {title !== undefined && (
+                            <div className={styles['title']}>{title}</div>
+                        )}
+                        {headerAction !== undefined && (
+                            <div className={styles['headerAction']}>
+                                {headerAction}
+                            </div>
+                        )}
+                    </div>
+                )}
+                <div className={styles['body']}>{children}</div>
+                {actions !== undefined && (
+                    <div className={styles['actions']}>{actions}</div>
+                )}
+            </div>
         </div>,
         document.body,
     );
 };
 
-export default PanelMarkupPopover;
+export default PanelPopover;

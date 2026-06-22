@@ -11,7 +11,8 @@ export enum TimeUnit {
 
 export type UnixMilliseconds = number;
 
-type UnixNanoseconds = number;
+export type UnixNanosecondsSql = string;
+type SqlTimeRangeValue = number | UnixNanosecondsSql;
 
 export type TimeRangeMs = {
     startTime: UnixMilliseconds;
@@ -24,8 +25,8 @@ export type AxisRange = {
 };
 
 export type TimeRangeNs = {
-    startTime: UnixNanoseconds;
-    endTime: UnixNanoseconds;
+    startTime: SqlTimeRangeValue;
+    endTime: SqlTimeRangeValue;
 };
 
 export type EmptyTimeBoundary = {

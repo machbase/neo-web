@@ -1,0 +1,58 @@
+@use '@/design-system/tokens' as t;
+
+.popover { z-index: t.$z-index-modal; position: relative; }
+.popover--draggable { touch-action: none; }
+.frame {
+    min-width: 320px; padding: 12px; border: 0.5px solid #454545; border-radius: 4px;
+    background: #1e1e1e; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.frame--draggable .header { padding-left: 24px; }
+.header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.title { min-width: 0; flex: 1; color: #afb5bc; font-size: 12px; }
+.headerAction { display: flex; flex: none; align-items: center; }
+.body { display: grid; gap: 10px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+.dragHandle {
+    position: absolute; top: 8px; left: 8px; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; padding: 0; border: 0; border-radius: 4px;
+    background: transparent; color: #8f98a3;
+    cursor: grab;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #f8f8f8;
+    }
+
+    &:active {
+        cursor: grabbing;
+    }
+}
+
+.dragging,
+.dragging * {
+    cursor: grabbing !important; user-select: none;
+}
+
+:global(.panel-popover-form__field) {
+    display: grid; gap: 4px; color: #afb5bc; font-size: 12px;
+}
+:global(.panel-popover-form__row) { display: grid; gap: 8px; }
+:global(.panel-popover-form__row--two) { grid-template-columns: 1fr 1fr; }
+:global(.panel-popover-form__row--three) { grid-template-columns: 1fr 1fr 1fr; }
+:global(.panel-popover-form__checkbox-field) {
+    display: flex; align-items: center; gap: 8px; color: #afb5bc; font-size: 12px;
+}
+:global(.panel-popover-form__select),
+:global(.panel-popover-form__input),
+:global(.panel-popover-form__color-input) {
+    height: 32px; border: 0.5px solid #454545; border-radius: 4px; background: #252525;
+}
+:global(.panel-popover-form__input),
+:global(.panel-popover-form__select) { color: #f8f8f8; padding: 0 8px; }
+:global(.panel-popover-form__color-input) { width: 100%; padding: 2px 4px; }
+:global(.panel-popover-form__preview) {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border: 0.5px solid; border-radius: 4px; font-size: 12px;
+}

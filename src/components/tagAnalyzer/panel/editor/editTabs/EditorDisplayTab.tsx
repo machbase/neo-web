@@ -10,30 +10,30 @@ import styles from '../PanelEditor.module.scss';
 const CHART_TYPE_OPTION_STYLE = { width: '80px', height: '64px', borderRadius: '4px', cursor: 'pointer' } as const;
 
 const CHART_TYPE_PRESETS: Partial<Record<PanelEChartType, Partial<PanelDisplayDraft>>> = {
-    Zone: { show_point: false, point_radius: 0, fill: 0.15, stroke: 1 },
-    Dot: { show_point: true, point_radius: 2, fill: 0, stroke: 0 },
-    Line: { show_point: true, point_radius: 0, fill: 0, stroke: 1 },
+    Zone: { showPoint: false, pointRadius: 0, fill: 0.15, stroke: 1 },
+    Dot: { showPoint: true, pointRadius: 2, fill: 0, stroke: 0 },
+    Line: { showPoint: true, pointRadius: 0, fill: 0, stroke: 1 },
 };
 
 const DISPLAY_CHECKBOXES = [
-    { field: 'show_point', label: 'Display data points in the line chart', forceCustom: true },
-    { field: 'show_legend', label: 'Display legend' },
-    { field: 'connect_nulls', label: 'Connect gaps between missing data points' },
+    { field: 'showPoint', label: 'Display data points in the line chart', forceCustom: true },
+    { field: 'showLegend', label: 'Display legend' },
+    { field: 'connectNulls', label: 'Connect gaps between missing data points' },
 ] satisfies Array<{
     field: keyof Pick<
         PanelDisplayDraft,
-        'show_point' | 'show_legend' | 'connect_nulls'
+        'showPoint' | 'showLegend' | 'connectNulls'
     >;
     label: string;
     forceCustom?: boolean;
 }>;
 
 const DISPLAY_NUMBER_INPUTS = [
-    { field: 'point_radius', label: 'Point Radius' },
+    { field: 'pointRadius', label: 'Point Radius' },
     { field: 'fill', label: 'Opacity Of Fill Area' },
     { field: 'stroke', label: 'Line Thickness' },
 ] satisfies Array<{
-    field: keyof Pick<PanelDisplayDraft, 'point_radius' | 'fill' | 'stroke'>;
+    field: keyof Pick<PanelDisplayDraft, 'pointRadius' | 'fill' | 'stroke'>;
     label: string;
 }>;
 
@@ -55,12 +55,12 @@ const EditorDisplayTab = ({
     };
 
     const updateCustomStyle = (patch: Partial<PanelDisplayDraft>) => {
-        updateDisplayConfig({ ...patch, chart_type: 'Custom' });
+        updateDisplayConfig({ ...patch, chartType: 'Custom' });
     };
 
     const changeChartType = (chartType: PanelEChartType) => {
         updateDisplayConfig({
-            chart_type: chartType === 'Custom' ? 'Custom' : chartType,
+            chartType: chartType === 'Custom' ? 'Custom' : chartType,
             ...(CHART_TYPE_PRESETS[chartType] ?? {}),
         });
     };
@@ -82,7 +82,7 @@ const EditorDisplayTab = ({
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {CHART_TYPE_OPTIONS.map((option) => {
-                            const sIsActive = pDisplayConfig.chart_type === option.type;
+                            const sIsActive = pDisplayConfig.chartType === option.type;
                             const sStyle = getChartTypeOptionStyle(sIsActive, !option.src);
                             return option.src ? (
                                 <img

@@ -11,7 +11,9 @@ import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import EditorAxesTab, { hasInvalidEditorAxes } from './editTabs/EditorAxesTab';
-import EditorDataSettingTab from './editTabs/EditorDataSettingTab';
+import EditorDataSettingTab, {
+    hasInvalidEditorPixelsPerTick,
+} from './editTabs/EditorDataSettingTab';
 import EditorDataTab from './editTabs/EditorDataTab';
 import EditorDisplayTab from './editTabs/EditorDisplayTab';
 import EditorGeneralTab from './editTabs/EditorGeneralTab';
@@ -39,7 +41,7 @@ export enum EditTabPanelType {
 
 export type PanelYAxisDraft = PanelYAxis;
 
-export type PanelSamplingDraft = PanelAxes['sampling'];
+export type PanelSamplingDraft = PanelDisplay['mainChartSampling'];
 
 export type PanelAxesDraft = PanelAxes;
 
@@ -88,9 +90,9 @@ function normalizeConfigForDirtyCheck(
 ): PanelEditorConfig {
     return {
         ...config,
-        general: {
-            ...config.general,
-            last_viewed_range: undefined,
+        timeRange: {
+            ...config.timeRange,
+            lastViewedRange: undefined,
         },
     };
 }
@@ -129,16 +131,15 @@ const PanelEditor = ({
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>(
         EditTabPanelType.General,
     );
-    const [sGeneralDraft, setGeneralDraft] = useState(
-        sInitialEditorConfig.general,
-    );
-    const [sDataDraft, setDataDraft] = useState(sInitialEditorConfig.data);
+    const [sTitleDraft, setTitleDraft] = useState(sInitialEditorConfig.title);
+    const [sModeDraft, setModeDraft] = useState(sInitialEditorConfig.mode);
+    const [sQueryDraft, setQueryDraft] = useState(sInitialEditorConfig.query);
     const [sAxesDraft, setAxesDraft] = useState(sInitialEditorConfig.axes);
     const [sDisplayDraft, setDisplayDraft] = useState(
         sInitialEditorConfig.display,
     );
-    const [sTimeDraft, setTimeDraft] = useState(
-        sInitialEditorConfig.time,
+    const [sTimeRangeDraft, setTimeRangeDraft] = useState(
+        sInitialEditorConfig.timeRange,
     );
     const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(
         sInitialEditorConfigKey,
@@ -152,19 +153,21 @@ const PanelEditor = ({
     const sEditorConfig = useMemo<PanelEditorConfig>(
         () => ({
             ...sInitialEditorConfig,
-            general: sGeneralDraft,
-            data: sDataDraft,
+            title: sTitleDraft,
+            mode: sModeDraft,
+            query: sQueryDraft,
             axes: sAxesDraft,
             display: sDisplayDraft,
-            time: sTimeDraft,
+            timeRange: sTimeRangeDraft,
         }),
         [
             sAxesDraft,
-            sDataDraft,
             sDisplayDraft,
-            sGeneralDraft,
             sInitialEditorConfig,
-            sTimeDraft,
+            sModeDraft,
+            sQueryDraft,
+            sTimeRangeDraft,
+            sTitleDraft,
         ],
     );
     const sEditorConfigRef = useRef(sEditorConfig);
@@ -173,12 +176,20 @@ const PanelEditor = ({
         () => createEditorConfigDirtyKey(sEditorConfig),
         [sEditorConfig],
     );
-    const sHasInvalidAxisRange = hasInvalidEditorAxes(sEditorConfig.axes);
+    const sHasInvalidAxisRange = hasInvalidEditorAxes(
+        sEditorConfig.axes,
+        sEditorConfig.display.mainChartSampling,
+    );
+    const sHasInvalidPixelsPerTick = hasInvalidEditorPixelsPerTick(
+        sEditorConfig.display,
+    );
+    const sHasInvalidEditorValues =
+        sHasInvalidAxisRange || sHasInvalidPixelsPerTick;
     const sIsNumericXAxis = shouldUseNumericPanelRangeConfig(
-        sEditorConfig.data.tag_set,
+        sEditorConfig.query.tagSet,
     );
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
-    const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidAxisRange;
+    const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidEditorValues;
     const sStatusMessage = sSaveMessage ??
         (sHasEditorChanges
             ? 'Press Apply to apply this session only.'
@@ -188,7 +199,7 @@ const PanelEditor = ({
     const sHasStatusMessage = Boolean(sStatusMessage) || sShowRuntimeSaveMessage;
     const sApplyButtonTitle = !sHasEditorChanges
         ? 'There are no changes to apply'
-        : sHasInvalidAxisRange
+        : sHasInvalidEditorValues
         ? 'Fix invalid values before applying'
         : undefined;
     const sEditorClassName = [
@@ -211,7 +222,7 @@ const PanelEditor = ({
     };
 
     const saveEditorChanges = async () => {
-        if (sHasInvalidAxisRange || sIsSaving) {
+        if (sHasInvalidEditorValues || sIsSaving) {
             return;
         }
 
@@ -296,19 +307,20 @@ const PanelEditor = ({
     }, [sEditorConfigRef, sInitialEditorConfig, sInitialEditorConfigKey]);
 
     function setEditorDraft(config: PanelEditorConfig): void {
-        setGeneralDraft(config.general);
-        setDataDraft(config.data);
+        setTitleDraft(config.title);
+        setModeDraft(config.mode);
+        setQueryDraft(config.query);
         setAxesDraft(config.axes);
         setDisplayDraft(config.display);
-        setTimeDraft(config.time);
+        setTimeRangeDraft(config.timeRange);
     }
 
-    function updateTagSet(tagSet: PanelEditorConfig['data']['tag_set']): void {
-        setDataDraft((prev) => ({ ...prev, tag_set: tagSet }));
+    function updateTagSet(tagSet: PanelEditorConfig['query']['tagSet']): void {
+        setQueryDraft((prev) => ({ ...prev, tagSet }));
     }
 
     function renderEditorTabContent() {
-        if (!sEditorConfig.data.index_key) {
+        if (!sEditorConfig.key) {
             throw new Error('Panel editor requires a panel index key.');
         }
 
@@ -316,17 +328,23 @@ const PanelEditor = ({
             case EditTabPanelType.General:
                 return (
                     <EditorGeneralTab
-                        pGeneralConfig={sGeneralDraft}
+                        pTitle={sTitleDraft}
+                        pModeConfig={sModeDraft}
+                        pDisplayConfig={sDisplayDraft}
+                        pTimeRangeConfig={sTimeRangeDraft}
                         pIsRawMode={pIsRawMode}
-                        pOnChangeGeneralConfig={setGeneralDraft}
+                        pOnChangeTitle={setTitleDraft}
+                        pOnChangeModeConfig={setModeDraft}
+                        pOnChangeDisplayConfig={setDisplayDraft}
+                        pOnChangeTimeRangeConfig={setTimeRangeDraft}
                     />
                 );
             case EditTabPanelType.Data:
                 return (
                     <EditorDataTab
-                        pDataDraft={sDataDraft}
+                        pQueryDraft={sQueryDraft}
                         pIsRawMode={pIsRawMode}
-                        pOnChangeDataDraft={setDataDraft}
+                        pOnChangeQueryDraft={setQueryDraft}
                         pAvailableSourceTableNames={sAvailableSourceTableNames}
                     />
                 );
@@ -334,7 +352,7 @@ const PanelEditor = ({
                 return (
                     <EditorAxesTab
                         pAxesConfig={sEditorConfig.axes}
-                        pTagSet={sEditorConfig.data.tag_set}
+                        pTagSet={sEditorConfig.query.tagSet}
                         pOnChangeAxesConfig={setAxesDraft}
                         pOnChangeTagSet={updateTagSet}
                     />
@@ -342,10 +360,10 @@ const PanelEditor = ({
             case EditTabPanelType.DataSetting:
                 return (
                     <EditorDataSettingTab
-                        pAxesConfig={sEditorConfig.axes}
+                        pDisplayConfig={sEditorConfig.display}
                         pIsRawMode={pIsRawMode}
                         pIsNumericXAxis={sIsNumericXAxis}
-                        pOnChangeAxesConfig={setAxesDraft}
+                        pOnChangeDisplayConfig={setDisplayDraft}
                     />
                 );
             case EditTabPanelType.Display:
@@ -358,10 +376,10 @@ const PanelEditor = ({
             case EditTabPanelType.Time:
                 return (
                     <EditorTimeTab
-                        pTimeConfig={sEditorConfig.time}
+                        pTimeConfig={sEditorConfig.timeRange}
                         pIsNumericXAxis={sIsNumericXAxis}
                         pPanelRange={pPanelRange}
-                        pOnChangeTimeConfig={setTimeDraft}
+                        pOnChangeTimeConfig={setTimeRangeDraft}
                     />
                 );
             default:
@@ -432,7 +450,7 @@ const PanelEditor = ({
                                 <Button
                                     variant="success"
                                     size="sm"
-                                    disabled={sHasInvalidAxisRange || sIsSaving}
+                                    disabled={sHasInvalidEditorValues || sIsSaving}
                                     onClick={() => void saveEditorChanges()}
                                 >
                                     {sIsSaving ? 'Saving' : 'Save'}

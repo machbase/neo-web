@@ -75,7 +75,7 @@ const HIDDEN_PANEL_TITLE_OPTION = { ...DEFAULT_NOT_SHOW } satisfies TitleCompone
 export function buildPanelChartFrameOptions(
     chartInfo: ChartInfo,
 ): PanelChartFrameOptions {
-    const sLayout = getChartLayoutMetrics(chartInfo.display.show_legend);
+    const sLayout = getChartLayoutMetrics(chartInfo.display.showLegend);
 
     return {
         grid: [
@@ -96,7 +96,7 @@ export function buildPanelChartFrameOptions(
             },
         ],
         legend: {
-            show: chartInfo.display.show_legend,
+            show: chartInfo.display.showLegend,
             left: 10,
             top: PANEL_LEGEND_TOP,
             itemGap: 15,
@@ -110,11 +110,11 @@ export function buildPanelChartFrameOptions(
         },
         tooltip: buildChartTooltipOption(
             chartInfo.isNumericXAxis,
-            chartInfo.panelRange,
+            chartInfo.displayPanelRange,
         ),
         dataZoom: buildPanelChartDataZoomOption(
             chartInfo.display,
-            chartInfo.panelRange,
+            chartInfo.displayPanelRange,
             chartInfo.isWheelZoomEnabled,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
@@ -147,7 +147,7 @@ function buildPanelChartDataZoomOption(
             moveOnMouseWheel: false,
             zoomOnMouseWheel: isWheelZoomEnabled,
             preventDefaultMouseMove: true,
-            disabled: !display.use_zoom,
+            disabled: !display.useZoom,
         },
         {
             id: PANEL_SLIDER_DATA_ZOOM_ID,

@@ -14,13 +14,15 @@ import {
     type ChartFetchApiResponse,
     type ChartFetchResponse,
     type RawFetchRequest,
+    type RollupTableMap,
     type SeriesFetchColumnMap,
     type TagFetchRow,
 } from './FetchContracts';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
-import type { TimeRangeMs, TimeRangeNs } from '../domain/time/model/TimeTypes';
+import type { TimeRangeNs } from '../domain/time/model/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../domain/SeriesDomain';
-import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/model/TimeConstants';
+import { buildTqlDoubleQuotedString } from './sqlBuilder/SqlTextUtils';
+import { timeRangeMsToNanosecondsSql } from './sqlBuilder/SqlTimeValueUtils';
 
 const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
 const USER_PRESENTED_ERROR_KEY = 'tagAnalyzerUserPresented';
@@ -45,7 +47,7 @@ export async function fetchCalculationData(calculationRequest: CalculationFetchR
               startTime: sStartTime,
               endTime: sEndTime,
           }
-        : convertTimeRangeMsToNanoseconds({
+        : timeRangeMsToNanosecondsSql({
               startTime: sStartTime,
               endTime: sEndTime,
           });
@@ -75,7 +77,7 @@ function buildRequestedCalculationSql(
     intervalSize: number,
     useRollup: boolean,
     sourceColumnMap: SeriesFetchColumnMap,
-    rollupTableList: string[],
+    rollupTableList: RollupTableMap,
 ): string {
     switch (calculationMode) {
         case 'sum':
@@ -129,15 +131,8 @@ function buildRequestedCalculationSql(
                 rollupTableList,
             );
         default:
-            return '';
+            throw new Error(`Unsupported calculation mode: ${calculationMode}`);
     }
-}
-
-function convertTimeRangeMsToNanoseconds(timeRange: TimeRangeMs): TimeRangeNs {
-    return {
-        startTime: timeRange.startTime * NANOSECONDS_PER_MILLISECOND,
-        endTime: timeRange.endTime * NANOSECONDS_PER_MILLISECOND,
-    };
 }
 
 export async function fetchRawData(rawRequest: RawFetchRequest) {
@@ -156,7 +151,7 @@ export async function fetchRawData(rawRequest: RawFetchRequest) {
               startTime: sStartTime,
               endTime: sEndTime,
           }
-        : convertTimeRangeMsToNanoseconds({
+        : timeRangeMsToNanosecondsSql({
               startTime: sStartTime,
               endTime: sEndTime,
           });
@@ -174,7 +169,7 @@ export async function fetchRawData(rawRequest: RawFetchRequest) {
 }
 
 function buildTqlCsvPayload(sqlQuery: string): string {
-    return `SQL("${sqlQuery}")\nCSV()`;
+    return `SQL(${buildTqlDoubleQuotedString(sqlQuery)})\nCSV()`;
 }
 
 function parseChartCsvResponse(

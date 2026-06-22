@@ -14,6 +14,7 @@ import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
     MAIN_PANEL_SERIES_ID_PREFIX,
+    PANEL_SLIDER_DATA_ZOOM_ID,
 } from '../options/PanelChartOptionConstants';
 import {
     convertPanelChartPixelToTimestamp,
@@ -54,8 +55,8 @@ type ChartEvents = {
 
 type BuildChartEventParams = {
     ranges: {
-        panelRange: TimeRangeMs;
-        navigatorRange: TimeRangeMs;
+        displayPanelRange: TimeRangeMs;
+        displayNavigatorRange: TimeRangeMs;
     };
     interactionMode: {
         overlayMode: PanelOverlayMode;
@@ -93,7 +94,7 @@ export function buildChartEvent({
     onSelection,
     legendState,
 }: BuildChartEventParams): ChartEvents {
-    const { panelRange, navigatorRange } = ranges;
+    const { displayPanelRange, displayNavigatorRange } = ranges;
     const {
         overlayMode,
         isSelectionMode,
@@ -112,20 +113,24 @@ export function buildChartEvent({
     return {
         datazoom: (params) => {
             const sInstance = chartInstanceRef.current;
-            const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
-            const sRange = hasExplicitDataZoomEventRange(params)
+            const sDataZoomState = findDataZoomStateById(
+                sInstance?.getOption?.()?.dataZoom,
+                PANEL_SLIDER_DATA_ZOOM_ID,
+            );
+            const sRange = hasExplicitDataZoomEventRange(params, PANEL_SLIDER_DATA_ZOOM_ID)
                 ? extractDataZoomEventRange(
                       params,
-                      panelRange,
-                      navigatorRange,
+                      displayPanelRange,
+                      displayNavigatorRange,
+                      PANEL_SLIDER_DATA_ZOOM_ID,
                   )
                 : extractDataZoomOptionRange(
                       { ...sDataZoomState, ...params },
-                      panelRange,
-                      navigatorRange,
+                      displayPanelRange,
+                      displayNavigatorRange,
                   );
             const sIsSameRange = sRange
-                ? isSameDataZoomRange(sRange, panelRange, isNumericXAxis)
+                ? isSameDataZoomRange(sRange, displayPanelRange, isNumericXAxis)
                 : false;
 
             if (
@@ -166,7 +171,7 @@ export function buildChartEvent({
 
             if (
                 !isDragZoomEnabled ||
-                isSameTimeRange(sRange, panelRange)
+                isSameTimeRange(sRange, displayPanelRange)
             ) {
                 return;
             }
@@ -289,6 +294,14 @@ export function buildChartEvent({
     };
 }
 
+function findDataZoomStateById<T extends { id?: string; dataZoomId?: string }>(
+    dataZoomState: T[] | undefined,
+    targetDataZoomId: string,
+): T | undefined {
+    return dataZoomState?.find(
+        (item) => item.id === targetDataZoomId || item.dataZoomId === targetDataZoomId,
+    ) ?? dataZoomState?.[0];
+}
 function isSameDataZoomRange(
     left: TimeRangeMs,
     right: TimeRangeMs,

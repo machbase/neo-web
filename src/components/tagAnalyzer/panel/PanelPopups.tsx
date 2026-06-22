@@ -10,12 +10,14 @@ import {
     type PanelActionKey,
     type PanelHeaderRuntimeState,
 } from './PanelHeader';
-import { EditAnnotationModal } from './modal/EditAnnotationModal';
-import { EditHighlightModal } from './modal/EditHighlightModal';
-import type {
-    AnnotationEditorMetaState,
-    HighlightEditorState,
-} from './modal/PanelMarkupModalTypes';
+import {
+    EditAnnotationModal,
+    type AnnotationEditorMetaState,
+} from './modal/EditAnnotationModal';
+import {
+    EditHighlightModal,
+    type HighlightEditorState,
+} from './modal/EditHighlightModal';
 import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
 import type {
     PanelAnnotationCrud,

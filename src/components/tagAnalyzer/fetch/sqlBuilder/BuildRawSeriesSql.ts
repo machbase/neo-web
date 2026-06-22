@@ -17,6 +17,10 @@ import {
     buildTableTargetSqlPart,
     buildTimeRangeConditionSql,
 } from './parts/BuildSqlParts';
+import {
+    buildSqlIdentifierPath,
+    buildSqlStringLiteral,
+} from './SqlTextUtils';
 import type { TimeRangeNs } from '../../domain/time/model/TimeTypes';
 import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/model/TimeConstants';
 import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
@@ -59,9 +63,18 @@ export function buildRawSeriesSql(
     sampling: RawFetchSampling,
     sortOrder: SortOrderEnum = SortOrderEnum.Unsorted,
 ): string {
-    const sNameColumn = sourceColumnMap.name;
-    const sTimeColumn = sourceColumnMap.time;
-    const sValueColumn = sourceColumnMap.value;
+    const sNameColumn = buildSqlIdentifierPath(
+        sourceColumnMap.name,
+        'SQL tag name column',
+    );
+    const sTimeColumn = buildSqlIdentifierPath(
+        sourceColumnMap.time,
+        'SQL time column',
+    );
+    const sValueColumn = buildSqlIdentifierPath(
+        sourceColumnMap.value,
+        'SQL value column',
+    );
     const sTimeExpression = isNumericBaseTimeSourceColumns(sourceColumnMap)
         ? `${sTimeColumn} ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`
         : `to_timestamp(${sTimeColumn}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
@@ -91,7 +104,7 @@ export function buildRawSeriesSql(
             sSamplingHintSql,
         ),
         buildTableTargetSqlPart(sourceTableName),
-        `${WHERE_KEYWORD} ${sNameColumn} = '${tagName}' ${AND_KEYWORD} ${sTimeRangeCondition}`,
+        `${WHERE_KEYWORD} ${sNameColumn} = ${buildSqlStringLiteral(tagName)} ${AND_KEYWORD} ${sTimeRangeCondition}`,
         '',
         sOrderBySql,
         sLimitSql,

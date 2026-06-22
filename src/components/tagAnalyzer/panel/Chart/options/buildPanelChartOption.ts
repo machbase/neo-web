@@ -17,26 +17,37 @@ const PANEL_CHART_BASE_OPTION: EChartsOption = {
     textStyle: { fontFamily: 'Open Sans, Helvetica, Arial, sans-serif' },
 };
 
-export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
+export function buildChartFrameOption(chartInfo: ChartInfo): EChartsOption {
     const yAxisOption = buildChartYAxisOption(
         chartInfo.axes,
         chartInfo.mainSeriesData,
         chartInfo.isRaw,
         chartInfo.useNormalize,
-        chartInfo.panelRange,
+        chartInfo.displayPanelRange,
     );
 
     return {
         ...PANEL_CHART_BASE_OPTION,
         ...buildPanelChartFrameOptions(chartInfo),
         xAxis: buildChartXAxisOption(
-            chartInfo.panelRange,
-            chartInfo.navigatorRange,
+            chartInfo.displayPanelRange,
+            chartInfo.displayNavigatorRange,
             chartInfo.display,
             chartInfo.axes,
             chartInfo.isNumericXAxis,
         ),
         yAxis: yAxisOption,
-        series: buildChartSeriesOption(chartInfo, yAxisOption).series,
+    };
+}
+
+export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
+    const frameOption = buildChartFrameOption(chartInfo);
+
+    return {
+        ...frameOption,
+        series: buildChartSeriesOption(
+            chartInfo,
+            Array.isArray(frameOption.yAxis) ? frameOption.yAxis : undefined,
+        ).series,
     };
 }

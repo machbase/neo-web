@@ -6,6 +6,11 @@ import { createTagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
 import { showRequestError } from '../../feedback/RequestErrorPresenter';
 import { EMPTY_TAG_SELECTION_COLUMNS, TAG_SEARCH_PAGE_LIMIT } from './TagSelectionConstants';
 import type { TagSearchItem, TagSelectionColumnMetadataRow, TagSelectionSourceColumns } from './TagSelectionTypes';
+import {
+    buildSqlIdentifierPath,
+    buildSqlLikeContainsCondition,
+    buildSqlStringLiteral,
+} from '../../fetch/sqlBuilder/SqlTextUtils';
 
 type TableNameResponse = { success?: boolean; data?: { rows?: TagSelectionColumnMetadataRow[] }; message?: string };
 
@@ -31,22 +36,35 @@ async function fetchTableName(tableName: string): Promise<TableNameResponse> {
 
     if (tableName.indexOf('.') === -1 || sTableInfos.length < 3) {
         sDatabaseIdQuery = String(-1);
+        sResolvedTableName = buildSqlIdentifierPath(
+            sResolvedTableName,
+            'SQL table name',
+        );
 
         if (sTableInfos.length === 2) {
-            sUserName = sTableInfos[0];
-            sResolvedTableName = sTableInfos[sTableInfos.length - 1];
+            sUserName = buildSqlIdentifierPath(
+                sTableInfos[0],
+                'SQL user name',
+            );
+            sResolvedTableName = buildSqlIdentifierPath(
+                sTableInfos[sTableInfos.length - 1],
+                'SQL table name',
+            );
         }
     } else {
-        sDatabaseIdQuery = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${sTableInfos[0]}')`;
-        sResolvedTableName = sTableInfos[sTableInfos.length - 1];
-        sUserName = sTableInfos[1];
+        sDatabaseIdQuery = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(sTableInfos[0])})`;
+        sResolvedTableName = buildSqlIdentifierPath(
+            sTableInfos[sTableInfos.length - 1],
+            'SQL table name',
+        );
+        sUserName = buildSqlIdentifierPath(sTableInfos[1], 'SQL user name');
     }
 
-    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${sDatabaseIdQuery} AND MT.NAME = '${sResolvedTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER(${buildSqlStringLiteral(sUserName)}) AND MC.DATABASE_ID = ${sDatabaseIdQuery} AND MT.NAME = ${buildSqlStringLiteral(sResolvedTableName)} AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
     const sResponse = await request({
         method: 'GET',
-        url: encodeURI(`/api/query?q=${sSql}`),
+        url: `/api/query?q=${encodeURIComponent(sSql)}`,
     });
 
     return sResponse as unknown as TableNameResponse;
@@ -60,10 +78,11 @@ async function getTagPagination(
 ): Promise<TagPaginationResponse> {
     const sTableName = getMetaTableName(tableName);
     const sWhereClause = buildTagSearchWhereClause(tagFilter, sourceColumn);
+    const sSourceColumn = buildSqlIdentifierPath(sourceColumn, 'SQL tag column');
     const sOffset = (pageNumber - 1) * TAG_SEARCH_PAGE_LIMIT;
 
     return runTagSearchQuery<TagPaginationResponse>(
-        `select * from ${sTableName}${sWhereClause} ORDER BY ${sourceColumn} LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
+        `select * from ${sTableName}${sWhereClause} ORDER BY ${sSourceColumn} LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
         suppressRequestError,
     );
 }
@@ -88,10 +107,12 @@ async function getSourceTagPagination(
     sourceColumn: string,
 ): Promise<TagPaginationResponse> {
     const sWhereClause = buildSourceTagSearchWhereClause(tagFilter, sourceColumn);
+    const sTableName = buildSqlIdentifierPath(tableName, 'SQL table name');
+    const sSourceColumn = buildSqlIdentifierPath(sourceColumn, 'SQL tag column');
     const sOffset = (pageNumber - 1) * TAG_SEARCH_PAGE_LIMIT;
 
     return runTagSearchQuery<TagPaginationResponse>(
-        `select ${sourceColumn}, ${sourceColumn} from (select distinct ${sourceColumn} from ${tableName}${sWhereClause} ORDER BY ${sourceColumn}) LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
+        `select ${sSourceColumn}, ${sSourceColumn} from (select distinct ${sSourceColumn} from ${sTableName}${sWhereClause} ORDER BY ${sSourceColumn}) LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
     );
 }
 async function getSourceTagTotal(
@@ -100,9 +121,13 @@ async function getSourceTagTotal(
     sourceColumn: string,
 ): Promise<TagTotalResponse> {
     const sWhereClause = buildSourceTagSearchWhereClause(tagFilter, sourceColumn);
+    const sTableName = buildSqlIdentifierPath(tableName, 'SQL table name');
 
     return runTagSearchQuery<TagTotalResponse>(
-        `select count(*) from (select distinct ${sourceColumn} from ${tableName}${sWhereClause})`,
+        `select count(*) from (select distinct ${buildSqlIdentifierPath(
+            sourceColumn,
+            'SQL tag column',
+        )} from ${sTableName}${sWhereClause})`,
     );
 }
 
@@ -243,14 +268,17 @@ export async function fetchTagSearchPage({
 }
 
 const tagSearchCondition = (tagFilter: string, sourceColumn: string) =>
-    tagFilter ? `${sourceColumn} like '%${tagFilter}%'` : undefined;
+    buildSqlLikeContainsCondition(sourceColumn, tagFilter);
 
 function getMetaTableName(sourceTableName: string): string {
     const sSplitName = sourceTableName.split('.');
     const sTableName = '_' + sSplitName.at(-1) + '_META';
     sSplitName.pop();
     sSplitName.push(sTableName);
-    return sSplitName.join('.');
+    return buildSqlIdentifierPath(
+        sSplitName.join('.'),
+        'SQL metadata table name',
+    );
 }
 function buildTagSearchWhereClause(tagFilter: string, sourceColumn: string): string {
     const sCondition = tagSearchCondition(tagFilter, sourceColumn);
@@ -260,7 +288,8 @@ function buildSourceTagSearchWhereClause(
     tagFilter: string,
     sourceColumn: string,
 ): string {
-    const sConditions = [`${sourceColumn} IS NOT NULL`];
+    const sSourceColumn = buildSqlIdentifierPath(sourceColumn, 'SQL tag column');
+    const sConditions = [`${sSourceColumn} IS NOT NULL`];
     const sTagCondition = tagSearchCondition(tagFilter, sourceColumn);
 
     if (sTagCondition) sConditions.push(sTagCondition);

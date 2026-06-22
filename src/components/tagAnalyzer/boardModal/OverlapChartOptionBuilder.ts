@@ -28,11 +28,6 @@ type AxisSplitLineStyleOption = NonNullable<
 >;
 type TooltipValueItem = number | string | null | undefined;
 type TooltipArrayValue = Array<TooltipValueItem>;
-type OverlapTooltipParam = Partial<{
-    seriesIndex: number;
-    value: TooltipArrayValue;
-    color: string;
-}>;
 type OverlapChartYAxisRange = {
     min: number | undefined;
     max: number | undefined;
@@ -52,12 +47,12 @@ export type OverlapChartInfo = {
     includeZeroInYAxisRange: boolean;
 };
 
-const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
+export const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
 const OVERLAP_Y_AXIS_SPLIT_COUNT = 5;
 const OVERLAP_EMPTY_X_AXIS_PADDING_RATIO = 4;
 const OVERLAP_MIN_EMPTY_X_AXIS_PADDING_MS = 1_000;
-const COMPACT_AXIS_UNITS = [{ value: 1_000_000_000_000, suffix: 'T' }, { value: 1_000_000_000, suffix: 'B' }, { value: 1_000_000, suffix: 'M' }, { value: 1_000, suffix: 'K' }] as const;
 const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
+    notation: 'compact',
     maximumFractionDigits: 1,
 });
 const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
@@ -272,56 +267,28 @@ function resolveOverlapChartXAxisRanges(
     };
 }
 
-function getOverlapTooltipParams(
-    tooltipFormatterParams: TopLevelFormatterParams,
-): OverlapTooltipParam[] {
-    const sTooltipParams = Array.isArray(tooltipFormatterParams)
-        ? tooltipFormatterParams
-        : [tooltipFormatterParams];
-
-    return sTooltipParams.map((tooltipCallbackParam) => {
-        const sParam = tooltipCallbackParam as CallbackDataParams;
-
-        return {
-            color: typeof sParam.color === 'string' ? sParam.color : undefined,
-            seriesIndex: sParam.seriesIndex,
-            value: Array.isArray(sParam.value)
-                ? (sParam.value as TooltipArrayValue)
-                : undefined,
-        };
-    });
-}
-
-function getOverlapTooltipTimestamp(
-    tooltipItem: OverlapTooltipParam,
-): number {
-    return Number(tooltipItem.value?.[0] ?? 0);
-}
-
-function formatOverlapTooltipRow(
-    tooltipItem: OverlapTooltipParam,
-    chartData: ChartSeriesData[],
-): string {
-    const sSeriesIndex = tooltipItem.seriesIndex ?? 0;
-    const sSeriesName = chartData[sSeriesIndex]?.name ?? '';
-    const sTimestamp = getOverlapTooltipTimestamp(tooltipItem);
-
-    return `<div style="color:${tooltipItem.color}">${sSeriesName} : ${formatLocalTimestampWithMilliseconds(
-        sTimestamp,
-    )} : ${tooltipItem.value?.[1] ?? ''}</div>`;
-}
-
 function formatOverlapTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     chartData: ChartSeriesData[],
 ): string {
-    const sTooltipRows = getOverlapTooltipParams(tooltipFormatterParams)
-        .map((tooltipItem) =>
-            formatOverlapTooltipRow(tooltipItem, chartData),
-        )
+    const sList = Array.isArray(tooltipFormatterParams)
+        ? tooltipFormatterParams
+        : [tooltipFormatterParams];
+    const sRows = sList
+        .map((raw) => {
+            const sParam = raw as CallbackDataParams;
+            const sName = chartData[sParam.seriesIndex ?? 0]?.name ?? '';
+            const sValue = Array.isArray(sParam.value)
+                ? (sParam.value as TooltipArrayValue)
+                : undefined;
+            const sTimestamp = Number(sValue?.[0] ?? 0);
+            const sColor = typeof sParam.color === 'string' ? sParam.color : undefined;
+
+            return `<div style="color:${sColor}">${sName} : ${formatLocalTimestampWithMilliseconds(sTimestamp)} : ${sValue?.[1] ?? ''}</div>`;
+        })
         .join('<br/>');
 
-    return `<div style="min-width:0;padding-left:10px;font-size:10px"><div style="color:#afb5bc">${sTooltipRows}</div></div>`;
+    return `<div style="min-width:0;padding-left:10px;font-size:10px"><div style="color:#afb5bc">${sRows}</div></div>`;
 }
 
 function buildOverlapTooltipOption(
@@ -375,45 +342,12 @@ function formatOverlapXAxisLabel(
 }
 
 function formatYAxisLabel(value: string | number): string {
-    const sNumericValue = Number(value);
+    const sNumeric = Number(value);
+    if (!Number.isFinite(sNumeric)) return String(value);
 
-    if (!Number.isFinite(sNumericValue)) {
-        return String(value);
-    }
-
-    const sNormalizedValue = Object.is(sNumericValue, -0) ? 0 : sNumericValue;
-    const sAbsoluteValue = Math.abs(sNormalizedValue);
-    const sUnitIndex = COMPACT_AXIS_UNITS.findIndex(
-        (unit) => sAbsoluteValue >= unit.value,
-    );
-
-    if (sUnitIndex === -1) {
-        return STANDARD_AXIS_NUMBER_FORMATTER.format(sNormalizedValue);
-    }
-
-    const sUnit = COMPACT_AXIS_UNITS[
-        shouldUseNextLargerUnit(sAbsoluteValue, sUnitIndex)
-            ? sUnitIndex - 1
-            : sUnitIndex
-    ];
-
-    return `${COMPACT_AXIS_NUMBER_FORMATTER.format(
-        sNormalizedValue / sUnit.value,
-    )}${sUnit.suffix}`;
-}
-
-function shouldUseNextLargerUnit(
-    absoluteValue: number,
-    unitIndex: number,
-): boolean {
-    if (unitIndex <= 0) {
-        return false;
-    }
-
-    const sRoundedScaledValue =
-        Math.round((absoluteValue / COMPACT_AXIS_UNITS[unitIndex].value) * 10) / 10;
-
-    return sRoundedScaledValue >= 1000;
+    return Math.abs(sNumeric) >= 1000
+        ? COMPACT_AXIS_NUMBER_FORMATTER.format(sNumeric)
+        : STANDARD_AXIS_NUMBER_FORMATTER.format(sNumeric);
 }
 
 export function buildOverlapChartOption(

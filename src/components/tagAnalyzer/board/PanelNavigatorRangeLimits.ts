@@ -37,6 +37,43 @@ export function getMinimumRangeAmount(
     return Math.max(sRelativeRangeAmount, floorRangeAmount);
 }
 
+export function resolveNavigatorRangeForPanel(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+    navigatorPixelWidth: number | undefined,
+    selectionCenterRatio?: number,
+): TimeRangeMs {
+    let sNavigatorRange = growNavigatorRangeToContainPanel(
+        panelRange,
+        navigatorRange,
+    );
+
+    if (navigatorPixelWidth !== undefined) {
+        sNavigatorRange = limitNavigatorRangeAmountForSelection(
+            panelRange,
+            sNavigatorRange,
+            navigatorPixelWidth,
+            selectionCenterRatio,
+        );
+    }
+
+    return recenterNavigatorRangeIfPanelOutside(
+        panelRange,
+        sNavigatorRange,
+        selectionCenterRatio,
+    );
+}
+
+function growNavigatorRangeToContainPanel(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    return createTimeRangeMs(
+        Math.min(navigatorRange.startTime, panelRange.startTime),
+        Math.max(navigatorRange.endTime, panelRange.endTime),
+    );
+}
+
 export function limitNavigatorRangeAmountForSelection(
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Input, QuickTimeRange } from '@/design-system/components';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import { VscTrash } from '@/assets/icons/Icon';
@@ -79,10 +79,10 @@ const EditorTimeTab = ({
     pPanelRange,
     pOnChangeTimeConfig,
 }: {
-    pTimeConfig: PanelEditorConfig['time'];
+    pTimeConfig: PanelEditorConfig['timeRange'];
     pIsNumericXAxis: boolean;
     pPanelRange: TimeRangeMs;
-    pOnChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
+    pOnChangeTimeConfig: (config: PanelEditorConfig['timeRange']) => void;
 }) => {
     if (pIsNumericXAxis) {
         return (
@@ -107,11 +107,14 @@ function TimestampRangeConfigEditor({
     pPanelRange,
     pOnChangeTimeConfig,
 }: {
-    pTimeConfig: PanelEditorConfig['time'];
+    pTimeConfig: PanelEditorConfig['timeRange'];
     pPanelRange: TimeRangeMs;
-    pOnChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
+    pOnChangeTimeConfig: (config: PanelEditorConfig['timeRange']) => void;
 }) {
-    const sRangeConfig = getTimestampRangeConfig(pTimeConfig.range_config);
+    const sRangeConfig = useMemo(
+        () => getTimestampRangeConfig(pTimeConfig),
+        [pTimeConfig],
+    );
     const sInitialInputValues = getTimestampInputValues(
         sRangeConfig,
         pPanelRange,
@@ -124,13 +127,14 @@ function TimestampRangeConfigEditor({
         const sNextInputValues = getTimestampInputValues(sRangeConfig, pPanelRange);
         setStartTime(sNextInputValues.startTime);
         setEndTime(sNextInputValues.endTime);
-    }, [pTimeConfig.range_config, pPanelRange]);
+    }, [sRangeConfig, pPanelRange]);
 
     function updateTimeInput(field: TimeInputField, value: string): void {
         const sBoundary = parseTimeRangeInputValue(value);
         if (sBoundary) {
             pOnChangeTimeConfig(
                 createTimeConfig(
+                    pTimeConfig,
                     getTimestampConfigWithUpdatedBoundary(
                         sRangeConfig,
                         field,
@@ -146,6 +150,7 @@ function TimestampRangeConfigEditor({
     function applyTimeInput(field: TimeInputField, value: string): void {
         pOnChangeTimeConfig(
             createTimeConfig(
+                pTimeConfig,
                 getTimestampConfigWithUpdatedBoundary(
                     sRangeConfig,
                     field,
@@ -162,6 +167,7 @@ function TimestampRangeConfigEditor({
         const [sStartValue = '', sEndValue = ''] = option.value;
         pOnChangeTimeConfig(
             createTimeConfig(
+                pTimeConfig,
                 createTimestampRangeConfig(
                     createTimestampRangeBoundaryFromTimeBoundary(
                         parseRequiredTimeBoundary(sStartValue),
@@ -179,6 +185,7 @@ function TimestampRangeConfigEditor({
     function clearTimeRange(): void {
         pOnChangeTimeConfig(
             createTimeConfig(
+                pTimeConfig,
                 createTimestampRangeConfig(
                     createTimestampRangeBoundary('timestamp_empty'),
                     createTimestampRangeBoundary('timestamp_empty'),
@@ -246,17 +253,20 @@ function NumericRangeConfigEditor({
     pTimeConfig,
     pOnChangeTimeConfig,
 }: {
-    pTimeConfig: PanelEditorConfig['time'];
-    pOnChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
+    pTimeConfig: PanelEditorConfig['timeRange'];
+    pOnChangeTimeConfig: (config: PanelEditorConfig['timeRange']) => void;
 }) {
-    const sRangeConfig = getNumericRangeConfig(pTimeConfig.range_config);
+    const sRangeConfig = useMemo(
+        () => getNumericRangeConfig(pTimeConfig),
+        [pTimeConfig],
+    );
     const [sInputValues, setInputValues] = useState(
         () => getNumericInputValues(sRangeConfig),
     );
 
     useEffect(() => {
         setInputValues(getNumericInputValues(sRangeConfig));
-    }, [pTimeConfig.range_config]);
+    }, [sRangeConfig]);
 
     function updateNumericBoundaryInput(
         field: 'startValue' | 'endValue',
@@ -274,7 +284,7 @@ function NumericRangeConfigEditor({
         );
 
         if (sRangeConfig) {
-            pOnChangeTimeConfig(createTimeConfig(sRangeConfig));
+            pOnChangeTimeConfig(createTimeConfig(pTimeConfig, sRangeConfig));
         }
     }
 
@@ -293,13 +303,14 @@ function NumericRangeConfigEditor({
             startValue: sStartValue,
             endValue: sEndValue,
         });
-        pOnChangeTimeConfig(createTimeConfig(sRangeConfig));
+        pOnChangeTimeConfig(createTimeConfig(pTimeConfig, sRangeConfig));
     }
 
     function clearNumericRange(): void {
         setInputValues(DEFAULT_NUMERIC_INPUT_VALUES);
         pOnChangeTimeConfig(
             createTimeConfig(
+                pTimeConfig,
                 createNumericRangeConfig(
                     createNumericRangeBoundary('numeric_empty'),
                     createNumericRangeBoundary('numeric_empty'),
@@ -370,9 +381,14 @@ function NumericRangeConfigEditor({
 }
 
 function createTimeConfig(
+    currentTimeConfig: PanelEditorConfig['timeRange'],
     rangeConfig: PanelRangeConfig,
-): PanelEditorConfig['time'] {
-    return { range_config: rangeConfig };
+): PanelEditorConfig['timeRange'] {
+    return {
+        ...rangeConfig,
+        useLastViewedRange: currentTimeConfig.useLastViewedRange,
+        lastViewedRange: currentTimeConfig.lastViewedRange,
+    };
 }
 
 function parseRequiredTimeBoundary(value: string): TimeBoundary {

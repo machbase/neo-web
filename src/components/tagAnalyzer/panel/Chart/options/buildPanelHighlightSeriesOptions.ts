@@ -152,7 +152,7 @@ function getHighlightLabelData(
                       value: [
                           getTimeRangeCenter(highlight.timeRange),
                           labelY,
-                      ],
+                      ] as [number, number],
                       highlightIndex,
                       label: {
                           color: highlight.textColor,
