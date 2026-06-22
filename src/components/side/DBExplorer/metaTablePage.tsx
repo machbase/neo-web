@@ -8,6 +8,8 @@ import useDebounce from '@/hooks/useDebounce';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { BiInfoCircle } from 'react-icons/bi';
 import { StatzTableModal } from './statzTableModal';
+import { TagHierarchyPage } from '@/components/tagHierarchy/TagHierarchyPage';
+import { HIERARCHY_RESERVED_NAME } from '@/api/repository/tagHierarchy';
 
 type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
 const IGNORE_COL_LIST = ['_ID'];
@@ -18,11 +20,15 @@ export const MetaTablePage = ({
     pMTableInfo,
     pRefresh,
     pMColInfo,
+    pMMetaColInfo,
+    pMetaView = 'table',
 }: {
     pIsActiveTab: boolean;
     pMTableInfo: any;
     pRefresh: { state: number; set: React.Dispatch<React.SetStateAction<number>> };
     pMColInfo: any;
+    pMMetaColInfo?: any;
+    pMetaView?: 'table' | 'hierarchy';
 }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -58,8 +64,29 @@ export const MetaTablePage = ({
     }, [sMetaTableInfo]);
     const mTableInfo = useMemo(() => {
         return pMTableInfo;
-    }, [pMColInfo]);
+    }, [pMTableInfo]);
+    const mJsonMetaColumns = useMemo(() => {
+        if (!pMMetaColInfo?.rows) return [];
+
+        return pMMetaColInfo.rows
+            .map((row: STR_NUM_ARR_TYPE) => ({ name: String(row?.[0] ?? ''), type: row?.[1] }))
+            .filter((column: { name: string; type: string | number }) => {
+                const normalizedName = String(column.name ?? '').toUpperCase();
+                const normalizedType = String(column.type ?? '').toLowerCase();
+                return normalizedName !== '_ID' && normalizedName !== 'NAME' && (normalizedType === 'json' || normalizedType === '61');
+            });
+    }, [pMMetaColInfo]);
+    const mSpecColumn = useMemo(() => {
+        return pMMetaColInfo?.rows?.find((row: STR_NUM_ARR_TYPE) => String(row?.[0] ?? '').toUpperCase() === 'SPEC')?.[0];
+    }, [pMMetaColInfo]);
+    const mHasAssetMetaColumn = useMemo(() => {
+        return Boolean(pMMetaColInfo?.rows?.some((row: STR_NUM_ARR_TYPE) => String(row?.[0] ?? '').toUpperCase() === 'ASSET'));
+    }, [pMMetaColInfo]);
+    const mLogicalTableName = useMemo(() => {
+        return `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
+    }, [mTableInfo]);
     const sCanOpenTagAnalyzer = useMemo(() => canOpenTagAnalyzerFromMetaColumns(pMColInfo?.rows), [pMColInfo]);
+    const mCanEditHierarchy = useMemo(() => CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG, [mTableInfo]);
 
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
@@ -69,7 +96,7 @@ export const MetaTablePage = ({
             const currentFilter = opt?.filter !== undefined ? opt.filter : sFilter;
             const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
                 pMColInfo?.rows?.[0]?.[0]
-            } LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
+            } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select * from ${sTargetTable} order by _id asc`;
             const { svrState, svrData } = await fetchTqlQuery(sQuery, currentPage);
 
@@ -93,7 +120,7 @@ export const MetaTablePage = ({
             const currentFilter = filter !== undefined ? filter : sFilter;
             const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
                 pMColInfo?.rows?.[0]?.[0]
-            } LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
+            } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select count(*) from ${sTargetTable}`;
             const { svrState, svrData } = await fetchQuery(sQuery);
             if (svrState) setMetaTableCnt(svrData?.rows?.[0]?.[0] ?? 0);
@@ -321,106 +348,120 @@ export const MetaTablePage = ({
             style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}
         >
             {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
-                <>
-                    <Page.Body fixed>
-                        <Page.ContentBlock pHoverNone>
-                            <Page.SubTitle>Meta table</Page.SubTitle>
-                        </Page.ContentBlock>
-                        {sModUpdateInfo.isOpen ? (
-                            <>
-                                <Page.ContentBlock>
-                                    <Page.ContentTitle>Input of tag meta</Page.ContentTitle>
-                                </Page.ContentBlock>
-                                {mMetaColumnListWithoutID?.map((column: string, colIdx: number) => {
-                                    return (
-                                        <Page.ContentBlock key={`meta-table-col-${colIdx?.toString()}`}>
-                                            <Page.DpRow>
-                                                <Page.ContentTitle>{column}</Page.ContentTitle>
-                                                <Page.ContentDesc>
-                                                    <span style={{ marginLeft: '4px', color: '#009688' }}>
-                                                        ({sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(column)]})
-                                                    </span>
-                                                </Page.ContentDesc>
-                                                {REQUIRE_COL_LIST.includes(column?.toString()?.toUpperCase()) ? (
-                                                    <Page.ContentDesc>
-                                                        <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
-                                                    </Page.ContentDesc>
-                                                ) : null}
-                                            </Page.DpRow>
-                                            <Page.Input
-                                                pValue={sModUpdateInfo?.values?.[colIdx] ?? ''}
-                                                pWidth={'400px'}
-                                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handleMetaPayload(colIdx, event)}
-                                            />
-                                        </Page.ContentBlock>
-                                    );
-                                })}
-                                <Page.ContentBlock>
-                                    <Page.DpRow>
-                                        <Page.TextButton pIsDisable={!sModUpdateInfo?.values?.[0]} pText="SAVE" pType="CREATE" pCallback={handleInsertMeta} />
-                                        <Page.TextButton pText="CANCEL" pType="DELETE" pCallback={() => setModUpdateInfo({ isOpen: false, values: [], msg: undefined })} />
-                                    </Page.DpRow>
-                                    {sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
-                                </Page.ContentBlock>
-                                <Page.Hr />
-                            </>
-                        ) : null}
-                        <Page.ContentBlock pHoverNone>
-                            <Page.DpRowBetween>
-                                <Page.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</Page.ContentDesc>
-                                {sModUpdateInfo.isOpen ? (
-                                    <div />
-                                ) : allowedV$() ? (
-                                    <Page.DpRow>
-                                        <Page.TextButton
-                                            pText="Info"
-                                            mr="8px"
-                                            pType="STATUS"
-                                            pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
-                                            pCallback={() => handleVirtualModal(sFilter, true)}
+                pMetaView !== 'hierarchy' ? (
+                    <>
+                                <Page.Body fixed={!sModUpdateInfo.isOpen} fullHeight={sModUpdateInfo.isOpen}>
+                                    <Page.ContentBlock pHoverNone>
+                                        <Page.SubTitle>Meta Table</Page.SubTitle>
+                                    </Page.ContentBlock>
+                                    {sModUpdateInfo.isOpen ? (
+                                        <>
+                                            <Page.ContentBlock>
+                                                <Page.ContentTitle>Input of tag meta</Page.ContentTitle>
+                                            </Page.ContentBlock>
+                                            {mMetaColumnListWithoutID?.map((column: string, colIdx: number) => {
+                                                return (
+                                                    <Page.ContentBlock key={`meta-table-col-${colIdx?.toString()}`}>
+                                                        <Page.DpRow>
+                                                            <Page.ContentTitle>{column}</Page.ContentTitle>
+                                                            <Page.ContentDesc>
+                                                                <span style={{ marginLeft: '4px', color: '#009688' }}>
+                                                                    ({sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(column)]})
+                                                                </span>
+                                                            </Page.ContentDesc>
+                                                            {REQUIRE_COL_LIST.includes(column?.toString()?.toUpperCase()) ? (
+                                                                <Page.ContentDesc>
+                                                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                                </Page.ContentDesc>
+                                                            ) : null}
+                                                        </Page.DpRow>
+                                                        <Page.Input
+                                                            pValue={sModUpdateInfo?.values?.[colIdx] ?? ''}
+                                                            pWidth={'400px'}
+                                                            pCallback={(event: React.FormEvent<HTMLInputElement>) => handleMetaPayload(colIdx, event)}
+                                                        />
+                                                    </Page.ContentBlock>
+                                                );
+                                            })}
+                                            <Page.ContentBlock>
+                                                <Page.DpRow>
+                                                    <Page.TextButton pIsDisable={!sModUpdateInfo?.values?.[0]} pText="SAVE" pType="CREATE" pCallback={handleInsertMeta} />
+                                                    <Page.TextButton pText="CANCEL" pType="DELETE" pCallback={() => setModUpdateInfo({ isOpen: false, values: [], msg: undefined })} />
+                                                </Page.DpRow>
+                                                {sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
+                                            </Page.ContentBlock>
+                                            <Page.Hr />
+                                        </>
+                                    ) : null}
+                                    <Page.ContentBlock pHoverNone>
+                                        <Page.DpRowBetween>
+                                            <Page.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</Page.ContentDesc>
+                                            {sModUpdateInfo.isOpen ? (
+                                                <div />
+                                            ) : allowedV$() ? (
+                                                <Page.DpRow>
+                                                    <Page.TextButton
+                                                        pText="Info"
+                                                        mr="8px"
+                                                        pType="STATUS"
+                                                        pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
+                                                        pCallback={() => handleVirtualModal(sFilter, true)}
+                                                    />
+                                                    <Page.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />
+                                                </Page.DpRow>
+                                            ) : null}
+                                        </Page.DpRowBetween>
+                                        <Page.Input
+                                            pPlaceholder={'Search'}
+                                            pValue={sFilter}
+                                            pWidth={'100%'}
+                                            pCallback={(event: React.FormEvent<HTMLInputElement>) => handleSearchTxt(event)}
+                                            pEnter={handleFilterIIFESearch}
                                         />
-                                        <Page.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />
-                                    </Page.DpRow>
+                                        {!sModUpdateInfo.isOpen && sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
+                                    </Page.ContentBlock>
+                                </Page.Body>
+                                {!sModUpdateInfo.isOpen && sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
+                                    <CommonTable
+                                        data={mMetaTableInfo!}
+                                        editable={allowedV$()}
+                                        showRowNumber
+                                        showCopyButton
+                                        onRowAction={handleMoveTaz}
+                                        hideRowAction={!sCanOpenTagAnalyzer}
+                                        onRowDelete={handleDeleteMeta}
+                                        infiniteScroll={{ onLoadMore: handleEndOfContent, hasMore: sHasMoreData }}
+                                        onSave={handleUpdateMeta}
+                                        scrollX={false}
+                                        v$Callback={allowedV$() ? (i) => handleVirtualModal(i, false) : undefined}
+                                    />
                                 ) : null}
-                            </Page.DpRowBetween>
-                            <Page.Input
-                                pPlaceholder={'Search'}
-                                pValue={sFilter}
-                                pWidth={'100%'}
-                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handleSearchTxt(event)}
-                                pEnter={handleFilterIIFESearch}
-                            />
-                            {!sModUpdateInfo.isOpen && sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
-                        </Page.ContentBlock>
-                    </Page.Body>
-                    {sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
-                        <CommonTable
-                            data={mMetaTableInfo!}
-                            editable={allowedV$()}
-                            showRowNumber
-                            showCopyButton
-                            onRowAction={handleMoveTaz}
-                            hideRowAction={!sCanOpenTagAnalyzer}
-                            onRowDelete={handleDeleteMeta}
-                            infiniteScroll={{ onLoadMore: handleEndOfContent, hasMore: sHasMoreData }}
-                            onSave={handleUpdateMeta}
-                            v$Callback={allowedV$() ? (i) => handleVirtualModal(i, false) : undefined}
-                        />
-                    ) : null}
-                    {sIsOpenConfirm ? (
-                        <ConfirmModal
-                            pIsDarkMode
-                            setIsOpen={setIsOpenConfirm}
-                            pCallback={() => ModMeta('DELETE', sDelInfo)}
-                            pContents={
-                                <div className="body-content">
-                                    <span>{`Do you want to delete this meta (${sDelInfo ?? ''})?`}</span>
-                                </div>
-                            }
-                        />
-                    ) : null}
-                </>
-            ) : null}
+                                {sIsOpenConfirm ? (
+                                    <ConfirmModal
+                                        pIsDarkMode
+                                        setIsOpen={setIsOpenConfirm}
+                                        pCallback={() => ModMeta('DELETE', sDelInfo)}
+                                        pContents={
+                                            <div className="body-content">
+                                                <span>{`Do you want to delete this meta (${sDelInfo ?? ''})?`}</span>
+                                            </div>
+                                        }
+                                    />
+                                ) : null}
+                        </>
+                    ) : (
+                                <TagHierarchyPage
+                                    active={pIsActiveTab && pMetaView === 'hierarchy'}
+                                    tableName={mLogicalTableName}
+                                    nameColumn={pMColInfo?.rows?.[0]?.[0] ?? 'NAME'}
+                                    jsonColumns={mJsonMetaColumns}
+                                    hasAssetColumn={mHasAssetMetaColumn}
+                                    specColumn={mSpecColumn}
+                                    canEdit={mCanEditHierarchy}
+                                    onMetadataSchemaChange={() => pRefresh.set((prev) => prev + 1)}
+                                />
+                    )
+                ) : null}
             {sVirtualModal?.state ? <StatzTableModal pModalInfo={sVirtualModal} pSetModalInfo={setVirtualModal} /> : null}
         </div>
     );

@@ -112,7 +112,9 @@
 
     &-action {
         padding: 0 !important;
-        width: 10px !important;
+        width: 32px !important;
+        min-width: 32px !important;
+        max-width: 32px !important;
     }
 }
 
@@ -227,12 +229,14 @@
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     gap: 8px;
 
     span {
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
