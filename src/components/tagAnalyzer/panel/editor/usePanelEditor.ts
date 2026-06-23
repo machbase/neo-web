@@ -1,17 +1,17 @@
 import type { PanelInfo, PanelTimeRange } from '../../domain/PanelDomain';
 import {
-    shouldUseNumericPanelRangeConfig,
+    shouldUseNumericPanelRangeInput,
     type PanelSeriesDefinition,
 } from '../../domain/SeriesDomain';
 import type { PanelEditorConfig } from './PanelEditor';
-import type { PanelRangeConfig } from '../../domain/time/model/TimeTypes';
+import type { PanelRangeInput } from '../../domain/time/model/TimeTypes';
 import {
     createNumericRangeBoundary,
-    createNumericRangeConfig,
+    createNumericRangeInput,
     createTimestampRangeBoundary,
-    createTimestampRangeConfig,
-    isNumericRangeConfig,
-    isTimestampRangeConfig,
+    createTimestampRangeInput,
+    isNumericRangeInput,
+    isTimestampRangeInput,
 } from '../../domain/time/range/PanelRangeConfigUtils';
 
 function hasPanelTimeRangeConfigChanged(
@@ -41,23 +41,23 @@ function normalizeTagSetForRightYAxis(
 }
 
 function normalizeRangeConfigForSeries(
-    rangeConfig: PanelRangeConfig,
+    rangeConfig: PanelRangeInput,
     tagSet: PanelSeriesDefinition[],
-): PanelRangeConfig {
-    const sShouldUseNumericRangeConfig = shouldUseNumericPanelRangeConfig(tagSet);
+): PanelRangeInput {
+    const sShouldUseNumericRangeInput = shouldUseNumericPanelRangeInput(tagSet);
 
-    if (sShouldUseNumericRangeConfig) {
-        return isNumericRangeConfig(rangeConfig)
+    if (sShouldUseNumericRangeInput) {
+        return isNumericRangeInput(rangeConfig)
             ? rangeConfig
-            : createNumericRangeConfig(
+            : createNumericRangeInput(
                   createNumericRangeBoundary('numeric_empty'),
                   createNumericRangeBoundary('numeric_empty'),
               );
     }
 
-    return isTimestampRangeConfig(rangeConfig)
+    return isTimestampRangeInput(rangeConfig)
         ? rangeConfig
-        : createTimestampRangeConfig(
+        : createTimestampRangeInput(
               createTimestampRangeBoundary('timestamp_empty'),
               createTimestampRangeBoundary('timestamp_empty'),
           );

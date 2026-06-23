@@ -7,6 +7,7 @@ import {
     AND_KEYWORD,
     AS_KEYWORD,
     DATE_RESULT_ALIAS,
+    SELECT_KEYWORD,
     VALUE_RESULT_ALIAS,
     WHERE_KEYWORD,
     buildLimitSqlPart,
@@ -28,29 +29,14 @@ import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 
 const RAW_SAMPLE_FALLBACK_LIMIT = 200000;
 
-function buildSampledRawSeriesSqlPart(
-    rawSeriesSql: string,
-    requestedRowCount: number,
-    sortOrder: SortOrderEnum,
-): string {
-    const sSampleLimit = requestedRowCount > 0
-        ? requestedRowCount
-        : RAW_SAMPLE_FALLBACK_LIMIT;
-    const sLimitedSampleSql = buildQuerySql(
+function buildSampledRawSeriesSqlPart(rawSeriesSql: string): string {
+    return buildQuerySql(
         buildSelectSqlPart('*'),
         buildSubSqlTargetSqlPart(rawSeriesSql),
         '',
         '',
         '',
-        buildLimitSqlPart(sSampleLimit),
-    );
-
-    return buildQuerySql(
-        buildSelectSqlPart('*'),
-        buildSubSqlTargetSqlPart(sLimitedSampleSql),
-        '',
-        '',
-        buildOrderBySqlPart(sortOrder),
+        buildLimitSqlPart(RAW_SAMPLE_FALLBACK_LIMIT),
     );
 }
 
@@ -94,15 +80,12 @@ export function buildRawSeriesSql(
     const sLimitSql = sampling.kind === 'enabled' || requestedRowCount <= 0
         ? ''
         : buildLimitSqlPart(requestedRowCount);
-    const sOrderBySql = sampling.kind === 'enabled'
-        ? ''
-        : buildOrderBySqlPart(sortOrder);
-
+    const sOrderBySql = buildOrderBySqlPart(sortOrder);
+    const sSelectSql = sampling.kind === 'enabled'
+        ? `${SELECT_KEYWORD}${sSamplingHintSql} ${sTimeExpression}, ${sValueExpression}`
+        : buildSelectSqlPart(`${sTimeExpression}, ${sValueExpression}`);
     const rawSeriesSql = buildQuerySql(
-        buildSelectSqlPart(
-            `${sTimeExpression}, ${sValueExpression}`,
-            sSamplingHintSql,
-        ),
+        sSelectSql,
         buildTableTargetSqlPart(sourceTableName),
         `${WHERE_KEYWORD} ${sNameColumn} = ${buildSqlStringLiteral(tagName)} ${AND_KEYWORD} ${sTimeRangeCondition}`,
         '',
@@ -111,6 +94,6 @@ export function buildRawSeriesSql(
     );
 
     return sampling.kind === 'enabled'
-        ? buildSampledRawSeriesSqlPart(rawSeriesSql, requestedRowCount, sortOrder)
+        ? buildSampledRawSeriesSqlPart(rawSeriesSql)
         : rawSeriesSql;
 }

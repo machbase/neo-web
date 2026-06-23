@@ -21,6 +21,10 @@ const loadConfig = {
         enabled: false,
         sampleCount: 0,
     },
+    rawNavigatorSampling: {
+        enabled: false,
+        sampleCount: 0.01,
+    },
 };
 
 const requestInterval = {

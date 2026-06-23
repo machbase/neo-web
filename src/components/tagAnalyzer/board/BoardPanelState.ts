@@ -1,6 +1,14 @@
+import { Toast } from '@/design-system/components';
 import type { PanelRangeState } from '../domain/PanelDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/model/TimeConstants';
 import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
+
+export const PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE =
+    'Cannot resolve panel range because no valid data range was found.';
+
+export function showPanelFullRangeUnavailableToast(): void {
+    Toast.error(PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE);
+}
 
 export type ApplyPanelRangeRequest = {
     panelKey: string;

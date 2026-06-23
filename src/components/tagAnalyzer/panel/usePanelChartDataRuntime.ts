@@ -28,6 +28,7 @@ import {
 import {
     CALCULATED_FETCH_ROW_BUDGET,
     RAW_MAIN_SAMPLE_COUNT,
+    RAW_NAVIGATOR_SAMPLING_VALUE,
     fetchMainPanelSeriesRows,
     fetchNavigatorPanelSeriesRows,
     resolvePanelFetchInterval,
@@ -52,6 +53,7 @@ type PanelChartDataLoadConfig = {
     useOrderBy: boolean;
     xAxis: RuntimePanelXAxis;
     mainChartSampling: RuntimePanelSampling;
+    rawNavigatorSampling: RuntimePanelSampling;
 };
 
 export enum PanelChartLoadStatus {
@@ -276,6 +278,7 @@ export function usePanelChartDataRuntime({
                 sChartWidth,
                 sLoadConfig.isRaw,
                 sNavigatorFetchRange,
+                sLoadConfig.rawNavigatorSampling,
                 rollupTableList,
             ),
         onSuccess: () => {
@@ -348,6 +351,7 @@ export function usePanelChartDataRuntime({
 function buildLoadConfig(panelInfo: PanelInfo): PanelChartDataLoadConfig {
     const sPixelsPerTick = panelInfo.display.pixelsPerTick;
     const sSampling = panelInfo.display.mainChartSampling;
+    const sRawNavigatorSampling = panelInfo.display.rawNavigatorSampling;
 
     return {
         seriesList: panelInfo.query.tagSet,
@@ -365,6 +369,11 @@ function buildLoadConfig(panelInfo: PanelInfo): PanelChartDataLoadConfig {
         mainChartSampling: {
             enabled: sSampling.enabled,
             sampleCount: sSampling.sampleCount ?? 0,
+        },
+        rawNavigatorSampling: {
+            enabled: sRawNavigatorSampling.enabled,
+            sampleCount: sRawNavigatorSampling.sampleCount ??
+                RAW_NAVIGATOR_SAMPLING_VALUE,
         },
     };
 }
@@ -484,6 +493,7 @@ function buildNavigatorFetchBaseKey(
         rollups: rollupKey,
         refreshVersion,
         navigatorPixelsPerTick: config.xAxis.calculatedNavigatorPixelsPerTick,
+        rawNavigatorSampling: config.rawNavigatorSampling,
     });
 }
 
@@ -921,6 +931,7 @@ function buildFetchCacheKey(
             : {
                   ...sShared,
                   navigatorPixelsPerTick: config.xAxis.calculatedNavigatorPixelsPerTick,
+                  rawNavigatorSampling: config.rawNavigatorSampling,
                   requestNavigatorRange: range,
               },
     );

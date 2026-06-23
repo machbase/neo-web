@@ -241,16 +241,17 @@ export const FFTModal = ({
             return;
         }
 
-        if (sMinHz === '') {
-            setMinHz('0');
-        }
-
-        if (sMaxHz === '') {
-            setMaxHz('0');
-        }
-
         const sMinHzValue = sMinHz === '' ? '0' : sMinHz;
         const sMaxHzValue = sMaxHz === '' ? '0' : sMaxHz;
+
+        if (sMinHzValue !== sMinHz) {
+            setMinHz(sMinHzValue);
+        }
+
+        if (sMaxHzValue !== sMaxHz) {
+            setMaxHz(sMaxHzValue);
+        }
+
         const sMinMaxHz = buildFftMinMaxHz(sMinHzValue, sMaxHzValue);
 
         if (sIsChart2D) {

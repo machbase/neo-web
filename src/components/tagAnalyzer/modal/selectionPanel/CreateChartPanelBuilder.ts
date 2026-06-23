@@ -1,16 +1,21 @@
 import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
-import { DEFAULT_VALUE_RANGE, type PanelEChartType, type PanelInfo } from '../../domain/PanelDomain';
+import {
+    DEFAULT_RAW_NAVIGATOR_SAMPLING,
+    DEFAULT_VALUE_RANGE,
+    type PanelEChartType,
+    type PanelInfo,
+} from '../../domain/PanelDomain';
 import { createPanelIndexKey } from '../../domain/PanelIdentity';
 import {
-    shouldUseNumericPanelRangeConfig,
+    shouldUseNumericPanelRangeInput,
     type PanelSeriesDefinition,
 } from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
 import {
     createNumericRangeBoundary,
-    createNumericRangeConfig,
+    createNumericRangeInput,
     createTimestampRangeBoundary,
-    createTimestampRangeConfig,
+    createTimestampRangeInput,
 } from '../../domain/time/range/PanelRangeConfigUtils';
 import type { PersistedPanelInfoV205 } from '../../persistence/TazPersistenceTypesV205';
 
@@ -40,7 +45,7 @@ function createRuntimePanelInfo(
     chartTitle: string,
 ): PanelInfo {
     const sDisplay = createPanelDisplayForChartType(chartType);
-    const sIsNumericXAxis = shouldUseNumericPanelRangeConfig(tagSet);
+    const sIsNumericXAxis = shouldUseNumericPanelRangeInput(tagSet);
 
     return {
         key: createPanelIndexKey(),
@@ -57,11 +62,11 @@ function createRuntimePanelInfo(
         },
         timeRange: {
             ...(sIsNumericXAxis
-                ? createNumericRangeConfig(
+                ? createNumericRangeInput(
                     createNumericRangeBoundary('numeric_empty'),
                     createNumericRangeBoundary('numeric_empty'),
                 )
-                : createTimestampRangeConfig(
+                : createTimestampRangeInput(
                     createTimestampRangeBoundary('timestamp_empty'),
                     createTimestampRangeBoundary('timestamp_empty'),
                 )),
@@ -93,6 +98,7 @@ function createRuntimePanelInfo(
                 enabled: false,
                 sampleCount: DEFAULT_SAMPLING_VALUE,
             },
+            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: [],
         annotations: [],

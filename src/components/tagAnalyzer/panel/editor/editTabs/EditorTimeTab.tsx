@@ -19,22 +19,22 @@ import {
 import {
     TimeUnit,
     type NumericRangeBoundary,
-    type NumericRangeConfig,
-    type PanelRangeConfig,
+    type NumericRangeInput,
+    type PanelRangeInput,
     type TimeBoundary,
     type TimeRangeMs,
     type TimestampRangeBoundary,
-    type TimestampRangeConfig,
+    type TimestampRangeInput,
 } from '../../../domain/time/model/TimeTypes';
 import {
     createNumericRangeBoundary,
-    createNumericRangeConfig,
+    createNumericRangeInput,
     createTimestampRangeBoundary,
     createTimestampRangeBoundaryFromTimeBoundary,
-    createTimestampRangeConfig,
-    isEmptyPanelRangeConfig,
-    isNumericRangeConfig,
-    isTimestampRangeConfig,
+    createTimestampRangeInput,
+    isEmptyPanelRangeInput,
+    isNumericRangeInput,
+    isTimestampRangeInput,
 } from '../../../domain/time/range/PanelRangeConfigUtils';
 import { isValidTimeRange } from '../../../domain/time/range/TimeRangeUtils';
 
@@ -86,7 +86,7 @@ const EditorTimeTab = ({
 }) => {
     if (pIsNumericXAxis) {
         return (
-            <NumericRangeConfigEditor
+            <NumericRangeInputEditor
                 pTimeConfig={pTimeConfig}
                 pOnChangeTimeConfig={pOnChangeTimeConfig}
             />
@@ -94,7 +94,7 @@ const EditorTimeTab = ({
     }
 
     return (
-        <TimestampRangeConfigEditor
+        <TimestampRangeInputEditor
             pTimeConfig={pTimeConfig}
             pPanelRange={pPanelRange}
             pOnChangeTimeConfig={pOnChangeTimeConfig}
@@ -102,7 +102,7 @@ const EditorTimeTab = ({
     );
 };
 
-function TimestampRangeConfigEditor({
+function TimestampRangeInputEditor({
     pTimeConfig,
     pPanelRange,
     pOnChangeTimeConfig,
@@ -112,7 +112,7 @@ function TimestampRangeConfigEditor({
     pOnChangeTimeConfig: (config: PanelEditorConfig['timeRange']) => void;
 }) {
     const sRangeConfig = useMemo(
-        () => getTimestampRangeConfig(pTimeConfig),
+        () => getTimestampRangeInput(pTimeConfig),
         [pTimeConfig],
     );
     const sInitialInputValues = getTimestampInputValues(
@@ -168,7 +168,7 @@ function TimestampRangeConfigEditor({
         pOnChangeTimeConfig(
             createTimeConfig(
                 pTimeConfig,
-                createTimestampRangeConfig(
+                createTimestampRangeInput(
                     createTimestampRangeBoundaryFromTimeBoundary(
                         parseRequiredTimeBoundary(sStartValue),
                     ),
@@ -186,7 +186,7 @@ function TimestampRangeConfigEditor({
         pOnChangeTimeConfig(
             createTimeConfig(
                 pTimeConfig,
-                createTimestampRangeConfig(
+                createTimestampRangeInput(
                     createTimestampRangeBoundary('timestamp_empty'),
                     createTimestampRangeBoundary('timestamp_empty'),
                 ),
@@ -249,7 +249,7 @@ function TimestampRangeConfigEditor({
     );
 }
 
-function NumericRangeConfigEditor({
+function NumericRangeInputEditor({
     pTimeConfig,
     pOnChangeTimeConfig,
 }: {
@@ -257,7 +257,7 @@ function NumericRangeConfigEditor({
     pOnChangeTimeConfig: (config: PanelEditorConfig['timeRange']) => void;
 }) {
     const sRangeConfig = useMemo(
-        () => getNumericRangeConfig(pTimeConfig),
+        () => getNumericRangeInput(pTimeConfig),
         [pTimeConfig],
     );
     const [sInputValues, setInputValues] = useState(
@@ -278,7 +278,7 @@ function NumericRangeConfigEditor({
         };
 
         setInputValues(nextInputValues);
-        const sRangeConfig = createNumericRangeConfigFromBoundaryInput(
+        const sRangeConfig = createNumericRangeInputFromBoundaryInput(
             nextInputValues.startValue,
             nextInputValues.endValue,
         );
@@ -290,7 +290,7 @@ function NumericRangeConfigEditor({
 
     function applyQuickNumericRange(option: QuickTimeRangeOption): void {
         const [sStartValue = '', sEndValue = ''] = option.value;
-        const sRangeConfig = createNumericRangeConfigFromBoundaryInput(
+        const sRangeConfig = createNumericRangeInputFromBoundaryInput(
             sStartValue,
             sEndValue,
         );
@@ -311,7 +311,7 @@ function NumericRangeConfigEditor({
         pOnChangeTimeConfig(
             createTimeConfig(
                 pTimeConfig,
-                createNumericRangeConfig(
+                createNumericRangeInput(
                     createNumericRangeBoundary('numeric_empty'),
                     createNumericRangeBoundary('numeric_empty'),
                 ),
@@ -382,7 +382,7 @@ function NumericRangeConfigEditor({
 
 function createTimeConfig(
     currentTimeConfig: PanelEditorConfig['timeRange'],
-    rangeConfig: PanelRangeConfig,
+    rangeConfig: PanelRangeInput,
 ): PanelEditorConfig['timeRange'] {
     return {
         ...rangeConfig,
@@ -401,45 +401,45 @@ function parseRequiredTimeBoundary(value: string): TimeBoundary {
 }
 
 function getTimestampConfigWithUpdatedBoundary(
-    rangeConfig: TimestampRangeConfig,
+    rangeConfig: TimestampRangeInput,
     field: TimeInputField,
     boundary: TimestampRangeBoundary,
-): TimestampRangeConfig {
+): TimestampRangeInput {
     const sStartBoundary =
         field === 'start' ? boundary : rangeConfig.start;
     const sEndBoundary =
         field === 'end' ? boundary : rangeConfig.end;
 
-    return createTimestampRangeConfig(sStartBoundary, sEndBoundary);
+    return createTimestampRangeInput(sStartBoundary, sEndBoundary);
 }
 
-function getTimestampRangeConfig(
-    rangeConfig: PanelRangeConfig,
-): TimestampRangeConfig {
-    return isTimestampRangeConfig(rangeConfig)
+function getTimestampRangeInput(
+    rangeConfig: PanelRangeInput,
+): TimestampRangeInput {
+    return isTimestampRangeInput(rangeConfig)
         ? rangeConfig
-        : createTimestampRangeConfig(
+        : createTimestampRangeInput(
               createTimestampRangeBoundary('timestamp_empty'),
               createTimestampRangeBoundary('timestamp_empty'),
           );
 }
 
-function getNumericRangeConfig(
-    rangeConfig: PanelRangeConfig,
-): NumericRangeConfig {
-    return isNumericRangeConfig(rangeConfig)
+function getNumericRangeInput(
+    rangeConfig: PanelRangeInput,
+): NumericRangeInput {
+    return isNumericRangeInput(rangeConfig)
         ? rangeConfig
-        : createNumericRangeConfig(
+        : createNumericRangeInput(
               createNumericRangeBoundary('numeric_empty'),
               createNumericRangeBoundary('numeric_empty'),
           );
 }
 
 function getTimestampInputValues(
-    rangeConfig: TimestampRangeConfig,
+    rangeConfig: TimestampRangeInput,
     panelRange: TimeRangeMs,
 ): TimestampInputValues {
-    const sIsEmptyTimeRange = isEmptyPanelRangeConfig(rangeConfig);
+    const sIsEmptyTimeRange = isEmptyPanelRangeInput(rangeConfig);
 
     return {
         startTime: formatTimestampRangeBoundaryInputValue(rangeConfig.start),
@@ -499,7 +499,7 @@ function setTimeInputValue(
 }
 
 function getNumericInputValues(
-    rangeConfig: NumericRangeConfig,
+    rangeConfig: NumericRangeInput,
 ): NumericInputValues {
     return {
         startValue: formatNumericBoundaryInputValue(rangeConfig.start),
@@ -507,10 +507,10 @@ function getNumericInputValues(
     };
 }
 
-function createNumericRangeConfigFromBoundaryInput(
+function createNumericRangeInputFromBoundaryInput(
     startValue: string,
     endValue: string,
-): NumericRangeConfig | undefined {
+): NumericRangeInput | undefined {
     const sStartBoundary = parseNumericBoundaryInputValue(startValue);
     const sEndBoundary = parseNumericBoundaryInputValue(endValue);
 
@@ -522,7 +522,7 @@ function createNumericRangeConfigFromBoundaryInput(
         sStartBoundary.kind === 'numeric_empty' &&
         sEndBoundary.kind === 'numeric_empty'
     ) {
-        return createNumericRangeConfig(
+        return createNumericRangeInput(
             createNumericRangeBoundary('numeric_empty'),
             createNumericRangeBoundary('numeric_empty'),
         );
@@ -536,7 +536,7 @@ function createNumericRangeConfigFromBoundaryInput(
         return undefined;
     }
 
-    return createNumericRangeConfig(sStartBoundary, sEndBoundary);
+    return createNumericRangeInput(sStartBoundary, sEndBoundary);
 }
 
 function parseNumericBoundaryInputValue(

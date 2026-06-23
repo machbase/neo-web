@@ -1,16 +1,17 @@
 import {
+    DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
     type PanelInfo,
 } from '../../domain/PanelDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
-import { normalizePanelNavigatorRangePair } from '../../domain/time/boundary/TimeBoundaryValidate';
+import { normalizePanelViewRange } from '../../domain/time/boundary/TimeBoundaryValidate';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,
 } from '../PersistenceCloneUtils';
 import type { PersistedPanelInfoV204 } from '../TazPersistenceTypesV204';
-import { normalizePersistedPanelRangeConfig } from './normalizePersistedPanelRangeConfig';
-import { shouldUseNumericPanelRangeConfig } from '../../domain/SeriesDomain';
+import { normalizePersistedPanelRangeInput } from './normalizePersistedPanelRangeConfig';
+import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
 
 export function isPersistedPanelInfoV204(
     panelInfo: unknown,
@@ -51,9 +52,9 @@ export function isPersistedPanelInfoV204(
 export function parseLoadedPanelTazVer204(
     panelInfo: PersistedPanelInfoV204,
 ): PanelInfo {
-    const sRangeConfig = normalizePersistedPanelRangeConfig(
+    const sRangeConfig = normalizePersistedPanelRangeInput(
         panelInfo.time.range_config,
-        shouldUseNumericPanelRangeConfig(panelInfo.data.tag_set),
+        shouldUseNumericPanelRangeInput(panelInfo.data.tag_set),
     );
     if (!sRangeConfig) {
         throw new Error('Invalid TagAnalyzer .taz panel time range_config structure.');
@@ -79,7 +80,7 @@ export function parseLoadedPanelTazVer204(
         timeRange: {
             ...sRangeConfig,
             useLastViewedRange: panelInfo.general.use_last_viewed_range,
-            lastViewedRange: normalizePanelNavigatorRangePair(
+            lastViewedRange: normalizePanelViewRange(
                 panelInfo.general.last_viewed_range,
             ),
         },
@@ -137,6 +138,7 @@ export function parseLoadedPanelTazVer204(
                 enabled: sMainChartSampling?.enabled ?? false,
                 sampleCount: sMainChartSampling?.sample_count,
             },
+            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: clonePanelHighlights(panelInfo.highlights),
         annotations: clonePanelAnnotations(panelInfo.annotations),

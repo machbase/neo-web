@@ -1,13 +1,13 @@
 import type {
-    PanelNavigatorRangePair,
-    PanelRangeConfig,
+    PanelViewRange,
+    PanelRangeInput,
     TimeRangeConfig,
     TimeRangeMs,
 } from '../model/TimeTypes';
 import { isValidTimeRange } from '../range/TimeRangeUtils';
 import {
-    isEmptyPanelRangeConfig,
-    isNumericRangeConfig,
+    isEmptyPanelRangeInput,
+    isNumericRangeInput,
 } from '../range/PanelRangeConfigUtils';
 
 export function hasCompleteTimeRangeConfig(
@@ -17,9 +17,9 @@ export function hasCompleteTimeRangeConfig(
         timeRangeConfig.end.kind !== 'empty';
 }
 
-export function normalizePanelNavigatorRangePair(
+export function normalizePanelViewRange(
     value: unknown,
-): PanelNavigatorRangePair | undefined {
+): PanelViewRange | undefined {
     if (!value || typeof value !== 'object') {
         return undefined;
     }
@@ -73,13 +73,13 @@ export function shouldApplyInitialMainChartWindow({
     boardTime,
 }: {
     applyInitialMainChartWindow: boolean;
-    rangeConfig: PanelRangeConfig;
+    rangeConfig: PanelRangeInput;
     boardTime: TimeRangeConfig;
 }): boolean {
     return (
         applyInitialMainChartWindow &&
-        isEmptyPanelRangeConfig(rangeConfig) &&
-        (isNumericRangeConfig(rangeConfig) || hasNoTimeRangeConfig(boardTime))
+        isEmptyPanelRangeInput(rangeConfig) &&
+        (isNumericRangeInput(rangeConfig) || hasNoTimeRangeConfig(boardTime))
     );
 }
 

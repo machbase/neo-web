@@ -21,6 +21,7 @@ import {
     formatAxisValue,
     formatLocalTimestampWithMilliseconds,
 } from '../domain/time/formatting/TimeFormatters';
+import { getSeriesTimeBounds } from './OverlapComparisonUtils';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<
@@ -226,42 +227,22 @@ function resolveOverlapChartYAxisRange(
 function resolveOverlapChartXAxisRanges(
     chartData: ChartSeriesData[],
 ): OverlapChartXAxisRanges | undefined {
-    const sTimestamps = chartData.flatMap((series) =>
-        series.data.map(([timestamp]) => timestamp),
-    );
-
-    if (sTimestamps.length === 0) {
-        return undefined;
-    }
-
-    const sDataStartTime = Math.min(...sTimestamps);
-    const sDataEndTime = Math.max(...sTimestamps);
-
-    if (
-        !Number.isFinite(sDataStartTime) ||
-        !Number.isFinite(sDataEndTime)
-    ) {
-        return undefined;
-    }
-
-    const sDataWidth = sDataEndTime - sDataStartTime;
-    if (sDataWidth <= 0) {
+    const sDataRange = getSeriesTimeBounds(chartData);
+    if (!sDataRange) {
         return undefined;
     }
 
     const sPadding = Math.max(
-        sDataWidth * OVERLAP_EMPTY_X_AXIS_PADDING_RATIO,
+        (sDataRange.endTime - sDataRange.startTime) *
+            OVERLAP_EMPTY_X_AXIS_PADDING_RATIO,
         OVERLAP_MIN_EMPTY_X_AXIS_PADDING_MS,
     );
 
     return {
-        dataRange: {
-            startTime: sDataStartTime,
-            endTime: sDataEndTime,
-        },
+        dataRange: sDataRange,
         axisRange: {
-            startTime: sDataStartTime - sPadding,
-            endTime: sDataEndTime + sPadding,
+            startTime: sDataRange.startTime - sPadding,
+            endTime: sDataRange.endTime + sPadding,
         },
     };
 }

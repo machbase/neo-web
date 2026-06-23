@@ -1,17 +1,18 @@
 import {
+    DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
     type PanelInfo,
 } from '../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
-import { normalizePanelNavigatorRangePair } from '../../domain/time/boundary/TimeBoundaryValidate';
-import { shouldUseNumericPanelRangeConfig } from '../../domain/SeriesDomain';
+import { normalizePanelViewRange } from '../../domain/time/boundary/TimeBoundaryValidate';
+import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,
 } from '../PersistenceCloneUtils';
 import type { PersistedPanelInfoV210 } from '../TazPersistenceTypesV210';
-import { normalizePersistedPanelRangeConfig } from './normalizePersistedPanelRangeConfig';
+import { normalizePersistedPanelRangeInput } from './normalizePersistedPanelRangeConfig';
 
 export function isPersistedPanelInfoV210(
     panelInfo: unknown,
@@ -47,9 +48,9 @@ export function parseLoadedPanelTazVer210(
     assertValidPersistedPanelInfoV210(panelInfo);
 
     const sTagSet = panelInfo.query.tagSet.map(mapPersistedSeriesToRuntime);
-    const sRangeConfig = normalizePersistedPanelRangeConfig(
+    const sRangeConfig = normalizePersistedPanelRangeInput(
         panelInfo.timeRange,
-        shouldUseNumericPanelRangeConfig(sTagSet),
+        shouldUseNumericPanelRangeInput(sTagSet),
     );
     if (!sRangeConfig) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel timeRange structure.');
@@ -75,7 +76,7 @@ export function parseLoadedPanelTazVer210(
         timeRange: {
             ...sRangeConfig,
             useLastViewedRange: panelInfo.timeRange.useLastViewedRange ?? false,
-            lastViewedRange: normalizePanelNavigatorRangePair(
+            lastViewedRange: normalizePanelViewRange(
                 panelInfo.timeRange.lastViewedRange,
             ),
         },
@@ -120,6 +121,12 @@ export function parseLoadedPanelTazVer210(
                 enabled: panelInfo.display.mainChartSampling.enabled,
                 sampleCount: panelInfo.display.mainChartSampling.sampleCount,
             },
+            rawNavigatorSampling: {
+                enabled: panelInfo.display.rawNavigatorSampling?.enabled ??
+                    DEFAULT_RAW_NAVIGATOR_SAMPLING.enabled,
+                sampleCount: panelInfo.display.rawNavigatorSampling?.sampleCount ??
+                    DEFAULT_RAW_NAVIGATOR_SAMPLING.sampleCount,
+            },
         },
         highlights: clonePanelHighlights(panelInfo.highlights),
         annotations: clonePanelAnnotations(panelInfo.annotations),
@@ -142,6 +149,12 @@ function assertValidPersistedPanelInfoV210(
         sDisplay.mainChartSampling,
         'display.mainChartSampling',
     );
+    const sRawNavigatorSampling = sDisplay.rawNavigatorSampling === undefined
+        ? undefined
+        : assertObject(
+            sDisplay.rawNavigatorSampling,
+            'display.rawNavigatorSampling',
+        );
 
     assertBoolean(sXAxis.showTickline, 'axes.x.showTickline');
     assertYAxis(sLeftYAxis, 'axes.leftY');
@@ -163,6 +176,12 @@ function assertValidPersistedPanelInfoV210(
         sMainChartSampling,
         'display.mainChartSampling',
     );
+    if (sRawNavigatorSampling !== undefined) {
+        assertSampling(
+            sRawNavigatorSampling,
+            'display.rawNavigatorSampling',
+        );
+    }
 }
 
 function assertYAxis(

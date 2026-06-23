@@ -135,6 +135,7 @@ export async function fetchNavigatorPanelSeriesRows(
     chartWidth: number,
     requestedRawMode: boolean,
     timeRange: TimeRangeMs,
+    rawNavigatorSampling: RuntimePanelSampling,
     rollupTableList: RollupTableMap,
 ): Promise<FetchPanelSeriesRowsResult | undefined> {
     if (seriesConfigSet.length === 0 || !isValidTimeRange(timeRange)) {
@@ -144,27 +145,31 @@ export async function fetchNavigatorPanelSeriesRows(
     const sUsesNumericBaseTime = seriesConfigSet.some((seriesConfig) =>
         isNumericBaseTimeSourceColumns(seriesConfig.sourceColumns),
     );
-    const sUseRawNavigatorOverviewCount =
-        requestedRawMode || sUsesNumericBaseTime;
+    const sUseRawNavigatorSampling =
+        requestedRawMode &&
+        (rawNavigatorSampling.enabled || sUsesNumericBaseTime);
+    const sUseRawNavigatorFetch =
+        sUseRawNavigatorSampling || (!requestedRawMode && sUsesNumericBaseTime);
     const sNavigatorTargetCount = resolveNavigatorTargetCount(chartWidth);
     const sCalculatedNavigatorTargetCount = CALCULATED_FETCH_ROW_BUDGET;
+    const sNavigatorFetchTargetCount = sUseRawNavigatorFetch
+        ? sNavigatorTargetCount
+        : sCalculatedNavigatorTargetCount;
     const sInterval = resolveTimeBucketIntervalForTargetCount(
         timeRange,
-        sUseRawNavigatorOverviewCount
-            ? sNavigatorTargetCount
-            : sCalculatedNavigatorTargetCount,
+        sNavigatorFetchTargetCount,
     );
     const sFetchCount = resolveNavigatorOverviewFetchCount(
-        sUseRawNavigatorOverviewCount
-            ? sNavigatorTargetCount
-            : sCalculatedNavigatorTargetCount,
+        sNavigatorFetchTargetCount,
     );
     const sDisplayCount = sFetchCount.displayCount;
     const sLimitDetectionMode = sFetchCount.limitDetectionMode;
     const sQueryCount = sFetchCount.queryCount;
     const sRawNavigatorSampling = resolveRawFetchSampling(
-        true,
-        RAW_NAVIGATOR_SAMPLING_VALUE,
+        sUseRawNavigatorSampling || (!requestedRawMode && sUsesNumericBaseTime),
+        sUseRawNavigatorSampling
+            ? rawNavigatorSampling.sampleCount
+            : RAW_NAVIGATOR_SAMPLING_VALUE,
     );
 
     return {
@@ -172,7 +177,7 @@ export async function fetchNavigatorPanelSeriesRows(
             seriesConfigSet.map(async (seriesConfig) => {
                 let sFetchResult: ChartFetchResponse;
 
-                if (requestedRawMode || sUsesNumericBaseTime) {
+                if (sUseRawNavigatorFetch) {
                     sFetchResult = await fetchRawSeriesRows(
                         seriesConfig,
                         timeRange,
@@ -183,7 +188,9 @@ export async function fetchNavigatorPanelSeriesRows(
                     );
                 } else {
                     sFetchResult = await fetchCalculatedSeriesRows(
-                        seriesConfig,
+                        requestedRawMode
+                            ? createAverageNavigatorSeriesConfig(seriesConfig)
+                            : seriesConfig,
                         timeRange,
                         sInterval,
                         sQueryCount,
@@ -205,6 +212,14 @@ export async function fetchNavigatorPanelSeriesRows(
     };
 }
 
+function createAverageNavigatorSeriesConfig(
+    seriesConfig: PanelSeriesDefinition,
+): PanelSeriesDefinition {
+    return {
+        ...seriesConfig,
+        calculationMode: 'avg',
+    };
+}
 export function resolveNavigatorTargetCount(chartWidth: number): number {
     const sRawTargetCount = Math.ceil(chartWidth / 3);
     const sFiniteTargetCount = Number.isFinite(sRawTargetCount) && sRawTargetCount > 0

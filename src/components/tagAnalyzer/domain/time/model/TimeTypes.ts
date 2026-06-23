@@ -19,11 +19,6 @@ export type TimeRangeMs = {
     endTime: UnixMilliseconds;
 };
 
-export type AxisRange = {
-    startTime: number;
-    endTime: number;
-};
-
 export type TimeRangeNs = {
     startTime: SqlTimeRangeValue;
     endTime: SqlTimeRangeValue;
@@ -75,25 +70,25 @@ export type NumericRangeBoundary =
 
 export type PanelRangeBoundary = TimestampRangeBoundary | NumericRangeBoundary;
 
-export type TimestampRangeConfig = {
+export type TimestampRangeInput = {
     start: TimestampRangeBoundary;
     end: TimestampRangeBoundary;
 };
 
-export type NumericRangeConfig = {
+export type NumericRangeInput = {
     start: NumericRangeBoundary;
     end: NumericRangeBoundary;
 };
 
-export type PanelRangeConfig = TimestampRangeConfig | NumericRangeConfig;
+export type PanelRangeInput = TimestampRangeInput | NumericRangeInput;
 
 export type IntervalOption = {
     IntervalType: TimeUnit;
     IntervalValue: number;
 };
 
-export type PanelNavigatorRangePair = {
-    panelRange: AxisRange;
-    navigatorRange: AxisRange;
+export type PanelViewRange = {
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
 };
 

@@ -18,7 +18,7 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, Page, Toast } from '@/design-system/components';
 import PanelContainer from './panel/PanelContainer';
-import BoardTimeRangeModal from './boardModal/BoardTimeRangeModal';
+import TimeRangeModal from './boardModal/TimeRangeModal';
 import TagAnalyzerHelpModal from './boardModal/TagAnalyzerHelpModal';
 import OverlapModal from './boardModal/OverlapModal';
 import { getNextOverlapSelections } from './boardModal/OverlapComparisonUtils';
@@ -666,13 +666,13 @@ const TagAnalyzerBoard = ({
                                             width,
                                         ),
                                     refreshData: () => {
-                                        void boardPanels.refreshPanelData(sPanelInfo);
+                                        void boardPanels.refreshPanelData(sPanelInfo.key);
                                     },
                                     refreshTime: () => {
-                                        void boardPanels.refreshPanelTime(sPanelInfo);
+                                        void boardPanels.refreshPanelTime(sPanelInfo.key);
                                     },
                                     expandFullRange: () => {
-                                        void boardPanels.expandPanelFullRange(sPanelInfo);
+                                        void boardPanels.expandPanelFullRange(sPanelInfo.key);
                                     },
                                     onSavePanelInfo: saveCurrentTazBoardWithPanel,
                                     reloadAfterEditorSave:
@@ -720,8 +720,10 @@ const TagAnalyzerBoard = ({
                 />
             )}
             {sIsTimeRangeModalOpen && (
-                <BoardTimeRangeModal
-                    boardTimeRange={sRuntimeBoardInfo.boardTimeRange}
+                <TimeRangeModal
+                    rangeKind="time"
+                    title="Board Time Range"
+                    timeRange={sRuntimeBoardInfo.boardTimeRange}
                     onApply={handleApplyBoardTimeRange}
                     onClose={() => setIsTimeRangeModalOpen(false)}
                 />

@@ -22,7 +22,7 @@ type ApplyPanelRangeDependencies = {
     panelStore: BoardPanelStore;
 };
 
-export function useApplyPanelRange({ panelStore }: ApplyPanelRangeDependencies): {
+export function createApplyPanelRange({ panelStore }: ApplyPanelRangeDependencies): {
     applyPanelRange: ApplyPanelRange;
     requestPanelDataRefresh: RequestPanelDataRefresh;
 } {

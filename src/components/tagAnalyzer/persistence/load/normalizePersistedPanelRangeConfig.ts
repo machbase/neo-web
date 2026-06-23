@@ -1,15 +1,15 @@
 import type {
-    NumericRangeConfig,
+    NumericRangeInput,
     PanelRangeBoundary,
-    PanelRangeConfig,
-    TimestampRangeConfig,
+    PanelRangeInput,
+    TimestampRangeInput,
 } from '../../domain/time/model/TimeTypes';
 import {
     createNumericRangeBoundary,
-    createNumericRangeConfig,
+    createNumericRangeInput,
     createTimestampRangeBoundary,
     createTimestampRangeBoundaryFromTimeBoundary,
-    createTimestampRangeConfig,
+    createTimestampRangeInput,
     isNumericRangeBoundary,
     isNumericRangeBoundaryKind,
     isTimestampRangeBoundary,
@@ -17,11 +17,11 @@ import {
 } from '../../domain/time/range/PanelRangeConfigUtils';
 import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
 
-export function normalizePersistedPanelRangeConfig(
+export function normalizePersistedPanelRangeInput(
     rangeConfig: unknown,
     isNumericAxis: boolean,
-): PanelRangeConfig | undefined {
-    const sExplicitRangeConfig = normalizeExplicitPanelRangeConfig(
+): PanelRangeInput | undefined {
+    const sExplicitRangeConfig = normalizeExplicitPanelRangeInput(
         rangeConfig,
         isNumericAxis,
     );
@@ -47,7 +47,7 @@ export function normalizePersistedPanelRangeConfig(
             sLegacyTimeRangeConfig.start.kind === 'absolute' &&
             sLegacyTimeRangeConfig.end.kind === 'absolute'
         ) {
-            return createNumericRangeConfig(
+            return createNumericRangeInput(
                 createNumericRangeBoundary(
                     'numeric_value',
                     sLegacyTimeRangeConfig.start.timestamp,
@@ -59,22 +59,22 @@ export function normalizePersistedPanelRangeConfig(
             );
         }
 
-        return createNumericRangeConfig(
+        return createNumericRangeInput(
             createNumericRangeBoundary('numeric_empty'),
             createNumericRangeBoundary('numeric_empty'),
         );
     }
 
-    return createTimestampRangeConfig(
+    return createTimestampRangeInput(
         createTimestampRangeBoundaryFromTimeBoundary(sLegacyTimeRangeConfig.start),
         createTimestampRangeBoundaryFromTimeBoundary(sLegacyTimeRangeConfig.end),
     );
 }
 
-function normalizeExplicitPanelRangeConfig(
+function normalizeExplicitPanelRangeInput(
     rangeConfig: unknown,
     isNumericAxis: boolean,
-): PanelRangeConfig | undefined {
+): PanelRangeInput | undefined {
     if (!rangeConfig || typeof rangeConfig !== 'object') {
         return undefined;
     }
@@ -82,15 +82,15 @@ function normalizeExplicitPanelRangeConfig(
     const sRangeConfig = rangeConfig as Record<string, unknown>;
 
     if (isNumericAxis) {
-        return normalizeExplicitNumericRangeConfig(sRangeConfig);
+        return normalizeExplicitNumericRangeInput(sRangeConfig);
     }
 
-    return normalizeExplicitTimestampRangeConfig(sRangeConfig);
+    return normalizeExplicitTimestampRangeInput(sRangeConfig);
 }
 
-function normalizeExplicitTimestampRangeConfig(
+function normalizeExplicitTimestampRangeInput(
     rangeConfig: Record<string, unknown>,
-): TimestampRangeConfig | undefined {
+): TimestampRangeInput | undefined {
     const sStartBoundary = normalizeExplicitPanelBoundary(rangeConfig.start);
     const sEndBoundary = normalizeExplicitPanelBoundary(rangeConfig.end);
 
@@ -103,12 +103,12 @@ function normalizeExplicitTimestampRangeConfig(
         return undefined;
     }
 
-    return createTimestampRangeConfig(sStartBoundary, sEndBoundary);
+    return createTimestampRangeInput(sStartBoundary, sEndBoundary);
 }
 
-function normalizeExplicitNumericRangeConfig(
+function normalizeExplicitNumericRangeInput(
     rangeConfig: Record<string, unknown>,
-): NumericRangeConfig | undefined {
+): NumericRangeInput | undefined {
     const sStartBoundary = normalizeExplicitPanelBoundary(rangeConfig.start);
     const sEndBoundary = normalizeExplicitPanelBoundary(rangeConfig.end);
 
@@ -121,7 +121,7 @@ function normalizeExplicitNumericRangeConfig(
         return undefined;
     }
 
-    return createNumericRangeConfig(sStartBoundary, sEndBoundary);
+    return createNumericRangeInput(sStartBoundary, sEndBoundary);
 }
 
 function normalizeExplicitPanelBoundary(
@@ -151,7 +151,7 @@ function normalizeExplicitPanelBoundary(
 function normalizeDirectNumberRangeConfig(
     rangeConfig: unknown,
     isNumericAxis: boolean,
-): PanelRangeConfig | undefined {
+): PanelRangeInput | undefined {
     if (!rangeConfig || typeof rangeConfig !== 'object') {
         return undefined;
     }
@@ -166,11 +166,11 @@ function normalizeDirectNumberRangeConfig(
     }
 
     return isNumericAxis
-        ? createNumericRangeConfig(
+        ? createNumericRangeInput(
               createNumericRangeBoundary('numeric_value', sRangeConfig.start),
               createNumericRangeBoundary('numeric_value', sRangeConfig.end),
           )
-        : createTimestampRangeConfig(
+        : createTimestampRangeInput(
               createTimestampRangeBoundary(
                   'timestamp_absolute',
                   sRangeConfig.start,

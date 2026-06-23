@@ -128,9 +128,13 @@ export type RequestClientResponse<TData> =
     | HttpErrorResponse<RequestErrorData>;
 
 export type ChartFetchApiResponse = {
-    status: number;
+    status?: number;
+    success?: boolean;
     data: unknown;
     statusText?: string;
+    reason?: unknown;
+    message?: unknown;
+    error?: unknown;
 };
 
 export type RollupTableMap = Record<string, Record<string, Record<string, string[]>>>;

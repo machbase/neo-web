@@ -1,28 +1,28 @@
 import { getTimeUnitMilliseconds } from '../interval/TimeIntervalUtils';
 import type {
     NumericRangeBoundary,
-    NumericRangeConfig,
+    NumericRangeInput,
     PanelRangeBoundary,
-    PanelRangeConfig,
+    PanelRangeInput,
     TimeBoundary,
     TimestampRangeBoundary,
-    TimestampRangeConfig,
+    TimestampRangeInput,
 } from '../model/TimeTypes';
 
-export function createTimestampRangeConfig(
+export function createTimestampRangeInput(
     start: TimestampRangeBoundary,
     end: TimestampRangeBoundary,
-): TimestampRangeConfig {
+): TimestampRangeInput {
     return {
         start,
         end,
     };
 }
 
-export function createNumericRangeConfig(
+export function createNumericRangeInput(
     start: NumericRangeBoundary,
     end: NumericRangeBoundary,
-): NumericRangeConfig {
+): NumericRangeInput {
     return {
         start,
         end,
@@ -43,16 +43,16 @@ export function createNumericRangeBoundary(
     return { kind, value } as NumericRangeBoundary;
 }
 
-export function isTimestampRangeConfig(
-    rangeConfig: PanelRangeConfig,
-): rangeConfig is TimestampRangeConfig {
+export function isTimestampRangeInput(
+    rangeConfig: PanelRangeInput,
+): rangeConfig is TimestampRangeInput {
     return isTimestampRangeBoundary(rangeConfig.start) &&
         isTimestampRangeBoundary(rangeConfig.end);
 }
 
-export function isNumericRangeConfig(
-    rangeConfig: PanelRangeConfig,
-): rangeConfig is NumericRangeConfig {
+export function isNumericRangeInput(
+    rangeConfig: PanelRangeInput,
+): rangeConfig is NumericRangeInput {
     return isNumericRangeBoundary(rangeConfig.start) &&
         isNumericRangeBoundary(rangeConfig.end);
 }
@@ -100,15 +100,15 @@ export function isEmptyPanelRangeBoundary(
     );
 }
 
-export function isEmptyPanelRangeConfig(
-    rangeConfig: PanelRangeConfig,
+export function isEmptyPanelRangeInput(
+    rangeConfig: PanelRangeInput,
 ): boolean {
     return isEmptyPanelRangeBoundary(rangeConfig.start) &&
         isEmptyPanelRangeBoundary(rangeConfig.end);
 }
 
-export function hasCompletePanelRangeConfig(
-    rangeConfig: PanelRangeConfig,
+export function hasCompletePanelRangeInput(
+    rangeConfig: PanelRangeInput,
 ): boolean {
     return !isEmptyPanelRangeBoundary(rangeConfig.start) &&
         !isEmptyPanelRangeBoundary(rangeConfig.end);
@@ -138,11 +138,11 @@ export function createTimestampRangeBoundaryFromTimeBoundary(
     }
 }
 
-export function clonePanelRangeConfig(
-    rangeConfig: PanelRangeConfig,
-): PanelRangeConfig {
-    if (isTimestampRangeConfig(rangeConfig)) {
-        return createTimestampRangeConfig(
+export function clonePanelRangeInput(
+    rangeConfig: PanelRangeInput,
+): PanelRangeInput {
+    if (isTimestampRangeInput(rangeConfig)) {
+        return createTimestampRangeInput(
             createTimestampRangeBoundary(
                 rangeConfig.start.kind,
                 rangeConfig.start.value,
@@ -154,8 +154,8 @@ export function clonePanelRangeConfig(
         );
     }
 
-    if (isNumericRangeConfig(rangeConfig)) {
-        return createNumericRangeConfig(
+    if (isNumericRangeInput(rangeConfig)) {
+        return createNumericRangeInput(
             createNumericRangeBoundary(
                 rangeConfig.start.kind,
                 rangeConfig.start.value,

@@ -1,41 +1,41 @@
 import type {
-    AxisRange,
     NumericRangeBoundary,
-    NumericRangeConfig,
-    PanelRangeConfig,
+    NumericRangeInput,
+    PanelRangeInput,
+    TimeRangeMs,
     TimestampRangeBoundary,
-    TimestampRangeConfig,
+    TimestampRangeInput,
 } from '../model/TimeTypes';
 import { isValidTimeRange } from '../range/TimeRangeUtils';
 import {
-    hasCompletePanelRangeConfig,
-    isNumericRangeConfig,
-    isTimestampRangeConfig,
+    hasCompletePanelRangeInput,
+    isNumericRangeInput,
+    isTimestampRangeInput,
 } from '../range/PanelRangeConfigUtils';
 
-export function resolvePanelRangeConfig(
-    rangeConfig: PanelRangeConfig,
-    fullRange: AxisRange,
-): AxisRange | undefined {
-    if (!hasCompletePanelRangeConfig(rangeConfig)) {
+export function resolvePanelRangeInput(
+    rangeConfig: PanelRangeInput,
+    fullRange: TimeRangeMs,
+): TimeRangeMs | undefined {
+    if (!hasCompletePanelRangeInput(rangeConfig)) {
         return undefined;
     }
 
-    if (isTimestampRangeConfig(rangeConfig)) {
-        return resolveTimestampRangeConfig(rangeConfig, fullRange);
+    if (isTimestampRangeInput(rangeConfig)) {
+        return resolveTimestampRangeInput(rangeConfig, fullRange);
     }
 
-    if (isNumericRangeConfig(rangeConfig)) {
-        return resolveNumericRangeConfig(rangeConfig, fullRange);
+    if (isNumericRangeInput(rangeConfig)) {
+        return resolveNumericRangeInput(rangeConfig, fullRange);
     }
 
     return undefined;
 }
 
-function resolveTimestampRangeConfig(
-    rangeConfig: TimestampRangeConfig,
-    fullRange: AxisRange,
-): AxisRange | undefined {
+function resolveTimestampRangeInput(
+    rangeConfig: TimestampRangeInput,
+    fullRange: TimeRangeMs,
+): TimeRangeMs | undefined {
     const startTime = resolveTimestampBoundary(rangeConfig.start, fullRange);
     const endTime = resolveTimestampBoundary(rangeConfig.end, fullRange);
 
@@ -53,7 +53,7 @@ function resolveTimestampRangeConfig(
 
 function resolveTimestampBoundary(
     boundary: TimestampRangeBoundary,
-    fullRange: AxisRange,
+    fullRange: TimeRangeMs,
 ): number | undefined {
     switch (boundary.kind) {
         case 'timestamp_empty':
@@ -67,10 +67,10 @@ function resolveTimestampBoundary(
     }
 }
 
-function resolveNumericRangeConfig(
-    rangeConfig: NumericRangeConfig,
-    fullRange: AxisRange,
-): AxisRange | undefined {
+function resolveNumericRangeInput(
+    rangeConfig: NumericRangeInput,
+    fullRange: TimeRangeMs,
+): TimeRangeMs | undefined {
     const startValue = resolveNumericBoundary(rangeConfig.start, fullRange);
     const endValue = resolveNumericBoundary(rangeConfig.end, fullRange);
 
@@ -94,9 +94,9 @@ function resolveNumericRangeConfig(
 }
 
 function clampNumericRangeToFullRange(
-    range: AxisRange,
-    fullRange: AxisRange,
-): AxisRange {
+    range: TimeRangeMs,
+    fullRange: TimeRangeMs,
+): TimeRangeMs {
     const rangeWidth = range.endTime - range.startTime;
     const fullRangeWidth = fullRange.endTime - fullRange.startTime;
 
@@ -123,7 +123,7 @@ function clampNumericRangeToFullRange(
 
 function resolveNumericBoundary(
     boundary: NumericRangeBoundary,
-    fullRange: AxisRange,
+    fullRange: TimeRangeMs,
 ): number | undefined {
     switch (boundary.kind) {
         case 'numeric_empty':
@@ -137,7 +137,7 @@ function resolveNumericBoundary(
     }
 }
 
-function usesNumericDataAnchor(rangeConfig: NumericRangeConfig): boolean {
+function usesNumericDataAnchor(rangeConfig: NumericRangeInput): boolean {
     return (
         rangeConfig.start.kind === 'numeric_data_start' ||
         rangeConfig.start.kind === 'numeric_data_end' ||

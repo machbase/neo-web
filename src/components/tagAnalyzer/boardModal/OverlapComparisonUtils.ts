@@ -28,6 +28,36 @@ export function hasOverlapPanelDraftChanged(
     });
 }
 
+export type SeriesTimeBounds = {
+    startTime: number;
+    endTime: number;
+};
+
+export function getSeriesTimeBounds(
+    seriesData: ChartSeriesData[],
+): SeriesTimeBounds | undefined {
+    const sTimestamps = seriesData.flatMap((series) =>
+        series.data.map(([timestamp]) => timestamp),
+    );
+
+    if (sTimestamps.length === 0) {
+        return undefined;
+    }
+
+    const sStartTime = Math.min(...sTimestamps);
+    const sEndTime = Math.max(...sTimestamps);
+
+    if (
+        !Number.isFinite(sStartTime) ||
+        !Number.isFinite(sEndTime) ||
+        sEndTime <= sStartTime
+    ) {
+        return undefined;
+    }
+
+    return { startTime: sStartTime, endTime: sEndTime };
+}
+
 export function buildOverlapLoadState(results: OverlapLoadResult[]): {
     chartSeries: ChartSeriesData[];
 } {

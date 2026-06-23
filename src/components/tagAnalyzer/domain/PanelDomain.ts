@@ -1,7 +1,6 @@
 import type {
-    AxisRange,
-    PanelNavigatorRangePair,
-    PanelRangeConfig,
+    PanelViewRange,
+    PanelRangeInput,
     TimeRangeMs,
 } from './time/model/TimeTypes';
 import type { PanelSeriesDefinition } from './SeriesDomain';
@@ -53,9 +52,9 @@ export type PanelMode = {
     useNormalize: boolean;
 };
 
-export type PanelTimeRange = PanelRangeConfig & {
+export type PanelTimeRange = PanelRangeInput & {
     useLastViewedRange: boolean;
-    lastViewedRange: PanelNavigatorRangePair | undefined;
+    lastViewedRange: PanelViewRange | undefined;
 };
 
 export type PanelAxisThreshold = {
@@ -70,6 +69,13 @@ export type PanelXAxis = {
 export type PanelSampling = {
     enabled: boolean;
     sampleCount: number | undefined;
+};
+
+export const DEFAULT_RAW_NAVIGATOR_SAMPLING_VALUE = 0.01;
+
+export const DEFAULT_RAW_NAVIGATOR_SAMPLING: PanelSampling = {
+    enabled: false,
+    sampleCount: DEFAULT_RAW_NAVIGATOR_SAMPLING_VALUE,
 };
 
 export type PanelYAxis = {
@@ -108,6 +114,7 @@ export type PanelDisplay = {
     useZoom: boolean;
     pixelsPerTick: PanelPixelsPerTick;
     mainChartSampling: PanelSampling;
+    rawNavigatorSampling: PanelSampling;
 };
 
 export type RuntimeValueRange = {
@@ -342,14 +349,14 @@ export type PanelRangeActions = {
 };
 
 export type PanelRangeState = {
-    requestPanelRange: AxisRange;
-    requestNavigatorRange: AxisRange;
-    fullRange: AxisRange;
+    requestPanelRange: TimeRangeMs;
+    requestNavigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
 };
 
 export type PanelDisplayRangeState = {
-    displayPanelRange: AxisRange;
-    displayNavigatorRange: AxisRange;
+    displayPanelRange: TimeRangeMs;
+    displayNavigatorRange: TimeRangeMs;
 };
 
 export type PanelPoint = {
@@ -394,4 +401,4 @@ export type PanelMarkupHandlers = {
     ) => unknown;
 };
 
-export type { AxisRange, TimeRangeMs };
+export type { TimeRangeMs };

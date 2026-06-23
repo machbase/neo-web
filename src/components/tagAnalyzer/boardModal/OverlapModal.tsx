@@ -12,6 +12,7 @@ import { Button, Page, Toast } from '@/design-system/components';
 import type { OverlapPanelInfo } from '../domain/BoardDomain';
 import {
     buildOverlapLoadState,
+    getSeriesTimeBounds,
     hasOverlapPanelDraftChanged,
     resolveOverlapTimeRange,
 } from './OverlapComparisonUtils';
@@ -391,24 +392,7 @@ function getCurrentOverlapChartVisibleRange(
     if (sStartTime !== undefined && sEndTime !== undefined && sEndTime > sStartTime) {
         return { startTime: sStartTime, endTime: sEndTime };
     }
-    return getOverlapSeriesDataRange(seriesData);
-}
-
-function getOverlapSeriesDataRange(
-    seriesData: ChartSeriesData[],
-): OverlapChartVisibleRange | undefined {
-    const sTimestamps = seriesData.flatMap((series) =>
-        series.data.map(([timestamp]) => timestamp),
-    );
-    if (sTimestamps.length === 0) return undefined;
-
-    const sStartTime = Math.min(...sTimestamps);
-    const sEndTime = Math.max(...sTimestamps);
-
-    if (!Number.isFinite(sStartTime) || !Number.isFinite(sEndTime) || sEndTime <= sStartTime) {
-        return undefined;
-    }
-    return { startTime: sStartTime, endTime: sEndTime };
+    return getSeriesTimeBounds(seriesData);
 }
 
 function getFiniteChartRangeValue(

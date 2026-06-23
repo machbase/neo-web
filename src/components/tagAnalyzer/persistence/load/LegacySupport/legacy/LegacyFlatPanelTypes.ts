@@ -3,7 +3,7 @@ import type {
     PanelEChartType,
     ValueRange,
 } from '../../../../domain/PanelDomain';
-import type { PanelRangeConfig } from '../../../../domain/time/model/TimeTypes';
+import type { PanelRangeInput } from '../../../../domain/time/model/TimeTypes';
 
 type LegacyStoredTimeBoundaryValue = string | number | '';
 
@@ -55,6 +55,6 @@ export type LegacyFlatPanelInfo = {
     point_radius: number | string;
     fill: number | string;
     stroke: number | string;
-    range_config?: PanelRangeConfig | undefined;
+    range_config?: PanelRangeInput | undefined;
     [key: string]: unknown;
 };

@@ -1,7 +1,7 @@
 import type { PanelInfo } from '../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
-import { clonePanelRangeConfig } from '../../domain/time/range/PanelRangeConfigUtils';
+import { clonePanelRangeInput } from '../../domain/time/range/PanelRangeConfigUtils';
 import type { PersistedPanelInfoV210 } from '../TazPersistenceTypesV210';
 import {
     clonePanelAnnotations,
@@ -29,7 +29,7 @@ export function mapPanelToPersistedTaz(
             useNormalize: panelInfo.mode.useNormalize,
         },
         timeRange: {
-            ...clonePanelRangeConfig(panelInfo.timeRange),
+            ...clonePanelRangeInput(panelInfo.timeRange),
             useLastViewedRange: panelInfo.timeRange.useLastViewedRange,
             lastViewedRange: panelInfo.timeRange.lastViewedRange,
         },
@@ -85,6 +85,10 @@ export function mapPanelToPersistedTaz(
             mainChartSampling: {
                 enabled: panelInfo.display.mainChartSampling.enabled,
                 sampleCount: panelInfo.display.mainChartSampling.sampleCount,
+            },
+            rawNavigatorSampling: {
+                enabled: panelInfo.display.rawNavigatorSampling.enabled,
+                sampleCount: panelInfo.display.rawNavigatorSampling.sampleCount,
             },
         },
         highlights: clonePanelHighlights(panelInfo.highlights),

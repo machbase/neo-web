@@ -6,8 +6,8 @@ import type {
 } from '../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import type {
-    PanelNavigatorRangePair,
-    PanelRangeConfig,
+    PanelViewRange,
+    PanelRangeInput,
 } from '../domain/time/model/TimeTypes';
 import type {
     PersistedBoardTimeRange,
@@ -19,7 +19,7 @@ export type PersistedPanelInfoV204 = {
         chart_title: string;
         use_zoom: boolean;
         use_last_viewed_range: boolean;
-        last_viewed_range?: PanelNavigatorRangePair | undefined;
+        last_viewed_range?: PanelViewRange | undefined;
         is_raw: boolean;
         is_order_by?: boolean | undefined;
         use_normalize: boolean;
@@ -31,7 +31,7 @@ export type PersistedPanelInfoV204 = {
         interval_type: string | undefined;
     };
     time: {
-        range_config: PanelRangeConfig;
+        range_config: PanelRangeInput;
     };
     axes: {
         x_axis: {

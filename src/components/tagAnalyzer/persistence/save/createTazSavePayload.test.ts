@@ -2,7 +2,7 @@ import type { PanelInfo } from '../../domain/PanelDomain';
 import { createEmptyTimeBoundary } from '../../domain/time/boundary/TimeBoundaryInput';
 import {
     createTimestampRangeBoundary,
-    createTimestampRangeConfig,
+    createTimestampRangeInput,
 } from '../../domain/time/range/PanelRangeConfigUtils';
 import type { PersistedTazBoardInfo } from '../TazPersistenceTypesV200';
 import { createTazSavePayload } from './createTazSavePayload';
@@ -22,7 +22,7 @@ function createRuntimePanel(): PanelInfo {
             useNormalize: false,
         },
         timeRange: {
-            ...createTimestampRangeConfig(
+            ...createTimestampRangeInput(
                 createTimestampRangeBoundary('timestamp_empty'),
                 createTimestampRangeBoundary('timestamp_empty'),
             ),
@@ -54,6 +54,10 @@ function createRuntimePanel(): PanelInfo {
                 calculatedNavigator: 3,
             },
             mainChartSampling: {
+                enabled: false,
+                sampleCount: 0.01,
+            },
+            rawNavigatorSampling: {
                 enabled: false,
                 sampleCount: 0.01,
             },

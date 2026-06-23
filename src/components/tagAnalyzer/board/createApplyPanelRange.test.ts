@@ -1,6 +1,6 @@
 import type { PanelRangeState } from '../domain/PanelDomain';
 import type { BoardPanelRecord } from './BoardPanelState';
-import { resolvePanelRangeApplyResult } from './useApplyPanelRange';
+import { resolvePanelRangeApplyResult } from './createApplyPanelRange';
 
 function createRange(startTime: number, endTime: number) {
     return { startTime, endTime };

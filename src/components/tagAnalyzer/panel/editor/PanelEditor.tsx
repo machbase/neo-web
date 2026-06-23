@@ -26,7 +26,7 @@ import type {
     PanelInfo,
     PanelYAxis,
 } from '../../domain/PanelDomain';
-import { shouldUseNumericPanelRangeConfig } from '../../domain/SeriesDomain';
+import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../domain/time/model/TimeTypes';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
@@ -185,7 +185,7 @@ const PanelEditor = ({
     );
     const sHasInvalidEditorValues =
         sHasInvalidAxisRange || sHasInvalidPixelsPerTick;
-    const sIsNumericXAxis = shouldUseNumericPanelRangeConfig(
+    const sIsNumericXAxis = shouldUseNumericPanelRangeInput(
         sEditorConfig.query.tagSet,
     );
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;

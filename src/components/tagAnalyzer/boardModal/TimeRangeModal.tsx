@@ -51,6 +51,47 @@ export default function TimeRangeModal(props: RangeModalProps) {
     return <DateTimeRangeModal {...props} />;
 }
 
+function RangeModalShell({
+    title,
+    onClose,
+    onReset,
+    onApply,
+    children,
+}: {
+    title: ReactNode;
+    onClose: () => void;
+    onReset: () => void;
+    onApply: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <Modal.Root isOpen={true} onClose={onClose}>
+            <Modal.Header>
+                <Modal.Title>
+                    <Calendar />
+                    {title}
+                </Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
+            <Modal.Body>{children}</Modal.Body>
+            <Modal.Footer style={{ justifyContent: 'space-between' }}>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<VscTrash size={16} />}
+                    onClick={onReset}
+                >
+                    Reset
+                </Button>
+                <Button.Group>
+                    <Modal.Confirm onClick={onApply}>Apply</Modal.Confirm>
+                    <Modal.Cancel>Cancel</Modal.Cancel>
+                </Button.Group>
+            </Modal.Footer>
+        </Modal.Root>
+    );
+}
+
 function DateTimeRangeModal({
     title,
     timeRange,
@@ -67,11 +108,6 @@ function DateTimeRangeModal({
     function handleQuickTime(option: QuickTimeRangeOption) {
         setStartTimeText(String(option.value[0] ?? ''));
         setEndTimeText(String(option.value[1] ?? ''));
-    }
-
-    function handleReset() {
-        setStartTimeText('');
-        setEndTimeText('');
     }
 
     function handleApply() {
@@ -94,51 +130,36 @@ function DateTimeRangeModal({
     }
 
     return (
-        <Modal.Root isOpen={true} onClose={onClose}>
-            <Modal.Header>
-                <Modal.Title>
-                    <Calendar />
-                    {title}
-                </Modal.Title>
-                <Modal.Close />
-            </Modal.Header>
-            <Modal.Body>
-                <TagAnalyzerDatePicker
-                    label="From"
-                    topPixel={32}
-                    value={String(startTimeText)}
-                    onChange={setStartTimeText}
-                    onApply={setStartTimeText}
-                />
-                <TagAnalyzerDatePicker
-                    label="To"
-                    topPixel={32}
-                    value={String(endTimeText)}
-                    onChange={setEndTimeText}
-                    onApply={setEndTimeText}
-                />
-                <Page.Space />
-                <QuickTimeRange
-                    options={TIME_RANGE}
-                    onSelect={handleQuickTime}
-                    title="Quick Range"
-                />
-            </Modal.Body>
-            <Modal.Footer style={{ justifyContent: 'space-between' }}>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={<VscTrash size={16} />}
-                    onClick={handleReset}
-                >
-                    Reset
-                </Button>
-                <Button.Group>
-                    <Modal.Confirm onClick={handleApply}>Apply</Modal.Confirm>
-                    <Modal.Cancel>Cancel</Modal.Cancel>
-                </Button.Group>
-            </Modal.Footer>
-        </Modal.Root>
+        <RangeModalShell
+            title={title}
+            onClose={onClose}
+            onReset={() => {
+                setStartTimeText('');
+                setEndTimeText('');
+            }}
+            onApply={handleApply}
+        >
+            <TagAnalyzerDatePicker
+                label="From"
+                topPixel={32}
+                value={String(startTimeText)}
+                onChange={setStartTimeText}
+                onApply={setStartTimeText}
+            />
+            <TagAnalyzerDatePicker
+                label="To"
+                topPixel={32}
+                value={String(endTimeText)}
+                onChange={setEndTimeText}
+                onApply={setEndTimeText}
+            />
+            <Page.Space />
+            <QuickTimeRange
+                options={TIME_RANGE}
+                onSelect={handleQuickTime}
+                title="Quick Range"
+            />
+        </RangeModalShell>
     );
 }
 
@@ -154,11 +175,6 @@ function NumericRangeModal({
     const [endValue, setEndValue] = useState(
         () => formatAxisInputValue(numericRange.endTime, true),
     );
-
-    function handleReset() {
-        setStartValue('');
-        setEndValue('');
-    }
 
     function handleApply() {
         const sStart = parseAxisInputValue(startValue, true);
@@ -186,45 +202,30 @@ function NumericRangeModal({
     }
 
     return (
-        <Modal.Root isOpen={true} onClose={onClose}>
-            <Modal.Header>
-                <Modal.Title>
-                    <Calendar />
-                    {title}
-                </Modal.Title>
-                <Modal.Close />
-            </Modal.Header>
-            <Modal.Body>
-                <Input
-                    label="From"
-                    labelPosition="left"
-                    value={startValue}
-                    placeholder={NUMERIC_AXIS_INPUT_FORMAT}
-                    onChange={(event) => setStartValue(event.target.value)}
-                />
-                <Input
-                    label="To"
-                    labelPosition="left"
-                    value={endValue}
-                    placeholder={NUMERIC_AXIS_INPUT_FORMAT}
-                    onChange={(event) => setEndValue(event.target.value)}
-                />
-            </Modal.Body>
-            <Modal.Footer style={{ justifyContent: 'space-between' }}>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={<VscTrash size={16} />}
-                    onClick={handleReset}
-                >
-                    Reset
-                </Button>
-                <Button.Group>
-                    <Modal.Confirm onClick={handleApply}>Apply</Modal.Confirm>
-                    <Modal.Cancel>Cancel</Modal.Cancel>
-                </Button.Group>
-            </Modal.Footer>
-        </Modal.Root>
+        <RangeModalShell
+            title={title}
+            onClose={onClose}
+            onReset={() => {
+                setStartValue('');
+                setEndValue('');
+            }}
+            onApply={handleApply}
+        >
+            <Input
+                label="From"
+                labelPosition="left"
+                value={startValue}
+                placeholder={NUMERIC_AXIS_INPUT_FORMAT}
+                onChange={(event) => setStartValue(event.target.value)}
+            />
+            <Input
+                label="To"
+                labelPosition="left"
+                value={endValue}
+                placeholder={NUMERIC_AXIS_INPUT_FORMAT}
+                onChange={(event) => setEndValue(event.target.value)}
+            />
+        </RangeModalShell>
     );
 }
 

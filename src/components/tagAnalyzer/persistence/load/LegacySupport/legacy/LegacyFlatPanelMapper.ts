@@ -1,4 +1,5 @@
 import {
+    DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
     normalizePanelEChartType,
     type PanelInfo,
@@ -11,25 +12,25 @@ import {
     toLegacySeriesConfigs,
 } from './LegacySeriesPersistenceAdapter';
 import {
-    shouldUseNumericPanelRangeConfig,
+    shouldUseNumericPanelRangeInput,
 } from '../../../../domain/SeriesDomain';
 import type {
-    PanelNavigatorRangePair,
-    PanelRangeConfig,
+    PanelViewRange,
+    PanelRangeInput,
     TimestampRangeBoundary,
     NumericRangeBoundary,
     TimeRangeConfig,
 } from '../../../../domain/time/model/TimeTypes';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/boundary/TimeBoundaryInput';
-import { normalizePanelNavigatorRangePair } from '../../../../domain/time/boundary/TimeBoundaryValidate';
+import { normalizePanelViewRange } from '../../../../domain/time/boundary/TimeBoundaryValidate';
 import { normalizeStoredTimeUnit } from '../../../../domain/time/interval/TimeIntervalUtils';
 import {
     createNumericRangeBoundary,
-    createNumericRangeConfig,
+    createNumericRangeInput,
     createTimestampRangeBoundary,
-    createTimestampRangeConfig,
+    createTimestampRangeInput,
 } from '../../../../domain/time/range/PanelRangeConfigUtils';
-import { normalizePersistedPanelRangeConfig } from '../../normalizePersistedPanelRangeConfig';
+import { normalizePersistedPanelRangeInput } from '../../normalizePersistedPanelRangeConfig';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 export function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,
@@ -99,7 +100,7 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
     const sRangeConfig = resolveLegacyRangeConfig(
         panelInfo,
         sTimeRange,
-        shouldUseNumericPanelRangeConfig(sTagSet),
+        shouldUseNumericPanelRangeInput(sTagSet),
     );
 
     return {
@@ -237,6 +238,7 @@ function createNormalizedLegacyPanelInfo(
                 enabled: false,
                 sampleCount: panelInfo.sampling_value,
             },
+            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: [],
         annotations: [],
@@ -257,17 +259,17 @@ function toLegacyNumberValue(value: number | undefined): number {
 
 function normalizeLegacyLastViewedRange(
     lastViewedRange: unknown,
-): PanelNavigatorRangePair | undefined {
-    return normalizePanelNavigatorRangePair(lastViewedRange);
+): PanelViewRange | undefined {
+    return normalizePanelViewRange(lastViewedRange);
 }
 
 function resolveLegacyRangeConfig(
     panelInfo: LegacyFlatPanelInfo,
     storedRangeConfig: TimeRangeConfig,
     isNumericAxis: boolean,
-): PanelRangeConfig {
+): PanelRangeInput {
     if (hasLegacyStoredRange(panelInfo)) {
-        return normalizePersistedPanelRangeConfig(
+        return normalizePersistedPanelRangeInput(
             storedRangeConfig,
             isNumericAxis,
         ) ?? createEmptyRangeConfigForAxis(isNumericAxis);
@@ -279,13 +281,13 @@ function resolveLegacyRangeConfig(
     ) ?? createEmptyRangeConfigForAxis(isNumericAxis);
 }
 
-function createEmptyRangeConfigForAxis(isNumericAxis: boolean): PanelRangeConfig {
+function createEmptyRangeConfigForAxis(isNumericAxis: boolean): PanelRangeInput {
     return isNumericAxis
-        ? createNumericRangeConfig(
+        ? createNumericRangeInput(
               createNumericRangeBoundary('numeric_empty'),
               createNumericRangeBoundary('numeric_empty'),
           )
-        : createTimestampRangeConfig(
+        : createTimestampRangeInput(
               createTimestampRangeBoundary('timestamp_empty'),
               createTimestampRangeBoundary('timestamp_empty'),
           );
@@ -303,7 +305,7 @@ function hasLegacyStoredRange(panelInfo: LegacyFlatPanelInfo): boolean {
 function createAbsoluteRangeConfigFromValueRange(
     valueRange: ValueRange | undefined,
     isNumericAxis: boolean,
-): PanelRangeConfig | undefined {
+): PanelRangeInput | undefined {
     if (
         !valueRange ||
         valueRange.min === undefined ||
@@ -313,18 +315,18 @@ function createAbsoluteRangeConfigFromValueRange(
     }
 
     return isNumericAxis
-        ? createNumericRangeConfig(
+        ? createNumericRangeInput(
               createNumericRangeBoundary('numeric_value', valueRange.min),
               createNumericRangeBoundary('numeric_value', valueRange.max),
           )
-        : createTimestampRangeConfig(
+        : createTimestampRangeInput(
               createTimestampRangeBoundary('timestamp_absolute', valueRange.min),
               createTimestampRangeBoundary('timestamp_absolute', valueRange.max),
           );
 }
 
 function createLegacyDefaultRange(
-    rangeConfig: PanelRangeConfig,
+    rangeConfig: PanelRangeInput,
 ): ValueRange | undefined {
     const sStartBoundary = rangeConfig.start;
     const sEndBoundary = rangeConfig.end;

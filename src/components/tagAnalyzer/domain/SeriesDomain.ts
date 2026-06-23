@@ -133,7 +133,7 @@ export function getSeriesListKeyAxisKind(
     return getSeriesKeyAxisKind(seriesList[0]?.sourceColumns);
 }
 
-export function shouldUseNumericPanelRangeConfig(
+export function shouldUseNumericPanelRangeInput(
     seriesList: SeriesWithSourceColumns[] = [],
 ): boolean {
     return !hasMixedXAxisValueKinds(seriesList) && hasNumericBaseTimeSeries(seriesList);

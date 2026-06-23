@@ -164,6 +164,17 @@ const EditorDataSettingTab = ({
             },
         });
     };
+    const patchRawNavigatorSampling = (
+        patch: Partial<PanelDisplayDraft['rawNavigatorSampling']>,
+    ) => {
+        pOnChangeDisplayConfig({
+            ...pDisplayConfig,
+            rawNavigatorSampling: {
+                ...pDisplayConfig.rawNavigatorSampling,
+                ...patch,
+            },
+        });
+    };
     const xNumber = (field: PixelsPerTickField, disabled: boolean) => (
         <div className={cx(disabled && styles.disabledControl)}>
             <NumberInput
@@ -198,8 +209,10 @@ const EditorDataSettingTab = ({
         />
     );
     const rawNavigatorTooltip = pIsNumericXAxis
-        ? 'Numeric navigator data uses fixed database sampling and a fixed row cap.'
-        : 'Raw navigator data uses fixed database sampling and a fixed row cap.';
+        ? 'Raw numeric navigator data requires database sampling.'
+        : 'Raw navigator data uses average buckets by default. Enable sampling to use database sampling.';
+    const sUseRawNavigatorSampling =
+        pIsNumericXAxis || pDisplayConfig.rawNavigatorSampling.enabled;
     const sCanPrefetchMainChart = !pIsRawMode;
     const sPrefetchTooltip = sCanPrefetchMainChart
         ? 'Main chart prefetch is active for calculated data.'
@@ -252,14 +265,25 @@ const EditorDataSettingTab = ({
                 <span className={styles.axisSubsectionTitle}>Nav Bar</span>
                 <SamplingRow
                     anchorClass="navigation-sampling-tooltip"
-                    label="Navigation sampling"
+                    label="Use navigation sampling"
                     content={rawNavigatorTooltip}
                     disabled={!pIsRawMode}
                 >
+                    <Checkbox
+                        checked={sUseRawNavigatorSampling}
+                        onChange={(event) =>
+                            patchRawNavigatorSampling({
+                                enabled: event.target.checked,
+                                sampleCount: RAW_NAVIGATOR_SAMPLING_VALUE,
+                            })
+                        }
+                        disabled={!pIsRawMode || pIsNumericXAxis}
+                        size="sm"
+                    />
                     <span className={styles.editorFixedValue}>
-                        Sampling {RAW_NAVIGATOR_SAMPLING_VALUE}, dynamic cap{' '}
-                        {RAW_NAVIGATOR_MIN_SAMPLE_COUNT.toLocaleString()}-
-                        {RAW_NAVIGATOR_MAX_SAMPLE_COUNT.toLocaleString()}
+                        {sUseRawNavigatorSampling
+                            ? `Sampling ${RAW_NAVIGATOR_SAMPLING_VALUE}, dynamic cap ${RAW_NAVIGATOR_MIN_SAMPLE_COUNT.toLocaleString()}-${RAW_NAVIGATOR_MAX_SAMPLE_COUNT.toLocaleString()}`
+                            : 'Average'}
                     </span>
                 </SamplingRow>
             </Section>
