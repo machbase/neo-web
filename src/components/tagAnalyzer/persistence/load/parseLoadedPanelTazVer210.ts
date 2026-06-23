@@ -1,4 +1,7 @@
-import type { PanelInfo } from '../../domain/PanelDomain';
+import {
+    normalizePanelQueryCount,
+    type PanelInfo,
+} from '../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
 import { normalizePanelNavigatorRangePair } from '../../domain/time/boundary/TimeBoundaryValidate';
@@ -61,7 +64,7 @@ export function parseLoadedPanelTazVer210(
         title: panelInfo.title,
         query: {
             tagSet: sTagSet,
-            count: panelInfo.query.count,
+            count: normalizePanelQueryCount(panelInfo.query.count),
             intervalType: sIntervalType,
         },
         mode: {

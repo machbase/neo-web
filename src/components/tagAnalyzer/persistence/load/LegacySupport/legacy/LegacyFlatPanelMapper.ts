@@ -1,4 +1,5 @@
 import {
+    normalizePanelQueryCount,
     normalizePanelEChartType,
     type PanelInfo,
     type ValueRange,
@@ -108,7 +109,7 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
         range_config: sRangeConfig,
         raw_keeper: panelInfo.raw_keeper ?? false,
         time_keeper: normalizeLegacyLastViewedRange(panelInfo.time_keeper),
-        count: panelInfo.count ?? -1,
+        count: normalizePanelQueryCount(panelInfo.count),
         interval_type:
             normalizeStoredTimeUnit(panelInfo.interval_type ?? '') ??
             panelInfo.interval_type,

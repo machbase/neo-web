@@ -351,7 +351,7 @@ function buildLoadConfig(panelInfo: PanelInfo): PanelChartDataLoadConfig {
 
     return {
         seriesList: panelInfo.query.tagSet,
-        queryLimit: panelInfo.query.count ?? -1,
+        queryLimit: panelInfo.query.count,
         intervalType: panelInfo.query.intervalType,
         isRaw: panelInfo.mode.isRaw,
         useOrderBy: panelInfo.mode.isRaw ? panelInfo.mode.isOrderBy : true,

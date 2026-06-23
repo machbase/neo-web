@@ -20,7 +20,7 @@ export function hasOverlapPanelDraftChanged(
         const sAppliedPanel = appliedPanelsInfo[index];
         return (
             !sAppliedPanel ||
-            sAppliedPanel.board.key !== draftPanel.board.key ||
+            sAppliedPanel.panelKey !== draftPanel.panelKey ||
             sAppliedPanel.start !== draftPanel.start ||
             sAppliedPanel.duration !== draftPanel.duration ||
             sAppliedPanel.isRaw !== draftPanel.isRaw
@@ -30,15 +30,11 @@ export function hasOverlapPanelDraftChanged(
 
 export function buildOverlapLoadState(results: OverlapLoadResult[]): {
     chartSeries: ChartSeriesData[];
-    startTimes: number[];
 } {
     return {
         chartSeries: results
             .map((result) => result.chartSeries)
             .filter((series): series is ChartSeriesData => series !== undefined),
-        startTimes: results
-            .map((result) => result.originTime)
-            .filter((time): time is number => typeof time === 'number'),
     };
 }
 

@@ -1,3 +1,4 @@
+import type { TazVersion } from './TazVersion';
 import type {
     PanelInfo,
     PanelEChartType,
@@ -161,7 +162,7 @@ export type PersistedBoardTimeRange =
 export type PersistedTazBoardInfo = {
     id: string;
     type: string;
-    version?: string | undefined;
+    version?: TazVersion | string | undefined;
     panels: PersistedTazPanelInfo[];
     boardTimeRange?: PersistedBoardTimeRange | undefined;
     name?: string | undefined;
@@ -180,7 +181,7 @@ export type PersistedTazBoardInfo = {
 export type PersistedTazBoardInfoV200 = {
     id: string;
     type: string;
-    version: '2.0.0';
+    version: TazVersion.V200;
     boardTimeRange: PersistedBoardTimeRange;
     panels: PersistedPanelInfoV200[];
 };

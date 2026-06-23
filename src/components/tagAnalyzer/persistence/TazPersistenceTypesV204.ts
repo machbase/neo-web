@@ -1,3 +1,4 @@
+import type { TazVersion } from './TazVersion';
 import type {
     PanelAxisThreshold,
     PanelEChartType,
@@ -91,7 +92,7 @@ export type PanelInfoV204Highlight = {
 export type PersistedTazBoardInfoV204 = {
     id: string;
     type: string;
-    version: '2.0.4';
+    version: TazVersion.V204;
     boardTimeRange: PersistedBoardTimeRange;
     panels: PersistedPanelInfoV204[];
 };

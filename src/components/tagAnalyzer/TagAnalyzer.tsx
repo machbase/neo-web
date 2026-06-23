@@ -18,6 +18,7 @@ import {
 } from './appState/gBoardListUpdater';
 import {
     TAZ_FORMAT_VERSION,
+    TazVersion,
     normalizePersistedTazVersion,
     parseLoadedTaz,
 } from './persistence/load/parseLoadedTaz';
@@ -177,7 +178,7 @@ function shouldWarnAboutOlderTazVersion(boardInfo: PersistedTazBoardInfo): boole
         return false;
     }
 
-    if (sVersion === undefined && boardInfo.panels.length === 0) {
+    if (sVersion === TazVersion.Legacy && boardInfo.panels.length === 0) {
         return false;
     }
 
@@ -185,7 +186,7 @@ function shouldWarnAboutOlderTazVersion(boardInfo: PersistedTazBoardInfo): boole
 }
 
 function formatTazVersionForDisplay(version: unknown): string {
-    return normalizePersistedTazVersion(version) ?? 'legacy';
+    return normalizePersistedTazVersion(version);
 }
 
 export default TagAnalyzer;

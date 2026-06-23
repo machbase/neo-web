@@ -13,23 +13,23 @@ import type {
 } from '../TazPersistenceTypesV200';
 import type { TimeRangeConfig } from '../../domain/time/model/TimeTypes';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/boundary/TimeBoundaryInput';
-
-export const TAZ_FORMAT_VERSION = '2.1.0';
-const SUPPORTED_TAZ_FORMAT_VERSIONS = [
-    '2.0.0',
-    '2.0.1',
-    '2.0.2',
-    '2.0.3',
-    '2.0.4',
-    '2.0.5',
+import {
     TAZ_FORMAT_VERSION,
-] as const;
+    TazVersion,
+    isTazVersion,
+} from '../TazVersion';
 
-export type PersistedTazVersion = (typeof SUPPORTED_TAZ_FORMAT_VERSIONS)[number];
+export { TAZ_FORMAT_VERSION, TazVersion };
+
+export type PersistedTazVersion = TazVersion;
+
+type NormalizedLoadedBoardMetadata = PersistedTazBoardInfo & {
+    version: TazVersion;
+    boardTimeRange: PersistedBoardTimeRange;
+};
 
 export function parseLoadedTaz(boardInfo: PersistedTazBoardInfo): BoardInfo {
     const sNormalizedBoardInfo = normalizeLoadedBoardMetadata(boardInfo);
-    assertSupportedPersistedTazVersion(sNormalizedBoardInfo.version);
     const sBoardTimeRange = normalizePersistedBoardTimeRange(
         sNormalizedBoardInfo.boardTimeRange,
     );
@@ -52,38 +52,46 @@ export function parseLoadedTaz(boardInfo: PersistedTazBoardInfo): BoardInfo {
 
 export function parseLoadedPanelTaz(
     panelInfo: unknown,
-    version: string | undefined = TAZ_FORMAT_VERSION,
+    version: unknown = TAZ_FORMAT_VERSION,
 ): PanelInfo {
     const sNormalizedVersion = normalizePersistedTazVersion(version);
-    assertSupportedPersistedTazVersion(sNormalizedVersion);
 
     return parseLoadedPanelTazByVersion(panelInfo, sNormalizedVersion);
 }
 
-export function normalizePersistedTazVersion(version: unknown): string | undefined {
+export function normalizePersistedTazVersion(version: unknown): TazVersion {
     if (version === undefined || version === null) {
-        return undefined;
+        return TazVersion.Legacy;
     }
 
     const sVersion = String(version).trim();
+    if (sVersion === '') {
+        return TazVersion.Legacy;
+    }
 
-    return sVersion === '' ? undefined : sVersion;
+    if (isTazVersion(sVersion)) {
+        return sVersion;
+    }
+
+    throw new Error(
+        `Unsupported TagAnalyzer .taz version: ${formatPersistedTazVersionForError(version)}`,
+    );
 }
 
 export { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 };
 
 function parseLoadedPanels(
     panels: PersistedTazPanelInfo[],
-    version: PersistedTazVersion | undefined,
+    version: TazVersion,
 ): PanelInfo[] {
     return panels.map((panelInfo) => parseLoadedPanelTazByVersion(panelInfo, version));
 }
 
 function parseLoadedPanelTazByVersion(
     panelInfo: unknown,
-    version: PersistedTazVersion | undefined,
+    version: TazVersion,
 ): PanelInfo {
-    if (version === undefined) {
+    if (version === TazVersion.Legacy) {
         if (isLegacyNestedPanelTaz(panelInfo) || isLegacyFlatPanelTaz(panelInfo)) {
             return parseLoadedLegacyPanelTaz(panelInfo);
         }
@@ -99,7 +107,7 @@ function parseLoadedPanelTazByVersion(
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel structure.');
     }
 
-    if (version === '2.0.4' || version === '2.0.5') {
+    if (version === TazVersion.V204 || version === TazVersion.V205) {
         if (isPersistedPanelInfoV204(panelInfo)) {
             return parseLoadedPanelTazVer204(panelInfo);
         }
@@ -108,10 +116,10 @@ function parseLoadedPanelTazByVersion(
     }
 
     if (
-        version === '2.0.0' ||
-        version === '2.0.1' ||
-        version === '2.0.2' ||
-        version === '2.0.3'
+        version === TazVersion.V200 ||
+        version === TazVersion.V201 ||
+        version === TazVersion.V202 ||
+        version === TazVersion.V203
     ) {
         if (isPersistedPanelInfoV200(panelInfo)) {
             return parseLoadedPanelTazVer200(panelInfo);
@@ -125,33 +133,10 @@ function parseLoadedPanelTazByVersion(
     );
 }
 
-function assertSupportedPersistedTazVersion(
-    version: string | undefined,
-): asserts version is PersistedTazVersion | undefined {
-    if (version === undefined) {
-        return;
-    }
-
-    if ((SUPPORTED_TAZ_FORMAT_VERSIONS as readonly string[]).includes(version)) {
-        return;
-    }
-
-    throw new Error(
-        `Unsupported TagAnalyzer .taz version: ${formatPersistedTazVersionForError(version)}`,
-    );
-}
-
 function normalizeLoadedBoardMetadata(
     boardInfo: PersistedTazBoardInfo,
-): PersistedTazBoardInfo {
+): NormalizedLoadedBoardMetadata {
     const sVersion = normalizePersistedTazVersion(boardInfo.version);
-
-    if (sVersion && boardInfo.boardTimeRange) {
-        return {
-            ...boardInfo,
-            version: sVersion,
-        };
-    }
 
     return {
         ...boardInfo,
@@ -166,7 +151,7 @@ function normalizeLoadedBoardMetadata(
 }
 
 function normalizePersistedBoardTimeRange(
-    boardTimeRange: PersistedBoardTimeRange | undefined,
+    boardTimeRange: PersistedBoardTimeRange,
 ): TimeRangeConfig {
     const sNormalizedBoardTimeRange =
         normalizePersistedTimeRangeConfig(boardTimeRange);

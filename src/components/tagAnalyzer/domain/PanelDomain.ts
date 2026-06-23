@@ -35,9 +35,17 @@ export function normalizePanelEChartType(value: unknown): PanelEChartType {
 
 export type PanelQuery = {
     tagSet: PanelSeriesDefinition[];
-    count: number | undefined;
+    count: number;
     intervalType: string | undefined;
 };
+
+export const DEFAULT_PANEL_QUERY_COUNT = 0;
+
+export function normalizePanelQueryCount(count: unknown): number {
+    return typeof count === 'number' && Number.isFinite(count)
+        ? count
+        : DEFAULT_PANEL_QUERY_COUNT;
+}
 
 export type PanelMode = {
     isRaw: boolean;

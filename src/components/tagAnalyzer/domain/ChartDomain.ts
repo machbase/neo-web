@@ -42,9 +42,7 @@ export type FFTSelectionPayload = {
 };
 
 export type OverlapLoadResult = {
-    originTime: number | undefined;
     chartSeries: ChartSeriesData | undefined;
-    emptySeriesLabel: string | undefined;
 };
 
 export function mapRowsToChartData(rows: TagFetchRow[] | undefined): ChartRow[] {

@@ -1,4 +1,5 @@
 import {
+    normalizePanelQueryCount,
     normalizePanelEChartType,
     type PanelAnnotation,
     type PanelInfo,
@@ -80,7 +81,7 @@ export function parseLoadedPanelTazVer200(
         title: sNormalizedPanelInfo.meta.chartTitle,
         query: {
             tagSet: sTagSet,
-            count: sNormalizedPanelInfo.data.rowLimit ?? -1,
+            count: sNormalizedPanelInfo.data.rowLimit,
             intervalType:
                 normalizeStoredTimeUnit(sNormalizedPanelInfo.data.intervalType ?? '') ??
                 sNormalizedPanelInfo.data.intervalType,
@@ -213,7 +214,7 @@ function normalizePersistedPanelInfoV200(
         data: {
             ...panelInfo.data,
             seriesList: sNormalizedSeriesList,
-            rowLimit: panelInfo.data.rowLimit ?? -1,
+            rowLimit: normalizePanelQueryCount(panelInfo.data.rowLimit),
         },
         toolbar: {
             isRaw: panelInfo.toolbar.isRaw,

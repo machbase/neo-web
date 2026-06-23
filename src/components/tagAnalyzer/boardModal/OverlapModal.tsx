@@ -22,9 +22,7 @@ import {
 } from '../domain/ChartDomain';
 import { fetchMainPanelSeriesRows } from '../fetch/PanelSeriesDataRepository';
 import type { RollupTableMap } from '../fetch/FetchContracts';
-import { buildOverlapChartOption, type OverlapChartInfo } from './OverlapChartOptionBuilder';
-import { resolvePanelAxesForRuntime } from '../domain/PanelDomain';
-import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
+import { buildOverlapChartOption, type OverlapChartInput } from './OverlapChartOptionBuilder';
 
 const OVERLAP_LOAD_ERROR_MESSAGE = 'Failed to load overlap data.';
 const OVERLAP_CHART_SHIFT_FRACTION = 0.3;
@@ -72,7 +70,6 @@ function OverlapModal({
     pRollupTableList,
 }: OverlapModalProps): JSX.Element {
     const [sSeriesData, setSeriesData] = useState<ChartSeriesData[]>([]);
-    const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sIsLoadingOverlapData, setIsLoadingOverlapData] = useState(false);
     const [sOverlapLoadError, setOverlapLoadError] = useState<string | undefined>();
     const [sAppliedPanelsInfo, setAppliedPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
@@ -95,13 +92,12 @@ function OverlapModal({
     );
     const sHasDraftChanges = hasOverlapPanelDraftChanged(sAppliedPanelsInfo, sDraftPanelsInfo);
     const sChartWidth = sAreaChart.current?.clientWidth ?? 0;
-    const sOverlapChartInfo = useMemo<OverlapChartInfo>(
+    const sOverlapChartInput = useMemo<OverlapChartInput>(
         () => ({
             seriesData: sSeriesData,
-            seriesStartTimeList: sStartTimeList,
-            includeZeroInYAxisRange: sAppliedAnchorPanel?.board.axes.leftY.zeroBase ?? false,
+            includeZeroInYAxisRange: sAppliedAnchorPanel?.includeZeroInYAxisRange ?? false,
         }),
-        [sAppliedAnchorPanel?.board.axes.leftY.zeroBase, sSeriesData, sStartTimeList],
+        [sAppliedAnchorPanel?.includeZeroInYAxisRange, sSeriesData],
     );
 
     async function fetchOverlapPanelData(
@@ -109,27 +105,20 @@ function OverlapModal({
         anchorPanel: OverlapPanelInfo,
     ): Promise<OverlapLoadResult> {
         const sChartWidthPx = sAreaChart.current?.clientWidth || 1;
-        const sPanelBoardAxes = resolvePanelAxesForRuntime(
-            panelInfo.board.axes,
-            panelInfo.board.display.pixelsPerTick,
-            panelInfo.board.display.mainChartSampling,
-        );
         const sTimeRange = resolveOverlapTimeRange(panelInfo, anchorPanel.duration);
-        const sTagSetElement = getSingleOverlapSeries(panelInfo);
-
         const sFetchTimeRange = {
             startTime: Math.round(sTimeRange.startTime),
             endTime: Math.round(sTimeRange.endTime),
         };
         const sFetchResult = await fetchMainPanelSeriesRows(
-            [sTagSetElement],
-            panelInfo.board.query.count ?? -1,
-            panelInfo.board.query.intervalType,
-            sPanelBoardAxes.x,
-            sPanelBoardAxes.mainChartSampling,
+            [panelInfo.series],
+            panelInfo.queryLimit,
+            panelInfo.intervalType,
+            panelInfo.xAxis,
+            panelInfo.mainChartSampling,
             sChartWidthPx,
             panelInfo.isRaw,
-            panelInfo.board.mode.isOrderBy,
+            panelInfo.isOrderBy,
             sFetchTimeRange,
             pRollupTableList,
         );
@@ -139,9 +128,7 @@ function OverlapModal({
         )[0];
 
         return {
-            originTime: panelInfo.start,
             chartSeries: sChartSeries,
-            emptySeriesLabel: undefined,
         };
     }
 
@@ -149,7 +136,6 @@ function OverlapModal({
         const sRequestId = ++sLoadRequestIdRef.current;
 
         if (!panelsInfo.length) {
-            setStartTimeList([]);
             setSeriesData([]);
             setOverlapLoadError(undefined);
             return;
@@ -157,7 +143,6 @@ function OverlapModal({
 
         setIsLoadingOverlapData(true);
         setOverlapLoadError(undefined);
-        setStartTimeList([]);
         setSeriesData([]);
 
         try {
@@ -171,7 +156,6 @@ function OverlapModal({
             }
 
             const sLoadState = buildOverlapLoadState(sResults);
-            setStartTimeList(sLoadState.startTimes);
             setSeriesData(sLoadState.chartSeries);
         } catch (error) {
             if (sRequestId !== sLoadRequestIdRef.current) {
@@ -202,7 +186,7 @@ function OverlapModal({
         setDraftPanelsInfo((currentPanelsInfo) => {
             let sDidUpdatePanel = false;
             const sNext = currentPanelsInfo.map((panelInfo) => {
-                if (panelInfo.board.key !== panelKey) return panelInfo;
+                if (panelInfo.panelKey !== panelKey) return panelInfo;
                 sDidUpdatePanel = true;
                 return panelInfo.start === sNextStart ? panelInfo : { ...panelInfo, start: sNextStart };
             });
@@ -246,9 +230,8 @@ function OverlapModal({
     }
 
     function renderOverlapTimeShiftPanel(item: OverlapPanelInfo, idx: number): JSX.Element {
-        const sFirstTag = item.board.query.tagSet[0];
-        const sLabel = sFirstTag?.alias || sFirstTag?.sourceTagName || '';
-        const sPanelKey = item.board.key;
+        const sPanelKey = item.panelKey;
+        const sLabel = item.label;
         const sShiftOffsetMs = item.start - getInitialPanelStart(sInitialPanelStartByKey, sPanelKey);
 
         return (
@@ -301,7 +284,7 @@ function OverlapModal({
                             {!sIsLoadingOverlapData && sCanRenderChart && (
                                 <>
                                     <ReactECharts
-                                        option={buildOverlapChartOption(sOverlapChartInfo)}
+                                        option={buildOverlapChartOption(sOverlapChartInput)}
                                         notMerge
                                         lazyUpdate
                                         onChartReady={(instance) =>
@@ -374,23 +357,10 @@ function OverlapModal({
     );
 }
 
-function getSingleOverlapSeries(
-    panelInfo: OverlapPanelInfo,
-): PanelSeriesDefinition {
-    const sSeries = panelInfo.board.query.tagSet[0];
-    if (sSeries === undefined) {
-        throw new Error(
-            `Overlap requires a single-series panel: ${panelInfo.board.key}`,
-        );
-    }
-
-    return sSeries;
-}
-
 function createInitialPanelStartByKey(panelsInfo: OverlapPanelInfo[]): Map<string, number> {
     const sPanelStartByKey = new Map<string, number>();
     panelsInfo.forEach((panelInfo) => {
-        const sPanelKey = panelInfo.board.key;
+        const sPanelKey = panelInfo.panelKey;
         if (sPanelStartByKey.has(sPanelKey)) {
             throw new Error(`Duplicate overlap panel key: ${sPanelKey}`);
         }

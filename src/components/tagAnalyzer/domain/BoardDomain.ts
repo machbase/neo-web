@@ -1,4 +1,13 @@
-import type { PanelInfo } from './PanelDomain';
+import type {
+    PanelInfo,
+    RuntimePanelSampling,
+    RuntimePanelXAxis,
+} from './PanelDomain';
+import type {
+    PanelSeriesDefinition,
+    SeriesKeyAxisKind,
+} from './SeriesDomain';
+import type { TazVersion } from '../persistence/TazVersion';
 import type {
     IntervalOption,
     TimeRangeConfig,
@@ -14,7 +23,7 @@ export type BoardInfo = {
     panels: PanelInfo[];
     boardTimeRange: TimeRangeConfig;
     savedCode: string | false;
-    version?: string;
+    version: TazVersion;
 };
 
 export type GlobalTimeRangeState = {
@@ -37,7 +46,15 @@ export type OverlapPanelSelection = {
 };
 
 export type OverlapPanelInfo = OverlapPanelSelection & {
-    board: PanelInfo;
+    label: string;
+    series: PanelSeriesDefinition;
+    queryLimit: number;
+    intervalType: string | undefined;
+    xAxis: RuntimePanelXAxis;
+    mainChartSampling: RuntimePanelSampling;
+    isOrderBy: boolean;
+    includeZeroInYAxisRange: boolean;
+    axisKind: SeriesKeyAxisKind | undefined;
 };
 
 export type OverlapPanelRangeSelectionPayload = {

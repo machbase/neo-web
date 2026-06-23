@@ -39,7 +39,11 @@ import type { TimeRangeConfig } from './domain/time/model/TimeTypes';
 import { ensureUniquePanelIndexKeys } from './domain/PanelIdentity';
 import { formatBoardRangeText } from './domain/time/boundary/TimeBoundaryInput';
 import { isValidTimeRange, isSameTimeRange } from './domain/time/range/TimeRangeUtils';
-import type { PanelInfo, PanelRangeState } from './domain/PanelDomain';
+import {
+    resolvePanelAxesForRuntime,
+    type PanelInfo,
+    type PanelRangeState,
+} from './domain/PanelDomain';
 import {
     MIXED_X_AXIS_KIND_WARNING,
     getSeriesListKeyAxisKind,
@@ -119,6 +123,30 @@ const TagAnalyzerBoard = ({
         rollupTableList: pRollupTableList,
         onAppliedRange: handleRuntimeAppliedRange,
     });
+    const getBoardInfoForTazSave = useCallback((boardInfo: BoardInfo): BoardInfo => {
+        let sHasPanelChanges = false;
+        const sPanelsForSave = boardInfo.panels.map((panel) => {
+            const sNextPanel = getPanelWithCurrentVisibleRangeForSave(
+                panel,
+                boardPanels.getPanelRangeState(panel),
+            );
+
+            if (sNextPanel !== panel) {
+                sHasPanelChanges = true;
+            }
+
+            return sNextPanel;
+        });
+
+        if (!sHasPanelChanges) {
+            return boardInfo;
+        }
+
+        return {
+            ...boardInfo,
+            panels: sPanelsForSave,
+        };
+    }, [boardPanels]);
     const sRuntimeBoardInfoForSave = getBoardInfoForTazSave(sRuntimeBoardInfo);
     const sIsRuntimeBoardDirty =
         createTazSavedCodeFromBoardInfo(sRuntimeBoardInfoForSave) !==
@@ -187,7 +215,7 @@ const TagAnalyzerBoard = ({
             Toast.error(SAVE_ERROR_MESSAGE);
             return false;
         }
-    }, [boardPanels, finishBoardSave]);
+    }, [finishBoardSave, getBoardInfoForTazSave]);
 
     const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
         if (!sRuntimeBoardInfo.path) {
@@ -245,32 +273,7 @@ const TagAnalyzerBoard = ({
             Toast.error(SAVE_ERROR_MESSAGE);
             return false;
         }
-    }, [boardPanels, finishBoardSave, pFileTree, pOnFileTreeChange, sRuntimeBoardInfo]);
-
-    function getBoardInfoForTazSave(boardInfo: BoardInfo): BoardInfo {
-        let sHasPanelChanges = false;
-        const sPanelsForSave = boardInfo.panels.map((panel) => {
-            const sNextPanel = getPanelWithCurrentVisibleRangeForSave(
-                panel,
-                boardPanels.getPanelRangeState(panel),
-            );
-
-            if (sNextPanel !== panel) {
-                sHasPanelChanges = true;
-            }
-
-            return sNextPanel;
-        });
-
-        if (!sHasPanelChanges) {
-            return boardInfo;
-        }
-
-        return {
-            ...boardInfo,
-            panels: sPanelsForSave,
-        };
-    }
+    }, [finishBoardSave, getBoardInfoForTazSave, pFileTree, pOnFileTreeChange, sRuntimeBoardInfo]);
 
     function handleSetGlobalTimeRange(
         payload: SetGlobalTimeRangePayload,
@@ -341,7 +344,7 @@ const TagAnalyzerBoard = ({
         panels: OverlapPanelInfo[],
     ): string | undefined {
         const sAxisKinds = panels
-            .map((panel) => getPanelOverlapAxisKind(panel.board))
+            .map((panel) => panel.axisKind)
             .filter((axisKind) => axisKind !== undefined);
 
         if (new Set(sAxisKinds).size > 1) {
@@ -351,29 +354,23 @@ const TagAnalyzerBoard = ({
         return undefined;
     }
 
-    function getPanelInfoWithRawMode(panel: PanelInfo, isRaw: boolean): PanelInfo {
-        if (panel.mode.isRaw === isRaw) {
-            return panel;
-        }
-
-        return {
-            ...panel,
-            mode: {
-                ...panel.mode,
-                isRaw,
-            },
-        };
-    }
-
     function getSelectedOverlapPanels(): OverlapPanelInfo[] {
         return sOverlapSelections.flatMap((selection) => {
             const sPanel = sRuntimePanels.find(
                 (panel) => panel.key === selection.panelKey,
             );
+            const sSeries = sPanel?.query.tagSet[0];
 
-            if (!sPanel) {
+            if (!sPanel || !sSeries) {
                 return [];
             }
+
+            const sRuntimeAxes = resolvePanelAxesForRuntime(
+                sPanel.axes,
+                sPanel.display.pixelsPerTick,
+                sPanel.display.mainChartSampling,
+            );
+            const sLabel = sSeries.alias || sSeries.sourceTagName || '';
 
             return [
                 {
@@ -381,7 +378,15 @@ const TagAnalyzerBoard = ({
                     duration: selection.duration,
                     isRaw: selection.isRaw,
                     panelKey: selection.panelKey,
-                    board: getPanelInfoWithRawMode(sPanel, selection.isRaw),
+                    label: sLabel,
+                    series: sSeries,
+                    queryLimit: sPanel.query.count,
+                    intervalType: sPanel.query.intervalType,
+                    xAxis: sRuntimeAxes.x,
+                    mainChartSampling: sRuntimeAxes.mainChartSampling,
+                    isOrderBy: sPanel.mode.isOrderBy,
+                    includeZeroInYAxisRange: sPanel.axes.leftY.zeroBase,
+                    axisKind: getPanelOverlapAxisKind(sPanel),
                 },
             ];
         });
@@ -402,7 +407,13 @@ const TagAnalyzerBoard = ({
     }
 
     function togglePanelRawMode(panel: PanelInfo): void {
-        const sNextPanelInfo = getPanelInfoWithRawMode(panel, !panel.mode.isRaw);
+        const sNextPanelInfo: PanelInfo = {
+            ...panel,
+            mode: {
+                ...panel.mode,
+                isRaw: !panel.mode.isRaw,
+            },
+        };
 
         applyRuntimePanelInfo(sNextPanelInfo);
         handleRuntimeAppliedRange(
@@ -720,7 +731,7 @@ const TagAnalyzerBoard = ({
                     key={sOverlapPanels
                         .map((panel) =>
                             [
-                                panel.board.key,
+                                panel.panelKey,
                                 panel.start,
                                 panel.duration,
                                 panel.isRaw,

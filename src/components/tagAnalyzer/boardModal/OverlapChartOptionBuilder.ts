@@ -41,9 +41,8 @@ type OverlapChartXAxisRanges = {
     axisRange: OverlapChartXAxisRange;
 };
 
-export type OverlapChartInfo = {
+export type OverlapChartInput = {
     seriesData: ChartSeriesData[];
-    seriesStartTimeList: number[];
     includeZeroInYAxisRange: boolean;
 };
 
@@ -351,16 +350,16 @@ function formatYAxisLabel(value: string | number): string {
 }
 
 export function buildOverlapChartOption(
-    overlapChartInfo: OverlapChartInfo,
+    overlapChartInput: OverlapChartInput,
 ): EChartsOption {
     const sXAxisRanges = resolveOverlapChartXAxisRanges(
-        overlapChartInfo.seriesData,
+        overlapChartInput.seriesData,
     );
     const sYAxisRange = resolveOverlapChartYAxisRange(
-        overlapChartInfo.seriesData,
-        overlapChartInfo.includeZeroInYAxisRange,
+        overlapChartInput.seriesData,
+        overlapChartInput.includeZeroInYAxisRange,
     );
-    const sSeries: LineSeriesOption[] = overlapChartInfo.seriesData.map((chartSeries, seriesIndex) => {
+    const sSeries: LineSeriesOption[] = overlapChartInput.seriesData.map((chartSeries, seriesIndex) => {
         const sSeriesColor =
             chartSeries.color ??
             OVERLAP_CHART_COLORS[seriesIndex % OVERLAP_CHART_COLORS.length];
@@ -387,7 +386,7 @@ export function buildOverlapChartOption(
         ...OVERLAP_CHART_BASE_OPTION,
         grid: OVERLAP_GRID_OPTION,
         legend: OVERLAP_LEGEND_OPTION,
-        tooltip: buildOverlapTooltipOption(overlapChartInfo.seriesData),
+        tooltip: buildOverlapTooltipOption(overlapChartInput.seriesData),
         xAxis: {
             ...OVERLAP_X_AXIS_STATIC_OPTION,
             min: sXAxisRanges?.axisRange.startTime,
