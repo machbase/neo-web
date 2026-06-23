@@ -3,17 +3,18 @@ import {
     PanelOverlayMode,
     type PanelRangeChangeEvent,
     type PanelMarkupHandlers,
-    type PanelRangeHandlers,
+    type PanelRangeActions,
 } from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
 import {
     getTimeRangeWidth,
     isSameTimeRange,
-} from '../../../domain/time/TimeRangeUtils';
+} from '../../../domain/time/range/TimeRangeUtils';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
     MAIN_PANEL_SERIES_ID_PREFIX,
+    PANEL_SLIDER_DATA_ZOOM_ID,
 } from '../options/PanelChartOptionConstants';
 import {
     convertPanelChartPixelToTimestamp,
@@ -54,8 +55,8 @@ type ChartEvents = {
 
 type BuildChartEventParams = {
     ranges: {
-        panelRange: TimeRangeMs;
-        navigatorRange: TimeRangeMs;
+        displayPanelRange: TimeRangeMs;
+        displayNavigatorRange: TimeRangeMs;
     };
     interactionMode: {
         overlayMode: PanelOverlayMode;
@@ -69,7 +70,7 @@ type BuildChartEventParams = {
         latestHoverTimestampRef: MutableRefObject<number | undefined>;
         latestChartClickRef: MutableRefObject<number>;
     };
-    rangeHandlers: PanelRangeHandlers;
+    rangeActions: PanelRangeActions;
     markupHandlers: PanelMarkupHandlers;
     onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
     onSelection: (event: PanelRangeChangeEvent) => unknown;
@@ -87,13 +88,13 @@ export function buildChartEvent({
     ranges,
     interactionMode,
     chartRefs,
-    rangeHandlers,
+    rangeActions,
     markupHandlers,
     onHoveredMainSeriesChange,
     onSelection,
     legendState,
 }: BuildChartEventParams): ChartEvents {
-    const { panelRange, navigatorRange } = ranges;
+    const { displayPanelRange, displayNavigatorRange } = ranges;
     const {
         overlayMode,
         isSelectionMode,
@@ -112,20 +113,24 @@ export function buildChartEvent({
     return {
         datazoom: (params) => {
             const sInstance = chartInstanceRef.current;
-            const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
-            const sRange = hasExplicitDataZoomEventRange(params)
+            const sDataZoomState = findDataZoomStateById(
+                sInstance?.getOption?.()?.dataZoom,
+                PANEL_SLIDER_DATA_ZOOM_ID,
+            );
+            const sRange = hasExplicitDataZoomEventRange(params, PANEL_SLIDER_DATA_ZOOM_ID)
                 ? extractDataZoomEventRange(
                       params,
-                      panelRange,
-                      navigatorRange,
+                      displayPanelRange,
+                      displayNavigatorRange,
+                      PANEL_SLIDER_DATA_ZOOM_ID,
                   )
                 : extractDataZoomOptionRange(
                       { ...sDataZoomState, ...params },
-                      panelRange,
-                      navigatorRange,
+                      displayPanelRange,
+                      displayNavigatorRange,
                   );
             const sIsSameRange = sRange
-                ? isSameDataZoomRange(sRange, panelRange, isNumericXAxis)
+                ? isSameDataZoomRange(sRange, displayPanelRange, isNumericXAxis)
                 : false;
 
             if (
@@ -135,7 +140,7 @@ export function buildChartEvent({
                 return;
             }
 
-            rangeHandlers.onPanelRangeChangeFromNavigator({
+            rangeActions.applyMainNavigatorSelectionRange({
                 min: sRange.startTime,
                 max: sRange.endTime,
             });
@@ -166,12 +171,12 @@ export function buildChartEvent({
 
             if (
                 !isDragZoomEnabled ||
-                isSameTimeRange(sRange, panelRange)
+                isSameTimeRange(sRange, displayPanelRange)
             ) {
                 return;
             }
 
-            rangeHandlers.onPanelRangeChange({
+            rangeActions.applyMainZoomRange({
                 min: sRange.startTime,
                 max: sRange.endTime,
             });
@@ -289,6 +294,14 @@ export function buildChartEvent({
     };
 }
 
+function findDataZoomStateById<T extends { id?: string; dataZoomId?: string }>(
+    dataZoomState: T[] | undefined,
+    targetDataZoomId: string,
+): T | undefined {
+    return dataZoomState?.find(
+        (item) => item.id === targetDataZoomId || item.dataZoomId === targetDataZoomId,
+    ) ?? dataZoomState?.[0];
+}
 function isSameDataZoomRange(
     left: TimeRangeMs,
     right: TimeRangeMs,

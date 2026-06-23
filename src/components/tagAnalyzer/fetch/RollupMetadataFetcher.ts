@@ -3,7 +3,7 @@ import { showRequestError } from '../feedback/RequestErrorPresenter';
 import type { RollupTableMap } from './FetchContracts';
 import { getConfiguredRollupVersion } from './RollupVersionConfig';
 
-export async function fetchRollupMetadata(): Promise<RollupTableMap | []> {
+export async function fetchRollupMetadata(): Promise<RollupTableMap> {
     const sRollupVersion = getConfiguredRollupVersion();
     let sUrl = `select t1.user_name as user_name, 
   case when t1.database_id = -1 then 'MACHBASEDB' else t2.MOUNTDB end || '.' || t1.root_table as root_table, 
@@ -26,13 +26,13 @@ order by user_name, root_table asc, interval_time desc`;
 
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=${sUrl}`,
+        url: `/api/query?q=${encodeURIComponent(sUrl)}`,
     });
     showRequestError(sData);
 
     const sRollupMap: RollupTableMap = {};
     if (!sData?.data || !('rows' in sData.data) || !Array.isArray(sData.data.rows)) {
-        return [];
+        return sRollupMap;
     }
 
     for (const [user, table, value, column, extType] of sData.data.rows as Array<
@@ -46,5 +46,5 @@ order by user_name, root_table asc, interval_time desc`;
         sRollupMap[user][table][column].push(value);
     }
 
-    return Object.keys(sRollupMap).length === 0 ? [] : sRollupMap;
+    return sRollupMap;
 }

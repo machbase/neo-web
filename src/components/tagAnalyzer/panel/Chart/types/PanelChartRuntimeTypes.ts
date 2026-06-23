@@ -1,6 +1,9 @@
+import type { EChartsOption } from 'echarts';
 import type { buildChartSeriesOption } from '../options/buildPanelChartSeriesOption';
 
 export type EChartDataZoomEventItem = {
+    id?: string;
+    dataZoomId?: string;
     start: number;
     end: number;
     startValue?: number;
@@ -14,6 +17,8 @@ export type EChartDataZoomEventPayload =
       };
 
 export type EChartDataZoomOptionStateItem = {
+    id?: string;
+    dataZoomId?: string;
     start?: number;
     end?: number;
     startValue?: number | string | Date;
@@ -43,13 +48,14 @@ type PanelChartBrushOption = {
 export type PanelChartAction =
     | { type: 'takeGlobalCursor'; key: 'brush'; brushOption: PanelChartBrushOption }
     | { type: 'brush'; areas: [] }
-    | { type: 'dataZoom'; startValue: number; endValue: number };
+    | { type: 'dataZoom'; dataZoomId?: string; startValue: number; endValue: number }
+    | { type: 'hideTip' };
 
 type PanelChartOptionState = {
     dataZoom: EChartDataZoomOptionStateItem[] | undefined;
 };
 
-type PanelChartSeriesOptionPatch = ReturnType<typeof buildChartSeriesOption>;
+type PanelChartSetOptionPatch = EChartsOption | ReturnType<typeof buildChartSeriesOption>;
 type PanelChartPixelFinder = { xAxisIndex: number } | { gridIndex: number };
 
 export type PanelChartLegendChangePayload = {
@@ -135,7 +141,13 @@ export type PanelChartZrElement = {
 export type PanelChartInstance = {
     dispatchAction: (action: PanelChartAction) => void;
     getOption: (() => PanelChartOptionState) | undefined;
-    setOption: ((option: PanelChartSeriesOptionPatch, options?: { lazyUpdate?: boolean }) => void) | undefined;
+    setOption: ((
+        option: PanelChartSetOptionPatch,
+        options?: {
+            lazyUpdate?: boolean;
+            replaceMerge?: string | string[];
+        },
+    ) => void) | undefined;
     hideLoading?: () => void;
     containPixel?: (finder: { gridIndex: number }, value: [number, number]) => boolean;
     convertFromPixel?: (finder: PanelChartPixelFinder, value: [number, number]) => unknown;

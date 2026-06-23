@@ -1,10 +1,10 @@
-import { TimeUnit, type IntervalOption } from './TimeTypes';
+import { TimeUnit, type IntervalOption } from '../model/TimeTypes';
 import {
     DAY_IN_MS,
     HOUR_IN_MS,
     MINUTE_IN_MS,
     SECOND_IN_MS,
-} from './TimeConstants';
+} from '../model/TimeConstants';
 
 const WEEK_IN_MS = 7 * DAY_IN_MS;
 const MONTH_IN_MS = 30 * DAY_IN_MS;
@@ -251,17 +251,13 @@ export function calculateSampleCount(
 
     const sPixelsPerTick = fetchRawMode ? pixelsPerTickRaw : pixelsPerTick;
 
-    return calculatePixelLimitedCount(chartWidth, sPixelsPerTick);
+    return Math.ceil(chartWidth / (sPixelsPerTick > 0 ? sPixelsPerTick : 1));
 }
 
 export function hasResolvedIntervalOption(
     intervalOption: IntervalOption | undefined,
 ): intervalOption is IntervalOption {
-    if (!intervalOption) {
-        return false;
-    }
-
-    return intervalOption.IntervalType !== '' && intervalOption.IntervalValue > 0;
+    return intervalOption !== undefined && intervalOption.IntervalValue > 0;
 }
 
 export function getIntervalMs(type: string, value: number): number {
@@ -284,8 +280,4 @@ function resolveIntervalSpec(calc: number): IntervalSpec {
         type: TimeUnit.Second,
         value: Math.ceil(calc),
     };
-}
-
-function calculatePixelLimitedCount(chartWidth: number, pixelsPerTick: number): number {
-    return Math.ceil(chartWidth / (pixelsPerTick > 0 ? pixelsPerTick : 1));
 }

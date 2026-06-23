@@ -1,8 +1,8 @@
 import type {
-    PanelNavigatorRangePair,
-    TimeRangeConfig,
+    PanelViewRange,
+    PanelRangeInput,
     TimeRangeMs,
-} from './time/TimeTypes';
+} from './time/model/TimeTypes';
 import type { PanelSeriesDefinition } from './SeriesDomain';
 
 export type ValueRange = {
@@ -32,25 +32,29 @@ export function normalizePanelEChartType(value: unknown): PanelEChartType {
     return isPanelEChartType(value) ? value : DEFAULT_PANEL_ECHART_TYPE;
 }
 
-export type PanelGeneral = {
-    chart_title: string;
-    use_zoom: boolean;
-    use_last_viewed_range: boolean;
-    last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
-    is_raw: boolean;
-    is_order_by: boolean;
-    use_normalize: boolean;
+export type PanelQuery = {
+    tagSet: PanelSeriesDefinition[];
+    count: number;
+    intervalType: string | undefined;
 };
 
-export type PanelData = {
-    index_key: string;
-    tag_set: PanelSeriesDefinition[];
-    count: number | undefined;
-    interval_type: string | undefined;
+export const DEFAULT_PANEL_QUERY_COUNT = 0;
+
+export function normalizePanelQueryCount(count: unknown): number {
+    return typeof count === 'number' && Number.isFinite(count)
+        ? count
+        : DEFAULT_PANEL_QUERY_COUNT;
+}
+
+export type PanelMode = {
+    isRaw: boolean;
+    isOrderBy: boolean;
+    useNormalize: boolean;
 };
 
-export type PanelTime = {
-    range_config: TimeRangeConfig;
+export type PanelTimeRange = PanelRangeInput & {
+    useLastViewedRange: boolean;
+    lastViewedRange: PanelViewRange | undefined;
 };
 
 export type PanelAxisThreshold = {
@@ -59,42 +63,58 @@ export type PanelAxisThreshold = {
 };
 
 export type PanelXAxis = {
-    show_tickline: boolean;
-    raw_data_pixels_per_tick: number | undefined;
-    calculated_data_pixels_per_tick: number | undefined;
+    showTickline: boolean;
 };
 
 export type PanelSampling = {
     enabled: boolean;
-    sample_count: number | undefined;
+    sampleCount: number | undefined;
+};
+
+export const DEFAULT_RAW_NAVIGATOR_SAMPLING_VALUE = 0.01;
+
+export const DEFAULT_RAW_NAVIGATOR_SAMPLING: PanelSampling = {
+    enabled: false,
+    sampleCount: DEFAULT_RAW_NAVIGATOR_SAMPLING_VALUE,
 };
 
 export type PanelYAxis = {
-    zero_base: boolean;
-    show_tickline: boolean;
-    value_range: ValueRange;
-    raw_data_value_range: ValueRange;
-    upper_control_limit: PanelAxisThreshold;
-    lower_control_limit: PanelAxisThreshold;
+    zeroBase: boolean;
+    showTickline: boolean;
+    valueRange: ValueRange;
+    rawValueRange: ValueRange;
+    upperControlLimit: PanelAxisThreshold;
+    lowerControlLimit: PanelAxisThreshold;
+};
+
+export type PanelRightYAxis = PanelYAxis & {
+    enabled: boolean;
 };
 
 export type PanelAxes = {
-    x_axis: PanelXAxis;
-    sampling: PanelSampling;
-    main_chart_sampling: PanelSampling;
-    left_y_axis: PanelYAxis;
-    right_y_axis: PanelYAxis;
-    right_y_axis_enabled: boolean;
+    x: PanelXAxis;
+    leftY: PanelYAxis;
+    rightY: PanelRightYAxis;
+};
+
+export type PanelPixelsPerTick = {
+    raw: number | undefined;
+    calculated: number | undefined;
+    calculatedNavigator: number | undefined;
 };
 
 export type PanelDisplay = {
-    show_legend: boolean;
-    chart_type: PanelEChartType;
-    connect_nulls: boolean;
-    show_point: boolean;
-    point_radius: number | undefined;
+    chartType: PanelEChartType;
+    showLegend: boolean;
+    showPoint: boolean;
+    pointRadius: number | undefined;
     fill: number | undefined;
     stroke: number | undefined;
+    connectNulls: boolean;
+    useZoom: boolean;
+    pixelsPerTick: PanelPixelsPerTick;
+    mainChartSampling: PanelSampling;
+    rawNavigatorSampling: PanelSampling;
 };
 
 export type RuntimeValueRange = {
@@ -108,46 +128,48 @@ export type RuntimePanelAxisThreshold = {
 };
 
 export type RuntimePanelXAxis = {
-    show_tickline: boolean;
-    raw_data_pixels_per_tick: number;
-    calculated_data_pixels_per_tick: number;
+    showTickline: boolean;
+    rawDataPixelsPerTick: number;
+    calculatedDataPixelsPerTick: number;
+    calculatedNavigatorPixelsPerTick: number;
 };
 
 export type RuntimePanelSampling = {
     enabled: boolean;
-    sample_count: number;
+    sampleCount: number;
 };
 
 export type RuntimePanelYAxis = {
-    zero_base: boolean;
-    show_tickline: boolean;
-    value_range: RuntimeValueRange;
-    raw_data_value_range: RuntimeValueRange;
-    upper_control_limit: RuntimePanelAxisThreshold;
-    lower_control_limit: RuntimePanelAxisThreshold;
+    zeroBase: boolean;
+    showTickline: boolean;
+    valueRange: RuntimeValueRange;
+    rawValueRange: RuntimeValueRange;
+    upperControlLimit: RuntimePanelAxisThreshold;
+    lowerControlLimit: RuntimePanelAxisThreshold;
 };
 
 export type RuntimePanelAxes = {
-    x_axis: RuntimePanelXAxis;
-    main_chart_sampling: RuntimePanelSampling;
-    left_y_axis: RuntimePanelYAxis;
-    right_y_axis: RuntimePanelYAxis;
-    right_y_axis_enabled: boolean;
+    x: RuntimePanelXAxis;
+    mainChartSampling: RuntimePanelSampling;
+    leftY: RuntimePanelYAxis;
+    rightY: RuntimePanelYAxis;
+    rightYEnabled: boolean;
 };
 
 export type RuntimePanelDisplay = {
-    show_legend: boolean;
-    chart_type: PanelEChartType;
-    connect_nulls: boolean;
-    show_point: boolean;
-    point_radius: number;
+    chartType: PanelEChartType;
+    showLegend: boolean;
+    showPoint: boolean;
+    pointRadius: number;
     fill: number;
     stroke: number;
-    use_zoom: boolean;
+    connectNulls: boolean;
+    useZoom: boolean;
 };
 
 export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
 export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
+export const DEFAULT_PANEL_HIGHLIGHT_LABEL = 'unnamed';
 
 export type PanelHighlight = {
     text: string;
@@ -166,45 +188,49 @@ export type PanelAnnotation = {
 };
 
 export type PanelInfo = {
-    general: PanelGeneral;
-    data: PanelData;
-    time: PanelTime;
+    key: string;
+    title: string;
+    query: PanelQuery;
+    mode: PanelMode;
+    timeRange: PanelTimeRange;
     axes: PanelAxes;
     display: PanelDisplay;
     highlights: PanelHighlight[];
     annotations: PanelAnnotation[];
 };
 
-export function resolvePanelAxesForRuntime(axes: PanelAxes): RuntimePanelAxes {
+export function resolvePanelAxesForRuntime(
+    axes: PanelAxes,
+    pixelsPerTick: PanelPixelsPerTick,
+    mainChartSampling: PanelSampling,
+): RuntimePanelAxes {
     return {
-        x_axis: {
-            show_tickline: axes.x_axis.show_tickline,
-            raw_data_pixels_per_tick:
-                axes.x_axis.raw_data_pixels_per_tick ?? 0,
-            calculated_data_pixels_per_tick:
-                axes.x_axis.calculated_data_pixels_per_tick ?? 0,
+        x: {
+            showTickline: axes.x.showTickline,
+            rawDataPixelsPerTick: pixelsPerTick.raw ?? 0,
+            calculatedDataPixelsPerTick: pixelsPerTick.calculated ?? 0,
+            calculatedNavigatorPixelsPerTick: pixelsPerTick.calculatedNavigator ?? 0,
         },
-        main_chart_sampling: resolvePanelSamplingForRuntime(
-            axes.main_chart_sampling,
+        mainChartSampling: resolvePanelSamplingForRuntime(
+            mainChartSampling,
             'main chart sampling',
         ),
-        left_y_axis: resolvePanelYAxisForRuntime(axes.left_y_axis, 'left y-axis'),
-        right_y_axis: resolvePanelYAxisForRuntime(
-            axes.right_y_axis,
-            'right y-axis',
-        ),
-        right_y_axis_enabled: axes.right_y_axis_enabled,
+        leftY: resolvePanelYAxisForRuntime(axes.leftY, 'left y-axis'),
+        rightY: resolvePanelYAxisForRuntime(axes.rightY, 'right y-axis'),
+        rightYEnabled: axes.rightY.enabled,
     };
 }
 
 export function resolvePanelDisplayForRuntime(
     display: PanelDisplay,
-    useZoom: boolean,
 ): RuntimePanelDisplay {
     return {
-        ...display,
-        use_zoom: useZoom,
-        point_radius: display.point_radius ?? 0,
+        chartType: display.chartType,
+        showLegend: display.showLegend,
+        showPoint: display.showPoint,
+        connectNulls: display.connectNulls,
+        useZoom: display.useZoom,
+        pointRadius: display.pointRadius ?? 0,
         fill: display.fill ?? 0,
         stroke: display.stroke ?? 0,
     };
@@ -214,13 +240,13 @@ function resolvePanelSamplingForRuntime(
     sampling: PanelSampling,
     label: string,
 ): RuntimePanelSampling {
-    if (sampling.enabled && sampling.sample_count === undefined) {
+    if (sampling.enabled && sampling.sampleCount === undefined) {
         throw new Error(`${label} requires a sample count when enabled.`);
     }
 
     return {
         enabled: sampling.enabled,
-        sample_count: sampling.sample_count ?? 0,
+        sampleCount: sampling.sampleCount ?? 0,
     };
 }
 
@@ -229,22 +255,22 @@ function resolvePanelYAxisForRuntime(
     label: string,
 ): RuntimePanelYAxis {
     return {
-        zero_base: axis.zero_base,
-        show_tickline: axis.show_tickline,
-        value_range: resolveValueRangeForRuntime(
-            axis.value_range,
+        zeroBase: axis.zeroBase,
+        showTickline: axis.showTickline,
+        valueRange: resolveValueRangeForRuntime(
+            axis.valueRange,
             `${label} value range`,
         ),
-        raw_data_value_range: resolveValueRangeForRuntime(
-            axis.raw_data_value_range,
-            `${label} raw data value range`,
+        rawValueRange: resolveValueRangeForRuntime(
+            axis.rawValueRange,
+            `${label} raw value range`,
         ),
-        upper_control_limit: resolveAxisThresholdForRuntime(
-            axis.upper_control_limit,
+        upperControlLimit: resolveAxisThresholdForRuntime(
+            axis.upperControlLimit,
             `${label} upper control limit`,
         ),
-        lower_control_limit: resolveAxisThresholdForRuntime(
-            axis.lower_control_limit,
+        lowerControlLimit: resolveAxisThresholdForRuntime(
+            axis.lowerControlLimit,
             `${label} lower control limit`,
         ),
     };
@@ -308,28 +334,39 @@ export type PanelNavigatorShiftActions = {
     onShiftRight: () => void;
 };
 
+export type PanelRangeChangeEvent = {
+    min: number;
+    max: number;
+};
+
+export type PanelRangeActions = {
+    applyMainZoomRange: (event: PanelRangeChangeEvent) => unknown;
+    applyMainNavigatorSelectionRange: (event: PanelRangeChangeEvent) => unknown;
+    applyExactMainRange: (event: PanelRangeChangeEvent) => unknown;
+    applyExactNavigatorRange: (event: PanelRangeChangeEvent) => unknown;
+    shiftMainRangeLeft: () => void;
+    shiftMainRangeRight: () => void;
+};
+
 export type PanelRangeState = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
+    requestPanelRange: TimeRangeMs;
+    requestNavigatorRange: TimeRangeMs;
     fullRange: TimeRangeMs;
 };
 
-export type PanelRangeHandlers = {
-    onPanelRangeChange: (event: PanelRangeChangeEvent) => unknown;
-    onPanelRangeChangeFromNavigator: (event: PanelRangeChangeEvent) => unknown;
-    onNavigatorRangeChange: (event: PanelRangeChangeEvent) => unknown;
-    onShiftPanelRangeLeft: () => void;
-    onShiftPanelRangeRight: () => void;
+export type PanelDisplayRangeState = {
+    displayPanelRange: TimeRangeMs;
+    displayNavigatorRange: TimeRangeMs;
+};
+
+export type PanelPoint = {
+    x: number;
+    y: number;
 };
 
 type PanelVisibleSeriesItem = {
     name: string;
     visible: boolean;
-};
-
-export type PanelRangeChangeEvent = {
-    min: number;
-    max: number;
 };
 
 export type PanelChartHandle = {
@@ -344,12 +381,8 @@ export type PanelChartState = {
     useNormalize: boolean;
     useOrderBy: boolean;
     highlights: PanelHighlight[];
+    draftHighlight?: PanelHighlight | undefined;
     annotations: PanelAnnotation[];
-};
-
-export type PanelPoint = {
-    x: number;
-    y: number;
 };
 
 export type PanelMarkupHandlers = {
@@ -367,3 +400,5 @@ export type PanelMarkupHandlers = {
         annotationIndex: number,
     ) => unknown;
 };
+
+export type { TimeRangeMs };

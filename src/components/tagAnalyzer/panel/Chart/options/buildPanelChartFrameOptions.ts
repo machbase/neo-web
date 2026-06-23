@@ -20,8 +20,8 @@ import {
     PANEL_SLIDER_DATA_ZOOM_ID,
 } from './PanelChartOptionConstants';
 import type { RuntimePanelDisplay } from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisPointerLabel } from '../../../domain/time/TimeFormatters';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import { formatAxisPointerLabel } from '../../../domain/time/formatting/TimeFormatters';
 import {
     getChartLayoutMetrics,
     PANEL_GRID_BOTTOM,
@@ -75,7 +75,7 @@ const HIDDEN_PANEL_TITLE_OPTION = { ...DEFAULT_NOT_SHOW } satisfies TitleCompone
 export function buildPanelChartFrameOptions(
     chartInfo: ChartInfo,
 ): PanelChartFrameOptions {
-    const sLayout = getChartLayoutMetrics(chartInfo.display.show_legend);
+    const sLayout = getChartLayoutMetrics(chartInfo.display.showLegend);
 
     return {
         grid: [
@@ -96,7 +96,7 @@ export function buildPanelChartFrameOptions(
             },
         ],
         legend: {
-            show: chartInfo.display.show_legend,
+            show: chartInfo.display.showLegend,
             left: 10,
             top: PANEL_LEGEND_TOP,
             itemGap: 15,
@@ -108,10 +108,13 @@ export function buildPanelChartFrameOptions(
                 ]),
             ),
         },
-        tooltip: buildChartTooltipOption(chartInfo.isNumericXAxis),
+        tooltip: buildChartTooltipOption(
+            chartInfo.isNumericXAxis,
+            chartInfo.displayPanelRange,
+        ),
         dataZoom: buildPanelChartDataZoomOption(
             chartInfo.display,
-            chartInfo.panelRange,
+            chartInfo.displayPanelRange,
             chartInfo.isWheelZoomEnabled,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
@@ -144,7 +147,7 @@ function buildPanelChartDataZoomOption(
             moveOnMouseWheel: false,
             zoomOnMouseWheel: isWheelZoomEnabled,
             preventDefaultMouseMove: true,
-            disabled: !display.use_zoom,
+            disabled: !display.useZoom,
         },
         {
             id: PANEL_SLIDER_DATA_ZOOM_ID,
@@ -232,6 +235,7 @@ function getMainSeriesTooltipItems(
 function formatChartTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     isNumericXAxis: boolean,
+    panelRange: TimeRangeMs,
 ): string {
     const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
     if (sMainSeriesItems.length === 0) {
@@ -242,6 +246,7 @@ function formatChartTooltip(
     const sTime = formatAxisPointerLabel(
         Number(sFirstValue?.[0] ?? sMainSeriesItems[0].axisValue),
         isNumericXAxis,
+        panelRange,
     );
 
     return `<div>
@@ -254,6 +259,7 @@ function formatChartTooltip(
 
 function buildChartTooltipOption(
     isNumericXAxis: boolean,
+    panelRange: TimeRangeMs,
 ): TooltipComponentOption {
     return {
         ...TOOLTIP_BASE,
@@ -265,6 +271,10 @@ function buildChartTooltipOption(
             },
         },
         formatter: (tooltipFormatterParams) =>
-            formatChartTooltip(tooltipFormatterParams, isNumericXAxis),
+            formatChartTooltip(
+                tooltipFormatterParams,
+                isNumericXAxis,
+                panelRange,
+            ),
     };
 }

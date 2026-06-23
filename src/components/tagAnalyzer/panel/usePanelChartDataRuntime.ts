@@ -1,33 +1,49 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Toast } from '@/design-system/components';
 import {
-    buildChartSeriesData,
-    mapRowsToChartData,
+    mapFetchResultToChartData,
     type ChartSeriesData,
 } from '../domain/ChartDomain';
 import {
-    resolvePanelAxesForRuntime,
+    type PanelDisplayRangeState,
     type PanelInfo,
     type PanelRangeState,
+    type RuntimePanelSampling,
+    type RuntimePanelXAxis,
 } from '../domain/PanelDomain';
-import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
-import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
+import type { IntervalOption, TimeRangeMs } from '../domain/time/model/TimeTypes';
 import {
-    isConcreteTimeRange,
+    getIntervalMs,
+    hasResolvedIntervalOption,
+} from '../domain/time/interval/TimeIntervalUtils';
+import {
+    clampTimeRangeToBounds,
+    createTimeRangeMs,
+    ensureMinimumTimeRangeWidth,
+    getTimeRangeWidth,
     isSameTimeRange,
-} from '../domain/time/TimeRangeUtils';
+    isTimeRangeWithinTimeRange,
+    isValidTimeRange,
+} from '../domain/time/range/TimeRangeUtils';
 import {
-    RAW_NAVIGATOR_SAMPLE_COUNT,
+    CALCULATED_FETCH_ROW_BUDGET,
+    RAW_MAIN_SAMPLE_COUNT,
+    RAW_NAVIGATOR_SAMPLING_VALUE,
     fetchMainPanelSeriesRows,
     fetchNavigatorPanelSeriesRows,
+    resolvePanelFetchInterval,
 } from '../fetch/PanelSeriesDataRepository';
-import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
-import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
-import type { PanelRangeStateApplyOptions } from '../board/BoardPanelState';
+import {
+    type PanelSeriesDefinition,
+} from '../domain/SeriesDomain';
 import type {
     FetchPanelSeriesRowsResult,
-    PanelSeriesFetchResult,
+    RollupTableMap,
 } from '../fetch/FetchContracts';
+import {
+    getNavigatorTrackWidth,
+    resolveNavigatorRangeForPanel,
+} from '../board/PanelNavigatorRangeLimits';
 
 type PanelChartDataLoadConfig = {
     seriesList: PanelSeriesDefinition[];
@@ -35,16 +51,9 @@ type PanelChartDataLoadConfig = {
     intervalType: string | undefined;
     isRaw: boolean;
     useOrderBy: boolean;
-    xAxis: ReturnType<typeof resolvePanelAxesForRuntime>['x_axis'];
-    mainChartSampling: ReturnType<typeof resolvePanelAxesForRuntime>['main_chart_sampling'];
-};
-
-type PanelChartDataState = {
-    chartData: ChartSeriesData[];
-    navigatorChartData: ChartSeriesData[];
-    resolvedIntervalOption: IntervalOption | undefined;
-    loadedDataRange: TimeRangeMs;
-    loadedNavigatorRange: TimeRangeMs;
+    xAxis: RuntimePanelXAxis;
+    mainChartSampling: RuntimePanelSampling;
+    rawNavigatorSampling: RuntimePanelSampling;
 };
 
 export enum PanelChartLoadStatus {
@@ -54,29 +63,21 @@ export enum PanelChartLoadStatus {
     Failed = 'failed',
 }
 
-const INITIAL_PANEL_CHART_DATA_STATE: PanelChartDataState = {
-    chartData: [],
-    navigatorChartData: [],
-    resolvedIntervalOption: undefined,
-    loadedDataRange: EMPTY_TIME_RANGE,
-    loadedNavigatorRange: EMPTY_TIME_RANGE,
-};
-
 type UsePanelChartDataRuntimeParams = {
     panelInfo: PanelInfo;
+    isActive: boolean;
     rangeState: PanelRangeState;
     chartAreaWidth: number | undefined;
-    rollupTableList: string[];
+    rollupTableList: RollupTableMap;
     dataRefreshVersion: number;
-    onRangeStateChange: (
-        rangeState: PanelRangeState,
-        options?: PanelRangeStateApplyOptions,
-    ) => void;
+    onRangeStateChange: (rangeState: PanelRangeState) => void;
 };
 
 type UsePanelChartDataRuntimeResult = {
     chartData: ChartSeriesData[];
+    visibleChartData: ChartSeriesData[];
     navigatorChartData: ChartSeriesData[];
+    displayRangeState: PanelDisplayRangeState;
     resolvedIntervalOption: IntervalOption | undefined;
     loadStatus: {
         chart: PanelChartLoadStatus;
@@ -84,193 +85,917 @@ type UsePanelChartDataRuntimeResult = {
     };
 };
 
-type MainPanelSeriesLoadResult = {
-    chartData: ChartSeriesData[];
-    resolvedIntervalOption: IntervalOption;
-    isLimitReached?: boolean | undefined;
-    appliedPanelRange?: TimeRangeMs | undefined;
+type PanelSeriesFetchState = {
+    result: FetchPanelSeriesRowsResult | undefined;
+    status: PanelChartLoadStatus;
 };
 
-type NavigatorPanelSeriesLoadResult = { chartData: ChartSeriesData[] };
-
-type MainQueryResultAnalysis = {
-    isLimitReached: boolean;
-    queriedDataRange?: TimeRangeMs | undefined;
+type MainFetchCacheState = {
+    baseKey: string;
+    fetchedRange: TimeRangeMs | undefined;
+    reuseKey: string | undefined;
 };
 
-type AppliedPanelLoadRanges = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
+type NavigatorFetchCacheState = {
+    baseKey: string;
+    fetchedRange: TimeRangeMs | undefined;
 };
 
-type MainPanelDataLoadResult = {
-    isStale: boolean;
-    appliedRanges?: AppliedPanelLoadRanges | undefined;
+export type PanelFetchDecision =
+    | { kind: 'reuse'; fetchedRange: TimeRangeMs }
+    | { kind: 'fetch'; fetchRange: TimeRangeMs };
+
+export type PanelFetchPlan = {
+    main: PanelFetchDecision;
+    navigator: PanelFetchDecision;
 };
 
-const EMPTY_INTERVAL_OPTION = { IntervalType: '', IntervalValue: 0 } as const;
-const MIN_QUERIED_DATA_RANGE_WIDTH = 1;
-const RAW_DATA_RANGE_SHRINK_THRESHOLD = 0.1;
+const INITIAL_FETCH_STATE: PanelSeriesFetchState = {
+    result: undefined,
+    status: PanelChartLoadStatus.Idle,
+};
+const MIN_DISPLAY_DATA_RANGE_WIDTH = 1;
+const PANEL_PREFETCH_SIDE_FACTOR = 1;
+const NAVIGATOR_PREFETCH_SIDE_FACTOR = 1;
 
-function getChartLoadErrorMessage(error: unknown): string {
-    return error instanceof Error && error.message
-        ? error.message
-        : 'Failed to load chart data.';
-}
-
-function wasErrorPresented(error: unknown): boolean {
-    return (
-        typeof error === 'object' &&
-        error !== null &&
-        (error as { tagAnalyzerUserPresented?: unknown }).tagAnalyzerUserPresented === true
+export function usePanelChartDataRuntime({
+    panelInfo,
+    isActive,
+    rangeState,
+    chartAreaWidth,
+    rollupTableList,
+    dataRefreshVersion,
+    onRangeStateChange,
+}: UsePanelChartDataRuntimeParams): UsePanelChartDataRuntimeResult {
+    const sLoadConfig = buildLoadConfig(panelInfo);
+    const sChartWidth = resolveChartWidth(chartAreaWidth);
+    const sRequestPanelRange = rangeState.requestPanelRange;
+    const sNavigatorRange = resolveRenderableNavigatorRange(
+        rangeState.requestNavigatorRange,
+        sRequestPanelRange,
+        chartAreaWidth,
     );
-}
-
-function getPanelLoadConfig(panelInfo: PanelInfo): PanelChartDataLoadConfig {
-    const sRuntimeAxes = resolvePanelAxesForRuntime(panelInfo.axes);
-
-    return {
-        seriesList: panelInfo.data.tag_set,
-        queryLimit: panelInfo.data.count ?? -1,
-        intervalType: panelInfo.data.interval_type,
-        isRaw: panelInfo.general.is_raw,
-        useOrderBy: panelInfo.general.is_raw
-            ? panelInfo.general.is_order_by
-            : true,
-        xAxis: sRuntimeAxes.x_axis,
-        mainChartSampling: sRuntimeAxes.main_chart_sampling,
-    };
-}
-
-function getNavigatorDataRange(
-    rangeState: PanelRangeState,
-): TimeRangeMs {
-    return rangeState.fullRange;
-}
-
-function useLoadRequests() {
-    const requestIdRef = useRef(0);
-
-    return {
-        start: () => {
-            requestIdRef.current += 1;
-            return requestIdRef.current;
-        },
-        isCurrent: (requestId: number | undefined) =>
-            requestId !== undefined && requestId === requestIdRef.current,
-    };
-}
-
-function applyRawRowCap(
-    loadConfig: PanelChartDataLoadConfig,
-): PanelChartDataLoadConfig {
-    if (!loadConfig.isRaw) {
-        return loadConfig;
-    }
-
-    return {
-        ...loadConfig,
-        queryLimit: RAW_NAVIGATOR_SAMPLE_COUNT,
-    };
-}
-
-async function loadMainSeriesData(
-    loadConfig: PanelChartDataLoadConfig,
-    chartWidth: number,
-    timeRange: TimeRangeMs,
-    rollupTableList: string[],
-): Promise<MainPanelSeriesLoadResult> {
-    const sFetchResult = await fetchMainPanelSeriesRows(
-        loadConfig.seriesList,
-        loadConfig.queryLimit,
-        loadConfig.intervalType,
-        loadConfig.xAxis,
-        loadConfig.mainChartSampling,
-        chartWidth,
-        loadConfig.isRaw,
-        loadConfig.useOrderBy,
-        timeRange,
-        rollupTableList,
+    const sCanFetch = isActive && isReadyToFetch({
+        chartAreaWidth,
+        panelRange: sRequestPanelRange,
+        navigatorRange: sNavigatorRange,
+        fullRange: rangeState.fullRange,
+    });
+    const sSeriesKey = buildSeriesCacheKey(sLoadConfig.seriesList);
+    const sRollupKey = JSON.stringify(rollupTableList);
+    const sMainFetchCacheRef = useRef<MainFetchCacheState>({
+        baseKey: '',
+        fetchedRange: undefined,
+        reuseKey: undefined,
+    });
+    const sNavigatorFetchCacheRef = useRef<NavigatorFetchCacheState>({
+        baseKey: '',
+        fetchedRange: undefined,
+    });
+    const sRequestPanelInterval = useMemo(
+        () =>
+            resolvePanelFetchInterval(
+                sLoadConfig.intervalType,
+                sLoadConfig.xAxis,
+                sRequestPanelRange,
+                sChartWidth,
+                sLoadConfig.isRaw,
+            ),
+        [
+            sRequestPanelRange,
+            sChartWidth,
+            sLoadConfig.intervalType,
+            sLoadConfig.xAxis,
+            sLoadConfig.isRaw,
+        ],
     );
-
-    if (!sFetchResult) {
-        return {
-            chartData: [],
-            resolvedIntervalOption: EMPTY_INTERVAL_OPTION,
+    const sMainFetchReuseKey = getMainFetchReuseKey(
+        sLoadConfig,
+        sRequestPanelInterval,
+    );
+    const sMainBaseKey = buildMainFetchBaseKey(
+        sLoadConfig,
+        sChartWidth,
+        sSeriesKey,
+        sRollupKey,
+        dataRefreshVersion,
+    );
+    if (sMainFetchCacheRef.current.baseKey !== sMainBaseKey) {
+        sMainFetchCacheRef.current = {
+            baseKey: sMainBaseKey,
+            fetchedRange: undefined,
+            reuseKey: undefined,
         };
     }
-
-    const sQueryAnalysis = analyzeMainQueryResult(
-        sFetchResult.seriesFetchResults,
+    const sNavigatorBaseKey = buildNavigatorFetchBaseKey(
+        sLoadConfig,
+        sChartWidth,
+        sSeriesKey,
+        sRollupKey,
+        dataRefreshVersion,
     );
-    const sAppliedPanelRange = loadConfig.isRaw
-        ? resolveRawDataRange(timeRange, sQueryAnalysis.queriedDataRange)
-        : undefined;
+    if (sNavigatorFetchCacheRef.current.baseKey !== sNavigatorBaseKey) {
+        sNavigatorFetchCacheRef.current = {
+            baseKey: sNavigatorBaseKey,
+            fetchedRange: undefined,
+        };
+    }
+    const sFetchPlan = resolvePanelFetchPlan({
+        requestPanelRange: sRequestPanelRange,
+        requestNavigatorRange: sNavigatorRange,
+        fullRange: rangeState.fullRange,
+        loadConfig: sLoadConfig,
+        requestInterval: sRequestPanelInterval,
+        mainReuseKey: sMainFetchReuseKey,
+        mainCacheState: sMainFetchCacheRef.current,
+        navigatorCacheState: sNavigatorFetchCacheRef.current,
+    });
+    const sMainFetchRange = getPanelFetchDecisionRange(sFetchPlan.main);
+    const sNavigatorFetchRange = getPanelFetchDecisionRange(sFetchPlan.navigator);
+    const sMainKey = buildFetchCacheKey(
+        'main',
+        sLoadConfig,
+        sMainFetchRange,
+        sChartWidth,
+        sSeriesKey,
+        sRollupKey,
+        dataRefreshVersion,
+    );
+    const sNavigatorKey = buildFetchCacheKey(
+        'navigator',
+        sLoadConfig,
+        sNavigatorFetchRange,
+        sChartWidth,
+        sSeriesKey,
+        sRollupKey,
+        dataRefreshVersion,
+    );
+
+    const sMainFetch = usePanelSeriesFetch({
+        canFetch: sCanFetch,
+        cacheKey: sMainKey,
+        fetchFn: () =>
+            fetchMainPanelSeriesRows(
+                sLoadConfig.seriesList,
+                sLoadConfig.isRaw ? RAW_MAIN_SAMPLE_COUNT : sLoadConfig.queryLimit,
+                sLoadConfig.intervalType,
+                sLoadConfig.xAxis,
+                sLoadConfig.mainChartSampling,
+                sChartWidth,
+                sLoadConfig.isRaw,
+                sLoadConfig.useOrderBy,
+                sMainFetchRange,
+                rollupTableList,
+                sLoadConfig.isRaw ? undefined : sRequestPanelInterval,
+            ),
+        validate: assertResolvedInterval,
+        onSuccess: (result) => {
+            handleMainLimitReached(result);
+            updateMainFetchCache(
+                sMainFetchCacheRef,
+                sMainBaseKey,
+                sMainFetchRange,
+                sMainFetchReuseKey,
+                result,
+            );
+            applyFetchedPanelRangeCorrection({
+                result,
+                rangeState,
+                requestPanelRange: sRequestPanelRange,
+                onRangeStateChange,
+            });
+        },
+    });
+    const sNavigatorFetch = usePanelSeriesFetch({
+        canFetch: sCanFetch,
+        cacheKey: sNavigatorKey,
+        fetchFn: () =>
+            fetchNavigatorPanelSeriesRows(
+                sLoadConfig.seriesList,
+                sLoadConfig.queryLimit,
+                sLoadConfig.intervalType,
+                sLoadConfig.xAxis,
+                sChartWidth,
+                sLoadConfig.isRaw,
+                sNavigatorFetchRange,
+                sLoadConfig.rawNavigatorSampling,
+                rollupTableList,
+            ),
+        onSuccess: () => {
+            updateNavigatorFetchCache(
+                sNavigatorFetchCacheRef,
+                sNavigatorBaseKey,
+                sNavigatorFetchRange,
+            );
+        },
+    });
+
+    const sChartData = useMemo(
+        () => mapFetchResultToChartData(sMainFetch.result),
+        [sMainFetch.result],
+    );
+    const sNavigatorChartData = useMemo(
+        () => mapFetchResultToChartData(sNavigatorFetch.result),
+        [sNavigatorFetch.result],
+    );
+    const sDisplayPanelRange = useMemo(
+        () =>
+            resolveDisplayPanelRange(
+                sMainFetch.result,
+                sRequestPanelRange,
+            ),
+        [sMainFetch.result, sRequestPanelRange],
+    );
+    const sVisibleDisplayResult = useMemo(
+        () =>
+            resolveVisibleDisplayResult(
+                sMainFetch.result,
+                sDisplayPanelRange,
+            ),
+        [sMainFetch.result, sDisplayPanelRange],
+    );
+    const sVisibleChartData = useMemo(
+        () => mapFetchResultToChartData(sVisibleDisplayResult),
+        [sVisibleDisplayResult],
+    );
+    const sDisplayNavigatorRange = useMemo(
+        () =>
+            resolveDisplayNavigatorRange(
+                sDisplayPanelRange,
+                sNavigatorRange,
+                chartAreaWidth,
+            ),
+        [chartAreaWidth, sDisplayPanelRange, sNavigatorRange],
+    );
+    const sDisplayRangeState = useMemo<PanelDisplayRangeState>(
+        () => ({
+            displayPanelRange: sDisplayPanelRange,
+            displayNavigatorRange: sDisplayNavigatorRange,
+        }),
+        [sDisplayPanelRange, sDisplayNavigatorRange],
+    );
 
     return {
-        chartData: mapRowsToSeriesData(sFetchResult),
-        resolvedIntervalOption: sFetchResult.interval,
-        ...(sQueryAnalysis.isLimitReached
-            ? { isLimitReached: true }
-            : {}),
-        ...(sAppliedPanelRange
-            ? { appliedPanelRange: sAppliedPanelRange }
-            : {}),
+        chartData: sChartData,
+        visibleChartData: sVisibleChartData,
+        navigatorChartData: sNavigatorChartData,
+        displayRangeState: sDisplayRangeState,
+        resolvedIntervalOption: sMainFetch.result?.interval,
+        loadStatus: {
+            chart: sMainFetch.status,
+            navigator: sNavigatorFetch.status,
+        },
     };
 }
 
-async function loadNavigatorSeriesData(
-    loadConfig: PanelChartDataLoadConfig,
-    chartWidth: number,
-    timeRange: TimeRangeMs,
-    rollupTableList: string[],
-): Promise<NavigatorPanelSeriesLoadResult> {
-    const sFetchResult = await fetchNavigatorPanelSeriesRows(
-        loadConfig.seriesList,
-        loadConfig.queryLimit,
-        loadConfig.intervalType,
-        loadConfig.xAxis,
-        chartWidth,
-        loadConfig.isRaw,
-        timeRange,
-        rollupTableList,
-    );
+function buildLoadConfig(panelInfo: PanelInfo): PanelChartDataLoadConfig {
+    const sPixelsPerTick = panelInfo.display.pixelsPerTick;
+    const sSampling = panelInfo.display.mainChartSampling;
+    const sRawNavigatorSampling = panelInfo.display.rawNavigatorSampling;
 
     return {
-        chartData: mapRowsToSeriesData(sFetchResult),
+        seriesList: panelInfo.query.tagSet,
+        queryLimit: panelInfo.query.count,
+        intervalType: panelInfo.query.intervalType,
+        isRaw: panelInfo.mode.isRaw,
+        useOrderBy: panelInfo.mode.isRaw ? panelInfo.mode.isOrderBy : true,
+        xAxis: {
+            showTickline: false,
+            rawDataPixelsPerTick: sPixelsPerTick.raw ?? 0,
+            calculatedDataPixelsPerTick: sPixelsPerTick.calculated ?? 0,
+            calculatedNavigatorPixelsPerTick:
+                sPixelsPerTick.calculatedNavigator ?? 0,
+        },
+        mainChartSampling: {
+            enabled: sSampling.enabled,
+            sampleCount: sSampling.sampleCount ?? 0,
+        },
+        rawNavigatorSampling: {
+            enabled: sRawNavigatorSampling.enabled,
+            sampleCount: sRawNavigatorSampling.sampleCount ??
+                RAW_NAVIGATOR_SAMPLING_VALUE,
+        },
     };
 }
 
-function mapRowsToSeriesData(
-    fetchResult: FetchPanelSeriesRowsResult | undefined,
-): ChartSeriesData[] {
-    if (!fetchResult) {
-        return [];
+function resolveChartWidth(chartAreaWidth: number | undefined): number {
+    return chartAreaWidth !== undefined && chartAreaWidth > 0 ? chartAreaWidth : 1;
+}
+
+function isReadyToFetch({
+    chartAreaWidth,
+    panelRange,
+    navigatorRange,
+    fullRange,
+}: {
+    chartAreaWidth: number | undefined;
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
+}): boolean {
+    return (
+        chartAreaWidth !== undefined &&
+        isValidTimeRange(panelRange) &&
+        isValidTimeRange(navigatorRange) &&
+        isValidTimeRange(fullRange)
+    );
+}
+
+function resolveRenderableNavigatorRange(
+    requestNavigatorRange: TimeRangeMs,
+    displayPanelRange: TimeRangeMs,
+    chartAreaWidth: number | undefined,
+): TimeRangeMs {
+    if (!isValidTimeRange(displayPanelRange) || !isValidTimeRange(requestNavigatorRange)) {
+        return requestNavigatorRange;
     }
 
-    return fetchResult.seriesFetchResults.map(
-        ({ seriesConfig, fetchResult: seriesFetchResult }) =>
-            buildChartSeriesData(
-                seriesConfig,
-                mapRowsToChartData(seriesFetchResult?.data?.rows),
-                fetchResult.isRaw,
-            ),
+    const sNavigatorTrackPixelWidth =
+        chartAreaWidth !== undefined && chartAreaWidth > 0
+            ? getNavigatorTrackWidth(chartAreaWidth)
+            : undefined;
+
+    return resolveNavigatorRangeForPanel(
+        displayPanelRange,
+        requestNavigatorRange,
+        sNavigatorTrackPixelWidth,
     );
 }
 
-function analyzeMainQueryResult(
-    seriesFetchResults: PanelSeriesFetchResult[],
-): MainQueryResultAnalysis {
-    const sIsLimitReached = seriesFetchResults.some(
+function buildSeriesCacheKey(seriesList: PanelSeriesDefinition[]): string {
+    return JSON.stringify(
+        seriesList.map((s) => ({
+            table: s.table,
+            sourceTagName: s.sourceTagName,
+            calculationMode: s.calculationMode,
+            useRollupTable: s.useRollupTable,
+            sourceColumns: s.sourceColumns,
+        })),
+    );
+}
+
+function buildMainFetchBaseKey(
+    config: PanelChartDataLoadConfig,
+    chartWidth: number,
+    seriesKey: string,
+    rollupKey: string,
+    refreshVersion: number,
+): string {
+    return JSON.stringify({
+        queryLimit: config.queryLimit,
+        intervalType: config.intervalType,
+        isRaw: config.isRaw,
+        rawPixelsPerTick: config.xAxis.rawDataPixelsPerTick,
+        chartWidth,
+        series: seriesKey,
+        rollups: rollupKey,
+        refreshVersion,
+        useOrderBy: config.useOrderBy,
+        calculatedPixelsPerTick: config.xAxis.calculatedDataPixelsPerTick,
+        mainChartSampling: config.mainChartSampling,
+    });
+}
+
+function getMainFetchReuseKey(
+    config: PanelChartDataLoadConfig,
+    requestInterval: IntervalOption,
+): string | undefined {
+    if (config.isRaw) {
+        return config.mainChartSampling.enabled
+            ? JSON.stringify({
+                  mode: 'raw-sampling',
+                  sampleCount: config.mainChartSampling.sampleCount,
+              })
+            : undefined;
+    }
+
+    return JSON.stringify({
+        mode: 'calculated',
+        intervalType: requestInterval.IntervalType,
+        intervalValue: requestInterval.IntervalValue,
+    });
+}
+
+function buildNavigatorFetchBaseKey(
+    config: PanelChartDataLoadConfig,
+    chartWidth: number,
+    seriesKey: string,
+    rollupKey: string,
+    refreshVersion: number,
+): string {
+    return JSON.stringify({
+        queryLimit: config.queryLimit,
+        intervalType: config.intervalType,
+        isRaw: config.isRaw,
+        rawPixelsPerTick: config.xAxis.rawDataPixelsPerTick,
+        chartWidth,
+        series: seriesKey,
+        rollups: rollupKey,
+        refreshVersion,
+        navigatorPixelsPerTick: config.xAxis.calculatedNavigatorPixelsPerTick,
+        rawNavigatorSampling: config.rawNavigatorSampling,
+    });
+}
+
+type ResolvePanelFetchPlanParams = {
+    requestPanelRange: TimeRangeMs;
+    requestNavigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
+    loadConfig: PanelChartDataLoadConfig;
+    requestInterval: IntervalOption;
+    mainReuseKey: string | undefined;
+    mainCacheState: MainFetchCacheState;
+    navigatorCacheState: NavigatorFetchCacheState;
+};
+
+export function resolvePanelFetchPlan({
+    requestPanelRange,
+    requestNavigatorRange,
+    fullRange,
+    loadConfig,
+    requestInterval,
+    mainReuseKey,
+    mainCacheState,
+    navigatorCacheState,
+}: ResolvePanelFetchPlanParams): PanelFetchPlan {
+    return {
+        main: resolveMainPanelFetchDecision({
+            requestPanelRange,
+            requestNavigatorRange,
+            fullRange,
+            loadConfig,
+            requestInterval,
+            reuseKey: mainReuseKey,
+            cacheState: mainCacheState,
+        }),
+        navigator: resolveNavigatorFetchDecision({
+            requestNavigatorRange,
+            fullRange,
+            cacheState: navigatorCacheState,
+        }),
+    };
+}
+
+function resolveMainPanelFetchDecision(
+    params: ResolveMainPanelFetchRangeParams,
+): PanelFetchDecision {
+    const sCachedRange = params.cacheState.fetchedRange;
+
+    if (
+        sCachedRange &&
+        !isTimeRangeWithinTimeRange(params.requestPanelRange, params.fullRange)
+    ) {
+        return { kind: 'reuse', fetchedRange: sCachedRange };
+    }
+
+    if (
+        sCachedRange &&
+        params.cacheState.reuseKey === params.reuseKey &&
+        isTimeRangeWithinTimeRange(params.requestPanelRange, sCachedRange)
+    ) {
+        return { kind: 'reuse', fetchedRange: sCachedRange };
+    }
+
+    return {
+        kind: 'fetch',
+        fetchRange: resolveMainPanelFetchRange(params),
+    };
+}
+
+function resolveNavigatorFetchDecision(
+    params: ResolveNavigatorFetchRangeParams,
+): PanelFetchDecision {
+    const sCachedRange = params.cacheState.fetchedRange;
+
+    if (
+        sCachedRange &&
+        (isTimeRangeWithinTimeRange(params.requestNavigatorRange, sCachedRange) ||
+            !isTimeRangeWithinTimeRange(params.requestNavigatorRange, params.fullRange))
+    ) {
+        return { kind: 'reuse', fetchedRange: sCachedRange };
+    }
+
+    return {
+        kind: 'fetch',
+        fetchRange: resolveNavigatorFetchRange(params),
+    };
+}
+
+function getPanelFetchDecisionRange(decision: PanelFetchDecision): TimeRangeMs {
+    return decision.kind === 'fetch' ? decision.fetchRange : decision.fetchedRange;
+}
+
+type ResolveNavigatorFetchRangeParams = {
+    requestNavigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
+    cacheState: NavigatorFetchCacheState;
+};
+
+function resolveNavigatorFetchRange({
+    requestNavigatorRange,
+    fullRange,
+    cacheState,
+}: ResolveNavigatorFetchRangeParams): TimeRangeMs {
+    if (!cacheState.fetchedRange) {
+        return buildNavigatorPrefetchRange(requestNavigatorRange, fullRange);
+    }
+
+    if (isTimeRangeWithinTimeRange(requestNavigatorRange, cacheState.fetchedRange)) {
+        return cacheState.fetchedRange;
+    }
+
+    if (!isTimeRangeWithinTimeRange(requestNavigatorRange, fullRange)) {
+        return cacheState.fetchedRange;
+    }
+
+    return buildNavigatorPrefetchRange(requestNavigatorRange, fullRange);
+}
+
+function buildNavigatorPrefetchRange(
+    requestNavigatorRange: TimeRangeMs,
+    fullRange: TimeRangeMs,
+): TimeRangeMs {
+    const sNavigatorWidth = getTimeRangeWidth(requestNavigatorRange);
+    if (!Number.isFinite(sNavigatorWidth) || sNavigatorWidth <= 0) {
+        return requestNavigatorRange;
+    }
+
+    const sPrefetchRange = createTimeRangeMs(
+        requestNavigatorRange.startTime - sNavigatorWidth * NAVIGATOR_PREFETCH_SIDE_FACTOR,
+        requestNavigatorRange.endTime + sNavigatorWidth * NAVIGATOR_PREFETCH_SIDE_FACTOR,
+    );
+
+    return isValidTimeRange(fullRange)
+        ? clampTimeRangeToBounds(sPrefetchRange, fullRange)
+        : sPrefetchRange;
+}
+
+type ResolveMainPanelFetchRangeParams = {
+    requestPanelRange: TimeRangeMs;
+    requestNavigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
+    loadConfig: PanelChartDataLoadConfig;
+    requestInterval: IntervalOption;
+    reuseKey: string | undefined;
+    cacheState: MainFetchCacheState;
+};
+
+function resolveMainPanelFetchRange({
+    requestPanelRange,
+    requestNavigatorRange,
+    loadConfig,
+    requestInterval,
+    reuseKey,
+    cacheState,
+}: ResolveMainPanelFetchRangeParams): TimeRangeMs {
+    if (!reuseKey) {
+        return requestPanelRange;
+    }
+
+    if (
+        cacheState.fetchedRange &&
+        cacheState.reuseKey === reuseKey &&
+        isTimeRangeWithinTimeRange(requestPanelRange, cacheState.fetchedRange)
+    ) {
+        return cacheState.fetchedRange;
+    }
+
+    if (loadConfig.isRaw) {
+        return requestNavigatorRange;
+    }
+
+    return resolveSafeCalculatedPrefetchRange({
+        requestPanelRange,
+        requestNavigatorRange,
+        requestInterval,
+    });
+}
+
+type ResolveSafeCalculatedPrefetchRangeParams = {
+    requestPanelRange: TimeRangeMs;
+    requestNavigatorRange: TimeRangeMs;
+    requestInterval: IntervalOption;
+};
+
+function resolveSafeCalculatedPrefetchRange({
+    requestPanelRange,
+    requestNavigatorRange,
+    requestInterval,
+}: ResolveSafeCalculatedPrefetchRangeParams): TimeRangeMs {
+    const sRequestPrediction = predictCalculatedRowCount(
+        requestPanelRange,
+        requestInterval,
+    );
+
+    if (sRequestPrediction > CALCULATED_FETCH_ROW_BUDGET) {
+        return requestPanelRange;
+    }
+
+    const sPrefetchRange = buildPanelPrefetchRange(
+        requestPanelRange,
+        requestNavigatorRange,
+    );
+
+    if (
+        predictCalculatedRowCount(sPrefetchRange, requestInterval) <=
+        CALCULATED_FETCH_ROW_BUDGET
+    ) {
+        return sPrefetchRange;
+    }
+
+    return shrinkPrefetchRangeToPredictedRowBudget(
+        requestPanelRange,
+        sPrefetchRange,
+        requestInterval,
+    );
+}
+
+function predictCalculatedRowCount(
+    range: TimeRangeMs,
+    interval: IntervalOption,
+): number {
+    const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
+    const sRangeWidth = getTimeRangeWidth(range);
+
+    if (sIntervalMs <= 0 || sRangeWidth <= 0) {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    return Math.ceil(sRangeWidth / sIntervalMs);
+}
+
+function shrinkPrefetchRangeToPredictedRowBudget(
+    requestPanelRange: TimeRangeMs,
+    prefetchRange: TimeRangeMs,
+    interval: IntervalOption,
+): TimeRangeMs {
+    const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
+    const sRequestWidth = getTimeRangeWidth(requestPanelRange);
+    const sMaxPrefetchWidth = sIntervalMs * CALCULATED_FETCH_ROW_BUDGET;
+    const sExtraWidthBudget = sMaxPrefetchWidth - sRequestWidth;
+
+    if (sIntervalMs <= 0 || sExtraWidthBudget <= 0) {
+        return requestPanelRange;
+    }
+
+    const sLeftAvailable = Math.max(
+        0,
+        requestPanelRange.startTime - prefetchRange.startTime,
+    );
+    const sRightAvailable = Math.max(
+        0,
+        prefetchRange.endTime - requestPanelRange.endTime,
+    );
+    let sLeftPrefetchWidth = Math.min(sLeftAvailable, sExtraWidthBudget / 2);
+    const sRightPrefetchWidth = Math.min(
+        sRightAvailable,
+        sExtraWidthBudget - sLeftPrefetchWidth,
+    );
+    sLeftPrefetchWidth = Math.min(
+        sLeftAvailable,
+        sExtraWidthBudget - sRightPrefetchWidth,
+    );
+
+    return createTimeRangeMs(
+        requestPanelRange.startTime - sLeftPrefetchWidth,
+        requestPanelRange.endTime + sRightPrefetchWidth,
+    );
+}
+
+function buildPanelPrefetchRange(
+    requestPanelRange: TimeRangeMs,
+    requestNavigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    if (isValidTimeRange(requestNavigatorRange)) {
+        return requestNavigatorRange;
+    }
+
+    const sPanelWidth = getTimeRangeWidth(requestPanelRange);
+    if (!Number.isFinite(sPanelWidth) || sPanelWidth <= 0) {
+        return requestPanelRange;
+    }
+
+    return createTimeRangeMs(
+        requestPanelRange.startTime - sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
+        requestPanelRange.endTime + sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
+    );
+}
+
+
+function updateMainFetchCache(
+    cacheRef: { current: MainFetchCacheState },
+    baseKey: string,
+    fetchedRange: TimeRangeMs,
+    reuseKey: string | undefined,
+    result: FetchPanelSeriesRowsResult,
+): void {
+    if (!reuseKey || hasFetchLimitReached(result)) {
+        cacheRef.current = {
+            baseKey,
+            fetchedRange: undefined,
+            reuseKey: undefined,
+        };
+        return;
+    }
+
+    cacheRef.current = {
+        baseKey,
+        fetchedRange,
+        reuseKey,
+    };
+}
+
+function updateNavigatorFetchCache(
+    cacheRef: { current: NavigatorFetchCacheState },
+    baseKey: string,
+    fetchedRange: TimeRangeMs,
+): void {
+    cacheRef.current = {
+        baseKey,
+        fetchedRange,
+    };
+}
+function hasFetchLimitReached(result: FetchPanelSeriesRowsResult): boolean {
+    return result.seriesFetchResults.some(
         ({ isLimitReached }) => isLimitReached === true,
     );
+}
+
+function applyFetchedPanelRangeCorrection({
+    result,
+    rangeState,
+    requestPanelRange,
+    onRangeStateChange,
+}: {
+    result: FetchPanelSeriesRowsResult;
+    rangeState: PanelRangeState;
+    requestPanelRange: TimeRangeMs;
+    onRangeStateChange: (rangeState: PanelRangeState) => void;
+}): void {
+    const sCorrectedPanelRange = resolveFetchedPanelRangeCorrection(
+        result,
+        requestPanelRange,
+    );
+
+    if (!sCorrectedPanelRange) {
+        return;
+    }
+
+    onRangeStateChange({
+        ...rangeState,
+        requestPanelRange: sCorrectedPanelRange,
+    });
+}
+
+function resolveFetchedPanelRangeCorrection(
+    result: FetchPanelSeriesRowsResult,
+    requestPanelRange: TimeRangeMs,
+): TimeRangeMs | undefined {
+    if (!shouldRenderFetchedRange(result)) {
+        return undefined;
+    }
+
+    const sFetchedRowsRange = getFetchedRowsRange(result);
+    if (
+        !sFetchedRowsRange ||
+        isSameTimeRange(sFetchedRowsRange, requestPanelRange)
+    ) {
+        return undefined;
+    }
+
+    return sFetchedRowsRange;
+}
+
+function resolveVisibleDisplayResult(
+    result: FetchPanelSeriesRowsResult | undefined,
+    requestPanelRange: TimeRangeMs,
+): FetchPanelSeriesRowsResult | undefined {
+    if (!result || !isValidTimeRange(requestPanelRange)) {
+        return result;
+    }
+
+    return {
+        ...result,
+        seriesFetchResults: result.seriesFetchResults.map((seriesResult) => ({
+            ...seriesResult,
+            fetchResult: {
+                ...seriesResult.fetchResult,
+                data: seriesResult.fetchResult.data
+                    ? {
+                          ...seriesResult.fetchResult.data,
+                          rows: (seriesResult.fetchResult.data.rows ?? []).filter((row) => {
+                              const sTimestamp = Number(row[0]);
+
+                              return (
+                                  Number.isFinite(sTimestamp) &&
+                                  sTimestamp >= requestPanelRange.startTime &&
+                                  sTimestamp <= requestPanelRange.endTime
+                              );
+                          }),
+                      }
+                    : seriesResult.fetchResult.data,
+            },
+        })),
+    };
+}
+
+function buildFetchCacheKey(
+    variant: 'main' | 'navigator',
+    config: PanelChartDataLoadConfig,
+    range: TimeRangeMs,
+    chartWidth: number,
+    seriesKey: string,
+    rollupKey: string,
+    refreshVersion: number,
+): string {
+    const sShared = {
+        queryLimit: config.queryLimit,
+        intervalType: config.intervalType,
+        isRaw: config.isRaw,
+        rawPixelsPerTick: config.xAxis.rawDataPixelsPerTick,
+        chartWidth,
+        series: seriesKey,
+        rollups: rollupKey,
+        refreshVersion,
+    };
+
+    return JSON.stringify(
+        variant === 'main'
+            ? {
+                  ...sShared,
+                  useOrderBy: config.useOrderBy,
+                  calculatedPixelsPerTick: config.xAxis.calculatedDataPixelsPerTick,
+                  mainChartSampling: config.mainChartSampling,
+                  requestPanelRange: range,
+              }
+            : {
+                  ...sShared,
+                  navigatorPixelsPerTick: config.xAxis.calculatedNavigatorPixelsPerTick,
+                  rawNavigatorSampling: config.rawNavigatorSampling,
+                  requestNavigatorRange: range,
+              },
+    );
+}
+
+function assertResolvedInterval(result: FetchPanelSeriesRowsResult): void {
+    if (!hasResolvedIntervalOption(result.interval)) {
+        throw new Error('Main panel fetch returned an invalid interval.');
+    }
+}
+
+function resolveDisplayNavigatorRange(
+    displayPanelRange: TimeRangeMs,
+    requestNavigatorRange: TimeRangeMs,
+    chartAreaWidth: number | undefined,
+): TimeRangeMs {
+    if (!isValidTimeRange(displayPanelRange) || !isValidTimeRange(requestNavigatorRange)) {
+        return requestNavigatorRange;
+    }
+
+    const sNavigatorTrackPixelWidth =
+        chartAreaWidth !== undefined && chartAreaWidth > 0
+            ? getNavigatorTrackWidth(chartAreaWidth)
+            : undefined;
+
+    return resolveNavigatorRangeForPanel(
+        displayPanelRange,
+        requestNavigatorRange,
+        sNavigatorTrackPixelWidth,
+    );
+}
+
+function resolveDisplayPanelRange(
+    result: FetchPanelSeriesRowsResult | undefined,
+    fallbackRange: TimeRangeMs,
+): TimeRangeMs {
+    if (!shouldRenderFetchedRange(result)) {
+        return fallbackRange;
+    }
+
+    return getFetchedRowsRange(result) ?? fallbackRange;
+}
+
+function shouldRenderFetchedRange(
+    result: FetchPanelSeriesRowsResult | undefined,
+): result is FetchPanelSeriesRowsResult {
+    return (
+        result?.isRaw === true &&
+        result.seriesFetchResults.some(
+            ({ isLimitReached }) => isLimitReached === true,
+        )
+    );
+}
+
+function getFetchedRowsRange(
+    result: FetchPanelSeriesRowsResult,
+): TimeRangeMs | undefined {
     let sStartTime = Number.POSITIVE_INFINITY;
     let sEndTime = Number.NEGATIVE_INFINITY;
 
-    for (const { fetchResult } of seriesFetchResults) {
-        const rows = fetchResult?.data?.rows ?? [];
-        for (const row of rows) {
+    for (const { fetchResult } of result.seriesFetchResults) {
+        for (const row of fetchResult.data?.rows ?? []) {
             const sTimestamp = Number(row[0]);
+
             if (!Number.isFinite(sTimestamp)) {
                 continue;
             }
@@ -280,316 +1005,89 @@ function analyzeMainQueryResult(
         }
     }
 
-    const sQueriedDataRange =
-        !Number.isFinite(sStartTime) ||
-        !Number.isFinite(sEndTime)
-            ? undefined
-            : {
-                  startTime: sStartTime,
-                  endTime: Math.max(
-                      sEndTime,
-                      sStartTime + MIN_QUERIED_DATA_RANGE_WIDTH,
-                  ),
-              };
+    if (!Number.isFinite(sStartTime) || !Number.isFinite(sEndTime)) {
+        return undefined;
+    }
 
-    const sAnalysis = {
-        isLimitReached: sIsLimitReached,
-        ...(sQueriedDataRange
-            ? { queriedDataRange: sQueriedDataRange }
-            : {}),
-    };
-
-    return sAnalysis;
+    return ensureMinimumTimeRangeWidth(
+        createTimeRangeMs(sStartTime, sEndTime),
+        MIN_DISPLAY_DATA_RANGE_WIDTH,
+    );
 }
 
-function resolveRawDataRange(
-    queryRange: TimeRangeMs,
-    queriedDataRange: TimeRangeMs | undefined,
-): TimeRangeMs {
-    if (!queriedDataRange) {
-        return queryRange;
-    }
-
-    const sQueryRangeAmount = queryRange.endTime - queryRange.startTime;
-    if (sQueryRangeAmount <= 0) {
-        throw new Error('Cannot resolve raw data range for an invalid query range.');
-    }
-
-    const sMissingStartAmount = Math.max(
-        queriedDataRange.startTime - queryRange.startTime,
-        0,
+function handleMainLimitReached(
+    result: FetchPanelSeriesRowsResult,
+): void {
+    const sIsLimitReached = result.seriesFetchResults.some(
+        ({ isLimitReached }) => isLimitReached === true,
     );
-    const sMissingEndAmount = Math.max(
-        queryRange.endTime - queriedDataRange.endTime,
-        0,
-    );
-    const sShrinkAmount = sMissingStartAmount + sMissingEndAmount;
-    const sShrinkRatio = sShrinkAmount / sQueryRangeAmount;
-    const sShouldUseQueriedDataRange =
-        sShrinkRatio > RAW_DATA_RANGE_SHRINK_THRESHOLD;
-
-    return sShouldUseQueriedDataRange ? queriedDataRange : queryRange;
+    if (!sIsLimitReached) return;
+    Toast.warning('Only limit amount was displayed.', undefined);
 }
 
-export function usePanelChartDataRuntime({
-    panelInfo,
-    rangeState,
-    chartAreaWidth,
-    rollupTableList,
-    dataRefreshVersion,
-    onRangeStateChange,
-}: UsePanelChartDataRuntimeParams): UsePanelChartDataRuntimeResult {
-    const [chartDataState, setChartDataState] = useState<PanelChartDataState>(
-        INITIAL_PANEL_CHART_DATA_STATE,
-    );
-    const [chartLoadStatus, setChartLoadStatus] = useState<PanelChartLoadStatus>(
-        PanelChartLoadStatus.Idle,
-    );
-    const [navigatorLoadStatus, setNavigatorLoadStatus] =
-        useState<PanelChartLoadStatus>(PanelChartLoadStatus.Idle);
-    const chartDataStateRef = useRef(chartDataState);
-    const lastHandledDataRefreshVersionRef = useRef(dataRefreshVersion);
-    const onRangeStateChangeRef = useRef(onRangeStateChange);
-    const panelLoadRequests = useLoadRequests();
-    const navigatorLoadRequests = useLoadRequests();
+type UsePanelSeriesFetchTask = {
+    fetchFn: () => Promise<FetchPanelSeriesRowsResult | undefined>;
+    validate?: (result: FetchPanelSeriesRowsResult) => void;
+    onSuccess?: (result: FetchPanelSeriesRowsResult) => void;
+};
 
-    chartDataStateRef.current = chartDataState;
-    onRangeStateChangeRef.current = onRangeStateChange;
+type UsePanelSeriesFetchParams = UsePanelSeriesFetchTask & {
+    canFetch: boolean;
+    cacheKey: string;
+};
 
-    function getChartLoadWidth(): number {
-        return typeof chartAreaWidth === 'number' && chartAreaWidth > 0
-            ? chartAreaWidth
-            : 1;
-    }
-
-    function applyPanelLoadResult(
-        mainLoadState: MainPanelSeriesLoadResult,
-        appliedRanges: AppliedPanelLoadRanges,
-    ): void {
-        if (mainLoadState.isLimitReached) {
-            Toast.warning('Only limit amount was displayed.', undefined);
-        }
-
-        setChartDataState((current) => {
-            const sResolvedIntervalOption = hasResolvedIntervalOption(
-                mainLoadState.resolvedIntervalOption,
-            )
-                ? mainLoadState.resolvedIntervalOption
-                : hasResolvedIntervalOption(current.resolvedIntervalOption)
-                  ? current.resolvedIntervalOption
-                  : mainLoadState.resolvedIntervalOption;
-            const sNextState = {
-                ...current,
-                chartData: mainLoadState.chartData,
-                resolvedIntervalOption: sResolvedIntervalOption,
-                loadedDataRange: appliedRanges.panelRange,
-            };
-
-            chartDataStateRef.current = sNextState;
-            return sNextState;
-        });
-    }
-
-    async function loadMainPanelData(
-        loadConfig: PanelChartDataLoadConfig,
-        panelRange: TimeRangeMs,
-        navigatorRange: TimeRangeMs,
-    ): Promise<MainPanelDataLoadResult> {
-        const sRequestId = panelLoadRequests.start();
-
-        setChartLoadStatus(PanelChartLoadStatus.Loading);
-
-        try {
-            const sMainLoadState = await loadMainSeriesData(
-                applyRawRowCap(loadConfig),
-                getChartLoadWidth(),
-                panelRange,
-                rollupTableList,
-            );
-
-            if (!panelLoadRequests.isCurrent(sRequestId)) {
-                return {
-                    isStale: true,
-                };
-            }
-
-            const sAppliedRanges = {
-                panelRange: sMainLoadState.appliedPanelRange ?? panelRange,
-                navigatorRange,
-            };
-
-            applyPanelLoadResult(sMainLoadState, sAppliedRanges);
-            setChartLoadStatus(PanelChartLoadStatus.Ready);
-
-            return {
-                isStale: false,
-                appliedRanges: sAppliedRanges,
-            };
-        } catch (error) {
-            if (!panelLoadRequests.isCurrent(sRequestId)) {
-                return {
-                    isStale: true,
-                };
-            }
-
-            if (!wasErrorPresented(error)) {
-                Toast.error(getChartLoadErrorMessage(error), undefined);
-            }
-            setChartLoadStatus(PanelChartLoadStatus.Failed);
-
-            return {
-                isStale: false,
-            };
-        }
-    }
-
-    async function loadNavigatorData(
-        loadConfig: PanelChartDataLoadConfig,
-        navigatorDataRange: TimeRangeMs,
-    ): Promise<boolean> {
-        const sNavigatorRequestId = navigatorLoadRequests.start();
-
-        setNavigatorLoadStatus(PanelChartLoadStatus.Loading);
-
-        try {
-            const sLoadState = await loadNavigatorSeriesData(
-                loadConfig,
-                getChartLoadWidth(),
-                navigatorDataRange,
-                rollupTableList,
-            );
-
-            if (!navigatorLoadRequests.isCurrent(sNavigatorRequestId)) {
-                return true;
-            }
-
-            setChartDataState((current) => {
-                const sNextState = {
-                    ...current,
-                    navigatorChartData: sLoadState.chartData,
-                    loadedNavigatorRange: navigatorDataRange,
-                };
-
-                chartDataStateRef.current = sNextState;
-                return sNextState;
-            });
-            setNavigatorLoadStatus(PanelChartLoadStatus.Ready);
-
-            return false;
-        } catch (error) {
-            if (!navigatorLoadRequests.isCurrent(sNavigatorRequestId)) {
-                return true;
-            }
-
-            if (!wasErrorPresented(error)) {
-                Toast.error(getChartLoadErrorMessage(error), undefined);
-            }
-            setNavigatorLoadStatus(PanelChartLoadStatus.Failed);
-
-            return false;
-        }
-    }
+function usePanelSeriesFetch({
+    canFetch,
+    cacheKey,
+    fetchFn,
+    validate,
+    onSuccess,
+}: UsePanelSeriesFetchParams): PanelSeriesFetchState {
+    const [state, setState] = useState<PanelSeriesFetchState>(INITIAL_FETCH_STATE);
+    const requestIdRef = useRef(0);
+    const taskRef = useRef<UsePanelSeriesFetchTask>({ fetchFn, validate, onSuccess });
+    taskRef.current = { fetchFn, validate, onSuccess };
 
     useEffect(() => {
-        if (
-            chartAreaWidth === undefined ||
-            !isConcreteTimeRange(rangeState.panelRange) ||
-            !isConcreteTimeRange(rangeState.navigatorRange) ||
-            !isConcreteTimeRange(rangeState.fullRange)
-        ) {
+        if (!canFetch) {
+            requestIdRef.current += 1;
+            setState(INITIAL_FETCH_STATE);
             return;
         }
 
-        const sDataRefreshVersionChanged =
-            lastHandledDataRefreshVersionRef.current !== dataRefreshVersion;
-        const sLoadConfig = getPanelLoadConfig(panelInfo);
-        const sNavigatorDataRange = getNavigatorDataRange(rangeState);
-        const sMainRangeNeedsData = !isSameTimeRange(
-            rangeState.panelRange,
-            chartDataStateRef.current.loadedDataRange,
-        );
-        const sNavigatorRangeNeedsData = !isSameTimeRange(
-            sNavigatorDataRange,
-            chartDataStateRef.current.loadedNavigatorRange,
-        );
-        const sShouldReloadMain =
-            sDataRefreshVersionChanged || sMainRangeNeedsData;
-        const sShouldReloadNavigator =
-            sDataRefreshVersionChanged || sNavigatorRangeNeedsData;
-
-        if (!sShouldReloadMain && !sShouldReloadNavigator) {
-            return;
-        }
+        const sRequestId = ++requestIdRef.current;
+        setState({ result: undefined, status: PanelChartLoadStatus.Loading });
 
         void (async () => {
-            let sNavigatorLoadPromise: Promise<boolean> = Promise.resolve(false);
-            if (sShouldReloadNavigator) {
-                sNavigatorLoadPromise = loadNavigatorData(
-                    sLoadConfig,
-                    sNavigatorDataRange,
-                );
-            }
+            try {
+                const sResult = await taskRef.current.fetchFn();
+                if (sRequestId !== requestIdRef.current) return;
+                if (!sResult) throw new Error('Panel fetch did not return a result.');
 
-            let sMainLoadPromise: Promise<MainPanelDataLoadResult | undefined> =
-                Promise.resolve(undefined);
-            if (sShouldReloadMain) {
-                sMainLoadPromise = loadMainPanelData(
-                    sLoadConfig,
-                    rangeState.panelRange,
-                    rangeState.navigatorRange,
-                );
-            }
-
-            const [sNavigatorLoadIsStale, sMainResult] = await Promise.all([
-                sNavigatorLoadPromise,
-                sMainLoadPromise,
-            ]);
-            if (sNavigatorLoadIsStale || sMainResult?.isStale) {
-                return;
-            }
-
-            lastHandledDataRefreshVersionRef.current = dataRefreshVersion;
-
-            const sAppliedRanges = sMainResult?.appliedRanges;
-            if (
-                sAppliedRanges &&
-                (
-                    !isSameTimeRange(
-                        sAppliedRanges.panelRange,
-                        rangeState.panelRange,
-                    ) ||
-                    !isSameTimeRange(
-                        sAppliedRanges.navigatorRange,
-                        rangeState.navigatorRange,
-                    )
-                )
-            ) {
-                onRangeStateChangeRef.current(
-                    {
-                        ...sAppliedRanges,
-                        fullRange: rangeState.fullRange,
-                    },
-                    {
-                        reloadData: false,
-                    },
-                );
+                taskRef.current.validate?.(sResult);
+                setState({ result: sResult, status: PanelChartLoadStatus.Ready });
+                taskRef.current.onSuccess?.(sResult);
+            } catch (error) {
+                if (sRequestId !== requestIdRef.current) return;
+                showFetchError(error);
+                setState({ result: undefined, status: PanelChartLoadStatus.Failed });
             }
         })();
-    }, [
-        chartAreaWidth,
-        dataRefreshVersion,
-        panelInfo,
-        rangeState,
-        rollupTableList,
-    ]);
+    }, [canFetch, cacheKey]);
 
-    return {
-        chartData: chartDataState.chartData,
-        navigatorChartData: chartDataState.navigatorChartData,
-        resolvedIntervalOption: chartDataState.resolvedIntervalOption,
-        loadStatus: {
-            chart: chartLoadStatus,
-            navigator: navigatorLoadStatus,
-        },
-    };
+    return state;
+}
+
+function showFetchError(error: unknown): void {
+    const sWasPresented =
+        typeof error === 'object' &&
+        error !== null &&
+        (error as { tagAnalyzerUserPresented?: unknown }).tagAnalyzerUserPresented === true;
+
+    if (sWasPresented) return;
+
+    Toast.error(
+        error instanceof Error && error.message ? error.message : 'Failed to load chart data.',
+        undefined,
+    );
 }

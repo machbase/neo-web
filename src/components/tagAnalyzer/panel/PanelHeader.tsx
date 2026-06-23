@@ -1,12 +1,22 @@
 import './PanelChartHeader.scss';
-import type { CSSProperties, ReactNode } from 'react';
 import {
+    useEffect,
+    useRef,
+    useState,
+    type CSSProperties,
+    type KeyboardEvent,
+    type ReactNode,
+} from 'react';
+import {
+    Check,
+    CiCircleMore,
     Delete,
     Download,
     GearFill,
+    GoArrowBoth,
     LineChart,
     LuTimerReset,
-    MdFlagCircle,
+    PiHighlighterLight,
     PiSelectionPlusBold,
     Refresh,
     TbTimezone,
@@ -19,11 +29,11 @@ import { PanelOverlayMode } from '../domain/PanelDomain';
 import type {
     IntervalOption,
     TimeRangeMs,
-} from '../domain/time/TimeTypes';
-import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
+} from '../domain/time/model/TimeTypes';
+import { formatRangeBoundaryLabel } from '../domain/time/formatting/TimeFormatters';
+import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
 
 export enum PanelActionKey {
-    TOGGLE_OVERLAP = 'TOGGLE_OVERLAP',
     TOGGLE_RAW = 'TOGGLE_RAW',
     TOGGLE_HIGHLIGHT = 'TOGGLE_HIGHLIGHT',
     TOGGLE_ANNOTATION = 'TOGGLE_ANNOTATION',
@@ -32,12 +42,13 @@ export enum PanelActionKey {
     SET_GLOBAL_TIME = 'SET_GLOBAL_TIME',
     REFRESH_DATA = 'REFRESH_DATA',
     REFRESH_TIME = 'REFRESH_TIME',
+    EXPAND_FULL_RANGE = 'EXPAND_FULL_RANGE',
     TOGGLE_EDIT = 'TOGGLE_EDIT',
     OPEN_EXPORT_CSV = 'OPEN_EXPORT_CSV',
     OPEN_DELETE_CONFIRM = 'OPEN_DELETE_CONFIRM',
 }
 
-enum PanelActionPriority {
+enum PanelActionVisibilityPriority {
     PRIMARY = 'primary',
     SECONDARY = 'secondary',
     WIDE = 'wide',
@@ -54,7 +65,6 @@ export type PanelHeaderRuntimeState = {
     overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
-    isRawLocked: boolean;
     isOverlap: boolean;
 };
 
@@ -63,7 +73,7 @@ type PanelActionDescriptor = {
     label: string;
     tooltip?: string;
     icon: ReactNode;
-    priority: PanelActionPriority;
+    visibilityPriority: PanelActionVisibilityPriority;
     active?: boolean;
     disabled?: boolean;
     className?: string;
@@ -72,47 +82,45 @@ type PanelActionDescriptor = {
 };
 
 const PANEL_CONTEXT_ACTION_KEYS: PanelActionKey[] = [
-    PanelActionKey.TOGGLE_OVERLAP,
     PanelActionKey.TOGGLE_RAW,
     PanelActionKey.TOGGLE_DRAG_SELECT,
     PanelActionKey.OPEN_FFT,
     PanelActionKey.SET_GLOBAL_TIME,
     PanelActionKey.REFRESH_DATA,
     PanelActionKey.REFRESH_TIME,
+    PanelActionKey.EXPAND_FULL_RANGE,
     PanelActionKey.TOGGLE_EDIT,
     PanelActionKey.OPEN_DELETE_CONFIRM,
 ];
+const PANEL_EXTRA_ACTION_KEYS = new Set<PanelActionKey>([
+    PanelActionKey.TOGGLE_HIGHLIGHT,
+    PanelActionKey.TOGGLE_ANNOTATION,
+    PanelActionKey.SET_GLOBAL_TIME,
+    PanelActionKey.REFRESH_DATA,
+    PanelActionKey.EXPAND_FULL_RANGE,
+]);
 const RAW_BUTTON_STYLE = { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 } as const;
 const DRAG_SELECT_BUTTON_STYLE = { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 } as const;
+
+function joinClassNames(
+    ...names: Array<string | false | undefined | null>
+): string {
+    return names.filter(Boolean).join(' ');
+}
 
 function buildPanelActions(
     state: PanelHeaderRuntimeState,
     options: { showExportCsv?: boolean } = {},
 ): PanelActionDescriptor[] {
-    const sOverlapLabel = state.isOverlap
-        ? 'Disable overlap mode'
-        : 'Enable overlap mode';
     const sRawLabel = state.isRaw
         ? 'Disable raw data mode'
         : 'Enable raw data mode';
     const sEditLabel = state.isEditing ? 'Close editor' : 'Open editor';
     const sActions: PanelActionDescriptor[] = [
         {
-            key: PanelActionKey.TOGGLE_OVERLAP,
-            label: sOverlapLabel,
-            icon: (
-                <MdFlagCircle
-                    size={15}
-                    style={{ color: state.isOverlap ? '#fdb532' : undefined }}
-                />
-            ),
-            priority: PanelActionPriority.SECONDARY,
-            active: state.isOverlap,
-        },
-        {
             key: PanelActionKey.TOGGLE_RAW,
             label: sRawLabel,
-            tooltip: state.isRawLocked
+            tooltip: state.isNumericXAxis
                 ? 'Raw mode is required for numeric x-axis'
                 : undefined,
             icon: (
@@ -123,9 +131,9 @@ function buildPanelActions(
                     RAW
                 </span>
             ),
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.isRaw,
-            disabled: state.isRawLocked,
+            disabled: state.isNumericXAxis,
             className: 'panel-header__action--raw',
             buttonStyle: RAW_BUTTON_STYLE,
         },
@@ -133,8 +141,8 @@ function buildPanelActions(
             key: PanelActionKey.TOGGLE_HIGHLIGHT,
             label: 'Highlight',
             tooltip: 'Drag on chart to create highlight',
-            icon: <MdFlagCircle size={15} />,
-            priority: PanelActionPriority.PRIMARY,
+            icon: <PiHighlighterLight size={16} />,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.HIGHLIGHT,
         },
         {
@@ -142,7 +150,7 @@ function buildPanelActions(
             label: 'Annotation',
             tooltip: 'Click chart to create annotation',
             icon: <VscNote size={15} />,
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.ANNOTATION,
         },
         {
@@ -153,7 +161,7 @@ function buildPanelActions(
                 : 'Enable range selection',
             tooltip: 'Select data range for stats and FFT',
             icon: <PiSelectionPlusBold size={18} />,
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.DRAG_SELECT,
             buttonStyle: DRAG_SELECT_BUTTON_STYLE,
         },
@@ -162,41 +170,47 @@ function buildPanelActions(
             label: 'FFT chart',
             contextLabel: 'Open FFT chart',
             icon: <LineChart size={16} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
             disabled: !state.canOpenFft,
         },
         {
             key: PanelActionKey.SET_GLOBAL_TIME,
             label: 'Set global time',
             icon: <TbTimezone size={15} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
             disabled: !state.canSetGlobalTime,
         },
         {
             key: PanelActionKey.REFRESH_DATA,
-            label: 'Refresh data',
+            label: 'Reload data',
             icon: <Refresh size={14} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
         },
         {
             key: PanelActionKey.REFRESH_TIME,
             label: 'Refresh time',
             icon: <LuTimerReset size={16} />,
-            priority: PanelActionPriority.SECONDARY,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
+        },
+        {
+            key: PanelActionKey.EXPAND_FULL_RANGE,
+            label: 'Expand to full data range',
+            icon: <GoArrowBoth size={15} />,
+            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
         },
         {
             key: PanelActionKey.TOGGLE_EDIT,
             label: sEditLabel,
             contextLabel: state.isEditing ? 'Close editor' : 'Edit panel',
             icon: <GearFill size={14} />,
-            priority: PanelActionPriority.PRIMARY,
+            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.isEditing,
         },
         {
             key: PanelActionKey.OPEN_DELETE_CONFIRM,
             label: 'Delete panel',
             icon: <Delete size={16} />,
-            priority: PanelActionPriority.WIDE,
+            visibilityPriority: PanelActionVisibilityPriority.WIDE,
         },
     ];
 
@@ -205,34 +219,63 @@ function buildPanelActions(
             key: PanelActionKey.OPEN_EXPORT_CSV,
             label: 'Export CSV',
             icon: <Download size={16} />,
-            priority: PanelActionPriority.WIDE,
+            visibilityPriority: PanelActionVisibilityPriority.WIDE,
         });
     }
 
     return sActions;
 }
 
-function getAction(
-    actions: PanelActionDescriptor[],
-    key: PanelActionKey,
-): PanelActionDescriptor {
-    const sAction = actions.find((action) => action.key === key);
-    if (!sAction) {
-        throw new Error(`Missing panel action: ${key}`);
+function partitionPanelActions(actions: PanelActionDescriptor[]): {
+    direct: PanelActionDescriptor[];
+    extra: PanelActionDescriptor[];
+    more: PanelActionDescriptor[];
+} {
+    const sDirect: PanelActionDescriptor[] = [];
+    const sExtra: PanelActionDescriptor[] = [];
+    const sMore: PanelActionDescriptor[] = [];
+
+    for (const action of actions) {
+        if (PANEL_EXTRA_ACTION_KEYS.has(action.key)) {
+            sExtra.push(action);
+        } else {
+            sDirect.push(action);
+            if (action.visibilityPriority !== PanelActionVisibilityPriority.PRIMARY) {
+                sMore.push(action);
+            }
+        }
     }
 
-    return sAction;
+    return { direct: sDirect, extra: sExtra, more: sMore };
 }
 
 function getActionClass(action: PanelActionDescriptor): string {
-    return [
+    return joinClassNames(
         'panel-header__action',
-        `panel-header__action--${action.priority}`,
+        `panel-header__action--${action.visibilityPriority}`,
         action.className,
-        action.active ? 'panel-header__action--active' : undefined,
-    ]
-        .filter(Boolean)
-        .join(' ');
+        action.active && 'panel-header__action--active',
+    );
+}
+
+function formatPanelTimeText(state: PanelHeaderRuntimeState): string {
+    if (!isValidTimeRange(state.panelRange)) return '';
+    const sStart = formatRangeBoundaryLabel(
+        state.panelRange.startTime,
+        state.isNumericXAxis,
+        state.panelRange,
+    );
+    const sEnd = formatRangeBoundaryLabel(
+        state.panelRange.endTime,
+        state.isNumericXAxis,
+        state.panelRange,
+    );
+    return `${sStart} ~ ${sEnd}`;
+}
+
+function formatIntervalText(state: PanelHeaderRuntimeState): string {
+    if (state.isRaw || !state.resolvedIntervalOption) return '';
+    return `${state.resolvedIntervalOption.IntervalValue}${state.resolvedIntervalOption.IntervalType}`;
 }
 
 function PanelHeaderActionButton({
@@ -260,36 +303,72 @@ function PanelHeaderActionButton({
     );
 }
 
-function PanelHeaderMoreMenu({
-    actions,
-    onAction,
-}: {
+type PanelHeaderMenuProps = {
     actions: PanelActionDescriptor[];
     onAction: (actionKey: PanelActionKey) => void;
-}) {
+    containerClassName: string;
+    activeContainerClassName?: string;
+    activeItemClassName: string;
+    triggerAriaLabel: string;
+    triggerIcon: ReactNode;
+    triggerLabel?: string;
+    triggerIconPosition?: 'right';
+    triggerToolTipContent?: string;
+    showActiveOnTrigger?: boolean;
+    getItemLabel?: (action: PanelActionDescriptor) => string;
+};
+
+function PanelHeaderMenu({
+    actions,
+    onAction,
+    containerClassName,
+    activeContainerClassName,
+    activeItemClassName,
+    triggerAriaLabel,
+    triggerIcon,
+    triggerLabel,
+    triggerIconPosition,
+    triggerToolTipContent,
+    showActiveOnTrigger,
+    getItemLabel,
+}: PanelHeaderMenuProps) {
+    const sIsActive =
+        (showActiveOnTrigger ?? false) &&
+        actions.some((action) => action.active === true);
+    const sResolveLabel = getItemLabel ?? ((action) => action.label);
+
     return (
-        <span className="panel-header__more">
+        <span
+            className={joinClassNames(
+                containerClassName,
+                sIsActive && activeContainerClassName,
+            )}
+        >
             <Menu.Root>
                 <Menu.Trigger>
                     <Button
-                        aria-label="More panel actions"
+                        aria-label={triggerAriaLabel}
                         size="xsm"
                         variant="ghost"
-                        isToolTip
-                        toolTipContent="More"
-                        icon={<VscThreeBars size={15} />}
-                    />
+                        isToolTip={triggerToolTipContent !== undefined}
+                        toolTipContent={triggerToolTipContent}
+                        active={showActiveOnTrigger ? sIsActive : undefined}
+                        icon={triggerIcon}
+                        iconPosition={triggerIconPosition}
+                    >
+                        {triggerLabel}
+                    </Button>
                 </Menu.Trigger>
                 <Menu.Content align="right">
                     {actions.map((action) => (
                         <Menu.Item
                             key={action.key}
-                            className={action.active ? 'selected' : undefined}
+                            className={action.active ? activeItemClassName : undefined}
                             disabled={action.disabled}
                             icon={action.icon}
                             onClick={() => onAction(action.key)}
                         >
-                            {action.label}
+                            {sResolveLabel(action)}
                         </Menu.Item>
                     ))}
                 </Menu.Content>
@@ -301,6 +380,9 @@ function PanelHeaderMoreMenu({
 type PanelHeaderProps = {
     runtimeState: PanelHeaderRuntimeState;
     onAction: (actionKey: PanelActionKey) => void;
+    onToggleOverlap: () => void;
+    onRenamePanelTitle: (title: string) => void;
+    onOpenTimeRangeModal: () => void;
 };
 
 const PanelHeader = (props: PanelHeaderProps) => {
@@ -308,22 +390,17 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const {
         runtimeState,
         onAction,
+        onToggleOverlap,
+        onRenamePanelTitle,
+        onOpenTimeRangeModal,
     } = props;
-    const sTimeText = Number.isFinite(runtimeState.panelRange.startTime) &&
-        Number.isFinite(runtimeState.panelRange.endTime) &&
-        runtimeState.panelRange.endTime > runtimeState.panelRange.startTime
-        ? `${formatRangeBoundaryLabel(
-              runtimeState.panelRange.startTime,
-              runtimeState.isNumericXAxis,
-          )} ~ ${formatRangeBoundaryLabel(
-              runtimeState.panelRange.endTime,
-              runtimeState.isNumericXAxis,
-          )}`
-        : '';
-    const sIntervalText =
-        !runtimeState.isRaw && runtimeState.resolvedIntervalOption
-            ? `${runtimeState.resolvedIntervalOption.IntervalValue}${runtimeState.resolvedIntervalOption.IntervalType}`
-            : '';
+    const [isRenamingTitle, setIsRenamingTitle] = useState(false);
+    const [titleDraft, setTitleDraft] = useState(runtimeState.title);
+    const titleInputRef = useRef<HTMLInputElement | null>(null);
+    const titleRenameClosingRef = useRef(false);
+    const sHasPanelRange = isValidTimeRange(runtimeState.panelRange);
+    const sTimeText = formatPanelTimeText(runtimeState);
+    const sIntervalText = formatIntervalText(runtimeState);
     const sTimeSummaryText =
         sTimeText && sIntervalText
             ? `${sTimeText} (interval: ${sIntervalText})`
@@ -331,42 +408,127 @@ const PanelHeader = (props: PanelHeaderProps) => {
     const sActions = buildPanelActions(runtimeState, {
         showExportCsv: getExperiment(),
     });
-    const sHeaderActions = sActions.filter(
-        (action) => action.key !== PanelActionKey.TOGGLE_OVERLAP,
+    const {
+        direct: sDirectActions,
+        extra: sExtraActions,
+        more: sMoreActions,
+    } = partitionPanelActions(sActions);
+    const sOverlapLabel = runtimeState.isOverlap
+        ? 'Remove from overlap chart'
+        : 'Add to overlap chart';
+    const sOverlapBoxClassName = joinClassNames(
+        'panel-header__overlap-box',
+        runtimeState.isOverlap && 'panel-header__overlap-box--active',
     );
-    const sMoreActions = [
-        getAction(sActions, PanelActionKey.TOGGLE_OVERLAP),
-        ...sHeaderActions.filter(
-            (action) => action.priority !== PanelActionPriority.PRIMARY,
-        ),
-    ];
-    const sOverlapLabel = getAction(
-        sActions,
-        PanelActionKey.TOGGLE_OVERLAP,
-    ).label;
+
+    useEffect(() => {
+        if (!isRenamingTitle) {
+            setTitleDraft(runtimeState.title);
+        }
+    }, [isRenamingTitle, runtimeState.title]);
+
+    useEffect(() => {
+        if (!isRenamingTitle) {
+            return;
+        }
+        titleInputRef.current?.focus();
+        titleInputRef.current?.select();
+    }, [isRenamingTitle]);
+
+    function openTitleRename(): void {
+        titleRenameClosingRef.current = false;
+        setTitleDraft(runtimeState.title);
+        setIsRenamingTitle(true);
+    }
+
+    function applyTitleRename(): void {
+        if (titleRenameClosingRef.current) return;
+        titleRenameClosingRef.current = true;
+        const sNextTitle = titleDraft.trim();
+        setIsRenamingTitle(false);
+        if (sNextTitle.length === 0 || sNextTitle === runtimeState.title) {
+            setTitleDraft(runtimeState.title);
+            return;
+        }
+        onRenamePanelTitle(sNextTitle);
+    }
+
+    function cancelTitleRename(): void {
+        if (titleRenameClosingRef.current) return;
+        titleRenameClosingRef.current = true;
+        setTitleDraft(runtimeState.title);
+        setIsRenamingTitle(false);
+    }
+
+    function handleTitleRenameKeyDown(
+        event: KeyboardEvent<HTMLInputElement>,
+    ): void {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            applyTitleRename();
+            return;
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            cancelTitleRename();
+        }
+    }
 
     return (
         <div className="panel-header">
-            <Button
-                aria-label={sOverlapLabel}
-                className="panel-header__title-button"
-                size="fit"
-                variant="ghost"
-                isToolTip
-                toolTipContent={`${runtimeState.title} - ${sOverlapLabel}`}
-                active={runtimeState.isOverlap}
-                icon={
-                    <span
-                        className="panel-header__title"
-                        title={runtimeState.title}
+            <div className="panel-header__title-group">
+                <button
+                    type="button"
+                    className={sOverlapBoxClassName}
+                    title={sOverlapLabel}
+                    aria-label={sOverlapLabel}
+                    aria-pressed={runtimeState.isOverlap}
+                    onClick={onToggleOverlap}
+                >
+                    {runtimeState.isOverlap && <Check size={11} />}
+                </button>
+                {isRenamingTitle ? (
+                    <input
+                        ref={titleInputRef}
+                        className="panel-header__title-input"
+                        value={titleDraft}
+                        aria-label="Chart title"
+                        onChange={(event) => setTitleDraft(event.target.value)}
+                        onBlur={applyTitleRename}
+                        onKeyDown={handleTitleRenameKeyDown}
+                    />
+                ) : (
+                    <button
+                        type="button"
+                        className="panel-header__title-button"
+                        title="Rename chart"
+                        onClick={openTitleRename}
                     >
-                        {runtimeState.title}
-                    </span>
-                }
-                onClick={() => onAction(PanelActionKey.TOGGLE_OVERLAP)}
-            />
+                        <span
+                            className="panel-header__title"
+                            title={runtimeState.title}
+                        >
+                            {runtimeState.title}
+                        </span>
+                    </button>
+                )}
+            </div>
             <div className="panel-header__time" title={sTimeSummaryText}>
-                {sTimeText}
+                <span className="panel-header__time-part">
+                    <button
+                        type="button"
+                        className="panel-header__time-button panel-header__time-range-button"
+                        title={
+                            runtimeState.isNumericXAxis
+                                ? 'Set current visible main chart value range'
+                                : 'Set current visible main chart range'
+                        }
+                        disabled={!sHasPanelRange}
+                        onClick={onOpenTimeRangeModal}
+                    >
+                        {sTimeText}
+                    </button>
+                </span>
                 {sIntervalText && (
                     <span className="panel-header__interval">
                         {` (interval: ${sIntervalText})`}
@@ -374,16 +536,34 @@ const PanelHeader = (props: PanelHeaderProps) => {
                 )}
             </div>
             <div className="panel-header__actions">
-                {sHeaderActions.map((action) => (
+                {sDirectActions.map((action) => (
                     <PanelHeaderActionButton
                         key={action.key}
                         action={action}
                         onAction={onAction}
                     />
                 ))}
-                <PanelHeaderMoreMenu
+                <PanelHeaderMenu
+                    actions={sExtraActions}
+                    onAction={onAction}
+                    containerClassName="panel-header__extra"
+                    activeContainerClassName="panel-header__extra--active"
+                    activeItemClassName="panel-header__extra-item--active"
+                    triggerAriaLabel="Extra panel actions"
+                    triggerIcon={<CiCircleMore size={15} />}
+                    triggerLabel="Extra"
+                    triggerIconPosition="right"
+                    showActiveOnTrigger
+                    getItemLabel={(action) => action.contextLabel ?? action.label}
+                />
+                <PanelHeaderMenu
                     actions={sMoreActions}
                     onAction={onAction}
+                    containerClassName="panel-header__more"
+                    activeItemClassName="selected"
+                    triggerAriaLabel="More panel actions"
+                    triggerIcon={<VscThreeBars size={15} />}
+                    triggerToolTipContent="More"
                 />
             </div>
         </div>
@@ -409,15 +589,15 @@ export function PanelContextMenu(props: PanelContextMenuProps) {
     return (
         <ContextMenu isOpen position={position} onClose={onClose}>
             {PANEL_CONTEXT_ACTION_KEYS.map((key) => {
-                const action = getAction(sActions, key);
-
+                const sAction = sActions.find((action) => action.key === key);
+                if (!sAction) return null;
                 return (
                     <ContextMenu.Item
-                        key={action.key}
-                        onClick={() => runActionAfterClose(action.key)}
-                        disabled={action.disabled}
+                        key={sAction.key}
+                        onClick={() => runActionAfterClose(sAction.key)}
+                        disabled={sAction.disabled}
                     >
-                        {action.contextLabel ?? action.label}
+                        {sAction.contextLabel ?? sAction.label}
                     </ContextMenu.Item>
                 );
             })}

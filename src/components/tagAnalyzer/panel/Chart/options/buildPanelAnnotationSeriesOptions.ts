@@ -10,7 +10,7 @@ import {
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
 import type { ChartSeriesData } from '../../../domain/ChartDomain';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,

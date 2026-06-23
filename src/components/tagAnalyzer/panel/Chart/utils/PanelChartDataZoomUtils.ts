@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventItem,
@@ -8,8 +8,9 @@ import type {
 
 export function hasExplicitDataZoomEventRange(
     dataZoomState: EChartDataZoomEventPayload,
+    targetDataZoomId?: string,
 ): boolean {
-    const sPrimaryDataZoomState = getPrimaryDataZoomEventItem(dataZoomState);
+    const sPrimaryDataZoomState = getPrimaryDataZoomEventItem(dataZoomState, targetDataZoomId);
 
     return sPrimaryDataZoomState
         ? hasExplicitDataZoomRange(sPrimaryDataZoomState)
@@ -20,8 +21,9 @@ export function extractDataZoomEventRange(
     params: EChartDataZoomEventPayload,
     currentRange: TimeRangeMs,
     axisRange: TimeRangeMs = currentRange,
+    targetDataZoomId?: string,
 ): TimeRangeMs | undefined {
-    const sZoomData = getPrimaryDataZoomEventItem(params);
+    const sZoomData = getPrimaryDataZoomEventItem(params, targetDataZoomId);
     if (!sZoomData) {
         return undefined;
     }
@@ -83,8 +85,26 @@ export function extractBrushRange(
 
 function getPrimaryDataZoomEventItem(
     zoomData: EChartDataZoomEventPayload,
+    targetDataZoomId?: string,
 ): EChartDataZoomEventItem | undefined {
-    return 'batch' in zoomData ? zoomData.batch[0] : zoomData;
+    if (!('batch' in zoomData)) {
+        return zoomData;
+    }
+
+    if (targetDataZoomId === undefined) {
+        return zoomData.batch[0];
+    }
+
+    return zoomData.batch.find((item) =>
+        isDataZoomItemTarget(item, targetDataZoomId),
+    ) ?? zoomData.batch[0];
+}
+
+function isDataZoomItemTarget(
+    item: EChartDataZoomEventItem | EChartDataZoomOptionStateItem,
+    targetDataZoomId: string,
+): boolean {
+    return item.id === targetDataZoomId || item.dataZoomId === targetDataZoomId;
 }
 
 function hasExplicitDataZoomRange(

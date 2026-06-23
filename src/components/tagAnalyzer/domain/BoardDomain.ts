@@ -1,10 +1,18 @@
-import type { PanelInfo } from './PanelDomain';
+import type {
+    PanelInfo,
+    RuntimePanelSampling,
+    RuntimePanelXAxis,
+} from './PanelDomain';
+import type {
+    PanelSeriesDefinition,
+    SeriesKeyAxisKind,
+} from './SeriesDomain';
+import type { TazVersion } from '../persistence/TazVersion';
 import type {
     IntervalOption,
-    PanelNavigatorRangePair,
     TimeRangeConfig,
     TimeRangeMs,
-} from './time/TimeTypes';
+} from './time/model/TimeTypes';
 
 export type BoardInfo = {
     id: string;
@@ -15,7 +23,7 @@ export type BoardInfo = {
     panels: PanelInfo[];
     boardTimeRange: TimeRangeConfig;
     savedCode: string | false;
-    version?: string;
+    version: TazVersion;
 };
 
 export type GlobalTimeRangeState = {
@@ -24,23 +32,10 @@ export type GlobalTimeRangeState = {
     interval: IntervalOption;
 };
 
-export type PersistPanelStatePayload = {
-    targetPanelKey: string;
-    timeInfo: PanelNavigatorRangePair;
-    isRaw: boolean;
-};
-
 export type SetGlobalTimeRangePayload = {
     dataTime: TimeRangeMs;
     navigatorTime: TimeRangeMs;
     interval: IntervalOption;
-};
-
-export type BoardActions = {
-    onDeletePanel: (payload: { panelKey: string }) => void;
-    onPersistPanelState: (payload: PersistPanelStatePayload) => void;
-    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetBoardTimeRange: (timeRange: TimeRangeConfig) => void;
 };
 
 export type OverlapPanelSelection = {
@@ -50,28 +45,28 @@ export type OverlapPanelSelection = {
     isRaw: boolean;
 };
 
-export type OverlapPanelInfo = {
-    start: number;
-    duration: number;
-    isRaw: boolean;
-    board: PanelInfo;
+export type OverlapPanelInfo = OverlapPanelSelection & {
+    label: string;
+    series: PanelSeriesDefinition;
+    queryLimit: number;
+    intervalType: string | undefined;
+    xAxis: RuntimePanelXAxis;
+    mainChartSampling: RuntimePanelSampling;
+    isOrderBy: boolean;
+    includeZeroInYAxisRange: boolean;
+    axisKind: SeriesKeyAxisKind | undefined;
 };
 
-export type OverlapSelectionChangePayload =
-    | {
-          panelKey: string;
-          start: number;
-          end: number;
-          isRaw: boolean;
-          changeType: undefined;
-      }
-    | {
-          start: number;
-          end: number;
-          panelKey: string;
-          isRaw: boolean;
-          changeType: 'changed';
-      }
+export type OverlapPanelRangeSelectionPayload = {
+    panelKey: string;
+    start: number;
+    end: number;
+    isRaw: boolean;
+};
+
+export type OverlapPanelSelectionChangePayload =
+    | (OverlapPanelRangeSelectionPayload & { changeType: undefined })
+    | (OverlapPanelRangeSelectionPayload & { changeType: 'changed' })
     | {
           panelKey: string;
           changeType: 'delete';

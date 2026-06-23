@@ -41,3 +41,5 @@ src/components/tagAnalyzer/ARCHITECTURE.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 *.md
 .notion-plan
+coverage/cobertura-coverage.xml
+coverage/cobertura-coverage.xml

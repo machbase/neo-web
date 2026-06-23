@@ -7,11 +7,12 @@ import {
     type NowTimeBoundary,
     type TimeBoundary,
     type TimeRangeConfig,
-} from './TimeTypes';
-import { DATE_TIME_INPUT_FORMAT } from './TimeInputFormatters';
-import { normalizeTimeUnit, formatTimeUnitShortCode } from './TimeIntervalUtils';
-import { createTimeRangeConfig } from './TimeRangeUtils';
+} from '../model/TimeTypes';
+import { DATE_TIME_INPUT_FORMAT } from '../formatting/TimeInputFormatters';
+import { normalizeTimeUnit, formatTimeUnitShortCode } from '../interval/TimeIntervalUtils';
+import { createTimeRangeConfig } from '../range/TimeRangeUtils';
 
+// Handles persisted/user time-boundary expressions such as empty, absolute, now, and last-1h.
 export type TimeBoundaryInputValue = string | number;
 
 const RELATIVE_TIME_PATTERN = /^([A-Za-z]+)(?:-(\d+)(ms|s|m|h|d|w|M|y))?$/;
@@ -61,6 +62,35 @@ export function formatTimeRangeInputValue(boundary: TimeBoundary): string {
     }
 
     return `${boundary.kind}-${boundary.amount}${formatTimeUnitShortCode(boundary.unit)}`;
+}
+
+export function formatBoardRangeText(rangeConfig: TimeRangeConfig): string {
+    if (
+        rangeConfig.start.kind === 'empty' ||
+        rangeConfig.end.kind === 'empty'
+    ) {
+        return '';
+    }
+
+    if (
+        rangeConfig.start.kind === 'absolute' &&
+        rangeConfig.end.kind === 'absolute'
+    ) {
+        if (
+            rangeConfig.start.timestamp <= 0 ||
+            rangeConfig.end.timestamp <= 0 ||
+            rangeConfig.end.timestamp < rangeConfig.start.timestamp
+        ) {
+            return '';
+        }
+
+        const sStartText = moment(rangeConfig.start.timestamp).format(DATE_TIME_INPUT_FORMAT);
+        const sEndText = moment(rangeConfig.end.timestamp).format(DATE_TIME_INPUT_FORMAT);
+
+        return `${sStartText}~${sEndText}`;
+    }
+
+    return `${formatTimeRangeInputValue(rangeConfig.start)}~${formatTimeRangeInputValue(rangeConfig.end)}`;
 }
 
 export function parseTimeRangeInputValue(value: string): TimeBoundary | undefined {

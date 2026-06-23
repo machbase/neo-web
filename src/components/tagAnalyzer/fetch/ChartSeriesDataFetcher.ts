@@ -14,13 +14,13 @@ import {
     type ChartFetchApiResponse,
     type ChartFetchResponse,
     type RawFetchRequest,
+    type RollupTableMap,
     type SeriesFetchColumnMap,
     type TagFetchRow,
 } from './FetchContracts';
-import { TagzCsvParser } from '@/utils/tqlCsvParser';
-import type { TimeRangeMs, TimeRangeNs } from '../domain/time/TimeTypes';
+import type { TimeRangeNs } from '../domain/time/model/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../domain/SeriesDomain';
-import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/TimeConstants';
+import { timeRangeMsToNanosecondsSql } from './sqlBuilder/SqlTimeValueUtils';
 
 const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
 const USER_PRESENTED_ERROR_KEY = 'tagAnalyzerUserPresented';
@@ -45,7 +45,7 @@ export async function fetchCalculationData(calculationRequest: CalculationFetchR
               startTime: sStartTime,
               endTime: sEndTime,
           }
-        : convertTimeRangeMsToNanoseconds({
+        : timeRangeMsToNanosecondsSql({
               startTime: sStartTime,
               endTime: sEndTime,
           });
@@ -75,7 +75,7 @@ function buildRequestedCalculationSql(
     intervalSize: number,
     useRollup: boolean,
     sourceColumnMap: SeriesFetchColumnMap,
-    rollupTableList: string[],
+    rollupTableList: RollupTableMap,
 ): string {
     switch (calculationMode) {
         case 'sum':
@@ -129,15 +129,8 @@ function buildRequestedCalculationSql(
                 rollupTableList,
             );
         default:
-            return '';
+            throw new Error(`Unsupported calculation mode: ${calculationMode}`);
     }
-}
-
-function convertTimeRangeMsToNanoseconds(timeRange: TimeRangeMs): TimeRangeNs {
-    return {
-        startTime: timeRange.startTime * NANOSECONDS_PER_MILLISECOND,
-        endTime: timeRange.endTime * NANOSECONDS_PER_MILLISECOND,
-    };
 }
 
 export async function fetchRawData(rawRequest: RawFetchRequest) {
@@ -156,7 +149,7 @@ export async function fetchRawData(rawRequest: RawFetchRequest) {
               startTime: sStartTime,
               endTime: sEndTime,
           }
-        : convertTimeRangeMsToNanoseconds({
+        : timeRangeMsToNanosecondsSql({
               startTime: sStartTime,
               endTime: sEndTime,
           });
@@ -173,23 +166,19 @@ export async function fetchRawData(rawRequest: RawFetchRequest) {
     return executeChartFetchSql(sSql);
 }
 
-function buildTqlCsvPayload(sqlQuery: string): string {
-    return `SQL("${sqlQuery}")\nCSV()`;
-}
-
-function parseChartCsvResponse(
+function parseChartQueryResponse(
     apiResponse: ChartFetchApiResponse,
 ): ChartFetchResponse | undefined {
-    if (apiResponse.status >= 400) {
+    if (typeof apiResponse.status === 'number' && apiResponse.status >= 400) {
         showRequestError(apiResponse);
         throw createUserPresentedChartFetchError(getChartFetchErrorMessage(apiResponse));
     }
 
-    if (typeof apiResponse.data !== 'string') {
+    if (apiResponse.success === false) {
         throw new Error(getChartFetchErrorMessage(apiResponse));
     }
 
-    const rows = normalizeChartFetchRows(TagzCsvParser(apiResponse.data));
+    const rows = normalizeChartFetchRows(getChartFetchRows(apiResponse.data));
     validateChartFetchRows(rows);
 
     return {
@@ -210,7 +199,36 @@ function getChartFetchErrorMessage(apiResponse: ChartFetchApiResponse): string {
         return sDataMessage;
     }
 
-    return apiResponse.statusText ?? `Chart data request failed (${apiResponse.status}).`;
+    const sTopLevelMessage = getChartFetchTopLevelMessage(apiResponse);
+    if (sTopLevelMessage) {
+        return sTopLevelMessage;
+    }
+
+    return apiResponse.statusText ?? 'Chart data request failed.';
+}
+
+function getChartFetchRows(data: unknown): unknown {
+    if (typeof data !== 'object' || data === null || !('rows' in data)) {
+        return undefined;
+    }
+
+    return (data as { rows?: unknown }).rows;
+}
+
+function getChartFetchTopLevelMessage(apiResponse: ChartFetchApiResponse): string | undefined {
+    if (apiResponse.reason !== undefined) {
+        return String(apiResponse.reason);
+    }
+
+    if (apiResponse.message !== undefined) {
+        return String(apiResponse.message);
+    }
+
+    if (apiResponse.error !== undefined) {
+        return String(apiResponse.error);
+    }
+
+    return undefined;
 }
 
 function getChartFetchDataMessage(data: unknown): string | undefined {
@@ -307,12 +325,10 @@ function isDatabaseNullText(value: unknown): boolean {
 async function executeChartFetchSql(
     querySql: string,
 ): Promise<ChartFetchResponse | undefined> {
-    const tqlCsvPayload = buildTqlCsvPayload(querySql);
     const response = (await request({
-        method: 'POST',
-        url: '/api/tql/taz',
-        data: tqlCsvPayload,
+        method: 'GET',
+        url: `/api/query?q=${encodeURIComponent(querySql)}`,
     })) as ChartFetchApiResponse;
 
-    return parseChartCsvResponse(response);
+    return parseChartQueryResponse(response);
 }

@@ -68,9 +68,10 @@ function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelS
         sourceTagName,
         use_y2,
         onRollup,
-        annotations: _legacyAnnotations,
+        annotations,
         ...rest
     } = item;
+    void annotations;
 
     return {
         key: key,

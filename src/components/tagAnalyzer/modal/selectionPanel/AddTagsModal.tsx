@@ -65,7 +65,7 @@ const AddTagsModal = ({
         <Modal.Root
             isOpen
             onClose={pCloseModal}
-            style={{ maxWidth: '600px', width: '100%' }}
+            style={{ maxWidth: '700px', width: '100%' }}
         >
             <Modal.Header>
                 <Modal.Title>

@@ -12,6 +12,7 @@ import {
 import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
 import {
     MAIN_PANEL_SERIES_ID_PREFIX,
+    PANEL_NAVIGATOR_SERIES_ID_PREFIX,
     PANEL_HOVER_SYMBOL_SIZE,
     PANEL_LEGEND_FADE_AREA_OPACITY,
     PANEL_LEGEND_FADE_ITEM_OPACITY,
@@ -42,21 +43,25 @@ function buildPanelLineSeriesOption({
         type: 'line',
         legendHoverLink: false,
         data,
-        animation: false,
+        animation: true,
+        animationDuration: 280,
+        animationDurationUpdate: 180,
+        animationEasing: 'cubicOut',
+        animationEasingUpdate: 'cubicOut',
         sampling: data.length > 1000 ? 'lttb' : undefined,
         ...option,
     };
 }
 
 function buildThresholdMarkLineData(
-    axis: RuntimePanelAxes['left_y_axis'],
+    axis: RuntimePanelAxes['leftY'],
 ): ThresholdMarkLineData {
     return [
-        axis.upper_control_limit.enabled
-            ? { yAxis: axis.upper_control_limit.value }
+        axis.upperControlLimit.enabled
+            ? { yAxis: axis.upperControlLimit.value }
             : undefined,
-        axis.lower_control_limit.enabled
-            ? { yAxis: axis.lower_control_limit.value }
+        axis.lowerControlLimit.enabled
+            ? { yAxis: axis.lowerControlLimit.value }
             : undefined,
     ].filter((item): item is { yAxis: number } => item !== undefined);
 }
@@ -68,8 +73,8 @@ export function buildMainSeriesOption(
     hoveredLegendSeries?: string | undefined,
 ): SeriesOption[] {
     return chartData.map((series, seriesIndex) => {
-        const sBaseSymbolSize = display.point_radius > 0 ? display.point_radius * 2 : 0;
-        const sSymbolSize = display.show_point
+        const sBaseSymbolSize = display.pointRadius > 0 ? display.pointRadius * 2 : 0;
+        const sSymbolSize = display.showPoint
             ? sBaseSymbolSize
             : Math.max(sBaseSymbolSize, PANEL_HOVER_SYMBOL_SIZE);
         const { isLegendHoverActive: sIsLegendHoverActive, isHoveredSeries: sIsHoveredSeries } =
@@ -93,7 +98,7 @@ export function buildMainSeriesOption(
         }
 
         const sMarkLineData = buildThresholdMarkLineData(
-            sYAxisIndex === 0 ? axes.left_y_axis : axes.right_y_axis,
+            sYAxisIndex === 0 ? axes.leftY : axes.rightY,
         );
 
         return buildPanelLineSeriesOption({
@@ -103,7 +108,7 @@ export function buildMainSeriesOption(
             xAxisIndex: 0,
             yAxisIndex: sYAxisIndex,
             symbol: 'circle',
-            showSymbol: display.show_point,
+            showSymbol: display.showPoint,
             symbolSize: sSymbolSize,
             lineStyle: {
                 width: sSeriesStroke,
@@ -118,7 +123,7 @@ export function buildMainSeriesOption(
                 display.fill > 0
                     ? { opacity: sAreaOpacity, color: sSeriesColor }
                     : undefined,
-            connectNulls: display.connect_nulls,
+            connectNulls: display.connectNulls,
             triggerLineEvent: true,
             z: sIsHoveredSeries ? 4 : 2,
             markLine:
@@ -152,7 +157,7 @@ export function buildNavigatorSeriesOption(
         const sSeriesColor = getPanelSeriesDisplayColor(series, seriesIndex);
 
         return buildPanelLineSeriesOption({
-            id: `navigator-series-${seriesIndex}`,
+            id: `${PANEL_NAVIGATOR_SERIES_ID_PREFIX}${seriesIndex}`,
             name: series.name,
             data: series.data,
             xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,

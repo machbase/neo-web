@@ -1,20 +1,23 @@
-import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
-import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
-import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
+import { Toast } from '@/design-system/components';
+import type { PanelRangeState } from '../domain/PanelDomain';
+import { EMPTY_TIME_RANGE } from '../domain/time/model/TimeConstants';
+import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
 
-export type PanelRangeApplyOptions = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    fullRange?: TimeRangeMs;
+export const PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE =
+    'Cannot resolve panel range because no valid data range was found.';
+
+export function showPanelFullRangeUnavailableToast(): void {
+    Toast.error(PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE);
+}
+
+export type ApplyPanelRangeRequest = {
+    panelKey: string;
+    rangeState: PanelRangeState;
     navigatorSelectionCenterRatio?: number;
-    reloadData?: boolean;
 };
 
-export type PanelRangeStateApplyOptions = {
-    fullRange?: TimeRangeMs;
+export type PanelRangeChangeOptions = {
     navigatorSelectionCenterRatio?: number;
-    reloadData?: boolean;
 };
 
 export type BoardPanelRecord = {
@@ -31,14 +34,20 @@ export type BoardPanelStore = {
     ) => void;
 };
 
-export type ApplyPanelRangeState = (
-    panelInfo: PanelInfo,
-    options: PanelRangeApplyOptions,
-) => void;
+export type PanelRangeApplyResult = {
+    resolvedRangeState: PanelRangeState;
+    didChange: boolean;
+};
+
+export type ApplyPanelRange = (
+    request: ApplyPanelRangeRequest,
+) => PanelRangeApplyResult;
+
+export type RequestPanelDataRefresh = (panelKey: string) => void;
 
 const INITIAL_PANEL_RANGE_STATE: PanelRangeState = {
-    panelRange: EMPTY_TIME_RANGE,
-    navigatorRange: EMPTY_TIME_RANGE,
+    requestPanelRange: EMPTY_TIME_RANGE,
+    requestNavigatorRange: EMPTY_TIME_RANGE,
     fullRange: EMPTY_TIME_RANGE,
 };
 
@@ -50,8 +59,8 @@ export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
 
 export function hasValidRangeState(rangeState: PanelRangeState): boolean {
     return (
-        isConcreteTimeRange(rangeState.panelRange) &&
-        isConcreteTimeRange(rangeState.navigatorRange) &&
-        isConcreteTimeRange(rangeState.fullRange)
+        isValidTimeRange(rangeState.requestPanelRange) &&
+        isValidTimeRange(rangeState.requestNavigatorRange) &&
+        isValidTimeRange(rangeState.fullRange)
     );
 }

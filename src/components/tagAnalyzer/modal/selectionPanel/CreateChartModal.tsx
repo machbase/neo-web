@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Modal } from '@/design-system/components/Modal';
-import { Button, Toast } from '@/design-system/components';
+import { Button, Input, Toast } from '@/design-system/components';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
@@ -9,8 +9,11 @@ import { buildTagSelectionLimitError, getTagSelectionErrorMessage } from '../ser
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from '../seriesSelection/useTagSelectionPanelState';
 import { rejectWithToast } from './tagSelectionModalFeedback';
-import { fetchMinMaxTable } from '../../fetch/TimeBoundaryRangeFetcher';
-import { buildCreateChartPanel } from './CreateChartPanelBuilder';
+import { fetchSeriesDataTimeRange } from '../../fetch/DataTimeRangeFetcher';
+import {
+    DEFAULT_NEW_PANEL_TITLE,
+    buildCreateChartPanel,
+} from './CreateChartPanelBuilder';
 import type { PanelEChartType } from '../../domain/PanelDomain';
 import { getMixedXAxisValueKindWarning } from '../../domain/SeriesDomain';
 import type { PersistedTazPanelInfo } from '../../persistence/TazPersistenceTypesV200';
@@ -22,6 +25,40 @@ const CHART_TYPE_OPTIONS = [
     ['Line', Line, 'Line Chart'],
 ] as const satisfies ReadonlyArray<readonly [PanelEChartType, string, string]>;
 
+const COMPACT_INPUT_WRAPPER_STYLE = {
+    flexGrow: 0,
+    flexShrink: 1,
+    flexBasis: '50%',
+    minWidth: 260,
+    maxWidth: 420,
+} satisfies CSSProperties;
+
+const FORM_LABEL_STYLE = {
+    flexShrink: 0,
+    width: 120,
+    color: '#c4c4c4',
+    fontSize: 13,
+    fontWeight: 500,
+} satisfies CSSProperties;
+
+const CHART_TYPE_ROW_STYLE = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+} satisfies CSSProperties;
+
+const CHART_TYPE_BUTTONS_STYLE = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: 8,
+} satisfies CSSProperties;
+
+const CHART_TYPE_BUTTON_STYLE = {
+    width: 96,
+} satisfies CSSProperties;
+
 function CreateChartModal({
     onClose,
     pOnAppendPanel,
@@ -32,6 +69,7 @@ function CreateChartModal({
     pAvailableSourceTableNames: string[];
 }) {
     const [sSelectedChartType, setSelectedChartType] = useState<PanelEChartType>('Line');
+    const [sChartTitle, setChartTitle] = useState(DEFAULT_NEW_PANEL_TITLE);
     const { tagSearch: sTagSearch, viewModel: tagSelectionPanelViewModel } =
         useTagSelectionPanelState({
             tables: pAvailableSourceTableNames,
@@ -46,13 +84,13 @@ function CreateChartModal({
                 ),
         });
     const validateSelectedSeriesHaveData = async (): Promise<boolean> => {
-        const sBoundarySeries = sTagSearch.selectedSeriesDrafts.map((seriesDraft) => ({
+        const sDataRangeSeries = sTagSearch.selectedSeriesDrafts.map((seriesDraft) => ({
             table: seriesDraft.table,
             sourceTagName: seriesDraft.sourceTagName,
             sourceColumns: seriesDraft.sourceColumns,
         }));
-        const sFetchedTimeBoundaryRange = await fetchMinMaxTable(sBoundarySeries);
-        if (!sFetchedTimeBoundaryRange) {
+        const sDataTimeRange = await fetchSeriesDataTimeRange(sDataRangeSeries);
+        if (!sDataTimeRange) {
             Toast.error('Please insert Data.', undefined);
             return false;
         }
@@ -83,6 +121,7 @@ function CreateChartModal({
         const sNewPanel = buildCreateChartPanel(
             sSelectedChartType,
             sTagSearch.selectedSeriesDrafts,
+            sChartTitle,
         );
         pOnAppendPanel(sNewPanel);
         onClose();
@@ -92,7 +131,7 @@ function CreateChartModal({
         <Modal.Root
             isOpen
             onClose={onClose}
-            style={{ maxWidth: '600px', width: '100%' }}
+            style={{ maxWidth: '700px', width: '100%' }}
         >
             <Modal.Header>
                 <Modal.Title>
@@ -102,28 +141,37 @@ function CreateChartModal({
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
-                <TagSelectionPanel
-                    chartControl={
-                        <Button.Group label="Chart" labelPosition="left">
-                            {CHART_TYPE_OPTIONS.map(([chartType, src, alt]) => (
-                                <Button
-                                    key={chartType}
-                                    variant="ghost"
-                                    size="md"
-                                    onClick={() => setSelectedChartType(chartType)}
-                                    active={sSelectedChartType === chartType}
-                                >
-                                    <img
-                                        src={src}
-                                        alt={alt}
-                                        style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }}
-                                    />
-                                </Button>
-                            ))}
-                        </Button.Group>
-                    }
-                    viewModel={tagSelectionPanelViewModel}
+                <Input
+                    label="Chart name"
+                    value={sChartTitle}
+                    onChange={(event) => setChartTitle(event.target.value)}
+                    labelPosition="left"
+                    fullWidth
+                    size="md"
+                    style={COMPACT_INPUT_WRAPPER_STYLE}
                 />
+                <div style={CHART_TYPE_ROW_STYLE}>
+                    <label style={FORM_LABEL_STYLE}>Chart</label>
+                    <div style={CHART_TYPE_BUTTONS_STYLE}>
+                        {CHART_TYPE_OPTIONS.map(([chartType, src, alt]) => (
+                            <Button
+                                key={chartType}
+                                variant="ghost"
+                                size="md"
+                                style={CHART_TYPE_BUTTON_STYLE}
+                                onClick={() => setSelectedChartType(chartType)}
+                                active={sSelectedChartType === chartType}
+                            >
+                                <img
+                                    src={src}
+                                    alt={alt}
+                                    style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }}
+                                />
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+                <TagSelectionPanel viewModel={tagSelectionPanelViewModel} />
             </Modal.Body>
             <Modal.Footer>
                 <Modal.Confirm onClick={setPanels}>Apply</Modal.Confirm>

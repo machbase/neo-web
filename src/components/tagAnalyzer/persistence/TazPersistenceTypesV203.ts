@@ -1,3 +1,4 @@
+import type { TazVersion } from './TazVersion';
 import type { PersistedTazBoardInfoV202 } from './TazPersistenceTypesV202';
 import type { PersistedPanelAnnotationInput } from './TazPersistenceTypesV200';
 
@@ -9,6 +10,6 @@ export type PersistedTazBoardInfoV203 = Omit<
     PersistedTazBoardInfoV202,
     'version' | 'panels'
 > & {
-    version: '2.0.3';
+    version: TazVersion.V203;
     panels: PersistedPanelInfoV203[];
 };

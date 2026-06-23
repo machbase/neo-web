@@ -1,10 +1,10 @@
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import {
     createTimeRangeMs,
     getTimeRangeCenter,
     getTimeRangeWidth,
-    isTimeRangeOutsideBounds,
-} from '../domain/time/TimeRangeUtils';
+    isTimeRangeWithinTimeRange,
+} from '../domain/time/range/TimeRangeUtils';
 
 export const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
 export const MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH = 36;
@@ -37,11 +37,41 @@ export function getMinimumRangeAmount(
     return Math.max(sRelativeRangeAmount, floorRangeAmount);
 }
 
-export function isPanelOutsideNavigator(
+export function resolveNavigatorRangeForPanel(
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,
-): boolean {
-    return isTimeRangeOutsideBounds(panelRange, navigatorRange);
+    navigatorPixelWidth: number | undefined,
+    selectionCenterRatio?: number,
+): TimeRangeMs {
+    let sNavigatorRange = growNavigatorRangeToContainPanel(
+        panelRange,
+        navigatorRange,
+    );
+
+    if (navigatorPixelWidth !== undefined) {
+        sNavigatorRange = limitNavigatorRangeAmountForSelection(
+            panelRange,
+            sNavigatorRange,
+            navigatorPixelWidth,
+            selectionCenterRatio,
+        );
+    }
+
+    return recenterNavigatorRangeIfPanelOutside(
+        panelRange,
+        sNavigatorRange,
+        selectionCenterRatio,
+    );
+}
+
+function growNavigatorRangeToContainPanel(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    return createTimeRangeMs(
+        Math.min(navigatorRange.startTime, panelRange.startTime),
+        Math.max(navigatorRange.endTime, panelRange.endTime),
+    );
 }
 
 export function limitNavigatorRangeAmountForSelection(
@@ -99,7 +129,7 @@ export function recenterNavigatorRangeIfPanelOutside(
     navigatorRange: TimeRangeMs,
     selectionCenterRatio?: number,
 ): TimeRangeMs {
-    if (!isPanelOutsideNavigator(panelRange, navigatorRange)) {
+    if (isTimeRangeWithinTimeRange(panelRange, navigatorRange)) {
         return navigatorRange;
     }
 

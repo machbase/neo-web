@@ -1,21 +1,10 @@
-import type { MutableRefObject } from 'react';
-import { Toast } from '@/design-system/components';
-import { isEmpty } from '@/utils';
-import {
-    PanelOverlayMode,
-    type PanelRangeChangeEvent,
-} from '../domain/PanelDomain';
+import type { PanelRangeChangeEvent } from '../domain/PanelDomain';
 import type {
     ChartSeriesData,
     FFTSelectionPayload,
     SelectedRangeSeriesSummary,
 } from '../domain/ChartDomain';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
-
-export type PanelSelectionSummary = {
-    selection: FFTSelectionPayload;
-    popoverPosition: { x: number; y: number };
-};
 
 type BrushSelectionRange = {
     min: number;
@@ -24,35 +13,13 @@ type BrushSelectionRange = {
     endTime: number;
 };
 
-type PanelBrushSelectionContext = {
-    chartData: ChartSeriesData[];
-    seriesList: PanelSeriesDefinition[];
-    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
-    overlayMode: PanelOverlayMode;
-    isNumericXAxis: boolean;
-    createHighlightFromSelection: (startTime: number, endTime: number) => void;
-    onSelectionSummaryChange: (selectionSummary: PanelSelectionSummary) => void;
-};
-
-export function handlePanelBrushSelection({
-    chartData,
-    seriesList,
-    chartAreaRef,
-    overlayMode,
-    isNumericXAxis,
-    createHighlightFromSelection,
-    onSelectionSummaryChange,
-}: PanelBrushSelectionContext, event: PanelRangeChangeEvent): boolean {
+export function buildSelectionSummaryPayload(
+    event: PanelRangeChangeEvent,
+    chartData: ChartSeriesData[],
+    seriesList: PanelSeriesDefinition[],
+    isNumericXAxis: boolean,
+): FFTSelectionPayload | undefined {
     const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
-
-    if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
-        createHighlightFromSelection(
-            sSelectionRange.startTime,
-            sSelectionRange.endTime,
-        );
-        return false;
-    }
-
     const sSeriesSummaries = buildSeriesSummaryRows(
         chartData.map((series) => series.data),
         seriesList,
@@ -60,23 +27,15 @@ export function handlePanelBrushSelection({
         sSelectionRange.max,
     );
 
-    if (isEmpty(sSeriesSummaries)) {
-        Toast.error('There is no data in the selected area.', undefined);
-        return false;
+    if (sSeriesSummaries.length === 0) {
+        return undefined;
     }
 
-    const sSelection: FFTSelectionPayload = {
+    return {
         startTime: sSelectionRange.startTime,
         endTime: sSelectionRange.endTime,
         seriesSummaries: sSeriesSummaries,
     };
-
-    onSelectionSummaryChange({
-        selection: sSelection,
-        popoverPosition: getSelectionPopoverPosition(chartAreaRef),
-    });
-
-    return false;
 }
 
 function getBrushSelectionRange(
@@ -134,16 +93,4 @@ function buildSeriesSummaryRows(
             avg: (sTotalValue / sSelectedValues.length).toFixed(5),
         }];
     });
-}
-
-function getSelectionPopoverPosition(
-    chartAreaRef: MutableRefObject<HTMLDivElement | null>,
-): { x: number; y: number } {
-    const rect = chartAreaRef.current?.getBoundingClientRect();
-
-    if (!rect) {
-        throw new Error('Cannot place selection popover without a chart area.');
-    }
-
-    return { x: rect.left - 90, y: rect.top - 35 };
 }

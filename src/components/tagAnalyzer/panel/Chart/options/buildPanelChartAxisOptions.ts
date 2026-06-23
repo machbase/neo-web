@@ -7,8 +7,8 @@ import type {
     RuntimePanelDisplay,
 } from '../../../domain/PanelDomain';
 import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisValue } from '../../../domain/time/TimeFormatters';
+import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import { formatAxisValue } from '../../../domain/time/formatting/TimeFormatters';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,
@@ -132,8 +132,8 @@ function getYAxisValues(
             sAxisValues,
             series.data,
             sYAxisIndex === 0
-                ? axes.left_y_axis.zero_base
-                : axes.right_y_axis.zero_base,
+                ? axes.leftY.zeroBase
+                : axes.rightY.zeroBase,
         );
     });
 
@@ -179,7 +179,7 @@ export function buildChartXAxisOption(
                     formatAxisValue(xAxisValue, panelRange, isNumericXAxis),
             },
             splitLine: {
-                show: display.use_zoom && axes.x_axis.show_tickline,
+                show: display.useZoom && axes.x.showTickline,
                 lineStyle: AXIS_SPLIT_LINE_STYLE,
             },
             axisPointer: {
@@ -262,14 +262,14 @@ export function buildChartYAxisOption(
         axes,
     );
     const sLeftAxisRange = resolveAxisRange(
-        isRaw ? axes.left_y_axis.raw_data_value_range : axes.left_y_axis.value_range,
+        isRaw ? axes.leftY.rawValueRange : axes.leftY.valueRange,
         sYAxisValues.left[0],
         sYAxisValues.left[1],
     );
     const sRightAxisRange = resolveAxisRange(
         isRaw
-            ? axes.right_y_axis.raw_data_value_range
-            : axes.right_y_axis.value_range,
+            ? axes.rightY.rawValueRange
+            : axes.rightY.valueRange,
         useNormalize ? 0 : sYAxisValues.right[0],
         useNormalize ? 100 : sYAxisValues.right[1],
     );
@@ -278,14 +278,14 @@ export function buildChartYAxisOption(
         buildMainYAxisOption({
             id: PANEL_LEFT_Y_AXIS_ID,
             axisRange: sLeftAxisRange,
-            showTickLine: axes.left_y_axis.show_tickline,
+            showTickLine: axes.leftY.showTickline,
         }),
         buildMainYAxisOption({
             id: PANEL_RIGHT_Y_AXIS_ID,
             axisRange: sRightAxisRange,
-            position: axes.right_y_axis_enabled ? 'right' : 'left',
+            position: axes.rightYEnabled ? 'right' : 'left',
             showAxisLabel: chartData.some((series) => series.yAxis === 1),
-            showTickLine: axes.right_y_axis.show_tickline,
+            showTickLine: axes.rightY.showTickline,
         }),
         {
             id: PANEL_NAVIGATOR_Y_AXIS_ID,

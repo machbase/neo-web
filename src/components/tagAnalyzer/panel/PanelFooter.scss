@@ -90,30 +90,11 @@
 
     .range-label-inline-editor {
         position: relative;
-        display: flex;
-        max-width: min(156px, 42%);
-        flex-direction: column;
-        align-items: flex-start;
+        max-width: min(248px, 48%);
         pointer-events: auto;
 
         &.is-end {
-            align-items: flex-end;
-        }
-    }
-
-    .range-label-input {
-        width: 156px;
-        max-width: 100%;
-        border: 1px solid #454545;
-        border-radius: 4px;
-        padding: 3px 6px;
-        background-color: #1f1d1d;
-        color: #f8f8f8;
-        font: inherit;
-
-        &:focus {
-            border-color: #fdb532;
-            outline: none;
+            justify-content: flex-end;
         }
     }
 }

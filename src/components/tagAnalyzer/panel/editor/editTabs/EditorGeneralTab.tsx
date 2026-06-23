@@ -1,58 +1,55 @@
-import { useEffect } from 'react';
 import { Checkbox, Input } from '@/design-system/components';
 import type { PanelEditorConfig } from '../PanelEditor';
 import styles from '../PanelEditor.module.scss';
 
 type EditorGeneralTabProps = {
-    pGeneralConfig: PanelEditorConfig['general'];
-    pCanKeepCurrentViewRange: boolean;
+    pTitle: PanelEditorConfig['title'];
+    pModeConfig: PanelEditorConfig['mode'];
+    pDisplayConfig: PanelEditorConfig['display'];
+    pTimeRangeConfig: PanelEditorConfig['timeRange'];
     pIsRawMode: boolean;
-    pOnChangeGeneralConfig: (generalConfig: PanelEditorConfig['general']) => void;
+    pOnChangeTitle: (title: PanelEditorConfig['title']) => void;
+    pOnChangeModeConfig: (modeConfig: PanelEditorConfig['mode']) => void;
+    pOnChangeDisplayConfig: (displayConfig: PanelEditorConfig['display']) => void;
+    pOnChangeTimeRangeConfig: (
+        timeRangeConfig: PanelEditorConfig['timeRange'],
+    ) => void;
 };
 
 function EditorGeneralTab({
-    pGeneralConfig,
-    pCanKeepCurrentViewRange,
+    pTitle,
+    pModeConfig,
+    pDisplayConfig,
+    pTimeRangeConfig,
     pIsRawMode,
-    pOnChangeGeneralConfig,
+    pOnChangeTitle,
+    pOnChangeModeConfig,
+    pOnChangeDisplayConfig,
+    pOnChangeTimeRangeConfig,
 }: EditorGeneralTabProps) {
-    useEffect(() => {
-        if (
-            pCanKeepCurrentViewRange ||
-            !pGeneralConfig.use_last_viewed_range
-        ) {
-            return;
-        }
-
-        pOnChangeGeneralConfig({
-            ...pGeneralConfig,
-            use_last_viewed_range: false,
-            last_viewed_range: undefined,
+    function setUseZoom(checked: boolean): void {
+        pOnChangeDisplayConfig({
+            ...pDisplayConfig,
+            useZoom: checked,
         });
-    }, [pCanKeepCurrentViewRange, pGeneralConfig, pOnChangeGeneralConfig]);
+    }
 
-    function setGeneralFlag(
-        field: 'use_zoom' | 'use_last_viewed_range' | 'is_order_by',
-        checked: boolean,
-    ): void {
-        if (
-            field === 'use_last_viewed_range' &&
-            checked &&
-            !pCanKeepCurrentViewRange
-        ) {
-            throw new Error('Cannot keep current view range before saving a TAZ file.');
-        }
+    function setUseLastViewedRange(checked: boolean): void {
+        pOnChangeTimeRangeConfig({
+            ...pTimeRangeConfig,
+            useLastViewedRange: checked,
+            lastViewedRange: checked ? pTimeRangeConfig.lastViewedRange : undefined,
+        });
+    }
 
-        if (field === 'is_order_by' && !pIsRawMode) {
+    function setRawOrderBy(checked: boolean): void {
+        if (!pIsRawMode) {
             throw new Error('Raw order by can only be changed in raw mode.');
         }
 
-        pOnChangeGeneralConfig({
-            ...pGeneralConfig,
-            [field]: checked,
-            ...(field === 'use_last_viewed_range' && !checked
-                ? { last_viewed_range: undefined }
-                : {}),
+        pOnChangeModeConfig({
+            ...pModeConfig,
+            isOrderBy: checked,
         });
     }
 
@@ -64,23 +61,16 @@ function EditorGeneralTab({
             <div className={styles.controlGrid}>
                 <Input
                     aria-label="Chart title"
-                    value={pGeneralConfig.chart_title}
-                    onChange={(event) =>
-                        pOnChangeGeneralConfig({
-                            ...pGeneralConfig,
-                            chart_title: event.target.value,
-                        })
-                    }
+                    value={pTitle}
+                    onChange={(event) => pOnChangeTitle(event.target.value)}
                     size="md"
                     style={{ width: '220px' }}
                 />
             </div>
             <div className={styles.controlStack}>
                 <Checkbox
-                    checked={pGeneralConfig.use_zoom}
-                    onChange={(event) =>
-                        setGeneralFlag('use_zoom', event.target.checked)
-                    }
+                    checked={pDisplayConfig.useZoom}
+                    onChange={(event) => setUseZoom(event.target.checked)}
                     label="Use Zoom when dragging"
                     size="sm"
                 />
@@ -92,35 +82,26 @@ function EditorGeneralTab({
                     }
                 >
                     <Checkbox
-                        checked={pIsRawMode ? pGeneralConfig.is_order_by : true}
+                        checked={pIsRawMode ? pModeConfig.isOrderBy : true}
                         disabled={!pIsRawMode}
-                        onChange={(event) =>
-                            setGeneralFlag('is_order_by', event.target.checked)
-                        }
+                        onChange={(event) => setRawOrderBy(event.target.checked)}
                         label="Order raw data by time"
                         size="sm"
                     />
                 </span>
                 <Checkbox
-                    checked={
-                        pCanKeepCurrentViewRange &&
-                        pGeneralConfig.use_last_viewed_range
-                    }
-                    disabled={!pCanKeepCurrentViewRange}
+                    checked={pTimeRangeConfig.useLastViewedRange}
                     onChange={(event) =>
-                        setGeneralFlag(
-                            'use_last_viewed_range',
-                            event.target.checked,
-                        )
+                        setUseLastViewedRange(event.target.checked)
                     }
-                    label="Keep Current View Range"
+                    label="Save current visible range in TAZ"
                     size="sm"
                 />
                 <div className={styles.savedRangePreview}>
                     <div className={styles.savedRangeWarning}>
-                        {pCanKeepCurrentViewRange
-                            ? 'When enabled, the Save button stores the chart’s current visible time range in the TAZ file.'
-                            : 'You do not have the TAZ file saved yet. Save the board before using Keep Current View Range.'}
+                        {pTimeRangeConfig.useLastViewedRange
+                            ? "Range will be saved: Save and Save As store this panel's current visible range in the TAZ."
+                            : 'Range is temporary: Save and Save As keep the panel configured time range only.'}
                     </div>
                 </div>
             </div>

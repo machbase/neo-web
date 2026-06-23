@@ -1,12 +1,9 @@
-import { VscWarning } from '@/assets/icons/Icon';
 import { Checkbox, Dropdown, Input } from '@/design-system/components';
 import type { CSSProperties, ReactNode } from 'react';
-import { Tooltip } from 'react-tooltip';
 import {
     EDITOR_AXIS_COMPACT_INPUT_STYLE,
     EDITOR_AXIS_THRESHOLD_INPUT_STYLE,
     EDITOR_RIGHT_AXIS_TRIGGER_STYLE,
-    EDITOR_X_AXIS_INPUT_STYLE,
     parseEditorNumber,
     type PanelAxesDraft,
     type PanelSamplingDraft,
@@ -16,27 +13,23 @@ import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import {
-    RAW_NAVIGATOR_SAMPLE_COUNT,
-    RAW_NAVIGATOR_SAMPLING_VALUE,
-} from '../../../fetch/PanelSeriesDataRepository';
 import styles from '../PanelEditor.module.scss';
 
 type AxisKey = keyof Pick<
     PanelAxesDraft,
-    'x_axis' | 'sampling' | 'main_chart_sampling' | 'left_y_axis' | 'right_y_axis'
+    'x' | 'leftY' | 'rightY'
 >;
-type YAxisKey = 'left_y_axis' | 'right_y_axis';
-type RangeKey = 'value_range' | 'raw_data_value_range';
-type ThresholdKey = 'upper_control_limit' | 'lower_control_limit';
+type YAxisKey = 'leftY' | 'rightY';
+type RangeKey = 'valueRange' | 'rawValueRange';
+type ThresholdKey = 'upperControlLimit' | 'lowerControlLimit';
 
-const AXIS_FLAGS = [['zero_base', 'The scale of the Y-axis start at zero'], ['show_tickline', 'Displays the Y-Axis tick line']] as const;
-const RANGES = [['value_range', 'Custom scale'], ['raw_data_value_range', 'Custom scale for raw data chart']] as const;
-const THRESHOLDS = [['upper_control_limit', 'use UCL'], ['lower_control_limit', 'use LCL']] as const;
+const AXIS_FLAGS = [['zeroBase', 'The scale of the Y-axis start at zero'], ['showTickline', 'Displays the Y-Axis tick line']] as const;
+const RANGES = [['valueRange', 'Custom scale'], ['rawValueRange', 'Custom scale for raw data chart']] as const;
+const THRESHOLDS = [['upperControlLimit', 'use UCL'], ['lowerControlLimit', 'use LCL']] as const;
 const cx = (...classes: Array<string | false | undefined>) =>
     classes.filter(Boolean).join(' ') || undefined;
 
-function isAxisRangeInvalid(range: PanelYAxisDraft['value_range']): boolean {
+function isAxisRangeInvalid(range: PanelYAxisDraft['valueRange']): boolean {
     const sMin = range.min;
     const sMax = range.max;
     const sHasMin = sMin !== undefined;
@@ -61,7 +54,7 @@ function isAxisRangeInvalid(range: PanelYAxisDraft['value_range']): boolean {
 }
 
 function isInvalidAxisThreshold(
-    threshold: PanelYAxisDraft['upper_control_limit'],
+    threshold: PanelYAxisDraft['upperControlLimit'],
 ): boolean {
     return (
         threshold.enabled &&
@@ -74,10 +67,10 @@ function isInvalidAxisThreshold(
 
 function hasInvalidYAxisRange(axisConfig: PanelYAxisDraft): boolean {
     return (
-        isAxisRangeInvalid(axisConfig.value_range) ||
-        isAxisRangeInvalid(axisConfig.raw_data_value_range) ||
-        isInvalidAxisThreshold(axisConfig.upper_control_limit) ||
-        isInvalidAxisThreshold(axisConfig.lower_control_limit)
+        isAxisRangeInvalid(axisConfig.valueRange) ||
+        isAxisRangeInvalid(axisConfig.rawValueRange) ||
+        isInvalidAxisThreshold(axisConfig.upperControlLimit) ||
+        isInvalidAxisThreshold(axisConfig.lowerControlLimit)
     );
 }
 
@@ -85,19 +78,22 @@ function isInvalidSampling(sampling: PanelSamplingDraft): boolean {
     return (
         sampling.enabled &&
         (
-            sampling.sample_count === undefined ||
-            !Number.isFinite(sampling.sample_count)
+            sampling.sampleCount === undefined ||
+            !Number.isFinite(sampling.sampleCount)
         )
     );
 }
 
-export function hasInvalidEditorAxes(axesConfig: PanelAxesDraft): boolean {
+export function hasInvalidEditorAxes(
+    axesConfig: PanelAxesDraft,
+    mainChartSampling: PanelSamplingDraft,
+): boolean {
     return (
-        isInvalidSampling(axesConfig.main_chart_sampling) ||
-        hasInvalidYAxisRange(axesConfig.left_y_axis) ||
+        isInvalidSampling(mainChartSampling) ||
+        hasInvalidYAxisRange(axesConfig.leftY) ||
         (
-            axesConfig.right_y_axis_enabled &&
-            hasInvalidYAxisRange(axesConfig.right_y_axis)
+            axesConfig.rightY.enabled &&
+            hasInvalidYAxisRange(axesConfig.rightY)
         )
     );
 }
@@ -146,41 +142,14 @@ function NumberInput({
     );
 }
 
-function SamplingRow({
-    anchorClass,
-    label,
-    content,
-    disabled,
-    children,
-}: {
-    anchorClass: string;
-    label: string;
-    content: string;
-    disabled: boolean;
-    children: ReactNode;
-}) {
-    return (
-        <div className={cx(styles.controlRow, disabled && styles.disabledControl)}>
-            <span className={cx(anchorClass, styles.mutedLabel)}>
-                <VscWarning color="#FDB532" />
-                {label}
-            </span>
-            <div className={styles.controlRow}>{children}</div>
-            <Tooltip anchorSelect={`.${anchorClass}`} content={content} />
-        </div>
-    );
-}
-
 const EditorAxesTab = ({
     pAxesConfig,
     pTagSet,
-    pIsRawMode,
     pOnChangeAxesConfig,
     pOnChangeTagSet,
 }: {
     pAxesConfig: PanelAxesDraft;
     pTagSet: PanelSeriesDefinition[];
-    pIsRawMode: boolean;
     pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
 }) => {
@@ -192,7 +161,13 @@ const EditorAxesTab = ({
         if (!checked) {
             pOnChangeTagSet(pTagSet.map((tag) => ({ ...tag, useSecondaryAxis: false })));
         }
-        pOnChangeAxesConfig({ ...pAxesConfig, right_y_axis_enabled: checked });
+        pOnChangeAxesConfig({
+            ...pAxesConfig,
+            rightY: {
+                ...pAxesConfig.rightY,
+                enabled: checked,
+            },
+        });
     };
     const setSeriesAxis = (seriesKey: string, useSecondaryAxis: boolean) =>
         pOnChangeTagSet(
@@ -200,33 +175,6 @@ const EditorAxesTab = ({
                 item.key === seriesKey ? { ...item, useSecondaryAxis } : item,
             ),
         );
-    const xNumber = (
-        field: 'raw_data_pixels_per_tick' | 'calculated_data_pixels_per_tick',
-        disabled: boolean,
-    ) => (
-        <div className={cx(disabled && styles.disabledControl)}>
-            <NumberInput
-                label="Pixels between tick marks"
-                size="md"
-                disabled={disabled}
-                value={pAxesConfig.x_axis[field]}
-                onChange={(value) => patchAxis('x_axis', { [field]: value })}
-                style={EDITOR_X_AXIS_INPUT_STYLE}
-            />
-        </div>
-    );
-    const samplingNumber = (
-        key: 'main_chart_sampling',
-        config: PanelSamplingDraft,
-        disabled: boolean,
-    ) => (
-        <NumberInput
-            disabled={disabled}
-            value={config.sample_count}
-            onChange={(sample_count) => patchAxis(key, { sample_count })}
-            style={{ width: '150px' }}
-        />
-    );
     const renderRange = (
         axisKey: YAxisKey,
         axis: PanelYAxisDraft,
@@ -243,7 +191,7 @@ const EditorAxesTab = ({
                 <div className={styles.rangeInputs}>
                     <span
                         className={styles.mutedLabel}
-                        style={disabled && rangeKey === 'raw_data_value_range' ? { minWidth: '100px' } : undefined}
+                        style={disabled && rangeKey === 'rawValueRange' ? { minWidth: '100px' } : undefined}
                     >
                         {label}
                     </span>
@@ -301,7 +249,7 @@ const EditorAxesTab = ({
         );
     };
     const renderRightAxisSeries = () => (
-        <div className={cx(styles.rightAxisSeries, !pAxesConfig.right_y_axis_enabled && styles.disabledControl)}>
+        <div className={cx(styles.rightAxisSeries, !pAxesConfig.rightY.enabled && styles.disabledControl)}>
             <Dropdown.Root
                 options={pTagSet
                     .filter((item) => !item.useSecondaryAxis)
@@ -311,7 +259,7 @@ const EditorAxesTab = ({
                     }))}
                 value="none"
                 onChange={(value) => value !== 'none' && setSeriesAxis(value, true)}
-                disabled={!pAxesConfig.right_y_axis_enabled}
+                disabled={!pAxesConfig.rightY.enabled}
             >
                 <Dropdown.Trigger style={EDITOR_RIGHT_AXIS_TRIGGER_STYLE} />
                 <Dropdown.Menu>
@@ -342,9 +290,9 @@ const EditorAxesTab = ({
 
         return (
             <Section title={title}>
-                {axisKey === 'right_y_axis' && (
+                {axisKey === 'rightY' && (
                     <Checkbox
-                        checked={pAxesConfig.right_y_axis_enabled}
+                        checked={pAxesConfig.rightY.enabled}
                         onChange={(event) => setRightEnabled(event.target.checked)}
                         label="Enable right Y-axis"
                         size="sm"
@@ -368,7 +316,7 @@ const EditorAxesTab = ({
                         renderThreshold(axisKey, axis, thresholdKey, label, disabled),
                     )}
                 </div>
-                {axisKey === 'right_y_axis' && renderRightAxisSeries()}
+                {axisKey === 'rightY' && renderRightAxisSeries()}
             </Section>
         );
     };
@@ -377,51 +325,16 @@ const EditorAxesTab = ({
         <div className={styles.axesGrid}>
             <Section title="X-Axis">
                 <Checkbox
-                    checked={pAxesConfig.x_axis.show_tickline}
+                    checked={pAxesConfig.x.showTickline}
                     onChange={(event) =>
-                        patchAxis('x_axis', { show_tickline: event.target.checked })
+                        patchAxis('x', { showTickline: event.target.checked })
                     }
                     label="Displays the X-Axis tick line"
                     size="sm"
                 />
-                <span className={styles.axisSubsectionTitle}>Calculation</span>
-                {xNumber('calculated_data_pixels_per_tick', pIsRawMode)}
-                <span className={styles.axisSubsectionTitle}>Raw</span>
-                {xNumber('raw_data_pixels_per_tick', !pIsRawMode)}
-                <SamplingRow
-                    anchorClass="main-chart-sampling-tooltip"
-                    label="Use main chart sampling"
-                    content="Main raw chart data uses this as the database sampling value instead of only the raw pixel row cap."
-                    disabled={!pIsRawMode}
-                >
-                    <Checkbox
-                        checked={pAxesConfig.main_chart_sampling.enabled}
-                        onChange={(event) =>
-                            patchAxis('main_chart_sampling', { enabled: event.target.checked })
-                        }
-                        disabled={!pIsRawMode}
-                        size="sm"
-                    />
-                    {samplingNumber(
-                        'main_chart_sampling',
-                        pAxesConfig.main_chart_sampling,
-                        !pIsRawMode || !pAxesConfig.main_chart_sampling.enabled,
-                    )}
-                </SamplingRow>
-                <SamplingRow
-                    anchorClass="navigation-sampling-tooltip"
-                    label="Navigation sampling"
-                    content="Raw navigator data uses fixed database sampling and a fixed row cap."
-                    disabled={!pIsRawMode}
-                >
-                    <span className={styles.editorFixedValue}>
-                        Sampling {RAW_NAVIGATOR_SAMPLING_VALUE}, cap{' '}
-                        {RAW_NAVIGATOR_SAMPLE_COUNT.toLocaleString()}
-                    </span>
-                </SamplingRow>
             </Section>
-            {renderYAxis('Left Y-Axis', 'left_y_axis')}
-            {renderYAxis('Right Y-Axis', 'right_y_axis', !pAxesConfig.right_y_axis_enabled)}
+            {renderYAxis('Left Y-Axis', 'leftY')}
+            {renderYAxis('Right Y-Axis', 'rightY', !pAxesConfig.rightY.enabled)}
         </div>
     );
 };

@@ -1,3 +1,4 @@
+import type { TazVersion } from './TazVersion';
 import type {
     PersistedBoardTimeRange,
     PersistedPanelHighlightV200,
@@ -16,7 +17,7 @@ export type PersistedPanelInfoV201 = Omit<PersistedPanelInfoV200, 'highlights'> 
 export type PersistedTazBoardInfoV201 = {
     id: string;
     type: string;
-    version: '2.0.1';
+    version: TazVersion.V201;
     boardTimeRange: PersistedBoardTimeRange;
     panels: PersistedPanelInfoV201[];
 };

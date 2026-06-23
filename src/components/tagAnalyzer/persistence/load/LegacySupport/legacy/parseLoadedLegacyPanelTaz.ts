@@ -39,7 +39,7 @@ export function parseLoadedLegacyPanelTaz(panelInfo: unknown): PanelInfo {
         return createPanelInfoFromLegacyFlatPanelInfo(panelInfo);
     }
 
-    throw new Error('Unsupported TagAnalyzer legacy .taz panel shape.');
+    throw new Error('Invalid TagAnalyzer legacy .taz panel structure.');
 }
 
 export function isLegacyNestedPanelTaz(panelInfo: unknown): panelInfo is LegacyNestedPanelTaz {

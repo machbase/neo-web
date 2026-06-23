@@ -54,7 +54,7 @@ export type PanelSeriesDefinition = {
     [key: string]: unknown;
 };
 
-type SeriesKeyAxisKind = 'datetime' | 'double';
+export type SeriesKeyAxisKind = 'datetime' | 'double';
 
 type SeriesWithSourceColumns = {
     sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
@@ -131,6 +131,12 @@ export function getSeriesListKeyAxisKind(
     }
 
     return getSeriesKeyAxisKind(seriesList[0]?.sourceColumns);
+}
+
+export function shouldUseNumericPanelRangeInput(
+    seriesList: SeriesWithSourceColumns[] = [],
+): boolean {
+    return !hasMixedXAxisValueKinds(seriesList) && hasNumericBaseTimeSeries(seriesList);
 }
 
 const TAG_ANALYZER_LINE_COLORS = [

@@ -1,4 +1,7 @@
-import type { TagFetchRow } from '../fetch/FetchContracts';
+import type {
+    FetchPanelSeriesRowsResult,
+    TagFetchRow,
+} from '../fetch/FetchContracts';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
@@ -39,7 +42,6 @@ export type FFTSelectionPayload = {
 };
 
 export type OverlapLoadResult = {
-    startTime: number | undefined;
     chartSeries: ChartSeriesData | undefined;
 };
 
@@ -74,4 +76,24 @@ export function buildChartSeriesData(
         },
         color: includeColor ? seriesConfig.color : undefined,
     };
+}
+
+export function mapFetchResultToChartData(
+    result: FetchPanelSeriesRowsResult | undefined,
+    options: { includeColor?: boolean } = {},
+): ChartSeriesData[] {
+    if (!result) {
+        return [];
+    }
+
+    const sIncludeColor = options.includeColor !== false;
+
+    return result.seriesFetchResults.map(({ fetchResult, seriesConfig }) =>
+        buildChartSeriesData(
+            seriesConfig,
+            mapRowsToChartData(fetchResult?.data?.rows),
+            result.isRaw,
+            sIncludeColor,
+        ),
+    );
 }

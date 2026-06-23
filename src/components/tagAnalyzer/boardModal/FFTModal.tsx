@@ -6,13 +6,18 @@ import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/com
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
 import type { SelectedRangeSeriesSummary } from '../domain/ChartDomain';
-import { TimeUnit } from '../domain/time/TimeTypes';
+import { TimeUnit } from '../domain/time/model/TimeTypes';
 import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../domain/time/TimeIntervalUtils';
-import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
+} from '../domain/time/interval/TimeIntervalUtils';
+import { formatRangeBoundaryLabel } from '../domain/time/formatting/TimeFormatters';
+import {
+    buildSqlIdentifierPath,
+    buildSqlStringLiteral,
+    buildTqlDoubleQuotedString,
+} from '../fetch/sqlBuilder/SqlTextUtils';
 
 const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,
@@ -45,19 +50,23 @@ function buildFftSqlRangeCondition(
     isNumericXAxis: boolean,
     startTime: number,
     endTime: number,
+    timeColumn: string,
 ): string {
+    const sTimeColumn = buildSqlIdentifierPath(timeColumn, 'SQL time column');
+
     if (isNumericXAxis) {
-        return `{time} between ${startTime} AND ${endTime}`;
+        return `${sTimeColumn} between ${startTime} AND ${endTime}`;
     }
 
     const sNewStartTime = moment(startTime).format('yyyy-MM-DD HH:mm:ss');
     const sNewEndTime = moment(endTime).format('yyyy-MM-DD HH:mm:ss');
 
-    return `{time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')`;
+    return `${sTimeColumn} between to_date(${buildSqlStringLiteral(
+        sNewStartTime,
+    )}) AND to_date(${buildSqlStringLiteral(sNewEndTime)})`;
 }
 
-const FFT_2D_QUERY_TEMPLATE = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
-MAPKEY('fft')
+const FFT_2D_QUERY_TEMPLATE = `MAPKEY('fft')
 GROUPBYKEY()
 FFT({MinMaxHz})
 CHART(
@@ -73,8 +82,7 @@ CHART(
     })
 )`;
 
-const FFT_3D_QUERY_TEMPLATE = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
-MAPKEY( roundTime(value(0), '{interval}ms') )
+const FFT_3D_QUERY_TEMPLATE = `MAPKEY( roundTime(value(0), '{interval}ms') )
 GROUPBYKEY()
 FFT({MinMaxHz})
 FLATTEN()
@@ -106,29 +114,51 @@ function buildFftMinMaxHz(minHz: string, maxHz: string): string {
 function buildFftQuery({
     isChart2D,
     selectedInfo,
-    rangeCondition,
     minMaxHz,
+    isNumericXAxis,
+    startTime,
+    endTime,
     intervalMs,
 }: {
     isChart2D: boolean;
     selectedInfo: SelectedRangeSeriesSummary;
-    rangeCondition: string;
     minMaxHz: string;
+    isNumericXAxis: boolean;
+    startTime: number;
+    endTime: number;
     intervalMs?: string;
 }): string {
     const sSourceColumns = selectedInfo.sourceColumns;
     const sNormalizeColumn = (columnName: string) =>
         isChart2D ? columnName : columnName.toLowerCase();
-
-    return (isChart2D ? FFT_2D_QUERY_TEMPLATE : FFT_3D_QUERY_TEMPLATE)
-        .replace('{tableName}', selectedInfo.table)
-        .replace('{tagName}', selectedInfo.name)
+    const sTimeColumn = buildSqlIdentifierPath(
+        sNormalizeColumn(sSourceColumns.time),
+        'SQL time column',
+    );
+    const sValueColumn = buildSqlIdentifierPath(
+        sNormalizeColumn(sSourceColumns.value),
+        'SQL value column',
+    );
+    const sNameColumn = buildSqlIdentifierPath(
+        sNormalizeColumn(sSourceColumns.name),
+        'SQL tag name column',
+    );
+    const sSql = `select ${sTimeColumn}, ${sValueColumn} from ${buildSqlIdentifierPath(
+        selectedInfo.table,
+        'SQL table name',
+    )} where ${sNameColumn} in (${buildSqlStringLiteral(
+        selectedInfo.name,
+    )}) AND ${buildFftSqlRangeCondition(
+        isNumericXAxis,
+        startTime,
+        endTime,
+        sTimeColumn,
+    )} order by ${sTimeColumn}`;
+    const sChartTql = (isChart2D ? FFT_2D_QUERY_TEMPLATE : FFT_3D_QUERY_TEMPLATE)
         .replace('{MinMaxHz}', minMaxHz)
-        .replace('{rangeCondition}', rangeCondition)
-        .replace('{interval}', intervalMs ?? '')
-        .replaceAll('{time}', sNormalizeColumn(sSourceColumns.time))
-        .replace('{value}', sNormalizeColumn(sSourceColumns.value))
-        .replace('{name}', sNormalizeColumn(sSourceColumns.name));
+        .replace('{interval}', intervalMs ?? '');
+
+    return `SQL(${buildTqlDoubleQuotedString(sSql)})\n${sChartTql}`;
 }
 
 export const FFTModal = ({
@@ -158,11 +188,6 @@ export const FFTModal = ({
               true,
           )} ~ ${formatRangeBoundaryLabel(pEndTime, true)}`
         : `${moment(pStartTime).format('yyyy-MM-DD HH:mm:ss')} ~ ${moment(pEndTime).format('yyyy-MM-DD HH:mm:ss')}`;
-    const sSqlRangeCondition = buildFftSqlRangeCondition(
-        pIsNumericXAxis,
-        pStartTime,
-        pEndTime,
-    );
     const sDropdownOptions = createFFTModalOptions(pSeriesSummaries);
 
     useEffect(() => {
@@ -176,11 +201,13 @@ export const FFTModal = ({
             buildFftQuery({
                 isChart2D: true,
                 selectedInfo: sInitialSummary,
-                rangeCondition: sSqlRangeCondition,
                 minMaxHz: '',
+                isNumericXAxis: pIsNumericXAxis,
+                startTime: pStartTime,
+                endTime: pEndTime,
             }),
         );
-    }, [pSeriesSummaries, sSqlRangeCondition]);
+    }, [pEndTime, pIsNumericXAxis, pSeriesSummaries, pStartTime]);
 
     const handleSelectedTag = (value: string) => {
         const sSelectedOption = sDropdownOptions.find(
@@ -214,16 +241,17 @@ export const FFTModal = ({
             return;
         }
 
-        if (sMinHz === '') {
-            setMinHz('0');
-        }
-
-        if (sMaxHz === '') {
-            setMaxHz('0');
-        }
-
         const sMinHzValue = sMinHz === '' ? '0' : sMinHz;
         const sMaxHzValue = sMaxHz === '' ? '0' : sMaxHz;
+
+        if (sMinHzValue !== sMinHz) {
+            setMinHz(sMinHzValue);
+        }
+
+        if (sMaxHzValue !== sMaxHz) {
+            setMaxHz(sMaxHzValue);
+        }
+
         const sMinMaxHz = buildFftMinMaxHz(sMinHzValue, sMaxHzValue);
 
         if (sIsChart2D) {
@@ -231,8 +259,10 @@ export const FFTModal = ({
                 buildFftQuery({
                     isChart2D: true,
                     selectedInfo: sSelectedInfo,
-                    rangeCondition: sSqlRangeCondition,
                     minMaxHz: sMinMaxHz,
+                    isNumericXAxis: pIsNumericXAxis,
+                    startTime: pStartTime,
+                    endTime: pEndTime,
                 }),
             );
             return;
@@ -260,8 +290,10 @@ export const FFTModal = ({
             buildFftQuery({
                 isChart2D: false,
                 selectedInfo: sSelectedInfo,
-                rangeCondition: sSqlRangeCondition,
                 minMaxHz: sMinMaxHz,
+                isNumericXAxis: pIsNumericXAxis,
+                startTime: pStartTime,
+                endTime: pEndTime,
                 intervalMs: sIntervalValue,
             }),
         );

@@ -16,6 +16,10 @@ import {
     NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
     PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
 } from './PanelChartOptionConstants';
+import {
+    getTimeRangeCenter,
+    isValidTimeRange,
+} from '../../../domain/time/range/TimeRangeUtils';
 
 type HighlightAreaPoint = {
     name?: string;
@@ -99,11 +103,7 @@ const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
 };
 
 function isRenderableHighlight(highlight: PanelHighlight): boolean {
-    return (
-        Number.isFinite(highlight.timeRange.startTime) &&
-        Number.isFinite(highlight.timeRange.endTime) &&
-        highlight.timeRange.endTime > highlight.timeRange.startTime
-    );
+    return isValidTimeRange(highlight.timeRange);
 }
 
 function getHighlightAreaData(
@@ -150,9 +150,9 @@ function getHighlightLabelData(
                 ? [{
                       name: highlight.text || 'unnamed',
                       value: [
-                          (highlight.timeRange.startTime + highlight.timeRange.endTime) / 2,
+                          getTimeRangeCenter(highlight.timeRange),
                           labelY,
-                      ],
+                      ] as [number, number],
                       highlightIndex,
                       label: {
                           color: highlight.textColor,

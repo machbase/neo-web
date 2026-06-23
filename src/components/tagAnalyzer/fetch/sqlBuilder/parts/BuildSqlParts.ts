@@ -3,10 +3,16 @@ import {
     type CalculationTimeGroupKeySqlInfo,
 } from '../../FetchContracts';
 import {
+    normalizeDateBinIntervalUnit,
     normalizeRollupIntervalUnit,
     normalizeTruncatedIntervalUnit,
 } from '../SqlIntervalUnitUtils';
-import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/TimeConstants';
+import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/model/TimeConstants';
+import {
+    buildSqlIdentifierPath,
+    buildSqlStringLiteral,
+    buildSqlStringLiteralList,
+} from '../SqlTextUtils';
 
 const NANOSECONDS_PER_SECOND = 1000 * NANOSECONDS_PER_MILLISECOND;
 
@@ -58,7 +64,7 @@ export function buildSelectSqlPart(
 }
 
 export function buildTableTargetSqlPart(tableName: string): string {
-    return `${FROM_KEYWORD} ${tableName}`;
+    return `${FROM_KEYWORD} ${buildSqlIdentifierPath(tableName, 'SQL table name')}`;
 }
 
 export function buildSubSqlTargetSqlPart(subSql: string): string {
@@ -105,7 +111,9 @@ export function buildRollupTimeGroupKeySqlPart(
     intervalType: string,
     intervalValue: number,
 ): string {
-    return `ROLLUP('${normalizeRollupIntervalUnit(intervalType)}', ${intervalValue}, ${timeColumn})`;
+    return `ROLLUP(${buildSqlStringLiteral(
+        normalizeRollupIntervalUnit(intervalType),
+    )}, ${intervalValue}, ${buildSqlIdentifierPath(timeColumn, 'SQL time column')})`;
 }
 
 export function buildTruncatedTimeGroupKeySqlPart(
@@ -113,7 +121,19 @@ export function buildTruncatedTimeGroupKeySqlPart(
     intervalUnit: string,
     intervalSize: number,
 ): string {
-    return `DATE_TRUNC('${normalizeTruncatedIntervalUnit(intervalUnit)}', ${timeColumnName}, ${intervalSize})`;
+    return `DATE_TRUNC(${buildSqlStringLiteral(
+        normalizeTruncatedIntervalUnit(intervalUnit),
+    )}, ${buildSqlIdentifierPath(timeColumnName, 'SQL time column')}, ${intervalSize})`;
+}
+
+export function buildDateBinTimeGroupKeySqlPart(
+    timeColumnName: string,
+    intervalUnit: string,
+    intervalSize: number,
+): string {
+    return `DATE_BIN(${buildSqlStringLiteral(
+        normalizeDateBinIntervalUnit(intervalUnit),
+    )}, ${intervalSize}, ${buildSqlIdentifierPath(timeColumnName, 'SQL time column')})`;
 }
 
 export function buildRollupTimeGroupKeySqlInfo(
@@ -162,37 +182,37 @@ export function buildNonRollupTimeGroupKeySqlInfo(
     };
 }
 
-export function buildNonRollupScaledTimeGroupKeySql(
-    timeColumnName: string,
-    intervalSize: number,
-    bucketIntervalSeconds: number,
-): string {
-    const bucketSize = `${intervalSize} * ${bucketIntervalSeconds} * ${NANOSECONDS_PER_SECOND}`;
-    return `${timeColumnName} / (${bucketSize}) * (${bucketSize})`;
-}
-
 export function buildSourceWhereSqlPart(
     tagNameColumn: string,
-    tagNameList: string,
+    tagNameList: string | string[],
     timeSourceColumn: string,
-    startTime: number,
-    endTime: number,
+    startTime: number | string,
+    endTime: number | string,
     compareTimestampValue = false,
 ): string {
-    return `${WHERE_KEYWORD} ${tagNameColumn} ${IN_KEYWORD} ('${tagNameList}') ${AND_KEYWORD} ${buildTimeRangeConditionSql(timeSourceColumn, startTime, endTime, compareTimestampValue)}`;
+    const sTagNames = Array.isArray(tagNameList) ? tagNameList : [tagNameList];
+
+    return `${WHERE_KEYWORD} ${buildSqlIdentifierPath(
+        tagNameColumn,
+        'SQL tag name column',
+    )} ${IN_KEYWORD} (${buildSqlStringLiteralList(sTagNames)}) ${AND_KEYWORD} ${buildTimeRangeConditionSql(timeSourceColumn, startTime, endTime, compareTimestampValue)}`;
 }
 
 export function buildTimeRangeConditionSql(
     timeSourceColumn: string,
-    startTime: number,
-    endTime: number,
+    startTime: number | string,
+    endTime: number | string,
     compareTimestampValue = false,
 ): string {
-    const sTimeExpression = compareTimestampValue
-        ? `to_timestamp(${timeSourceColumn})`
-        : timeSourceColumn;
+    const sTimeSourceColumn = buildSqlIdentifierPath(
+        timeSourceColumn,
+        'SQL time column',
+    );
+    if (compareTimestampValue) {
+        return `${sTimeSourceColumn} ${BETWEEN_KEYWORD} FROM_TIMESTAMP(${startTime}) ${AND_KEYWORD} FROM_TIMESTAMP(${endTime})`;
+    }
 
-    return `${sTimeExpression} ${BETWEEN_KEYWORD} ${startTime} ${AND_KEYWORD} ${endTime}`;
+    return `${sTimeSourceColumn} ${BETWEEN_KEYWORD} ${startTime} ${AND_KEYWORD} ${endTime}`;
 }
 
 export function buildAggregateSubSql(

@@ -1,5 +1,5 @@
-import { padTimePart } from './TimeFormatters';
-
+// Handles direct chart-axis editor input. It intentionally supports numeric axes
+// and partial local timestamps, unlike persisted boundary expressions.
 export const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 export const LOCAL_DATE_TIME_INPUT_FORMAT = `${DATE_TIME_INPUT_FORMAT}.SSS`;
 export const NUMERIC_AXIS_INPUT_FORMAT = 'Numeric value';
@@ -8,32 +8,31 @@ const LOCAL_DATE_TIME_PATTERN =
     /^(\d{4})(?:-(\d{0,2})(?:-(\d{0,2})(?:[ T](\d{0,2})(?::(\d{0,2})(?::(\d{0,2})(?:\.(\d{0,3}))?)?)?)?)?)?$/;
 const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
 
-function parseOptionalTimePart(value: string | undefined): number {
-    return value ? Number(value) : 0;
-}
-
-function parseOptionalDatePart(value: string | undefined): number {
-    return value ? Number(value) : 1;
-}
-
 function formatLocalTimestampInput(timestamp: number): string {
     const date = new Date(timestamp);
 
     return [
         [
-            padTimePart(date.getFullYear(), 4),
-            padTimePart(date.getMonth() + 1, 2),
-            padTimePart(date.getDate(), 2),
+            String(date.getFullYear()).padStart(4, '0'),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0'),
         ].join('-'),
         [
-            padTimePart(date.getHours(), 2),
-            padTimePart(date.getMinutes(), 2),
-            padTimePart(date.getSeconds(), 2),
-        ].join(':') + `.${padTimePart(date.getMilliseconds(), 3)}`,
+            String(date.getHours()).padStart(2, '0'),
+            String(date.getMinutes()).padStart(2, '0'),
+            String(date.getSeconds()).padStart(2, '0'),
+        ].join(':') + `.${String(date.getMilliseconds()).padStart(3, '0')}`,
     ].join(' ');
 }
 
-function formatNumericAxisInput(value: number): string {
+export function formatAxisInputValue(
+    value: number,
+    isNumericAxis: boolean,
+): string {
+    if (!isNumericAxis) {
+        return formatLocalTimestampInput(value);
+    }
+
     if (!Number.isFinite(value)) {
         return '';
     }
@@ -41,15 +40,6 @@ function formatNumericAxisInput(value: number): string {
     return Number.isInteger(value)
         ? String(value)
         : String(Number(value.toPrecision(12)));
-}
-
-export function formatAxisInputValue(
-    value: number,
-    isNumericAxis: boolean,
-): string {
-    return isNumericAxis
-        ? formatNumericAxisInput(value)
-        : formatLocalTimestampInput(value);
 }
 
 function parseLocalTimestampInput(value: string): number | undefined {
@@ -71,11 +61,11 @@ function parseLocalTimestampInput(value: string): number | undefined {
     }
 
     const year = Number(match[1]);
-    const month = parseOptionalDatePart(match[2]);
-    const day = parseOptionalDatePart(match[3]);
-    const hour = parseOptionalTimePart(match[4]);
-    const minute = parseOptionalTimePart(match[5]);
-    const second = parseOptionalTimePart(match[6]);
+    const month = match[2] ? Number(match[2]) : 1;
+    const day = match[3] ? Number(match[3]) : 1;
+    const hour = match[4] ? Number(match[4]) : 0;
+    const minute = match[5] ? Number(match[5]) : 0;
+    const second = match[6] ? Number(match[6]) : 0;
     const millisecond = Number((match[7] || '0').padEnd(3, '0'));
 
     if (
@@ -126,23 +116,19 @@ function parseLocalTimestampInput(value: string): number | undefined {
     return timestamp;
 }
 
-function parseNumericAxisInput(value: string): number | undefined {
-    const text = value.trim();
+export function parseAxisInputValue(
+    value: string,
+    isNumericAxis: boolean,
+): number | undefined {
+    if (!isNumericAxis) {
+        return parseLocalTimestampInput(value);
+    }
 
+    const text = value.trim();
     if (text === '') {
         return undefined;
     }
 
     const sValue = Number(text);
-
     return Number.isFinite(sValue) ? sValue : undefined;
-}
-
-export function parseAxisInputValue(
-    value: string,
-    isNumericAxis: boolean,
-): number | undefined {
-    return isNumericAxis
-        ? parseNumericAxisInput(value)
-        : parseLocalTimestampInput(value);
 }

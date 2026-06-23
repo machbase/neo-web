@@ -1,31 +1,26 @@
-import { getIntervalMs } from '../domain/time/TimeIntervalUtils';
-import { createTimeRangeMs } from '../domain/time/TimeRangeUtils';
+import { createTimeRangeMs } from '../domain/time/range/TimeRangeUtils';
 import type {
-    ChartRow,
     ChartSeriesData,
     OverlapLoadResult,
 } from '../domain/ChartDomain';
-import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import type {
     OverlapPanelInfo,
+    OverlapPanelSelectionChangePayload,
     OverlapPanelSelection,
-    OverlapSelectionChangePayload,
 } from '../domain/BoardDomain';
 
 export function hasOverlapPanelDraftChanged(
     appliedPanelsInfo: OverlapPanelInfo[],
     draftPanelsInfo: OverlapPanelInfo[],
 ): boolean {
-    if (appliedPanelsInfo.length !== draftPanelsInfo.length) {
-        return true;
-    }
+    if (appliedPanelsInfo.length !== draftPanelsInfo.length) return true;
 
     return draftPanelsInfo.some((draftPanel, index) => {
         const sAppliedPanel = appliedPanelsInfo[index];
-
         return (
             !sAppliedPanel ||
-            sAppliedPanel.board.data.index_key !== draftPanel.board.data.index_key ||
+            sAppliedPanel.panelKey !== draftPanel.panelKey ||
             sAppliedPanel.start !== draftPanel.start ||
             sAppliedPanel.duration !== draftPanel.duration ||
             sAppliedPanel.isRaw !== draftPanel.isRaw
@@ -33,54 +28,56 @@ export function hasOverlapPanelDraftChanged(
     });
 }
 
+export type SeriesTimeBounds = {
+    startTime: number;
+    endTime: number;
+};
+
+export function getSeriesTimeBounds(
+    seriesData: ChartSeriesData[],
+): SeriesTimeBounds | undefined {
+    const sTimestamps = seriesData.flatMap((series) =>
+        series.data.map(([timestamp]) => timestamp),
+    );
+
+    if (sTimestamps.length === 0) {
+        return undefined;
+    }
+
+    const sStartTime = Math.min(...sTimestamps);
+    const sEndTime = Math.max(...sTimestamps);
+
+    if (
+        !Number.isFinite(sStartTime) ||
+        !Number.isFinite(sEndTime) ||
+        sEndTime <= sStartTime
+    ) {
+        return undefined;
+    }
+
+    return { startTime: sStartTime, endTime: sEndTime };
+}
+
 export function buildOverlapLoadState(results: OverlapLoadResult[]): {
     chartSeries: ChartSeriesData[];
-    startTimes: number[];
 } {
-    const sChartSeriesList: ChartSeriesData[] = [];
-    const sStartTimes: number[] = [];
-
-    results.forEach((result) => {
-        if (typeof result.startTime === 'number') {
-            sStartTimes.push(result.startTime);
-        }
-        if (result.chartSeries) {
-            sChartSeriesList.push(result.chartSeries);
-        }
-    });
-
     return {
-        chartSeries: sChartSeriesList,
-        startTimes: sStartTimes,
+        chartSeries: results
+            .map((result) => result.chartSeries)
+            .filter((series): series is ChartSeriesData => series !== undefined),
     };
 }
+
 export function resolveOverlapTimeRange(
     panelInfo: OverlapPanelInfo,
     anchorDuration: number,
 ): TimeRangeMs {
-    return createTimeRangeMs(
-        panelInfo.start,
-        panelInfo.start + anchorDuration,
-    );
+    return createTimeRangeMs(panelInfo.start, panelInfo.start + anchorDuration);
 }
-export function alignOverlapTime(time: number, interval: IntervalOption): number {
-    const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
 
-    if (sIntervalMs <= 0) {
-        return time;
-    }
-
-    return Math.floor(time / sIntervalMs) * sIntervalMs;
-}
-export function mapOverlapRows(
-    rows: ChartRow[] | undefined,
-    seriesStartTime: number,
-): ChartRow[] {
-    return rows?.map(([aTimestamp, aValue]) => [aTimestamp - seriesStartTime, aValue]) ?? [];
-}
 export function getNextOverlapSelections(
     selections: OverlapPanelSelection[],
-    payload: OverlapSelectionChangePayload,
+    payload: OverlapPanelSelectionChangePayload,
 ): OverlapPanelSelection[] {
     const { panelKey, changeType } = payload;
 

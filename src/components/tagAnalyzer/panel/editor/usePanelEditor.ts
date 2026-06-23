@@ -1,18 +1,34 @@
-import { useState } from 'react';
-import type { PanelInfo } from '../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../domain/time/TimeTypes';
-import { isConcreteTimeRange } from '../../domain/time/TimeRangeUtils';
-import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import type { PanelInfo, PanelTimeRange } from '../../domain/PanelDomain';
+import {
+    shouldUseNumericPanelRangeInput,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 import type { PanelEditorConfig } from './PanelEditor';
+import type { PanelRangeInput } from '../../domain/time/model/TimeTypes';
+import {
+    createNumericRangeBoundary,
+    createNumericRangeInput,
+    createTimestampRangeBoundary,
+    createTimestampRangeInput,
+    isNumericRangeInput,
+    isTimestampRangeInput,
+} from '../../domain/time/range/PanelRangeConfigUtils';
 
 function hasPanelTimeRangeConfigChanged(
     currentPanelState: PanelInfo,
     nextPanelState: PanelInfo,
 ): boolean {
     return (
-        JSON.stringify(currentPanelState.time.range_config) !==
-        JSON.stringify(nextPanelState.time.range_config)
+        getRangeConfigKey(currentPanelState.timeRange) !==
+        getRangeConfigKey(nextPanelState.timeRange)
     );
+}
+
+function getRangeConfigKey(timeRange: PanelTimeRange): string {
+    return JSON.stringify({
+        start: timeRange.start,
+        end: timeRange.end,
+    });
 }
 
 function normalizeTagSetForRightYAxis(
@@ -24,84 +40,102 @@ function normalizeTagSetForRightYAxis(
         : tagSet.map((series) => ({ ...series, useSecondaryAxis: false }));
 }
 
-export function usePanelEditor({
+function normalizeRangeConfigForSeries(
+    rangeConfig: PanelRangeInput,
+    tagSet: PanelSeriesDefinition[],
+): PanelRangeInput {
+    const sShouldUseNumericRangeInput = shouldUseNumericPanelRangeInput(tagSet);
+
+    if (sShouldUseNumericRangeInput) {
+        return isNumericRangeInput(rangeConfig)
+            ? rangeConfig
+            : createNumericRangeInput(
+                  createNumericRangeBoundary('numeric_empty'),
+                  createNumericRangeBoundary('numeric_empty'),
+              );
+    }
+
+    return isTimestampRangeInput(rangeConfig)
+        ? rangeConfig
+        : createTimestampRangeInput(
+              createTimestampRangeBoundary('timestamp_empty'),
+              createTimestampRangeBoundary('timestamp_empty'),
+          );
+}
+
+export function usePanelEditorActions({
     panelInfo,
-    panelRange,
-    navigatorRange,
-    onResetPanelUi,
     onApplyPanelInfo,
     onSavePanelInfo,
     reloadAfterEditorSave,
 }: {
     panelInfo: PanelInfo;
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    onResetPanelUi: () => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;
     onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
-    reloadAfterEditorSave: (panelInfo: PanelInfo) => void;
+    reloadAfterEditorSave: (
+        panelInfo: PanelInfo,
+        preserveCurrentVisibleRange: boolean,
+    ) => void;
 }): {
-    isEditing: boolean;
-    closePanelEditor: () => void;
-    toggleEditMode: () => void;
     applyEditedPanelConfig: (editorConfig: PanelEditorConfig) => void;
     saveEditedPanelConfig: (editorConfig: PanelEditorConfig) => Promise<boolean>;
 } {
-    const [isEditing, setIsEditing] = useState(false);
-
-    function closePanelEditor(): void {
-        setIsEditing(false);
-    }
-
-    function toggleEditMode(): void {
-        const sShouldOpenEditor = !isEditing;
-
-        onResetPanelUi();
-        setIsEditing(sShouldOpenEditor);
-    }
-
     function buildAppliedPanelInfo(editorConfig: PanelEditorConfig): PanelInfo {
         const sCurrentPanelState = panelInfo;
+        const sNormalizedTagSet = normalizeTagSetForRightYAxis(
+            editorConfig.query.tagSet,
+            editorConfig.axes.rightY.enabled,
+        );
+        const sNormalizedRangeConfig = normalizeRangeConfigForSeries(
+            editorConfig.timeRange,
+            sNormalizedTagSet,
+        );
         const sNextPanelState: PanelInfo = {
             ...editorConfig,
-            data: {
-                ...editorConfig.data,
-                tag_set: normalizeTagSetForRightYAxis(
-                    editorConfig.data.tag_set,
-                    editorConfig.axes.right_y_axis_enabled,
-                ),
+            query: {
+                ...editorConfig.query,
+                tagSet: sNormalizedTagSet,
+            },
+            timeRange: {
+                ...sNormalizedRangeConfig,
+                useLastViewedRange: editorConfig.timeRange.useLastViewedRange,
+                lastViewedRange: editorConfig.timeRange.lastViewedRange,
             },
         };
         const sHasTimeRangeConfigChanged = hasPanelTimeRangeConfigChanged(
             sCurrentPanelState,
             sNextPanelState,
         );
-        const sLastViewedRange =
-            sNextPanelState.general.use_last_viewed_range &&
-            !sHasTimeRangeConfigChanged &&
-            isConcreteTimeRange(panelRange) &&
-            isConcreteTimeRange(navigatorRange)
-                ? {
-                      panelRange,
-                      navigatorRange,
-                  }
-                : undefined;
+        const sShouldClearLastViewedRange =
+            !sNextPanelState.timeRange.useLastViewedRange ||
+            sHasTimeRangeConfigChanged;
         const sNextPanelInfo: PanelInfo = {
             ...sNextPanelState,
-            general: {
-                ...sNextPanelState.general,
-                last_viewed_range: sLastViewedRange,
+            timeRange: {
+                ...sNextPanelState.timeRange,
+                lastViewedRange: sShouldClearLastViewedRange
+                    ? undefined
+                    : sNextPanelState.timeRange.lastViewedRange,
             },
         };
 
         return sNextPanelInfo;
     }
 
+    function shouldPreserveCurrentVisibleRange(
+        nextPanelInfo: PanelInfo,
+    ): boolean {
+        return !hasPanelTimeRangeConfigChanged(panelInfo, nextPanelInfo);
+    }
+
     function applyEditedPanelConfig(editorConfig: PanelEditorConfig): void {
         const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
 
         onApplyPanelInfo(sNextPanelInfo);
-        reloadAfterEditorSave(sNextPanelInfo);
+        reloadAfterEditorSave(
+            sNextPanelInfo,
+            shouldPreserveCurrentVisibleRange(sNextPanelInfo),
+        );
     }
 
     async function saveEditedPanelConfig(
@@ -110,14 +144,14 @@ export function usePanelEditor({
         const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
 
         onApplyPanelInfo(sNextPanelInfo);
-        reloadAfterEditorSave(sNextPanelInfo);
+        reloadAfterEditorSave(
+            sNextPanelInfo,
+            shouldPreserveCurrentVisibleRange(sNextPanelInfo),
+        );
         return onSavePanelInfo(sNextPanelInfo);
     }
 
     return {
-        isEditing,
-        closePanelEditor,
-        toggleEditMode,
         applyEditedPanelConfig,
         saveEditedPanelConfig,
     };

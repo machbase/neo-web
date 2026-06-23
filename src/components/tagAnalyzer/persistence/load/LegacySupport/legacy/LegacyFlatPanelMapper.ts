@@ -1,4 +1,6 @@
 import {
+    DEFAULT_RAW_NAVIGATOR_SAMPLING,
+    normalizePanelQueryCount,
     normalizePanelEChartType,
     type PanelInfo,
     type ValueRange,
@@ -9,17 +11,26 @@ import {
     normalizeLegacySeriesConfigs,
     toLegacySeriesConfigs,
 } from './LegacySeriesPersistenceAdapter';
-import type {
-    PanelNavigatorRangePair,
-    TimeBoundary,
-    TimeRangeConfig,
-} from '../../../../domain/time/TimeTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/TimeBoundaryInput';
 import {
-    formatTimeUnitShortCode,
-    normalizeStoredTimeUnit,
-} from '../../../../domain/time/TimeIntervalUtils';
-import { createAbsoluteTimeRangeConfig } from '../../../../domain/time/TimeRangeUtils';
+    shouldUseNumericPanelRangeInput,
+} from '../../../../domain/SeriesDomain';
+import type {
+    PanelViewRange,
+    PanelRangeInput,
+    TimestampRangeBoundary,
+    NumericRangeBoundary,
+    TimeRangeConfig,
+} from '../../../../domain/time/model/TimeTypes';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/boundary/TimeBoundaryInput';
+import { normalizePanelViewRange } from '../../../../domain/time/boundary/TimeBoundaryValidate';
+import { normalizeStoredTimeUnit } from '../../../../domain/time/interval/TimeIntervalUtils';
+import {
+    createNumericRangeBoundary,
+    createNumericRangeInput,
+    createTimestampRangeBoundary,
+    createTimestampRangeInput,
+} from '../../../../domain/time/range/PanelRangeConfigUtils';
+import { normalizePersistedPanelRangeInput } from '../../normalizePersistedPanelRangeConfig';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 export function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,
@@ -27,60 +38,61 @@ export function createPanelInfoFromLegacyFlatPanelInfo(
     return createNormalizedLegacyPanelInfo(normalizeLegacyFlatPanelInfo(panelInfo));
 }
 export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo {
-    const sRangeConfig = panelInfo.time.range_config;
+    const sRangeConfig = panelInfo.timeRange;
 
     return {
-        index_key: panelInfo.data.index_key,
-        chart_title: panelInfo.general.chart_title,
-        tag_set: toLegacySeriesConfigs(panelInfo.data.tag_set),
-        range_bgn: serializeLegacyTimeBoundaryValue(sRangeConfig.start),
-        range_end: serializeLegacyTimeBoundaryValue(sRangeConfig.end),
-        raw_keeper: panelInfo.general.is_raw,
-        time_keeper: panelInfo.general.last_viewed_range,
-        default_range: createLegacyDefaultRange(panelInfo.time.range_config),
-        count: panelInfo.data.count,
-        interval_type: panelInfo.data.interval_type,
+        index_key: panelInfo.key,
+        chart_title: panelInfo.title,
+        tag_set: toLegacySeriesConfigs(panelInfo.query.tagSet),
+        range_bgn: serializeLegacyRangeBoundaryValue(sRangeConfig.start),
+        range_end: serializeLegacyRangeBoundaryValue(sRangeConfig.end),
+        raw_keeper: panelInfo.mode.isRaw,
+        time_keeper: panelInfo.timeRange.lastViewedRange,
+        default_range: createLegacyDefaultRange(panelInfo.timeRange),
+        count: panelInfo.query.count,
+        interval_type: panelInfo.query.intervalType,
         interval_value: 1,
-        show_legend: toLegacyBoolean(panelInfo.display.show_legend),
-        use_zoom: toLegacyBoolean(panelInfo.general.use_zoom),
-        connect_nulls: toLegacyBoolean(panelInfo.display.connect_nulls),
-        use_normalize: toLegacyBoolean(panelInfo.general.use_normalize),
-        use_time_keeper: toLegacyBoolean(panelInfo.general.use_last_viewed_range),
-        show_x_tickline: toLegacyBoolean(panelInfo.axes.x_axis.show_tickline),
-        pixels_per_tick_raw: toLegacyNumberValue(panelInfo.axes.x_axis.raw_data_pixels_per_tick),
-        pixels_per_tick: toLegacyNumberValue(panelInfo.axes.x_axis.calculated_data_pixels_per_tick),
-        use_sampling: panelInfo.axes.sampling.enabled,
-        sampling_value: toLegacyNumberValue(panelInfo.axes.sampling.sample_count),
-        zero_base: toLegacyBoolean(panelInfo.axes.left_y_axis.zero_base),
-        show_y_tickline: toLegacyBoolean(panelInfo.axes.left_y_axis.show_tickline),
-        custom_min: toLegacyNumberValue(panelInfo.axes.left_y_axis.value_range.min),
-        custom_max: toLegacyNumberValue(panelInfo.axes.left_y_axis.value_range.max),
-        custom_drilldown_min: toLegacyNumberValue(panelInfo.axes.left_y_axis.raw_data_value_range.min),
-        custom_drilldown_max: toLegacyNumberValue(panelInfo.axes.left_y_axis.raw_data_value_range.max),
-        use_ucl: toLegacyBoolean(panelInfo.axes.left_y_axis.upper_control_limit.enabled),
-        ucl_value: toLegacyNumberValue(panelInfo.axes.left_y_axis.upper_control_limit.value),
-        use_lcl: toLegacyBoolean(panelInfo.axes.left_y_axis.lower_control_limit.enabled),
-        lcl_value: toLegacyNumberValue(panelInfo.axes.left_y_axis.lower_control_limit.value),
-        use_right_y2: toLegacyBoolean(panelInfo.axes.right_y_axis_enabled),
-        zero_base2: toLegacyBoolean(panelInfo.axes.right_y_axis.zero_base),
-        show_y_tickline2: toLegacyBoolean(panelInfo.axes.right_y_axis.show_tickline),
-        custom_min2: toLegacyNumberValue(panelInfo.axes.right_y_axis.value_range.min),
-        custom_max2: toLegacyNumberValue(panelInfo.axes.right_y_axis.value_range.max),
-        custom_drilldown_min2: toLegacyNumberValue(panelInfo.axes.right_y_axis.raw_data_value_range.min),
-        custom_drilldown_max2: toLegacyNumberValue(panelInfo.axes.right_y_axis.raw_data_value_range.max),
-        use_ucl2: toLegacyBoolean(panelInfo.axes.right_y_axis.upper_control_limit.enabled),
-        ucl2_value: toLegacyNumberValue(panelInfo.axes.right_y_axis.upper_control_limit.value),
-        use_lcl2: toLegacyBoolean(panelInfo.axes.right_y_axis.lower_control_limit.enabled),
-        lcl2_value: toLegacyNumberValue(panelInfo.axes.right_y_axis.lower_control_limit.value),
-        chart_type: panelInfo.display.chart_type,
-        show_point: toLegacyBoolean(panelInfo.display.show_point),
-        point_radius: toLegacyNumberValue(panelInfo.display.point_radius),
+        show_legend: toLegacyBoolean(panelInfo.display.showLegend),
+        use_zoom: toLegacyBoolean(panelInfo.display.useZoom),
+        connect_nulls: toLegacyBoolean(panelInfo.display.connectNulls),
+        use_normalize: toLegacyBoolean(panelInfo.mode.useNormalize),
+        use_time_keeper: toLegacyBoolean(panelInfo.timeRange.useLastViewedRange),
+        show_x_tickline: toLegacyBoolean(panelInfo.axes.x.showTickline),
+        pixels_per_tick_raw: toLegacyNumberValue(panelInfo.display.pixelsPerTick.raw),
+        pixels_per_tick: toLegacyNumberValue(panelInfo.display.pixelsPerTick.calculated),
+        use_sampling: panelInfo.display.mainChartSampling.enabled,
+        sampling_value: toLegacyNumberValue(panelInfo.display.mainChartSampling.sampleCount),
+        zero_base: toLegacyBoolean(panelInfo.axes.leftY.zeroBase),
+        show_y_tickline: toLegacyBoolean(panelInfo.axes.leftY.showTickline),
+        custom_min: toLegacyNumberValue(panelInfo.axes.leftY.valueRange.min),
+        custom_max: toLegacyNumberValue(panelInfo.axes.leftY.valueRange.max),
+        custom_drilldown_min: toLegacyNumberValue(panelInfo.axes.leftY.rawValueRange.min),
+        custom_drilldown_max: toLegacyNumberValue(panelInfo.axes.leftY.rawValueRange.max),
+        use_ucl: toLegacyBoolean(panelInfo.axes.leftY.upperControlLimit.enabled),
+        ucl_value: toLegacyNumberValue(panelInfo.axes.leftY.upperControlLimit.value),
+        use_lcl: toLegacyBoolean(panelInfo.axes.leftY.lowerControlLimit.enabled),
+        lcl_value: toLegacyNumberValue(panelInfo.axes.leftY.lowerControlLimit.value),
+        use_right_y2: toLegacyBoolean(panelInfo.axes.rightY.enabled),
+        zero_base2: toLegacyBoolean(panelInfo.axes.rightY.zeroBase),
+        show_y_tickline2: toLegacyBoolean(panelInfo.axes.rightY.showTickline),
+        custom_min2: toLegacyNumberValue(panelInfo.axes.rightY.valueRange.min),
+        custom_max2: toLegacyNumberValue(panelInfo.axes.rightY.valueRange.max),
+        custom_drilldown_min2: toLegacyNumberValue(panelInfo.axes.rightY.rawValueRange.min),
+        custom_drilldown_max2: toLegacyNumberValue(panelInfo.axes.rightY.rawValueRange.max),
+        use_ucl2: toLegacyBoolean(panelInfo.axes.rightY.upperControlLimit.enabled),
+        ucl2_value: toLegacyNumberValue(panelInfo.axes.rightY.upperControlLimit.value),
+        use_lcl2: toLegacyBoolean(panelInfo.axes.rightY.lowerControlLimit.enabled),
+        lcl2_value: toLegacyNumberValue(panelInfo.axes.rightY.lowerControlLimit.value),
+        chart_type: panelInfo.display.chartType,
+        show_point: toLegacyBoolean(panelInfo.display.showPoint),
+        point_radius: toLegacyNumberValue(panelInfo.display.pointRadius),
         fill: toLegacyNumberValue(panelInfo.display.fill),
         stroke: toLegacyNumberValue(panelInfo.display.stroke),
     };
 }
 
 function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
+    const sTagSet = normalizeLegacySeriesConfigs(panelInfo.tag_set || []);
     const sTimeRange = parseTimeRangeConfigFromBoundaryValues(
         panelInfo.range_bgn ?? '',
         panelInfo.range_end ?? '',
@@ -88,16 +100,17 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
     const sRangeConfig = resolveLegacyRangeConfig(
         panelInfo,
         sTimeRange,
+        shouldUseNumericPanelRangeInput(sTagSet),
     );
 
     return {
         index_key: panelInfo.index_key,
         chart_title: panelInfo.chart_title,
-        tag_set: normalizeLegacySeriesConfigs(panelInfo.tag_set || []),
+        tag_set: sTagSet,
         range_config: sRangeConfig,
         raw_keeper: panelInfo.raw_keeper ?? false,
         time_keeper: normalizeLegacyLastViewedRange(panelInfo.time_keeper),
-        count: panelInfo.count ?? -1,
+        count: normalizePanelQueryCount(panelInfo.count),
         interval_type:
             normalizeStoredTimeUnit(panelInfo.interval_type ?? '') ??
             panelInfo.interval_type,
@@ -144,88 +157,88 @@ function createNormalizedLegacyPanelInfo(
     panelInfo: ReturnType<typeof normalizeLegacyFlatPanelInfo>,
 ): PanelInfo {
     return {
-        general: {
-            chart_title: panelInfo.chart_title,
-            use_zoom: panelInfo.use_zoom,
-            use_last_viewed_range: panelInfo.use_time_keeper,
-            last_viewed_range: panelInfo.time_keeper,
-            is_raw: panelInfo.raw_keeper,
-            is_order_by: true,
-            use_normalize: panelInfo.use_normalize,
-        },
-        data: {
-            index_key: panelInfo.index_key,
-            tag_set: panelInfo.tag_set,
+        key: panelInfo.index_key,
+        title: panelInfo.chart_title,
+        query: {
+            tagSet: panelInfo.tag_set,
             count: panelInfo.count,
-            interval_type: panelInfo.interval_type,
+            intervalType: panelInfo.interval_type,
         },
-        time: {
-            range_config: panelInfo.range_config,
+        mode: {
+            isRaw: panelInfo.raw_keeper,
+            isOrderBy: true,
+            useNormalize: panelInfo.use_normalize,
+        },
+        timeRange: {
+            ...panelInfo.range_config,
+            useLastViewedRange: panelInfo.use_time_keeper,
+            lastViewedRange: panelInfo.time_keeper,
         },
         axes: {
-            x_axis: {
-                show_tickline: panelInfo.show_x_tickline,
-                raw_data_pixels_per_tick: panelInfo.pixels_per_tick_raw,
-                calculated_data_pixels_per_tick: panelInfo.pixels_per_tick,
+            x: {
+                showTickline: panelInfo.show_x_tickline,
             },
-            sampling: {
-                enabled: panelInfo.use_sampling,
-                sample_count: panelInfo.sampling_value,
-            },
-            main_chart_sampling: {
-                enabled: false,
-                sample_count: panelInfo.sampling_value,
-            },
-            left_y_axis: {
-                zero_base: panelInfo.zero_base,
-                show_tickline: panelInfo.show_y_tickline,
-                value_range: {
+            leftY: {
+                zeroBase: panelInfo.zero_base,
+                showTickline: panelInfo.show_y_tickline,
+                valueRange: {
                     min: panelInfo.custom_min,
                     max: panelInfo.custom_max,
                 },
-                raw_data_value_range: {
+                rawValueRange: {
                     min: panelInfo.custom_drilldown_min,
                     max: panelInfo.custom_drilldown_max,
                 },
-                upper_control_limit: {
+                upperControlLimit: {
                     enabled: panelInfo.use_ucl,
                     value: panelInfo.ucl_value,
                 },
-                lower_control_limit: {
+                lowerControlLimit: {
                     enabled: panelInfo.use_lcl,
                     value: panelInfo.lcl_value,
                 },
             },
-            right_y_axis_enabled: panelInfo.use_right_y2,
-            right_y_axis: {
-                zero_base: panelInfo.zero_base2,
-                show_tickline: panelInfo.show_y_tickline2,
-                value_range: {
+            rightY: {
+                enabled: panelInfo.use_right_y2,
+                zeroBase: panelInfo.zero_base2,
+                showTickline: panelInfo.show_y_tickline2,
+                valueRange: {
                     min: panelInfo.custom_min2,
                     max: panelInfo.custom_max2,
                 },
-                raw_data_value_range: {
+                rawValueRange: {
                     min: panelInfo.custom_drilldown_min2,
                     max: panelInfo.custom_drilldown_max2,
                 },
-                upper_control_limit: {
+                upperControlLimit: {
                     enabled: panelInfo.use_ucl2,
                     value: panelInfo.ucl2_value,
                 },
-                lower_control_limit: {
+                lowerControlLimit: {
                     enabled: panelInfo.use_lcl2,
                     value: panelInfo.lcl2_value,
                 },
             },
         },
         display: {
-            show_legend: panelInfo.show_legend,
-            chart_type: panelInfo.chart_type,
-            connect_nulls: panelInfo.connect_nulls,
-            show_point: panelInfo.show_point,
-            point_radius: panelInfo.point_radius,
+            chartType: panelInfo.chart_type,
+            showLegend: panelInfo.show_legend,
+            showPoint: panelInfo.show_point,
+            pointRadius: panelInfo.point_radius,
             fill: panelInfo.fill,
             stroke: panelInfo.stroke,
+            connectNulls: panelInfo.connect_nulls,
+            useZoom: panelInfo.use_zoom,
+            pixelsPerTick: {
+                raw: panelInfo.pixels_per_tick_raw,
+                calculated: panelInfo.pixels_per_tick,
+                calculatedNavigator: panelInfo.pixels_per_tick,
+            },
+            mainChartSampling: {
+                enabled: false,
+                sampleCount: panelInfo.sampling_value,
+            },
+            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: [],
         annotations: [],
@@ -245,20 +258,39 @@ function toLegacyNumberValue(value: number | undefined): number {
 }
 
 function normalizeLegacyLastViewedRange(
-    lastViewedRange: Partial<PanelNavigatorRangePair> | '' | undefined,
-): Partial<PanelNavigatorRangePair> | undefined {
-    return lastViewedRange === '' ? undefined : lastViewedRange;
+    lastViewedRange: unknown,
+): PanelViewRange | undefined {
+    return normalizePanelViewRange(lastViewedRange);
 }
 
 function resolveLegacyRangeConfig(
     panelInfo: LegacyFlatPanelInfo,
     storedRangeConfig: TimeRangeConfig,
-): TimeRangeConfig {
+    isNumericAxis: boolean,
+): PanelRangeInput {
     if (hasLegacyStoredRange(panelInfo)) {
-        return storedRangeConfig;
+        return normalizePersistedPanelRangeInput(
+            storedRangeConfig,
+            isNumericAxis,
+        ) ?? createEmptyRangeConfigForAxis(isNumericAxis);
     }
 
-    return createAbsoluteRangeConfigFromValueRange(panelInfo.default_range) ?? storedRangeConfig;
+    return createAbsoluteRangeConfigFromValueRange(
+        panelInfo.default_range,
+        isNumericAxis,
+    ) ?? createEmptyRangeConfigForAxis(isNumericAxis);
+}
+
+function createEmptyRangeConfigForAxis(isNumericAxis: boolean): PanelRangeInput {
+    return isNumericAxis
+        ? createNumericRangeInput(
+              createNumericRangeBoundary('numeric_empty'),
+              createNumericRangeBoundary('numeric_empty'),
+          )
+        : createTimestampRangeInput(
+              createTimestampRangeBoundary('timestamp_empty'),
+              createTimestampRangeBoundary('timestamp_empty'),
+          );
 }
 
 function hasLegacyStoredRange(panelInfo: LegacyFlatPanelInfo): boolean {
@@ -272,7 +304,8 @@ function hasLegacyStoredRange(panelInfo: LegacyFlatPanelInfo): boolean {
 
 function createAbsoluteRangeConfigFromValueRange(
     valueRange: ValueRange | undefined,
-): TimeRangeConfig | undefined {
+    isNumericAxis: boolean,
+): PanelRangeInput | undefined {
     if (
         !valueRange ||
         valueRange.min === undefined ||
@@ -281,41 +314,76 @@ function createAbsoluteRangeConfigFromValueRange(
         return undefined;
     }
 
-    return createAbsoluteTimeRangeConfig(valueRange.min, valueRange.max);
+    return isNumericAxis
+        ? createNumericRangeInput(
+              createNumericRangeBoundary('numeric_value', valueRange.min),
+              createNumericRangeBoundary('numeric_value', valueRange.max),
+          )
+        : createTimestampRangeInput(
+              createTimestampRangeBoundary('timestamp_absolute', valueRange.min),
+              createTimestampRangeBoundary('timestamp_absolute', valueRange.max),
+          );
 }
 
 function createLegacyDefaultRange(
-    rangeConfig: TimeRangeConfig,
+    rangeConfig: PanelRangeInput,
 ): ValueRange | undefined {
     const sStartBoundary = rangeConfig.start;
     const sEndBoundary = rangeConfig.end;
 
-    if (sStartBoundary.kind !== 'absolute' || sEndBoundary.kind !== 'absolute') {
+    if (
+        sStartBoundary.kind !== 'timestamp_absolute' &&
+        sStartBoundary.kind !== 'numeric_value'
+    ) {
+        return undefined;
+    }
+
+    if (
+        sEndBoundary.kind !== 'timestamp_absolute' &&
+        sEndBoundary.kind !== 'numeric_value'
+    ) {
         return undefined;
     }
 
     return {
-        min: sStartBoundary.timestamp,
-        max: sEndBoundary.timestamp,
+        min: sStartBoundary.value,
+        max: sEndBoundary.value,
     };
 }
 
-function serializeLegacyTimeBoundaryValue(
-    boundary: TimeBoundary,
+function serializeLegacyRangeBoundaryValue(
+    boundary: TimestampRangeBoundary | NumericRangeBoundary,
 ): string | number | '' {
-    if (boundary.kind === 'empty') {
-        return '';
+    switch (boundary.kind) {
+        case 'timestamp_empty':
+        case 'numeric_empty':
+            return '';
+        case 'timestamp_absolute':
+        case 'numeric_value':
+            return boundary.value;
+        case 'timestamp_now':
+            return serializeLegacyTimestampOffset('now', boundary.value);
+        case 'timestamp_data_end':
+            return serializeLegacyTimestampOffset('last', boundary.value);
+        case 'numeric_data_start':
+        case 'numeric_data_end':
+            return '';
+    }
+}
+
+function serializeLegacyTimestampOffset(
+    anchor: 'now' | 'last',
+    offsetMilliseconds: number,
+): string {
+    if (offsetMilliseconds === 0) {
+        return anchor;
     }
 
-    if (boundary.kind === 'absolute') {
-        return boundary.timestamp;
+    if (offsetMilliseconds < 0) {
+        return `${anchor}-${Math.abs(offsetMilliseconds)}ms`;
     }
 
-    if (boundary.amount <= 0) {
-        return boundary.kind;
-    }
-
-    return `${boundary.kind}-${boundary.amount}${formatTimeUnitShortCode(boundary.unit)}`;
+    return anchor;
 }
 
 

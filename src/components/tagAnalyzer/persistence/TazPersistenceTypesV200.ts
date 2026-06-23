@@ -1,12 +1,12 @@
+import type { TazVersion } from './TazVersion';
 import type {
     PanelInfo,
     PanelEChartType,
     ValueRange,
 } from '../domain/PanelDomain';
 import type {
-    PanelNavigatorRangePair,
     TimeRangeConfig,
-} from '../domain/time/TimeTypes';
+} from '../domain/time/model/TimeTypes';
 
 type PersistedTimeBoundaryInputValue = string | number | '';
 
@@ -64,7 +64,7 @@ export type PersistedPanelToolbarV200 = {
 export type PersistedPanelTimeV200 = {
     rangeConfig: TimeRangeConfig;
     useLastViewedRange?: boolean | undefined;
-    lastViewedRange?: Partial<PanelNavigatorRangePair> | undefined;
+    lastViewedRange?: unknown;
 };
 
 export type PersistedPanelAxisThresholdV200 = {
@@ -162,7 +162,7 @@ export type PersistedBoardTimeRange =
 export type PersistedTazBoardInfo = {
     id: string;
     type: string;
-    version?: string | undefined;
+    version?: TazVersion | string | undefined;
     panels: PersistedTazPanelInfo[];
     boardTimeRange?: PersistedBoardTimeRange | undefined;
     name?: string | undefined;
@@ -181,7 +181,7 @@ export type PersistedTazBoardInfo = {
 export type PersistedTazBoardInfoV200 = {
     id: string;
     type: string;
-    version: '2.0.0';
+    version: TazVersion.V200;
     boardTimeRange: PersistedBoardTimeRange;
     panels: PersistedPanelInfoV200[];
 };

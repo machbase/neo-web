@@ -1,119 +1,151 @@
 import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
-import { DEFAULT_VALUE_RANGE, type PanelEChartType, type PanelInfo } from '../../domain/PanelDomain';
-import { hasNumericBaseTimeSeries, type PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import {
+    DEFAULT_RAW_NAVIGATOR_SAMPLING,
+    DEFAULT_VALUE_RANGE,
+    type PanelEChartType,
+    type PanelInfo,
+} from '../../domain/PanelDomain';
+import { createPanelIndexKey } from '../../domain/PanelIdentity';
+import {
+    shouldUseNumericPanelRangeInput,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
-import { createEmptyTimeRangeConfig } from '../../domain/time/TimeRangeUtils';
-import type { PersistedPanelInfoV204 } from '../../persistence/TazPersistenceTypesV204';
+import {
+    createNumericRangeBoundary,
+    createNumericRangeInput,
+    createTimestampRangeBoundary,
+    createTimestampRangeInput,
+} from '../../domain/time/range/PanelRangeConfigUtils';
+import type { PersistedPanelInfoV205 } from '../../persistence/TazPersistenceTypesV205';
 
-const DEFAULT_NEW_PANEL_TITLE = 'New chart';
+export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 const DEFAULT_PANEL_ROW_LIMIT = -1;
 const DEFAULT_PANEL_INTERVAL_TYPE = '';
 const DEFAULT_RAW_PIXELS_PER_TICK = 0.1;
 const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
+const DEFAULT_CALCULATED_NAVIGATOR_PIXELS_PER_TICK = 3;
 const DEFAULT_SAMPLING_VALUE = 0.01;
 
 export function buildCreateChartPanel(
     chartType: PanelEChartType,
     selectedSeriesDrafts: TagSelectionDraftItem[],
-): PersistedPanelInfoV204 {
+    chartTitle: string = DEFAULT_NEW_PANEL_TITLE,
+): PersistedPanelInfoV205 {
     return createRuntimePanelInfo(
         chartType,
         buildSeriesDefinitionsFromDrafts(selectedSeriesDrafts),
+        normalizeChartTitle(chartTitle),
     );
 }
 
 function createRuntimePanelInfo(
     chartType: PanelEChartType,
     tagSet: PanelSeriesDefinition[],
+    chartTitle: string,
 ): PanelInfo {
     const sDisplay = createPanelDisplayForChartType(chartType);
+    const sIsNumericXAxis = shouldUseNumericPanelRangeInput(tagSet);
 
     return {
-        general: {
-            chart_title: DEFAULT_NEW_PANEL_TITLE,
-            use_zoom: true,
-            use_last_viewed_range: false,
-            last_viewed_range: undefined,
-            is_raw: hasNumericBaseTimeSeries(tagSet),
-            is_order_by: false,
-            use_normalize: false,
-        },
-        data: {
-            index_key: createPanelKey(),
-            tag_set: tagSet,
+        key: createPanelIndexKey(),
+        title: chartTitle,
+        query: {
+            tagSet,
             count: DEFAULT_PANEL_ROW_LIMIT,
-            interval_type: DEFAULT_PANEL_INTERVAL_TYPE,
+            intervalType: DEFAULT_PANEL_INTERVAL_TYPE,
         },
-        time: {
-            range_config: createEmptyTimeRangeConfig(),
+        mode: {
+            isRaw: false,
+            isOrderBy: false,
+            useNormalize: false,
+        },
+        timeRange: {
+            ...(sIsNumericXAxis
+                ? createNumericRangeInput(
+                    createNumericRangeBoundary('numeric_empty'),
+                    createNumericRangeBoundary('numeric_empty'),
+                )
+                : createTimestampRangeInput(
+                    createTimestampRangeBoundary('timestamp_empty'),
+                    createTimestampRangeBoundary('timestamp_empty'),
+                )),
+            useLastViewedRange: false,
+            lastViewedRange: undefined,
         },
         axes: {
-            x_axis: {
-                show_tickline: true,
-                raw_data_pixels_per_tick: DEFAULT_RAW_PIXELS_PER_TICK,
-                calculated_data_pixels_per_tick: DEFAULT_CALCULATED_PIXELS_PER_TICK,
+            x: {
+                showTickline: true,
             },
-            sampling: {
-                enabled: true,
-                sample_count: DEFAULT_SAMPLING_VALUE,
-            },
-            main_chart_sampling: {
-                enabled: false,
-                sample_count: DEFAULT_SAMPLING_VALUE,
-            },
-            left_y_axis: createDefaultLeftYAxisConfig(),
-            right_y_axis_enabled: false,
-            right_y_axis: createDefaultRightYAxisConfig(),
+            leftY: createDefaultLeftYAxisConfig(),
+            rightY: createDefaultRightYAxisConfig(),
         },
         display: {
-            show_legend: true,
-            chart_type: chartType,
-            connect_nulls: false,
-            show_point: sDisplay.show_point,
-            point_radius: sDisplay.point_radius,
+            chartType: chartType,
+            showLegend: true,
+            showPoint: sDisplay.showPoint,
+            pointRadius: sDisplay.pointRadius,
             fill: sDisplay.fill,
             stroke: sDisplay.stroke,
+            connectNulls: false,
+            useZoom: true,
+            pixelsPerTick: {
+                raw: DEFAULT_RAW_PIXELS_PER_TICK,
+                calculated: DEFAULT_CALCULATED_PIXELS_PER_TICK,
+                calculatedNavigator: DEFAULT_CALCULATED_NAVIGATOR_PIXELS_PER_TICK,
+            },
+            mainChartSampling: {
+                enabled: false,
+                sampleCount: DEFAULT_SAMPLING_VALUE,
+            },
+            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: [],
         annotations: [],
     };
 }
 
+function normalizeChartTitle(chartTitle: string): string {
+    const sTitle = chartTitle.trim();
+
+    return sTitle.length > 0 ? sTitle : DEFAULT_NEW_PANEL_TITLE;
+}
+
 function createPanelDisplayForChartType(
     chartType: PanelEChartType,
-): Pick<PanelInfo['display'], 'show_point' | 'point_radius' | 'fill' | 'stroke'> {
+): Pick<PanelInfo['display'], 'showPoint' | 'pointRadius' | 'fill' | 'stroke'> {
     switch (chartType) {
         case 'Zone':
-            return { show_point: false, point_radius: 0, fill: 0.15, stroke: 1 };
+            return { showPoint: false, pointRadius: 0, fill: 0.15, stroke: 1 };
         case 'Dot':
-            return { show_point: true, point_radius: 2, fill: 0, stroke: 0 };
+            return { showPoint: true, pointRadius: 2, fill: 0, stroke: 0 };
         case 'Line':
         case 'Custom':
-            return { show_point: true, point_radius: 0, fill: 0, stroke: 1 };
+            return { showPoint: true, pointRadius: 0, fill: 0, stroke: 1 };
     }
 
     throw new Error(`Unsupported chart type: ${chartType}`);
 }
 
-function createDefaultLeftYAxisConfig(): PanelInfo['axes']['left_y_axis'] {
+function createDefaultLeftYAxisConfig(): PanelInfo['axes']['leftY'] {
     return createBaseYAxisConfig(false);
 }
 
-function createDefaultRightYAxisConfig(): PanelInfo['axes']['right_y_axis'] {
-    return createBaseYAxisConfig(true);
-}
-
-function createBaseYAxisConfig(zeroBase: boolean): PanelInfo['axes']['left_y_axis'] {
+function createDefaultRightYAxisConfig(): PanelInfo['axes']['rightY'] {
     return {
-        zero_base: zeroBase,
-        show_tickline: true,
-        value_range: { ...DEFAULT_VALUE_RANGE },
-        raw_data_value_range: { ...DEFAULT_VALUE_RANGE },
-        upper_control_limit: { enabled: false, value: 0 },
-        lower_control_limit: { enabled: false, value: 0 },
+        ...createBaseYAxisConfig(true),
+        enabled: false,
     };
 }
 
-function createPanelKey(): string {
-    return String(Date.now() + Math.round(Math.random() * 1000));
+function createBaseYAxisConfig(zeroBase: boolean): PanelInfo['axes']['leftY'] {
+    return {
+        zeroBase: zeroBase,
+        showTickline: true,
+        valueRange: { ...DEFAULT_VALUE_RANGE },
+        rawValueRange: { ...DEFAULT_VALUE_RANGE },
+        upperControlLimit: { enabled: false, value: 0 },
+        lowerControlLimit: { enabled: false, value: 0 },
+    };
 }
+

@@ -10,7 +10,7 @@ import {
 } from '@/design-system/components';
 import type { ComboboxOption } from '@/design-system/components';
 import listStyles from '@/design-system/components/List/index.module.scss';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import {
     buildTagSelectionCountLabel,
     getTagSelectionCountColor,
@@ -36,6 +36,14 @@ const getSelectedSeriesTooltip = (item: TagSelectionDraftItem): string =>
         `Value: ${getSourceValueLabel(item)}`,
         `Mode: ${item.calculationMode || 'avg'}`,
     ].join('\n');
+
+const COMPACT_INPUT_WRAPPER_STYLE = {
+    flexGrow: 0,
+    flexShrink: 1,
+    flexBasis: '50%',
+    minWidth: 260,
+    maxWidth: 420,
+} satisfies CSSProperties;
 
 function TagSelectionComboboxField({
     label,
@@ -220,6 +228,7 @@ const TagSelectionPanel = ({
                 onKeyDown={(event) => event.key === 'Enter' && onSearch()}
                 fullWidth
                 size="sm"
+                style={COMPACT_INPUT_WRAPPER_STYLE}
                 rightIcon={
                     <Button
                         variant="ghost"
@@ -234,7 +243,7 @@ const TagSelectionPanel = ({
             <div className={`${styles.fieldRow} ${styles.itemListRow}`}>
                 <label className={styles.fieldLabel}>Item list</label>
                 <div className={styles.itemListGroup}>
-                    <div className={styles.listColumn}>
+                    <div className={`${styles.listColumn} ${styles.availableTagColumn}`}>
                         <List
                             maxHeight={200}
                             items={sAvailableTagListItems}
@@ -255,7 +264,7 @@ const TagSelectionPanel = ({
                         />
                     </div>
 
-                    <div className={styles.listColumn}>
+                    <div className={`${styles.listColumn} ${styles.selectedSeriesColumn}`}>
                         <div className={`${listStyles.list} ${styles.selectedSeriesList}`}>
                             {selectedSeriesDrafts.length > 0 ? (
                                 <div className={`${listStyles['list__items']} scrollbar-dark`}>
@@ -275,44 +284,47 @@ const TagSelectionPanel = ({
                                             }
                                         >
                                             <div className={listStyles['list__item-label']}>
-                                                <div className={styles.selectedSeriesRow}>
-                                                    <span
-                                                        className={styles.selectedSeriesText}
-                                                        title={getSelectedSeriesTooltip(item)}
-                                                    >
-                                                        <span className={styles.selectedSeriesName}>
+                                                <div className={styles.selectedSeriesItemContent}>
+                                                    <div className={styles.selectedSeriesHeader}>
+                                                        <span
+                                                            className={styles.selectedSeriesName}
+                                                            title={item.sourceTagName}
+                                                        >
                                                             {item.sourceTagName}
                                                         </span>
-                                                        <span className={styles.selectedSeriesSource}>
-                                                            {getSelectedSeriesSourceSummary(item)}
-                                                        </span>
-                                                    </span>
-                                                    <div
-                                                        className={styles.modeTriggerWrapper}
-                                                        onClick={(event) => event.stopPropagation()}
-                                                    >
-                                                        <Dropdown.Root
-                                                            options={modeOptions}
-                                                            value={item.calculationMode || 'avg'}
-                                                            onChange={(value) =>
-                                                                onSelectedSeriesDraftModeChange(
-                                                                    value,
-                                                                    item,
-                                                                )
-                                                            }
+                                                        <div
+                                                            className={styles.modeTriggerWrapper}
+                                                            onClick={(event) => event.stopPropagation()}
                                                         >
-                                                            <Dropdown.Trigger
-                                                                className="dropdown-trigger-sm"
-                                                                style={{
-                                                                    width: '100%',
-                                                                    ...modeTriggerStyle,
-                                                                }}
-                                                            />
-                                                            <Dropdown.Menu>
-                                                                <Dropdown.List />
-                                                            </Dropdown.Menu>
-                                                        </Dropdown.Root>
+                                                            <Dropdown.Root
+                                                                options={modeOptions}
+                                                                value={item.calculationMode || 'avg'}
+                                                                onChange={(value) =>
+                                                                    onSelectedSeriesDraftModeChange(
+                                                                        value,
+                                                                        item,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Dropdown.Trigger
+                                                                    className="dropdown-trigger-sm"
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        ...modeTriggerStyle,
+                                                                    }}
+                                                                />
+                                                                <Dropdown.Menu>
+                                                                    <Dropdown.List />
+                                                                </Dropdown.Menu>
+                                                            </Dropdown.Root>
+                                                        </div>
                                                     </div>
+                                                    <span
+                                                        className={styles.selectedSeriesSource}
+                                                        title={getSelectedSeriesTooltip(item)}
+                                                    >
+                                                        {getSelectedSeriesSourceSummary(item)}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>

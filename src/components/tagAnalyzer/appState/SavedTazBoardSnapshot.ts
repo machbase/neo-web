@@ -3,7 +3,7 @@ import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
 import type {
     PersistedTazBoardInfo,
 } from '../persistence/TazPersistenceTypesV200';
-import type { PersistedTazBoardInfoV204 } from '../persistence/TazPersistenceTypesV204';
+import type { PersistedTazBoardInfoV210 } from '../persistence/TazPersistenceTypesV210';
 import { createTazSavePayload } from '../persistence/save/createTazSavePayload';
 import { mapBoardToPersistedTaz } from '../persistence/save/mapBoardToPersistedTaz';
 
@@ -20,7 +20,8 @@ type SavedAsTazBoardParams<TBoard extends SaveableTazBoard> = {
     filePath: string;
 };
 
-type TazPanelsCarrier = {
+type TazSavedStateCarrier = {
+    boardTimeRange?: unknown;
     panels: unknown[];
 };
 
@@ -42,21 +43,23 @@ export function createSavedTazBoardAfterSaveAs<TBoard extends SaveableTazBoard>(
     return createSavedTazBoardSnapshot(board, sSavePayload, fileName, filePath);
 }
 
-export function createTazSavedCode(board: TazPanelsCarrier): string {
-    return serializePanels(board.panels);
+export function createTazSavedCode(board: TazSavedStateCarrier): string {
+    return serializeTazSavedState(board);
 }
 
-export function createTazSavedCodeFromSavePayload(savePayload: TazPanelsCarrier): string {
-    return serializePanels(savePayload.panels);
+export function createTazSavedCodeFromSavePayload(
+    savePayload: TazSavedStateCarrier,
+): string {
+    return serializeTazSavedState(savePayload);
 }
 
 export function createTazSavedCodeFromBoardInfo(board: BoardInfo): string {
-    return serializePanels(mapBoardToPersistedTaz(board).panels);
+    return serializeTazSavedState(mapBoardToPersistedTaz(board));
 }
 
 function createSavedTazBoardSnapshot<TBoard extends SaveableTazBoard>(
     board: TBoard,
-    savePayload: PersistedTazBoardInfoV204,
+    savePayload: PersistedTazBoardInfoV210,
     fileName: string,
     filePath: string,
 ): TBoard {
@@ -71,6 +74,13 @@ function createSavedTazBoardSnapshot<TBoard extends SaveableTazBoard>(
     };
 }
 
-function serializePanels(panels: unknown[]): string {
-    return JSON.stringify(panels);
+function serializeTazSavedState(board: TazSavedStateCarrier): string {
+    if (board.boardTimeRange === undefined) {
+        return JSON.stringify(board.panels);
+    }
+
+    return JSON.stringify({
+        boardTimeRange: board.boardTimeRange,
+        panels: board.panels,
+    });
 }

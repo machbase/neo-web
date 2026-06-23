@@ -25,19 +25,22 @@ export function buildChartSeriesOption(
             chartInfo.mainSeriesData,
             chartInfo.isRaw,
             chartInfo.useNormalize,
-            chartInfo.panelRange,
+            chartInfo.displayPanelRange,
         );
+    const sRenderableHighlights = chartInfo.draftHighlight
+        ? [...chartInfo.highlights, chartInfo.draftHighlight]
+        : chartInfo.highlights;
 
     return {
         series: [
-            ...buildHighlightOverlaySeries(chartInfo.highlights, 'main'),
-            ...buildHighlightLabelSeries(chartInfo.highlights, resolvedYAxisOption[0]),
+            ...buildHighlightOverlaySeries(sRenderableHighlights, 'main'),
+            ...buildHighlightLabelSeries(sRenderableHighlights, resolvedYAxisOption[0]),
             ...buildSeriesAnnotationSeries(
                 chartInfo.annotations,
                 chartInfo.seriesDefinitions,
                 chartInfo.mainSeriesData,
                 resolvedYAxisOption,
-                chartInfo.panelRange,
+                chartInfo.displayPanelRange,
                 chartInfo.visibleSeries,
             ),
             ...buildMainSeriesOption(
@@ -50,13 +53,13 @@ export function buildChartSeriesOption(
                 chartInfo.navigatorSeriesData,
                 chartInfo.hoveredLegendSeries,
             ),
-            ...buildHighlightOverlaySeries(chartInfo.highlights, 'navigator'),
+            ...buildHighlightOverlaySeries(sRenderableHighlights, 'navigator'),
             ...buildNavigatorAnnotationLineSeries(
                 chartInfo.annotations,
                 chartInfo.seriesDefinitions,
                 chartInfo.mainSeriesData,
                 resolvedYAxisOption,
-                chartInfo.navigatorRange,
+                chartInfo.displayNavigatorRange,
                 chartInfo.visibleSeries,
             ),
         ],

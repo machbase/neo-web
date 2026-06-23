@@ -2,21 +2,8 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import { Page } from '@/design-system/components';
-import { formatLocalTimestampWithMilliseconds } from '../domain/time/TimeFormatters';
-
-const OVERLAP_TIME_SHIFT_COLORS = [
-    '#EB5757',
-    '#6FCF97',
-    '#9C8FFF',
-    '#F5AA64',
-    '#BB6BD9',
-    '#B4B4B4',
-    '#FFD95F',
-    '#2D9CDB',
-    '#C3A080',
-    '#B4B4B4',
-    '#6B6B6B',
-];
+import { formatLocalTimestampWithMilliseconds } from '../domain/time/formatting/TimeFormatters';
+import { OVERLAP_CHART_COLORS } from './OverlapChartOptionBuilder';
 
 const PANEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } as const;
 const LABEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' } as const;
@@ -77,7 +64,7 @@ const OverlapTimeShiftPanel = ({
                         style={{
                             width: '10px',
                             height: '10px',
-                            background: OVERLAP_TIME_SHIFT_COLORS[pColorIndex],
+                            background: OVERLAP_CHART_COLORS[pColorIndex % OVERLAP_CHART_COLORS.length],
                         }}
                     />
                     <div>{pLabel}</div>

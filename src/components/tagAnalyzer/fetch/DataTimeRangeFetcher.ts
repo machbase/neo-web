@@ -1,19 +1,19 @@
 import request from '@/api/core';
 import { showRequestError } from '../feedback/RequestErrorPresenter';
 import {
-    buildGroupedSeriesTimeBoundarySql,
-    buildVirtualStatOrMountedTableBoundarySql,
-} from './sqlBuilder/BuildTimeBoundarySql';
+    buildGroupedSeriesDataTimeRangeSql,
+    buildVirtualStatOrMountedTableDataTimeRangeSql,
+} from './sqlBuilder/BuildDataTimeRangeSql';
 import type {
-    BoundarySeries,
+    DataRangeSeries,
     TableTagMap,
 } from './FetchContracts';
-import type { FetchedTimeBoundaryRange } from '../domain/time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../domain/SeriesDomain';
-import { createAbsoluteTimeBoundary } from '../domain/time/TimeBoundaryInput';
-import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/TimeConstants';
+import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/model/TimeConstants';
+import { createTimeRangeMs } from '../domain/time/range/TimeRangeUtils';
 
-function groupBoundarySeriesByTable<T extends BoundarySeries>(
+function groupDataRangeSeriesByTable<T extends DataRangeSeries>(
     tableTagInfo: T[],
 ): TableTagMap[] {
     const sGroupedTableMap: Record<
@@ -49,14 +49,14 @@ function groupBoundarySeriesByTable<T extends BoundarySeries>(
     }));
 }
 
-export async function fetchMinMaxTable<T extends BoundarySeries>(
+export async function fetchSeriesDataTimeRange<T extends DataRangeSeries>(
     tableTagInfo: T[],
-): Promise<FetchedTimeBoundaryRange | undefined> {
-    const groupedBoundarySeries = groupBoundarySeriesByTable(tableTagInfo);
-    const sHasNumericBaseTime = groupedBoundarySeries.some((info) =>
+): Promise<TimeRangeMs | undefined> {
+    const sGroupedDataRangeSeries = groupDataRangeSeriesByTable(tableTagInfo);
+    const sHasNumericBaseTime = sGroupedDataRangeSeries.some((info) =>
         isNumericBaseTimeSourceColumns(info.cols),
     );
-    const sHasDateTimeAxis = groupedBoundarySeries.some(
+    const sHasDateTimeAxis = sGroupedDataRangeSeries.some(
         (info) => !isNumericBaseTimeSourceColumns(info.cols),
     );
 
@@ -66,7 +66,7 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
         );
     }
 
-    const sql = buildGroupedSeriesTimeBoundarySql(groupedBoundarySeries);
+    const sql = buildGroupedSeriesDataTimeRangeSql(sGroupedDataRangeSeries);
     const data = await request({
         method: 'GET',
         url: `/api/query?q=${encodeURIComponent(sql)}`,
@@ -76,21 +76,19 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
     const rows = data.data?.rows as Array<[number | null, number | null]> | undefined;
 
     if (sHasNumericBaseTime) {
-        return createTimeBoundaryRangeFromMillisecondRows(rows);
+        return createDataTimeRangeFromMillisecondRows(rows);
     }
 
-    return createTimeBoundaryRangeFromNanosecondRows(rows);
+    return createDataTimeRangeFromNanosecondRows(rows);
 }
 
-export async function fetchVirtualStatTable(
+export async function fetchVirtualStatDataTimeRange(
     tableName: string,
     tagNameList: string[],
-    timeColumnName?: string,
-): Promise<FetchedTimeBoundaryRange | undefined> {
-    const sql = buildVirtualStatOrMountedTableBoundarySql(
+): Promise<TimeRangeMs | undefined> {
+    const sql = buildVirtualStatOrMountedTableDataTimeRangeSql(
         tableName,
         tagNameList,
-        timeColumnName,
     );
     const data = await request({
         method: 'GET',
@@ -98,19 +96,19 @@ export async function fetchVirtualStatTable(
     });
     showRequestError(data);
 
-    return createTimeBoundaryRangeFromNanosecondRows(
+    return createDataTimeRangeFromNanosecondRows(
         data.data?.rows as Array<[number | null, number | null]> | undefined,
     );
 }
 
-function createTimeBoundaryRangeFromNanosecondRows(
+function createDataTimeRangeFromNanosecondRows(
     rows: Array<[number | null, number | null]> | undefined,
-): FetchedTimeBoundaryRange | undefined {
+): TimeRangeMs | undefined {
     if (!rows || rows.length === 0) {
         return undefined;
     }
 
-    return createTimeBoundaryRangeFromMillisecondRows(
+    return createDataTimeRangeFromMillisecondRows(
         rows.map(([aStartNanoseconds, aEndNanoseconds]) => [
             typeof aStartNanoseconds === 'number'
                 ? Math.floor(aStartNanoseconds / NANOSECONDS_PER_MILLISECOND)
@@ -122,9 +120,9 @@ function createTimeBoundaryRangeFromNanosecondRows(
     );
 }
 
-function createTimeBoundaryRangeFromMillisecondRows(
+function createDataTimeRangeFromMillisecondRows(
     rows: Array<[number | null, number | null]> | undefined,
-): FetchedTimeBoundaryRange | undefined {
+): TimeRangeMs | undefined {
     const sNumericRows = rows?.filter(
         (row): row is [number, number] =>
             typeof row[0] === 'number' && typeof row[1] === 'number',
@@ -133,38 +131,19 @@ function createTimeBoundaryRangeFromMillisecondRows(
         return undefined;
     }
 
-    let sStartMin = sNumericRows[0][0];
-    let sStartMax = sNumericRows[0][0];
-    let sEndMin = sNumericRows[0][1];
-    let sEndMax = sNumericRows[0][1];
+    let sMinTime = sNumericRows[0][0];
+    let sMaxTime = sNumericRows[0][1];
 
-    for (const [aStart, aEnd] of sNumericRows.slice(1)) {
-        if (aStart < sStartMin) {
-            sStartMin = aStart;
+    for (const [aMinTime, aMaxTime] of sNumericRows.slice(1)) {
+        if (aMinTime < sMinTime) {
+            sMinTime = aMinTime;
         }
 
-        if (aStart > sStartMax) {
-            sStartMax = aStart;
-        }
-
-        if (aEnd < sEndMin) {
-            sEndMin = aEnd;
-        }
-
-        if (aEnd > sEndMax) {
-            sEndMax = aEnd;
+        if (aMaxTime > sMaxTime) {
+            sMaxTime = aMaxTime;
         }
     }
 
-    return {
-        start: {
-            min: createAbsoluteTimeBoundary(sStartMin),
-            max: createAbsoluteTimeBoundary(sStartMax),
-        },
-        end: {
-            min: createAbsoluteTimeBoundary(sEndMin),
-            max: createAbsoluteTimeBoundary(sEndMax),
-        },
-    };
+    return createTimeRangeMs(sMinTime, sMaxTime);
 }
 
