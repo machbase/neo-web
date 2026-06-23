@@ -1,11 +1,11 @@
 import './Home.scss';
 import Console from '@/components/console/index';
 import { SplitPane, Pane } from '@/design-system/components';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getLogin } from '@/api/repository/login';
 import MainContent from '@/components/mainContent/MainContent';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gLicense, gSelectedExtension, gShellList } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { gLicense, gSelectedBoard, gSelectedExtension, gShellList } from '@/recoil/recoil';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 import { useToken } from '@/hooks/useToken';
 import { GlobalChecker } from '@/components/GlobalChecker';
@@ -21,7 +21,8 @@ import { useHomeSidePaneSizes } from './useHomeSidePaneSizes';
 
 const HomeContent = () => {
     const { sideSizes: sSideSizes, setSideSizes, openSideBar, closeSideBar } = useHomeSidePaneSizes();
-    const [sTerminalSizes, setTerminalSizes] = useState<string[] | number[]>(['72%', '28%']);
+    const [sTerminalSizes, setTerminalSizes] = useState<Array<string | number>>(['72%', '28%']);
+    const previousTerminalSizesRef = useRef<Array<string | number> | null>(null);
     const [sTabList, setTabList] = useState<any>([]);
     const [sDraged, setDraged] = useState<any>(false);
     const [sSavedPath, setSavedPath] = useState();
@@ -29,6 +30,7 @@ const HomeContent = () => {
     const [sIsSidebar, setIsSidebar] = useState<boolean>(true);
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const [sSelectedExtension] = useRecoilState<string>(gSelectedExtension);
+    const sSelectedBoard = useRecoilValue(gSelectedBoard);
     const [sDragStat, setDragStat] = useState<boolean>(false);
     const [sHome, setHome] = useState<boolean>(false);
     const setShellList = useSetRecoilState<any>(gShellList);
@@ -120,6 +122,19 @@ const HomeContent = () => {
     useEffect(() => {
         sHome && getInfo();
     }, [sHome]);
+
+    useEffect(() => {
+        if (!sHome) return;
+        if (sSelectedBoard?.type === 'DataViewer') {
+            if (!previousTerminalSizesRef.current) previousTerminalSizesRef.current = sTerminalSizes;
+            setTerminalSizes(['calc(100% - 40px)', 40]);
+            return;
+        }
+        if (previousTerminalSizesRef.current) {
+            setTerminalSizes(previousTerminalSizesRef.current);
+            previousTerminalSizesRef.current = null;
+        }
+    }, [sHome, sSelectedBoard?.type]);
 
     useEffect(() => {
         if (sHome) init();

@@ -425,6 +425,7 @@ export const SIDE_EXTENSION_LIST = [
     'appStore',
     'appView',
     'DBTable',
+    'DataViewer',
     'camera',
     'event',
     'blackboxsvr',
