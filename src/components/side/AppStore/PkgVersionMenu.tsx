@@ -60,7 +60,7 @@ export const PkgVersionMenu = ({ isOpen, position, mode, serverVersion, rows, on
                         ) : row.state === 'current' ? (
                             <span className="pkg-version-menu-badge pkg-version-menu-badge--current">current</span>
                         ) : row.state === 'ineligible' ? (
-                            <span className="pkg-version-menu-badge pkg-version-menu-badge--ineligible">incompatible</span>
+                            <span className="pkg-version-menu-badge pkg-version-menu-badge--ineligible">requires upgrade</span>
                         ) : null}
                         <span className="pkg-version-menu-min">{row.minServer ? `${row.minServer}+` : 'any'}</span>
                         {row.selectable && <span className="pkg-version-menu-action">{mode} →</span>}
