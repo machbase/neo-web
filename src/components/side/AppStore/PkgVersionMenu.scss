@@ -1,0 +1,158 @@
+// Layout only — the card (bg / border / radius / shadow / hover) comes from the
+// design-system ContextMenu (menu__content / menu__item). Nothing here restyles it.
+@use '@/design-system/tokens' as t;
+
+.pkg-version-menu-header {
+    // pinned to the top while the version list scrolls under it. The upward
+    // box-shadow paints the ContextMenu's top padding strip so no row peeks above
+    // the header during scroll (a negative margin-top leaves a gap there instead).
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 -#{t.$spacing-4} 2px;
+    padding: 6px 10px;
+    background-color: t.$menu-bg;
+    box-shadow: 0 -8px 0 0 t.$menu-bg;
+    border-bottom: 1px solid #333;
+    font-size: 11px;
+    color: #9a9a9a;
+
+    strong {
+        color: #4aa3e0; // current server version → blue
+        font-weight: 600;
+    }
+}
+
+// Row content wrapper — bleeds over the menu__item padding so hovering anywhere
+// on the row (not just the text) reveals the action hint.
+.pkg-version-menu-row {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-10;
+    width: 100%;
+    margin: -#{t.$spacing-4} -#{t.$spacing-8};
+    padding: #{t.$spacing-4} #{t.$spacing-8};
+
+    // selectable rows: hover swaps the required-server text for an action hint
+    &--selectable:hover {
+        .pkg-version-menu-min {
+            display: none;
+        }
+        .pkg-version-menu-action {
+            display: inline-block;
+        }
+    }
+}
+
+.pkg-version-menu-ver {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+// required server version — far right (muted; blue is reserved for the header's
+// *current* server version)
+.pkg-version-menu-min {
+    margin-left: auto;
+    padding-left: 8px;
+    color: #8a8a8a;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+// hover action hint ("install →" / "update →") — replaces the min-server text
+.pkg-version-menu-action {
+    display: none;
+    margin-left: auto;
+    padding-left: 8px;
+    color: #4ac26b;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+// experiment-only "Custom version" input — pinned to the bottom of the menu
+.pkg-version-menu-custom {
+    // pinned to the bottom; downward box-shadow paints the container's bottom
+    // padding strip so no row peeks below it during scroll (mirror of the header).
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: 2px -#{t.$spacing-4} 0;
+    padding: 8px 10px;
+    border-top: 1px solid #333;
+    background-color: t.$menu-bg;
+    box-shadow: 0 8px 0 0 t.$menu-bg;
+
+    &-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+        font-size: 11px;
+        color: #9a9a9a;
+    }
+
+    // design-system Input (fullWidth) + IconButton
+    &-input {
+        display: flex;
+        align-items: stretch; // submit button stretches to the input's height
+        gap: 4px;
+    }
+
+    &-field {
+        flex: 1;
+        min-width: 0;
+    }
+
+    // submit IconButton: height follows the sm Input via stretch; width pinned to
+    // the same side so it stays a square. (aspect-ratio can't derive the main axis
+    // from a flex-stretched cross size, so the width is set explicitly.)
+    &-input button {
+        align-self: stretch;
+        width: 24px; // = sm Input height
+        min-width: 0;
+        max-width: none;
+        min-height: 0;
+        max-height: none;
+        padding: 0;
+    }
+}
+
+.pkg-version-menu-dev {
+    padding: 0 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    background-color: rgba(209, 134, 22, 0.2);
+    color: #d6943a;
+}
+
+// state badge — sits right after the package version
+.pkg-version-menu-badge {
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--default {
+        background-color: rgba(63, 185, 80, 0.18);
+        color: #4ac26b;
+    }
+    &--current {
+        background-color: rgba(74, 163, 224, 0.18);
+        color: #4aa3e0;
+    }
+    &--ineligible {
+        background-color: rgba(209, 134, 22, 0.18);
+        color: #d6943a;
+    }
+}

@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import type { PkgVersionInfo } from '@/utils/version/utils';
 
 /** Get pkgs list */
 export const getSearchPkgs = (name?: string | undefined, possible: number | undefined = 100) => {
@@ -42,6 +43,10 @@ interface PkgHubEntry {
     // until rollout completes.
     released_at?: string;
     pushed_at?: string;
+    // issue #1369: per-version minServer map. Present on the migrated hub schema.
+    // The top-level `version`/`released_at` above stay as a mirror of the latest
+    // entry for transition-window compatibility with the pre-versions[] code path.
+    versions?: PkgVersionInfo[];
 }
 
 /** Fetch package list from neo-pkg-hub */
@@ -49,13 +54,24 @@ export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
     const res = await fetch(PKG_HUB_URL);
     if (!res.ok) throw new Error(`Failed to fetch pkg hub: ${res.status}`);
     const entries: PkgHubEntry[] = await res.json();
-    return entries.map((entry) => ({
-        name: entry.name,
-        icon: entry.icon,
-        docs: entry.docs,
-        latest_version: entry.version ?? '',
-        published_at: entry.released_at ?? entry.pushed_at ?? '',
-        github: {
+    return entries.map((entry) => {
+        // Transition window: a hub still on the old single-`version` shape has no
+        // versions[]. Synthesize a one-element list with an empty minServer (no
+        // constraint → always eligible) so downstream eligibility logic is uniform.
+        const versions: PkgVersionInfo[] =
+            Array.isArray(entry.versions) && entry.versions.length > 0
+                ? entry.versions.map((v) => ({ version: v.version, minServer: v.minServer ?? '', released_at: v.released_at }))
+                : entry.version
+                  ? [{ version: entry.version, minServer: '', released_at: entry.released_at ?? entry.pushed_at }]
+                  : [];
+        return {
+            name: entry.name,
+            icon: entry.icon,
+            docs: entry.docs,
+            latest_version: entry.version ?? versions[0]?.version ?? '',
+            published_at: entry.released_at ?? entry.pushed_at ?? '',
+            versions,
+            github: {
             organization: entry.github.organization,
             repo: entry.github.repo,
             full_name: entry.github.full_name,
@@ -66,8 +82,9 @@ export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
             language: entry.github.language,
             stargazers_count: entry.github.stargazers_count,
             license: entry.github.license,
-        },
-    }));
+            },
+        };
+    });
 };
 /** Install & Uninstall pkg */
 export const getCommandPkgs = (command: INSTALL | UNINSTALL, name: string) => {
@@ -108,6 +125,10 @@ export interface APP_INFO {
     latest_version: string;
     published_at: string;
     github: APP_GITHUB;
+    // issue #1369: per-version minServer map from the hub (or a synthesized
+    // single element for the old single-version shape). Drives eligibility +
+    // the version-selection picker.
+    versions?: PkgVersionInfo[];
     installed_version?: string;
     installed_frontend?: boolean;
     // Mirror of manifest.packageService — only populated for installed packages

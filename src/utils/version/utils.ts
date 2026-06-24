@@ -1,4 +1,4 @@
-import { compare as semverCompare, valid as semverValid } from 'semver';
+import { coerce as semverCoerce, compare as semverCompare, valid as semverValid } from 'semver';
 import { E_VERSIONED_EXTENSION, NEWEST_VERSION, VERSION_PATTERN, VersionChangeReason, VERSIONED_EXTENSION_TYPE } from './constants';
 
 // NOTE: We intentionally import from the 'semver' main namespace (not 'semver/functions/compare')
@@ -204,4 +204,125 @@ export function warnOncePkgVersion(pkgName: string, installed: string, latest: s
 export function stripVPrefix(v: string | undefined | null): string {
     if (!v) return '';
     return String(v).replace(/^v/i, '');
+}
+
+// ---------------------------------------------------------------------------
+// minServer eligibility (issue #1369) — neo-pkg-hub `versions[]` consumer side.
+// A package version V is *eligible* when `V.minServer <= current server version`.
+// All comparisons go through normalizePkgVersion/semver (prerelease-aware), NOT
+// the strict VERSION_PATTERN used for dashboard panels.
+// ---------------------------------------------------------------------------
+
+/** One entry of a hub package's `versions[]` map. */
+export interface PkgVersionInfo {
+    version: string;
+    minServer: string;
+    released_at?: string;
+}
+
+export type PkgVersionState = 'default' | 'current' | 'belowCurrent' | 'eligible' | 'ineligible';
+
+/** A `versions[]` row annotated with its eligibility/selection state for the picker UI. */
+export interface PkgVersionRow extends PkgVersionInfo {
+    eligible: boolean;
+    state: PkgVersionState;
+    /** True when the user may click this row to install/update to it. */
+    selectable: boolean;
+}
+
+export interface PkgEligibility {
+    /** All versions, sorted newest-first, annotated with state. */
+    rows: PkgVersionRow[];
+    /** Latest eligible version — default install target. */
+    defaultInstall?: string;
+    /** Latest eligible version newer than the installed one — default update target. */
+    defaultUpdate?: string;
+    /** True when the installed version's minServer exceeds the current server
+     * version (e.g. after a server downgrade). */
+    isIncompatible: boolean;
+    /** minServer of the installed version, if it appears in versions[]. */
+    installedMinServer?: string;
+}
+
+/**
+ * Whether a package version requiring `minServer` may run on `serverVersion`.
+ * Returns true (gate open) when minServer is empty/non-SemVer (transition-window
+ * old single-version shape carries no constraint) or when serverVersion is
+ * unknown/non-SemVer (don't block installs on an unparseable server string).
+ */
+export function isEligible(minServer: string, serverVersion: string): boolean {
+    const normMin = normalizePkgVersion(minServer);
+    if (normMin === null) return true; // no/old-shape constraint → eligible
+    // The server version may carry a -snapshot/-dev/-rc prerelease (e.g. "8.5.4-snapshot").
+    // A pre-release build of X should still satisfy a package requiring server X, so compare
+    // against the server's release base — `coerce` drops the prerelease/build and the leading
+    // `v` — rather than strict semver where "8.5.4-snapshot" < "8.5.4". The minServer keeps
+    // its exact precedence.
+    const coercedServer = semverCoerce(String(serverVersion ?? '').trim());
+    if (coercedServer === null) return true; // unknown / non-semver server → don't block
+    return semverCompare(normMin, coercedServer.version) <= 0; // minServer <= server(release base)
+}
+
+/**
+ * Classifies a package's `versions[]` against the current server version and the
+ * installed version, producing per-row state + the default install/update targets.
+ *
+ * Mode is inferred from `installedVersion`: present ⇒ update classification
+ * (current / below-current / upgrade), absent ⇒ install classification.
+ */
+export function computeEligibility(versions: PkgVersionInfo[], serverVersion: string, installedVersion?: string): PkgEligibility {
+    const list = Array.isArray(versions) ? versions : [];
+    // Sort newest-first (non-comparable pairs keep stable order via 0).
+    const sorted = [...list].sort((a, b) => {
+        const c = comparePkgVersions(a.version, b.version);
+        return c === null ? 0 : (-c as -1 | 0 | 1);
+    });
+
+    let defaultInstall: string | undefined;
+    let defaultUpdate: string | undefined;
+    for (const v of sorted) {
+        if (!isEligible(v.minServer, serverVersion)) continue;
+        if (defaultInstall === undefined) defaultInstall = v.version;
+        if (installedVersion && defaultUpdate === undefined && comparePkgVersions(installedVersion, v.version) === -1) {
+            defaultUpdate = v.version;
+        }
+    }
+
+    const rows: PkgVersionRow[] = sorted.map((v) => {
+        const eligible = isEligible(v.minServer, serverVersion);
+        const cmp = installedVersion ? comparePkgVersions(installedVersion, v.version) : null;
+        let state: PkgVersionState;
+        let selectable: boolean;
+        if (cmp === 0) {
+            state = 'current'; // installed version itself — shown even if now ineligible
+            selectable = false;
+        } else if (!eligible) {
+            state = 'ineligible';
+            selectable = false;
+        } else if (installedVersion) {
+            if (cmp === 1) {
+                state = 'belowCurrent'; // downgrade — unsupported
+                selectable = false;
+            } else {
+                state = v.version === defaultUpdate ? 'default' : 'eligible';
+                selectable = true;
+            }
+        } else {
+            state = v.version === defaultInstall ? 'default' : 'eligible';
+            selectable = true;
+        }
+        return { ...v, eligible, state, selectable };
+    });
+
+    let isIncompatible = false;
+    let installedMinServer: string | undefined;
+    if (installedVersion) {
+        const installedRow = list.find((v) => comparePkgVersions(installedVersion, v.version) === 0);
+        if (installedRow) {
+            installedMinServer = installedRow.minServer;
+            isIncompatible = !isEligible(installedRow.minServer, serverVersion);
+        }
+    }
+
+    return { rows, defaultInstall, defaultUpdate, isIncompatible, installedMinServer };
 }

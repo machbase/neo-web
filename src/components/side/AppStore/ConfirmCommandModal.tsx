@@ -1,4 +1,5 @@
 import { Modal } from '@/design-system/components';
+import { stripVPrefix } from '@/utils/version/utils';
 
 export type ConfirmableCommand = 'install' | 'update' | 'uninstall';
 
@@ -11,11 +12,13 @@ const CONFIRM_COPY: Record<ConfirmableCommand, { title: string; verb: string; ct
 type Props = {
     pendingCmd: ConfirmableCommand | null;
     pkgName: string;
+    /** Target version for install/update — shown in the prompt. */
+    version?: string;
     onConfirm: () => void;
     onCancel: () => void;
 };
 
-export const ConfirmCommandModal = ({ pendingCmd, pkgName, onConfirm, onCancel }: Props) => {
+export const ConfirmCommandModal = ({ pendingCmd, pkgName, version, onConfirm, onCancel }: Props) => {
     if (!pendingCmd) return null;
     const copy = CONFIRM_COPY[pendingCmd];
     return (
@@ -32,7 +35,13 @@ export const ConfirmCommandModal = ({ pendingCmd, pkgName, onConfirm, onCancel }
             <Modal.Body>
                 <Modal.Content>
                     <div onClick={(e) => e.stopPropagation()} style={{ fontSize: '13px', lineHeight: 1.5 }}>
-                        Are you sure you want to {copy.verb} <strong>{pkgName}</strong>?
+                        Are you sure you want to {copy.verb} <strong>{pkgName}</strong>
+                        {version ? (
+                            <>
+                                {' '}at <strong>v{stripVPrefix(version)}</strong>
+                            </>
+                        ) : null}
+                        ?
                         <br />
                         This may take some time to complete.
                     </div>

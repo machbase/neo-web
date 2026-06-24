@@ -68,7 +68,7 @@ async function listInstalledNames(): Promise<Set<string>> {
 export function usePkgCommand() {
     return useRecoilCallback(
         ({ snapshot, set, reset }) =>
-            async (app: APP_INFO, command: PkgCommand): Promise<StepResult | null> => {
+            async (app: APP_INFO, command: PkgCommand, version?: string): Promise<StepResult | null> => {
                 if (!isCurUserEqualAdmin()) return null;
 
                 const appName = app.name;
@@ -97,8 +97,10 @@ export function usePkgCommand() {
 
                 const ctx: LifecycleContext = {
                     appName,
+                    // issue #1369: a user-picked version (install/update specific version)
+                    // takes precedence; fall back to the hub latest_version.
                     fullName: app.github?.full_name ?? '',
-                    tag: app.latest_version || undefined,
+                    tag: version || app.latest_version || undefined,
                     logs: [],
                 };
 

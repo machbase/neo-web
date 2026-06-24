@@ -170,6 +170,17 @@
             background-color: #bf7b00;
             color: #fff;
         }
+        // server-downgrade incompatibility warning (issue #1369)
+        span.incompat {
+            background-color: rgba(209, 134, 22, 0.18);
+            color: #e0a458;
+            gap: 3px;
+            cursor: help;
+
+            svg {
+                flex-shrink: 0;
+            }
+        }
     }
 
     // start/stop run-state toggle switch
@@ -260,6 +271,60 @@
             background-color: #a1260d;
             &:hover:not(:disabled) {
                 background-color: #c42b1c;
+            }
+        }
+    }
+
+    // install / update split button — primary action + version-picker caret (issue #1369)
+    .app-store-item-split {
+        display: inline-flex;
+        height: 22px;
+        border-radius: 3px;
+        overflow: hidden;
+        flex-shrink: 0;
+
+        button {
+            margin: 0;
+            border: none;
+            // global `button { border-radius: 8px }` (src/index.css) otherwise rounds
+            // each half's inner corners and makes the split look like two detached
+            // pills — flatten them so only the container's radius rounds the outer edge.
+            border-radius: 0;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.12s ease;
+
+            &:disabled {
+                opacity: 0.55;
+                cursor: not-allowed;
+            }
+        }
+
+        &-main {
+            padding: 0 10px;
+        }
+        &-caret {
+            padding: 0 5px;
+            // crisp divider line between the primary action and the caret
+            box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.32);
+        }
+
+        &--primary button {
+            background-color: #0e639c;
+            &:hover:not(:disabled) {
+                background-color: #1177bb;
+            }
+        }
+        &--update button {
+            background-color: #bf7b00;
+            &:hover:not(:disabled) {
+                background-color: #d68b00;
             }
         }
     }

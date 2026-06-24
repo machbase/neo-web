@@ -2,16 +2,17 @@ import './item.scss';
 import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
 import { useMemo, useState } from 'react';
 import { MdVerified } from 'react-icons/md';
-import { VscExtensions } from 'react-icons/vsc';
+import { VscChevronDown, VscExtensions, VscWarning } from 'react-icons/vsc';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { generateUUID, isCurUserEqualAdmin } from '@/utils';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { gActiveAppSide, gPkgBusy, gPkgHealth, PkgCommand } from '@/recoil/appStore';
+import { gActiveAppSide, gPkgBusy, gPkgHealth, gServerVersion } from '@/recoil/appStore';
 import { Loader } from '@/components/loader';
 import { Side } from '@/design-system/components';
-import { comparePkgVersions, stripVPrefix, warnOncePkgVersion } from '@/utils/version/utils';
+import { computeEligibility, stripVPrefix } from '@/utils/version/utils';
 import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
+import { PkgVersionMenu } from './PkgVersionMenu';
 import { ServiceSummaryChip } from './ServiceSummaryChip';
 
 type RunSwitchProps = {
@@ -53,21 +54,43 @@ const TextAction = ({ label, onClick, loading, disabled, variant = 'default' }: 
     </button>
 );
 
+type SplitActionProps = {
+    label: string;
+    onPrimary: (e: React.MouseEvent) => void;
+    onToggle: (e: React.MouseEvent) => void;
+    loading?: boolean;
+    disabled?: boolean;
+    variant?: 'primary' | 'update';
+};
+
+// Install/Update split button (issue #1369): primary applies the default target,
+// the caret opens the version-selection menu.
+const SplitAction = ({ label, onPrimary, onToggle, loading, disabled, variant = 'primary' }: SplitActionProps) => (
+    <div className={`app-store-item-split app-store-item-split--${variant}`}>
+        <button type="button" className="app-store-item-split-main" onClick={onPrimary} disabled={disabled || loading}>
+            {loading ? <Loader width="12px" height="12px" /> : label}
+        </button>
+        <button type="button" className="app-store-item-split-caret" onClick={onToggle} disabled={disabled || loading} aria-label="Select version">
+            <VscChevronDown size={12} />
+        </button>
+    </div>
+);
+
 export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const isInstalled = !!pItem?.installed_frontend;
-    // SemVer-aware update check: only show badge when installed < latest.
-    // null result (non-SemVer input) hides the badge and emits a one-shot console warn
-    // (dedup'd via the module-scoped Set in `@/utils/version/utils`, shared with info.tsx).
-    // HMR may reset the Set during dev — a duplicate warn after hot reload is expected and harmless.
-    const hasUpdate = useMemo(() => {
-        if (!isInstalled || !pItem?.installed_version || !pItem?.latest_version) return false;
-        const r = comparePkgVersions(pItem.installed_version, pItem.latest_version);
-        if (r === null) {
-            warnOncePkgVersion(pItem.name ?? '', pItem.installed_version, pItem.latest_version);
-            return false;
-        }
-        return r === -1;
-    }, [isInstalled, pItem?.installed_version, pItem?.latest_version, pItem?.name]);
+    const sServerVersion = useRecoilValue(gServerVersion);
+
+    // issue #1369: classify the hub `versions[]` against the current server version
+    // and the installed version → eligible set, default install/update targets,
+    // and server-downgrade incompatibility. Replaces the old single-`latest_version`
+    // SemVer compare; minServer-aware throughout.
+    const eligibility = useMemo(
+        () => computeEligibility(pItem?.versions ?? [], sServerVersion, isInstalled ? pItem?.installed_version : undefined),
+        [pItem?.versions, sServerVersion, isInstalled, pItem?.installed_version]
+    );
+    const hasUpdate = isInstalled && !!eligibility.defaultUpdate;
+    const canInstall = !!eligibility.defaultInstall; // false when every version is ineligible
+    const isIncompatible = isInstalled && eligibility.isIncompatible;
     const sIsAdmin = isCurUserEqualAdmin();
 
     const sBusy = useRecoilValue(gPkgBusy);
@@ -92,24 +115,51 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const showUpdate = sIsAdmin && hasUpdate;
     const showUninstall = sIsAdmin && isInstalled;
 
-    const [pendingCmd, setPendingCmd] = useState<ConfirmableCommand | null>(null);
+    // install/update/uninstall all confirm first; install/update carry the chosen version.
+    const [pending, setPending] = useState<{ cmd: ConfirmableCommand; version?: string } | null>(null);
+    const [menu, setMenu] = useState<{ mode: 'install' | 'update'; pos: { x: number; y: number } } | null>(null);
 
-    const handle = (cmd: PkgCommand) => (e: React.MouseEvent) => {
+    // start/stop run immediately (no confirmation).
+    const handleRunSwitch = (cmd: 'start' | 'stop') => (e: React.MouseEvent) => {
         e.stopPropagation();
         if (isBusy) return;
-        // start/stop run immediately; install/update/uninstall ask first
-        if (cmd === 'start' || cmd === 'stop') {
-            runCommand(pItem, cmd);
-            return;
-        }
-        setPendingCmd(cmd as ConfirmableCommand);
+        runCommand(pItem, cmd);
     };
 
+    // install/update primary button → confirm the default target.
+    const handlePrimary = (cmd: 'install' | 'update') => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isBusy) return;
+        setPending({ cmd, version: cmd === 'install' ? eligibility.defaultInstall : eligibility.defaultUpdate });
+    };
+
+    // caret toggles the version-selection menu anchored under it.
+    const handleToggleMenu = (mode: 'install' | 'update') => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isBusy) return;
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setMenu((prev) => (prev?.mode === mode ? null : { mode, pos: { x: rect.left, y: rect.bottom + 4 } }));
+    };
+
+    // picking a version from the menu → confirm that specific version.
+    const handleSelectVersion = (cmd: 'install' | 'update', version: string) => {
+        setMenu(null);
+        if (isBusy) return;
+        setPending({ cmd, version });
+    };
+
+    const handleUninstall = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isBusy) return;
+        setPending({ cmd: 'uninstall' });
+    };
+
+    // confirmed → run with the chosen version (when set).
     const confirmPending = () => {
-        if (!pendingCmd) return;
-        const cmd = pendingCmd;
-        setPendingCmd(null);
-        runCommand(pItem, cmd);
+        if (!pending) return;
+        const { cmd, version } = pending;
+        setPending(null);
+        runCommand(pItem, cmd, version);
     };
 
     return (
@@ -129,7 +179,15 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                             ) : (
                                 <span>{pItem?.latest_version ? `v${stripVPrefix(pItem.latest_version)}` : 'N/A'}</span>
                             )}
-                            {hasUpdate && <span className="update">↑v{stripVPrefix(pItem.latest_version)}</span>}
+                            {hasUpdate && eligibility.defaultUpdate && <span className="update">↑v{stripVPrefix(eligibility.defaultUpdate)}</span>}
+                            {isIncompatible && (
+                                <span
+                                    className="incompat"
+                                    title={`Current server ${sServerVersion || 'unknown'} < required ${eligibility.installedMinServer ?? ''}`}
+                                >
+                                    <VscWarning size={11} /> incompatible
+                                </span>
+                            )}
                         </div>
                     </div>
                     <div className="app-store-item-head-publisher">
@@ -143,7 +201,7 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                             {showRunSwitch && (
                                 <RunSwitch
                                     on={isRunning}
-                                    onClick={handle(isRunning ? 'stop' : 'start')}
+                                    onClick={handleRunSwitch(isRunning ? 'stop' : 'start')}
                                     loading={busyCmd === 'start' || busyCmd === 'stop'}
                                     disabled={isBusy || !isReachable}
                                 />
@@ -160,22 +218,38 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                     <span>{pItem?.github.description ?? ''}</span>
                 </div>
                 <div className="app-store-item-actions">
-                    {showInstall && (
-                        <TextAction
+                    {showInstall && canInstall && (
+                        <SplitAction
                             label="Install"
-                            onClick={handle('install')}
+                            onPrimary={handlePrimary('install')}
+                            onToggle={handleToggleMenu('install')}
                             loading={busyCmd === 'install'}
                             disabled={isBusy}
                             variant="primary"
                         />
                     )}
+                    {showInstall && !canInstall && (
+                        <TextAction
+                            label="Install"
+                            onClick={(e) => e.stopPropagation()}
+                            disabled
+                            variant="primary"
+                        />
+                    )}
                     {showUpdate && (
-                        <TextAction label="Update" onClick={handle('update')} loading={busyCmd === 'update'} disabled={isBusy} variant="primary" />
+                        <SplitAction
+                            label="Update"
+                            onPrimary={handlePrimary('update')}
+                            onToggle={handleToggleMenu('update')}
+                            loading={busyCmd === 'update'}
+                            disabled={isBusy}
+                            variant="update"
+                        />
                     )}
                     {showUninstall && (
                         <TextAction
                             label="Uninstall"
-                            onClick={handle('uninstall')}
+                            onClick={handleUninstall}
                             loading={busyCmd === 'uninstall'}
                             disabled={isBusy}
                             variant="default"
@@ -183,11 +257,23 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                     )}
                 </div>
             </div>
+            {menu && (
+                <PkgVersionMenu
+                    isOpen={true}
+                    position={menu.pos}
+                    mode={menu.mode}
+                    serverVersion={sServerVersion}
+                    rows={eligibility.rows}
+                    onSelect={(version) => handleSelectVersion(menu.mode, version)}
+                    onClose={() => setMenu(null)}
+                />
+            )}
             <ConfirmCommandModal
-                pendingCmd={pendingCmd}
+                pendingCmd={pending?.cmd ?? null}
                 pkgName={pItem?.name ?? ''}
+                version={pending?.version}
                 onConfirm={confirmPending}
-                onCancel={() => setPendingCmd(null)}
+                onCancel={() => setPending(null)}
             />
         </div>
     );
