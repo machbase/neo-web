@@ -5,6 +5,7 @@ import { getFiles } from '@/api/repository/fileTree';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import './OpenFileBtn.scss';
 import { Button } from '@/design-system/components';
+import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
 
 export const OpenFileBtn = ({
     pType,
@@ -56,6 +57,17 @@ export const OpenFileBtn = ({
                         path: sFilePath,
                         savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
                     };
+                } else if (sFileExtension === 'taz') {
+                    try {
+                        sTmpBoard = loadTazBoardInfo(JSON.parse(sContentResult), sTmpId, sFileName, sFilePath);
+                    } catch (error) {
+                        pErrorCallback?.(
+                            error instanceof Error
+                                ? error.message
+                                : 'Failed to load TAZ file.',
+                        );
+                        return;
+                    }
                 } else {
                     sTmpBoard.code = sContentResult;
                 }

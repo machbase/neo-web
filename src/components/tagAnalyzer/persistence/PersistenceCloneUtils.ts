@@ -1,22 +1,14 @@
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    DEFAULT_VALUE_RANGE,
     type PanelAnnotation,
     type PanelHighlight,
-    type ValueRange,
-} from '../domain/PanelDomain';
+} from '../domain/panel/PanelConfig';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
 } from '../domain/SeriesDomain';
-import type { TimeBoundary } from '../domain/time/model/TimeTypes';
-import {
-    createAbsoluteTimeBoundary,
-    createAnchoredTimeBoundary,
-    createEmptyTimeBoundary,
-} from '../domain/time/boundary/TimeBoundaryInput';
 import type {
     PersistedPanelAnnotationInput,
     PersistedSeriesAnnotationInput,
@@ -42,7 +34,7 @@ type SeriesAnnotation = {
     clip: boolean;
 };
 
-export function cloneTimeRange(timeRange: TimeRangeLike): TimeRangeLike {
+function cloneTimeRange(timeRange: TimeRangeLike): TimeRangeLike {
     return {
         startTime: timeRange.startTime,
         endTime: timeRange.endTime,
@@ -86,24 +78,4 @@ export function clonePanelAnnotations(
             clip: annotation.clip === true,
         }),
     );
-}
-export function cloneValueRangeOrDefault(
-    valueRange: ValueRange | undefined,
-): ValueRange {
-    return valueRange ? { ...valueRange } : { ...DEFAULT_VALUE_RANGE };
-}
-export function cloneTimeBoundary(boundary: TimeBoundary): TimeBoundary {
-    switch (boundary.kind) {
-        case 'empty':
-            return createEmptyTimeBoundary();
-        case 'absolute':
-            return createAbsoluteTimeBoundary(boundary.timestamp);
-        case 'now':
-        case 'last':
-            return createAnchoredTimeBoundary(
-                boundary.kind,
-                boundary.amount,
-                boundary.unit,
-            );
-    }
 }

@@ -2,17 +2,17 @@ import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
 import type {
     PanelEChartType,
     ValueRange,
-} from '../../../../domain/PanelDomain';
-import type { PanelRangeInput } from '../../../../domain/time/model/TimeTypes';
+} from '../../../../domain/panel/PanelConfig';
+import type { PanelRangeInput } from '../../../../domain/time/TimeTypes';
 
-type LegacyStoredTimeBoundaryValue = string | number | '';
+type LegacyStoredTimeRangeValue = string | number | '';
 
 export type LegacyFlatPanelInfo = {
     index_key: string;
     chart_title: string;
     tag_set: LegacyCompatibleSeriesConfig[];
-    range_bgn: LegacyStoredTimeBoundaryValue;
-    range_end: LegacyStoredTimeBoundaryValue;
+    range_bgn: LegacyStoredTimeRangeValue;
+    range_end: LegacyStoredTimeRangeValue;
     raw_keeper: boolean | undefined;
     time_keeper: unknown;
     default_range: ValueRange | undefined;

@@ -1,8 +1,9 @@
-import type { RollupTableMap, SeriesFetchColumnMap } from '../FetchContracts';
-import type { TimeRangeNs } from '../../domain/time/model/TimeTypes';
-import { getIntervalMs } from '../../domain/time/interval/TimeIntervalUtils';
+import type { RollupTableMap, SeriesFetchColumnMap } from '../panelData/PanelDataFetchTypes';
+import type { TimeRangeNs } from '../../domain/time/TimeTypes';
+import { getIntervalMs } from '../../domain/time/TimeIntervalUtils';
 import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
-import { asRecord, getRollupMetadataLookupKey } from '../RollupTableLookup';
+import { getRollupMetadataLookupKey } from '../metadata/RollupMetadata';
+import { asRecord } from '../../domain/ObjectGuards';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 import {
     M_TIME_ALIAS,
@@ -53,22 +54,20 @@ export function buildAggregateCalculationSql(
         tagNameList,
         fetchTimeRange,
         intervalUnit,
-        intervalSize,
         useRollup,
     );
-    const timeGroupKeySql = buildAggregateTimeGroupKeySql(
+    const timeGroupKeySql = buildAxisTimeGroupKeySql({
         sourceColumnMap,
         intervalUnit,
         intervalSize,
         useRollup,
-        context.timeAxisKind,
+        timeAxisKind: context.timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
-    );
-    const valueExpressionSql = toSqlValueExpressionForAggregator(
-        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
+    });
+    const valueExpressionSql = buildValueColumnExpressionForCalculation(
+        sourceColumnMap,
         calculationMode,
-        sourceColumnMap.jsonKey,
     );
     const subSql = buildAggregateSubSql(
         calculationMode,
@@ -102,22 +101,20 @@ export function buildAverageCalculationSql(
         tagNameList,
         fetchTimeRange,
         intervalUnit,
-        intervalSize,
         useRollup,
     );
-    const timeGroupKeySql = buildScaledTimeGroupKeySql(
+    const timeGroupKeySql = buildAxisTimeGroupKeySql({
         sourceColumnMap,
         intervalUnit,
         intervalSize,
         useRollup,
-        context.timeAxisKind,
+        timeAxisKind: context.timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
-    );
-    const valueExpressionSql = toSqlValueExpressionForAggregator(
-        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
+    });
+    const valueExpressionSql = buildValueColumnExpressionForCalculation(
+        sourceColumnMap,
         'avg',
-        sourceColumnMap.jsonKey,
     );
     const subSql = buildAverageSubSql(
         sourceTableName,
@@ -149,22 +146,20 @@ export function buildCountCalculationSql(
         tagNameList,
         fetchTimeRange,
         intervalUnit,
-        intervalSize,
         useRollup,
     );
-    const timeGroupKeySql = buildScaledTimeGroupKeySql(
+    const timeGroupKeySql = buildAxisTimeGroupKeySql({
         sourceColumnMap,
         intervalUnit,
         intervalSize,
         useRollup,
-        context.timeAxisKind,
+        timeAxisKind: context.timeAxisKind,
         fetchTimeRange,
         requestedRowCount,
-    );
-    const valueExpressionSql = toSqlValueExpressionForAggregator(
-        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
+    });
+    const valueExpressionSql = buildValueColumnExpressionForCalculation(
+        sourceColumnMap,
         'cnt',
-        sourceColumnMap.jsonKey,
     );
     const subSql = buildCountSubSql(
         sourceTableName,
@@ -198,7 +193,6 @@ export function buildFirstLastCalculationSql(
         tagNameList,
         fetchTimeRange,
         intervalUnit,
-        intervalSize,
         useRollup,
     );
     const timeGroupKeySql = shouldUseRollupTimeGroupKey(
@@ -209,19 +203,18 @@ export function buildFirstLastCalculationSql(
         intervalSize,
     )
         ? buildRollupTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize)
-        : buildAggregateTimeGroupKeySql(
+        : buildAxisTimeGroupKeySql({
               sourceColumnMap,
               intervalUnit,
               intervalSize,
-              false,
-              context.timeAxisKind,
+              useRollup: false,
+              timeAxisKind: context.timeAxisKind,
               fetchTimeRange,
               requestedRowCount,
-          );
-    const valueExpressionSql = toSqlValueExpressionForAggregator(
-        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
+          });
+    const valueExpressionSql = buildValueColumnExpressionForCalculation(
+        sourceColumnMap,
         calculationMode,
-        sourceColumnMap.jsonKey,
     );
     const subSql = buildFirstLastSubSql(
         calculationMode,
@@ -241,12 +234,22 @@ export function buildFirstLastCalculationSql(
     );
 }
 
+function buildValueColumnExpressionForCalculation(
+    sourceColumnMap: SeriesFetchColumnMap,
+    calculationMode: string,
+): string {
+    return toSqlValueExpressionForAggregator(
+        buildSqlIdentifierPath(sourceColumnMap.value, 'SQL value column'),
+        calculationMode,
+        sourceColumnMap.jsonKey,
+    );
+}
+
 function buildCalculationSqlContext(
     sourceColumnMap: SeriesFetchColumnMap,
     tagNameList: string,
     fetchTimeRange: TimeRangeNs,
     intervalUnit: string,
-    intervalSize: number,
     useRollup: boolean,
 ): CalculationSqlContext {
     const sUsesNumericBaseTime = isNumericBaseTimeSourceColumns(sourceColumnMap);
@@ -258,7 +261,7 @@ function buildCalculationSqlContext(
                   nonRollupBucketIntervalSeconds: 1,
               }
             : useRollup
-              ? buildRollupTimeGroupKeySqlInfo(intervalUnit, intervalSize)
+              ? buildRollupTimeGroupKeySqlInfo()
               : buildNonRollupTimeGroupKeySqlInfo(intervalUnit),
         sourceWhereSql: buildSourceWhereSqlPart(
             sourceColumnMap.name,
@@ -270,46 +273,6 @@ function buildCalculationSqlContext(
         ),
         timeAxisKind: sUsesNumericBaseTime ? 'numeric' : 'datetime',
     };
-}
-
-function buildAggregateTimeGroupKeySql(
-    sourceColumnMap: SeriesFetchColumnMap,
-    intervalUnit: string,
-    intervalSize: number,
-    useRollup: boolean,
-    timeAxisKind: TimeAxisSqlKind,
-    fetchTimeRange: TimeRangeNs,
-    requestedRowCount: number,
-): string {
-    return buildAxisTimeGroupKeySql({
-        sourceColumnMap,
-        intervalUnit,
-        intervalSize,
-        useRollup,
-        timeAxisKind,
-        fetchTimeRange,
-        requestedRowCount,
-    });
-}
-
-function buildScaledTimeGroupKeySql(
-    sourceColumnMap: SeriesFetchColumnMap,
-    intervalUnit: string,
-    intervalSize: number,
-    useRollup: boolean,
-    timeAxisKind: TimeAxisSqlKind,
-    fetchTimeRange: TimeRangeNs,
-    requestedRowCount: number,
-): string {
-    return buildAxisTimeGroupKeySql({
-        sourceColumnMap,
-        intervalUnit,
-        intervalSize,
-        useRollup,
-        timeAxisKind,
-        fetchTimeRange,
-        requestedRowCount,
-    });
 }
 
 type BuildAxisTimeGroupKeySqlParams = {

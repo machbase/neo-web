@@ -5,12 +5,13 @@ import type {
 } from 'echarts';
 import type {
     PanelAnnotation,
-} from '../../../domain/PanelDomain';
+} from '../../../domain/panel/PanelConfig';
 import {
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import { parseHexColor } from './ColorUtils';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import type { ChartSeriesData } from '../../../domain/ChartDomain';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
@@ -228,17 +229,13 @@ export function buildNavigatorAnnotationLineSeries(
 }
 
 function createAnnotationBorderColor(fillColor: string): string {
-    const sHexMatch = /^#([0-9a-fA-F]{6})$/.exec(fillColor);
+    const sRgb = parseHexColor(fillColor);
 
-    if (!sHexMatch) {
+    if (!sRgb) {
         return 'rgba(255, 255, 255, 0.55)';
     }
 
-    const sRgbHex = sHexMatch[1];
-    const sRed = Number.parseInt(sRgbHex.slice(0, 2), 16);
-    const sGreen = Number.parseInt(sRgbHex.slice(2, 4), 16);
-    const sBlue = Number.parseInt(sRgbHex.slice(4, 6), 16);
-    const sBrightness = (sRed * 299 + sGreen * 587 + sBlue * 114) / 1000;
+    const sBrightness = (sRgb.r * 299 + sRgb.g * 587 + sRgb.b * 114) / 1000;
 
     return sBrightness > 180
         ? 'rgba(22, 22, 22, 0.36)'

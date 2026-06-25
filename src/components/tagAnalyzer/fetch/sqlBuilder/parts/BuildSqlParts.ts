@@ -1,20 +1,18 @@
 import {
     SortOrderEnum,
     type CalculationTimeGroupKeySqlInfo,
-} from '../../FetchContracts';
+} from '../../panelData/PanelDataFetchTypes';
 import {
     normalizeDateBinIntervalUnit,
     normalizeRollupIntervalUnit,
     normalizeTruncatedIntervalUnit,
 } from '../SqlIntervalUnitUtils';
-import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/model/TimeConstants';
+import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/TimeConstants';
 import {
     buildSqlIdentifierPath,
     buildSqlStringLiteral,
     buildSqlStringLiteralList,
 } from '../SqlTextUtils';
-
-const NANOSECONDS_PER_SECOND = 1000 * NANOSECONDS_PER_MILLISECOND;
 
 export const SELECT_KEYWORD = 'SELECT';
 export const FROM_KEYWORD = 'FROM';
@@ -136,21 +134,9 @@ export function buildDateBinTimeGroupKeySqlPart(
     )}, ${intervalSize}, ${buildSqlIdentifierPath(timeColumnName, 'SQL time column')})`;
 }
 
-export function buildRollupTimeGroupKeySqlInfo(
-    intervalUnit: string,
-    intervalSize: number,
-): CalculationTimeGroupKeySqlInfo {
-    if ((intervalUnit !== 'd' && intervalUnit !== 'day') || intervalSize <= 1) {
-        return {
-            outerTimeExpressionSql: M_TIME_ALIAS,
-            nonRollupBucketIntervalSeconds: 1,
-        };
-    }
-
-    const rollupWindow = intervalSize * SECONDS_PER_HOUR * 24 * NANOSECONDS_PER_SECOND;
-
+export function buildRollupTimeGroupKeySqlInfo(): CalculationTimeGroupKeySqlInfo {
     return {
-        outerTimeExpressionSql: `to_char(${M_TIME_ALIAS} / ${rollupWindow}  * ${rollupWindow})`,
+        outerTimeExpressionSql: M_TIME_ALIAS,
         nonRollupBucketIntervalSeconds: 1,
     };
 }

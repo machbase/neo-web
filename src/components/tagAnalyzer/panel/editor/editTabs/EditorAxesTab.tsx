@@ -1,22 +1,15 @@
-import { Checkbox, Dropdown, Input } from '@/design-system/components';
-import type { CSSProperties, ReactNode } from 'react';
-import {
-    EDITOR_AXIS_COMPACT_INPUT_STYLE,
-    EDITOR_AXIS_THRESHOLD_INPUT_STYLE,
-    EDITOR_RIGHT_AXIS_TRIGGER_STYLE,
-    parseEditorNumber,
-    type PanelAxesDraft,
-    type PanelSamplingDraft,
-    type PanelYAxisDraft,
-} from '../PanelEditor';
+import { Checkbox, Dropdown } from '@/design-system/components';
+import type { PanelAxes, PanelYAxis } from '../../../domain/panel/PanelConfig';
 import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
+import { cx, isAxisRangeInvalid } from './EditorFieldUtils';
+import { NumberInput, Section } from './EditorControls';
 import styles from '../PanelEditor.module.scss';
 
 type AxisKey = keyof Pick<
-    PanelAxesDraft,
+    PanelAxes,
     'x' | 'leftY' | 'rightY'
 >;
 type YAxisKey = 'leftY' | 'rightY';
@@ -26,121 +19,6 @@ type ThresholdKey = 'upperControlLimit' | 'lowerControlLimit';
 const AXIS_FLAGS = [['zeroBase', 'The scale of the Y-axis start at zero'], ['showTickline', 'Displays the Y-Axis tick line']] as const;
 const RANGES = [['valueRange', 'Custom scale'], ['rawValueRange', 'Custom scale for raw data chart']] as const;
 const THRESHOLDS = [['upperControlLimit', 'use UCL'], ['lowerControlLimit', 'use LCL']] as const;
-const cx = (...classes: Array<string | false | undefined>) =>
-    classes.filter(Boolean).join(' ') || undefined;
-
-function isAxisRangeInvalid(range: PanelYAxisDraft['valueRange']): boolean {
-    const sMin = range.min;
-    const sMax = range.max;
-    const sHasMin = sMin !== undefined;
-    const sHasMax = sMax !== undefined;
-    const sIsAutoRange =
-        (!sHasMin && !sHasMax) ||
-        (range.min === 0 && range.max === 0);
-
-    if (sIsAutoRange) {
-        return false;
-    }
-
-    if (!sHasMin || !sHasMax) {
-        return true;
-    }
-
-    return (
-        !Number.isFinite(sMin) ||
-        !Number.isFinite(sMax) ||
-        sMin >= sMax
-    );
-}
-
-function isInvalidAxisThreshold(
-    threshold: PanelYAxisDraft['upperControlLimit'],
-): boolean {
-    return (
-        threshold.enabled &&
-        (
-            threshold.value === undefined ||
-            !Number.isFinite(threshold.value)
-        )
-    );
-}
-
-function hasInvalidYAxisRange(axisConfig: PanelYAxisDraft): boolean {
-    return (
-        isAxisRangeInvalid(axisConfig.valueRange) ||
-        isAxisRangeInvalid(axisConfig.rawValueRange) ||
-        isInvalidAxisThreshold(axisConfig.upperControlLimit) ||
-        isInvalidAxisThreshold(axisConfig.lowerControlLimit)
-    );
-}
-
-function isInvalidSampling(sampling: PanelSamplingDraft): boolean {
-    return (
-        sampling.enabled &&
-        (
-            sampling.sampleCount === undefined ||
-            !Number.isFinite(sampling.sampleCount)
-        )
-    );
-}
-
-export function hasInvalidEditorAxes(
-    axesConfig: PanelAxesDraft,
-    mainChartSampling: PanelSamplingDraft,
-): boolean {
-    return (
-        isInvalidSampling(mainChartSampling) ||
-        hasInvalidYAxisRange(axesConfig.leftY) ||
-        (
-            axesConfig.rightY.enabled &&
-            hasInvalidYAxisRange(axesConfig.rightY)
-        )
-    );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-    return (
-        <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-                <span className={styles.sectionTitle}>{title}</span>
-            </div>
-            {children}
-        </section>
-    );
-}
-
-function NumberInput({
-    value,
-    onChange,
-    disabled,
-    style,
-    label,
-    size = 'sm',
-    error,
-}: {
-    value: number | undefined;
-    onChange: (value: number | undefined) => void;
-    disabled?: boolean;
-    style?: CSSProperties;
-    label?: string;
-    size?: 'sm' | 'md';
-    error?: boolean;
-}) {
-    return (
-        <Input
-            label={label}
-            labelPosition={label ? 'left' : undefined}
-            type="number"
-            disabled={disabled}
-            value={value ?? ''}
-            variant={error ? 'error' : 'default'}
-            aria-invalid={error}
-            onChange={(event) => onChange(parseEditorNumber(event.target.value))}
-            size={size}
-            style={style}
-        />
-    );
-}
 
 const EditorAxesTab = ({
     pAxesConfig,
@@ -148,14 +26,14 @@ const EditorAxesTab = ({
     pOnChangeAxesConfig,
     pOnChangeTagSet,
 }: {
-    pAxesConfig: PanelAxesDraft;
+    pAxesConfig: PanelAxes;
     pTagSet: PanelSeriesDefinition[];
-    pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
+    pOnChangeAxesConfig: (config: PanelAxes) => void;
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
 }) => {
-    const patchAxis = <K extends AxisKey>(key: K, patch: Partial<PanelAxesDraft[K]>) =>
+    const patchAxis = <K extends AxisKey>(key: K, patch: Partial<PanelAxes[K]>) =>
         pOnChangeAxesConfig({ ...pAxesConfig, [key]: { ...pAxesConfig[key], ...patch } });
-    const patchYAxis = (key: YAxisKey, patch: Partial<PanelYAxisDraft>) =>
+    const patchYAxis = (key: YAxisKey, patch: Partial<PanelYAxis>) =>
         patchAxis(key, patch);
     const setRightEnabled = (checked: boolean) => {
         if (!checked) {
@@ -177,7 +55,7 @@ const EditorAxesTab = ({
         );
     const renderRange = (
         axisKey: YAxisKey,
-        axis: PanelYAxisDraft,
+        axis: PanelYAxis,
         rangeKey: RangeKey,
         label: string,
         disabled: boolean,
@@ -190,8 +68,12 @@ const EditorAxesTab = ({
             <div key={rangeKey} className={cx(styles.rangeField, disabled && styles.disabledControl)}>
                 <div className={styles.rangeInputs}>
                     <span
-                        className={styles.mutedLabel}
-                        style={disabled && rangeKey === 'rawValueRange' ? { minWidth: '100px' } : undefined}
+                        className={cx(
+                            styles.mutedLabel,
+                            disabled &&
+                                rangeKey === 'rawValueRange' &&
+                                styles.rawRangeLabelWide,
+                        )}
                     >
                         {label}
                     </span>
@@ -199,16 +81,18 @@ const EditorAxesTab = ({
                         disabled={disabled}
                         value={axis[rangeKey].min}
                         error={error}
+                        placeholder="Auto"
                         onChange={(value) => setEdge('min', value)}
-                        style={EDITOR_AXIS_COMPACT_INPUT_STYLE}
+                        width="compact"
                     />
                     <span className={styles.rangeSeparator}>~</span>
                     <NumberInput
                         disabled={disabled}
                         value={axis[rangeKey].max}
                         error={error}
+                        placeholder="Auto"
                         onChange={(value) => setEdge('max', value)}
-                        style={EDITOR_AXIS_COMPACT_INPUT_STYLE}
+                        width="compact"
                     />
                 </div>
                 {error && <span className={styles.fieldError}>Minimum must be less than maximum.</span>}
@@ -217,7 +101,7 @@ const EditorAxesTab = ({
     };
     const renderThreshold = (
         axisKey: YAxisKey,
-        axis: PanelYAxisDraft,
+        axis: PanelYAxis,
         thresholdKey: ThresholdKey,
         label: string,
         disabled: boolean,
@@ -243,7 +127,7 @@ const EditorAxesTab = ({
                     onChange={(value) =>
                         patchYAxis(axisKey, { [thresholdKey]: { ...threshold, value } })
                     }
-                    style={EDITOR_AXIS_THRESHOLD_INPUT_STYLE}
+                    width="threshold"
                 />
             </div>
         );
@@ -261,7 +145,7 @@ const EditorAxesTab = ({
                 onChange={(value) => value !== 'none' && setSeriesAxis(value, true)}
                 disabled={!pAxesConfig.rightY.enabled}
             >
-                <Dropdown.Trigger style={EDITOR_RIGHT_AXIS_TRIGGER_STYLE} />
+                <Dropdown.Trigger className={styles.rightAxisTrigger} />
                 <Dropdown.Menu>
                     <Dropdown.List />
                 </Dropdown.Menu>

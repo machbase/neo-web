@@ -7,9 +7,9 @@ import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelAnnotation } from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
-import { getTimeRangeCenter } from '../../../domain/time/range/TimeRangeUtils';
+import type { PanelAnnotation } from '../../../domain/panel/PanelConfig';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import { getTimeRangeCenter, getTimeRangeWidth } from '../../../domain/time/TimeRangeUtils';
 
 function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {
@@ -116,10 +116,7 @@ function buildAnnotationAnchors(
     visibleRange: TimeRangeMs,
     visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
-    const visibleSpan = Math.max(
-        visibleRange.endTime - visibleRange.startTime,
-        1,
-    );
+    const visibleSpan = Math.max(getTimeRangeWidth(visibleRange), 1);
 
     return annotations.flatMap((annotation, annotationIndex) => {
         const seriesIndex = seriesDefinitions.findIndex(

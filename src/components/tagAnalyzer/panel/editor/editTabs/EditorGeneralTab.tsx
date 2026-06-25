@@ -1,18 +1,18 @@
 import { Checkbox, Input } from '@/design-system/components';
-import type { PanelEditorConfig } from '../PanelEditor';
+import type { PanelInfo } from '../../../domain/panel/PanelConfig';
 import styles from '../PanelEditor.module.scss';
 
 type EditorGeneralTabProps = {
-    pTitle: PanelEditorConfig['title'];
-    pModeConfig: PanelEditorConfig['mode'];
-    pDisplayConfig: PanelEditorConfig['display'];
-    pTimeRangeConfig: PanelEditorConfig['timeRange'];
+    pTitle: PanelInfo['title'];
+    pModeConfig: PanelInfo['mode'];
+    pDisplayConfig: PanelInfo['display'];
+    pTimeConfig: PanelInfo['time'];
     pIsRawMode: boolean;
-    pOnChangeTitle: (title: PanelEditorConfig['title']) => void;
-    pOnChangeModeConfig: (modeConfig: PanelEditorConfig['mode']) => void;
-    pOnChangeDisplayConfig: (displayConfig: PanelEditorConfig['display']) => void;
-    pOnChangeTimeRangeConfig: (
-        timeRangeConfig: PanelEditorConfig['timeRange'],
+    pOnChangeTitle: (title: PanelInfo['title']) => void;
+    pOnChangeModeConfig: (modeConfig: PanelInfo['mode']) => void;
+    pOnChangeDisplayConfig: (displayConfig: PanelInfo['display']) => void;
+    pOnChangeTimeConfig: (
+        timeConfig: PanelInfo['time'],
     ) => void;
 };
 
@@ -20,12 +20,12 @@ function EditorGeneralTab({
     pTitle,
     pModeConfig,
     pDisplayConfig,
-    pTimeRangeConfig,
+    pTimeConfig,
     pIsRawMode,
     pOnChangeTitle,
     pOnChangeModeConfig,
     pOnChangeDisplayConfig,
-    pOnChangeTimeRangeConfig,
+    pOnChangeTimeConfig,
 }: EditorGeneralTabProps) {
     function setUseZoom(checked: boolean): void {
         pOnChangeDisplayConfig({
@@ -35,10 +35,10 @@ function EditorGeneralTab({
     }
 
     function setUseLastViewedRange(checked: boolean): void {
-        pOnChangeTimeRangeConfig({
-            ...pTimeRangeConfig,
+        pOnChangeTimeConfig({
+            ...pTimeConfig,
             useLastViewedRange: checked,
-            lastViewedRange: checked ? pTimeRangeConfig.lastViewedRange : undefined,
+            lastViewedRange: checked ? pTimeConfig.lastViewedRange : undefined,
         });
     }
 
@@ -64,7 +64,7 @@ function EditorGeneralTab({
                     value={pTitle}
                     onChange={(event) => pOnChangeTitle(event.target.value)}
                     size="md"
-                    style={{ width: '220px' }}
+                    className={styles.titleInput}
                 />
             </div>
             <div className={styles.controlStack}>
@@ -90,7 +90,7 @@ function EditorGeneralTab({
                     />
                 </span>
                 <Checkbox
-                    checked={pTimeRangeConfig.useLastViewedRange}
+                    checked={pTimeConfig.useLastViewedRange}
                     onChange={(event) =>
                         setUseLastViewedRange(event.target.checked)
                     }
@@ -99,7 +99,7 @@ function EditorGeneralTab({
                 />
                 <div className={styles.savedRangePreview}>
                     <div className={styles.savedRangeWarning}>
-                        {pTimeRangeConfig.useLastViewedRange
+                        {pTimeConfig.useLastViewedRange
                             ? "Range will be saved: Save and Save As store this panel's current visible range in the TAZ."
                             : 'Range is temporary: Save and Save As keep the panel configured time range only.'}
                     </div>

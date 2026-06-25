@@ -115,14 +115,6 @@ export function hasMixedXAxisValueKinds(
     return sHasNumericBaseTime && sHasDateTimeAxis;
 }
 
-export function getMixedXAxisValueKindWarning(
-    seriesList: SeriesWithSourceColumns[] = [],
-): string | undefined {
-    return hasMixedXAxisValueKinds(seriesList)
-        ? MIXED_X_AXIS_KIND_WARNING
-        : undefined;
-}
-
 export function getSeriesListKeyAxisKind(
     seriesList: SeriesWithSourceColumns[] = [],
 ): SeriesKeyAxisKind | undefined {

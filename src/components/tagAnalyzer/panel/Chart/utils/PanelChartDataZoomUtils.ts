@@ -1,4 +1,5 @@
-import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import { getTimeRangeWidth } from '../../../domain/time/TimeRangeUtils';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventItem,
@@ -41,7 +42,7 @@ export function extractDataZoomOptionRange(
         return sExplicitZoomRange;
     }
 
-    const sAxisSpan = axisRange.endTime - axisRange.startTime;
+    const sAxisSpan = getTimeRangeWidth(axisRange);
     if (
         typeof params.start === 'number' &&
         typeof params.end === 'number' &&

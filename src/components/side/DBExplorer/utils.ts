@@ -1,7 +1,3 @@
-import { getId } from '@/utils';
-import { concatTagSet } from '@/utils/helpers/tags';
-import { convertChartDefault } from '@/utils/utils';
-import { DEFAULT_CHART as TAZ_DEFAULT } from '@/utils/constants';
 import { getColumnType } from '@/utils/dashboardUtil';
 
 export const TableTypeOrderList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue', 'view', 'exception'];
@@ -58,15 +54,15 @@ export const buildQualifiedTableName = ({
 
     return `${userName}.${tableName}`;
 };
-export enum E_TABLE_TYPE_COLOR {
-    LOG = 'rgb(252, 121, 118)',
-    FIXED = '#ffdc72',
-    LOOKUP = '#ffdc72',
-    VOLATILE = 'rgb(255, 202, 40)',
-    KV = 'rgb(92, 226, 220)',
-    TAG = 'rgb(92, 163, 220)',
-    VIEW = '#9C8FFF',
-}
+export const E_TABLE_TYPE_COLOR = {
+    LOG: 'rgb(252, 121, 118)',
+    FIXED: '#ffdc72',
+    LOOKUP: '#ffdc72',
+    VOLATILE: 'rgb(255, 202, 40)',
+    KV: 'rgb(92, 226, 220)',
+    TAG: 'rgb(92, 163, 220)',
+    VIEW: '#9C8FFF',
+} as const;
 export enum E_COLUMN_FLAG {
     TAGNAME = 0x08000000, // 134217728
     BASETIME = 0x01000000, // 16777216
@@ -385,40 +381,6 @@ export const buildDisplayColumnInfo = (rawColumnInfo: FetchCommonType, descColum
         }),
         types: ['string', 'string', 'number', 'number', 'string'],
     };
-};
-
-export const GenTazDefault = ({ aTag, aTime, aTableInfo, aColType }: { aTag: string; aTime: { min: number; max: number }; aTableInfo: any; aColType: string[] }) => {
-    const sTags: any[] = [
-        {
-            key: getId(),
-            tagName: aTag,
-            table: `${aTableInfo[E_TABLE_INFO.DB_NM]}.${aTableInfo[E_TABLE_INFO.USER_NM]}.${aTableInfo[E_TABLE_INFO.TB_NM]}`,
-            calculationMode: 'avg',
-            alias: '',
-            weight: 1.0,
-            colName: { name: aColType[0], time: aColType[1], value: aColType[2] },
-        },
-    ];
-    const sNewData = {
-        chartType: 'Line',
-        tagSet: concatTagSet([], sTags),
-        defaultRange: { min: aTime.min ? aTime.min : 'now-1h', max: aTime.max ? aTime.max : 'now' },
-    };
-    const sId = getId();
-    const sBoardInfo = {
-        id: sId,
-        path: '',
-        type: 'taz',
-        name: `TAG ANALYZER`,
-        panels: [convertChartDefault(TAZ_DEFAULT, sNewData)],
-        code: '',
-        savedCode: false,
-        range_bgn: '',
-        range_end: '',
-        shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
-    };
-
-    return sBoardInfo;
 };
 
 export const TABLE_PERMISSION = {

@@ -1,16 +1,9 @@
 import type { GBoardListType } from '@/recoil/recoil';
-import type { PersistedTazBoardInfo } from '../persistence/TazPersistenceTypesV200';
+import type { BoardInfo } from '../domain/BoardDomain';
 
 export type GlobalBoardListState = GBoardListType[];
 
-type SavedBoardSnapshot = PersistedTazBoardInfo & {
-    id: string;
-    type: string;
-    name: string;
-    path: string;
-    code: unknown;
-    savedCode: string | false;
-};
+type SavedBoardSnapshot = BoardInfo;
 
 export function getNextBoardListWithSavedBoard(
     boards: GlobalBoardListState,

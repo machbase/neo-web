@@ -11,18 +11,16 @@ import {
 } from '@/design-system/components';
 import { TIME_RANGE } from '@/utils/constants';
 import {
-    formatTimeRangeInputValue,
-    parseTimeBoundaryInputValue,
-    parseTimeRangeConfigFromBoundaryValues,
-    type TimeBoundaryInputValue,
-} from '../domain/time/boundary/TimeBoundaryInput';
+    resolveEditableTimeRangeInput,
+    type EditableTimeRangeInputResolution,
+} from '../parsing/TimeRangeInputParsing';
 import {
     formatAxisInputValue,
     NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
-} from '../domain/time/formatting/TimeInputFormatters';
-import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/model/TimeTypes';
-import TagAnalyzerDatePicker from '../datePicker/TagAnalyzerDatePicker';
+} from '../formatting/TimeInputFormatters';
+import type { TimeRangeInput, TimeRangeMs } from '../domain/time/TimeTypes';
+import TagAnalyzerDatePicker from '../TagAnalyzerDatePicker';
 
 type BaseRangeModalProps = {
     title: ReactNode;
@@ -31,8 +29,12 @@ type BaseRangeModalProps = {
 
 type TimeRangeModalProps = BaseRangeModalProps & {
     rangeKind: 'time';
-    timeRange: TimeRangeConfig;
-    onApply: (timeRange: TimeRangeConfig) => boolean | void;
+    timeRange: TimeRangeInput;
+    lastDataTime: number;
+    previousConcreteRange?: TimeRangeMs;
+    timeRangePlaceholder?: TimeRangeInput;
+    allowEmptyTimeRange?: boolean;
+    onApply: (timeRange: EditableTimeRangeInputResolution) => boolean | void;
 };
 
 type NumericRangeModalProps = BaseRangeModalProps & {
@@ -95,15 +97,15 @@ function RangeModalShell({
 function DateTimeRangeModal({
     title,
     timeRange,
+    lastDataTime,
+    previousConcreteRange,
+    timeRangePlaceholder,
+    allowEmptyTimeRange = false,
     onApply,
     onClose,
 }: TimeRangeModalProps) {
-    const [startTimeText, setStartTimeText] = useState<TimeBoundaryInputValue>(
-        () => formatTimeRangeInputValue(timeRange.start),
-    );
-    const [endTimeText, setEndTimeText] = useState<TimeBoundaryInputValue>(
-        () => formatTimeRangeInputValue(timeRange.end),
-    );
+    const [startTimeText, setStartTimeText] = useState(() => timeRange.start);
+    const [endTimeText, setEndTimeText] = useState(() => timeRange.end);
 
     function handleQuickTime(option: QuickTimeRangeOption) {
         setStartTimeText(String(option.value[0] ?? ''));
@@ -111,17 +113,29 @@ function DateTimeRangeModal({
     }
 
     function handleApply() {
+        const sCurrentTime = Date.now();
+        const sResolvedRange = resolveEditableTimeRangeInput({
+            startValue: startTimeText,
+            endValue: endTimeText,
+            previousConcreteRange: previousConcreteRange ?? {
+                startTime: sCurrentTime - 1,
+                endTime: sCurrentTime,
+            },
+            currentTime: sCurrentTime,
+            lastDataTime: Number.isFinite(lastDataTime)
+                ? lastDataTime
+                : sCurrentTime,
+        });
+
         if (
-            !isValidTimeBoundaryInput(startTimeText) ||
-            !isValidTimeBoundaryInput(endTimeText)
+            sResolvedRange.status === 'invalid' ||
+            (!allowEmptyTimeRange && sResolvedRange.status !== 'valid')
         ) {
             Toast.error('Please check the entered time.');
             return;
         }
 
-        const sShouldClose = onApply(
-            parseTimeRangeConfigFromBoundaryValues(startTimeText, endTimeText),
-        );
+        const sShouldClose = onApply(sResolvedRange);
         if (sShouldClose === false) {
             return;
         }
@@ -141,17 +155,17 @@ function DateTimeRangeModal({
         >
             <TagAnalyzerDatePicker
                 label="From"
-                topPixel={32}
                 value={String(startTimeText)}
                 onChange={setStartTimeText}
                 onApply={setStartTimeText}
+                placeholder={timeRangePlaceholder?.start}
             />
             <TagAnalyzerDatePicker
                 label="To"
-                topPixel={32}
                 value={String(endTimeText)}
                 onChange={setEndTimeText}
                 onApply={setEndTimeText}
+                placeholder={timeRangePlaceholder?.end}
             />
             <Page.Space />
             <QuickTimeRange
@@ -227,8 +241,4 @@ function NumericRangeModal({
             />
         </RangeModalShell>
     );
-}
-
-function isValidTimeBoundaryInput(value: TimeBoundaryInputValue): boolean {
-    return parseTimeBoundaryInputValue(value) !== undefined;
 }

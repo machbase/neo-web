@@ -12,11 +12,11 @@ import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import type {
     PanelNavigatorShiftActions,
     PanelZoomActions,
-} from '../domain/PanelDomain';
-import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
+} from '../domain/panel/PanelActions';
+import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { getChartLayoutMetrics } from './Chart/layout/PanelChartLayoutMetrics';
-import { formatRangeBoundaryLabel } from '../domain/time/formatting/TimeFormatters';
-import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
+import { formatRangeEndpointLabel } from '../formatting/TimeFormatters';
+import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 const RANGE_LABEL_EDGES = ['start', 'end'] as const;
@@ -24,6 +24,7 @@ const RANGE_LABEL_EDGES = ['start', 'end'] as const;
 const PanelFooter = ({
     pShowLegend,
     pNavigatorRange,
+    pIsDefaultNavigatorRange,
     pIsLoading,
     pOnOpenTimeRangeModal,
     pNavigatorShiftActions,
@@ -32,6 +33,7 @@ const PanelFooter = ({
 }: {
     pShowLegend: boolean;
     pNavigatorRange: TimeRangeMs;
+    pIsDefaultNavigatorRange: boolean;
     pIsLoading: boolean;
     pOnOpenTimeRangeModal: () => void;
     pNavigatorShiftActions: PanelNavigatorShiftActions;
@@ -43,6 +45,8 @@ const PanelFooter = ({
     const sNavigatorShiftTop = `${sLayout.sliderTop + 1}px`;
     const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
     const sHasNavigatorRange = isValidTimeRange(pNavigatorRange);
+    // TODO bugfix: Re-enable navigator range editing after default board range behavior is stable.
+    const sCanEditNavigatorRangeFromFooter = false;
     const navigatorControls = [
         { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.4) },
         { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.2) },
@@ -112,25 +116,31 @@ const PanelFooter = ({
                         ? pNavigatorRange.startTime
                         : pNavigatorRange.endTime;
 
+                    const sRangeLabel = sHasNavigatorRange
+                        ? formatRangeEndpointLabel(
+                              value,
+                              pIsNumericXAxis,
+                              pNavigatorRange,
+                          )
+                        : '';
+                    const sLabel = pIsDefaultNavigatorRange && sRangeLabel
+                        ? `${sRangeLabel} (default)`
+                        : sRangeLabel;
+
                     return (
                         <button
                             key={edge}
                             type="button"
                             className="range-label range-label-button"
-                            title={
-                                pIsNumericXAxis
-                                    ? 'Set current visible navigator value range'
-                                    : 'Set current visible navigator range'
-                            }
+                            title="Navigator range editing temporarily disabled"
                             disabled={pIsLoading || !sHasNavigatorRange}
-                            onClick={pOnOpenTimeRangeModal}
+                            onClick={
+                                sCanEditNavigatorRangeFromFooter
+                                    ? pOnOpenTimeRangeModal
+                                    : undefined
+                            }
                         >
-                            {sHasNavigatorRange &&
-                                formatRangeBoundaryLabel(
-                                    value,
-                                    pIsNumericXAxis,
-                                    pNavigatorRange,
-                                )}
+                            {sLabel}
                         </button>
                     );
                 })}

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../../domain/ChartDomain';
-import { PanelOverlayMode, type PanelDisplayRangeState, type PanelRangeActions, type PanelRangeChangeEvent, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers } from '../../domain/PanelDomain';
+import type { PanelDisplayRangeState } from '../../domain/panel/PanelConfig';
+import { PanelOverlayMode, type PanelRangeActions, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers } from '../../domain/panel/PanelActions';
 import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import { buildChartEvent } from './events/buildPanelChartEvent';
 import type { ChartInfo } from './types/PanelChartTypes';
 import {
@@ -22,7 +24,7 @@ import { usePanelChartInstanceSync } from './hooks/usePanelChartInstanceSync';
 import {
     getTimeRangeWidth,
     isValidTimeRange,
-} from '../../domain/time/range/TimeRangeUtils';
+} from '../../domain/time/TimeRangeUtils';
 import { convertPanelChartPixelToTimestamp } from './utils/PanelChartPointerUtils';
 
 type PanelBodyRefs = {
@@ -39,7 +41,7 @@ type PanelBodyHandlers = {
     rangeActions: PanelRangeActions;
     markupHandlers: PanelMarkupHandlers;
     onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
-    onSelection: (event: PanelRangeChangeEvent) => unknown;
+    onSelection: (selectionRange: TimeRangeMs) => unknown;
 };
 
 export type UsePanelChartRuntimeParams = {

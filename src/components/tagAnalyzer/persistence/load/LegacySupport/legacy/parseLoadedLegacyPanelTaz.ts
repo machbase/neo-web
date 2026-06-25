@@ -1,9 +1,10 @@
 import {
     normalizePanelEChartType,
     type PanelInfo,
-} from '../../../../domain/PanelDomain';
+} from '../../../../domain/panel/PanelConfig';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import { createPanelInfoFromLegacyFlatPanelInfo } from './LegacyFlatPanelMapper';
+import { isPlainObject } from '../../../../domain/ObjectGuards';
 
 type LegacyNestedPanelTaz = {
     meta: {
@@ -43,7 +44,7 @@ export function parseLoadedLegacyPanelTaz(panelInfo: unknown): PanelInfo {
 }
 
 export function isLegacyNestedPanelTaz(panelInfo: unknown): panelInfo is LegacyNestedPanelTaz {
-    if (!panelInfo || typeof panelInfo !== 'object') {
+    if (!isPlainObject(panelInfo)) {
         return false;
     }
 
@@ -66,7 +67,7 @@ export function isLegacyNestedPanelTaz(panelInfo: unknown): panelInfo is LegacyN
 }
 
 export function isLegacyFlatPanelTaz(panelInfo: unknown): panelInfo is LegacyFlatPanelInfo {
-    if (!panelInfo || typeof panelInfo !== 'object') {
+    if (!isPlainObject(panelInfo)) {
         return false;
     }
 

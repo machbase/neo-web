@@ -1,11 +1,13 @@
 import type {
     PanelAnnotation,
     PanelHighlight,
+} from '../../../domain/panel/PanelConfig';
+import type {
     RuntimePanelAxes,
     RuntimePanelDisplay,
-} from '../../../domain/PanelDomain';
+} from '../../../domain/panel/PanelRuntime';
 import type { PanelSeriesDefinition } from '../../../domain/SeriesDomain';
-import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import type { ChartSeriesData } from '../../../domain/ChartDomain';
 
 export type ChartInfo = {

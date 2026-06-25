@@ -2,7 +2,7 @@ import type {
     TimeRangeMs,
     TimeRangeNs,
     UnixNanosecondsSql,
-} from '../../domain/time/model/TimeTypes';
+} from '../../domain/time/TimeTypes';
 
 export function millisecondsToNanosecondsSql(ms: number): UnixNanosecondsSql {
     return String(BigInt(Math.trunc(ms)) * 1_000_000n);

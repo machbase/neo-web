@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { MdBlock, MdCheckCircle } from 'react-icons/md';
-import { PanelOverlayMode } from '../domain/PanelDomain';
+import { PanelOverlayMode } from '../domain/panel/PanelActions';
 
 export const ANNOTATION_INVALID_TARGET_MESSAGE =
     'Annotation can only be created on the main chart.';

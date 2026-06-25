@@ -1,14 +1,16 @@
 import { useRef } from 'react';
 import { Toast } from '@/design-system/components';
 import type {
-    PanelNavigatorShiftActions,
     PanelDisplayRangeState,
+    PanelRangeState,
+} from '../domain/panel/PanelConfig';
+import type {
+    PanelNavigatorShiftActions,
     PanelRangeActions,
     PanelRangeChangeEvent,
-    PanelRangeState,
     PanelZoomActions,
-} from '../domain/PanelDomain';
-import type { TimeRangeMs } from '../domain/time/model/TimeTypes';
+} from '../domain/panel/PanelActions';
+import type { TimeRangeInput, TimeRangeMs } from '../domain/time/TimeTypes';
 import {
     clampTimeRangeToBounds,
     createTimeRangeMs,
@@ -17,13 +19,15 @@ import {
     getTimeRangeWidth,
     isValidTimeRange,
     shiftTimeRange,
-} from '../domain/time/range/TimeRangeUtils';
-import type { PanelRangeChangeOptions } from '../board/BoardPanelState';
+} from '../domain/time/TimeRangeUtils';
 import {
     getMinimumRangeAmount,
     MIN_NUMERIC_RANGE_AMOUNT,
     MIN_PANEL_RANGE_MS,
-} from '../board/PanelNavigatorRangeLimits';
+    type PanelRangeChangeOptions,
+} from '../domain/panelRange/PanelRangeApply';
+import { formatNumericValue } from '../domain/panelRange/PanelRangeInput';
+import { formatAbsoluteTimeExpression } from '../domain/time/TimeRangeInputResolver';
 
 const MIN_NAVIGATOR_RANGE_MS = 1000;
 const PANEL_RANGE_SHIFT_FRACTION = 0.3;
@@ -95,31 +99,27 @@ export function usePanelRangeControls({
         );
     }
 
-    function applyMainRangeWithinNavigator(event: PanelRangeChangeEvent): void {
+    function applyMainRangeChange(
+        event: PanelRangeChangeEvent,
+        deriveNavigatorRange?: (panelRange: TimeRangeMs) => TimeRangeMs,
+    ): void {
         const sPanelRange = resolveApplyRangeFromEvent(event, MIN_PANEL_RANGE_MS);
         if (sPanelRange === undefined) return;
+
+        const sNavigatorRange = deriveNavigatorRange?.(sPanelRange);
 
         onRangeStateChange({
             ...requestRangeState,
             requestPanelRange: sPanelRange,
+            ...(sNavigatorRange && {
+                requestNavigatorRange: sNavigatorRange,
+            }),
         });
     }
-
-    function applyExactMainRange(event: PanelRangeChangeEvent): void {
-        const sPanelRange = resolveApplyRangeFromEvent(event, MIN_PANEL_RANGE_MS);
-        if (sPanelRange === undefined) return;
-
-        onRangeStateChange({
-            ...requestRangeState,
-            requestPanelRange: sPanelRange,
-            requestNavigatorRange: getNavigatorRangeForExactMainRange(
-                sPanelRange,
-                requestRangeState.requestNavigatorRange,
-            ),
-        });
-    }
-
-    function applyExactNavigatorRange(event: PanelRangeChangeEvent): void {
+    function applyExactNavigatorRange(
+        event: PanelRangeChangeEvent,
+        requestNavigatorRangeInput?: TimeRangeInput,
+    ): void {
         const sNavigatorRange = resolveApplyRangeFromEvent(
             event,
             MIN_NAVIGATOR_RANGE_MS,
@@ -133,9 +133,13 @@ export function usePanelRangeControls({
                 sNavigatorRange,
             ),
             requestNavigatorRange: sNavigatorRange,
+            requestNavigatorRangeInput:
+                requestNavigatorRangeInput ?? createConcreteNavigatorRangeInput(
+                    sNavigatorRange,
+                    isNumericXAxis,
+                ),
         });
     }
-
     function applyZoom(zoom: number, direction: 'in' | 'out'): void {
         const sDisplayPanelRange = displayRangeState.displayPanelRange;
         const sDisplayNavigatorRange = displayRangeState.displayNavigatorRange;
@@ -173,15 +177,25 @@ export function usePanelRangeControls({
 
     return {
         rangeActions: {
-            applyMainZoomRange: applyMainRangeWithinNavigator,
-            applyMainNavigatorSelectionRange: applyMainRangeWithinNavigator,
-            applyExactMainRange,
+            applyMainZoomRange: (event) => applyMainRangeChange(event),
+            applyMainNavigatorSelectionRange: (event) => applyMainRangeChange(event),
+            applyExactMainRange: (event) =>
+                applyMainRangeChange(event, (panelRange) =>
+                    getNavigatorRangeForExactMainRange(
+                        panelRange,
+                        getCurrentNavigatorRange(
+                            requestRangeState,
+                            displayRangeState,
+                        ),
+                    ),
+                ),
             applyExactNavigatorRange,
             shiftMainRangeLeft: () =>
                 onRangeStateChange(
                     getShiftedPanelRangeState(
                         requestRangeState,
                         displayRangeState,
+                        isNumericXAxis,
                         -1,
                     ),
                 ),
@@ -190,6 +204,7 @@ export function usePanelRangeControls({
                     getShiftedPanelRangeState(
                         requestRangeState,
                         displayRangeState,
+                        isNumericXAxis,
                         1,
                     ),
                 ),
@@ -197,11 +212,21 @@ export function usePanelRangeControls({
         navigatorShiftActions: {
             onShiftLeft: () =>
                 onRangeStateChange(
-                    getShiftedNavigatorRangeState(requestRangeState, -1),
+                    getShiftedNavigatorRangeState(
+                        requestRangeState,
+                        displayRangeState,
+                        isNumericXAxis,
+                        -1,
+                    ),
                 ),
             onShiftRight: () =>
                 onRangeStateChange(
-                    getShiftedNavigatorRangeState(requestRangeState, 1),
+                    getShiftedNavigatorRangeState(
+                        requestRangeState,
+                        displayRangeState,
+                        isNumericXAxis,
+                        1,
+                    ),
                 ),
         },
         zoomActions: {
@@ -271,7 +296,6 @@ function hasConcreteRequestRangeState(rangeState: PanelRangeState): boolean {
         isValidTimeRange(rangeState.requestNavigatorRange)
     );
 }
-
 function hasConcreteDisplayRangeState(rangeState: PanelDisplayRangeState): boolean {
     return (
         isValidTimeRange(rangeState.displayPanelRange) &&
@@ -305,8 +329,10 @@ function getSelectionCenterRatio(
 function getShiftedPanelRangeState(
     requestRangeState: PanelRangeState,
     displayRangeState: PanelDisplayRangeState,
+    isNumericXAxis: boolean,
     direction: RangeShiftDirection,
 ): PanelRangeState {
+    void isNumericXAxis;
     const sDisplayPanelRange = displayRangeState.displayPanelRange;
     const sOffset = getRangeShiftOffset(
         sDisplayPanelRange,
@@ -315,34 +341,43 @@ function getShiftedPanelRangeState(
     );
     const sPanelRange = shiftTimeRange(sDisplayPanelRange, sOffset);
 
-    let sNavigatorRange = requestRangeState.requestNavigatorRange;
-    if (direction < 0 && sPanelRange.startTime < sNavigatorRange.startTime) {
+    const sCurrentNavigatorRange = getCurrentNavigatorRange(
+        requestRangeState,
+        displayRangeState,
+    );
+    let sNavigatorRange = sCurrentNavigatorRange;
+    if (direction < 0 && sPanelRange.startTime < sCurrentNavigatorRange.startTime) {
         sNavigatorRange = createTimeRangeMs(
             sPanelRange.startTime,
-            sNavigatorRange.endTime + sOffset,
+            sCurrentNavigatorRange.endTime + sOffset,
         );
-    } else if (direction > 0 && sPanelRange.endTime > sNavigatorRange.endTime) {
+    } else if (direction > 0 && sPanelRange.endTime > sCurrentNavigatorRange.endTime) {
         sNavigatorRange = createTimeRangeMs(
-            sNavigatorRange.startTime + sOffset,
+            sCurrentNavigatorRange.startTime + sOffset,
             sPanelRange.endTime,
         );
     }
-
     return {
         ...requestRangeState,
         requestPanelRange: sPanelRange,
         requestNavigatorRange: sNavigatorRange,
     };
 }
-
 function getShiftedNavigatorRangeState(
     rangeState: PanelRangeState,
+    displayRangeState: PanelDisplayRangeState,
+    isNumericXAxis: boolean,
     direction: RangeShiftDirection,
 ): PanelRangeState {
+    void isNumericXAxis;
+    const sCurrentNavigatorRange = getCurrentNavigatorRange(
+        rangeState,
+        displayRangeState,
+    );
     const sNavigatorRange = shiftTimeRange(
-        rangeState.requestNavigatorRange,
+        sCurrentNavigatorRange,
         getRangeShiftOffset(
-            rangeState.requestNavigatorRange,
+            sCurrentNavigatorRange,
             direction,
             NAVIGATOR_RANGE_SHIFT_FRACTION,
         ),
@@ -357,7 +392,37 @@ function getShiftedNavigatorRangeState(
         requestNavigatorRange: sNavigatorRange,
     };
 }
+function getCurrentNavigatorRange(
+    rangeState: PanelRangeState,
+    displayRangeState: PanelDisplayRangeState,
+): TimeRangeMs {
+    if (rangeState.requestNavigatorRangeInput === undefined) {
+        return displayRangeState.displayNavigatorRange;
+    }
 
+    return isValidTimeRange(rangeState.requestNavigatorRange)
+        ? rangeState.requestNavigatorRange
+        : displayRangeState.displayNavigatorRange;
+}
+
+function createConcreteNavigatorRangeInput(
+    range: TimeRangeMs,
+    isNumericAxis: boolean,
+): TimeRangeInput {
+    return {
+        start: formatNavigatorRangeValue(range.startTime, isNumericAxis),
+        end: formatNavigatorRangeValue(range.endTime, isNumericAxis),
+    };
+}
+
+function formatNavigatorRangeValue(
+    value: number,
+    isNumericAxis: boolean,
+): string {
+    return isNumericAxis
+        ? formatNumericValue(value)
+        : formatAbsoluteTimeExpression(value);
+}
 function ensureMinimumAxisRangeWidth(
     range: TimeRangeMs,
     referenceRange: TimeRangeMs,

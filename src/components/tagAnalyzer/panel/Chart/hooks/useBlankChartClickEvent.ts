@@ -4,7 +4,7 @@ import {
     useRef,
     type MutableRefObject,
 } from 'react';
-import type { PanelMarkupHandlers } from '../../../domain/PanelDomain';
+import type { PanelMarkupHandlers } from '../../../domain/panel/PanelActions';
 import type {
     PanelChartBlankClickPayload,
     PanelChartInstance,

@@ -1,20 +1,20 @@
-import { useState, type KeyboardEvent } from 'react';
+import { type KeyboardEvent } from 'react';
 import { Button, type ContextMenuPosition } from '@/design-system/components';
+import { useEditFormState, handleEditFormKeyDown } from './editFormState';
 import {
     DEFAULT_PANEL_HIGHLIGHT_LABEL,
     type PanelHighlight,
-} from '../../domain/PanelDomain';
+} from '../../domain/panel/PanelConfig';
 import {
     formatAxisInputValue,
     LOCAL_DATE_TIME_INPUT_FORMAT,
     NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
-} from '../../domain/time/formatting/TimeInputFormatters';
+} from '../../formatting/TimeInputFormatters';
 import {
     createTimeRangeMs,
     isValidTimeRange,
-} from '../../domain/time/range/TimeRangeUtils';
-import type { PanelHighlightCrud } from '../usePanelHighlight';
+} from '../../domain/time/TimeRangeUtils';
 import PanelPopover from './PanelPopover';
 
 export type HighlightEditorState =
@@ -28,6 +28,13 @@ export type HighlightEditorState =
           highlightIndex: number;
       };
 
+export type PanelHighlightActions = {
+    getHighlight: (highlightIndex: number) => PanelHighlight;
+    addHighlight: (highlight: PanelHighlight) => void;
+    updateHighlight: (highlightIndex: number, highlight: PanelHighlight) => void;
+    deleteHighlight: (highlightIndex: number) => void;
+};
+
 type HighlightFormState = {
     labelText: string;
     startTimeText: string;
@@ -39,7 +46,7 @@ type HighlightFormState = {
 function getInitialHighlight(
     activeEditor: HighlightEditorState,
     draftHighlight: PanelHighlight | undefined,
-    highlightCrud: PanelHighlightCrud,
+    highlightActions: PanelHighlightActions,
 ): PanelHighlight {
     if (activeEditor.mode === 'create') {
         if (!draftHighlight) {
@@ -49,7 +56,7 @@ function getInitialHighlight(
         return draftHighlight;
     }
 
-    return highlightCrud.getHighlightByIndex(activeEditor.highlightIndex);
+    return highlightActions.getHighlight(activeEditor.highlightIndex);
 }
 
 function createHighlightFormState(
@@ -90,14 +97,14 @@ function convertHighlightFormStateToPanelHighlight(
 export function EditHighlightModal({
     activeHighlightEditor,
     draftHighlight,
-    highlightCrud,
+    highlightActions,
     onCancel,
     onApplied,
     isNumericXAxis,
 }: {
     activeHighlightEditor: HighlightEditorState;
     draftHighlight: PanelHighlight | undefined;
-    highlightCrud: PanelHighlightCrud;
+    highlightActions: PanelHighlightActions;
     onCancel: () => void;
     onApplied: () => void;
     isNumericXAxis: boolean;
@@ -113,11 +120,11 @@ export function EditHighlightModal({
         }
 
         if (activeHighlightEditor.mode === 'create') {
-            highlightCrud.addHighlightEntry(nextHighlight);
+            highlightActions.addHighlight(nextHighlight);
             return true;
         }
 
-        highlightCrud.updateHighlightEntry(
+        highlightActions.updateHighlight(
             activeHighlightEditor.highlightIndex,
             nextHighlight,
         );
@@ -129,13 +136,13 @@ export function EditHighlightModal({
             throw new Error('Cannot delete a highlight that has not been saved.');
         }
 
-        highlightCrud.deleteHighlightEntry(activeHighlightEditor.highlightIndex);
+        highlightActions.deleteHighlight(activeHighlightEditor.highlightIndex);
         onApplied();
     }
 
-    const [state, setState] = useState(() =>
+    const { state, setField } = useEditFormState(() =>
         createHighlightFormState(
-            getInitialHighlight(activeHighlightEditor, draftHighlight, highlightCrud),
+            getInitialHighlight(activeHighlightEditor, draftHighlight, highlightActions),
             isNumericXAxis,
         ),
     );
@@ -156,8 +163,7 @@ export function EditHighlightModal({
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-        if (event.key === 'Enter') applyForm();
-        if (event.key === 'Escape') onCancel();
+        handleEditFormKeyDown(event, { onApply: applyForm, onCancel });
     }
 
     return (
@@ -190,12 +196,7 @@ export function EditHighlightModal({
                     autoFocus
                     className="panel-popover-form__input"
                     value={state.labelText}
-                    onChange={(event) =>
-                        setState((currentState) => ({
-                            ...currentState,
-                            labelText: event.target.value,
-                        }))
-                    }
+                    onChange={(event) => setField('labelText', event.target.value)}
                     onFocus={(event) => event.currentTarget.select()}
                     onKeyDown={handleKeyDown}
                 />
@@ -208,12 +209,7 @@ export function EditHighlightModal({
                         className="panel-popover-form__input"
                         placeholder={timePlaceholder}
                         value={state.startTimeText}
-                        onChange={(event) =>
-                            setState((currentState) => ({
-                                ...currentState,
-                                startTimeText: event.target.value,
-                            }))
-                        }
+                        onChange={(event) => setField('startTimeText', event.target.value)}
                         onKeyDown={handleKeyDown}
                     />
                 </label>
@@ -224,12 +220,7 @@ export function EditHighlightModal({
                         className="panel-popover-form__input"
                         placeholder={timePlaceholder}
                         value={state.endTimeText}
-                        onChange={(event) =>
-                            setState((currentState) => ({
-                                ...currentState,
-                                endTimeText: event.target.value,
-                            }))
-                        }
+                        onChange={(event) => setField('endTimeText', event.target.value)}
                         onKeyDown={handleKeyDown}
                     />
                 </label>
@@ -242,12 +233,7 @@ export function EditHighlightModal({
                         className="panel-popover-form__color-input"
                         type="color"
                         value={state.fillColor}
-                        onChange={(event) =>
-                            setState((currentState) => ({
-                                ...currentState,
-                                fillColor: event.target.value,
-                            }))
-                        }
+                        onChange={(event) => setField('fillColor', event.target.value)}
                     />
                 </label>
                 <label className="panel-popover-form__field">
@@ -257,12 +243,7 @@ export function EditHighlightModal({
                         className="panel-popover-form__color-input"
                         type="color"
                         value={state.textColor}
-                        onChange={(event) =>
-                            setState((currentState) => ({
-                                ...currentState,
-                                textColor: event.target.value,
-                            }))
-                        }
+                        onChange={(event) => setField('textColor', event.target.value)}
                     />
                 </label>
             </div>

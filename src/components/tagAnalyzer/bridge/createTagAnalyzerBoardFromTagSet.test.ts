@@ -5,7 +5,9 @@ import {
     OPEN_TAG_ANALYZER_MESSAGE_TYPE,
     OPEN_TAG_ANALYZER_MESSAGE_VERSION,
 } from './createTagAnalyzerBoardFromTagSet';
-import { parseLoadedTaz, TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/load/parseLoadedTaz';
+import { parseLoadedTaz } from '@/components/tagAnalyzer/persistence/load/parseLoadedTaz';
+import { mapBoardToPersistedTaz } from '@/components/tagAnalyzer/persistence/save/mapBoardToPersistedTaz';
+import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/TazVersion';
 
 const baseMessage = {
     source: NEO_PACKAGE_MESSAGE_SOURCE,
@@ -74,19 +76,15 @@ describe('createTagAnalyzerBoardFromTagSet', () => {
         expect(result.board.shell).toEqual({ icon: 'chart-line', theme: '', id: 'TAZ' });
         expect(result.board.panels).toHaveLength(1);
         expect(result.board.panels[0].display.chartType).toBe('Line');
-        expect(result.board.boardTimeRange).toMatchObject({
-            start: {
-                kind: 'absolute',
-                timestamp: Date.parse('2026-06-26T00:00:00.000Z'),
-            },
-            end: {
-                kind: 'absolute',
-                timestamp: Date.parse('2026-06-26T01:00:00.000Z'),
-            },
+        expect(result.board.boardTimeRange).toEqual({
+            start: '2026-06-26T00:00:00.000Z',
+            end: '2026-06-26T01:00:00.000Z',
         });
-        expect(result.board.panels[0].timeRange).toMatchObject({
-            start: { kind: 'timestamp_empty' },
-            end: { kind: 'timestamp_empty' },
+        expect(result.board.panels[0].time).toMatchObject({
+            rangeInput: {
+                start: '',
+                end: '',
+            },
             useLastViewedRange: false,
             lastViewedRange: undefined,
         });
@@ -110,7 +108,10 @@ describe('createTagAnalyzerBoardFromTagSet', () => {
             weight: 2,
         });
 
-        const loaded = parseLoadedTaz(result.board);
+        const loaded = parseLoadedTaz({
+            ...result.board,
+            ...mapBoardToPersistedTaz(result.board),
+        });
         expect(loaded.version).toBe(TAZ_FORMAT_VERSION);
         expect(loaded.panels[0].query.tagSet).toHaveLength(2);
     });

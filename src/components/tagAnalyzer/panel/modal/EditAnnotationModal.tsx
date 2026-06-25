@@ -1,21 +1,20 @@
-import { useState, type KeyboardEvent } from 'react';
+import { type KeyboardEvent } from 'react';
 import { Button, Dropdown, type ContextMenuPosition } from '@/design-system/components';
-import type { PanelAnnotation } from '../../domain/PanelDomain';
+import { useEditFormState, handleEditFormKeyDown } from './editFormState';
+import type { PanelAnnotation } from '../../domain/panel/PanelConfig';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelSeriesDefinition,
 } from '../../domain/SeriesDomain';
 import {
     formatAxisInputValue,
     LOCAL_DATE_TIME_INPUT_FORMAT,
     NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
-} from '../../domain/time/formatting/TimeInputFormatters';
-import type {
-    PanelAnnotationCrud,
-    PanelAnnotationSeriesOption,
-} from '../usePanelAnnotation';
+} from '../../formatting/TimeInputFormatters';
+
 import PanelPopover from './PanelPopover';
 
 export type AnnotationEditorMetaState = {
@@ -23,6 +22,18 @@ export type AnnotationEditorMetaState = {
     seriesKey?: string;
     annotationIndex?: number;
     timestamp?: number;
+};
+
+export type PanelAnnotationActions = {
+    getAnnotation: (annotationIndex: number) => PanelAnnotation;
+    addAnnotation: (annotation: PanelAnnotation) => void;
+    updateAnnotation: (annotationIndex: number, annotation: PanelAnnotation) => void;
+    deleteAnnotation: (annotationIndex: number) => void;
+};
+
+type PanelAnnotationSeriesOption = {
+    label: string;
+    value: string;
 };
 
 type AnnotationFormState = {
@@ -36,6 +47,15 @@ type AnnotationFormState = {
 
 const EMPTY_ANNOTATION_SERIES_VALUE = '';
 const MARKUP_DROPDOWN_MENU_CLASS = 'panel-popover-form__dropdown-menu';
+
+function createPanelAnnotationSeriesOptions(
+    seriesList: PanelSeriesDefinition[],
+): PanelAnnotationSeriesOption[] {
+    return seriesList.map((seriesInfo) => ({
+        label: seriesInfo.alias.trim() || seriesInfo.sourceTagName,
+        value: seriesInfo.key,
+    }));
+}
 
 function createAnnotationFormState(
     editorMeta: AnnotationEditorMetaState,
@@ -102,15 +122,15 @@ function convertAnnotationFormStateToPanelAnnotation({
 
 export function EditAnnotationModal({
     annotationEditorMeta,
-    annotationCrud,
-    annotationSeriesOptions,
+    annotationActions,
+    annotationSeriesList,
     onCancel,
     onApplied,
     isNumericXAxis,
 }: {
     annotationEditorMeta: AnnotationEditorMetaState;
-    annotationCrud: PanelAnnotationCrud;
-    annotationSeriesOptions: PanelAnnotationSeriesOption[];
+    annotationActions: PanelAnnotationActions;
+    annotationSeriesList: PanelSeriesDefinition[];
     onCancel: () => void;
     onApplied: () => void;
     isNumericXAxis: boolean;
@@ -118,7 +138,7 @@ export function EditAnnotationModal({
     const annotationIndex = annotationEditorMeta.annotationIndex;
     const annotation = annotationIndex === undefined
         ? undefined
-        : annotationCrud.getAnnotation(annotationIndex);
+        : annotationActions.getAnnotation(annotationIndex);
     function saveAnnotation(state: AnnotationFormState): boolean {
         const selectedAnnotationSeriesKey = state.seriesValue.trim();
 
@@ -138,15 +158,15 @@ export function EditAnnotationModal({
         }
 
         if (annotationIndex === undefined) {
-            annotationCrud.addAnnotationEntry(nextAnnotation);
+            annotationActions.addAnnotation(nextAnnotation);
             return true;
         }
 
-        annotationCrud.updateAnnotationEntry(annotationIndex, nextAnnotation);
+        annotationActions.updateAnnotation(annotationIndex, nextAnnotation);
         return true;
     }
 
-    const [state, setState] = useState(() =>
+    const { state, setField } = useEditFormState(() =>
         createAnnotationFormState(annotationEditorMeta, annotation, isNumericXAxis),
     );
     const seriesOptions = [
@@ -154,7 +174,7 @@ export function EditAnnotationModal({
             label: 'annotation not selected',
             value: EMPTY_ANNOTATION_SERIES_VALUE,
         },
-        ...annotationSeriesOptions,
+        ...createPanelAnnotationSeriesOptions(annotationSeriesList),
     ];
     const selectedSeriesKey = state.seriesValue.trim();
     const canApply =
@@ -171,8 +191,7 @@ export function EditAnnotationModal({
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-        if (event.key === 'Enter') applyForm();
-        if (event.key === 'Escape') onCancel();
+        handleEditFormKeyDown(event, { onApply: applyForm, onCancel });
     }
 
     function deleteAnnotation(): void {
@@ -180,7 +199,7 @@ export function EditAnnotationModal({
             throw new Error('Cannot delete annotation without an annotation index.');
         }
 
-        annotationCrud.deleteAnnotationEntry(annotationIndex);
+        annotationActions.deleteAnnotation(annotationIndex);
         onApplied();
     }
 
@@ -214,12 +233,7 @@ export function EditAnnotationModal({
                 <Dropdown.Root
                     options={seriesOptions}
                     value={state.seriesValue}
-                    onChange={(value) =>
-                        setState((currentState) => ({
-                            ...currentState,
-                            seriesValue: value,
-                        }))
-                    }
+                    onChange={(value) => setField('seriesValue', value)}
                     placeholder="annotation not selected"
                     fullWidth
                 >
@@ -236,12 +250,7 @@ export function EditAnnotationModal({
                     className="panel-popover-form__input"
                     placeholder={timePlaceholder}
                     value={state.timeText}
-                    onChange={(event) =>
-                        setState((currentState) => ({
-                            ...currentState,
-                            timeText: event.target.value,
-                        }))
-                    }
+                    onChange={(event) => setField('timeText', event.target.value)}
                     onKeyDown={handleKeyDown}
                 />
             </label>
@@ -252,12 +261,7 @@ export function EditAnnotationModal({
                     autoFocus
                     className="panel-popover-form__input"
                     value={state.labelText}
-                    onChange={(event) =>
-                        setState((currentState) => ({
-                            ...currentState,
-                            labelText: event.target.value,
-                        }))
-                    }
+                    onChange={(event) => setField('labelText', event.target.value)}
                     onFocus={(event) => event.currentTarget.select()}
                     onKeyDown={handleKeyDown}
                 />
@@ -270,12 +274,7 @@ export function EditAnnotationModal({
                         className="panel-popover-form__color-input"
                         type="color"
                         value={state.fillColor}
-                        onChange={(event) =>
-                            setState((currentState) => ({
-                                ...currentState,
-                                fillColor: event.target.value,
-                            }))
-                        }
+                        onChange={(event) => setField('fillColor', event.target.value)}
                     />
                 </label>
                 <label className="panel-popover-form__field">
@@ -285,12 +284,7 @@ export function EditAnnotationModal({
                         className="panel-popover-form__color-input"
                         type="color"
                         value={state.textColor}
-                        onChange={(event) =>
-                            setState((currentState) => ({
-                                ...currentState,
-                                textColor: event.target.value,
-                            }))
-                        }
+                        onChange={(event) => setField('textColor', event.target.value)}
                     />
                 </label>
             </div>
@@ -299,12 +293,7 @@ export function EditAnnotationModal({
                     aria-label="Clip annotation to panel range"
                     type="checkbox"
                     checked={state.clip}
-                    onChange={(event) =>
-                        setState((currentState) => ({
-                            ...currentState,
-                            clip: event.target.checked,
-                        }))
-                    }
+                    onChange={(event) => setField('clip', event.target.checked)}
                 />
                 Clip to panel range
             </label>

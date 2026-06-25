@@ -5,10 +5,10 @@ import type {
 import type {
     RuntimePanelAxes,
     RuntimePanelDisplay,
-} from '../../../domain/PanelDomain';
+} from '../../../domain/panel/PanelRuntime';
 import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
-import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
-import { formatAxisValue } from '../../../domain/time/formatting/TimeFormatters';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import { formatAxisValue } from '../../../formatting/TimeFormatters';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,
@@ -144,11 +144,11 @@ function getYAxisValues(
 }
 
 function resolveAxisRange(
-    manualRange: { min: number; max: number },
+    manualRange: { min: number | undefined; max: number | undefined },
     defaultMin: number | undefined,
     defaultMax: number | undefined,
 ): ResolvedYAxisRange {
-    if (manualRange.min === 0 && manualRange.max === 0) {
+    if (manualRange.min === undefined && manualRange.max === undefined) {
         return { min: defaultMin, max: defaultMax };
     }
 

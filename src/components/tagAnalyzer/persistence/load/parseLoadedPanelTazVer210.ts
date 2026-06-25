@@ -2,22 +2,25 @@ import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
     type PanelInfo,
-} from '../../domain/PanelDomain';
+    type PanelYAxis,
+} from '../../domain/panel/PanelConfig';
+import { isPlainObject } from '../../domain/ObjectGuards';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
-import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
-import { normalizePanelViewRange } from '../../domain/time/boundary/TimeBoundaryValidate';
+import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
+import { normalizePanelViewRange } from '../../domain/panelRange/PanelRangeResolver';
 import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,
 } from '../PersistenceCloneUtils';
 import type { PersistedPanelInfoV210 } from '../TazPersistenceTypesV210';
-import { normalizePersistedPanelRangeInput } from './normalizePersistedPanelRangeConfig';
+import { normalizePersistedPanelRangeInput } from './normalizePersistedPanelRangeInput';
+import { normalizePersistedValueRange } from './normalizePersistedValueRange';
 
 export function isPersistedPanelInfoV210(
     panelInfo: unknown,
 ): panelInfo is PersistedPanelInfoV210 {
-    if (!panelInfo || typeof panelInfo !== 'object') {
+    if (!isPlainObject(panelInfo)) {
         return false;
     }
 
@@ -48,11 +51,11 @@ export function parseLoadedPanelTazVer210(
     assertValidPersistedPanelInfoV210(panelInfo);
 
     const sTagSet = panelInfo.query.tagSet.map(mapPersistedSeriesToRuntime);
-    const sRangeConfig = normalizePersistedPanelRangeInput(
+    const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.timeRange,
         shouldUseNumericPanelRangeInput(sTagSet),
     );
-    if (!sRangeConfig) {
+    if (!sRangeInput) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel timeRange structure.');
     }
 
@@ -73,8 +76,8 @@ export function parseLoadedPanelTazVer210(
             isOrderBy: panelInfo.mode.isOrderBy,
             useNormalize: panelInfo.mode.useNormalize,
         },
-        timeRange: {
-            ...sRangeConfig,
+        time: {
+            rangeInput: sRangeInput,
             useLastViewedRange: panelInfo.timeRange.useLastViewedRange ?? false,
             lastViewedRange: normalizePanelViewRange(
                 panelInfo.timeRange.lastViewedRange,
@@ -84,22 +87,10 @@ export function parseLoadedPanelTazVer210(
             x: {
                 showTickline: panelInfo.axes.x.showTickline,
             },
-            leftY: {
-                zeroBase: panelInfo.axes.leftY.zeroBase,
-                showTickline: panelInfo.axes.leftY.showTickline,
-                valueRange: { ...panelInfo.axes.leftY.valueRange },
-                rawValueRange: { ...panelInfo.axes.leftY.rawValueRange },
-                upperControlLimit: { ...panelInfo.axes.leftY.upperControlLimit },
-                lowerControlLimit: { ...panelInfo.axes.leftY.lowerControlLimit },
-            },
+            leftY: mapPersistedYAxis(panelInfo.axes.leftY),
             rightY: {
+                ...mapPersistedYAxis(panelInfo.axes.rightY),
                 enabled: panelInfo.axes.rightY.enabled,
-                zeroBase: panelInfo.axes.rightY.zeroBase,
-                showTickline: panelInfo.axes.rightY.showTickline,
-                valueRange: { ...panelInfo.axes.rightY.valueRange },
-                rawValueRange: { ...panelInfo.axes.rightY.rawValueRange },
-                upperControlLimit: { ...panelInfo.axes.rightY.upperControlLimit },
-                lowerControlLimit: { ...panelInfo.axes.rightY.lowerControlLimit },
             },
         },
         display: {
@@ -223,12 +214,7 @@ function assertValueRange(
         throwInvalidPanelError(path);
     }
 
-    if (
-        typeof sMin === 'number' &&
-        typeof sMax === 'number' &&
-        (sMin !== 0 || sMax !== 0) &&
-        sMin >= sMax
-    ) {
+    if (!normalizePersistedValueRange(range)) {
         throwInvalidPanelError(path);
     }
 }
@@ -257,12 +243,36 @@ function assertSampling(
     }
 }
 
+function mapPersistedYAxis(
+    axis: PersistedPanelInfoV210['axes']['leftY'],
+): PanelYAxis {
+    return {
+        zeroBase: axis.zeroBase,
+        showTickline: axis.showTickline,
+        valueRange: normalizeLoadedValueRange(axis.valueRange, 'valueRange'),
+        rawValueRange: normalizeLoadedValueRange(axis.rawValueRange, 'rawValueRange'),
+        upperControlLimit: { ...axis.upperControlLimit },
+        lowerControlLimit: { ...axis.lowerControlLimit },
+    };
+}
+
+function normalizeLoadedValueRange(
+    valueRange: unknown,
+    label: string,
+): PanelYAxis['valueRange'] {
+    const sValueRange = normalizePersistedValueRange(valueRange);
+    if (!sValueRange) {
+        throwInvalidPanelError(`axes.${label}`);
+    }
+
+    return sValueRange;
+}
 function assertObject(value: unknown, path: string): Record<string, unknown> {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    if (!isPlainObject(value)) {
         throwInvalidPanelError(path);
     }
 
-    return value as Record<string, unknown>;
+    return value;
 }
 
 function assertBoolean(value: unknown, path: string): void {

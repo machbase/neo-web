@@ -5,14 +5,11 @@ import {
     PANEL_TAG_LIMIT,
     type PanelSeriesDefinition,
 } from '@/components/tagAnalyzer/domain/SeriesDomain';
-import { buildCreateChartPanel } from '@/components/tagAnalyzer/modal/selectionPanel/CreateChartPanelBuilder';
+import type { PanelInfo } from '@/components/tagAnalyzer/domain/panel/PanelConfig';
+import type { TimeRangeInput } from '@/components/tagAnalyzer/domain/time/TimeTypes';
+import { formatAbsoluteTimeExpression } from '@/components/tagAnalyzer/domain/time/TimeRangeInputResolver';
+import { createNewPanelInfo } from '@/components/tagAnalyzer/modal/createNewPanel/CreateNewPanelInfo';
 import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/TazVersion';
-import {
-    createAbsoluteTimeBoundary,
-    createAnchoredTimeBoundary,
-} from '@/components/tagAnalyzer/domain/time/boundary/TimeBoundaryInput';
-import { TimeUnit, type TimeRangeConfig } from '@/components/tagAnalyzer/domain/time/model/TimeTypes';
-import type { PanelInfo } from '@/components/tagAnalyzer/domain/PanelDomain';
 
 export const NEO_PACKAGE_MESSAGE_SOURCE = 'neo-package';
 export const OPEN_TAG_ANALYZER_MESSAGE_TYPE = 'neo.openTagAnalyzer';
@@ -68,7 +65,8 @@ type BridgeResult =
           status: 'ok';
           board: GBoardListType & {
               version: typeof TAZ_FORMAT_VERSION;
-              boardTimeRange: TimeRangeConfig;
+              boardTimeRange: TimeRangeInput;
+              panels: PanelInfo[];
           };
       };
 
@@ -206,37 +204,28 @@ const normalizePayload = (aPayload: unknown): { ok: true; value: Omit<TagAnalyze
     };
 };
 
-const createBoardTimeRange = (range: NormalizedRange): TimeRangeConfig => {
-    if (range.startMs !== undefined && range.endMs !== undefined) {
-        return {
-            start: createAbsoluteTimeBoundary(range.startMs),
-            end: createAbsoluteTimeBoundary(range.endMs),
-        };
-    }
-
+const createBoardTimeRange = (range: NormalizedRange): TimeRangeInput => {
     return {
-        start: createAnchoredTimeBoundary('now', 1, TimeUnit.Hour),
-        end: createAnchoredTimeBoundary('now', 0, TimeUnit.Millisecond),
+        start: formatBridgeRangeInputValue(range.min),
+        end: formatBridgeRangeInputValue(range.max),
     };
 };
+
+function formatBridgeRangeInputValue(value: string | number): string {
+    return typeof value === 'number'
+        ? formatAbsoluteTimeExpression(value)
+        : value;
+}
 
 const createPanel = (
     title: string,
     tagSet: PanelSeriesDefinition[],
 ): PanelInfo => {
-    const sPanel = buildCreateChartPanel(
-        'Line',
-        [],
+    return createNewPanelInfo(
+        tagSet,
         title,
-    ) as PanelInfo;
-
-    return {
-        ...sPanel,
-        query: {
-            ...sPanel.query,
-            tagSet,
-        },
-    };
+        'Line',
+    );
 };
 
 export const isOpenTagAnalyzerMessage = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): aData is TagAnalyzerBridgeMessage => {

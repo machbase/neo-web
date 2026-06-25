@@ -1,11 +1,11 @@
-import { Close } from '@/assets/icons/Icon';
+import { Close, LineChart } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import moment from 'moment';
 import type { FFTSelectionPayload } from '../../domain/ChartDomain';
 import {
     formatAxisPointerLabel,
     formatRangeSpanLabel,
-} from '../../domain/time/formatting/TimeFormatters';
+} from '../../formatting/TimeFormatters';
 import PanelPopover from './PanelPopover';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
@@ -20,11 +20,13 @@ export function SelectionSummaryPopover({
     selection,
     position,
     isNumericXAxis,
+    onOpenFft,
     onClose,
 }: {
     selection: FFTSelectionPayload;
     position: { x: number; y: number };
     isNumericXAxis: boolean;
+    onOpenFft: () => void;
     onClose: () => void;
 }) {
     return (
@@ -41,6 +43,7 @@ export function SelectionSummaryPopover({
                     variant="ghost"
                     onClick={onClose}
                     icon={<Close size={16} />}
+                    aria-label="Close selection summary"
                 />
             )}
         >
@@ -76,20 +79,30 @@ export function SelectionSummaryPopover({
                         {SUMMARY_FIELD_LABELS[field]}
                     </Page.ContentDesc>
                 ))}
-            {selection.seriesSummaries.map((item, index) => (
-                SUMMARY_FIELDS.map((field) => (
-                    <Page.ContentText
-                        key={`${item.name}-${index}-${field}`}
-                        pContent={item[field] ?? ''}
-                        style={{
-                            minWidth: 0,
-                            overflowWrap: 'anywhere',
-                            textAlign: field === 'name' ? 'left' : 'right',
-                        }}
-                    />
-                ))
-            ))}
+                {selection.seriesSummaries.map((item, index) => (
+                    SUMMARY_FIELDS.map((field) => (
+                        <Page.ContentText
+                            key={`${item.name}-${index}-${field}`}
+                            pContent={item[field] ?? ''}
+                            style={{
+                                minWidth: 0,
+                                overflowWrap: 'anywhere',
+                                textAlign: field === 'name' ? 'left' : 'right',
+                            }}
+                        />
+                    ))
+                ))}
             </div>
+            <Page.Space />
+            <Button
+                size="sm"
+                variant="secondary"
+                onClick={onOpenFft}
+                icon={<LineChart size={16} />}
+                fullWidth
+            >
+                Open FFT chart
+            </Button>
         </PanelPopover>
     );
 }

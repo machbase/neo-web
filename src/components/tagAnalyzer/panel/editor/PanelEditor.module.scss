@@ -128,13 +128,6 @@
     line-height: 16px;
 }
 
-.sectionSubTitle {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 14px;
-}
-
 .controlStack {
     display: flex;
     flex-direction: column;
@@ -236,10 +229,32 @@
     line-height: 14px;
 }
 
-.seriesList {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.numberInputCompact {
+    width: 48px;
+}
+
+.numberInputThreshold {
+    width: 80px;
+}
+
+.numberInputStandard {
+    width: 150px;
+}
+
+.titleInput {
+    width: 220px;
+}
+
+.rightAxisTrigger {
+    width: 200px;
+}
+
+.calcModeTrigger {
+    width: 112px;
+}
+
+.rawRangeLabelWide {
+    min-width: 100px;
 }
 
 .editorCard {
@@ -324,36 +339,6 @@
     line-height: 15px;
 }
 
-.seriesCard {
-    display: grid;
-    grid-template-columns: minmax(130px, 150px) minmax(160px, 1fr) minmax(130px, 160px) auto auto;
-    gap: 10px;
-    align-items: center;
-    padding: 6px;
-    border: 1px solid #b8c8da41;
-    border-radius: 4px;
-}
-
-.sourceLabel {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-width: 0;
-}
-
-.sourceTable {
-    overflow: hidden;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 10px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.addSeriesButton {
-    height: 48px;
-}
-
-.displayLayout,
 .timeLayout {
     display: grid;
     grid-template-columns: minmax(260px, 1fr) minmax(240px, 0.9fr);
@@ -361,38 +346,50 @@
     align-items: start;
 }
 
-.chartTypeGrid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(76px, 1fr));
+.displayTabRow {
+    display: flex;
+    gap: 20px;
+}
+
+.displayChartColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.displayNumberColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.chartTypeOptionRow {
+    display: flex;
     gap: 8px;
 }
 
-.chartTypeButton {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-    padding: 6px;
-    color: inherit;
-    font: inherit;
-    font-size: 11px;
-    line-height: 14px;
-    cursor: pointer;
-    border: 0.5px solid transparent;
+.chartTypeOption {
+    width: 80px;
+    height: 64px;
+    border: solid 0.5px #b8c8da41;
     border-radius: 4px;
-    background: transparent;
+    cursor: pointer;
 }
 
-.chartTypeButtonActive {
+.chartTypeOptionCustom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+}
+
+.chartTypeOptionActive {
     border-color: #4199ff;
     box-shadow: inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5);
-}
-
-.chartTypeImage {
-    width: 100%;
-    max-height: 64px;
-    object-fit: cover;
-    border-radius: 4px;
 }
 
 .rightAxisSeries {
@@ -427,15 +424,9 @@
         flex-shrink: 0;
     }
 
-    .displayLayout,
     .dataSettingGrid,
     .timeLayout {
         grid-template-columns: 1fr;
-    }
-
-    .seriesCard {
-        grid-template-columns: 1fr;
-        align-items: stretch;
     }
 }
 

@@ -16,6 +16,10 @@ import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { Button, Input, Modal, FileListHeader } from '@/design-system/components';
+import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
+import { saveBoardInfoToTaz } from '@/components/tagAnalyzer/persistence/save/saveBoardInfoToTaz';
+import { createSavedTazBoardSnapshot } from '@/components/tagAnalyzer/persistence/save/SavedTazBoardSnapshot';
+import type { BoardInfo } from '@/components/tagAnalyzer/domain/BoardDomain';
 import './SaveModal.scss';
 
 export interface SaveModalProps {
@@ -155,7 +159,44 @@ export const SaveModal = (props: SaveModalProps) => {
         const sFileName = sSaveFileName;
         const sTab = sBoardList.find((aItem) => aItem.id === sSelectedTab);
         const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sFileName);
-        const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' || sFileType === 'dsh' ? sTab : sTab?.code;
+        const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'dsh' ? sTab : sTab?.code;
+
+        if (sFileType === 'taz') {
+            if (!sTab) {
+                Toast.error('No TAZ tab is selected.');
+                return;
+            }
+
+            const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+            if (sDupFile && sTab?.name !== sFileName) {
+                const sConfirm = confirm('Do you want to overwrite it?');
+                if (!sConfirm) return;
+            }
+
+            const sBoardToSave: BoardInfo = {
+                ...(sTab as unknown as BoardInfo),
+                name: sFileName,
+                path: sPath,
+            };
+            const sDidSave = await saveBoardInfoToTaz(sBoardToSave);
+            setModalPath(sPath);
+            if (sDidSave) {
+                handleClose();
+                const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
+                setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
+                setBoardList(
+                    sBoardList.map((aItem: any) =>
+                        aItem.id === sSelectedTab
+                            ? createSavedTazBoardSnapshot(sBoardToSave)
+                            : aItem,
+                    ),
+                );
+            } else {
+                Toast.error('Failed to save TAZ file. Please try again.');
+            }
+            return;
+        }
+
         if (sDupFile && sTab?.name !== sFileName) {
             const sConfirm = confirm('Do you want to overwrite it?');
             if (sConfirm) {
@@ -172,7 +213,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                         const sSaveData = {
                                             ...aItem,
                                             name: sFileName,
-                                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'taz' ? JSON.stringify(aItem.panels) : aItem.code,
+                                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
                                             path: sPath,
                                         };
                                         return sSaveData;
@@ -188,7 +229,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                     const sSaveData = {
                                         ...aItem,
                                         name: sFileName,
-                                        savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'taz' ? JSON.stringify(aItem.panels) : aItem.code,
+                                        savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
                                         path: sPath,
                                     };
                                     return sSaveData;
@@ -219,8 +260,6 @@ export const SaveModal = (props: SaveModalProps) => {
                             savedCode:
                                 sFileType === 'wrk'
                                     ? JSON.stringify(aItem.sheet)
-                                    : sFileType === 'taz'
-                                    ? JSON.stringify(aItem.panels)
                                     : sFileType === 'dsh'
                                     ? JSON.stringify(aItem.dashboard)
                                     : aItem.code,
@@ -280,11 +319,25 @@ export const SaveModal = (props: SaveModalProps) => {
             const sType = extractionExtension(file.name);
             const sData = await getFilesTree(`${sSelectedDir.join('/')}/${file.name}`);
             let sParseData;
-            if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && (sType === 'taz' || sType === 'dsh'))) {
+            if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && sType === 'dsh')) {
                 sParseData = JSON.parse(sData);
             }
             const sTmpId = getId();
-            if (sType === 'taz' || sType === 'dsh') {
+            if (sType === 'taz') {
+                try {
+                    const sParsedTaz = typeof sData === 'string' ? JSON.parse(sData) : sData;
+                    const sTazBoardInfo = loadTazBoardInfo(sParsedTaz, sTmpId, file.name, sPath);
+
+                    setBoardList([...sBoardList, sTazBoardInfo as any]);
+                    setSelectedTab(sTmpId);
+                    handleClose();
+                    return;
+                } catch (error) {
+                    Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
+                    return;
+                }
+            }
+            if (sType === 'dsh') {
                 setBoardList([
                     ...sBoardList,
                     {

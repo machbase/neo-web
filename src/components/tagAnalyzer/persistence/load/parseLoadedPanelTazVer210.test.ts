@@ -71,4 +71,19 @@ describe('parseLoadedPanelTazVer210', () => {
 
         expect(parsedPanel.query.count).toBe(0);
     });
+
+    it('converts old 0/0 y-axis ranges to runtime auto ranges', () => {
+        const parsedPanel = parseLoadedPanelTazVer210(
+            createPersistedPanelWithoutQueryCount(),
+        );
+
+        expect(parsedPanel.axes.leftY.valueRange).toEqual({
+            min: undefined,
+            max: undefined,
+        });
+        expect(parsedPanel.axes.leftY.rawValueRange).toEqual({
+            min: undefined,
+            max: undefined,
+        });
+    });
 });
