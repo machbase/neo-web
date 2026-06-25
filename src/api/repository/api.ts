@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import { rpcCall, RpcMethod } from '@/api/repository/rpc';
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
 
 const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
@@ -218,14 +219,17 @@ export const getAllowBackupTable = () => {
         },
     });
 };
-/** POST SPLITTER */
-export const postSplitter = (txt: string, signal?: AbortSignal) => {
-    return request({
-        method: 'POST',
-        url: '/api/splitter/sql',
-        data: txt,
-        signal,
-    });
+/** POST SPLITTER — migrated to the `sql.split` RPC (HTTP) (#1334). The return shape
+ *  {success, data:{statements}} is kept so call sites (sql/index.tsx, WorkSheetEditor.tsx)
+ *  need no changes. AbortSignal is passed through to callHttpRpc. */
+export const postSplitter = async (txt: string, signal?: AbortSignal) => {
+    try {
+        const res = await rpcCall<any[]>(RpcMethod.sql.split, [txt], signal);
+        if (res?.error) return { success: false, reason: res.error.message, elapse: '', data: { statements: undefined } };
+        return { success: true, reason: 'success', elapse: '', data: { statements: res?.result ?? [] } };
+    } catch (e) {
+        return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '', data: { statements: undefined } };
+    }
 };
 
 export {

@@ -24,7 +24,11 @@ export const SSHKey = () => {
     const getSSHKeyList = async () => {
         const sResSSHKeyList = await getSSHKeys();
         if (sResSSHKeyList.success)
-            setSSHKeyList(sResSSHKeyList.data && sResSSHKeyList.data?.length > 0 ? sResSSHKeyList.data.sort((a, b) => a.comment.localeCompare(b.comment)) : []);
+            setSSHKeyList(
+                sResSSHKeyList.data && sResSSHKeyList.data?.length > 0
+                    ? sResSSHKeyList.data.sort((a, b) => a.comment.localeCompare(b.comment))
+                    : [],
+            );
         else setSSHKeyList([]);
     };
     /** Gen ssh key */
@@ -85,14 +89,33 @@ export const SSHKey = () => {
         <>
             {/* Show info */}
             <Page>
-                <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
+                <SplitPane
+                    sashRender={() => Resizer()}
+                    split={isVertical ? 'vertical' : 'horizontal'}
+                    sizes={sGroupWidth}
+                    onChange={setGroupWidth}
+                >
                     <Pane minSize={400}>
                         <Page.Header />
                         <Page.Body>
                             <Page.ContentBlock>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                    }}
+                                >
                                     <Page.SubTitle>{INFO_SSH_KEY.title}</Page.SubTitle>
-                                    {!sAddSSHKeyState && <Page.TextButton pText="New SSH key" pWidth="100px" pType="CREATE" pCallback={handleCreate} mr="0px" />}
+                                    {!sAddSSHKeyState && (
+                                        <Page.TextButton
+                                            pText="New SSH key"
+                                            pWidth="100px"
+                                            pType="CREATE"
+                                            pCallback={handleCreate}
+                                            mr="0px"
+                                        />
+                                    )}
                                 </div>
                                 <Page.Space pHeight="4px" />
                                 <Page.Hr />
@@ -101,25 +124,65 @@ export const SSHKey = () => {
                                 <>
                                     <Page.ContentBlock>
                                         <Page.DpRow>
-                                            <Page.ContentTitle>{INFO_SSH_KEY.cre_alias}</Page.ContentTitle>
+                                            <Page.ContentTitle>
+                                                {INFO_SSH_KEY.cre_alias}
+                                            </Page.ContentTitle>
                                             <Page.ContentDesc>
-                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                <span
+                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                >
+                                                    *
+                                                </span>
                                             </Page.ContentDesc>
                                         </Page.DpRow>
-                                        <Page.Input pAutoFocus pValue={sAlias} pWidth="100%" pCallback={(event: React.FormEvent<HTMLInputElement>) => handleAlias(event)} />
+                                        <Page.Input
+                                            pAutoFocus
+                                            pValue={sAlias}
+                                            pWidth="100%"
+                                            pCallback={(event: React.FormEvent<HTMLInputElement>) =>
+                                                handleAlias(event)
+                                            }
+                                        />
                                     </Page.ContentBlock>
                                     <Page.ContentBlock>
                                         <Page.DpRow>
-                                            <Page.ContentTitle>{INFO_SSH_KEY.cre_title}</Page.ContentTitle>
+                                            <Page.ContentTitle>
+                                                {INFO_SSH_KEY.cre_title}
+                                            </Page.ContentTitle>
                                             <Page.ContentDesc>
-                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                <span
+                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                >
+                                                    *
+                                                </span>
                                             </Page.ContentDesc>
                                         </Page.DpRow>
-                                        <Page.TextArea pContent={sAddSSHKeyInfo} pHeight={80} pCallback={handleAddSSHKeyInfo} pPlaceHolder={INFO_SSH_KEY.cre_desc} />
-                                        <Page.ContentDesc>{INFO_SSH_KEY.cre_support}</Page.ContentDesc>
+                                        <Page.TextArea
+                                            pContent={sAddSSHKeyInfo}
+                                            pHeight={80}
+                                            pCallback={handleAddSSHKeyInfo}
+                                            pPlaceHolder={INFO_SSH_KEY.cre_desc}
+                                        />
+                                        <Page.ContentDesc>
+                                            {INFO_SSH_KEY.cre_support}
+                                        </Page.ContentDesc>
                                         <Page.Space pHeight="16px" />
-                                        <Page.TextButton pText="Add SSH key" pWidth="100px" pType="CREATE" pCallback={genSSHKey} mr="8px" />
-                                        <Page.TextButton pText="Cancel" pWidth="80px" pType="DELETE" pCallback={() => setAddSSHKeyState(false)} mr="0px" />
+                                        <Button.Group>
+                                            <Page.TextButton
+                                                pText="Add SSH key"
+                                                pWidth="100px"
+                                                pType="CREATE"
+                                                pCallback={genSSHKey}
+                                                mr="8px"
+                                            />
+                                            <Page.TextButton
+                                                pText="Cancel"
+                                                pWidth="80px"
+                                                pType="DELETE"
+                                                pCallback={() => setAddSSHKeyState(false)}
+                                                mr="0px"
+                                            />
+                                        </Button.Group>
                                         {/* AddState */}
                                         {sAddState && (
                                             <Page.ContentDesc>
@@ -156,16 +219,37 @@ export const SSHKey = () => {
                                                             }}
                                                         >
                                                             <Page.DpRow>
-                                                                <div style={{ marginRight: '16px' }}>
-                                                                    <VscKey style={{ width: '30px', height: '30px' }} />
+                                                                <div
+                                                                    style={{ marginRight: '16px' }}
+                                                                >
+                                                                    <VscKey
+                                                                        style={{
+                                                                            width: '30px',
+                                                                            height: '30px',
+                                                                        }}
+                                                                    />
                                                                 </div>
                                                                 <div>
-                                                                    <Page.ContentText pContent={aSSHKey.comment}></Page.ContentText>
-                                                                    <Page.ContentDesc>{aSSHKey.keyType}</Page.ContentDesc>
-                                                                    <Page.ContentDesc>{aSSHKey.fingerprint}</Page.ContentDesc>
+                                                                    <Page.ContentText
+                                                                        pContent={aSSHKey.comment}
+                                                                    ></Page.ContentText>
+                                                                    <Page.ContentDesc>
+                                                                        {aSSHKey.keyType}
+                                                                    </Page.ContentDesc>
+                                                                    <Page.ContentDesc>
+                                                                        {aSSHKey.fingerprint}
+                                                                    </Page.ContentDesc>
                                                                 </div>
                                                             </Page.DpRow>
-                                                            <Page.TextButton pText="Delete" pWidth="60px" pType="DELETE" pCallback={(e) => handleDelete(e, aSSHKey)} mr="0px" />
+                                                            <Page.TextButton
+                                                                pText="Delete"
+                                                                pWidth="60px"
+                                                                pType="DELETE"
+                                                                pCallback={(e) =>
+                                                                    handleDelete(e, aSSHKey)
+                                                                }
+                                                                mr="0px"
+                                                            />
                                                         </div>
                                                     </Page.HoverBg>
                                                     <Page.Hr />
@@ -185,7 +269,12 @@ export const SSHKey = () => {
                                     variant="ghost"
                                     isToolTip
                                     toolTipContent="Vertical"
-                                    icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                    icon={
+                                        <LuFlipVertical
+                                            size={16}
+                                            style={{ transform: 'rotate(90deg)' }}
+                                        />
+                                    }
                                     active={isVertical}
                                     onClick={() => setIsVertical(true)}
                                 />
@@ -253,7 +342,12 @@ export const SSHKey = () => {
                                     <Page.Space pHeight="8px" />
                                     <Page.Hr />
                                     <Page.Space pHeight="12px" />
-                                    <CommonTable data={{ columns: EXEC_SSH_KEY.table.columns, rows: EXEC_SSH_KEY.table.rows }} />
+                                    <CommonTable
+                                        data={{
+                                            columns: EXEC_SSH_KEY.table.columns,
+                                            rows: EXEC_SSH_KEY.table.rows,
+                                        }}
+                                    />
                                 </Page.ContentBlock>
                             </Page.ContentBlock>
                         </Page.Body>

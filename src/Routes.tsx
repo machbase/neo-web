@@ -4,6 +4,7 @@ import Home from '@/view/Home/Home';
 import DashboardView from './view/Dashboard/DashboardView';
 import PublicApp from './public-dashboard/PublicApp';
 import Login from '@/view/Login/Login';
+import RpcProbe from '@/components/rpcProbe/RpcProbe';
 import { useToken } from './hooks/useToken';
 
 export const Routes = () => {
@@ -35,6 +36,8 @@ export const Routes = () => {
             />
             <Route path={'/'} element={<Home />} />
             <Route path={'/view/*'} element={<DashboardView />} />
+            {/* Temporary: #1334 dummy page for checking RPC reads. Remove with RpcProbe once wired into the real UI. */}
+            <Route path={'/rpcprobe'} element={<RpcProbe />} />
             <Route path={'/*'} element={<Navigate replace to="/" />} />
         </Switch>
     );

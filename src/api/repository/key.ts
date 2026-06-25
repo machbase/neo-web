@@ -1,5 +1,12 @@
-// ref: https://github.com/machbase/neo-server/blob/31b78eb95325d4690d178f9a56da2df396d4d5a9/mods/service/httpd/httpd.go#L211
+// security key repository — migrated to the machbase-neo UI-API (JSON-RPC) (#1334 phase 4).
+//
+// list/delete are migrated to RPC (`key.list`/`key.delete`), but **generate stays on REST**:
+// the RPC `key.generate(id)` takes only an id, fixes the validity period to 10 years
+// (ignoring notBefore/notAfter), and returns only {id, certificate, key, token} — no
+// serverKey or zip. That breaks the create UI (validity period + *.zip download +
+// serverKey display), so keep POST /api/keys until the backend key.generate is enhanced.
 import request from '@/api/core';
+import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 
 export interface KeyItemType {
     id: string;
@@ -38,24 +45,35 @@ interface DelKeyResType {
     success: boolean;
 }
 
+const rpcErrMessage = (res: JsonRpcResponse<unknown>): string | null =>
+    res?.error ? res.error.message || `JSON-RPC error ${res.error.code}` : null;
+
 /**
- * Get security key list
- * @returns key list
+ * Get security key list — `key.list`.
+ * The RPC result is `KeyInfo[]` ({id, notBefore, notAfter}). idx is not in the RPC, so fill it from the array index.
  */
-export const getKeyList = (): Promise<KeyListResType> => {
-    return request({
-        method: 'GET',
-        url: `/api/keys`,
-    });
+export const getKeyList = async (): Promise<KeyListResType> => {
+    try {
+        const res = await rpcCall<any[]>(RpcMethod.key.list, []);
+        const err = rpcErrMessage(res);
+        if (err) return { success: false, reason: err, elapse: '', data: [] };
+        const rows = (res?.result ?? []) as any[];
+        const data: KeyItemType[] = rows.map((it, i) => ({
+            id: it?.id ?? it?.Id ?? '',
+            idx: i,
+            notBefore: Number(it?.notBefore ?? it?.NotBefore ?? 0),
+            notAfter: Number(it?.notAfter ?? it?.NotAfter ?? 0),
+        }));
+        return { success: true, reason: 'success', elapse: '', data };
+    } catch (e) {
+        return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '', data: [] };
+    }
 };
 
 /**
- * Gen security key
+ * Gen security key — ⚠️ stays on REST (the RPC `key.generate` lacks validity period / serverKey / zip support).
  * @Data {name, notBefore, notAfter}
- * @Name      string `json:"name"`
- * @NotBefore int64  `json:"notBefore"`
- * @NotAfter  int64  `json:"notAfter"`
- * @returns gen key info
+ * @returns gen key info (certificate/privateKey/serverKey/token/zip)
  */
 export const genKey = (aData: CreatePayloadType): Promise<GenKeyResType> => {
     return request({
@@ -66,13 +84,14 @@ export const genKey = (aData: CreatePayloadType): Promise<GenKeyResType> => {
 };
 
 /**
- * Delete security key
- * @aTargetKeyName string
- * @return status
+ * Delete security key — `key.delete(id)`.
  */
-export const delKey = (aTargetKeyName: string): Promise<DelKeyResType> => {
-    return request({
-        method: 'DELETE',
-        url: `/api/keys/${aTargetKeyName}`,
-    });
+export const delKey = async (aTargetKeyName: string): Promise<DelKeyResType> => {
+    try {
+        const res = await rpcCall(RpcMethod.key.delete, [aTargetKeyName]);
+        const err = rpcErrMessage(res);
+        return err ? { success: false, reason: err, elapse: '' } : { success: true, reason: 'success', elapse: '' };
+    } catch (e) {
+        return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '' };
+    }
 };
