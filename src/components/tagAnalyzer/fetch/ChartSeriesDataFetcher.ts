@@ -178,7 +178,7 @@ function parseChartQueryResponse(
         throw new Error(getChartFetchErrorMessage(apiResponse));
     }
 
-    const rows = normalizeChartFetchRows(getChartFetchRows(apiResponse.data));
+    const rows = getChartFetchRows(apiResponse.data);
     validateChartFetchRows(rows);
 
     return {
