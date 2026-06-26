@@ -718,6 +718,10 @@
     flex-direction: column;
 }
 
+.neo-data-viewer .data-viewer-results {
+    overflow: hidden;
+}
+
 .neo-data-viewer .form-card-header {
     min-height: 20px;
     display: flex;
@@ -743,6 +747,36 @@
     border-radius: 50%;
     background-color: var(--color-primary);
     flex-shrink: 0;
+}
+
+.neo-data-viewer .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    font-size: var(--size-icon-base);
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'liga';
+}
+
+.neo-data-viewer .material-symbols-outlined.icon-sm {
+    font-size: var(--size-icon-sm);
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 14;
+}
+
+.neo-data-viewer .material-symbols-outlined.icon-lg {
+    font-size: 22px;
 }
 
 .neo-data-viewer .data-viewer-tag-search {
@@ -1228,28 +1262,174 @@
     font-family: var(--font-family-mono);
 }
 
-.neo-data-viewer .data-viewer-raw-card .table-card-body,
-.neo-data-viewer .data-viewer-chart-card .table-card-body {
+.neo-data-viewer .data-viewer-raw-card .table-card-body {
     overflow: auto;
+}
+
+.neo-data-viewer .data-viewer-chart-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-12);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.neo-data-viewer .data-viewer-chart-card {
+    flex: 0 0 auto;
+}
+
+.neo-data-viewer .data-viewer-chart-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-12);
+    padding: var(--spacing-8) var(--spacing-12);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.neo-data-viewer .data-viewer-chart-panel-title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: var(--spacing-8);
+    color: var(--color-on-surface);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+.neo-data-viewer .data-viewer-chart-panel-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-8);
+    min-width: 0;
+}
+
+.neo-data-viewer .data-viewer-chart-panel-actions .btn-sm {
+    min-height: 32px;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    padding: var(--spacing-8) var(--spacing-10, 10px);
+    border-bottom: 1px solid var(--color-border);
+    overflow-x: auto;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    max-width: 220px;
+    min-height: 28px;
+    padding: 0 var(--spacing-8);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-chip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary-hover);
+    background-color: var(--color-primary-muted);
 }
 
 .neo-data-viewer .data-viewer-chart-card .table-card-body {
     display: flex;
+    flex-direction: column;
+    min-height: 320px;
     overflow: hidden;
 }
 
-.neo-data-viewer .data-viewer-chart {
+.neo-data-viewer .data-viewer-chart-shell {
+    position: relative;
     flex: 1;
     width: 100%;
     height: 100%;
-    min-height: 0;
+    min-height: 260px;
+    background-color: #252525;
+}
+
+.neo-data-viewer .data-viewer-chart-footer-form {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-controls {
+    position: absolute;
+    left: 50%;
+    bottom: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0 80px;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-group {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #454545;
+    border-radius: var(--radius-base);
+    background-color: rgba(31, 29, 29, 0.86);
+    pointer-events: auto;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-on-surface-secondary);
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-button:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-image,
+.neo-data-viewer .data-viewer-chart-toolbar-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-icon {
+    font-size: 20px;
+    line-height: 20px;
+}
+
+.neo-data-viewer .data-viewer-chart {
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
     padding: 0;
     background-color: #252525;
 }
 
-.neo-data-viewer .data-viewer-chart > div,
-.neo-data-viewer .data-viewer-chart .highcharts-container,
-.neo-data-viewer .data-viewer-chart .highcharts-root {
+.neo-data-viewer .data-viewer-chart > div {
     width: 100%;
     height: 100%;
     min-height: 0;

@@ -267,10 +267,8 @@ export const isOpenTagAnalyzerMessage = (aData: unknown, aAppName = TAG_ANALYZER
     );
 };
 
-export const createTagAnalyzerBoardFromTagSet = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): BridgeResult => {
-    if (!isOpenTagAnalyzerMessage(aData, aAppName)) return { status: 'ignored' };
-
-    const sPayload = normalizePayload(aData.payload);
+export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<BridgeResult, { status: 'ignored' }> => {
+    const sPayload = normalizePayload(aPayload);
     if (!sPayload.ok) return { status: 'error', reason: sPayload.reason };
 
     const sId = getId();
@@ -306,4 +304,10 @@ export const createTagAnalyzerBoardFromTagSet = (aData: unknown, aAppName = TAG_
             },
         },
     };
+};
+
+export const createTagAnalyzerBoardFromTagSet = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): BridgeResult => {
+    if (!isOpenTagAnalyzerMessage(aData, aAppName)) return { status: 'ignored' };
+
+    return createTagAnalyzerBoardFromPayload(aData.payload);
 };

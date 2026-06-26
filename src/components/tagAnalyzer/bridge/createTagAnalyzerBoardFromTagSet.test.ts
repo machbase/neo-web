@@ -1,4 +1,5 @@
 import {
+    createTagAnalyzerBoardFromPayload,
     createTagAnalyzerBoardFromTagSet,
     NEO_PACKAGE_MESSAGE_SOURCE,
     OPEN_TAG_ANALYZER_MESSAGE_TYPE,
@@ -49,6 +50,16 @@ const baseMessage = {
 };
 
 describe('createTagAnalyzerBoardFromTagSet', () => {
+    it('creates a taz board directly from a neo-web Data Viewer payload', () => {
+        const result = createTagAnalyzerBoardFromPayload(baseMessage.payload);
+
+        expect(result.status).toBe('ok');
+        if (result.status !== 'ok') throw new Error('expected ok result');
+        expect(result.board.type).toBe('taz');
+        expect(result.board.name).toBe('OPC UA Data Viewer.taz');
+        expect(result.board.panels[0].query.tagSet).toHaveLength(2);
+    });
+
     it('creates a taz board using the existing chart default shape', () => {
         const result = createTagAnalyzerBoardFromTagSet(baseMessage);
 
