@@ -108,6 +108,28 @@ export const registerLspLanguages = (monaco: typeof Monaco) => {
         aliases: ['TQL', 'tql'],
     });
     registerTqlTokens(monaco, TQL_LANGUAGE_ID);
+    // The Monarch tokenizer only colorizes `//` comments — Monaco's
+    // "Toggle Line Comment" command (Cmd+/ / Ctrl+/) reads the comment token
+    // from the language *configuration*, so it must be registered separately
+    // or the keybinding silently no-ops.
+    monaco.languages.setLanguageConfiguration(TQL_LANGUAGE_ID, {
+        comments: {
+            lineComment: '//',
+        },
+        brackets: [
+            ['{', '}'],
+            ['(', ')'],
+            ['[', ']'],
+        ],
+        autoClosingPairs: [
+            { open: '{', close: '}' },
+            { open: '(', close: ')' },
+            { open: '[', close: ']' },
+            { open: '`', close: '`' },
+            { open: "'", close: "'" },
+            { open: '"', close: '"' },
+        ],
+    });
     // Fire-and-forget: server metadata refines the keyword set, but the base
     // tokens above are already active so the editor is usable immediately.
     void bindTqlMetadataTokens(monaco, TQL_LANGUAGE_ID);
@@ -183,6 +205,25 @@ export const registerLspLanguages = (monaco: typeof Monaco) => {
                 [/`/, 'string', '@pop'],
             ],
         },
+    });
+    monaco.languages.setLanguageConfiguration(JSH_LANGUAGE_ID, {
+        comments: {
+            lineComment: '//',
+            blockComment: ['/*', '*/'],
+        },
+        brackets: [
+            ['{', '}'],
+            ['(', ')'],
+            ['[', ']'],
+        ],
+        autoClosingPairs: [
+            { open: '{', close: '}' },
+            { open: '(', close: ')' },
+            { open: '[', close: ']' },
+            { open: '`', close: '`' },
+            { open: "'", close: "'" },
+            { open: '"', close: '"' },
+        ],
     });
 
     sRegistered = true;
