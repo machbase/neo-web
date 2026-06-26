@@ -49,6 +49,15 @@ export const gActiveAppSide = atom<string | null>({
     default: null,
 });
 
+/** Current machbase-neo server version (from /api/check `server.version`), seeded
+ * by Home.getInfo. Consumed by the AppStore minServer eligibility gate (#1369).
+ * Empty string until login info loads → eligibility treats it as "unknown server"
+ * and does not block (see isEligible). */
+export const gServerVersion = atom<string>({
+    key: 'gServerVersion',
+    default: '',
+});
+
 import type { PkgHealthStatus } from '@/components/side/AppStore/pkgLifecycle/steps/pkgHealth';
 
 /** Per-package cgi-bin/health probe result. reachable=true ⇒ start/stop are

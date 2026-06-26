@@ -6,6 +6,7 @@ import { getLogin } from '@/api/repository/login';
 import MainContent from '@/components/mainContent/MainContent';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gLicense, gSelectedBoard, gSelectedExtension, gShellList } from '@/recoil/recoil';
+import { gServerVersion } from '@/recoil/appStore';
 import { UncaughtErrorObserver } from '@/utils/UncaughtErrorHelper';
 import { useToken } from '@/hooks/useToken';
 import { GlobalChecker } from '@/components/GlobalChecker';
@@ -34,6 +35,7 @@ const HomeContent = () => {
     const [sDragStat, setDragStat] = useState<boolean>(false);
     const [sHome, setHome] = useState<boolean>(false);
     const setShellList = useSetRecoilState<any>(gShellList);
+    const setServerVersion = useSetRecoilState(gServerVersion);
     const [getLicense, setLicense] = useRecoilState(gLicense);
     const [openEula, setOpenEula] = useState<boolean>(false);
     const { connectWebSocket, disconnectWebSocket } = useWebSocket();
@@ -61,6 +63,7 @@ const HomeContent = () => {
             setShellList(sTermTypeList);
             setOpenEula(true);
             setLicense({ eulaRequired: sResult?.eulaRequired, licenseStatus: sResult?.licenseStatus?.toUpperCase() });
+            setServerVersion(sResult?.server?.version ?? '');
             connectWebSocket();
             UncaughtErrorObserver(setConsoleList);
         } else {
@@ -87,6 +90,7 @@ const HomeContent = () => {
         setExperiment(sResult?.experimentMode ?? false);
         setLicense({ eulaRequired: sResult?.eulaRequired, licenseStatus: sResult?.licenseStatus?.toUpperCase() });
         setServer(sResult?.server);
+        setServerVersion(sResult?.server?.version ?? '');
         const sortAttributes = (aItem: string, bItem: string) => {
             const sOrder = ['editable', 'cloneable', 'removable'];
             return sOrder.indexOf(aItem) - sOrder.indexOf(bItem);
