@@ -150,18 +150,31 @@ const getTutorial = (aUrl: any) => {
     });
 };
 
+// Copy shell — stays on REST. There is no `shell.copy` RPC, and the only RPC create primitive
+// `shell.add(name, command)` takes just name+command (no theme/icon) and always mints a new id, so an
+// RPC copy would drop the source's theme/icon. Keep GET /api/shell/:id/copy until the backend adds
+// shell.copy (or shell.add gains style fields).
 const copyShell = (aId: string) => {
     return request({
         method: 'get',
         url: `/api/shell/${aId}/copy`,
     });
 };
-const removeShell = (aId: string) => {
-    return request({
-        method: 'delete',
-        url: `/api/shell/${aId}`,
-    });
+// Remove shell — `shell.delete(id)` (params: [id]). Adapts the RPC error|null into the { success }
+// envelope the caller (ShellManage) checks.
+const removeShell = async (aId: string) => {
+    try {
+        const res = await rpcCall(RpcMethod.shell.delete, [aId]);
+        const msg = res?.error ? res.error.message || `JSON-RPC error ${res.error.code}` : null;
+        return msg ? { success: false, reason: msg, statusText: msg } : { success: true, reason: 'success' };
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { success: false, reason: msg, statusText: msg };
+    }
 };
+// Update shell — stays on REST. There is no `shell.update` RPC; `shell.add` only *creates* (new id) and
+// can't carry theme/icon, so it cannot express an in-place update of an existing shell. Keep
+// POST /api/shell/:id until the backend adds shell.update. (Same kept-on-REST policy as timer.ts modTimer.)
 const postShell = (aInfo: any) => {
     return request({
         method: 'post',

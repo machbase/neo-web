@@ -210,7 +210,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Queue</Page.ContentTitle>
                                 <Page.ContentDesc>{'If the bridge is NATS type, it specifies the Queue Group.'}</Page.ContentDesc>
-                                <Page.Input pValue={sCreatePayload.Queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('Queue', event)} />
+                                <Page.Input pValue={sCreatePayload.queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('queue', event)} />
                             </Page.ContentBlock>
                         )}
                         {/* Task (writing descriptor vs tql path) */}

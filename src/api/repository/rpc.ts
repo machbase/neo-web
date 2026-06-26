@@ -228,8 +228,26 @@ export const RpcMethod = {
         add: 'sshkey.add',
         delete: 'sshkey.delete',
     },
+    bridge: {
+        list: 'bridge.list',
+        get: 'bridge.get',
+        add: 'bridge.add',
+        delete: 'bridge.delete',
+        test: 'bridge.test',
+        exec: 'bridge.exec',
+        query: 'bridge.query',
+        result: {
+            fetch: 'bridge.result.fetch',
+            close: 'bridge.result.close',
+        },
+    },
     sql: {
         split: 'sql.split',
+    },
+    shell: {
+        list: 'shell.list',
+        add: 'shell.add',
+        delete: 'shell.delete',
     },
     schedule: {
         list: 'schedule.list',

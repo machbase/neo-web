@@ -1,12 +1,12 @@
-// security key repository — migrated to the machbase-neo UI-API (JSON-RPC) (#1334 phase 4).
+// security key repository — migrated to the machbase-neo UI-API (JSON-RPC) (#1334).
 //
-// list/delete are migrated to RPC (`key.list`/`key.delete`), but **generate stays on REST**:
-// the RPC `key.generate(id)` takes only an id, fixes the validity period to 10 years
-// (ignoring notBefore/notAfter), and returns only {id, certificate, key, token} — no
-// serverKey or zip. That breaks the create UI (validity period + *.zip download +
-// serverKey display), so keep POST /api/keys until the backend key.generate is enhanced.
-import request from '@/api/core';
+// list/delete/generate are all on RPC now (`key.list`/`key.delete`/`key.generate`).
+// `key.generate(id, type, store)` fixes the validity period to 10 years (no notBefore/notAfter), so the
+// create form drops the validity inputs and adds key-type + store options. It returns only
+// {id, certificate, key, token} — no zip (zip download removed) and no serverKey, so genKey fetches the
+// server certificate separately via `server.certificate.get` to keep the mTLS serverKey display.
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
+import { rpcServerCertificateGet } from './server';
 
 export interface KeyItemType {
     id: string;
@@ -34,10 +34,10 @@ export interface GenKeyResType {
     name?: string | undefined;
 }
 export interface CreatePayloadType {
-    [key: string]: string | number;
+    [key: string]: string | number | boolean;
     name: string;
-    notBefore: number;
-    notAfter: number;
+    type: string; // 'rsa' | 'ecdsa'
+    store: boolean;
 }
 interface DelKeyResType {
     elapse: string;
@@ -71,16 +71,54 @@ export const getKeyList = async (): Promise<KeyListResType> => {
 };
 
 /**
- * Gen security key — ⚠️ stays on REST (the RPC `key.generate` lacks validity period / serverKey / zip support).
- * @Data {name, notBefore, notAfter}
- * @returns gen key info (certificate/privateKey/serverKey/token/zip)
+ * Gen security key — `key.generate(id, type, store)` (params order: [id, type, store]).
+ * The RPC returns { id, certificate, key, token } (key == privateKey); validity is fixed to 10 years
+ * server-side and there is no zip. serverKey is not in the response, so the server certificate is fetched
+ * separately via `server.certificate.get` (best-effort) and merged in to keep the mTLS serverKey display.
+ * @aData { name, type ('rsa'|'ecdsa'), store }
  */
-export const genKey = (aData: CreatePayloadType): Promise<GenKeyResType> => {
-    return request({
-        method: 'POST',
-        url: `/api/keys`,
-        data: aData,
+export const genKey = async (aData: CreatePayloadType): Promise<GenKeyResType> => {
+    const fail = (msg: string): GenKeyResType => ({
+        success: false,
+        reason: msg,
+        elapse: '',
+        statusText: msg,
+        certificate: '',
+        privateKey: '',
+        serverKey: '',
+        token: '',
+        zip: '',
     });
+    try {
+        const res = await rpcCall<{ certificate?: string; key?: string; token?: string }>(RpcMethod.key.generate, [
+            aData.name,
+            String(aData.type).toLowerCase(),
+            Boolean(aData.store),
+        ]);
+        const err = rpcErrMessage(res);
+        if (err) return fail(err);
+        const r = (res?.result ?? {}) as { certificate?: string; key?: string; token?: string };
+        // serverKey is not part of key.generate; fetch the server certificate separately for mTLS trust.
+        let serverKey = '';
+        try {
+            const certRes = await rpcServerCertificateGet();
+            if (!certRes?.error) serverKey = (certRes?.result as string) ?? '';
+        } catch {
+            // best-effort: leave serverKey empty if the server certificate cannot be fetched
+        }
+        return {
+            success: true,
+            reason: 'success',
+            elapse: '',
+            certificate: r.certificate ?? '',
+            privateKey: r.key ?? '',
+            serverKey,
+            token: r.token ?? '',
+            zip: '',
+        };
+    } catch (e) {
+        return fail(e instanceof Error ? e.message : String(e));
+    }
 };
 
 /**
