@@ -300,28 +300,6 @@ function validateChartFetchRows(rows: unknown): asserts rows is TagFetchRow[] {
     }
 }
 
-function normalizeChartFetchRows(rows: unknown): unknown {
-    if (!Array.isArray(rows)) {
-        return rows;
-    }
-
-    return rows.map((row) => {
-        if (!Array.isArray(row)) {
-            return row;
-        }
-
-        return row.map((cell, index) =>
-            index === 1 && isDatabaseNullText(cell)
-                ? null
-                : cell,
-        );
-    });
-}
-
-function isDatabaseNullText(value: unknown): boolean {
-    return typeof value === 'string' && value.trim().toUpperCase() === 'NULL';
-}
-
 async function executeChartFetchSql(
     querySql: string,
 ): Promise<ChartFetchResponse | undefined> {
