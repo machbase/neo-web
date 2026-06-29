@@ -2,6 +2,7 @@ import {
     buildDataViewerChartGroups,
     buildDataViewerChartXAxis,
     buildDataViewerEChartOption,
+    buildDataViewerGlobalTimeUpdate,
     buildDataViewerSplitGroups,
     buildDataViewerWheelZoomRange,
     buildDataViewerZoomControlRange,
@@ -194,6 +195,78 @@ describe('data viewer chart helpers', () => {
                 createId: (name, index) => `split:${index}:${name}`,
             }),
         ).toEqual([{ id: 'split:0:sensor.a', title: 'sensor.a', tagNames: ['sensor.a'] }]);
+    });
+
+    test('buildDataViewerGlobalTimeUpdate uses visible range first and applies it to every chart range', () => {
+        expect(
+            buildDataViewerGlobalTimeUpdate({
+                sourceGroupId: 'split:b',
+                chartGroups: [
+                    { id: 'default', title: 'Selected Tags', tagNames: ['sensor.a'], range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' }, split: false },
+                    { id: 'split:b', title: 'sensor.b', tagNames: ['sensor.b'], range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' }, split: true },
+                    { id: 'split:c', title: 'sensor.c', tagNames: ['sensor.c'], range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' }, split: true },
+                ],
+                chartViewRanges: {
+                    'split:b': { from: '2026-06-01T00:10:00.000Z', to: '2026-06-01T00:20:00.000Z' },
+                },
+                chartNavigatorRanges: {
+                    'split:b': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+                },
+                chartResults: {
+                    'split:b': { range: { from: '2026-06-01T00:05:00.000Z', to: '2026-06-01T00:25:00.000Z' } },
+                },
+            }),
+        ).toEqual({
+            range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            splitRanges: {
+                'split:b': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+                'split:c': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            },
+            viewRanges: {
+                default: { from: '2026-06-01T00:10:00.000Z', to: '2026-06-01T00:20:00.000Z' },
+                'split:b': { from: '2026-06-01T00:10:00.000Z', to: '2026-06-01T00:20:00.000Z' },
+                'split:c': { from: '2026-06-01T00:10:00.000Z', to: '2026-06-01T00:20:00.000Z' },
+            },
+            navigatorRanges: {
+                default: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+                'split:b': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+                'split:c': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            },
+        });
+    });
+
+    test('buildDataViewerGlobalTimeUpdate falls back to query range and rejects unavailable global time', () => {
+        const chartGroups = [
+            { id: 'split:a', title: 'sensor.a', tagNames: ['sensor.a'], range: { from: 'now-1h', to: 'now' }, split: true },
+            { id: 'split:b', title: 'sensor.b', tagNames: ['sensor.b'], range: { from: 'now-1h', to: 'now' }, split: true },
+        ];
+
+        expect(
+            buildDataViewerGlobalTimeUpdate({
+                sourceGroupId: 'split:a',
+                chartGroups,
+                chartResults: {
+                    'split:a': { range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' } },
+                },
+            }),
+        ).toEqual({
+            range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            splitRanges: {
+                'split:a': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+                'split:b': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            },
+            viewRanges: {
+                'split:a': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+                'split:b': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            },
+            navigatorRanges: {
+                'split:a': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+                'split:b': { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            },
+        });
+
+        expect(buildDataViewerGlobalTimeUpdate({ sourceGroupId: 'only', chartGroups: [{ id: 'only', title: 'Only', tagNames: ['sensor.a'], range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' }, split: false }] })).toBeUndefined();
+        expect(buildDataViewerGlobalTimeUpdate({ sourceGroupId: 'split:a', chartGroups })).toBeUndefined();
     });
 
     test('buildDataViewerEChartOption creates a mini navigator and zoom controls target', () => {

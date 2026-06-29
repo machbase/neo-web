@@ -43,6 +43,16 @@ const normalizeIdentifier = (value: string | undefined, fallback: string) => {
     const next = value?.trim() || fallback;
     return /^[A-Za-z_][A-Za-z0-9_$]*$/.test(next) ? next : fallback;
 };
+const formatMachbaseTimestamp = (value: string) => {
+    const text = String(value || '').trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(text)) return text;
+
+    const parsed = Date.parse(text);
+    if (!Number.isFinite(parsed)) return text;
+
+    const iso = new Date(parsed).toISOString();
+    return iso.replace('T', ' ').replace('Z', '');
+};
 
 export const buildQualifiedTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}.${tableName}`;
 export const buildQualifiedMetaTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}._${tableName}_META`;
@@ -120,8 +130,8 @@ const buildTagDataWhere = ({
         normalizedNames.length > 1
             ? [`${tagColumnExpr} in (${normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ')})`]
             : [`${tagColumnExpr} = '${escapeSqlString(normalizedNames[0] || '')}'`];
-    if (from && from !== 'last' && from !== 'now') where.push(`${timeColumnExpr} >= TO_TIMESTAMP('${escapeSqlString(from)}')`);
-    if (to && to !== 'last' && to !== 'now') where.push(`${timeColumnExpr} <= TO_TIMESTAMP('${escapeSqlString(to)}')`);
+    if (from && from !== 'last' && from !== 'now') where.push(`${timeColumnExpr} >= TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(from))}')`);
+    if (to && to !== 'last' && to !== 'now') where.push(`${timeColumnExpr} <= TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(to))}')`);
     return {
         tagColumnExpr,
         timeColumnExpr,

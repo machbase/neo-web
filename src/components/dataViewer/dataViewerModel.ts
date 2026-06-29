@@ -316,6 +316,71 @@ export function buildDataViewerSplitGroups({
     return groups;
 }
 
+function normalizeDataViewerGlobalTimeRange(range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown } = {}) {
+    const startValue = range.from ?? range.start ?? range.startTime;
+    const endValue = range.to ?? range.end ?? range.endTime;
+    const startTime = typeof startValue === 'number' ? startValue : Date.parse(String(startValue ?? ''));
+    const endTime = typeof endValue === 'number' ? endValue : Date.parse(String(endValue ?? ''));
+
+    if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime <= startTime) return undefined;
+
+    return {
+        from: new Date(startTime).toISOString(),
+        to: new Date(endTime).toISOString(),
+    };
+}
+
+export function buildDataViewerGlobalTimeUpdate({
+    sourceGroupId,
+    chartGroups = [],
+    chartViewRanges = {},
+    chartNavigatorRanges = {},
+    chartResults = {},
+}: {
+    sourceGroupId?: string;
+    chartGroups?: DataViewerChartGroup[];
+    chartViewRanges?: Record<string, { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown }>;
+    chartNavigatorRanges?: Record<string, { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown }>;
+    chartResults?: Record<string, { range?: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown } }>;
+} = {}) {
+    if (!sourceGroupId || chartGroups.length <= 1) return undefined;
+
+    const sourceGroup = chartGroups.find((group) => group?.id === sourceGroupId);
+    if (!sourceGroup) return undefined;
+
+    const displayRange =
+        normalizeDataViewerGlobalTimeRange(chartViewRanges?.[sourceGroupId]) ||
+        normalizeDataViewerGlobalTimeRange(chartResults?.[sourceGroupId]?.range) ||
+        normalizeDataViewerGlobalTimeRange(sourceGroup.range);
+    const navigatorRange =
+        normalizeDataViewerGlobalTimeRange(chartNavigatorRanges?.[sourceGroupId]) ||
+        normalizeDataViewerGlobalTimeRange(chartResults?.[sourceGroupId]?.range) ||
+        normalizeDataViewerGlobalTimeRange(sourceGroup.range) ||
+        displayRange;
+
+    if (!displayRange || !navigatorRange) return undefined;
+
+    const splitRanges: Record<string, { from: string; to: string }> = {};
+    const viewRanges: Record<string, { from: string; to: string }> = {};
+    const navigatorRanges: Record<string, { from: string; to: string }> = {};
+    chartGroups.forEach((group) => {
+        if (group?.split && group.id) {
+            splitRanges[group.id] = navigatorRange;
+        }
+        if (group?.id) {
+            viewRanges[group.id] = displayRange;
+            navigatorRanges[group.id] = navigatorRange;
+        }
+    });
+
+    return {
+        range: navigatorRange,
+        splitRanges,
+        viewRanges,
+        navigatorRanges,
+    };
+}
+
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -621,7 +686,7 @@ export function buildDataViewerEChartOption({
 } = {}) {
     const allPoints = series.flatMap((item) => (Array.isArray(item?.data) ? item.data : []));
     const panelRange = getPanelRange(allPoints, displayRange || timeRange) as Required<DataViewerChartRangeMs>;
-    const navigatorRange = getPanelRange(allPoints, {}) as Required<DataViewerChartRangeMs>;
+    const navigatorRange = getPanelRange(allPoints, timeRange) as Required<DataViewerChartRangeMs>;
     const yAxisRange = getYAxisRange(series, panelRange);
 
     return {

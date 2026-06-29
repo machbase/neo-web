@@ -24,6 +24,7 @@ import {
     buildAssetTreeRows,
     buildDataViewerChartGroups,
     buildDataViewerEChartOption,
+    buildDataViewerGlobalTimeUpdate,
     buildDataViewerHeaderLabels,
     buildDataViewerSplitGroups,
     buildDataViewerWheelZoomRange,
@@ -185,7 +186,7 @@ function TagEChart({
     timeZone: string;
     timeRange: DataViewerTimeRange;
     displayRange?: DataViewerTimeRange;
-    onDisplayRangeChange?: (range: DataViewerTimeRange) => void;
+    onDisplayRangeChange?: (range: DataViewerTimeRange, navigatorRange?: DataViewerTimeRange) => void;
 }) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const chartRef = useRef<echarts.ECharts | null>(null);
@@ -193,7 +194,7 @@ function TagEChart({
     const allPoints = useMemo(() => series.flatMap((item) => item.data), [series]);
     const options = useMemo(() => buildDataViewerEChartOption({ series, timeFormat, timeZone, timeRange, displayRange }), [displayRange, series, timeFormat, timeRange, timeZone]);
     const currentRange = useMemo(() => getDataViewerChartRangeMs(allPoints, displayRange || timeRange), [allPoints, displayRange, timeRange]);
-    const navigatorRange = useMemo(() => getDataViewerChartRangeMs(allPoints, {}), [allPoints]);
+    const navigatorRange = useMemo(() => getDataViewerChartRangeMs(allPoints, timeRange), [allPoints, timeRange]);
 
     useEffect(() => {
         rangeRef.current = { currentRange, navigatorRange, onDisplayRangeChange };
@@ -240,7 +241,10 @@ function TagEChart({
             if (!nextRange || isSameDataViewerChartRange(nextRange, activeRange)) return;
             event.preventDefault();
             event.stopPropagation();
-            activeRangeChange?.({ from: new Date(nextRange.startTime).toISOString(), to: new Date(nextRange.endTime).toISOString() });
+            activeRangeChange?.(
+                { from: new Date(nextRange.startTime).toISOString(), to: new Date(nextRange.endTime).toISOString() },
+                { from: new Date(activeNavigatorRange.startTime).toISOString(), to: new Date(activeNavigatorRange.endTime).toISOString() },
+            );
         };
         const handleDataZoom = (params: any) => {
             const { currentRange: activeRange, navigatorRange: activeNavigatorRange, onDisplayRangeChange: activeRangeChange } = rangeRef.current as any;
@@ -249,7 +253,10 @@ function TagEChart({
                 ? extractDataViewerDataZoomRange(params, activeRange, activeNavigatorRange)
                 : extractDataViewerDataZoomRange(dataZoomState, activeRange, activeNavigatorRange);
             if (!nextRange || isSameDataViewerChartRange(nextRange, activeRange)) return;
-            activeRangeChange?.({ from: new Date(nextRange.startTime).toISOString(), to: new Date(nextRange.endTime).toISOString() });
+            activeRangeChange?.(
+                { from: new Date(nextRange.startTime).toISOString(), to: new Date(nextRange.endTime).toISOString() },
+                { from: new Date(activeNavigatorRange.startTime).toISOString(), to: new Date(activeNavigatorRange.endTime).toISOString() },
+            );
         };
         chart.on('datazoom', handleDataZoom);
         container.addEventListener('wheel', handleMouseWheelZoom, { passive: false, capture: true });
@@ -288,7 +295,14 @@ function TagEChart({
         (action: string, zoom?: number) => {
             const nextRange = buildDataViewerZoomControlRange(action, currentRange, navigatorRange, zoom);
             if (!nextRange || isSameDataViewerChartRange(nextRange, currentRange)) return;
-            onDisplayRangeChange?.({ from: new Date(nextRange.startTime).toISOString(), to: new Date(nextRange.endTime).toISOString() });
+            const navigatorStart = Number(navigatorRange.startTime);
+            const navigatorEnd = Number(navigatorRange.endTime);
+            onDisplayRangeChange?.(
+                { from: new Date(nextRange.startTime).toISOString(), to: new Date(nextRange.endTime).toISOString() },
+                Number.isFinite(navigatorStart) && Number.isFinite(navigatorEnd)
+                    ? { from: new Date(navigatorStart).toISOString(), to: new Date(navigatorEnd).toISOString() }
+                    : undefined,
+            );
         },
         [currentRange, navigatorRange, onDisplayRangeChange],
     );
@@ -381,6 +395,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const [splitChartGroups, setSplitChartGroups] = useState<Array<{ id: string; title: string; tagNames: string[] }>>([]);
     const [splitChartRanges, setSplitChartRanges] = useState<Record<string, DataViewerTimeRange>>({});
     const [chartViewRanges, setChartViewRanges] = useState<Record<string, DataViewerTimeRange>>({});
+    const [chartNavigatorRanges, setChartNavigatorRanges] = useState<Record<string, DataViewerTimeRange>>({});
     const [chartResults, setChartResults] = useState<Record<string, { range: DataViewerTimeRange; series: Array<{ name: string; data: Array<[number, number | null]> }> }>>({});
     const [chartLoading, setChartLoading] = useState(false);
     const [chartError, setChartError] = useState('');
@@ -475,6 +490,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             });
             return Object.keys(next).length === Object.keys(current).length ? current : next;
         });
+        setChartNavigatorRanges((current) => {
+            const next: Record<string, DataViewerTimeRange> = {};
+            Object.entries(current).forEach(([id, value]) => {
+                if (validGroupIds.has(id)) next[id] = value;
+            });
+            return Object.keys(next).length === Object.keys(current).length ? current : next;
+        });
         setSplitChartRanges((current) => {
             const next: Record<string, DataViewerTimeRange> = {};
             Object.entries(current).forEach(([id, value]) => {
@@ -489,6 +511,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         chartRequestRef.current += 1;
         endPageRequestRef.current += 1;
         setChartViewRanges({});
+        setChartNavigatorRanges({});
         setSelectedTagNames((current) => toggleSelectedTagName(current, tagName));
         setPage(1);
     }, []);
@@ -503,6 +526,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             if (nextGroups.length === 0) return;
             chartRequestRef.current += 1;
             setChartViewRanges({});
+            setChartNavigatorRanges({});
             setSplitChartGroups((current) => [...current, ...nextGroups]);
         },
         [selectedTagNames, splitAssignedNames],
@@ -675,6 +699,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 );
                 if (!alive || chartRequestRef.current !== requestId) return;
                 setChartResults(nextResults);
+                setChartNavigatorRanges((current) => {
+                    const next: Record<string, DataViewerTimeRange> = {};
+                    chartGroups.forEach((group) => {
+                        next[group.id] = current[group.id] || nextResults[group.id]?.range || group.range;
+                    });
+                    return next;
+                });
             } catch (err: any) {
                 if (!alive || chartRequestRef.current !== requestId) return;
                 setChartError(err?.message || 'Failed to load chart data');
@@ -744,6 +775,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             chartRequestRef.current += 1;
             endPageRequestRef.current += 1;
             setChartViewRanges({});
+            setChartNavigatorRanges({});
             if (rangeEditor?.type === 'split' && rangeEditor.groupId) {
                 setSplitChartRanges((current) => ({
                     ...current,
@@ -799,6 +831,31 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setSelectedTab(result.board.id);
         },
         [chartViewRanges, dbName, setBoardList, setSelectedTab, tableName, tagColumn, timeColumn, userName, valueColumn],
+    );
+    const handleSetGlobalTime = useCallback(
+        (groupId: string) => {
+            const update = buildDataViewerGlobalTimeUpdate({
+                sourceGroupId: groupId,
+                chartGroups,
+                chartViewRanges,
+                chartNavigatorRanges,
+                chartResults,
+            });
+            if (!update) {
+                setError('Cannot set global time from this chart.');
+                return;
+            }
+
+            rowsRequestRef.current += 1;
+            chartRequestRef.current += 1;
+            endPageRequestRef.current += 1;
+            setChartViewRanges(update.viewRanges);
+            setChartNavigatorRanges(update.navigatorRanges);
+            setRange(update.range);
+            setSplitChartRanges(update.splitRanges);
+            setPage(1);
+        },
+        [chartGroups, chartNavigatorRanges, chartResults, chartViewRanges],
     );
 
     return (
@@ -992,6 +1049,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                     {!chartLoading &&
                                         chartGroups.map((group) => {
                                             const chartData = chartResults[group.id] || { series: [], range: group.range as DataViewerTimeRange };
+                                            const globalTimeUpdate = buildDataViewerGlobalTimeUpdate({
+                                                sourceGroupId: group.id,
+                                                chartGroups,
+                                                chartViewRanges,
+                                                chartNavigatorRanges,
+                                                chartResults,
+                                            });
                                             return (
                                                 <div key={group.id} className="table-card data-viewer-chart-card">
                                                     <div className="data-viewer-chart-panel-header">
@@ -1025,6 +1089,16 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                 <MaterialIcon name="monitoring" className="icon-sm" />
                                                                 <span>Tag Analyzer</span>
                                                             </button>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-ghost"
+                                                                title="Apply this chart time to all charts"
+                                                                disabled={!globalTimeUpdate}
+                                                                onClick={() => handleSetGlobalTime(group.id)}
+                                                            >
+                                                                <MaterialIcon name="schedule" className="icon-sm" />
+                                                                <span>Global Time</span>
+                                                            </button>
                                                             {group.split ? (
                                                                 <>
                                                                     <button type="button" className="btn btn-sm btn-ghost" title="Group" onClick={() => handleMergeSplitChart(group.id)}>
@@ -1051,11 +1125,17 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                             timeZone={timeZone}
                                                             timeRange={chartData.range}
                                                             displayRange={chartViewRanges[group.id]}
-                                                            onDisplayRangeChange={(nextRange) => {
+                                                            onDisplayRangeChange={(nextRange, nextNavigatorRange) => {
                                                                 setChartViewRanges((current) => ({
                                                                     ...current,
                                                                     [group.id]: nextRange,
                                                                 }));
+                                                                if (nextNavigatorRange) {
+                                                                    setChartNavigatorRanges((current) => ({
+                                                                        ...current,
+                                                                        [group.id]: nextNavigatorRange,
+                                                                    }));
+                                                                }
                                                             }}
                                                         />
                                                     </div>
