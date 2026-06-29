@@ -1257,7 +1257,11 @@
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
+    scrollbar-width: none;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-actions::-webkit-scrollbar {
+    display: none;
 }
 
 .neo-data-viewer .data-viewer-chart-tag-chip {
