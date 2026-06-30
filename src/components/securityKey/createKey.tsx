@@ -1,5 +1,5 @@
 import { Copy, LuFlipVertical } from '@/assets/icons/Icon';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { IconButton } from '@/components/buttons/IconButton';
 import { CreatePayloadType, GenKeyResType, KeyItemType, genKey, getKeyList } from '@/api/repository/key';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
@@ -7,9 +7,11 @@ import { gBoardList, gKeyList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
 import { SplitPane, Pane, Page, Button, Alert } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
+import moment from 'moment';
 
-// key.generate returns { certificate, key(privateKey), token }; serverKey is merged in by genKey via
-// server.certificate.get. No zip (validity is fixed to 10 years server-side, zip download removed).
+// key.generate returns { certificate, key(privateKey), token }; when store=true it also returns serverKey
+// and zip (base64). When store=false serverKey is merged in by genKey via server.certificate.get and there
+// is no zip. The *.zip download button is shown only when a zip is present (i.e. store=true).
 const KEY_TYPE_LIST: { name: string; data: string }[] = [
     { name: 'ECDSA', data: 'ecdsa' },
     { name: 'RSA', data: 'rsa' },
@@ -26,17 +28,29 @@ export const CreateKey = () => {
     const sBodyRef: any = useRef(null);
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [isVertical, setIsVertical] = useState<boolean>(true);
+    const [sStartTime, sSetStartTime] = useState<string>('');
+    const [sEndTime, sSetEndTime] = useState<string>('');
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
         name: '',
         type: 'ecdsa',
+        notBefore: 0,
+        notAfter: 0,
         store: true,
     });
 
-    /** create key — `key.generate(id, type, store)` */
+    /** check time format (string date -> valid?) */
+    const isTimeFormat = (aTxt: string): boolean => {
+        if (aTxt === '0') return false;
+        if (Number(aTxt)) return false;
+        return moment(aTxt).isValid();
+    };
+    /** create key — `key.generate(id, typ, notBefore, notAfter, store)` */
     const createKey = async () => {
         const sRes = await genKey({
             name: sCreatePayload.name,
             type: sCreatePayload.type,
+            notBefore: isTimeFormat(sStartTime + ' 00:00:00') ? moment(sStartTime + ' 00:00:00').unix() : 0,
+            notAfter: isTimeFormat(sEndTime + ' 00:00:00') ? moment(sEndTime + ' 00:00:00').unix() : 0,
             store: sCreatePayload.store,
         });
         if (sRes.success) {
@@ -72,6 +86,24 @@ export const CreateKey = () => {
             });
         });
     };
+    /** download zip file (server.pem, {id}_cert.pem, {id}_key.pem, {id}_token.txt) — store=true only */
+    const handleDownloadFile = () => {
+        if (sGenKeyInfo && sGenKeyInfo.zip) {
+            const byteCharacters = atob(sGenKeyInfo.zip as string);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/zip' });
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', `${sGenKeyInfo.name as string}.zip`);
+            document.body.appendChild(link);
+            link.click();
+        }
+    };
     /** copy clipboard */
     const handleCopy = (aKey: string) => {
         setTooltipTxt('Copied!');
@@ -80,9 +112,25 @@ export const CreateKey = () => {
             setTooltipTxt('Copy');
         }, 600);
     };
+    /** set validity period (Valid After / Valid Before) */
+    const handleTime = (aTarget: string, aValue: any) => {
+        if (aTarget === 'startTime') sSetStartTime(aValue);
+        else sSetEndTime(aValue);
+        handleSavedCode(false);
+    };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
     };
+    /** init validity period: Valid After = now, Valid Before = now + 10y (server default) */
+    const init = () => {
+        const sDate = new Date();
+        sSetStartTime(moment(sDate).format('YYYY-MM-DD'));
+        sSetEndTime(moment(sDate).add(10, 'y').format('YYYY-MM-DD'));
+    };
+
+    useEffect(() => {
+        init();
+    }, []);
 
     return (
         <Page pRef={sBodyRef}>
@@ -110,6 +158,20 @@ export const CreateKey = () => {
                                 pSelectedItem={sCreatePayload.type}
                                 pCallback={(aSelectedItem: string) => handlePayload('type', { target: { value: aSelectedItem } } as any)}
                             />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>Valid After</Page.ContentTitle>
+                            </Page.DpRow>
+                            <Page.ContentDesc>Key validity start (empty = now)</Page.ContentDesc>
+                            <Page.DatePicker pTime={sStartTime} pSetApply={(e: any) => handleTime('startTime', e)} />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>Valid Before</Page.ContentTitle>
+                            </Page.DpRow>
+                            <Page.ContentDesc>Key validity end (empty = now + 10 years)</Page.ContentDesc>
+                            <Page.DatePicker pTime={sEndTime} pSetApply={(e: any) => handleTime('endTime', e)} />
                         </Page.ContentBlock>
                         <Page.ContentBlock>
                             <Page.ContentTitle>Store</Page.ContentTitle>
@@ -163,6 +225,15 @@ export const CreateKey = () => {
                                     <Alert variant="warning" message={RES_CAUTION} />
                                 </Page.ContentDesc>
                             </Page.ContentBlock>
+                            {sGenKeyInfo.zip && (
+                                <Page.ContentBlock>
+                                    <Page.DpRow>
+                                        <div style={{ marginRight: '4px' }}>
+                                            <Page.TextButton pWidth="120px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
+                                        </div>
+                                    </Page.DpRow>
+                                </Page.ContentBlock>
+                            )}
                             {DOWNLOAD_LIST.map((aTxt: string) => {
                                 return (
                                     <Page.ContentBlock key={aTxt}>
