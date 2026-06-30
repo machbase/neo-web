@@ -121,7 +121,7 @@ describe('data viewer API query builders', () => {
         expect(sql).toContain("NAME in ('sensor.a', 'sensor.b', 'sensor.c')");
         expect(sql).toContain(`TIME >= TO_TIMESTAMP('${machbaseTime('2026-06-25T05:09:56.100Z')}')`);
         expect(sql).toContain(`TIME <= TO_TIMESTAMP('${machbaseTime('2026-06-25T05:10:01.001Z')}')`);
-        expect(sql).toContain('limit 0, 3000');
+        expect(sql).not.toContain('limit');
         expect(sql).not.toContain('limit 9000, 3000');
         expect(result.rows.map((row) => row.name)).toEqual(['sensor.b', 'sensor.a']);
     });

@@ -30,7 +30,9 @@ import {
     buildDataViewerRawPageBounds,
     buildDataViewerRawPageRequest,
     buildDataViewerRawToChartRangeUpdate,
+    buildDataViewerSplitRangeUpdate,
     buildDataViewerSplitGroups,
+    buildDataViewerTagSelectionUpdate,
     buildDataViewerWheelZoomRange,
     buildDataViewerZoomControlRange,
     buildRawResultColumns,
@@ -49,7 +51,6 @@ import {
     normalizeSelectedTagNames,
     resolveTimeRangeInput,
     shouldFetchDataViewerRowsForMode,
-    toggleSelectedTagName,
     toDataViewerDate,
 } from './dataViewerModel';
 import './DataViewerPage.scss';
@@ -584,19 +585,14 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             rowsRequestRef.current += 1;
             chartRequestRef.current += 1;
             endPageRequestRef.current += 1;
-            setChartViewRanges({});
-            setChartNavigatorRanges({});
-            const next = toggleSelectedTagName(selectedTagNames, tagName);
-            setSelectedTagNames(next);
-            setRawPageRequest(
-                buildDataViewerRawPageRequest({
-                    currentPage: page,
-                    nextPage: page,
-                    pageSize: getDataViewerRawPageSize(next),
-                    currentBounds: rawPageBounds,
-                    reason: 'tags',
-                }),
-            );
+            const update = buildDataViewerTagSelectionUpdate({
+                selectedTagNames,
+                tagName,
+                currentPage: page,
+                currentBounds: rawPageBounds,
+            });
+            setSelectedTagNames(update.selectedTagNames);
+            setRawPageRequest(update.rawPageRequest);
         },
         [page, rawPageBounds, selectedTagNames],
     );
@@ -609,12 +605,19 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 assignedTagNames: Array.from(splitAssignedNames),
             });
             if (nextGroups.length === 0) return;
+            const rangeUpdate = buildDataViewerSplitRangeUpdate({
+                nextGroups,
+                chartViewRanges,
+                chartNavigatorRanges,
+                splitRanges: splitChartRanges,
+            });
             chartRequestRef.current += 1;
-            setChartViewRanges({});
-            setChartNavigatorRanges({});
+            setChartViewRanges(rangeUpdate.chartViewRanges);
+            setChartNavigatorRanges(rangeUpdate.chartNavigatorRanges);
+            setSplitChartRanges(rangeUpdate.splitRanges);
             setSplitChartGroups((current) => [...current, ...nextGroups]);
         },
-        [selectedTagNames, splitAssignedNames],
+        [chartNavigatorRanges, chartViewRanges, selectedTagNames, splitAssignedNames, splitChartRanges],
     );
 
     const handleRemoveSplitChart = useCallback((groupId: string) => {

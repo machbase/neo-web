@@ -285,7 +285,8 @@ export async function queryTagData({
     const offset = cursor ? Math.max(0, Math.floor(cursorOffset || 0)) : boundedRange ? 0 : Math.max(0, page - 1) * pageSize;
     const orderTime = cursor?.orderTime ?? (direction === 'latest' ? 'desc' : 'asc');
     const orderName = cursor?.orderName ?? 'asc';
-    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${queryWhere.join(' and ')} order by ${timeColumnExpr} ${orderTime}, ${tagColumnExpr} ${orderName} limit ${offset}, ${pageSize}`;
+    const limitClause = cursor || !boundedRange ? ` limit ${offset}, ${pageSize}` : '';
+    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${queryWhere.join(' and ')} order by ${timeColumnExpr} ${orderTime}, ${tagColumnExpr} ${orderName}${limitClause}`;
     const { svrState, svrData, svrReason } = await fetchQuery(sql);
     if (!svrState) throw new Error(svrReason || 'Failed to load data');
 

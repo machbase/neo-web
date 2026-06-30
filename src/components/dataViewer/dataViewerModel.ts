@@ -428,6 +428,13 @@ export type DataViewerChartRangeMs = {
     endTime?: number;
 };
 
+type DataViewerChartStoredRange = DataViewerChartRangeMs & {
+    from?: unknown;
+    to?: unknown;
+    start?: unknown;
+    end?: unknown;
+};
+
 export function buildDataViewerChartGroups({
     selectedTagNames = [],
     splitGroups = [],
@@ -524,6 +531,41 @@ export function buildDataViewerSplitGroups({
     });
 
     return groups;
+}
+
+export function buildDataViewerSplitRangeUpdate<T extends DataViewerChartStoredRange = DataViewerChartStoredRange>({
+    nextGroups = [],
+    chartViewRanges = {},
+    chartNavigatorRanges = {},
+    splitRanges = {},
+    sourceGroupId = 'default',
+}: {
+    nextGroups?: DataViewerSplitGroup[];
+    chartViewRanges?: Record<string, T>;
+    chartNavigatorRanges?: Record<string, T>;
+    splitRanges?: Record<string, T>;
+    sourceGroupId?: string;
+} = {}) {
+    const nextViewRanges: Record<string, T> = { ...chartViewRanges };
+    const nextNavigatorRanges: Record<string, T> = { ...chartNavigatorRanges };
+    const nextSplitRanges: Record<string, T> = { ...splitRanges };
+    const sourceViewRange = chartViewRanges?.[sourceGroupId];
+    const sourceNavigatorRange = chartNavigatorRanges?.[sourceGroupId];
+    const sourceSplitRange = sourceNavigatorRange || sourceViewRange;
+
+    nextGroups.forEach((group) => {
+        const id = String(group?.id || '').trim();
+        if (!id) return;
+        if (sourceViewRange && !nextViewRanges[id]) nextViewRanges[id] = sourceViewRange;
+        if (sourceNavigatorRange && !nextNavigatorRanges[id]) nextNavigatorRanges[id] = sourceNavigatorRange;
+        if (sourceSplitRange && !nextSplitRanges[id]) nextSplitRanges[id] = sourceSplitRange;
+    });
+
+    return {
+        chartViewRanges: nextViewRanges,
+        chartNavigatorRanges: nextNavigatorRanges,
+        splitRanges: nextSplitRanges,
+    };
 }
 
 function normalizeDataViewerGlobalTimeRange(range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown } = {}) {
@@ -1250,6 +1292,33 @@ export function toggleSelectedTagName(selectedNames: string[] = [], tagName = ''
     if (!name) return current;
     if (current.includes(name)) return current.filter((selectedName) => selectedName !== name);
     return [...current, name];
+}
+
+export function buildDataViewerTagSelectionUpdate({
+    selectedTagNames = [],
+    tagName = '',
+    currentPage = 1,
+    pageSize,
+    currentBounds,
+}: {
+    selectedTagNames?: string[];
+    tagName?: string;
+    currentPage?: number;
+    pageSize?: number;
+    currentBounds?: ReturnType<typeof buildDataViewerRawPageBounds>;
+} = {}) {
+    const nextSelectedTagNames = toggleSelectedTagName(selectedTagNames, tagName);
+    return {
+        selectedTagNames: nextSelectedTagNames,
+        rawPageRequest: buildDataViewerRawPageRequest({
+            currentPage,
+            nextPage: currentPage,
+            pageSize: pageSize ?? getDataViewerRawPageSize(nextSelectedTagNames),
+            currentBounds,
+            reason: 'tags',
+        }),
+        preserveChartRanges: true,
+    };
 }
 
 export function formatDataViewerTime(value: unknown, timeFormat: string, timeZone: string) {
