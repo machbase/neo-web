@@ -223,6 +223,9 @@ export const RpcMethod = {
         signature: 'lsp.signature',
         metadata: 'lsp.metadata',
     },
+    markdown: {
+        render: 'markdown.render',
+    },
     sshkey: {
         list: 'sshkey.list',
         add: 'sshkey.add',

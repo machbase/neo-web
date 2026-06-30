@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { postMd } from '@/api/repository/api';
+import { rpcMarkdownRender } from '@/api/repository/markdown';
 import setMermaid from '@/plugin/mermaid';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -85,7 +85,7 @@ export const Markdown = (props: MarkdownProps) => {
     };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {
-        const sData = await postMd(aContents, true, aReperer);
+        const sData = await rpcMarkdownRender(aContents, true, aReperer);
         setMdxText(`<article>${sData}</article>`);
     };
 

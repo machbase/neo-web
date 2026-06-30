@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { postMd } from '../../api/repository/api';
+import { rpcMarkdownRender } from '../../api/repository/api';
 import '../../assets/md/md.css';
 import './Markdown.scss';
 import '../../assets/md/mdDark.css';
@@ -85,7 +85,7 @@ export const Markdown = (props: MarkdownProps) => {
     };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {
-        const sData = await postMd(aContents, true, aReperer);
+        const sData = await rpcMarkdownRender(aContents, true, aReperer);
         setMdxText(`<article>${sData}</article>`);
     };
 
