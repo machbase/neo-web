@@ -625,6 +625,22 @@ describe('data viewer chart helpers', () => {
         expect(option.tooltip.position([240, 120], [], {} as HTMLElement, null, { contentSize: [220, 80], viewSize: [300, 220] })).toEqual([12, 132]);
     });
 
+    test('buildDataViewerEChartOption moves main chart below multi-row legend', () => {
+        const series = Array.from({ length: 9 }, (_, index) => ({
+            name: `sensor.${index}`,
+            data: [[Date.parse('2026-06-01T00:00:00Z'), index] as [number, number]],
+        }));
+        const option = buildDataViewerEChartOption({
+            series,
+            timeRange: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T00:10:00.000Z' },
+            timeZone: 'UTC',
+        }) as any;
+
+        expect(option.grid[0].top).toBeGreaterThan(40);
+        expect(option.grid[0].height).toBeLessThan(178);
+        expect(option.legend.type).toBe('scroll');
+    });
+
     test('buildDataViewerEChartOption keeps explicit ranges when series is empty', () => {
         const option = buildDataViewerEChartOption({
             series: [],
