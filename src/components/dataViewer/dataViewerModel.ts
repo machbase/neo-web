@@ -122,6 +122,189 @@ export function getScanDirectionLabel(backwardScan: boolean) {
     return backwardScan ? 'Backward' : 'Forward';
 }
 
+export function getDataViewerRawPageSize(selectedTagNames: unknown[] = []) {
+    const tagCount = Array.isArray(selectedTagNames) ? selectedTagNames.length : 0;
+    return Math.max(1, tagCount) * 1000;
+}
+
+function getRawRowTimeValue(row: unknown) {
+    if (Array.isArray(row)) return row[0];
+    if (!row || typeof row !== 'object') return undefined;
+    const record = row as Record<string, unknown>;
+    return record.time ?? record.TIME ?? record.Time;
+}
+
+function getRawRowNameValue(row: unknown) {
+    if (Array.isArray(row)) return row[1];
+    if (!row || typeof row !== 'object') return undefined;
+    const record = row as Record<string, unknown>;
+    return record.name ?? record.NAME ?? record.Name;
+}
+
+function getRawRowValueValue(row: unknown) {
+    if (Array.isArray(row)) return row[2];
+    if (!row || typeof row !== 'object') return undefined;
+    const record = row as Record<string, unknown>;
+    return record.value ?? record.VALUE ?? record.Value;
+}
+
+export function buildDataViewerRawPageTimeRange(rows: unknown[] = []): { from: string; to: string } | null {
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+
+    rows.forEach((row) => {
+        const epochMs = toEpochMs(getRawRowTimeValue(row));
+        if (!Number.isFinite(epochMs)) return;
+        if (epochMs < min) min = epochMs;
+        if (epochMs > max) max = epochMs;
+    });
+
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+
+    return {
+        from: new Date(min).toISOString(),
+        to: new Date(max).toISOString(),
+    };
+}
+
+export type DataViewerRawPageBounds = {
+    pageStart: { time: string; name: string };
+    pageEnd: { time: string; name: string };
+    pageBounds: { from: string; to: string };
+};
+
+export type DataViewerRawPageRequest =
+    | { page: number; from: string; to: string; boundedRange: true; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
+    | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
+    | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide: 'next' | 'prev'; cursorTime: string; cursorName: string; cursorOffset: number };
+
+export function buildDataViewerRawPageBounds(rows: unknown[] = []): DataViewerRawPageBounds | null {
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+
+    const normalized = rows
+        .map((row) => {
+            const epochMs = toEpochMs(getRawRowTimeValue(row));
+            if (!Number.isFinite(epochMs)) return null;
+            return {
+                time: new Date(epochMs).toISOString(),
+                name: String(getRawRowNameValue(row) ?? ''),
+                epochMs,
+            };
+        })
+        .filter((row): row is { time: string; name: string; epochMs: number } => Boolean(row));
+
+    if (normalized.length === 0) return null;
+
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    normalized.forEach((row) => {
+        if (row.epochMs < min) min = row.epochMs;
+        if (row.epochMs > max) max = row.epochMs;
+    });
+
+    return {
+        pageStart: {
+            time: normalized[0].time,
+            name: normalized[0].name,
+        },
+        pageEnd: {
+            time: normalized[normalized.length - 1].time,
+            name: normalized[normalized.length - 1].name,
+        },
+        pageBounds: {
+            from: new Date(min).toISOString(),
+            to: new Date(max).toISOString(),
+        },
+    };
+}
+
+export function buildDataViewerRawPageRequest({
+    currentPage = 1,
+    nextPage = 1,
+    pageSize = 1,
+    currentBounds,
+    reason = 'page',
+}: {
+    currentPage?: number;
+    nextPage?: number;
+    pageSize?: number;
+    currentBounds?: DataViewerRawPageBounds | null;
+    reason?: 'page' | 'tags';
+} = {}): DataViewerRawPageRequest {
+    const page = Math.max(1, Math.floor(Number(nextPage) || 1));
+    const previousPage = Math.max(1, Math.floor(Number(currentPage) || 1));
+    const safePageSize = Math.max(1, Math.floor(Number(pageSize) || 1));
+
+    if (reason === 'tags' && currentBounds?.pageBounds) {
+        return {
+            page,
+            from: currentBounds.pageBounds.from,
+            to: currentBounds.pageBounds.to,
+            boundedRange: true,
+        };
+    }
+
+    if (!currentBounds || page === previousPage) {
+        return { page };
+    }
+
+    if (Math.abs(page - previousPage) !== 1) {
+        return { page };
+    }
+
+    const movingForward = page > previousPage;
+    const boundary = movingForward ? currentBounds.pageEnd : currentBounds.pageStart;
+    if (!boundary?.time) return { page };
+
+    return {
+        page,
+        cursorSide: movingForward ? 'next' : 'prev',
+        cursorTime: boundary.time,
+        cursorName: boundary.name || '',
+        cursorOffset: Math.max(0, Math.abs(page - previousPage) - 1) * safePageSize,
+    };
+}
+
+export function hasDataViewerRawNextPage({
+    rowCount = 0,
+    pageSize = 1,
+    forceOpen = false,
+}: {
+    rowCount?: number;
+    pageSize?: number;
+    forceOpen?: boolean;
+} = {}) {
+    if (forceOpen) return true;
+    const safePageSize = Math.max(1, Math.floor(Number(pageSize) || 1));
+    return Math.max(0, Math.floor(Number(rowCount) || 0)) >= safePageSize;
+}
+
+export function buildDataViewerRawToChartRangeUpdate({
+    rows = [],
+    rawRange = { from: '', to: '' },
+    splitGroups = [],
+}: {
+    rows?: unknown[];
+    rawRange?: { from?: unknown; to?: unknown };
+    splitGroups?: Array<{ id?: string; [key: string]: unknown }>;
+} = {}) {
+    const chartRange = buildDataViewerRawPageTimeRange(rows);
+    if (!chartRange) return null;
+
+    const splitRanges: Record<string, { from: string; to: string }> = {};
+    splitGroups.forEach((group) => {
+        if (group?.id) splitRanges[group.id] = chartRange;
+    });
+
+    return {
+        rawRange,
+        chartRange,
+        splitRanges,
+    };
+}
+
 export function formatTimeRangeLabel(from: unknown, to: unknown) {
     if (!from && !to) return 'Time range not set';
     return `${formatTimeRangeBoundaryLabel(from, 'Start')} ~ ${formatTimeRangeBoundaryLabel(to, 'End')}`;
@@ -183,9 +366,9 @@ export function buildTagChartSeries(rows: Record<string, unknown>[] = []) {
     const seriesByName = new Map<string, [number, number][]>();
 
     rows.forEach((row) => {
-        const name = String(row?.name ?? '');
-        const x = toEpochMs(row?.time);
-        const y = Number(row?.value);
+        const name = String(getRawRowNameValue(row) ?? '');
+        const x = toEpochMs(getRawRowTimeValue(row));
+        const y = Number(getRawRowValueValue(row));
         if (!name || !Number.isFinite(x) || !Number.isFinite(y)) return;
         if (!seriesByName.has(name)) {
             seriesByName.set(name, []);
@@ -197,6 +380,29 @@ export function buildTagChartSeries(rows: Record<string, unknown>[] = []) {
         name,
         data: data.sort((a, b) => a[0] - b[0]),
     }));
+}
+
+export function buildDataViewerChartResultsFromRawRows({
+    rows = [],
+    chartGroups = [],
+}: {
+    rows?: Record<string, unknown>[];
+    chartGroups?: DataViewerChartGroup[];
+} = {}) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const results: Record<string, { range: { from?: unknown; to?: unknown }; series: ReturnType<typeof buildTagChartSeries> }> = {};
+
+    chartGroups.forEach((group) => {
+        if (!group?.id) return;
+        const tagSet = new Set((group.tagNames || []).map((name) => String(name || '').trim()).filter(Boolean));
+        const groupRows = tagSet.size > 0 ? safeRows.filter((row) => tagSet.has(String(getRawRowNameValue(row) ?? ''))) : [];
+        results[group.id] = {
+            range: group.range || { from: '', to: '' },
+            series: buildTagChartSeries(groupRows),
+        };
+    });
+
+    return results;
 }
 
 export type DataViewerChartGroup = {
@@ -262,7 +468,7 @@ export function buildDataViewerChartGroups({
     });
 
     const groups: DataViewerChartGroup[] = [];
-    const defaultNames = selected.filter((name) => !splitSet.has(name));
+    const defaultNames = selected;
     if (defaultNames.length > 0) {
         groups.push({
             id: 'default',

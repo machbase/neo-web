@@ -3,6 +3,11 @@ import {
     buildDataViewerChartXAxis,
     buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
+    buildDataViewerChartResultsFromRawRows,
+    buildDataViewerRawPageTimeRange,
+    buildDataViewerRawPageBounds,
+    buildDataViewerRawPageRequest,
+    buildDataViewerRawToChartRangeUpdate,
     buildDataViewerSplitGroups,
     buildDataViewerWheelZoomRange,
     buildDataViewerZoomControlRange,
@@ -10,6 +15,8 @@ import {
     buildTagChartSeries,
     extractDataViewerDataZoomRange,
     getDataViewerChartRangeMs,
+    getDataViewerRawPageSize,
+    hasDataViewerRawNextPage,
     hasExplicitDataViewerDataZoomEventRange,
     isSameDataViewerChartRange,
     normalizeSelectedTagNames,
@@ -59,14 +66,47 @@ describe('data viewer chart helpers', () => {
             { time: '2026-06-04T10:00:00Z', name: 'sensor.a', value: '10.5' },
             { time: 'bad-time', name: 'sensor.a', value: '99' },
             { time: '2026-06-04T10:01:00Z', name: 'sensor.a', value: 'not-number' },
+            { TIME: '2026-06-04T10:03:00Z', NAME: 'sensor.b', VALUE: '20.5' },
         ]);
 
-        expect(series).toHaveLength(1);
+        expect(series).toHaveLength(2);
         expect(series[0].name).toBe('sensor.a');
         expect(series[0].data).toEqual([
             [Date.parse('2026-06-04T10:00:00Z'), 10.5],
             [Date.parse('2026-06-04T10:02:00Z'), 12.5],
         ]);
+        expect(series[1].name).toBe('sensor.b');
+        expect(series[1].data).toEqual([
+            [Date.parse('2026-06-04T10:03:00Z'), 20.5],
+        ]);
+    });
+
+    test('buildDataViewerChartResultsFromRawRows builds chart groups from visible raw rows', () => {
+        const rows = [
+            { TIME: '2026-06-25T05:10:00.000Z', NAME: 'sensor.a', VALUE: 1 },
+            { time: '2026-06-25T05:10:01.000Z', name: 'sensor.b', value: 2 },
+            { time: '2026-06-25T05:10:02.000Z', name: 'sensor.a', value: 3 },
+        ];
+        const chartGroups = [
+            { id: 'default', title: 'Selected Tags', tagNames: ['sensor.a', 'sensor.b'], range: { from: 'raw-from', to: 'raw-to' }, split: false },
+            { id: 'split:a', title: 'sensor.a', tagNames: ['sensor.a'], range: { from: 'split-from', to: 'split-to' }, split: true },
+        ];
+
+        expect(buildDataViewerChartResultsFromRawRows({ rows, chartGroups })).toEqual({
+            default: {
+                range: { from: 'raw-from', to: 'raw-to' },
+                series: [
+                    { name: 'sensor.a', data: [[Date.parse('2026-06-25T05:10:00.000Z'), 1], [Date.parse('2026-06-25T05:10:02.000Z'), 3]] },
+                    { name: 'sensor.b', data: [[Date.parse('2026-06-25T05:10:01.000Z'), 2]] },
+                ],
+            },
+            'split:a': {
+                range: { from: 'split-from', to: 'split-to' },
+                series: [
+                    { name: 'sensor.a', data: [[Date.parse('2026-06-25T05:10:00.000Z'), 1], [Date.parse('2026-06-25T05:10:02.000Z'), 3]] },
+                ],
+            },
+        });
     });
 
     test('buildDataViewerChartXAxis uses selected range instead of data extent', () => {
@@ -153,12 +193,188 @@ describe('data viewer chart helpers', () => {
         expect(normalizeSelectedTagNames([], [])).toEqual([]);
     });
 
+    test('getDataViewerRawPageSize uses 1000 rows per selected tag', () => {
+        expect(getDataViewerRawPageSize(['sensor.a'])).toBe(1000);
+        expect(getDataViewerRawPageSize(['sensor.a', 'sensor.b', 'sensor.c'])).toBe(3000);
+        expect(getDataViewerRawPageSize([])).toBe(1000);
+    });
+
+    test('buildDataViewerRawPageTimeRange returns the current raw page time span', () => {
+        expect(
+            buildDataViewerRawPageTimeRange([
+                { time: '2026-06-25T05:09:58.534Z', name: 'sensor.a' },
+                { time: '2026-06-25T05:09:56.100Z', name: 'sensor.b' },
+                { time: '2026-06-25T05:10:01.001Z', name: 'sensor.a' },
+            ]),
+        ).toEqual({
+            from: '2026-06-25T05:09:56.100Z',
+            to: '2026-06-25T05:10:01.001Z',
+        });
+
+        expect(
+            buildDataViewerRawPageTimeRange([
+                { TIME: '2026-06-25T05:09:58.534Z' },
+                { Time: '2026-06-25T05:09:59.534Z' },
+            ]),
+        ).toEqual({
+            from: '2026-06-25T05:09:58.534Z',
+            to: '2026-06-25T05:09:59.534Z',
+        });
+    });
+
+    test('buildDataViewerRawPageTimeRange ignores rows without valid time', () => {
+        expect(buildDataViewerRawPageTimeRange([])).toBeNull();
+        expect(buildDataViewerRawPageTimeRange([{ time: '' }, { time: 'not-a-date' }])).toBeNull();
+    });
+
+    test('buildDataViewerRawPageBounds returns first, last, and time range for the current page', () => {
+        expect(
+            buildDataViewerRawPageBounds([
+                { time: '2026-06-25T05:10:01.001Z', name: 'sensor.a' },
+                { time: '2026-06-25T05:09:58.534Z', name: 'sensor.b' },
+                { time: '2026-06-25T05:09:56.100Z', name: 'sensor.a' },
+            ]),
+        ).toEqual({
+            pageStart: { time: '2026-06-25T05:10:01.001Z', name: 'sensor.a' },
+            pageEnd: { time: '2026-06-25T05:09:56.100Z', name: 'sensor.a' },
+            pageBounds: {
+                from: '2026-06-25T05:09:56.100Z',
+                to: '2026-06-25T05:10:01.001Z',
+            },
+        });
+
+        expect(buildDataViewerRawPageBounds([{ time: '', name: 'sensor.a' }])).toBeNull();
+    });
+
+    test('buildDataViewerRawPageRequest uses cursor boundaries for page movement', () => {
+        const currentBounds = {
+            pageStart: { time: '2026-06-25T05:10:01.001Z', name: 'sensor.a' },
+            pageEnd: { time: '2026-06-25T05:09:56.100Z', name: 'sensor.c' },
+            pageBounds: {
+                from: '2026-06-25T05:09:56.100Z',
+                to: '2026-06-25T05:10:01.001Z',
+            },
+        };
+
+        expect(
+            buildDataViewerRawPageRequest({
+                currentPage: 1,
+                nextPage: 2,
+                pageSize: 3000,
+                currentBounds,
+                reason: 'page',
+            }),
+        ).toEqual({
+            page: 2,
+            cursorSide: 'next',
+            cursorTime: '2026-06-25T05:09:56.100Z',
+            cursorName: 'sensor.c',
+            cursorOffset: 0,
+        });
+
+        expect(
+            buildDataViewerRawPageRequest({
+                currentPage: 1,
+                nextPage: 3,
+                pageSize: 3000,
+                currentBounds,
+                reason: 'page',
+            }),
+        ).toEqual({
+            page: 3,
+        });
+
+        expect(
+            buildDataViewerRawPageRequest({
+                currentPage: 3,
+                nextPage: 2,
+                pageSize: 3000,
+                currentBounds,
+                reason: 'page',
+            }),
+        ).toEqual({
+            page: 2,
+            cursorSide: 'prev',
+            cursorTime: '2026-06-25T05:10:01.001Z',
+            cursorName: 'sensor.a',
+            cursorOffset: 0,
+        });
+
+        expect(
+            buildDataViewerRawPageRequest({
+                currentPage: 3,
+                nextPage: 3,
+                pageSize: 3000,
+                currentBounds,
+                reason: 'tags',
+            }),
+        ).toEqual({
+            page: 3,
+            from: '2026-06-25T05:09:56.100Z',
+            to: '2026-06-25T05:10:01.001Z',
+            boundedRange: true,
+        });
+    });
+
+    test('hasDataViewerRawNextPage opens next page during bounded tag refresh', () => {
+        expect(
+            hasDataViewerRawNextPage({
+                rowCount: 100,
+                pageSize: 2000,
+                forceOpen: false,
+            }),
+        ).toBe(false);
+        expect(
+            hasDataViewerRawNextPage({
+                rowCount: 100,
+                pageSize: 2000,
+                forceOpen: true,
+            }),
+        ).toBe(true);
+    });
+
+    test('buildDataViewerRawToChartRangeUpdate keeps raw range unchanged and prepares chart range', () => {
+        const rawRange = { from: 'now-1h', to: 'now' };
+
+        expect(
+            buildDataViewerRawToChartRangeUpdate({
+                rows: [
+                    { time: '2026-06-25T05:09:58.534Z' },
+                    { time: '2026-06-25T05:10:01.001Z' },
+                ],
+                rawRange,
+                splitGroups: [
+                    { id: 'split:a', title: 'sensor.a', tagNames: ['sensor.a'] },
+                    { id: 'split:b', title: 'sensor.b', tagNames: ['sensor.b'] },
+                ],
+            }),
+        ).toEqual({
+            rawRange,
+            chartRange: {
+                from: '2026-06-25T05:09:58.534Z',
+                to: '2026-06-25T05:10:01.001Z',
+            },
+            splitRanges: {
+                'split:a': {
+                    from: '2026-06-25T05:09:58.534Z',
+                    to: '2026-06-25T05:10:01.001Z',
+                },
+                'split:b': {
+                    from: '2026-06-25T05:09:58.534Z',
+                    to: '2026-06-25T05:10:01.001Z',
+                },
+            },
+        });
+
+        expect(buildDataViewerRawToChartRangeUpdate({ rows: [], rawRange })).toBeNull();
+    });
+
     test('toggleSelectedTagName removes existing tags or appends new tags', () => {
         expect(toggleSelectedTagName(['sensor.a', 'sensor.b'], 'sensor.a')).toEqual(['sensor.b']);
         expect(toggleSelectedTagName(['sensor.a'], 'sensor.b')).toEqual(['sensor.a', 'sensor.b']);
     });
 
-    test('buildDataViewerChartGroups keeps default chart unless every tag is split', () => {
+    test('buildDataViewerChartGroups keeps split tags in the default chart', () => {
         expect(
             buildDataViewerChartGroups({
                 selectedTagNames: ['sensor.a', 'sensor.b', 'sensor.c'],
@@ -167,7 +383,7 @@ describe('data viewer chart helpers', () => {
                 splitRanges: { 'split:b': { from: '2026-06-01 00:00:00', to: '2026-06-01 01:00:00' } },
             }),
         ).toEqual([
-            { id: 'default', title: 'Selected Tags', tagNames: ['sensor.a', 'sensor.c'], range: { from: 'now-1h', to: 'now' }, split: false },
+            { id: 'default', title: 'Selected Tags', tagNames: ['sensor.a', 'sensor.b', 'sensor.c'], range: { from: 'now-1h', to: 'now' }, split: false },
             { id: 'split:b', title: 'sensor.b', tagNames: ['sensor.b'], range: { from: '2026-06-01 00:00:00', to: '2026-06-01 01:00:00' }, split: true },
         ]);
 
@@ -181,6 +397,7 @@ describe('data viewer chart helpers', () => {
                 globalRange: { from: 'now-1h', to: 'now' },
             }),
         ).toEqual([
+            { id: 'default', title: 'Selected Tags', tagNames: ['sensor.a', 'sensor.b'], range: { from: 'now-1h', to: 'now' }, split: false },
             { id: 'split:a', title: 'sensor.a', tagNames: ['sensor.a'], range: { from: 'now-1h', to: 'now' }, split: true },
             { id: 'split:b', title: 'sensor.b', tagNames: ['sensor.b'], range: { from: 'now-1h', to: 'now' }, split: true },
         ]);

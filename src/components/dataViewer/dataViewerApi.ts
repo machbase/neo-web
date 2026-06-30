@@ -50,8 +50,9 @@ const formatMachbaseTimestamp = (value: string) => {
     const parsed = Date.parse(text);
     if (!Number.isFinite(parsed)) return text;
 
-    const iso = new Date(parsed).toISOString();
-    return iso.replace('T', ' ').replace('Z', '');
+    const date = new Date(parsed);
+    const pad = (part: number, size = 2) => String(part).padStart(size, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
 };
 
 export const buildQualifiedTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}.${tableName}`;
@@ -139,6 +140,68 @@ const buildTagDataWhere = ({
     };
 };
 
+const buildCursorTimeSql = (value: string) => `TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(value))}')`;
+
+const buildTagDataCursor = ({
+    cursorSide,
+    cursorTime,
+    cursorName,
+    direction,
+    tagColumnExpr,
+    timeColumnExpr,
+}: {
+    cursorSide?: 'next' | 'prev';
+    cursorTime?: string;
+    cursorName?: string;
+    direction: 'latest' | 'oldest';
+    tagColumnExpr: string;
+    timeColumnExpr: string;
+}) => {
+    if ((cursorSide !== 'next' && cursorSide !== 'prev') || !cursorTime) return undefined;
+
+    const latest = direction !== 'oldest';
+    const next = cursorSide === 'next';
+    let timeOp: '<' | '>' = '<';
+    let nameOp: '<' | '>' = '>';
+    let orderTime: 'asc' | 'desc' = 'desc';
+    let orderName: 'asc' | 'desc' = 'asc';
+    let reverseRows = false;
+
+    if (latest && next) {
+        timeOp = '<';
+        nameOp = '>';
+        orderTime = 'desc';
+        orderName = 'asc';
+    } else if (latest) {
+        timeOp = '>';
+        nameOp = '<';
+        orderTime = 'asc';
+        orderName = 'desc';
+        reverseRows = true;
+    } else if (next) {
+        timeOp = '>';
+        nameOp = '>';
+        orderTime = 'asc';
+        orderName = 'asc';
+    } else {
+        timeOp = '<';
+        nameOp = '<';
+        orderTime = 'desc';
+        orderName = 'desc';
+        reverseRows = true;
+    }
+
+    const timeSql = buildCursorTimeSql(cursorTime);
+    const escapedName = escapeSqlString(cursorName || '');
+
+    return {
+        where: `(${timeColumnExpr} ${timeOp} ${timeSql} or (${timeColumnExpr} = ${timeSql} and ${tagColumnExpr} ${nameOp} '${escapedName}'))`,
+        orderTime,
+        orderName,
+        reverseRows,
+    };
+};
+
 export async function listTableTags(params: DataViewerTableParams & { tagColumn?: string }): Promise<DataViewerTagList> {
     const metaTable = buildQualifiedMetaTableName(params);
     const tagColumn = normalizeIdentifier(params.tagColumn, 'NAME');
@@ -193,6 +256,11 @@ export async function queryTagData({
     tagColumn = 'NAME',
     timeColumn = 'TIME',
     valueColumn = 'VALUE',
+    boundedRange,
+    cursorSide,
+    cursorTime,
+    cursorName,
+    cursorOffset,
 }: DataViewerTableParams & {
     names: string[];
     direction: 'latest' | 'oldest';
@@ -203,18 +271,27 @@ export async function queryTagData({
     tagColumn?: string;
     timeColumn?: string;
     valueColumn?: string;
+    boundedRange?: boolean;
+    cursorSide?: 'next' | 'prev';
+    cursorTime?: string;
+    cursorName?: string;
+    cursorOffset?: number;
 }): Promise<DataViewerResult> {
     const table = buildQualifiedTableName({ dbName, userName, tableName });
     const valueColumnExpr = normalizeIdentifier(valueColumn, 'VALUE');
     const { tagColumnExpr, timeColumnExpr, where } = buildTagDataWhere({ names, from, to, tagColumn, timeColumn });
-    const offset = Math.max(0, page - 1) * pageSize;
-    const order = direction === 'latest' ? 'desc' : 'asc';
-    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${where.join(' and ')} order by ${timeColumnExpr} ${order} limit ${offset}, ${pageSize}`;
+    const cursor = buildTagDataCursor({ cursorSide, cursorTime, cursorName, direction, tagColumnExpr, timeColumnExpr });
+    const queryWhere = cursor ? [...where, cursor.where] : where;
+    const offset = cursor ? Math.max(0, Math.floor(cursorOffset || 0)) : boundedRange ? 0 : Math.max(0, page - 1) * pageSize;
+    const orderTime = cursor?.orderTime ?? (direction === 'latest' ? 'desc' : 'asc');
+    const orderName = cursor?.orderName ?? 'asc';
+    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${queryWhere.join(' and ')} order by ${timeColumnExpr} ${orderTime}, ${tagColumnExpr} ${orderName} limit ${offset}, ${pageSize}`;
     const { svrState, svrData, svrReason } = await fetchQuery(sql);
     if (!svrState) throw new Error(svrReason || 'Failed to load data');
 
+    const rows = normalizeRows(svrData);
     return {
-        rows: normalizeRows(svrData),
+        rows: cursor?.reverseRows ? [...rows].reverse() : rows,
         page,
         pageSize,
     };
