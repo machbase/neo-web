@@ -856,19 +856,11 @@ export function buildDataViewerShiftMainRangeUpdate({
     const shiftDirection = direction === 'backward' ? -1 : direction === 'forward' ? 1 : 0;
     if (shiftDirection === 0) return null;
 
-    const offset = (currentEnd - currentStart) * PANEL_MAIN_RANGE_SHIFT_FRACTION * shiftDirection;
+    const offset = (navigatorEnd - navigatorStart) * PANEL_MAIN_RANGE_SHIFT_FRACTION * shiftDirection;
     const nextStart = currentStart + offset;
     const nextEnd = currentEnd + offset;
-    let nextNavigatorStart = navigatorStart;
-    let nextNavigatorEnd = navigatorEnd;
-
-    if (shiftDirection < 0 && nextStart < nextNavigatorStart) {
-        nextNavigatorStart = nextStart;
-        nextNavigatorEnd += offset;
-    } else if (shiftDirection > 0 && nextEnd > nextNavigatorEnd) {
-        nextNavigatorStart += offset;
-        nextNavigatorEnd = nextEnd;
-    }
+    const nextNavigatorStart = navigatorStart + offset;
+    const nextNavigatorEnd = navigatorEnd + offset;
 
     if (nextEnd <= nextStart || nextNavigatorEnd <= nextNavigatorStart) return null;
 
