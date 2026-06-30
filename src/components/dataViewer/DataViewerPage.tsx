@@ -48,6 +48,7 @@ import {
     isSameDataViewerChartRange,
     normalizeSelectedTagNames,
     resolveTimeRangeInput,
+    shouldFetchDataViewerRowsForMode,
     toggleSelectedTagName,
     toDataViewerDate,
 } from './dataViewerModel';
@@ -724,7 +725,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setLoading(false);
             return;
         }
-        if (mode !== 'raw') {
+        if (!shouldFetchDataViewerRowsForMode(mode)) {
             setLoading(false);
             return;
         }

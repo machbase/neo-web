@@ -122,6 +122,10 @@ export function getScanDirectionLabel(backwardScan: boolean) {
     return backwardScan ? 'Backward' : 'Forward';
 }
 
+export function shouldFetchDataViewerRowsForMode(mode: unknown) {
+    return mode === 'raw' || mode === 'chart';
+}
+
 export function getDataViewerRawPageSize(selectedTagNames: unknown[] = []) {
     const tagCount = Array.isArray(selectedTagNames) ? selectedTagNames.length : 0;
     return Math.max(1, tagCount) * 1000;

@@ -20,11 +20,18 @@ import {
     hasExplicitDataViewerDataZoomEventRange,
     isSameDataViewerChartRange,
     normalizeSelectedTagNames,
+    shouldFetchDataViewerRowsForMode,
     toggleSelectedTagName,
     formatDataViewerAxisTime,
 } from './dataViewerModel';
 
 describe('data viewer chart helpers', () => {
+    test('shouldFetchDataViewerRowsForMode keeps raw rows active for raw and chart', () => {
+        expect(shouldFetchDataViewerRowsForMode('raw')).toBe(true);
+        expect(shouldFetchDataViewerRowsForMode('chart')).toBe(true);
+        expect(shouldFetchDataViewerRowsForMode('other')).toBe(false);
+    });
+
     test('buildRawResultColumns keeps time name value first and appends extra fields', () => {
         const columns = buildRawResultColumns([
             {
