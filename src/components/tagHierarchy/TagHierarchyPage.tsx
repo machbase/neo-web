@@ -31,6 +31,7 @@ import {
 } from '@/design-system/components';
 import { Refresh } from '@/assets/icons/Icon';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { useExperiment } from '@/hooks/useExperiment';
 import {
     DEFAULT_HIERARCHY_DOCUMENT,
     DEFAULT_HIERARCHY_JSON_COLUMN,
@@ -246,6 +247,9 @@ export const TagHierarchyPage = ({
     canEdit,
     onMetadataSchemaChange,
 }: TagHierarchyPageProps) => {
+    // The "Query" detail tab is experimental, so it's only exposed when experiment mode is on.
+    const { getExperiment } = useExperiment();
+    const isExperiment = getExperiment();
     // Value column for the single hierarchy. Defaults to ASSET; refreshHierarchy adopts the
     // document's `column` field once the template loads (the JSON-column picker was removed).
     const [sJsonColumn, setJsonColumn] = useState(DEFAULT_HIERARCHY_JSON_COLUMN);
@@ -332,6 +336,16 @@ export const TagHierarchyPage = ({
 
     const mSelectedPathKey = pathKey(sSelectedNode.path);
     const mHasTemplate = sKeys.length > 0;
+    // Detail tabs available to this user — the "query" tab is gated behind experiment mode.
+    const mVisibleDetailTabs = useMemo<DetailTab[]>(
+        () => VISIBLE_DETAIL_TABS.filter((tab) => tab !== 'query' || isExperiment),
+        [isExperiment],
+    );
+    // Effective tab: fall back to "tags" if the selected tab is no longer exposed (e.g. experiment
+    // mode was turned off while "Query" was active) so the panel never renders a hidden tab.
+    const mActiveDetailTab: DetailTab = mVisibleDetailTabs.includes(sActiveTab)
+        ? sActiveTab
+        : 'tags';
     // Mirrors the repository's assertSafeIdentifier rule so we only enable Create for a name the
     // ALTER TABLE … ADD COLUMN statement will accept.
     const isValidColumnName = /^[A-Za-z_][A-Za-z0-9_]*$/.test(sNewColumnName.trim());
@@ -2344,13 +2358,13 @@ export const TagHierarchyPage = ({
                                         </div>
                                     </div>
                                     <div className={styles.tabs}>
-                                        {VISIBLE_DETAIL_TABS.map((tab) => (
+                                        {mVisibleDetailTabs.map((tab) => (
                                             <button
                                                 key={tab}
                                                 type="button"
                                                 className={[
                                                     styles.tab,
-                                                    sActiveTab === tab ? styles.activeTab : '',
+                                                    mActiveDetailTab === tab ? styles.activeTab : '',
                                                 ]
                                                     .filter(Boolean)
                                                     .join(' ')}
@@ -2364,7 +2378,7 @@ export const TagHierarchyPage = ({
                                         {sError ? (
                                             <div className={styles.error}>{sError}</div>
                                         ) : null}
-                                        {sActiveTab === 'tags' ? (
+                                        {mActiveDetailTab === 'tags' ? (
                                             <div className={styles.detailTableWrap}>
                                                 {sIsLoadingTags ? (
                                                     <div
@@ -2388,7 +2402,7 @@ export const TagHierarchyPage = ({
                                                 />
                                             </div>
                                         ) : null}
-                                        {sActiveTab === 'query' ? (
+                                        {mActiveDetailTab === 'query' ? (
                                             sLastQuery ? (
                                                 <div className={styles.queryWrapper}>
                                                     <Button.Copy
