@@ -32,11 +32,13 @@ import {
     buildDataViewerRawToChartRangeUpdate,
     buildDataViewerSplitRangeUpdate,
     buildDataViewerSplitGroups,
+    buildDataViewerShiftMainRangeUpdate,
     buildDataViewerTagSelectionUpdate,
     buildDataViewerWheelZoomRange,
     buildDataViewerZoomControlRange,
     buildRawResultColumns,
     extractDataViewerDataZoomRange,
+    formatDataViewerNavigatorRangeLabels,
     filterDataViewerTags,
     filterVisibleAssetRows,
     formatDataViewerTime,
@@ -198,6 +200,7 @@ function TagEChart({
     timeRange,
     displayRange,
     onDisplayRangeChange,
+    onShiftMainRange,
 }: {
     series: Array<{ name: string; data: Array<[number, number | null]> }>;
     timeFormat: string;
@@ -205,6 +208,7 @@ function TagEChart({
     timeRange: DataViewerTimeRange;
     displayRange?: DataViewerTimeRange;
     onDisplayRangeChange?: (range: DataViewerTimeRange, navigatorRange?: DataViewerTimeRange) => void;
+    onShiftMainRange?: (direction: 'backward' | 'forward', currentRange: any, navigatorRange: any) => void;
 }) {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const chartRef = useRef<echarts.ECharts | null>(null);
@@ -328,11 +332,20 @@ function TagEChart({
 
     const zoomControlsDisabled =
         !Number.isFinite(currentRange.startTime) || !Number.isFinite(currentRange.endTime) || !Number.isFinite(navigatorRange.startTime) || !Number.isFinite(navigatorRange.endTime);
-
-    if (!hasChartData) return <div className="empty-state">No chart data</div>;
+    const navigatorLabels = useMemo(() => formatDataViewerNavigatorRangeLabels(navigatorRange, timeFormat, timeZone), [navigatorRange, timeFormat, timeZone]);
 
     return (
         <div className="data-viewer-chart-shell">
+            <button
+                type="button"
+                className="data-viewer-chart-range-shift data-viewer-chart-range-shift-left"
+                title="Move range backward"
+                aria-label="Move range backward"
+                disabled={zoomControlsDisabled}
+                onClick={() => onShiftMainRange?.('backward', currentRange, navigatorRange)}
+            >
+                <VscChevronLeft size={20} />
+            </button>
             <div className="data-viewer-chart-footer-form" aria-label="Chart zoom controls">
                 <div className="data-viewer-chart-toolbar-controls">
                     <div className="data-viewer-chart-toolbar-group">
@@ -366,6 +379,27 @@ function TagEChart({
                 data-navigator-from={Number.isFinite(navigatorRange.startTime) ? String(Math.floor(Number(navigatorRange.startTime))) : ''}
                 data-navigator-to={Number.isFinite(navigatorRange.endTime) ? String(Math.ceil(Number(navigatorRange.endTime))) : ''}
             />
+            {!hasChartData ? (
+                <div className="data-viewer-chart-empty-overlay" aria-live="polite">
+                    No chart data
+                </div>
+            ) : null}
+            {navigatorLabels.start || navigatorLabels.end ? (
+                <div className="data-viewer-chart-navigator-labels" aria-label="Mini chart time range">
+                    <span title={navigatorLabels.start}>{navigatorLabels.start}</span>
+                    <span title={navigatorLabels.end}>{navigatorLabels.end}</span>
+                </div>
+            ) : null}
+            <button
+                type="button"
+                className="data-viewer-chart-range-shift data-viewer-chart-range-shift-right"
+                title="Move range forward"
+                aria-label="Move range forward"
+                disabled={zoomControlsDisabled}
+                onClick={() => onShiftMainRange?.('forward', currentRange, navigatorRange)}
+            >
+                <VscChevronRight size={20} />
+            </button>
         </div>
     );
 }
@@ -418,6 +452,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const [chartNavigatorRanges, setChartNavigatorRanges] = useState<Record<string, DataViewerTimeRange>>({});
     const [openChartMenuId, setOpenChartMenuId] = useState<string | null>(null);
     const [chartResults, setChartResults] = useState<Record<string, { range: DataViewerTimeRange; series: Array<{ name: string; data: Array<[number, number | null]> }> }>>({});
+    const [splitChartRows, setSplitChartRows] = useState<Record<string, ResultRow[]>>({});
     const [chartLoading, setChartLoading] = useState(false);
     const [chartError, setChartError] = useState('');
     const [backwardScan, setBackwardScan] = useState(true);
@@ -562,6 +597,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             });
             return Object.keys(next).length === Object.keys(current).length ? current : next;
         });
+        setSplitChartRows((current) => {
+            const next: Record<string, ResultRow[]> = {};
+            Object.entries(current).forEach(([id, value]) => {
+                if (validGroupIds.has(id)) next[id] = value;
+            });
+            return Object.keys(next).length === Object.keys(current).length ? current : next;
+        });
     }, [chartGroups]);
 
     const moveRawPage = useCallback(
@@ -642,6 +684,12 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             return next;
         });
         setChartResults((current) => {
+            if (!Object.prototype.hasOwnProperty.call(current, groupId)) return current;
+            const next = { ...current };
+            delete next[groupId];
+            return next;
+        });
+        setSplitChartRows((current) => {
             if (!Object.prototype.hasOwnProperty.call(current, groupId)) return current;
             const next = { ...current };
             delete next[groupId];
@@ -807,6 +855,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         setChartError('');
         const nextResults = buildDataViewerChartResultsFromRawRows({
             rows,
+            rowsByGroup: splitChartRows,
             chartGroups,
         }) as Record<string, { range: DataViewerTimeRange; series: Array<{ name: string; data: Array<[number, number | null]> }> }>;
         if (chartRequestRef.current !== requestId) return undefined;
@@ -822,7 +871,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         return () => {
             chartRequestRef.current += 1;
         };
-    }, [canQuery, chartGroups, mode, rows]);
+    }, [canQuery, chartGroups, mode, rows, splitChartRows]);
 
     const activeRange = mode === 'chart' ? chartRange : range;
     const timeRangeButtonText = formatTimeRangeLabel(activeRange.from, activeRange.to);
@@ -993,6 +1042,85 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setSplitChartRanges(update.splitRanges);
         },
         [chartGroups, chartNavigatorRanges, chartResults, chartViewRanges],
+    );
+    const handleShiftMainRange = useCallback(
+        async (
+            group: { id: string; tagNames: string[] },
+            direction: 'backward' | 'forward',
+            currentRange: any,
+            navigatorRange: any,
+        ) => {
+            if (!canQuery) return;
+            const update = buildDataViewerShiftMainRangeUpdate({ direction, currentRange, navigatorRange });
+            if (!update) {
+                setChartError('Cannot move chart range.');
+                return;
+            }
+
+            chartRequestRef.current += 1;
+            setChartError('');
+            setChartViewRanges((current) => ({
+                ...current,
+                [group.id]: update.range,
+            }));
+            setChartNavigatorRanges((current) => ({
+                ...current,
+                [group.id]: update.navigatorRange,
+            }));
+
+            if (group.id === 'default') {
+                if (splitChartGroups.length > 0) {
+                    setSplitChartRows((current) => {
+                        let changed = false;
+                        const next = { ...current };
+                        splitChartGroups.forEach((splitGroup) => {
+                            if (!splitGroup?.id || Object.prototype.hasOwnProperty.call(next, splitGroup.id)) return;
+                            next[splitGroup.id] = rows;
+                            changed = true;
+                        });
+                        return changed ? next : current;
+                    });
+                }
+                setChartRange(update.navigatorRange);
+            } else {
+                setSplitChartRanges((current) => ({
+                    ...current,
+                    [group.id]: update.navigatorRange,
+                }));
+            }
+
+            try {
+                const result = await queryTagData({
+                    dbName,
+                    userName,
+                    tableName,
+                    names: group.tagNames,
+                    direction: backwardScan ? 'latest' : 'oldest',
+                    from: update.range.from,
+                    to: update.range.to,
+                    page: 1,
+                    pageSize: getDataViewerRawPageSize(group.tagNames),
+                    tagColumn,
+                    timeColumn,
+                    valueColumn,
+                    boundedRange: true,
+                });
+                const nextRows = result.rows;
+                chartRequestRef.current += 1;
+                if (group.id === 'default') {
+                    setRows(nextRows);
+                    setRawPageBounds(buildDataViewerRawPageBounds(nextRows));
+                } else {
+                    setSplitChartRows((current) => ({
+                        ...current,
+                        [group.id]: nextRows,
+                    }));
+                }
+            } catch (err: any) {
+                setChartError(err?.message || 'Failed to move chart range');
+            }
+        },
+        [backwardScan, canQuery, dbName, rows, splitChartGroups, tableName, tagColumn, timeColumn, userName, valueColumn],
     );
 
     return (
@@ -1321,6 +1449,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                     }));
                                                                 }
                                                             }}
+                                                            onShiftMainRange={(direction, currentRange, navigatorRange) => handleShiftMainRange(group, direction, currentRange, navigatorRange)}
                                                         />
                                                     </div>
                                                 </div>

@@ -1310,7 +1310,7 @@
     justify-content: flex-start;
     gap: var(--spacing-6);
     flex: 1 1 auto;
-    max-width: min(720px, 52vw);
+    max-width: min(960px, 68vw);
     min-width: 120px;
     padding: 0;
     overflow-x: auto;
@@ -1365,7 +1365,82 @@
     width: 100%;
     height: 100%;
     min-height: 260px;
+    padding: 0 48px;
     background-color: #252525;
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift {
+    position: absolute;
+    top: 112px;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid #454545;
+    border-radius: var(--radius-base);
+    background-color: rgba(31, 29, 29, 0.86);
+    color: var(--color-on-surface-secondary);
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift-left {
+    left: 8px;
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift-right {
+    right: 8px;
+}
+
+.neo-data-viewer .data-viewer-chart-empty-overlay {
+    position: absolute;
+    inset: 58px 72px 64px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-sm);
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-navigator-labels {
+    position: absolute;
+    left: 106px;
+    right: 106px;
+    bottom: 2px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    color: var(--color-on-surface-secondary);
+    font-size: 10px;
+    line-height: 12px;
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-navigator-labels span {
+    max-width: calc(50% - var(--space-1));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.neo-data-viewer .data-viewer-chart-navigator-labels span:last-child {
+    text-align: right;
 }
 
 .neo-data-viewer .data-viewer-chart-footer-form {

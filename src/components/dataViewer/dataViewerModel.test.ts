@@ -10,6 +10,7 @@ import {
     buildDataViewerRawToChartRangeUpdate,
     buildDataViewerSplitRangeUpdate,
     buildDataViewerSplitGroups,
+    buildDataViewerShiftMainRangeUpdate,
     buildDataViewerTagSelectionUpdate,
     buildDataViewerWheelZoomRange,
     buildDataViewerZoomControlRange,
@@ -25,6 +26,7 @@ import {
     shouldFetchDataViewerRowsForMode,
     toggleSelectedTagName,
     formatDataViewerAxisTime,
+    formatDataViewerNavigatorRangeLabels,
 } from './dataViewerModel';
 
 describe('data viewer chart helpers', () => {
@@ -118,6 +120,29 @@ describe('data viewer chart helpers', () => {
         });
     });
 
+    test('buildDataViewerChartResultsFromRawRows can use split specific raw rows', () => {
+        const parentRows = [
+            { time: '2026-06-25T05:10:00.000Z', name: 'sensor.a', value: 1 },
+            { time: '2026-06-25T05:10:01.000Z', name: 'sensor.b', value: 2 },
+        ];
+        const splitRows = [{ time: '2026-06-25T05:20:00.000Z', name: 'sensor.a', value: 10 }];
+        const chartGroups = [
+            { id: 'default', title: 'Selected Tags', tagNames: ['sensor.a', 'sensor.b'], range: { from: 'parent-from', to: 'parent-to' }, split: false },
+            { id: 'split:a', title: 'sensor.a', tagNames: ['sensor.a'], range: { from: 'split-from', to: 'split-to' }, split: true },
+        ];
+
+        const results = buildDataViewerChartResultsFromRawRows({
+            rows: parentRows,
+            rowsByGroup: {
+                'split:a': splitRows,
+            },
+            chartGroups,
+        });
+
+        expect(results.default.series.find((item) => item.name === 'sensor.a')?.data).toEqual([[Date.parse('2026-06-25T05:10:00.000Z'), 1]]);
+        expect(results['split:a'].series[0].data).toEqual([[Date.parse('2026-06-25T05:20:00.000Z'), 10]]);
+    });
+
     test('buildDataViewerChartXAxis uses selected range instead of data extent', () => {
         const from = '2026-06-17T00:00:00.000Z';
         const to = '2026-06-17T00:10:00.000Z';
@@ -188,6 +213,20 @@ describe('data viewer chart helpers', () => {
                 'UTC',
             ),
         ).toBe('06-17 09:43');
+    });
+
+    test('formatDataViewerNavigatorRangeLabels renders mini chart boundary labels', () => {
+        expect(
+            formatDataViewerNavigatorRangeLabels(
+                { startTime: Date.parse('2026-06-01T12:34:56.789Z'), endTime: Date.parse('2026-06-01T12:35:01.789Z') },
+                'YYYY-MM-DD HH24:MI:SS.mmm',
+                'UTC',
+            ),
+        ).toEqual({
+            start: '2026-06-01 12:34:56.789',
+            end: '2026-06-01 12:35:01.789',
+        });
+        expect(formatDataViewerNavigatorRangeLabels({}, 'YYYY-MM-DD HH24:MI:SS.mmm', 'UTC')).toEqual({ start: '', end: '' });
     });
 
     test('normalizeSelectedTagNames keeps valid tags and falls back to first selectable tag', () => {
@@ -586,6 +625,21 @@ describe('data viewer chart helpers', () => {
         expect(option.tooltip.position([240, 120], [], {} as HTMLElement, null, { contentSize: [220, 80], viewSize: [300, 220] })).toEqual([12, 132]);
     });
 
+    test('buildDataViewerEChartOption keeps explicit ranges when series is empty', () => {
+        const option = buildDataViewerEChartOption({
+            series: [],
+            timeRange: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' },
+            displayRange: { from: '2026-06-01T00:15:00.000Z', to: '2026-06-01T00:30:00.000Z' },
+        }) as any;
+
+        expect(option.xAxis[0].min).toBe(Date.parse('2026-06-01T00:15:00.000Z'));
+        expect(option.xAxis[0].max).toBe(Date.parse('2026-06-01T00:30:00.000Z'));
+        expect(option.xAxis[1].min).toBe(Date.parse('2026-06-01T00:00:00.000Z'));
+        expect(option.xAxis[1].max).toBe(Date.parse('2026-06-01T01:00:00.000Z'));
+        expect(option.dataZoom[0].startValue).toBe(Date.parse('2026-06-01T00:15:00.000Z'));
+        expect(option.dataZoom[0].endValue).toBe(Date.parse('2026-06-01T00:30:00.000Z'));
+    });
+
     test('data zoom helpers map slider percentages and wheel zoom around pointer', () => {
         expect(extractDataViewerDataZoomRange({ start: 20, end: 40 }, { startTime: 0, endTime: 100 }, { startTime: 1000, endTime: 2000 })).toEqual({
             startTime: 1200,
@@ -601,6 +655,52 @@ describe('data viewer chart helpers', () => {
         expect(buildDataViewerZoomControlRange('focus', currentRange, navigatorRange)).toEqual({ startTime: 360, endTime: 440 });
         expect(buildDataViewerWheelZoomRange(-100, 300, currentRange, navigatorRange)).toEqual({ startTime: 218, endTime: 546 });
         expect(buildDataViewerWheelZoomRange(100, 300, currentRange, navigatorRange)).toEqual({ startTime: 178, endTime: 666 });
+    });
+
+    test('buildDataViewerShiftMainRangeUpdate shifts visible main range like Tag Analyzer', () => {
+        const currentRange = { startTime: 1000, endTime: 2000 };
+        const navigatorRange = { startTime: 0, endTime: 3000 };
+
+        expect(buildDataViewerShiftMainRangeUpdate({ direction: 'backward', currentRange, navigatorRange })).toEqual({
+            range: {
+                from: new Date(700).toISOString(),
+                to: new Date(1700).toISOString(),
+            },
+            navigatorRange: {
+                from: new Date(0).toISOString(),
+                to: new Date(3000).toISOString(),
+            },
+        });
+        expect(buildDataViewerShiftMainRangeUpdate({ direction: 'forward', currentRange, navigatorRange })).toEqual({
+            range: {
+                from: new Date(1300).toISOString(),
+                to: new Date(2300).toISOString(),
+            },
+            navigatorRange: {
+                from: new Date(0).toISOString(),
+                to: new Date(3000).toISOString(),
+            },
+        });
+    });
+
+    test('buildDataViewerShiftMainRangeUpdate expands navigator only when shifted range leaves it', () => {
+        expect(
+            buildDataViewerShiftMainRangeUpdate({
+                direction: 'backward',
+                currentRange: { startTime: 1000, endTime: 2000 },
+                navigatorRange: { startTime: 900, endTime: 2500 },
+            }),
+        ).toEqual({
+            range: {
+                from: new Date(700).toISOString(),
+                to: new Date(1700).toISOString(),
+            },
+            navigatorRange: {
+                from: new Date(700).toISOString(),
+                to: new Date(2200).toISOString(),
+            },
+        });
+        expect(buildDataViewerShiftMainRangeUpdate({ direction: 'backward', currentRange: {}, navigatorRange: {} })).toBeNull();
     });
 
     test('getDataViewerChartRangeMs resolves explicit chart range before data extent', () => {
