@@ -126,9 +126,37 @@ export function shouldFetchDataViewerRowsForMode(mode: unknown) {
     return mode === 'raw' || mode === 'chart';
 }
 
-export function getDataViewerRawPageSize(selectedTagNames: unknown[] = []) {
+export const DEFAULT_DATA_VIEWER_ROWS_PER_TAG = 1000;
+
+export function normalizeDataViewerRowsPerTag(value: unknown, fallback = DEFAULT_DATA_VIEWER_ROWS_PER_TAG) {
+    const fallbackValue = Math.max(1, Math.floor(Number(fallback) || DEFAULT_DATA_VIEWER_ROWS_PER_TAG));
+    if (value === '' || value === null || value === undefined) return fallbackValue;
+    const next = Math.floor(Number(value));
+    return Number.isFinite(next) && next > 0 ? next : fallbackValue;
+}
+
+export function getDataViewerRawPageSize(selectedTagNames: unknown[] = [], rowsPerTag = DEFAULT_DATA_VIEWER_ROWS_PER_TAG) {
     const tagCount = Array.isArray(selectedTagNames) ? selectedTagNames.length : 0;
-    return Math.max(1, tagCount) * 1000;
+    return Math.max(1, tagCount) * normalizeDataViewerRowsPerTag(rowsPerTag);
+}
+
+export function buildDataViewerRawRowsPerTagChange({
+    value,
+    currentRowsPerTag = DEFAULT_DATA_VIEWER_ROWS_PER_TAG,
+    selectedTagNames = [],
+}: {
+    value?: unknown;
+    currentRowsPerTag?: number;
+    selectedTagNames?: unknown[];
+} = {}) {
+    const rowsPerTag = normalizeDataViewerRowsPerTag(value, currentRowsPerTag);
+    if (rowsPerTag === normalizeDataViewerRowsPerTag(currentRowsPerTag)) return null;
+    return {
+        rowsPerTag,
+        pageSize: getDataViewerRawPageSize(selectedTagNames, rowsPerTag),
+        page: 1,
+        rawPageRequest: { page: 1 },
+    };
 }
 
 function getRawRowTimeValue(row: unknown) {
@@ -904,6 +932,67 @@ export function buildDataViewerWheelZoomRange(deltaY: number, anchorTime: number
     nextStart = Math.max(nextStart, navigatorStart);
     nextEnd = Math.min(nextEnd, navigatorEnd);
     if (nextEnd <= nextStart) return undefined;
+    return { startTime: nextStart, endTime: nextEnd };
+}
+
+export function buildDataViewerDragRangeUpdate({
+    mode,
+    dragStartTime,
+    dragEndTime,
+    currentRange = {},
+    navigatorRange = {},
+}: {
+    mode?: 'zoom-in' | 'pan' | 'zoom-out';
+    dragStartTime?: unknown;
+    dragEndTime?: unknown;
+    currentRange?: DataViewerChartRangeMs;
+    navigatorRange?: DataViewerChartRangeMs;
+} = {}) {
+    const currentStart = Number(currentRange.startTime);
+    const currentEnd = Number(currentRange.endTime);
+    const navigatorStart = Number(navigatorRange.startTime);
+    const navigatorEnd = Number(navigatorRange.endTime);
+    const dragStart = Number(dragStartTime);
+    const dragEnd = Number(dragEndTime);
+    if (![currentStart, currentEnd, navigatorStart, navigatorEnd, dragStart, dragEnd].every(Number.isFinite)) return undefined;
+    if (currentEnd <= currentStart || navigatorEnd <= navigatorStart || dragStart === dragEnd) return undefined;
+
+    const currentSpan = currentEnd - currentStart;
+    const navigatorSpan = navigatorEnd - navigatorStart;
+    let nextStart: number;
+    let nextEnd: number;
+
+    if (mode === 'zoom-in') {
+        nextStart = Math.max(Math.min(dragStart, dragEnd), navigatorStart);
+        nextEnd = Math.min(Math.max(dragStart, dragEnd), navigatorEnd);
+    } else if (mode === 'pan') {
+        if (currentSpan >= navigatorSpan) return undefined;
+        const offset = dragStart - dragEnd;
+        nextStart = currentStart + offset;
+        nextEnd = currentEnd + offset;
+    } else if (mode === 'zoom-out') {
+        if (currentSpan >= navigatorSpan) return undefined;
+        const dragSpan = Math.abs(dragEnd - dragStart);
+        const nextSpan = Math.min(currentSpan + dragSpan, navigatorSpan);
+        const center = Math.min(Math.max((dragStart + dragEnd) / 2, navigatorStart), navigatorEnd);
+        nextStart = center - nextSpan / 2;
+        nextEnd = center + nextSpan / 2;
+    } else {
+        return undefined;
+    }
+
+    if (nextStart < navigatorStart) {
+        nextEnd += navigatorStart - nextStart;
+        nextStart = navigatorStart;
+    }
+    if (nextEnd > navigatorEnd) {
+        nextStart -= nextEnd - navigatorEnd;
+        nextEnd = navigatorEnd;
+    }
+    nextStart = Math.max(nextStart, navigatorStart);
+    nextEnd = Math.min(nextEnd, navigatorEnd);
+
+    if (nextEnd <= nextStart || isSameDataViewerChartRange({ startTime: nextStart, endTime: nextEnd }, currentRange)) return undefined;
     return { startTime: nextStart, endTime: nextEnd };
 }
 

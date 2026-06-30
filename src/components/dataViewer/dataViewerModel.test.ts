@@ -7,10 +7,12 @@ import {
     buildDataViewerRawPageTimeRange,
     buildDataViewerRawPageBounds,
     buildDataViewerRawPageRequest,
+    buildDataViewerRawRowsPerTagChange,
     buildDataViewerRawToChartRangeUpdate,
     buildDataViewerSplitRangeUpdate,
     buildDataViewerSplitGroups,
     buildDataViewerShiftMainRangeUpdate,
+    buildDataViewerDragRangeUpdate,
     buildDataViewerTagSelectionUpdate,
     buildDataViewerWheelZoomRange,
     buildDataViewerZoomControlRange,
@@ -19,6 +21,7 @@ import {
     extractDataViewerDataZoomRange,
     getDataViewerChartRangeMs,
     getDataViewerRawPageSize,
+    normalizeDataViewerRowsPerTag,
     hasDataViewerRawNextPage,
     hasExplicitDataViewerDataZoomEventRange,
     isSameDataViewerChartRange,
@@ -241,10 +244,43 @@ describe('data viewer chart helpers', () => {
         expect(normalizeSelectedTagNames([], [])).toEqual([]);
     });
 
-    test('getDataViewerRawPageSize uses 1000 rows per selected tag', () => {
+    test('getDataViewerRawPageSize uses configurable rows per selected tag', () => {
         expect(getDataViewerRawPageSize(['sensor.a'])).toBe(1000);
         expect(getDataViewerRawPageSize(['sensor.a', 'sensor.b', 'sensor.c'])).toBe(3000);
         expect(getDataViewerRawPageSize([])).toBe(1000);
+        expect(getDataViewerRawPageSize(['sensor.a'], 100)).toBe(100);
+        expect(getDataViewerRawPageSize(['sensor.a', 'sensor.b', 'sensor.c'], 100)).toBe(300);
+        expect(getDataViewerRawPageSize([], 100)).toBe(100);
+    });
+
+    test('normalizeDataViewerRowsPerTag keeps positive integer values', () => {
+        expect(normalizeDataViewerRowsPerTag('100', 1000)).toBe(100);
+        expect(normalizeDataViewerRowsPerTag('100.9', 1000)).toBe(100);
+        expect(normalizeDataViewerRowsPerTag('', 1000)).toBe(1000);
+        expect(normalizeDataViewerRowsPerTag('0', 1000)).toBe(1000);
+        expect(normalizeDataViewerRowsPerTag('abc', 1000)).toBe(1000);
+    });
+
+    test('buildDataViewerRawRowsPerTagChange resets raw paging to page one', () => {
+        expect(
+            buildDataViewerRawRowsPerTagChange({
+                value: '100',
+                currentRowsPerTag: 1000,
+                selectedTagNames: ['sensor.a', 'sensor.b', 'sensor.c'],
+            }),
+        ).toEqual({
+            rowsPerTag: 100,
+            pageSize: 300,
+            page: 1,
+            rawPageRequest: { page: 1 },
+        });
+        expect(
+            buildDataViewerRawRowsPerTagChange({
+                value: '0',
+                currentRowsPerTag: 1000,
+                selectedTagNames: ['sensor.a'],
+            }),
+        ).toBeNull();
     });
 
     test('buildDataViewerRawPageTimeRange returns the current raw page time span', () => {
@@ -671,6 +707,60 @@ describe('data viewer chart helpers', () => {
         expect(buildDataViewerZoomControlRange('focus', currentRange, navigatorRange)).toEqual({ startTime: 360, endTime: 440 });
         expect(buildDataViewerWheelZoomRange(-100, 300, currentRange, navigatorRange)).toEqual({ startTime: 218, endTime: 546 });
         expect(buildDataViewerWheelZoomRange(100, 300, currentRange, navigatorRange)).toEqual({ startTime: 178, endTime: 666 });
+    });
+
+    test('buildDataViewerDragRangeUpdate zooms into a left-button drag range', () => {
+        expect(
+            buildDataViewerDragRangeUpdate({
+                mode: 'zoom-in',
+                dragStartTime: 800,
+                dragEndTime: 300,
+                currentRange: { startTime: 0, endTime: 1000 },
+                navigatorRange: { startTime: 0, endTime: 1000 },
+            }),
+        ).toEqual({ startTime: 300, endTime: 800 });
+    });
+
+    test('buildDataViewerDragRangeUpdate pans with middle-button drag inside navigator', () => {
+        expect(
+            buildDataViewerDragRangeUpdate({
+                mode: 'pan',
+                dragStartTime: 500,
+                dragEndTime: 650,
+                currentRange: { startTime: 200, endTime: 800 },
+                navigatorRange: { startTime: 0, endTime: 1000 },
+            }),
+        ).toEqual({ startTime: 50, endTime: 650 });
+        expect(
+            buildDataViewerDragRangeUpdate({
+                mode: 'pan',
+                dragStartTime: 500,
+                dragEndTime: 650,
+                currentRange: { startTime: 0, endTime: 1000 },
+                navigatorRange: { startTime: 0, endTime: 1000 },
+            }),
+        ).toBeUndefined();
+    });
+
+    test('buildDataViewerDragRangeUpdate zooms out with right-button drag', () => {
+        expect(
+            buildDataViewerDragRangeUpdate({
+                mode: 'zoom-out',
+                dragStartTime: 400,
+                dragEndTime: 600,
+                currentRange: { startTime: 200, endTime: 800 },
+                navigatorRange: { startTime: 0, endTime: 1000 },
+            }),
+        ).toEqual({ startTime: 100, endTime: 900 });
+        expect(
+            buildDataViewerDragRangeUpdate({
+                mode: 'zoom-out',
+                dragStartTime: 0,
+                dragEndTime: 1000,
+                currentRange: { startTime: 200, endTime: 800 },
+                navigatorRange: { startTime: 0, endTime: 1000 },
+            }),
+        ).toEqual({ startTime: 0, endTime: 1000 });
     });
 
     test('buildDataViewerShiftMainRangeUpdate shifts visible main range like Tag Analyzer', () => {

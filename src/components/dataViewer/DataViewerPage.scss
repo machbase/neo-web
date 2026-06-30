@@ -1513,6 +1513,25 @@
     min-height: 260px;
     padding: 0;
     background-color: #252525;
+    cursor: crosshair;
+}
+
+.neo-data-viewer .data-viewer-chart.is-panning {
+    cursor: grabbing;
+}
+
+.neo-data-viewer .data-viewer-chart-drag-preview {
+    position: absolute;
+    z-index: 3;
+    min-width: 1px;
+    pointer-events: none;
+    border: 1px solid rgba(126, 199, 255, 0.9);
+    background-color: rgba(126, 199, 255, 0.12);
+}
+
+.neo-data-viewer .data-viewer-chart-drag-preview-zoom-out {
+    border-color: rgba(255, 196, 87, 0.9);
+    background-color: rgba(255, 196, 87, 0.14);
 }
 
 .neo-data-viewer .data-viewer-chart > div {
@@ -1523,10 +1542,11 @@
 
 .neo-data-viewer .pagination {
     display: flex;
+    position: relative;
     justify-content: center;
     align-items: center;
     gap: var(--spacing-8);
-    padding: var(--spacing-8) var(--spacing-12);
+    padding: var(--spacing-8) 132px var(--spacing-8) var(--spacing-12);
     border-top: 1px solid var(--color-border);
     flex-shrink: 0;
 }
@@ -1542,6 +1562,21 @@
     border-radius: var(--radius-base);
     background-color: var(--color-surface-input);
     color: var(--color-on-surface);
+}
+
+.neo-data-viewer .pagination-page-size {
+    display: inline-flex;
+    position: absolute;
+    right: var(--spacing-12);
+    align-items: center;
+    gap: var(--spacing-6);
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+}
+
+.neo-data-viewer .pagination-page-size-input {
+    width: 64px;
 }
 
 .neo-data-viewer .pagination-input[type='number']::-webkit-inner-spin-button,
