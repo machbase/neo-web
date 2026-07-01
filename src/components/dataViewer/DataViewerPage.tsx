@@ -28,6 +28,7 @@ import {
     buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
     buildDataViewerHeaderLabels,
+    buildDataViewerDefaultChartShiftRawPageUpdate,
     buildDataViewerRawPageBounds,
     buildDataViewerRawPageRequest,
     buildDataViewerRawRowsPerTagChange,
@@ -1001,8 +1002,22 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 cursorOffset: rawPageRequest.cursorOffset,
             });
             if (rowsRequestRef.current !== requestId) return;
+            const nextBounds = buildDataViewerRawPageBounds(result.rows);
             setRows(result.rows);
-            setRawPageBounds(buildDataViewerRawPageBounds(result.rows));
+            setRawPageBounds(nextBounds);
+            if (mode === 'chart' && !rawPageRequest.boundedRange && nextBounds?.pageBounds) {
+                setChartRange(nextBounds.pageBounds);
+                setChartViewRanges((current) => {
+                    if (!Object.prototype.hasOwnProperty.call(current, 'default')) return current;
+                    const { default: _defaultRange, ...next } = current;
+                    return next;
+                });
+                setChartNavigatorRanges((current) => {
+                    if (!Object.prototype.hasOwnProperty.call(current, 'default')) return current;
+                    const { default: _defaultRange, ...next } = current;
+                    return next;
+                });
+            }
         } catch (err: any) {
             if (rowsRequestRef.current !== requestId) return;
             setRows([]);
@@ -1234,9 +1249,36 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             navigatorRange: any,
         ) => {
             if (!canQuery) return;
+            if (group.id === 'default') {
+                const update = buildDataViewerDefaultChartShiftRawPageUpdate({
+                    direction,
+                    backwardScan,
+                    currentPage: page,
+                    pageSize: rawPageSize,
+                    rowCount: rows.length,
+                    forceNextPage: Boolean(rawPageRequest?.boundedRange),
+                    currentBounds: rawPageBounds,
+                });
+                if (!update) {
+                    return;
+                }
+                rowsRequestRef.current += 1;
+                setChartError('');
+                setChartViewRanges((current) => {
+                    const { default: _defaultRange, ...next } = current;
+                    return next;
+                });
+                setChartNavigatorRanges((current) => {
+                    const { default: _defaultRange, ...next } = current;
+                    return next;
+                });
+                setRawPageRequest(update.rawPageRequest);
+                setPage(update.page);
+                return;
+            }
+
             const update = buildDataViewerShiftMainRangeUpdate({ direction, currentRange, navigatorRange });
             if (!update) {
-                setChartError('Cannot move chart range.');
                 return;
             }
 
@@ -1251,26 +1293,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 [group.id]: update.navigatorRange,
             }));
 
-            if (group.id === 'default') {
-                if (splitChartGroups.length > 0) {
-                    setSplitChartRows((current) => {
-                        let changed = false;
-                        const next = { ...current };
-                        splitChartGroups.forEach((splitGroup) => {
-                            if (!splitGroup?.id || Object.prototype.hasOwnProperty.call(next, splitGroup.id)) return;
-                            next[splitGroup.id] = rows;
-                            changed = true;
-                        });
-                        return changed ? next : current;
-                    });
-                }
-                setChartRange(update.navigatorRange);
-            } else {
-                setSplitChartRanges((current) => ({
-                    ...current,
-                    [group.id]: update.navigatorRange,
-                }));
-            }
+            setSplitChartRanges((current) => ({
+                ...current,
+                [group.id]: update.navigatorRange,
+            }));
 
             try {
                 const result = await queryTagData({
@@ -1290,20 +1316,15 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 });
                 const nextRows = result.rows;
                 chartRequestRef.current += 1;
-                if (group.id === 'default') {
-                    setRows(nextRows);
-                    setRawPageBounds(buildDataViewerRawPageBounds(nextRows));
-                } else {
-                    setSplitChartRows((current) => ({
-                        ...current,
-                        [group.id]: nextRows,
-                    }));
-                }
+                setSplitChartRows((current) => ({
+                    ...current,
+                    [group.id]: nextRows,
+                }));
             } catch (err: any) {
                 setChartError(err?.message || 'Failed to move chart range');
             }
         },
-        [backwardScan, canQuery, dbName, rawRowsPerTag, rows, splitChartGroups, tableName, tagColumn, timeColumn, userName, valueColumn],
+        [backwardScan, canQuery, dbName, page, rawPageBounds, rawPageSize, rawRowsPerTag, tableName, tagColumn, timeColumn, userName, valueColumn],
     );
 
     return (

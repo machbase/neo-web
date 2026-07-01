@@ -8,6 +8,7 @@ import {
     buildDataViewerRawPageBounds,
     buildDataViewerRawPageRequest,
     buildDataViewerRawRowsPerTagChange,
+    buildDataViewerDefaultChartShiftRawPageUpdate,
     buildDataViewerRawToChartRangeUpdate,
     buildDataViewerSplitRangeUpdate,
     buildDataViewerSplitGroups,
@@ -398,6 +399,96 @@ describe('data viewer chart helpers', () => {
             to: '2026-06-25T05:10:01.001Z',
             boundedRange: true,
         });
+    });
+
+    test('buildDataViewerDefaultChartShiftRawPageUpdate maps chart movement through raw scan direction', () => {
+        const currentBounds = {
+            pageStart: { time: '2026-06-01T00:00:00.000Z', name: 'sensor.a' },
+            pageEnd: { time: '2026-06-01T00:10:00.000Z', name: 'sensor.a' },
+            pageBounds: {
+                from: '2026-06-01T00:00:00.000Z',
+                to: '2026-06-01T00:10:00.000Z',
+            },
+        } as any;
+
+        expect(
+            buildDataViewerDefaultChartShiftRawPageUpdate({
+                direction: 'backward',
+                backwardScan: true,
+                currentPage: 2,
+                pageSize: 1000,
+                currentBounds,
+            }),
+        ).toEqual({
+            page: 3,
+            rawPageRequest: {
+                page: 3,
+                cursorSide: 'next',
+                cursorTime: '2026-06-01T00:10:00.000Z',
+                cursorName: 'sensor.a',
+                cursorOffset: 0,
+            },
+        });
+
+        expect(
+            buildDataViewerDefaultChartShiftRawPageUpdate({
+                direction: 'forward',
+                backwardScan: true,
+                currentPage: 2,
+                pageSize: 1000,
+                currentBounds,
+            }),
+        ).toEqual({
+            page: 1,
+            rawPageRequest: {
+                page: 1,
+                cursorSide: 'prev',
+                cursorTime: '2026-06-01T00:00:00.000Z',
+                cursorName: 'sensor.a',
+                cursorOffset: 0,
+            },
+        });
+
+        expect(
+            buildDataViewerDefaultChartShiftRawPageUpdate({
+                direction: 'forward',
+                backwardScan: false,
+                currentPage: 2,
+                pageSize: 1000,
+                currentBounds,
+            })?.page,
+        ).toBe(3);
+
+        expect(
+            buildDataViewerDefaultChartShiftRawPageUpdate({
+                direction: 'backward',
+                backwardScan: false,
+                currentPage: 2,
+                pageSize: 1000,
+                currentBounds,
+            })?.page,
+        ).toBe(1);
+
+        expect(
+            buildDataViewerDefaultChartShiftRawPageUpdate({
+                direction: 'forward',
+                backwardScan: true,
+                currentPage: 1,
+                pageSize: 1000,
+                currentBounds,
+            }),
+        ).toBeNull();
+
+        expect(
+            buildDataViewerDefaultChartShiftRawPageUpdate({
+                direction: 'backward',
+                backwardScan: true,
+                currentPage: 2,
+                pageSize: 1000,
+                rowCount: 999,
+                currentBounds,
+            }),
+        ).toBeNull();
     });
 
     test('hasDataViewerRawNextPage opens next page during bounded tag refresh', () => {
