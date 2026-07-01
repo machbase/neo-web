@@ -2,7 +2,7 @@ import {
     SortOrderEnum,
     type RawFetchSampling,
     type SeriesFetchColumnMap,
-} from '../FetchContracts';
+} from '../panelData/PanelDataFetchTypes';
 import {
     AND_KEYWORD,
     AS_KEYWORD,
@@ -22,8 +22,8 @@ import {
     buildSqlIdentifierPath,
     buildSqlStringLiteral,
 } from './SqlTextUtils';
-import type { TimeRangeNs } from '../../domain/time/model/TimeTypes';
-import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/model/TimeConstants';
+import type { TimeRangeNs } from '../../domain/time/TimeTypes';
+import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/TimeConstants';
 import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 

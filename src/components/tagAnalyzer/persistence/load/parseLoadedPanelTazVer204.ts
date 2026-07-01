@@ -2,21 +2,24 @@ import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
     type PanelInfo,
-} from '../../domain/PanelDomain';
-import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
-import { normalizePanelViewRange } from '../../domain/time/boundary/TimeBoundaryValidate';
+    type PanelYAxis,
+} from '../../domain/panel/PanelConfig';
+import { isPlainObject } from '../../domain/ObjectGuards';
+import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
+import { normalizePanelViewRange } from '../../domain/panelRange/PanelRangeResolver';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,
 } from '../PersistenceCloneUtils';
 import type { PersistedPanelInfoV204 } from '../TazPersistenceTypesV204';
-import { normalizePersistedPanelRangeInput } from './normalizePersistedPanelRangeConfig';
+import { normalizePersistedPanelRangeInput } from './normalizePersistedPanelRangeInput';
+import { normalizePersistedValueRange } from './normalizePersistedValueRange';
 import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
 
 export function isPersistedPanelInfoV204(
     panelInfo: unknown,
 ): panelInfo is PersistedPanelInfoV204 {
-    if (!panelInfo || typeof panelInfo !== 'object') {
+    if (!isPlainObject(panelInfo)) {
         return false;
     }
 
@@ -52,11 +55,11 @@ export function isPersistedPanelInfoV204(
 export function parseLoadedPanelTazVer204(
     panelInfo: PersistedPanelInfoV204,
 ): PanelInfo {
-    const sRangeConfig = normalizePersistedPanelRangeInput(
+    const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.range_config,
         shouldUseNumericPanelRangeInput(panelInfo.data.tag_set),
     );
-    if (!sRangeConfig) {
+    if (!sRangeInput) {
         throw new Error('Invalid TagAnalyzer .taz panel time range_config structure.');
     }
     const sMainChartSampling =
@@ -77,8 +80,8 @@ export function parseLoadedPanelTazVer204(
             isOrderBy: panelInfo.general.is_order_by ?? false,
             useNormalize: panelInfo.general.use_normalize,
         },
-        timeRange: {
-            ...sRangeConfig,
+        time: {
+            rangeInput: sRangeInput,
             useLastViewedRange: panelInfo.general.use_last_viewed_range,
             lastViewedRange: normalizePanelViewRange(
                 panelInfo.general.last_viewed_range,
@@ -88,34 +91,10 @@ export function parseLoadedPanelTazVer204(
             x: {
                 showTickline: panelInfo.axes.x_axis.show_tickline,
             },
-            leftY: {
-                zeroBase: panelInfo.axes.left_y_axis.zero_base,
-                showTickline: panelInfo.axes.left_y_axis.show_tickline,
-                valueRange: { ...panelInfo.axes.left_y_axis.value_range },
-                rawValueRange: {
-                    ...panelInfo.axes.left_y_axis.raw_data_value_range,
-                },
-                upperControlLimit: {
-                    ...panelInfo.axes.left_y_axis.upper_control_limit,
-                },
-                lowerControlLimit: {
-                    ...panelInfo.axes.left_y_axis.lower_control_limit,
-                },
-            },
+            leftY: mapPersistedYAxis(panelInfo.axes.left_y_axis),
             rightY: {
+                ...mapPersistedYAxis(panelInfo.axes.right_y_axis),
                 enabled: panelInfo.axes.right_y_axis_enabled ?? false,
-                zeroBase: panelInfo.axes.right_y_axis.zero_base,
-                showTickline: panelInfo.axes.right_y_axis.show_tickline,
-                valueRange: { ...panelInfo.axes.right_y_axis.value_range },
-                rawValueRange: {
-                    ...panelInfo.axes.right_y_axis.raw_data_value_range,
-                },
-                upperControlLimit: {
-                    ...panelInfo.axes.right_y_axis.upper_control_limit,
-                },
-                lowerControlLimit: {
-                    ...panelInfo.axes.right_y_axis.lower_control_limit,
-                },
             },
         },
         display: {
@@ -142,5 +121,32 @@ export function parseLoadedPanelTazVer204(
         },
         highlights: clonePanelHighlights(panelInfo.highlights),
         annotations: clonePanelAnnotations(panelInfo.annotations),
+    };
+}
+
+function normalizeLoadedValueRange(
+    valueRange: unknown,
+    label: string,
+): PanelYAxis['valueRange'] {
+    const sValueRange = normalizePersistedValueRange(valueRange);
+    if (!sValueRange) {
+        throw new Error(`Invalid TagAnalyzer .taz panel axis ${label} structure.`);
+    }
+
+    return sValueRange;
+}
+function mapPersistedYAxis(
+    axis: PersistedPanelInfoV204['axes']['left_y_axis'],
+): PanelYAxis {
+    return {
+        zeroBase: axis.zero_base,
+        showTickline: axis.show_tickline,
+        valueRange: normalizeLoadedValueRange(axis.value_range, 'value_range'),
+        rawValueRange: normalizeLoadedValueRange(
+            axis.raw_data_value_range,
+            'raw_data_value_range',
+        ),
+        upperControlLimit: { ...axis.upper_control_limit },
+        lowerControlLimit: { ...axis.lower_control_limit },
     };
 }

@@ -1,4 +1,4 @@
-import type { PanelRangeChangeEvent } from '../domain/PanelDomain';
+import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import type {
     ChartSeriesData,
     FFTSelectionPayload,
@@ -6,25 +6,16 @@ import type {
 } from '../domain/ChartDomain';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 
-type BrushSelectionRange = {
-    min: number;
-    max: number;
-    startTime: number;
-    endTime: number;
-};
-
 export function buildSelectionSummaryPayload(
-    event: PanelRangeChangeEvent,
+    selectionRange: TimeRangeMs,
     chartData: ChartSeriesData[],
     seriesList: PanelSeriesDefinition[],
-    isNumericXAxis: boolean,
 ): FFTSelectionPayload | undefined {
-    const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
     const sSeriesSummaries = buildSeriesSummaryRows(
         chartData.map((series) => series.data),
         seriesList,
-        sSelectionRange.min,
-        sSelectionRange.max,
+        selectionRange.startTime,
+        selectionRange.endTime,
     );
 
     if (sSeriesSummaries.length === 0) {
@@ -32,21 +23,9 @@ export function buildSelectionSummaryPayload(
     }
 
     return {
-        startTime: sSelectionRange.startTime,
-        endTime: sSelectionRange.endTime,
+        startTime: selectionRange.startTime,
+        endTime: selectionRange.endTime,
         seriesSummaries: sSeriesSummaries,
-    };
-}
-
-function getBrushSelectionRange(
-    event: PanelRangeChangeEvent,
-    isNumericXAxis: boolean,
-): BrushSelectionRange {
-    return {
-        min: event.min,
-        max: event.max,
-        startTime: isNumericXAxis ? event.min : Math.floor(event.min),
-        endTime: isNumericXAxis ? event.max : Math.ceil(event.max),
     };
 }
 

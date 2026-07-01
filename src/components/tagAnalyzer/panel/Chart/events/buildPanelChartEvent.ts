@@ -1,15 +1,14 @@
 import type { MutableRefObject } from 'react';
 import {
     PanelOverlayMode,
-    type PanelRangeChangeEvent,
     type PanelMarkupHandlers,
     type PanelRangeActions,
-} from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
+} from '../../../domain/panel/PanelActions';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import {
     getTimeRangeWidth,
     isSameTimeRange,
-} from '../../../domain/time/range/TimeRangeUtils';
+} from '../../../domain/time/TimeRangeUtils';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
@@ -73,7 +72,7 @@ type BuildChartEventParams = {
     rangeActions: PanelRangeActions;
     markupHandlers: PanelMarkupHandlers;
     onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
-    onSelection: (event: PanelRangeChangeEvent) => unknown;
+    onSelection: (selectionRange: TimeRangeMs) => unknown;
     legendState: {
         applyLegendHoverState: (
             hoveredLegendSeries: string | undefined,
@@ -162,10 +161,7 @@ export function buildChartEvent({
             }
 
             if (isSelectionMode) {
-                onSelection({
-                    min: sRange.startTime,
-                    max: sRange.endTime,
-                });
+                onSelection(sRange);
                 return;
             }
 
@@ -312,10 +308,7 @@ function isSameDataZoomRange(
         ? Math.max(sRangeWidth * 1e-9, Number.EPSILON)
         : Math.max(sRangeWidth * 1e-9, 1);
 
-    return (
-        Math.abs(left.startTime - right.startTime) <= sTolerance &&
-        Math.abs(left.endTime - right.endTime) <= sTolerance
-    );
+    return isSameTimeRange(left, right, sTolerance);
 }
 
 function isLegendHoverPayload(

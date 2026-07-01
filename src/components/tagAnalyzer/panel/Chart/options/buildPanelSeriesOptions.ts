@@ -5,7 +5,7 @@ import type {
 import type {
     RuntimePanelAxes,
     RuntimePanelDisplay,
-} from '../../../domain/PanelDomain';
+} from '../../../domain/panel/PanelRuntime';
 import {
     getPanelSeriesDisplayColor,
 } from '../../../domain/SeriesDomain';

@@ -5,6 +5,7 @@ import Shell from '../shell/Shell';
 import { useRecoilState, useRecoilValue, useSetRecoilState, useResetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
+import type { BoardInfo } from '../tagAnalyzer/domain/BoardDomain';
 import { Button, Tabs } from '@/design-system/components';
 import Tab from '@/design-system/components/Tabs/Tab';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
@@ -50,6 +51,8 @@ import {
 } from '@/recoil/recoil';
 import { gActiveAppSide } from '@/recoil/appStore';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
+import { saveBoardInfoToTaz } from '@/components/tagAnalyzer/persistence/save/saveBoardInfoToTaz';
+import { createSavedTazBoardSnapshot } from '@/components/tagAnalyzer/persistence/save/SavedTazBoardSnapshot';
 
 const DEFAULT_CONTEXT_MENU_STATE = {
     open: false,
@@ -109,18 +112,30 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
 
             if (sIsAlreadySave) {
                 const sFileType = extractionExtension(sFilterBoard.name);
+
+                if (sFileType === 'taz') {
+                    try {
+                        const sDidSave = await saveBoardInfoToTaz(sFilterBoard);
+                        if (sDidSave) {
+                            const sIndex = sBoardList.findIndex((aBoard) => aBoard.id === sSelectedTab);
+                            const sTempBoardList = JSON.parse(JSON.stringify(sBoardList));
+                            sTempBoardList[sIndex] = createSavedTazBoardSnapshot(sFilterBoard) as any;
+                            setBoardList(sTempBoardList);
+                        } else {
+                            Toast.error('save file fail retry please');
+                        }
+                    } catch {
+                        Toast.error('save file fail retry please');
+                    }
+                    return;
+                }
+
                 let sSaveData: any =
                     sFileType === 'wrk'
                         ? { data: sSaveWorkSheet }
-                        : sFileType === 'taz' || sFileType === 'dsh'
+                        : sFileType === 'dsh'
                           ? sFilterBoard
                           : sFilterBoard?.code;
-                if (sFileType === 'taz') {
-                    const sTmpTaz = JSON.parse(JSON.stringify(sFilterBoard));
-                    sTmpTaz.savedCode = '';
-                    sTmpTaz.code = '';
-                    sSaveData = sTmpTaz;
-                }
                 try {
                     const sResult: any = await postFileList(
                         sSaveData,
@@ -136,9 +151,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                         } else if (sFileType === 'json' && typeof sSaveData === 'object') {
                             sTempBoardList[sIndex].code = JSON.stringify(sSaveData, null, 4);
                             sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData, null, 4);
-                        } else if (sFileType === 'taz') {
-                            sTempBoardList[sIndex].code = '';
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData.panels);
                         } else if (sFileType === 'dsh') {
                             sTempBoardList[sIndex].code = '';
                             sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData.dashboard);
@@ -404,7 +416,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'taz') && (
                                     <TagAnalyzer
                                         pHandleSaveModalOpen={handleSaveModalOpen}
-                                        pInfo={aItem}
+                                        pInfo={aItem as unknown as BoardInfo}
                                         pSetIsOpenModal={setIsOpenModal}
                                         pSetIsSaveModal={setIsSaveModal}
                                     />

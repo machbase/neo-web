@@ -8,7 +8,8 @@ import type {
 import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelHighlight,
-} from '../../../domain/PanelDomain';
+} from '../../../domain/panel/PanelConfig';
+import { parseHexColor } from './ColorUtils';
 import {
     DEFAULT_NOT_SHOW,
     HIGHLIGHT_LABEL_SERIES_ID,
@@ -19,7 +20,7 @@ import {
 import {
     getTimeRangeCenter,
     isValidTimeRange,
-} from '../../../domain/time/range/TimeRangeUtils';
+} from '../../../domain/time/TimeRangeUtils';
 
 type HighlightAreaPoint = {
     name?: string;
@@ -163,18 +164,13 @@ function getHighlightLabelData(
 }
 
 function createColorWithAlpha(color: string, alpha: number): string {
-    const sHexMatch = /^#([0-9a-fA-F]{6})$/.exec(color);
+    const sRgb = parseHexColor(color);
 
-    if (!sHexMatch) {
+    if (!sRgb) {
         return color;
     }
 
-    const sRgbHex = sHexMatch[1];
-    const sRed = Number.parseInt(sRgbHex.slice(0, 2), 16);
-    const sGreen = Number.parseInt(sRgbHex.slice(2, 4), 16);
-    const sBlue = Number.parseInt(sRgbHex.slice(4, 6), 16);
-
-    return `rgba(${sRed}, ${sGreen}, ${sBlue}, ${alpha})`;
+    return `rgba(${sRgb.r}, ${sRgb.g}, ${sRgb.b}, ${alpha})`;
 }
 
 export function buildHighlightOverlaySeries(

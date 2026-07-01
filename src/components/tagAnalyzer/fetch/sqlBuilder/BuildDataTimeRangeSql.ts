@@ -1,5 +1,5 @@
 import { ADMIN_ID } from '@/utils/constants';
-import type { TableTagMap } from '../FetchContracts';
+import type { TableTagMap } from '../panelData/PanelDataFetchTypes';
 import {
     AS_KEYWORD,
     AND_KEYWORD,

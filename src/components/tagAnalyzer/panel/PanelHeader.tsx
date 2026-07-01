@@ -14,7 +14,6 @@ import {
     Download,
     GearFill,
     GoArrowBoth,
-    LineChart,
     LuTimerReset,
     PiHighlighterLight,
     PiSelectionPlusBold,
@@ -25,20 +24,19 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, ContextMenu, Menu } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
-import { PanelOverlayMode } from '../domain/PanelDomain';
+import { PanelOverlayMode } from '../domain/panel/PanelActions';
 import type {
     IntervalOption,
     TimeRangeMs,
-} from '../domain/time/model/TimeTypes';
-import { formatRangeBoundaryLabel } from '../domain/time/formatting/TimeFormatters';
-import { isValidTimeRange } from '../domain/time/range/TimeRangeUtils';
+} from '../domain/time/TimeTypes';
+import { formatRangeEndpointLabel } from '../formatting/TimeFormatters';
+import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
 
 export enum PanelActionKey {
     TOGGLE_RAW = 'TOGGLE_RAW',
     TOGGLE_HIGHLIGHT = 'TOGGLE_HIGHLIGHT',
     TOGGLE_ANNOTATION = 'TOGGLE_ANNOTATION',
     TOGGLE_DRAG_SELECT = 'TOGGLE_DRAG_SELECT',
-    OPEN_FFT = 'OPEN_FFT',
     SET_GLOBAL_TIME = 'SET_GLOBAL_TIME',
     REFRESH_DATA = 'REFRESH_DATA',
     REFRESH_TIME = 'REFRESH_TIME',
@@ -60,12 +58,11 @@ export type PanelHeaderRuntimeState = {
     resolvedIntervalOption: IntervalOption | undefined;
     canSetGlobalTime: boolean;
     canSaveLocal: boolean;
-    canOpenFft: boolean;
     isNumericXAxis: boolean;
     overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
-    isOverlap: boolean;
+    isOverlapSelected: boolean;
 };
 
 type PanelActionDescriptor = {
@@ -84,7 +81,6 @@ type PanelActionDescriptor = {
 const PANEL_CONTEXT_ACTION_KEYS: PanelActionKey[] = [
     PanelActionKey.TOGGLE_RAW,
     PanelActionKey.TOGGLE_DRAG_SELECT,
-    PanelActionKey.OPEN_FFT,
     PanelActionKey.SET_GLOBAL_TIME,
     PanelActionKey.REFRESH_DATA,
     PanelActionKey.REFRESH_TIME,
@@ -98,6 +94,7 @@ const PANEL_EXTRA_ACTION_KEYS = new Set<PanelActionKey>([
     PanelActionKey.SET_GLOBAL_TIME,
     PanelActionKey.REFRESH_DATA,
     PanelActionKey.EXPAND_FULL_RANGE,
+    PanelActionKey.OPEN_EXPORT_CSV,
 ]);
 const RAW_BUTTON_STYLE = { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 } as const;
 const DRAG_SELECT_BUTTON_STYLE = { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 } as const;
@@ -164,14 +161,6 @@ function buildPanelActions(
             visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.DRAG_SELECT,
             buttonStyle: DRAG_SELECT_BUTTON_STYLE,
-        },
-        {
-            key: PanelActionKey.OPEN_FFT,
-            label: 'FFT chart',
-            contextLabel: 'Open FFT chart',
-            icon: <LineChart size={16} />,
-            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
-            disabled: !state.canOpenFft,
         },
         {
             key: PanelActionKey.SET_GLOBAL_TIME,
@@ -260,12 +249,12 @@ function getActionClass(action: PanelActionDescriptor): string {
 
 function formatPanelTimeText(state: PanelHeaderRuntimeState): string {
     if (!isValidTimeRange(state.panelRange)) return '';
-    const sStart = formatRangeBoundaryLabel(
+    const sStart = formatRangeEndpointLabel(
         state.panelRange.startTime,
         state.isNumericXAxis,
         state.panelRange,
     );
-    const sEnd = formatRangeBoundaryLabel(
+    const sEnd = formatRangeEndpointLabel(
         state.panelRange.endTime,
         state.isNumericXAxis,
         state.panelRange,
@@ -413,12 +402,12 @@ const PanelHeader = (props: PanelHeaderProps) => {
         extra: sExtraActions,
         more: sMoreActions,
     } = partitionPanelActions(sActions);
-    const sOverlapLabel = runtimeState.isOverlap
+    const sOverlapLabel = runtimeState.isOverlapSelected
         ? 'Remove from overlap chart'
         : 'Add to overlap chart';
     const sOverlapBoxClassName = joinClassNames(
         'panel-header__overlap-box',
-        runtimeState.isOverlap && 'panel-header__overlap-box--active',
+        runtimeState.isOverlapSelected && 'panel-header__overlap-box--active',
     );
 
     useEffect(() => {
@@ -482,10 +471,10 @@ const PanelHeader = (props: PanelHeaderProps) => {
                     className={sOverlapBoxClassName}
                     title={sOverlapLabel}
                     aria-label={sOverlapLabel}
-                    aria-pressed={runtimeState.isOverlap}
+                    aria-pressed={runtimeState.isOverlapSelected}
                     onClick={onToggleOverlap}
                 >
-                    {runtimeState.isOverlap && <Check size={11} />}
+                    {runtimeState.isOverlapSelected && <Check size={11} />}
                 </button>
                 {isRenamingTitle ? (
                     <input

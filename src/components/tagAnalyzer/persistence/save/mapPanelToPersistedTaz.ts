@@ -1,7 +1,6 @@
-import type { PanelInfo } from '../../domain/PanelDomain';
+import type { PanelInfo } from '../../domain/panel/PanelConfig';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
-import { normalizeStoredTimeUnit } from '../../domain/time/interval/TimeIntervalUtils';
-import { clonePanelRangeInput } from '../../domain/time/range/PanelRangeConfigUtils';
+import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
 import type { PersistedPanelInfoV210 } from '../TazPersistenceTypesV210';
 import {
     clonePanelAnnotations,
@@ -29,9 +28,9 @@ export function mapPanelToPersistedTaz(
             useNormalize: panelInfo.mode.useNormalize,
         },
         timeRange: {
-            ...clonePanelRangeInput(panelInfo.timeRange),
-            useLastViewedRange: panelInfo.timeRange.useLastViewedRange,
-            lastViewedRange: panelInfo.timeRange.lastViewedRange,
+            ...panelInfo.time.rangeInput,
+            useLastViewedRange: panelInfo.time.useLastViewedRange,
+            lastViewedRange: panelInfo.time.lastViewedRange,
         },
         axes: {
             x: {

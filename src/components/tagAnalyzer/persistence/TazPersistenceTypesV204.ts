@@ -1,18 +1,14 @@
-import type { TazVersion } from './TazVersion';
 import type {
     PanelAxisThreshold,
     PanelEChartType,
     ValueRange,
-} from '../domain/PanelDomain';
+} from '../domain/panel/PanelConfig';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import type {
     PanelViewRange,
     PanelRangeInput,
-} from '../domain/time/model/TimeTypes';
-import type {
-    PersistedBoardTimeRange,
-    PersistedPanelAnnotationInput,
-} from './TazPersistenceTypesV200';
+} from '../domain/time/TimeTypes';
+import type { PersistedPanelAnnotationInput } from './TazPersistenceTypesV200';
 
 export type PersistedPanelInfoV204 = {
     general: {
@@ -87,12 +83,4 @@ export type PanelInfoV204Highlight = {
     };
     fillColor?: string | undefined;
     textColor?: string | undefined;
-};
-
-export type PersistedTazBoardInfoV204 = {
-    id: string;
-    type: string;
-    version: TazVersion.V204;
-    boardTimeRange: PersistedBoardTimeRange;
-    panels: PersistedPanelInfoV204[];
 };

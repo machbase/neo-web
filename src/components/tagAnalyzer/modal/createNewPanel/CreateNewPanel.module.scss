@@ -1,0 +1,271 @@
+@use '@/design-system/tokens' as t;
+
+.panelStack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.chartTypeSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.sectionLabel {
+    color: #a3a3a3;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.chartTypeRow {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.chartTypeButton {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.chartTypeButton:hover,
+.chartTypeButton:focus-visible {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.chartTypeButtonActive {
+    box-shadow:
+        inset 0 0 0 1px #006cd2,
+        0 0 0 1px rgba(0, 108, 210, 0.35);
+}
+
+.chartTypeButtonContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.chartTypeLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.titleIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    color: #3b9bff;
+    background: rgba(0, 108, 210, 0.15);
+}
+
+.fieldGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.fieldGridFull {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.fieldCell {
+    min-width: 0;
+}
+
+.fieldLabelTop {
+    display: block;
+    margin-bottom: 6px;
+    color: #a3a3a3;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.jsonKeyLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 52px;
+    color: #a3a3a3;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.jsonKeyMeta {
+    color: #d0d0d0;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+
+.itemListGroup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+}
+
+.listColumn {
+    min-width: 0;
+}
+
+.columnHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 28px;
+    margin-bottom: 6px;
+}
+
+.columnTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: #d9d9d9;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.seriesList {
+    height: 238px;
+    overflow: hidden;
+}
+
+.availableTagList button {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.availableTagList button:hover,
+.availableTagList button:focus-visible {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.selectedSeriesList {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    height: 238px;
+    overflow: hidden;
+    background-color: t.$menu-bg;
+    border: 1px solid t.$menu-border;
+    border-radius: t.$border-radius-sm;
+}
+
+.selectedSeriesItems {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.selectedSeriesItem {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    color: inherit;
+    background-color: transparent;
+    border: none;
+    border-radius: t.$border-radius-sm;
+    outline: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+}
+
+.selectedSeriesItem:hover,
+.selectedSeriesItem:focus-visible {
+    background-color: t.$menu-item-hover-bg;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+
+.selectedSeriesEmpty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 4px 8px;
+    color: t.$text-muted;
+    font-size: t.$font-size-base;
+    text-align: center;
+}
+
+.selectedSeriesItemContent {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    width: 100%;
+}
+
+.selectedSeriesHeader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 82px;
+    align-items: center;
+    gap: 8px;
+}
+
+.selectedSeriesName {
+    overflow: hidden;
+    color: #f4f4f4;
+    font-size: 13px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modeTriggerWrapper {
+    min-width: 0;
+}
+
+.selectedSeriesSourceDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.selectedSeriesSourceRow {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+}
+
+.selectedSeriesSourceLabel {
+    color: #8f8f8f;
+    font-size: 11px;
+}
+
+.selectedSeriesSourceValue {
+    overflow: hidden;
+    color: #cfcfcf;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selectedSeriesWarning {
+    margin-top: 8px;
+    color: #ef6e6e;
+    font-size: 12px;
+}

@@ -19,9 +19,9 @@ import {
     PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
     PANEL_SLIDER_DATA_ZOOM_ID,
 } from './PanelChartOptionConstants';
-import type { RuntimePanelDisplay } from '../../../domain/PanelDomain';
-import type { TimeRangeMs } from '../../../domain/time/model/TimeTypes';
-import { formatAxisPointerLabel } from '../../../domain/time/formatting/TimeFormatters';
+import type { RuntimePanelDisplay } from '../../../domain/panel/PanelRuntime';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import { formatAxisPointerLabel } from '../../../formatting/TimeFormatters';
 import {
     getChartLayoutMetrics,
     PANEL_GRID_BOTTOM,

@@ -1,4 +1,4 @@
-import { SortOrderEnum, type SeriesFetchColumnMap } from '../FetchContracts';
+import { SortOrderEnum, type SeriesFetchColumnMap } from '../panelData/PanelDataFetchTypes';
 import { buildRawSeriesSql } from './BuildRawSeriesSql';
 
 const sourceColumnMap: SeriesFetchColumnMap = {

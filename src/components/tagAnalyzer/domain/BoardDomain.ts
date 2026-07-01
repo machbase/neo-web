@@ -1,18 +1,9 @@
-import type {
-    PanelInfo,
-    RuntimePanelSampling,
-    RuntimePanelXAxis,
-} from './PanelDomain';
-import type {
-    PanelSeriesDefinition,
-    SeriesKeyAxisKind,
-} from './SeriesDomain';
-import type { TazVersion } from '../persistence/TazVersion';
+import type { PanelConfig } from './panel/PanelConfig';
 import type {
     IntervalOption,
-    TimeRangeConfig,
+    TimeRangeInput,
     TimeRangeMs,
-} from './time/model/TimeTypes';
+} from './time/TimeTypes';
 
 export type BoardInfo = {
     id: string;
@@ -20,10 +11,12 @@ export type BoardInfo = {
     name: string;
     path: string;
     code: unknown;
-    panels: PanelInfo[];
-    boardTimeRange: TimeRangeConfig;
+    panels: PanelConfig[];
+    boardTimeRange: TimeRangeInput;
     savedCode: string | false;
-    version: TazVersion;
+    // Opaque .taz format version this board was loaded from; persistence owns
+    // the TazVersion enum and how to interpret this string.
+    version: string;
 };
 
 export type GlobalTimeRangeState = {
@@ -31,43 +24,3 @@ export type GlobalTimeRangeState = {
     navigator: TimeRangeMs;
     interval: IntervalOption;
 };
-
-export type SetGlobalTimeRangePayload = {
-    dataTime: TimeRangeMs;
-    navigatorTime: TimeRangeMs;
-    interval: IntervalOption;
-};
-
-export type OverlapPanelSelection = {
-    panelKey: string;
-    start: number;
-    duration: number;
-    isRaw: boolean;
-};
-
-export type OverlapPanelInfo = OverlapPanelSelection & {
-    label: string;
-    series: PanelSeriesDefinition;
-    queryLimit: number;
-    intervalType: string | undefined;
-    xAxis: RuntimePanelXAxis;
-    mainChartSampling: RuntimePanelSampling;
-    isOrderBy: boolean;
-    includeZeroInYAxisRange: boolean;
-    axisKind: SeriesKeyAxisKind | undefined;
-};
-
-export type OverlapPanelRangeSelectionPayload = {
-    panelKey: string;
-    start: number;
-    end: number;
-    isRaw: boolean;
-};
-
-export type OverlapPanelSelectionChangePayload =
-    | (OverlapPanelRangeSelectionPayload & { changeType: undefined })
-    | (OverlapPanelRangeSelectionPayload & { changeType: 'changed' })
-    | {
-          panelKey: string;
-          changeType: 'delete';
-      };

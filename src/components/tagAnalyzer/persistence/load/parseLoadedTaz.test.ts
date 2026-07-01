@@ -2,7 +2,7 @@ import {
     TAZ_FORMAT_VERSION,
     TazVersion,
     normalizePersistedTazVersion,
-} from './parseLoadedTaz';
+} from '../TazVersion';
 
 describe('normalizePersistedTazVersion', () => {
     it('treats missing or empty version as legacy', () => {

@@ -7,8 +7,7 @@ import { Tooltip } from 'react-tooltip';
 import { generateRandomString, generateUUID, getId, isEmpty } from '@/utils';
 import { Menu, Page } from '@/design-system/components';
 import { useState } from 'react';
-import { convertChartDefault } from '@/utils/utils';
-import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
+import { ChartThemeTextColor } from '@/utils/constants';
 import { Toast } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
@@ -28,8 +27,9 @@ import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOrigin
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { Button } from '@/design-system/components';
-import { concatTagSet } from '@/utils/helpers/tags';
 import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
+import { createTazBoardFromTimeRange } from '@/components/tagAnalyzer/TazUtility';
+import type { PanelSeriesDefinition } from '@/components/tagAnalyzer/domain/SeriesDomain';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -66,7 +66,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         pShowEditPanel('edit', aPanelId);
     };
     const handleMoveTagz = () => {
-        const sTags = [] as any[];
+        const sTags: PanelSeriesDefinition[] = [];
 
         pPanelInfo.blockList
             .filter((aTag: any) => aTag.type === 'tag' && !aTag.useCustom && aTag.isVisible && !aTag.customFullTyping.use)
@@ -77,74 +77,57 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         if (!isEmpty(sTags)) {
             const sBoard = sBoardList.filter((aBoard) => aBoard.id === sSelectedTab)[0];
             const sTime = pPanelInfo.useCustomTime ? pPanelInfo.timeRange : sBoard.dashboard.timeRange;
-            const sNewData = {
-                chartType: 'Line',
-                tagSet: concatTagSet([], sTags),
-                defaultRange: {
-                    min: sTime.start,
-                    max: sTime.end,
-                },
-            };
+            let sSeriesList = sTags;
 
-            const tagzFormat = convertChartDefault(DEFAULT_CHART, sNewData);
             if (pBoardInfo.dashboard.variables.length > 0) {
                 const sParsedVar = VariableParserForTql(pBoardInfo.dashboard.variables);
-                const sReplaceTagSet = tagzFormat.tag_set.map((aTag: any) => {
-                    if (aTag.tagName.match(VARIABLE_REGEX)) {
-                        const sTargetVar = sParsedVar.find((parsedItem) => aTag.tagName.match(parsedItem.regEx));
+                sSeriesList = sTags.map((aTag) => {
+                    if (aTag.sourceTagName.match(VARIABLE_REGEX)) {
+                        const sTargetVar = sParsedVar.find((parsedItem) => aTag.sourceTagName.match(parsedItem.regEx));
                         return {
                             ...aTag,
-                            tagName: sTargetVar ? aTag.tagName.replaceAll(sTargetVar.regEx, sTargetVar.value) : aTag.tagName,
+                            sourceTagName: sTargetVar ? aTag.sourceTagName.replaceAll(sTargetVar.regEx, sTargetVar.value) : aTag.sourceTagName,
                         };
-                    } else return aTag;
+                    }
+
+                    return aTag;
                 });
-                tagzFormat.tag_set = sReplaceTagSet;
             }
-            createTagzTab(pPanelInfo.title, tagzFormat, sTime);
+
+            createTagzTab(pPanelInfo.title, sSeriesList, sTime);
         } else {
             Toast.error('Cannot view taganalyzer because there is no tag. (Custom tags are not supported in the TagAnalyzer)');
         }
     };
-    const createTag = (aInfo: any) => {
+    const createTag = (aInfo: any): PanelSeriesDefinition => {
         return {
             key: getId(),
-            tagName: aInfo.tag,
+            sourceTagName: aInfo.tag,
             table: aInfo.table,
             calculationMode: 'avg',
             alias: aInfo.alias ?? '',
-            weight: 1.0,
-            // onRollup: false,
-            colName: createTagAnalyzerColumnInfoFromDashboardBlock(aInfo),
+            color: undefined,
+            useSecondaryAxis: false,
+            id: undefined,
+            useRollupTable: false,
+            sourceColumns: createTagAnalyzerColumnInfoFromDashboardBlock(aInfo),
         };
     };
-    const createTagzTab = (aName: string, aPanels: any, aTime: any) => {
+    const createTagzTab = (aName: string, aSeriesList: PanelSeriesDefinition[], aTime: any) => {
         const sId = getId();
-        setBoardList((aPrev: any) => {
-            return [
-                ...aPrev,
-                {
-                    id: sId,
-                    path: '/',
-                    type: 'taz',
-                    name: aName + '.taz',
-                    panels: [aPanels],
-                    sheet: [],
-                    code: '',
-                    savedCode: false,
-                    range_bgn: aTime.start ?? '',
-                    range_end: aTime.end ?? '',
-                    shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
-                    dashboard: {
-                        timeRange: {
-                            start: 'now-3h',
-                            end: 'now',
-                            refresh: 'Off',
-                        },
-                        panels: [],
-                    },
-                },
-            ];
+        const sTazBoard = createTazBoardFromTimeRange({
+            id: sId,
+            path: '/',
+            name: aName + '.taz',
+            chartTitle: aName,
+            seriesList: aSeriesList,
+            timeRange: {
+                start: aTime.start,
+                end: aTime.end,
+            },
         });
+
+        setBoardList((aPrev: any) => [...aPrev, sTazBoard]);
         setSelectedTab(sId);
     };
     const HandleDownload = () => {

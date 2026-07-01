@@ -30,8 +30,36 @@ function PanelMainChartLoadingOverlay({ showLegend }: { showLegend: boolean }) {
     );
 }
 
-const PanelBody = (props: UsePanelChartRuntimeParams) => {
-    const { refs, chartState, handlers, isLoading } = props;
+type PanelBodyProps = UsePanelChartRuntimeParams & {
+    displayNotice: string | undefined;
+};
+
+function PanelMainChartNoticeOverlay({
+    showLegend,
+    message,
+}: {
+    showLegend: boolean;
+    message: string;
+}) {
+    const layout = getChartLayoutMetrics(showLegend);
+
+    return (
+        <div
+            className="panel-main-chart-notice-overlay"
+            style={{
+                left: PANEL_GRID_SIDE,
+                right: PANEL_GRID_SIDE,
+                top: layout.mainGridTop,
+                height: layout.mainGridHeight,
+            }}
+        >
+            <span>{message}</span>
+        </div>
+    );
+}
+
+const PanelBody = (props: PanelBodyProps) => {
+    const { refs, chartState, handlers, isLoading, displayNotice } = props;
     const {
         option,
         onEvents,
@@ -66,6 +94,12 @@ const PanelBody = (props: UsePanelChartRuntimeParams) => {
                 {isLoading && (
                     <PanelMainChartLoadingOverlay
                         showLegend={chartState.display.showLegend}
+                    />
+                )}
+                {!isLoading && displayNotice && (
+                    <PanelMainChartNoticeOverlay
+                        showLegend={chartState.display.showLegend}
+                        message={displayNotice}
                     />
                 )}
             </div>

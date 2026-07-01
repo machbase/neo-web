@@ -1,10 +1,11 @@
 import {
+    AUTO_VALUE_RANGE,
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
     normalizePanelEChartType,
     type PanelInfo,
     type ValueRange,
-} from '../../../../domain/PanelDomain';
+} from '../../../../domain/panel/PanelConfig';
 import {
     fromLegacyBoolean,
     toLegacyBoolean,
@@ -15,22 +16,23 @@ import {
     shouldUseNumericPanelRangeInput,
 } from '../../../../domain/SeriesDomain';
 import type {
-    PanelViewRange,
     PanelRangeInput,
-    TimestampRangeBoundary,
-    NumericRangeBoundary,
-    TimeRangeConfig,
-} from '../../../../domain/time/model/TimeTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/boundary/TimeBoundaryInput';
-import { normalizePanelViewRange } from '../../../../domain/time/boundary/TimeBoundaryValidate';
-import { normalizeStoredTimeUnit } from '../../../../domain/time/interval/TimeIntervalUtils';
+    TimeRangeInput,
+} from '../../../../domain/time/TimeTypes';
+import { createTimeRangeInputFromStoredValues } from '../../normalizePersistedTimeRangeInput';
+import { normalizePanelViewRange } from '../../../../domain/panelRange/PanelRangeResolver';
+import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
 import {
-    createNumericRangeBoundary,
-    createNumericRangeInput,
-    createTimestampRangeBoundary,
-    createTimestampRangeInput,
-} from '../../../../domain/time/range/PanelRangeConfigUtils';
-import { normalizePersistedPanelRangeInput } from '../../normalizePersistedPanelRangeConfig';
+    formatNumericValue,
+    parseNumericRangeExpression,
+} from '../../../../domain/panelRange/PanelRangeInput';
+import {
+    canResolveTimeStringToTimestamp,
+    formatAbsoluteTimeExpression,
+    parseAbsoluteTimeExpression,
+} from '../../../../domain/time/TimeRangeInputResolver';
+import { normalizePersistedPanelRangeInput } from '../../normalizePersistedPanelRangeInput';
+import { normalizePersistedValueRange } from '../../normalizePersistedValueRange';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 export function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,
@@ -38,17 +40,17 @@ export function createPanelInfoFromLegacyFlatPanelInfo(
     return createNormalizedLegacyPanelInfo(normalizeLegacyFlatPanelInfo(panelInfo));
 }
 export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo {
-    const sRangeConfig = panelInfo.timeRange;
+    const sRangeConfig = panelInfo.time.rangeInput;
 
     return {
         index_key: panelInfo.key,
         chart_title: panelInfo.title,
         tag_set: toLegacySeriesConfigs(panelInfo.query.tagSet),
-        range_bgn: serializeLegacyRangeBoundaryValue(sRangeConfig.start),
-        range_end: serializeLegacyRangeBoundaryValue(sRangeConfig.end),
+        range_bgn: serializeLegacyRangeValue(sRangeConfig.start),
+        range_end: serializeLegacyRangeValue(sRangeConfig.end),
         raw_keeper: panelInfo.mode.isRaw,
-        time_keeper: panelInfo.timeRange.lastViewedRange,
-        default_range: createLegacyDefaultRange(panelInfo.timeRange),
+        time_keeper: panelInfo.time.lastViewedRange,
+        default_range: createLegacyDefaultRange(panelInfo.time.rangeInput),
         count: panelInfo.query.count,
         interval_type: panelInfo.query.intervalType,
         interval_value: 1,
@@ -56,7 +58,7 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
         use_zoom: toLegacyBoolean(panelInfo.display.useZoom),
         connect_nulls: toLegacyBoolean(panelInfo.display.connectNulls),
         use_normalize: toLegacyBoolean(panelInfo.mode.useNormalize),
-        use_time_keeper: toLegacyBoolean(panelInfo.timeRange.useLastViewedRange),
+        use_time_keeper: toLegacyBoolean(panelInfo.time.useLastViewedRange),
         show_x_tickline: toLegacyBoolean(panelInfo.axes.x.showTickline),
         pixels_per_tick_raw: toLegacyNumberValue(panelInfo.display.pixelsPerTick.raw),
         pixels_per_tick: toLegacyNumberValue(panelInfo.display.pixelsPerTick.calculated),
@@ -93,7 +95,7 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
 
 function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
     const sTagSet = normalizeLegacySeriesConfigs(panelInfo.tag_set || []);
-    const sTimeRange = parseTimeRangeConfigFromBoundaryValues(
+    const sTimeRange = createTimeRangeInputFromStoredValues(
         panelInfo.range_bgn ?? '',
         panelInfo.range_end ?? '',
     );
@@ -109,7 +111,7 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
         tag_set: sTagSet,
         range_config: sRangeConfig,
         raw_keeper: panelInfo.raw_keeper ?? false,
-        time_keeper: normalizeLegacyLastViewedRange(panelInfo.time_keeper),
+        time_keeper: normalizePanelViewRange(panelInfo.time_keeper),
         count: normalizePanelQueryCount(panelInfo.count),
         interval_type:
             normalizeStoredTimeUnit(panelInfo.interval_type ?? '') ??
@@ -169,8 +171,8 @@ function createNormalizedLegacyPanelInfo(
             isOrderBy: true,
             useNormalize: panelInfo.use_normalize,
         },
-        timeRange: {
-            ...panelInfo.range_config,
+        time: {
+            rangeInput: panelInfo.range_config,
             useLastViewedRange: panelInfo.use_time_keeper,
             lastViewedRange: panelInfo.time_keeper,
         },
@@ -181,14 +183,14 @@ function createNormalizedLegacyPanelInfo(
             leftY: {
                 zeroBase: panelInfo.zero_base,
                 showTickline: panelInfo.show_y_tickline,
-                valueRange: {
-                    min: panelInfo.custom_min,
-                    max: panelInfo.custom_max,
-                },
-                rawValueRange: {
-                    min: panelInfo.custom_drilldown_min,
-                    max: panelInfo.custom_drilldown_max,
-                },
+                valueRange: normalizeLegacyValueRange(
+                    panelInfo.custom_min,
+                    panelInfo.custom_max,
+                ),
+                rawValueRange: normalizeLegacyValueRange(
+                    panelInfo.custom_drilldown_min,
+                    panelInfo.custom_drilldown_max,
+                ),
                 upperControlLimit: {
                     enabled: panelInfo.use_ucl,
                     value: panelInfo.ucl_value,
@@ -202,14 +204,14 @@ function createNormalizedLegacyPanelInfo(
                 enabled: panelInfo.use_right_y2,
                 zeroBase: panelInfo.zero_base2,
                 showTickline: panelInfo.show_y_tickline2,
-                valueRange: {
-                    min: panelInfo.custom_min2,
-                    max: panelInfo.custom_max2,
-                },
-                rawValueRange: {
-                    min: panelInfo.custom_drilldown_min2,
-                    max: panelInfo.custom_drilldown_max2,
-                },
+                valueRange: normalizeLegacyValueRange(
+                    panelInfo.custom_min2,
+                    panelInfo.custom_max2,
+                ),
+                rawValueRange: normalizeLegacyValueRange(
+                    panelInfo.custom_drilldown_min2,
+                    panelInfo.custom_drilldown_max2,
+                ),
                 upperControlLimit: {
                     enabled: panelInfo.use_ucl2,
                     value: panelInfo.ucl2_value,
@@ -245,6 +247,12 @@ function createNormalizedLegacyPanelInfo(
     };
 }
 
+function normalizeLegacyValueRange(
+    min: number,
+    max: number,
+): ValueRange {
+    return normalizePersistedValueRange({ min, max }) ?? { ...AUTO_VALUE_RANGE };
+}
 function normalizeNumericValue(value: number | string | undefined): number {
     if (value === undefined || value === '') {
         return 0;
@@ -257,40 +265,22 @@ function toLegacyNumberValue(value: number | undefined): number {
     return value ?? 0;
 }
 
-function normalizeLegacyLastViewedRange(
-    lastViewedRange: unknown,
-): PanelViewRange | undefined {
-    return normalizePanelViewRange(lastViewedRange);
-}
-
 function resolveLegacyRangeConfig(
     panelInfo: LegacyFlatPanelInfo,
-    storedRangeConfig: TimeRangeConfig,
+    storedRangeConfig: TimeRangeInput,
     isNumericAxis: boolean,
 ): PanelRangeInput {
     if (hasLegacyStoredRange(panelInfo)) {
         return normalizePersistedPanelRangeInput(
             storedRangeConfig,
             isNumericAxis,
-        ) ?? createEmptyRangeConfigForAxis(isNumericAxis);
+        ) ?? { start: '', end: '' };
     }
 
     return createAbsoluteRangeConfigFromValueRange(
         panelInfo.default_range,
         isNumericAxis,
-    ) ?? createEmptyRangeConfigForAxis(isNumericAxis);
-}
-
-function createEmptyRangeConfigForAxis(isNumericAxis: boolean): PanelRangeInput {
-    return isNumericAxis
-        ? createNumericRangeInput(
-              createNumericRangeBoundary('numeric_empty'),
-              createNumericRangeBoundary('numeric_empty'),
-          )
-        : createTimestampRangeInput(
-              createTimestampRangeBoundary('timestamp_empty'),
-              createTimestampRangeBoundary('timestamp_empty'),
-          );
+    ) ?? { start: '', end: '' };
 }
 
 function hasLegacyStoredRange(panelInfo: LegacyFlatPanelInfo): boolean {
@@ -315,76 +305,63 @@ function createAbsoluteRangeConfigFromValueRange(
     }
 
     return isNumericAxis
-        ? createNumericRangeInput(
-              createNumericRangeBoundary('numeric_value', valueRange.min),
-              createNumericRangeBoundary('numeric_value', valueRange.max),
-          )
-        : createTimestampRangeInput(
-              createTimestampRangeBoundary('timestamp_absolute', valueRange.min),
-              createTimestampRangeBoundary('timestamp_absolute', valueRange.max),
-          );
+        ? {
+              start: formatNumericValue(valueRange.min),
+              end: formatNumericValue(valueRange.max),
+          }
+        : {
+              start: formatAbsoluteTimeExpression(valueRange.min),
+              end: formatAbsoluteTimeExpression(valueRange.max),
+          };
 }
 
+// The legacy flat format records a default range only when both sides are concrete
+// (an absolute datetime or a plain numeric value); anchored/relative sides drop out.
 function createLegacyDefaultRange(
     rangeConfig: PanelRangeInput,
 ): ValueRange | undefined {
-    const sStartBoundary = rangeConfig.start;
-    const sEndBoundary = rangeConfig.end;
+    const sMin = toLegacyRangeNumber(rangeConfig.start);
+    const sMax = toLegacyRangeNumber(rangeConfig.end);
 
-    if (
-        sStartBoundary.kind !== 'timestamp_absolute' &&
-        sStartBoundary.kind !== 'numeric_value'
-    ) {
+    if (sMin === undefined || sMax === undefined) {
         return undefined;
     }
 
-    if (
-        sEndBoundary.kind !== 'timestamp_absolute' &&
-        sEndBoundary.kind !== 'numeric_value'
-    ) {
-        return undefined;
-    }
-
-    return {
-        min: sStartBoundary.value,
-        max: sEndBoundary.value,
-    };
+    return { min: sMin, max: sMax };
 }
 
-function serializeLegacyRangeBoundaryValue(
-    boundary: TimestampRangeBoundary | NumericRangeBoundary,
+function toLegacyRangeNumber(value: string): number | undefined {
+    const sAbsolute = parseAbsoluteTimeExpression(value);
+    if (sAbsolute !== undefined) {
+        return sAbsolute;
+    }
+
+    const sNumeric = parseNumericRangeExpression(value);
+    return sNumeric && sNumeric.anchor === 'value' ? sNumeric.value : undefined;
+}
+
+function serializeLegacyRangeValue(
+    value: string,
 ): string | number | '' {
-    switch (boundary.kind) {
-        case 'timestamp_empty':
-        case 'numeric_empty':
-            return '';
-        case 'timestamp_absolute':
-        case 'numeric_value':
-            return boundary.value;
-        case 'timestamp_now':
-            return serializeLegacyTimestampOffset('now', boundary.value);
-        case 'timestamp_data_end':
-            return serializeLegacyTimestampOffset('last', boundary.value);
-        case 'numeric_data_start':
-        case 'numeric_data_end':
-            return '';
+    const sValue = value.trim();
+    if (sValue === '') {
+        return '';
     }
+
+    const sAbsolute = parseAbsoluteTimeExpression(sValue);
+    if (sAbsolute !== undefined) {
+        return sAbsolute;
+    }
+
+    const sNumeric = parseNumericRangeExpression(sValue);
+    if (sNumeric && sNumeric.anchor === 'value') {
+        return sNumeric.value;
+    }
+
+    // Relative now/last expressions round-trip as their string form; numeric data
+    // anchors have no legacy representation and drop to empty.
+    return canResolveTimeStringToTimestamp(sValue, {
+        currentTime: 0,
+        lastDataTime: 0,
+    }) ? sValue : '';
 }
-
-function serializeLegacyTimestampOffset(
-    anchor: 'now' | 'last',
-    offsetMilliseconds: number,
-): string {
-    if (offsetMilliseconds === 0) {
-        return anchor;
-    }
-
-    if (offsetMilliseconds < 0) {
-        return `${anchor}-${Math.abs(offsetMilliseconds)}ms`;
-    }
-
-    return anchor;
-}
-
-
-

@@ -1,14 +1,10 @@
-import type { TazVersion } from './TazVersion';
 import type {
-    PanelInfo,
     PanelEChartType,
     ValueRange,
-} from '../domain/PanelDomain';
+} from '../domain/panel/PanelConfig';
 import type {
-    TimeRangeConfig,
-} from '../domain/time/model/TimeTypes';
-
-type PersistedTimeBoundaryInputValue = string | number | '';
+    TimeRangeInput,
+} from '../domain/time/TimeTypes';
 
 export type PersistedSeriesColumnsV200 = {
     nameColumn: string | undefined;
@@ -62,7 +58,7 @@ export type PersistedPanelToolbarV200 = {
 };
 
 export type PersistedPanelTimeV200 = {
-    rangeConfig: TimeRangeConfig;
+    rangeConfig: TimeRangeInput;
     useLastViewedRange?: boolean | undefined;
     lastViewedRange?: unknown;
 };
@@ -135,53 +131,10 @@ export type PersistedPanelInfoV200 = {
     annotations?: PersistedPanelAnnotationInput[] | undefined;
 };
 
-export type PersistedTazPanelInfo =
-    | PersistedPanelInfoV200
-    | PanelInfo
-    | Record<string, unknown>;
-
-export type PersistedTimeBoundaryRecord =
-    | TimeRangeConfig['start']
-    | {
-          kind: 'relative';
-          anchor?: 'now' | 'last' | undefined;
-          amount?: number | undefined;
-          unit?: string | undefined;
-          offsetMilliseconds?: number | undefined;
-          [key: string]: unknown;
-      }
-    | Record<string, unknown>;
-
-export type PersistedBoardTimeRange =
-    | TimeRangeConfig
-    | {
-          start?: PersistedTimeBoundaryRecord | undefined;
-          end?: PersistedTimeBoundaryRecord | undefined;
-      };
-
-export type PersistedTazBoardInfo = {
-    id: string;
-    type: string;
-    version?: TazVersion | string | undefined;
-    panels: PersistedTazPanelInfo[];
-    boardTimeRange?: PersistedBoardTimeRange | undefined;
-    name?: string | undefined;
-    path?: string | undefined;
-    code?: unknown;
-    savedCode?: string | false | undefined;
-    range_bgn?: PersistedTimeBoundaryInputValue | undefined;
-    range_end?: PersistedTimeBoundaryInputValue | undefined;
-    sheet?: unknown[] | undefined;
-    shell?: unknown;
-    dashboard?: unknown;
-    refreshKey?: unknown;
-    mode?: unknown;
-};
-
-export type PersistedTazBoardInfoV200 = {
-    id: string;
-    type: string;
-    version: TazVersion.V200;
-    boardTimeRange: PersistedBoardTimeRange;
-    panels: PersistedPanelInfoV200[];
+// The board time range persists as { start, end } expression strings (TAZ 2.1.0).
+// Older files stored each side as a structured time-range object; the loader reads
+// both and normalizes to strings, so the persisted shape is intentionally loose.
+export type PersistedBoardTimeRange = {
+    start?: unknown;
+    end?: unknown;
 };

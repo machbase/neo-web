@@ -1,34 +1,19 @@
-import type { PanelInfo, PanelTimeRange } from '../../domain/PanelDomain';
+import type { PanelInfo } from '../../domain/panel/PanelConfig';
 import {
     shouldUseNumericPanelRangeInput,
     type PanelSeriesDefinition,
 } from '../../domain/SeriesDomain';
-import type { PanelEditorConfig } from './PanelEditor';
-import type { PanelRangeInput } from '../../domain/time/model/TimeTypes';
-import {
-    createNumericRangeBoundary,
-    createNumericRangeInput,
-    createTimestampRangeBoundary,
-    createTimestampRangeInput,
-    isNumericRangeInput,
-    isTimestampRangeInput,
-} from '../../domain/time/range/PanelRangeConfigUtils';
+import type { PanelRangeInput } from '../../domain/time/TimeTypes';
+import { isPanelRangeInputValidForAxis } from '../../domain/panelRange/PanelRangeInput';
 
-function hasPanelTimeRangeConfigChanged(
+function hasPanelTimeRangeInputChanged(
     currentPanelState: PanelInfo,
     nextPanelState: PanelInfo,
 ): boolean {
     return (
-        getRangeConfigKey(currentPanelState.timeRange) !==
-        getRangeConfigKey(nextPanelState.timeRange)
+        currentPanelState.time.rangeInput.start !== nextPanelState.time.rangeInput.start ||
+        currentPanelState.time.rangeInput.end !== nextPanelState.time.rangeInput.end
     );
-}
-
-function getRangeConfigKey(timeRange: PanelTimeRange): string {
-    return JSON.stringify({
-        start: timeRange.start,
-        end: timeRange.end,
-    });
 }
 
 function normalizeTagSetForRightYAxis(
@@ -40,27 +25,17 @@ function normalizeTagSetForRightYAxis(
         : tagSet.map((series) => ({ ...series, useSecondaryAxis: false }));
 }
 
-function normalizeRangeConfigForSeries(
-    rangeConfig: PanelRangeInput,
+// When the series change flips the x-axis kind (datetime <-> numeric), the stored
+// expressions become meaningless for the new axis, so reset them to empty.
+function normalizeRangeInputForSeries(
+    rangeInput: PanelRangeInput,
     tagSet: PanelSeriesDefinition[],
 ): PanelRangeInput {
-    const sShouldUseNumericRangeInput = shouldUseNumericPanelRangeInput(tagSet);
+    const sIsNumericAxis = shouldUseNumericPanelRangeInput(tagSet);
 
-    if (sShouldUseNumericRangeInput) {
-        return isNumericRangeInput(rangeConfig)
-            ? rangeConfig
-            : createNumericRangeInput(
-                  createNumericRangeBoundary('numeric_empty'),
-                  createNumericRangeBoundary('numeric_empty'),
-              );
-    }
-
-    return isTimestampRangeInput(rangeConfig)
-        ? rangeConfig
-        : createTimestampRangeInput(
-              createTimestampRangeBoundary('timestamp_empty'),
-              createTimestampRangeBoundary('timestamp_empty'),
-          );
+    return isPanelRangeInputValidForAxis(rangeInput, sIsNumericAxis)
+        ? rangeInput
+        : { start: '', end: '' };
 }
 
 export function usePanelEditorActions({
@@ -77,17 +52,17 @@ export function usePanelEditorActions({
         preserveCurrentVisibleRange: boolean,
     ) => void;
 }): {
-    applyEditedPanelConfig: (editorConfig: PanelEditorConfig) => void;
-    saveEditedPanelConfig: (editorConfig: PanelEditorConfig) => Promise<boolean>;
+    applyEditedPanelConfig: (editorConfig: PanelInfo) => void;
+    saveEditedPanelConfig: (editorConfig: PanelInfo) => Promise<boolean>;
 } {
-    function buildAppliedPanelInfo(editorConfig: PanelEditorConfig): PanelInfo {
+    function buildAppliedPanelInfo(editorConfig: PanelInfo): PanelInfo {
         const sCurrentPanelState = panelInfo;
         const sNormalizedTagSet = normalizeTagSetForRightYAxis(
             editorConfig.query.tagSet,
             editorConfig.axes.rightY.enabled,
         );
-        const sNormalizedRangeConfig = normalizeRangeConfigForSeries(
-            editorConfig.timeRange,
+        const sNormalizedRangeInput = normalizeRangeInputForSeries(
+            editorConfig.time.rangeInput,
             sNormalizedTagSet,
         );
         const sNextPanelState: PanelInfo = {
@@ -96,26 +71,26 @@ export function usePanelEditorActions({
                 ...editorConfig.query,
                 tagSet: sNormalizedTagSet,
             },
-            timeRange: {
-                ...sNormalizedRangeConfig,
-                useLastViewedRange: editorConfig.timeRange.useLastViewedRange,
-                lastViewedRange: editorConfig.timeRange.lastViewedRange,
+            time: {
+                rangeInput: sNormalizedRangeInput,
+                useLastViewedRange: editorConfig.time.useLastViewedRange,
+                lastViewedRange: editorConfig.time.lastViewedRange,
             },
         };
-        const sHasTimeRangeConfigChanged = hasPanelTimeRangeConfigChanged(
+        const sHasTimeRangeInputChanged = hasPanelTimeRangeInputChanged(
             sCurrentPanelState,
             sNextPanelState,
         );
         const sShouldClearLastViewedRange =
-            !sNextPanelState.timeRange.useLastViewedRange ||
-            sHasTimeRangeConfigChanged;
+            !sNextPanelState.time.useLastViewedRange ||
+            sHasTimeRangeInputChanged;
         const sNextPanelInfo: PanelInfo = {
             ...sNextPanelState,
-            timeRange: {
-                ...sNextPanelState.timeRange,
+            time: {
+                ...sNextPanelState.time,
                 lastViewedRange: sShouldClearLastViewedRange
                     ? undefined
-                    : sNextPanelState.timeRange.lastViewedRange,
+                    : sNextPanelState.time.lastViewedRange,
             },
         };
 
@@ -125,10 +100,12 @@ export function usePanelEditorActions({
     function shouldPreserveCurrentVisibleRange(
         nextPanelInfo: PanelInfo,
     ): boolean {
-        return !hasPanelTimeRangeConfigChanged(panelInfo, nextPanelInfo);
+        return !hasPanelTimeRangeInputChanged(panelInfo, nextPanelInfo);
     }
 
-    function applyEditedPanelConfig(editorConfig: PanelEditorConfig): void {
+    function applyAndReloadPanelInfo(
+        editorConfig: PanelInfo,
+    ): PanelInfo {
         const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
 
         onApplyPanelInfo(sNextPanelInfo);
@@ -136,19 +113,18 @@ export function usePanelEditorActions({
             sNextPanelInfo,
             shouldPreserveCurrentVisibleRange(sNextPanelInfo),
         );
+
+        return sNextPanelInfo;
+    }
+
+    function applyEditedPanelConfig(editorConfig: PanelInfo): void {
+        applyAndReloadPanelInfo(editorConfig);
     }
 
     async function saveEditedPanelConfig(
-        editorConfig: PanelEditorConfig,
+        editorConfig: PanelInfo,
     ): Promise<boolean> {
-        const sNextPanelInfo = buildAppliedPanelInfo(editorConfig);
-
-        onApplyPanelInfo(sNextPanelInfo);
-        reloadAfterEditorSave(
-            sNextPanelInfo,
-            shouldPreserveCurrentVisibleRange(sNextPanelInfo),
-        );
-        return onSavePanelInfo(sNextPanelInfo);
+        return onSavePanelInfo(applyAndReloadPanelInfo(editorConfig));
     }
 
     return {

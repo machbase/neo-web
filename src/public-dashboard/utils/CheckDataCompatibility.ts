@@ -1,7 +1,6 @@
 import { SqlResDataType } from './DashboardQueryParser';
 import { CheckObjectKey, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
 import { chartTypeConverter } from './eChartHelper';
-import { concatTagSet } from './helpers/tags';
 import { DIFF_LIST } from './aggregatorConstants';
 import { TransformBlockType } from '../type/transform';
 import { getVersionByKey } from './version/utils';
@@ -130,25 +129,6 @@ const DashboardCompatibility = (aData: any) => {
     } else return sDashboardInfo;
 };
 
-const TagAnalyzerCompatibility = (aData: any) => {
-    const sTazInfo = JSON.parse(aData);
-    if (sTazInfo?.panels.length > 0) {
-        // Tag color
-        const sPanelList = sTazInfo.panels.map((aPanel: any) => {
-            if (aPanel?.tag_set && aPanel?.tag_set[0]?.color) return aPanel;
-            else {
-                return {
-                    ...aPanel,
-                    tag_set: concatTagSet([], aPanel.tag_set),
-                };
-            }
-        });
-        sTazInfo.panels = sPanelList;
-        return sTazInfo;
-    } else return sTazInfo;
-};
-
 export const CheckDataCompatibility = (aData: any, sFileExtension: string) => {
     if (sFileExtension === 'dsh') return DashboardCompatibility(aData);
-    if (sFileExtension === 'taz') return TagAnalyzerCompatibility(aData);
 };

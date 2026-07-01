@@ -1,87 +1,75 @@
 import type { BoardInfo } from '../../domain/BoardDomain';
-import type { PanelInfo } from '../../domain/PanelDomain';
-import { ensureUniquePanelIndexKeys } from '../../domain/PanelIdentity';
-import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
+import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import { isPlainObject } from '../../domain/ObjectGuards';
+import { ensureUniquePanelIndexKeys } from '../../domain/panel/PanelIdentity';
+import {
+    createTimeRangeInputFromStoredValues,
+    normalizePersistedTimeRangeInput,
+} from './normalizePersistedTimeRangeInput';
 import { isLegacyFlatPanelTaz, isLegacyNestedPanelTaz, parseLoadedLegacyPanelTaz } from './LegacySupport/legacy/parseLoadedLegacyPanelTaz';
 import { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 } from './LegacySupport/2.0.0/parseLoadedPanelTazVer200';
 import { isPersistedPanelInfoV204, parseLoadedPanelTazVer204 } from './parseLoadedPanelTazVer204';
 import { isPersistedPanelInfoV210, parseLoadedPanelTazVer210 } from './parseLoadedPanelTazVer210';
-import type {
-    PersistedBoardTimeRange,
-    PersistedTazBoardInfo,
-    PersistedTazPanelInfo,
-} from '../TazPersistenceTypesV200';
-import type { TimeRangeConfig } from '../../domain/time/model/TimeTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/boundary/TimeBoundaryInput';
+import type { PersistedBoardTimeRange } from '../TazPersistenceTypesV200';
+import type { TimeRangeInput } from '../../domain/time/TimeTypes';
 import {
     TAZ_FORMAT_VERSION,
     TazVersion,
-    isTazVersion,
+    normalizePersistedTazVersion,
 } from '../TazVersion';
 
-export { TAZ_FORMAT_VERSION, TazVersion };
+type LoadedTazBoardData = Record<string, unknown> & {
+    panels: unknown[];
+    version?: unknown;
+    boardTimeRange?: PersistedBoardTimeRange;
+    range_bgn?: unknown;
+    range_end?: unknown;
+};
 
-export type PersistedTazVersion = TazVersion;
-
-type NormalizedLoadedBoardMetadata = PersistedTazBoardInfo & {
+type NormalizedLoadedBoardMetadata = LoadedTazBoardData & {
     version: TazVersion;
     boardTimeRange: PersistedBoardTimeRange;
 };
 
-export function parseLoadedTaz(boardInfo: PersistedTazBoardInfo): BoardInfo {
-    const sNormalizedBoardInfo = normalizeLoadedBoardMetadata(boardInfo);
+export function parseLoadedTaz(boardInfo: unknown): BoardInfo {
+    const sBoardInfo = assertLoadedTazBoardData(boardInfo);
+    const sNormalizedBoardInfo = normalizeLoadedBoardMetadata(sBoardInfo);
     const sBoardTimeRange = normalizePersistedBoardTimeRange(
         sNormalizedBoardInfo.boardTimeRange,
     );
 
     return {
         ...sNormalizedBoardInfo,
-        name: sNormalizedBoardInfo.name ?? '',
-        path: sNormalizedBoardInfo.path ?? '',
+        id: normalizeLoadedString(sNormalizedBoardInfo.id),
+        type: normalizeLoadedString(sNormalizedBoardInfo.type, 'taz'),
+        name: normalizeLoadedString(sNormalizedBoardInfo.name),
+        path: normalizeLoadedString(sNormalizedBoardInfo.path),
         code: sNormalizedBoardInfo.code ?? '',
         panels: ensureUniquePanelIndexKeys(
             parseLoadedPanels(
-                sNormalizedBoardInfo.panels ?? [],
+                sNormalizedBoardInfo.panels,
                 sNormalizedBoardInfo.version,
             ),
         ),
-        savedCode: sNormalizedBoardInfo.savedCode ?? false,
+        savedCode: normalizeLoadedSavedCode(sNormalizedBoardInfo.savedCode),
         boardTimeRange: sBoardTimeRange,
     };
 }
 
-export function parseLoadedPanelTaz(
-    panelInfo: unknown,
-    version: unknown = TAZ_FORMAT_VERSION,
-): PanelInfo {
-    const sNormalizedVersion = normalizePersistedTazVersion(version);
+function assertLoadedTazBoardData(boardInfo: unknown): LoadedTazBoardData {
+    if (!isPlainObject(boardInfo)) {
+        throw new Error('Invalid TagAnalyzer .taz board structure.');
+    }
 
-    return parseLoadedPanelTazByVersion(panelInfo, sNormalizedVersion);
+    if (!Array.isArray(boardInfo.panels)) {
+        throw new Error('Invalid TagAnalyzer .taz board panels structure.');
+    }
+
+    return boardInfo as LoadedTazBoardData;
 }
-
-export function normalizePersistedTazVersion(version: unknown): TazVersion {
-    if (version === undefined || version === null) {
-        return TazVersion.Legacy;
-    }
-
-    const sVersion = String(version).trim();
-    if (sVersion === '') {
-        return TazVersion.Legacy;
-    }
-
-    if (isTazVersion(sVersion)) {
-        return sVersion;
-    }
-
-    throw new Error(
-        `Unsupported TagAnalyzer .taz version: ${formatPersistedTazVersionForError(version)}`,
-    );
-}
-
-export { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 };
 
 function parseLoadedPanels(
-    panels: PersistedTazPanelInfo[],
+    panels: unknown[],
     version: TazVersion,
 ): PanelInfo[] {
     return panels.map((panelInfo) => parseLoadedPanelTazByVersion(panelInfo, version));
@@ -128,13 +116,11 @@ function parseLoadedPanelTazByVersion(
         throw new Error(`Invalid TagAnalyzer .taz ${version} panel structure.`);
     }
 
-    throw new Error(
-        `Unsupported TagAnalyzer .taz version: ${formatPersistedTazVersionForError(version)}`,
-    );
+    throw new Error(`Unsupported TagAnalyzer .taz version: ${version}`);
 }
 
 function normalizeLoadedBoardMetadata(
-    boardInfo: PersistedTazBoardInfo,
+    boardInfo: LoadedTazBoardData,
 ): NormalizedLoadedBoardMetadata {
     const sVersion = normalizePersistedTazVersion(boardInfo.version);
 
@@ -143,25 +129,41 @@ function normalizeLoadedBoardMetadata(
         version: sVersion,
         boardTimeRange:
             boardInfo.boardTimeRange ??
-            parseTimeRangeConfigFromBoundaryValues(
-                boardInfo.range_bgn ?? '',
-                boardInfo.range_end ?? '',
+            createTimeRangeInputFromStoredValues(
+                normalizeStoredTimeRangeValue(boardInfo.range_bgn),
+                normalizeStoredTimeRangeValue(boardInfo.range_end),
             ),
     };
 }
 
+function normalizeLoadedString(value: unknown, fallback = ''): string {
+    return typeof value === 'string' ? value : fallback;
+}
+
+function normalizeLoadedSavedCode(value: unknown): string | false {
+    if (typeof value === 'string' || value === false) {
+        return value;
+    }
+
+    return false;
+}
+
+function normalizeStoredTimeRangeValue(value: unknown): string | number {
+    if (typeof value === 'string' || typeof value === 'number') {
+        return value;
+    }
+
+    return '';
+}
+
 function normalizePersistedBoardTimeRange(
     boardTimeRange: PersistedBoardTimeRange,
-): TimeRangeConfig {
+): TimeRangeInput {
     const sNormalizedBoardTimeRange =
-        normalizePersistedTimeRangeConfig(boardTimeRange);
+        normalizePersistedTimeRangeInput(boardTimeRange);
     if (!sNormalizedBoardTimeRange) {
         throw new Error('Invalid TagAnalyzer .taz boardTimeRange structure.');
     }
 
     return sNormalizedBoardTimeRange;
-}
-
-function formatPersistedTazVersionForError(version: unknown): string {
-    return JSON.stringify(version) ?? String(version);
 }

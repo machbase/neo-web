@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Button } from '@/design-system/components';
-import AddTagsModal from '../../../modal/selectionPanel/AddTagsModal';
+import PanelSeriesSelectionModal from '../../../modal/createNewPanel/PanelSeriesSelectionModal';
 import { Tooltip } from 'react-tooltip';
 import {
     getPanelSeriesDisplayColor,
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelEditorConfig } from '../PanelEditor';
+import type { PanelInfo } from '../../../domain/panel/PanelConfig';
+import { cx } from './EditorFieldUtils';
 import styles from '../PanelEditor.module.scss';
 
 type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
@@ -16,13 +17,11 @@ type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'colo
 const EditorDataTab = ({
     pQueryDraft,
     pIsRawMode,
-    pOnChangeQueryDraft,
-    pAvailableSourceTableNames,
+    pOnChangeQueryDraft
 }: {
-    pQueryDraft: PanelEditorConfig['query'];
+    pQueryDraft: PanelInfo['query'];
     pIsRawMode: boolean;
-    pOnChangeQueryDraft: (queryDraft: PanelEditorConfig['query']) => void;
-    pAvailableSourceTableNames: string[];
+    pOnChangeQueryDraft: (queryDraft: PanelInfo['query']) => void;
 }) => {
     const [isModal, setIsModal] = useState(false);
 
@@ -49,12 +48,10 @@ const EditorDataTab = ({
                         <div key={item.key} className={styles.editorCard}>
                             <div className={styles.editorWrappedRow}>
                                 <div
-                                    className={[
+                                    className={cx(
                                         styles.editorField,
                                         pIsRawMode && styles.disabledControl,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' ')}
+                                    )}
                                 >
                                     <span className={styles.editorFieldLabel}>
                                         Calc Mode
@@ -67,7 +64,7 @@ const EditorDataTab = ({
                                             disabled={pIsRawMode}
                                         >
                                             <Dropdown.Trigger
-                                                style={{ width: '112px' }}
+                                                className={styles.calcModeTrigger}
                                             />
                                             <Dropdown.Menu>
                                                 <Dropdown.List />
@@ -77,10 +74,10 @@ const EditorDataTab = ({
                                 </div>
                                 <div className={styles.editorField}>
                                     <span
-                                        className={[
+                                        className={cx(
                                             sTableTooltipClass,
                                             styles.editorFieldLabel,
-                                        ].join(' ')}
+                                        )}
                                     >
                                         Source Tag Name
                                         <span className={styles.editorFieldHint}>
@@ -140,12 +137,10 @@ const EditorDataTab = ({
                     );
                 })}
             {isModal && (
-                <AddTagsModal
-                    key={pAvailableSourceTableNames.join('\u0000')}
-                    pCloseModal={() => setIsModal(false)}
-                    pTagSet={pQueryDraft.tagSet}
-                    pOnChangeTagSet={setTagSet}
-                    pAvailableSourceTableNames={pAvailableSourceTableNames}
+                <PanelSeriesSelectionModal
+                    onClose={() => setIsModal(false)}
+                    initialSeries={pQueryDraft.tagSet}
+                    onUpdateSeries={setTagSet}
                 />
             )}
             <Button

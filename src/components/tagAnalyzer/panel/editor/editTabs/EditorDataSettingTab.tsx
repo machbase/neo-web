@@ -1,100 +1,36 @@
 import { VscWarning } from '@/assets/icons/Icon';
-import { Checkbox, Input } from '@/design-system/components';
-import type { CSSProperties, ReactNode } from 'react';
+import { Checkbox } from '@/design-system/components';
+import type { ReactNode } from 'react';
 import { Tooltip } from 'react-tooltip';
-import {
-    EDITOR_X_AXIS_INPUT_STYLE,
-    parseEditorNumber,
-    type PanelDisplayDraft,
-    type PanelSamplingDraft,
-} from '../PanelEditor';
+import type { PanelDisplay } from '../../../domain/panel/PanelConfig';
 import {
     RAW_NAVIGATOR_MAX_SAMPLE_COUNT,
     RAW_NAVIGATOR_MIN_SAMPLE_COUNT,
     RAW_NAVIGATOR_SAMPLING_VALUE,
-} from '../../../fetch/PanelSeriesDataRepository';
+} from '../../../fetch/panelData/PanelSeriesDataRepository';
+import {
+    cx,
+    isInvalidPixelsPerTickValue,
+    isInvalidSamplingValue,
+} from './EditorFieldUtils';
+import { NumberInput, Section } from './EditorControls';
 import styles from '../PanelEditor.module.scss';
 
 type PixelsPerTickField = 'calculated' | 'calculatedNavigator' | 'raw';
-
-const cx = (...classes: Array<string | false | undefined>) =>
-    classes.filter(Boolean).join(' ') || undefined;
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-    return (
-        <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-                <span className={styles.sectionTitle}>{title}</span>
-            </div>
-            {children}
-        </section>
-    );
-}
-
-function NumberInput({
-    value,
-    onChange,
-    disabled,
-    style,
-    label,
-    size = 'sm',
-    error,
-}: {
-    value: number | undefined;
-    onChange: (value: number | undefined) => void;
-    disabled?: boolean;
-    style?: CSSProperties;
-    label?: string;
-    size?: 'sm' | 'md';
-    error?: boolean;
-}) {
-    return (
-        <Input
-            label={label}
-            labelPosition={label ? 'left' : undefined}
-            type="number"
-            disabled={disabled}
-            value={value ?? ''}
-            variant={error ? 'error' : 'default'}
-            aria-invalid={error}
-            onChange={(event) => onChange(parseEditorNumber(event.target.value))}
-            size={size}
-            style={style}
-        />
-    );
-}
-
-function isInvalidPixelsPerTickValue(value: number | undefined): boolean {
-    return value === undefined || !Number.isFinite(value) || value <= 0;
-}
-
-export function hasInvalidEditorPixelsPerTick(
-    displayConfig: PanelDisplayDraft,
-): boolean {
-    return (
-        isInvalidPixelsPerTickValue(displayConfig.pixelsPerTick.calculated) ||
-        isInvalidPixelsPerTickValue(
-            displayConfig.pixelsPerTick.calculatedNavigator,
-        ) ||
-        isInvalidPixelsPerTickValue(displayConfig.pixelsPerTick.raw)
-    );
-}
 
 function SamplingRow({
     anchorClass,
     label,
     content,
-    disabled,
     children,
 }: {
     anchorClass: string;
     label: string;
     content: string;
-    disabled: boolean;
     children: ReactNode;
 }) {
     return (
-        <div className={cx(styles.controlRow, disabled && styles.disabledControl)}>
+        <div className={styles.controlRow}>
             <span className={cx(anchorClass, styles.mutedLabel)}>
                 <VscWarning color="#FDB532" />
                 {label}
@@ -104,6 +40,7 @@ function SamplingRow({
         </div>
     );
 }
+
 function StatusRow({
     anchorClass,
     label,
@@ -136,10 +73,10 @@ const EditorDataSettingTab = ({
     pIsNumericXAxis,
     pOnChangeDisplayConfig,
 }: {
-    pDisplayConfig: PanelDisplayDraft;
+    pDisplayConfig: PanelDisplay;
     pIsRawMode: boolean;
     pIsNumericXAxis: boolean;
-    pOnChangeDisplayConfig: (config: PanelDisplayDraft) => void;
+    pOnChangeDisplayConfig: (config: PanelDisplay) => void;
 }) => {
     const patchPixelsPerTick = (
         field: PixelsPerTickField,
@@ -153,8 +90,9 @@ const EditorDataSettingTab = ({
             },
         });
     };
+
     const patchMainChartSampling = (
-        patch: Partial<PanelDisplayDraft['mainChartSampling']>,
+        patch: Partial<PanelDisplay['mainChartSampling']>,
     ) => {
         pOnChangeDisplayConfig({
             ...pDisplayConfig,
@@ -164,8 +102,9 @@ const EditorDataSettingTab = ({
             },
         });
     };
+
     const patchRawNavigatorSampling = (
-        patch: Partial<PanelDisplayDraft['rawNavigatorSampling']>,
+        patch: Partial<PanelDisplay['rawNavigatorSampling']>,
     ) => {
         pOnChangeDisplayConfig({
             ...pDisplayConfig,
@@ -175,44 +114,50 @@ const EditorDataSettingTab = ({
             },
         });
     };
-    const xNumber = (field: PixelsPerTickField, disabled: boolean) => (
-        <div className={cx(disabled && styles.disabledControl)}>
-            <NumberInput
-                label="Pixels between tick marks"
-                size="md"
-                disabled={disabled}
-                value={pDisplayConfig.pixelsPerTick[field]}
-                error={isInvalidPixelsPerTickValue(
-                    pDisplayConfig.pixelsPerTick[field],
+
+    const xNumber = (field: PixelsPerTickField) => {
+        const sHasInvalidValue = isInvalidPixelsPerTickValue(
+            pDisplayConfig.pixelsPerTick[field],
+        );
+
+        return (
+            <div className={styles.rangeField}>
+                <div className={styles.controlRow}>
+                    <span className={styles.mutedLabel}>
+                        Pixels between tick marks
+                    </span>
+                    <NumberInput
+                        value={pDisplayConfig.pixelsPerTick[field]}
+                        error={sHasInvalidValue}
+                        onChange={(value) => patchPixelsPerTick(field, value)}
+                        width="standard"
+                    />
+                </div>
+                {sHasInvalidValue && (
+                    <span className={styles.fieldError}>
+                        Value must be greater than 0.
+                    </span>
                 )}
-                onChange={(value) => patchPixelsPerTick(field, value)}
-                style={EDITOR_X_AXIS_INPUT_STYLE}
-            />
-            {isInvalidPixelsPerTickValue(pDisplayConfig.pixelsPerTick[field]) && (
-                <span className={styles.fieldError}>
-                    Value must be greater than 0.
-                </span>
-            )}
-        </div>
-    );
+            </div>
+        );
+    };
+
     const samplingNumber = (
-        config: PanelSamplingDraft,
-        disabled: boolean,
+        config: PanelDisplay['mainChartSampling'],
+        onChangeSampleCount: (value: number | undefined) => void,
     ) => (
         <NumberInput
-            disabled={disabled}
             value={config.sampleCount}
-            onChange={(sampleCount) =>
-                patchMainChartSampling({ sampleCount })
-            }
-            style={{ width: '150px' }}
+            error={config.enabled && isInvalidSamplingValue(config.sampleCount)}
+            onChange={onChangeSampleCount}
+            width="standard"
         />
     );
+
     const rawNavigatorTooltip = pIsNumericXAxis
         ? 'Raw numeric navigator data requires database sampling.'
         : 'Raw navigator data uses average buckets by default. Enable sampling to use database sampling.';
-    const sUseRawNavigatorSampling =
-        pIsNumericXAxis || pDisplayConfig.rawNavigatorSampling.enabled;
+    const sUseRawNavigatorSampling = pDisplayConfig.rawNavigatorSampling.enabled;
     const sCanPrefetchMainChart = !pIsRawMode;
     const sPrefetchTooltip = sCanPrefetchMainChart
         ? 'Main chart prefetch is active for calculated data.'
@@ -222,7 +167,7 @@ const EditorDataSettingTab = ({
         <div className={styles.dataSettingGrid}>
             <Section title="Calculation Mode">
                 <span className={styles.axisSubsectionTitle}>Main Chart</span>
-                {xNumber('calculated', pIsRawMode)}
+                {xNumber('calculated')}
                 <StatusRow
                     anchorClass="calculation-prefetch-main-tooltip"
                     label="Prefetch main chart"
@@ -230,11 +175,11 @@ const EditorDataSettingTab = ({
                     checked={sCanPrefetchMainChart}
                 />
                 <span className={styles.axisSubsectionTitle}>Nav Bar</span>
-                {xNumber('calculatedNavigator', pIsRawMode)}
+                {xNumber('calculatedNavigator')}
             </Section>
             <Section title="Raw Mode">
                 <span className={styles.axisSubsectionTitle}>Main Chart</span>
-                {xNumber('raw', !pIsRawMode)}
+                {xNumber('raw')}
                 <StatusRow
                     anchorClass="raw-prefetch-main-tooltip"
                     label="Prefetch main chart"
@@ -245,7 +190,6 @@ const EditorDataSettingTab = ({
                     anchorClass="main-chart-sampling-tooltip"
                     label="Use main chart sampling"
                     content="Main raw chart data uses this as the database sampling value instead of only the raw pixel row cap."
-                    disabled={!pIsRawMode}
                 >
                     <Checkbox
                         checked={pDisplayConfig.mainChartSampling.enabled}
@@ -254,12 +198,11 @@ const EditorDataSettingTab = ({
                                 enabled: event.target.checked,
                             })
                         }
-                        disabled={!pIsRawMode}
                         size="sm"
                     />
                     {samplingNumber(
                         pDisplayConfig.mainChartSampling,
-                        !pIsRawMode || !pDisplayConfig.mainChartSampling.enabled,
+                        (sampleCount) => patchMainChartSampling({ sampleCount }),
                     )}
                 </SamplingRow>
                 <span className={styles.axisSubsectionTitle}>Nav Bar</span>
@@ -267,24 +210,32 @@ const EditorDataSettingTab = ({
                     anchorClass="navigation-sampling-tooltip"
                     label="Use navigation sampling"
                     content={rawNavigatorTooltip}
-                    disabled={!pIsRawMode}
                 >
                     <Checkbox
                         checked={sUseRawNavigatorSampling}
                         onChange={(event) =>
                             patchRawNavigatorSampling({
                                 enabled: event.target.checked,
-                                sampleCount: RAW_NAVIGATOR_SAMPLING_VALUE,
+                                sampleCount:
+                                    pDisplayConfig.rawNavigatorSampling
+                                        .sampleCount ??
+                                    RAW_NAVIGATOR_SAMPLING_VALUE,
                             })
                         }
-                        disabled={!pIsRawMode || pIsNumericXAxis}
                         size="sm"
                     />
-                    <span className={styles.editorFixedValue}>
-                        {sUseRawNavigatorSampling
-                            ? `Sampling ${RAW_NAVIGATOR_SAMPLING_VALUE}, dynamic cap ${RAW_NAVIGATOR_MIN_SAMPLE_COUNT.toLocaleString()}-${RAW_NAVIGATOR_MAX_SAMPLE_COUNT.toLocaleString()}`
-                            : 'Average'}
-                    </span>
+                    {samplingNumber(
+                        pDisplayConfig.rawNavigatorSampling,
+                        (sampleCount) =>
+                            patchRawNavigatorSampling({ sampleCount }),
+                    )}
+                    {sUseRawNavigatorSampling ? (
+                        <span className={styles.editorFixedValue}>
+                            {`dynamic cap ${RAW_NAVIGATOR_MIN_SAMPLE_COUNT.toLocaleString()}-${RAW_NAVIGATOR_MAX_SAMPLE_COUNT.toLocaleString()}`}
+                        </span>
+                    ) : (
+                        <span className={styles.editorFixedValue}>Average</span>
+                    )}
                 </SamplingRow>
             </Section>
         </div>

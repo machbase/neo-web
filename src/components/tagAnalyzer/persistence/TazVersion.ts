@@ -11,16 +11,6 @@ export enum TazVersion {
 
 export const TAZ_FORMAT_VERSION = TazVersion.V210;
 
-export const SUPPORTED_PERSISTED_TAZ_VERSIONS = [
-    TazVersion.V200,
-    TazVersion.V201,
-    TazVersion.V202,
-    TazVersion.V203,
-    TazVersion.V204,
-    TazVersion.V205,
-    TazVersion.V210,
-] as const;
-
 const TAZ_VERSION_LOOKUP: Record<string, TazVersion> = Object.values(TazVersion)
     .reduce<Record<string, TazVersion>>((lookup, version) => {
         lookup[version] = version;
@@ -29,4 +19,46 @@ const TAZ_VERSION_LOOKUP: Record<string, TazVersion> = Object.values(TazVersion)
 
 export function isTazVersion(value: unknown): value is TazVersion {
     return typeof value === 'string' && value in TAZ_VERSION_LOOKUP;
+}
+
+export function normalizePersistedTazVersion(version: unknown): TazVersion {
+    if (version === undefined || version === null) {
+        return TazVersion.Legacy;
+    }
+
+    const sVersion = String(version).trim();
+    if (sVersion === '') {
+        return TazVersion.Legacy;
+    }
+
+    if (isTazVersion(sVersion)) {
+        return sVersion;
+    }
+
+    throw new Error(
+        `Unsupported TagAnalyzer .taz version: ${formatPersistedTazVersionForError(version)}`,
+    );
+}
+
+function formatPersistedTazVersionForError(version: unknown): string {
+    return JSON.stringify(version) ?? String(version);
+}
+
+// Returns a user-facing warning when a board was loaded from an older .taz
+// format that should be re-saved, or undefined when no warning is warranted.
+export function getOutdatedTazFormatWarning(
+    version: string | undefined,
+    panelCount: number,
+): string | undefined {
+    if (version === TAZ_FORMAT_VERSION) {
+        return undefined;
+    }
+
+    // A brand-new, empty board has nothing worth migrating.
+    if ((version === undefined || version === TazVersion.Legacy) && panelCount === 0) {
+        return undefined;
+    }
+
+    const sDisplayVersion = version ?? TazVersion.Legacy;
+    return `Loaded older TAZ format (${sDisplayVersion}). Current format is ${TAZ_FORMAT_VERSION}. Save the board to update it.`;
 }

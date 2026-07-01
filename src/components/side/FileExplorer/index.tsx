@@ -16,6 +16,7 @@ import { Side, ContextMenu, ContextMenuPosition, Button } from '@/design-system/
 import { renameManager } from '@/utils/file-manager';
 import { UrlDownloadModal } from '../../modal/UrlDownloadModal';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
+import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
 import axios from 'axios';
@@ -162,8 +163,13 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                     savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
                 };
             } else if (sFileExtension === 'taz') {
-                const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
-                sTmpBoard = { ...sTmpData, id: sTmpBoard.id, name: sTmpBoard.name, type: sFileExtension, path: sTmpBoard.path, savedCode: JSON.stringify(sTmpData.panels) };
+                try {
+                    const sParsedTaz = typeof sContentResult === 'string' ? JSON.parse(sContentResult) : sContentResult;
+                    sTmpBoard = loadTazBoardInfo(sParsedTaz, sTmpId, file.name, file.path);
+                } catch (error) {
+                    Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
+                    return;
+                }
             } else if (isImage(file.id)) {
                 const base64 = binaryCodeEncodeBase64(sContentResult);
                 const updateBoard = {

@@ -7,6 +7,7 @@ import { TbParachute } from '@/assets/icons/Icon';
 import { extractionExtension } from '@/utils';
 import { useMemo, useState } from 'react';
 import { Page } from '@/design-system/components';
+import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/TazVersion';
 
 interface NewBoardProps {
     pExtentionList: any;
@@ -121,6 +122,8 @@ const NewBoard = (props: NewBoardProps) => {
                           panels: [],
                           sheet: [],
                           savedCode: false,
+                          version: aValue.type === 'taz' ? TAZ_FORMAT_VERSION : bItem.version,
+                          boardTimeRange: aValue.type === 'taz' ? { start: '', end: '' } : bItem.boardTimeRange,
                           shell: { icon: aValue.icon, theme: aValue.theme ? aValue.theme : '', id: aValue.id ? aValue.id : 'SHELL' },
                           dashboard: {
                               variables: [],

@@ -1,12 +1,8 @@
 import type { BoardInfo } from '../../domain/BoardDomain';
 import { mapPanelToPersistedTaz } from './mapPanelToPersistedTaz';
-import { cloneTimeBoundary } from '../PersistenceCloneUtils';
-import type {
-    PersistedBoardTimeRange,
-} from '../TazPersistenceTypesV200';
 import type { PersistedTazBoardInfoV210 } from '../TazPersistenceTypesV210';
-import { TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
-import type { TimeRangeConfig } from '../../domain/time/model/TimeTypes';
+import { TAZ_FORMAT_VERSION } from '../TazVersion';
+
 export function mapBoardToPersistedTaz(
     boardInfo: BoardInfo,
 ): PersistedTazBoardInfoV210 {
@@ -14,16 +10,11 @@ export function mapBoardToPersistedTaz(
         id: boardInfo.id,
         type: boardInfo.type,
         version: TAZ_FORMAT_VERSION,
-        boardTimeRange: clonePersistedBoardTimeRange(boardInfo.boardTimeRange),
+        boardTimeRange: {
+            start: boardInfo.boardTimeRange.start,
+            end: boardInfo.boardTimeRange.end,
+        },
         panels: boardInfo.panels.map((panelInfo) => mapPanelToPersistedTaz(panelInfo)),
-    };
-}
-function clonePersistedBoardTimeRange(
-    rangeConfig: TimeRangeConfig,
-): PersistedBoardTimeRange {
-    return {
-        start: cloneTimeBoundary(rangeConfig.start),
-        end: cloneTimeBoundary(rangeConfig.end),
     };
 }
 

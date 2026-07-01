@@ -1,5 +1,6 @@
 import { postFileList } from '@/api/repository/api';
 import type { PersistedTazBoardInfoV210 } from '../TazPersistenceTypesV210';
+import { isPlainObject } from '../../domain/ObjectGuards';
 
 type TazFileSaveResult = {
     success: boolean;
@@ -32,7 +33,7 @@ export async function saveTazFile({
 }
 
 function didFileSaveSucceed(response: unknown): boolean {
-    if (!response || typeof response !== 'object') {
+    if (!isPlainObject(response)) {
         return false;
     }
 

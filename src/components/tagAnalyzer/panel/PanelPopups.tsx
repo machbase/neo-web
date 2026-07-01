@@ -4,7 +4,9 @@ import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import type { ContextMenuPosition } from '@/design-system/components';
 import { FFTModal } from '../boardModal/FFTModal';
 import type { ChartSeriesData, FFTSelectionPayload } from '../domain/ChartDomain';
-import type { PanelChartHandle, PanelHighlight } from '../domain/PanelDomain';
+import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
+import type { PanelHighlight } from '../domain/panel/PanelConfig';
+import type { PanelChartHandle } from '../domain/panel/PanelActions';
 import {
     PanelContextMenu,
     type PanelActionKey,
@@ -13,17 +15,14 @@ import {
 import {
     EditAnnotationModal,
     type AnnotationEditorMetaState,
+    type PanelAnnotationActions,
 } from './modal/EditAnnotationModal';
 import {
     EditHighlightModal,
     type HighlightEditorState,
+    type PanelHighlightActions,
 } from './modal/EditHighlightModal';
 import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
-import type {
-    PanelAnnotationCrud,
-    PanelAnnotationSeriesOption,
-} from './usePanelAnnotation';
-import type { PanelHighlightCrud } from './usePanelHighlight';
 
 export enum PanelPopupMode {
     NONE = 'NONE',
@@ -72,11 +71,12 @@ type PanelPopupsProps = {
     onPanelAction: (actionKey: PanelActionKey) => void;
     isNumericXAxis: boolean;
     selectionSummary: PanelSelectionSummary | undefined;
-    highlightCrud: PanelHighlightCrud;
-    annotationCrud: PanelAnnotationCrud;
-    annotationSeriesOptions: PanelAnnotationSeriesOption[];
+    highlightActions: PanelHighlightActions;
+    annotationActions: PanelAnnotationActions;
+    annotationSeriesList: PanelSeriesDefinition[];
     onClosePopup: (popupMode: PanelPopupMode) => void;
     onCloseSelectionSummary: () => void;
+    onOpenFft: () => void;
     onDeletePanel: () => void;
     chartData: ChartSeriesData[];
     panelChartApiRef: RefObject<PanelChartHandle | null>;
@@ -88,11 +88,12 @@ export function PanelPopups({
     onPanelAction,
     isNumericXAxis,
     selectionSummary,
-    highlightCrud,
-    annotationCrud,
-    annotationSeriesOptions,
+    highlightActions,
+    annotationActions,
+    annotationSeriesList,
     onClosePopup,
     onCloseSelectionSummary,
+    onOpenFft,
     onDeletePanel,
     chartData,
     panelChartApiRef,
@@ -125,6 +126,7 @@ export function PanelPopups({
                     selection={selectionSummary.selection}
                     position={selectionSummary.popoverPosition}
                     isNumericXAxis={isNumericXAxis}
+                    onOpenFft={onOpenFft}
                     onClose={onCloseSelectionSummary}
                 />
             )}
@@ -133,7 +135,7 @@ export function PanelPopups({
                     key={getHighlightEditorKey(popupState)}
                     activeHighlightEditor={popupState.editor}
                     draftHighlight={popupState.draftHighlight}
-                    highlightCrud={highlightCrud}
+                    highlightActions={highlightActions}
                     onCancel={() => onClosePopup(PanelPopupMode.HIGHLIGHT_EDITOR)}
                     onApplied={() => onClosePopup(PanelPopupMode.HIGHLIGHT_EDITOR)}
                     isNumericXAxis={isNumericXAxis}
@@ -143,8 +145,8 @@ export function PanelPopups({
                 <EditAnnotationModal
                     key={popupState.editorMeta.annotationIndex ?? 'new'}
                     annotationEditorMeta={popupState.editorMeta}
-                    annotationCrud={annotationCrud}
-                    annotationSeriesOptions={annotationSeriesOptions}
+                    annotationActions={annotationActions}
+                    annotationSeriesList={annotationSeriesList}
                     onCancel={() => onClosePopup(PanelPopupMode.ANNOTATION_EDITOR)}
                     onApplied={() => onClosePopup(PanelPopupMode.ANNOTATION_EDITOR)}
                     isNumericXAxis={isNumericXAxis}
