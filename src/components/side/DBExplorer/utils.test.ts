@@ -1,4 +1,4 @@
-import { buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, canOpenTagAnalyzerFromMetaColumns, E_COLUMN_FLAG } from './utils';
+import { buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, E_COLUMN_FLAG } from './utils';
 
 describe('buildQualifiedTableName', () => {
     test('returns table name only when owner is the current user on the local DB', () => {
