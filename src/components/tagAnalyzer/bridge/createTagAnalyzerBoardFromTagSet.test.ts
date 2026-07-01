@@ -74,15 +74,21 @@ describe('createTagAnalyzerBoardFromTagSet', () => {
         expect(result.board.shell).toEqual({ icon: 'chart-line', theme: '', id: 'TAZ' });
         expect(result.board.panels).toHaveLength(1);
         expect(result.board.panels[0].display.chartType).toBe('Line');
-        expect(result.board.panels[0].timeRange).toMatchObject({
+        expect(result.board.boardTimeRange).toMatchObject({
             start: {
-                kind: 'timestamp_absolute',
-                value: Date.parse('2026-06-26T00:00:00.000Z'),
+                kind: 'absolute',
+                timestamp: Date.parse('2026-06-26T00:00:00.000Z'),
             },
             end: {
-                kind: 'timestamp_absolute',
-                value: Date.parse('2026-06-26T01:00:00.000Z'),
+                kind: 'absolute',
+                timestamp: Date.parse('2026-06-26T01:00:00.000Z'),
             },
+        });
+        expect(result.board.panels[0].timeRange).toMatchObject({
+            start: { kind: 'timestamp_empty' },
+            end: { kind: 'timestamp_empty' },
+            useLastViewedRange: false,
+            lastViewedRange: undefined,
         });
         expect(result.board.panels[0].query.tagSet).toHaveLength(2);
         expect(result.board.panels[0].query.tagSet[0]).toMatchObject({

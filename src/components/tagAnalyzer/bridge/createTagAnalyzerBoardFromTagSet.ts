@@ -12,10 +12,6 @@ import {
     createAnchoredTimeBoundary,
 } from '@/components/tagAnalyzer/domain/time/boundary/TimeBoundaryInput';
 import { TimeUnit, type TimeRangeConfig } from '@/components/tagAnalyzer/domain/time/model/TimeTypes';
-import {
-    createTimestampRangeBoundary,
-    createTimestampRangeInput,
-} from '@/components/tagAnalyzer/domain/time/range/PanelRangeConfigUtils';
 import type { PanelInfo } from '@/components/tagAnalyzer/domain/PanelDomain';
 
 export const NEO_PACKAGE_MESSAGE_SOURCE = 'neo-package';
@@ -227,7 +223,6 @@ const createBoardTimeRange = (range: NormalizedRange): TimeRangeConfig => {
 const createPanel = (
     title: string,
     tagSet: PanelSeriesDefinition[],
-    range: NormalizedRange,
 ): PanelInfo => {
     const sPanel = buildCreateChartPanel(
         'Line',
@@ -240,19 +235,6 @@ const createPanel = (
         query: {
             ...sPanel.query,
             tagSet,
-        },
-        timeRange: {
-            ...(range.startMs !== undefined && range.endMs !== undefined
-                ? createTimestampRangeInput(
-                    createTimestampRangeBoundary('timestamp_absolute', range.startMs),
-                    createTimestampRangeBoundary('timestamp_absolute', range.endMs),
-                )
-                : createTimestampRangeInput(
-                    createTimestampRangeBoundary('timestamp_now', -60 * 60 * 1000),
-                    createTimestampRangeBoundary('timestamp_now', 0),
-                )),
-            useLastViewedRange: false,
-            lastViewedRange: undefined,
         },
     };
 };
@@ -275,7 +257,6 @@ export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<Br
     const sPanel = createPanel(
         sPayload.value.title || 'TAG ANALYZER',
         sPayload.value.tags,
-        sPayload.value.range,
     );
 
     return {
