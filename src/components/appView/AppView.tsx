@@ -1,5 +1,8 @@
-import { Page } from '@/design-system/components';
+import { Page, Toast } from '@/design-system/components';
+import { gBoardList, gSelectedTab, type GBoardListType } from '@/recoil/recoil';
+import { createTagAnalyzerBoardFromTagSet, TAG_ANALYZER_BRIDGE_APP_NAME } from '@/components/tagAnalyzer/bridge/createTagAnalyzerBoardFromTagSet';
 import { useEffect, useRef } from 'react';
+import { useSetRecoilState } from 'recoil';
 
 // Per-package URL cache to preserve iframe location across tab deactivation
 const urlCache = new Map<string, string>();
@@ -15,6 +18,8 @@ interface AppViewProps {
 }
 
 export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
+    const setBoardList = useSetRecoilState<GBoardListType[]>(gBoardList);
+    const setSelectedTab = useSetRecoilState(gSelectedTab);
     const defaultUrl = `${window.location.origin}/public/${pAppName}/main.html`;
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const initialSrc = urlCache.get(pAppName) ?? defaultUrl;
@@ -41,6 +46,29 @@ export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
             window.clearInterval(intervalId);
         };
     }, [persistTab, pIsActiveTab, pAppName]);
+
+    useEffect(() => {
+        if (pAppName !== TAG_ANALYZER_BRIDGE_APP_NAME) return;
+
+        const handleMessage = (aEvent: MessageEvent) => {
+            if (!pIsActiveTab) return;
+            if (aEvent.origin !== window.location.origin) return;
+            if (aEvent.source !== iframeRef.current?.contentWindow) return;
+
+            const sResult = createTagAnalyzerBoardFromTagSet(aEvent.data, pAppName);
+            if (sResult.status === 'ignored') return;
+            if (sResult.status === 'error') {
+                Toast.error(sResult.reason);
+                return;
+            }
+
+            setBoardList((aPrev) => [...aPrev, sResult.board]);
+            setSelectedTab(sResult.board.id);
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [pAppName, pIsActiveTab, setBoardList, setSelectedTab]);
 
     return (
         <Page>

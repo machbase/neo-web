@@ -1,4 +1,4 @@
-import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
+import { fetchQuery } from '@/api/repository/database';
 import { SQL_BASE_LIMIT } from '@/utils/sqlFormatter';
 
 export interface DataViewerTableParams {
@@ -29,6 +29,7 @@ export interface DataViewerResult {
     rows: Record<string, unknown>[];
     page: number;
     pageSize: number;
+    total?: number;
 }
 
 export interface DataViewerTotalResult {
@@ -41,6 +42,17 @@ const escapeSqlString = (value: string) => value.replace(/'/g, "''");
 const normalizeIdentifier = (value: string | undefined, fallback: string) => {
     const next = value?.trim() || fallback;
     return /^[A-Za-z_][A-Za-z0-9_$]*$/.test(next) ? next : fallback;
+};
+const formatMachbaseTimestamp = (value: string) => {
+    const text = String(value || '').trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(text)) return text;
+
+    const parsed = Date.parse(text);
+    if (!Number.isFinite(parsed)) return text;
+
+    const date = new Date(parsed);
+    const pad = (part: number, size = 2) => String(part).padStart(size, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
 };
 
 export const buildQualifiedTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}.${tableName}`;
@@ -55,6 +67,11 @@ const normalizeRows = (data: any): Record<string, unknown>[] => {
             return acc;
         }, {})
     );
+};
+
+const normalizeChartSeriesRows = (data: any): unknown[][] => {
+    if (Array.isArray(data?.rows)) return data.rows;
+    return [];
 };
 
 const pickDataTypeValue = (row: Record<string, unknown>) => {
@@ -93,13 +110,13 @@ const normalizeAssetHierarchy = (row: Record<string, unknown>): DataViewerAssetH
 };
 
 const buildTagDataWhere = ({
-    name,
+    names,
     from,
     to,
     tagColumn = 'NAME',
     timeColumn = 'TIME',
 }: {
-    name: string;
+    names: string[];
     from?: string;
     to?: string;
     tagColumn?: string;
@@ -107,13 +124,81 @@ const buildTagDataWhere = ({
 }) => {
     const tagColumnExpr = normalizeIdentifier(tagColumn, 'NAME');
     const timeColumnExpr = normalizeIdentifier(timeColumn, 'TIME');
-    const where = [`${tagColumnExpr} = '${escapeSqlString(name)}'`];
-    if (from && from !== 'last' && from !== 'now') where.push(`${timeColumnExpr} >= TO_TIMESTAMP('${escapeSqlString(from)}')`);
-    if (to && to !== 'last' && to !== 'now') where.push(`${timeColumnExpr} <= TO_TIMESTAMP('${escapeSqlString(to)}')`);
+    const normalizedNames = (Array.isArray(names) ? names : [])
+        .map((name) => String(name || '').trim())
+        .filter(Boolean);
+    const where =
+        normalizedNames.length > 1
+            ? [`${tagColumnExpr} in (${normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ')})`]
+            : [`${tagColumnExpr} = '${escapeSqlString(normalizedNames[0] || '')}'`];
+    if (from && from !== 'last' && from !== 'now') where.push(`${timeColumnExpr} >= TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(from))}')`);
+    if (to && to !== 'last' && to !== 'now') where.push(`${timeColumnExpr} <= TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(to))}')`);
     return {
         tagColumnExpr,
         timeColumnExpr,
         where,
+    };
+};
+
+const buildCursorTimeSql = (value: string) => `TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(value))}')`;
+
+const buildTagDataCursor = ({
+    cursorSide,
+    cursorTime,
+    cursorName,
+    direction,
+    tagColumnExpr,
+    timeColumnExpr,
+}: {
+    cursorSide?: 'next' | 'prev';
+    cursorTime?: string;
+    cursorName?: string;
+    direction: 'latest' | 'oldest';
+    tagColumnExpr: string;
+    timeColumnExpr: string;
+}) => {
+    if ((cursorSide !== 'next' && cursorSide !== 'prev') || !cursorTime) return undefined;
+
+    const latest = direction !== 'oldest';
+    const next = cursorSide === 'next';
+    let timeOp: '<' | '>' = '<';
+    let nameOp: '<' | '>' = '>';
+    let orderTime: 'asc' | 'desc' = 'desc';
+    let orderName: 'asc' | 'desc' = 'asc';
+    let reverseRows = false;
+
+    if (latest && next) {
+        timeOp = '<';
+        nameOp = '>';
+        orderTime = 'desc';
+        orderName = 'asc';
+    } else if (latest) {
+        timeOp = '>';
+        nameOp = '<';
+        orderTime = 'asc';
+        orderName = 'desc';
+        reverseRows = true;
+    } else if (next) {
+        timeOp = '>';
+        nameOp = '>';
+        orderTime = 'asc';
+        orderName = 'asc';
+    } else {
+        timeOp = '<';
+        nameOp = '<';
+        orderTime = 'desc';
+        orderName = 'desc';
+        reverseRows = true;
+    }
+
+    const timeSql = buildCursorTimeSql(cursorTime);
+    const escapedName = escapeSqlString(cursorName || '');
+
+    return {
+        where: `(${timeColumnExpr} ${timeOp} ${timeSql} or (${timeColumnExpr} = ${timeSql} and ${tagColumnExpr} ${nameOp} '${escapedName}'))`,
+        orderTime,
+        orderName,
+        reverseRows,
     };
 };
 
@@ -162,7 +247,7 @@ export async function queryTagData({
     dbName,
     userName,
     tableName,
-    name,
+    names,
     direction,
     from,
     to,
@@ -171,8 +256,13 @@ export async function queryTagData({
     tagColumn = 'NAME',
     timeColumn = 'TIME',
     valueColumn = 'VALUE',
+    boundedRange,
+    cursorSide,
+    cursorTime,
+    cursorName,
+    cursorOffset,
 }: DataViewerTableParams & {
-    name: string;
+    names: string[];
     direction: 'latest' | 'oldest';
     from?: string;
     to?: string;
@@ -181,18 +271,28 @@ export async function queryTagData({
     tagColumn?: string;
     timeColumn?: string;
     valueColumn?: string;
+    boundedRange?: boolean;
+    cursorSide?: 'next' | 'prev';
+    cursorTime?: string;
+    cursorName?: string;
+    cursorOffset?: number;
 }): Promise<DataViewerResult> {
     const table = buildQualifiedTableName({ dbName, userName, tableName });
     const valueColumnExpr = normalizeIdentifier(valueColumn, 'VALUE');
-    const { tagColumnExpr, timeColumnExpr, where } = buildTagDataWhere({ name, from, to, tagColumn, timeColumn });
-    const offset = Math.max(0, page - 1) * pageSize;
-    const order = direction === 'latest' ? 'desc' : 'asc';
-    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${where.join(' and ')} order by ${timeColumnExpr} ${order} limit ${offset}, ${pageSize}`;
-    const { svrState, svrData, svrReason } = await fetchTqlWithoutConsole(sql);
+    const { tagColumnExpr, timeColumnExpr, where } = buildTagDataWhere({ names, from, to, tagColumn, timeColumn });
+    const cursor = buildTagDataCursor({ cursorSide, cursorTime, cursorName, direction, tagColumnExpr, timeColumnExpr });
+    const queryWhere = cursor ? [...where, cursor.where] : where;
+    const offset = cursor ? Math.max(0, Math.floor(cursorOffset || 0)) : boundedRange ? 0 : Math.max(0, page - 1) * pageSize;
+    const orderTime = cursor?.orderTime ?? (direction === 'latest' ? 'desc' : 'asc');
+    const orderName = cursor?.orderName ?? 'asc';
+    const limitClause = cursor || !boundedRange ? ` limit ${offset}, ${pageSize}` : '';
+    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${queryWhere.join(' and ')} order by ${timeColumnExpr} ${orderTime}, ${tagColumnExpr} ${orderName}${limitClause}`;
+    const { svrState, svrData, svrReason } = await fetchQuery(sql);
     if (!svrState) throw new Error(svrReason || 'Failed to load data');
 
+    const rows = normalizeRows(svrData);
     return {
-        rows: normalizeRows(svrData),
+        rows: cursor?.reverseRows ? [...rows].reverse() : rows,
         page,
         pageSize,
     };
@@ -202,14 +302,14 @@ export async function queryTagDataTotal({
     dbName,
     userName,
     tableName,
-    name,
+    names,
     from,
     to,
     pageSize = SQL_BASE_LIMIT,
     tagColumn = 'NAME',
     timeColumn = 'TIME',
 }: DataViewerTableParams & {
-    name: string;
+    names: string[];
     from?: string;
     to?: string;
     pageSize?: number;
@@ -217,9 +317,9 @@ export async function queryTagDataTotal({
     timeColumn?: string;
 }): Promise<DataViewerTotalResult> {
     const table = buildQualifiedTableName({ dbName, userName, tableName });
-    const { where } = buildTagDataWhere({ name, from, to, tagColumn, timeColumn });
+    const { where } = buildTagDataWhere({ names, from, to, tagColumn, timeColumn });
     const sql = `select count(*) as row_count from ${table} where ${where.join(' and ')}`;
-    const { svrState, svrData, svrReason } = await fetchTqlWithoutConsole(sql);
+    const { svrState, svrData, svrReason } = await fetchQuery(sql);
     if (!svrState) throw new Error(svrReason || 'Failed to calculate end page');
 
     const row = normalizeRows(svrData)[0] || {};
@@ -237,12 +337,12 @@ export async function queryTagBoundaryTime({
     dbName,
     userName,
     tableName,
-    name,
+    names,
     direction,
     tagColumn = 'NAME',
     timeColumn = 'TIME',
 }: DataViewerTableParams & {
-    name: string;
+    names: string[];
     direction: 'latest' | 'oldest';
     tagColumn?: string;
     timeColumn?: string;
@@ -250,10 +350,84 @@ export async function queryTagBoundaryTime({
     const table = buildQualifiedTableName({ dbName, userName, tableName });
     const tagColumnExpr = normalizeIdentifier(tagColumn, 'NAME');
     const timeColumnExpr = normalizeIdentifier(timeColumn, 'TIME');
+    const normalizedNames = (Array.isArray(names) ? names : [])
+        .map((name) => String(name || '').trim())
+        .filter(Boolean);
+    const tagCondition =
+        normalizedNames.length > 1
+            ? `${tagColumnExpr} in (${normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ')})`
+            : `${tagColumnExpr} = '${escapeSqlString(normalizedNames[0] || '')}'`;
     const order = direction === 'latest' ? 'desc' : 'asc';
-    const sql = `select ${timeColumnExpr} as time from ${table} where ${tagColumnExpr} = '${escapeSqlString(name)}' order by ${timeColumnExpr} ${order} limit 1`;
-    const { svrState, svrData, svrReason } = await fetchTqlWithoutConsole(sql);
+    const sql = `select ${timeColumnExpr} as time from ${table} where ${tagCondition} order by ${timeColumnExpr} ${order} limit 1`;
+    const { svrState, svrData, svrReason } = await fetchQuery(sql);
     if (!svrState) throw new Error(svrReason || 'Failed to load time range base');
 
     return normalizeRows(svrData)[0]?.time;
+}
+
+function toEpochMs(value: unknown) {
+    if (value instanceof Date) return value.getTime();
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) return Number.NaN;
+        if (Math.abs(value) > 100000000000000) return value / 1000000;
+        return value;
+    }
+
+    const text = String(value ?? '').trim();
+    if (!text) return Number.NaN;
+    const numeric = Number(text);
+    if (Number.isFinite(numeric)) return toEpochMs(numeric);
+    return Date.parse(text);
+}
+
+export function buildSeriesFromChartRows(rows: unknown[][] = []) {
+    const seriesByName = new Map<string, Array<[number, number | null]>>();
+
+    rows.forEach((row) => {
+        if (!Array.isArray(row) || row.length < 3) return;
+        const x = toEpochMs(row[0]);
+        const name = String(row[1] ?? '').trim();
+        const y = row[2] === null || row[2] === '' ? null : Number(row[2]);
+        if (!name || !Number.isFinite(x)) return;
+        if (y !== null && !Number.isFinite(y)) return;
+        if (!seriesByName.has(name)) seriesByName.set(name, []);
+        seriesByName.get(name)?.push([x, y]);
+    });
+
+    return Array.from(seriesByName.entries()).map(([name, data]) => ({
+        name,
+        data: data.sort((a, b) => a[0] - b[0]),
+    }));
+}
+
+export async function queryTagChartData({
+    dbName,
+    userName,
+    tableName,
+    names,
+    from,
+    to,
+    tagColumn = 'NAME',
+    timeColumn = 'TIME',
+    valueColumn = 'VALUE',
+}: DataViewerTableParams & {
+    names: string[];
+    from?: string;
+    to?: string;
+    tagColumn?: string;
+    timeColumn?: string;
+    valueColumn?: string;
+}) {
+    const table = buildQualifiedTableName({ dbName, userName, tableName });
+    const valueColumnExpr = normalizeIdentifier(valueColumn, 'VALUE');
+    const { tagColumnExpr, timeColumnExpr, where } = buildTagDataWhere({ names, from, to, tagColumn, timeColumn });
+    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${where.join(' and ')} order by ${timeColumnExpr} asc`;
+    const { svrState, svrData, svrReason } = await fetchQuery(sql);
+    if (!svrState) throw new Error(svrReason || 'Failed to load chart data');
+    const rows = normalizeChartSeriesRows(svrData);
+    return {
+        query: sql,
+        rows,
+        series: buildSeriesFromChartRows(rows),
+    };
 }

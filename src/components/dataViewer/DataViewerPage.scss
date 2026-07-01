@@ -57,6 +57,7 @@
     --radius-sm: 3px;
     --radius-base: 4px;
     --radius-md: 8px;
+    --shadow-lg: 0 8px 8px rgba(0, 0, 0, 0.25);
     --shadow-switch: 1px 2px 3px #00000020;
     --size-control-height: 32px;
     --size-control-height-sm: 26px;
@@ -718,6 +719,10 @@
     flex-direction: column;
 }
 
+.neo-data-viewer .data-viewer-results {
+    overflow: hidden;
+}
+
 .neo-data-viewer .form-card-header {
     min-height: 20px;
     display: flex;
@@ -743,6 +748,36 @@
     border-radius: 50%;
     background-color: var(--color-primary);
     flex-shrink: 0;
+}
+
+.neo-data-viewer .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    font-size: var(--size-icon-base);
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'liga';
+}
+
+.neo-data-viewer .material-symbols-outlined.icon-sm {
+    font-size: var(--size-icon-sm);
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 14;
+}
+
+.neo-data-viewer .material-symbols-outlined.icon-lg {
+    font-size: 22px;
 }
 
 .neo-data-viewer .data-viewer-tag-search {
@@ -987,91 +1022,59 @@
 }
 
 .neo-data-viewer .data-viewer-scan-control {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-6);
     flex-shrink: 0;
-    height: var(--size-control-height);
-    color: var(--color-on-surface-secondary);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    line-height: 1;
-    user-select: none;
 }
 
-.neo-data-viewer .data-viewer-scan-label {
+.neo-data-viewer .data-viewer-mode-control {
+    flex-shrink: 0;
+}
+
+.neo-data-viewer .data-viewer-segmented {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    height: var(--size-control-height);
+    padding: 3px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface-input);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.neo-data-viewer .data-viewer-segmented-item {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 56px;
-    height: 20px;
-    color: var(--color-on-surface-tertiary);
-    line-height: 20px;
-    text-align: center;
-}
-
-.neo-data-viewer .data-viewer-scan-label.is-active {
-    color: var(--color-on-surface);
-}
-
-.neo-data-viewer .switch {
-    position: relative;
-    width: var(--size-switch-width);
-    height: var(--size-switch-height);
-    border-radius: 9999px;
-    background-color: var(--color-switch-off);
-    border: 1px solid var(--color-switch-border);
+    min-width: 72px;
+    height: calc(var(--size-control-height) - 8px);
+    padding: 0 var(--spacing-12);
+    border: 1px solid transparent;
+    border-radius: calc(var(--radius-base) - 2px);
+    background-color: transparent;
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1;
     cursor: pointer;
-    transition: background-color var(--transition-duration-fast) ease, border-color var(--transition-duration-fast) ease;
-    flex-shrink: 0;
-    color: inherit;
-    isolation: isolate;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.neo-data-viewer .switch.active {
-    background-color: var(--color-switch-on);
-    border-color: var(--color-switch-border-active);
+.neo-data-viewer .data-viewer-segmented-item:hover {
+    color: var(--color-on-surface);
+    background-color: var(--color-surface-hover);
 }
 
-.neo-data-viewer .switch-thumb {
-    position: absolute;
-    top: 1px;
-    left: 2px;
-    width: var(--size-switch-button);
-    height: var(--size-switch-button);
-    border-radius: 9999px;
-    background-color: var(--color-switch-thumb);
-    transition: background-color var(--transition-duration-fast) ease, left var(--transition-duration-fast) ease, right var(--transition-duration-fast) ease;
+.neo-data-viewer .data-viewer-segmented-item.is-active {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    color: #e0c09d;
     box-shadow: var(--shadow-switch);
 }
 
-.neo-data-viewer .switch.active .switch-thumb {
-    left: auto;
-    right: 2px;
-    background-color: var(--color-switch-thumb-active);
-}
-
-.neo-data-viewer .data-viewer-scan-switch {
-    display: block;
-    align-self: center;
-    width: 36px;
-    height: 20px;
-    padding: 0;
-    margin: 0 var(--spacing-2);
-    line-height: 0;
-    appearance: none;
-}
-
-.neo-data-viewer .data-viewer-scan-switch .switch-thumb {
-    top: 2px;
-    left: 3px;
-    width: 14px;
-    height: 14px;
-}
-
-.neo-data-viewer .data-viewer-scan-switch.active .switch-thumb {
-    left: auto;
-    right: 3px;
+.neo-data-viewer .data-viewer-segmented-item.is-active:hover {
+    background-color: var(--color-surface);
 }
 
 .neo-data-viewer .btn {
@@ -1127,42 +1130,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.neo-data-viewer .log-level-group {
-    display: inline-flex;
-    align-items: stretch;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-base);
-    background-color: var(--color-surface-input);
-    overflow: hidden;
-    height: var(--size-control-height);
-}
-
-.neo-data-viewer .log-level-item {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 64px;
-    padding: 0 var(--spacing-12);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--color-on-surface-tertiary);
-    background-color: transparent;
-    border: none;
-    border-right: 1px solid var(--color-border);
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.neo-data-viewer .log-level-item:last-child {
-    border-right: none;
-}
-
-.neo-data-viewer .log-level-item.is-excluded {
-    opacity: 0.45;
 }
 
 .neo-data-viewer .table-card {
@@ -1228,28 +1195,346 @@
     font-family: var(--font-family-mono);
 }
 
-.neo-data-viewer .data-viewer-raw-card .table-card-body,
-.neo-data-viewer .data-viewer-chart-card .table-card-body {
+.neo-data-viewer .data-viewer-raw-card .table-card-body {
     overflow: auto;
+}
+
+.neo-data-viewer .data-viewer-chart-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-12);
+    flex: 1;
+    width: calc(100% + var(--spacing-12));
+    min-height: 0;
+    margin-right: calc(-1 * var(--spacing-12));
+    padding-right: var(--spacing-12);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.neo-data-viewer .data-viewer-chart-card {
+    flex: 0 0 auto;
+}
+
+.neo-data-viewer .data-viewer-chart-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--spacing-12);
+    padding: var(--spacing-8) var(--spacing-12);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.neo-data-viewer .data-viewer-chart-panel-title {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    gap: var(--spacing-8);
+    color: var(--color-on-surface);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+.neo-data-viewer .data-viewer-chart-panel-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-8);
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.neo-data-viewer .data-viewer-chart-panel-actions .btn-sm {
+    min-height: 32px;
+}
+
+.neo-data-viewer .data-viewer-chart-menu-button,
+.neo-data-viewer .data-viewer-chart-close-button {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+}
+
+.neo-data-viewer .data-viewer-chart-action-menu {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.neo-data-viewer .data-viewer-chart-menu {
+    position: absolute;
+    top: calc(100% + var(--spacing-6));
+    right: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    min-width: 168px;
+    padding: var(--spacing-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-lg);
+}
+
+.neo-data-viewer .data-viewer-chart-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    width: 100%;
+    min-height: 32px;
+    padding: 0 var(--spacing-8);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-on-surface);
+    font-size: var(--font-size-sm);
+    text-align: left;
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-chart-menu-item:hover:not(:disabled) {
+    background-color: var(--color-primary-muted);
+    color: var(--color-primary-hover);
+}
+
+.neo-data-viewer .data-viewer-chart-menu-item:disabled {
+    color: var(--color-on-surface-disabled);
+    cursor: not-allowed;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--spacing-6);
+    flex: 1 1 auto;
+    max-width: min(960px, 68vw);
+    min-width: 120px;
+    padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-actions::-webkit-scrollbar {
+    display: none;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    flex: 0 0 auto;
+    max-width: 220px;
+    min-height: 28px;
+    padding: 0 var(--spacing-8);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-chart-tag-chip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary-hover);
+    background-color: var(--color-primary-muted);
+}
+
+.neo-data-viewer .data-viewer-chart-tag-chip.is-split {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background-color: var(--color-primary-muted);
 }
 
 .neo-data-viewer .data-viewer-chart-card .table-card-body {
     display: flex;
+    flex-direction: column;
+    min-height: 320px;
     overflow: hidden;
 }
 
-.neo-data-viewer .data-viewer-chart {
+.neo-data-viewer .data-viewer-chart-shell {
+    position: relative;
     flex: 1;
     width: 100%;
     height: 100%;
-    min-height: 0;
-    padding: 0;
+    min-height: 260px;
+    padding: 0 48px;
     background-color: #252525;
 }
 
-.neo-data-viewer .data-viewer-chart > div,
-.neo-data-viewer .data-viewer-chart .highcharts-container,
-.neo-data-viewer .data-viewer-chart .highcharts-root {
+.neo-data-viewer .data-viewer-chart-range-shift {
+    position: absolute;
+    top: 112px;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid #454545;
+    border-radius: var(--radius-base);
+    background-color: rgba(31, 29, 29, 0.86);
+    color: var(--color-on-surface-secondary);
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift-left {
+    left: 8px;
+}
+
+.neo-data-viewer .data-viewer-chart-range-shift-right {
+    right: 8px;
+}
+
+.neo-data-viewer .data-viewer-chart-empty-overlay {
+    position: absolute;
+    inset: 58px 72px 64px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-sm);
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-navigator-labels {
+    position: absolute;
+    left: 106px;
+    right: 106px;
+    bottom: 2px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    color: var(--color-on-surface-secondary);
+    font-size: 10px;
+    line-height: 12px;
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-navigator-labels span {
+    max-width: calc(50% - var(--space-1));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.neo-data-viewer .data-viewer-chart-navigator-labels span:last-child {
+    text-align: right;
+}
+
+.neo-data-viewer .data-viewer-chart-footer-form {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-controls {
+    position: absolute;
+    left: 50%;
+    bottom: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0 80px;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-group {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #454545;
+    border-radius: var(--radius-base);
+    background-color: rgba(31, 29, 29, 0.86);
+    pointer-events: auto;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-on-surface-secondary);
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-button:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-image,
+.neo-data-viewer .data-viewer-chart-toolbar-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.neo-data-viewer .data-viewer-chart-toolbar-icon {
+    font-size: 20px;
+    line-height: 20px;
+}
+
+.neo-data-viewer .data-viewer-chart {
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    padding: 0;
+    background-color: #252525;
+    cursor: crosshair;
+}
+
+.neo-data-viewer .data-viewer-chart.is-panning {
+    cursor: grabbing;
+}
+
+.neo-data-viewer .data-viewer-chart-drag-preview {
+    position: absolute;
+    z-index: 3;
+    min-width: 1px;
+    pointer-events: none;
+    border: 1px solid rgba(126, 199, 255, 0.9);
+    background-color: rgba(126, 199, 255, 0.12);
+}
+
+.neo-data-viewer .data-viewer-chart-drag-preview-zoom-out {
+    border-color: rgba(255, 196, 87, 0.9);
+    background-color: rgba(255, 196, 87, 0.14);
+}
+
+.neo-data-viewer .data-viewer-chart > div {
     width: 100%;
     height: 100%;
     min-height: 0;
@@ -1257,10 +1542,11 @@
 
 .neo-data-viewer .pagination {
     display: flex;
+    position: relative;
     justify-content: center;
     align-items: center;
     gap: var(--spacing-8);
-    padding: var(--spacing-8) var(--spacing-12);
+    padding: var(--spacing-8) 132px var(--spacing-8) var(--spacing-12);
     border-top: 1px solid var(--color-border);
     flex-shrink: 0;
 }
@@ -1276,6 +1562,21 @@
     border-radius: var(--radius-base);
     background-color: var(--color-surface-input);
     color: var(--color-on-surface);
+}
+
+.neo-data-viewer .pagination-page-size {
+    display: inline-flex;
+    position: absolute;
+    right: var(--spacing-12);
+    align-items: center;
+    gap: var(--spacing-6);
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+}
+
+.neo-data-viewer .pagination-page-size-input {
+    width: 64px;
 }
 
 .neo-data-viewer .pagination-input[type='number']::-webkit-inner-spin-button,

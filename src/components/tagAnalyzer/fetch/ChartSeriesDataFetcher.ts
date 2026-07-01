@@ -178,7 +178,7 @@ function parseChartQueryResponse(
         throw new Error(getChartFetchErrorMessage(apiResponse));
     }
 
-    const rows = normalizeChartFetchRows(getChartFetchRows(apiResponse.data));
+    const rows = getChartFetchRows(apiResponse.data);
     validateChartFetchRows(rows);
 
     return {
@@ -298,28 +298,6 @@ function validateChartFetchRows(rows: unknown): asserts rows is TagFetchRow[] {
             throw new Error(MALFORMED_CHART_DATA_MESSAGE);
         }
     }
-}
-
-function normalizeChartFetchRows(rows: unknown): unknown {
-    if (!Array.isArray(rows)) {
-        return rows;
-    }
-
-    return rows.map((row) => {
-        if (!Array.isArray(row)) {
-            return row;
-        }
-
-        return row.map((cell, index) =>
-            index === 1 && isDatabaseNullText(cell)
-                ? null
-                : cell,
-        );
-    });
-}
-
-function isDatabaseNullText(value: unknown): boolean {
-    return typeof value === 'string' && value.trim().toUpperCase() === 'NULL';
 }
 
 async function executeChartFetchSql(
