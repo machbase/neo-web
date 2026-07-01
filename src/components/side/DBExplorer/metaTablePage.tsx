@@ -1,13 +1,13 @@
 import { Page, Toast, CommonTable } from '@/design-system/components';
 import { createDefaultTazBoard } from '@/components/tagAnalyzer/TazUtility';
-import { isNumericBaseTimeSourceColumns } from '@/components/tagAnalyzer/domain/SeriesDomain';
 import { buildSqlIdentifierPath, buildSqlStringLiteral } from '@/components/tagAnalyzer/fetch/sqlBuilder/SqlTextUtils';
-import { createTagAnalyzerColumnInfo, type TagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
-import { canOpenTagAnalyzerFromMetaColumns, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, STR_NUM_ARR_TYPE } from './utils';
+import { canOpenTagAnalyzerFromMetaColumns, createDefaultTagTimeRange, createTagAnalyzerColumnsFromDbExplorer, getTagNameFromMetaRow } from './TagAnalyzerUtil';
+import { buildQualifiedTableName, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
+import { getUserName } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { BiInfoCircle } from 'react-icons/bi';
@@ -18,81 +18,6 @@ import { HIERARCHY_RESERVED_NAME } from '@/api/repository/tagHierarchy';
 type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
 const IGNORE_COL_LIST = ['_ID'];
 const REQUIRE_COL_LIST = ['NAME'];
-const DB_EXPLORER_COLUMN_FLAG_INDEX = 3;
-const TAG_ANALYZER_COLUMN_FLAG_INDEX = 2;
-const NANOSECONDS_PER_MILLISECOND = 1000000;
-function createTagAnalyzerColumnsFromDbExplorer(
-    columnRows: STR_NUM_ARR_TYPE[] | undefined,
-): TagAnalyzerColumnInfo {
-    const sColumnsForTagAnalyzer = (columnRows ?? []).map((row) => [
-        String(row?.[0] ?? ''),
-        row?.[1] ?? '',
-        row?.[DB_EXPLORER_COLUMN_FLAG_INDEX] ??
-            row?.[TAG_ANALYZER_COLUMN_FLAG_INDEX] ??
-            0,
-    ]);
-
-    return createTagAnalyzerColumnInfo(sColumnsForTagAnalyzer);
-}
-
-function getTagNameFromMetaRow({
-    row,
-    metaColumns,
-    sourceNameColumn,
-    fallbackNameColumn,
-}: {
-    row: STR_NUM_ARR_TYPE;
-    metaColumns: string[] | undefined;
-    sourceNameColumn: string;
-    fallbackNameColumn: string;
-}): string {
-    const sCandidateIndexes = [
-        metaColumns?.indexOf(sourceNameColumn) ?? -1,
-        metaColumns?.indexOf(fallbackNameColumn) ?? -1,
-        1,
-    ];
-
-    for (const sIndex of sCandidateIndexes) {
-        if (sIndex < 0) continue;
-
-        const sValue = row[sIndex];
-        if (sValue !== undefined && sValue !== null && String(sValue).trim() !== '') {
-            return String(sValue);
-        }
-    }
-
-    return '';
-}
-
-function createDefaultTagTimeRange(
-    minMaxRow: unknown[] | undefined,
-    sourceColumns: TagAnalyzerColumnInfo,
-): { min: number; max: number } {
-    const sMin = toFiniteNumber(minMaxRow?.[0]);
-    const sMax = toFiniteNumber(minMaxRow?.[1]);
-
-    if (!Number.isFinite(sMin) || !Number.isFinite(sMax)) {
-        return { min: NaN, max: NaN };
-    }
-
-    if (isNumericBaseTimeSourceColumns(sourceColumns)) {
-        return { min: sMin, max: sMax };
-    }
-
-    return {
-        min: Math.floor(sMin / NANOSECONDS_PER_MILLISECOND),
-        max: Math.floor(sMax / NANOSECONDS_PER_MILLISECOND),
-    };
-}
-
-function toFiniteNumber(value: unknown): number {
-    if (value === null || value === undefined || value === '') {
-        return NaN;
-    }
-
-    const sNumber = Number(value);
-    return Number.isFinite(sNumber) ? sNumber : NaN;
-}
 
 export const MetaTablePage = ({
     pIsActiveTab,
@@ -162,7 +87,13 @@ export const MetaTablePage = ({
         return Boolean(pMMetaColInfo?.rows?.some((row: STR_NUM_ARR_TYPE) => String(row?.[0] ?? '').toUpperCase() === 'ASSET'));
     }, [pMMetaColInfo]);
     const mLogicalTableName = useMemo(() => {
-        return `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
+        return buildQualifiedTableName({
+            dbName: String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
+            userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
+            tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
+            databaseId: Number(mTableInfo[E_TABLE_INFO.DB_ID] ?? -1),
+            currentUserName: getUserName(),
+        });
     }, [mTableInfo]);
     const sCanOpenTagAnalyzer = useMemo(() => canOpenTagAnalyzerFromMetaColumns(pMColInfo?.rows), [pMColInfo]);
     const mCanEditHierarchy = useMemo(() => CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG, [mTableInfo]);
@@ -210,43 +141,47 @@ export const MetaTablePage = ({
     const FetchTagMinMax = async (aTagNm: string) => {
         if (!sCanOpenTagAnalyzer) return;
 
-        const sSourceColumns = createTagAnalyzerColumnsFromDbExplorer(pMColInfo?.rows);
-        const sNameColumn = buildSqlIdentifierPath(
-            sSourceColumns.name,
-            'SQL tag column',
-        );
-        const sTimeColumn = buildSqlIdentifierPath(
-            sSourceColumns.time,
-            'SQL time column',
-        );
-        const sTableName = buildSqlIdentifierPath(
-            mLogicalTableName,
-            'SQL table name',
-        );
-        const sQuery = `select min(${sTimeColumn}) as 'MIN', max(${sTimeColumn}) as 'MAX' from ${sTableName} where ${sNameColumn} in (${buildSqlStringLiteral(aTagNm)})`;
+        try {
+            const sSourceColumns = createTagAnalyzerColumnsFromDbExplorer(pMColInfo?.rows);
+            const sNameColumn = buildSqlIdentifierPath(
+                sSourceColumns.name,
+                'SQL tag column',
+            );
+            const sTimeColumn = buildSqlIdentifierPath(
+                sSourceColumns.time,
+                'SQL time column',
+            );
+            const sTableName = buildSqlIdentifierPath(
+                mLogicalTableName,
+                'SQL table name',
+            );
+            const sQuery = `select min(${sTimeColumn}) as 'MIN', max(${sTimeColumn}) as 'MAX' from ${sTableName} where ${sNameColumn} in (${buildSqlStringLiteral(aTagNm)})`;
 
-        const { svrState, svrData, svrReason } = await fetchQuery(sQuery);
+            const { svrState, svrData, svrReason } = await fetchQuery(sQuery);
 
-        if (!svrState) {
-            Toast.error(svrReason ?? 'Failed to fetch tag min/max range.');
-            return;
+            if (!svrState) {
+                Toast.error(svrReason ?? 'Failed to fetch tag min/max range.');
+                return;
+            }
+
+            const sTimeRange = createDefaultTagTimeRange(
+                svrData?.rows?.[0],
+                sSourceColumns,
+            );
+            const sTazBoard = createDefaultTazBoard({
+                tag: aTagNm,
+                time: sTimeRange,
+                table: mLogicalTableName,
+                sourceColumns: sSourceColumns,
+            });
+            setBoardList((aPrev: any) => {
+                const sNextBoardList = [...aPrev, sTazBoard];
+                return sNextBoardList;
+            });
+            setSelectedTab(sTazBoard.id);
+        } catch (error) {
+            Toast.error(error instanceof Error ? error.message : 'Failed to open Tag Analyzer.');
         }
-
-        const sTimeRange = createDefaultTagTimeRange(
-            svrData?.rows?.[0],
-            sSourceColumns,
-        );
-        const sTazBoard = createDefaultTazBoard({
-            tag: aTagNm,
-            time: sTimeRange,
-            table: mLogicalTableName,
-            sourceColumns: sSourceColumns,
-        });
-        setBoardList((aPrev: any) => {
-            const sNextBoardList = [...aPrev, sTazBoard];
-            return sNextBoardList;
-        });
-        setSelectedTab(sTazBoard.id);
     };
 
     const convertTagMetaForInsert = (aValues: STR_NUM_ARR_TYPE) => {
