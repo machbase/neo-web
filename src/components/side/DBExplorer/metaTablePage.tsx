@@ -182,22 +182,6 @@ export const MetaTablePage = ({
         } catch (error) {
             Toast.error(error instanceof Error ? error.message : 'Failed to open Tag Analyzer.');
         }
-
-        const sTimeRange = createDefaultTagTimeRange(
-            svrData?.rows?.[0],
-            sSourceColumns,
-        );
-        const sTazBoard = createDefaultTazBoard({
-            tag: aTagNm,
-            time: sTimeRange,
-            table: mLogicalTableName,
-            sourceColumns: sSourceColumns,
-        });
-        setBoardList((aPrev: any) => {
-            const sNextBoardList = [...aPrev, sTazBoard];
-            return sNextBoardList;
-        });
-        setSelectedTab(sTazBoard.id);
     };
 
     const convertTagMetaForInsert = (aValues: STR_NUM_ARR_TYPE) => {
