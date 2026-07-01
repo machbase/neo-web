@@ -11,7 +11,7 @@ import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildQualifiedTableName, getTableTypeColor } from './utils';
+import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, getTableTypeColor } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Tooltip } from 'react-tooltip';
@@ -261,9 +261,17 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
         setSelectedTab(sApplyTabID);
     };
 
-    const handleOpenDataViewer = (e: React.MouseEvent, aTableInfo: (number | string)[]) => {
+    const handleOpenDataViewer = async (e: React.MouseEvent, aTableInfo: (number | string)[]) => {
         e.stopPropagation();
         if (CheckTableFlag(Number(aTableInfo[E_TABLE_INFO.TB_TYPE])) !== E_TABLE_TYPE.TAG) return;
+
+        let columnConfig = buildDataViewerColumnConfigFromColumnRows();
+        try {
+            const res = await getTableInfo(String(aTableInfo[E_TABLE_INFO.DB_ID] ?? ''), String(aTableInfo[E_TABLE_INFO.TB_ID] ?? ''));
+            columnConfig = buildDataViewerColumnConfigFromColumnRows(res.data?.rows);
+        } catch (err) {
+            Toast.error(err instanceof Error ? err.message : 'Failed to load table columns.');
+        }
 
         const code = {
             dbName: String(aTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
@@ -271,10 +279,7 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
             tableName: String(aTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
             tableType: E_TABLE_TYPE.TAG,
             databaseId: String(aTableInfo[E_TABLE_INFO.DB_ID] ?? ''),
-            tagColumn: 'NAME',
-            timeColumn: 'TIME',
-            valueColumn: 'VALUE',
-            metaTagColumn: 'NAME',
+            ...columnConfig,
         };
         const existing = sBoardList.find((board) => board.type === 'DataViewer');
         if (existing) {

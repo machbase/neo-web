@@ -151,6 +151,35 @@ export const GettColumnFlag = (aColFlag: number) => {
     return '';
 };
 
+export const buildDataViewerColumnConfigFromColumnRows = (columnRows?: STR_NUM_ARR_TYPE[]) => {
+    const rows = Array.isArray(columnRows) ? columnRows : [];
+
+    const columnNameAt = (index: number, fallback: string) => {
+        const name = rows[index]?.[0];
+        return String(name ?? fallback).trim() || fallback;
+    };
+
+    const findByFlag = (flag: E_COLUMN_FLAG, label: string) => {
+        const normalizedLabel = label.toLowerCase();
+        return rows.find((row) => {
+            const desc = row[4];
+            if (typeof desc === 'number') return (desc & flag) > 0;
+            return String(desc ?? '').trim().toLowerCase() === normalizedLabel;
+        })?.[0];
+    };
+
+    const tagColumn = String(findByFlag(E_COLUMN_FLAG.TAGNAME, 'tag name') ?? columnNameAt(0, 'NAME')).trim() || 'NAME';
+    const timeColumn = String(findByFlag(E_COLUMN_FLAG.BASETIME, 'basetime') ?? columnNameAt(1, 'TIME')).trim() || 'TIME';
+    const valueColumn = String(findByFlag(E_COLUMN_FLAG.SUMMARIZED, 'summarized') ?? columnNameAt(2, 'VALUE')).trim() || 'VALUE';
+
+    return {
+        tagColumn,
+        timeColumn,
+        valueColumn,
+        metaTagColumn: tagColumn,
+    };
+};
+
 const getColumnIndex = (columns: string[], target: string) => columns.indexOf(target);
 
 const getColumnIndexByAliases = (columns: string[], targets: string[]) => {

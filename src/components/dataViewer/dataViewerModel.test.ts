@@ -3,6 +3,8 @@ import {
     buildDataViewerChartXAxis,
     buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
+    buildDataViewerTagAnalyzerRange,
+    buildDataViewerTagAnalyzerTableName,
     buildDataViewerChartResultsFromRawRows,
     buildDataViewerRawPageTimeRange,
     buildDataViewerRawPageBounds,
@@ -31,6 +33,7 @@ import {
     toggleSelectedTagName,
     formatDataViewerAxisTime,
     formatDataViewerNavigatorRangeLabels,
+    formatTimeRangeLabel,
 } from './dataViewerModel';
 
 describe('data viewer chart helpers', () => {
@@ -231,6 +234,13 @@ describe('data viewer chart helpers', () => {
             end: '2026-06-01 12:35:01.789',
         });
         expect(formatDataViewerNavigatorRangeLabels({}, 'YYYY-MM-DD HH24:MI:SS.mmm', 'UTC')).toEqual({ start: '', end: '' });
+    });
+
+    test('formatTimeRangeLabel formats concrete date ranges without ISO separators', () => {
+        expect(formatTimeRangeLabel('last-5m', 'last')).toBe('last-5m ~ last');
+        expect(formatTimeRangeLabel('', '')).toBe('Time range not set');
+        expect(formatTimeRangeLabel('2026-06-01 12:34:56.789', '2026-06-01 12:35:01.789')).toBe('2026-06-01 12:34:56 ~ 2026-06-01 12:35:01');
+        expect(formatTimeRangeLabel('2026-06-01T12:34:56.789Z', '2026-06-01T12:35:01.789Z')).not.toMatch(/[TZ]/);
     });
 
     test('normalizeSelectedTagNames keeps valid tags and falls back to first selectable tag', () => {
@@ -722,6 +732,67 @@ describe('data viewer chart helpers', () => {
 
         expect(buildDataViewerGlobalTimeUpdate({ sourceGroupId: 'only', chartGroups: [{ id: 'only', title: 'Only', tagNames: ['sensor.a'], range: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' }, split: false }] })).toBeUndefined();
         expect(buildDataViewerGlobalTimeUpdate({ sourceGroupId: 'split:a', chartGroups })).toBeUndefined();
+    });
+
+    test('buildDataViewerTagAnalyzerRange converts chart view ranges to bridge payload ranges', () => {
+        expect(
+            buildDataViewerTagAnalyzerRange({
+                startTime: Date.parse('2026-06-01T00:10:00.000Z'),
+                endTime: Date.parse('2026-06-01T00:20:00.000Z'),
+            }),
+        ).toEqual({
+            startEpochMs: Date.parse('2026-06-01T00:10:00.000Z'),
+            endEpochMs: Date.parse('2026-06-01T00:20:00.000Z'),
+        });
+        expect(
+            buildDataViewerTagAnalyzerRange({
+                startEpochMs: 1000,
+                endEpochMs: 2000,
+            }),
+        ).toEqual({
+            startEpochMs: 1000,
+            endEpochMs: 2000,
+        });
+        expect(
+            buildDataViewerTagAnalyzerRange({
+                from: '2026-06-01T00:00:00.000Z',
+                to: '2026-06-01T01:00:00.000Z',
+            }),
+        ).toEqual({
+            startEpochMs: Date.parse('2026-06-01T00:00:00.000Z'),
+            endEpochMs: Date.parse('2026-06-01T01:00:00.000Z'),
+        });
+        expect(buildDataViewerTagAnalyzerRange({ startTime: 2000, endTime: 1000 })).toBeUndefined();
+    });
+
+    test('buildDataViewerTagAnalyzerTableName matches DB Explorer table qualification rules', () => {
+        expect(
+            buildDataViewerTagAnalyzerTableName({
+                dbName: 'MACHBASEDB',
+                userName: 'SYS',
+                tableName: 'TEST',
+                databaseId: '-1',
+                currentUserName: 'SYS',
+            }),
+        ).toBe('TEST');
+        expect(
+            buildDataViewerTagAnalyzerTableName({
+                dbName: 'MACHBASEDB',
+                userName: 'OTHER',
+                tableName: 'TEST',
+                databaseId: '-1',
+                currentUserName: 'SYS',
+            }),
+        ).toBe('OTHER.TEST');
+        expect(
+            buildDataViewerTagAnalyzerTableName({
+                dbName: 'BACKUPDB',
+                userName: 'SYS',
+                tableName: 'TEST',
+                databaseId: '3',
+                currentUserName: 'SYS',
+            }),
+        ).toBe('BACKUPDB.SYS.TEST');
     });
 
     test('buildDataViewerEChartOption creates a mini navigator and zoom controls target', () => {

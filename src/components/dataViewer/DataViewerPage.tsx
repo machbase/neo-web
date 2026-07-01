@@ -17,6 +17,7 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
+import { getUserName } from '@/utils';
 import { DataViewerAssetHierarchy, DataViewerTag, listTableTags, queryTagBoundaryTime, queryTagData, queryTagDataTotal } from './dataViewerApi';
 import {
     DEFAULT_DATA_VIEWER_ROWS_PER_TAG,
@@ -27,6 +28,8 @@ import {
     buildDataViewerChartResultsFromRawRows,
     buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
+    buildDataViewerTagAnalyzerRange,
+    buildDataViewerTagAnalyzerTableName,
     buildDataViewerHeaderLabels,
     buildDataViewerDefaultChartShiftRawPageUpdate,
     buildDataViewerRawPageBounds,
@@ -62,7 +65,7 @@ import {
 import './DataViewerPage.scss';
 
 type ResultRow = Record<string, unknown>;
-type DataViewerTimeRange = { from: string | number; to: string | number };
+type DataViewerTimeRange = { from?: string | number; to?: string | number; start?: string | number; end?: string | number; startTime?: number; endTime?: number };
 type RawPageRequest = {
     page: number;
     from?: string;
@@ -196,8 +199,8 @@ function TimeRangeModal({
             pSetTimeRangeModal={(open) => {
                 if (!open) onClose();
             }}
-            pStartTime={range.from}
-            pEndTime={range.to}
+            pStartTime={range.from ?? ''}
+            pEndTime={range.to ?? ''}
             pSetTime={() => undefined}
             pSaveCallback={(from, to) => onApply({ from: from ?? '', to: to ?? '' })}
         />
@@ -590,6 +593,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const dbName = pCode?.dbName ?? getParam(params, 'db');
     const userName = pCode?.userName ?? getParam(params, 'user');
     const tableName = pCode?.tableName ?? getParam(params, 'table');
+    const databaseId = pCode?.databaseId ?? getParam(params, 'databaseId');
     const tagColumn = pCode?.tagColumn || 'NAME';
     const timeColumn = pCode?.timeColumn || 'TIME';
     const valueColumn = pCode?.valueColumn || 'VALUE';
@@ -1182,20 +1186,20 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             chartData?: { range?: DataViewerTimeRange },
         ) => {
             const tazRange = chartViewRanges[group.id] || chartData?.range || group.range;
-            const rangeFrom = typeof tazRange?.from === 'string' || typeof tazRange?.from === 'number' ? tazRange.from : '';
-            const rangeTo = typeof tazRange?.to === 'string' || typeof tazRange?.to === 'number' ? tazRange.to : '';
+            const normalizedRange = buildDataViewerTagAnalyzerRange(tazRange);
+            const tagAnalyzerTable = buildDataViewerTagAnalyzerTableName({
+                dbName,
+                userName,
+                tableName,
+                databaseId,
+                currentUserName: getUserName(),
+            });
             const payload = {
                 title: group.title || 'Data Viewer',
-                range:
-                    rangeFrom && rangeTo
-                        ? {
-                              startIso: new Date(rangeFrom).toISOString(),
-                              endIso: new Date(rangeTo).toISOString(),
-                          }
-                        : undefined,
+                ...(normalizedRange ? { range: normalizedRange } : {}),
                 tags: group.tagNames.map((tagName) => ({
                     tagName,
-                    table: `${dbName}.${userName}.${tableName}`,
+                    table: tagAnalyzerTable,
                     calculationMode: 'avg',
                     alias: '',
                     weight: 1,
@@ -1217,7 +1221,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setBoardList((current) => [...current, result.board]);
             setSelectedTab(result.board.id);
         },
-        [chartViewRanges, dbName, setBoardList, setSelectedTab, tableName, tagColumn, timeColumn, userName, valueColumn],
+        [chartViewRanges, databaseId, dbName, setBoardList, setSelectedTab, tableName, tagColumn, timeColumn, userName, valueColumn],
     );
     const handleSetGlobalTime = useCallback(
         (groupId: string) => {

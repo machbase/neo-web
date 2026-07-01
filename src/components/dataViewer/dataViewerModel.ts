@@ -379,10 +379,10 @@ export function formatTimeRangeLabel(from: unknown, to: unknown) {
 }
 
 function formatTimeRangeBoundaryLabel(value: unknown, fallback: string) {
-    if (!value) return fallback;
-    if (typeof value !== 'number') return String(value);
-    if (!Number.isFinite(value)) return fallback;
-    return formatDateTimeForSql(new Date(value));
+    const text = String(value || '').trim();
+    if (!text) return fallback;
+    if (text.includes('now') || text.includes('last')) return text;
+    return formatDataViewerTime(text, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL');
 }
 
 export function resolveTimeRangeInput(value: unknown, baseDate = new Date()) {
@@ -648,6 +648,68 @@ function normalizeDataViewerGlobalTimeRange(range: { from?: unknown; to?: unknow
         from: new Date(startTime).toISOString(),
         to: new Date(endTime).toISOString(),
     };
+}
+
+function normalizeDataViewerTagAnalyzerRangeValue(value: unknown, keyPrefix: 'start' | 'end') {
+    if (value instanceof Date) {
+        const time = value.getTime();
+        return Number.isFinite(time) ? { [`${keyPrefix}EpochMs`]: time } : {};
+    }
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? { [`${keyPrefix}EpochMs`]: value } : {};
+    }
+
+    const text = String(value ?? '').trim();
+    if (!text) return {};
+
+    const parsed = Date.parse(text);
+    if (!Number.isFinite(parsed)) return {};
+    return { [`${keyPrefix}EpochMs`]: parsed };
+}
+
+export function buildDataViewerTagAnalyzerRange(
+    range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown; startIso?: unknown; endIso?: unknown; startEpochMs?: unknown; endEpochMs?: unknown } = {},
+) {
+    const start = normalizeDataViewerTagAnalyzerRangeValue(range.from ?? range.start ?? range.startTime ?? range.startIso ?? range.startEpochMs, 'start');
+    const end = normalizeDataViewerTagAnalyzerRangeValue(range.to ?? range.end ?? range.endTime ?? range.endIso ?? range.endEpochMs, 'end');
+    if (Object.keys(start).length === 0 || Object.keys(end).length === 0) return undefined;
+
+    const startValue = start.startEpochMs ?? Date.parse(String(start.startIso ?? ''));
+    const endValue = end.endEpochMs ?? Date.parse(String(end.endIso ?? ''));
+    if (!Number.isFinite(startValue) || !Number.isFinite(endValue) || endValue <= startValue) return undefined;
+
+    return {
+        ...start,
+        ...end,
+    };
+}
+
+export function buildDataViewerTagAnalyzerTableName({
+    dbName,
+    userName,
+    tableName,
+    databaseId,
+    currentUserName,
+}: {
+    dbName?: unknown;
+    userName?: unknown;
+    tableName?: unknown;
+    databaseId?: unknown;
+    currentUserName?: unknown;
+} = {}) {
+    const table = String(tableName ?? '').trim();
+    const user = String(userName ?? '').trim();
+    const db = String(dbName ?? '').trim();
+    const rawDatabaseId = String(databaseId ?? '').trim();
+    const numericDatabaseId = Number(rawDatabaseId);
+    const isMountedDatabase = rawDatabaseId !== '' && Number.isFinite(numericDatabaseId) && numericDatabaseId !== -1;
+
+    if (isMountedDatabase) return [db, user, table].filter(Boolean).join('.');
+
+    const currentUser = String(currentUserName ?? '').trim();
+    if (currentUser && user && currentUser.toUpperCase() === user.toUpperCase()) return table;
+
+    return [user, table].filter(Boolean).join('.');
 }
 
 export function buildDataViewerGlobalTimeUpdate({
