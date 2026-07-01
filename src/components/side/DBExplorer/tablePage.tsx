@@ -9,6 +9,7 @@ import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
 import { Refresh, VscGraphLine } from '@/assets/icons/Icon';
 import { MetaTablePage } from './metaTablePage';
 import {
+    buildDataViewerColumnConfigFromColumnRows,
     buildQualifiedTableName,
     CheckIndexFlag,
     CheckTableFlag,
@@ -301,16 +302,14 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     };
     const handleOpenDataViewer = () => {
         if (!mTableInfo || !mIsTagTable) return;
+        const columnConfig = buildDataViewerColumnConfigFromColumnRows(mColList?.rows);
         const code = {
             dbName: String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
             userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
             tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
             tableType: String(CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) ?? ''),
             databaseId: String(mTableInfo[E_TABLE_INFO.DB_ID] ?? ''),
-            tagColumn: String(mColList?.rows?.[0]?.[0] ?? 'NAME'),
-            timeColumn: String(mColList?.rows?.[1]?.[0] ?? 'TIME'),
-            valueColumn: String(mColList?.rows?.[2]?.[0] ?? 'VALUE'),
-            metaTagColumn: 'NAME',
+            ...columnConfig,
         };
         const existing = sBoardList.find((board) => board.type === 'DataViewer');
         if (existing) {
