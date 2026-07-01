@@ -246,9 +246,9 @@ describe('data viewer chart helpers', () => {
     });
 
     test('getDataViewerRawPageSize uses configurable rows per selected tag', () => {
-        expect(getDataViewerRawPageSize(['sensor.a'])).toBe(1000);
-        expect(getDataViewerRawPageSize(['sensor.a', 'sensor.b', 'sensor.c'])).toBe(3000);
-        expect(getDataViewerRawPageSize([])).toBe(1000);
+        expect(getDataViewerRawPageSize(['sensor.a'])).toBe(500);
+        expect(getDataViewerRawPageSize(['sensor.a', 'sensor.b', 'sensor.c'])).toBe(1500);
+        expect(getDataViewerRawPageSize([])).toBe(500);
         expect(getDataViewerRawPageSize(['sensor.a'], 100)).toBe(100);
         expect(getDataViewerRawPageSize(['sensor.a', 'sensor.b', 'sensor.c'], 100)).toBe(300);
         expect(getDataViewerRawPageSize([], 100)).toBe(100);
