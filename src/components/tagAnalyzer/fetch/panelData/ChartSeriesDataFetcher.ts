@@ -62,11 +62,6 @@ export async function fetchCalculationData(
         sRollupTableList,
     );
 
-    console.log('[TagAnalyzer chart fetch] calculation request', {
-        request: calculationRequest,
-        sql: sMainSql,
-    });
-
     return executeChartFetchSql(sMainSql);
 }
 
@@ -169,11 +164,6 @@ export async function fetchRawData(
         sSampling,
         sSortOrder,
     );
-
-    console.log('[TagAnalyzer chart fetch] raw request', {
-        request: rawRequest,
-        sql: sSql,
-    });
 
     return executeChartFetchSql(sSql);
 }
@@ -322,46 +312,10 @@ function isDatabaseNullText(value: unknown): boolean {
 async function executeChartFetchSql(
     querySql: string,
 ): Promise<ChartFetchResponse> {
-    console.log('[TagAnalyzer chart fetch] query SQL', querySql);
-
     const response = (await request({
         method: 'GET',
         url: `/api/query?q=${encodeURIComponent(querySql)}`,
     })) as ChartFetchApiResponse;
 
-    console.log('[TagAnalyzer chart fetch] response', {
-        status: response.status,
-        success: response.success,
-        rowCount: getChartFetchResponseRowCount(response),
-        sampleRows: getChartFetchResponseSampleRows(response),
-        response,
-    });
-
     return parseChartQueryResponse(response);
-}
-
-function getChartFetchResponseRowCount(
-    response: ChartFetchApiResponse,
-): number | undefined {
-    const sRows = getChartFetchResponseRowsOrUndefined(response);
-    return sRows?.length;
-}
-
-function getChartFetchResponseSampleRows(
-    response: ChartFetchApiResponse,
-): unknown[] | undefined {
-    const sRows = getChartFetchResponseRowsOrUndefined(response);
-    return sRows?.slice(0, 3);
-}
-
-function getChartFetchResponseRowsOrUndefined(
-    response: ChartFetchApiResponse,
-): unknown[] | undefined {
-    const sData = response.data;
-    if (typeof sData !== 'object' || sData === null || !('rows' in sData)) {
-        return undefined;
-    }
-
-    const sRows = (sData as { rows?: unknown }).rows;
-    return Array.isArray(sRows) ? sRows : undefined;
 }

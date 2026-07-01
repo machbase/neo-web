@@ -224,18 +224,8 @@ export const MetaTablePage = ({
             'SQL table name',
         );
         const sQuery = `select min(${sTimeColumn}) as 'MIN', max(${sTimeColumn}) as 'MAX' from ${sTableName} where ${sNameColumn} in (${buildSqlStringLiteral(aTagNm)})`;
-        console.log('[DBExplorer MetaTable -> TagAnalyzer] min/max query', {
-            tagName: aTagNm,
-            sourceColumns: sSourceColumns,
-            query: sQuery,
-        });
 
         const { svrState, svrData, svrReason } = await fetchQuery(sQuery);
-        console.log('[DBExplorer MetaTable -> TagAnalyzer] min/max response', {
-            svrState,
-            svrReason,
-            data: svrData,
-        });
 
         if (!svrState) {
             Toast.error(svrReason ?? 'Failed to fetch tag min/max range.');
@@ -252,10 +242,8 @@ export const MetaTablePage = ({
             table: mLogicalTableName,
             sourceColumns: sSourceColumns,
         });
-        console.log('[DBExplorer MetaTable -> TagAnalyzer] created TAZ board', sTazBoard);
         setBoardList((aPrev: any) => {
             const sNextBoardList = [...aPrev, sTazBoard];
-            console.log('[DBExplorer MetaTable -> TagAnalyzer] next gBoardList', sNextBoardList);
             return sNextBoardList;
         });
         setSelectedTab(sTazBoard.id);
@@ -395,12 +383,6 @@ export const MetaTablePage = ({
                 metaColumns: sMetaTableInfo?.columns,
                 sourceNameColumn: sSourceColumns.name,
                 fallbackNameColumn: String(pMColInfo?.rows?.[0]?.[0] ?? ''),
-            });
-            console.log('[DBExplorer MetaTable -> TagAnalyzer] selected meta row', {
-                row: item,
-                metaColumns: sMetaTableInfo?.columns,
-                sourceColumns: sSourceColumns,
-                tagName: sTagName,
             });
 
             if (!sTagName) {
