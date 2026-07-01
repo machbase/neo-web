@@ -650,6 +650,44 @@ function normalizeDataViewerGlobalTimeRange(range: { from?: unknown; to?: unknow
     };
 }
 
+export function buildDataViewerTagAnalyzerRange(range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown } = {}) {
+    const normalizedRange = normalizeDataViewerGlobalTimeRange(range);
+    if (!normalizedRange) return undefined;
+
+    return {
+        startIso: normalizedRange.from,
+        endIso: normalizedRange.to,
+    };
+}
+
+export function buildDataViewerTagAnalyzerTableName({
+    dbName,
+    userName,
+    tableName,
+    databaseId,
+    currentUserName,
+}: {
+    dbName?: unknown;
+    userName?: unknown;
+    tableName?: unknown;
+    databaseId?: unknown;
+    currentUserName?: unknown;
+} = {}) {
+    const table = String(tableName ?? '').trim();
+    const user = String(userName ?? '').trim();
+    const db = String(dbName ?? '').trim();
+    const rawDatabaseId = String(databaseId ?? '').trim();
+    const numericDatabaseId = Number(rawDatabaseId);
+    const isMountedDatabase = rawDatabaseId !== '' && Number.isFinite(numericDatabaseId) && numericDatabaseId !== -1;
+
+    if (isMountedDatabase) return [db, user, table].filter(Boolean).join('.');
+
+    const currentUser = String(currentUserName ?? '').trim();
+    if (currentUser && user && currentUser.toUpperCase() === user.toUpperCase()) return table;
+
+    return [user, table].filter(Boolean).join('.');
+}
+
 export function buildDataViewerGlobalTimeUpdate({
     sourceGroupId,
     chartGroups = [],
