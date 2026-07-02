@@ -138,16 +138,30 @@ const getTutorial = (aUrl: any) => {
     });
 };
 
-// Copy shell — stays on REST. There is no `shell.copy` RPC, and the only RPC create primitive
-// `shell.add(name, command)` takes just name+command (no theme/icon) and always mints a new id, so an
-// RPC copy would drop the source's theme/icon. Keep GET /api/shell/:id/copy until the backend adds
-// shell.copy (or shell.add gains style fields).
-const copyShell = (aId: string) => {
-    return request({
-        method: 'get',
-        url: `/api/shell/${aId}/copy`,
-    });
+// Shared adapter for the shell.* mutation RPCs whose result is a ShellDefinition. Reproduces the
+// REST envelope: success → {success, reason:'success', data}, error → {data:{reason}, statusText}
+// with NO top-level `reason` — ModalShell treats a truthy `res.reason` as success, so on error the
+// reason may only appear under data.reason/statusText (same shape the axios interceptor produced
+// by resolving `error.response` for REST failures).
+const shellRpcEnvelope = async (method: string, params: any[]) => {
+    try {
+        const res = await rpcCall<any>(method, params);
+        const msg = res?.error ? res.error.message || `JSON-RPC error ${res.error.code}` : null;
+        if (msg) return { success: false, elapse: '', statusText: msg, data: { reason: msg } };
+        return { success: true, reason: 'success', elapse: '', data: res?.result };
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { success: false, elapse: '', statusText: msg, data: { reason: msg } };
+    }
 };
+// Add shell — `shell.add(name, command)` (params: [name, command]). The RPC result is the created
+// shell's id string; the server fills type/attributes itself and leaves icon/theme empty, so style
+// customization needs a follow-up shell.update (see ShellManage createShell).
+const addShell = (aName: string, aCommand: string) => shellRpcEnvelope(RpcMethod.shell.add, [aName, aCommand]);
+// Copy shell — `shell.copy(srcId)` (params: [srcId]). The RPC result is the copied ShellDefinition
+// itself; the adapter wraps it into the {success, data} envelope the callers (ShellManage, side/Shell)
+// read the new shell from.
+const copyShell = (aId: string) => shellRpcEnvelope(RpcMethod.shell.copy, [aId]);
 // Remove shell — `shell.delete(id)` (params: [id]). Adapts the RPC error|null into the { success }
 // envelope the caller (ShellManage) checks.
 const removeShell = async (aId: string) => {
@@ -160,16 +174,10 @@ const removeShell = async (aId: string) => {
         return { success: false, reason: msg, statusText: msg };
     }
 };
-// Update shell — stays on REST. There is no `shell.update` RPC; `shell.add` only *creates* (new id) and
-// can't carry theme/icon, so it cannot express an in-place update of an existing shell. Keep
-// POST /api/shell/:id until the backend adds shell.update. (Same kept-on-REST policy as timer.ts modTimer.)
-const postShell = (aInfo: any) => {
-    return request({
-        method: 'post',
-        url: `/api/shell/${aInfo.id}`,
-        data: aInfo,
-    });
-};
+// Update shell — `shell.update(shell)` (params: [ShellDefinition]). The full definition (id, type,
+// label, command, icon?, theme?, attributes?) rides in a single object param; `attributes` keeps the
+// array form ([{removable:true},...]) — the backend's custom UnmarshalJSON accepts exactly that shape.
+const postShell = (aInfo: any) => shellRpcEnvelope(RpcMethod.shell.update, [aInfo]);
 // DATABASE
 export const mountDB = (name: string, path: string) => {
     return request({
@@ -244,6 +252,7 @@ export {
     deleteFileList,
     getReferenceList,
     getTutorial,
+    addShell,
     copyShell,
     removeShell,
     postShell,

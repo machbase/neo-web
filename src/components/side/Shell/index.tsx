@@ -5,7 +5,7 @@ import { MdRefresh } from 'react-icons/md';
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { generateUUID } from '@/utils';
-import { copyShell } from '@/api/repository/api';
+import { SHELL_ICON_LIST } from '@/components/ShellManage/constants';
 import { GoPlus } from 'react-icons/go';
 import icons from '@/utils/icons';
 import { Button, Side } from '@/design-system/components';
@@ -69,57 +69,58 @@ export const ShellSide = () => {
             return;
         }
     };
-    /** Handle create shell */
-    const handleCreateShell = async (aEvent?: MouseEvent, aShell?: any) => {
+    /** Handle create shell — opens the create form (ShellManage create mode); the actual
+     *  creation happens there via shell.add (+ shell.update when theme/icon are customized). */
+    const handleCreateShell = (aEvent?: MouseEvent) => {
         if (aEvent) aEvent.stopPropagation();
-        const sTempTarget = aShell || sShellList.find((aShell: any) => aShell.id === 'SHELL');
-        const sCopyRes: any = await copyShell(sTempTarget.id);
+        // prefill command from the built-in SHELL entry (the server's default shell command,
+        // e.g. `<machbase-neo path> shell`) — same source the old copy flow cloned from
+        const sDefaultShell = sShellList?.find((aShell: any) => aShell.id === 'SHELL');
+        // no `id` → ShellManage renders in create mode; the first icon comes preselected
+        const sCreateTemplate = {
+            label: '',
+            command: sDefaultShell?.command ?? '',
+            theme: 'default',
+            icon: SHELL_ICON_LIST[0],
+        };
+        setActiveShellName('create');
 
-        if (sCopyRes.success) {
-            const sTargetItem = sCopyRes.data;
-            sTargetItem.id = sTargetItem.id.toUpperCase();
-            sTargetItem.icon = sTempTarget.icon === 'console' ? 'console-network-outline' : sTempTarget.icon;
-            await shellList();
+        const sExistShellManageTab = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === 'shell-manage';
+        }, false);
 
-            const sExistShellManageTab = sBoardList.reduce((prev: boolean, cur: any) => {
-                return prev || cur.type === 'shell-manage';
-            }, false);
-
-            if (sExistShellManageTab) {
-                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
-                setBoardList((aBoardList: any) => {
-                    return aBoardList.map((aBoard: any) => {
-                        if (aBoard.id === aTarget.id) {
-                            return {
-                                id: sTargetItem.id,
-                                type: 'shell-manage',
-                                name: `SHELL: ${sTargetItem.label}`,
-                                code: sTargetItem,
-                                savedCode: sTargetItem,
-                                path: '',
-                            };
-                        }
-                        return aBoard;
-                    });
+        if (sExistShellManageTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `SHELL: create`,
+                            code: sCreateTemplate,
+                            savedCode: false,
+                        };
+                    }
+                    return aBoard;
                 });
-            } else {
-                setBoardList([
-                    ...sBoardList,
-                    {
-                        id: sTargetItem.id,
-                        type: 'shell-manage',
-                        name: `SHELL: ${sTargetItem.label}`,
-                        code: sTargetItem,
-                        savedCode: sTargetItem,
-                        path: '',
-                    },
-                ]);
-            }
-            setSelectedTab(sTargetItem.id);
-            setActiveShellName(sTargetItem.id);
+            });
+            setSelectedTab(aTarget.id);
             return;
         } else {
-            setActiveShellName(undefined);
+            const sId = generateUUID();
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sId,
+                    type: 'shell-manage',
+                    name: `SHELL: create`,
+                    code: sCreateTemplate,
+                    savedCode: false,
+                    path: '',
+                },
+            ]);
+            setSelectedTab(sId);
+            return;
         }
     };
 

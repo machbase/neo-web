@@ -3,6 +3,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { SplitPane, Pane, Alert, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import {
+    gActiveSubr,
     gBoardList,
     gBridgeList,
     setBridgeTree,
@@ -17,9 +18,12 @@ import { SUBR_FORMAT_TABLE, SUBR_METHOD_TABLE, SUBR_OPTIONS_TABLE } from './cont
 
 export const CreateSubr = ({ pInit }: { pInit: any }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
+    const setActiveSubr = useSetRecoilState<any>(gActiveSubr);
     const [sBridgeList, setBridge] = useRecoilState(gBridgeList);
     const sBodyRef: any = useRef(null);
-    const [sTaskSelect, setTaskSelect] = useState<'Writing Descriptor' | 'TQL Script'>('Writing Descriptor');
+    const [sTaskSelect, setTaskSelect] = useState<'Writing Descriptor' | 'TQL Script'>(
+        'Writing Descriptor',
+    );
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['50', '50']);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
     const [isVertical, setIsVertical] = useState<boolean>(true);
@@ -64,14 +68,19 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                 }`,
             };
         }
-        if (sCreatePayload.bridge_type === 'mqtt' && parseInt(sCreatePayload.QoS) !== 0) sParsedPayload.QoS = parseInt(sCreatePayload.QoS);
-        if (sCreatePayload.bridge_type === 'nats' && sCreatePayload.queue !== '') sParsedPayload.queue = sCreatePayload.queue;
+        sParsedPayload.bridge_type = sCreatePayload.bridge_type;
+        if (sCreatePayload.bridge_type === 'mqtt' && parseInt(sCreatePayload.QoS) !== 0)
+            sParsedPayload.QoS = parseInt(sCreatePayload.QoS);
+        if (sCreatePayload.bridge_type === 'nats' && sCreatePayload.queue !== '')
+            sParsedPayload.queue = sCreatePayload.queue;
 
         const sGenRes: any = await genSubr(sParsedPayload);
         if (sGenRes.success) {
             setResErrMessage(undefined);
         } else {
-            setResErrMessage(sGenRes?.data ? (sGenRes as any).data.reason : (sGenRes.statusText as string));
+            setResErrMessage(
+                sGenRes?.data ? (sGenRes as any).data.reason : (sGenRes.statusText as string),
+            );
         }
 
         const sResBridge = await getBridge();
@@ -79,8 +88,41 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
             const sResSubr = await getSubr();
             if (sResSubr?.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
             else setBridge(setBridgeTree(sResBridge.data, []));
+            if (sGenRes.success && sResSubr?.success) {
+                // the backend lowercases the name on create — find the fresh item case-insensitively
+                // and open its detail with the server-side name (keeps the side tree highlight in sync)
+                const sNewSubr = sResSubr.data.find(
+                    (aSubr: any) =>
+                        aSubr?.name?.toLowerCase() === String(sParsedPayload.name).toLowerCase(),
+                );
+                if (sNewSubr) {
+                    const sBridgeItem =
+                        sResBridge.data.find(
+                            (aBridge: any) => aBridge.name === sParsedPayload.bridge,
+                        ) ?? pInit.bridge;
+                    openCreatedSubrDetail(sBridgeItem, sNewSubr);
+                    return;
+                }
+            }
             handleSavedCode(true);
         } else setBridge([]);
+    };
+    /** switch this tab to the created item's detail page (same board shape the side tree's openSubrInfo builds) */
+    const openCreatedSubrDetail = (aBridge: any, aSubr: any) => {
+        setActiveSubr(aSubr.name);
+        setBoardList((aBoardList: any) => {
+            return aBoardList.map((aBoard: any) => {
+                if (aBoard.type === 'subscriber') {
+                    return {
+                        ...aBoard,
+                        name: `SUBR: ${aSubr.name}`,
+                        code: { bridge: aBridge, subr: aSubr },
+                        savedCode: { bridge: aBridge, subr: aSubr },
+                    };
+                }
+                return aBoard;
+            });
+        });
     };
     /** handle info */
     const handlePayload = (aTarget: string, aEvent: React.FormEvent<HTMLInputElement>) => {
@@ -88,7 +130,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         const sTempPayload = JSON.parse(JSON.stringify(sCreatePayload));
         sTempPayload[aTarget] = sTarget.value;
         if (aTarget === 'bridge') {
-            const sTargetType = sBridgeList.filter((aBridge: any) => aBridge.name === sTarget.value)[0].type;
+            const sTargetType = sBridgeList.filter(
+                (aBridge: any) => aBridge.name === sTarget.value,
+            )[0].type;
             sTempPayload.bridge_type = sTargetType;
         }
         setCreatePayload(sTempPayload);
@@ -126,7 +170,12 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
 
     return (
         <Page pRef={sBodyRef}>
-            <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
+            <SplitPane
+                sashRender={() => Resizer()}
+                split={isVertical ? 'vertical' : 'horizontal'}
+                sizes={sGroupWidth}
+                onChange={setGroupWidth}
+            >
                 <Pane minSize={400}>
                     <Page.Header />
                     <Page.Body>
@@ -143,7 +192,13 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>{`The name of the subscriber.`}</Page.ContentDesc>
-                            <Page.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} pMaxLen={40} />
+                            <Page.Input
+                                pValue={sCreatePayload.name}
+                                pCallback={(event: React.FormEvent<HTMLInputElement>) =>
+                                    handlePayload('name', event)
+                                }
+                                pMaxLen={40}
+                            />
                         </Page.ContentBlock>
                         {/* Auto start */}
                         <Page.ContentBlock>
@@ -152,7 +207,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 <Page.Checkbox
                                     label="Makes the task to start automatically when machbase-neo starts"
                                     pValue={sCreatePayload.autoStart}
-                                    pCallback={(value: boolean) => handlePayload('autoStart', { target: { value } } as any)}
+                                    pCallback={(value: boolean) =>
+                                        handlePayload('autoStart', { target: { value } } as any)
+                                    }
                                 />
                             </Page.DpRow>
                         </Page.ContentBlock>
@@ -176,7 +233,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         {/* Topic | Subject*/}
                         <Page.ContentBlock>
                             <Page.DpRow>
-                                <Page.ContentTitle>{sCreatePayload.bridge_type === 'mqtt' ? 'Topic' : 'Subject'}</Page.ContentTitle>
+                                <Page.ContentTitle>
+                                    {sCreatePayload.bridge_type === 'mqtt' ? 'Topic' : 'Subject'}
+                                </Page.ContentTitle>
                                 <Page.ContentDesc>
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </Page.ContentDesc>
@@ -186,13 +245,22 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     ? 'Topic name to subscribe. it supports standard MQTT topic syntax includes # and +.'
                                     : 'Subject name to subscribe. it should be in NATS subject syntax.'}
                             </Page.ContentDesc>
-                            <Page.Input pValue={sCreatePayload.topic} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('topic', event)} />
+                            <Page.Input
+                                pValue={sCreatePayload.topic}
+                                pCallback={(event: React.FormEvent<HTMLInputElement>) =>
+                                    handlePayload('topic', event)
+                                }
+                            />
                         </Page.ContentBlock>
                         {/* QoS - MQTT */}
                         {sCreatePayload.bridge_type === 'mqtt' && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>QoS</Page.ContentTitle>
-                                <Page.ContentDesc>{'Subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1.'}</Page.ContentDesc>
+                                <Page.ContentDesc>
+                                    {
+                                        'Subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1.'
+                                    }
+                                </Page.ContentDesc>
                                 <Page.Selector
                                     pList={[
                                         { name: '0', data: '0' },
@@ -200,7 +268,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     ]}
                                     pSelectedItem={sCreatePayload.QoS}
                                     pCallback={(aSelectedItem: string) => {
-                                        handlePayload('QoS', { target: { value: aSelectedItem } } as any);
+                                        handlePayload('QoS', {
+                                            target: { value: aSelectedItem },
+                                        } as any);
                                     }}
                                 />
                             </Page.ContentBlock>
@@ -209,8 +279,15 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         {sCreatePayload.bridge_type === 'nats' && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Queue</Page.ContentTitle>
-                                <Page.ContentDesc>{'If the bridge is NATS type, it specifies the Queue Group.'}</Page.ContentDesc>
-                                <Page.Input pValue={sCreatePayload.queue} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('queue', event)} />
+                                <Page.ContentDesc>
+                                    {'If the bridge is NATS type, it specifies the Queue Group.'}
+                                </Page.ContentDesc>
+                                <Page.Input
+                                    pValue={sCreatePayload.queue}
+                                    pCallback={(event: React.FormEvent<HTMLInputElement>) =>
+                                        handlePayload('queue', event)
+                                    }
+                                />
                             </Page.ContentBlock>
                         )}
                         {/* Task (writing descriptor vs tql path) */}
@@ -222,8 +299,18 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.DpRow>
-                                <Page.ContentDesc>{'The path of tql script or writing path descriptor.'}</Page.ContentDesc>
-                                <span style={{ marginLeft: '8px', color: 'dodgerblue', fontSize: '12px' }}>Check the example on the right</span>
+                                <Page.ContentDesc>
+                                    {'The path of tql script or writing path descriptor.'}
+                                </Page.ContentDesc>
+                                <span
+                                    style={{
+                                        marginLeft: '8px',
+                                        color: 'dodgerblue',
+                                        fontSize: '12px',
+                                    }}
+                                >
+                                    Check the example on the right
+                                </span>
                             </Page.DpRow>
                             <Page.Selector
                                 pList={[
@@ -243,18 +330,33 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         <Page.DpRow>
                                             <Page.ContentTitle>Tql path</Page.ContentTitle>
                                             <Page.ContentDesc>
-                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                <span
+                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                >
+                                                    *
+                                                </span>
                                             </Page.ContentDesc>
                                         </Page.DpRow>
-                                        <Page.ContentDesc>The tql script as a task</Page.ContentDesc>
+                                        <Page.ContentDesc>
+                                            The tql script as a task
+                                        </Page.ContentDesc>
                                         <Page.DpRow>
                                             <Page.Input
                                                 pValue={sCreatePayload.task}
                                                 pWidth={'400px'}
-                                                pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)}
+                                                pCallback={(
+                                                    event: React.FormEvent<HTMLInputElement>,
+                                                ) => handlePayload('task', event)}
                                             />
                                             <div style={{ marginLeft: '4px' }}>
-                                                <SelectFileBtn pType="tql" pCallback={(aKey: string) => handlePayload('task', { target: { value: aKey } } as any)} />
+                                                <SelectFileBtn
+                                                    pType="tql"
+                                                    pCallback={(aKey: string) =>
+                                                        handlePayload('task', {
+                                                            target: { value: aKey },
+                                                        } as any)
+                                                    }
+                                                />
                                             </div>
                                             <div style={{ marginLeft: '4px' }}>
                                                 <OpenFileBtn
@@ -278,7 +380,11 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         <Page.DpRow>
                                             <Page.ContentTitle>Method</Page.ContentTitle>
                                             <Page.ContentDesc>
-                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                <span
+                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                >
+                                                    *
+                                                </span>
                                             </Page.ContentDesc>
                                         </Page.DpRow>
                                         <Page.Selector
@@ -289,7 +395,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             ]}
                                             pSelectedItem={sCreatePayload.method}
                                             pCallback={(aSelectedItem: string) => {
-                                                handlePayload('method', { target: { value: aSelectedItem } } as any);
+                                                handlePayload('method', {
+                                                    target: { value: aSelectedItem },
+                                                } as any);
                                             }}
                                         />
                                     </Page.ContentBlock>
@@ -298,13 +406,19 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         <Page.DpRow>
                                             <Page.ContentTitle>Table name</Page.ContentTitle>
                                             <Page.ContentDesc>
-                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                <span
+                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                >
+                                                    *
+                                                </span>
                                             </Page.ContentDesc>
                                         </Page.DpRow>
                                         <Page.Input
                                             pWidth={'364px'}
                                             pValue={sCreatePayload.table_name}
-                                            pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('table_name', event)}
+                                            pCallback={(event: React.FormEvent<HTMLInputElement>) =>
+                                                handlePayload('table_name', event)
+                                            }
                                         />
                                     </Page.ContentBlock>
                                     {/* DESTINATION - format */}
@@ -312,7 +426,11 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         <Page.DpRow>
                                             <Page.ContentTitle>Format</Page.ContentTitle>
                                             <Page.ContentDesc>
-                                                <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                                <span
+                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                >
+                                                    *
+                                                </span>
                                             </Page.ContentDesc>
                                         </Page.DpRow>
                                         <Page.Selector
@@ -323,7 +441,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             ]}
                                             pSelectedItem={sCreatePayload.format}
                                             pCallback={(aSelectedItem: string) => {
-                                                handlePayload('format', { target: { value: aSelectedItem } } as any);
+                                                handlePayload('format', {
+                                                    target: { value: aSelectedItem },
+                                                } as any);
                                             }}
                                         />
                                     </Page.ContentBlock>
@@ -338,7 +458,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             ]}
                                             pSelectedItem={sCreatePayload.compress}
                                             pCallback={(aSelectedItem: string) => {
-                                                handlePayload('compress', { target: { value: aSelectedItem } } as any);
+                                                handlePayload('compress', {
+                                                    target: { value: aSelectedItem },
+                                                } as any);
                                             }}
                                         />
 
@@ -356,21 +478,23 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                         <Page.Input
                                             pWidth={'364px'}
                                             pValue={sCreatePayload.options}
-                                            pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('options', event)}
+                                            pCallback={(event: React.FormEvent<HTMLInputElement>) =>
+                                                handlePayload('options', event)
+                                            }
                                         />
                                     </Page.ContentBlock>
                                 </>
                             )}
-                        </Page.ContentBlock>
-                        {/* Create btn */}
-                        <Page.ContentBlock>
-                            <Page.TextButton pText="Create" pType="CREATE" pCallback={createItem} />
                         </Page.ContentBlock>
                         {sResErrMessage && (
                             <Page.ContentBlock>
                                 <Alert variant="error" message={sResErrMessage} />
                             </Page.ContentBlock>
                         )}
+                        {/* Create btn */}
+                        <Page.ContentBlock>
+                            <Page.TextButton pText="Create" pType="CREATE" pCallback={createItem} />
+                        </Page.ContentBlock>
                     </Page.Body>
                 </Pane>
                 <Pane>
@@ -382,7 +506,12 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 variant="ghost"
                                 isToolTip
                                 toolTipContent="Vertical"
-                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                icon={
+                                    <LuFlipVertical
+                                        size={16}
+                                        style={{ transform: 'rotate(90deg)' }}
+                                    />
+                                }
                                 active={isVertical}
                                 onClick={() => setIsVertical(true)}
                             />
@@ -404,18 +533,28 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         {/* Writing Descriptor */}
                         <Page.ContentBlock>
                             <Page.ContentTitle>Writing Descriptor</Page.ContentTitle>
-                            <Page.ContentDesc>Parses the message and write it in the specified table.</Page.ContentDesc>
-                            <Page.ContentDesc>The syntax of writing descriptor is …</Page.ContentDesc>
-                            <Page.CopyBlock pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'} />
+                            <Page.ContentDesc>
+                                Parses the message and write it in the specified table.
+                            </Page.ContentDesc>
+                            <Page.ContentDesc>
+                                The syntax of writing descriptor is …
+                            </Page.ContentDesc>
+                            <Page.CopyBlock
+                                pContent={'db/{method}/{table_name}:{format}:{compress}?{options}'}
+                            />
                             <Page.ContentBlock pHoverNone>
                                 {/* method */}
                                 <Page.ContentDesc>Method</Page.ContentDesc>
-                                <Page.ContentText pContent={`There are two methods append and write.`} />
+                                <Page.ContentText
+                                    pContent={`There are two methods append and write.`}
+                                />
                                 <CommonTable data={SUBR_METHOD_TABLE} dotted />
                                 {/* table_name */}
                                 <Page.Space pHeight="16px" />
                                 <Page.ContentDesc>Table name</Page.ContentDesc>
-                                <Page.ContentText pContent={`Specify the destination table name, case insensitive.`} />
+                                <Page.ContentText
+                                    pContent={`Specify the destination table name, case insensitive.`}
+                                />
                                 {/* format */}
                                 <Page.Space pHeight="16px" />
                                 <Page.ContentDesc>Format</Page.ContentDesc>
@@ -423,7 +562,9 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 {/* compress */}
                                 <Page.Space pHeight="16px" />
                                 <Page.ContentDesc>Compress</Page.ContentDesc>
-                                <Page.ContentText pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`} />
+                                <Page.ContentText
+                                    pContent={`Currently gzip is supported, If :{compress} part is omitted, it means the data is not compressed.`}
+                                />
                                 {/* Options */}
                                 <Page.Space pHeight="16px" />
                                 <Page.ContentDesc>Options</Page.ContentDesc>
@@ -437,11 +578,21 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         {/* TQL SCRIPT */}
                         <Page.ContentBlock>
                             <Page.ContentTitle>TQL script</Page.ContentTitle>
-                            <Page.ContentDesc>{'The place of writing descriptor can be replaced with a file path of TQL script.'}</Page.ContentDesc>
-                            <Page.ContentDesc>{'Pass the message to payload() in the TQL script.'}</Page.ContentDesc>
+                            <Page.ContentDesc>
+                                {
+                                    'The place of writing descriptor can be replaced with a file path of TQL script.'
+                                }
+                            </Page.ContentDesc>
+                            <Page.ContentDesc>
+                                {'Pass the message to payload() in the TQL script.'}
+                            </Page.ContentDesc>
                             <Page.Space pHeight="16px" />
                             <Page.ContentDesc>Data writing TQL script example)</Page.ContentDesc>
-                            <Page.CopyBlock pContent={'CSV(payload())\nMAPVALUE(1, parseTime(value(1), "ns"))\nMAPVALUE(2, parseFloat(value(2)))\nAPPEND( table("example") )'} />
+                            <Page.CopyBlock
+                                pContent={
+                                    'CSV(payload())\nMAPVALUE(1, parseTime(value(1), "ns"))\nMAPVALUE(2, parseFloat(value(2)))\nAPPEND( table("example") )'
+                                }
+                            />
                         </Page.ContentBlock>
                     </Page.Body>
                 </Pane>

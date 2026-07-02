@@ -83,11 +83,12 @@ export const getTimerItem = (aTimerName: string): Promise<TimerItemType> => {
 };
 
 /**
- * Gen timer — `schedule.timer.add(name, spec, command, autoStart)`.
+ * Gen timer — `schedule.timer.add(req)` (params: [{name, spec, command, autoStart}]).
+ * The backend switched from positional args to a single structured payload (neo-server #437).
  */
 export const genTimer = async (aData: CreatePayloadType, aTimerId: string): Promise<GenTimerResType> => {
     try {
-        const res = await rpcCall(RpcMethod.schedule.timer.add, [aTimerId, aData.schedule, aData.path, aData.autoStart]);
+        const res = await rpcCall(RpcMethod.schedule.timer.add, [{ name: aTimerId, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart) }]);
         const err = rpcErrMessage(res);
         return err ? { success: false, reason: err, elapse: '', statusText: err } : { success: true, reason: 'success', elapse: '' };
     } catch (e) {

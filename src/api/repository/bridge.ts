@@ -275,31 +275,32 @@ export const getSubrItem = (aSubrName: string): Promise<SubrItemType> => {
 };
 
 /**
- * Gen subr — `schedule.subscriber.add(name, bridge, command, autoStart, topic, qos)`
- * (params order: [name, bridge, command, autoStart, topic, qos]; `command` is the task / writing descriptor).
+ * Gen subr — `schedule.subscriber.add(req)` (params: [{name, bridge, command, autoStart, mqtt?, nats?}]).
+ * The backend switched from positional args to a single structured payload (neo-server #437):
+ * MQTT bridges nest `mqtt: {topic, qos}`, NATS bridges nest `nats: {subject, queueName?}` — the NATS
+ * queue group finally has a real slot (it used to be a silently-ignored trailing arg).
+ * (`nats.streamName`/JetStream is not sent — the create form never collects it.)
  *
- * NATS Queue Group: the current backend handler takes only the 6 params above (no `Opt.Nats`), but the
- * RPC dispatcher silently ignores extra trailing params. So for NATS we still append `queue` as the 7th
- * positional arg — it's a no-op today, but the moment the backend adds a `queue` param
- * (`schedule.subscriber.add` → `Opt.Nats.QueueName`) it flows through with NO further frontend change.
- * (`stream`/JetStream is not sent — the create form never collects it.)
+ * The protocol branch follows the form's `bridge_type`; when absent (legacy caller), a payload with a
+ * `queue` value falls back to NATS — only the NATS form collects queue — otherwise MQTT.
  *
- * @aData create payload from the form: { name, bridge, topic, task, autoStart, QoS?, queue? }.
+ * @aData create payload from the form: { name, bridge, topic, task, autoStart, bridge_type?, QoS?, queue? }.
  */
 export const genSubr = async (aData: any): Promise<RES_COMM> => {
     try {
-        const params: any[] = [
-            aData?.name,
-            aData?.bridge,
-            aData?.task,
-            Boolean(aData?.autoStart),
-            aData?.topic,
-            Number(aData?.QoS ?? 0),
-        ];
-        // NATS only: `queue` is set by the form solely for NATS bridges. Append it as the 7th positional
-        // arg (forward-compatible — see the note above). Ignored by the backend until it adds the slot.
-        if (aData?.queue) params.push(aData.queue);
-        const res = await rpcCall(RpcMethod.schedule.subscriber.add, params);
+        const req: any = {
+            name: aData?.name,
+            bridge: aData?.bridge,
+            command: aData?.task,
+            autoStart: Boolean(aData?.autoStart),
+        };
+        const isNats = aData?.bridge_type ? String(aData.bridge_type).toLowerCase() === 'nats' : Boolean(aData?.queue);
+        if (isNats) {
+            req.nats = { subject: aData?.topic, ...(aData?.queue ? { queueName: aData.queue } : {}) };
+        } else {
+            req.mqtt = { topic: aData?.topic, qos: Number(aData?.QoS ?? 0) };
+        }
+        const res = await rpcCall(RpcMethod.schedule.subscriber.add, [req]);
         const err = rpcErrMessage(res);
         return err ? errEnvelope(err) : { success: true, reason: 'success', elapse: '' };
     } catch (e) {

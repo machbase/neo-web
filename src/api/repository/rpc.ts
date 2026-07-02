@@ -250,6 +250,8 @@ export const RpcMethod = {
     shell: {
         list: 'shell.list',
         add: 'shell.add',
+        copy: 'shell.copy',
+        update: 'shell.update',
         delete: 'shell.delete',
     },
     schedule: {
