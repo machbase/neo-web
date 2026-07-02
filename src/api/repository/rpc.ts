@@ -92,29 +92,50 @@ export const setJsonRpcWebSocketCaller = (caller: JsonRpcWebSocketCaller | null)
  * - `RpcTransportError` if the socket is not connected or closes during the call.
  * - An `AbortError` if the caller-supplied `signal` is aborted.
  */
+/**
+ * Attach the failing RPC method to an error so the method stays identifiable even
+ * when the async rejection stack is all-anonymous (every call funnels through the
+ * generic primitives below). Sets `error.rpcMethod` and prefixes `[rpc:<method>]`.
+ * Named wrappers SHOULD still be the public API (stack-frame traceability), but this
+ * guarantees the method is recoverable from the error object alone.
+ */
+const tagRpcError = (error: unknown, method: string): never => {
+    if (error instanceof Error) {
+        (error as Error & { rpcMethod?: string }).rpcMethod = method;
+        if (!error.message.startsWith('[rpc:')) {
+            error.message = `[rpc:${method}] ${error.message}`;
+        }
+    }
+    throw error;
+};
+
 export const callJsonRpc = async <T>(
     method: string,
     params: any[],
     options?: JsonRpcOptions
 ): Promise<JsonRpcResponse<T>> => {
-    if (options?.signal?.aborted) {
-        const error = new Error('The operation was aborted');
-        error.name = 'AbortError';
-        throw error;
+    try {
+        if (options?.signal?.aborted) {
+            const error = new Error('The operation was aborted');
+            error.name = 'AbortError';
+            throw error;
+        }
+
+        if (!sWebSocketCaller) {
+            throw new RpcTransportError('WebSocket JSON-RPC caller is not registered');
+        }
+
+        const rpcRequest: JsonRpcRequest = {
+            jsonrpc: '2.0',
+            id: nextRpcId(),
+            method,
+            params,
+        };
+
+        return (await sWebSocketCaller(rpcRequest, options?.signal)) as JsonRpcResponse<T>;
+    } catch (e) {
+        return tagRpcError(e, method);
     }
-
-    if (!sWebSocketCaller) {
-        throw new RpcTransportError('WebSocket JSON-RPC caller is not registered');
-    }
-
-    const rpcRequest: JsonRpcRequest = {
-        jsonrpc: '2.0',
-        id: nextRpcId(),
-        method,
-        params,
-    };
-
-    return (await sWebSocketCaller(rpcRequest, options?.signal)) as JsonRpcResponse<T>;
 };
 
 /**
@@ -137,8 +158,15 @@ export const callHttpRpc = async <T>(
         method,
         params,
     };
-    const response = await request.post('/api/rpc', rpcRequest, { signal });
-    return response.data as JsonRpcResponse<T>;
+    // NOTE: the shared axios core (src/api/core) response interceptor already
+    // unwraps successful responses to `response.data`, so `request.post` resolves
+    // to the JSON-RPC body itself — do NOT read `.data` again (that yields undefined).
+    try {
+        const response = await request.post('/api/rpc', rpcRequest, { signal });
+        return response as unknown as JsonRpcResponse<T>;
+    } catch (e) {
+        return tagRpcError(e, method);
+    }
 };
 
 /**
@@ -148,7 +176,7 @@ export const callHttpRpc = async <T>(
  */
 const WS_METHOD_PREFIXES = ['lsp.'];
 const WS_METHOD_EXACT = new Set<string>([
-    // 'bridge.query',  // 향후 스트리밍 커서 RPC가 추가되면 여기에 등록
+    // 'bridge.query',  // register here once a streaming-cursor RPC is added
 ]);
 
 const isWsMethod = (method: string): boolean => {
@@ -183,8 +211,9 @@ export const rpcCall = async <T>(
  * `WS_METHOD_*` above) and call sites stay in sync. Categories follow the
  * backend dot-namespace; new categories are added per RPC migration wave.
  *
- * Currently only `lsp.*` is migrated. `bridge.*` / `timer.* / key.*` etc.
- * will be added when each wave from `.notion-plan/3681efd3` lands.
+ * `lsp.*` (WS) was migrated in #1307. New categories such as server/session/proxy/service
+ * are added as #1334 phase 6 scaffolding (reads first). Migration categories like
+ * bridge/timer/key are added per wave (`.notion-plan/3681efd3`).
  */
 export const RpcMethod = {
     lsp: {
@@ -193,6 +222,77 @@ export const RpcMethod = {
         hover: 'lsp.hover',
         signature: 'lsp.signature',
         metadata: 'lsp.metadata',
+    },
+    markdown: {
+        render: 'markdown.render',
+    },
+    sshkey: {
+        list: 'sshkey.list',
+        add: 'sshkey.add',
+        delete: 'sshkey.delete',
+    },
+    bridge: {
+        list: 'bridge.list',
+        get: 'bridge.get',
+        add: 'bridge.add',
+        delete: 'bridge.delete',
+        test: 'bridge.test',
+        exec: 'bridge.exec',
+        query: 'bridge.query',
+        result: {
+            fetch: 'bridge.result.fetch',
+            close: 'bridge.result.close',
+        },
+    },
+    sql: {
+        split: 'sql.split',
+    },
+    shell: {
+        list: 'shell.list',
+        add: 'shell.add',
+        copy: 'shell.copy',
+        update: 'shell.update',
+        delete: 'shell.delete',
+    },
+    schedule: {
+        list: 'schedule.list',
+        timer: { add: 'schedule.timer.add' },
+        subscriber: { add: 'schedule.subscriber.add' },
+        delete: 'schedule.delete',
+        start: 'schedule.start',
+        stop: 'schedule.stop',
+    },
+    key: {
+        list: 'key.list',
+        generate: 'key.generate',
+        delete: 'key.delete',
+    },
+    server: {
+        info: { get: 'server.info.get' },
+        certificate: { get: 'server.certificate.get' },
+        shutdown: 'server.shutdown',
+    },
+    service: {
+        port: { list: 'service.port.list' },
+    },
+    session: {
+        list: 'session.list',
+        kill: 'session.kill',
+        stat: 'session.stat',
+        limit: { get: 'session.limit.get', set: 'session.limit.set' },
+    },
+    proxy: {
+        register: 'proxy.register',
+        unregister: 'proxy.unregister',
+        list: 'proxy.list',
+        get: 'proxy.get',
+    },
+    vizspec: {
+        render: 'vizspec.render',
+        export: 'vizspec.export',
+    },
+    httpDebug: {
+        set: 'http.debug.set',
     },
 } as const;
 

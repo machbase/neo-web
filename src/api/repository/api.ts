@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import { rpcCall, RpcMethod } from '@/api/repository/rpc';
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
 
 const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
@@ -14,18 +15,6 @@ const getReferenceList = () => {
         method: 'GET',
         url: `/api/refs`,
     });
-};
-
-const postMd = async (aData: string, aIsDark: boolean, referer?: string) => {
-    let sData: any = {
-        method: 'POST',
-        url: `/api/md?darkMode=${aIsDark}`,
-        data: aData,
-    };
-    if (referer) {
-        sData = { ...sData, headers: { 'X-Referer': window.btoa(unescape(encodeURIComponent(referer))) } };
-    }
-    return request(sData);
 };
 
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
@@ -149,25 +138,46 @@ const getTutorial = (aUrl: any) => {
     });
 };
 
-const copyShell = (aId: string) => {
-    return request({
-        method: 'get',
-        url: `/api/shell/${aId}/copy`,
-    });
+// Shared adapter for the shell.* mutation RPCs whose result is a ShellDefinition. Reproduces the
+// REST envelope: success → {success, reason:'success', data}, error → {data:{reason}, statusText}
+// with NO top-level `reason` — ModalShell treats a truthy `res.reason` as success, so on error the
+// reason may only appear under data.reason/statusText (same shape the axios interceptor produced
+// by resolving `error.response` for REST failures).
+const shellRpcEnvelope = async (method: string, params: any[]) => {
+    try {
+        const res = await rpcCall<any>(method, params);
+        const msg = res?.error ? res.error.message || `JSON-RPC error ${res.error.code}` : null;
+        if (msg) return { success: false, elapse: '', statusText: msg, data: { reason: msg } };
+        return { success: true, reason: 'success', elapse: '', data: res?.result };
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { success: false, elapse: '', statusText: msg, data: { reason: msg } };
+    }
 };
-const removeShell = (aId: string) => {
-    return request({
-        method: 'delete',
-        url: `/api/shell/${aId}`,
-    });
+// Add shell — `shell.add(name, command)` (params: [name, command]). The RPC result is the created
+// shell's id string; the server fills type/attributes itself and leaves icon/theme empty, so style
+// customization needs a follow-up shell.update (see ShellManage createShell).
+const addShell = (aName: string, aCommand: string) => shellRpcEnvelope(RpcMethod.shell.add, [aName, aCommand]);
+// Copy shell — `shell.copy(srcId)` (params: [srcId]). The RPC result is the copied ShellDefinition
+// itself; the adapter wraps it into the {success, data} envelope the callers (ShellManage, side/Shell)
+// read the new shell from.
+const copyShell = (aId: string) => shellRpcEnvelope(RpcMethod.shell.copy, [aId]);
+// Remove shell — `shell.delete(id)` (params: [id]). Adapts the RPC error|null into the { success }
+// envelope the caller (ShellManage) checks.
+const removeShell = async (aId: string) => {
+    try {
+        const res = await rpcCall(RpcMethod.shell.delete, [aId]);
+        const msg = res?.error ? res.error.message || `JSON-RPC error ${res.error.code}` : null;
+        return msg ? { success: false, reason: msg, statusText: msg } : { success: true, reason: 'success' };
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { success: false, reason: msg, statusText: msg };
+    }
 };
-const postShell = (aInfo: any) => {
-    return request({
-        method: 'post',
-        url: `/api/shell/${aInfo.id}`,
-        data: aInfo,
-    });
-};
+// Update shell — `shell.update(shell)` (params: [ShellDefinition]). The full definition (id, type,
+// label, command, icon?, theme?, attributes?) rides in a single object param; `attributes` keeps the
+// array form ([{removable:true},...]) — the backend's custom UnmarshalJSON accepts exactly that shape.
+const postShell = (aInfo: any) => shellRpcEnvelope(RpcMethod.shell.update, [aInfo]);
 // DATABASE
 export const mountDB = (name: string, path: string) => {
     return request({
@@ -218,14 +228,17 @@ export const getAllowBackupTable = () => {
         },
     });
 };
-/** POST SPLITTER */
-export const postSplitter = (txt: string, signal?: AbortSignal) => {
-    return request({
-        method: 'POST',
-        url: '/api/splitter/sql',
-        data: txt,
-        signal,
-    });
+/** POST SPLITTER — migrated to the `sql.split` RPC (HTTP) (#1334). The return shape
+ *  {success, data:{statements}} is kept so call sites (sql/index.tsx, WorkSheetEditor.tsx)
+ *  need no changes. AbortSignal is passed through to callHttpRpc. */
+export const postSplitter = async (txt: string, signal?: AbortSignal) => {
+    try {
+        const res = await rpcCall<any[]>(RpcMethod.sql.split, [txt], signal);
+        if (res?.error) return { success: false, reason: res.error.message, elapse: '', data: { statements: undefined } };
+        return { success: true, reason: 'success', elapse: '', data: { statements: res?.result ?? [] } };
+    } catch (e) {
+        return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '', data: { statements: undefined } };
+    }
 };
 
 export {
@@ -239,7 +252,7 @@ export {
     deleteFileList,
     getReferenceList,
     getTutorial,
-    postMd,
+    addShell,
     copyShell,
     removeShell,
     postShell,

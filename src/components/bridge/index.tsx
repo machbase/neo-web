@@ -216,7 +216,9 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                         {/* Command */}
                                         <Page.ContentBlock>
                                             <Page.Collapse pTrigger={<Page.ContentTitle>Command</Page.ContentTitle>}>
-                                                <Page.TextArea pContent={sPayload.exec} pHeight={100} pCallback={(event) => handlePayload(event)} />
+                                                {/* key=bridge name: Page.TextArea is uncontrolled (defaultValue),
+                                                    so remount it on bridge switch to clear the previous command. */}
+                                                <Page.TextArea key={pCode.name} pContent={''} pHeight={100} pCallback={(event) => handlePayload(event)} />
                                                 <Page.Space />
                                                 <Page.TextButton pText="Send" pType="CREATE" pCallback={() => handleCommand('command')} />
                                                 {sCommandRes.command.message === '' && sCommandRes.command?.data && <Page.TextResSuccess pText={'success'} />}

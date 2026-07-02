@@ -30,18 +30,11 @@ export default defineConfig({
     base: '/web/ui',
     server: {
         proxy: {
-            '/public/neo-pkg-llm/ws': {
-                target: `ws${TestSecurity}://${TestTarget}:8884`,
+            '/web/services': {
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: true,
-                rewrite: (path) => path.replace(/^\/public\/neo-pkg-llm\/ws/, ''),
-            },
-            '/neo-blackbox': {
-                target: 'http://192.168.0.87:8000',
-                changeOrigin: true,
-                secure: false,
-                rewrite: (path) => path.replace(/^\/neo-blackbox/, ''),
             },
             '/public': {
                 target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
@@ -90,6 +83,12 @@ export default defineConfig({
                     });
                 },
             },
+            '/web/api/term': {
+                target: `ws${TestSecurity}://${TestTarget}:${TestPort}`,
+                changeOrigin: true,
+                secure: false,
+                ws: true,
+            },
             '/web/api': {
                 target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
@@ -118,12 +117,6 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false,
                 ws: false,
-            },
-            '/web/api/term': {
-                target: `ws${TestSecurity}://${TestTarget}:${TestPort}`,
-                changeOrigin: true,
-                secure: false,
-                ws: true,
             },
             '/web/api/console': {
                 target: `ws${TestSecurity}://${TestTarget}:${TestPort}`,
