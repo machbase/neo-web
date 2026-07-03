@@ -10,10 +10,10 @@ import { fetchSeriesDataAvailability } from '../../fetch/panelData/DataTimeRange
 import { showDataAvailabilityToastOnce } from './DataAvailabilityToastPresenter';
 import { resolveConcretePanelRangeState } from '../../domain/panelRange/PanelRangeResolver';
 
-export const PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE =
+const PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE =
     'Cannot resolve panel range because no valid data range was found.';
 
-export class RequiredFullRangeError extends Error {
+class RequiredFullRangeError extends Error {
     constructor() {
         super(PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE);
         this.name = 'RequiredFullRangeError';

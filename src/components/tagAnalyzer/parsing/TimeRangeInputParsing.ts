@@ -12,7 +12,7 @@ import { resolveTimeStringToTimestamp } from '../domain/time/TimeRangeInputResol
 // "YYYY-MM-DD HH:mm:ss", "") into a concrete millisecond range. The expression
 // strings are the source of truth; concrete times are derived at runtime.
 
-export type ResolveEditableTimeRangeInputParams = {
+type ResolveEditableTimeRangeInputParams = {
     startValue: string;
     endValue: string;
     previousConcreteRange: TimeRangeMs;

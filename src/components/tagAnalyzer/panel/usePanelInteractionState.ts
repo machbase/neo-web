@@ -41,7 +41,7 @@ type PanelMarkupInteractionState = {
     hoveredMainSeries: PanelHoveredMainSeriesState;
 };
 
-export type PanelInteractionState = {
+type PanelInteractionState = {
     overlayMode: PanelOverlayMode;
     popupState: PanelPopupState;
     timeRangeModal: PanelTimeRangeModalState;
@@ -50,7 +50,7 @@ export type PanelInteractionState = {
     markupInteraction: PanelMarkupInteractionState;
 };
 
-export type PanelInteractionAction =
+type PanelInteractionAction =
     | { type: 'PANEL_ACTION'; actionKey: PanelActionKey }
     | { type: 'SET_OVERLAY_MODE'; overlayMode: PanelOverlayMode }
     | {

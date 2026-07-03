@@ -6,7 +6,7 @@ import type {
     TimeRangeInput,
 } from '../domain/time/TimeTypes';
 
-export type PersistedSeriesColumnsV200 = {
+type PersistedSeriesColumnsV200 = {
     nameColumn: string | undefined;
     timeColumn: string | undefined;
     valueColumn: string | undefined;
@@ -28,7 +28,7 @@ export type PersistedPanelAnnotationInput = PersistedSeriesAnnotationInput & {
     seriesKey: string;
 };
 
-export type PersistedSeriesInfoV200 = {
+type PersistedSeriesInfoV200 = {
     seriesKey: string;
     tableName: string;
     sourceTagName: string;
@@ -42,44 +42,44 @@ export type PersistedSeriesInfoV200 = {
     annotations?: PersistedSeriesAnnotationInput[] | undefined;
 };
 
-export type PersistedPanelMetaV200 = {
+type PersistedPanelMetaV200 = {
     panelKey: string;
     chartTitle: string;
 };
 
-export type PersistedPanelDataV200 = {
+type PersistedPanelDataV200 = {
     seriesList: PersistedSeriesInfoV200[];
     rowLimit: number;
     intervalType: string | undefined;
 };
 
-export type PersistedPanelToolbarV200 = {
+type PersistedPanelToolbarV200 = {
     isRaw: boolean;
 };
 
-export type PersistedPanelTimeV200 = {
+type PersistedPanelTimeV200 = {
     rangeConfig: TimeRangeInput;
     useLastViewedRange?: boolean | undefined;
     lastViewedRange?: unknown;
 };
 
-export type PersistedPanelAxisThresholdV200 = {
+type PersistedPanelAxisThresholdV200 = {
     enabled: boolean;
     value: number;
 };
 
-export type PersistedPanelXAxisV200 = {
+type PersistedPanelXAxisV200 = {
     showTickLine: boolean;
     rawDataPixelsPerTick: number;
     calculatedDataPixelsPerTick: number;
 };
 
-export type PersistedPanelSamplingV200 = {
+type PersistedPanelSamplingV200 = {
     enabled: boolean;
     sampleCount: number;
 };
 
-export type PersistedPanelYAxisV200 = {
+type PersistedPanelYAxisV200 = {
     zeroBase: boolean;
     showTickLine: boolean;
     valueRange: ValueRange;
@@ -88,11 +88,11 @@ export type PersistedPanelYAxisV200 = {
     lowerControlLimit: PersistedPanelAxisThresholdV200;
 };
 
-export type PersistedPanelRightYAxisV200 = PersistedPanelYAxisV200 & {
+type PersistedPanelRightYAxisV200 = PersistedPanelYAxisV200 & {
     enabled: boolean;
 };
 
-export type PersistedPanelAxesV200 = {
+type PersistedPanelAxesV200 = {
     xAxis: PersistedPanelXAxisV200;
     sampling?: PersistedPanelSamplingV200 | undefined;
     mainChartSampling?: PersistedPanelSamplingV200 | undefined;
@@ -100,7 +100,7 @@ export type PersistedPanelAxesV200 = {
     rightYAxis: PersistedPanelRightYAxisV200;
 };
 
-export type PersistedPanelDisplayV200 = {
+type PersistedPanelDisplayV200 = {
     showLegend: boolean;
     useZoom: boolean;
     chartType: PanelEChartType;

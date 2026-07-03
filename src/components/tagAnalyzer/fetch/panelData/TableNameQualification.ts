@@ -1,6 +1,6 @@
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
 
-export function hasQualifiedTableName(tableName: string): boolean {
+function hasQualifiedTableName(tableName: string): boolean {
     return tableName.split('.').length > 1;
 }
 

@@ -4,7 +4,7 @@ import type {
     UnixNanosecondsSql,
 } from '../../domain/time/TimeTypes';
 
-export function millisecondsToNanosecondsSql(ms: number): UnixNanosecondsSql {
+function millisecondsToNanosecondsSql(ms: number): UnixNanosecondsSql {
     return String(BigInt(Math.trunc(ms)) * 1_000_000n);
 }
 

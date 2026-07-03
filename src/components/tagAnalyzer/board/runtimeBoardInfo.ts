@@ -20,11 +20,11 @@ const EMPTY_BOARD_TIME_RANGE: TimeRangeInput = {
     end: '',
 };
 
-export type RuntimeBoardInfo = Omit<BoardInfo, 'panels'> & {
+type RuntimeBoardInfo = Omit<BoardInfo, 'panels'> & {
     panels: RuntimePanelInfo[];
 };
 
-export type RuntimeBoardAction =
+type RuntimeBoardAction =
     | { type: 'REPLACE_FROM_SAVED_BOARD'; boardInfo: BoardInfo }
     | { type: 'SET_BOARD_TIME_RANGE'; boardTimeRange: TimeRangeInput }
     | { type: 'APPLY_PANEL_CONFIG'; panelInfo: PanelInfo }

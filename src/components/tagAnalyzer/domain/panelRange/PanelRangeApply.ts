@@ -13,7 +13,7 @@ import {
     isValidTimeRange,
 } from '../time/TimeRangeUtils';
 
-export type PanelRangeApplyRequest = {
+type PanelRangeApplyRequest = {
     rangeState: PanelRangeState;
     navigatorSelectionCenterRatio?: number;
 };
@@ -28,7 +28,7 @@ export type BoardPanelRecord = {
     dataRefreshVersion: number;
 };
 
-export type PanelRangeApplyResult = {
+type PanelRangeApplyResult = {
     resolvedRangeState: PanelRangeState;
     didChange: boolean;
 };

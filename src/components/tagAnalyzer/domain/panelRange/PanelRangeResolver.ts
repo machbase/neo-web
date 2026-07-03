@@ -47,7 +47,7 @@ export function normalizePanelViewRange(
     };
 }
 
-export function shouldApplyInitialMainChartWindow({
+function shouldApplyInitialMainChartWindow({
     applyInitialMainChartWindow,
     rangeInput,
 }: {
@@ -148,7 +148,7 @@ export function resolveDefaultNavigatorRange(
     return resolveDefaultNavigatorRangeResolution(boardTime, fullRange).range;
 }
 
-export type DefaultNavigatorRangeResolution = {
+type DefaultNavigatorRangeResolution = {
     range: TimeRangeMs;
     source: 'board-time' | 'full-range';
 };

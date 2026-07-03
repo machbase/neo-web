@@ -18,15 +18,15 @@ export type BaseNewPanelSeriesPath = {
     sourceColumns: PanelSeriesSourceColumns;
 };
 
-export type NumericNewPanelSeriesPath = BaseNewPanelSeriesPath & {
+type NumericNewPanelSeriesPath = BaseNewPanelSeriesPath & {
     kind: 'numeric';
 };
 
-export type JsonNewPanelSeriesPath = BaseNewPanelSeriesPath & {
+type JsonNewPanelSeriesPath = BaseNewPanelSeriesPath & {
     kind: 'json';
 };
 
-export type RollupNewPanelSeriesPath = BaseNewPanelSeriesPath & {
+type RollupNewPanelSeriesPath = BaseNewPanelSeriesPath & {
     kind: 'rollup';
     rollupColumn: string | undefined;
 };

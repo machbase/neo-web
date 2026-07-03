@@ -14,12 +14,12 @@ import {
     normalizeTimeUnit,
 } from './TimeIntervalUtils';
 
-export type TimeRangeInputResolutionOptions = {
+type TimeRangeInputResolutionOptions = {
     currentTime?: number;
     lastDataTime?: number;
 };
 
-export type TimeResolutionAnchors = {
+type TimeResolutionAnchors = {
     currentTime: number;
     lastDataTime: number | undefined;
 };

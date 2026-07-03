@@ -1,4 +1,4 @@
-export type RgbColor = {
+type RgbColor = {
     r: number;
     g: number;
     b: number;

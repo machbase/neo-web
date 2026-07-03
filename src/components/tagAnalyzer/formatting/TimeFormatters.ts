@@ -86,7 +86,7 @@ export function formatRangeEndpointLabel(
         : moment(value).format('YYYY-MM-DD HH:mm:ss');
 }
 
-export function formatLocalTimestampWithMilliseconds(value: number): string {
+function formatLocalTimestampWithMilliseconds(value: number): string {
     const sBaseTimestamp = Math.trunc(value);
     const sFractionalPart = String(value).split('.')[1];
     const sFormatted = moment(sBaseTimestamp).format('YYYY-MM-DD HH:mm:ss.SSS');

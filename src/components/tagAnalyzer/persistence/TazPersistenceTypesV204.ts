@@ -75,7 +75,7 @@ export type PersistedPanelInfoV204 = {
     annotations?: PersistedPanelAnnotationInput[] | undefined;
 };
 
-export type PanelInfoV204Highlight = {
+type PanelInfoV204Highlight = {
     text: string;
     timeRange: {
         startTime: number;

@@ -76,7 +76,7 @@ export function createNewPanelInfo(
     };
 }
 
-export function clonePanelSeriesDefinitions(
+function clonePanelSeriesDefinitions(
     selectedSeries: PanelSeriesDefinition[],
 ): PanelSeriesDefinition[] {
     return selectedSeries.map((selectedSeriesItem) => ({

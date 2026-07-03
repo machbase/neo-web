@@ -36,7 +36,7 @@ export function normalizePanelEChartType(value: unknown): PanelEChartType {
     return isPanelEChartType(value) ? value : DEFAULT_PANEL_ECHART_TYPE;
 }
 
-export type PanelQuery = {
+type PanelQuery = {
     tagSet: PanelSeriesDefinition[];
     count: number;
     intervalType: string | undefined;
@@ -67,7 +67,7 @@ export type PanelAxisThreshold = {
     value: number | undefined;
 };
 
-export type PanelXAxis = {
+type PanelXAxis = {
     showTickline: boolean;
 };
 
@@ -76,7 +76,7 @@ export type PanelSampling = {
     sampleCount: number | undefined;
 };
 
-export const DEFAULT_RAW_NAVIGATOR_SAMPLING_VALUE = 0.01;
+const DEFAULT_RAW_NAVIGATOR_SAMPLING_VALUE = 0.01;
 
 export const DEFAULT_RAW_NAVIGATOR_SAMPLING: PanelSampling = {
     enabled: false,
@@ -163,7 +163,7 @@ export type PanelRangeState = {
     fullRange: TimeRangeMs;
 };
 
-export type RuntimePanelTime = {
+type RuntimePanelTime = {
     config: PanelTimeConfig;
     runtimeRange: PanelRangeState;
 };

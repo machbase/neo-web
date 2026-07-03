@@ -28,7 +28,7 @@ type TagAnalyzerDefaultBoardOptions = {
     sourceColumns: PanelSeriesSourceColumns;
 };
 
-export type CreateTazBoardFromSeriesOptions = {
+type CreateTazBoardFromSeriesOptions = {
     id: string;
     name: string;
     path: string;
@@ -39,7 +39,7 @@ export type CreateTazBoardFromSeriesOptions = {
     panelRange: PanelRangeInput;
 };
 
-export type CreateTazBoardFromTimeRangeOptions = {
+type CreateTazBoardFromTimeRangeOptions = {
     id: string;
     name: string;
     path: string;
@@ -95,7 +95,7 @@ export function createTazBoardFromTimeRange(
     });
 }
 
-export function createTazBoardFromSeries(
+function createTazBoardFromSeries(
     options: CreateTazBoardFromSeriesOptions,
 ): BoardInfo {
     const sPanel = createNewPanelInfo(

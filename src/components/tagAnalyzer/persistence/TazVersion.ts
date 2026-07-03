@@ -17,7 +17,7 @@ const TAZ_VERSION_LOOKUP: Record<string, TazVersion> = Object.values(TazVersion)
         return lookup;
     }, {});
 
-export function isTazVersion(value: unknown): value is TazVersion {
+function isTazVersion(value: unknown): value is TazVersion {
     return typeof value === 'string' && value in TAZ_VERSION_LOOKUP;
 }
 

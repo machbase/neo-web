@@ -10,7 +10,7 @@ import {
 } from '../../domain/panelRange/PanelRangeApply';
 import { assertPanelKey } from '../runtimeBoardPanels';
 
-export type PanelRangeRuntimeRecord = {
+type PanelRangeRuntimeRecord = {
     chartAreaWidth: number | undefined;
     dataRefreshVersion: number;
     onRangeStateChange: (

@@ -229,7 +229,7 @@ const createPanel = (
     );
 };
 
-export const isOpenTagAnalyzerMessage = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): aData is TagAnalyzerBridgeMessage => {
+const isOpenTagAnalyzerMessage = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): aData is TagAnalyzerBridgeMessage => {
     if (!isPlainObject(aData)) return false;
     return (
         aData.source === NEO_PACKAGE_MESSAGE_SOURCE &&

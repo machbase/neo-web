@@ -76,7 +76,7 @@ export function getPanelConfigForSaveFromRuntimePanel(
     );
 }
 
-export function getPanelWithCurrentVisibleRangeForSave(
+function getPanelWithCurrentVisibleRangeForSave(
     panel: PanelInfo,
     rangeState: PanelRangeState,
 ): PanelInfo {

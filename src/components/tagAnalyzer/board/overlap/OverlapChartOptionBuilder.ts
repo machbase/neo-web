@@ -47,7 +47,7 @@ export type OverlapChartInput = {
     isNumericXAxis: boolean;
 };
 
-export const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
+const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
 const OVERLAP_Y_AXIS_SPLIT_COUNT = 5;
 const OVERLAP_EMPTY_X_AXIS_PADDING_RATIO = 4;
 const OVERLAP_MIN_EMPTY_X_AXIS_PADDING_MS = 1_000;

@@ -9,7 +9,7 @@ export enum PanelChartLoadStatus {
     Failed = 'failed',
 }
 
-export type PanelSeriesFetchState = {
+type PanelSeriesFetchState = {
     result: FetchPanelSeriesRowsResult | undefined;
     status: PanelChartLoadStatus;
 };

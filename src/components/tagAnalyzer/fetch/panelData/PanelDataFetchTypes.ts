@@ -88,7 +88,7 @@ export type DataAvailabilityResult = {
     issues: DataAvailabilityIssue[];
 };
 
-export type PanelSeriesFetchError = {
+type PanelSeriesFetchError = {
     kind: DataAvailabilityIssueKind;
     message: string;
 };

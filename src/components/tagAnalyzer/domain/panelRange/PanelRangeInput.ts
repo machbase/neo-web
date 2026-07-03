@@ -57,7 +57,7 @@ export function isValidTimestampRangeExpression(value: string): boolean {
 // Parsed form is transient (used only to resolve/validate/canonicalize the string
 // vocabulary); the persisted source of truth is always the string.
 
-export type ParsedNumericRangeExpression =
+type ParsedNumericRangeExpression =
     | { anchor: 'value'; value: number }
     | { anchor: 'data_start'; offset: number }
     | { anchor: 'data_end'; offset: number };

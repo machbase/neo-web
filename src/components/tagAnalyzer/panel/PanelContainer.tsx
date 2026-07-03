@@ -86,7 +86,7 @@ import {
 } from './panelConfigActions';
 import './PanelChartShell.scss';
 
-export type PanelContainerRuntimeProps = {
+type PanelContainerRuntimeProps = {
     isActive: boolean;
     chartAreaWidth: number | undefined;
     boardTimeRange: TimeRangeInput;

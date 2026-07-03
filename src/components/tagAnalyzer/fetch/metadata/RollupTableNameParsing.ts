@@ -1,6 +1,6 @@
 import { ADMIN_ID } from '@/utils/constants';
 
-export type ParsedRollupTableName = {
+type ParsedRollupTableName = {
     databaseName: string;
     userName: string;
     tableName: string;

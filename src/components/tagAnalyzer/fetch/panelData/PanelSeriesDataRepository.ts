@@ -272,7 +272,7 @@ function getPanelSeriesFetchErrorMessage(error: unknown): string {
     return 'Series data request failed.';
 }
 
-export function resolveNavigatorTargetCount(chartWidth: number): number {
+function resolveNavigatorTargetCount(chartWidth: number): number {
     const sRawTargetCount = Math.ceil(chartWidth / 3);
     const sFiniteTargetCount = Number.isFinite(sRawTargetCount) && sRawTargetCount > 0
         ? sRawTargetCount
@@ -536,7 +536,7 @@ function resolveExplicitFetchInterval(
     };
 }
 
-export async function fetchCalculatedSeriesRows(
+async function fetchCalculatedSeriesRows(
     seriesConfig: PanelSeriesDefinition,
     timeRange: TimeRangeMs | undefined,
     interval: IntervalOption,
@@ -610,7 +610,7 @@ function canDisplayNumericBaseTimeRollupBucket(
         sLastBucketStart >= timeRange.startTime;
 }
 
-export async function fetchRawSeriesRows(
+async function fetchRawSeriesRows(
     seriesConfig: PanelSeriesDefinition,
     timeRange: TimeRangeMs | undefined,
     interval: IntervalOption,

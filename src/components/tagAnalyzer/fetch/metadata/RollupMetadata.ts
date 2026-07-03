@@ -15,12 +15,12 @@ type RollupMetadataResponse = {
     message?: unknown;
 };
 
-export type RollupMetadataLookupKey = {
+type RollupMetadataLookupKey = {
     userName: string;
     tableName: string;
 };
 
-export function getConfiguredRollupVersion(): string | null {
+function getConfiguredRollupVersion(): string | null {
     if (typeof localStorage === 'undefined') {
         return null;
     }

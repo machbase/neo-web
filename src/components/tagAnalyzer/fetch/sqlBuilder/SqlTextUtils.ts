@@ -1,7 +1,7 @@
 const SQL_IDENTIFIER_SEGMENT_PATTERN = /^[A-Za-z_][A-Za-z0-9_$]*$/;
 const SQL_LIKE_ESCAPE_CHARACTER = '!';
 
-export function assertSqlIdentifierPath(
+function assertSqlIdentifierPath(
     identifierPath: string,
     label = 'SQL identifier',
 ): void {

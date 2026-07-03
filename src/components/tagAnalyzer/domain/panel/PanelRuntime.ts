@@ -29,7 +29,7 @@ export type RuntimePanelSampling = {
     sampleCount: number;
 };
 
-export type RuntimePanelYAxis = {
+type RuntimePanelYAxis = {
     zeroBase: boolean;
     showTickline: boolean;
     valueRange: RuntimeValueRange;
