@@ -7,7 +7,7 @@ import {
     type PanelInfo,
     type PanelRangeState,
     type RuntimePanelInfo,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 
 /**
  * Pure helpers for editing the board's runtime panel list and capturing the
@@ -76,7 +76,7 @@ export function getPanelConfigForSaveFromRuntimePanel(
     );
 }
 
-export function getPanelWithCurrentVisibleRangeForSave(
+function getPanelWithCurrentVisibleRangeForSave(
     panel: PanelInfo,
     rangeState: PanelRangeState,
 ): PanelInfo {

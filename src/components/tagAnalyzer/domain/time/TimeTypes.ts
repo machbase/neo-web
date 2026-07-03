@@ -24,23 +24,15 @@ export type TimeRangeNs = {
     endTime: SqlTimeRangeValue;
 };
 
-// Board time range is stored as raw expression strings (the source of truth):
-//   "now", "now-1h", "last", "last-2d", an absolute "YYYY-MM-DD HH:mm:ss", or "" (empty).
-// These are resolved to concrete TimeRangeMs at runtime (see TimeRangeInputResolver).
+// A range stored as raw expression strings (the source of truth), resolved to
+// a concrete TimeRangeMs at runtime. The vocabulary depends on where it is used:
+//   - board time range and datetime-axis panels: "now", "now-1h", "last",
+//     "last-2d", an absolute "YYYY-MM-DD HH:mm:ss", or "" (empty).
+//     (see TimeRangeInputResolver)
+//   - numeric-axis panels: a plain number ("20", "-3.5"), a data anchor
+//     ("first", "first-10" = data start + 10, "last", "last-10" = data end
+//     - 10), or "" (empty). (see panelRange/PanelRangeInput)
 export type TimeRangeInput = {
-    start: string;
-    end: string;
-};
-
-// A panel's configured range is stored as raw expression strings (the source of
-// truth), interpreted by the panel's x-axis kind at runtime:
-//   - datetime axis: same vocabulary as the board time range ("now", "now-1h",
-//     "last", "last-2d", an absolute "YYYY-MM-DD HH:mm:ss", or "" empty).
-//   - numeric axis: a plain number ("20", "-3.5"), a data anchor ("first",
-//     "first-10" = data start + 10, "last", "last-10" = data end - 10), or ""
-//     (empty).
-// These resolve to a concrete TimeRangeMs at runtime (see PanelRangeInputResolver).
-export type PanelRangeInput = {
     start: string;
     end: string;
 };

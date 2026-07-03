@@ -1,9 +1,9 @@
 export const DATETIME_COLUMN_TYPE = 6;
 export const BASETIME_COLUMN_FLAG = 0x01000000;
 
-const columnName = (aColumn: any) => String(aColumn?.[0] ?? '');
-const columnType = (aColumn: any) => Number(aColumn?.[1]);
-const columnFlag = (aColumn: any, aFlagIndex = 4) => Number(aColumn?.[aFlagIndex] ?? 0);
+const columnName = (aColumn: any) => String(aColumn?.name ?? aColumn?.[0] ?? '');
+const columnType = (aColumn: any) => Number(aColumn?.type ?? aColumn?.[1]);
+const columnFlag = (aColumn: any, aFlagIndex = 4) => Number(aColumn?.flag ?? aColumn?.[aFlagIndex] ?? 0);
 
 export const getColumnType = (aColumn: any) => columnType(aColumn);
 

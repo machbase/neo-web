@@ -40,6 +40,7 @@ src/components/tagAnalyzer/DO_NOT_ADD_TESTS.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 *.md
+!src/components/tagAnalyzer/REACT_BEST_PRACTICES_AUDIT.md
 .notion-plan
 coverage/cobertura-coverage.xml
 coverage/cobertura-coverage.xml

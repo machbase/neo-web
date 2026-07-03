@@ -14,8 +14,11 @@ import type {
     PanelZoomActions,
 } from '../domain/panel/PanelActions';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
-import { getChartLayoutMetrics } from './Chart/layout/PanelChartLayoutMetrics';
-import { formatRangeEndpointLabel } from '../formatting/TimeFormatters';
+import {
+    getChartLayoutMetrics,
+    PANEL_NAVIGATOR_GRID_SIDE,
+} from './Chart/layout/PanelChartLayoutMetrics';
+import { formatRangeEndpointLabel } from '../domain/time/TimeFormatters';
 import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
@@ -24,7 +27,6 @@ const RANGE_LABEL_EDGES = ['start', 'end'] as const;
 const PanelFooter = ({
     pShowLegend,
     pNavigatorRange,
-    pIsDefaultNavigatorRange,
     pIsLoading,
     pOnOpenTimeRangeModal,
     pNavigatorShiftActions,
@@ -33,7 +35,6 @@ const PanelFooter = ({
 }: {
     pShowLegend: boolean;
     pNavigatorRange: TimeRangeMs;
-    pIsDefaultNavigatorRange: boolean;
     pIsLoading: boolean;
     pOnOpenTimeRangeModal: () => void;
     pNavigatorShiftActions: PanelNavigatorShiftActions;
@@ -43,6 +44,7 @@ const PanelFooter = ({
     const sLayout = getChartLayoutMetrics(pShowLegend);
     const sToolbarTop = `${sLayout.toolbarTop}px`;
     const sNavigatorShiftTop = `${sLayout.sliderTop + 1}px`;
+    const sNavigatorSide = `${PANEL_NAVIGATOR_GRID_SIDE}px`;
     const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
     const sHasNavigatorRange = isValidTimeRange(pNavigatorRange);
     // TODO bugfix: Re-enable navigator range editing after default board range behavior is stable.
@@ -81,7 +83,11 @@ const PanelFooter = ({
                 </Button.Group>
             </div>
             <div
-                style={{ top: sNavigatorShiftTop }}
+                style={{
+                    top: sNavigatorShiftTop,
+                    left: sNavigatorSide,
+                    right: sNavigatorSide,
+                }}
                 className="navigator-shift-controls"
             >
                 {[
@@ -123,9 +129,6 @@ const PanelFooter = ({
                               pNavigatorRange,
                           )
                         : '';
-                    const sLabel = pIsDefaultNavigatorRange && sRangeLabel
-                        ? `${sRangeLabel} (default)`
-                        : sRangeLabel;
 
                     return (
                         <button
@@ -140,7 +143,7 @@ const PanelFooter = ({
                                     : undefined
                             }
                         >
-                            {sLabel}
+                            {sRangeLabel}
                         </button>
                     );
                 })}

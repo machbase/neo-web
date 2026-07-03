@@ -2,7 +2,7 @@ import { Toast } from '@/design-system/components';
 import type { DataAvailabilityIssue } from '../../fetch/panelData/PanelDataFetchTypes';
 import { getDataAvailabilityToastMessage } from '../../fetch/panelData/DataTimeRangeFetcher';
 
-export type DataAvailabilityToastPresentation = {
+type DataAvailabilityToastPresentation = {
     hasMessage: boolean;
     didShow: boolean;
 };
@@ -41,10 +41,6 @@ export function showDataAvailabilityToastOnce(
         hasMessage: true,
         didShow: true,
     };
-}
-
-export function resetDataAvailabilityToastDedupe(): void {
-    sShownAvailabilityIssueKeys.clear();
 }
 
 function getDataAvailabilityIssueKey(issue: DataAvailabilityIssue): string {

@@ -28,6 +28,9 @@ export function buildChartFrameOption(chartInfo: ChartInfo): EChartsOption {
 
     return {
         ...PANEL_CHART_BASE_OPTION,
+        animation:
+            chartInfo.animateMainDataUpdate &&
+            chartInfo.animateNavigatorDataUpdate,
         ...buildPanelChartFrameOptions(chartInfo),
         xAxis: buildChartXAxisOption(
             chartInfo.displayPanelRange,

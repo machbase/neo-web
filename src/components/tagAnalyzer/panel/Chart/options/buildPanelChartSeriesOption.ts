@@ -48,10 +48,12 @@ export function buildChartSeriesOption(
                 chartInfo.display,
                 chartInfo.axes,
                 chartInfo.hoveredLegendSeries,
+                chartInfo.animateMainDataUpdate,
             ),
             ...buildNavigatorSeriesOption(
                 chartInfo.navigatorSeriesData,
                 chartInfo.hoveredLegendSeries,
+                chartInfo.animateNavigatorDataUpdate,
             ),
             ...buildHighlightOverlaySeries(sRenderableHighlights, 'navigator'),
             ...buildNavigatorAnnotationLineSeries(

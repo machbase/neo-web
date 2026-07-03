@@ -4,13 +4,13 @@ import { useEditFormState, handleEditFormKeyDown } from './editFormState';
 import {
     DEFAULT_PANEL_HIGHLIGHT_LABEL,
     type PanelHighlight,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import {
     formatAxisInputValue,
     LOCAL_DATE_TIME_INPUT_FORMAT,
     NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
-} from '../../formatting/TimeInputFormatters';
+} from '../../domain/time/TimeInputFormatters';
 import {
     createTimeRangeMs,
     isValidTimeRange,
@@ -28,13 +28,6 @@ export type HighlightEditorState =
           highlightIndex: number;
       };
 
-export type PanelHighlightActions = {
-    getHighlight: (highlightIndex: number) => PanelHighlight;
-    addHighlight: (highlight: PanelHighlight) => void;
-    updateHighlight: (highlightIndex: number, highlight: PanelHighlight) => void;
-    deleteHighlight: (highlightIndex: number) => void;
-};
-
 type HighlightFormState = {
     labelText: string;
     startTimeText: string;
@@ -43,21 +36,11 @@ type HighlightFormState = {
     textColor: string;
 };
 
-function getInitialHighlight(
-    activeEditor: HighlightEditorState,
-    draftHighlight: PanelHighlight | undefined,
-    highlightActions: PanelHighlightActions,
-): PanelHighlight {
-    if (activeEditor.mode === 'create') {
-        if (!draftHighlight) {
-            throw new Error('Cannot create highlight form without a draft highlight.');
-        }
-
-        return draftHighlight;
-    }
-
-    return highlightActions.getHighlight(activeEditor.highlightIndex);
-}
+type HighlightFormValidation = {
+    highlight: PanelHighlight | undefined;
+    startTimeMessage?: string;
+    endTimeMessage?: string;
+};
 
 function createHighlightFormState(
     highlight: PanelHighlight,
@@ -72,93 +55,79 @@ function createHighlightFormState(
     };
 }
 
-function convertHighlightFormStateToPanelHighlight(
+function validateHighlightFormState(
     formState: HighlightFormState,
     isNumericXAxis: boolean,
-): PanelHighlight | undefined {
+): HighlightFormValidation {
     const startTime = parseAxisInputValue(formState.startTimeText, isNumericXAxis);
     const endTime = parseAxisInputValue(formState.endTimeText, isNumericXAxis);
+    const axisKindLabel = isNumericXAxis ? 'value' : 'time';
+    const startTimeMessage = startTime === undefined
+        ? `Enter a valid start ${axisKindLabel}.`
+        : undefined;
+    const endTimeMessage = endTime === undefined
+        ? `Enter a valid end ${axisKindLabel}.`
+        : undefined;
+
+    if (startTimeMessage || endTimeMessage) {
+        return {
+            highlight: undefined,
+            startTimeMessage,
+            endTimeMessage,
+        };
+    }
+
     const timeRange = startTime !== undefined && endTime !== undefined
         ? createTimeRangeMs(startTime, endTime)
         : undefined;
 
     if (!isValidTimeRange(timeRange)) {
-        return undefined;
+        return {
+            highlight: undefined,
+            endTimeMessage: `End ${axisKindLabel} must be greater than start ${axisKindLabel}.`,
+        };
     }
 
     return {
-        text: formState.labelText.trim() || DEFAULT_PANEL_HIGHLIGHT_LABEL,
-        timeRange,
-        fillColor: formState.fillColor,
-        textColor: formState.textColor,
+        highlight: {
+            text: formState.labelText.trim() || DEFAULT_PANEL_HIGHLIGHT_LABEL,
+            timeRange,
+            fillColor: formState.fillColor,
+            textColor: formState.textColor,
+        },
     };
 }
 
 export function EditHighlightModal({
     activeHighlightEditor,
-    draftHighlight,
-    highlightActions,
+    highlight,
     onCancel,
-    onApplied,
+    onApply,
+    onDelete,
     isNumericXAxis,
 }: {
     activeHighlightEditor: HighlightEditorState;
-    draftHighlight: PanelHighlight | undefined;
-    highlightActions: PanelHighlightActions;
+    highlight: PanelHighlight;
     onCancel: () => void;
-    onApplied: () => void;
+    onApply: (highlight: PanelHighlight) => void;
+    onDelete?: () => void;
     isNumericXAxis: boolean;
 }) {
-    function saveHighlight(state: HighlightFormState): boolean {
-        const nextHighlight = convertHighlightFormStateToPanelHighlight(
-            state,
-            isNumericXAxis,
-        );
-
-        if (!nextHighlight) {
-            return false;
-        }
-
-        if (activeHighlightEditor.mode === 'create') {
-            highlightActions.addHighlight(nextHighlight);
-            return true;
-        }
-
-        highlightActions.updateHighlight(
-            activeHighlightEditor.highlightIndex,
-            nextHighlight,
-        );
-        return true;
-    }
-
-    function deleteHighlight(): void {
-        if (activeHighlightEditor.mode !== 'edit') {
-            throw new Error('Cannot delete a highlight that has not been saved.');
-        }
-
-        highlightActions.deleteHighlight(activeHighlightEditor.highlightIndex);
-        onApplied();
-    }
-
     const { state, setField } = useEditFormState(() =>
         createHighlightFormState(
-            getInitialHighlight(activeHighlightEditor, draftHighlight, highlightActions),
+            highlight,
             isNumericXAxis,
         ),
     );
-    const startTime = parseAxisInputValue(state.startTimeText, isNumericXAxis);
-    const endTime = parseAxisInputValue(state.endTimeText, isNumericXAxis);
-    const timeRange = startTime !== undefined && endTime !== undefined
-        ? createTimeRangeMs(startTime, endTime)
-        : undefined;
-    const canApply = isValidTimeRange(timeRange);
+    const validation = validateHighlightFormState(state, isNumericXAxis);
+    const canApply = validation.highlight !== undefined;
     const timePlaceholder = isNumericXAxis
         ? NUMERIC_AXIS_INPUT_FORMAT
         : LOCAL_DATE_TIME_INPUT_FORMAT;
 
     function applyForm(): void {
-        if (saveHighlight(state)) {
-            onApplied();
+        if (validation.highlight !== undefined) {
+            onApply(validation.highlight);
         }
     }
 
@@ -175,8 +144,8 @@ export function EditHighlightModal({
             size="compact"
             actions={(
                 <>
-                    {activeHighlightEditor.mode === 'edit' && (
-                        <Button size="sm" variant="ghost" onClick={deleteHighlight}>
+                    {activeHighlightEditor.mode === 'edit' && onDelete !== undefined && (
+                        <Button size="sm" variant="ghost" onClick={onDelete}>
                             Delete
                         </Button>
                     )}
@@ -203,7 +172,14 @@ export function EditHighlightModal({
             </label>
             <div className="panel-popover-form__row panel-popover-form__row--two">
                 <label className="panel-popover-form__field">
-                    {isNumericXAxis ? 'Start value' : 'Start time (Local)'}
+                    <span className="panel-popover-form__field-label">
+                        {isNumericXAxis ? 'Start value' : 'Start time (Local)'}
+                        {validation.startTimeMessage ? (
+                            <span className="panel-popover-form__field-error">
+                                {validation.startTimeMessage}
+                            </span>
+                        ) : null}
+                    </span>
                     <input
                         aria-label={isNumericXAxis ? 'Start value' : 'Start time (Local)'}
                         className="panel-popover-form__input"
@@ -214,7 +190,14 @@ export function EditHighlightModal({
                     />
                 </label>
                 <label className="panel-popover-form__field">
-                    {isNumericXAxis ? 'End value' : 'End time (Local)'}
+                    <span className="panel-popover-form__field-label">
+                        {isNumericXAxis ? 'End value' : 'End time (Local)'}
+                        {validation.endTimeMessage ? (
+                            <span className="panel-popover-form__field-error">
+                                {validation.endTimeMessage}
+                            </span>
+                        ) : null}
+                    </span>
                     <input
                         aria-label={isNumericXAxis ? 'End value' : 'End time (Local)'}
                         className="panel-popover-form__input"

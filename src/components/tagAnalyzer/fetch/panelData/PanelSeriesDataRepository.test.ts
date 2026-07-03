@@ -1,275 +1,397 @@
 import { TimeUnit } from '../../domain/time/TimeTypes';
-import { fetchCalculationData, fetchRawData } from './ChartSeriesDataFetcher';
+import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import {
+    fetchCalculationData,
+    fetchRawData,
+} from './ChartSeriesDataFetcher';
+import {
+    MAIN_CALCULATED_FETCH_ROW_LIMIT,
+    MAIN_NUMERIC_VISIBLE_BUCKET_TARGET,
+    NAVIGATOR_CALCULATED_FETCH_ROW_LIMIT,
     fetchMainPanelSeriesRows,
     fetchNavigatorPanelSeriesRows,
-    RAW_NAVIGATOR_SAMPLING_VALUE,
 } from './PanelSeriesDataRepository';
-import type { RuntimePanelSampling, RuntimePanelXAxis } from '../../domain/panel/PanelRuntime';
-import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 
 jest.mock('./ChartSeriesDataFetcher', () => ({
     fetchCalculationData: jest.fn(),
     fetchRawData: jest.fn(),
 }));
 
-const fetchCalculationDataMock = jest.mocked(fetchCalculationData);
-const fetchRawDataMock = jest.mocked(fetchRawData);
+const mockedFetchCalculationData = fetchCalculationData as jest.MockedFunction<
+    typeof fetchCalculationData
+>;
+const mockedFetchRawData = fetchRawData as jest.MockedFunction<typeof fetchRawData>;
 
-const xAxis: RuntimePanelXAxis = {
-    showTickline: false,
-    rawDataPixelsPerTick: 0.1,
-    calculatedDataPixelsPerTick: 3,
-    calculatedNavigatorPixelsPerTick: 3,
-};
-
-const rawNavigatorSamplingOff: RuntimePanelSampling = {
-    enabled: false,
-    sampleCount: RAW_NAVIGATOR_SAMPLING_VALUE,
-};
-
-const rawNavigatorSamplingOn: RuntimePanelSampling = {
-    enabled: true,
-    sampleCount: RAW_NAVIGATOR_SAMPLING_VALUE,
-};
-
-const series: PanelSeriesDefinition = {
-    key: 'series-1',
-    table: 'tag_table',
-    sourceTagName: 'tag_a',
-    alias: 'Tag A',
-    calculationMode: 'max',
-    color: undefined,
+const NUMERIC_SERIES: PanelSeriesDefinition = {
+    key: 'SYS.DISTANCE_SENSOR:SENSOR_02',
+    table: 'SYS.DISTANCE_SENSOR',
+    sourceTagName: 'SENSOR_02',
+    alias: 'SENSOR_02',
+    calculationMode: 'avg',
     useSecondaryAxis: false,
-    id: undefined,
+    id: 'SENSOR_02',
     useRollupTable: false,
+    sourceColumns: {
+        name: 'NAME',
+        time: 'ODOMETER_M',
+        value: 'VALUE',
+        timeBaseTime: true,
+        timeType: 20,
+    },
+};
+
+const DATETIME_ROLLUP_SERIES: PanelSeriesDefinition = {
+    key: 'SYS.SENSOR:SENSOR_02',
+    table: 'SYS.SENSOR',
+    sourceTagName: 'SENSOR_02',
+    alias: 'SENSOR_02',
+    calculationMode: 'avg',
+    useSecondaryAxis: false,
+    id: 'SENSOR_02',
+    useRollupTable: true,
     sourceColumns: {
         name: 'NAME',
         time: 'TIME',
         value: 'VALUE',
-    },
-};
-
-const secondSeries: PanelSeriesDefinition = {
-    ...series,
-    key: 'series-2',
-    sourceTagName: 'tag_b',
-    alias: 'Tag B',
-};
-
-const numericSeries: PanelSeriesDefinition = {
-    ...series,
-    key: 'numeric-series-1',
-    sourceColumns: {
-        ...series.sourceColumns,
         timeBaseTime: true,
-        timeType: 0,
+        timeType: 6,
     },
 };
 
-const range = {
-    startTime: 0,
-    endTime: 60000,
-};
-
-function mockFetchResponse(): void {
-    const response = {
-        data: {
-            column: ['TIME', 'VALUE'],
-            rows: [],
-        },
-    };
-
-    fetchCalculationDataMock.mockResolvedValue(response);
-    fetchRawDataMock.mockResolvedValue(response);
-}
-
-describe('fetchNavigatorPanelSeriesRows', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-        mockFetchResponse();
-    });
-
-    it('uses average calculation for raw navigator by default', async () => {
-        await fetchNavigatorPanelSeriesRows(
-            [series],
-            0,
-            undefined,
-            xAxis,
-            900,
-            true,
-            range,
-            rawNavigatorSamplingOff,
-            {},
-        );
-
-        expect(fetchCalculationDataMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                CalculationMode: 'avg',
-            }),
-        );
-        expect(fetchRawDataMock).not.toHaveBeenCalled();
-    });
-
-    it('uses raw database sampling when raw navigator sampling is enabled', async () => {
-        await fetchNavigatorPanelSeriesRows(
-            [series],
-            0,
-            undefined,
-            xAxis,
-            900,
-            true,
-            range,
-            rawNavigatorSamplingOn,
-            {},
-        );
-
-        expect(fetchRawDataMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                sampling: {
-                    kind: 'enabled',
-                    value: RAW_NAVIGATOR_SAMPLING_VALUE,
-                },
-            }),
-        );
-        expect(fetchCalculationDataMock).not.toHaveBeenCalled();
-    });
-
-    it('forces raw sampling for numeric raw navigator', async () => {
-        await fetchNavigatorPanelSeriesRows(
-            [numericSeries],
-            0,
-            undefined,
-            xAxis,
-            900,
-            true,
-            range,
-            rawNavigatorSamplingOff,
-            {},
-        );
-
-        expect(fetchRawDataMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                sampling: {
-                    kind: 'enabled',
-                    value: RAW_NAVIGATOR_SAMPLING_VALUE,
-                },
-            }),
-        );
-        expect(fetchCalculationDataMock).not.toHaveBeenCalled();
-    });
-
-    it('keeps the requested raw mode in the navigator result metadata', async () => {
-        const result = await fetchNavigatorPanelSeriesRows(
-            [series],
-            0,
-            undefined,
-            xAxis,
-            900,
-            true,
-            range,
-            rawNavigatorSamplingOff,
-            {},
-        );
-
-        expect(result?.isRaw).toBe(true);
-        expect(result?.interval.IntervalType).toBe(TimeUnit.Second);
-    });
-});
 describe('fetchMainPanelSeriesRows', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
-        mockFetchResponse();
-    });
-
-    it('keeps successful series and records failed series errors', async () => {
-        fetchCalculationDataMock
-            .mockResolvedValueOnce({
-                data: {
-                    column: ['TIME', 'VALUE'],
-                    rows: [[1000, 1]],
-                },
-            })
-            .mockRejectedValueOnce(new Error('missing table'));
-
-        const result = await fetchMainPanelSeriesRows(
-            [series, secondSeries],
-            100,
-            undefined,
-            xAxis,
-            rawNavigatorSamplingOff,
-            900,
-            false,
-            true,
-            range,
-            {},
-        );
-
-        expect(result?.seriesFetchResults).toHaveLength(2);
-        expect(result?.seriesFetchResults[0].error).toBeUndefined();
-        expect(result?.seriesFetchResults[0].fetchResult.data?.rows).toEqual([[1000, 1]]);
-        expect(result?.seriesFetchResults[1].error).toEqual({
-            kind: 'request-failed',
-            message: 'missing table',
+        mockedFetchCalculationData.mockReset();
+        mockedFetchRawData.mockReset();
+        mockedFetchCalculationData.mockResolvedValue({
+            data: {
+                column: ['TIME', 'VALUE'],
+                rows: [],
+            },
         });
-        expect(result?.seriesFetchResults[1].fetchResult.data?.rows).toEqual([]);
     });
 
-    it('returns empty errored series results when all main series fail', async () => {
-        fetchCalculationDataMock.mockRejectedValue(new Error('missing table'));
-
+    it('targets about 1000 visible numeric buckets plus side prefetch', async () => {
         const result = await fetchMainPanelSeriesRows(
-            [series, secondSeries],
-            100,
-            undefined,
-            xAxis,
-            rawNavigatorSamplingOff,
-            900,
-            false,
-            true,
-            range,
-            {},
-        );
-
-        expect(result?.seriesFetchResults).toHaveLength(2);
-        expect(
-            result?.seriesFetchResults.every(
-                (seriesResult) => seriesResult.error?.message === 'missing table',
-            ),
-        ).toBe(true);
-        expect(
-            result?.seriesFetchResults.every(
-                (seriesResult) => seriesResult.fetchResult.data?.rows?.length === 0,
-            ),
-        ).toBe(true);
-    });
-});
-
-describe('fetchNavigatorPanelSeriesRows error tolerance', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    it('records navigator series errors without rejecting the whole fetch', async () => {
-        fetchCalculationDataMock.mockRejectedValue(new Error('missing table'));
-
-        const result = await fetchNavigatorPanelSeriesRows(
-            [series, secondSeries],
+            [NUMERIC_SERIES],
             0,
             undefined,
-            xAxis,
-            900,
+            {
+                showTickline: false,
+                rawDataPixelsPerTick: 1,
+                calculatedDataPixelsPerTick: 2,
+                calculatedNavigatorPixelsPerTick: 1,
+            },
+            {
+                enabled: false,
+                sampleCount: 0,
+            },
+            500,
             false,
-            range,
-            rawNavigatorSamplingOff,
+            true,
+            {
+                startTime: 0,
+                endTime: 150000,
+            },
+            {
+                IntervalType: TimeUnit.Day,
+                IntervalValue: 1,
+            },
             {},
+            {
+                startTime: 50000,
+                endTime: 100000,
+            },
         );
 
-        expect(result?.seriesFetchResults).toHaveLength(2);
-        expect(
-            result?.seriesFetchResults.every(
-                (seriesResult) => seriesResult.error?.message === 'missing table',
-            ),
-        ).toBe(true);
+        expect(mockedFetchCalculationData).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Count: MAIN_NUMERIC_VISIBLE_BUCKET_TARGET * 3,
+                isRollup: false,
+            }),
+        );
+        expect(result?.numericInterval).toBe(50);
+        expect(result?.seriesFetchResults[0].usesRollup).toBe(false);
+    });
+
+    it('does not use rollup when the runtime interval is smaller than the available rollup', async () => {
+        const result = await fetchMainPanelSeriesRows(
+            [DATETIME_ROLLUP_SERIES],
+            0,
+            undefined,
+            {
+                showTickline: false,
+                rawDataPixelsPerTick: 1,
+                calculatedDataPixelsPerTick: 2,
+                calculatedNavigatorPixelsPerTick: 1,
+            },
+            {
+                enabled: false,
+                sampleCount: 0,
+            },
+            500,
+            false,
+            true,
+            {
+                startTime: 0,
+                endTime: 600000,
+            },
+            {
+                IntervalType: TimeUnit.Second,
+                IntervalValue: 20,
+            },
+            {
+                SYS: {
+                    'MACHBASEDB.SENSOR': {
+                        VALUE: ['60000'],
+                        EXT_TYPE: ['0'],
+                    },
+                },
+            },
+        );
+
+        expect(mockedFetchCalculationData).toHaveBeenCalledWith(
+            expect.objectContaining({
+                IntervalType: TimeUnit.Second,
+                IntervalValue: 20,
+                isRollup: false,
+            }),
+        );
+        expect(result?.seriesFetchResults[0].usesRollup).toBe(false);
+    });
+
+    it('uses rollup when the runtime interval can be served by an available rollup', async () => {
+        const result = await fetchMainPanelSeriesRows(
+            [DATETIME_ROLLUP_SERIES],
+            0,
+            undefined,
+            {
+                showTickline: false,
+                rawDataPixelsPerTick: 1,
+                calculatedDataPixelsPerTick: 2,
+                calculatedNavigatorPixelsPerTick: 1,
+            },
+            {
+                enabled: false,
+                sampleCount: 0,
+            },
+            500,
+            false,
+            true,
+            {
+                startTime: 0,
+                endTime: 600000,
+            },
+            {
+                IntervalType: TimeUnit.Minute,
+                IntervalValue: 10,
+            },
+            {
+                SYS: {
+                    'MACHBASEDB.SENSOR': {
+                        VALUE: ['60000'],
+                        EXT_TYPE: ['0'],
+                    },
+                },
+            },
+        );
+
+        expect(mockedFetchCalculationData).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Count: MAIN_CALCULATED_FETCH_ROW_LIMIT,
+                IntervalType: TimeUnit.Minute,
+                IntervalValue: 10,
+                isRollup: true,
+                rollupColumnName: 'VALUE',
+            }),
+        );
+        expect(result?.seriesFetchResults[0].usesRollup).toBe(true);
+    });
+
+    it('uses a one second rollup for a fifteen second runtime interval even when saved rollup metadata is stale', async () => {
+        const result = await fetchMainPanelSeriesRows(
+            [
+                {
+                    ...DATETIME_ROLLUP_SERIES,
+                    useRollupTable: false,
+                },
+            ],
+            0,
+            undefined,
+            {
+                showTickline: false,
+                rawDataPixelsPerTick: 1,
+                calculatedDataPixelsPerTick: 2,
+                calculatedNavigatorPixelsPerTick: 1,
+            },
+            {
+                enabled: false,
+                sampleCount: 0,
+            },
+            500,
+            false,
+            true,
+            {
+                startTime: 0,
+                endTime: 600000,
+            },
+            {
+                IntervalType: TimeUnit.Second,
+                IntervalValue: 15,
+            },
+            {
+                SYS: {
+                    'MACHBASEDB.SENSOR': {
+                        VALUE: ['1000'],
+                        EXT_TYPE: ['0'],
+                    },
+                },
+            },
+        );
+
+        expect(mockedFetchCalculationData).toHaveBeenCalledWith(
+            expect.objectContaining({
+                IntervalType: TimeUnit.Second,
+                IntervalValue: 15,
+                isRollup: true,
+                rollupColumnName: 'VALUE',
+            }),
+        );
+        expect(result?.seriesFetchResults[0].usesRollup).toBe(true);
+    });
+
+    it('does not include interval fields in raw main fetch requests', async () => {
+        mockedFetchRawData.mockResolvedValue({
+            data: {
+                column: ['TIME', 'VALUE'],
+                rows: [],
+            },
+        });
+
+        const result = await fetchMainPanelSeriesRows(
+            [DATETIME_ROLLUP_SERIES],
+            0,
+            TimeUnit.Second,
+            {
+                showTickline: false,
+                rawDataPixelsPerTick: 1,
+                calculatedDataPixelsPerTick: 2,
+                calculatedNavigatorPixelsPerTick: 1,
+            },
+            {
+                enabled: false,
+                sampleCount: 0,
+            },
+            500,
+            true,
+            true,
+            {
+                startTime: 0,
+                endTime: 600000,
+            },
+        );
+
+        expect(mockedFetchRawData).toHaveBeenCalledWith(
+            expect.not.objectContaining({
+                CalculationMode: expect.anything(),
+                IntervalType: expect.anything(),
+                IntervalValue: expect.anything(),
+            }),
+        );
+        expect(result?.interval).toBeUndefined();
+    });
+
+    it('uses the smaller fixed calculated limit for navigator requests', async () => {
+        const result = await fetchNavigatorPanelSeriesRows(
+            [DATETIME_ROLLUP_SERIES],
+            0,
+            undefined,
+            {
+                showTickline: false,
+                rawDataPixelsPerTick: 1,
+                calculatedDataPixelsPerTick: 2,
+                calculatedNavigatorPixelsPerTick: 1,
+            },
+            500,
+            false,
+            {
+                startTime: 0,
+                endTime: 600000,
+            },
+            {
+                enabled: false,
+                sampleCount: 0,
+            },
+            {
+                SYS: {
+                    'MACHBASEDB.SENSOR': {
+                        VALUE: ['1000'],
+                        EXT_TYPE: ['0'],
+                    },
+                },
+            },
+        );
+
+        expect(mockedFetchCalculationData).toHaveBeenCalledWith(
+            expect.objectContaining({
+                Count: NAVIGATOR_CALCULATED_FETCH_ROW_LIMIT,
+                isRollup: true,
+                rollupColumnName: 'VALUE',
+            }),
+        );
+        expect(result?.count).toBe(NAVIGATOR_CALCULATED_FETCH_ROW_LIMIT);
+    });
+
+    it('passes the matched JSON-path rollup column when one is available', async () => {
+        await fetchMainPanelSeriesRows(
+            [
+                {
+                    ...DATETIME_ROLLUP_SERIES,
+                    sourceColumns: {
+                        ...DATETIME_ROLLUP_SERIES.sourceColumns,
+                        value: 'VALUE',
+                        jsonKey: 'metrics.temperature',
+                    },
+                },
+            ],
+            0,
+            undefined,
+            {
+                showTickline: false,
+                rawDataPixelsPerTick: 1,
+                calculatedDataPixelsPerTick: 2,
+                calculatedNavigatorPixelsPerTick: 1,
+            },
+            {
+                enabled: false,
+                sampleCount: 0,
+            },
+            500,
+            false,
+            true,
+            {
+                startTime: 0,
+                endTime: 600000,
+            },
+            {
+                IntervalType: TimeUnit.Minute,
+                IntervalValue: 10,
+            },
+            {
+                SYS: {
+                    'MACHBASEDB.SENSOR': {
+                        'VALUE->$metrics.temperature': ['60000'],
+                        VALUE: ['60000'],
+                        EXT_TYPE: ['0', '0'],
+                    },
+                },
+            },
+        );
+
+        expect(mockedFetchCalculationData).toHaveBeenCalledWith(
+            expect.objectContaining({
+                isRollup: true,
+                rollupColumnName: 'VALUE->$metrics.temperature',
+            }),
+        );
     });
 });

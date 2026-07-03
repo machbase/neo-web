@@ -1,0 +1,74 @@
+.overlap-modal {
+    &__chart-area {
+        position: relative;
+    }
+
+    &__side-controls {
+        position: absolute;
+        left: 6px;
+        right: 6px;
+        top: 50%;
+        z-index: 2;
+        display: flex;
+        justify-content: space-between;
+        transform: translateY(-50%);
+        pointer-events: none;
+
+        button {
+            pointer-events: auto;
+        }
+    }
+
+    &__shift-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin: 8px 0;
+    }
+
+    &__shift-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid #323333;
+        border-radius: 4px;
+        background: #242424;
+    }
+
+    &__shift-text {
+        display: grid;
+        grid-template-columns: minmax(100px, 0.7fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        color: #afb5bc;
+        font-size: 11px;
+    }
+
+    &__shift-title {
+        overflow: hidden;
+        color: #e7e8ea;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__shift-label {
+        white-space: nowrap;
+    }
+
+    &__shift-value {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__shift-controls {
+        display: grid;
+        grid-template-columns: 24px 88px 72px 24px;
+        align-items: center;
+        gap: 4px;
+    }
+}

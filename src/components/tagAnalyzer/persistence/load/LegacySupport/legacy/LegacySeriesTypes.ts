@@ -1,12 +1,5 @@
 import type { PanelSeriesDefinition } from '../../../../domain/SeriesDomain';
 
-export type LegacyTagNameItem<T extends { sourceTagName: string | undefined }> = Omit<
-    T,
-    'sourceTagName'
-> & {
-    tagName: string;
-};
-
 export type LegacyCompatibleSeriesConfig = {
     key: string;
     table: string;

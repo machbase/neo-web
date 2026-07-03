@@ -9,7 +9,7 @@
         flex: 0 1 auto;
     }
 
-    &__dirty-message {
+    &__unsaved-message {
         flex: 0 0 auto;
         min-width: max-content;
         color: #fdb532;
@@ -19,7 +19,7 @@
         white-space: nowrap;
     }
 
-    &__save-button--dirty {
+    &__save-button--unsaved {
         color: #fdb532 !important;
 
         svg {

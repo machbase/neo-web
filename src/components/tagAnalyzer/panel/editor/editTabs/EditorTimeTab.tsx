@@ -1,376 +1,174 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Button, Input, QuickTimeRange } from '@/design-system/components';
-import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
+import { useEffect } from 'react';
+import {
+    Button,
+    QuickTimeRange,
+    type QuickTimeRangeOption,
+} from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
-import TagAnalyzerDatePicker from '../../../TagAnalyzerDatePicker';
-import type { PanelInfo } from '../../../domain/panel/PanelConfig';
-import styles from '../PanelEditor.module.scss';
-import { resolveEditableTimeRangeInput } from '../../../parsing/TimeRangeInputParsing';
-import {
-    type PanelRangeInput,
-    type TimeRangeInput,
-    type TimeRangeMs,
+import type { PanelInfo } from '../../../domain/panel/PanelInfo';
+import type {
+    TimeRangeInput,
+    TimeRangeMs,
 } from '../../../domain/time/TimeTypes';
 import {
-    formatNumericRangeExpression,
     isEmptyPanelRangeInput,
     isPanelRangeExpressionValidForAxis,
-    isValidNumericRangeExpressionPair,
-    parseNumericRangeExpression,
 } from '../../../domain/panelRange/PanelRangeInput';
-import {
-    createTimeRangeMs,
-    isValidTimeRange,
-} from '../../../domain/time/TimeRangeUtils';
-import { formatAbsoluteTimeExpression } from '../../../domain/time/TimeRangeInputResolver';
+import type { OpenEditorTimeRangeModal } from '../../modal/EditorTimeRangeModal';
+import styles from '../PanelEditor.module.scss';
 
-type TimeInputField = 'start' | 'end';
-type TimestampInputValues = {
-    startTime: string;
-    endTime: string;
-    startPlaceholder: string;
-    endPlaceholder: string;
-};
-type NumericInputValues = {
-    startValue: string;
-    endValue: string;
-};
-
-const DEFAULT_TIME_INPUT_PLACEHOLDER = 'YYYY-MM-DD HH:mm:ss';
-const NUMERIC_BOUNDARY_INPUT_PLACEHOLDER = '20, first, first-10, last-10';
-const DEFAULT_NUMERIC_INPUT_VALUES: NumericInputValues = {
-    startValue: '',
-    endValue: '',
-};
 const NUMERIC_QUICK_RANGE: QuickTimeRangeOption[][] = [
     [
         { key: 'first-10', name: 'First 10', value: ['first', 'first-10'] },
-        { key: 'last-10', name: 'Last 10', value: ['last-10', 'last'] },
-    ],
-    [
         { key: 'first-100', name: 'First 100', value: ['first', 'first-100'] },
-        { key: 'last-100', name: 'Last 100', value: ['last-100', 'last'] },
+        { key: 'first-1000', name: 'First 1000', value: ['first', 'first-1000'] },
+        { key: 'first-10000', name: 'First 10k', value: ['first', 'first-10000'] },
+        { key: 'first-100000', name: 'First 100k', value: ['first', 'first-100000'] },
+        { key: 'first-1000000', name: 'First 1m', value: ['first', 'first-1000000'] },
+        { key: 'first-10000000', name: 'First 10m', value: ['first', 'first-10000000'] },
     ],
     [
-        { key: 'first-1000', name: 'First 1000', value: ['first', 'first-1000'] },
+        { key: 'last-10', name: 'Last 10', value: ['last-10', 'last'] },
+        { key: 'last-100', name: 'Last 100', value: ['last-100', 'last'] },
         { key: 'last-1000', name: 'Last 1000', value: ['last-1000', 'last'] },
+        { key: 'last-10000', name: 'Last 10k', value: ['last-10000', 'last'] },
+        { key: 'last-100000', name: 'Last 100k', value: ['last-100000', 'last'] },
+        { key: 'last-1000000', name: 'Last 1m', value: ['last-1000000', 'last'] },
+        { key: 'last-10000000', name: 'Last 10m', value: ['last-10000000', 'last'] },
     ],
 ];
 
 const EditorTimeTab = ({
+    pChartTitle,
     pTimeConfig,
     pIsNumericXAxis,
     pPanelRange,
     pOnChangeTimeConfig,
     pOnInvalidTimeInputChange,
+    pOpenTimeRangePanel,
 }: {
+    pChartTitle: PanelInfo['title'];
     pTimeConfig: PanelInfo['time'];
     pIsNumericXAxis: boolean;
     pPanelRange: TimeRangeMs;
     pOnChangeTimeConfig: (config: PanelInfo['time']) => void;
     pOnInvalidTimeInputChange: (hasInvalidTimeInput: boolean) => void;
+    pOpenTimeRangePanel: OpenEditorTimeRangeModal;
 }) => {
-    if (pIsNumericXAxis) {
-        return (
-            <NumericRangeInputEditor
-                pTimeConfig={pTimeConfig}
-                pOnChangeTimeConfig={pOnChangeTimeConfig}
-                pOnInvalidTimeInputChange={pOnInvalidTimeInputChange}
-            />
-        );
-    }
-
-    return (
-        <TimestampRangeInputEditor
-            pTimeConfig={pTimeConfig}
-            pPanelRange={pPanelRange}
-            pOnChangeTimeConfig={pOnChangeTimeConfig}
-            pOnInvalidTimeInputChange={pOnInvalidTimeInputChange}
-        />
-    );
-};
-
-function TimestampRangeInputEditor({
-    pTimeConfig,
-    pPanelRange,
-    pOnChangeTimeConfig,
-    pOnInvalidTimeInputChange,
-}: {
-    pTimeConfig: PanelInfo['time'];
-    pPanelRange: TimeRangeMs;
-    pOnChangeTimeConfig: (config: PanelInfo['time']) => void;
-    pOnInvalidTimeInputChange: (hasInvalidTimeInput: boolean) => void;
-}) {
-    const sRangeInput = useMemo(
-        () => getTimestampRangeInput(pTimeConfig.rangeInput),
-        [pTimeConfig],
-    );
-    const sInitialInputValues = getTimestampInputValues(
-        sRangeInput,
-        pPanelRange,
-    );
-    const [sStartTime, setStartTime] = useState(sInitialInputValues.startTime);
-    const [sEndTime, setEndTime] = useState(sInitialInputValues.endTime);
-    const sInputValues = getTimestampInputValues(sRangeInput, pPanelRange);
-
+    const sRangeInput = pIsNumericXAxis
+        ? getNumericRangeInput(pTimeConfig.rangeInput)
+        : getTimestampRangeInput(pTimeConfig.rangeInput);
+    const sHasConfiguredRange = !isEmptyPanelRangeInput(sRangeInput);
+    const sRangeAxisLabel = pIsNumericXAxis ? 'Numeric' : 'Time';
     useEffect(() => {
-        const sNextInputValues = getTimestampInputValues(sRangeInput, pPanelRange);
-        setStartTime(sNextInputValues.startTime);
-        setEndTime(sNextInputValues.endTime);
-        pOnInvalidTimeInputChange(
-            hasInvalidTimestampInputPair(
-                sNextInputValues.startTime,
-                sNextInputValues.endTime,
-                pPanelRange,
-            ),
+        pOnInvalidTimeInputChange(false);
+    }, [pOnInvalidTimeInputChange]);
+
+    function applyRangeInput(start: string, end: string): void {
+        pOnInvalidTimeInputChange(false);
+        pOnChangeTimeConfig(
+            createTimeConfig(pTimeConfig, {
+                start,
+                end,
+            }),
         );
-    }, [sRangeInput, pPanelRange, pOnInvalidTimeInputChange]);
-
-    function updateTimeInput(field: TimeInputField, value: string): void {
-        const sNextStartTime = field === 'start' ? value : sStartTime;
-        const sNextEndTime = field === 'end' ? value : sEndTime;
-
-        applyTimestampInputPair(sNextStartTime, sNextEndTime);
     }
 
-    function applyTimeInput(field: TimeInputField, value: string): void {
-        updateTimeInput(field, value);
-    }
-
-    function applyQuickTime(option: QuickTimeRangeOption): void {
-        const [sStartValue = '', sEndValue = ''] = option.value;
-        applyTimestampInputPair(sStartValue, sEndValue);
-    }
-
-    function applyTimestampInputPair(
-        startTime: string,
-        endTime: string,
-    ): void {
-        const sCurrentTime = Date.now();
-        const sResolvedRange = resolveEditableTimeRangeInput({
-            startValue: startTime,
-            endValue: endTime,
-            previousConcreteRange: getTimestampConcreteRange(
-                pPanelRange,
-                sCurrentTime,
-            ),
-            currentTime: sCurrentTime,
-            lastDataTime: getTimestampLastDataTime(pPanelRange, sCurrentTime),
+    function openConfiguredRangePanel(): void {
+        pOpenTimeRangePanel({
+            chartTitle: pChartTitle,
+            isNumericXAxis: pIsNumericXAxis,
+            rangeInput: sRangeInput,
+            panelRange: pPanelRange,
+            onApplyRangeInput: applyRangeInput,
         });
-
-        pOnInvalidTimeInputChange(sResolvedRange.status === 'invalid');
-
-        if (sResolvedRange.status !== 'invalid') {
-            pOnChangeTimeConfig(
-                createTimeConfig(pTimeConfig, sResolvedRange.rangeInput),
-            );
-        }
-
-        setStartTime(startTime);
-        setEndTime(endTime);
     }
 
     function clearTimeRange(): void {
-        pOnInvalidTimeInputChange(false);
-        pOnChangeTimeConfig(
-            createTimeConfig(pTimeConfig, { start: '', end: '' }),
-        );
-        setStartTime('');
-        setEndTime('');
+        applyRangeInput('', '');
     }
 
-    return (
-        <div className={styles.timeLayout}>
-            <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <span className={styles.sectionTitle}>
-                        Panel configured time range
-                    </span>
-                </div>
-                <div className={styles.controlStack}>
-                    <div className={styles.controlRow}>
-                        <TagAnalyzerDatePicker
-                            label="From"
-                            placement="top"
-                            value={sStartTime}
-                            placeholder={sInputValues.startPlaceholder}
-                            onChange={(value) => updateTimeInput('start', value)}
-                            onApply={(value) => applyTimeInput('start', value)}
-                        />
-                    </div>
-                    <div className={styles.controlRow}>
-                        <TagAnalyzerDatePicker
-                            label="To"
-                            placement="top"
-                            value={sEndTime}
-                            placeholder={sInputValues.endPlaceholder}
-                            onChange={(value) => updateTimeInput('end', value)}
-                            onApply={(value) => applyTimeInput('end', value)}
-                        />
-                    </div>
-                    <div className={styles.controlRow}>
-                        <Button variant="ghost" onClick={clearTimeRange}>
-                            <VscTrash size={16} />
-                            <span>Clear</span>
-                        </Button>
-                    </div>
-                </div>
-            </section>
-            <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <span className={styles.sectionTitle}>
-                        Quick panel configured range
-                    </span>
-                </div>
-                <QuickTimeRange
-                    options={TIME_RANGE}
-                    onSelect={applyQuickTime}
-                    title=""
-                />
-            </section>
-        </div>
-    );
-}
-
-function NumericRangeInputEditor({
-    pTimeConfig,
-    pOnChangeTimeConfig,
-    pOnInvalidTimeInputChange,
-}: {
-    pTimeConfig: PanelInfo['time'];
-    pOnChangeTimeConfig: (config: PanelInfo['time']) => void;
-    pOnInvalidTimeInputChange: (hasInvalidTimeInput: boolean) => void;
-}) {
-    const sRangeInput = useMemo(
-        () => getNumericRangeInput(pTimeConfig.rangeInput),
-        [pTimeConfig],
-    );
-    const [sInputValues, setInputValues] = useState(
-        () => getNumericInputValues(sRangeInput),
-    );
-
-    useEffect(() => {
-        setInputValues(getNumericInputValues(sRangeInput));
-        pOnInvalidTimeInputChange(false);
-    }, [sRangeInput, pOnInvalidTimeInputChange]);
-
-    function updateNumericRangeInput(
-        field: 'startValue' | 'endValue',
-        value: string,
-    ): void {
-        const nextInputValues = {
-            ...sInputValues,
-            [field]: value,
-        };
-
-        setInputValues(nextInputValues);
-        const sRangeInput = createNumericRangeInputFromValues(
-            nextInputValues.startValue,
-            nextInputValues.endValue,
-        );
-
-        if (!sRangeInput) {
-            pOnInvalidTimeInputChange(true);
-            return;
-        }
-
-        pOnInvalidTimeInputChange(false);
-        pOnChangeTimeConfig(createTimeConfig(pTimeConfig, sRangeInput));
-    }
-
-    function applyQuickNumericRange(option: QuickTimeRangeOption): void {
+    function applyQuickRange(option: QuickTimeRangeOption): void {
         const [sStartValue = '', sEndValue = ''] = option.value;
-        const sRangeInput = createNumericRangeInputFromValues(
-            sStartValue,
-            sEndValue,
-        );
 
-        if (!sRangeInput) {
-            pOnInvalidTimeInputChange(true);
-            return;
-        }
-
-        pOnInvalidTimeInputChange(false);
-        setInputValues({
-            startValue: sStartValue,
-            endValue: sEndValue,
-        });
-        pOnChangeTimeConfig(createTimeConfig(pTimeConfig, sRangeInput));
-    }
-
-    function clearNumericRange(): void {
-        setInputValues(DEFAULT_NUMERIC_INPUT_VALUES);
-        pOnInvalidTimeInputChange(false);
-        pOnChangeTimeConfig(
-            createTimeConfig(pTimeConfig, { start: '', end: '' }),
-        );
+        applyRangeInput(sStartValue, sEndValue);
     }
 
     return (
         <div className={styles.timeLayout}>
-            <section className={styles.section}>
+            <section
+                className={[
+                    styles.section,
+                    styles.timeConfiguredSection,
+                ].join(' ')}
+            >
                 <div className={styles.sectionHeader}>
                     <span className={styles.sectionTitle}>
-                        Panel configured value range
+                        Panel configured range
+                    </span>
+                    <span className={styles.sectionTag}>
+                        {sRangeAxisLabel}
                     </span>
                 </div>
-                <div className={styles.controlStack}>
-                    <div className={styles.controlRow}>
-                        <Input
-                            label="From"
-                            labelPosition="left"
-                            value={sInputValues.startValue}
-                            placeholder={NUMERIC_BOUNDARY_INPUT_PLACEHOLDER}
-                            onChange={(event) =>
-                                updateNumericRangeInput(
-                                    'startValue',
-                                    event.target.value,
-                                )
-                            }
-                        />
+                <div className={styles.timeSummaryGrid}>
+                    <div className={styles.editorField}>
+                        <span className={styles.editorFieldLabel}>From</span>
+                        <span className={styles.editorFixedValue}>
+                            {formatRangeDisplayValue(sRangeInput.start)}
+                        </span>
                     </div>
-                    <div className={styles.controlRow}>
-                        <Input
-                            label="To"
-                            labelPosition="left"
-                            value={sInputValues.endValue}
-                            placeholder={NUMERIC_BOUNDARY_INPUT_PLACEHOLDER}
-                            onChange={(event) =>
-                                updateNumericRangeInput(
-                                    'endValue',
-                                    event.target.value,
-                                )
-                            }
-                        />
-                    </div>
-                    <div className={styles.controlRow}>
-                        <Button variant="ghost" onClick={clearNumericRange}>
-                            <VscTrash size={16} />
-                            <span>Clear</span>
-                        </Button>
+                    <div className={styles.editorField}>
+                        <span className={styles.editorFieldLabel}>To</span>
+                        <span className={styles.editorFixedValue}>
+                            {formatRangeDisplayValue(sRangeInput.end)}
+                        </span>
                     </div>
                 </div>
+                <div className={styles.controlRow}>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={openConfiguredRangePanel}
+                    >
+                        Configure
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<VscTrash size={16} />}
+                        disabled={!sHasConfiguredRange}
+                        onClick={clearTimeRange}
+                    >
+                        Clear
+                    </Button>
+                </div>
             </section>
-            <section className={styles.section}>
+            <section
+                className={[
+                    styles.section,
+                    styles.timeQuickSection,
+                ].join(' ')}
+            >
                 <div className={styles.sectionHeader}>
                     <span className={styles.sectionTitle}>
                         Quick panel configured range
                     </span>
                 </div>
                 <QuickTimeRange
-                    options={NUMERIC_QUICK_RANGE}
-                    onSelect={applyQuickNumericRange}
+                    className={styles.timeQuickRange}
+                    options={pIsNumericXAxis ? NUMERIC_QUICK_RANGE : TIME_RANGE}
+                    onSelect={applyQuickRange}
                     title=""
                 />
             </section>
         </div>
     );
-}
+};
 
 function createTimeConfig(
     currentTimeConfig: PanelInfo['time'],
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
 ): PanelInfo['time'] {
     return {
         ...currentTimeConfig,
@@ -378,11 +176,8 @@ function createTimeConfig(
     };
 }
 
-// The datetime panel config is itself a board-style TimeRangeInput; expressions
-// that aren't valid for the datetime axis (e.g. leftover numeric input) reset to
-// empty so the editor never shows an uninterpretable value.
 function getTimestampRangeInput(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
 ): TimeRangeInput {
     return {
         start: sanitizeExpressionForAxis(rangeInput.start, false),
@@ -391,8 +186,8 @@ function getTimestampRangeInput(
 }
 
 function getNumericRangeInput(
-    rangeInput: PanelRangeInput,
-): PanelRangeInput {
+    rangeInput: TimeRangeInput,
+): TimeRangeInput {
     return {
         start: sanitizeExpressionForAxis(rangeInput.start, true),
         end: sanitizeExpressionForAxis(rangeInput.end, true),
@@ -406,92 +201,8 @@ function sanitizeExpressionForAxis(
     return isPanelRangeExpressionValidForAxis(value, isNumericAxis) ? value : '';
 }
 
-function getTimestampInputValues(
-    rangeInput: TimeRangeInput,
-    panelRange: TimeRangeMs,
-): TimestampInputValues {
-    const sIsEmptyTimeRange = isEmptyPanelRangeInput(rangeInput);
-
-    return {
-        startTime: rangeInput.start,
-        endTime: rangeInput.end,
-        startPlaceholder: sIsEmptyTimeRange && isValidTimeRange(panelRange)
-            ? formatAbsoluteTimeExpression(panelRange.startTime)
-            : DEFAULT_TIME_INPUT_PLACEHOLDER,
-        endPlaceholder: sIsEmptyTimeRange && isValidTimeRange(panelRange)
-            ? formatAbsoluteTimeExpression(panelRange.endTime)
-            : DEFAULT_TIME_INPUT_PLACEHOLDER,
-    };
-}
-
-function hasInvalidTimestampInputPair(
-    startTime: string,
-    endTime: string,
-    panelRange: TimeRangeMs,
-): boolean {
-    const sCurrentTime = Date.now();
-    const sResolvedRange = resolveEditableTimeRangeInput({
-        startValue: startTime,
-        endValue: endTime,
-        previousConcreteRange: getTimestampConcreteRange(panelRange, sCurrentTime),
-        currentTime: sCurrentTime,
-        lastDataTime: getTimestampLastDataTime(panelRange, sCurrentTime),
-    });
-
-    return sResolvedRange.status === 'invalid';
-}
-
-function getTimestampConcreteRange(
-    panelRange: TimeRangeMs,
-    currentTime: number,
-): TimeRangeMs {
-    return isValidTimeRange(panelRange)
-        ? panelRange
-        : createTimeRangeMs(currentTime - 1, currentTime);
-}
-
-function getTimestampLastDataTime(
-    panelRange: TimeRangeMs,
-    currentTime: number,
-): number {
-    return isValidTimeRange(panelRange) ? panelRange.endTime : currentTime;
-}
-
-function getNumericInputValues(
-    rangeInput: PanelRangeInput,
-): NumericInputValues {
-    return {
-        startValue: rangeInput.start,
-        endValue: rangeInput.end,
-    };
-}
-
-function createNumericRangeInputFromValues(
-    startValue: string,
-    endValue: string,
-): PanelRangeInput | undefined {
-    const sStartValue = startValue.trim();
-    const sEndValue = endValue.trim();
-
-    if (sStartValue === '' && sEndValue === '') {
-        return { start: '', end: '' };
-    }
-
-    const sStartParsed = parseNumericRangeExpression(sStartValue);
-    const sEndParsed = parseNumericRangeExpression(sEndValue);
-
-    if (
-        !sStartParsed ||
-        !sEndParsed ||
-        !isValidNumericRangeExpressionPair(sStartParsed, sEndParsed)
-    ) {
-        return undefined;
-    }
-
-    return {
-        start: formatNumericRangeExpression(sStartParsed),
-        end: formatNumericRangeExpression(sEndParsed),
-    };
+function formatRangeDisplayValue(value: string): string {
+    return value.trim() || 'Auto';
 }
 
 export default EditorTimeTab;

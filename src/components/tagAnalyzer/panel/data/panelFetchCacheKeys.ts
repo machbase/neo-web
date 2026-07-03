@@ -1,4 +1,7 @@
-import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import {
+    hasNumericBaseTimeSeries,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 import type { IntervalOption, TimeRangeMs } from '../../domain/time/TimeTypes';
 import type { PanelChartDataLoadConfig } from './panelChartLoadConfig';
 
@@ -18,7 +21,8 @@ export function buildSeriesCacheKey(
 
 export function getMainFetchReuseKey(
     config: PanelChartDataLoadConfig,
-    requestInterval: IntervalOption,
+    requestInterval: IntervalOption | undefined,
+    numericInterval?: number | undefined,
 ): string | undefined {
     if (config.isRaw) {
         return config.mainChartSampling.enabled
@@ -27,6 +31,17 @@ export function getMainFetchReuseKey(
                   sampleCount: config.mainChartSampling.sampleCount,
               })
             : undefined;
+    }
+
+    if (hasNumericBaseTimeSeries(config.seriesList)) {
+        return JSON.stringify({
+            mode: 'numeric-calculated',
+            numericInterval: numericInterval ?? null,
+        });
+    }
+
+    if (!requestInterval) {
+        throw new Error('Calculated main fetch reuse requires an interval.');
     }
 
     return JSON.stringify({
@@ -42,6 +57,7 @@ export function buildMainFetchBaseKey(
     seriesKey: string,
     rollupKey: string,
     refreshVersion: number,
+    mainReuseKey?: string,
 ): string {
     return JSON.stringify({
         ...buildSharedFetchBaseKeyFields(
@@ -54,6 +70,7 @@ export function buildMainFetchBaseKey(
         useOrderBy: config.useOrderBy,
         calculatedPixelsPerTick: config.xAxis.calculatedDataPixelsPerTick,
         mainChartSampling: config.mainChartSampling,
+        mainReuseKey,
     });
 }
 
@@ -65,7 +82,7 @@ export function buildNavigatorFetchBaseKey(
     refreshVersion: number,
 ): string {
     return JSON.stringify({
-        ...buildSharedFetchBaseKeyFields(
+        ...buildNavigatorFetchBaseKeyFields(
             config,
             chartWidth,
             seriesKey,
@@ -85,29 +102,35 @@ export function buildFetchCacheKey(
     seriesKey: string,
     rollupKey: string,
     refreshVersion: number,
+    mainReuseKey?: string,
 ): string {
-    const sShared = {
-        queryLimit: config.queryLimit,
-        intervalType: config.intervalType,
-        isRaw: config.isRaw,
-        rawPixelsPerTick: config.xAxis.rawDataPixelsPerTick,
+    const sMainShared = buildSharedFetchBaseKeyFields(
+        config,
         chartWidth,
-        series: seriesKey,
-        rollups: rollupKey,
+        seriesKey,
+        rollupKey,
         refreshVersion,
-    };
+    );
+    const sNavigatorShared = buildNavigatorFetchBaseKeyFields(
+        config,
+        chartWidth,
+        seriesKey,
+        rollupKey,
+        refreshVersion,
+    );
 
     return JSON.stringify(
         variant === 'main'
             ? {
-                  ...sShared,
+                  ...sMainShared,
                   useOrderBy: config.useOrderBy,
                   calculatedPixelsPerTick: config.xAxis.calculatedDataPixelsPerTick,
                   mainChartSampling: config.mainChartSampling,
+                  mainReuseKey,
                   requestPanelRange: range,
               }
             : {
-                  ...sShared,
+                  ...sNavigatorShared,
                   navigatorPixelsPerTick: config.xAxis.calculatedNavigatorPixelsPerTick,
                   rawNavigatorSampling: config.rawNavigatorSampling,
                   requestNavigatorRange: range,
@@ -127,6 +150,22 @@ function buildSharedFetchBaseKeyFields(
         intervalType: config.intervalType,
         isRaw: config.isRaw,
         rawPixelsPerTick: config.xAxis.rawDataPixelsPerTick,
+        chartWidth,
+        series: seriesKey,
+        rollups: rollupKey,
+        refreshVersion,
+    };
+}
+
+function buildNavigatorFetchBaseKeyFields(
+    config: PanelChartDataLoadConfig,
+    chartWidth: number,
+    seriesKey: string,
+    rollupKey: string,
+    refreshVersion: number,
+) {
+    return {
+        isRaw: config.isRaw,
         chartWidth,
         series: seriesKey,
         rollups: rollupKey,

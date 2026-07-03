@@ -1,4 +1,4 @@
-import type { PanelRangeInput, TimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeInput, TimeRangeMs } from '../time/TimeTypes';
 import { clampTimeRangeToBounds, isValidTimeRange } from '../time/TimeRangeUtils';
 import {
     canResolveTimeStringToTimestamp,
@@ -9,19 +9,10 @@ function isEmptyPanelRangeExpression(value: string): boolean {
     return value.trim() === '';
 }
 
-export function isEmptyPanelRangeInput(rangeInput: PanelRangeInput): boolean {
+export function isEmptyPanelRangeInput(rangeInput: TimeRangeInput): boolean {
     return (
         isEmptyPanelRangeExpression(rangeInput.start) &&
         isEmptyPanelRangeExpression(rangeInput.end)
-    );
-}
-
-export function hasCompletePanelRangeInput(
-    rangeInput: PanelRangeInput,
-): boolean {
-    return (
-        !isEmptyPanelRangeExpression(rangeInput.start) &&
-        !isEmptyPanelRangeExpression(rangeInput.end)
     );
 }
 
@@ -41,7 +32,7 @@ export function isPanelRangeExpressionValidForAxis(
 }
 
 export function isPanelRangeInputValidForAxis(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
     isNumericAxis: boolean,
 ): boolean {
     return (
@@ -66,7 +57,7 @@ export function isValidTimestampRangeExpression(value: string): boolean {
 // Parsed form is transient (used only to resolve/validate/canonicalize the string
 // vocabulary); the persisted source of truth is always the string.
 
-export type ParsedNumericRangeExpression =
+type ParsedNumericRangeExpression =
     | { anchor: 'value'; value: number }
     | { anchor: 'data_start'; offset: number }
     | { anchor: 'data_end'; offset: number };
@@ -150,7 +141,7 @@ export function formatNumericValue(value: number): string {
 // --- Resolving range input strings to a concrete millisecond range ------------
 
 export function resolvePanelRangeInput(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
     fullRange: TimeRangeMs,
     isNumericAxis: boolean,
 ): TimeRangeMs | undefined {
@@ -166,7 +157,7 @@ export function resolvePanelRangeInput(
 // The datetime panel axis shares the board's expression vocabulary: "now"/"now-1h"
 // resolve against the current time, "last"/"last-2d" against the data end.
 function resolveTimestampRangeInput(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
     fullRange: TimeRangeMs,
 ): TimeRangeMs | undefined {
     const sAnchors = {
@@ -192,7 +183,7 @@ function resolveTimestampRangeInput(
 }
 
 function resolveNumericRangeInput(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
     fullRange: TimeRangeMs,
 ): TimeRangeMs | undefined {
     const sStart = parseNumericRangeExpression(rangeInput.start);

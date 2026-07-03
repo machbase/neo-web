@@ -2,13 +2,14 @@ import request from '@/api/core';
 import { ADMIN_ID } from '@/utils/constants';
 import {
     buildGroupedSeriesDataTimeRangeSql,
-    buildVirtualStatOrMountedTableDataTimeRangeSql,
+    getSeriesDataTimeRangeTargetTableName,
 } from '../sqlBuilder/BuildDataTimeRangeSql';
 import type {
     DataAvailabilityIssue,
     DataAvailabilityIssueKind,
     DataAvailabilityResult,
     DataRangeSeries,
+    TableTagMap,
 } from './PanelDataFetchTypes';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
@@ -18,8 +19,14 @@ import {
     isValidTimeRange,
 } from '../../domain/time/TimeRangeUtils';
 import {
-    buildSqlIdentifierPath,
+    getQueryResponseErrorMessage,
+    getQueryRowsOrThrow,
+    getUnknownErrorMessage,
+    type QueryResponseLike,
+} from '../QueryResponseUtils';
+import {
     buildSqlStringLiteral,
+    joinSqlLines,
 } from '../sqlBuilder/SqlTextUtils';
 
 const TABLE_DOES_NOT_EXIST_PREFIX = 'Table does not exist';
@@ -37,16 +44,6 @@ const DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE = 'Data availability request fail
 const MALFORMED_QUERY_ROWS_MESSAGE = 'Data availability response contained malformed rows.';
 
 type DataTimeRangeRow = [number, number];
-
-type QueryResponseEnvelope = {
-    status: number | undefined;
-    statusText: string | undefined;
-    success: boolean | undefined;
-    data: unknown;
-    reason: unknown;
-    message: unknown;
-    error: unknown;
-};
 
 type ResolvedDataRangeSeries<T extends DataRangeSeries = DataRangeSeries> = Omit<
     T,
@@ -89,7 +86,13 @@ type AvailabilityCheck =
           message: string;
       };
 
-type SingleSeriesTimeRangeResult =
+type DataRangeFetchGroup<T extends DataRangeSeries = DataRangeSeries> = {
+    tableTagMap: TableTagMap;
+    targetTableName: string;
+    seriesList: Array<ResolvedDataRangeSeries<T>>;
+};
+
+type SeriesTimeRangeResult =
     | {
           kind: 'success';
           timeRange: TimeRangeMs;
@@ -99,10 +102,7 @@ type SingleSeriesTimeRangeResult =
           issue: DataAvailabilityIssue;
       };
 
-type AvailabilityCache = {
-    tableByName: Map<string, Promise<AvailabilityCheck>>;
-    tagByIdentity: Map<string, Promise<AvailabilityCheck>>;
-};
+const TABLE_AVAILABILITY_CACHE = new Map<string, Promise<AvailabilityCheck>>();
 
 export async function fetchSeriesDataAvailability<T extends DataRangeSeries>(
     seriesList: T[],
@@ -116,10 +116,7 @@ export async function fetchSeriesDataAvailability<T extends DataRangeSeries>(
 
     assertCompatibleRangeSeries(seriesList);
 
-    const sCache: AvailabilityCache = {
-        tableByName: new Map(),
-        tagByIdentity: new Map(),
-    };
+    const sResolvedSeries: Array<ResolvedDataRangeSeries<T>> = [];
     const sValidRanges: TimeRangeMs[] = [];
     const sIssues: DataAvailabilityIssue[] = [];
 
@@ -130,20 +127,22 @@ export async function fetchSeriesDataAvailability<T extends DataRangeSeries>(
             continue;
         }
 
-        const sSeries = sSeriesResolution.series;
-        const sTableIssue = await getTableAvailabilityIssue(sSeries, sCache);
+        sResolvedSeries.push(sSeriesResolution.series);
+    }
+
+    const sRangeFetchGroups = createDataRangeFetchGroups(sResolvedSeries);
+
+    for (const sGroup of sRangeFetchGroups) {
+        const sTableAvailability = await getCachedTableAvailability(
+            sGroup.targetTableName,
+        );
+        const sTableIssue = getTableAvailabilityIssue(sGroup, sTableAvailability);
         if (sTableIssue) {
             sIssues.push(sTableIssue);
             continue;
         }
 
-        const sTagIssue = await getTagAvailabilityIssue(sSeries, sCache);
-        if (sTagIssue) {
-            sIssues.push(sTagIssue);
-            continue;
-        }
-
-        const sRangeResult = await fetchSingleSeriesDataTimeRange(sSeries);
+        const sRangeResult = await fetchSeriesGroupDataTimeRange(sGroup);
         if (sRangeResult.kind === 'issue') {
             sIssues.push(sRangeResult.issue);
             continue;
@@ -156,14 +155,6 @@ export async function fetchSeriesDataAvailability<T extends DataRangeSeries>(
         timeRange: createCombinedDataTimeRange(sValidRanges),
         issues: sIssues,
     };
-}
-
-export async function fetchSeriesDataTimeRange<T extends DataRangeSeries>(
-    tableTagInfo: T[],
-): Promise<TimeRangeMs | undefined> {
-    const sAvailability = await fetchSeriesDataAvailability(tableTagInfo);
-
-    return sAvailability.timeRange;
 }
 
 export function getDataAvailabilityToastMessage(
@@ -294,26 +285,6 @@ function getSeriesIssueTarget(issue: DataAvailabilityIssue): string {
     return issue.tagName ? `${issue.table}.${issue.tagName}` : issue.table;
 }
 
-export async function fetchVirtualStatDataTimeRange(
-    tableName: string,
-    tagNameList: string[],
-): Promise<TimeRangeMs | undefined> {
-    const sSql = buildVirtualStatOrMountedTableDataTimeRangeSql(
-        tableName,
-        tagNameList,
-    );
-    const sResult = await executeAvailabilityQuery(
-        () => sSql,
-        parseDataTimeRangeRows,
-    );
-
-    if (sResult.kind === 'request-failed') {
-        throw new Error(sResult.message);
-    }
-
-    return createDataTimeRangeFromNanosecondRows(sResult.rows);
-}
-
 function assertCompatibleRangeSeries<T extends DataRangeSeries>(
     seriesList: T[],
 ): void {
@@ -365,135 +336,83 @@ function resolveDataRangeSeries<T extends DataRangeSeries>(
     };
 }
 
-async function getTableAvailabilityIssue<T extends ResolvedDataRangeSeries>(
-    series: T,
-    cache: AvailabilityCache,
-): Promise<DataAvailabilityIssue | undefined> {
-    return getAvailabilityIssueFromCheck(
-        series,
-        await getCachedTableAvailability(series.table, cache),
-        'missing-table',
-    );
-}
+function createDataRangeFetchGroups<T extends DataRangeSeries>(
+    seriesList: Array<ResolvedDataRangeSeries<T>>,
+): Array<DataRangeFetchGroup<T>> {
+    const sGroupByKey = new Map<string, DataRangeFetchGroup<T>>();
 
-async function getTagAvailabilityIssue<T extends ResolvedDataRangeSeries>(
-    series: T,
-    cache: AvailabilityCache,
-): Promise<DataAvailabilityIssue | undefined> {
-    return getAvailabilityIssueFromCheck(
-        series,
-        await getCachedTagAvailability(series, cache),
-        'missing-tag',
-    );
-}
+    for (const sSeries of seriesList) {
+        const sTableTagMap = createTableTagMapForSeries(sSeries);
+        const sTargetTableName =
+            getSeriesDataTimeRangeTargetTableName(sTableTagMap);
+        const sGroupKey = buildDataRangeFetchGroupKey(
+            sSeries,
+            sTargetTableName,
+        );
+        const sExistingGroup = sGroupByKey.get(sGroupKey);
+        if (sExistingGroup) {
+            sExistingGroup.seriesList.push(sSeries);
+            continue;
+        }
 
-function getAvailabilityIssueFromCheck<T extends ResolvedDataRangeSeries>(
-    series: T,
-    check: AvailabilityCheck,
-    missingKind: Extract<DataAvailabilityIssueKind, 'missing-table' | 'missing-tag'>,
-): DataAvailabilityIssue | undefined {
-    switch (check.kind) {
-        case 'available':
-            return undefined;
-        case 'request-failed':
-            return buildDataAvailabilityIssue('request-failed', series, check.message);
-        case 'unavailable':
-            return buildDataAvailabilityIssue(
-                missingKind,
-                series,
-                getMissingAvailabilityMessage(missingKind),
-            );
-    }
-}
-
-function getCachedTableAvailability(
-    tableName: string,
-    cache: AvailabilityCache,
-): Promise<AvailabilityCheck> {
-    const sExistingCheck = cache.tableByName.get(tableName);
-    if (sExistingCheck) {
-        return sExistingCheck;
+        sGroupByKey.set(sGroupKey, {
+            tableTagMap: sTableTagMap,
+            targetTableName: sTargetTableName,
+            seriesList: [sSeries],
+        });
     }
 
-    const sCheck = checkTableAvailability(tableName);
-    cache.tableByName.set(tableName, sCheck);
-    return sCheck;
+    return Array.from(sGroupByKey.values());
 }
 
-function getCachedTagAvailability<T extends ResolvedDataRangeSeries>(
+function createTableTagMapForSeries<T extends ResolvedDataRangeSeries>(
     series: T,
-    cache: AvailabilityCache,
-): Promise<AvailabilityCheck> {
-    const sTagKey = [
-        series.table,
+): TableTagMap {
+    return {
+        table: series.table,
+        tags: [series.sourceTagName],
+        cols: series.sourceColumns,
+    };
+}
+
+function buildDataRangeFetchGroupKey<T extends ResolvedDataRangeSeries>(
+    series: T,
+    targetTableName: string,
+): string {
+    return [
+        targetTableName.toUpperCase(),
         series.sourceColumns.name,
+        series.sourceColumns.time,
+        String(series.sourceColumns.timeBaseTime),
+        String(series.sourceColumns.timeType ?? ''),
         series.sourceTagName,
     ].join('\u0000');
-    const sExistingCheck = cache.tagByIdentity.get(sTagKey);
-    if (sExistingCheck) {
-        return sExistingCheck;
-    }
-
-    const sCheck = checkTagAvailability(series);
-    cache.tagByIdentity.set(sTagKey, sCheck);
-    return sCheck;
 }
 
-async function checkTableAvailability(tableName: string): Promise<AvailabilityCheck> {
-    return createAvailabilityCheckFromQueryResult(
-        await executeAvailabilityQuery(
-            () => buildTableAvailabilitySql(tableName),
-            keepQueryRows,
-        ),
-    );
-}
-
-async function checkTagAvailability<T extends ResolvedDataRangeSeries>(
-    series: T,
-): Promise<AvailabilityCheck> {
-    const sMetadataResult = await executeAvailabilityQuery(
-        () => buildMetadataTagAvailabilitySql(series),
-        keepQueryRows,
-    );
-    if (hasAvailabilityRows(sMetadataResult)) {
-        return { kind: 'available' };
-    }
-
-    const sSourceResult = await executeAvailabilityQuery(
-        () => buildSourceTagAvailabilitySql(series),
-        keepQueryRows,
-    );
-
-    return createAvailabilityCheckFromQueryResult(sSourceResult);
-}
-
-async function fetchSingleSeriesDataTimeRange<T extends ResolvedDataRangeSeries>(
-    series: T,
-): Promise<SingleSeriesTimeRangeResult> {
+async function fetchSeriesGroupDataTimeRange<T extends DataRangeSeries>(
+    group: DataRangeFetchGroup<T>,
+): Promise<SeriesTimeRangeResult> {
     const sResult = await executeAvailabilityQuery(
         () =>
             buildGroupedSeriesDataTimeRangeSql([
-                {
-                    table: series.table,
-                    tags: [series.sourceTagName],
-                    cols: series.sourceColumns,
-                },
+                group.tableTagMap,
             ]),
         parseDataTimeRangeRows,
     );
+    const sSeries = group.seriesList[0];
 
     if (sResult.kind === 'request-failed') {
         return {
             kind: 'issue',
             issue: buildDataAvailabilityIssue(
                 'request-failed',
-                series,
+                sSeries,
                 sResult.message,
             ),
         };
     }
 
-    const sTimeRange = isNumericBaseTimeSourceColumns(series.sourceColumns)
+    const sTimeRange = isNumericBaseTimeSourceColumns(sSeries.sourceColumns)
         ? createDataTimeRangeFromMillisecondRows(sResult.rows)
         : createDataTimeRangeFromNanosecondRows(sResult.rows);
 
@@ -502,7 +421,7 @@ async function fetchSingleSeriesDataTimeRange<T extends ResolvedDataRangeSeries>
             kind: 'issue',
             issue: buildDataAvailabilityIssue(
                 'no-data',
-                series,
+                sSeries,
                 DATA_DOES_NOT_EXIST_MESSAGE,
             ),
         };
@@ -514,9 +433,57 @@ async function fetchSingleSeriesDataTimeRange<T extends ResolvedDataRangeSeries>
     };
 }
 
-async function executeAvailabilityQuery<TRow>(
+async function getCachedTableAvailability(
+    tableName: string,
+): Promise<AvailabilityCheck> {
+    const sCacheKey = tableName.toUpperCase();
+    const sExistingCheck = TABLE_AVAILABILITY_CACHE.get(sCacheKey);
+    if (sExistingCheck) {
+        return sExistingCheck;
+    }
+
+    const sCheck = checkTableAvailability(tableName).then((check) => {
+        if (check.kind === 'request-failed') {
+            TABLE_AVAILABILITY_CACHE.delete(sCacheKey);
+        }
+
+        return check;
+    });
+    TABLE_AVAILABILITY_CACHE.set(sCacheKey, sCheck);
+    return sCheck;
+}
+
+async function checkTableAvailability(tableName: string): Promise<AvailabilityCheck> {
+    return createAvailabilityCheckFromQueryResult(
+        await executeAvailabilityQuery(() => buildTableAvailabilitySql(tableName)),
+    );
+}
+
+function getTableAvailabilityIssue<T extends DataRangeSeries>(
+    group: DataRangeFetchGroup<T>,
+    check: AvailabilityCheck,
+): DataAvailabilityIssue | undefined {
+    switch (check.kind) {
+        case 'available':
+            return undefined;
+        case 'request-failed':
+            return buildDataAvailabilityIssue(
+                'request-failed',
+                group.seriesList[0],
+                check.message,
+            );
+        case 'unavailable':
+            return {
+                kind: 'missing-table',
+                table: group.targetTableName,
+                message: TABLE_DOES_NOT_EXIST_MESSAGE,
+            };
+    }
+}
+
+async function executeAvailabilityQuery<TRow = unknown>(
     buildSql: () => string,
-    parseRows: QueryRowsParser<TRow>,
+    parseRows: QueryRowsParser<TRow> = (rows) => rows as TRow[],
 ): Promise<AvailabilityQueryResult<TRow>> {
     try {
         const sResponse = await request({
@@ -524,7 +491,10 @@ async function executeAvailabilityQuery<TRow>(
             url: '/api/query?q=' + encodeURIComponent(buildSql()),
         });
         const sEnvelope = parseQueryResponseEnvelope(sResponse);
-        const sErrorMessage = getAvailabilityQueryErrorMessage(sEnvelope);
+        const sErrorMessage = getQueryResponseErrorMessage(
+            sEnvelope,
+            DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE,
+        );
         if (sErrorMessage) {
             return {
                 kind: 'request-failed',
@@ -534,7 +504,9 @@ async function executeAvailabilityQuery<TRow>(
 
         return {
             kind: 'success',
-            rows: parseRows(getQueryRows(sEnvelope.data)),
+            rows: parseRows(
+                getQueryRowsOrThrow(sEnvelope.data, MALFORMED_QUERY_ROWS_MESSAGE),
+            ),
         };
     } catch (error) {
         return {
@@ -545,6 +517,14 @@ async function executeAvailabilityQuery<TRow>(
             ),
         };
     }
+}
+
+function parseQueryResponseEnvelope(response: unknown): QueryResponseLike {
+    if (typeof response !== 'object' || response === null) {
+        throw new Error(DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE);
+    }
+
+    return response as QueryResponseLike;
 }
 
 function createAvailabilityCheckFromQueryResult<TRow>(
@@ -560,47 +540,6 @@ function createAvailabilityCheckFromQueryResult<TRow>(
     return result.rows.length > 0
         ? { kind: 'available' }
         : { kind: 'unavailable' };
-}
-
-function hasAvailabilityRows<TRow>(
-    result: AvailabilityQueryResult<TRow>,
-): boolean {
-    return result.kind === 'success' && result.rows.length > 0;
-}
-
-function keepQueryRows(rows: unknown[]): unknown[] {
-    return rows;
-}
-
-function parseQueryResponseEnvelope(response: unknown): QueryResponseEnvelope {
-    if (typeof response !== 'object' || response === null) {
-        throw new Error(DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE);
-    }
-
-    const sResponse = response as Record<string, unknown>;
-
-    return {
-        status: getOptionalNumber(sResponse.status),
-        statusText: getOptionalString(sResponse.statusText),
-        success: getOptionalBoolean(sResponse.success),
-        data: sResponse.data,
-        reason: sResponse.reason,
-        message: sResponse.message,
-        error: sResponse.error,
-    };
-}
-
-function getQueryRows(data: unknown): unknown[] {
-    if (typeof data !== 'object' || data === null || !('rows' in data)) {
-        throw new Error(MALFORMED_QUERY_ROWS_MESSAGE);
-    }
-
-    const rows = (data as { rows: unknown }).rows;
-    if (!Array.isArray(rows)) {
-        throw new Error(MALFORMED_QUERY_ROWS_MESSAGE);
-    }
-
-    return rows;
 }
 
 function parseDataTimeRangeRows(rows: unknown[]): DataTimeRangeRow[] {
@@ -637,111 +576,6 @@ function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
 }
 
-function getOptionalNumber(value: unknown): number | undefined {
-    return typeof value === 'number' ? value : undefined;
-}
-
-function getOptionalString(value: unknown): string | undefined {
-    return typeof value === 'string' ? value : undefined;
-}
-
-function getOptionalBoolean(value: unknown): boolean | undefined {
-    return typeof value === 'boolean' ? value : undefined;
-}
-
-function getAvailabilityQueryErrorMessage(
-    response: QueryResponseEnvelope,
-): string | undefined {
-    if (response.status !== undefined && response.status >= 400) {
-        return getResponseErrorMessage(response) ?? `Request failed (${response.status})`;
-    }
-
-    if (response.success === false) {
-        return getResponseErrorMessage(response) ?? DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE;
-    }
-
-    return undefined;
-}
-
-function getResponseErrorMessage(
-    response: QueryResponseEnvelope,
-): string | undefined {
-    const sDataMessage = getErrorMessageFromValue(response.data);
-    if (sDataMessage) {
-        return sDataMessage;
-    }
-
-    const sTopLevelMessage = getErrorMessageFromValue({
-        reason: response.reason,
-        message: response.message,
-        error: response.error,
-    });
-    if (sTopLevelMessage) {
-        return sTopLevelMessage;
-    }
-
-    return response.statusText;
-}
-
-function getErrorMessageFromValue(value: unknown): string | undefined {
-    if (value === null || value === undefined) {
-        return undefined;
-    }
-
-    if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-    ) {
-        return String(value);
-    }
-
-    if (typeof value !== 'object') {
-        return undefined;
-    }
-
-    const sMessageContainer = value as {
-        reason?: unknown;
-        message?: unknown;
-        error?: unknown;
-    };
-
-    if (sMessageContainer.reason !== undefined) {
-        return String(sMessageContainer.reason);
-    }
-
-    if (sMessageContainer.message !== undefined) {
-        return String(sMessageContainer.message);
-    }
-
-    if (sMessageContainer.error !== undefined) {
-        return String(sMessageContainer.error);
-    }
-
-    const sSerializedValue = JSON.stringify(value);
-    return sSerializedValue === '{}' ? undefined : sSerializedValue;
-}
-
-function getUnknownErrorMessage(error: unknown, fallbackMessage: string): string {
-    if (error instanceof Error && error.message) {
-        return error.message;
-    }
-
-    if (typeof error === 'string' && error.trim()) {
-        return error;
-    }
-
-    return fallbackMessage;
-}
-
-function getMissingAvailabilityMessage(
-    kind: Extract<DataAvailabilityIssueKind, 'missing-table' | 'missing-tag'>,
-): string {
-    return kind === 'missing-table'
-        ? TABLE_DOES_NOT_EXIST_MESSAGE
-        : TAG_DOES_NOT_EXIST_MESSAGE;
-}
-
 function buildDataAvailabilityIssue<T extends DataRangeSeries>(
     kind: DataAvailabilityIssue['kind'],
     series: T,
@@ -755,71 +589,53 @@ function buildDataAvailabilityIssue<T extends DataRangeSeries>(
     };
 }
 
+type AvailabilityTableTarget = {
+    databaseIdQuery: string;
+    userName: string;
+    tableName: string;
+};
+
 function buildTableAvailabilitySql(tableName: string): string {
-    const sTableParts = tableName.split('.');
-    let sDatabaseIdQuery = '';
-    let sResolvedTableName = tableName;
-    let sUserName = ADMIN_ID.toUpperCase();
+    const sTarget = parseAvailabilityTableTarget(tableName);
 
-    if (tableName.indexOf('.') === -1 || sTableParts.length < 3) {
-        sDatabaseIdQuery = String(-1);
-        sResolvedTableName = buildSqlIdentifierPath(
-            sResolvedTableName,
-            'SQL table name',
-        );
-
-        if (sTableParts.length === 2) {
-            sUserName = buildSqlIdentifierPath(
-                sTableParts[0],
-                'SQL user name',
-            );
-            sResolvedTableName = buildSqlIdentifierPath(
-                sTableParts[sTableParts.length - 1],
-                'SQL table name',
-            );
-        }
-    } else {
-        sDatabaseIdQuery = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(sTableParts[0])})`;
-        sUserName = buildSqlIdentifierPath(sTableParts[1], 'SQL user name');
-        sResolvedTableName = buildSqlIdentifierPath(
-            sTableParts[sTableParts.length - 1],
-            'SQL table name',
-        );
+    if (sTarget.tableName.toUpperCase().startsWith('V$')) {
+        return joinSqlLines([
+            'SELECT ID FROM v$tables',
+            `WHERE NAME = ${buildSqlStringLiteral(sTarget.tableName)}`,
+            `  AND USER_ID = (SELECT USER_ID FROM M$SYS_USERS WHERE NAME = ${buildSqlStringLiteral(sTarget.userName)})`,
+            'LIMIT 1',
+        ]);
     }
 
-    return `SELECT MC.NAME AS NM FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER(${buildSqlStringLiteral(sUserName)}) AND MC.DATABASE_ID = ${sDatabaseIdQuery} AND MT.NAME = ${buildSqlStringLiteral(sResolvedTableName)} AND MC.NAME <> '_RID' LIMIT 1`;
+    return joinSqlLines([
+        'SELECT MT.ID FROM M$SYS_TABLES MT, M$SYS_USERS MU',
+        'WHERE MT.USER_ID = MU.USER_ID',
+        `  AND MU.NAME = UPPER(${buildSqlStringLiteral(sTarget.userName)})`,
+        `  AND MT.DATABASE_ID = ${sTarget.databaseIdQuery}`,
+        `  AND MT.NAME = ${buildSqlStringLiteral(sTarget.tableName)}`,
+        'LIMIT 1',
+    ]);
 }
 
-function buildMetadataTagAvailabilitySql<T extends ResolvedDataRangeSeries>(series: T): string {
-    const sMetadataTableName = buildMetadataTableName(series.table);
-    const sSourceColumn = buildSqlIdentifierPath(
-        series.sourceColumns.name,
-        'SQL tag column',
-    );
+function parseAvailabilityTableTarget(
+    tableName: string,
+): AvailabilityTableTarget {
+    const sTableParts = tableName.split('.');
+    const sTableName = sTableParts.at(-1) ?? tableName;
+    const sUserName = sTableParts.length >= 2
+        ? sTableParts.at(-2) ?? ADMIN_ID.toUpperCase()
+        : ADMIN_ID.toUpperCase();
+    const sDatabaseName = sTableParts.length >= 3
+        ? sTableParts.at(-3)
+        : undefined;
 
-    return `select ${sSourceColumn} from ${sMetadataTableName} where ${sSourceColumn} = ${buildSqlStringLiteral(series.sourceTagName)} LIMIT 1`;
-}
-
-function buildSourceTagAvailabilitySql<T extends ResolvedDataRangeSeries>(series: T): string {
-    const sTableName = buildSqlIdentifierPath(series.table, 'SQL table name');
-    const sSourceColumn = buildSqlIdentifierPath(
-        series.sourceColumns.name,
-        'SQL tag column',
-    );
-
-    return `select ${sSourceColumn} from ${sTableName} where ${sSourceColumn} = ${buildSqlStringLiteral(series.sourceTagName)} LIMIT 1`;
-}
-
-function buildMetadataTableName(sourceTableName: string): string {
-    const sSplitName = sourceTableName.split('.');
-    const sTableName = `_${sSplitName.at(-1)}_META`;
-    sSplitName.pop();
-    sSplitName.push(sTableName);
-
-    return buildSqlIdentifierPath(
-        sSplitName.join('.'),
-        'SQL metadata table name',
-    );
+    return {
+        databaseIdQuery: sDatabaseName
+            ? `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(sDatabaseName)})`
+            : '-1',
+        userName: sUserName,
+        tableName: sTableName,
+    };
 }
 
 function createCombinedDataTimeRange(
@@ -848,10 +664,6 @@ function createCombinedDataTimeRange(
 function createDataTimeRangeFromNanosecondRows(
     rows: DataTimeRangeRow[],
 ): TimeRangeMs | undefined {
-    if (rows.length === 0) {
-        return undefined;
-    }
-
     return createDataTimeRangeFromMillisecondRows(
         rows.map(([aStartNanoseconds, aEndNanoseconds]) => [
             Math.floor(aStartNanoseconds / NANOSECONDS_PER_MILLISECOND),
@@ -863,22 +675,7 @@ function createDataTimeRangeFromNanosecondRows(
 function createDataTimeRangeFromMillisecondRows(
     rows: DataTimeRangeRow[],
 ): TimeRangeMs | undefined {
-    if (rows.length === 0) {
-        return undefined;
-    }
-
-    let sMinTime = rows[0][0];
-    let sMaxTime = rows[0][1];
-
-    for (const [aMinTime, aMaxTime] of rows.slice(1)) {
-        if (aMinTime < sMinTime) {
-            sMinTime = aMinTime;
-        }
-
-        if (aMaxTime > sMaxTime) {
-            sMaxTime = aMaxTime;
-        }
-    }
-
-    return createTimeRangeMs(sMinTime, sMaxTime);
+    return createCombinedDataTimeRange(
+        rows.map(([aMinTime, aMaxTime]) => createTimeRangeMs(aMinTime, aMaxTime)),
+    );
 }

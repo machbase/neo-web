@@ -38,9 +38,38 @@
 :global(.panel-popover-form__field) {
     display: grid; gap: 4px; color: #afb5bc; font-size: 12px;
 }
+:global(.panel-popover-form__field-label) {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+:global(.panel-popover-form__field-error) {
+    color: #ff6b6b; font-size: 11px; text-align: right;
+}
 :global(.panel-popover-form__row) { display: grid; gap: 8px; }
+:global(.panel-popover-form__row--stacked) { grid-template-columns: 1fr; }
 :global(.panel-popover-form__row--two) { grid-template-columns: 1fr 1fr; }
 :global(.panel-popover-form__row--three) { grid-template-columns: 1fr 1fr 1fr; }
+:global(.panel-popover-form__range-input-row) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+:global(.panel-popover-form__quick-range) { width: 100%; }
+:global(.panel-popover-form__quick-range > div:last-child) {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 2px 8px;
+}
+:global(.panel-popover-form__quick-range > div:last-child > div) { min-width: 0; }
+:global(.panel-popover-form__configured-range) {
+    display: grid; gap: 8px; justify-items: start;
+}
+:global(.panel-popover-form__configured-range-inputs) {
+    width: min(100%, 260px); grid-template-columns: 1fr;
+}
+:global(.panel-popover-form__configured-quick-range) {
+    display: inline-flex; width: auto; max-width: 100%;
+}
+:global(.panel-popover-form__configured-quick-range > div:last-child) {
+    grid-template-columns: repeat(2, max-content); gap: 2px 4px; justify-content: start;
+    max-width: 100%; overflow-x: auto;
+}
+:global(.panel-popover-form__configured-quick-range > div:last-child > div) { flex: none; }
 :global(.panel-popover-form__checkbox-field) {
     display: flex; align-items: center; gap: 8px; color: #afb5bc; font-size: 12px;
 }
@@ -55,4 +84,10 @@
 :global(.panel-popover-form__preview) {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px;
     border: 0.5px solid; border-radius: 4px; font-size: 12px;
+}
+
+@media (max-width: 520px) {
+    :global(.panel-popover-form__range-input-row) {
+        grid-template-columns: 1fr;
+    }
 }

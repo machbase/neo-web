@@ -5,6 +5,7 @@ import type {
 import type {
     IntervalOption,
     TimeRangeMs,
+    TimeUnit,
     UnixMilliseconds,
 } from '../../domain/time/TimeTypes';
 
@@ -32,12 +33,12 @@ export type CalculationFetchRequest = {
     Start: UnixMilliseconds;
     End: UnixMilliseconds;
     CalculationMode: string;
-    IntervalType: string;
+    IntervalType: TimeUnit;
     IntervalValue: number;
     columnMap: SeriesFetchColumnMap;
     Count: number;
     isRollup: boolean;
-    RollupList: RollupTableMap;
+    rollupColumnName?: string | undefined;
 };
 
 export type RawFetchSampling =
@@ -60,12 +61,8 @@ export type RawFetchRequest = {
     TagNames: string;
     Start: UnixMilliseconds;
     End: UnixMilliseconds;
-    CalculationMode: string;
-    IntervalType: string;
-    IntervalValue: number;
     columnMap: SeriesFetchColumnMap;
     Count: number;
-    isRollup: boolean;
     SortOrder?: SortOrderEnum;
     sampling: RawFetchSampling;
 };
@@ -88,7 +85,7 @@ export type DataAvailabilityResult = {
     issues: DataAvailabilityIssue[];
 };
 
-export type PanelSeriesFetchError = {
+type PanelSeriesFetchError = {
     kind: DataAvailabilityIssueKind;
     message: string;
 };
@@ -96,13 +93,20 @@ export type PanelSeriesFetchError = {
 export type PanelSeriesFetchResult = {
     seriesConfig: PanelSeriesDefinition;
     fetchResult: ChartFetchResponse;
+    usesRollup: boolean;
     isLimitReached?: boolean;
     error?: PanelSeriesFetchError;
 };
 
+export type PanelSeriesRollupStatus = {
+    seriesName: string;
+    usesRollup: boolean;
+};
+
 export type FetchPanelSeriesRowsResult = {
     seriesFetchResults: PanelSeriesFetchResult[];
-    interval: IntervalOption;
+    interval?: IntervalOption;
+    numericInterval?: number;
     count: number;
     isRaw: boolean;
 };
@@ -124,32 +128,6 @@ export type CalculationTimeGroupKeySqlInfo = {
     nonRollupBucketIntervalSeconds: number;
 };
 
-export type PrimitiveErrorValue = string | number | boolean;
-
-export type RequestSuccessPayload<TData> = {
-    data: TData;
-    success: boolean;
-    reason?: string;
-    elapse?: string;
-};
-
-export type HttpErrorResponse<TData = unknown> = {
-    status: number;
-    data: TData;
-    statusText?: string;
-};
-
-export type ErrorMessageContainer = {
-    reason?: unknown;
-    message?: unknown;
-};
-
-export type RequestErrorData = PrimitiveErrorValue | ErrorMessageContainer | null;
-
-export type RequestClientResponse<TData> =
-    | RequestSuccessPayload<TData>
-    | HttpErrorResponse<RequestErrorData>;
-
 export type ChartFetchApiResponse = {
     status?: number;
     success?: boolean;
@@ -161,14 +139,3 @@ export type ChartFetchApiResponse = {
 };
 
 export type RollupTableMap = Record<string, Record<string, Record<string, string[]>>>;
-
-export type TableListFetchResponse = {
-    success?: boolean;
-    status?: number;
-    data: unknown;
-};
-
-export type RawTableListData = {
-    columns: unknown[];
-    rows: unknown[];
-};

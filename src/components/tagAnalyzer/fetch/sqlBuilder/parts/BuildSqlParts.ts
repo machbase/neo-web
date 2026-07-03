@@ -5,52 +5,54 @@ import {
 import {
     normalizeDateBinIntervalUnit,
     normalizeRollupIntervalUnit,
-    normalizeTruncatedIntervalUnit,
 } from '../SqlIntervalUnitUtils';
-import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/TimeConstants';
 import {
     buildSqlIdentifierPath,
     buildSqlStringLiteral,
     buildSqlStringLiteralList,
+    indentSql,
+    joinSqlLines,
 } from '../SqlTextUtils';
+import {
+    toQueryResultMillisecondsSql,
+    toQueryTimeLiteralSql,
+} from '../SqlTimeValueUtils';
 
 export const SELECT_KEYWORD = 'SELECT';
-export const FROM_KEYWORD = 'FROM';
+const FROM_KEYWORD = 'FROM';
 export const WHERE_KEYWORD = 'WHERE';
 export const AND_KEYWORD = 'AND';
 export const IN_KEYWORD = 'IN';
-export const BETWEEN_KEYWORD = 'BETWEEN';
+const BETWEEN_KEYWORD = 'BETWEEN';
 export const AS_KEYWORD = 'AS';
-export const GROUP_BY_KEYWORD = 'GROUP BY';
-export const ORDER_BY_KEYWORD = 'ORDER BY';
-export const LIMIT_KEYWORD = 'LIMIT';
+const GROUP_BY_KEYWORD = 'GROUP BY';
+const ORDER_BY_KEYWORD = 'ORDER BY';
+const LIMIT_KEYWORD = 'LIMIT';
 export const UNION_ALL_KEYWORD = 'UNION ALL';
-export const ASC_KEYWORD = 'ASC';
-export const DESC_KEYWORD = 'DESC';
+const ASC_KEYWORD = 'ASC';
+const DESC_KEYWORD = 'DESC';
 
 export const M_TIME_ALIAS = 'mTime';
 export const M_VALUE_ALIAS = 'mValue';
 export const SUMMVAL_ALIAS = 'SUMMVAL';
 export const CNTMVAL_ALIAS = 'CNTMVAL';
 
-export const TIME_RESULT_ALIAS = 'time';
+const TIME_RESULT_ALIAS = 'time';
 export const VALUE_RESULT_ALIAS = 'value';
 export const DATE_RESULT_ALIAS = 'date';
 
-export const TIME_COLUMN_NAME = 'TIME';
+const TIME_COLUMN_NAME = 'TIME';
 export const NAME_COLUMN_NAME = 'NAME';
 export const MIN_TIME_COLUMN_NAME = 'min_time';
 export const MAX_TIME_COLUMN_NAME = 'max_time';
 export const MIN_TIME_RESULT_ALIAS = 'min_tm';
 export const MAX_TIME_RESULT_ALIAS = 'max_tm';
 
-export const SECONDS_PER_MINUTE = 60;
-export const SECONDS_PER_HOUR = 3600;
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 3600;
 
-export const GROUP_BY_M_TIME_CLAUSE = `${GROUP_BY_KEYWORD} ${M_TIME_ALIAS}`;
-export const ORDER_BY_M_TIME_CLAUSE = `${ORDER_BY_KEYWORD} ${M_TIME_ALIAS}`;
-export const GROUP_BY_TIME_RESULT_CLAUSE = `${GROUP_BY_KEYWORD} TIME`;
-export const ORDER_BY_TIME_RESULT_CLAUSE = `${ORDER_BY_KEYWORD} TIME`;
+const GROUP_BY_M_TIME_CLAUSE = `${GROUP_BY_KEYWORD} ${M_TIME_ALIAS}`;
+const ORDER_BY_M_TIME_CLAUSE = `${ORDER_BY_KEYWORD} ${M_TIME_ALIAS}`;
 
 export function buildSelectSqlPart(
     selectExpressionSql: string,
@@ -66,7 +68,11 @@ export function buildTableTargetSqlPart(tableName: string): string {
 }
 
 export function buildSubSqlTargetSqlPart(subSql: string): string {
-    return `${FROM_KEYWORD} (${subSql})`;
+    return joinSqlLines([
+        `${FROM_KEYWORD} (`,
+        indentSql(subSql),
+        ')',
+    ]);
 }
 
 export function buildQuerySql(
@@ -77,13 +83,14 @@ export function buildQuerySql(
     orderBySql = '',
     limitSql = '',
 ): string {
-    const suffixSql = [whereSql, groupBySql, orderBySql, limitSql]
-        .filter(Boolean)
-        .join(' ');
-
-    return suffixSql
-        ? `${selectPartSql} ${targetPartSql} ${suffixSql}`
-        : `${selectPartSql} ${targetPartSql}`;
+    return joinSqlLines([
+        selectPartSql,
+        targetPartSql,
+        whereSql,
+        groupBySql,
+        orderBySql,
+        limitSql,
+    ]);
 }
 
 export function buildLimitSqlPart(limitValue: number): string {
@@ -112,16 +119,6 @@ export function buildRollupTimeGroupKeySqlPart(
     return `ROLLUP(${buildSqlStringLiteral(
         normalizeRollupIntervalUnit(intervalType),
     )}, ${intervalValue}, ${buildSqlIdentifierPath(timeColumn, 'SQL time column')})`;
-}
-
-export function buildTruncatedTimeGroupKeySqlPart(
-    timeColumnName: string,
-    intervalUnit: string,
-    intervalSize: number,
-): string {
-    return `DATE_TRUNC(${buildSqlStringLiteral(
-        normalizeTruncatedIntervalUnit(intervalUnit),
-    )}, ${buildSqlIdentifierPath(timeColumnName, 'SQL time column')}, ${intervalSize})`;
 }
 
 export function buildDateBinTimeGroupKeySqlPart(
@@ -178,10 +175,18 @@ export function buildSourceWhereSqlPart(
 ): string {
     const sTagNames = Array.isArray(tagNameList) ? tagNameList : [tagNameList];
 
-    return `${WHERE_KEYWORD} ${buildSqlIdentifierPath(
-        tagNameColumn,
-        'SQL tag name column',
-    )} ${IN_KEYWORD} (${buildSqlStringLiteralList(sTagNames)}) ${AND_KEYWORD} ${buildTimeRangeConditionSql(timeSourceColumn, startTime, endTime, compareTimestampValue)}`;
+    return joinSqlLines([
+        `${WHERE_KEYWORD} ${buildSqlIdentifierPath(
+            tagNameColumn,
+            'SQL tag name column',
+        )} ${IN_KEYWORD} (${buildSqlStringLiteralList(sTagNames)})`,
+        `  ${AND_KEYWORD} ${buildTimeRangeConditionSql(
+            timeSourceColumn,
+            startTime,
+            endTime,
+            compareTimestampValue,
+        )}`,
+    ]);
 }
 
 export function buildTimeRangeConditionSql(
@@ -194,11 +199,11 @@ export function buildTimeRangeConditionSql(
         timeSourceColumn,
         'SQL time column',
     );
-    if (compareTimestampValue) {
-        return `${sTimeSourceColumn} ${BETWEEN_KEYWORD} FROM_TIMESTAMP(${startTime}) ${AND_KEYWORD} FROM_TIMESTAMP(${endTime})`;
-    }
 
-    return `${sTimeSourceColumn} ${BETWEEN_KEYWORD} ${startTime} ${AND_KEYWORD} ${endTime}`;
+    return `${sTimeSourceColumn} ${BETWEEN_KEYWORD} ${toQueryTimeLiteralSql(
+        startTime,
+        compareTimestampValue,
+    )} ${AND_KEYWORD} ${toQueryTimeLiteralSql(endTime, compareTimestampValue)}`;
 }
 
 export function buildAggregateSubSql(
@@ -222,11 +227,12 @@ export function buildAggregateOuterSql(
     outerTimeExpressionSql: string,
     requestedRowCount: number,
     convertOuterTimeToTimestamp = true,
+    outerValueExpressionSql = `${calculationMode}(${M_VALUE_ALIAS}) ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`,
 ): string {
     return buildGroupedOuterSql(
         subSql,
         outerTimeExpressionSql,
-        `${calculationMode}(${M_VALUE_ALIAS}) ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`,
+        outerValueExpressionSql,
         requestedRowCount,
         TIME_RESULT_ALIAS,
         convertOuterTimeToTimestamp,
@@ -254,14 +260,22 @@ export function buildAverageOuterSql(
     outerTimeExpressionSql: string,
     requestedRowCount: number,
     convertOuterTimeToTimestamp = true,
+    outerValueExpressionSql = `${SUMMVAL_ALIAS} / ${CNTMVAL_ALIAS} ${AS_KEYWORD} VALUE`,
 ): string {
-    return buildGroupedOuterSql(
-        subSql,
-        outerTimeExpressionSql,
-        `SUM(${SUMMVAL_ALIAS}) / SUM(${CNTMVAL_ALIAS}) ${AS_KEYWORD} VALUE`,
-        requestedRowCount,
-        TIME_COLUMN_NAME,
-        convertOuterTimeToTimestamp,
+    return buildQuerySql(
+        buildSelectSqlPart([
+            buildOuterTimeResultSql(
+                outerTimeExpressionSql,
+                TIME_COLUMN_NAME,
+                convertOuterTimeToTimestamp,
+            ),
+            outerValueExpressionSql,
+        ].join(',\n    ')),
+        buildSubSqlTargetSqlPart(subSql),
+        `${WHERE_KEYWORD} ${CNTMVAL_ALIAS} > 0`,
+        '',
+        `${ORDER_BY_KEYWORD} ${outerTimeExpressionSql}`,
+        buildLimitSqlPart(requestedRowCount),
     );
 }
 
@@ -278,7 +292,7 @@ export function buildAverageSubSql(
         [
             `sum(${valueColumnName}) ${AS_KEYWORD} ${SUMMVAL_ALIAS}`,
             `count(${valueColumnName}) ${AS_KEYWORD} ${CNTMVAL_ALIAS}`,
-        ].join(', '),
+        ].join(',\n    '),
     );
 }
 
@@ -319,11 +333,12 @@ export function buildFirstLastOuterSql(
     outerTimeExpressionSql: string,
     requestedRowCount: number,
     convertOuterTimeToTimestamp = true,
+    outerValueExpressionSql = `${calculationMode}(${M_TIME_ALIAS}, ${M_VALUE_ALIAS}) ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`,
 ): string {
     return buildGroupedOuterSql(
         subSql,
         outerTimeExpressionSql,
-        `${calculationMode}(${M_TIME_ALIAS}, ${M_VALUE_ALIAS}) ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`,
+        outerValueExpressionSql,
         requestedRowCount,
         TIME_RESULT_ALIAS,
         convertOuterTimeToTimestamp,
@@ -341,7 +356,7 @@ function buildGroupedSubSql(
         buildSelectSqlPart([
             `${timeGroupKeySql} ${AS_KEYWORD} ${M_TIME_ALIAS}`,
             valueExpressionSql,
-        ].join(', ')),
+        ].join(',\n    ')),
         buildTableTargetSqlPart(tableName),
         sourceWhereSql,
         GROUP_BY_M_TIME_CLAUSE,
@@ -356,7 +371,12 @@ function buildGroupedOuterSql(
     requestedRowCount: number,
     timeAlias: string,
     convertOuterTimeToTimestamp: boolean,
+    outerWhereSql = '',
 ): string {
+    const sOuterTimeGroupExpression = convertOuterTimeToTimestamp
+        ? TIME_COLUMN_NAME
+        : outerTimeExpressionSql;
+
     return buildQuerySql(
         buildSelectSqlPart([
             buildOuterTimeResultSql(
@@ -365,11 +385,11 @@ function buildGroupedOuterSql(
                 convertOuterTimeToTimestamp,
             ),
             valueExpressionSql,
-        ].join(', ')),
+        ].join(',\n    ')),
         buildSubSqlTargetSqlPart(subSql),
-        '',
-        GROUP_BY_TIME_RESULT_CLAUSE,
-        ORDER_BY_TIME_RESULT_CLAUSE,
+        outerWhereSql,
+        `${GROUP_BY_KEYWORD} ${sOuterTimeGroupExpression}`,
+        `${ORDER_BY_KEYWORD} ${sOuterTimeGroupExpression}`,
         buildLimitSqlPart(requestedRowCount),
     );
 }
@@ -380,6 +400,6 @@ function buildOuterTimeResultSql(
     convertOuterTimeToTimestamp: boolean,
 ): string {
     return convertOuterTimeToTimestamp
-        ? `to_timestamp(${outerTimeExpressionSql}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${alias}`
+        ? `${toQueryResultMillisecondsSql(outerTimeExpressionSql)} ${AS_KEYWORD} ${alias}`
         : `${outerTimeExpressionSql} ${AS_KEYWORD} ${alias}`;
 }

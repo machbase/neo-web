@@ -9,7 +9,7 @@ export enum PanelChartLoadStatus {
     Failed = 'failed',
 }
 
-export type PanelSeriesFetchState = {
+type PanelSeriesFetchState = {
     result: FetchPanelSeriesRowsResult | undefined;
     status: PanelChartLoadStatus;
 };
@@ -54,7 +54,10 @@ export function usePanelSeriesFetch({
         }
 
         const sRequestId = ++requestIdRef.current;
-        setState({ result: undefined, status: PanelChartLoadStatus.Loading });
+        setState((currentState) => ({
+            result: currentState.result,
+            status: PanelChartLoadStatus.Loading,
+        }));
 
         void (async () => {
             try {

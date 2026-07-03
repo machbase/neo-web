@@ -1,7 +1,6 @@
-import type { PanelRangeState } from '../panel/PanelConfig';
+import type { PanelRangeState } from '../panel/PanelInfo';
 import type {
     PanelViewRange,
-    PanelRangeInput,
     TimeRangeInput,
     TimeRangeMs,
 } from '../time/TimeTypes';
@@ -47,12 +46,12 @@ export function normalizePanelViewRange(
     };
 }
 
-export function shouldApplyInitialMainChartWindow({
+function shouldApplyInitialMainChartWindow({
     applyInitialMainChartWindow,
     rangeInput,
 }: {
     applyInitialMainChartWindow: boolean;
-    rangeInput: PanelRangeInput;
+    rangeInput: TimeRangeInput;
 }): boolean {
     return (
         applyInitialMainChartWindow &&
@@ -93,7 +92,7 @@ export function resolveConcretePanelRangeState({
     applyInitialMainChartWindow,
 }: {
     fullRange: TimeRangeMs;
-    rangeInput: PanelRangeInput;
+    rangeInput: TimeRangeInput;
     isNumericAxis: boolean;
     lastViewedRange: PanelViewRange | undefined;
     boardTime: TimeRangeInput;
@@ -113,13 +112,25 @@ export function resolveConcretePanelRangeState({
         isNumericAxis,
     );
 
-    const sDefaultNavigatorRange = isNumericAxis
-        ? fullRange
-        : resolveDefaultNavigatorRange(boardTime, fullRange);
+    const sDefaultNavigatorRangeResolution = isNumericAxis
+        ? { range: fullRange, source: 'full-range' as const }
+        : resolveDefaultNavigatorRangeResolution(boardTime, fullRange);
+    const sDefaultNavigatorRange = sDefaultNavigatorRangeResolution.range;
 
     if (panelRange) {
         return buildValidatedRangeState(
             panelRange,
+            sDefaultNavigatorRange,
+            fullRange,
+        );
+    }
+
+    if (
+        isEmptyPanelRangeInput(rangeInput) &&
+        sDefaultNavigatorRangeResolution.source === 'board-time'
+    ) {
+        return buildValidatedRangeState(
+            sDefaultNavigatorRange,
             sDefaultNavigatorRange,
             fullRange,
         );
@@ -148,7 +159,7 @@ export function resolveDefaultNavigatorRange(
     return resolveDefaultNavigatorRangeResolution(boardTime, fullRange).range;
 }
 
-export type DefaultNavigatorRangeResolution = {
+type DefaultNavigatorRangeResolution = {
     range: TimeRangeMs;
     source: 'board-time' | 'full-range';
 };
@@ -172,25 +183,6 @@ export function resolveDefaultNavigatorRangeResolution(
         range: fullRange,
         source: 'full-range',
     };
-}
-
-export function resolveBoardTimeRange(
-    boardTime: TimeRangeInput,
-    fullRange: TimeRangeMs,
-): TimeRangeMs {
-    const sBoardTimeResolutionOptions = {
-        lastDataTime: fullRange.endTime,
-    };
-    const boardRange = resolveConfiguredTimeRange(
-        boardTime,
-        sBoardTimeResolutionOptions,
-    );
-
-    if (!boardRange) {
-        throw new Error('Cannot apply board time without a concrete board range.');
-    }
-
-    return boardRange;
 }
 
 function resolveConfiguredTimeRange(

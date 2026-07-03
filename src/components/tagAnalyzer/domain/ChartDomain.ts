@@ -4,6 +4,7 @@ export type ChartRow = [number, number | null];
 
 export type ChartSeriesData = {
     name: string;
+    echartsName?: string | undefined;
     data: ChartRow[];
     yAxis: number;
     marker:
@@ -16,6 +17,12 @@ export type ChartSeriesData = {
     color: string | undefined;
     [key: string]: unknown;
 };
+
+export function getChartSeriesEChartsName(
+    series: Pick<ChartSeriesData, 'name' | 'echartsName'>,
+): string {
+    return series.echartsName ?? series.name;
+}
 
 export type SelectedRangeSeriesSummary = {
     seriesIndex: number;

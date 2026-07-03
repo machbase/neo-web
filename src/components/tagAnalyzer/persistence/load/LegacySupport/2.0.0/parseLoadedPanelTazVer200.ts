@@ -1,14 +1,14 @@
 import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
-    normalizePanelEChartType,
     type PanelAnnotation,
     type PanelInfo,
     type PanelYAxis,
-} from '../../../../domain/panel/PanelConfig';
+} from '../../../../domain/panel/PanelInfo';
 import { isPlainObject } from '../../../../domain/ObjectGuards';
 import {
     DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
+    getDefaultPanelSeriesAlias,
     shouldUseNumericPanelRangeInput,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
@@ -24,13 +24,14 @@ import { normalizePersistedValueRangeOrAuto } from '../../normalizePersistedValu
 import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
 import type {
     PanelViewRange,
-    PanelRangeInput,
+    TimeRangeInput,
 } from '../../../../domain/time/TimeTypes';
 import { normalizePanelViewRange } from '../../../../domain/panelRange/PanelRangeResolver';
+import { normalizePersistedPanelChartType } from '../../normalizePersistedPanelChartType';
 
 type NormalizedPersistedPanelInfoV200 = Omit<PersistedPanelInfoV200, 'time'> & {
     time: Omit<PersistedPanelInfoV200['time'], 'rangeConfig'> & {
-        rangeConfig: PanelRangeInput;
+        rangeConfig: TimeRangeInput;
         lastViewedRange: PanelViewRange | undefined;
     };
 };
@@ -85,13 +86,13 @@ export function parseLoadedPanelTazVer200(
         query: {
             tagSet: sTagSet,
             count: sNormalizedPanelInfo.data.rowLimit,
-            intervalType:
-                normalizeStoredTimeUnit(sNormalizedPanelInfo.data.intervalType ?? '') ??
-                sNormalizedPanelInfo.data.intervalType,
+            intervalType: normalizeStoredTimeUnit(
+                sNormalizedPanelInfo.data.intervalType ?? '',
+            ),
         },
         mode: {
             isRaw: sNormalizedPanelInfo.toolbar.isRaw,
-            isOrderBy: true,
+            isOrderBy: false,
             useNormalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
         },
         time: {
@@ -111,7 +112,9 @@ export function parseLoadedPanelTazVer200(
             },
         },
         display: {
-            chartType: normalizePanelEChartType(sNormalizedPanelInfo.display.chartType),
+            chartType: normalizePersistedPanelChartType(
+                sNormalizedPanelInfo.display.chartType,
+            ),
             showLegend: sNormalizedPanelInfo.display.showLegend ?? false,
             showPoint: sNormalizedPanelInfo.display.showPoints ?? false,
             pointRadius: sNormalizedPanelInfo.display.pointRadius ?? 0,
@@ -220,7 +223,7 @@ function normalizePersistedSeriesInfoV200(
 function createSeriesInfoFromPersistedV200(
     seriesInfo: PersistedPanelInfoV200['data']['seriesList'][number],
 ): PanelSeriesDefinition {
-    return {
+    const sSeries = {
         key: seriesInfo.seriesKey,
         table: seriesInfo.tableName,
         sourceTagName: seriesInfo.sourceTagName,
@@ -231,6 +234,11 @@ function createSeriesInfoFromPersistedV200(
         id: seriesInfo.id,
         useRollupTable: seriesInfo.useRollupTable ?? false,
         sourceColumns: createRuntimeSeriesColumns(seriesInfo.sourceColumns),
+    };
+
+    return {
+        ...sSeries,
+        alias: sSeries.alias?.trim() || getDefaultPanelSeriesAlias(sSeries),
     };
 }
 

@@ -9,7 +9,7 @@ import {
     getPanelConfigFromRuntimePanel,
     type PanelRangeState,
     type RuntimePanelInfo,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import {
     MIXED_X_AXIS_KIND_WARNING,
     getSeriesListKeyAxisKind,

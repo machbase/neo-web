@@ -1,36 +1,43 @@
-import { useMemo, useRef, type MouseEvent } from 'react';
-import { PanelMarkupInteractionHint, ANNOTATION_INVALID_TARGET_MESSAGE } from './PanelMarkupInteractionHint';
+import { useMemo, useReducer, useRef, useState, type MouseEvent } from 'react';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
+import { PanelOverlayCursorHint, ANNOTATION_INVALID_TARGET_MESSAGE } from './PanelOverlayCursorHint';
 import { Toast, type ContextMenuPosition } from '@/design-system/components';
 import PanelFooter from './PanelFooter';
-import PanelHeader, {
-    PanelActionKey,
-    type PanelHeaderRuntimeState,
-} from './PanelHeader';
+import PanelHeader, { PanelContextMenu } from './PanelHeader';
 import PanelBody from './PanelBody';
 import PanelEditor from './editor/PanelEditor';
-import { PanelPopupMode, PanelPopups } from './PanelPopups';
-import TimeRangeModal from '../boardModal/TimeRangeModal';
+import type { PanelDataSettingRuntimeMetrics } from './editor/editTabs/EditorDataSettingTab';
+import { FFTModal } from './modal/FFTModal';
+import { EditAnnotationModal } from './modal/EditAnnotationModal';
+import { EditHighlightModal } from './modal/EditHighlightModal';
+import {
+    EditorTimeRangeModal,
+    type EditorTimeRangeModalRequest,
+} from './modal/EditorTimeRangeModal';
+import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
+import RangeModal from '../modals/RangeModal';
 import type { GlobalTimeRangeState } from '../domain/BoardDomain';
+import type { ChartSeriesData } from '../domain/ChartDomain';
 import type {
     PanelAnnotation,
     PanelHighlight,
     PanelInfo,
     PanelRangeState,
     RuntimePanelInfo,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import {
     getPanelConfigFromRuntimePanel,
     DEFAULT_PANEL_HIGHLIGHT_LABEL,
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import {
     resolvePanelAxesForRuntime,
     resolvePanelDisplayForRuntime,
 } from '../domain/panel/PanelRuntime';
 import {
     PanelOverlayMode,
-    type PanelRangeChangeEvent,
     type PanelChartHandle,
     type PanelMarkupHandlers,
 } from '../domain/panel/PanelActions';
@@ -39,55 +46,43 @@ import {
     hasMixedXAxisValueKinds,
     hasNumericBaseTimeSeries,
 } from '../domain/SeriesDomain';
+import { getNavigatorTrackWidth } from '../domain/panelRange/PanelRangeApply';
 import type { PanelRangeChangeOptions } from '../domain/panelRange/PanelRangeApply';
-import {
-    resolveDefaultNavigatorRange,
-    resolveDefaultNavigatorRangeResolution,
-} from '../domain/panelRange/PanelRangeResolver';
 import type { RollupTableMap } from '../fetch/panelData/PanelDataFetchTypes';
-import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
 import type {
-    IntervalOption,
     TimeRangeInput,
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
-import {
-    clampTimeRangeToBounds,
-    isValidTimeRange,
-} from '../domain/time/TimeRangeUtils';
-import { formatAbsoluteTimeExpression } from '../domain/time/TimeRangeInputResolver';
-import type { EditableTimeRangeInputResolution } from '../parsing/TimeRangeInputParsing';
+import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
 import { buildSelectionSummaryPayload } from './PanelBrushSelection';
-import { useChartAreaWidthObserver } from '../board/layout/useChartAreaWidthObserver';
-import { usePanelEditorActions } from './editor/usePanelEditor';
-import {
-    PanelChartLoadStatus,
-    usePanelChartDataRuntime,
-} from './usePanelChartDataRuntime';
+import { useChartAreaWidthObserver } from './useChartAreaWidthObserver';
+import { resolveAppliedPanelInfo } from './editor/panelEditorActions';
+import { PanelChartLoadStatus } from './data/panelFetchState';
+import { buildLoadConfig } from './data/panelChartLoadConfig';
+import { usePanelChartDataRuntime } from './usePanelChartDataRuntime';
+import { usePanelHeaderInteraction } from './usePanelHeaderInteraction';
 import { usePanelRangeControls } from './usePanelRangeControls';
 import {
     PanelRuntimeTimeRangeTarget,
-    getHoveredMainSeriesName,
-    getOpenSelectionSummary,
-    getOpenTimeRangeModalTarget,
-    getVisibleMarkupInteractionHint,
-    usePanelInteractionState,
-} from './usePanelInteractionState';
+    usePanelRuntimeTimeRangeModal,
+} from './usePanelRuntimeTimeRangeModal';
 import {
-    addPanelAnnotation,
-    addPanelHighlight,
-    deletePanelAnnotation,
-    deletePanelHighlight,
-    getPanelAnnotation,
-    getPanelHighlight,
-    renamePanelTitle as getRenamedPanelTitle,
-    updatePanelAnnotation,
-    updatePanelHighlight,
+    INITIAL_PANEL_OVERLAY_CURSOR_HINT_STATE,
+    PanelPopupMode,
+    INITIAL_PANEL_INTERACTION_STATE,
+    type HighlightPopupState,
+    panelOverlayCursorHintReducer,
+    panelInteractionReducer,
+} from './panelInteractionState';
+import {
+    createPanelAnnotationActions,
+    createPanelHighlightActions,
 } from './panelConfigActions';
 import './PanelChartShell.scss';
 
-export type PanelContainerRuntimeProps = {
+type PanelContainerRuntimeProps = {
     isActive: boolean;
+    hasUnsavedBoardChanges: boolean;
     chartAreaWidth: number | undefined;
     boardTimeRange: TimeRangeInput;
     dataRefreshVersion: number;
@@ -104,7 +99,6 @@ type PanelContainerActions = {
     refreshData: () => void;
     refreshTime: () => void;
     expandFullRange: () => void;
-    onSavePanelInfo: (panelInfo: PanelInfo) => Promise<boolean>;
     reloadAfterEditorSave: (
         panelInfo: PanelInfo,
         preserveCurrentVisibleRange: boolean,
@@ -122,18 +116,11 @@ type PanelContainerProps = {
     actions: PanelContainerActions;
 };
 
-type PanelRuntimeTimeRangeModal = {
-    title: string;
-    range: TimeRangeMs;
-    timeRangeInput: TimeRangeInput;
-    timeRangePlaceholder?: TimeRangeInput;
-    allowEmptyTimeRange: boolean;
-};
-
 function PanelContainer({
     runtimePanelInfo,
     runtime: {
         isActive,
+        hasUnsavedBoardChanges,
         chartAreaWidth,
         boardTimeRange,
         dataRefreshVersion,
@@ -145,7 +132,6 @@ function PanelContainer({
         refreshData,
         refreshTime,
         expandFullRange,
-        onSavePanelInfo,
         reloadAfterEditorSave,
         onToggleRaw,
         onApplyPanelInfo,
@@ -163,21 +149,18 @@ function PanelContainer({
     const isOverlapSelected = runtimePanelInfo.isOverlapSelected;
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
+    const [editorTimeRangeModal, setEditorTimeRangeModal] = useState<
+        EditorTimeRangeModalRequest | undefined
+    >(undefined);
 
     const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.query.tagSet);
     const isNumericXAxis =
         !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.query.tagSet);
-    const effectiveIsRaw = isNumericXAxis || isRaw;
-    const runtimePanelConfig: PanelInfo =
-        effectiveIsRaw === panelInfo.mode.isRaw
-            ? panelInfo
-            : {
-                  ...panelInfo,
-                  mode: {
-                      ...panelInfo.mode,
-                      isRaw: effectiveIsRaw,
-                  },
-              };
+    const effectiveIsRaw = isRaw;
+    const panelDataLoadConfig = useMemo(
+        () => buildLoadConfig(panelInfo),
+        [panelInfo],
+    );
     const runtimeAxes = useMemo(
         () =>
             resolvePanelAxesForRuntime(
@@ -196,38 +179,39 @@ function PanelContainer({
         [panelInfo.display],
     );
 
-    const {
-        state: panelUiState,
-        dispatch: dispatchPanelUiAction,
-    } = usePanelInteractionState();
+    const [panelUiState, dispatchPanelUiAction] = useReducer(
+        panelInteractionReducer,
+        INITIAL_PANEL_INTERACTION_STATE,
+    );
+    const [overlayCursorHintState, dispatchOverlayCursorHintAction] = useReducer(
+        panelOverlayCursorHintReducer,
+        INITIAL_PANEL_OVERLAY_CURSOR_HINT_STATE,
+    );
     const {
         overlayMode,
         popupState,
-        timeRangeModal,
         editor,
-        selectionSummary: selectionSummaryState,
-        markupInteraction,
+        selectionSummary,
     } = panelUiState;
-    const timeRangeModalTarget = getOpenTimeRangeModalTarget(timeRangeModal);
     const isEditorMounted = editor.status !== 'closed';
     const isEditorClosing = editor.status === 'closing';
-    const selectionSummary = getOpenSelectionSummary(selectionSummaryState);
-    const markupInteractionHint = getVisibleMarkupInteractionHint(markupInteraction);
-    const hoveredMainSeriesName = getHoveredMainSeriesName(
-        markupInteraction.hoveredMainSeries,
-    );
+    const overlayCursorHint = overlayCursorHintState.hint;
+    const hoveredMainSeriesName = overlayCursorHintState.hoveredMainSeriesName;
 
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
     const {
-        chartData,
-        visibleChartData,
+        mainChartData,
         navigatorChartData,
         displayRangeState,
         resolvedIntervalOption,
+        resolvedNumericInterval,
+        seriesRollupStatusList,
+        mainChartQueryCount,
+        navigatorChartQueryCount,
         displayNotice,
         loadStatus,
     } = usePanelChartDataRuntime({
-        panelInfo: runtimePanelConfig,
+        loadConfig: panelDataLoadConfig,
         isActive,
         rangeState,
         chartAreaWidth,
@@ -240,6 +224,25 @@ function PanelContainer({
         displayNavigatorRange,
         isDefaultNavigatorRange,
     } = displayRangeState;
+    const dataSettingMetrics = useMemo(
+        () =>
+            createDataSettingRuntimeMetrics({
+                mainChartData,
+                navigatorChartData,
+                mainChartQueryCount,
+                navigatorChartQueryCount,
+                chartAreaWidth,
+                seriesCount: panelInfo.query.tagSet.length,
+            }),
+        [
+            chartAreaWidth,
+            mainChartData,
+            mainChartQueryCount,
+            navigatorChartData,
+            navigatorChartQueryCount,
+            panelInfo.query.tagSet.length,
+        ],
+    );
     const {
         rangeActions,
         navigatorShiftActions,
@@ -251,66 +254,48 @@ function PanelContainer({
         onRangeStateChange,
     });
 
-    const {
-        applyEditedPanelConfig,
-        saveEditedPanelConfig,
-    } = usePanelEditorActions({
-        panelInfo,
-        onApplyPanelInfo,
-        onSavePanelInfo,
-        reloadAfterEditorSave,
-    });
+    function applyEditedPanelConfig(editorConfig: PanelInfo): void {
+        const sApplied = resolveAppliedPanelInfo(panelInfo, editorConfig);
 
-    function getHighlight(highlightIndex: number): PanelHighlight {
-        return getPanelHighlight(panelInfo, highlightIndex);
+        onApplyPanelInfo(sApplied.nextPanelInfo);
+        reloadAfterEditorSave(
+            sApplied.nextPanelInfo,
+            sApplied.preserveCurrentVisibleRange,
+        );
     }
 
-    function addHighlight(highlight: PanelHighlight): void {
-        onApplyPanelInfo(addPanelHighlight(panelInfo, highlight));
+    function getEditorTimeRangeModalPosition(): ContextMenuPosition {
+        const sPanelRect = chartAreaRef.current?.getBoundingClientRect();
+
+        if (sPanelRect) {
+            return {
+                x: sPanelRect.left + Math.max(0, (sPanelRect.width - 360) / 2),
+                y: sPanelRect.top + 40,
+            };
+        }
+
+        return {
+            x: Math.max(10, window.innerWidth / 2 - 180),
+            y: Math.max(10, window.innerHeight / 2 - 180),
+        };
     }
 
-    function updateHighlight(
-        highlightIndex: number,
-        highlight: PanelHighlight,
+    function openEditorTimeRangeModal(
+        request: Omit<EditorTimeRangeModalRequest, 'position'>,
     ): void {
-        onApplyPanelInfo(updatePanelHighlight(
-            panelInfo,
-            highlightIndex,
-            highlight,
-        ));
+        setEditorTimeRangeModal({
+            ...request,
+            position: getEditorTimeRangeModalPosition(),
+        });
     }
 
-    function deleteHighlight(highlightIndex: number): void {
-        onApplyPanelInfo(deletePanelHighlight(panelInfo, highlightIndex));
+    function closeEditor(): void {
+        setEditorTimeRangeModal(undefined);
+        dispatchPanelUiAction({ type: 'CLOSE_EDITOR' });
     }
 
-    function getAnnotation(annotationIndex: number): PanelAnnotation {
-        return getPanelAnnotation(panelInfo, annotationIndex);
-    }
-
-    function addAnnotation(annotation: PanelAnnotation): void {
-        onApplyPanelInfo(addPanelAnnotation(panelInfo, annotation));
-    }
-
-    function updateAnnotation(
-        annotationIndex: number,
-        annotation: PanelAnnotation,
-    ): void {
-        onApplyPanelInfo(updatePanelAnnotation(
-            panelInfo,
-            annotationIndex,
-            annotation,
-        ));
-    }
-
-    function deleteAnnotation(annotationIndex: number): void {
-        onApplyPanelInfo(deletePanelAnnotation(panelInfo, annotationIndex));
-    }
-
-    let sResolvedIntervalOption: IntervalOption | undefined = undefined;
-    if (hasResolvedIntervalOption(resolvedIntervalOption)) {
-        sResolvedIntervalOption = resolvedIntervalOption;
-    }
+    const highlightActions = createPanelHighlightActions(panelInfo, onApplyPanelInfo);
+    const annotationActions = createPanelAnnotationActions(panelInfo, onApplyPanelInfo);
 
     const draftHighlight =
         popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR &&
@@ -320,148 +305,49 @@ function PanelContainer({
 
     const isEditing = isEditorMounted && !isEditorClosing;
     const isOverlayModeActive = overlayMode !== PanelOverlayMode.NO_OVERLAY;
-
-    const panelHeaderRuntimeState: PanelHeaderRuntimeState = {
-        title: panelInfo.title,
+    const {
+        runtimeState: panelHeaderRuntimeState,
+        handleAction: handlePanelAction,
+        renameTitle: renamePanelTitle,
+    } = usePanelHeaderInteraction({
+        panelInfo,
         panelRange: displayPanelRange,
-        resolvedIntervalOption: sResolvedIntervalOption,
-        canSetGlobalTime: !isNumericXAxis && sResolvedIntervalOption !== undefined,
+        navigatorRange: displayNavigatorRange,
+        resolvedIntervalOption,
+        resolvedNumericInterval,
+        seriesRollupStatusList,
         canSaveLocal: loadStatus.chart === PanelChartLoadStatus.Ready,
         isNumericXAxis,
         overlayMode,
         isEditing,
         isRaw: effectiveIsRaw,
         isOverlapSelected,
-    };
-    function getRuntimeTimeRangeModal(
-        target: PanelRuntimeTimeRangeTarget | undefined,
-    ): PanelRuntimeTimeRangeModal | undefined {
-        if (target === undefined) {
-            return undefined;
-        }
-
-        switch (target) {
-            case PanelRuntimeTimeRangeTarget.MAIN_CHART:
-                if (!isValidTimeRange(displayPanelRange)) {
-                    return undefined;
-                }
-
-                return {
-                    title: isNumericXAxis
-                        ? 'Current Visible Main Chart Value Range'
-                        : 'Current Visible Main Chart Range',
-                    range: displayPanelRange,
-                    timeRangeInput: formatConcreteRangeForTimeInput(displayPanelRange),
-                    allowEmptyTimeRange: false,
-                };
-
-            case PanelRuntimeTimeRangeTarget.NAVIGATOR:
-                if (!isValidTimeRange(displayNavigatorRange)) {
-                    return undefined;
-                }
-
-                return {
-                    title: isNumericXAxis
-                        ? 'Current Visible Navigator Value Range'
-                        : 'Current Visible Navigator Range',
-                    range: displayNavigatorRange,
-                    timeRangeInput: isDefaultNavigatorRange
-                        ? { start: '', end: '' }
-                        : rangeState.requestNavigatorRangeInput ??
-                          formatConcreteRangeForTimeInput(displayNavigatorRange),
-                    timeRangePlaceholder: isDefaultNavigatorRange
-                        ? getDefaultNavigatorRangePlaceholder(
-                              displayNavigatorRange,
-                              resolveDefaultNavigatorRangeResolution(
-                                  boardTimeRange,
-                                  rangeState.fullRange,
-                              ).source === 'board-time',
-                          )
-                        : undefined,
-                    allowEmptyTimeRange: true,
-                };
-        }
-    }
-
-    function openRuntimeTimeRangeModal(
-        target: PanelRuntimeTimeRangeTarget,
-    ): void {
-        if (getRuntimeTimeRangeModal(target) === undefined) {
-            return;
-        }
-
-        dispatchPanelUiAction({ type: 'OPEN_TIME_RANGE_MODAL', target });
-    }
-
-    function closeRuntimeTimeRangeModal(): void {
-        dispatchPanelUiAction({ type: 'CLOSE_TIME_RANGE_MODAL' });
-    }
-
-    function applyRuntimeConcreteRange(range: TimeRangeMs): boolean {
-        if (timeRangeModalTarget === undefined) {
-            return false;
-        }
-
-        const sRangeChangeEvent: PanelRangeChangeEvent = {
-            min: range.startTime,
-            max: range.endTime,
-        };
-
-        switch (timeRangeModalTarget) {
-            case PanelRuntimeTimeRangeTarget.MAIN_CHART:
-                rangeActions.applyExactMainRange(sRangeChangeEvent);
-                return true;
-
-            case PanelRuntimeTimeRangeTarget.NAVIGATOR:
-                rangeActions.applyExactNavigatorRange(sRangeChangeEvent);
-                return true;
-        }
-    }
-
-    function applyRuntimeTimeRangeInput(
-        timeRangeInput: EditableTimeRangeInputResolution,
-    ): boolean {
-        if (timeRangeInput.status === 'empty') {
-            if (timeRangeModalTarget !== PanelRuntimeTimeRangeTarget.NAVIGATOR) {
-                Toast.error('Please check the entered time.');
-                return false;
-            }
-
-            const sDefaultNavigatorRange = resolveDefaultNavigatorRange(
-                boardTimeRange,
-                rangeState.fullRange,
-            );
-
-            onRangeStateChange({
-                ...rangeState,
-                requestPanelRange: clampTimeRangeToBounds(
-                    rangeState.requestPanelRange,
-                    sDefaultNavigatorRange,
-                ),
-                requestNavigatorRange: sDefaultNavigatorRange,
-                requestNavigatorRangeInput: undefined,
-            });
-            return true;
-        }
-
-        if (timeRangeInput.status !== 'valid') {
-            Toast.error('Please check the entered time.');
-            return false;
-        }
-
-        if (timeRangeModalTarget === PanelRuntimeTimeRangeTarget.NAVIGATOR) {
-            rangeActions.applyExactNavigatorRange(
-                {
-                    min: timeRangeInput.concreteRange.startTime,
-                    max: timeRangeInput.concreteRange.endTime,
-                },
-                timeRangeInput.rangeInput,
-            );
-            return true;
-        }
-
-        return applyRuntimeConcreteRange(timeRangeInput.concreteRange);
-    }
+        onToggleRaw,
+        onApplyPanelInfo,
+        onSetGlobalTimeRange,
+        onRefreshData: refreshData,
+        onRefreshTime: refreshTime,
+        onExpandFullRange: expandFullRange,
+        onPanelInteractionAction: (actionKey) => {
+            dispatchPanelUiAction({ type: 'PANEL_ACTION', actionKey });
+        },
+    });
+    const {
+        runtimeTimeRangeModal,
+        openRuntimeTimeRangeModal,
+        closeRuntimeTimeRangeModal,
+        applyRuntimeConcreteRange,
+        applyRuntimeTimeRangeInput,
+    } = usePanelRuntimeTimeRangeModal({
+        boardTimeRange,
+        rangeState,
+        displayPanelRange,
+        displayNavigatorRange,
+        isDefaultNavigatorRange,
+        isNumericXAxis,
+        rangeActions,
+        onRangeStateChange,
+    });
 
     function handleSelection(selectionRange: TimeRangeMs): boolean {
         switch (overlayMode) {
@@ -485,7 +371,7 @@ function PanelContainer({
     function openSelectionSummaryFromBrush(selectionRange: TimeRangeMs): void {
         const sSelection = buildSelectionSummaryPayload(
             selectionRange,
-            visibleChartData,
+            mainChartData,
             panelInfo.query.tagSet,
         );
 
@@ -510,18 +396,6 @@ function PanelContainer({
         onActivateAnnotationEditor: openEditAnnotationEditor,
     };
 
-    function setGlobalTimeRange(): void {
-        if (!sResolvedIntervalOption) {
-            throw new Error('Cannot set global time without a resolved interval.');
-        }
-
-        onSetGlobalTimeRange({
-            data: displayPanelRange,
-            navigator: displayNavigatorRange,
-            interval: sResolvedIntervalOption,
-        });
-    }
-
     function openFftDialog(): void {
         if (!selectionSummary) {
             throw new Error('Cannot open FFT without an open selection summary.');
@@ -538,61 +412,6 @@ function PanelContainer({
 
     function closePopup(popupMode: PanelPopupMode): void {
         dispatchPanelUiAction({ type: 'CLOSE_POPUP', popupMode });
-    }
-
-    function closePanelEditor(): void {
-        dispatchPanelUiAction({ type: 'CLOSE_EDITOR' });
-    }
-
-    function finishPanelEditorClose(): void {
-        dispatchPanelUiAction({ type: 'FINISH_EDITOR_CLOSE' });
-    }
-
-    function renamePanelTitle(title: string): void {
-        const sNextPanelInfo = getRenamedPanelTitle(panelInfo, title);
-
-        if (sNextPanelInfo === panelInfo) {
-            return;
-        }
-
-        onApplyPanelInfo(sNextPanelInfo);
-    }
-
-    function handlePanelAction(actionKey: PanelActionKey): void {
-        switch (actionKey) {
-            case PanelActionKey.TOGGLE_RAW:
-                if (isNumericXAxis) {
-                    return;
-                }
-
-                onToggleRaw();
-                return;
-
-            case PanelActionKey.SET_GLOBAL_TIME:
-                setGlobalTimeRange();
-                return;
-
-            case PanelActionKey.REFRESH_DATA:
-                refreshData();
-                return;
-
-            case PanelActionKey.REFRESH_TIME:
-                refreshTime();
-                return;
-
-            case PanelActionKey.EXPAND_FULL_RANGE:
-                expandFullRange();
-                return;
-
-            case PanelActionKey.TOGGLE_HIGHLIGHT:
-            case PanelActionKey.TOGGLE_ANNOTATION:
-            case PanelActionKey.TOGGLE_DRAG_SELECT:
-            case PanelActionKey.TOGGLE_EDIT:
-            case PanelActionKey.OPEN_EXPORT_CSV:
-            case PanelActionKey.OPEN_DELETE_CONFIRM:
-                dispatchPanelUiAction({ type: 'PANEL_ACTION', actionKey });
-                return;
-        }
     }
 
     function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
@@ -629,8 +448,8 @@ function PanelContainer({
 
         const sPanelRect = event.currentTarget.getBoundingClientRect();
 
-        dispatchPanelUiAction({
-            type: 'SHOW_MARKUP_INTERACTION_HINT',
+        dispatchOverlayCursorHintAction({
+            type: 'SHOW_OVERLAY_CURSOR_HINT',
             hint: {
                 x: event.clientX - sPanelRect.left,
                 y: event.clientY - sPanelRect.top,
@@ -638,20 +457,6 @@ function PanelContainer({
                 hoveredMainSeriesName,
                 overlayMode,
             },
-        });
-    }
-
-    function handleHoveredMainSeriesChange(
-        seriesName: string | undefined,
-    ): void {
-        if (seriesName === undefined) {
-            dispatchPanelUiAction({ type: 'CLEAR_HOVERED_MAIN_SERIES' });
-            return;
-        }
-
-        dispatchPanelUiAction({
-            type: 'SET_HOVERED_MAIN_SERIES',
-            seriesName,
         });
     }
 
@@ -706,7 +511,7 @@ function PanelContainer({
         position: ContextMenuPosition,
         annotationIndex: number,
     ): void {
-        const sAnnotation = getAnnotation(annotationIndex);
+        const sAnnotation = annotationActions.getAnnotation(annotationIndex);
 
         dispatchPanelUiAction({
             type: 'OPEN_POPUP',
@@ -785,7 +590,63 @@ function PanelContainer({
         });
     }
 
-    const runtimeTimeRangeModal = getRuntimeTimeRangeModal(timeRangeModalTarget);
+    function applyHighlightEditorValue(highlight: PanelHighlight): void {
+        if (popupState.mode !== PanelPopupMode.HIGHLIGHT_EDITOR) {
+            return;
+        }
+
+        if (popupState.editor.mode === 'create') {
+            highlightActions.addHighlight(highlight);
+        } else {
+            highlightActions.updateHighlight(
+                popupState.editor.highlightIndex,
+                highlight,
+            );
+        }
+
+        closePopup(PanelPopupMode.HIGHLIGHT_EDITOR);
+    }
+
+    function deleteHighlightEditorValue(): void {
+        if (
+            popupState.mode !== PanelPopupMode.HIGHLIGHT_EDITOR ||
+            popupState.editor.mode !== 'edit'
+        ) {
+            return;
+        }
+
+        highlightActions.deleteHighlight(popupState.editor.highlightIndex);
+        closePopup(PanelPopupMode.HIGHLIGHT_EDITOR);
+    }
+
+    function applyAnnotationEditorValue(annotation: PanelAnnotation): void {
+        if (popupState.mode !== PanelPopupMode.ANNOTATION_EDITOR) {
+            return;
+        }
+
+        if (popupState.editorMeta.annotationIndex === undefined) {
+            annotationActions.addAnnotation(annotation);
+        } else {
+            annotationActions.updateAnnotation(
+                popupState.editorMeta.annotationIndex,
+                annotation,
+            );
+        }
+
+        closePopup(PanelPopupMode.ANNOTATION_EDITOR);
+    }
+
+    function deleteAnnotationEditorValue(): void {
+        if (
+            popupState.mode !== PanelPopupMode.ANNOTATION_EDITOR ||
+            popupState.editorMeta.annotationIndex === undefined
+        ) {
+            return;
+        }
+
+        annotationActions.deleteAnnotation(popupState.editorMeta.annotationIndex);
+        closePopup(PanelPopupMode.ANNOTATION_EDITOR);
+    }
 
     return (
         <div
@@ -794,12 +655,14 @@ function PanelContainer({
             onContextMenu={handlePanelContextMenu}
             onMouseMove={handlePanelMouseMove}
             onMouseLeave={() => {
-                dispatchPanelUiAction({ type: 'CLEAR_MOUSE_MARKUP_STATE' });
+                dispatchOverlayCursorHintAction({
+                    type: 'CLEAR_OVERLAY_CURSOR_HINT',
+                });
             }}
             onClickCapture={handlePanelClickCapture}
         >
             {isOverlayModeActive && (
-                <PanelMarkupInteractionHint hint={markupInteractionHint} />
+                <PanelOverlayCursorHint hint={overlayCursorHint} />
             )}
             <PanelHeader
                 runtimeState={panelHeaderRuntimeState}
@@ -838,7 +701,7 @@ function PanelContainer({
                     isRaw={effectiveIsRaw}
                     overlayMode={overlayMode}
                     data={{
-                        chartData,
+                        chartData: mainChartData,
                         navigatorChartData,
                     }}
                     rangeState={displayRangeState}
@@ -847,14 +710,17 @@ function PanelContainer({
                     handlers={{
                         rangeActions,
                         markupHandlers: chartMarkupHandlers,
-                        onHoveredMainSeriesChange: handleHoveredMainSeriesChange,
+                        onHoveredMainSeriesChange: (seriesName) =>
+                            dispatchOverlayCursorHintAction({
+                                type: 'SET_HOVERED_MAIN_SERIES',
+                                seriesName,
+                            }),
                         onSelection: handleSelection,
                     }}
                 />
                 <PanelFooter
                     pShowLegend={panelInfo.display.showLegend}
                     pNavigatorRange={displayNavigatorRange}
-                    pIsDefaultNavigatorRange={isDefaultNavigatorRange}
                     pIsLoading={loadStatus.navigator === PanelChartLoadStatus.Loading}
                     pOnOpenTimeRangeModal={() =>
                         openRuntimeTimeRangeModal(
@@ -870,90 +736,268 @@ function PanelContainer({
                 <PanelEditor
                     pAnimationState={isEditorClosing ? 'closing' : 'opening'}
                     pOnApplyEditorConfig={applyEditedPanelConfig}
-                    pOnSaveEditorConfig={saveEditedPanelConfig}
-                    pOnClose={closePanelEditor}
-                    pOnAnimationEnd={finishPanelEditorClose}
+                    pOnClose={closeEditor}
+                    pOnAnimationEnd={() =>
+                        dispatchPanelUiAction({ type: 'FINISH_EDITOR_CLOSE' })
+                    }
                     pPanelInfo={panelInfo}
                     pIsRawMode={effectiveIsRaw}
+                    pHasUnsavedBoardChanges={hasUnsavedBoardChanges}
                     pPanelRange={displayPanelRange}
+                    pRollupTableList={rollupTableList}
+                    pOpenTimeRangePanel={openEditorTimeRangeModal}
+                    pDataSettingMetrics={dataSettingMetrics}
                 />
             )}
-            {runtimeTimeRangeModal !== undefined &&
-                (isNumericXAxis ? (
-                    <TimeRangeModal
-                        rangeKind="numeric"
-                        title={runtimeTimeRangeModal.title}
-                        numericRange={runtimeTimeRangeModal.range}
-                        onApply={applyRuntimeConcreteRange}
-                        onClose={closeRuntimeTimeRangeModal}
-                    />
-                ) : (
-                    <TimeRangeModal
-                        rangeKind="time"
-                        title={runtimeTimeRangeModal.title}
-                        timeRange={runtimeTimeRangeModal.timeRangeInput}
-                        timeRangePlaceholder={runtimeTimeRangeModal.timeRangePlaceholder}
-                        allowEmptyTimeRange={runtimeTimeRangeModal.allowEmptyTimeRange}
-                        lastDataTime={
-                            isValidTimeRange(rangeState.fullRange)
-                                ? rangeState.fullRange.endTime
-                                : runtimeTimeRangeModal.range.endTime
+            {editorTimeRangeModal !== undefined && (
+                <EditorTimeRangeModal
+                    request={editorTimeRangeModal}
+                    onClose={() => setEditorTimeRangeModal(undefined)}
+                />
+            )}
+            {runtimeTimeRangeModal !== undefined && (
+                <RangeModal
+                    title={runtimeTimeRangeModal.title}
+                    isNumeric={isNumericXAxis}
+                    numericRange={{
+                        initialRange: runtimeTimeRangeModal.range,
+                        onApply: applyRuntimeConcreteRange,
+                    }}
+                    timeRange={{
+                        initialRangeInput: runtimeTimeRangeModal.timeRangeInput,
+                        emptyRange: runtimeTimeRangeModal.emptyRange,
+                        dataEndTime: isValidTimeRange(rangeState.fullRange)
+                            ? rangeState.fullRange.endTime
+                            : runtimeTimeRangeModal.range.endTime,
+                        referenceRange: runtimeTimeRangeModal.range,
+                        onApply: applyRuntimeTimeRangeInput,
+                    }}
+                    onClose={closeRuntimeTimeRangeModal}
+                />
+            )}
+            {popupState.mode === PanelPopupMode.CONTEXT_MENU && (
+                <PanelContextMenu
+                    runtimeState={panelHeaderRuntimeState}
+                    onAction={handlePanelAction}
+                    position={popupState.position}
+                    onClose={() => closePopup(PanelPopupMode.CONTEXT_MENU)}
+                />
+            )}
+            {popupState.mode === PanelPopupMode.FFT && (
+                <FFTModal
+                    seriesSummaries={popupState.selection.seriesSummaries}
+                    startTime={popupState.selection.startTime}
+                    endTime={popupState.selection.endTime}
+                    isNumericXAxis={isNumericXAxis}
+                    onClose={() => closePopup(PanelPopupMode.FFT)}
+                />
+            )}
+            {selectionSummary !== undefined && (
+                <SelectionSummaryPopover
+                    selection={selectionSummary.selection}
+                    position={selectionSummary.popoverPosition}
+                    isNumericXAxis={isNumericXAxis}
+                    onOpenFft={openFftDialog}
+                    onClose={() => {
+                        dispatchPanelUiAction({ type: 'CLOSE_SELECTION_SUMMARY' });
+                    }}
+                />
+            )}
+            {popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR && (
+                <EditHighlightModal
+                    key={getHighlightEditorKey(popupState)}
+                    activeHighlightEditor={popupState.editor}
+                    highlight={getHighlightEditorValue(
+                        popupState,
+                        highlightActions.getHighlight,
+                    )}
+                    onCancel={() => closePopup(PanelPopupMode.HIGHLIGHT_EDITOR)}
+                    onApply={applyHighlightEditorValue}
+                    onDelete={
+                        popupState.editor.mode === 'edit'
+                            ? deleteHighlightEditorValue
+                            : undefined
+                    }
+                    isNumericXAxis={isNumericXAxis}
+                />
+            )}
+            {popupState.mode === PanelPopupMode.ANNOTATION_EDITOR && (
+                <EditAnnotationModal
+                    key={popupState.editorMeta.annotationIndex ?? 'new'}
+                    annotationEditorMeta={popupState.editorMeta}
+                    annotation={getAnnotationEditorValue(
+                        popupState.editorMeta,
+                        annotationActions.getAnnotation,
+                    )}
+                    annotationSeriesList={panelInfo.query.tagSet}
+                    onCancel={() => closePopup(PanelPopupMode.ANNOTATION_EDITOR)}
+                    onApply={applyAnnotationEditorValue}
+                    onDelete={
+                        popupState.editorMeta.annotationIndex !== undefined
+                            ? deleteAnnotationEditorValue
+                            : undefined
+                    }
+                    isNumericXAxis={isNumericXAxis}
+                />
+            )}
+            {popupState.mode === PanelPopupMode.DELETE_CONFIRM && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={(isOpen) => {
+                        if (!isOpen) {
+                            closePopup(PanelPopupMode.DELETE_CONFIRM);
                         }
-                        previousConcreteRange={runtimeTimeRangeModal.range}
-                        onApply={applyRuntimeTimeRangeInput}
-                        onClose={closeRuntimeTimeRangeModal}
-                    />
-                ))}
-            <PanelPopups
-                popupState={popupState}
-                panelHeaderRuntimeState={panelHeaderRuntimeState}
-                onPanelAction={handlePanelAction}
-                isNumericXAxis={isNumericXAxis}
-                selectionSummary={selectionSummary}
-                highlightActions={{
-                    getHighlight,
-                    addHighlight,
-                    updateHighlight,
-                    deleteHighlight,
-                }}
-                annotationActions={{
-                    getAnnotation,
-                    addAnnotation,
-                    updateAnnotation,
-                    deleteAnnotation,
-                }}
-                annotationSeriesList={panelInfo.query.tagSet}
-                onClosePopup={closePopup}
-                onCloseSelectionSummary={() => {
-                    dispatchPanelUiAction({ type: 'CLOSE_SELECTION_SUMMARY' });
-                }}
-                onOpenFft={openFftDialog}
-                onDeletePanel={onDeletePanel}
-                chartData={visibleChartData}
-                panelChartApiRef={panelChartApiRef}
-            />
+                    }}
+                    pCallback={onDeletePanel}
+                    pContents={
+                        <div className="body-content">Do you want to delete this panel?</div>
+                    }
+                />
+            )}
+            {popupState.mode === PanelPopupMode.EXPORT_CSV && (
+                <SavedToLocalModal
+                    pPanelInfo={filterChartDataByRange(
+                        mainChartData,
+                        displayPanelRange,
+                    )}
+                    pChartRef={panelChartApiRef}
+                    pIsDarkMode
+                    setIsOpen={(isOpen) => {
+                        if (!isOpen) {
+                            closePopup(PanelPopupMode.EXPORT_CSV);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
 
 
-function formatConcreteRangeForTimeInput(range: TimeRangeMs): TimeRangeInput {
+function createDataSettingRuntimeMetrics({
+    mainChartData,
+    navigatorChartData,
+    mainChartQueryCount,
+    navigatorChartQueryCount,
+    chartAreaWidth,
+    seriesCount,
+}: {
+    mainChartData: ChartSeriesData[];
+    navigatorChartData: ChartSeriesData[];
+    mainChartQueryCount: number | undefined;
+    navigatorChartQueryCount: number | undefined;
+    chartAreaWidth: number | undefined;
+    seriesCount: number;
+}): PanelDataSettingRuntimeMetrics {
     return {
-        start: formatAbsoluteTimeExpression(range.startTime),
-        end: formatAbsoluteTimeExpression(range.endTime),
+        mainChart: {
+            queriedEntries: toTotalQueryCount(mainChartQueryCount, seriesCount),
+            pointCount: resolvePointCount(mainChartQueryCount, mainChartData),
+            pixelWidth: resolveMainMetricPixelWidth(chartAreaWidth),
+        },
+        navigator: {
+            queriedEntries: toTotalQueryCount(
+                navigatorChartQueryCount,
+                seriesCount,
+            ),
+            pointCount: resolvePointCount(
+                navigatorChartQueryCount,
+                navigatorChartData,
+            ),
+            pixelWidth: resolveNavigatorMetricPixelWidth(chartAreaWidth),
+        },
     };
 }
 
-function getDefaultNavigatorRangePlaceholder(
+function toTotalQueryCount(
+    queryCountPerSeries: number | undefined,
+    seriesCount: number,
+): number | undefined {
+    if (queryCountPerSeries === undefined) {
+        return undefined;
+    }
+
+    return Math.max(0, queryCountPerSeries) * Math.max(0, seriesCount);
+}
+
+function resolvePointCount(
+    queryCount: number | undefined,
+    chartData: ChartSeriesData[],
+): number | undefined {
+    if (queryCount === undefined && chartData.length === 0) {
+        return undefined;
+    }
+
+    return chartData.reduce((sum, series) => sum + series.data.length, 0);
+}
+
+function resolveMainMetricPixelWidth(
+    chartAreaWidth: number | undefined,
+): number | undefined {
+    return chartAreaWidth !== undefined &&
+        Number.isFinite(chartAreaWidth) &&
+        chartAreaWidth > 0
+        ? chartAreaWidth
+        : undefined;
+}
+
+function resolveNavigatorMetricPixelWidth(
+    chartAreaWidth: number | undefined,
+): number | undefined {
+    const sMainPixelWidth = resolveMainMetricPixelWidth(chartAreaWidth);
+
+    return sMainPixelWidth === undefined
+        ? undefined
+        : getNavigatorTrackWidth(sMainPixelWidth);
+}
+
+function getHighlightEditorKey(popupState: HighlightPopupState): string {
+    if (popupState.draftHighlight !== undefined) {
+        const { draftHighlight } = popupState;
+        return `create-${draftHighlight.timeRange.startTime}-${draftHighlight.timeRange.endTime}`;
+    }
+
+    return `edit-${popupState.editor.highlightIndex}`;
+}
+
+function getHighlightEditorValue(
+    popupState: HighlightPopupState,
+    getHighlight: (highlightIndex: number) => PanelHighlight,
+): PanelHighlight {
+    if (popupState.editor.mode === 'create') {
+        if (popupState.draftHighlight === undefined) {
+            throw new Error('Cannot create highlight form without a draft highlight.');
+        }
+
+        return popupState.draftHighlight;
+    }
+
+    return getHighlight(popupState.editor.highlightIndex);
+}
+
+function getAnnotationEditorValue(
+    editorMeta: { annotationIndex?: number },
+    getAnnotation: (annotationIndex: number) => PanelAnnotation,
+): PanelAnnotation | undefined {
+    return editorMeta.annotationIndex === undefined
+        ? undefined
+        : getAnnotation(editorMeta.annotationIndex);
+}
+
+function filterChartDataByRange(
+    chartData: ChartSeriesData[],
     range: TimeRangeMs,
-    isBoardTimeDefault: boolean,
-): TimeRangeInput {
-    const sRangeInput = formatConcreteRangeForTimeInput(range);
-    const sSuffix = isBoardTimeDefault ? ' (board time)' : ' (default)';
+): ChartSeriesData[] {
+    if (!isValidTimeRange(range)) {
+        return chartData;
+    }
 
-    return {
-        start: `${sRangeInput.start}${sSuffix}`,
-        end: `${sRangeInput.end}${sSuffix}`,
-    };
+    return chartData.map((series) => ({
+        ...series,
+        data: series.data.filter(([timestamp]) =>
+            timestamp >= range.startTime && timestamp <= range.endTime,
+        ),
+    }));
 }
+
 export default PanelContainer;

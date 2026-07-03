@@ -1,5 +1,10 @@
 import type { ChartRow, ChartSeriesData } from '../../domain/ChartDomain';
-import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import {
+    getPanelSeriesDisplayName,
+    getPanelSeriesModeLabel,
+    getPanelSeriesValueLabel,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 import type {
     FetchPanelSeriesRowsResult,
     TagFetchRow,
@@ -23,14 +28,12 @@ function buildChartSeriesData(
     useRawLabel = false,
     includeColor = true,
 ): ChartSeriesData {
-    const sSeriesName =
-        seriesConfig.alias ||
-        `${seriesConfig.sourceTagName}(${
-            useRawLabel ? 'raw' : seriesConfig.calculationMode.toLowerCase()
-        })`;
+    const sSeriesMode = getPanelSeriesModeLabel(seriesConfig, useRawLabel);
+    const sSeriesName = getPanelSeriesDisplayName(seriesConfig);
 
     return {
         name: sSeriesName,
+        echartsName: buildEChartsSeriesName(seriesConfig, sSeriesMode),
         data: rows,
         yAxis: seriesConfig.useSecondaryAxis ? 1 : 0,
         marker: {
@@ -40,6 +43,21 @@ function buildChartSeriesData(
         },
         color: includeColor ? seriesConfig.color : undefined,
     };
+}
+
+function buildEChartsSeriesName(
+    seriesConfig: PanelSeriesDefinition,
+    seriesMode: string,
+): string {
+    const sBaseName = [
+        seriesConfig.table,
+        seriesConfig.sourceTagName,
+        getPanelSeriesValueLabel(seriesConfig),
+    ]
+        .filter((part) => part.trim().length > 0)
+        .join(' / ');
+
+    return sBaseName ? `${sBaseName} (${seriesMode})` : seriesMode;
 }
 
 export function mapFetchResultToChartData(

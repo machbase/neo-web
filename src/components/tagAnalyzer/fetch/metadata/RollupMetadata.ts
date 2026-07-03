@@ -1,7 +1,9 @@
 import request from '@/api/core';
 import { Toast } from '@/design-system/components';
+import { ADMIN_ID } from '@/utils/constants';
+import { ROLLUP_EXT_TYPE_BY_COLUMN } from '@/utils/rollupColumnCandidates';
+import { asRecord } from '../../domain/ObjectGuards';
 import type { RollupTableMap } from '../panelData/PanelDataFetchTypes';
-import { parseRollupTableName } from './RollupTableNameParsing';
 
 const ROLLUP_VERSION_STORAGE_KEY = 'V$ROLLUP_VER';
 
@@ -15,12 +17,31 @@ type RollupMetadataResponse = {
     message?: unknown;
 };
 
-export type RollupMetadataLookupKey = {
+type RollupMetadataLookupKey = {
     userName: string;
     tableName: string;
 };
 
-export function getConfiguredRollupVersion(): string | null {
+type ParsedRollupTableName = {
+    databaseName: string;
+    userName: string;
+    tableName: string;
+};
+
+type RollupMetadataCacheEntry = {
+    rollupVersion: string | null;
+    value: RollupTableMap;
+};
+
+type PendingRollupMetadataRequest = {
+    rollupVersion: string | null;
+    promise: Promise<RollupTableMap>;
+};
+
+let sCachedRollupMetadata: RollupMetadataCacheEntry | undefined;
+let sPendingRollupMetadataRequest: PendingRollupMetadataRequest | undefined;
+
+function getConfiguredRollupVersion(): string | null {
     if (typeof localStorage === 'undefined') {
         return null;
     }
@@ -28,15 +49,31 @@ export function getConfiguredRollupVersion(): string | null {
     return localStorage.getItem(ROLLUP_VERSION_STORAGE_KEY);
 }
 
+// A table name is "[database.][user.]table"; missing segments fall back to the
+// default database and admin user. An empty or malformed name yields keys that
+// simply never match a rollup map entry.
+function parseRollupTableName(tableName: string): ParsedRollupTableName {
+    const sTableSegments = tableName.split('.');
+
+    return {
+        databaseName: sTableSegments.length > 2
+            ? sTableSegments[sTableSegments.length - 3]
+            : 'MACHBASEDB',
+        userName: sTableSegments.length > 1
+            ? sTableSegments[sTableSegments.length - 2]
+            : ADMIN_ID.toUpperCase(),
+        tableName: sTableSegments[sTableSegments.length - 1],
+    };
+}
+
+// Returns undefined only when rollup lookups do not apply at all: the OLD
+// rollup catalog has no entries for mounted (non-MACHBASEDB) databases.
 export function getRollupMetadataLookupKey(
     tableName: string,
 ): RollupMetadataLookupKey | undefined {
     const sParsedTableName = parseRollupTableName(tableName);
-    if (!sParsedTableName) {
-        return undefined;
-    }
-
     const sRollupVersion = getConfiguredRollupVersion();
+
     if (
         sRollupVersion === 'OLD' &&
         sParsedTableName.databaseName.toUpperCase() !== 'MACHBASEDB'
@@ -44,18 +81,87 @@ export function getRollupMetadataLookupKey(
         return undefined;
     }
 
-    const sTableNameForLookup = sRollupVersion === 'RECENT'
-        ? `${sParsedTableName.databaseName}.${sParsedTableName.tableName}`
-        : sParsedTableName.tableName;
-
     return {
         userName: sParsedTableName.userName,
-        tableName: sTableNameForLookup,
+        tableName: sRollupVersion === 'OLD'
+            ? sParsedTableName.tableName
+            : `${sParsedTableName.databaseName}.${sParsedTableName.tableName}`,
     };
+}
+
+// The rollup map is keyed by names as the server returned them (usually upper
+// case), while lookup keys keep the configured casing; probe both spellings.
+export function findRollupTableEntry(
+    rollupMetadata: unknown,
+    tableName: string,
+): Record<string, unknown> | undefined {
+    const sRollupMetadataRecord = asRecord(rollupMetadata);
+    const sLookupKey = getRollupMetadataLookupKey(tableName);
+    if (!sRollupMetadataRecord || !sLookupKey) {
+        return undefined;
+    }
+
+    for (const sUserName of uniqueStrings([
+        sLookupKey.userName,
+        sLookupKey.userName.toUpperCase(),
+    ])) {
+        const sUserEntry = asRecord(sRollupMetadataRecord[sUserName]);
+        if (!sUserEntry) {
+            continue;
+        }
+
+        for (const sEntryTableName of uniqueStrings([
+            sLookupKey.tableName,
+            sLookupKey.tableName.toUpperCase(),
+        ])) {
+            const sTableEntry = asRecord(sUserEntry[sEntryTableName]);
+            if (sTableEntry) {
+                return sTableEntry;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function uniqueStrings(values: string[]): string[] {
+    return Array.from(new Set(values));
 }
 
 export async function fetchAllRollupTableInfo(): Promise<RollupTableMap> {
     const sRollupVersion = getConfiguredRollupVersion();
+    if (sCachedRollupMetadata?.rollupVersion === sRollupVersion) {
+        return sCachedRollupMetadata.value;
+    }
+
+    if (sPendingRollupMetadataRequest?.rollupVersion === sRollupVersion) {
+        return sPendingRollupMetadataRequest.promise;
+    }
+
+    const sRequestPromise = fetchAllRollupTableInfoUncached(sRollupVersion);
+    sPendingRollupMetadataRequest = {
+        rollupVersion: sRollupVersion,
+        promise: sRequestPromise,
+    };
+
+    try {
+        const sRollupMetadata = await sRequestPromise;
+        sCachedRollupMetadata = {
+            rollupVersion: sRollupVersion,
+            value: sRollupMetadata,
+        };
+
+        return sRollupMetadata;
+    } finally {
+        if (sPendingRollupMetadataRequest?.promise === sRequestPromise) {
+            sPendingRollupMetadataRequest = undefined;
+        }
+    }
+}
+
+async function fetchAllRollupTableInfoUncached(
+    sRollupVersion: string | null,
+): Promise<RollupTableMap> {
     let sSql = `select t1.user_name as user_name, 
   case when t1.database_id = -1 then 'MACHBASEDB' else t2.MOUNTDB end || '.' || t1.root_table as root_table, 
   t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 
@@ -87,10 +193,14 @@ order by user_name, root_table asc, interval_time desc`;
     for (const [user, table, value, column, extType] of sRows) {
         sRollupMap[user] ??= {};
         sRollupMap[user][table] ??= {};
-        sRollupMap[user][table][column] ??= [];
-        sRollupMap[user][table].EXT_TYPE ??= [];
-        sRollupMap[user][table].EXT_TYPE.push(extType);
-        sRollupMap[user][table][column].push(value);
+        const sTableRollupMap = sRollupMap[user][table] as Record<string, any>;
+        sTableRollupMap[column] ??= [];
+        sTableRollupMap.EXT_TYPE ??= [];
+        sTableRollupMap[ROLLUP_EXT_TYPE_BY_COLUMN] ??= {};
+        sTableRollupMap[ROLLUP_EXT_TYPE_BY_COLUMN][column] ??= [];
+        sTableRollupMap.EXT_TYPE.push(extType);
+        sTableRollupMap[ROLLUP_EXT_TYPE_BY_COLUMN][column].push(extType);
+        sTableRollupMap[column].push(value);
     }
 
     return sRollupMap;
