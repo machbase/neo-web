@@ -16,15 +16,6 @@ export function isEmptyPanelRangeInput(rangeInput: PanelRangeInput): boolean {
     );
 }
 
-export function hasCompletePanelRangeInput(
-    rangeInput: PanelRangeInput,
-): boolean {
-    return (
-        !isEmptyPanelRangeExpression(rangeInput.start) &&
-        !isEmptyPanelRangeExpression(rangeInput.end)
-    );
-}
-
 // A non-empty expression is valid for its axis kind when it can be interpreted as
 // a concrete bound. An empty side is always valid (it means "no constraint").
 export function isPanelRangeExpressionValidForAxis(

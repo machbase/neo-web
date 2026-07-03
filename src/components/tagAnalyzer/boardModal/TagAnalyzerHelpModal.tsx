@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react';
+import './TagAnalyzerHelpModal.scss';
+import type { ReactNode } from 'react';
 import {
     Calendar,
     Check,
@@ -38,35 +39,6 @@ type HelpSection = {
     items: HelpItem[];
 };
 
-const ZOOM_ICON_STYLE = { width: 20, height: 20, objectFit: 'contain' } as const;
-
-const ICON_PAIR_STYLE: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 3,
-};
-
-const RAW_ICON_STYLE: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 26,
-    fontSize: 10,
-    fontWeight: 700,
-    lineHeight: 1,
-};
-
-const TEXT_ICON_STYLE: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 16,
-    height: 16,
-    fontSize: 12,
-    fontWeight: 700,
-    lineHeight: 1,
-};
-
 const HELP_SECTIONS: HelpSection[] = [
     {
         title: 'Board Header',
@@ -96,7 +68,7 @@ const HELP_SECTIONS: HelpSection[] = [
                 title: 'Save / Save as',
                 description: 'Saves the board to the current or a new TAZ file.',
                 icon: (
-                    <span style={ICON_PAIR_STYLE}>
+                    <span className="taz-help-modal__icon-pair">
                         <Save size={15} />
                         <SaveAs size={15} />
                     </span>
@@ -121,7 +93,7 @@ const HELP_SECTIONS: HelpSection[] = [
             {
                 title: 'Panel title',
                 description: 'Click the title text to rename the panel.',
-                icon: <span style={TEXT_ICON_STYLE}>T</span>,
+                icon: <span className="taz-help-modal__glyph taz-help-modal__glyph--text">T</span>,
             },
             {
                 title: 'Visible range',
@@ -152,7 +124,7 @@ const HELP_SECTIONS: HelpSection[] = [
                 title: 'Edit / Delete',
                 description: 'Opens panel editor or deletes this panel.',
                 icon: (
-                    <span style={ICON_PAIR_STYLE}>
+                    <span className="taz-help-modal__icon-pair">
                         <GearFill size={15} />
                         <Delete size={16} />
                     </span>
@@ -187,7 +159,7 @@ const HELP_SECTIONS: HelpSection[] = [
             {
                 title: 'RAW',
                 description: 'Switches between calculated interval data and raw rows.',
-                icon: <span style={RAW_ICON_STYLE}>RAW</span>,
+                icon: <span className="taz-help-modal__glyph taz-help-modal__glyph--raw">RAW</span>,
             },
         ],
     },
@@ -199,9 +171,9 @@ const HELP_SECTIONS: HelpSection[] = [
                 title: 'Zoom in',
                 description: 'Narrows the navigator range around its current center.',
                 icon: (
-                    <span style={ICON_PAIR_STYLE}>
-                        <img src={ZoomInFour} style={ZOOM_ICON_STYLE} />
-                        <img src={ZoomInTwo} style={ZOOM_ICON_STYLE} />
+                    <span className="taz-help-modal__icon-pair">
+                        <img src={ZoomInFour} className="taz-help-modal__zoom-icon" />
+                        <img src={ZoomInTwo} className="taz-help-modal__zoom-icon" />
                     </span>
                 ),
             },
@@ -214,9 +186,9 @@ const HELP_SECTIONS: HelpSection[] = [
                 title: 'Zoom out',
                 description: 'Widens the navigator range around its current center.',
                 icon: (
-                    <span style={ICON_PAIR_STYLE}>
-                        <img src={ZoomOutTwo} style={ZOOM_ICON_STYLE} />
-                        <img src={ZoomOutFour} style={ZOOM_ICON_STYLE} />
+                    <span className="taz-help-modal__icon-pair">
+                        <img src={ZoomOutTwo} className="taz-help-modal__zoom-icon" />
+                        <img src={ZoomOutFour} className="taz-help-modal__zoom-icon" />
                     </span>
                 ),
             },
@@ -224,7 +196,7 @@ const HELP_SECTIONS: HelpSection[] = [
                 title: 'Move navigator',
                 description: 'Moves the navigator window backward or forward.',
                 icon: (
-                    <span style={ICON_PAIR_STYLE}>
+                    <span className="taz-help-modal__icon-pair">
                         <VscChevronLeft size={16} />
                         <VscChevronRight size={16} />
                     </span>
@@ -238,72 +210,6 @@ const HELP_SECTIONS: HelpSection[] = [
         ],
     },
 ];
-
-const MODAL_BODY_STYLE: CSSProperties = {
-    display: 'grid',
-    gap: 18,
-    maxWidth: 760,
-};
-
-const SECTION_STYLE: CSSProperties = {
-    display: 'grid',
-    gap: 8,
-};
-
-const SECTION_TITLE_STYLE: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 7,
-    margin: 0,
-    color: '#fdb532',
-    fontSize: 16,
-    fontWeight: 700,
-    lineHeight: '20px',
-};
-
-const ITEM_GRID_STYLE: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: '6px 12px',
-};
-
-const ITEM_STYLE: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '28px minmax(0, 1fr)',
-    alignItems: 'center',
-    gap: 7,
-    minWidth: 0,
-};
-
-const ITEM_ICON_STYLE: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 24,
-    height: 24,
-    color: '#d6d6d6',
-};
-
-const ITEM_TEXT_STYLE: CSSProperties = {
-    display: 'grid',
-    gap: 1,
-    minWidth: 0,
-    color: '#d6d6d6',
-    fontSize: 12,
-    lineHeight: '16px',
-};
-
-const ITEM_TITLE_STYLE: CSSProperties = {
-    fontSize: 12,
-    fontWeight: 600,
-    lineHeight: '16px',
-};
-
-const ITEM_DESCRIPTION_STYLE: CSSProperties = {
-    fontSize: 12,
-    lineHeight: '16px',
-    opacity: 0.9,
-};
 
 function TagAnalyzerHelpModal({
     onClose,
@@ -322,24 +228,24 @@ function TagAnalyzerHelpModal({
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
-                <div style={MODAL_BODY_STYLE}>
+                <div className="taz-help-modal">
                     {HELP_SECTIONS.map((section) => (
-                        <section key={section.title} style={SECTION_STYLE}>
-                            <h3 style={SECTION_TITLE_STYLE}>
-                                <span style={ITEM_ICON_STYLE}>{section.icon}</span>
+                        <section key={section.title} className="taz-help-modal__section">
+                            <h3 className="taz-help-modal__section-title">
+                                <span className="taz-help-modal__icon">{section.icon}</span>
                                 {section.title}
                             </h3>
-                            <div style={ITEM_GRID_STYLE}>
+                            <div className="taz-help-modal__item-grid">
                                 {section.items.map((item) => (
-                                    <div key={item.title} style={ITEM_STYLE}>
-                                        <span style={ITEM_ICON_STYLE}>
+                                    <div key={item.title} className="taz-help-modal__item">
+                                        <span className="taz-help-modal__icon">
                                             {item.icon}
                                         </span>
-                                        <span style={ITEM_TEXT_STYLE}>
-                                            <span style={ITEM_TITLE_STYLE}>
+                                        <span className="taz-help-modal__text">
+                                            <span className="taz-help-modal__title">
                                                 {item.title}
                                             </span>
-                                            <span style={ITEM_DESCRIPTION_STYLE}>
+                                            <span className="taz-help-modal__description">
                                                 {item.description}
                                             </span>
                                         </span>

@@ -18,6 +18,7 @@ import {
     buildSqlStringLiteral,
     buildTqlDoubleQuotedString,
 } from '../fetch/sqlBuilder/SqlTextUtils';
+import { isPlainObject } from '../domain/ObjectGuards';
 
 const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,
@@ -169,23 +170,19 @@ function buildFftQuery({
     return `SQL(${buildTqlDoubleQuotedString(sSql)})\n${sChartTql}`;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-}
-
 function isTqlChartData(value: unknown): value is TqlChartData {
-    return isRecord(value) && typeof value.chartID === 'string';
+    return isPlainObject(value) && typeof value.chartID === 'string';
 }
 
 function isEChartsTqlChartResponse(
     value: unknown,
 ): value is TqlChartResponse & { headers: Record<string, unknown>; data: TqlChartData } {
-    if (!isRecord(value)) {
+    if (!isPlainObject(value)) {
         return false;
     }
 
     const sResponse = value as TqlChartResponse;
-    if (sResponse.status !== 200 || !isRecord(sResponse.headers)) {
+    if (sResponse.status !== 200 || !isPlainObject(sResponse.headers)) {
         return false;
     }
 
@@ -213,12 +210,10 @@ export const FFTModal = ({
     const [sIntervalUnit, setIntervalUnit] = useState<TimeUnit>(TimeUnit.Millisecond);
     const [sMinHz, setMinHz] = useState<string>('0');
     const [sMaxHz, setMaxHz] = useState<string>('0');
-    const sRangeLabel = pIsNumericXAxis
-        ? `${formatRangeEndpointLabel(
-              pStartTime,
-              true,
-          )} ~ ${formatRangeEndpointLabel(pEndTime, true)}`
-        : `${moment(pStartTime).format('yyyy-MM-DD HH:mm:ss')} ~ ${moment(pEndTime).format('yyyy-MM-DD HH:mm:ss')}`;
+    const sRangeLabel = `${formatRangeEndpointLabel(
+        pStartTime,
+        pIsNumericXAxis,
+    )} ~ ${formatRangeEndpointLabel(pEndTime, pIsNumericXAxis)}`;
     const sDropdownOptions = createFFTModalOptions(pSeriesSummaries);
 
     useEffect(() => {
@@ -285,49 +280,36 @@ export const FFTModal = ({
             setMaxHz(sMaxHzValue);
         }
 
-        const sMinMaxHz = buildFftMinMaxHz(sMinHzValue, sMaxHzValue);
+        let sIntervalMs: string | undefined;
+        if (!sIsChart2D) {
+            if (pIsNumericXAxis) {
+                Toast.warning(
+                    '3D FFT is only available for datetime x-axis panels.',
+                    undefined,
+                );
+                return;
+            }
 
-        if (sIsChart2D) {
-            loadTqlChartData(
-                buildFftQuery({
-                    isChart2D: true,
-                    selectedInfo: sSelectedInfo,
-                    minMaxHz: sMinMaxHz,
-                    isNumericXAxis: pIsNumericXAxis,
-                    startTime: pStartTime,
-                    endTime: pEndTime,
-                }),
-            );
-            return;
+            if (sInterval === '' || sInterval === '0') {
+                Toast.error('Please put an interval value');
+                return;
+            }
+
+            sIntervalMs = getTimeUnitMilliseconds(
+                sIntervalUnit,
+                Number(sInterval),
+            ).toString();
         }
-
-        if (pIsNumericXAxis) {
-            Toast.warning(
-                '3D FFT is only available for datetime x-axis panels.',
-                undefined,
-            );
-            return;
-        }
-
-        if (sInterval === '' || sInterval === '0') {
-            Toast.error('Please put an interval value');
-            return;
-        }
-
-        const sIntervalValue = getTimeUnitMilliseconds(
-            sIntervalUnit,
-            Number(sInterval),
-        ).toString();
 
         loadTqlChartData(
             buildFftQuery({
-                isChart2D: false,
+                isChart2D: sIsChart2D,
                 selectedInfo: sSelectedInfo,
-                minMaxHz: sMinMaxHz,
+                minMaxHz: buildFftMinMaxHz(sMinHzValue, sMaxHzValue),
                 isNumericXAxis: pIsNumericXAxis,
                 startTime: pStartTime,
                 endTime: pEndTime,
-                intervalMs: sIntervalValue,
+                intervalMs: sIntervalMs,
             }),
         );
     };

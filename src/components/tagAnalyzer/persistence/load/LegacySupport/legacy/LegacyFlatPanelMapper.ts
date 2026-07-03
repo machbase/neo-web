@@ -8,9 +8,7 @@ import {
 } from '../../../../domain/panel/PanelConfig';
 import {
     fromLegacyBoolean,
-    toLegacyBoolean,
     normalizeLegacySeriesConfigs,
-    toLegacySeriesConfigs,
 } from './LegacySeriesPersistenceAdapter';
 import {
     shouldUseNumericPanelRangeInput,
@@ -22,15 +20,8 @@ import type {
 import { createTimeRangeInputFromStoredValues } from '../../normalizePersistedTimeRangeInput';
 import { normalizePanelViewRange } from '../../../../domain/panelRange/PanelRangeResolver';
 import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
-import {
-    formatNumericValue,
-    parseNumericRangeExpression,
-} from '../../../../domain/panelRange/PanelRangeInput';
-import {
-    canResolveTimeStringToTimestamp,
-    formatAbsoluteTimeExpression,
-    parseAbsoluteTimeExpression,
-} from '../../../../domain/time/TimeRangeInputResolver';
+import { formatNumericValue } from '../../../../domain/panelRange/PanelRangeInput';
+import { formatAbsoluteTimeExpression } from '../../../../domain/time/TimeRangeInputResolver';
 import { normalizePersistedPanelRangeInput } from '../../normalizePersistedPanelRangeInput';
 import { normalizePersistedValueRange } from '../../normalizePersistedValueRange';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
@@ -39,60 +30,6 @@ export function createPanelInfoFromLegacyFlatPanelInfo(
 ): PanelInfo {
     return createNormalizedLegacyPanelInfo(normalizeLegacyFlatPanelInfo(panelInfo));
 }
-export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo {
-    const sRangeConfig = panelInfo.time.rangeInput;
-
-    return {
-        index_key: panelInfo.key,
-        chart_title: panelInfo.title,
-        tag_set: toLegacySeriesConfigs(panelInfo.query.tagSet),
-        range_bgn: serializeLegacyRangeValue(sRangeConfig.start),
-        range_end: serializeLegacyRangeValue(sRangeConfig.end),
-        raw_keeper: panelInfo.mode.isRaw,
-        time_keeper: panelInfo.time.lastViewedRange,
-        default_range: createLegacyDefaultRange(panelInfo.time.rangeInput),
-        count: panelInfo.query.count,
-        interval_type: panelInfo.query.intervalType,
-        interval_value: 1,
-        show_legend: toLegacyBoolean(panelInfo.display.showLegend),
-        use_zoom: toLegacyBoolean(panelInfo.display.useZoom),
-        connect_nulls: toLegacyBoolean(panelInfo.display.connectNulls),
-        use_normalize: toLegacyBoolean(panelInfo.mode.useNormalize),
-        use_time_keeper: toLegacyBoolean(panelInfo.time.useLastViewedRange),
-        show_x_tickline: toLegacyBoolean(panelInfo.axes.x.showTickline),
-        pixels_per_tick_raw: toLegacyNumberValue(panelInfo.display.pixelsPerTick.raw),
-        pixels_per_tick: toLegacyNumberValue(panelInfo.display.pixelsPerTick.calculated),
-        use_sampling: panelInfo.display.mainChartSampling.enabled,
-        sampling_value: toLegacyNumberValue(panelInfo.display.mainChartSampling.sampleCount),
-        zero_base: toLegacyBoolean(panelInfo.axes.leftY.zeroBase),
-        show_y_tickline: toLegacyBoolean(panelInfo.axes.leftY.showTickline),
-        custom_min: toLegacyNumberValue(panelInfo.axes.leftY.valueRange.min),
-        custom_max: toLegacyNumberValue(panelInfo.axes.leftY.valueRange.max),
-        custom_drilldown_min: toLegacyNumberValue(panelInfo.axes.leftY.rawValueRange.min),
-        custom_drilldown_max: toLegacyNumberValue(panelInfo.axes.leftY.rawValueRange.max),
-        use_ucl: toLegacyBoolean(panelInfo.axes.leftY.upperControlLimit.enabled),
-        ucl_value: toLegacyNumberValue(panelInfo.axes.leftY.upperControlLimit.value),
-        use_lcl: toLegacyBoolean(panelInfo.axes.leftY.lowerControlLimit.enabled),
-        lcl_value: toLegacyNumberValue(panelInfo.axes.leftY.lowerControlLimit.value),
-        use_right_y2: toLegacyBoolean(panelInfo.axes.rightY.enabled),
-        zero_base2: toLegacyBoolean(panelInfo.axes.rightY.zeroBase),
-        show_y_tickline2: toLegacyBoolean(panelInfo.axes.rightY.showTickline),
-        custom_min2: toLegacyNumberValue(panelInfo.axes.rightY.valueRange.min),
-        custom_max2: toLegacyNumberValue(panelInfo.axes.rightY.valueRange.max),
-        custom_drilldown_min2: toLegacyNumberValue(panelInfo.axes.rightY.rawValueRange.min),
-        custom_drilldown_max2: toLegacyNumberValue(panelInfo.axes.rightY.rawValueRange.max),
-        use_ucl2: toLegacyBoolean(panelInfo.axes.rightY.upperControlLimit.enabled),
-        ucl2_value: toLegacyNumberValue(panelInfo.axes.rightY.upperControlLimit.value),
-        use_lcl2: toLegacyBoolean(panelInfo.axes.rightY.lowerControlLimit.enabled),
-        lcl2_value: toLegacyNumberValue(panelInfo.axes.rightY.lowerControlLimit.value),
-        chart_type: panelInfo.display.chartType,
-        show_point: toLegacyBoolean(panelInfo.display.showPoint),
-        point_radius: toLegacyNumberValue(panelInfo.display.pointRadius),
-        fill: toLegacyNumberValue(panelInfo.display.fill),
-        stroke: toLegacyNumberValue(panelInfo.display.stroke),
-    };
-}
-
 function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
     const sTagSet = normalizeLegacySeriesConfigs(panelInfo.tag_set || []);
     const sTimeRange = createTimeRangeInputFromStoredValues(
@@ -261,10 +198,6 @@ function normalizeNumericValue(value: number | string | undefined): number {
     return typeof value === 'number' ? value : Number(value);
 }
 
-function toLegacyNumberValue(value: number | undefined): number {
-    return value ?? 0;
-}
-
 function resolveLegacyRangeConfig(
     panelInfo: LegacyFlatPanelInfo,
     storedRangeConfig: TimeRangeInput,
@@ -313,55 +246,4 @@ function createAbsoluteRangeConfigFromValueRange(
               start: formatAbsoluteTimeExpression(valueRange.min),
               end: formatAbsoluteTimeExpression(valueRange.max),
           };
-}
-
-// The legacy flat format records a default range only when both sides are concrete
-// (an absolute datetime or a plain numeric value); anchored/relative sides drop out.
-function createLegacyDefaultRange(
-    rangeConfig: PanelRangeInput,
-): ValueRange | undefined {
-    const sMin = toLegacyRangeNumber(rangeConfig.start);
-    const sMax = toLegacyRangeNumber(rangeConfig.end);
-
-    if (sMin === undefined || sMax === undefined) {
-        return undefined;
-    }
-
-    return { min: sMin, max: sMax };
-}
-
-function toLegacyRangeNumber(value: string): number | undefined {
-    const sAbsolute = parseAbsoluteTimeExpression(value);
-    if (sAbsolute !== undefined) {
-        return sAbsolute;
-    }
-
-    const sNumeric = parseNumericRangeExpression(value);
-    return sNumeric && sNumeric.anchor === 'value' ? sNumeric.value : undefined;
-}
-
-function serializeLegacyRangeValue(
-    value: string,
-): string | number | '' {
-    const sValue = value.trim();
-    if (sValue === '') {
-        return '';
-    }
-
-    const sAbsolute = parseAbsoluteTimeExpression(sValue);
-    if (sAbsolute !== undefined) {
-        return sAbsolute;
-    }
-
-    const sNumeric = parseNumericRangeExpression(sValue);
-    if (sNumeric && sNumeric.anchor === 'value') {
-        return sNumeric.value;
-    }
-
-    // Relative now/last expressions round-trip as their string form; numeric data
-    // anchors have no legacy representation and drop to empty.
-    return canResolveTimeStringToTimestamp(sValue, {
-        currentTime: 0,
-        lastDataTime: 0,
-    }) ? sValue : '';
 }

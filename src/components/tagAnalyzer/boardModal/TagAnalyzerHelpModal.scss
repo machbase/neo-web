@@ -1,0 +1,96 @@
+.taz-help-modal {
+    display: grid;
+    gap: 18px;
+    max-width: 760px;
+
+    &__section {
+        display: grid;
+        gap: 8px;
+    }
+
+    &__section-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0;
+        color: #fdb532;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 20px;
+    }
+
+    &__item-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 6px 12px;
+    }
+
+    &__item {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+    }
+
+    &__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        color: #d6d6d6;
+    }
+
+    &__icon-pair {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    &__glyph {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        line-height: 1;
+
+        &--raw {
+            width: 26px;
+            font-size: 10px;
+        }
+
+        &--text {
+            width: 16px;
+            height: 16px;
+            font-size: 12px;
+        }
+    }
+
+    &__zoom-icon {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+    }
+
+    &__text {
+        display: grid;
+        gap: 1px;
+        min-width: 0;
+        color: #d6d6d6;
+        font-size: 12px;
+        line-height: 16px;
+    }
+
+    &__title {
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 16px;
+    }
+
+    &__description {
+        font-size: 12px;
+        line-height: 16px;
+        opacity: 0.9;
+    }
+}

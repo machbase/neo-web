@@ -33,8 +33,6 @@ export type PanelRangeApplyResult = {
     didChange: boolean;
 };
 
-export type RequestPanelDataRefresh = (panelKey: string) => void;
-
 export function createInitialPanelRangeState(): PanelRangeState {
     return {
         requestPanelRange: EMPTY_TIME_RANGE,
@@ -42,12 +40,6 @@ export function createInitialPanelRangeState(): PanelRangeState {
         fullRange: EMPTY_TIME_RANGE,
     };
 }
-
-export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
-    rangeState: createInitialPanelRangeState(),
-    chartAreaWidth: undefined,
-    dataRefreshVersion: 0,
-});
 
 export function hasConcretePanelRangeState(rangeState: PanelRangeState): boolean {
     return (

@@ -71,6 +71,11 @@ function formatNumericAxisLabel(
     )}${sUnit.suffix}`;
 }
 
+// Compact K/M/B/T label for axis values with no visible-range context (e.g. Y axes).
+export function formatCompactNumericLabel(value: number | string): string {
+    return formatNumericAxisLabel(value);
+}
+
 export function formatRangeEndpointLabel(
     value: number,
     isNumericAxis: boolean,

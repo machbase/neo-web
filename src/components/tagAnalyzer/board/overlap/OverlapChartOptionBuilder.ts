@@ -20,6 +20,7 @@ import type {
 import {
     formatAxisPointerLabel,
     formatAxisValue,
+    formatCompactNumericLabel,
 } from '../../formatting/TimeFormatters';
 import { getSeriesTimeBounds } from './OverlapComparisonUtils';
 import { getTimeRangeWidth } from '../../domain/time/TimeRangeUtils';
@@ -50,13 +51,6 @@ export const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64',
 const OVERLAP_Y_AXIS_SPLIT_COUNT = 5;
 const OVERLAP_EMPTY_X_AXIS_PADDING_RATIO = 4;
 const OVERLAP_MIN_EMPTY_X_AXIS_PADDING_MS = 1_000;
-const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-});
-const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 4,
-});
 const DEFAULT_NOT_SHOW = {
     show: false,
 } as const;
@@ -75,7 +69,7 @@ const PANEL_AXIS_LABEL_STYLE = {
 const Y_AXIS_LABEL_STYLE = {
     color: '#afb5bc',
     fontSize: 10,
-    formatter: formatYAxisLabel,
+    formatter: formatCompactNumericLabel,
 } satisfies YAXisComponentOption['axisLabel'];
 const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } } satisfies AxisLineStyleOption;
 const AXIS_SPLIT_LINE_STYLE = {
@@ -325,15 +319,6 @@ function formatOverlapXAxisLabel(
         visibleRange,
         isNumericXAxis,
     );
-}
-
-function formatYAxisLabel(value: string | number): string {
-    const sNumeric = Number(value);
-    if (!Number.isFinite(sNumeric)) return String(value);
-
-    return Math.abs(sNumeric) >= 1000
-        ? COMPACT_AXIS_NUMBER_FORMATTER.format(sNumeric)
-        : STANDARD_AXIS_NUMBER_FORMATTER.format(sNumeric);
 }
 
 export function buildOverlapChartOption(

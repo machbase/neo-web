@@ -21,20 +21,6 @@ export class RequiredFullRangeError extends Error {
 }
 
 
-export async function getFullRangeFromSeries(
-    seriesList: PanelSeriesDefinition[],
-): Promise<TimeRangeMs | undefined> {
-    if (seriesList.length === 0) {
-        return undefined;
-    }
-
-    const sDataAvailability = await fetchSeriesDataAvailability(seriesList);
-
-    return isValidTimeRange(sDataAvailability.timeRange)
-        ? sDataAvailability.timeRange
-        : undefined;
-}
-
 export async function fetchRequiredFullRange(
     seriesList: PanelSeriesDefinition[],
 ): Promise<TimeRangeMs> {

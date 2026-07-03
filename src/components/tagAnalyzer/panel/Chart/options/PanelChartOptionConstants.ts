@@ -1,16 +1,8 @@
 import type { XAXisComponentOption, YAXisComponentOption } from 'echarts';
+import { formatCompactNumericLabel } from '../../../formatting/TimeFormatters';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<NonNullable<XAXisComponentOption['splitLine']>['lineStyle']>;
-
-const COMPACT_AXIS_UNITS = [
-    { value: 1_000_000_000_000, suffix: 'T' },
-    { value: 1_000_000_000, suffix: 'B' },
-    { value: 1_000_000, suffix: 'M' },
-    { value: 1_000, suffix: 'K' },
-] as const;
-const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
-const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 });
 
 export const PANEL_LEGEND_TOP = 6;
 export const PANEL_HOVER_SYMBOL_SIZE = 6;
@@ -49,38 +41,8 @@ export const PANEL_AXIS_LABEL_STYLE = { color: '#f8f8f8', fontSize: 10 } satisfi
 export const Y_AXIS_LABEL_STYLE = {
     color: '#afb5bc',
     fontSize: 10,
-    formatter: formatYAxisLabel,
+    formatter: formatCompactNumericLabel,
 } satisfies YAXisComponentOption['axisLabel'];
 
 export const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } } satisfies AxisLineStyleOption;
 export const AXIS_SPLIT_LINE_STYLE = { color: '#323333', width: 1 } satisfies AxisSplitLineStyleOption;
-
-function formatYAxisLabel(value: string | number): string {
-    const sNumericValue = Number(value);
-
-    if (!Number.isFinite(sNumericValue)) {
-        return String(value);
-    }
-
-    const sNormalizedValue = Object.is(sNumericValue, -0) ? 0 : sNumericValue;
-    const sAbsoluteValue = Math.abs(sNormalizedValue);
-    const sUnitIndex = COMPACT_AXIS_UNITS.findIndex(
-        (unit) => sAbsoluteValue >= unit.value,
-    );
-
-    if (sUnitIndex === -1) {
-        return STANDARD_AXIS_NUMBER_FORMATTER.format(sNormalizedValue);
-    }
-
-    const sShouldUseNextLargerUnit =
-        sUnitIndex > 0 &&
-        Math.round((sAbsoluteValue / COMPACT_AXIS_UNITS[sUnitIndex].value) * 10) / 10 >=
-            1000;
-    const sUnit = COMPACT_AXIS_UNITS[
-        sShouldUseNextLargerUnit ? sUnitIndex - 1 : sUnitIndex
-    ];
-
-    return `${COMPACT_AXIS_NUMBER_FORMATTER.format(
-        sNormalizedValue / sUnit.value,
-    )}${sUnit.suffix}`;
-}

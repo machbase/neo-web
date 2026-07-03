@@ -124,32 +124,6 @@ export type CalculationTimeGroupKeySqlInfo = {
     nonRollupBucketIntervalSeconds: number;
 };
 
-export type PrimitiveErrorValue = string | number | boolean;
-
-export type RequestSuccessPayload<TData> = {
-    data: TData;
-    success: boolean;
-    reason?: string;
-    elapse?: string;
-};
-
-export type HttpErrorResponse<TData = unknown> = {
-    status: number;
-    data: TData;
-    statusText?: string;
-};
-
-export type ErrorMessageContainer = {
-    reason?: unknown;
-    message?: unknown;
-};
-
-export type RequestErrorData = PrimitiveErrorValue | ErrorMessageContainer | null;
-
-export type RequestClientResponse<TData> =
-    | RequestSuccessPayload<TData>
-    | HttpErrorResponse<RequestErrorData>;
-
 export type ChartFetchApiResponse = {
     status?: number;
     success?: boolean;

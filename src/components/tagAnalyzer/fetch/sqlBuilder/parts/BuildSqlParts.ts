@@ -5,7 +5,6 @@ import {
 import {
     normalizeDateBinIntervalUnit,
     normalizeRollupIntervalUnit,
-    normalizeTruncatedIntervalUnit,
 } from '../SqlIntervalUnitUtils';
 import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/TimeConstants';
 import {
@@ -112,16 +111,6 @@ export function buildRollupTimeGroupKeySqlPart(
     return `ROLLUP(${buildSqlStringLiteral(
         normalizeRollupIntervalUnit(intervalType),
     )}, ${intervalValue}, ${buildSqlIdentifierPath(timeColumn, 'SQL time column')})`;
-}
-
-export function buildTruncatedTimeGroupKeySqlPart(
-    timeColumnName: string,
-    intervalUnit: string,
-    intervalSize: number,
-): string {
-    return `DATE_TRUNC(${buildSqlStringLiteral(
-        normalizeTruncatedIntervalUnit(intervalUnit),
-    )}, ${buildSqlIdentifierPath(timeColumnName, 'SQL time column')}, ${intervalSize})`;
 }
 
 export function buildDateBinTimeGroupKeySqlPart(

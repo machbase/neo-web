@@ -25,21 +25,6 @@ export function buildGroupedSeriesDataTimeRangeSql(tableTagMap: TableTagMap[]): 
     return tableTagMap.map((info) => buildTableDataTimeRangeSql(info)).join(` ${UNION_ALL_KEYWORD} `);
 }
 
-export function buildVirtualStatOrMountedTableDataTimeRangeSql(
-    tableName: string,
-    tagNameList: string[],
-): string {
-    const sSplitTable = tableName.split('.');
-    const sUserName = getVirtualStatUserName(sSplitTable);
-    const sSourceTableName = sSplitTable.at(-1) ?? tableName;
-
-    return buildVirtualStatTimeRangeSql(
-        sUserName,
-        sSourceTableName,
-        tagNameList,
-    );
-}
-
 function buildTableDataTimeRangeSql(info: TableTagMap): string {
     const sTableInfo = info.table.split('.');
 

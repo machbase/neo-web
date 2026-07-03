@@ -43,10 +43,6 @@ export function showDataAvailabilityToastOnce(
     };
 }
 
-export function resetDataAvailabilityToastDedupe(): void {
-    sShownAvailabilityIssueKeys.clear();
-}
-
 function getDataAvailabilityIssueKey(issue: DataAvailabilityIssue): string {
     switch (issue.kind) {
         case 'missing-table':

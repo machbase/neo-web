@@ -1,3 +1,4 @@
+import './OverlapModal.scss';
 import {
     MdOutlineStackedLineChart,
     Refresh,
@@ -25,63 +26,6 @@ import { formatRangeEndpointLabel } from '../../formatting/TimeFormatters';
 const OVERLAP_LOAD_ERROR_MESSAGE = 'Failed to load overlap data.';
 const OVERLAP_CHART_SHIFT_FRACTION = 0.3;
 const OVERLAP_CHART_FETCH_WIDTH_PX = 1000;
-const OVERLAP_CHART_SIDE_CONTROLS_STYLE = {
-    position: 'absolute',
-    left: '6px',
-    right: '6px',
-    top: '50%',
-    zIndex: 2,
-    display: 'flex',
-    justifyContent: 'space-between',
-    transform: 'translateY(-50%)',
-    pointerEvents: 'none',
-} as const;
-const OVERLAP_PANEL_SHIFT_LIST_STYLE = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    margin: '8px 0',
-} as const;
-const OVERLAP_PANEL_SHIFT_ROW_STYLE = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) auto',
-    alignItems: 'center',
-    gap: 8,
-    padding: '6px 8px',
-    border: '1px solid #323333',
-    borderRadius: 4,
-    background: '#242424',
-} as const;
-const OVERLAP_PANEL_SHIFT_TEXT_STYLE = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(100px, 0.7fr) auto minmax(0, 1fr) auto minmax(0, 1fr)',
-    alignItems: 'center',
-    gap: 8,
-    minWidth: 0,
-    color: '#afb5bc',
-    fontSize: 11,
-} as const;
-const OVERLAP_PANEL_SHIFT_TITLE_STYLE = {
-    overflow: 'hidden',
-    color: '#e7e8ea',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-} as const;
-const OVERLAP_PANEL_SHIFT_LABEL_STYLE = {
-    whiteSpace: 'nowrap',
-} as const;
-const OVERLAP_PANEL_SHIFT_VALUE_STYLE = {
-    minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-} as const;
-const OVERLAP_PANEL_SHIFT_CONTROLS_STYLE = {
-    display: 'grid',
-    gridTemplateColumns: '24px 88px 72px 24px',
-    alignItems: 'center',
-    gap: 4,
-} as const;
 const OVERLAP_PANEL_SHIFT_UNIT_DROPDOWN_STYLE = {
     width: 72,
 } as const;
@@ -346,7 +290,7 @@ function OverlapModal({
                         aria-label="Refresh data"
                     />
                     <div>
-                        <div style={{ position: 'relative' }}>
+                        <div className="overlap-modal__chart-area">
                             {sIsLoadingOverlapData && (
                                 <Page.ContentText pContent="Loading overlap data..." />
                             )}
@@ -368,7 +312,7 @@ function OverlapModal({
                                         }}
                                         opts={{ renderer: 'canvas' }}
                                     />
-                                    <div style={OVERLAP_CHART_SIDE_CONTROLS_STYLE}>
+                                    <div className="overlap-modal__side-controls">
                                         <Button
                                             variant="secondary"
                                             size="xsm"
@@ -378,7 +322,6 @@ function OverlapModal({
                                             isToolTip
                                             toolTipContent="Shift overlap chart left"
                                             aria-label="Shift overlap chart left"
-                                            style={{ pointerEvents: 'auto' }}
                                         />
                                         <Button
                                             variant="secondary"
@@ -389,14 +332,13 @@ function OverlapModal({
                                             isToolTip
                                             toolTipContent="Shift overlap chart right"
                                             aria-label="Shift overlap chart right"
-                                            style={{ pointerEvents: 'auto' }}
                                         />
                                     </div>
                                 </>
                             )}
                         </div>
                     </div>
-                    <div style={OVERLAP_PANEL_SHIFT_LIST_STYLE}>
+                    <div className="overlap-modal__shift-list">
                         {sPanelsInfo.map((panelInfo) => (
                             <OverlapPanelShiftRow
                                 key={panelInfo.panelKey}
@@ -441,15 +383,15 @@ function OverlapPanelShiftRow({
     const sPanelTitle = getPanelDisplayTitle(panelInfo);
 
     return (
-        <div style={OVERLAP_PANEL_SHIFT_ROW_STYLE}>
-            <div style={OVERLAP_PANEL_SHIFT_TEXT_STYLE}>
-                <strong style={OVERLAP_PANEL_SHIFT_TITLE_STYLE}>{sPanelTitle}</strong>
-                <span style={OVERLAP_PANEL_SHIFT_LABEL_STYLE}>Original</span>
-                <span style={OVERLAP_PANEL_SHIFT_VALUE_STYLE}>{formatOverlapRange(panelInfo.originalRuntimeRange, isNumericXAxis)}</span>
-                <span style={OVERLAP_PANEL_SHIFT_LABEL_STYLE}>Altered</span>
-                <span style={OVERLAP_PANEL_SHIFT_VALUE_STYLE}>{formatOverlapRange(panelInfo.runtimeRange, isNumericXAxis)}</span>
+        <div className="overlap-modal__shift-row">
+            <div className="overlap-modal__shift-text">
+                <strong className="overlap-modal__shift-title">{sPanelTitle}</strong>
+                <span className="overlap-modal__shift-label">Original</span>
+                <span className="overlap-modal__shift-value">{formatOverlapRange(panelInfo.originalRuntimeRange, isNumericXAxis)}</span>
+                <span className="overlap-modal__shift-label">Altered</span>
+                <span className="overlap-modal__shift-value">{formatOverlapRange(panelInfo.runtimeRange, isNumericXAxis)}</span>
             </div>
-            <div style={OVERLAP_PANEL_SHIFT_CONTROLS_STYLE}>
+            <div className="overlap-modal__shift-controls">
                 <Button
                     variant="secondary"
                     size="xsm"

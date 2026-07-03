@@ -174,25 +174,6 @@ export function resolveDefaultNavigatorRangeResolution(
     };
 }
 
-export function resolveBoardTimeRange(
-    boardTime: TimeRangeInput,
-    fullRange: TimeRangeMs,
-): TimeRangeMs {
-    const sBoardTimeResolutionOptions = {
-        lastDataTime: fullRange.endTime,
-    };
-    const boardRange = resolveConfiguredTimeRange(
-        boardTime,
-        sBoardTimeResolutionOptions,
-    );
-
-    if (!boardRange) {
-        throw new Error('Cannot apply board time without a concrete board range.');
-    }
-
-    return boardRange;
-}
-
 function resolveConfiguredTimeRange(
     timeRangeInput: TimeRangeInput,
     timeRangeInputResolutionOptions: { lastDataTime?: number },

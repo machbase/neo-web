@@ -1,9 +1,6 @@
 import request from '@/api/core';
 import { ADMIN_ID } from '@/utils/constants';
-import {
-    buildGroupedSeriesDataTimeRangeSql,
-    buildVirtualStatOrMountedTableDataTimeRangeSql,
-} from '../sqlBuilder/BuildDataTimeRangeSql';
+import { buildGroupedSeriesDataTimeRangeSql } from '../sqlBuilder/BuildDataTimeRangeSql';
 import type {
     DataAvailabilityIssue,
     DataAvailabilityIssueKind,
@@ -158,14 +155,6 @@ export async function fetchSeriesDataAvailability<T extends DataRangeSeries>(
     };
 }
 
-export async function fetchSeriesDataTimeRange<T extends DataRangeSeries>(
-    tableTagInfo: T[],
-): Promise<TimeRangeMs | undefined> {
-    const sAvailability = await fetchSeriesDataAvailability(tableTagInfo);
-
-    return sAvailability.timeRange;
-}
-
 export function getDataAvailabilityToastMessage(
     issues: DataAvailabilityIssue[],
 ): string | undefined {
@@ -292,26 +281,6 @@ function getUniqueIssueTargets(
 
 function getSeriesIssueTarget(issue: DataAvailabilityIssue): string {
     return issue.tagName ? `${issue.table}.${issue.tagName}` : issue.table;
-}
-
-export async function fetchVirtualStatDataTimeRange(
-    tableName: string,
-    tagNameList: string[],
-): Promise<TimeRangeMs | undefined> {
-    const sSql = buildVirtualStatOrMountedTableDataTimeRangeSql(
-        tableName,
-        tagNameList,
-    );
-    const sResult = await executeAvailabilityQuery(
-        () => sSql,
-        parseDataTimeRangeRows,
-    );
-
-    if (sResult.kind === 'request-failed') {
-        throw new Error(sResult.message);
-    }
-
-    return createDataTimeRangeFromNanosecondRows(sResult.rows);
 }
 
 function assertCompatibleRangeSeries<T extends DataRangeSeries>(

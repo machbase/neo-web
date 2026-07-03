@@ -34,6 +34,7 @@ import type {
 } from './domain/panel/PanelConfig';
 import { useTagAnalyzerBoardPanels } from './board/range/useTagAnalyzerBoardPanels';
 import { useOverlapSelection } from './board/overlap/useOverlapSelection';
+import type { OverlapPanelInfo } from './board/overlap/OverlapTypes';
 import {
     createRuntimeBoardInfo,
     getBoardInfoForRuntimeBoardSave,
@@ -522,19 +523,7 @@ const TagAnalyzerBoard = ({
             )}
             {overlap.isOverlapModalOpen && (
                 <OverlapModal
-                    key={overlap.overlapPanels
-                        .map((panel) =>
-                            [
-                                panel.panelKey,
-                                panel.runtimeRange.startTime,
-                                panel.runtimeRange.endTime,
-                                panel.panelInfo.mode.isRaw,
-                                panel.panelInfo.query.tagSet
-                                    .map((series) => series.key)
-                                    .join(','),
-                            ].join(':'),
-                        )
-                        .join('|')}
+                    key={buildOverlapModalKey(overlap.overlapPanels)}
                     pPanelsInfo={overlap.overlapPanels}
                     pRollupTableList={pRollupTableList}
                     pSetIsModal={overlap.setOverlapModalOpen}
@@ -552,5 +541,22 @@ const TagAnalyzerBoard = ({
         </>
     );
 };
+
+// Remounts the overlap chart whenever the compared panel set, ranges, or series change
+function buildOverlapModalKey(overlapPanels: OverlapPanelInfo[]): string {
+    return overlapPanels
+        .map((panel) =>
+            [
+                panel.panelKey,
+                panel.runtimeRange.startTime,
+                panel.runtimeRange.endTime,
+                panel.panelInfo.mode.isRaw,
+                panel.panelInfo.query.tagSet
+                    .map((series) => series.key)
+                    .join(','),
+            ].join(':'),
+        )
+        .join('|');
+}
 
 export default TagAnalyzerBoard;
