@@ -113,13 +113,25 @@ export function resolveConcretePanelRangeState({
         isNumericAxis,
     );
 
-    const sDefaultNavigatorRange = isNumericAxis
-        ? fullRange
-        : resolveDefaultNavigatorRange(boardTime, fullRange);
+    const sDefaultNavigatorRangeResolution = isNumericAxis
+        ? { range: fullRange, source: 'full-range' as const }
+        : resolveDefaultNavigatorRangeResolution(boardTime, fullRange);
+    const sDefaultNavigatorRange = sDefaultNavigatorRangeResolution.range;
 
     if (panelRange) {
         return buildValidatedRangeState(
             panelRange,
+            sDefaultNavigatorRange,
+            fullRange,
+        );
+    }
+
+    if (
+        isEmptyPanelRangeInput(rangeInput) &&
+        sDefaultNavigatorRangeResolution.source === 'board-time'
+    ) {
+        return buildValidatedRangeState(
+            sDefaultNavigatorRange,
             sDefaultNavigatorRange,
             fullRange,
         );
