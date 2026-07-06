@@ -20,6 +20,7 @@ import {
     parseAxisInputValue,
 } from '../domain/time/TimeInputFormatters';
 import type { TimeRangeInput, TimeRangeMs } from '../domain/time/TimeTypes';
+import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
 import TagAnalyzerDatePicker from '../TagAnalyzerDatePicker';
 
 type BaseRangeModalProps = {
@@ -29,17 +30,18 @@ type BaseRangeModalProps = {
 
 type TimeRangeModalProps = BaseRangeModalProps & {
     rangeKind: 'time';
-    timeRange: TimeRangeInput;
-    lastDataTime: number;
-    previousConcreteRange?: TimeRangeMs;
-    timeRangePlaceholder?: TimeRangeInput;
-    allowEmptyTimeRange?: boolean;
+    value: TimeRangeInput;
+    dataEndTime?: number;
+    referenceRange?: TimeRangeMs;
+    emptyRange?: boolean | {
+        placeholder?: TimeRangeInput;
+    };
     onApply: (timeRange: EditableTimeRangeInputResolution) => boolean | void;
 };
 
 type NumericRangeModalProps = BaseRangeModalProps & {
     rangeKind: 'numeric';
-    numericRange: TimeRangeMs;
+    value: TimeRangeMs;
     onApply: (range: TimeRangeMs) => boolean | void;
 };
 
@@ -96,16 +98,15 @@ function RangeModalShell({
 
 function DateTimeRangeModal({
     title,
-    timeRange,
-    lastDataTime,
-    previousConcreteRange,
-    timeRangePlaceholder,
-    allowEmptyTimeRange = false,
+    value,
+    dataEndTime,
+    referenceRange,
+    emptyRange,
     onApply,
     onClose,
 }: TimeRangeModalProps) {
-    const [startTimeText, setStartTimeText] = useState(() => timeRange.start);
-    const [endTimeText, setEndTimeText] = useState(() => timeRange.end);
+    const [startTimeText, setStartTimeText] = useState(() => value.start);
+    const [endTimeText, setEndTimeText] = useState(() => value.end);
 
     function handleQuickTime(option: QuickTimeRangeOption) {
         setStartTimeText(String(option.value[0] ?? ''));
@@ -117,19 +118,20 @@ function DateTimeRangeModal({
         const sResolvedRange = resolveEditableTimeRangeInput({
             startValue: startTimeText,
             endValue: endTimeText,
-            previousConcreteRange: previousConcreteRange ?? {
-                startTime: sCurrentTime - 1,
-                endTime: sCurrentTime,
-            },
+            previousConcreteRange: resolveReferenceRange(
+                referenceRange,
+                dataEndTime,
+                sCurrentTime,
+            ),
             currentTime: sCurrentTime,
-            lastDataTime: Number.isFinite(lastDataTime)
-                ? lastDataTime
+            lastDataTime: isFiniteNumber(dataEndTime)
+                ? dataEndTime
                 : sCurrentTime,
         });
 
         if (
             sResolvedRange.status === 'invalid' ||
-            (!allowEmptyTimeRange && sResolvedRange.status !== 'valid')
+            (!isEmptyRangeAllowed(emptyRange) && sResolvedRange.status !== 'valid')
         ) {
             Toast.error('Please check the entered time.');
             return;
@@ -158,14 +160,14 @@ function DateTimeRangeModal({
                 value={String(startTimeText)}
                 onChange={setStartTimeText}
                 onApply={setStartTimeText}
-                placeholder={timeRangePlaceholder?.start}
+                placeholder={getEmptyRangePlaceholder(emptyRange)?.start}
             />
             <TagAnalyzerDatePicker
                 label="To"
                 value={String(endTimeText)}
                 onChange={setEndTimeText}
                 onApply={setEndTimeText}
-                placeholder={timeRangePlaceholder?.end}
+                placeholder={getEmptyRangePlaceholder(emptyRange)?.end}
             />
             <Page.Space />
             <QuickTimeRange
@@ -179,15 +181,15 @@ function DateTimeRangeModal({
 
 function NumericRangeModal({
     title,
-    numericRange,
+    value,
     onApply,
     onClose,
 }: NumericRangeModalProps) {
     const [startValue, setStartValue] = useState(
-        () => formatAxisInputValue(numericRange.startTime, true),
+        () => formatAxisInputValue(value.startTime, true),
     );
     const [endValue, setEndValue] = useState(
-        () => formatAxisInputValue(numericRange.endTime, true),
+        () => formatAxisInputValue(value.endTime, true),
     );
 
     function handleApply() {
@@ -241,4 +243,37 @@ function NumericRangeModal({
             />
         </RangeModalShell>
     );
+}
+
+function resolveReferenceRange(
+    referenceRange: TimeRangeMs | undefined,
+    dataEndTime: number | undefined,
+    currentTime: number,
+): TimeRangeMs {
+    if (isValidTimeRange(referenceRange)) {
+        return referenceRange;
+    }
+
+    const sEndTime = isFiniteNumber(dataEndTime) ? dataEndTime : currentTime;
+
+    return {
+        startTime: sEndTime - 1,
+        endTime: sEndTime,
+    };
+}
+
+function isEmptyRangeAllowed(
+    emptyRange: TimeRangeModalProps['emptyRange'],
+): boolean {
+    return emptyRange !== undefined && emptyRange !== false;
+}
+
+function getEmptyRangePlaceholder(
+    emptyRange: TimeRangeModalProps['emptyRange'],
+): TimeRangeInput | undefined {
+    return typeof emptyRange === 'object' ? emptyRange.placeholder : undefined;
+}
+
+function isFiniteNumber(value: number | undefined): value is number {
+    return typeof value === 'number' && Number.isFinite(value);
 }

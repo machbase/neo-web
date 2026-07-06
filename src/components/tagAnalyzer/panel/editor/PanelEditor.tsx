@@ -64,10 +64,7 @@ const PanelEditor = ({
     pHasUnsavedBoardChanges: boolean;
     pPanelRange: TimeRangeMs;
 }) => {
-    const sInitialEditorConfig = useMemo(
-        () => pPanelInfo,
-        [pPanelInfo],
-    );
+    const sInitialEditorConfig = pPanelInfo;
     const sInitialEditorConfigKey = useMemo(
         () => createNotAppliedCheckKey(sInitialEditorConfig),
         [sInitialEditorConfig],

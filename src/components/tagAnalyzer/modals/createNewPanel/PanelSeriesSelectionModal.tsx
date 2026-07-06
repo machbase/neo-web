@@ -1,5 +1,7 @@
 import {
+    useCallback,
     useEffect,
+    useMemo,
     useRef,
     useState,
     type CSSProperties,
@@ -60,7 +62,10 @@ import {
     getCreateNewPanelRollupColumn,
 } from './CreateNewPanelMetadata';
 import {
+    NewPanelTimeType,
     type NewPanelSeriesPath,
+    getNewPanelTimeTypeFromSourceColumns,
+    getNewPanelTimeTypeFromSeries,
 } from './CreateNewPanelTypes';
 import styles from './CreateNewPanel.module.scss';
 
@@ -121,6 +126,8 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
     const [sSelectedTags, setSelectedTags] = useState<NewPanelSeriesPath[]>(() =>
         createNewPanelSeriesPathsFromDefinitions(sInitialSeries, {}),
     );
+    const [sTableTimeTypeByTable, setTableTimeTypeByTable] =
+        useState<Record<string, NewPanelTimeType>>({});
 
     const [sTagInputValue, setTagInputValue] = useState('');
     const [sSourceColumns, setSourceColumns] =
@@ -131,8 +138,36 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
         useState<string | undefined>();
     const tagSearchRequestKeyRef = useRef(0);
     const sIsAtSelectionLimit = sSelectedTags.length >= PANEL_TAG_LIMIT;
+    const sSelectedTimeType = useMemo(
+        () => getNewPanelTimeTypeFromSeries(sSelectedTags),
+        [sSelectedTags],
+    );
 
-    function applySelectedTags(nextTags: NewPanelSeriesPath[]): boolean {
+    useEffect(() => {
+        setTableTimeTypeByTable((previousTimeTypes) => {
+            let sDidChange = false;
+            const sNextTimeTypes = { ...previousTimeTypes };
+
+            for (const sTag of sSelectedTags) {
+                const sTimeType = getNewPanelTimeTypeFromSourceColumns(
+                    sTag.sourceColumns,
+                );
+                if (
+                    sTimeType === NewPanelTimeType.Unselected ||
+                    sNextTimeTypes[sTag.table] === sTimeType
+                ) {
+                    continue;
+                }
+
+                sNextTimeTypes[sTag.table] = sTimeType;
+                sDidChange = true;
+            }
+
+            return sDidChange ? sNextTimeTypes : previousTimeTypes;
+        });
+    }, [sSelectedTags]);
+
+    const applySelectedTags = useCallback((nextTags: NewPanelSeriesPath[]): boolean => {
         if (hasMixedXAxisValueKinds(nextTags)) {
             setAxisKindWarning(MIXED_X_AXIS_KIND_WARNING);
             Toast.error(MIXED_X_AXIS_KIND_WARNING);
@@ -142,13 +177,13 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
         setSelectedTags(nextTags);
         setAxisKindWarning(undefined);
         return true;
-    }
+    }, []);
 
-    function handleSourceChange(
+    const handleSourceChange = useCallback((
         table: string,
         sourceColumns: TagAnalyzerColumnInfo | undefined,
         tableColumns: TableInfoSearchColumnMetadataRow[],
-    ): void {
+    ): void => {
         setSelectedTableState(table);
         setSourceColumns(sourceColumns);
         setTableColumns(tableColumns);
@@ -156,7 +191,29 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
         if (!table || !sourceColumns) {
             setAvailableTags([]);
         }
-    }
+    }, []);
+
+    const handleTableTimeTypeChange = useCallback((
+        table: string,
+        timeType: NewPanelTimeType,
+    ): void => {
+        if (!table || timeType === NewPanelTimeType.Unselected) {
+            return;
+        }
+
+        setTableTimeTypeByTable((previousTimeTypes) => (
+            previousTimeTypes[table] === timeType
+                ? previousTimeTypes
+                : {
+                      ...previousTimeTypes,
+                      [table]: timeType,
+                  }
+        ));
+    }, []);
+
+    const showError = useCallback((message: string): void => {
+        Toast.error(message);
+    }, []);
 
     async function loadTagList(): Promise<void> {
         if (!sSelectedTable || !sSourceColumns?.name) {
@@ -237,12 +294,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
     function removeSelectedTag(tagId: string): void {
         const sNextTags = sSelectedTags.filter((item) => item.key !== tagId);
 
-        setSelectedTags(sNextTags);
-        setAxisKindWarning(
-            hasMixedXAxisValueKinds(sNextTags)
-                ? MIXED_X_AXIS_KIND_WARNING
-                : undefined,
-        );
+        applySelectedTags(sNextTags);
     }
 
 
@@ -388,9 +440,12 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
                         rollupTableList={sRollupTableList}
                         isTableNameLoading={sIsTableNameLoading}
                         selectedTags={sSelectedTags}
+                        selectedTimeType={sSelectedTimeType}
+                        tableTimeTypeByTable={sTableTimeTypeByTable}
                         onSourceChange={handleSourceChange}
                         onSelectedTagsChange={applySelectedTags}
-                        onError={(message) => Toast.error(message)}
+                        onTableTimeTypeChange={handleTableTimeTypeChange}
+                        onError={showError}
                     />
 
                     <Input
@@ -456,8 +511,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => {
-                                        setSelectedTags([]);
-                                        setAxisKindWarning(undefined);
+                                        applySelectedTags([]);
                                     }}
                                     disabled={sSelectedCount === 0}
                                 >
@@ -561,7 +615,7 @@ function SelectedSeriesSourceDetails({
 }) {
     const sRows = [
         ['Table', getDisplayTableName(item.table)],
-        ['Time', item.sourceColumns.time || 'Time not selected'],
+        ['Time', getSourceTimeLabel(item)],
         ['Value', getSourceValueLabel(item, rollupTableList)],
     ] as const;
 
@@ -621,6 +675,18 @@ function getSourceValueLabel(
     return item.sourceColumns.value || 'Value not selected';
 }
 
+function getSourceTimeLabel(item: NewPanelSeriesPath): string {
+    if (!item.sourceColumns.time) {
+        return 'Time not selected';
+    }
+
+    const sTimeType = getNewPanelTimeTypeFromSourceColumns(item.sourceColumns);
+
+    return sTimeType === NewPanelTimeType.Unselected
+        ? item.sourceColumns.time
+        : `${item.sourceColumns.time} (${sTimeType})`;
+}
+
 function getSelectedSeriesTooltip(
     item: NewPanelSeriesPath,
     rollupTableList: RollupTableMap,
@@ -628,7 +694,7 @@ function getSelectedSeriesTooltip(
     return [
         `Tag: ${item.tagName}`,
         `Table: ${item.table}`,
-        `Time: ${item.sourceColumns.time || 'not selected'}`,
+        `Time: ${getSourceTimeLabel(item)}`,
         `Value: ${getSourceValueLabel(item, rollupTableList)}`,
         `Mode: ${item.calculationMode || 'avg'}`,
     ].join('\n');

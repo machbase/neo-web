@@ -43,6 +43,19 @@ function renderFileItemIcon(fileItem: FileListItem): JSX.Element {
     );
 }
 
+function buildFileListItemKey(
+    directorySegments: string[],
+    fileItem: FileListItem,
+): string {
+    return [
+        directorySegments.join('/'),
+        fileItem.type,
+        fileItem.name,
+        fileItem.lastModifiedUnixMillis,
+        fileItem.size,
+    ].join(':');
+}
+
 function TazSaveAsModal({
     initialState,
     onClose,
@@ -192,12 +205,12 @@ function TazSaveAsModal({
             <FileListHeader />
             <Modal.Body style={{ padding: 0 }}>
                 <div className="taz-save-as-modal__file-list">
-                    {sFileList.map((fileItem, index) => {
+                    {sFileList.map((fileItem) => {
                         const sIsSelected = sSelectedFile?.name === fileItem.name;
 
                         return (
                             <div
-                                key={`${fileItem.name}-${index}`}
+                                key={buildFileListItemKey(sSelectedDir, fileItem)}
                                 className={`taz-save-as-modal__file-row${sIsSelected ? ' taz-save-as-modal__file-row--selected' : ''}`}
                                 onClick={(event) => void handleSelectFile(event, fileItem)}
                             >

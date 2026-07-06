@@ -43,34 +43,36 @@ import type { EditableTimeRangeInputResolution } from './domain/time/TimeRangeIn
 import type { FileTreeState } from './appState/useTagAnalyzerAppState';
 
 type TagAnalyzerBoardProps = {
-    pInfo: BoardInfo;
-    pIsActiveTab: boolean;
-    pRecentModalPath: string;
-    pFileTree: FileTreeState;
-    pOnSavedBoard: (savedBoard: BoardInfo) => void;
-    pOnFileTreeChange: (tree: FileTreeState) => void;
-    pOnRecentModalPathChange: (path: string) => void;
-    pRollupTableList: RollupTableMap;
+    info: BoardInfo;
+    isActiveTab: boolean;
+    recentModalPath: string;
+    fileTree: FileTreeState;
+    onSavedBoard: (savedBoard: BoardInfo) => void;
+    onFileTreeChange: (tree: FileTreeState) => void;
+    onRecentModalPathChange: (path: string) => void;
+    rollupTableList: RollupTableMap;
 };
 
 const TagAnalyzerBoard = ({
-    pInfo,
-    pIsActiveTab,
-    pRecentModalPath,
-    pFileTree,
-    pOnSavedBoard,
-    pOnFileTreeChange,
-    pOnRecentModalPathChange,
-    pRollupTableList,
+    info,
+    isActiveTab,
+    recentModalPath,
+    fileTree,
+    onSavedBoard,
+    onFileTreeChange,
+    onRecentModalPathChange,
+    rollupTableList,
 }: TagAnalyzerBoardProps) => {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
     const [sIsTimeRangeModalOpen, setIsTimeRangeModalOpen] = useState(false);
+    const [sBoardTimeRangeModalLastDataTime, setBoardTimeRangeModalLastDataTime] =
+        useState(() => Date.now());
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
-    const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
+    const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
     const [sRuntimeBoardInfo, dispatchRuntimeBoardAction] = useReducer(
         runtimeBoardReducer,
-        pInfo,
+        info,
         createRuntimeBoardInfo,
     );
     const sRuntimePanels = sRuntimeBoardInfo.panels;
@@ -106,8 +108,8 @@ const TagAnalyzerBoard = ({
         panels: sRuntimePanels,
         boardTime: sRuntimeBoardInfo.boardTimeRange,
         globalTimeRange: sGlobalDataAndNavigatorTime,
-        isActiveTab: pIsActiveTab,
-        rollupTableList: pRollupTableList,
+        isActiveTab,
+        rollupTableList,
         onPanelRangeStateChange: setPanelRangeState,
         onAppliedRange: overlap.handleAppliedRange,
     });
@@ -119,12 +121,12 @@ const TagAnalyzerBoard = ({
     } = useTazBoardSave({
         runtimeBoardInfo: sRuntimeBoardInfo,
         dispatchRuntimeBoardAction,
-        isActiveTab: pIsActiveTab,
-        recentModalPath: pRecentModalPath,
-        fileTree: pFileTree,
-        onSavedBoard: pOnSavedBoard,
-        onFileTreeChange: pOnFileTreeChange,
-        onRecentModalPathChange: pOnRecentModalPathChange,
+        isActiveTab,
+        recentModalPath,
+        fileTree,
+        onSavedBoard,
+        onFileTreeChange,
+        onRecentModalPathChange,
     });
 
     function handleApplyBoardTimeRange(
@@ -144,6 +146,11 @@ const TagAnalyzerBoard = ({
     function handleSetGlobalTimeRange(globalTimeRange: GlobalTimeRangeState): void {
         setGlobalDataAndNavigatorTime(globalTimeRange);
         boardPanels.applyGlobalRangeToPanels(globalTimeRange);
+    }
+
+    function openBoardTimeRangeModal(): void {
+        setBoardTimeRangeModalLastDataTime(Date.now());
+        setIsTimeRangeModalOpen(true);
     }
 
     function applyRuntimePanelInfo(panel: PanelInfo): void {
@@ -257,7 +264,7 @@ const TagAnalyzerBoard = ({
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setIsTimeRangeModalOpen(true)}
+                            onClick={openBoardTimeRangeModal}
                         >
                             <Calendar style={{ paddingRight: '8px' }} />
                             {sRangeText || 'Board time range not set'}
@@ -356,14 +363,14 @@ const TagAnalyzerBoard = ({
                         fullWidth
                         shadow
                         icon={<PlusCircle size={16} />}
-                        onClick={() => setIsNewPanelModal(true)}
+                        onClick={() => setIsNewPanelModalOpen(true)}
                         style={{ height: '60px' }}
                     >
                         New Chart
                     </Button>
-                    {sIsNewPanelModal && (
+                    {sIsNewPanelModalOpen && (
                         <PanelSeriesSelectionModal
-                            onClose={() => setIsNewPanelModal(false)}
+                            onClose={() => setIsNewPanelModalOpen(false)}
                             onCreatePanel={appendPanel}
                         />
                     )}
@@ -378,9 +385,9 @@ const TagAnalyzerBoard = ({
                 <TimeRangeModal
                     rangeKind="time"
                     title="Board Time Range"
-                    timeRange={sRuntimeBoardInfo.boardTimeRange}
-                    lastDataTime={Date.now()}
-                    allowEmptyTimeRange={true}
+                    value={sRuntimeBoardInfo.boardTimeRange}
+                    dataEndTime={sBoardTimeRangeModalLastDataTime}
+                    emptyRange
                     onApply={handleApplyBoardTimeRange}
                     onClose={() => setIsTimeRangeModalOpen(false)}
                 />
@@ -388,9 +395,9 @@ const TagAnalyzerBoard = ({
             {overlap.isOverlapModalOpen && (
                 <OverlapModal
                     key={buildOverlapModalKey(overlap.overlapPanels)}
-                    pPanelsInfo={overlap.overlapPanels}
-                    pRollupTableList={pRollupTableList}
-                    pSetIsModal={overlap.setOverlapModalOpen}
+                    initialPanels={overlap.overlapPanels}
+                    rollupTableList={rollupTableList}
+                    onClose={() => overlap.setOverlapModalOpen(false)}
                 />
             )}
             {sSaveAsModalProps && (

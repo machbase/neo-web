@@ -10,9 +10,9 @@ import { useTagAnalyzerMetadata } from './fetch/metadata/useTagAnalyzerMetadata'
 import { useTagAnalyzerAppState } from './appState/useTagAnalyzerAppState';
 
 const TagAnalyzer = ({
-    pInfo,
+    info,
 }: {
-    pInfo: BoardInfo;
+    info: BoardInfo;
 }) => {
     const {
         selectedTab: sSelectedTab,
@@ -21,33 +21,33 @@ const TagAnalyzer = ({
         updateSavedBoard: handleSavedBoard,
     } = useTagAnalyzerAppState();
     const [sRecentModalPath, setRecentModalPath] = useState('/');
-    const sIsActiveTab = sSelectedTab === pInfo.id;
+    const sIsActiveTab = sSelectedTab === info.id;
     const {
         rollupTableList,
         isLoadingMetadata,
     } = useTagAnalyzerMetadata({ enabled: sIsActiveTab });
 
     useEffect(() => {
-        const sWarning = getOutdatedTazFormatWarning(pInfo.version, pInfo.panels.length);
+        const sWarning = getOutdatedTazFormatWarning(info.version, info.panels.length);
 
         if (sWarning) {
             Toast.warning(sWarning, undefined);
         }
-    }, [pInfo]);
+    }, [info]);
 
     return (
         !isLoadingMetadata && (
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <Page>
                     <TagAnalyzerBoard
-                        pInfo={pInfo}
-                        pIsActiveTab={sIsActiveTab}
-                        pRollupTableList={rollupTableList}
-                        pRecentModalPath={sRecentModalPath}
-                        pFileTree={sFileTree}
-                        pOnSavedBoard={handleSavedBoard}
-                        pOnFileTreeChange={setGlobalFileTree}
-                        pOnRecentModalPathChange={setRecentModalPath}
+                        info={info}
+                        isActiveTab={sIsActiveTab}
+                        rollupTableList={rollupTableList}
+                        recentModalPath={sRecentModalPath}
+                        fileTree={sFileTree}
+                        onSavedBoard={handleSavedBoard}
+                        onFileTreeChange={setGlobalFileTree}
+                        onRecentModalPathChange={setRecentModalPath}
                     />
                 </Page>
             </div>

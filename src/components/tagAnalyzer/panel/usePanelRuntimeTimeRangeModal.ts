@@ -29,8 +29,9 @@ export type PanelRuntimeTimeRangeModal = {
     title: string;
     range: TimeRangeMs;
     timeRangeInput: TimeRangeInput;
-    timeRangePlaceholder?: TimeRangeInput;
-    allowEmptyTimeRange: boolean;
+    emptyRange?: boolean | {
+        placeholder?: TimeRangeInput;
+    };
 };
 
 type UsePanelRuntimeTimeRangeModalParams = {
@@ -90,7 +91,6 @@ export function usePanelRuntimeTimeRangeModal({
                         : 'Current Visible Main Chart Range',
                     range: displayPanelRange,
                     timeRangeInput: formatConcreteRangeForTimeInput(displayPanelRange),
-                    allowEmptyTimeRange: false,
                 };
 
             case PanelRuntimeTimeRangeTarget.NAVIGATOR:
@@ -107,16 +107,17 @@ export function usePanelRuntimeTimeRangeModal({
                         ? { start: '', end: '' }
                         : rangeState.requestNavigatorRangeInput ??
                           formatConcreteRangeForTimeInput(displayNavigatorRange),
-                    timeRangePlaceholder: isDefaultNavigatorRange
-                        ? getDefaultNavigatorRangePlaceholder(
-                              displayNavigatorRange,
-                              resolveDefaultNavigatorRangeResolution(
-                                  boardTimeRange,
-                                  rangeState.fullRange,
-                              ).source === 'board-time',
-                          )
-                        : undefined,
-                    allowEmptyTimeRange: true,
+                    emptyRange: isDefaultNavigatorRange
+                        ? {
+                              placeholder: getDefaultNavigatorRangePlaceholder(
+                                  displayNavigatorRange,
+                                  resolveDefaultNavigatorRangeResolution(
+                                      boardTimeRange,
+                                      rangeState.fullRange,
+                                  ).source === 'board-time',
+                              ),
+                          }
+                        : true,
                 };
         }
     }

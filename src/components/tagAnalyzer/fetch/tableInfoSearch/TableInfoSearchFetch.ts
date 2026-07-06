@@ -12,6 +12,7 @@ import type { RawTableListData } from '../metadata/MetadataFetchTypes';
 
 const SQL_IDENTIFIER_SEGMENT_PATTERN = /^[A-Za-z_][A-Za-z0-9_$]*$/;
 const TAG_SEARCH_LIMIT = 10;
+const TABLE_METADATA_BATCH_SIZE = 50;
 
 export type TableInfoSearchTagSearchItem = {
     id: string;
@@ -50,7 +51,7 @@ type TableInfoSearchTagSearchResult = {
     errorMessage: string | undefined;
 };
 
-type TableInfoSearchTableMetadataResult = {
+export type TableInfoSearchTableMetadataResult = {
     columns: TagAnalyzerColumnInfo | undefined;
     tableColumns: TableInfoSearchColumnMetadataRow[];
     errorMessage: string | undefined;
@@ -60,6 +61,11 @@ type TableMetadataTarget = {
     databaseIdQuery: string;
     tableName: string;
     userName: string;
+};
+
+type TableMetadataBatchTarget = {
+    table: string;
+    target: TableMetadataTarget;
 };
 
 type QueryResponse = {
@@ -182,6 +188,51 @@ export async function fetchTableInfoSearchTableMetadata(
     };
 }
 
+export async function fetchTableInfoSearchTableMetadataBatch(
+    tables: string[],
+): Promise<Record<string, TableInfoSearchTableMetadataResult>> {
+    const sMetadataByTable: Record<string, TableInfoSearchTableMetadataResult> = {};
+    const sUniqueTables = Array.from(new Set(tables.filter(Boolean)));
+
+    for (let i = 0; i < sUniqueTables.length; i += TABLE_METADATA_BATCH_SIZE) {
+        const sTableBatch = sUniqueTables.slice(i, i + TABLE_METADATA_BATCH_SIZE);
+        const sBatchResult = await fetchTableInfoSearchTableMetadataBatchChunk(
+            sTableBatch,
+        );
+
+        Object.assign(sMetadataByTable, sBatchResult);
+    }
+
+    return sMetadataByTable;
+}
+
+async function fetchTableInfoSearchTableMetadataBatchChunk(
+    tables: string[],
+): Promise<Record<string, TableInfoSearchTableMetadataResult>> {
+    if (tables.length === 0) {
+        return {};
+    }
+
+    const sTargets = tables.map((table) => ({
+        table,
+        target: resolveTableMetadataTarget(table),
+    }));
+    const sSql = buildTableMetadataBatchSql(sTargets);
+    const sRawResponse = await request({
+        method: 'GET',
+        url: `/api/query?q=${encodeURIComponent(sSql)}`,
+    });
+    const sResponse = asQueryResponse(sRawResponse);
+    const sHasHttpError =
+        typeof sResponse?.status === 'number' && sResponse.status >= 400;
+
+    if (sResponse?.success !== true || sHasHttpError) {
+        return {};
+    }
+
+    return parseTableMetadataBatchRows(extractQueryRows(sResponse.data));
+}
+
 function resolveTableMetadataTarget(table: string): TableMetadataTarget {
     const sTableParts = table.split('.');
 
@@ -212,6 +263,23 @@ function buildTableMetadataSql(target: TableMetadataTarget): string {
     return `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER(${buildSqlStringLiteral(target.userName)}) AND MC.DATABASE_ID = ${target.databaseIdQuery} AND MT.NAME = ${buildSqlStringLiteral(target.tableName)} AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 }
 
+function buildTableMetadataBatchSql(targets: TableMetadataBatchTarget[]): string {
+    const sCaseBranches = targets
+        .map(({ table, target }) => (
+            `WHEN ${buildTableMetadataTargetCondition(target)} THEN ${buildSqlStringLiteral(table)}`
+        ))
+        .join(' ');
+    const sTargetConditions = targets
+        .map(({ target }) => `(${buildTableMetadataTargetCondition(target)})`)
+        .join(' OR ');
+
+    return `SELECT CASE ${sCaseBranches} END AS TABLE_KEY, MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MC.NAME <> '_RID' AND (${sTargetConditions}) ORDER BY TABLE_KEY, MC.ID`;
+}
+
+function buildTableMetadataTargetCondition(target: TableMetadataTarget): string {
+    return `MU.NAME = UPPER(${buildSqlStringLiteral(target.userName)}) AND MC.DATABASE_ID = ${target.databaseIdQuery} AND MT.NAME = ${buildSqlStringLiteral(target.tableName)}`;
+}
+
 function parseTableColumnMetadataRows(rows: unknown[]): TableInfoSearchColumnMetadataRow[] {
     const sTableColumns: TableInfoSearchColumnMetadataRow[] = [];
 
@@ -222,6 +290,38 @@ function parseTableColumnMetadataRows(rows: unknown[]): TableInfoSearchColumnMet
     }
 
     return sTableColumns;
+}
+
+function parseTableMetadataBatchRows(
+    rows: unknown[],
+): Record<string, TableInfoSearchTableMetadataResult> {
+    const sTableColumnsByTable: Record<string, TableInfoSearchColumnMetadataRow[]> = {};
+
+    for (const sRow of rows) {
+        if (
+            !Array.isArray(sRow) ||
+            typeof sRow[0] !== 'string' ||
+            typeof sRow[1] !== 'string'
+        ) {
+            continue;
+        }
+
+        const sTable = sRow[0];
+        const sTableColumns = sTableColumnsByTable[sTable] ?? [];
+        sTableColumns.push(sRow.slice(1, 4) as TableInfoSearchColumnMetadataRow);
+        sTableColumnsByTable[sTable] = sTableColumns;
+    }
+
+    return Object.fromEntries(
+        Object.entries(sTableColumnsByTable).map(([table, tableColumns]) => [
+            table,
+            {
+                columns: buildSourceColumns(tableColumns),
+                tableColumns,
+                errorMessage: undefined,
+            },
+        ]),
+    );
 }
 
 function buildSourceColumns(

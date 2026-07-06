@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LineChart, Play } from '@/assets/icons/Icon';
 import { Spinner } from '@/components/spinner/Spinner';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
@@ -45,165 +45,56 @@ function createFFTModalOptions(seriesSummaries: SelectedRangeSeriesSummary[]): F
     }));
 }
 
-const FFT_2D_QUERY_TEMPLATE = `MAPKEY('fft')
-GROUPBYKEY()
-FFT({MinMaxHz})
-CHART(
-    size('100%', '400px'),
-    theme("dark"),
-    chartOption({
-        xAxis: { type: "category", name: "Hz", data: column(0) },
-        yAxis: { name: "Amplitude" },
-        dataZoom: [{ type: "slider", start: 0, end: 10 }],
-        backgroundColor: "#252525",
-        tooltip: { trigger: "axis" },
-        series: [{ type: "line", data: column(1) }]
-    })
-)`;
-
-const FFT_3D_QUERY_TEMPLATE = `MAPKEY( roundTime(value(0), '{interval}ms') )
-GROUPBYKEY()
-FFT({MinMaxHz})
-FLATTEN()
-PUSHKEY('fft')
-MAPVALUE(0, list(value(0), value(1), value(2)))
-POPVALUE(1, 2)
-CHART(
-    plugins("gl"),
-    size('100%', '400px'),
-    chartOption({
-        backgroundColor: "#252525",
-        tooltip: { backgroundColor: "rgba(50,50,50,0.9)", borderColor: "#555", textStyle: { color: "#fff" } },
-        xAxis3D: { type: "time", name: "time", nameTextStyle: { color: "#ccc" }, axisLabel: { color: "#aaa" }, axisLine: { lineStyle: { color: "#666" } }, splitLine: { lineStyle: { color: "#444" } }, axisPointer: { lineStyle: { color: "#888" } } },
-        yAxis3D: { type: "value", name: "Hz", nameTextStyle: { color: "#ccc" }, axisLabel: { color: "#aaa" }, axisLine: { lineStyle: { color: "#666" } }, splitLine: { lineStyle: { color: "#444" } }, axisPointer: { lineStyle: { color: "#888" } } },
-        zAxis3D: { type: "value", name: "Amp", nameTextStyle: { color: "#ccc" }, axisLabel: { color: "#aaa" }, axisLine: { lineStyle: { color: "#666" } }, splitLine: { lineStyle: { color: "#444" } }, axisPointer: { lineStyle: { color: "#888" } } },
-        grid3D: { viewControl: {}, light: { main: { intensity: 1.2 }, ambient: { intensity: 0.3 } } },
-        visualMap: { show: true, min: 0, max: 80.0, inRange: { color: ["#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8", "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026"] } },
-        series: [{ type: "bar3D", data: column(0), shading: "lambert" }]
-    }),
-    chartJSCode({ document.querySelector('.chart_container').firstChild.style.backgroundColor = '#252525'; })
-)`;
-
-function buildFftMinMaxHz(minHz: string, maxHz: string): string {
-    return minHz === '0' && maxHz === '0'
-        ? ''
-        : `minHz(${minHz}), maxHz(${maxHz})`;
-}
-
-function buildFftQuery({
-    isChart2D,
-    selectedInfo,
-    minMaxHz,
-    isNumericXAxis,
-    startTime,
-    endTime,
-    intervalMs,
-}: {
-    isChart2D: boolean;
-    selectedInfo: SelectedRangeSeriesSummary;
-    minMaxHz: string;
-    isNumericXAxis: boolean;
+type FFTModalProps = {
+    seriesSummaries: SelectedRangeSeriesSummary[];
     startTime: number;
     endTime: number;
-    intervalMs?: string;
-}): string {
-    const sSourceColumns = selectedInfo.sourceColumns;
-    const sNormalizeColumn = (columnName: string) =>
-        isChart2D ? columnName : columnName.toLowerCase();
-    const sTimeColumn = buildSqlIdentifierPath(
-        sNormalizeColumn(sSourceColumns.time),
-        'SQL time column',
-    );
-    const sValueColumn = buildSqlIdentifierPath(
-        sNormalizeColumn(sSourceColumns.value),
-        'SQL value column',
-    );
-    const sNameColumn = buildSqlIdentifierPath(
-        sNormalizeColumn(sSourceColumns.name),
-        'SQL tag name column',
-    );
-    const sSql = `select ${sTimeColumn}, ${sValueColumn} from ${buildSqlIdentifierPath(
-        selectedInfo.table,
-        'SQL table name',
-    )} where ${sNameColumn} in (${buildSqlStringLiteral(
-        selectedInfo.name,
-    )}) AND ${buildFftSqlRangeCondition(
-        isNumericXAxis,
-        startTime,
-        endTime,
-        sTimeColumn,
-    )} order by ${sTimeColumn}`;
-    const sChartTql = (isChart2D ? FFT_2D_QUERY_TEMPLATE : FFT_3D_QUERY_TEMPLATE)
-        .replace('{MinMaxHz}', minMaxHz)
-        .replace('{interval}', intervalMs ?? '');
+    isNumericXAxis: boolean;
+    onClose: () => void;
+};
 
-    return `SQL(${buildTqlDoubleQuotedString(sSql)})\n${sChartTql}`;
-}
-
-function isTqlChartData(value: unknown): value is TqlChartData {
-    return isPlainObject(value) && typeof value.chartID === 'string';
-}
-
-function isEChartsTqlChartResponse(
-    value: unknown,
-): value is TqlChartResponse & { headers: Record<string, unknown>; data: TqlChartData } {
-    if (!isPlainObject(value)) {
-        return false;
-    }
-
-    const sResponse = value as TqlChartResponse;
-    if (sResponse.status !== 200 || !isPlainObject(sResponse.headers)) {
-        return false;
-    }
-
-    return sResponse.headers['x-chart-type'] === 'echarts' &&
-        isTqlChartData(sResponse.data);
-}
 export const FFTModal = ({
-    pSeriesSummaries,
-    pStartTime,
-    pEndTime,
-    pIsNumericXAxis,
-    setIsOpen,
-}: {
-    pSeriesSummaries: SelectedRangeSeriesSummary[];
-    pStartTime: number;
-    pEndTime: number;
-    pIsNumericXAxis: boolean;
-    setIsOpen: (value: boolean) => void;
-}) => {
+    seriesSummaries,
+    startTime,
+    endTime,
+    isNumericXAxis,
+    onClose,
+}: FFTModalProps) => {
     const [sSelectedInfo, setSelectedInfo] = useState<SelectedRangeSeriesSummary | null>(null);
-    const [sChartData, setChartData] = useState<FftChartData | null>(null);
     const [sIsChart2D, setIsChart2D] = useState<boolean>(true);
-    const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [sInterval, setInterval] = useState<string>('100');
     const [sIntervalUnit, setIntervalUnit] = useState<TimeUnit>(TimeUnit.Millisecond);
     const [sMinHz, setMinHz] = useState<string>('0');
     const [sMaxHz, setMaxHz] = useState<string>('0');
+    const {
+        chartData: sChartData,
+        isLoading: sIsLoading,
+        loadChartData,
+    } = useFftChartData();
     const sRangeLabel = `${formatRangeEndpointLabel(
-        pStartTime,
-        pIsNumericXAxis,
-    )} ~ ${formatRangeEndpointLabel(pEndTime, pIsNumericXAxis)}`;
-    const sDropdownOptions = createFFTModalOptions(pSeriesSummaries);
+        startTime,
+        isNumericXAxis,
+    )} ~ ${formatRangeEndpointLabel(endTime, isNumericXAxis)}`;
+    const sDropdownOptions = createFFTModalOptions(seriesSummaries);
 
     useEffect(() => {
-        const sInitialSummary = pSeriesSummaries[0];
+        const sInitialSummary = seriesSummaries[0];
         if (sInitialSummary === undefined) {
             return;
         }
 
         setSelectedInfo(sInitialSummary);
-        loadTqlChartData(
+        void loadChartData(
             buildFftQuery({
                 isChart2D: true,
                 selectedInfo: sInitialSummary,
                 minMaxHz: '',
-                isNumericXAxis: pIsNumericXAxis,
-                startTime: pStartTime,
-                endTime: pEndTime,
+                isNumericXAxis,
+                startTime,
+                endTime,
             }),
         );
-    }, [pEndTime, pIsNumericXAxis, pSeriesSummaries, pStartTime]);
+    }, [endTime, isNumericXAxis, loadChartData, seriesSummaries, startTime]);
 
     const handleSelectedTag = (value: string) => {
         const sSelectedOption = sDropdownOptions.find(
@@ -219,7 +110,7 @@ export const FFTModal = ({
     function handle2DChart(): void {
         const sNextIsChart2D = !sIsChart2D;
 
-        if (!sNextIsChart2D && pIsNumericXAxis) {
+        if (!sNextIsChart2D && isNumericXAxis) {
             Toast.warning(
                 '3D FFT is only available for datetime x-axis panels.',
                 undefined,
@@ -252,7 +143,7 @@ export const FFTModal = ({
 
         let sIntervalMs: string | undefined;
         if (!sIsChart2D) {
-            if (pIsNumericXAxis) {
+            if (isNumericXAxis) {
                 Toast.warning(
                     '3D FFT is only available for datetime x-axis panels.',
                     undefined,
@@ -271,14 +162,14 @@ export const FFTModal = ({
             ).toString();
         }
 
-        loadTqlChartData(
+        void loadChartData(
             buildFftQuery({
                 isChart2D: sIsChart2D,
                 selectedInfo: sSelectedInfo,
                 minMaxHz: buildFftMinMaxHz(sMinHzValue, sMaxHzValue),
-                isNumericXAxis: pIsNumericXAxis,
-                startTime: pStartTime,
-                endTime: pEndTime,
+                isNumericXAxis,
+                startTime,
+                endTime,
                 intervalMs: sIntervalMs,
             }),
         );
@@ -291,27 +182,11 @@ export const FFTModal = ({
         }
     };
 
-    async function loadTqlChartData(text: string): Promise<void> {
-        setIsLoading(true);
-
-        try {
-            const sChartData = await fetchFftChartData(text);
-
-            if (sChartData) {
-                setChartData(sChartData);
-            }
-        } catch {
-            Toast.error('Failed to load FFT chart.');
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
     return (
         <div className="fft-modal-wrapper">
             <Modal.Root
                 isOpen
-                onClose={() => setIsOpen(false)}
+                onClose={onClose}
                 size="lg"
                 style={FFT_MODAL_STYLE}
             >
@@ -427,3 +302,34 @@ export const FFTModal = ({
         </div>
     );
 };
+
+function useFftChartData(): {
+    chartData: FftChartData | null;
+    isLoading: boolean;
+    loadChartData: (queryText: string) => Promise<void>;
+} {
+    const [sChartData, setChartData] = useState<FftChartData | null>(null);
+    const [sIsLoading, setIsLoading] = useState<boolean>(false);
+
+    const loadChartData = useCallback(async (queryText: string): Promise<void> => {
+        setIsLoading(true);
+
+        try {
+            const sNextChartData = await fetchFftChartData(queryText);
+
+            if (sNextChartData) {
+                setChartData(sNextChartData);
+            }
+        } catch {
+            Toast.error('Failed to load FFT chart.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    return {
+        chartData: sChartData,
+        isLoading: sIsLoading,
+        loadChartData,
+    };
+}

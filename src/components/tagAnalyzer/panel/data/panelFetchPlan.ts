@@ -58,6 +58,7 @@ export function resolvePanelFetchPlan({
         }),
         navigator: resolveNavigatorFetchDecision({
             requestNavigatorRange,
+            fullRange,
             cacheState: navigatorCacheState,
         }),
     };
@@ -83,30 +84,42 @@ function resolveMainPanelFetchDecision(
     params: ResolveMainPanelFetchRangeParams,
 ): PanelFetchDecision {
     const sCachedRange = params.cacheState.fetchedRange;
+    const sFetchablePanelRange = getOverlappingTimeRange(
+        params.requestPanelRange,
+        params.fullRange,
+    );
 
-    if (
-        sCachedRange &&
-        !isTimeRangeWithinTimeRange(params.requestPanelRange, params.fullRange)
-    ) {
-        return { kind: 'reuse', fetchedRange: sCachedRange };
+    if (!sFetchablePanelRange) {
+        return sCachedRange
+            ? { kind: 'reuse', fetchedRange: sCachedRange }
+            : { kind: 'fetch', fetchRange: params.requestPanelRange };
     }
 
     if (
         sCachedRange &&
         params.cacheState.reuseKey === params.reuseKey &&
-        isTimeRangeWithinTimeRange(params.requestPanelRange, sCachedRange)
+        isTimeRangeWithinTimeRange(sFetchablePanelRange, sCachedRange)
     ) {
         return { kind: 'reuse', fetchedRange: sCachedRange };
     }
 
+    const sFetchableNavigatorRange =
+        getOverlappingTimeRange(params.requestNavigatorRange, params.fullRange) ??
+        sFetchablePanelRange;
+
     return {
         kind: 'fetch',
-        fetchRange: resolveMainPanelFetchRange(params),
+        fetchRange: resolveMainPanelFetchRange({
+            ...params,
+            requestPanelRange: sFetchablePanelRange,
+            requestNavigatorRange: sFetchableNavigatorRange,
+        }),
     };
 }
 
 type ResolveNavigatorFetchRangeParams = {
     requestNavigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
     cacheState: NavigatorFetchCacheState;
 };
 
@@ -114,22 +127,36 @@ function resolveNavigatorFetchDecision(
     params: ResolveNavigatorFetchRangeParams,
 ): PanelFetchDecision {
     const sCachedRange = params.cacheState.fetchedRange;
+    const sFetchableNavigatorRange = getOverlappingTimeRange(
+        params.requestNavigatorRange,
+        params.fullRange,
+    );
+
+    if (!sFetchableNavigatorRange) {
+        return sCachedRange
+            ? { kind: 'reuse', fetchedRange: sCachedRange }
+            : { kind: 'fetch', fetchRange: params.requestNavigatorRange };
+    }
 
     if (
         sCachedRange &&
-        isTimeRangeWithinTimeRange(params.requestNavigatorRange, sCachedRange)
+        isTimeRangeWithinTimeRange(sFetchableNavigatorRange, sCachedRange)
     ) {
         return { kind: 'reuse', fetchedRange: sCachedRange };
     }
 
     return {
         kind: 'fetch',
-        fetchRange: resolveNavigatorFetchRange(params),
+        fetchRange: resolveNavigatorFetchRange({
+            ...params,
+            requestNavigatorRange: sFetchableNavigatorRange,
+        }),
     };
 }
 
 function resolveNavigatorFetchRange({
     requestNavigatorRange,
+    fullRange,
     cacheState,
 }: ResolveNavigatorFetchRangeParams): TimeRangeMs {
     if (
@@ -139,7 +166,10 @@ function resolveNavigatorFetchRange({
         return cacheState.fetchedRange;
     }
 
-    return buildNavigatorPrefetchRange(requestNavigatorRange);
+    return clipFetchRangeToFullRange(
+        buildNavigatorPrefetchRange(requestNavigatorRange),
+        fullRange,
+    );
 }
 
 function buildNavigatorPrefetchRange(
@@ -297,4 +327,23 @@ function buildPanelPrefetchRange(
         requestPanelRange.startTime - sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
         requestPanelRange.endTime + sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
     );
+}
+
+function clipFetchRangeToFullRange(
+    fetchRange: TimeRangeMs,
+    fullRange: TimeRangeMs,
+): TimeRangeMs {
+    return getOverlappingTimeRange(fetchRange, fullRange) ?? fetchRange;
+}
+
+function getOverlappingTimeRange(
+    range: TimeRangeMs,
+    bounds: TimeRangeMs,
+): TimeRangeMs | undefined {
+    const sOverlappingRange = createTimeRangeMs(
+        Math.max(range.startTime, bounds.startTime),
+        Math.min(range.endTime, bounds.endTime),
+    );
+
+    return isValidTimeRange(sOverlappingRange) ? sOverlappingRange : undefined;
 }

@@ -32,10 +32,16 @@ import {
 } from './CreateNewPanelMetadata';
 import {
     fetchTableInfoSearchJsonColumnPaths,
+    fetchTableInfoSearchTableMetadataBatch,
     fetchTableInfoSearchTableMetadata,
     type TableInfoSearchColumnMetadataRow,
 } from '../../fetch/tableInfoSearch/TableInfoSearchFetch';
-import type { NewPanelSeriesPath } from './CreateNewPanelTypes';
+import {
+    NewPanelTimeType,
+    type NewPanelSeriesPath,
+    getNewPanelTimeTypeFromSourceColumns,
+    isNewPanelTableTimeTypeCompatible,
+} from './CreateNewPanelTypes';
 import styles from './CreateNewPanel.module.scss';
 
 type TableMetadataCacheEntry = {
@@ -48,20 +54,26 @@ export function CreateNewPanelSourceSelector({
     rollupTableList,
     isTableNameLoading,
     selectedTags,
+    selectedTimeType,
+    tableTimeTypeByTable,
     onSourceChange,
     onSelectedTagsChange,
+    onTableTimeTypeChange,
     onError,
 }: {
     availableSourceTableNames: string[];
     rollupTableList: RollupTableMap;
     isTableNameLoading: boolean;
     selectedTags: NewPanelSeriesPath[];
+    selectedTimeType: NewPanelTimeType;
+    tableTimeTypeByTable: Record<string, NewPanelTimeType>;
     onSourceChange: (
         table: string,
         sourceColumns: TagAnalyzerColumnInfo | undefined,
         tableColumns: TableInfoSearchColumnMetadataRow[],
     ) => void;
     onSelectedTagsChange: (selectedTags: NewPanelSeriesPath[]) => boolean;
+    onTableTimeTypeChange: (table: string, timeType: NewPanelTimeType) => void;
     onError: (message: string) => void;
 }) {
     const [sSelectedTable, setSelectedTable] = useState('');
@@ -73,25 +85,29 @@ export function CreateNewPanelSourceSelector({
         useState<Record<string, string[]>>({});
     const [sJsonKeyInputDraft, setJsonKeyInputDraft] =
         useState<string | undefined>();
-    const sColumnResultsByTableRef =
-        useRef<Record<string, TableMetadataCacheEntry>>({});
-    const sSourceColumnsByTableRef =
-        useRef<Record<string, TagAnalyzerColumnInfo>>({});
-    const sJsonKeyByColumnRef = useRef<Record<string, string>>({});
+    const [sColumnResultsByTable, setColumnResultsByTable] =
+        useState<Record<string, TableMetadataCacheEntry>>({});
+    const [sSourceColumnsByTable, setSourceColumnsByTable] =
+        useState<Record<string, TagAnalyzerColumnInfo>>({});
+    const [sJsonKeyByColumn, setJsonKeyByColumn] =
+        useState<Record<string, string>>({});
     const sColumnRequestKeyRef = useRef(0);
-    const sSelectedTagsRef = useRef(selectedTags);
-
-    useEffect(() => {
-        sSelectedTagsRef.current = selectedTags;
-    }, [selectedTags]);
 
     const sTableOptions = useMemo<ComboboxOption[]>(
         () =>
-            availableSourceTableNames.map((table) => ({
-                value: table,
-                label: table,
-            })),
-        [availableSourceTableNames],
+            availableSourceTableNames.map((table) => {
+                const sTableTimeType = tableTimeTypeByTable[table];
+
+                return {
+                    value: table,
+                    label: getTableOptionLabel(table, sTableTimeType),
+                    disabled: !isNewPanelTableTimeTypeCompatible(
+                        selectedTimeType,
+                        sTableTimeType,
+                    ),
+                };
+            }),
+        [availableSourceTableNames, selectedTimeType, tableTimeTypeByTable],
     );
     const sTimeColumnOptions = useMemo<ComboboxOption[]>(
         () =>
@@ -180,6 +196,63 @@ export function CreateNewPanelSourceSelector({
         sJsonKeyInputDraft ?? displayJsonPathLabel(sSelectedJsonKey);
 
     useEffect(() => {
+        let sIsCanceled = false;
+
+        async function loadTableMetadataBatch(): Promise<void> {
+            if (availableSourceTableNames.length === 0) {
+                return;
+            }
+
+            try {
+                const sMetadataByTable =
+                    await fetchTableInfoSearchTableMetadataBatch(
+                        availableSourceTableNames,
+                    );
+
+                if (sIsCanceled) {
+                    return;
+                }
+
+                setColumnResultsByTable((previousResults) => {
+                    let sDidChange = false;
+                    const sNextResults = { ...previousResults };
+
+                    for (const [table, result] of Object.entries(sMetadataByTable)) {
+                        if (sNextResults[table]) {
+                            continue;
+                        }
+
+                        sNextResults[table] = {
+                            sourceColumns: result.columns,
+                            tableColumns: result.tableColumns,
+                        };
+                        sDidChange = true;
+                    }
+
+                    return sDidChange ? sNextResults : previousResults;
+                });
+
+                for (const [table, result] of Object.entries(sMetadataByTable)) {
+                    onTableTimeTypeChange(
+                        table,
+                        getNewPanelTimeTypeFromSourceColumns(result.columns),
+                    );
+                }
+            } catch (error) {
+                if (!sIsCanceled) {
+                    onError(getErrorMessage(error));
+                }
+            }
+        }
+
+        void loadTableMetadataBatch();
+
+        return () => {
+            sIsCanceled = true;
+        };
+    }, [availableSourceTableNames, onError, onTableTimeTypeChange]);
+
+    useEffect(() => {
         async function loadJsonPathOptions(): Promise<void> {
             if (
                 !sSelectedTable ||
@@ -223,10 +296,26 @@ export function CreateNewPanelSourceSelector({
         sourceColumns: TagAnalyzerColumnInfo | undefined,
         tableColumns: TableInfoSearchColumnMetadataRow[],
     ): void => {
+        const sTableTimeType = getNewPanelTimeTypeFromSourceColumns(sourceColumns);
+
+        onTableTimeTypeChange(table, sTableTimeType);
+        if (!isNewPanelTableTimeTypeCompatible(selectedTimeType, sTableTimeType)) {
+            setSourceColumns(undefined);
+            setTableColumns(tableColumns);
+            onSourceChange(table, undefined, tableColumns);
+            onError(getTableTimeTypeMismatchMessage(selectedTimeType, sTableTimeType));
+            return;
+        }
+
         setSourceColumns(sourceColumns);
         setTableColumns(tableColumns);
         onSourceChange(table, sourceColumns, tableColumns);
-    }, [onSourceChange]);
+    }, [
+        onError,
+        onSourceChange,
+        onTableTimeTypeChange,
+        selectedTimeType,
+    ]);
 
     const loadColumns = useCallback(async (
         table: string,
@@ -235,10 +324,10 @@ export function CreateNewPanelSourceSelector({
         const sRequestKey = sColumnRequestKeyRef.current + 1;
         sColumnRequestKeyRef.current = sRequestKey;
 
-        const sCachedResult = sColumnResultsByTableRef.current[table];
+        const sCachedResult = sColumnResultsByTable[table];
         if (sCachedResult) {
             const sNextColumns =
-                sSourceColumnsByTableRef.current[table] ??
+                sSourceColumnsByTable[table] ??
                 sCachedResult.sourceColumns;
             applyLoadedColumns(
                 table,
@@ -260,10 +349,13 @@ export function CreateNewPanelSourceSelector({
                 onError(sResult.errorMessage);
             }
 
-            sColumnResultsByTableRef.current[table] = {
-                sourceColumns: sResult.columns,
-                tableColumns: sResult.tableColumns,
-            };
+            setColumnResultsByTable((previousResults) => ({
+                ...previousResults,
+                [table]: {
+                    sourceColumns: sResult.columns,
+                    tableColumns: sResult.tableColumns,
+                },
+            }));
             applyLoadedColumns(
                 table,
                 sResult.columns,
@@ -274,7 +366,12 @@ export function CreateNewPanelSourceSelector({
                 onError(getErrorMessage(error));
             }
         }
-    }, [applyLoadedColumns, onError]);
+    }, [
+        applyLoadedColumns,
+        onError,
+        sColumnResultsByTable,
+        sSourceColumnsByTable,
+    ]);
 
     const clearCurrentColumns = useCallback((): void => {
         setJsonKeyInputDraft(undefined);
@@ -283,17 +380,32 @@ export function CreateNewPanelSourceSelector({
     }, []);
 
     const changeTable = useCallback((value: string): void => {
+        const sTableTimeType = tableTimeTypeByTable[value];
+
+        if (!isNewPanelTableTimeTypeCompatible(selectedTimeType, sTableTimeType)) {
+            onError(getTableTimeTypeMismatchMessage(selectedTimeType, sTableTimeType));
+            return;
+        }
+
         setSelectedTable(value);
         clearCurrentColumns();
 
-        if (!sColumnResultsByTableRef.current[value]) {
+        if (!sColumnResultsByTable[value]) {
             onSourceChange(value, undefined, []);
         }
 
         if (value) {
             void loadColumns(value);
         }
-    }, [clearCurrentColumns, loadColumns, onSourceChange]);
+    }, [
+        clearCurrentColumns,
+        loadColumns,
+        onError,
+        onSourceChange,
+        sColumnResultsByTable,
+        selectedTimeType,
+        tableTimeTypeByTable,
+    ]);
 
     useEffect(() => {
         const sFallbackTable = availableSourceTableNames[0] ?? '';
@@ -308,8 +420,51 @@ export function CreateNewPanelSourceSelector({
             changeTable(sFallbackTable);
         }
     }, [availableSourceTableNames, changeTable, sSelectedTable]);
+
+    useEffect(() => {
+        const sSelectedTableTimeType = tableTimeTypeByTable[sSelectedTable];
+
+        if (
+            !sSelectedTable ||
+            isNewPanelTableTimeTypeCompatible(
+                selectedTimeType,
+                sSelectedTableTimeType,
+            )
+        ) {
+            return;
+        }
+
+        setSourceColumns(undefined);
+        onSourceChange(sSelectedTable, undefined, sTableColumns);
+    }, [
+        onSourceChange,
+        sSelectedTable,
+        sTableColumns,
+        selectedTimeType,
+        tableTimeTypeByTable,
+    ]);
+
     function applySourceColumns(nextColumns: TagAnalyzerColumnInfo): void {
-        const sNextTags = sSelectedTagsRef.current.map((item) =>
+        const sNextTableTimeType = getNewPanelTimeTypeFromSourceColumns(nextColumns);
+        const sHasSelectedCurrentTable = selectedTags.some(
+            (item) => item.table === sSelectedTable,
+        );
+
+        if (
+            !sHasSelectedCurrentTable &&
+            !isNewPanelTableTimeTypeCompatible(
+                selectedTimeType,
+                sNextTableTimeType,
+            )
+        ) {
+            onError(getTableTimeTypeMismatchMessage(
+                selectedTimeType,
+                sNextTableTimeType,
+            ));
+            return;
+        }
+
+        const sNextTags = selectedTags.map((item) =>
             item.table === sSelectedTable
                 ? updateNewPanelSeriesSourceColumns(
                       item,
@@ -324,7 +479,11 @@ export function CreateNewPanelSourceSelector({
 
         setSourceColumns(nextColumns);
         if (sSelectedTable) {
-            sSourceColumnsByTableRef.current[sSelectedTable] = nextColumns;
+            onTableTimeTypeChange(sSelectedTable, sNextTableTimeType);
+            setSourceColumnsByTable((previousColumns) => ({
+                ...previousColumns,
+                [sSelectedTable]: nextColumns,
+            }));
         }
         onSourceChange(sSelectedTable, nextColumns, sTableColumns);
     }
@@ -351,7 +510,7 @@ export function CreateNewPanelSourceSelector({
             isTagAnalyzerJsonValue(sTableColumns, value) &&
             sSourceColumns?.value === value
                 ? sSourceColumns?.jsonKey ?? ''
-                : sJsonKeyByColumnRef.current[sJsonOptionsKey] ?? '';
+                : sJsonKeyByColumn[sJsonOptionsKey] ?? '';
         const sNextJsonKey = isTagAnalyzerJsonValue(sTableColumns, value)
             ? sJsonKey
             : '';
@@ -370,9 +529,10 @@ export function CreateNewPanelSourceSelector({
         patchColumnSelection({
             jsonKey: sJsonKey,
         });
-        sJsonKeyByColumnRef.current[
-            getJsonPathOptionsKey(sSelectedTable, sSourceColumns.value)
-        ] = sJsonKey;
+        setJsonKeyByColumn((previousJsonKeys) => ({
+            ...previousJsonKeys,
+            [getJsonPathOptionsKey(sSelectedTable, sSourceColumns.value)]: sJsonKey,
+        }));
     }
 
     function changeJsonKeyInput(event: ChangeEvent<HTMLInputElement>): void {
@@ -488,5 +648,23 @@ function getErrorMessage(error: unknown): string {
 
 function getJsonPathOptionsKey(tableName: string, valueColumn: string): string {
     return tableName && valueColumn ? `${tableName}\u0000${valueColumn}` : '';
+}
+
+function getTableOptionLabel(
+    tableName: string,
+    timeType: NewPanelTimeType | undefined,
+): string {
+    return timeType && timeType !== NewPanelTimeType.Unselected
+        ? `${tableName} (${timeType})`
+        : tableName;
+}
+
+function getTableTimeTypeMismatchMessage(
+    selectedTimeType: NewPanelTimeType,
+    tableTimeType: NewPanelTimeType | undefined,
+): string {
+    const sTableTypeLabel = tableTimeType ?? NewPanelTimeType.Unselected;
+
+    return `Selected series use ${selectedTimeType} time. ${sTableTypeLabel} time tables cannot be mixed in one chart.`;
 }
 

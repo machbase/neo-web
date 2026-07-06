@@ -154,6 +154,8 @@ export type PanelConfig = {
     annotations: PanelAnnotation[];
 };
 
+export type PanelInfo = PanelConfig;
+
 export type PanelRangeState = {
     requestPanelRange: TimeRangeMs;
     requestNavigatorRange: TimeRangeMs;

@@ -37,6 +37,8 @@ export type TimeRangeInput = {
     end: string;
 };
 
+export type PanelRangeInput = TimeRangeInput;
+
 export type IntervalOption = {
     IntervalType: TimeUnit;
     IntervalValue: number;

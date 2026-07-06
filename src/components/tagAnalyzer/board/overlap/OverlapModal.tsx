@@ -5,7 +5,7 @@ import {
     VscChevronLeft,
     VscChevronRight,
 } from '@/assets/icons/Icon';
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Dropdown, Input, Page, Toast } from '@/design-system/components';
@@ -65,29 +65,27 @@ type OverlapDisplayPanelInfo = OverlapPanelInfo & {
 };
 
 type OverlapModalProps = {
-    pSetIsModal: Dispatch<SetStateAction<boolean>>;
-    pPanelsInfo: OverlapPanelInfo[];
-    pRollupTableList: RollupTableMap;
+    initialPanels: OverlapPanelInfo[];
+    rollupTableList: RollupTableMap;
+    onClose: () => void;
 };
 
 function OverlapModal({
-    pSetIsModal,
-    pPanelsInfo,
-    pRollupTableList,
+    initialPanels,
+    rollupTableList,
+    onClose,
 }: OverlapModalProps): JSX.Element {
-    const [sBaseSeriesData, setBaseSeriesData] = useState<ChartSeriesData[]>([]);
-    const [sIsLoadingOverlapData, setIsLoadingOverlapData] = useState(false);
-    const [sOverlapLoadError, setOverlapLoadError] = useState<string | undefined>();
     const [sPanelsInfo, setPanelsInfo] = useState<OverlapDisplayPanelInfo[]>(
-        () => createInitialOverlapPanels(pPanelsInfo),
+        () => createInitialOverlapPanels(initialPanels),
     );
     const sOverlapChartInstanceRef = useRef<OverlapChartInstance | null>(null);
-    const sLoadRequestIdRef = useRef(0);
-    const sInitialPanelsInfoRef = useRef<OverlapDisplayPanelInfo[] | undefined>(undefined);
-
-    if (sInitialPanelsInfoRef.current === undefined) {
-        sInitialPanelsInfoRef.current = sPanelsInfo;
-    }
+    const sInitialPanelsInfoRef = useRef<OverlapDisplayPanelInfo[]>(sPanelsInfo);
+    const {
+        baseSeriesData: sBaseSeriesData,
+        isLoading: sIsLoadingOverlapData,
+        loadError: sOverlapLoadError,
+        loadOverlapData,
+    } = useOverlapChartData(sInitialPanelsInfoRef.current, rollupTableList);
 
     const sAnchorPanel = sPanelsInfo[0];
     const sIsNumericXAxis = isNumericOverlapPanel(sAnchorPanel);
@@ -108,87 +106,6 @@ function OverlapModal({
             sSeriesData,
         ],
     );
-
-    const fetchOverlapPanelData = useCallback(async (
-        panelDisplayInfo: OverlapDisplayPanelInfo,
-    ): Promise<ChartSeriesData[]> => {
-        const sPanelInfo = panelDisplayInfo.panelInfo;
-        const sRuntimeAxes = resolvePanelAxesForRuntime(
-            sPanelInfo.axes,
-            sPanelInfo.display.pixelsPerTick,
-            sPanelInfo.display.mainChartSampling,
-        );
-        const sFetchResult = await fetchMainPanelSeriesRows(
-            sPanelInfo.query.tagSet,
-            sPanelInfo.query.count,
-            sPanelInfo.query.intervalType,
-            sRuntimeAxes.x,
-            sRuntimeAxes.mainChartSampling,
-            OVERLAP_CHART_FETCH_WIDTH_PX,
-            sPanelInfo.mode.isRaw,
-            sPanelInfo.mode.isOrderBy,
-            panelDisplayInfo.originalRuntimeRange,
-            pRollupTableList,
-        );
-        const sChartSeries = mapFetchResultToChartData(
-            sFetchResult,
-            { includeColor: false },
-        ).map((chartSeries) => ({
-            ...chartSeries,
-            overlapPanelKey: panelDisplayInfo.panelKey,
-            name: buildOverlapSeriesName(sPanelInfo.title, chartSeries.name),
-        }));
-        return sChartSeries;
-    }, [pRollupTableList]);
-
-    const loadOverlapData = useCallback(async (panelsInfo: OverlapDisplayPanelInfo[]): Promise<void> => {
-        const sRequestId = ++sLoadRequestIdRef.current;
-
-        if (!panelsInfo.length) {
-            setBaseSeriesData([]);
-            setOverlapLoadError(undefined);
-            return;
-        }
-
-        setIsLoadingOverlapData(true);
-        setOverlapLoadError(undefined);
-        setBaseSeriesData([]);
-
-        try {
-            const sResults = await Promise.all(
-                panelsInfo.map((panelInfo) => fetchOverlapPanelData(panelInfo)),
-            );
-
-            if (sRequestId !== sLoadRequestIdRef.current) {
-                return;
-            }
-            setBaseSeriesData(makeOverlapSeriesNamesUnique(sResults.flat()));
-        } catch (error) {
-            if (sRequestId !== sLoadRequestIdRef.current) {
-                return;
-            }
-
-            const sMessage =
-                error instanceof Error && error.message
-                    ? error.message
-                    : OVERLAP_LOAD_ERROR_MESSAGE;
-
-            setOverlapLoadError(sMessage);
-            Toast.error(sMessage, undefined);
-        } finally {
-            if (sRequestId === sLoadRequestIdRef.current) {
-                setIsLoadingOverlapData(false);
-            }
-        }
-    }, [fetchOverlapPanelData]);
-
-    useEffect(() => {
-        void loadOverlapData(sInitialPanelsInfoRef.current ?? []);
-
-        return () => {
-            sLoadRequestIdRef.current += 1;
-        };
-    }, [loadOverlapData]);
 
     function updatePanelShiftAmount(
         panelKey: string,
@@ -266,7 +183,7 @@ function OverlapModal({
     return (
         <Modal.Root
             isOpen={true}
-            onClose={() => pSetIsModal(false)}
+            onClose={onClose}
             size="lg"
             style={{ height: 'auto', maxHeight: '80vh' }}
         >
@@ -357,6 +274,111 @@ function OverlapModal({
             </Modal.Footer>
         </Modal.Root>
     );
+}
+
+function useOverlapChartData(
+    initialPanelsInfo: OverlapDisplayPanelInfo[],
+    rollupTableList: RollupTableMap,
+): {
+    baseSeriesData: ChartSeriesData[];
+    isLoading: boolean;
+    loadError: string | undefined;
+    loadOverlapData: (panelsInfo: OverlapDisplayPanelInfo[]) => Promise<void>;
+} {
+    const [sBaseSeriesData, setBaseSeriesData] = useState<ChartSeriesData[]>([]);
+    const [sIsLoadingOverlapData, setIsLoadingOverlapData] = useState(false);
+    const [sOverlapLoadError, setOverlapLoadError] = useState<string | undefined>();
+    const sLoadRequestIdRef = useRef(0);
+
+    const fetchOverlapPanelData = useCallback(async (
+        panelDisplayInfo: OverlapDisplayPanelInfo,
+    ): Promise<ChartSeriesData[]> => {
+        const sPanelInfo = panelDisplayInfo.panelInfo;
+        const sRuntimeAxes = resolvePanelAxesForRuntime(
+            sPanelInfo.axes,
+            sPanelInfo.display.pixelsPerTick,
+            sPanelInfo.display.mainChartSampling,
+        );
+        const sFetchResult = await fetchMainPanelSeriesRows(
+            sPanelInfo.query.tagSet,
+            sPanelInfo.query.count,
+            sPanelInfo.query.intervalType,
+            sRuntimeAxes.x,
+            sRuntimeAxes.mainChartSampling,
+            OVERLAP_CHART_FETCH_WIDTH_PX,
+            sPanelInfo.mode.isRaw,
+            sPanelInfo.mode.isOrderBy,
+            panelDisplayInfo.originalRuntimeRange,
+            rollupTableList,
+        );
+        const sChartSeries = mapFetchResultToChartData(
+            sFetchResult,
+            { includeColor: false },
+        ).map((chartSeries) => ({
+            ...chartSeries,
+            overlapPanelKey: panelDisplayInfo.panelKey,
+            name: buildOverlapSeriesName(sPanelInfo.title, chartSeries.name),
+        }));
+        return sChartSeries;
+    }, [rollupTableList]);
+
+    const loadOverlapData = useCallback(async (
+        panelsInfo: OverlapDisplayPanelInfo[],
+    ): Promise<void> => {
+        const sRequestId = ++sLoadRequestIdRef.current;
+
+        if (!panelsInfo.length) {
+            setBaseSeriesData([]);
+            setOverlapLoadError(undefined);
+            return;
+        }
+
+        setIsLoadingOverlapData(true);
+        setOverlapLoadError(undefined);
+        setBaseSeriesData([]);
+
+        try {
+            const sResults = await Promise.all(
+                panelsInfo.map((panelInfo) => fetchOverlapPanelData(panelInfo)),
+            );
+
+            if (sRequestId !== sLoadRequestIdRef.current) {
+                return;
+            }
+            setBaseSeriesData(makeOverlapSeriesNamesUnique(sResults.flat()));
+        } catch (error) {
+            if (sRequestId !== sLoadRequestIdRef.current) {
+                return;
+            }
+
+            const sMessage =
+                error instanceof Error && error.message
+                    ? error.message
+                    : OVERLAP_LOAD_ERROR_MESSAGE;
+
+            setOverlapLoadError(sMessage);
+            Toast.error(sMessage, undefined);
+        } finally {
+            if (sRequestId === sLoadRequestIdRef.current) {
+                setIsLoadingOverlapData(false);
+            }
+        }
+    }, [fetchOverlapPanelData]);
+
+    useEffect(() => {
+        void loadOverlapData(initialPanelsInfo);
+
+        return () => {
+            sLoadRequestIdRef.current += 1;
+        };
+    }, [initialPanelsInfo, loadOverlapData]);
+
+    return {
+        baseSeriesData: sBaseSeriesData,
+        isLoading: sIsLoadingOverlapData,
+        loadError: sOverlapLoadError,
+        loadOverlapData,
+    };
 }
 
 type OverlapPanelShiftRowProps = {

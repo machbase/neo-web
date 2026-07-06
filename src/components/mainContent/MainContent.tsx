@@ -415,7 +415,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 )}
                                 {checkExtension(aItem.type, 'taz') && (
                                     <TagAnalyzer
-                                        pInfo={aItem as unknown as BoardInfo}
+                                        info={aItem as unknown as BoardInfo}
                                     />
                                 )}
                                 {checkExtension(aItem.type, 'term') && (

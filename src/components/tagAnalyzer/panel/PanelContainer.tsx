@@ -703,7 +703,7 @@ function PanelContainer({
                     <TimeRangeModal
                         rangeKind="numeric"
                         title={runtimeTimeRangeModal.title}
-                        numericRange={runtimeTimeRangeModal.range}
+                        value={runtimeTimeRangeModal.range}
                         onApply={applyRuntimeConcreteRange}
                         onClose={closeRuntimeTimeRangeModal}
                     />
@@ -711,15 +711,14 @@ function PanelContainer({
                     <TimeRangeModal
                         rangeKind="time"
                         title={runtimeTimeRangeModal.title}
-                        timeRange={runtimeTimeRangeModal.timeRangeInput}
-                        timeRangePlaceholder={runtimeTimeRangeModal.timeRangePlaceholder}
-                        allowEmptyTimeRange={runtimeTimeRangeModal.allowEmptyTimeRange}
-                        lastDataTime={
+                        value={runtimeTimeRangeModal.timeRangeInput}
+                        emptyRange={runtimeTimeRangeModal.emptyRange}
+                        dataEndTime={
                             isValidTimeRange(rangeState.fullRange)
                                 ? rangeState.fullRange.endTime
                                 : runtimeTimeRangeModal.range.endTime
                         }
-                        previousConcreteRange={runtimeTimeRangeModal.range}
+                        referenceRange={runtimeTimeRangeModal.range}
                         onApply={applyRuntimeTimeRangeInput}
                         onClose={closeRuntimeTimeRangeModal}
                     />
@@ -734,15 +733,11 @@ function PanelContainer({
             )}
             {popupState.mode === PanelPopupMode.FFT && (
                 <FFTModal
-                    pSeriesSummaries={popupState.selection.seriesSummaries}
-                    pStartTime={popupState.selection.startTime}
-                    pEndTime={popupState.selection.endTime}
-                    pIsNumericXAxis={isNumericXAxis}
-                    setIsOpen={(isOpen) => {
-                        if (!isOpen) {
-                            closePopup(PanelPopupMode.FFT);
-                        }
-                    }}
+                    seriesSummaries={popupState.selection.seriesSummaries}
+                    startTime={popupState.selection.startTime}
+                    endTime={popupState.selection.endTime}
+                    isNumericXAxis={isNumericXAxis}
+                    onClose={() => closePopup(PanelPopupMode.FFT)}
                 />
             )}
             {selectionSummary !== undefined && (

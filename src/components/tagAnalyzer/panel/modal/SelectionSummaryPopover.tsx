@@ -16,6 +16,13 @@ const SUMMARY_FIELD_LABELS: Record<(typeof SUMMARY_FIELDS)[number], string> = {
     avg: 'Avg',
 };
 
+function buildSummaryFieldKey(
+    item: FFTSelectionPayload['seriesSummaries'][number],
+    field: (typeof SUMMARY_FIELDS)[number],
+): string {
+    return `${item.table}:${item.seriesIndex}:${item.name}:${field}`;
+}
+
 export function SelectionSummaryPopover({
     selection,
     position,
@@ -79,10 +86,10 @@ export function SelectionSummaryPopover({
                         {SUMMARY_FIELD_LABELS[field]}
                     </Page.ContentDesc>
                 ))}
-                {selection.seriesSummaries.map((item, index) => (
+                {selection.seriesSummaries.map((item) => (
                     SUMMARY_FIELDS.map((field) => (
                         <Page.ContentText
-                            key={`${item.name}-${index}-${field}`}
+                            key={buildSummaryFieldKey(item, field)}
                             pContent={item[field] ?? ''}
                             style={{
                                 minWidth: 0,
