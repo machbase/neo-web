@@ -303,7 +303,10 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                             </Page.ContentDesc>
                                         )}
                                     </Page.DpRow>
-                                    <Page.ContentDesc>Display name</Page.ContentDesc>
+                                    <Page.ContentDesc>
+                                        Display name (max 16 characters)
+                                    </Page.ContentDesc>
+                                    <Page.ContentDesc>Reserved name: SHELL</Page.ContentDesc>
                                     <Page.Input
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) =>
                                             handlePayload('label', event)
@@ -329,12 +332,16 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                     <Page.ContentDesc>
                                         Any executable command in full path with arguments
                                     </Page.ContentDesc>
+                                    <Page.ContentDesc>
+                                        cmd.exe · /bin/bash · psql postgres
+                                    </Page.ContentDesc>
                                     <Page.Input
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) =>
                                             handlePayload('command', event)
                                         }
                                         pValue={sPayload.command}
                                         pWidth={'400px'}
+                                        pPlaceholder="/bin/bash"
                                     />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
@@ -420,6 +427,33 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                         </Pane>
                         <Pane minSize={0}>
                             <Page.Header />
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Custom shell</Page.ContentTitle>
+                                    <Page.ContentDesc>
+                                        Register a shell that launches an executable of your choice
+                                        from a terminal tab. Set the display name, the command to
+                                        run, and an optional color theme and icon on the left, then
+                                        Create to add it.
+                                    </Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>name</Page.ContentTitle>
+                                    <Page.ContentDesc>
+                                        Display name shown on the terminal tab (max 16 characters).
+                                    </Page.ContentDesc>
+                                    <Page.ContentDesc>Reserved name: SHELL</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>command</Page.ContentTitle>
+                                    <Page.ContentDesc>
+                                        Any executable command in full path with arguments.
+                                    </Page.ContentDesc>
+                                    <Page.ContentDesc>
+                                        cmd.exe · /bin/bash · psql postgres
+                                    </Page.ContentDesc>
+                                </Page.ContentBlock>
+                            </Page.Body>
                         </Pane>
                     </SplitPane>
                 </Page>

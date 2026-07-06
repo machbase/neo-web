@@ -19,7 +19,7 @@ const KEY_TYPE_LIST: { name: string; data: string }[] = [
 
 export const CreateKey = () => {
     const DOWNLOAD_LIST: string[] = ['certificate', 'privateKey', 'token', 'serverKey'];
-    const RES_CAUTION: string = 'Caution: This is the last chance to copy and store PRIVATE KEY and TOKEN. It can not be redo.';
+    const RES_CAUTION: string = 'Caution: This is your only chance to copy the certificate, private key, and token. They cannot be regenerated.';
     const [sGenKeyInfo, setGenKeyInfo] = useState<GenKeyResType | undefined>(undefined);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
     const setSecurityKeyList = useSetRecoilState<KeyItemType[] | undefined>(gKeyList);
@@ -145,14 +145,15 @@ export const CreateKey = () => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
-                            <Page.ContentDesc>Used to generate keys</Page.ContentDesc>
+                            <Page.ContentDesc>Unique client id — lowercase letters, digits, and _ . @ - only</Page.ContentDesc>
                             <Page.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
                         </Page.ContentBlock>
                         <Page.ContentBlock>
                             <Page.DpRow>
                                 <Page.ContentTitle>Type</Page.ContentTitle>
                             </Page.DpRow>
-                            <Page.ContentDesc>Key encoding algorithm</Page.ContentDesc>
+                            <Page.ContentDesc>Key algorithm</Page.ContentDesc>
+                            <Page.ContentDesc>{'Tokens authenticate HTTP API & MQTT clients; X.509 keys are for MQTT TLS and gRPC.'}</Page.ContentDesc>
                             <Page.Selector
                                 pList={KEY_TYPE_LIST}
                                 pSelectedItem={sCreatePayload.type}
@@ -232,6 +233,7 @@ export const CreateKey = () => {
                                             <Page.TextButton pWidth="120px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
                                         </div>
                                     </Page.DpRow>
+                                    <Page.ContentDesc>{'Zip contains: server cert, {id}_cert.pem, {id}_key.pem, {id}_token (only when "Store" is checked).'}</Page.ContentDesc>
                                 </Page.ContentBlock>
                             )}
                             {DOWNLOAD_LIST.map((aTxt: string) => {

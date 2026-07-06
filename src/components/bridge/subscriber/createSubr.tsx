@@ -14,7 +14,12 @@ import { Page, CommonTable } from '@/design-system/components';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { genSubr, getBridge, getSubr } from '@/api/repository/bridge';
-import { SUBR_FORMAT_TABLE, SUBR_METHOD_TABLE, SUBR_OPTIONS_TABLE } from './content';
+import {
+    SUBR_AUTO_START_DESC,
+    SUBR_FORMAT_TABLE,
+    SUBR_METHOD_TABLE,
+    SUBR_OPTIONS_TABLE,
+} from './content';
 
 export const CreateSubr = ({ pInit }: { pInit: any }) => {
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
@@ -205,7 +210,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             <Page.ContentTitle>Auto start</Page.ContentTitle>
                             <Page.DpRow>
                                 <Page.Checkbox
-                                    label="Makes the task to start automatically when machbase-neo starts"
+                                    label={SUBR_AUTO_START_DESC}
                                     pValue={sCreatePayload.autoStart}
                                     pCallback={(value: boolean) =>
                                         handlePayload('autoStart', { target: { value } } as any)
@@ -258,7 +263,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 <Page.ContentTitle>QoS</Page.ContentTitle>
                                 <Page.ContentDesc>
                                     {
-                                        'Subscribe to the topic QoS 1, MQTT bridges support QoS 0 and 1.'
+                                        'Specify the QoS level for the subscription. MQTT supports 0 and 1 (default 0).'
                                     }
                                 </Page.ContentDesc>
                                 <Page.Selector
@@ -300,7 +305,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             </Page.DpRow>
                             <Page.DpRow>
                                 <Page.ContentDesc>
-                                    {'The path of tql script or writing path descriptor.'}
+                                    {'The path of tql script or writing descriptor.'}
                                 </Page.ContentDesc>
                                 <span
                                     style={{
@@ -534,7 +539,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                         <Page.ContentBlock>
                             <Page.ContentTitle>Writing Descriptor</Page.ContentTitle>
                             <Page.ContentDesc>
-                                Parses the message and write it in the specified table.
+                                Parses the message and writes it into the specified table.
                             </Page.ContentDesc>
                             <Page.ContentDesc>
                                 The syntax of writing descriptor is …
@@ -546,7 +551,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 {/* method */}
                                 <Page.ContentDesc>Method</Page.ContentDesc>
                                 <Page.ContentText
-                                    pContent={`There are two methods append and write.`}
+                                    pContent={`There are two methods append and write. The append is recommended on the stream environment like MQTT.`}
                                 />
                                 <CommonTable data={SUBR_METHOD_TABLE} dotted />
                                 {/* table_name */}
