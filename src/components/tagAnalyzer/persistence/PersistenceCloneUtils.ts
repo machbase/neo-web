@@ -3,7 +3,7 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelAnnotation,
     type PanelHighlight,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,

@@ -5,7 +5,7 @@ import type {
 } from 'echarts';
 import type {
     PanelAnnotation,
-} from '../../../domain/panel/PanelConfig';
+} from '../../../domain/panel/PanelInfo';
 import {
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,

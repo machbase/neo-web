@@ -1,19 +1,21 @@
-import { AUTO_VALUE_RANGE } from './PanelConfig';
+import { AUTO_VALUE_RANGE } from './PanelInfo';
 import type {
     PanelAxes,
     PanelAxisThreshold,
     PanelDisplay,
-    PanelEChartType,
     PanelPixelsPerTick,
     PanelSampling,
     PanelYAxis,
     ValueRange,
-} from './PanelConfig';
+} from './PanelInfo';
 
-type RuntimePanelAxisThreshold = {
-    enabled: boolean;
-    value: number;
-};
+// Runtime shapes are the config shapes with optional values resolved to
+// concrete numbers; the resolve* functions below validate the resolution.
+type ResolvedFields<T> = { [K in keyof T]-?: Exclude<T[K], undefined> };
+
+type RuntimePanelAxisThreshold = ResolvedFields<PanelAxisThreshold>;
+
+export type RuntimePanelSampling = ResolvedFields<PanelSampling>;
 
 export type RuntimePanelXAxis = {
     showTickline: boolean;
@@ -22,16 +24,10 @@ export type RuntimePanelXAxis = {
     calculatedNavigatorPixelsPerTick: number;
 };
 
-export type RuntimePanelSampling = {
-    enabled: boolean;
-    sampleCount: number;
-};
-
-type RuntimePanelYAxis = {
-    zeroBase: boolean;
-    showTickline: boolean;
-    valueRange: ValueRange;
-    rawValueRange: ValueRange;
+type RuntimePanelYAxis = Omit<
+    PanelYAxis,
+    'upperControlLimit' | 'lowerControlLimit'
+> & {
     upperControlLimit: RuntimePanelAxisThreshold;
     lowerControlLimit: RuntimePanelAxisThreshold;
 };
@@ -44,16 +40,12 @@ export type RuntimePanelAxes = {
     rightYEnabled: boolean;
 };
 
-export type RuntimePanelDisplay = {
-    chartType: PanelEChartType;
-    showLegend: boolean;
-    showPoint: boolean;
-    pointRadius: number;
-    fill: number;
-    stroke: number;
-    connectNulls: boolean;
-    useZoom: boolean;
-};
+export type RuntimePanelDisplay = ResolvedFields<
+    Omit<
+        PanelDisplay,
+        'pixelsPerTick' | 'mainChartSampling' | 'rawNavigatorSampling'
+    >
+>;
 
 export function resolvePanelAxesForRuntime(
     axes: PanelAxes,

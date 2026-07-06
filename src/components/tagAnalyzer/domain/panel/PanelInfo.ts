@@ -1,6 +1,5 @@
 import type {
     PanelViewRange,
-    PanelRangeInput,
     TimeRangeInput,
     TimeRangeMs,
 } from '../time/TimeTypes';
@@ -16,25 +15,9 @@ export const AUTO_VALUE_RANGE: ValueRange = {
     max: undefined,
 };
 
-const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot', 'Custom'] as const;
+export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot', 'Custom'] as const;
 
 export type PanelEChartType = (typeof PANEL_ECHART_TYPE_VALUES)[number];
-
-const DEFAULT_PANEL_ECHART_TYPE: PanelEChartType = 'Line';
-const PANEL_ECHART_TYPE_LOOKUP: Record<PanelEChartType, true> = {
-    Line: true,
-    Zone: true,
-    Dot: true,
-    Custom: true,
-};
-
-function isPanelEChartType(value: unknown): value is PanelEChartType {
-    return typeof value === 'string' && value in PANEL_ECHART_TYPE_LOOKUP;
-}
-
-export function normalizePanelEChartType(value: unknown): PanelEChartType {
-    return isPanelEChartType(value) ? value : DEFAULT_PANEL_ECHART_TYPE;
-}
 
 type PanelQuery = {
     tagSet: PanelSeriesDefinition[];
@@ -57,7 +40,7 @@ type PanelMode = {
 };
 
 export type PanelTimeConfig = {
-    rangeInput: PanelRangeInput;
+    rangeInput: TimeRangeInput;
     useLastViewedRange: boolean;
     lastViewedRange: PanelViewRange | undefined;
 };
@@ -65,10 +48,6 @@ export type PanelTimeConfig = {
 export type PanelAxisThreshold = {
     enabled: boolean;
     value: number | undefined;
-};
-
-type PanelXAxis = {
-    showTickline: boolean;
 };
 
 export type PanelSampling = {
@@ -97,7 +76,9 @@ type PanelRightYAxis = PanelYAxis & {
 };
 
 export type PanelAxes = {
-    x: PanelXAxis;
+    x: {
+        showTickline: boolean;
+    };
     leftY: PanelYAxis;
     rightY: PanelRightYAxis;
 };
@@ -142,7 +123,7 @@ export type PanelAnnotation = {
     clip: boolean;
 };
 
-export type PanelConfig = {
+export type PanelInfo = {
     key: string;
     title: string;
     query: PanelQuery;
@@ -153,8 +134,6 @@ export type PanelConfig = {
     highlights: PanelHighlight[];
     annotations: PanelAnnotation[];
 };
-
-export type PanelInfo = PanelConfig;
 
 export type PanelRangeState = {
     requestPanelRange: TimeRangeMs;
@@ -168,13 +147,13 @@ type RuntimePanelTime = {
     runtimeRange: PanelRangeState;
 };
 
-export type RuntimePanelInfo = Omit<PanelConfig, 'time'> & {
+export type RuntimePanelInfo = Omit<PanelInfo, 'time'> & {
     time: RuntimePanelTime;
     isOverlapSelected: boolean;
 };
 
 export function createRuntimePanelInfo(
-    panelConfig: PanelConfig,
+    panelConfig: PanelInfo,
     runtimeRange: PanelRangeState,
     isOverlapSelected: boolean,
 ): RuntimePanelInfo {
@@ -190,7 +169,7 @@ export function createRuntimePanelInfo(
 
 export function getPanelConfigFromRuntimePanel(
     runtimePanelInfo: RuntimePanelInfo,
-): PanelConfig {
+): PanelInfo {
     return {
         key: runtimePanelInfo.key,
         title: runtimePanelInfo.title,

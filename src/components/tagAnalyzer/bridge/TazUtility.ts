@@ -2,12 +2,9 @@ import { getId } from '@/utils';
 import { TAZ_FORMAT_VERSION } from '../persistence/TazVersion';
 import { formatAbsoluteTimeExpression } from '../domain/time/TimeRangeInputResolver';
 import { formatNumericValue } from '../domain/panelRange/PanelRangeInput';
-import type {
-    PanelRangeInput,
-    TimeRangeInput,
-} from '../domain/time/TimeTypes';
+import type { TimeRangeInput } from '../domain/time/TimeTypes';
 import type { BoardInfo } from '../domain/BoardDomain';
-import type { PanelEChartType } from '../domain/panel/PanelConfig';
+import type { PanelEChartType } from '../domain/panel/PanelInfo';
 import {
     isNumericBaseTimeSourceColumns,
     type PanelSeriesDefinition,
@@ -36,7 +33,7 @@ type CreateTazBoardFromSeriesOptions = {
     chartType?: PanelEChartType;
     seriesList: PanelSeriesDefinition[];
     boardTimeRange: TimeRangeInput;
-    panelRange: PanelRangeInput;
+    panelRange: TimeRangeInput;
 };
 
 type CreateTazBoardFromTimeRangeOptions = {
@@ -150,7 +147,7 @@ function createDefaultSeriesDefinition(
 function resolveDefaultPanelRange(
     time: TagAnalyzerDefaultBoardOptions['time'],
     sourceColumns: PanelSeriesSourceColumns,
-): PanelRangeInput {
+): TimeRangeInput {
     if (
         Number.isFinite(time.min) &&
         Number.isFinite(time.max) &&

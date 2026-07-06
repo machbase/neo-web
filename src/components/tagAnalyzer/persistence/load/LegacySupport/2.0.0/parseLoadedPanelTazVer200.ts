@@ -1,11 +1,10 @@
 import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
-    normalizePanelEChartType,
     type PanelAnnotation,
     type PanelInfo,
     type PanelYAxis,
-} from '../../../../domain/panel/PanelConfig';
+} from '../../../../domain/panel/PanelInfo';
 import { isPlainObject } from '../../../../domain/ObjectGuards';
 import {
     DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
@@ -24,13 +23,14 @@ import { normalizePersistedValueRangeOrAuto } from '../../normalizePersistedValu
 import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
 import type {
     PanelViewRange,
-    PanelRangeInput,
+    TimeRangeInput,
 } from '../../../../domain/time/TimeTypes';
 import { normalizePanelViewRange } from '../../../../domain/panelRange/PanelRangeResolver';
+import { normalizePersistedPanelChartType } from '../../normalizePersistedPanelChartType';
 
 type NormalizedPersistedPanelInfoV200 = Omit<PersistedPanelInfoV200, 'time'> & {
     time: Omit<PersistedPanelInfoV200['time'], 'rangeConfig'> & {
-        rangeConfig: PanelRangeInput;
+        rangeConfig: TimeRangeInput;
         lastViewedRange: PanelViewRange | undefined;
     };
 };
@@ -111,7 +111,9 @@ export function parseLoadedPanelTazVer200(
             },
         },
         display: {
-            chartType: normalizePanelEChartType(sNormalizedPanelInfo.display.chartType),
+            chartType: normalizePersistedPanelChartType(
+                sNormalizedPanelInfo.display.chartType,
+            ),
             showLegend: sNormalizedPanelInfo.display.showLegend ?? false,
             showPoint: sNormalizedPanelInfo.display.showPoints ?? false,
             pointRadius: sNormalizedPanelInfo.display.pointRadius ?? 0,

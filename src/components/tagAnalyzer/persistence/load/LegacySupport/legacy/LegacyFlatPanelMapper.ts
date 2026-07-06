@@ -2,10 +2,9 @@ import {
     AUTO_VALUE_RANGE,
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     normalizePanelQueryCount,
-    normalizePanelEChartType,
     type PanelInfo,
     type ValueRange,
-} from '../../../../domain/panel/PanelConfig';
+} from '../../../../domain/panel/PanelInfo';
 import {
     fromLegacyBoolean,
     normalizeLegacySeriesConfigs,
@@ -13,10 +12,7 @@ import {
 import {
     shouldUseNumericPanelRangeInput,
 } from '../../../../domain/SeriesDomain';
-import type {
-    PanelRangeInput,
-    TimeRangeInput,
-} from '../../../../domain/time/TimeTypes';
+import type { TimeRangeInput } from '../../../../domain/time/TimeTypes';
 import { createTimeRangeInputFromStoredValues } from '../../normalizePersistedTimeRangeInput';
 import { normalizePanelViewRange } from '../../../../domain/panelRange/PanelRangeResolver';
 import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeIntervalUtils';
@@ -24,6 +20,7 @@ import { formatNumericValue } from '../../../../domain/panelRange/PanelRangeInpu
 import { formatAbsoluteTimeExpression } from '../../../../domain/time/TimeRangeInputResolver';
 import { normalizePersistedPanelRangeInput } from '../../normalizePersistedPanelRangeInput';
 import { normalizePersistedValueRange } from '../../normalizePersistedValueRange';
+import { normalizePersistedPanelChartType } from '../../normalizePersistedPanelChartType';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 export function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,
@@ -84,7 +81,7 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
         ucl2_value: normalizeNumericValue(panelInfo.ucl2_value),
         use_lcl2: fromLegacyBoolean(panelInfo.use_lcl2),
         lcl2_value: normalizeNumericValue(panelInfo.lcl2_value),
-        chart_type: normalizePanelEChartType(panelInfo.chart_type),
+        chart_type: normalizePersistedPanelChartType(panelInfo.chart_type),
         show_point: fromLegacyBoolean(panelInfo.show_point),
         point_radius: normalizeNumericValue(panelInfo.point_radius),
         fill: normalizeNumericValue(panelInfo.fill),
@@ -202,7 +199,7 @@ function resolveLegacyRangeConfig(
     panelInfo: LegacyFlatPanelInfo,
     storedRangeConfig: TimeRangeInput,
     isNumericAxis: boolean,
-): PanelRangeInput {
+): TimeRangeInput {
     if (hasLegacyStoredRange(panelInfo)) {
         return normalizePersistedPanelRangeInput(
             storedRangeConfig,
@@ -228,7 +225,7 @@ function hasLegacyStoredRange(panelInfo: LegacyFlatPanelInfo): boolean {
 function createAbsoluteRangeConfigFromValueRange(
     valueRange: ValueRange | undefined,
     isNumericAxis: boolean,
-): PanelRangeInput | undefined {
+): TimeRangeInput | undefined {
     if (
         !valueRange ||
         valueRange.min === undefined ||

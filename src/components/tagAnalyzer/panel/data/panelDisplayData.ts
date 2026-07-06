@@ -1,7 +1,7 @@
 import type {
     PanelDisplayRangeState,
     PanelRangeState,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import {
     getNavigatorTrackWidth,
     resolveNavigatorRangeForPanel,

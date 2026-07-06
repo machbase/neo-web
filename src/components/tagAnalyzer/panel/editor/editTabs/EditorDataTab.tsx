@@ -8,7 +8,7 @@ import {
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelInfo } from '../../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../../domain/panel/PanelInfo';
 import { cx } from './EditorFieldUtils';
 import styles from '../PanelEditor.module.scss';
 

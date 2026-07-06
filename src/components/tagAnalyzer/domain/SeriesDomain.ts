@@ -72,22 +72,10 @@ export function isNumericBaseTimeSourceColumns(
     );
 }
 
-function isKeyDoubleSourceColumns(
-    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
-): boolean {
-    return isNumericBaseTimeSourceColumns(sourceColumns);
-}
-
-function isKeyDateTimeSourceColumns(
-    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
-): boolean {
-    return !isKeyDoubleSourceColumns(sourceColumns);
-}
-
 function getSeriesKeyAxisKind(
     sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
 ): SeriesKeyAxisKind {
-    return isKeyDoubleSourceColumns(sourceColumns) ? 'double' : 'datetime';
+    return isNumericBaseTimeSourceColumns(sourceColumns) ? 'double' : 'datetime';
 }
 
 export function isBaseTimeSourceColumns(
@@ -100,7 +88,7 @@ export function hasNumericBaseTimeSeries(
     seriesList: SeriesWithSourceColumns[] = [],
 ): boolean {
     return seriesList.some((series) =>
-        isKeyDoubleSourceColumns(series.sourceColumns),
+        isNumericBaseTimeSourceColumns(series.sourceColumns),
     );
 }
 
@@ -109,7 +97,7 @@ export function hasMixedXAxisValueKinds(
 ): boolean {
     const sHasNumericBaseTime = hasNumericBaseTimeSeries(seriesList);
     const sHasDateTimeAxis = seriesList.some(
-        (series) => isKeyDateTimeSourceColumns(series.sourceColumns),
+        (series) => !isNumericBaseTimeSourceColumns(series.sourceColumns),
     );
 
     return sHasNumericBaseTime && sHasDateTimeAxis;

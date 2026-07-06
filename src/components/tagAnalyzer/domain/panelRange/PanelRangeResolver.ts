@@ -1,7 +1,6 @@
-import type { PanelRangeState } from '../panel/PanelConfig';
+import type { PanelRangeState } from '../panel/PanelInfo';
 import type {
     PanelViewRange,
-    PanelRangeInput,
     TimeRangeInput,
     TimeRangeMs,
 } from '../time/TimeTypes';
@@ -52,7 +51,7 @@ function shouldApplyInitialMainChartWindow({
     rangeInput,
 }: {
     applyInitialMainChartWindow: boolean;
-    rangeInput: PanelRangeInput;
+    rangeInput: TimeRangeInput;
 }): boolean {
     return (
         applyInitialMainChartWindow &&
@@ -93,7 +92,7 @@ export function resolveConcretePanelRangeState({
     applyInitialMainChartWindow,
 }: {
     fullRange: TimeRangeMs;
-    rangeInput: PanelRangeInput;
+    rangeInput: TimeRangeInput;
     isNumericAxis: boolean;
     lastViewedRange: PanelViewRange | undefined;
     boardTime: TimeRangeInput;

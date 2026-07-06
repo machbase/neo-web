@@ -4,11 +4,10 @@ import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeR
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import TagAnalyzerDatePicker from '../../../TagAnalyzerDatePicker';
-import type { PanelInfo } from '../../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../../domain/panel/PanelInfo';
 import styles from '../PanelEditor.module.scss';
 import { resolveEditableTimeRangeInput } from '../../../domain/time/TimeRangeInputParsing';
 import {
-    type PanelRangeInput,
     type TimeRangeInput,
     type TimeRangeMs,
 } from '../../../domain/time/TimeTypes';
@@ -370,7 +369,7 @@ function NumericRangeInputEditor({
 
 function createTimeConfig(
     currentTimeConfig: PanelInfo['time'],
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
 ): PanelInfo['time'] {
     return {
         ...currentTimeConfig,
@@ -382,7 +381,7 @@ function createTimeConfig(
 // that aren't valid for the datetime axis (e.g. leftover numeric input) reset to
 // empty so the editor never shows an uninterpretable value.
 function getTimestampRangeInput(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
 ): TimeRangeInput {
     return {
         start: sanitizeExpressionForAxis(rangeInput.start, false),
@@ -391,8 +390,8 @@ function getTimestampRangeInput(
 }
 
 function getNumericRangeInput(
-    rangeInput: PanelRangeInput,
-): PanelRangeInput {
+    rangeInput: TimeRangeInput,
+): TimeRangeInput {
     return {
         start: sanitizeExpressionForAxis(rangeInput.start, true),
         end: sanitizeExpressionForAxis(rangeInput.end, true),
@@ -458,7 +457,7 @@ function getTimestampLastDataTime(
 }
 
 function getNumericInputValues(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
 ): NumericInputValues {
     return {
         startValue: rangeInput.start,
@@ -469,7 +468,7 @@ function getNumericInputValues(
 function createNumericRangeInputFromValues(
     startValue: string,
     endValue: string,
-): PanelRangeInput | undefined {
+): TimeRangeInput | undefined {
     const sStartValue = startValue.trim();
     const sEndValue = endValue.trim();
 

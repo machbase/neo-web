@@ -1,7 +1,7 @@
 import type {
     PanelEChartType,
     ValueRange,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import type {
     TimeRangeInput,
 } from '../domain/time/TimeTypes';

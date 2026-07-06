@@ -11,7 +11,7 @@ import { FFTModal } from './modal/FFTModal';
 import { EditAnnotationModal } from './modal/EditAnnotationModal';
 import { EditHighlightModal } from './modal/EditHighlightModal';
 import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
-import TimeRangeModal from '../modals/TimeRangeModal';
+import RangeModal from '../modals/RangeModal';
 import type { GlobalTimeRangeState } from '../domain/BoardDomain';
 import type { ChartSeriesData } from '../domain/ChartDomain';
 import type {
@@ -20,13 +20,13 @@ import type {
     PanelInfo,
     PanelRangeState,
     RuntimePanelInfo,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import {
     getPanelConfigFromRuntimePanel,
     DEFAULT_PANEL_HIGHLIGHT_LABEL,
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import {
     resolvePanelAxesForRuntime,
     resolvePanelDisplayForRuntime,
@@ -69,14 +69,8 @@ import {
     panelInteractionReducer,
 } from './panelInteractionState';
 import {
-    addPanelAnnotation,
-    addPanelHighlight,
-    deletePanelAnnotation,
-    deletePanelHighlight,
-    getPanelAnnotation,
-    getPanelHighlight,
-    updatePanelAnnotation,
-    updatePanelHighlight,
+    createPanelAnnotationActions,
+    createPanelHighlightActions,
 } from './panelConfigActions';
 import './PanelChartShell.scss';
 
@@ -251,51 +245,8 @@ function PanelContainer({
         );
     }
 
-    function getHighlight(highlightIndex: number): PanelHighlight {
-        return getPanelHighlight(panelInfo, highlightIndex);
-    }
-
-    function addHighlight(highlight: PanelHighlight): void {
-        onApplyPanelInfo(addPanelHighlight(panelInfo, highlight));
-    }
-
-    function updateHighlight(
-        highlightIndex: number,
-        highlight: PanelHighlight,
-    ): void {
-        onApplyPanelInfo(updatePanelHighlight(
-            panelInfo,
-            highlightIndex,
-            highlight,
-        ));
-    }
-
-    function deleteHighlight(highlightIndex: number): void {
-        onApplyPanelInfo(deletePanelHighlight(panelInfo, highlightIndex));
-    }
-
-    function getAnnotation(annotationIndex: number): PanelAnnotation {
-        return getPanelAnnotation(panelInfo, annotationIndex);
-    }
-
-    function addAnnotation(annotation: PanelAnnotation): void {
-        onApplyPanelInfo(addPanelAnnotation(panelInfo, annotation));
-    }
-
-    function updateAnnotation(
-        annotationIndex: number,
-        annotation: PanelAnnotation,
-    ): void {
-        onApplyPanelInfo(updatePanelAnnotation(
-            panelInfo,
-            annotationIndex,
-            annotation,
-        ));
-    }
-
-    function deleteAnnotation(annotationIndex: number): void {
-        onApplyPanelInfo(deletePanelAnnotation(panelInfo, annotationIndex));
-    }
+    const highlightActions = createPanelHighlightActions(panelInfo, onApplyPanelInfo);
+    const annotationActions = createPanelAnnotationActions(panelInfo, onApplyPanelInfo);
 
     const draftHighlight =
         popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR &&
@@ -412,14 +363,6 @@ function PanelContainer({
         dispatchPanelUiAction({ type: 'CLOSE_POPUP', popupMode });
     }
 
-    function closePanelEditor(): void {
-        dispatchPanelUiAction({ type: 'CLOSE_EDITOR' });
-    }
-
-    function finishPanelEditorClose(): void {
-        dispatchPanelUiAction({ type: 'FINISH_EDITOR_CLOSE' });
-    }
-
     function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
         event.stopPropagation();
@@ -463,15 +406,6 @@ function PanelContainer({
                 hoveredMainSeriesName,
                 overlayMode,
             },
-        });
-    }
-
-    function handleHoveredMainSeriesChange(
-        seriesName: string | undefined,
-    ): void {
-        dispatchOverlayCursorHintAction({
-            type: 'SET_HOVERED_MAIN_SERIES',
-            seriesName,
         });
     }
 
@@ -526,7 +460,7 @@ function PanelContainer({
         position: ContextMenuPosition,
         annotationIndex: number,
     ): void {
-        const sAnnotation = getAnnotation(annotationIndex);
+        const sAnnotation = annotationActions.getAnnotation(annotationIndex);
 
         dispatchPanelUiAction({
             type: 'OPEN_POPUP',
@@ -605,6 +539,64 @@ function PanelContainer({
         });
     }
 
+    function applyHighlightEditorValue(highlight: PanelHighlight): void {
+        if (popupState.mode !== PanelPopupMode.HIGHLIGHT_EDITOR) {
+            return;
+        }
+
+        if (popupState.editor.mode === 'create') {
+            highlightActions.addHighlight(highlight);
+        } else {
+            highlightActions.updateHighlight(
+                popupState.editor.highlightIndex,
+                highlight,
+            );
+        }
+
+        closePopup(PanelPopupMode.HIGHLIGHT_EDITOR);
+    }
+
+    function deleteHighlightEditorValue(): void {
+        if (
+            popupState.mode !== PanelPopupMode.HIGHLIGHT_EDITOR ||
+            popupState.editor.mode !== 'edit'
+        ) {
+            return;
+        }
+
+        highlightActions.deleteHighlight(popupState.editor.highlightIndex);
+        closePopup(PanelPopupMode.HIGHLIGHT_EDITOR);
+    }
+
+    function applyAnnotationEditorValue(annotation: PanelAnnotation): void {
+        if (popupState.mode !== PanelPopupMode.ANNOTATION_EDITOR) {
+            return;
+        }
+
+        if (popupState.editorMeta.annotationIndex === undefined) {
+            annotationActions.addAnnotation(annotation);
+        } else {
+            annotationActions.updateAnnotation(
+                popupState.editorMeta.annotationIndex,
+                annotation,
+            );
+        }
+
+        closePopup(PanelPopupMode.ANNOTATION_EDITOR);
+    }
+
+    function deleteAnnotationEditorValue(): void {
+        if (
+            popupState.mode !== PanelPopupMode.ANNOTATION_EDITOR ||
+            popupState.editorMeta.annotationIndex === undefined
+        ) {
+            return;
+        }
+
+        annotationActions.deleteAnnotation(popupState.editorMeta.annotationIndex);
+        closePopup(PanelPopupMode.ANNOTATION_EDITOR);
+    }
+
     return (
         <div
             className="panel-form"
@@ -667,7 +659,11 @@ function PanelContainer({
                     handlers={{
                         rangeActions,
                         markupHandlers: chartMarkupHandlers,
-                        onHoveredMainSeriesChange: handleHoveredMainSeriesChange,
+                        onHoveredMainSeriesChange: (seriesName) =>
+                            dispatchOverlayCursorHintAction({
+                                type: 'SET_HOVERED_MAIN_SERIES',
+                                seriesName,
+                            }),
                         onSelection: handleSelection,
                     }}
                 />
@@ -690,39 +686,36 @@ function PanelContainer({
                 <PanelEditor
                     pAnimationState={isEditorClosing ? 'closing' : 'opening'}
                     pOnApplyEditorConfig={applyEditedPanelConfig}
-                    pOnClose={closePanelEditor}
-                    pOnAnimationEnd={finishPanelEditorClose}
+                    pOnClose={() => dispatchPanelUiAction({ type: 'CLOSE_EDITOR' })}
+                    pOnAnimationEnd={() =>
+                        dispatchPanelUiAction({ type: 'FINISH_EDITOR_CLOSE' })
+                    }
                     pPanelInfo={panelInfo}
                     pIsRawMode={effectiveIsRaw}
                     pHasUnsavedBoardChanges={hasUnsavedBoardChanges}
                     pPanelRange={displayPanelRange}
                 />
             )}
-            {runtimeTimeRangeModal !== undefined &&
-                (isNumericXAxis ? (
-                    <TimeRangeModal
-                        rangeKind="numeric"
-                        title={runtimeTimeRangeModal.title}
-                        value={runtimeTimeRangeModal.range}
-                        onApply={applyRuntimeConcreteRange}
-                        onClose={closeRuntimeTimeRangeModal}
-                    />
-                ) : (
-                    <TimeRangeModal
-                        rangeKind="time"
-                        title={runtimeTimeRangeModal.title}
-                        value={runtimeTimeRangeModal.timeRangeInput}
-                        emptyRange={runtimeTimeRangeModal.emptyRange}
-                        dataEndTime={
-                            isValidTimeRange(rangeState.fullRange)
-                                ? rangeState.fullRange.endTime
-                                : runtimeTimeRangeModal.range.endTime
-                        }
-                        referenceRange={runtimeTimeRangeModal.range}
-                        onApply={applyRuntimeTimeRangeInput}
-                        onClose={closeRuntimeTimeRangeModal}
-                    />
-                ))}
+            {runtimeTimeRangeModal !== undefined && (
+                <RangeModal
+                    title={runtimeTimeRangeModal.title}
+                    isNumeric={isNumericXAxis}
+                    numericRange={{
+                        initialRange: runtimeTimeRangeModal.range,
+                        onApply: applyRuntimeConcreteRange,
+                    }}
+                    timeRange={{
+                        initialRangeInput: runtimeTimeRangeModal.timeRangeInput,
+                        emptyRange: runtimeTimeRangeModal.emptyRange,
+                        dataEndTime: isValidTimeRange(rangeState.fullRange)
+                            ? rangeState.fullRange.endTime
+                            : runtimeTimeRangeModal.range.endTime,
+                        referenceRange: runtimeTimeRangeModal.range,
+                        onApply: applyRuntimeTimeRangeInput,
+                    }}
+                    onClose={closeRuntimeTimeRangeModal}
+                />
+            )}
             {popupState.mode === PanelPopupMode.CONTEXT_MENU && (
                 <PanelContextMenu
                     runtimeState={panelHeaderRuntimeState}
@@ -755,15 +748,17 @@ function PanelContainer({
                 <EditHighlightModal
                     key={getHighlightEditorKey(popupState)}
                     activeHighlightEditor={popupState.editor}
-                    draftHighlight={popupState.draftHighlight}
-                    highlightActions={{
-                        getHighlight,
-                        addHighlight,
-                        updateHighlight,
-                        deleteHighlight,
-                    }}
+                    highlight={getHighlightEditorValue(
+                        popupState,
+                        highlightActions.getHighlight,
+                    )}
                     onCancel={() => closePopup(PanelPopupMode.HIGHLIGHT_EDITOR)}
-                    onApplied={() => closePopup(PanelPopupMode.HIGHLIGHT_EDITOR)}
+                    onApply={applyHighlightEditorValue}
+                    onDelete={
+                        popupState.editor.mode === 'edit'
+                            ? deleteHighlightEditorValue
+                            : undefined
+                    }
                     isNumericXAxis={isNumericXAxis}
                 />
             )}
@@ -771,15 +766,18 @@ function PanelContainer({
                 <EditAnnotationModal
                     key={popupState.editorMeta.annotationIndex ?? 'new'}
                     annotationEditorMeta={popupState.editorMeta}
-                    annotationActions={{
-                        getAnnotation,
-                        addAnnotation,
-                        updateAnnotation,
-                        deleteAnnotation,
-                    }}
+                    annotation={getAnnotationEditorValue(
+                        popupState.editorMeta,
+                        annotationActions.getAnnotation,
+                    )}
                     annotationSeriesList={panelInfo.query.tagSet}
                     onCancel={() => closePopup(PanelPopupMode.ANNOTATION_EDITOR)}
-                    onApplied={() => closePopup(PanelPopupMode.ANNOTATION_EDITOR)}
+                    onApply={applyAnnotationEditorValue}
+                    onDelete={
+                        popupState.editorMeta.annotationIndex !== undefined
+                            ? deleteAnnotationEditorValue
+                            : undefined
+                    }
                     isNumericXAxis={isNumericXAxis}
                 />
             )}
@@ -824,6 +822,30 @@ function getHighlightEditorKey(popupState: HighlightPopupState): string {
     }
 
     return `edit-${popupState.editor.highlightIndex}`;
+}
+
+function getHighlightEditorValue(
+    popupState: HighlightPopupState,
+    getHighlight: (highlightIndex: number) => PanelHighlight,
+): PanelHighlight {
+    if (popupState.editor.mode === 'create') {
+        if (popupState.draftHighlight === undefined) {
+            throw new Error('Cannot create highlight form without a draft highlight.');
+        }
+
+        return popupState.draftHighlight;
+    }
+
+    return getHighlight(popupState.editor.highlightIndex);
+}
+
+function getAnnotationEditorValue(
+    editorMeta: { annotationIndex?: number },
+    getAnnotation: (annotationIndex: number) => PanelAnnotation,
+): PanelAnnotation | undefined {
+    return editorMeta.annotationIndex === undefined
+        ? undefined
+        : getAnnotation(editorMeta.annotationIndex);
 }
 
 function filterChartDataByRange(

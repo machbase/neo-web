@@ -3,7 +3,7 @@ import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     type PanelEChartType,
     type PanelInfo,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import { createPanelIndexKey } from '../../domain/panel/PanelIdentity';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 

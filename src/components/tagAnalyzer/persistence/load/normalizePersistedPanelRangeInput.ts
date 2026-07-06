@@ -1,4 +1,4 @@
-import { TimeUnit, type PanelRangeInput } from '../../domain/time/TimeTypes';
+import { TimeUnit, type TimeRangeInput } from '../../domain/time/TimeTypes';
 import {
     formatNumericRangeExpression,
     formatNumericValue,
@@ -20,7 +20,7 @@ import { asRecord } from '../../domain/ObjectGuards';
 export function normalizePersistedPanelRangeInput(
     rangeConfig: unknown,
     isNumericAxis: boolean,
-): PanelRangeInput | undefined {
+): TimeRangeInput | undefined {
     const sRangeConfig = asRecord(rangeConfig);
     if (!sRangeConfig) {
         return undefined;

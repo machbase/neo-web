@@ -1,7 +1,7 @@
 import { type KeyboardEvent } from 'react';
 import { Button, Dropdown, type ContextMenuPosition } from '@/design-system/components';
 import { useEditFormState, handleEditFormKeyDown } from './editFormState';
-import type { PanelAnnotation } from '../../domain/panel/PanelConfig';
+import type { PanelAnnotation } from '../../domain/panel/PanelInfo';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
@@ -24,13 +24,6 @@ export type AnnotationEditorMetaState = {
     timestamp?: number;
 };
 
-export type PanelAnnotationActions = {
-    getAnnotation: (annotationIndex: number) => PanelAnnotation;
-    addAnnotation: (annotation: PanelAnnotation) => void;
-    updateAnnotation: (annotationIndex: number, annotation: PanelAnnotation) => void;
-    deleteAnnotation: (annotationIndex: number) => void;
-};
-
 type PanelAnnotationSeriesOption = {
     label: string;
     value: string;
@@ -43,6 +36,12 @@ type AnnotationFormState = {
     fillColor: string;
     textColor: string;
     clip: boolean;
+};
+
+type AnnotationFormValidation = {
+    annotation: PanelAnnotation | undefined;
+    seriesMessage?: string;
+    timeMessage?: string;
 };
 
 const EMPTY_ANNOTATION_SERIES_VALUE = '';
@@ -79,7 +78,7 @@ function createAnnotationFormState(
     };
 }
 
-function convertAnnotationFormStateToPanelAnnotation({
+function validateAnnotationFormState({
     formState,
     selectedSeriesKey,
     existingAnnotation,
@@ -89,11 +88,21 @@ function convertAnnotationFormStateToPanelAnnotation({
     selectedSeriesKey: string;
     existingAnnotation: PanelAnnotation | undefined;
     isNumericXAxis: boolean;
-}): PanelAnnotation | undefined {
+}): AnnotationFormValidation {
     const annotationTimestamp = parseAxisInputValue(formState.timeText, isNumericXAxis);
+    const seriesMessage = selectedSeriesKey === ''
+        ? 'Select a series.'
+        : undefined;
+    const timeMessage = annotationTimestamp === undefined
+        ? `Enter a valid ${isNumericXAxis ? 'axis value' : 'time'}.`
+        : undefined;
 
-    if (annotationTimestamp === undefined) {
-        return undefined;
+    if (selectedSeriesKey === '' || annotationTimestamp === undefined) {
+        return {
+            annotation: undefined,
+            seriesMessage,
+            timeMessage,
+        };
     }
 
     const existingTimeRange = existingAnnotation?.timeRange;
@@ -111,61 +120,34 @@ function convertAnnotationFormStateToPanelAnnotation({
               };
 
     return {
-        seriesKey: selectedSeriesKey,
-        text: formState.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL,
-        timeRange: { ...annotationTimeRange },
-        fillColor: formState.fillColor || DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-        textColor: formState.textColor || DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-        clip: formState.clip,
+        annotation: {
+            seriesKey: selectedSeriesKey,
+            text: formState.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL,
+            timeRange: { ...annotationTimeRange },
+            fillColor: formState.fillColor || DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+            textColor: formState.textColor || DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+            clip: formState.clip,
+        },
     };
 }
 
 export function EditAnnotationModal({
     annotationEditorMeta,
-    annotationActions,
+    annotation,
     annotationSeriesList,
     onCancel,
-    onApplied,
+    onApply,
+    onDelete,
     isNumericXAxis,
 }: {
     annotationEditorMeta: AnnotationEditorMetaState;
-    annotationActions: PanelAnnotationActions;
+    annotation: PanelAnnotation | undefined;
     annotationSeriesList: PanelSeriesDefinition[];
     onCancel: () => void;
-    onApplied: () => void;
+    onApply: (annotation: PanelAnnotation) => void;
+    onDelete?: () => void;
     isNumericXAxis: boolean;
 }) {
-    const annotationIndex = annotationEditorMeta.annotationIndex;
-    const annotation = annotationIndex === undefined
-        ? undefined
-        : annotationActions.getAnnotation(annotationIndex);
-    function saveAnnotation(state: AnnotationFormState): boolean {
-        const selectedAnnotationSeriesKey = state.seriesValue.trim();
-
-        if (selectedAnnotationSeriesKey === '') {
-            return false;
-        }
-
-        const nextAnnotation = convertAnnotationFormStateToPanelAnnotation({
-            formState: state,
-            selectedSeriesKey: selectedAnnotationSeriesKey,
-            existingAnnotation: annotation,
-            isNumericXAxis,
-        });
-
-        if (!nextAnnotation) {
-            return false;
-        }
-
-        if (annotationIndex === undefined) {
-            annotationActions.addAnnotation(nextAnnotation);
-            return true;
-        }
-
-        annotationActions.updateAnnotation(annotationIndex, nextAnnotation);
-        return true;
-    }
-
     const { state, setField } = useEditFormState(() =>
         createAnnotationFormState(annotationEditorMeta, annotation, isNumericXAxis),
     );
@@ -177,30 +159,25 @@ export function EditAnnotationModal({
         ...createPanelAnnotationSeriesOptions(annotationSeriesList),
     ];
     const selectedSeriesKey = state.seriesValue.trim();
-    const canApply =
-        selectedSeriesKey !== '' &&
-        parseAxisInputValue(state.timeText, isNumericXAxis) !== undefined;
+    const validation = validateAnnotationFormState({
+        formState: state,
+        selectedSeriesKey,
+        existingAnnotation: annotation,
+        isNumericXAxis,
+    });
+    const canApply = validation.annotation !== undefined;
     const timePlaceholder = isNumericXAxis
         ? NUMERIC_AXIS_INPUT_FORMAT
         : LOCAL_DATE_TIME_INPUT_FORMAT;
 
     function applyForm(): void {
-        if (saveAnnotation(state)) {
-            onApplied();
+        if (validation.annotation !== undefined) {
+            onApply(validation.annotation);
         }
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
         handleEditFormKeyDown(event, { onApply: applyForm, onCancel });
-    }
-
-    function deleteAnnotation(): void {
-        if (annotationIndex === undefined) {
-            throw new Error('Cannot delete annotation without an annotation index.');
-        }
-
-        annotationActions.deleteAnnotation(annotationIndex);
-        onApplied();
     }
 
     return (
@@ -214,8 +191,8 @@ export function EditAnnotationModal({
             closeOnScroll={false}
             actions={(
                 <>
-                    {annotation !== undefined && (
-                        <Button size="sm" variant="ghost" onClick={deleteAnnotation}>
+                    {annotation !== undefined && onDelete !== undefined && (
+                        <Button size="sm" variant="ghost" onClick={onDelete}>
                             Delete
                         </Button>
                     )}
@@ -229,7 +206,14 @@ export function EditAnnotationModal({
             )}
         >
             <label className="panel-popover-form__field">
-                Series
+                <span className="panel-popover-form__field-label">
+                    Series
+                    {validation.seriesMessage ? (
+                        <span className="panel-popover-form__field-error">
+                            {validation.seriesMessage}
+                        </span>
+                    ) : null}
+                </span>
                 <Dropdown.Root
                     options={seriesOptions}
                     value={state.seriesValue}
@@ -244,7 +228,14 @@ export function EditAnnotationModal({
                 </Dropdown.Root>
             </label>
             <label className="panel-popover-form__field">
-                {isNumericXAxis ? 'Axis value' : 'Time (Local)'}
+                <span className="panel-popover-form__field-label">
+                    {isNumericXAxis ? 'Axis value' : 'Time (Local)'}
+                    {validation.timeMessage ? (
+                        <span className="panel-popover-form__field-error">
+                            {validation.timeMessage}
+                        </span>
+                    ) : null}
+                </span>
                 <input
                     aria-label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
                     className="panel-popover-form__input"

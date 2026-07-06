@@ -3,7 +3,7 @@ import {
     normalizePanelQueryCount,
     type PanelInfo,
     type PanelYAxis,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import { isPlainObject } from '../../domain/ObjectGuards';
 import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
 import { normalizePanelViewRange } from '../../domain/panelRange/PanelRangeResolver';

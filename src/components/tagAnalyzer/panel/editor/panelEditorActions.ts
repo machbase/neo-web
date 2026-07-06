@@ -1,9 +1,9 @@
-import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import {
     shouldUseNumericPanelRangeInput,
     type PanelSeriesDefinition,
 } from '../../domain/SeriesDomain';
-import type { PanelRangeInput } from '../../domain/time/TimeTypes';
+import type { TimeRangeInput } from '../../domain/time/TimeTypes';
 import { isPanelRangeInputValidForAxis } from '../../domain/panelRange/PanelRangeInput';
 
 function hasPanelTimeRangeInputChanged(
@@ -28,9 +28,9 @@ function normalizeTagSetForRightYAxis(
 // When the series change flips the x-axis kind (datetime <-> numeric), the stored
 // expressions become meaningless for the new axis, so reset them to empty.
 function normalizeRangeInputForSeries(
-    rangeInput: PanelRangeInput,
+    rangeInput: TimeRangeInput,
     tagSet: PanelSeriesDefinition[],
-): PanelRangeInput {
+): TimeRangeInput {
     const sIsNumericAxis = shouldUseNumericPanelRangeInput(tagSet);
 
     return isPanelRangeInputValidForAxis(rangeInput, sIsNumericAxis)

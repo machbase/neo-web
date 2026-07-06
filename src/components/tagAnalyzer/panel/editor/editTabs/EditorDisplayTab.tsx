@@ -5,7 +5,7 @@ import Line from '@/assets/image/img_chart_03.png';
 import type {
     PanelDisplay,
     PanelEChartType,
-} from '../../../domain/panel/PanelConfig';
+} from '../../../domain/panel/PanelInfo';
 import { cx, parseEditorNumber } from './EditorFieldUtils';
 import styles from '../PanelEditor.module.scss';
 

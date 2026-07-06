@@ -1,8 +1,8 @@
-import type { PanelConfig } from './panel/PanelConfig';
+import type { PanelInfo } from './panel/PanelInfo';
 import type {
     IntervalOption,
+    PanelViewRange,
     TimeRangeInput,
-    TimeRangeMs,
 } from './time/TimeTypes';
 
 export type BoardInfo = {
@@ -11,7 +11,7 @@ export type BoardInfo = {
     name: string;
     path: string;
     code: unknown;
-    panels: PanelConfig[];
+    panels: PanelInfo[];
     boardTimeRange: TimeRangeInput;
     savedCode: string | false;
     // Opaque .taz format version this board was loaded from; persistence owns
@@ -19,8 +19,6 @@ export type BoardInfo = {
     version: string;
 };
 
-export type GlobalTimeRangeState = {
-    data: TimeRangeMs;
-    navigator: TimeRangeMs;
+export type GlobalTimeRangeState = PanelViewRange & {
     interval: IntervalOption;
 };

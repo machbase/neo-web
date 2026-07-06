@@ -5,7 +5,7 @@ import {
     type PanelInfo,
     type PanelRangeState,
     type RuntimePanelInfo,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
 import type { TimeRangeInput } from '../../domain/time/TimeTypes';
 import type { RollupTableMap } from '../../fetch/panelData/PanelDataFetchTypes';
@@ -392,8 +392,8 @@ export function useTagAnalyzerBoardPanels({
         const sFullRange = await fetchRequiredFullRange(panelInfo.query.tagSet);
 
         applyRangeToPanel(panelInfo, {
-            requestPanelRange: globalTimeRangeToApply.data,
-            requestNavigatorRange: globalTimeRangeToApply.navigator,
+            requestPanelRange: globalTimeRangeToApply.panelRange,
+            requestNavigatorRange: globalTimeRangeToApply.navigatorRange,
             fullRange: sFullRange,
         });
     }

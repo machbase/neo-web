@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from 'react';
 import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../../domain/ChartDomain';
-import type { PanelDisplayRangeState } from '../../domain/panel/PanelConfig';
+import type { PanelDisplayRangeState } from '../../domain/panel/PanelInfo';
 import { PanelOverlayMode, type PanelRangeActions, type PanelChartHandle, type PanelChartState, type PanelMarkupHandlers } from '../../domain/panel/PanelActions';
 import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';

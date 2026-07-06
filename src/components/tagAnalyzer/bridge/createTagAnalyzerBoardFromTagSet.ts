@@ -5,7 +5,7 @@ import {
     PANEL_TAG_LIMIT,
     type PanelSeriesDefinition,
 } from '@/components/tagAnalyzer/domain/SeriesDomain';
-import type { PanelInfo } from '@/components/tagAnalyzer/domain/panel/PanelConfig';
+import type { PanelInfo } from '@/components/tagAnalyzer/domain/panel/PanelInfo';
 import type { TimeRangeInput } from '@/components/tagAnalyzer/domain/time/TimeTypes';
 import { formatAbsoluteTimeExpression } from '@/components/tagAnalyzer/domain/time/TimeRangeInputResolver';
 import { createNewPanelInfo } from '@/components/tagAnalyzer/modals/createNewPanel/CreateNewPanelInfo';

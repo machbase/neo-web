@@ -4,7 +4,7 @@ import { mapFetchResultToChartData } from '../fetch/panelData/mapFetchResultToCh
 import {
     type PanelDisplayRangeState,
     type PanelRangeState,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import type { IntervalOption } from '../domain/time/TimeTypes';
 import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
 import {

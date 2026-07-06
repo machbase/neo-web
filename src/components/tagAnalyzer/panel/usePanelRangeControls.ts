@@ -3,11 +3,10 @@ import { Toast } from '@/design-system/components';
 import type {
     PanelDisplayRangeState,
     PanelRangeState,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import type {
     PanelNavigatorShiftActions,
     PanelRangeActions,
-    PanelRangeChangeEvent,
     PanelZoomActions,
 } from '../domain/panel/PanelActions';
 import type { TimeRangeInput, TimeRangeMs } from '../domain/time/TimeTypes';
@@ -79,8 +78,8 @@ export function usePanelRangeControls({
         Toast.warning(PANEL_NOT_INITIALIZED_DRAG_MESSAGE, undefined);
     }
 
-    function resolveApplyRangeFromEvent(
-        event: PanelRangeChangeEvent,
+    function resolveApplyRange(
+        range: TimeRangeMs,
         minimumDateTimeRangeMs: number,
     ): TimeRangeMs | undefined {
         if (
@@ -91,8 +90,8 @@ export function usePanelRangeControls({
             return undefined;
         }
 
-        return getMinimumAxisRangeFromEvent(
-            event,
+        return getMinimumAxisRange(
+            range,
             displayRangeState.displayNavigatorRange,
             isNumericXAxis,
             minimumDateTimeRangeMs,
@@ -100,10 +99,10 @@ export function usePanelRangeControls({
     }
 
     function applyMainRangeChange(
-        event: PanelRangeChangeEvent,
+        range: TimeRangeMs,
         deriveNavigatorRange?: (panelRange: TimeRangeMs) => TimeRangeMs,
     ): void {
-        const sPanelRange = resolveApplyRangeFromEvent(event, MIN_PANEL_RANGE_MS);
+        const sPanelRange = resolveApplyRange(range, MIN_PANEL_RANGE_MS);
         if (sPanelRange === undefined) return;
 
         const sNavigatorRange = deriveNavigatorRange?.(sPanelRange);
@@ -117,11 +116,11 @@ export function usePanelRangeControls({
         });
     }
     function applyExactNavigatorRange(
-        event: PanelRangeChangeEvent,
+        range: TimeRangeMs,
         requestNavigatorRangeInput?: TimeRangeInput,
     ): void {
-        const sNavigatorRange = resolveApplyRangeFromEvent(
-            event,
+        const sNavigatorRange = resolveApplyRange(
+            range,
             MIN_NAVIGATOR_RANGE_MS,
         );
         if (sNavigatorRange === undefined) return;
@@ -177,10 +176,10 @@ export function usePanelRangeControls({
 
     return {
         rangeActions: {
-            applyMainZoomRange: (event) => applyMainRangeChange(event),
-            applyMainNavigatorSelectionRange: (event) => applyMainRangeChange(event),
-            applyExactMainRange: (event) =>
-                applyMainRangeChange(event, (panelRange) =>
+            applyMainZoomRange: (range) => applyMainRangeChange(range),
+            applyMainNavigatorSelectionRange: (range) => applyMainRangeChange(range),
+            applyExactMainRange: (range) =>
+                applyMainRangeChange(range, (panelRange) =>
                     getNavigatorRangeForExactMainRange(
                         panelRange,
                         getCurrentNavigatorRange(
@@ -253,22 +252,21 @@ export function usePanelRangeControls({
     };
 }
 
-function getMinimumAxisRangeFromEvent(
-    event: PanelRangeChangeEvent,
+function getMinimumAxisRange(
+    requestedRange: TimeRangeMs,
     referenceRange: TimeRangeMs,
     isNumericXAxis: boolean,
     minimumDateTimeRangeMs: number,
 ): TimeRangeMs | undefined {
-    const sRequestedRange = createTimeRangeMs(event.min, event.max);
     if (
-        !Number.isFinite(sRequestedRange.startTime) ||
-        !Number.isFinite(sRequestedRange.endTime)
+        !Number.isFinite(requestedRange.startTime) ||
+        !Number.isFinite(requestedRange.endTime)
     ) {
         return undefined;
     }
 
     const sRange = ensureMinimumAxisRangeWidth(
-        sRequestedRange,
+        requestedRange,
         referenceRange,
         isNumericXAxis,
         minimumDateTimeRangeMs,

@@ -2,7 +2,7 @@ import type {
     PanelAnnotation,
     PanelHighlight,
     PanelInfo,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 
 export function renamePanelTitle(
     panelInfo: PanelInfo,
@@ -126,6 +126,40 @@ export function deletePanelAnnotation(
         annotations: panelInfo.annotations.filter(
             (_annotation, currentIndex) => currentIndex !== annotationIndex,
         ),
+    };
+}
+
+// Binds the highlight/annotation config operations to one panel and the board's
+// apply callback, matching the modal action contracts structurally.
+export function createPanelHighlightActions(
+    panelInfo: PanelInfo,
+    applyPanelInfo: (nextPanelInfo: PanelInfo) => void,
+) {
+    return {
+        getHighlight: (highlightIndex: number) =>
+            getPanelHighlight(panelInfo, highlightIndex),
+        addHighlight: (highlight: PanelHighlight) =>
+            applyPanelInfo(addPanelHighlight(panelInfo, highlight)),
+        updateHighlight: (highlightIndex: number, highlight: PanelHighlight) =>
+            applyPanelInfo(updatePanelHighlight(panelInfo, highlightIndex, highlight)),
+        deleteHighlight: (highlightIndex: number) =>
+            applyPanelInfo(deletePanelHighlight(panelInfo, highlightIndex)),
+    };
+}
+
+export function createPanelAnnotationActions(
+    panelInfo: PanelInfo,
+    applyPanelInfo: (nextPanelInfo: PanelInfo) => void,
+) {
+    return {
+        getAnnotation: (annotationIndex: number) =>
+            getPanelAnnotation(panelInfo, annotationIndex),
+        addAnnotation: (annotation: PanelAnnotation) =>
+            applyPanelInfo(addPanelAnnotation(panelInfo, annotation)),
+        updateAnnotation: (annotationIndex: number, annotation: PanelAnnotation) =>
+            applyPanelInfo(updatePanelAnnotation(panelInfo, annotationIndex, annotation)),
+        deleteAnnotation: (annotationIndex: number) =>
+            applyPanelInfo(deletePanelAnnotation(panelInfo, annotationIndex)),
     };
 }
 

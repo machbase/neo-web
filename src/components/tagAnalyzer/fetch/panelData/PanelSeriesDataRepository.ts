@@ -22,6 +22,7 @@ import type {
 } from '../../domain/time/TimeTypes';
 import { TimeUnit } from '../../domain/time/TimeTypes';
 import { addAdminSchemaIfNeeded } from './TableNameQualification';
+import { getUnknownErrorMessage } from '../QueryResponseUtils';
 import {
     fetchCalculationData,
     fetchRawData,
@@ -255,21 +256,9 @@ function createPanelSeriesErrorResult(
         fetchResult: createEmptyChartFetchResponse(),
         error: {
             kind: 'request-failed',
-            message: getPanelSeriesFetchErrorMessage(error),
+            message: getUnknownErrorMessage(error, 'Series data request failed.'),
         },
     };
-}
-
-function getPanelSeriesFetchErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) {
-        return error.message;
-    }
-
-    if (typeof error === 'string' && error.trim()) {
-        return error;
-    }
-
-    return 'Series data request failed.';
 }
 
 function resolveNavigatorTargetCount(chartWidth: number): number {

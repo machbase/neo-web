@@ -93,8 +93,8 @@ export function usePanelHeaderInteraction<TPanelInfo extends PanelTitleConfig>({
         }
 
         onSetGlobalTimeRange({
-            data: panelRange,
-            navigator: navigatorRange,
+            panelRange,
+            navigatorRange,
             interval: sResolvedIntervalOption,
         });
     }, [

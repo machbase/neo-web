@@ -38,6 +38,12 @@
 :global(.panel-popover-form__field) {
     display: grid; gap: 4px; color: #afb5bc; font-size: 12px;
 }
+:global(.panel-popover-form__field-label) {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+:global(.panel-popover-form__field-error) {
+    color: #ff6b6b; font-size: 11px; text-align: right;
+}
 :global(.panel-popover-form__row) { display: grid; gap: 8px; }
 :global(.panel-popover-form__row--two) { grid-template-columns: 1fr 1fr; }
 :global(.panel-popover-form__row--three) { grid-template-columns: 1fr 1fr 1fr; }

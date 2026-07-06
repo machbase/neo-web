@@ -20,8 +20,13 @@ import {
 import type { TimeRangeNs } from '../../domain/time/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 import { timeRangeMsToNanosecondsSql } from '../sqlBuilder/SqlTimeValueUtils';
+import {
+    getQueryResponseErrorMessage,
+    getQueryRowsOrThrow,
+} from '../QueryResponseUtils';
 
 const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
+const CHART_DATA_REQUEST_FAILED_MESSAGE = 'Chart data request failed.';
 
 export async function fetchCalculationData(
     calculationRequest: CalculationFetchRequest,
@@ -171,15 +176,17 @@ export async function fetchRawData(
 function parseChartQueryResponse(
     apiResponse: ChartFetchApiResponse,
 ): ChartFetchResponse {
-    if (typeof apiResponse.status === 'number' && apiResponse.status >= 400) {
-        throw new Error(getChartFetchErrorMessage(apiResponse));
+    const sErrorMessage = getQueryResponseErrorMessage(
+        apiResponse,
+        CHART_DATA_REQUEST_FAILED_MESSAGE,
+    );
+    if (sErrorMessage) {
+        throw new Error(sErrorMessage);
     }
 
-    if (apiResponse.success === false) {
-        throw new Error(getChartFetchErrorMessage(apiResponse));
-    }
-
-    const rows = normalizeChartFetchRows(getChartFetchRows(apiResponse.data));
+    const rows = normalizeChartFetchRows(
+        getQueryRowsOrThrow(apiResponse.data, MALFORMED_CHART_DATA_MESSAGE),
+    );
     validateChartFetchRows(rows);
 
     return {
@@ -188,92 +195,6 @@ function parseChartQueryResponse(
             rows: rows,
         },
     };
-}
-
-function getChartFetchErrorMessage(apiResponse: ChartFetchApiResponse): string {
-    if (typeof apiResponse.data === 'string' && apiResponse.data.length > 0) {
-        return apiResponse.data;
-    }
-
-    const sDataMessage = getChartFetchDataMessage(apiResponse.data);
-    if (sDataMessage) {
-        return sDataMessage;
-    }
-
-    const sTopLevelMessage = getChartFetchTopLevelMessage(apiResponse);
-    if (sTopLevelMessage) {
-        return sTopLevelMessage;
-    }
-
-    return apiResponse.statusText ?? 'Chart data request failed.';
-}
-
-function getChartFetchRows(data: unknown): unknown[] {
-    if (typeof data !== 'object' || data === null || !('rows' in data)) {
-        throw new Error(MALFORMED_CHART_DATA_MESSAGE);
-    }
-
-    const rows = (data as { rows: unknown }).rows;
-    if (!Array.isArray(rows)) {
-        throw new Error(MALFORMED_CHART_DATA_MESSAGE);
-    }
-
-    return rows;
-}
-
-function getChartFetchTopLevelMessage(apiResponse: ChartFetchApiResponse): string | undefined {
-    if (apiResponse.reason !== undefined) {
-        return String(apiResponse.reason);
-    }
-
-    if (apiResponse.message !== undefined) {
-        return String(apiResponse.message);
-    }
-
-    if (apiResponse.error !== undefined) {
-        return String(apiResponse.error);
-    }
-
-    return undefined;
-}
-
-function getChartFetchDataMessage(data: unknown): string | undefined {
-    if (data === null || data === undefined) {
-        return undefined;
-    }
-
-    if (
-        typeof data === 'string' ||
-        typeof data === 'number' ||
-        typeof data === 'boolean'
-    ) {
-        return String(data);
-    }
-
-    if (typeof data !== 'object') {
-        return undefined;
-    }
-
-    const sMessageContainer = data as {
-        reason?: unknown;
-        message?: unknown;
-        error?: unknown;
-    };
-
-    if (sMessageContainer.reason !== undefined) {
-        return String(sMessageContainer.reason);
-    }
-
-    if (sMessageContainer.message !== undefined) {
-        return String(sMessageContainer.message);
-    }
-
-    if (sMessageContainer.error !== undefined) {
-        return String(sMessageContainer.error);
-    }
-
-    const sSerializedData = JSON.stringify(data);
-    return sSerializedData || undefined;
 }
 
 function validateChartFetchRows(rows: unknown[]): asserts rows is TagFetchRow[] {

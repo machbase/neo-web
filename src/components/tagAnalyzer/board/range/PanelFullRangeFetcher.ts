@@ -1,5 +1,5 @@
 import { Toast } from '@/design-system/components';
-import type { PanelInfo, PanelRangeState } from '../../domain/panel/PanelConfig';
+import type { PanelInfo, PanelRangeState } from '../../domain/panel/PanelInfo';
 import {
     shouldUseNumericPanelRangeInput,
     type PanelSeriesDefinition,

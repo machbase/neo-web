@@ -2,8 +2,8 @@ import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
 import type {
     PanelEChartType,
     ValueRange,
-} from '../../../../domain/panel/PanelConfig';
-import type { PanelRangeInput } from '../../../../domain/time/TimeTypes';
+} from '../../../../domain/panel/PanelInfo';
+import type { TimeRangeInput } from '../../../../domain/time/TimeTypes';
 
 type LegacyStoredTimeRangeValue = string | number | '';
 
@@ -55,6 +55,6 @@ export type LegacyFlatPanelInfo = {
     point_radius: number | string;
     fill: number | string;
     stroke: number | string;
-    range_config?: PanelRangeInput | undefined;
+    range_config?: TimeRangeInput | undefined;
     [key: string]: unknown;
 };

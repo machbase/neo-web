@@ -14,7 +14,7 @@ import EditorGeneralTab from './editTabs/EditorGeneralTab';
 import EditorTimeTab from './editTabs/EditorTimeTab';
 import { hasInvalidEditorStructure } from './editTabs/EditorFieldUtils';
 import styles from './PanelEditor.module.scss';
-import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 

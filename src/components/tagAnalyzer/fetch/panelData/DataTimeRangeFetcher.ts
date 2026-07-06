@@ -18,6 +18,12 @@ import {
     buildSqlIdentifierPath,
     buildSqlStringLiteral,
 } from '../sqlBuilder/SqlTextUtils';
+import {
+    getQueryResponseErrorMessage,
+    getQueryRowsOrThrow,
+    getUnknownErrorMessage,
+    type QueryResponseLike,
+} from '../QueryResponseUtils';
 
 const TABLE_DOES_NOT_EXIST_PREFIX = 'Table does not exist';
 const TABLES_DO_NOT_EXIST_PREFIX = 'Tables do not exist';
@@ -34,16 +40,6 @@ const DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE = 'Data availability request fail
 const MALFORMED_QUERY_ROWS_MESSAGE = 'Data availability response contained malformed rows.';
 
 type DataTimeRangeRow = [number, number];
-
-type QueryResponseEnvelope = {
-    status: number | undefined;
-    statusText: string | undefined;
-    success: boolean | undefined;
-    data: unknown;
-    reason: unknown;
-    message: unknown;
-    error: unknown;
-};
 
 type ResolvedDataRangeSeries<T extends DataRangeSeries = DataRangeSeries> = Omit<
     T,
@@ -370,7 +366,9 @@ function getAvailabilityIssueFromCheck<T extends ResolvedDataRangeSeries>(
             return buildDataAvailabilityIssue(
                 missingKind,
                 series,
-                getMissingAvailabilityMessage(missingKind),
+                missingKind === 'missing-table'
+                    ? TABLE_DOES_NOT_EXIST_MESSAGE
+                    : TAG_DOES_NOT_EXIST_MESSAGE,
             );
     }
 }
@@ -410,10 +408,7 @@ function getCachedTagAvailability<T extends ResolvedDataRangeSeries>(
 
 async function checkTableAvailability(tableName: string): Promise<AvailabilityCheck> {
     return createAvailabilityCheckFromQueryResult(
-        await executeAvailabilityQuery(
-            () => buildTableAvailabilitySql(tableName),
-            keepQueryRows,
-        ),
+        await executeAvailabilityQuery(() => buildTableAvailabilitySql(tableName)),
     );
 }
 
@@ -422,7 +417,6 @@ async function checkTagAvailability<T extends ResolvedDataRangeSeries>(
 ): Promise<AvailabilityCheck> {
     const sMetadataResult = await executeAvailabilityQuery(
         () => buildMetadataTagAvailabilitySql(series),
-        keepQueryRows,
     );
     if (hasAvailabilityRows(sMetadataResult)) {
         return { kind: 'available' };
@@ -430,7 +424,6 @@ async function checkTagAvailability<T extends ResolvedDataRangeSeries>(
 
     const sSourceResult = await executeAvailabilityQuery(
         () => buildSourceTagAvailabilitySql(series),
-        keepQueryRows,
     );
 
     return createAvailabilityCheckFromQueryResult(sSourceResult);
@@ -483,9 +476,9 @@ async function fetchSingleSeriesDataTimeRange<T extends ResolvedDataRangeSeries>
     };
 }
 
-async function executeAvailabilityQuery<TRow>(
+async function executeAvailabilityQuery<TRow = unknown>(
     buildSql: () => string,
-    parseRows: QueryRowsParser<TRow>,
+    parseRows: QueryRowsParser<TRow> = (rows) => rows as TRow[],
 ): Promise<AvailabilityQueryResult<TRow>> {
     try {
         const sResponse = await request({
@@ -493,7 +486,10 @@ async function executeAvailabilityQuery<TRow>(
             url: '/api/query?q=' + encodeURIComponent(buildSql()),
         });
         const sEnvelope = parseQueryResponseEnvelope(sResponse);
-        const sErrorMessage = getAvailabilityQueryErrorMessage(sEnvelope);
+        const sErrorMessage = getQueryResponseErrorMessage(
+            sEnvelope,
+            DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE,
+        );
         if (sErrorMessage) {
             return {
                 kind: 'request-failed',
@@ -503,7 +499,9 @@ async function executeAvailabilityQuery<TRow>(
 
         return {
             kind: 'success',
-            rows: parseRows(getQueryRows(sEnvelope.data)),
+            rows: parseRows(
+                getQueryRowsOrThrow(sEnvelope.data, MALFORMED_QUERY_ROWS_MESSAGE),
+            ),
         };
     } catch (error) {
         return {
@@ -537,39 +535,12 @@ function hasAvailabilityRows<TRow>(
     return result.kind === 'success' && result.rows.length > 0;
 }
 
-function keepQueryRows(rows: unknown[]): unknown[] {
-    return rows;
-}
-
-function parseQueryResponseEnvelope(response: unknown): QueryResponseEnvelope {
+function parseQueryResponseEnvelope(response: unknown): QueryResponseLike {
     if (typeof response !== 'object' || response === null) {
         throw new Error(DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE);
     }
 
-    const sResponse = response as Record<string, unknown>;
-
-    return {
-        status: getOptionalNumber(sResponse.status),
-        statusText: getOptionalString(sResponse.statusText),
-        success: getOptionalBoolean(sResponse.success),
-        data: sResponse.data,
-        reason: sResponse.reason,
-        message: sResponse.message,
-        error: sResponse.error,
-    };
-}
-
-function getQueryRows(data: unknown): unknown[] {
-    if (typeof data !== 'object' || data === null || !('rows' in data)) {
-        throw new Error(MALFORMED_QUERY_ROWS_MESSAGE);
-    }
-
-    const rows = (data as { rows: unknown }).rows;
-    if (!Array.isArray(rows)) {
-        throw new Error(MALFORMED_QUERY_ROWS_MESSAGE);
-    }
-
-    return rows;
+    return response as QueryResponseLike;
 }
 
 function parseDataTimeRangeRows(rows: unknown[]): DataTimeRangeRow[] {
@@ -604,111 +575,6 @@ function parseDataTimeRangeRow(row: unknown): DataTimeRangeRow | undefined {
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
-}
-
-function getOptionalNumber(value: unknown): number | undefined {
-    return typeof value === 'number' ? value : undefined;
-}
-
-function getOptionalString(value: unknown): string | undefined {
-    return typeof value === 'string' ? value : undefined;
-}
-
-function getOptionalBoolean(value: unknown): boolean | undefined {
-    return typeof value === 'boolean' ? value : undefined;
-}
-
-function getAvailabilityQueryErrorMessage(
-    response: QueryResponseEnvelope,
-): string | undefined {
-    if (response.status !== undefined && response.status >= 400) {
-        return getResponseErrorMessage(response) ?? `Request failed (${response.status})`;
-    }
-
-    if (response.success === false) {
-        return getResponseErrorMessage(response) ?? DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE;
-    }
-
-    return undefined;
-}
-
-function getResponseErrorMessage(
-    response: QueryResponseEnvelope,
-): string | undefined {
-    const sDataMessage = getErrorMessageFromValue(response.data);
-    if (sDataMessage) {
-        return sDataMessage;
-    }
-
-    const sTopLevelMessage = getErrorMessageFromValue({
-        reason: response.reason,
-        message: response.message,
-        error: response.error,
-    });
-    if (sTopLevelMessage) {
-        return sTopLevelMessage;
-    }
-
-    return response.statusText;
-}
-
-function getErrorMessageFromValue(value: unknown): string | undefined {
-    if (value === null || value === undefined) {
-        return undefined;
-    }
-
-    if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-    ) {
-        return String(value);
-    }
-
-    if (typeof value !== 'object') {
-        return undefined;
-    }
-
-    const sMessageContainer = value as {
-        reason?: unknown;
-        message?: unknown;
-        error?: unknown;
-    };
-
-    if (sMessageContainer.reason !== undefined) {
-        return String(sMessageContainer.reason);
-    }
-
-    if (sMessageContainer.message !== undefined) {
-        return String(sMessageContainer.message);
-    }
-
-    if (sMessageContainer.error !== undefined) {
-        return String(sMessageContainer.error);
-    }
-
-    const sSerializedValue = JSON.stringify(value);
-    return sSerializedValue === '{}' ? undefined : sSerializedValue;
-}
-
-function getUnknownErrorMessage(error: unknown, fallbackMessage: string): string {
-    if (error instanceof Error && error.message) {
-        return error.message;
-    }
-
-    if (typeof error === 'string' && error.trim()) {
-        return error;
-    }
-
-    return fallbackMessage;
-}
-
-function getMissingAvailabilityMessage(
-    kind: Extract<DataAvailabilityIssueKind, 'missing-table' | 'missing-tag'>,
-): string {
-    return kind === 'missing-table'
-        ? TABLE_DOES_NOT_EXIST_MESSAGE
-        : TAG_DOES_NOT_EXIST_MESSAGE;
 }
 
 function buildDataAvailabilityIssue<T extends DataRangeSeries>(
@@ -817,10 +683,6 @@ function createCombinedDataTimeRange(
 function createDataTimeRangeFromNanosecondRows(
     rows: DataTimeRangeRow[],
 ): TimeRangeMs | undefined {
-    if (rows.length === 0) {
-        return undefined;
-    }
-
     return createDataTimeRangeFromMillisecondRows(
         rows.map(([aStartNanoseconds, aEndNanoseconds]) => [
             Math.floor(aStartNanoseconds / NANOSECONDS_PER_MILLISECOND),
@@ -832,22 +694,7 @@ function createDataTimeRangeFromNanosecondRows(
 function createDataTimeRangeFromMillisecondRows(
     rows: DataTimeRangeRow[],
 ): TimeRangeMs | undefined {
-    if (rows.length === 0) {
-        return undefined;
-    }
-
-    let sMinTime = rows[0][0];
-    let sMaxTime = rows[0][1];
-
-    for (const [aMinTime, aMaxTime] of rows.slice(1)) {
-        if (aMinTime < sMinTime) {
-            sMinTime = aMinTime;
-        }
-
-        if (aMaxTime > sMaxTime) {
-            sMaxTime = aMaxTime;
-        }
-    }
-
-    return createTimeRangeMs(sMinTime, sMaxTime);
+    return createCombinedDataTimeRange(
+        rows.map(([aMinTime, aMaxTime]) => createTimeRangeMs(aMinTime, aMaxTime)),
+    );
 }

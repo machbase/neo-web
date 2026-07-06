@@ -7,7 +7,7 @@ import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelAnnotation } from '../../../domain/panel/PanelConfig';
+import type { PanelAnnotation } from '../../../domain/panel/PanelInfo';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import { getTimeRangeCenter, getTimeRangeWidth } from '../../../domain/time/TimeRangeUtils';
 

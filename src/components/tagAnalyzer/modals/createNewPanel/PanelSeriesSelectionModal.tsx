@@ -32,7 +32,7 @@ import { isTagAnalyzerJsonValue, type TagAnalyzerColumnInfo } from '@/utils/tagA
 import type {
     PanelEChartType,
     PanelInfo,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import {
     MIXED_X_AXIS_KIND_WARNING,
     hasMixedXAxisValueKinds,
@@ -56,14 +56,12 @@ import {
 } from './CreateNewPanelInfo';
 import { CreateNewPanelSourceSelector } from './CreateNewPanelSourceSelector';
 import {
-    createNewPanelSeriesPath,
-    createNewPanelSeriesPathsFromDefinitions,
-    createPanelSeriesDefinitionsFromPaths,
+    createNewPanelSeriesDefinition,
     getCreateNewPanelRollupColumn,
 } from './CreateNewPanelMetadata';
 import {
     NewPanelTimeType,
-    type NewPanelSeriesPath,
+    getErrorMessage,
     getNewPanelTimeTypeFromSourceColumns,
     getNewPanelTimeTypeFromSeries,
 } from './CreateNewPanelTypes';
@@ -123,8 +121,8 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
     const [sSelectedTable, setSelectedTableState] = useState('');
 
     const [sAvailableTags, setAvailableTags] = useState<TableInfoSearchTagSearchItem[]>([]);
-    const [sSelectedTags, setSelectedTags] = useState<NewPanelSeriesPath[]>(() =>
-        createNewPanelSeriesPathsFromDefinitions(sInitialSeries, {}),
+    const [sSelectedTags, setSelectedTags] = useState<PanelSeriesDefinition[]>(
+        () => [...sInitialSeries],
     );
     const [sTableTimeTypeByTable, setTableTimeTypeByTable] =
         useState<Record<string, NewPanelTimeType>>({});
@@ -167,7 +165,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
         });
     }, [sSelectedTags]);
 
-    const applySelectedTags = useCallback((nextTags: NewPanelSeriesPath[]): boolean => {
+    const applySelectedTags = useCallback((nextTags: PanelSeriesDefinition[]): boolean => {
         if (hasMixedXAxisValueKinds(nextTags)) {
             setAxisKindWarning(MIXED_X_AXIS_KIND_WARNING);
             Toast.error(MIXED_X_AXIS_KIND_WARNING);
@@ -209,10 +207,6 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
                       [table]: timeType,
                   }
         ));
-    }, []);
-
-    const showError = useCallback((message: string): void => {
-        Toast.error(message);
     }, []);
 
     async function loadTagList(): Promise<void> {
@@ -280,7 +274,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
 
         applySelectedTags([
             ...sSelectedTags,
-            createNewPanelSeriesPath({
+            createNewPanelSeriesDefinition({
                 key: getId(),
                 table: sSelectedTable,
                 tagName,
@@ -299,37 +293,25 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
 
 
     useEffect(() => {
-        void loadTableNames();
-        void loadRollupTableInfo();
+        void fetchTableInfoSearchTableNames().then((tableNames) => {
+            setAvailableSourceTableNames(tableNames);
+            setIsTableNameLoading(false);
+        });
+        void fetchAllRollupTableInfo().then(setRollupTableList);
     }, []);
 
-    async function loadTableNames(): Promise<void> {
-        setAvailableSourceTableNames(await fetchTableInfoSearchTableNames());
-        setIsTableNameLoading(false);
-    }
-
-    async function loadRollupTableInfo(): Promise<void> {
-        setRollupTableList(await fetchAllRollupTableInfo());
-    }
-
     function applySeriesSelection(): void {
-        const sSelectedSeriesDefinitions = createPanelSeriesDefinitionsFromPaths(
-            sSelectedTags,
-            sInitialSeries,
-        );
-
         if (isUpdatePanelSeriesSelectionModalProps(props)) {
-            props.onUpdateSeries(sSelectedSeriesDefinitions);
+            props.onUpdateSeries(sSelectedTags);
             onClose();
             return;
         }
 
-        const sNewPanel = createNewPanelInfo(
-            sSelectedSeriesDefinitions,
+        props.onCreatePanel(createNewPanelInfo(
+            sSelectedTags,
             sChartTitle,
             sSelectedChartType,
-        );
-        props.onCreatePanel(sNewPanel);
+        ));
         onClose();
     }
 
@@ -439,6 +421,9 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
                         availableSourceTableNames={sAvailableSourceTableNames}
                         rollupTableList={sRollupTableList}
                         isTableNameLoading={sIsTableNameLoading}
+                        selectedTable={sSelectedTable}
+                        sourceColumns={sSourceColumns}
+                        tableColumns={sTableColumns}
                         selectedTags={sSelectedTags}
                         selectedTimeType={sSelectedTimeType}
                         tableTimeTypeByTable={sTableTimeTypeByTable}
@@ -543,9 +528,9 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
                                                         <div className={styles.selectedSeriesHeader}>
                                                             <span
                                                                 className={styles.selectedSeriesName}
-                                                                title={item.tagName}
+                                                                title={item.sourceTagName}
                                                             >
-                                                                {item.tagName}
+                                                                {item.sourceTagName}
                                                             </span>
                                                             <div
                                                                 className={styles.modeTriggerWrapper}
@@ -610,7 +595,7 @@ function SelectedSeriesSourceDetails({
     item,
     rollupTableList,
 }: {
-    item: NewPanelSeriesPath;
+    item: PanelSeriesDefinition;
     rollupTableList: RollupTableMap;
 }) {
     const sRows = [
@@ -640,12 +625,12 @@ function SelectedSeriesSourceDetails({
 
 
 function isTagAlreadySelected(
-    selectedTags: NewPanelSeriesPath[],
+    selectedTags: PanelSeriesDefinition[],
     table: string,
     tagName: string,
 ): boolean {
     return selectedTags.some((item) => (
-        item.table === table && item.tagName === tagName
+        item.table === table && item.sourceTagName === tagName
     ));
 }
 
@@ -654,19 +639,18 @@ function getDisplayTableName(tableName: string): string {
 }
 
 function getSourceValueLabel(
-    item: NewPanelSeriesPath,
+    item: PanelSeriesDefinition,
     rollupTableList: RollupTableMap,
 ): string {
-    if (item.kind === 'json') {
-        return `${item.sourceColumns.value} -> ${item.sourceColumns.jsonKey ?? ''}`;
+    if (item.sourceColumns.jsonKey) {
+        return `${item.sourceColumns.value} -> ${item.sourceColumns.jsonKey}`;
     }
 
-    if (item.kind === 'rollup') {
-        const sRollupColumn = item.rollupColumn ?? getCreateNewPanelRollupColumn(
+    if (item.useRollupTable) {
+        const sRollupColumn = getCreateNewPanelRollupColumn(
             rollupTableList,
             item.table,
             item.sourceColumns.value,
-            item.sourceColumns.jsonKey,
         );
 
         return `${item.sourceColumns.value} (${sRollupColumn ?? 'rollup'})`;
@@ -675,7 +659,7 @@ function getSourceValueLabel(
     return item.sourceColumns.value || 'Value not selected';
 }
 
-function getSourceTimeLabel(item: NewPanelSeriesPath): string {
+function getSourceTimeLabel(item: PanelSeriesDefinition): string {
     if (!item.sourceColumns.time) {
         return 'Time not selected';
     }
@@ -688,11 +672,11 @@ function getSourceTimeLabel(item: NewPanelSeriesPath): string {
 }
 
 function getSelectedSeriesTooltip(
-    item: NewPanelSeriesPath,
+    item: PanelSeriesDefinition,
     rollupTableList: RollupTableMap,
 ): string {
     return [
-        `Tag: ${item.tagName}`,
+        `Tag: ${item.sourceTagName}`,
         `Table: ${item.table}`,
         `Time: ${getSourceTimeLabel(item)}`,
         `Value: ${getSourceValueLabel(item, rollupTableList)}`,
@@ -700,8 +684,8 @@ function getSelectedSeriesTooltip(
     ].join('\n');
 }
 
-function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
+function showError(message: string): void {
+    Toast.error(message);
 }
 
 export default PanelSeriesSelectionModal;

@@ -6,148 +6,59 @@ import type {
 } from '../../domain/SeriesDomain';
 import { asRecord } from '../../domain/ObjectGuards';
 import { getRollupMetadataLookupKey } from '../../fetch/metadata/RollupMetadata';
-import type {
-    BaseNewPanelSeriesPath,
-    NewPanelSeriesPath,
-} from './CreateNewPanelTypes';
 
 type RollupTableEntry = Record<string, unknown>;
-type ValueSummaryLabel = 'Summarized' | 'Not Summarized';
 
-type CreateNewPanelSeriesParams = {
-    key: string;
-    table: string;
-    tagName: string;
-    calculationMode: string;
-    columns: TagAnalyzerColumnInfo;
-    rollupMetadata: unknown;
-};
+// The modal works directly with PanelSeriesDefinition (the type it returns to
+// the board). These helpers build and update definitions from the source
+// selector's column choices, deriving useRollupTable from the rollup metadata.
 
-export function createNewPanelSeriesPath({
+export function createNewPanelSeriesDefinition({
     key,
     table,
     tagName,
     calculationMode,
     columns,
     rollupMetadata,
-}: CreateNewPanelSeriesParams): NewPanelSeriesPath {
+}: {
+    key: string;
+    table: string;
+    tagName: string;
+    calculationMode: string;
+    columns: TagAnalyzerColumnInfo;
+    rollupMetadata: unknown;
+}): PanelSeriesDefinition {
     const sSourceColumns = createPanelSeriesSourceColumns(columns);
-    const sBaseSeriesPath: BaseNewPanelSeriesPath = {
+
+    return {
         key,
         table,
-        tagName,
+        sourceTagName: tagName,
+        alias: '',
         calculationMode,
+        color: undefined,
+        useSecondaryAxis: false,
+        id: undefined,
+        useRollupTable: hasRollupColumn(rollupMetadata, table, sSourceColumns),
         sourceColumns: sSourceColumns,
     };
-
-    if (sSourceColumns.jsonKey) {
-        return { ...sBaseSeriesPath, kind: 'json' };
-    }
-
-    const sRollupColumn = getCreateNewPanelRollupColumn(
-        rollupMetadata,
-        table,
-        sSourceColumns.value,
-    );
-    if (sRollupColumn) {
-        return {
-            ...sBaseSeriesPath,
-            kind: 'rollup',
-            rollupColumn: sRollupColumn,
-        };
-    }
-
-    return { ...sBaseSeriesPath, kind: 'numeric' };
 }
 
-export function createNewPanelSeriesPathsFromDefinitions(
-    seriesDefinitions: PanelSeriesDefinition[],
-    rollupMetadata: unknown,
-): NewPanelSeriesPath[] {
-    return seriesDefinitions.map((seriesDefinition) => {
-        const sBaseSeriesPath: BaseNewPanelSeriesPath = {
-            key: seriesDefinition.key,
-            table: seriesDefinition.table,
-            tagName: seriesDefinition.sourceTagName,
-            calculationMode: seriesDefinition.calculationMode,
-            sourceColumns: { ...seriesDefinition.sourceColumns },
-        };
-
-        if (seriesDefinition.sourceColumns.jsonKey) {
-            return { ...sBaseSeriesPath, kind: 'json' };
-        }
-
-        if (seriesDefinition.useRollupTable) {
-            return {
-                ...sBaseSeriesPath,
-                kind: 'rollup',
-                rollupColumn: getCreateNewPanelRollupColumn(
-                    rollupMetadata,
-                    seriesDefinition.table,
-                    seriesDefinition.sourceColumns.value,
-                ),
-            };
-        }
-
-        return { ...sBaseSeriesPath, kind: 'numeric' };
-    });
-}
-
-export function createPanelSeriesDefinitionsFromPaths(
-    seriesPaths: NewPanelSeriesPath[],
-    existingSeriesDefinitions: PanelSeriesDefinition[] = [],
-): PanelSeriesDefinition[] {
-    const sExistingSeriesByKey = new Map(
-        existingSeriesDefinitions.map((seriesDefinition) => [
-            seriesDefinition.key,
-            seriesDefinition,
-        ]),
-    );
-
-    return seriesPaths.map((seriesPath) => {
-        const sExistingSeries = sExistingSeriesByKey.get(seriesPath.key);
-
-        return {
-            ...(sExistingSeries ?? {}),
-            key: seriesPath.key,
-            table: seriesPath.table,
-            sourceTagName: seriesPath.tagName,
-            alias: sExistingSeries?.alias ?? '',
-            calculationMode: seriesPath.calculationMode,
-            color: sExistingSeries?.color,
-            useSecondaryAxis: sExistingSeries?.useSecondaryAxis ?? false,
-            id: sExistingSeries?.id,
-            useRollupTable: seriesPath.kind === 'rollup',
-            sourceColumns: { ...seriesPath.sourceColumns },
-        };
-    });
-}
-
-export function updateNewPanelSeriesSourceColumns(
-    seriesPath: NewPanelSeriesPath,
+export function withUpdatedSeriesSourceColumns(
+    series: PanelSeriesDefinition,
     columns: TagAnalyzerColumnInfo,
     rollupMetadata: unknown,
-): NewPanelSeriesPath {
-    return createNewPanelSeriesPath({
-        key: seriesPath.key,
-        table: seriesPath.table,
-        tagName: seriesPath.tagName,
-        calculationMode: seriesPath.calculationMode,
-        columns,
-        rollupMetadata,
-    });
-}
+): PanelSeriesDefinition {
+    const sSourceColumns = createPanelSeriesSourceColumns(columns);
 
-function createPanelSeriesSourceColumns(
-    columns: TagAnalyzerColumnInfo,
-): PanelSeriesSourceColumns {
     return {
-        name: columns.name,
-        time: columns.time,
-        value: columns.value,
-        jsonKey: columns.jsonKey,
-        timeType: columns.timeType,
-        timeBaseTime: columns.timeBaseTime,
+        ...series,
+        sourceColumns: sSourceColumns,
+        useRollupTable: hasRollupColumn(
+            rollupMetadata,
+            series.table,
+            sSourceColumns,
+        ),
     };
 }
 
@@ -156,7 +67,7 @@ export function getCreateNewPanelValueSummaryLabel(
     tableName: string,
     columnName: string,
     jsonKey?: string,
-): ValueSummaryLabel | undefined {
+): 'Summarized' | 'Not Summarized' | undefined {
     if (rollupMetadata === undefined || !tableName || !columnName) {
         return undefined;
     }
@@ -186,6 +97,34 @@ export function getCreateNewPanelRollupColumn(
         const sRollupIntervals = sTableEntry[candidate];
         return Array.isArray(sRollupIntervals) && sRollupIntervals.length > 0;
     });
+}
+
+function hasRollupColumn(
+    rollupMetadata: unknown,
+    tableName: string,
+    sourceColumns: PanelSeriesSourceColumns,
+): boolean {
+    return (
+        !sourceColumns.jsonKey &&
+        getCreateNewPanelRollupColumn(
+            rollupMetadata,
+            tableName,
+            sourceColumns.value,
+        ) !== undefined
+    );
+}
+
+function createPanelSeriesSourceColumns(
+    columns: TagAnalyzerColumnInfo,
+): PanelSeriesSourceColumns {
+    return {
+        name: columns.name,
+        time: columns.time,
+        value: columns.value,
+        jsonKey: columns.jsonKey,
+        timeType: columns.timeType,
+        timeBaseTime: columns.timeBaseTime,
+    };
 }
 
 function getRollupTableEntry(

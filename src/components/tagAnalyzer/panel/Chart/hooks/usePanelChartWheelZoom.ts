@@ -6,6 +6,7 @@ import {
 import type { PanelRangeActions } from '../../../domain/panel/PanelActions';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import {
+    createTimeRangeMs,
     getTimeRangeWidth,
     isValidTimeRange,
 } from '../../../domain/time/TimeRangeUtils';
@@ -76,10 +77,9 @@ export function usePanelChartWheelZoom({
         const sNextWidth = sCurrentWidth * sZoomFactor;
         const sNextStart = sAnchorTime - sNextWidth * sAnchorRatio;
 
-        applyMainZoomRange({
-            min: sNextStart,
-            max: sNextStart + sNextWidth,
-        });
+        applyMainZoomRange(
+            createTimeRangeMs(sNextStart, sNextStart + sNextWidth),
+        );
     }, [
         applyMainZoomRange,
         chartAreaRef,

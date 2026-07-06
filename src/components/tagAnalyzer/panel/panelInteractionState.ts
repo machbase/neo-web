@@ -2,7 +2,7 @@ import type { ContextMenuPosition } from '@/design-system/components';
 import type { PanelOverlayCursorHintState } from './PanelOverlayCursorHint';
 import { PanelActionKey } from './PanelHeader';
 import type { FFTSelectionPayload } from '../domain/ChartDomain';
-import type { PanelHighlight } from '../domain/panel/PanelConfig';
+import type { PanelHighlight } from '../domain/panel/PanelInfo';
 import { PanelOverlayMode } from '../domain/panel/PanelActions';
 import type { AnnotationEditorMetaState } from './modal/EditAnnotationModal';
 import type { HighlightEditorState } from './modal/EditHighlightModal';

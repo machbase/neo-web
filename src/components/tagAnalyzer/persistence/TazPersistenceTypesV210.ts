@@ -1,5 +1,5 @@
 import type { TazVersion } from './TazVersion';
-import type { PanelConfig, PanelTimeConfig } from '../domain/panel/PanelConfig';
+import type { PanelInfo, PanelTimeConfig } from '../domain/panel/PanelInfo';
 import type { PersistedBoardTimeRange } from './TazPersistenceTypesV200';
 
 type PersistedPanelTimeRangeV210 = PanelTimeConfig['rangeInput'] & {
@@ -7,7 +7,7 @@ type PersistedPanelTimeRangeV210 = PanelTimeConfig['rangeInput'] & {
     lastViewedRange?: unknown;
 };
 
-export type PersistedPanelInfoV210 = Omit<PanelConfig, 'time'> & {
+export type PersistedPanelInfoV210 = Omit<PanelInfo, 'time'> & {
     timeRange: PersistedPanelTimeRangeV210;
 };
 

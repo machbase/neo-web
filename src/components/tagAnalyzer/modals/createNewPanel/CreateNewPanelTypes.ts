@@ -1,5 +1,7 @@
-import type { PanelSeriesSourceColumns } from '../../domain/SeriesDomain';
-import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
+import {
+    isNumericBaseTimeSourceColumns,
+    type PanelSeriesSourceColumns,
+} from '../../domain/SeriesDomain';
 
 export enum NewPanelTimeType {
     DateTime = 'dateTime',
@@ -18,8 +20,7 @@ export function getNewPanelTimeTypeFromSourceColumns(
         return NewPanelTimeType.Unselected;
     }
 
-    return sourceColumns.timeBaseTime === true &&
-        Number(sourceColumns.timeType) !== DATETIME_COLUMN_TYPE
+    return isNumericBaseTimeSourceColumns(sourceColumns)
         ? NewPanelTimeType.Numeric
         : NewPanelTimeType.DateTime;
 }
@@ -52,28 +53,6 @@ export function isNewPanelTableTimeTypeCompatible(
     );
 }
 
-export type BaseNewPanelSeriesPath = {
-    key: string;
-    table: string;
-    tagName: string;
-    calculationMode: string;
-    sourceColumns: PanelSeriesSourceColumns;
-};
-
-type NumericNewPanelSeriesPath = BaseNewPanelSeriesPath & {
-    kind: 'numeric';
-};
-
-type JsonNewPanelSeriesPath = BaseNewPanelSeriesPath & {
-    kind: 'json';
-};
-
-type RollupNewPanelSeriesPath = BaseNewPanelSeriesPath & {
-    kind: 'rollup';
-    rollupColumn: string | undefined;
-};
-
-export type NewPanelSeriesPath =
-    | NumericNewPanelSeriesPath
-    | JsonNewPanelSeriesPath
-    | RollupNewPanelSeriesPath;
+export function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}

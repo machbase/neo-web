@@ -2,11 +2,11 @@ import type {
     PanelAxisThreshold,
     PanelEChartType,
     ValueRange,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import type {
     PanelViewRange,
-    PanelRangeInput,
+    TimeRangeInput,
 } from '../domain/time/TimeTypes';
 import type { PersistedPanelAnnotationInput } from './TazPersistenceTypesV200';
 
@@ -27,7 +27,7 @@ export type PersistedPanelInfoV204 = {
         interval_type: string | undefined;
     };
     time: {
-        range_config: PanelRangeInput;
+        range_config: TimeRangeInput;
     };
     axes: {
         x_axis: {

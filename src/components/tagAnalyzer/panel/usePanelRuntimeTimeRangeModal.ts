@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { Toast } from '@/design-system/components';
-import type { PanelRangeState } from '../domain/panel/PanelConfig';
-import type {
-    PanelRangeActions,
-    PanelRangeChangeEvent,
-} from '../domain/panel/PanelActions';
+import type { PanelRangeState } from '../domain/panel/PanelInfo';
+import type { PanelRangeActions } from '../domain/panel/PanelActions';
 import {
     resolveDefaultNavigatorRange,
     resolveDefaultNavigatorRangeResolution,
@@ -143,18 +140,13 @@ export function usePanelRuntimeTimeRangeModal({
             return false;
         }
 
-        const sRangeChangeEvent: PanelRangeChangeEvent = {
-            min: range.startTime,
-            max: range.endTime,
-        };
-
         switch (timeRangeModalTarget) {
             case PanelRuntimeTimeRangeTarget.MAIN_CHART:
-                rangeActions.applyExactMainRange(sRangeChangeEvent);
+                rangeActions.applyExactMainRange(range);
                 return true;
 
             case PanelRuntimeTimeRangeTarget.NAVIGATOR:
-                rangeActions.applyExactNavigatorRange(sRangeChangeEvent);
+                rangeActions.applyExactNavigatorRange(range);
                 return true;
         }
     }
@@ -192,10 +184,7 @@ export function usePanelRuntimeTimeRangeModal({
 
         if (timeRangeModalTarget === PanelRuntimeTimeRangeTarget.NAVIGATOR) {
             rangeActions.applyExactNavigatorRange(
-                {
-                    min: timeRangeInput.concreteRange.startTime,
-                    max: timeRangeInput.concreteRange.endTime,
-                },
+                timeRangeInput.concreteRange,
                 timeRangeInput.rangeInput,
             );
             return true;

@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
 import type { PersistedPanelInfoV210 } from '../TazPersistenceTypesV210';

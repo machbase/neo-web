@@ -2,7 +2,7 @@ import { VscWarning } from '@/assets/icons/Icon';
 import { Checkbox } from '@/design-system/components';
 import type { ReactNode } from 'react';
 import { Tooltip } from 'react-tooltip';
-import type { PanelDisplay } from '../../../domain/panel/PanelConfig';
+import type { PanelDisplay } from '../../../domain/panel/PanelInfo';
 import {
     RAW_NAVIGATOR_MAX_SAMPLE_COUNT,
     RAW_NAVIGATOR_MIN_SAMPLE_COUNT,

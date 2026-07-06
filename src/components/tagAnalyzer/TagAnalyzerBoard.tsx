@@ -13,7 +13,7 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import PanelContainer from './panel/PanelContainer';
-import TimeRangeModal from './modals/TimeRangeModal';
+import RangeModal from './modals/RangeModal';
 import TagAnalyzerHelpModal from './modals/TagAnalyzerHelpModal';
 import OverlapModal from './board/overlap/OverlapModal';
 import PanelSeriesSelectionModal from './modals/createNewPanel/PanelSeriesSelectionModal';
@@ -28,7 +28,7 @@ import {
     type PanelInfo,
     type PanelRangeState,
     type RuntimePanelInfo,
-} from './domain/panel/PanelConfig';
+} from './domain/panel/PanelInfo';
 import { useTagAnalyzerBoardPanels } from './board/range/useTagAnalyzerBoardPanels';
 import { useOverlapSelection } from './board/overlap/useOverlapSelection';
 import type { OverlapPanelInfo } from './board/overlap/OverlapTypes';
@@ -382,13 +382,15 @@ const TagAnalyzerBoard = ({
                 />
             )}
             {sIsTimeRangeModalOpen && (
-                <TimeRangeModal
-                    rangeKind="time"
+                <RangeModal
                     title="Board Time Range"
-                    value={sRuntimeBoardInfo.boardTimeRange}
-                    dataEndTime={sBoardTimeRangeModalLastDataTime}
-                    emptyRange
-                    onApply={handleApplyBoardTimeRange}
+                    isNumeric={false}
+                    timeRange={{
+                        initialRangeInput: sRuntimeBoardInfo.boardTimeRange,
+                        dataEndTime: sBoardTimeRangeModalLastDataTime,
+                        emptyRange: true,
+                        onApply: handleApplyBoardTimeRange,
+                    }}
                     onClose={() => setIsTimeRangeModalOpen(false)}
                 />
             )}

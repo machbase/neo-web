@@ -139,10 +139,7 @@ export function buildChartEvent({
                 return;
             }
 
-            rangeActions.applyMainNavigatorSelectionRange({
-                min: sRange.startTime,
-                max: sRange.endTime,
-            });
+            rangeActions.applyMainNavigatorSelectionRange(sRange);
         },
         brushEnd: (params) => {
             const sRange = extractBrushRange(params, isNumericXAxis);
@@ -172,10 +169,7 @@ export function buildChartEvent({
                 return;
             }
 
-            rangeActions.applyMainZoomRange({
-                min: sRange.startTime,
-                max: sRange.endTime,
-            });
+            rangeActions.applyMainZoomRange(sRange);
         },
         legendselectchanged: (params) => {
             visibleSeriesRef.current = params.selected ?? {};

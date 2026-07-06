@@ -1,5 +1,5 @@
 import { Checkbox, Dropdown } from '@/design-system/components';
-import type { PanelAxes, PanelYAxis } from '../../../domain/panel/PanelConfig';
+import type { PanelAxes, PanelYAxis } from '../../../domain/panel/PanelInfo';
 import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,

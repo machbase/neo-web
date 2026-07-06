@@ -4,7 +4,7 @@ import {
     type PanelInfo,
     type PanelRangeState,
     type RuntimePanelInfo,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import { ensureUniquePanelIndexKeys } from '../domain/panel/PanelIdentity';
 import { createInitialPanelRangeState } from '../domain/panelRange/PanelRangeApply';
 import type { TimeRangeInput } from '../domain/time/TimeTypes';

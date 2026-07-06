@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import type {
     RuntimePanelSampling,
     RuntimePanelXAxis,
