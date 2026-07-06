@@ -1,15 +1,5 @@
 import type { PanelSeriesSourceColumns } from '../../domain/SeriesDomain';
 
-export type CreateNewPanelTagSearchItem = {
-    id: string;
-    name: string;
-};
-
-export type CreateNewPanelColumnMetadataRow =
-    | [name: string, type: number, ...rest: unknown[]]
-    | string[];
-
-
 export type BaseNewPanelSeriesPath = {
     key: string;
     table: string;

@@ -31,18 +31,16 @@ import {
     getCreateNewPanelValueSummaryLabel,
 } from './CreateNewPanelMetadata';
 import {
-    fetchCreateNewPanelJsonColumnPaths,
-    fetchCreateNewPanelTableMetadata,
-} from './CreateNewPanelFetch';
-import type {
-    CreateNewPanelColumnMetadataRow,
-    NewPanelSeriesPath,
-} from './CreateNewPanelTypes';
+    fetchTableInfoSearchJsonColumnPaths,
+    fetchTableInfoSearchTableMetadata,
+    type TableInfoSearchColumnMetadataRow,
+} from '../../fetch/tableInfoSearch/TableInfoSearchFetch';
+import type { NewPanelSeriesPath } from './CreateNewPanelTypes';
 import styles from './CreateNewPanel.module.scss';
 
 type TableMetadataCacheEntry = {
     sourceColumns: TagAnalyzerColumnInfo | undefined;
-    tableColumns: CreateNewPanelColumnMetadataRow[];
+    tableColumns: TableInfoSearchColumnMetadataRow[];
 };
 
 export function CreateNewPanelSourceSelector({
@@ -61,7 +59,7 @@ export function CreateNewPanelSourceSelector({
     onSourceChange: (
         table: string,
         sourceColumns: TagAnalyzerColumnInfo | undefined,
-        tableColumns: CreateNewPanelColumnMetadataRow[],
+        tableColumns: TableInfoSearchColumnMetadataRow[],
     ) => void;
     onSelectedTagsChange: (selectedTags: NewPanelSeriesPath[]) => boolean;
     onError: (message: string) => void;
@@ -70,7 +68,7 @@ export function CreateNewPanelSourceSelector({
     const [sSourceColumns, setSourceColumns] =
         useState<TagAnalyzerColumnInfo | undefined>();
     const [sTableColumns, setTableColumns] =
-        useState<CreateNewPanelColumnMetadataRow[]>([]);
+        useState<TableInfoSearchColumnMetadataRow[]>([]);
     const [sJsonPathOptionsByColumn, setJsonPathOptionsByColumn] =
         useState<Record<string, string[]>>({});
     const [sJsonKeyInputDraft, setJsonKeyInputDraft] =
@@ -194,7 +192,7 @@ export function CreateNewPanelSourceSelector({
             }
 
             try {
-                const sPaths = await fetchCreateNewPanelJsonColumnPaths(
+                const sPaths = await fetchTableInfoSearchJsonColumnPaths(
                     sSelectedTable,
                     sSourceColumns.value,
                 );
@@ -223,7 +221,7 @@ export function CreateNewPanelSourceSelector({
     const applyLoadedColumns = useCallback((
         table: string,
         sourceColumns: TagAnalyzerColumnInfo | undefined,
-        tableColumns: CreateNewPanelColumnMetadataRow[],
+        tableColumns: TableInfoSearchColumnMetadataRow[],
     ): void => {
         setSourceColumns(sourceColumns);
         setTableColumns(tableColumns);
@@ -251,7 +249,7 @@ export function CreateNewPanelSourceSelector({
         }
 
         try {
-            const sResult = await fetchCreateNewPanelTableMetadata(
+            const sResult = await fetchTableInfoSearchTableMetadata(
                 table,
                 currentColumns,
             );

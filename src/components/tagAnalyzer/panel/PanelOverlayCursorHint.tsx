@@ -13,7 +13,7 @@ const INTERACTION_HINT_TOP_MARGIN = 42;
 const INTERACTION_HINT_CURSOR_OFFSET_X = 14;
 const INTERACTION_HINT_CURSOR_OFFSET_Y = -34;
 
-export type PanelMarkupInteractionHintState = {
+export type PanelOverlayCursorHintState = {
     x: number;
     y: number;
     isValidTarget: boolean;
@@ -24,21 +24,21 @@ export type PanelMarkupInteractionHintState = {
         | PanelOverlayMode.DRAG_SELECT;
 };
 
-type PanelMarkupInteractionHintLayout = {
+type PanelOverlayCursorHintLayout = {
     width: number;
     height: number;
     parentWidth: number;
     parentHeight: number;
 };
 
-export function PanelMarkupInteractionHint({
+export function PanelOverlayCursorHint({
     hint,
 }: {
-    hint: PanelMarkupInteractionHintState | undefined;
+    hint: PanelOverlayCursorHintState | undefined;
 }) {
     const hintRef = useRef<HTMLSpanElement | null>(null);
     const [layout, setLayout] = useState<
-        PanelMarkupInteractionHintLayout | undefined
+        PanelOverlayCursorHintLayout | undefined
     >(undefined);
 
     useLayoutEffect(() => {
@@ -63,7 +63,7 @@ export function PanelMarkupInteractionHint({
         };
 
         setLayout((currentLayout) =>
-            isSameInteractionHintLayout(currentLayout, nextLayout)
+            isSameOverlayCursorHintLayout(currentLayout, nextLayout)
                 ? currentLayout
                 : nextLayout,
         );
@@ -101,15 +101,15 @@ export function PanelMarkupInteractionHint({
                 <MdBlock size={13} />
             )}
             <span>
-                {getPanelMarkupInteractionHintMessage(hint)}
+                {getPanelOverlayCursorHintMessage(hint)}
             </span>
         </span>
     );
 }
 
-function isSameInteractionHintLayout(
-    currentLayout: PanelMarkupInteractionHintLayout | undefined,
-    nextLayout: PanelMarkupInteractionHintLayout,
+function isSameOverlayCursorHintLayout(
+    currentLayout: PanelOverlayCursorHintLayout | undefined,
+    nextLayout: PanelOverlayCursorHintLayout,
 ): boolean {
     return (
         currentLayout?.width === nextLayout.width &&
@@ -140,8 +140,8 @@ function getClampedInteractionHintCoordinate(
     );
 }
 
-function getPanelMarkupInteractionHintMessage(
-    hint: PanelMarkupInteractionHintState,
+function getPanelOverlayCursorHintMessage(
+    hint: PanelOverlayCursorHintState,
 ): string {
     if (hint.overlayMode === PanelOverlayMode.ANNOTATION) {
         if (hint.isValidTarget && hint.hoveredMainSeriesName) {

@@ -3,7 +3,6 @@ import { type ChartSeriesData } from '../domain/ChartDomain';
 import { mapFetchResultToChartData } from '../fetch/panelData/mapFetchResultToChartData';
 import {
     type PanelDisplayRangeState,
-    type PanelInfo,
     type PanelRangeState,
 } from '../domain/panel/PanelConfig';
 import type { IntervalOption } from '../domain/time/TimeTypes';
@@ -19,8 +18,8 @@ import type {
     RollupTableMap,
 } from '../fetch/panelData/PanelDataFetchTypes';
 import {
-    buildLoadConfig,
     isReadyToFetch,
+    type PanelChartDataLoadConfig,
     resolveChartWidth,
 } from './data/panelChartLoadConfig';
 import {
@@ -51,7 +50,6 @@ import {
     resolveInvalidRangeDisplayNotice,
     resolveNavigatorRangeWithPixelWidth,
     resolvePanelDisplayNotice,
-    resolveVisibleDisplayResult,
     type PanelDisplayNotice,
 } from './data/panelDisplayData';
 import {
@@ -60,7 +58,7 @@ import {
 } from './data/panelFetchResultStatus';
 
 type UsePanelChartDataRuntimeParams = {
-    panelInfo: PanelInfo;
+    loadConfig: PanelChartDataLoadConfig;
     isActive: boolean;
     rangeState: PanelRangeState;
     chartAreaWidth: number | undefined;
@@ -70,8 +68,7 @@ type UsePanelChartDataRuntimeParams = {
 };
 
 type UsePanelChartDataRuntimeResult = {
-    chartData: ChartSeriesData[];
-    visibleChartData: ChartSeriesData[];
+    mainChartData: ChartSeriesData[];
     navigatorChartData: ChartSeriesData[];
     displayRangeState: PanelDisplayRangeState;
     resolvedIntervalOption: IntervalOption | undefined;
@@ -83,7 +80,7 @@ type UsePanelChartDataRuntimeResult = {
 };
 
 export function usePanelChartDataRuntime({
-    panelInfo,
+    loadConfig,
     isActive,
     rangeState,
     chartAreaWidth,
@@ -91,10 +88,6 @@ export function usePanelChartDataRuntime({
     dataRefreshVersion,
     onRangeStateChange,
 }: UsePanelChartDataRuntimeParams): UsePanelChartDataRuntimeResult {
-    const sLoadConfig = useMemo(
-        () => buildLoadConfig(panelInfo),
-        [panelInfo],
-    );
     const sChartWidth = resolveChartWidth(chartAreaWidth);
     const sIsDefaultNavigatorRange = rangeState.requestNavigatorRangeInput === undefined;
     const sRequestNavigatorRange = rangeState.requestNavigatorRange;
@@ -110,7 +103,7 @@ export function usePanelChartDataRuntime({
         navigatorRange: sNavigatorRange,
         fullRange: rangeState.fullRange,
     });
-    const sSeriesKey = buildSeriesCacheKey(sLoadConfig.seriesList);
+    const sSeriesKey = buildSeriesCacheKey(loadConfig.seriesList);
     const sRollupKey = JSON.stringify(rollupTableList);
     const sMainFetchCacheRef = useRef<MainFetchCacheState>({
         baseKey: '',
@@ -124,26 +117,26 @@ export function usePanelChartDataRuntime({
     const sRequestPanelInterval = useMemo(
         () =>
             resolvePanelFetchInterval(
-                sLoadConfig.intervalType,
-                sLoadConfig.xAxis,
+                loadConfig.intervalType,
+                loadConfig.xAxis,
                 sRequestPanelRange,
                 sChartWidth,
-                sLoadConfig.isRaw,
+                loadConfig.isRaw,
             ),
         [
             sRequestPanelRange,
             sChartWidth,
-            sLoadConfig.intervalType,
-            sLoadConfig.xAxis,
-            sLoadConfig.isRaw,
+            loadConfig.intervalType,
+            loadConfig.xAxis,
+            loadConfig.isRaw,
         ],
     );
     const sMainFetchReuseKey = getMainFetchReuseKey(
-        sLoadConfig,
+        loadConfig,
         sRequestPanelInterval,
     );
     const sMainBaseKey = buildMainFetchBaseKey(
-        sLoadConfig,
+        loadConfig,
         sChartWidth,
         sSeriesKey,
         sRollupKey,
@@ -158,7 +151,7 @@ export function usePanelChartDataRuntime({
     }
 
     const sNavigatorBaseKey = buildNavigatorFetchBaseKey(
-        sLoadConfig,
+        loadConfig,
         sChartWidth,
         sSeriesKey,
         sRollupKey,
@@ -175,7 +168,7 @@ export function usePanelChartDataRuntime({
         requestPanelRange: sRequestPanelRange,
         requestNavigatorRange: sNavigatorRange,
         fullRange: rangeState.fullRange,
-        loadConfig: sLoadConfig,
+        loadConfig,
         requestInterval: sRequestPanelInterval,
         mainReuseKey: sMainFetchReuseKey,
         mainCacheState: sMainFetchCacheRef.current,
@@ -185,7 +178,7 @@ export function usePanelChartDataRuntime({
     const sNavigatorFetchRange = getPanelFetchDecisionRange(sFetchPlan.navigator);
     const sMainKey = buildFetchCacheKey(
         'main',
-        sLoadConfig,
+        loadConfig,
         sMainFetchRange,
         sChartWidth,
         sSeriesKey,
@@ -194,7 +187,7 @@ export function usePanelChartDataRuntime({
     );
     const sNavigatorKey = buildFetchCacheKey(
         'navigator',
-        sLoadConfig,
+        loadConfig,
         sNavigatorFetchRange,
         sChartWidth,
         sSeriesKey,
@@ -207,17 +200,17 @@ export function usePanelChartDataRuntime({
         cacheKey: sMainKey,
         fetchFn: () =>
             fetchMainPanelSeriesRows(
-                sLoadConfig.seriesList,
-                sLoadConfig.isRaw ? RAW_MAIN_SAMPLE_COUNT : sLoadConfig.queryLimit,
-                sLoadConfig.intervalType,
-                sLoadConfig.xAxis,
-                sLoadConfig.mainChartSampling,
+                loadConfig.seriesList,
+                loadConfig.isRaw ? RAW_MAIN_SAMPLE_COUNT : loadConfig.queryLimit,
+                loadConfig.intervalType,
+                loadConfig.xAxis,
+                loadConfig.mainChartSampling,
                 sChartWidth,
-                sLoadConfig.isRaw,
-                sLoadConfig.useOrderBy,
+                loadConfig.isRaw,
+                loadConfig.useOrderBy,
                 sMainFetchRange,
                 rollupTableList,
-                sLoadConfig.isRaw ? undefined : sRequestPanelInterval,
+                loadConfig.isRaw ? undefined : sRequestPanelInterval,
             ),
         validate: assertResolvedInterval,
         onSuccess: (result) => {
@@ -243,14 +236,14 @@ export function usePanelChartDataRuntime({
         cacheKey: sNavigatorKey,
         fetchFn: () =>
             fetchNavigatorPanelSeriesRows(
-                sLoadConfig.seriesList,
-                sLoadConfig.queryLimit,
-                sLoadConfig.intervalType,
-                sLoadConfig.xAxis,
+                loadConfig.seriesList,
+                loadConfig.queryLimit,
+                loadConfig.intervalType,
+                loadConfig.xAxis,
                 sChartWidth,
-                sLoadConfig.isRaw,
+                loadConfig.isRaw,
                 sNavigatorFetchRange,
-                sLoadConfig.rawNavigatorSampling,
+                loadConfig.rawNavigatorSampling,
                 rollupTableList,
             ),
         onSuccess: (result) => {
@@ -263,7 +256,7 @@ export function usePanelChartDataRuntime({
         },
     });
 
-    const sChartData = useMemo(
+    const sMainChartData = useMemo(
         () => mapFetchResultToChartData(sMainFetch.result),
         [sMainFetch.result],
     );
@@ -279,27 +272,15 @@ export function usePanelChartDataRuntime({
             ),
         [sMainFetch.result, sRequestPanelRange],
     );
-    const sVisibleDisplayResult = useMemo(
-        () =>
-            resolveVisibleDisplayResult(
-                sMainFetch.result,
-                sDisplayPanelRange,
-            ),
-        [sMainFetch.result, sDisplayPanelRange],
-    );
-    const sVisibleChartData = useMemo(
-        () => mapFetchResultToChartData(sVisibleDisplayResult),
-        [sVisibleDisplayResult],
-    );
     const sDisplayNotice = useMemo(
         () =>
-            resolvePanelDisplayNotice(sVisibleDisplayResult) ??
+            resolvePanelDisplayNotice(sMainFetch.result) ??
             resolveInvalidRangeDisplayNotice({
                 canFetch: sCanFetch,
-                loadConfig: sLoadConfig,
+                loadConfig,
                 rangeState,
             }),
-        [sCanFetch, sLoadConfig, sVisibleDisplayResult, rangeState],
+        [sCanFetch, loadConfig, sMainFetch.result, rangeState],
     );
     const sDisplayNavigatorRange = useMemo(
         () =>
@@ -320,8 +301,7 @@ export function usePanelChartDataRuntime({
     );
 
     return {
-        chartData: sChartData,
-        visibleChartData: sVisibleChartData,
+        mainChartData: sMainChartData,
         navigatorChartData: sNavigatorChartData,
         displayRangeState: sDisplayRangeState,
         resolvedIntervalOption: sMainFetch.result?.interval,

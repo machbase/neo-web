@@ -91,37 +91,6 @@ export function resolveDisplayPanelRange(
     return getFetchedRowsRange(result) ?? fallbackRange;
 }
 
-export function resolveVisibleDisplayResult(
-    result: FetchPanelSeriesRowsResult | undefined,
-    requestPanelRange: TimeRangeMs,
-): FetchPanelSeriesRowsResult | undefined {
-    if (!result || !isValidTimeRange(requestPanelRange)) {
-        return result;
-    }
-
-    return {
-        ...result,
-        seriesFetchResults: result.seriesFetchResults.map((seriesResult) => ({
-            ...seriesResult,
-            fetchResult: {
-                ...seriesResult.fetchResult,
-                data: {
-                    ...seriesResult.fetchResult.data,
-                    rows: seriesResult.fetchResult.data.rows.filter((row) => {
-                        const sTimestamp = Number(row[0]);
-
-                        return (
-                            Number.isFinite(sTimestamp) &&
-                            sTimestamp >= requestPanelRange.startTime &&
-                            sTimestamp <= requestPanelRange.endTime
-                        );
-                    }),
-                },
-            },
-        })),
-    };
-}
-
 export function resolvePanelDisplayNotice(
     result: FetchPanelSeriesRowsResult | undefined,
 ): PanelDisplayNotice | undefined {

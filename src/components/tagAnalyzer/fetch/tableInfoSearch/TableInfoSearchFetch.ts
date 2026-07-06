@@ -8,14 +8,19 @@ import {
     createTagAnalyzerColumnInfo,
     type TagAnalyzerColumnInfo,
 } from '@/utils/tagAnalyzerFields';
-import type { RawTableListData } from '../../fetch/metadata/MetadataFetchTypes';
-import type {
-    CreateNewPanelColumnMetadataRow,
-    CreateNewPanelTagSearchItem,
-} from './CreateNewPanelTypes';
+import type { RawTableListData } from '../metadata/MetadataFetchTypes';
 
 const SQL_IDENTIFIER_SEGMENT_PATTERN = /^[A-Za-z_][A-Za-z0-9_$]*$/;
-const SQL_LIKE_ESCAPE_CHARACTER = '!';
+const TAG_SEARCH_LIMIT = 10;
+
+export type TableInfoSearchTagSearchItem = {
+    id: string;
+    name: string;
+};
+
+export type TableInfoSearchColumnMetadataRow =
+    | [name: string, type: number, ...rest: unknown[]]
+    | string[];
 
 function buildSqlIdentifierPath(identifierPath: string, label = 'SQL identifier'): string {
     const sSegments = identifierPath.split('.');
@@ -34,38 +39,20 @@ function buildSqlStringLiteral(value: string | number): string {
     return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-function buildSqlLikeContainsCondition(
-    identifierPath: string,
-    searchText: string,
-): string | undefined {
-    if (searchText === '') {
-        return undefined;
-    }
-
-    const sEscapedSearchText = searchText.replace(
-        /[!%_]/g,
-        (match) => `${SQL_LIKE_ESCAPE_CHARACTER}${match}`,
-    );
-
-    return `${buildSqlIdentifierPath(identifierPath)} LIKE ${buildSqlStringLiteral(
-        `%${sEscapedSearchText}%`,
-    )} ESCAPE ${buildSqlStringLiteral(SQL_LIKE_ESCAPE_CHARACTER)}`;
-}
-
-type CreateNewPanelTagSearchParams = {
+type TableInfoSearchTagSearchParams = {
     table: string;
     searchText: string;
     columns: TagAnalyzerColumnInfo | undefined;
 };
 
-type CreateNewPanelTagSearchResult = {
-    items: CreateNewPanelTagSearchItem[];
+type TableInfoSearchTagSearchResult = {
+    items: TableInfoSearchTagSearchItem[];
     errorMessage: string | undefined;
 };
 
-type CreateNewPanelTableMetadataResult = {
+type TableInfoSearchTableMetadataResult = {
     columns: TagAnalyzerColumnInfo | undefined;
-    tableColumns: CreateNewPanelColumnMetadataRow[];
+    tableColumns: TableInfoSearchColumnMetadataRow[];
     errorMessage: string | undefined;
 };
 
@@ -117,8 +104,8 @@ function extractQueryErrorMessage(
     return undefined;
 }
 
-function parseTagSearchItems(rows: unknown[]): CreateNewPanelTagSearchItem[] {
-    const sItems: CreateNewPanelTagSearchItem[] = [];
+function parseTagSearchItems(rows: unknown[]): TableInfoSearchTagSearchItem[] {
+    const sItems: TableInfoSearchTagSearchItem[] = [];
 
     for (const sRow of rows) {
         if (
@@ -133,7 +120,7 @@ function parseTagSearchItems(rows: unknown[]): CreateNewPanelTagSearchItem[] {
     return sItems;
 }
 
-export async function fetchCreateNewPanelTableNames(): Promise<string[]> {
+export async function fetchTableInfoSearchTableNames(): Promise<string[]> {
     const sRawResponse = await request({
         method: 'GET',
         url: '/api/tables',
@@ -151,10 +138,10 @@ export async function fetchCreateNewPanelTableNames(): Promise<string[]> {
     return parseTables(data as RawTableListData);
 }
 
-export async function fetchCreateNewPanelTableMetadata(
+export async function fetchTableInfoSearchTableMetadata(
     table: string,
     currentColumns?: Partial<TagAnalyzerColumnInfo>,
-): Promise<CreateNewPanelTableMetadataResult> {
+): Promise<TableInfoSearchTableMetadataResult> {
     if (!table) {
         return {
             columns: undefined,
@@ -225,12 +212,12 @@ function buildTableMetadataSql(target: TableMetadataTarget): string {
     return `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER(${buildSqlStringLiteral(target.userName)}) AND MC.DATABASE_ID = ${target.databaseIdQuery} AND MT.NAME = ${buildSqlStringLiteral(target.tableName)} AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 }
 
-function parseTableColumnMetadataRows(rows: unknown[]): CreateNewPanelColumnMetadataRow[] {
-    const sTableColumns: CreateNewPanelColumnMetadataRow[] = [];
+function parseTableColumnMetadataRows(rows: unknown[]): TableInfoSearchColumnMetadataRow[] {
+    const sTableColumns: TableInfoSearchColumnMetadataRow[] = [];
 
     for (const sRow of rows) {
         if (Array.isArray(sRow) && typeof sRow[0] === 'string') {
-            sTableColumns.push(sRow.slice(0, 3) as CreateNewPanelColumnMetadataRow);
+            sTableColumns.push(sRow.slice(0, 3) as TableInfoSearchColumnMetadataRow);
         }
     }
 
@@ -238,7 +225,7 @@ function parseTableColumnMetadataRows(rows: unknown[]): CreateNewPanelColumnMeta
 }
 
 function buildSourceColumns(
-    tableColumns: CreateNewPanelColumnMetadataRow[],
+    tableColumns: TableInfoSearchColumnMetadataRow[],
     currentColumns?: Partial<TagAnalyzerColumnInfo>,
 ): TagAnalyzerColumnInfo {
     const sColumnInfo = createTagAnalyzerColumnInfo(tableColumns, currentColumns);
@@ -253,11 +240,11 @@ function buildSourceColumns(
     };
 }
 
-export async function fetchCreateNewPanelTags({
+export async function fetchTableInfoSearchTags({
     table,
     searchText,
     columns,
-}: CreateNewPanelTagSearchParams): Promise<CreateNewPanelTagSearchResult> {
+}: TableInfoSearchTagSearchParams): Promise<TableInfoSearchTagSearchResult> {
     if (!table || !columns?.name) {
         return {
             items: [],
@@ -266,74 +253,46 @@ export async function fetchCreateNewPanelTags({
     }
 
     const sMetaTableNameParts = table.split('.');
-    const sMetaTableName = '_' + sMetaTableNameParts.at(-1) + '_META';
+    const sMetaTableBaseName = '_' + sMetaTableNameParts.at(-1) + '_META';
     sMetaTableNameParts.pop();
-    sMetaTableNameParts.push(sMetaTableName);
+    sMetaTableNameParts.push(sMetaTableBaseName);
 
-    const sPrimaryMetaTableName = buildSqlIdentifierPath(
+    const sQualifiedMetaTableName = buildSqlIdentifierPath(
         sMetaTableNameParts.join('.'),
         'SQL metadata table name',
     );
-    const sPrimarySourceColumn = buildSqlIdentifierPath(columns.name, 'SQL tag column');
-    const sPrimarySearchCondition = buildSqlLikeContainsCondition(columns.name, searchText);
-    const sPrimaryWhereClause = sPrimarySearchCondition ? ` where ${sPrimarySearchCondition}` : '';
-    const sPrimarySql = `select * from ${sPrimaryMetaTableName}${sPrimaryWhereClause} ORDER BY ${sPrimarySourceColumn}`;
-    const sPrimaryRawResponse = await request({
+    const sTagColumn = buildSqlIdentifierPath(columns.name, 'SQL tag column');
+    const sWhereClause = searchText
+        ? ` where ${sTagColumn} like ${buildSqlStringLiteral(`%${searchText}%`)}`
+        : '';
+    const sSql = `select * from ${sQualifiedMetaTableName}${sWhereClause} ORDER BY ${sTagColumn} LIMIT 0, ${TAG_SEARCH_LIMIT}`;
+    const sRawResponse = await request({
         method: 'GET',
-        url: `/api/query?q=${encodeURIComponent(sPrimarySql)}`,
+        url: `/api/query?q=${encodeURIComponent(sSql)}`,
     });
-    const sPrimaryResponse = asQueryResponse(sPrimaryRawResponse);
+    const sResponse = asQueryResponse(sRawResponse);
+    const sHasHttpError =
+        typeof sResponse?.status === 'number' && sResponse.status >= 400;
+    const sErrorMessage = extractQueryErrorMessage(sResponse, sHasHttpError);
 
-    if (sPrimaryResponse?.success === true) {
-        const sPrimaryItems = parseTagSearchItems(extractQueryRows(sPrimaryResponse.data));
-
-        if (sPrimaryItems.length > 0) {
-            return {
-                items: sPrimaryItems,
-                errorMessage: undefined,
-            };
-        }
+    if (sHasHttpError) {
+        Toast.error(sErrorMessage ?? `Request failed (${sResponse?.status})`);
     }
 
-    const sSourceTableName = buildSqlIdentifierPath(table, 'SQL table name');
-    const sSourceColumn = buildSqlIdentifierPath(columns.name, 'SQL tag column');
-    const sSourceConditions = [`${sSourceColumn} IS NOT NULL`];
-    const sSourceSearchCondition = buildSqlLikeContainsCondition(columns.name, searchText);
-
-    if (sSourceSearchCondition) {
-        sSourceConditions.push(sSourceSearchCondition);
-    }
-
-    const sSourceSql = `select ${sSourceColumn}, ${sSourceColumn} from (select distinct ${sSourceColumn} from ${sSourceTableName} where ${sSourceConditions.join(' and ')} ORDER BY ${sSourceColumn})`;
-    const sSourceRawResponse = await request({
-        method: 'GET',
-        url: `/api/query?q=${encodeURIComponent(sSourceSql)}`,
-    });
-    const sSourceResponse = asQueryResponse(sSourceRawResponse);
-    const sSourceHasHttpError =
-        typeof sSourceResponse?.status === 'number' && sSourceResponse.status >= 400;
-    const sSourceErrorMessage = extractQueryErrorMessage(sSourceResponse, sSourceHasHttpError);
-
-    if (sSourceHasHttpError) {
-        Toast.error(sSourceErrorMessage ?? `Request failed (${sSourceResponse?.status})`);
-    }
-
-    if (sSourceResponse?.success !== true || sSourceHasHttpError) {
+    if (sResponse?.success !== true || sHasHttpError) {
         return {
             items: [],
             errorMessage: 'Tag search response was unsuccessful.',
         };
     }
 
-    const sSourceItems = parseTagSearchItems(extractQueryRows(sSourceResponse.data));
-
     return {
-        items: sSourceItems,
+        items: parseTagSearchItems(extractQueryRows(sResponse.data)),
         errorMessage: undefined,
     };
 }
 
-export async function fetchCreateNewPanelJsonColumnPaths(
+export async function fetchTableInfoSearchJsonColumnPaths(
     table: string,
     valueColumn: string,
 ): Promise<string[]> {

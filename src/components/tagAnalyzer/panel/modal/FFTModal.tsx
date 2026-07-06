@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LineChart, Play } from '@/assets/icons/Icon';
-import { getTqlChart } from '@/api/repository/machiot';
 import { Spinner } from '@/components/spinner/Spinner';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
-import moment from 'moment';
 import { ShowVisualization } from '../../../tql/ShowVisualization';
 import type { SelectedRangeSeriesSummary } from '../../domain/ChartDomain';
 import { TimeUnit } from '../../domain/time/TimeTypes';
@@ -14,11 +12,11 @@ import {
 } from '../../domain/time/TimeIntervalUtils';
 import { formatRangeEndpointLabel } from '../../domain/time/TimeFormatters';
 import {
-    buildSqlIdentifierPath,
-    buildSqlStringLiteral,
-    buildTqlDoubleQuotedString,
-} from '../../fetch/sqlBuilder/SqlTextUtils';
-import { isPlainObject } from '../../domain/ObjectGuards';
+    buildFftMinMaxHz,
+    buildFftQuery,
+    fetchFftChartData,
+    type FftChartData,
+} from '../../fetch/fft/FftChartFetch';
 
 const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,
@@ -39,40 +37,12 @@ type FFTModalOption = {
     data: SelectedRangeSeriesSummary;
 };
 
-type TqlChartData = Record<string, unknown> & {
-    chartID: string;
-};
-
-type TqlChartResponse = {
-    status?: unknown;
-    headers?: unknown;
-    data?: unknown;
-};
-
 function createFFTModalOptions(seriesSummaries: SelectedRangeSeriesSummary[]): FFTModalOption[] {
     return seriesSummaries.map((summary) => ({
         value: `${summary.table}_${summary.name}_${summary.seriesIndex}`,
         label: summary.alias || summary.name,
         data: summary,
     }));
-}
-
-function buildFftSqlRangeCondition(
-    isNumericXAxis: boolean,
-    startTime: number,
-    endTime: number,
-    timeColumnSql: string,
-): string {
-    if (isNumericXAxis) {
-        return `${timeColumnSql} between ${startTime} AND ${endTime}`;
-    }
-
-    const sNewStartTime = moment(startTime).format('yyyy-MM-DD HH:mm:ss');
-    const sNewEndTime = moment(endTime).format('yyyy-MM-DD HH:mm:ss');
-
-    return `${timeColumnSql} between to_date(${buildSqlStringLiteral(
-        sNewStartTime,
-    )}) AND to_date(${buildSqlStringLiteral(sNewEndTime)})`;
 }
 
 const FFT_2D_QUERY_TEMPLATE = `MAPKEY('fft')
@@ -203,7 +173,7 @@ export const FFTModal = ({
     setIsOpen: (value: boolean) => void;
 }) => {
     const [sSelectedInfo, setSelectedInfo] = useState<SelectedRangeSeriesSummary | null>(null);
-    const [sChartData, setChartData] = useState<TqlChartData | null>(null);
+    const [sChartData, setChartData] = useState<FftChartData | null>(null);
     const [sIsChart2D, setIsChart2D] = useState<boolean>(true);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [sInterval, setInterval] = useState<string>('100');
@@ -325,10 +295,10 @@ export const FFTModal = ({
         setIsLoading(true);
 
         try {
-            const sResult: unknown = await getTqlChart(text);
+            const sChartData = await fetchFftChartData(text);
 
-            if (isEChartsTqlChartResponse(sResult)) {
-                setChartData(sResult.data);
+            if (sChartData) {
+                setChartData(sChartData);
             }
         } catch {
             Toast.error('Failed to load FFT chart.');

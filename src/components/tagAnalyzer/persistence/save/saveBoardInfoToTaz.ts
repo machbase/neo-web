@@ -1,6 +1,6 @@
 import type { BoardInfo } from '../../domain/BoardDomain';
+import { saveTazFile } from '../../fetch/tazFile/TazFileFetch';
 import { mapBoardToPersistedTaz } from './mapBoardToPersistedTaz';
-import { saveTazFile } from './saveTazFile';
 
 export async function saveBoardInfoToTaz(boardInfo: BoardInfo): Promise<boolean> {
     try {

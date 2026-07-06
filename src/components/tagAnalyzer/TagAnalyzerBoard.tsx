@@ -17,7 +17,7 @@ import TimeRangeModal from './modals/TimeRangeModal';
 import TagAnalyzerHelpModal from './modals/TagAnalyzerHelpModal';
 import OverlapModal from './board/overlap/OverlapModal';
 import PanelSeriesSelectionModal from './modals/createNewPanel/PanelSeriesSelectionModal';
-import TazSaveModal from './modals/TazSaveModal';
+import TazSaveAsModal from './modals/TazSaveAsModal';
 import type {
     BoardInfo,
     GlobalTimeRangeState,
@@ -114,8 +114,8 @@ const TagAnalyzerBoard = ({
     const {
         hasUnsavedChanges: sHasUnsavedChanges,
         save: saveCurrentTazBoard,
-        saveAs: openTazSaveModal,
-        saveModalProps: sSaveModalProps,
+        saveAs: openTazSaveAsModal,
+        saveAsModalProps: sSaveAsModalProps,
     } = useTazBoardSave({
         runtimeBoardInfo: sRuntimeBoardInfo,
         dispatchRuntimeBoardAction,
@@ -225,7 +225,7 @@ const TagAnalyzerBoard = ({
             key: 'save-as',
             tooltip: 'Save as',
             icon: <SaveAs size={16} />,
-            onClick: () => void openTazSaveModal(),
+            onClick: () => void openTazSaveAsModal(),
         },
         {
             key: 'overlap',
@@ -393,14 +393,13 @@ const TagAnalyzerBoard = ({
                     pSetIsModal={overlap.setOverlapModalOpen}
                 />
             )}
-            {sSaveModalProps && (
-                <TazSaveModal
-                    key={`${sSaveModalProps.initialDirectoryPath}/${sSaveModalProps.initialFileName}`}
-                    initialDirectoryPath={sSaveModalProps.initialDirectoryPath}
-                    initialFileName={sSaveModalProps.initialFileName}
-                    onClose={sSaveModalProps.onClose}
-                    onSave={sSaveModalProps.onSave}
-                    onRecentModalPathChange={sSaveModalProps.onRecentModalPathChange}
+            {sSaveAsModalProps && (
+                <TazSaveAsModal
+                    key={`${sSaveAsModalProps.initialState.directorySegments.join('/')}/${sSaveAsModalProps.initialState.fileName}`}
+                    initialState={sSaveAsModalProps.initialState}
+                    onClose={sSaveAsModalProps.onClose}
+                    onSaveAs={sSaveAsModalProps.onSaveAs}
+                    onRecentModalPathChange={sSaveAsModalProps.onRecentModalPathChange}
                 />
             )}
         </>

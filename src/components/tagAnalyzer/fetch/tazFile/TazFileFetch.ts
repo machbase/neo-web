@@ -1,6 +1,10 @@
-import { getFileList } from '@/api/repository/api';
+import { getFileList, postFileList } from '@/api/repository/api';
 import { extractionExtension } from '@/utils';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
+import { TreeFetchDrilling } from '@/utils/UpdateTree';
+import type { FileTreeState } from '../../appState/useTagAnalyzerAppState';
+import { isPlainObject } from '../../domain/ObjectGuards';
+import type { PersistedTazBoardInfoV210 } from '../../persistence/TazPersistenceTypesV210';
 
 export type FileListItem = {
     name: string;
@@ -11,15 +15,25 @@ export type FileListItem = {
     size: number;
 };
 
-export type TazSaveModalInitialState = {
+export type TazSaveAsModalInitialState = {
     directorySegments: string[];
     fileName: string;
     fileList: FileListItem[];
 };
 
+type TazFileSaveResult = {
+    success: boolean;
+};
+
+type SaveTazFileParams = {
+    payload: PersistedTazBoardInfoV210;
+    directoryPath: string;
+    fileName: string;
+};
+
 const TAZ_FILE_FILTER = '?filter=*.taz';
 
-export async function loadTazSaveModalInitialState({
+export async function loadTazSaveAsModalInitialState({
     initialDirectoryPath,
     initialFileName,
     recentModalPath,
@@ -27,7 +41,7 @@ export async function loadTazSaveModalInitialState({
     initialDirectoryPath: string;
     initialFileName: string;
     recentModalPath: string;
-}): Promise<TazSaveModalInitialState> {
+}): Promise<TazSaveAsModalInitialState> {
     const sResolvedDirectoryPath = normalizeDirectoryPath(
         initialDirectoryPath || recentModalPath || '/',
     );
@@ -50,6 +64,42 @@ export async function fetchTazFileList(
     );
 
     return (sResponse.data?.children ?? []) as FileListItem[];
+}
+
+export async function saveTazFile({
+    payload,
+    directoryPath,
+    fileName,
+}: SaveTazFileParams): Promise<TazFileSaveResult> {
+    const sResult = await postFileList(
+        payload,
+        directoryPath,
+        fileName,
+    );
+
+    if (!didFileSaveSucceed(sResult)) {
+        return { success: false };
+    }
+
+    return {
+        success: true,
+    };
+}
+
+export async function refreshTazFileTreeAfterSave(
+    fileTree: FileTreeState,
+    directoryPath: string,
+    fileName: string,
+): Promise<FileTreeState | undefined> {
+    const sUpdatedTreeResult = await TreeFetchDrilling(
+        fileTree,
+        `${directoryPath}${fileName}`,
+        true,
+    );
+
+    return sUpdatedTreeResult?.tree
+        ? JSON.parse(JSON.stringify(sUpdatedTreeResult.tree))
+        : undefined;
 }
 
 export function buildDirectoryPath(directorySegments: string[]): string {
@@ -95,4 +145,19 @@ function resolveInitialFileName(initialFileName: string): string {
     return extractionExtension(initialFileName) === 'taz'
         ? initialFileName
         : `${initialFileName}.taz`;
+}
+
+function didFileSaveSucceed(response: unknown): boolean {
+    if (!isPlainObject(response)) {
+        return false;
+    }
+
+    const sResponse = response as {
+        success?: boolean;
+        data?: {
+            success?: boolean;
+        };
+    };
+
+    return sResponse.success === true || sResponse.data?.success === true;
 }

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, type Dispatch } from 'react';
 import { Toast } from '@/design-system/components';
-import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import type { BoardInfo } from '../../domain/BoardDomain';
 import type { FileTreeState } from '../../appState/useTagAnalyzerAppState';
 import {
@@ -9,9 +8,10 @@ import {
     type RuntimeBoardInfo,
 } from '../../board/runtimeBoardInfo';
 import {
-    loadTazSaveModalInitialState,
-    type TazSaveModalInitialState,
-} from '../../modals/TazSaveModalLoader';
+    loadTazSaveAsModalInitialState,
+    refreshTazFileTreeAfterSave,
+    type TazSaveAsModalInitialState,
+} from '../../fetch/tazFile/TazFileFetch';
 import {
     createSavedTazBoardSnapshot,
     createTazSavedCodeFromBoardInfo,
@@ -22,10 +22,10 @@ const SAVE_ERROR_MESSAGE = 'Failed to save TAZ file. Please try again.';
 const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
 const FILE_TREE_REFRESH_ERROR_MESSAGE = 'TAZ file saved, but file tree refresh failed.';
 
-type TazBoardSaveModalProps = {
-    initialState: TazSaveModalInitialState;
+type TazBoardSaveAsModalProps = {
+    initialState: TazSaveAsModalInitialState;
     onClose: () => void;
-    onSave: (directoryPath: string, fileName: string) => Promise<boolean>;
+    onSaveAs: (directoryPath: string, fileName: string) => Promise<boolean>;
     onRecentModalPathChange: (path: string) => void;
 };
 
@@ -33,7 +33,7 @@ type TazBoardSaveModalProps = {
  * Owns the whole TAZ save flow: unsaved-change detection, the save/save-as
  * actions, the post-save rebaseline of the runtime board, the Ctrl+S shortcut,
  * and the Save As dialog state. The board component only renders
- * `saveModalProps`.
+ * `saveAsModalProps`.
  */
 export function useTazBoardSave({
     runtimeBoardInfo,
@@ -57,11 +57,11 @@ export function useTazBoardSave({
     hasUnsavedChanges: boolean;
     save: () => Promise<boolean>;
     saveAs: () => Promise<void>;
-    saveModalProps: TazBoardSaveModalProps | undefined;
+    saveAsModalProps: TazBoardSaveAsModalProps | undefined;
 } {
-    const [sModalInitialState, setModalInitialState] =
-        useState<TazSaveModalInitialState | undefined>(undefined);
-    const [sIsModalOpen, setIsModalOpen] = useState(false);
+    const [sSaveAsModalInitialState, setSaveAsModalInitialState] =
+        useState<TazSaveAsModalInitialState | undefined>(undefined);
+    const [sIsSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
 
     const hasUnsavedChanges =
         createTazSavedCodeFromBoardInfo(
@@ -69,14 +69,14 @@ export function useTazBoardSave({
         ) !== runtimeBoardInfo.savedCode;
 
     const saveAs = useCallback(async (): Promise<void> => {
-        setModalInitialState(
-            await loadTazSaveModalInitialState({
+        setSaveAsModalInitialState(
+            await loadTazSaveAsModalInitialState({
                 initialDirectoryPath: runtimeBoardInfo.path,
                 initialFileName: runtimeBoardInfo.name,
                 recentModalPath,
             }),
         );
-        setIsModalOpen(true);
+        setIsSaveAsModalOpen(true);
     }, [recentModalPath, runtimeBoardInfo.name, runtimeBoardInfo.path]);
 
     const saveBoardInfo = useCallback(async (
@@ -126,13 +126,13 @@ export function useTazBoardSave({
         }
 
         try {
-            const sUpdatedTreeResult = await TreeFetchDrilling(
+            const sUpdatedTree = await refreshTazFileTreeAfterSave(
                 fileTree,
-                `${directoryPath}${fileName}`,
-                true,
+                directoryPath,
+                fileName,
             );
-            if (sUpdatedTreeResult?.tree) {
-                onFileTreeChange(JSON.parse(JSON.stringify(sUpdatedTreeResult.tree)));
+            if (sUpdatedTree) {
+                onFileTreeChange(sUpdatedTree);
             }
         } catch {
             Toast.error(FILE_TREE_REFRESH_ERROR_MESSAGE);
@@ -174,11 +174,11 @@ export function useTazBoardSave({
         hasUnsavedChanges,
         save,
         saveAs,
-        saveModalProps: sIsModalOpen && sModalInitialState
+        saveAsModalProps: sIsSaveAsModalOpen && sSaveAsModalInitialState
             ? {
-                  initialState: sModalInitialState,
-                  onClose: () => setIsModalOpen(false),
-                  onSave: saveBoardAs,
+                  initialState: sSaveAsModalInitialState,
+                  onClose: () => setIsSaveAsModalOpen(false),
+                  onSaveAs: saveBoardAs,
                   onRecentModalPathChange,
               }
             : undefined,

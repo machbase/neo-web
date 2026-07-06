@@ -43,9 +43,11 @@ import { fetchAllRollupTableInfo } from '../../fetch/metadata/RollupMetadata';
 import type { RollupTableMap } from '../../fetch/panelData/PanelDataFetchTypes';
 
 import {
-    fetchCreateNewPanelTableNames,
-    fetchCreateNewPanelTags,
-} from './CreateNewPanelFetch';
+    fetchTableInfoSearchTableNames,
+    fetchTableInfoSearchTags,
+    type TableInfoSearchColumnMetadataRow,
+    type TableInfoSearchTagSearchItem,
+} from '../../fetch/tableInfoSearch/TableInfoSearchFetch';
 import {
     DEFAULT_NEW_PANEL_TITLE,
     createNewPanelInfo,
@@ -58,8 +60,6 @@ import {
     getCreateNewPanelRollupColumn,
 } from './CreateNewPanelMetadata';
 import {
-    type CreateNewPanelColumnMetadataRow,
-    type CreateNewPanelTagSearchItem,
     type NewPanelSeriesPath,
 } from './CreateNewPanelTypes';
 import styles from './CreateNewPanel.module.scss';
@@ -117,7 +117,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
     const [sIsTableNameLoading, setIsTableNameLoading] = useState(true);
     const [sSelectedTable, setSelectedTableState] = useState('');
 
-    const [sAvailableTags, setAvailableTags] = useState<CreateNewPanelTagSearchItem[]>([]);
+    const [sAvailableTags, setAvailableTags] = useState<TableInfoSearchTagSearchItem[]>([]);
     const [sSelectedTags, setSelectedTags] = useState<NewPanelSeriesPath[]>(() =>
         createNewPanelSeriesPathsFromDefinitions(sInitialSeries, {}),
     );
@@ -126,7 +126,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
     const [sSourceColumns, setSourceColumns] =
         useState<TagAnalyzerColumnInfo | undefined>();
     const [sTableColumns, setTableColumns] =
-        useState<CreateNewPanelColumnMetadataRow[]>([]);
+        useState<TableInfoSearchColumnMetadataRow[]>([]);
     const [sAxisKindWarning, setAxisKindWarning] =
         useState<string | undefined>();
     const tagSearchRequestKeyRef = useRef(0);
@@ -147,7 +147,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
     function handleSourceChange(
         table: string,
         sourceColumns: TagAnalyzerColumnInfo | undefined,
-        tableColumns: CreateNewPanelColumnMetadataRow[],
+        tableColumns: TableInfoSearchColumnMetadataRow[],
     ): void {
         setSelectedTableState(table);
         setSourceColumns(sourceColumns);
@@ -168,7 +168,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
         tagSearchRequestKeyRef.current = sRequestKey;
 
         try {
-            const { items, errorMessage } = await fetchCreateNewPanelTags({
+            const { items, errorMessage } = await fetchTableInfoSearchTags({
                 table: sSelectedTable,
                 searchText: sTagInputValue,
                 columns: sSourceColumns,
@@ -252,7 +252,7 @@ function PanelSeriesSelectionModal(props: PanelSeriesSelectionModalProps) {
     }, []);
 
     async function loadTableNames(): Promise<void> {
-        setAvailableSourceTableNames(await fetchCreateNewPanelTableNames());
+        setAvailableSourceTableNames(await fetchTableInfoSearchTableNames());
         setIsTableNameLoading(false);
     }
 

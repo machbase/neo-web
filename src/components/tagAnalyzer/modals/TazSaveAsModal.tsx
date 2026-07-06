@@ -20,9 +20,9 @@ import {
     fetchTazFileList,
     isValidTazFileName,
     type FileListItem,
-    type TazSaveModalInitialState,
-} from './TazSaveModalLoader';
-import './TazSaveModal.scss';
+    type TazSaveAsModalInitialState,
+} from '../fetch/tazFile/TazFileFetch';
+import './TazSaveAsModal.scss';
 
 
 function renderFileItemIcon(fileItem: FileListItem): JSX.Element {
@@ -43,15 +43,15 @@ function renderFileItemIcon(fileItem: FileListItem): JSX.Element {
     );
 }
 
-function TazSaveModal({
+function TazSaveAsModal({
     initialState,
     onClose,
-    onSave,
+    onSaveAs,
     onRecentModalPathChange,
 }: {
-    initialState: TazSaveModalInitialState;
+    initialState: TazSaveAsModalInitialState;
     onClose: () => void;
-    onSave: (directoryPath: string, fileName: string) => Promise<boolean>;
+    onSaveAs: (directoryPath: string, fileName: string) => Promise<boolean>;
     onRecentModalPathChange: (path: string) => void;
 }) {
     const [sSelectedDir, setSelectedDir] = useState<string[]>(
@@ -136,7 +136,7 @@ function TazSaveModal({
 
         setIsSaving(true);
         try {
-            const sDidSave = await onSave(sDirectoryPath, sSaveFileName);
+            const sDidSave = await onSaveAs(sDirectoryPath, sSaveFileName);
 
             if (!sDidSave) {
                 return;
@@ -158,7 +158,7 @@ function TazSaveModal({
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
-            <div className="taz-save-modal__nav">
+            <div className="taz-save-as-modal__nav">
                 <Button
                     size="sm"
                     variant="ghost"
@@ -191,24 +191,24 @@ function TazSaveModal({
             </div>
             <FileListHeader />
             <Modal.Body style={{ padding: 0 }}>
-                <div className="taz-save-modal__file-list">
+                <div className="taz-save-as-modal__file-list">
                     {sFileList.map((fileItem, index) => {
                         const sIsSelected = sSelectedFile?.name === fileItem.name;
 
                         return (
                             <div
                                 key={`${fileItem.name}-${index}`}
-                                className={`taz-save-modal__file-row${sIsSelected ? ' taz-save-modal__file-row--selected' : ''}`}
+                                className={`taz-save-as-modal__file-row${sIsSelected ? ' taz-save-as-modal__file-row--selected' : ''}`}
                                 onClick={(event) => void handleSelectFile(event, fileItem)}
                             >
-                                <div className="taz-save-modal__file-name">
+                                <div className="taz-save-as-modal__file-name">
                                     {renderFileItemIcon(fileItem)}
                                     <span>{fileItem.name}</span>
                                 </div>
-                                <span className="taz-save-modal__file-modified">
+                                <span className="taz-save-as-modal__file-modified">
                                     {elapsedTime(fileItem.lastModifiedUnixMillis)}
                                 </span>
-                                <span className="taz-save-modal__file-size">
+                                <span className="taz-save-as-modal__file-size">
                                     {elapsedSize(fileItem.size)}
                                 </span>
                             </div>
@@ -217,7 +217,7 @@ function TazSaveModal({
                 </div>
             </Modal.Body>
             <Modal.Footer style={{ justifyContent: 'space-between' }}>
-                <div className="taz-save-modal__footer-input">
+                <div className="taz-save-as-modal__footer-input">
                     <Input
                         label="File name"
                         labelPosition="left"
@@ -239,4 +239,4 @@ function TazSaveModal({
     );
 }
 
-export default TazSaveModal;
+export default TazSaveAsModal;

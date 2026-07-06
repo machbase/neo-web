@@ -1,5 +1,5 @@
 import type { ContextMenuPosition } from '@/design-system/components';
-import type { PanelMarkupInteractionHintState } from './PanelMarkupInteractionHint';
+import type { PanelOverlayCursorHintState } from './PanelOverlayCursorHint';
 import { PanelActionKey } from './PanelHeader';
 import type { FFTSelectionPayload } from '../domain/ChartDomain';
 import type { PanelHighlight } from '../domain/panel/PanelConfig';
@@ -52,28 +52,21 @@ export type PanelSelectionSummary = {
 
 const EMPTY_PANEL_POPUP_STATE: PanelPopupState = { mode: PanelPopupMode.NONE };
 
-export enum PanelRuntimeTimeRangeTarget {
-    MAIN_CHART = 'MAIN_CHART',
-    NAVIGATOR = 'NAVIGATOR',
-}
-
 type PanelEditorState =
     | { status: 'closed' }
     | { status: 'open' }
     | { status: 'closing' };
 
-type PanelMarkupInteractionState = {
-    hint: PanelMarkupInteractionHintState | undefined;
+type PanelOverlayCursorHintRuntimeState = {
+    hint: PanelOverlayCursorHintState | undefined;
     hoveredMainSeriesName: string | undefined;
 };
 
 type PanelInteractionState = {
     overlayMode: PanelOverlayMode;
     popupState: PanelPopupState;
-    timeRangeModalTarget: PanelRuntimeTimeRangeTarget | undefined;
     editor: PanelEditorState;
     selectionSummary: PanelSelectionSummary | undefined;
-    markupInteraction: PanelMarkupInteractionState;
 };
 
 type PanelInteractionAction =
@@ -85,11 +78,6 @@ type PanelInteractionAction =
           overlayMode?: PanelOverlayMode;
       }
     | { type: 'CLOSE_POPUP'; popupMode: PanelPopupMode }
-    | {
-          type: 'OPEN_TIME_RANGE_MODAL';
-          target: PanelRuntimeTimeRangeTarget;
-      }
-    | { type: 'CLOSE_TIME_RANGE_MODAL' }
     | { type: 'CLOSE_EDITOR' }
     | { type: 'FINISH_EDITOR_CLOSE' }
     | {
@@ -97,27 +85,29 @@ type PanelInteractionAction =
           selectionSummary: PanelSelectionSummary;
           overlayMode?: PanelOverlayMode;
       }
-    | { type: 'CLOSE_SELECTION_SUMMARY' }
+    | { type: 'CLOSE_SELECTION_SUMMARY' };
+
+type PanelOverlayCursorHintAction =
     | {
-          type: 'SHOW_MARKUP_INTERACTION_HINT';
-          hint: PanelMarkupInteractionHintState;
+          type: 'SHOW_OVERLAY_CURSOR_HINT';
+          hint: PanelOverlayCursorHintState;
       }
     | {
           type: 'SET_HOVERED_MAIN_SERIES';
           seriesName: string | undefined;
       }
-    | { type: 'CLEAR_MOUSE_MARKUP_STATE' };
+    | { type: 'CLEAR_OVERLAY_CURSOR_HINT' };
 
 export const INITIAL_PANEL_INTERACTION_STATE: PanelInteractionState = {
     overlayMode: PanelOverlayMode.NO_OVERLAY,
     popupState: EMPTY_PANEL_POPUP_STATE,
-    timeRangeModalTarget: undefined,
     editor: { status: 'closed' },
     selectionSummary: undefined,
-    markupInteraction: {
-        hint: undefined,
-        hoveredMainSeriesName: undefined,
-    },
+};
+
+export const INITIAL_PANEL_OVERLAY_CURSOR_HINT_STATE: PanelOverlayCursorHintRuntimeState = {
+    hint: undefined,
+    hoveredMainSeriesName: undefined,
 };
 
 export function panelInteractionReducer(
@@ -164,18 +154,6 @@ export function panelInteractionReducer(
                 popupState: EMPTY_PANEL_POPUP_STATE,
             };
 
-        case 'OPEN_TIME_RANGE_MODAL':
-            return {
-                ...state,
-                timeRangeModalTarget: action.target,
-            };
-
-        case 'CLOSE_TIME_RANGE_MODAL':
-            return {
-                ...state,
-                timeRangeModalTarget: undefined,
-            };
-
         case 'CLOSE_EDITOR':
             if (state.editor.status === 'closed') {
                 return state;
@@ -218,39 +196,33 @@ export function panelInteractionReducer(
                 overlayMode: PanelOverlayMode.NO_OVERLAY,
                 selectionSummary: undefined,
             };
+    }
+}
 
-        case 'SHOW_MARKUP_INTERACTION_HINT':
+export function panelOverlayCursorHintReducer(
+    state: PanelOverlayCursorHintRuntimeState,
+    action: PanelOverlayCursorHintAction,
+): PanelOverlayCursorHintRuntimeState {
+    switch (action.type) {
+        case 'SHOW_OVERLAY_CURSOR_HINT':
             return {
                 ...state,
-                markupInteraction: {
-                    ...state.markupInteraction,
-                    hint: action.hint,
-                },
+                hint: action.hint,
             };
 
         case 'SET_HOVERED_MAIN_SERIES': {
-            const sCurrentHint = state.markupInteraction.hint;
-
             return {
                 ...state,
-                markupInteraction: {
+                hoveredMainSeriesName: action.seriesName,
+                hint: state.hint && {
+                    ...state.hint,
                     hoveredMainSeriesName: action.seriesName,
-                    hint: sCurrentHint && {
-                        ...sCurrentHint,
-                        hoveredMainSeriesName: action.seriesName,
-                    },
                 },
             };
         }
 
-        case 'CLEAR_MOUSE_MARKUP_STATE':
-            return {
-                ...state,
-                markupInteraction: {
-                    hint: undefined,
-                    hoveredMainSeriesName: undefined,
-                },
-            };
+        case 'CLEAR_OVERLAY_CURSOR_HINT':
+            return INITIAL_PANEL_OVERLAY_CURSOR_HINT_STATE;
     }
 }
 
