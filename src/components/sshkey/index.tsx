@@ -327,6 +327,12 @@ export const SSHKey = () => {
                                 <Page.ContentBlock>
                                     <Page.ContentDesc>{GEN_SSH_KEY.no6_title}</Page.ContentDesc>
                                 </Page.ContentBlock>
+                                {/* GEN security warning */}
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>
+                                        {GEN_SSH_KEY.security_warning}
+                                    </Page.ContentDesc>
+                                </Page.ContentBlock>
                             </Page.ContentBlock>
                             {/* Use */}
                             <Page.ContentBlock>

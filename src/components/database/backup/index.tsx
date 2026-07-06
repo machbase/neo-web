@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { backupStatus, databaseBackup, getAllowBackupTable, getBackupDBList } from '@/api/repository/api';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
-import { backupSyntax, backupTable, exampleBackup, explainEtc1, explainEtc2, explainEtc3, explainEtc4, explainPathAndTime } from './contents';
+import { backupSyntax, backupTable, exampleBackup, explainEtc1, explainEtc2, explainEtc3, explainEtc4, explainPathAndTime, explainRestoreCmd, explainTagRestore } from './contents';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import moment from 'moment';
@@ -319,6 +319,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                             <Page.ContentText pContent="Previous backup directory"></Page.ContentText>
                                             <Page.ContentDesc>Path of full or previous incremental backup.</Page.ContentDesc>
                                             <Page.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => setDurationAfter(event)} pWidth="365px" />
+                                            <Page.ContentDesc>Applies to Log/Tag tables; Lookup tables are always fully backed up.</Page.ContentDesc>
                                         </>
                                     )}
                                     {/* Time Duration backup */}
@@ -429,6 +430,11 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                 <Page.ContentBlock>
                                     <Page.ContentDesc>Example:</Page.ContentDesc>
                                     <Page.CopyBlock pContent={exampleBackup} />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Restore</Page.ContentTitle>
+                                    <Page.ContentDesc>{explainRestoreCmd}</Page.ContentDesc>
+                                    <Page.ContentDesc>{explainTagRestore}</Page.ContentDesc>
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>backup type</Page.ContentTitle>

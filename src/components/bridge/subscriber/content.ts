@@ -1,8 +1,10 @@
+export const SUBR_AUTO_START_DESC = 'Makes the subscriber start automatically when machbase-neo starts';
+
 /** TABLE */
 export const SUBR_OPTIONS_TABLE = {
     columns: ['Name', 'Default', 'Description'],
     rows: [
-        ['timeformat ', 'ns', 'Time format: s, ms, us, ns'],
+        ['timeformat', 'ns', 'Time format: s, ms, us, ns'],
         ['tz', 'UTC', 'Time Zone: UTC, Local and location spec'],
         ['delimiter', ',', 'CSV delimiter, ignored if content is not csv'],
         ['heading', 'false', 'If CSV contains header line, set true to skip the first line'],
@@ -10,7 +12,11 @@ export const SUBR_OPTIONS_TABLE = {
 };
 export const SUBR_OPTIONS_EXAMPLE_TABLE = {
     columns: ['', ''],
-    rows: [['db/append/EXAMPLE:csv?timeformat=s&heading=true'], ['db/write/EXAMPLE:csv:gzip?timeformat=s'], ['db/append/EXAMPLE:json?timeformat=2&pendingMsgLimit=1048576']],
+    rows: [
+        ['db/append/EXAMPLE:csv?timeformat=s&heading=true'],
+        ['db/write/EXAMPLE:csv:gzip?timeformat=s'],
+        ['db/append/EXAMPLE:json?timeformat=2&pendingMsgLimit=1048576'],
+    ],
 };
 export const SUBR_METHOD_TABLE = {
     columns: ['', ''],

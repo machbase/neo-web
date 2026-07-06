@@ -9,10 +9,11 @@ export const GEN_SSH_KEY = {
     no2_content_2: 'ssh-keygen -t rsa -C "<comment>"',
     no3_title: '3. Press Enter. Output similar to the following is displayed:',
     no3_content: `Generating public/private rsa key pair.\nEnter file in which to save the key (/home/user/.ssh/id_rsa):`,
-    no4_title: '4. Accept the suggested filename and directory, unless you are generating a deploy key or want to save in a specific directory where you store other keys.',
+    no4_title: '4. Accept the suggested filename and directory.',
     no5_title: '5. Specify a passphrase:',
     no5_content: 'Enter passphrase (empty for no passphrase):\nEnter same passphrase again:',
     no6_title: '6. A confirmation is displayed, including information about where your files are stored.',
+    security_warning: 'Keep your private key safe; anyone with it can log in.',
 };
 
 export const USE_SSH_KEY = {
@@ -40,7 +41,7 @@ export const INFO_SSH_KEY = {
     title: 'SSH keys',
     cre_alias: 'title',
     cre_title: 'public key',
-    cre_desc: 'Copy the contents of your public key file.',
+    cre_desc: 'Paste the contents of ~/.ssh/id_rsa.pub',
     cre_support: 'Only SSH keys of type "ssh-rsa" and type "ecdsa-sha2-nistp256" are supported.',
     info_title: 'Authentication keys',
     info_content: 'This is a list of SSH keys associated with your account. Remove any keys that you do not recognize.',

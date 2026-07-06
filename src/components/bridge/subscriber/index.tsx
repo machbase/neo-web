@@ -6,7 +6,7 @@ import { SashContent } from 'split-pane-react';
 import { commandSubr, delSubr, getSubrItem } from '@/api/repository/bridge';
 import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../../modal/ConfirmModal';
-import { AUTO_START_DESC } from '../../timer/content';
+import { SUBR_AUTO_START_DESC } from './content';
 import { CreateSubr } from './createSubr';
 
 export const Subscriber = ({ pCode }: { pCode: any }) => {
@@ -98,7 +98,7 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>Auto start</Page.ContentTitle>
                                     <Page.DpRow>
-                                        <Page.Checkbox label={AUTO_START_DESC} pValue={sPayload.subr.autoStart} pDisable />
+                                        <Page.Checkbox label={SUBR_AUTO_START_DESC} pValue={sPayload.subr.autoStart} pDisable />
                                     </Page.DpRow>
                                 </Page.ContentBlock>
                                 {/* bridge */}
