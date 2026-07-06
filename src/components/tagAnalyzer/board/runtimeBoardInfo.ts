@@ -1,7 +1,6 @@
 import type { BoardInfo } from '../domain/BoardDomain';
 import {
     createRuntimePanelInfo,
-    getPanelConfigFromRuntimePanel,
     type PanelInfo,
     type PanelRangeState,
     type RuntimePanelInfo,
@@ -20,11 +19,11 @@ const EMPTY_BOARD_TIME_RANGE: TimeRangeInput = {
     end: '',
 };
 
-type RuntimeBoardInfo = Omit<BoardInfo, 'panels'> & {
+export type RuntimeBoardInfo = Omit<BoardInfo, 'panels'> & {
     panels: RuntimePanelInfo[];
 };
 
-type RuntimeBoardAction =
+export type RuntimeBoardAction =
     | { type: 'REPLACE_FROM_SAVED_BOARD'; boardInfo: BoardInfo }
     | { type: 'SET_BOARD_TIME_RANGE'; boardTimeRange: TimeRangeInput }
     | { type: 'APPLY_PANEL_CONFIG'; panelInfo: PanelInfo }
@@ -174,12 +173,6 @@ export function setRuntimePanelConfig(
         },
         isOverlapSelected: runtimePanelInfo.isOverlapSelected,
     };
-}
-
-export function getRuntimePanelConfig(
-    runtimePanelInfo: RuntimePanelInfo,
-): PanelInfo {
-    return getPanelConfigFromRuntimePanel(runtimePanelInfo);
 }
 
 function setRuntimePanelRange(

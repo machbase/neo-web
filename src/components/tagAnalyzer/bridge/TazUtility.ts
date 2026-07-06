@@ -1,22 +1,22 @@
 import { getId } from '@/utils';
-import { TAZ_FORMAT_VERSION } from './persistence/TazVersion';
-import { formatAbsoluteTimeExpression } from './domain/time/TimeRangeInputResolver';
-import { formatNumericValue } from './domain/panelRange/PanelRangeInput';
+import { TAZ_FORMAT_VERSION } from '../persistence/TazVersion';
+import { formatAbsoluteTimeExpression } from '../domain/time/TimeRangeInputResolver';
+import { formatNumericValue } from '../domain/panelRange/PanelRangeInput';
 import type {
     PanelRangeInput,
     TimeRangeInput,
-} from './domain/time/TimeTypes';
-import type { BoardInfo } from './domain/BoardDomain';
-import type { PanelEChartType } from './domain/panel/PanelConfig';
+} from '../domain/time/TimeTypes';
+import type { BoardInfo } from '../domain/BoardDomain';
+import type { PanelEChartType } from '../domain/panel/PanelConfig';
 import {
     isNumericBaseTimeSourceColumns,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
-} from './domain/SeriesDomain';
+} from '../domain/SeriesDomain';
 import {
     DEFAULT_NEW_PANEL_TITLE,
     createNewPanelInfo,
-} from './modal/createNewPanel/CreateNewPanelInfo';
+} from '../modals/createNewPanel/CreateNewPanelInfo';
 
 type TagAnalyzerDefaultBoardOptions = {
     tag: string;
@@ -46,10 +46,7 @@ type CreateTazBoardFromTimeRangeOptions = {
     chartTitle: string;
     chartType?: PanelEChartType;
     seriesList: PanelSeriesDefinition[];
-    timeRange: {
-        start?: unknown;
-        end?: unknown;
-    };
+    timeRange: TimeRangeInput;
 };
 
 export function createDefaultTazBoard(
@@ -77,8 +74,8 @@ export function createDefaultTazBoard(
 export function createTazBoardFromTimeRange(
     options: CreateTazBoardFromTimeRangeOptions,
 ): BoardInfo {
-    const sStart = normalizeRangeExpression(options.timeRange.start);
-    const sEnd = normalizeRangeExpression(options.timeRange.end);
+    const sStart = options.timeRange.start;
+    const sEnd = options.timeRange.end;
 
     return createTazBoardFromSeries({
         id: options.id,
@@ -195,12 +192,4 @@ function resolveDefaultBoardTimeRange(
     }
 
     return { start: '', end: '' };
-}
-
-function normalizeRangeExpression(value: unknown): string {
-    if (value === undefined || value === null) {
-        return '';
-    }
-
-    return String(value);
 }

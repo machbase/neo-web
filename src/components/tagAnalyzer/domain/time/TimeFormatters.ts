@@ -1,6 +1,6 @@
 import moment from 'moment';
-import type { TimeRangeInput, TimeRangeMs } from '../domain/time/TimeTypes';
-import { getTimeRangeWidth } from '../domain/time/TimeRangeUtils';
+import type { TimeRangeInput, TimeRangeMs } from './TimeTypes';
+import { getTimeRangeWidth } from './TimeRangeUtils';
 
 const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
 const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;

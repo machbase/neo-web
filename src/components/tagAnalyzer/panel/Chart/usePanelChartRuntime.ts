@@ -21,11 +21,8 @@ import { applyPanelNavigatorCursorStyles } from './utils/PanelNavigatorCursorSty
 import type { PanelChartInstance } from './types/PanelChartRuntimeTypes';
 import { useBlankChartClickEvent } from './hooks/useBlankChartClickEvent';
 import { usePanelChartInstanceSync } from './hooks/usePanelChartInstanceSync';
-import {
-    getTimeRangeWidth,
-    isValidTimeRange,
-} from '../../domain/time/TimeRangeUtils';
-import { convertPanelChartPixelToTimestamp } from './utils/PanelChartPointerUtils';
+import { usePanelChartWheelZoom } from './hooks/usePanelChartWheelZoom';
+import { isValidTimeRange } from '../../domain/time/TimeRangeUtils';
 
 type PanelBodyRefs = {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
@@ -63,9 +60,6 @@ type UsePanelChartRuntimeResult = {
         onMouseDownCapture: (event: MouseEvent<HTMLDivElement>) => void;
     };
 };
-
-const PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR = 0.82;
-const PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR = 1.22;
 
 type PanelChartSeriesIdentityOption = {
     id?: unknown;
@@ -275,83 +269,18 @@ export function usePanelChartRuntime({
             { lazyUpdate: true },
         );
     }, [baseChartInfo, chartInstanceRef]);
-    const handleMouseWheelZoom = useCallback((event: WheelEvent): void => {
-        if (
-            event.deltaY === 0 ||
-            !isDragZoomEnabled ||
-            !isValidTimeRange(displayPanelRange)
-        ) {
-            return;
-        }
-
-        const chartInstance = chartInstanceRef.current;
-        const chartRect = chartAreaRef.current?.getBoundingClientRect();
-        if (!chartInstance?.containPixel || !chartRect) {
-            return;
-        }
-
-        const sPixel: [number, number] = [
-            event.clientX - chartRect.left,
-            event.clientY - chartRect.top,
-        ];
-        if (!chartInstance.containPixel({ gridIndex: 0 }, sPixel)) {
-            return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        const sCurrentWidth = getTimeRangeWidth(displayPanelRange);
-        if (sCurrentWidth <= 0) {
-            return;
-        }
-
-        const sAnchorTime =
-            convertPanelChartPixelToTimestamp(
-                chartInstance,
-                sPixel,
-                isNumericXAxis,
-            ).timestamp ??
-            displayPanelRange.startTime + sCurrentWidth / 2;
-        const sAnchorRatio =
-            (sAnchorTime - displayPanelRange.startTime) / sCurrentWidth;
-        const sZoomFactor = event.deltaY < 0
-            ? PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR
-            : PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR;
-        const sNextWidth = sCurrentWidth * sZoomFactor;
-        const sNextStart = sAnchorTime - sNextWidth * sAnchorRatio;
-
-        rangeActions.applyMainZoomRange({
-            min: sNextStart,
-            max: sNextStart + sNextWidth,
-        });
-    }, [
+    usePanelChartWheelZoom({
         chartAreaRef,
         chartInstanceRef,
-        isDragZoomEnabled,
+        isWheelZoomEnabled: isDragZoomEnabled,
         isNumericXAxis,
         displayPanelRange,
-        rangeActions,
-    ]);
+        applyMainZoomRange: rangeActions.applyMainZoomRange,
+    });
 
     useLayoutEffect(() => {
         chartInstanceRef.current?.dispatchAction({ type: 'hideTip' });
     }, [chartInstanceRef, seriesStructureKey]);
-
-    useEffect(() => {
-        const chartArea = chartAreaRef.current;
-        if (!chartArea) {
-            return;
-        }
-
-        chartArea.addEventListener('wheel', handleMouseWheelZoom, {
-            passive: false,
-        });
-
-        return () => {
-            chartArea.removeEventListener('wheel', handleMouseWheelZoom);
-        };
-    }, [chartAreaRef, handleMouseWheelZoom]);
 
     useEffect(() => {
         const nextVisibleSeries = {

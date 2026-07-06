@@ -10,8 +10,6 @@ import type {
     ValueRange,
 } from './PanelConfig';
 
-type RuntimeValueRange = ValueRange;
-
 type RuntimePanelAxisThreshold = {
     enabled: boolean;
     value: number;
@@ -32,8 +30,8 @@ export type RuntimePanelSampling = {
 type RuntimePanelYAxis = {
     zeroBase: boolean;
     showTickline: boolean;
-    valueRange: RuntimeValueRange;
-    rawValueRange: RuntimeValueRange;
+    valueRange: ValueRange;
+    rawValueRange: ValueRange;
     upperControlLimit: RuntimePanelAxisThreshold;
     lowerControlLimit: RuntimePanelAxisThreshold;
 };
@@ -137,7 +135,7 @@ function resolvePanelYAxisForRuntime(
 function resolveValueRangeForRuntime(
     range: ValueRange,
     label: string,
-): RuntimeValueRange {
+): ValueRange {
     const sMin = range.min;
     const sMax = range.max;
     const sHasMin = sMin !== undefined;

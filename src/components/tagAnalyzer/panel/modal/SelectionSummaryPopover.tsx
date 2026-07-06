@@ -5,7 +5,7 @@ import type { FFTSelectionPayload } from '../../domain/ChartDomain';
 import {
     formatAxisPointerLabel,
     formatRangeSpanLabel,
-} from '../../formatting/TimeFormatters';
+} from '../../domain/time/TimeFormatters';
 import PanelPopover from './PanelPopover';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;

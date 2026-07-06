@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Button } from '@/design-system/components';
-import PanelSeriesSelectionModal from '../../../modal/createNewPanel/PanelSeriesSelectionModal';
+import PanelSeriesSelectionModal from '../../../modals/createNewPanel/PanelSeriesSelectionModal';
 import { Tooltip } from 'react-tooltip';
 import {
     getPanelSeriesDisplayColor,

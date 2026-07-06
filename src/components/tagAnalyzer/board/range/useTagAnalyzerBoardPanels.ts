@@ -146,6 +146,12 @@ export function useTagAnalyzerBoardPanels({
         return runRangeAction(() => action(getPanelInfoOrThrow(panelKey)));
     }
 
+    function forEachPanel(
+        action: (panelInfo: RuntimePanelInfo) => Promise<void>,
+    ): void {
+        panels.forEach((panel) => void runRangeAction(() => action(panel)));
+    }
+
     async function runRangeAction(action: () => Promise<void>): Promise<void> {
         try {
             await action();
@@ -416,33 +422,18 @@ export function useTagAnalyzerBoardPanels({
         expandPanelFullRange: (panelKey: string) =>
             void expandPanelFullRange(panelKey),
         reloadAfterEditorSave,
-        refreshAllPanelData: () =>
-            panels.forEach((panel) =>
-                void runRangeAction(() => refreshPanelDataForPanel(panel)),
-            ),
-        refreshAllPanelTime: () =>
-            panels.forEach((panel) =>
-                void runRangeAction(() => refreshPanelTimeForPanel(panel)),
-            ),
-        expandAllPanelFullRanges: () =>
-            panels.forEach((panel) =>
-                void runRangeAction(() => expandPanelToFullDataRange(panel)),
-            ),
+        refreshAllPanelData: () => forEachPanel(refreshPanelDataForPanel),
+        refreshAllPanelTime: () => forEachPanel(refreshPanelTimeForPanel),
+        expandAllPanelFullRanges: () => forEachPanel(expandPanelToFullDataRange),
         applyBoardTimeRangeToPanels: (boardTimeToApply: TimeRangeInput) =>
-            panels.forEach((panel) =>
-                void runRangeAction(() =>
-                    applyBoardTimeRangeToPanel(panel, boardTimeToApply),
-                ),
+            forEachPanel((panel) =>
+                applyBoardTimeRangeToPanel(panel, boardTimeToApply),
             ),
-
         applyGlobalRangeToPanels: (
             globalTimeRangeToApply: GlobalTimeRangeState,
         ) =>
-            panels.forEach(
-                (panel) =>
-                    void runRangeAction(() =>
-                        applyGlobalRangeToPanel(panel, globalTimeRangeToApply),
-                    ),
+            forEachPanel((panel) =>
+                applyGlobalRangeToPanel(panel, globalTimeRangeToApply),
             ),
     };
 }

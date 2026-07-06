@@ -21,7 +21,7 @@ import {
 } from './PanelChartOptionConstants';
 import type { RuntimePanelDisplay } from '../../../domain/panel/PanelRuntime';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisPointerLabel } from '../../../formatting/TimeFormatters';
+import { formatAxisPointerLabel } from '../../../domain/time/TimeFormatters';
 import {
     getChartLayoutMetrics,
     PANEL_GRID_BOTTOM,

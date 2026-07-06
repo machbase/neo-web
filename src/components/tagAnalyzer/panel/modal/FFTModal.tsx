@@ -4,21 +4,21 @@ import { getTqlChart } from '@/api/repository/machiot';
 import { Spinner } from '@/components/spinner/Spinner';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
-import { ShowVisualization } from '../../tql/ShowVisualization';
-import type { SelectedRangeSeriesSummary } from '../domain/ChartDomain';
-import { TimeUnit } from '../domain/time/TimeTypes';
+import { ShowVisualization } from '../../../tql/ShowVisualization';
+import type { SelectedRangeSeriesSummary } from '../../domain/ChartDomain';
+import { TimeUnit } from '../../domain/time/TimeTypes';
 import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../domain/time/TimeIntervalUtils';
-import { formatRangeEndpointLabel } from '../formatting/TimeFormatters';
+} from '../../domain/time/TimeIntervalUtils';
+import { formatRangeEndpointLabel } from '../../domain/time/TimeFormatters';
 import {
     buildSqlIdentifierPath,
     buildSqlStringLiteral,
     buildTqlDoubleQuotedString,
-} from '../fetch/sqlBuilder/SqlTextUtils';
-import { isPlainObject } from '../domain/ObjectGuards';
+} from '../../fetch/sqlBuilder/SqlTextUtils';
+import { isPlainObject } from '../../domain/ObjectGuards';
 
 const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,

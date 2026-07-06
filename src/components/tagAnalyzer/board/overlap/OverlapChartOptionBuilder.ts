@@ -21,7 +21,7 @@ import {
     formatAxisPointerLabel,
     formatAxisValue,
     formatCompactNumericLabel,
-} from '../../formatting/TimeFormatters';
+} from '../../domain/time/TimeFormatters';
 import { getSeriesTimeBounds } from './OverlapComparisonUtils';
 import { getTimeRangeWidth } from '../../domain/time/TimeRangeUtils';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';

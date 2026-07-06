@@ -1,5 +1,5 @@
 import './TagAnalyzerBoard.scss';
-import { useCallback, useEffect, useReducer, useState, type ReactNode } from 'react';
+import { useCallback, useReducer, useState, type ReactNode } from 'react';
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
     Calendar,
@@ -11,50 +11,36 @@ import {
     MdOutlineStackedLineChart,
     LuTimerReset,
 } from '@/assets/icons/Icon';
-import { Button, Page, Toast } from '@/design-system/components';
+import { Button, Page } from '@/design-system/components';
 import PanelContainer from './panel/PanelContainer';
-import TimeRangeModal from './boardModal/TimeRangeModal';
-import TagAnalyzerHelpModal from './boardModal/TagAnalyzerHelpModal';
+import TimeRangeModal from './modals/TimeRangeModal';
+import TagAnalyzerHelpModal from './modals/TagAnalyzerHelpModal';
 import OverlapModal from './board/overlap/OverlapModal';
-import PanelSeriesSelectionModal from './modal/createNewPanel/PanelSeriesSelectionModal';
-import TazSaveModal from './boardModal/TazSaveModal';
-import {
-    loadTazSaveModalInitialState,
-    type TazSaveModalInitialState,
-} from './boardModal/TazSaveModalLoader';
+import PanelSeriesSelectionModal from './modals/createNewPanel/PanelSeriesSelectionModal';
+import TazSaveModal from './modals/TazSaveModal';
 import type {
     BoardInfo,
     GlobalTimeRangeState,
 } from './domain/BoardDomain';
-import { formatBoardRangeText } from './formatting/TimeFormatters';
-import type {
-    PanelInfo,
-    PanelRangeState,
-    RuntimePanelInfo,
+import { formatBoardRangeText } from './domain/time/TimeFormatters';
+import {
+    getPanelConfigFromRuntimePanel,
+    type PanelInfo,
+    type PanelRangeState,
+    type RuntimePanelInfo,
 } from './domain/panel/PanelConfig';
 import { useTagAnalyzerBoardPanels } from './board/range/useTagAnalyzerBoardPanels';
 import { useOverlapSelection } from './board/overlap/useOverlapSelection';
 import type { OverlapPanelInfo } from './board/overlap/OverlapTypes';
 import {
     createRuntimeBoardInfo,
-    getBoardInfoForRuntimeBoardSave,
-    getRuntimePanelConfig,
     runtimeBoardReducer,
     setRuntimePanelConfig,
 } from './board/runtimeBoardInfo';
 import type { RollupTableMap } from './fetch/panelData/PanelDataFetchTypes';
-import {
-    createSavedTazBoardSnapshot,
-    createTazSavedCodeFromBoardInfo,
-} from './persistence/save/SavedTazBoardSnapshot';
-import { saveBoardInfoToTaz } from './persistence/save/saveBoardInfoToTaz';
-import { TreeFetchDrilling } from '@/utils/UpdateTree';
-import type { EditableTimeRangeInputResolution } from './parsing/TimeRangeInputParsing';
+import { useTazBoardSave } from './persistence/save/useTazBoardSave';
+import type { EditableTimeRangeInputResolution } from './domain/time/TimeRangeInputParsing';
 import type { FileTreeState } from './appState/useTagAnalyzerAppState';
-
-const SAVE_ERROR_MESSAGE = 'Failed to save TAZ file. Please try again.';
-const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
-const FILE_TREE_REFRESH_ERROR_MESSAGE = 'TAZ file saved, but file tree refresh failed.';
 
 type TagAnalyzerBoardProps = {
     pInfo: BoardInfo;
@@ -87,12 +73,6 @@ const TagAnalyzerBoard = ({
         pInfo,
         createRuntimeBoardInfo,
     );
-    const [sSavedRuntimeBoardCode, setSavedRuntimeBoardCode] = useState(
-        () => pInfo.savedCode,
-    );
-    const [sIsTazSaveModalOpen, setIsTazSaveModalOpen] = useState(false);
-    const [sTazSaveModalInitialState, setTazSaveModalInitialState] =
-        useState<TazSaveModalInitialState | undefined>(undefined);
     const sRuntimePanels = sRuntimeBoardInfo.panels;
     const sRangeText = formatBoardRangeText(sRuntimeBoardInfo.boardTimeRange);
 
@@ -131,110 +111,21 @@ const TagAnalyzerBoard = ({
         onPanelRangeStateChange: setPanelRangeState,
         onAppliedRange: overlap.handleAppliedRange,
     });
-    const sRuntimeBoardInfoForSave = getBoardInfoForRuntimeBoardSave(
-        sRuntimeBoardInfo,
-    );
-    const sIsRuntimeBoardDirty =
-        createTazSavedCodeFromBoardInfo(sRuntimeBoardInfoForSave) !==
-        sSavedRuntimeBoardCode;
-
-    const openTazSaveModal = useCallback(async (): Promise<void> => {
-        setTazSaveModalInitialState(
-            await loadTazSaveModalInitialState({
-                initialDirectoryPath: sRuntimeBoardInfo.path,
-                initialFileName: sRuntimeBoardInfo.name,
-                recentModalPath: pRecentModalPath,
-            }),
-        );
-        setIsTazSaveModalOpen(true);
-    }, [pRecentModalPath, sRuntimeBoardInfo.name, sRuntimeBoardInfo.path]);
-
-    const applySavedBoardInfo = useCallback((savedBoardInfo: BoardInfo): void => {
-        const sSavedBoardInfo = createSavedTazBoardSnapshot(savedBoardInfo);
-
-        dispatchRuntimeBoardAction({
-            type: 'REPLACE_FROM_SAVED_BOARD',
-            boardInfo: sSavedBoardInfo,
-        });
-        setSavedRuntimeBoardCode(sSavedBoardInfo.savedCode);
-        pOnSavedBoard(sSavedBoardInfo);
-    }, [pOnSavedBoard]);
-
-    const saveBoardInfo = useCallback(async (boardInfo: BoardInfo): Promise<boolean> => {
-        const sDidSave = await saveBoardInfoToTaz(boardInfo);
-
-        if (!sDidSave) {
-            Toast.error(SAVE_ERROR_MESSAGE);
-            return false;
-        }
-
-        applySavedBoardInfo(boardInfo);
-        Toast.success(SAVE_SUCCESS_MESSAGE);
-        return true;
-    }, [applySavedBoardInfo]);
-
-    const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
-        if (!sRuntimeBoardInfo.path) {
-            await openTazSaveModal();
-            return false;
-        }
-
-        return saveBoardInfo(getBoardInfoForRuntimeBoardSave(sRuntimeBoardInfo));
-    }, [openTazSaveModal, saveBoardInfo, sRuntimeBoardInfo]);
-
-    const saveCurrentTazBoardWithPanel = useCallback(async (
-        panel: PanelInfo,
-    ): Promise<boolean> => {
-        const sRuntimeBoardWithPanel = runtimeBoardReducer(
-            sRuntimeBoardInfo,
-            { type: 'APPLY_PANEL_CONFIG', panelInfo: panel },
-        );
-        const sBoardWithPanel = getBoardInfoForRuntimeBoardSave(
-            sRuntimeBoardWithPanel,
-        );
-
-        if (!sBoardWithPanel.path) {
-            dispatchRuntimeBoardAction({
-                type: 'APPLY_PANEL_CONFIG',
-                panelInfo: panel,
-            });
-            await openTazSaveModal();
-            return false;
-        }
-
-        return saveBoardInfo(sBoardWithPanel);
-    }, [openTazSaveModal, saveBoardInfo, sRuntimeBoardInfo]);
-
-    const saveCurrentTazBoardAs = useCallback(async (
-        directoryPath: string,
-        fileName: string,
-    ): Promise<boolean> => {
-        const sBoardToSave = getBoardInfoForRuntimeBoardSave({
-            ...sRuntimeBoardInfo,
-            name: fileName,
-            path: directoryPath,
-        });
-        const sDidSave = await saveBoardInfo(sBoardToSave);
-
-        if (!sDidSave) {
-            return false;
-        }
-
-        try {
-            const sUpdatedTreeResult = await TreeFetchDrilling(
-                pFileTree,
-                `${directoryPath}${fileName}`,
-                true,
-            );
-            if (sUpdatedTreeResult?.tree) {
-                pOnFileTreeChange(JSON.parse(JSON.stringify(sUpdatedTreeResult.tree)));
-            }
-        } catch {
-            Toast.error(FILE_TREE_REFRESH_ERROR_MESSAGE);
-        }
-
-        return true;
-    }, [pFileTree, pOnFileTreeChange, saveBoardInfo, sRuntimeBoardInfo]);
+    const {
+        hasUnsavedChanges: sHasUnsavedChanges,
+        save: saveCurrentTazBoard,
+        saveAs: openTazSaveModal,
+        saveModalProps: sSaveModalProps,
+    } = useTazBoardSave({
+        runtimeBoardInfo: sRuntimeBoardInfo,
+        dispatchRuntimeBoardAction,
+        isActiveTab: pIsActiveTab,
+        recentModalPath: pRecentModalPath,
+        fileTree: pFileTree,
+        onSavedBoard: pOnSavedBoard,
+        onFileTreeChange: pOnFileTreeChange,
+        onRecentModalPathChange: pOnRecentModalPathChange,
+    });
 
     function handleApplyBoardTimeRange(
         timeRangeInput: EditableTimeRangeInputResolution,
@@ -270,7 +161,7 @@ const TagAnalyzerBoard = ({
     }
 
     function togglePanelRawMode(runtimePanelInfo: RuntimePanelInfo): void {
-        const sPanelInfo = getRuntimePanelConfig(runtimePanelInfo);
+        const sPanelInfo = getPanelConfigFromRuntimePanel(runtimePanelInfo);
         const sNextPanelInfo: PanelInfo = {
             ...sPanelInfo,
             mode: {
@@ -297,35 +188,6 @@ const TagAnalyzerBoard = ({
             panelKey: runtimePanelInfo.key,
         });
     }
-
-    useEffect(() => {
-        if (!pIsActiveTab) {
-            return undefined;
-        }
-
-        const handleDocumentSaveShortcut = function handleDocumentSaveShortcut(
-            event: KeyboardEvent,
-        ) {
-            const sIsSaveShortcut =
-                (event.ctrlKey || event.metaKey) &&
-                event.key.toLowerCase() === 's';
-
-            if (!sIsSaveShortcut) {
-                return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
-            void saveCurrentTazBoard();
-        };
-
-        document.addEventListener('keydown', handleDocumentSaveShortcut, true);
-
-        return () => {
-            document.removeEventListener('keydown', handleDocumentSaveShortcut, true);
-        };
-    }, [pIsActiveTab, saveCurrentTazBoard]);
 
     const sHeaderActions: Array<{
         key: string;
@@ -386,8 +248,8 @@ const TagAnalyzerBoard = ({
             <Page.Header>
                 <div className="tag-analyzer-board-header">
                     <Page.Space />
-                    {sIsRuntimeBoardDirty && (
-                        <span className="tag-analyzer-board-header__dirty-message">
+                    {sHasUnsavedChanges && (
+                        <span className="tag-analyzer-board-header__unsaved-message">
                             Runtime change not saved to TAZ
                         </span>
                     )}
@@ -401,22 +263,22 @@ const TagAnalyzerBoard = ({
                             {sRangeText || 'Board time range not set'}
                         </Button>
                         {sHeaderActions.map((action) => {
-                            const sIsDirtySaveButton =
-                                action.key === 'save' && sIsRuntimeBoardDirty;
+                            const sIsUnsavedSaveButton =
+                                action.key === 'save' && sHasUnsavedChanges;
 
                             return (
                                 <Button
                                     key={action.key}
                                     className={
-                                        sIsDirtySaveButton
-                                            ? 'tag-analyzer-board-header__save-button--dirty'
+                                        sIsUnsavedSaveButton
+                                            ? 'tag-analyzer-board-header__save-button--unsaved'
                                             : undefined
                                     }
                                     size="icon"
                                     variant="ghost"
                                     isToolTip
                                     toolTipContent={
-                                        sIsDirtySaveButton
+                                        sIsUnsavedSaveButton
                                             ? 'Save runtime changes to TAZ'
                                             : action.tooltip
                                     }
@@ -443,7 +305,10 @@ const TagAnalyzerBoard = ({
                         >
                             <PanelContainer
                                 runtimePanelInfo={sRuntimePanelInfo}
-                                runtime={sPanelRuntimeProps}
+                                runtime={{
+                                    ...sPanelRuntimeProps,
+                                    hasUnsavedBoardChanges: sHasUnsavedChanges,
+                                }}
                                 actions={{
                                     onApplyPanelInfo: applyRuntimePanelInfo,
                                     onSetGlobalTimeRange: handleSetGlobalTimeRange,
@@ -467,7 +332,6 @@ const TagAnalyzerBoard = ({
                                             sRuntimePanelInfo.key,
                                         );
                                     },
-                                    onSavePanelInfo: saveCurrentTazBoardWithPanel,
                                     reloadAfterEditorSave:
                                         boardPanels.reloadAfterEditorSave,
                                     onToggleRaw: () =>
@@ -529,13 +393,14 @@ const TagAnalyzerBoard = ({
                     pSetIsModal={overlap.setOverlapModalOpen}
                 />
             )}
-            {sIsTazSaveModalOpen && sTazSaveModalInitialState && (
+            {sSaveModalProps && (
                 <TazSaveModal
-                    key={`${sTazSaveModalInitialState.directorySegments.join('/')}/${sTazSaveModalInitialState.fileName}`}
-                    initialState={sTazSaveModalInitialState}
-                    onClose={() => setIsTazSaveModalOpen(false)}
-                    onSave={saveCurrentTazBoardAs}
-                    onRecentModalPathChange={pOnRecentModalPathChange}
+                    key={`${sSaveModalProps.initialDirectoryPath}/${sSaveModalProps.initialFileName}`}
+                    initialDirectoryPath={sSaveModalProps.initialDirectoryPath}
+                    initialFileName={sSaveModalProps.initialFileName}
+                    onClose={sSaveModalProps.onClose}
+                    onSave={sSaveModalProps.onSave}
+                    onRecentModalPathChange={sSaveModalProps.onRecentModalPathChange}
                 />
             )}
         </>

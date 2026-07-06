@@ -15,7 +15,7 @@ import type {
 } from '../domain/panel/PanelActions';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { getChartLayoutMetrics } from './Chart/layout/PanelChartLayoutMetrics';
-import { formatRangeEndpointLabel } from '../formatting/TimeFormatters';
+import { formatRangeEndpointLabel } from '../domain/time/TimeFormatters';
 import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };

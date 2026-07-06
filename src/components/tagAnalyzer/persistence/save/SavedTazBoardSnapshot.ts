@@ -7,15 +7,15 @@ type TazSavedStateCarrier = {
 };
 
 export function createSavedTazBoardSnapshot(boardInfo: BoardInfo): BoardInfo {
-    const sBoardInfo = normalizeTazBoardForSavedState(boardInfo);
+    const sSavedState = cloneTazSavedState(boardInfo);
 
     return {
-        ...sBoardInfo,
-        name: boardInfo.name,
-        path: boardInfo.path,
+        ...boardInfo,
+        boardTimeRange: sSavedState.boardTimeRange as BoardInfo['boardTimeRange'],
+        panels: sSavedState.panels as BoardInfo['panels'],
         version: TAZ_FORMAT_VERSION,
         code: '',
-        savedCode: createTazSavedCodeFromBoardInfo(sBoardInfo),
+        savedCode: serializeTazSavedState(sSavedState),
     };
 }
 

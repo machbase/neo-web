@@ -195,7 +195,6 @@ export function usePanelRangeControls({
                     getShiftedPanelRangeState(
                         requestRangeState,
                         displayRangeState,
-                        isNumericXAxis,
                         -1,
                     ),
                 ),
@@ -204,7 +203,6 @@ export function usePanelRangeControls({
                     getShiftedPanelRangeState(
                         requestRangeState,
                         displayRangeState,
-                        isNumericXAxis,
                         1,
                     ),
                 ),
@@ -215,7 +213,6 @@ export function usePanelRangeControls({
                     getShiftedNavigatorRangeState(
                         requestRangeState,
                         displayRangeState,
-                        isNumericXAxis,
                         -1,
                     ),
                 ),
@@ -224,7 +221,6 @@ export function usePanelRangeControls({
                     getShiftedNavigatorRangeState(
                         requestRangeState,
                         displayRangeState,
-                        isNumericXAxis,
                         1,
                     ),
                 ),
@@ -329,10 +325,8 @@ function getSelectionCenterRatio(
 function getShiftedPanelRangeState(
     requestRangeState: PanelRangeState,
     displayRangeState: PanelDisplayRangeState,
-    isNumericXAxis: boolean,
     direction: RangeShiftDirection,
 ): PanelRangeState {
-    void isNumericXAxis;
     const sDisplayPanelRange = displayRangeState.displayPanelRange;
     const sOffset = getRangeShiftOffset(
         sDisplayPanelRange,
@@ -366,10 +360,8 @@ function getShiftedPanelRangeState(
 function getShiftedNavigatorRangeState(
     rangeState: PanelRangeState,
     displayRangeState: PanelDisplayRangeState,
-    isNumericXAxis: boolean,
     direction: RangeShiftDirection,
 ): PanelRangeState {
-    void isNumericXAxis;
     const sCurrentNavigatorRange = getCurrentNavigatorRange(
         rangeState,
         displayRangeState,

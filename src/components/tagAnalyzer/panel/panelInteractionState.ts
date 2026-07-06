@@ -1,12 +1,54 @@
-import { useReducer } from 'react';
+import type { ContextMenuPosition } from '@/design-system/components';
 import type { PanelMarkupInteractionHintState } from './PanelMarkupInteractionHint';
 import { PanelActionKey } from './PanelHeader';
-import {
-    PanelPopupMode,
-    type PanelPopupState,
-    type PanelSelectionSummary,
-} from './PanelPopups';
+import type { FFTSelectionPayload } from '../domain/ChartDomain';
+import type { PanelHighlight } from '../domain/panel/PanelConfig';
 import { PanelOverlayMode } from '../domain/panel/PanelActions';
+import type { AnnotationEditorMetaState } from './modal/EditAnnotationModal';
+import type { HighlightEditorState } from './modal/EditHighlightModal';
+
+export enum PanelPopupMode {
+    NONE = 'NONE',
+    CONTEXT_MENU = 'CONTEXT_MENU',
+    FFT = 'FFT',
+    HIGHLIGHT_EDITOR = 'HIGHLIGHT_EDITOR',
+    ANNOTATION_EDITOR = 'ANNOTATION_EDITOR',
+    DELETE_CONFIRM = 'DELETE_CONFIRM',
+    EXPORT_CSV = 'EXPORT_CSV',
+}
+
+type CreateHighlightPopupState = {
+    mode: PanelPopupMode.HIGHLIGHT_EDITOR;
+    editor: Extract<HighlightEditorState, { mode: 'create' }>;
+    draftHighlight: PanelHighlight;
+};
+
+type EditHighlightPopupState = {
+    mode: PanelPopupMode.HIGHLIGHT_EDITOR;
+    editor: Extract<HighlightEditorState, { mode: 'edit' }>;
+    draftHighlight?: undefined;
+};
+
+export type HighlightPopupState =
+    | CreateHighlightPopupState
+    | EditHighlightPopupState;
+
+export type PanelPopupState =
+    | { mode: PanelPopupMode.NONE }
+    | { mode: PanelPopupMode.CONTEXT_MENU; position: ContextMenuPosition }
+    | { mode: PanelPopupMode.FFT; selection: FFTSelectionPayload }
+    | HighlightPopupState
+    | {
+          mode: PanelPopupMode.ANNOTATION_EDITOR;
+          editorMeta: AnnotationEditorMetaState;
+      }
+    | { mode: PanelPopupMode.DELETE_CONFIRM }
+    | { mode: PanelPopupMode.EXPORT_CSV };
+
+export type PanelSelectionSummary = {
+    selection: FFTSelectionPayload;
+    popoverPosition: { x: number; y: number };
+};
 
 const EMPTY_PANEL_POPUP_STATE: PanelPopupState = { mode: PanelPopupMode.NONE };
 
@@ -15,38 +57,22 @@ export enum PanelRuntimeTimeRangeTarget {
     NAVIGATOR = 'NAVIGATOR',
 }
 
-type PanelTimeRangeModalState =
-    | { status: 'closed' }
-    | { status: 'open'; target: PanelRuntimeTimeRangeTarget };
-
 type PanelEditorState =
     | { status: 'closed' }
     | { status: 'open' }
     | { status: 'closing' };
 
-type PanelSelectionSummaryState =
-    | { status: 'none' }
-    | { status: 'open'; summary: PanelSelectionSummary };
-
-type PanelMarkupHintState =
-    | { status: 'hidden' }
-    | { status: 'visible'; hint: PanelMarkupInteractionHintState };
-
-type PanelHoveredMainSeriesState =
-    | { status: 'none' }
-    | { status: 'hovered'; seriesName: string };
-
 type PanelMarkupInteractionState = {
-    hint: PanelMarkupHintState;
-    hoveredMainSeries: PanelHoveredMainSeriesState;
+    hint: PanelMarkupInteractionHintState | undefined;
+    hoveredMainSeriesName: string | undefined;
 };
 
 type PanelInteractionState = {
     overlayMode: PanelOverlayMode;
     popupState: PanelPopupState;
-    timeRangeModal: PanelTimeRangeModalState;
+    timeRangeModalTarget: PanelRuntimeTimeRangeTarget | undefined;
     editor: PanelEditorState;
-    selectionSummary: PanelSelectionSummaryState;
+    selectionSummary: PanelSelectionSummary | undefined;
     markupInteraction: PanelMarkupInteractionState;
 };
 
@@ -78,33 +104,23 @@ type PanelInteractionAction =
       }
     | {
           type: 'SET_HOVERED_MAIN_SERIES';
-          seriesName: string;
+          seriesName: string | undefined;
       }
-    | { type: 'CLEAR_HOVERED_MAIN_SERIES' }
     | { type: 'CLEAR_MOUSE_MARKUP_STATE' };
 
-const INITIAL_PANEL_INTERACTION_STATE: PanelInteractionState = {
+export const INITIAL_PANEL_INTERACTION_STATE: PanelInteractionState = {
     overlayMode: PanelOverlayMode.NO_OVERLAY,
     popupState: EMPTY_PANEL_POPUP_STATE,
-    timeRangeModal: { status: 'closed' },
+    timeRangeModalTarget: undefined,
     editor: { status: 'closed' },
-    selectionSummary: { status: 'none' },
+    selectionSummary: undefined,
     markupInteraction: {
-        hint: { status: 'hidden' },
-        hoveredMainSeries: { status: 'none' },
+        hint: undefined,
+        hoveredMainSeriesName: undefined,
     },
 };
 
-export function usePanelInteractionState() {
-    const [state, dispatch] = useReducer(
-        panelInteractionReducer,
-        INITIAL_PANEL_INTERACTION_STATE,
-    );
-
-    return { state, dispatch };
-}
-
-function panelInteractionReducer(
+export function panelInteractionReducer(
     state: PanelInteractionState,
     action: PanelInteractionAction,
 ): PanelInteractionState {
@@ -151,13 +167,13 @@ function panelInteractionReducer(
         case 'OPEN_TIME_RANGE_MODAL':
             return {
                 ...state,
-                timeRangeModal: { status: 'open', target: action.target },
+                timeRangeModalTarget: action.target,
             };
 
         case 'CLOSE_TIME_RANGE_MODAL':
             return {
                 ...state,
-                timeRangeModal: { status: 'closed' },
+                timeRangeModalTarget: undefined,
             };
 
         case 'CLOSE_EDITOR':
@@ -183,10 +199,7 @@ function panelInteractionReducer(
         case 'OPEN_SELECTION_SUMMARY': {
             const sNextState = {
                 ...state,
-                selectionSummary: {
-                    status: 'open' as const,
-                    summary: action.selectionSummary,
-                },
+                selectionSummary: action.selectionSummary,
             };
 
             if (action.overlayMode === undefined) {
@@ -203,7 +216,7 @@ function panelInteractionReducer(
             return {
                 ...state,
                 overlayMode: PanelOverlayMode.NO_OVERLAY,
-                selectionSummary: { status: 'none' },
+                selectionSummary: undefined,
             };
 
         case 'SHOW_MARKUP_INTERACTION_HINT':
@@ -211,25 +224,31 @@ function panelInteractionReducer(
                 ...state,
                 markupInteraction: {
                     ...state.markupInteraction,
-                    hint: { status: 'visible', hint: action.hint },
+                    hint: action.hint,
                 },
             };
 
-        case 'SET_HOVERED_MAIN_SERIES':
-            return updateHoveredMainSeries(state, {
-                status: 'hovered',
-                seriesName: action.seriesName,
-            });
+        case 'SET_HOVERED_MAIN_SERIES': {
+            const sCurrentHint = state.markupInteraction.hint;
 
-        case 'CLEAR_HOVERED_MAIN_SERIES':
-            return updateHoveredMainSeries(state, { status: 'none' });
+            return {
+                ...state,
+                markupInteraction: {
+                    hoveredMainSeriesName: action.seriesName,
+                    hint: sCurrentHint && {
+                        ...sCurrentHint,
+                        hoveredMainSeriesName: action.seriesName,
+                    },
+                },
+            };
+        }
 
         case 'CLEAR_MOUSE_MARKUP_STATE':
             return {
                 ...state,
                 markupInteraction: {
-                    hint: { status: 'hidden' },
-                    hoveredMainSeries: { status: 'none' },
+                    hint: undefined,
+                    hoveredMainSeriesName: undefined,
                 },
             };
     }
@@ -298,60 +317,7 @@ function togglePanelOverlay(
         popupState: EMPTY_PANEL_POPUP_STATE,
         overlayMode: sNextOverlayMode,
         selectionSummary: shouldClearSelectionSummary
-            ? { status: 'none' }
+            ? undefined
             : state.selectionSummary,
     };
-}
-
-function updateHoveredMainSeries(
-    state: PanelInteractionState,
-    hoveredMainSeries: PanelHoveredMainSeriesState,
-): PanelInteractionState {
-    const sHoveredMainSeriesName = getHoveredMainSeriesName(hoveredMainSeries);
-    const sCurrentHint = state.markupInteraction.hint;
-
-    return {
-        ...state,
-        markupInteraction: {
-            hoveredMainSeries,
-            hint:
-                sCurrentHint.status === 'visible'
-                    ? {
-                          status: 'visible',
-                          hint: {
-                              ...sCurrentHint.hint,
-                              hoveredMainSeriesName: sHoveredMainSeriesName,
-                          },
-                      }
-                    : sCurrentHint,
-        },
-    };
-}
-
-export function getHoveredMainSeriesName(
-    hoveredMainSeries: PanelHoveredMainSeriesState,
-): string | undefined {
-    return hoveredMainSeries.status === 'hovered'
-        ? hoveredMainSeries.seriesName
-        : undefined;
-}
-
-export function getOpenTimeRangeModalTarget(
-    timeRangeModal: PanelTimeRangeModalState,
-): PanelRuntimeTimeRangeTarget | undefined {
-    return timeRangeModal.status === 'open' ? timeRangeModal.target : undefined;
-}
-
-export function getOpenSelectionSummary(
-    selectionSummary: PanelSelectionSummaryState,
-): PanelSelectionSummary | undefined {
-    return selectionSummary.status === 'open' ? selectionSummary.summary : undefined;
-}
-
-export function getVisibleMarkupInteractionHint(
-    markupInteraction: PanelMarkupInteractionState,
-): PanelMarkupInteractionHintState | undefined {
-    return markupInteraction.hint.status === 'visible'
-        ? markupInteraction.hint.hint
-        : undefined;
 }

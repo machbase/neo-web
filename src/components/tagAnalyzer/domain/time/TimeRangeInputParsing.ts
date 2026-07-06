@@ -1,12 +1,12 @@
 import type {
     TimeRangeInput,
     TimeRangeMs,
-} from '../domain/time/TimeTypes';
+} from './TimeTypes';
 import {
     createTimeRangeMs,
     isValidTimeRange,
-} from '../domain/time/TimeRangeUtils';
-import { resolveTimeStringToTimestamp } from '../domain/time/TimeRangeInputResolver';
+} from './TimeRangeUtils';
+import { resolveTimeStringToTimestamp } from './TimeRangeInputResolver';
 
 // Resolves the editor's two time-range input strings ("now-1h", "now",
 // "YYYY-MM-DD HH:mm:ss", "") into a concrete millisecond range. The expression

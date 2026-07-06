@@ -5,7 +5,7 @@ import {
     useState,
     type AnimationEvent,
 } from 'react';
-import { Button, Page, Toast } from '@/design-system/components';
+import { Button, Page } from '@/design-system/components';
 import EditorAxesTab from './editTabs/EditorAxesTab';
 import EditorDataSettingTab from './editTabs/EditorDataSettingTab';
 import EditorDataTab from './editTabs/EditorDataTab';
@@ -29,7 +29,7 @@ enum EditTabPanelType {
 
 type PanelEditorAnimationState = 'opening' | 'closing';
 
-function normalizeConfigForDirtyCheck(
+function normalizeConfigForNotAppliedCheck(
     config: PanelInfo,
 ): PanelInfo {
     return {
@@ -41,27 +41,27 @@ function normalizeConfigForDirtyCheck(
     };
 }
 
-function createEditorConfigDirtyKey(config: PanelInfo): string {
-    return JSON.stringify(normalizeConfigForDirtyCheck(config));
+function createNotAppliedCheckKey(config: PanelInfo): string {
+    return JSON.stringify(normalizeConfigForNotAppliedCheck(config));
 }
 
 const PanelEditor = ({
     pOnApplyEditorConfig,
-    pOnSaveEditorConfig,
     pOnClose,
     pOnAnimationEnd,
     pAnimationState,
     pPanelInfo,
     pIsRawMode,
+    pHasUnsavedBoardChanges,
     pPanelRange,
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelInfo) => void;
-    pOnSaveEditorConfig: (editorConfig: PanelInfo) => Promise<boolean>;
     pOnClose: () => void;
     pOnAnimationEnd: () => void;
     pAnimationState: PanelEditorAnimationState;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
+    pHasUnsavedBoardChanges: boolean;
     pPanelRange: TimeRangeMs;
 }) => {
     const sInitialEditorConfig = useMemo(
@@ -69,7 +69,7 @@ const PanelEditor = ({
         [pPanelInfo],
     );
     const sInitialEditorConfigKey = useMemo(
-        () => createEditorConfigDirtyKey(sInitialEditorConfig),
+        () => createNotAppliedCheckKey(sInitialEditorConfig),
         [sInitialEditorConfig],
     );
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>(
@@ -88,10 +88,6 @@ const PanelEditor = ({
     const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(
         sInitialEditorConfigKey,
     );
-    const [sHasAppliedUnsavedChanges, setHasAppliedUnsavedChanges] =
-        useState(false);
-    const [sSaveMessage, setSaveMessage] = useState<string | undefined>(undefined);
-    const [sIsSaving, setIsSaving] = useState(false);
     const [sHasInvalidTimeRangeInput, setHasInvalidTimeRangeInput] =
         useState(false);
     const sAppliedEditorConfigKeyRef = useRef(sInitialEditorConfigKey);
@@ -118,7 +114,7 @@ const PanelEditor = ({
     const sEditorConfigRef = useRef(sEditorConfig);
     sEditorConfigRef.current = sEditorConfig;
     const sEditorConfigKey = useMemo(
-        () => createEditorConfigDirtyKey(sEditorConfig),
+        () => createNotAppliedCheckKey(sEditorConfig),
         [sEditorConfig],
     );
     const sHasInvalidStructuralEditorValues = hasInvalidEditorStructure(
@@ -132,12 +128,10 @@ const PanelEditor = ({
     );
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidEditorValues;
-    const sStatusMessage = sSaveMessage ??
-        (sHasEditorChanges
-            ? 'Press Apply to apply this session only.'
-            : undefined);
-    const sShowRuntimeSaveMessage =
-        !sStatusMessage && sHasAppliedUnsavedChanges;
+    const sStatusMessage = sHasEditorChanges
+        ? 'Press Apply to apply this session only.'
+        : undefined;
+    const sShowRuntimeSaveMessage = !sStatusMessage && pHasUnsavedBoardChanges;
     const sHasStatusMessage = Boolean(sStatusMessage) || sShowRuntimeSaveMessage;
     const sApplyButtonTitle = !sHasEditorChanges
         ? 'There are no changes to apply'
@@ -156,45 +150,9 @@ const PanelEditor = ({
             return;
         }
 
-        setSaveMessage(undefined);
         pOnApplyEditorConfig(sEditorConfig);
         sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
         setAppliedEditorConfigKey(sEditorConfigKey);
-        setHasAppliedUnsavedChanges(true);
-    };
-
-    const saveEditorChanges = async () => {
-        if (sIsSaving) {
-            return;
-        }
-
-        if (sHasInvalidTimeRangeInput) {
-            Toast.error('Please check the entered time.');
-            return;
-        }
-
-        if (sHasInvalidStructuralEditorValues) {
-            return;
-        }
-
-        setIsSaving(true);
-        setSaveMessage(undefined);
-        const sDidSave = await pOnSaveEditorConfig(sEditorConfig).finally(() =>
-            setIsSaving(false),
-        );
-
-        if (!sDidSave) {
-            sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
-            setAppliedEditorConfigKey(sEditorConfigKey);
-            setHasAppliedUnsavedChanges(true);
-            return;
-        }
-
-        sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
-        setAppliedEditorConfigKey(sEditorConfigKey);
-        setHasAppliedUnsavedChanges(false);
-        setSaveMessage('Saved to TAZ.');
-        pOnClose();
     };
 
     const discardEditorChanges = () => {
@@ -215,9 +173,6 @@ const PanelEditor = ({
     }
 
     useEffect(() => {
-        setSaveMessage(undefined);
-    }, [sEditorConfigKey]);
-    useEffect(() => {
         if (sIsNumericXAxis) {
             setHasInvalidTimeRangeInput(false);
         }
@@ -233,7 +188,7 @@ const PanelEditor = ({
             setAppliedEditorConfigKey(sInitialEditorConfigKey);
 
             if (
-                createEditorConfigDirtyKey(sEditorConfigRef.current) ===
+                createNotAppliedCheckKey(sEditorConfigRef.current) ===
                 sPreviousAppliedEditorConfigKey
             ) {
                 setEditorDraft(sInitialEditorConfig);
@@ -355,9 +310,8 @@ const PanelEditor = ({
                             >
                                 <span
                                     className={[
-                                        styles.dirtyMessage,
-                                        sSaveMessage && styles.savedMessage,
-                                        !sHasStatusMessage && styles.dirtyMessageHidden,
+                                        styles.notAppliedMessage,
+                                        !sHasStatusMessage && styles.notAppliedMessageHidden,
                                     ]
                                         .filter(Boolean)
                                         .join(' ')}
@@ -383,14 +337,6 @@ const PanelEditor = ({
                                     onClick={applyEditorChanges}
                                 >
                                     Apply
-                                </Button>
-                                <Button
-                                    variant="success"
-                                    size="sm"
-                                    disabled={sHasInvalidStructuralEditorValues || sIsSaving}
-                                    onClick={() => void saveEditorChanges()}
-                                >
-                                    {sIsSaving ? 'Saving' : 'Save'}
                                 </Button>
                             </div>
                         </div>

@@ -28,8 +28,9 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { Button } from '@/design-system/components';
 import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
-import { createTazBoardFromTimeRange } from '@/components/tagAnalyzer/TazUtility';
+import { createTazBoardFromTimeRange } from '@/components/tagAnalyzer/bridge/TazUtility';
 import type { PanelSeriesDefinition } from '@/components/tagAnalyzer/domain/SeriesDomain';
+import type { TimeRangeInput } from '@/components/tagAnalyzer/domain/time/TimeTypes';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -113,18 +114,23 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             sourceColumns: createTagAnalyzerColumnInfoFromDashboardBlock(aInfo),
         };
     };
-    const createTagzTab = (aName: string, aSeriesList: PanelSeriesDefinition[], aTime: any) => {
+    const normalizeTagAnalyzerTimeRangeValue = (value: unknown): string => {
+        if (value === undefined || value === null) return '';
+        return String(value);
+    };
+    const createTagzTab = (aName: string, aSeriesList: PanelSeriesDefinition[], aTime?: Partial<Record<keyof TimeRangeInput, unknown>> | null) => {
         const sId = getId();
+        const sTimeRange: TimeRangeInput = {
+            start: normalizeTagAnalyzerTimeRangeValue(aTime?.start),
+            end: normalizeTagAnalyzerTimeRangeValue(aTime?.end),
+        };
         const sTazBoard = createTazBoardFromTimeRange({
             id: sId,
             path: '/',
             name: aName + '.taz',
             chartTitle: aName,
             seriesList: aSeriesList,
-            timeRange: {
-                start: aTime.start,
-                end: aTime.end,
-            },
+            timeRange: sTimeRange,
         });
 
         setBoardList((aPrev: any) => [...aPrev, sTazBoard]);

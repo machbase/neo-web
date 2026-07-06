@@ -21,7 +21,7 @@ import { TimeUnit, type TimeRangeMs } from '../../domain/time/TimeTypes';
 import { getTimeUnitMilliseconds } from '../../domain/time/TimeIntervalUtils';
 import { resolvePanelAxesForRuntime } from '../../domain/panel/PanelRuntime';
 import { getSeriesListKeyAxisKind } from '../../domain/SeriesDomain';
-import { formatRangeEndpointLabel } from '../../formatting/TimeFormatters';
+import { formatRangeEndpointLabel } from '../../domain/time/TimeFormatters';
 
 const OVERLAP_LOAD_ERROR_MESSAGE = 'Failed to load overlap data.';
 const OVERLAP_CHART_SHIFT_FRACTION = 0.3;

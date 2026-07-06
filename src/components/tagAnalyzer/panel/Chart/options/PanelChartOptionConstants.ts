@@ -1,5 +1,5 @@
 import type { XAXisComponentOption, YAXisComponentOption } from 'echarts';
-import { formatCompactNumericLabel } from '../../../formatting/TimeFormatters';
+import { formatCompactNumericLabel } from '../../../domain/time/TimeFormatters';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<NonNullable<XAXisComponentOption['splitLine']>['lineStyle']>;

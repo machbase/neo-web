@@ -13,9 +13,6 @@ const TagAnalyzer = ({
     pInfo,
 }: {
     pInfo: BoardInfo;
-    pHandleSaveModalOpen?: () => void;
-    pSetIsSaveModal?: (isOpen: boolean) => void;
-    pSetIsOpenModal?: (isOpen: boolean) => void;
 }) => {
     const {
         selectedTab: sSelectedTab,
@@ -24,8 +21,7 @@ const TagAnalyzer = ({
         updateSavedBoard: handleSavedBoard,
     } = useTagAnalyzerAppState();
     const [sRecentModalPath, setRecentModalPath] = useState('/');
-    const newBoardInfo = pInfo;
-    const sIsActiveTab = sSelectedTab === newBoardInfo.id;
+    const sIsActiveTab = sSelectedTab === pInfo.id;
     const {
         rollupTableList,
         isLoadingMetadata,
@@ -44,7 +40,7 @@ const TagAnalyzer = ({
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <Page>
                     <TagAnalyzerBoard
-                        pInfo={newBoardInfo}
+                        pInfo={pInfo}
                         pIsActiveTab={sIsActiveTab}
                         pRollupTableList={rollupTableList}
                         pRecentModalPath={sRecentModalPath}

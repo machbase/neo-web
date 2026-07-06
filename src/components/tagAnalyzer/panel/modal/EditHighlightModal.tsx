@@ -10,7 +10,7 @@ import {
     LOCAL_DATE_TIME_INPUT_FORMAT,
     NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
-} from '../../formatting/TimeInputFormatters';
+} from '../../domain/time/TimeInputFormatters';
 import {
     createTimeRangeMs,
     isValidTimeRange,

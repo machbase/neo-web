@@ -29,7 +29,7 @@ import type {
     IntervalOption,
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
-import { formatRangeEndpointLabel } from '../formatting/TimeFormatters';
+import { formatRangeEndpointLabel } from '../domain/time/TimeFormatters';
 import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
 
 export enum PanelActionKey {

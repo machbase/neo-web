@@ -6,7 +6,7 @@ import { TIME_RANGE } from '@/utils/constants';
 import TagAnalyzerDatePicker from '../../../TagAnalyzerDatePicker';
 import type { PanelInfo } from '../../../domain/panel/PanelConfig';
 import styles from '../PanelEditor.module.scss';
-import { resolveEditableTimeRangeInput } from '../../../parsing/TimeRangeInputParsing';
+import { resolveEditableTimeRangeInput } from '../../../domain/time/TimeRangeInputParsing';
 import {
     type PanelRangeInput,
     type TimeRangeInput,

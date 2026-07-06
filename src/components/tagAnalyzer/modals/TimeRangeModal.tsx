@@ -13,12 +13,12 @@ import { TIME_RANGE } from '@/utils/constants';
 import {
     resolveEditableTimeRangeInput,
     type EditableTimeRangeInputResolution,
-} from '../parsing/TimeRangeInputParsing';
+} from '../domain/time/TimeRangeInputParsing';
 import {
     formatAxisInputValue,
     NUMERIC_AXIS_INPUT_FORMAT,
     parseAxisInputValue,
-} from '../formatting/TimeInputFormatters';
+} from '../domain/time/TimeInputFormatters';
 import type { TimeRangeInput, TimeRangeMs } from '../domain/time/TimeTypes';
 import TagAnalyzerDatePicker from '../TagAnalyzerDatePicker';
 

@@ -1,7 +1,7 @@
 // Handles direct chart-axis editor input. It intentionally supports numeric axes
 // and partial local timestamps, unlike persisted time expressions.
-import { DATE_TIME_INPUT_FORMAT } from '../domain/time/TimeConstants';
-import { formatNumericValue } from '../domain/panelRange/PanelRangeInput';
+import { DATE_TIME_INPUT_FORMAT } from './TimeConstants';
+import { formatNumericValue } from '../panelRange/PanelRangeInput';
 
 export const LOCAL_DATE_TIME_INPUT_FORMAT = `${DATE_TIME_INPUT_FORMAT}.SSS`;
 export const NUMERIC_AXIS_INPUT_FORMAT = 'Numeric value';
