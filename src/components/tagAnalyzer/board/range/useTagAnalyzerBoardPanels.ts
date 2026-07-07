@@ -286,6 +286,8 @@ export function useTagAnalyzerBoardPanels({
         } satisfies RuntimePanelInfo;
         const sCurrentRangeState = sRuntimePanelInfo.time.runtimeRange;
 
+        requestDataRefresh(nextPanelInfo.key);
+
         if (
             preserveCurrentVisibleRange &&
             hasConcretePanelRangeState(sCurrentRangeState)

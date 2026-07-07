@@ -1,5 +1,10 @@
 import './TagAnalyzerBoard.scss';
-import { useCallback, useReducer, useState, type ReactNode } from 'react';
+import {
+    useCallback,
+    useReducer,
+    useState,
+    type ReactNode,
+} from 'react';
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
     Calendar,
@@ -16,7 +21,7 @@ import PanelContainer from './panel/PanelContainer';
 import RangeModal from './modals/RangeModal';
 import TagAnalyzerHelpModal from './modals/TagAnalyzerHelpModal';
 import OverlapModal from './board/overlap/OverlapModal';
-import PanelSeriesSelectionModal from './modals/createNewPanel/PanelSeriesSelectionModal';
+import CreatePanelModal from './modals/createNewPanel/CreatePanelModal';
 import TazSaveAsModal from './modals/TazSaveAsModal';
 import type {
     BoardInfo,
@@ -308,7 +313,6 @@ const TagAnalyzerBoard = ({
                         <Page.ContentBlock
                             key={sRuntimePanelInfo.key}
                             pHoverNone
-                            style={{ padding: '24px 32px' }}
                         >
                             <PanelContainer
                                 runtimePanelInfo={sRuntimePanelInfo}
@@ -354,10 +358,7 @@ const TagAnalyzerBoard = ({
                         </Page.ContentBlock>
                     );
                 })}
-                <Page.ContentBlock
-                    pHoverNone
-                    style={{ padding: '24px 32px' }}
-                >
+                <Page.ContentBlock pHoverNone>
                     <Button
                         variant="secondary"
                         fullWidth
@@ -369,7 +370,8 @@ const TagAnalyzerBoard = ({
                         New Chart
                     </Button>
                     {sIsNewPanelModalOpen && (
-                        <PanelSeriesSelectionModal
+                        <CreatePanelModal
+                            rollupTableList={rollupTableList}
                             onClose={() => setIsNewPanelModalOpen(false)}
                             onCreatePanel={appendPanel}
                         />

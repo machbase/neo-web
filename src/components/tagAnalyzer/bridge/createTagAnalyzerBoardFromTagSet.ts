@@ -8,7 +8,7 @@ import {
 import type { PanelInfo } from '@/components/tagAnalyzer/domain/panel/PanelInfo';
 import type { TimeRangeInput } from '@/components/tagAnalyzer/domain/time/TimeTypes';
 import { formatAbsoluteTimeExpression } from '@/components/tagAnalyzer/domain/time/TimeRangeInputResolver';
-import { createNewPanelInfo } from '@/components/tagAnalyzer/modals/createNewPanel/CreateNewPanelInfo';
+import { createNewPanelInfo } from '@/components/tagAnalyzer/domain/panel/createPanelInfo';
 import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/TazVersion';
 import { isPlainObject } from '@/components/tagAnalyzer/domain/ObjectGuards';
 

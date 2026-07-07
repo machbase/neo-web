@@ -59,6 +59,7 @@ export type PanelHeaderRuntimeState = {
     canSetGlobalTime: boolean;
     canSaveLocal: boolean;
     isNumericXAxis: boolean;
+    isRawModeRequired: boolean;
     overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
@@ -117,8 +118,8 @@ function buildPanelActions(
         {
             key: PanelActionKey.TOGGLE_RAW,
             label: sRawLabel,
-            tooltip: state.isNumericXAxis
-                ? 'Raw mode is required for numeric x-axis'
+            tooltip: state.isRawModeRequired
+                ? 'Raw mode is required when a series has no rollup table'
                 : undefined,
             icon: (
                 <span
@@ -130,7 +131,7 @@ function buildPanelActions(
             ),
             visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.isRaw,
-            disabled: state.isNumericXAxis,
+            disabled: state.isRawModeRequired,
             className: 'panel-header__action--raw',
             buttonStyle: RAW_BUTTON_STYLE,
         },

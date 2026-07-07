@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Button } from '@/design-system/components';
-import PanelSeriesSelectionModal from '../../../modals/createNewPanel/PanelSeriesSelectionModal';
+import EditSeriesModal from '../../../modals/createNewPanel/EditSeriesModal';
 import { Tooltip } from 'react-tooltip';
 import {
     getPanelSeriesDisplayColor,
@@ -9,18 +9,19 @@ import {
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
 import type { PanelInfo } from '../../../domain/panel/PanelInfo';
+import type { RollupTableMap } from '../../../fetch/panelData/PanelDataFetchTypes';
 import { cx } from './EditorFieldUtils';
 import styles from '../PanelEditor.module.scss';
 
-type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
+type EditableSeriesField = 'calculationMode' | 'alias' | 'color';
 
 const EditorDataTab = ({
     pQueryDraft,
-    pIsRawMode,
+    pRollupTableList,
     pOnChangeQueryDraft
 }: {
     pQueryDraft: PanelInfo['query'];
-    pIsRawMode: boolean;
+    pRollupTableList: RollupTableMap;
     pOnChangeQueryDraft: (queryDraft: PanelInfo['query']) => void;
 }) => {
     const [isModal, setIsModal] = useState(false);
@@ -48,10 +49,7 @@ const EditorDataTab = ({
                         <div key={item.key} className={styles.editorCard}>
                             <div className={styles.editorWrappedRow}>
                                 <div
-                                    className={cx(
-                                        styles.editorField,
-                                        pIsRawMode && styles.disabledControl,
-                                    )}
+                                    className={styles.editorField}
                                 >
                                     <span className={styles.editorFieldLabel}>
                                         Calc Mode
@@ -61,10 +59,9 @@ const EditorDataTab = ({
                                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                                             value={item.calculationMode ?? 'avg'}
                                             onChange={updateItem('calculationMode')}
-                                            disabled={pIsRawMode}
                                         >
                                             <Dropdown.Trigger
-                                                className={styles.calcModeTrigger}
+                                                className={styles.editorSelectTrigger}
                                             />
                                             <Dropdown.Menu>
                                                 <Dropdown.List />
@@ -88,15 +85,14 @@ const EditorDataTab = ({
                                         anchorSelect={`.${sTableTooltipClass}`}
                                         content={item.table}
                                     />
-                                    <Input
+                                    <div
+                                        className={styles.editorFixedValue}
                                         aria-label="Source Tag Name"
-                                        value={item.sourceTagName}
-                                        onChange={(event) =>
-                                            updateItem('sourceTagName')(event.target.value)
-                                        }
-                                        size="md"
+                                        title={item.sourceTagName}
                                         style={{ width: '128px', height: '30px' }}
-                                    />
+                                    >
+                                        {item.sourceTagName}
+                                    </div>
                                 </div>
                                 <div className={styles.editorField}>
                                     <span className={styles.editorFieldLabel}>Alias</span>
@@ -137,7 +133,8 @@ const EditorDataTab = ({
                     );
                 })}
             {isModal && (
-                <PanelSeriesSelectionModal
+                <EditSeriesModal
+                    rollupTableList={pRollupTableList}
                     onClose={() => setIsModal(false)}
                     initialSeries={pQueryDraft.tagSet}
                     onUpdateSeries={setTagSet}

@@ -3,9 +3,9 @@ import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     type PanelEChartType,
     type PanelInfo,
-} from '../../domain/panel/PanelInfo';
-import { createPanelIndexKey } from '../../domain/panel/PanelIdentity';
-import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
+} from './PanelInfo';
+import { createPanelIndexKey } from './PanelIdentity';
+import type { PanelSeriesDefinition } from '../SeriesDomain';
 
 export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 

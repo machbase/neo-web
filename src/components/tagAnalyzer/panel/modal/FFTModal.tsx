@@ -12,9 +12,8 @@ import {
 } from '../../domain/time/TimeIntervalUtils';
 import { formatRangeEndpointLabel } from '../../domain/time/TimeFormatters';
 import {
-    buildFftMinMaxHz,
-    buildFftQuery,
     fetchFftChartData,
+    type FetchFftChartDataParams,
     type FftChartData,
 } from '../../fetch/fft/FftChartFetch';
 
@@ -84,16 +83,15 @@ export const FFTModal = ({
         }
 
         setSelectedInfo(sInitialSummary);
-        void loadChartData(
-            buildFftQuery({
-                isChart2D: true,
-                selectedInfo: sInitialSummary,
-                minMaxHz: '',
-                isNumericXAxis,
-                startTime,
-                endTime,
-            }),
-        );
+        void loadChartData({
+            isChart2D: true,
+            selectedInfo: sInitialSummary,
+            minHz: '0',
+            maxHz: '0',
+            isNumericXAxis,
+            startTime,
+            endTime,
+        });
     }, [endTime, isNumericXAxis, loadChartData, seriesSummaries, startTime]);
 
     const handleSelectedTag = (value: string) => {
@@ -162,17 +160,16 @@ export const FFTModal = ({
             ).toString();
         }
 
-        void loadChartData(
-            buildFftQuery({
-                isChart2D: sIsChart2D,
-                selectedInfo: sSelectedInfo,
-                minMaxHz: buildFftMinMaxHz(sMinHzValue, sMaxHzValue),
-                isNumericXAxis,
-                startTime,
-                endTime,
-                intervalMs: sIntervalMs,
-            }),
-        );
+        void loadChartData({
+            isChart2D: sIsChart2D,
+            selectedInfo: sSelectedInfo,
+            minHz: sMinHzValue,
+            maxHz: sMaxHzValue,
+            isNumericXAxis,
+            startTime,
+            endTime,
+            intervalMs: sIntervalMs,
+        });
     };
 
     const handleSelectInterval = (value: string) => {
@@ -306,16 +303,18 @@ export const FFTModal = ({
 function useFftChartData(): {
     chartData: FftChartData | null;
     isLoading: boolean;
-    loadChartData: (queryText: string) => Promise<void>;
+    loadChartData: (params: FetchFftChartDataParams) => Promise<void>;
 } {
     const [sChartData, setChartData] = useState<FftChartData | null>(null);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
 
-    const loadChartData = useCallback(async (queryText: string): Promise<void> => {
+    const loadChartData = useCallback(async (
+        params: FetchFftChartDataParams,
+    ): Promise<void> => {
         setIsLoading(true);
 
         try {
-            const sNextChartData = await fetchFftChartData(queryText);
+            const sNextChartData = await fetchFftChartData(params);
 
             if (sNextChartData) {
                 setChartData(sNextChartData);

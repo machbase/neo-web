@@ -415,18 +415,9 @@ async function checkTableAvailability(tableName: string): Promise<AvailabilityCh
 async function checkTagAvailability<T extends ResolvedDataRangeSeries>(
     series: T,
 ): Promise<AvailabilityCheck> {
-    const sMetadataResult = await executeAvailabilityQuery(
-        () => buildMetadataTagAvailabilitySql(series),
+    return createAvailabilityCheckFromQueryResult(
+        await executeAvailabilityQuery(() => buildMetadataTagAvailabilitySql(series)),
     );
-    if (hasAvailabilityRows(sMetadataResult)) {
-        return { kind: 'available' };
-    }
-
-    const sSourceResult = await executeAvailabilityQuery(
-        () => buildSourceTagAvailabilitySql(series),
-    );
-
-    return createAvailabilityCheckFromQueryResult(sSourceResult);
 }
 
 async function fetchSingleSeriesDataTimeRange<T extends ResolvedDataRangeSeries>(
@@ -529,12 +520,6 @@ function createAvailabilityCheckFromQueryResult<TRow>(
         : { kind: 'unavailable' };
 }
 
-function hasAvailabilityRows<TRow>(
-    result: AvailabilityQueryResult<TRow>,
-): boolean {
-    return result.kind === 'success' && result.rows.length > 0;
-}
-
 function parseQueryResponseEnvelope(response: unknown): QueryResponseLike {
     if (typeof response !== 'object' || response === null) {
         throw new Error(DATA_AVAILABILITY_REQUEST_FAILED_MESSAGE);
@@ -633,16 +618,6 @@ function buildMetadataTagAvailabilitySql<T extends ResolvedDataRangeSeries>(seri
     );
 
     return `select ${sSourceColumn} from ${sMetadataTableName} where ${sSourceColumn} = ${buildSqlStringLiteral(series.sourceTagName)} LIMIT 1`;
-}
-
-function buildSourceTagAvailabilitySql<T extends ResolvedDataRangeSeries>(series: T): string {
-    const sTableName = buildSqlIdentifierPath(series.table, 'SQL table name');
-    const sSourceColumn = buildSqlIdentifierPath(
-        series.sourceColumns.name,
-        'SQL tag column',
-    );
-
-    return `select ${sSourceColumn} from ${sTableName} where ${sSourceColumn} = ${buildSqlStringLiteral(series.sourceTagName)} LIMIT 1`;
 }
 
 function buildMetadataTableName(sourceTableName: string): string {

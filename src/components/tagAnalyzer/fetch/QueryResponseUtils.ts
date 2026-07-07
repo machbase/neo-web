@@ -30,15 +30,15 @@ export function getQueryResponseErrorMessage(
     return undefined;
 }
 
-export function getResponseErrorMessage(
+function getResponseErrorMessage(
     response: QueryResponseLike,
 ): string | undefined {
-    const sDataMessage = getErrorMessageFromValue(response.data);
+    const sDataMessage = getOptionalErrorMessageFromValue(response.data);
     if (sDataMessage) {
         return sDataMessage;
     }
 
-    const sTopLevelMessage = getErrorMessageFromValue({
+    const sTopLevelMessage = getOptionalErrorMessageFromValue({
         reason: response.reason,
         message: response.message,
         error: response.error,
@@ -52,9 +52,18 @@ export function getResponseErrorMessage(
         : undefined;
 }
 
-export function getErrorMessageFromValue(value: unknown): string | undefined {
+function getOptionalErrorMessageFromValue(value: unknown): string | undefined {
     if (value === null || value === undefined) {
         return undefined;
+    }
+
+    const sMessage = getErrorMessageFromValue(value);
+    return sMessage === '{}' ? undefined : sMessage;
+}
+
+function getErrorMessageFromValue(value: unknown): string {
+    if (value === null || value === undefined) {
+        return '';
     }
 
     if (
@@ -66,7 +75,7 @@ export function getErrorMessageFromValue(value: unknown): string | undefined {
     }
 
     if (typeof value !== 'object') {
-        return undefined;
+        return String(value);
     }
 
     const sMessageContainer = value as {
@@ -88,7 +97,7 @@ export function getErrorMessageFromValue(value: unknown): string | undefined {
     }
 
     const sSerializedValue = JSON.stringify(value);
-    return sSerializedValue === '{}' ? undefined : sSerializedValue;
+    return sSerializedValue ?? String(value);
 }
 
 export function getQueryRowsOrThrow(

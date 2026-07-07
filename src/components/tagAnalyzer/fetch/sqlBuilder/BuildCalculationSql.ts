@@ -2,7 +2,7 @@ import type { RollupTableMap, SeriesFetchColumnMap } from '../panelData/PanelDat
 import type { TimeRangeNs } from '../../domain/time/TimeTypes';
 import { getIntervalMs } from '../../domain/time/TimeIntervalUtils';
 import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
-import { getRollupMetadataLookupKey } from '../metadata/RollupMetadata';
+import { findRollupTableEntry as findRollupMetadataTableEntry } from '../metadata/RollupMetadata';
 import { asRecord } from '../../domain/ObjectGuards';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 import {
@@ -38,7 +38,75 @@ type CalculationSqlContext = {
     timeAxisKind: TimeAxisSqlKind;
 };
 
-export function buildAggregateCalculationSql(
+export function buildCalculationSql(
+    sourceTableName: string,
+    tagNameList: string,
+    fetchTimeRange: TimeRangeNs,
+    calculationMode: string,
+    requestedRowCount: number,
+    intervalUnit: string,
+    intervalSize: number,
+    useRollup: boolean,
+    sourceColumnMap: SeriesFetchColumnMap,
+    rollupTableList: RollupTableMap,
+): string {
+    switch (calculationMode) {
+        case 'sum':
+        case 'min':
+        case 'max':
+            return buildAggregateCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                calculationMode,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+            );
+        case 'avg':
+            return buildAverageCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+            );
+        case 'cnt':
+            return buildCountCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+            );
+        case 'first':
+        case 'last':
+            return buildFirstLastCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                calculationMode,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+                rollupTableList,
+            );
+        default:
+            throw new Error(`Unsupported calculation mode: ${calculationMode}`);
+    }
+}
+
+function buildAggregateCalculationSql(
     sourceTableName: string,
     tagNameList: string,
     fetchTimeRange: TimeRangeNs,
@@ -86,7 +154,7 @@ export function buildAggregateCalculationSql(
     );
 }
 
-export function buildAverageCalculationSql(
+function buildAverageCalculationSql(
     sourceTableName: string,
     tagNameList: string,
     fetchTimeRange: TimeRangeNs,
@@ -131,7 +199,7 @@ export function buildAverageCalculationSql(
     );
 }
 
-export function buildCountCalculationSql(
+function buildCountCalculationSql(
     sourceTableName: string,
     tagNameList: string,
     fetchTimeRange: TimeRangeNs,
@@ -176,7 +244,7 @@ export function buildCountCalculationSql(
     );
 }
 
-export function buildFirstLastCalculationSql(
+function buildFirstLastCalculationSql(
     sourceTableName: string,
     tagNameList: string,
     fetchTimeRange: TimeRangeNs,
@@ -471,22 +539,9 @@ function findRollupTableEntry(
     rollupMetadata: unknown,
     tableName: string,
 ): RollupTableEntry | undefined {
-    const sRollupMetadataRecord = asRecord(rollupMetadata);
-    if (!sRollupMetadataRecord) {
-        return undefined;
-    }
+    const sTableEntry = findRollupMetadataTableEntry(rollupMetadata, tableName);
 
-    const sLookupKey = getRollupMetadataLookupKey(tableName);
-    if (!sLookupKey) {
-        return undefined;
-    }
-
-    const sUserEntry = asRecord(sRollupMetadataRecord[sLookupKey.userName]);
-    if (!sUserEntry) {
-        return undefined;
-    }
-
-    return asRollupTableEntry(sUserEntry[sLookupKey.tableName]);
+    return sTableEntry ? asRollupTableEntry(sTableEntry) : undefined;
 }
 
 function asRollupTableEntry(value: unknown): RollupTableEntry | undefined {

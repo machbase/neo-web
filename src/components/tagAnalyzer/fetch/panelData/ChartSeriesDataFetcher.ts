@@ -1,10 +1,5 @@
 import request from '@/api/core';
-import {
-    buildAggregateCalculationSql,
-    buildAverageCalculationSql,
-    buildCountCalculationSql,
-    buildFirstLastCalculationSql,
-} from '../sqlBuilder/BuildCalculationSql';
+import { buildCalculationSql } from '../sqlBuilder/BuildCalculationSql';
 import { buildRawSeriesSql } from '../sqlBuilder/BuildRawSeriesSql';
 import { addCurrentUserSchemaIfNeeded } from './TableNameQualification';
 import {
@@ -13,11 +8,8 @@ import {
     type ChartFetchApiResponse,
     type ChartFetchResponse,
     type RawFetchRequest,
-    type RollupTableMap,
-    type SeriesFetchColumnMap,
     type TagFetchRow,
 } from './PanelDataFetchTypes';
-import type { TimeRangeNs } from '../../domain/time/TimeTypes';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 import { timeRangeMsToNanosecondsSql } from '../sqlBuilder/SqlTimeValueUtils';
 import {
@@ -54,7 +46,7 @@ export async function fetchCalculationData(
               startTime: sStartTime,
               endTime: sEndTime,
           });
-    const sMainSql = buildRequestedCalculationSql(
+    const sMainSql = buildCalculationSql(
         sQualifiedTableName,
         sTagNameList,
         sFetchTimeRange,
@@ -68,74 +60,6 @@ export async function fetchCalculationData(
     );
 
     return executeChartFetchSql(sMainSql);
-}
-
-function buildRequestedCalculationSql(
-    sourceTableName: string,
-    tagNameList: string,
-    fetchTimeRange: TimeRangeNs,
-    calculationMode: string,
-    requestedRowCount: number,
-    intervalUnit: string,
-    intervalSize: number,
-    useRollup: boolean,
-    sourceColumnMap: SeriesFetchColumnMap,
-    rollupTableList: RollupTableMap,
-): string {
-    switch (calculationMode) {
-        case 'sum':
-        case 'min':
-        case 'max':
-            return buildAggregateCalculationSql(
-                sourceTableName,
-                tagNameList,
-                fetchTimeRange,
-                calculationMode,
-                requestedRowCount,
-                intervalUnit,
-                intervalSize,
-                useRollup,
-                sourceColumnMap,
-            );
-        case 'avg':
-            return buildAverageCalculationSql(
-                sourceTableName,
-                tagNameList,
-                fetchTimeRange,
-                requestedRowCount,
-                intervalUnit,
-                intervalSize,
-                useRollup,
-                sourceColumnMap,
-            );
-        case 'cnt':
-            return buildCountCalculationSql(
-                sourceTableName,
-                tagNameList,
-                fetchTimeRange,
-                requestedRowCount,
-                intervalUnit,
-                intervalSize,
-                useRollup,
-                sourceColumnMap,
-            );
-        case 'first':
-        case 'last':
-            return buildFirstLastCalculationSql(
-                sourceTableName,
-                tagNameList,
-                fetchTimeRange,
-                calculationMode,
-                requestedRowCount,
-                intervalUnit,
-                intervalSize,
-                useRollup,
-                sourceColumnMap,
-                rollupTableList,
-            );
-        default:
-            throw new Error(`Unsupported calculation mode: ${calculationMode}`);
-    }
 }
 
 export async function fetchRawData(

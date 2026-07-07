@@ -18,6 +18,10 @@ import styles from '../PanelEditor.module.scss';
 
 type PixelsPerTickField = 'calculated' | 'calculatedNavigator' | 'raw';
 
+const DATA_DENSITY_DESCRIPTION =
+    'Sets point density. Rollup may use a coarser interval.';
+const DATA_DENSITY_VALUE_PRECISION = 6;
+
 function SamplingRow({
     anchorClass,
     label,
@@ -116,23 +120,33 @@ const EditorDataSettingTab = ({
     };
 
     const xNumber = (field: PixelsPerTickField) => {
-        const sHasInvalidValue = isInvalidPixelsPerTickValue(
-            pDisplayConfig.pixelsPerTick[field],
-        );
+        const sPixelsPerTick = pDisplayConfig.pixelsPerTick[field];
+        const sHasInvalidValue = isInvalidPixelsPerTickValue(sPixelsPerTick);
+        const sDensityTooltipClass = `data-density-${field}-tooltip`;
 
         return (
             <div className={styles.rangeField}>
                 <div className={styles.controlRow}>
-                    <span className={styles.mutedLabel}>
-                        Pixels between tick marks
+                    <span className={cx(sDensityTooltipClass, styles.mutedLabel)}>
+                        <VscWarning color="#FDB532" />
+                        Data Density
                     </span>
                     <NumberInput
-                        value={pDisplayConfig.pixelsPerTick[field]}
+                        value={toPointsPerPixel(sPixelsPerTick)}
                         error={sHasInvalidValue}
-                        onChange={(value) => patchPixelsPerTick(field, value)}
+                        onChange={(value) =>
+                            patchPixelsPerTick(field, toPixelsPerTick(value))
+                        }
                         width="standard"
                     />
+                    <span className={styles.editorFixedValue}>
+                        Points per pixel
+                    </span>
                 </div>
+                <Tooltip
+                    anchorSelect={`.${sDensityTooltipClass}`}
+                    content={DATA_DENSITY_DESCRIPTION}
+                />
                 {sHasInvalidValue && (
                     <span className={styles.fieldError}>
                         Value must be greater than 0.
@@ -241,5 +255,21 @@ const EditorDataSettingTab = ({
         </div>
     );
 };
+
+function toPointsPerPixel(value: number | undefined): number | undefined {
+    return invertDataDensityValue(value);
+}
+
+function toPixelsPerTick(value: number | undefined): number | undefined {
+    return invertDataDensityValue(value);
+}
+
+function invertDataDensityValue(value: number | undefined): number | undefined {
+    if (value === undefined || !Number.isFinite(value) || value === 0) {
+        return value;
+    }
+
+    return Number((1 / value).toPrecision(DATA_DENSITY_VALUE_PRECISION));
+}
 
 export default EditorDataSettingTab;

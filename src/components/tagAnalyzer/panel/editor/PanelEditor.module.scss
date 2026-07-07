@@ -245,10 +245,6 @@
     width: 200px;
 }
 
-.calcModeTrigger {
-    width: 112px;
-}
-
 .rawRangeLabelWide {
     min-width: 100px;
 }
@@ -273,7 +269,13 @@
 }
 
 .editorNarrowControl {
-    width: 112px;
+    width: 120px;
+}
+
+.editorSelectTrigger {
+    width: 120px;
+    height: 30px;
+    padding: 4px 8px;
 }
 
 .editorFieldLabel {
@@ -314,6 +316,8 @@
     color: rgba(255, 255, 255, 0.72);
     font-size: 11px;
     line-height: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

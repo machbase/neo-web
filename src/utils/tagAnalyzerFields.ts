@@ -13,8 +13,8 @@ export type TagAnalyzerColumnInfo = {
     jsonKey?: string;
 };
 
-const columnName = (aColumn: any) => String(aColumn?.[0] ?? '');
-const columnType = (aColumn: any) => Number(aColumn?.[1]);
+const columnName = (aColumn: any) => String(aColumn?.name ?? aColumn?.[0] ?? '');
+const columnType = (aColumn: any) => Number(aColumn?.type ?? aColumn?.[1]);
 
 export const getTagAnalyzerTimeColumns = (aColumns: any[] = []): TagAnalyzerColumn[] => {
     return getTimeFieldColumns(aColumns, 2);

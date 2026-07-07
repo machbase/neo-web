@@ -75,29 +75,42 @@ CHART(
     chartJSCode({ document.querySelector('.chart_container').firstChild.style.backgroundColor = '#252525'; })
 )`;
 
-export function buildFftMinMaxHz(minHz: string, maxHz: string): string {
+export type FetchFftChartDataParams = {
+    isChart2D: boolean;
+    selectedInfo: SelectedRangeSeriesSummary;
+    minHz: string;
+    maxHz: string;
+    isNumericXAxis: boolean;
+    startTime: number;
+    endTime: number;
+    intervalMs?: string;
+};
+
+export async function fetchFftChartData(
+    params: FetchFftChartDataParams,
+): Promise<FftChartData | undefined> {
+    const sResult: unknown = await getTqlChart(buildFftQuery(params));
+
+    return isEChartsTqlChartResponse(sResult) ? sResult.data : undefined;
+}
+
+function buildFftMinMaxHz(minHz: string, maxHz: string): string {
     return minHz === '0' && maxHz === '0'
         ? ''
         : `minHz(${minHz}), maxHz(${maxHz})`;
 }
 
-export function buildFftQuery({
+function buildFftQuery({
     isChart2D,
     selectedInfo,
-    minMaxHz,
+    minHz,
+    maxHz,
     isNumericXAxis,
     startTime,
     endTime,
     intervalMs,
-}: {
-    isChart2D: boolean;
-    selectedInfo: SelectedRangeSeriesSummary;
-    minMaxHz: string;
-    isNumericXAxis: boolean;
-    startTime: number;
-    endTime: number;
-    intervalMs?: string;
-}): string {
+}: FetchFftChartDataParams): string {
+    const minMaxHz = buildFftMinMaxHz(minHz, maxHz);
     const sSourceColumns = selectedInfo.sourceColumns;
     const sNormalizeColumn = (columnName: string) =>
         isChart2D ? columnName : columnName.toLowerCase();
@@ -129,12 +142,6 @@ export function buildFftQuery({
         .replace('{interval}', intervalMs ?? '');
 
     return `SQL(${buildTqlDoubleQuotedString(sSql)})\n${sChartTql}`;
-}
-
-export async function fetchFftChartData(text: string): Promise<FftChartData | undefined> {
-    const sResult: unknown = await getTqlChart(text);
-
-    return isEChartsTqlChartResponse(sResult) ? sResult.data : undefined;
 }
 
 function isTqlChartData(value: unknown): value is FftChartData {

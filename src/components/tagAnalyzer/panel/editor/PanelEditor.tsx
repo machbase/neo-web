@@ -16,6 +16,7 @@ import { hasInvalidEditorStructure } from './editTabs/EditorFieldUtils';
 import styles from './PanelEditor.module.scss';
 import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
+import type { RollupTableMap } from '../../fetch/panelData/PanelDataFetchTypes';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 
 enum EditTabPanelType {
@@ -54,6 +55,7 @@ const PanelEditor = ({
     pIsRawMode,
     pHasUnsavedBoardChanges,
     pPanelRange,
+    pRollupTableList,
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelInfo) => void;
     pOnClose: () => void;
@@ -63,6 +65,7 @@ const PanelEditor = ({
     pIsRawMode: boolean;
     pHasUnsavedBoardChanges: boolean;
     pPanelRange: TimeRangeMs;
+    pRollupTableList: RollupTableMap;
 }) => {
     const sInitialEditorConfig = pPanelInfo;
     const sInitialEditorConfigKey = useMemo(
@@ -126,7 +129,7 @@ const PanelEditor = ({
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidEditorValues;
     const sStatusMessage = sHasEditorChanges
-        ? 'Press Apply to apply this session only.'
+        ? 'Press Apply to apply the change.'
         : undefined;
     const sShowRuntimeSaveMessage = !sStatusMessage && pHasUnsavedBoardChanges;
     const sHasStatusMessage = Boolean(sStatusMessage) || sShowRuntimeSaveMessage;
@@ -232,7 +235,7 @@ const PanelEditor = ({
                 return (
                     <EditorDataTab
                         pQueryDraft={sQueryDraft}
-                        pIsRawMode={pIsRawMode}
+                        pRollupTableList={pRollupTableList}
                         pOnChangeQueryDraft={setQueryDraft}
                     />
                 );
@@ -315,8 +318,8 @@ const PanelEditor = ({
                                 >
                                     {sStatusMessage ?? (
                                         <>
-                                            <span>Applied to this session only.</span>
-                                            <span>Save to TAZ to keep this change.</span>
+                                            <span>Changes applied to this session.</span>
+                                            <span>Save to TAZ to keep changes.</span>
                                         </>
                                     )}
                                 </span>

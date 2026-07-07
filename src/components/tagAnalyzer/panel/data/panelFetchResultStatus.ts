@@ -32,9 +32,12 @@ export function showSeriesAvailabilityToast(
         return;
     }
 
+    if (hasOnlyNoDataSeriesErrors(result)) {
+        return;
+    }
+
     const sMessage =
-        sUnavailableSeriesCount === result.seriesFetchResults.length &&
-        hasOnlyNoDataSeriesErrors(result)
+        sUnavailableSeriesCount === result.seriesFetchResults.length
             ? 'No series data could be loaded.'
             : 'Some series could not be loaded.';
 

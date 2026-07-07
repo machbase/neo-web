@@ -13,7 +13,7 @@ import {
 import {
     DEFAULT_NEW_PANEL_TITLE,
     createNewPanelInfo,
-} from '../modals/createNewPanel/CreateNewPanelInfo';
+} from '../domain/panel/createPanelInfo';
 
 type TagAnalyzerDefaultBoardOptions = {
     tag: string;

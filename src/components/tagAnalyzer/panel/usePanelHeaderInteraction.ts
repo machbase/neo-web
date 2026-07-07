@@ -22,6 +22,7 @@ type UsePanelHeaderInteractionParams<TPanelInfo extends PanelTitleConfig> = {
     resolvedIntervalOption: IntervalOption | undefined;
     canSaveLocal: boolean;
     isNumericXAxis: boolean;
+    isRawModeRequired: boolean;
     overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
@@ -48,6 +49,7 @@ export function usePanelHeaderInteraction<TPanelInfo extends PanelTitleConfig>({
     resolvedIntervalOption,
     canSaveLocal,
     isNumericXAxis,
+    isRawModeRequired,
     overlayMode,
     isEditing,
     isRaw,
@@ -71,6 +73,7 @@ export function usePanelHeaderInteraction<TPanelInfo extends PanelTitleConfig>({
         canSetGlobalTime: !isNumericXAxis && sResolvedIntervalOption !== undefined,
         canSaveLocal,
         isNumericXAxis,
+        isRawModeRequired,
         overlayMode,
         isEditing,
         isRaw,
@@ -79,6 +82,7 @@ export function usePanelHeaderInteraction<TPanelInfo extends PanelTitleConfig>({
         canSaveLocal,
         isEditing,
         isNumericXAxis,
+        isRawModeRequired,
         isOverlapSelected,
         isRaw,
         overlayMode,
@@ -120,7 +124,7 @@ export function usePanelHeaderInteraction<TPanelInfo extends PanelTitleConfig>({
     const handleAction = useCallback((actionKey: PanelActionKey): void => {
         switch (actionKey) {
             case PanelActionKey.TOGGLE_RAW:
-                if (isNumericXAxis) {
+                if (isRawModeRequired) {
                     return;
                 }
 
@@ -153,7 +157,7 @@ export function usePanelHeaderInteraction<TPanelInfo extends PanelTitleConfig>({
                 return;
         }
     }, [
-        isNumericXAxis,
+        isRawModeRequired,
         onExpandFullRange,
         onPanelInteractionAction,
         onRefreshData,

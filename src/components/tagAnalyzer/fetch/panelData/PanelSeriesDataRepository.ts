@@ -6,6 +6,7 @@ import type {
 } from '../../domain/panel/PanelRuntime';
 import {
     isBaseTimeSourceColumns,
+    hasSeriesWithoutRollup,
     isNumericBaseTimeSourceColumns,
     type PanelSeriesDefinition,
 } from '../../domain/SeriesDomain';
@@ -52,6 +53,7 @@ export const RAW_NAVIGATOR_MIN_SAMPLE_COUNT = 1000;
 export const RAW_NAVIGATOR_MAX_SAMPLE_COUNT = 15000;
 export const RAW_NAVIGATOR_SAMPLING_VALUE = 0.01;
 export const CALCULATED_FETCH_ROW_BUDGET = 15000;
+const DATA_DOES_NOT_EXIST_PREFIX = 'Data does not exist';
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -146,14 +148,12 @@ export async function fetchNavigatorPanelSeriesRows(
         return undefined;
     }
 
-    const sUsesNumericBaseTime = seriesConfigSet.some((seriesConfig) =>
-        isNumericBaseTimeSourceColumns(seriesConfig.sourceColumns),
-    );
+    const sRequiresRawFetch = hasSeriesWithoutRollup(seriesConfigSet);
     const sUseRawNavigatorSampling =
         requestedRawMode &&
-        (rawNavigatorSampling.enabled || sUsesNumericBaseTime);
+        (rawNavigatorSampling.enabled || sRequiresRawFetch);
     const sUseRawNavigatorFetch =
-        sUseRawNavigatorSampling || (!requestedRawMode && sUsesNumericBaseTime);
+        sUseRawNavigatorSampling || (!requestedRawMode && sRequiresRawFetch);
     const sNavigatorTargetCount = resolveNavigatorTargetCount(chartWidth);
     const sCalculatedNavigatorTargetCount = CALCULATED_FETCH_ROW_BUDGET;
     const sNavigatorFetchTargetCount = sUseRawNavigatorFetch
@@ -251,14 +251,22 @@ function createPanelSeriesErrorResult(
     seriesConfig: PanelSeriesDefinition,
     error: unknown,
 ): PanelSeriesFetchResult {
+    const sMessage = getUnknownErrorMessage(error, 'Series data request failed.');
+
     return {
         seriesConfig,
         fetchResult: createEmptyChartFetchResponse(),
         error: {
-            kind: 'request-failed',
-            message: getUnknownErrorMessage(error, 'Series data request failed.'),
+            kind: isDataDoesNotExistMessage(sMessage)
+                ? 'no-data'
+                : 'request-failed',
+            message: sMessage,
         },
     };
+}
+
+function isDataDoesNotExistMessage(message: string): boolean {
+    return message.trim().startsWith(DATA_DOES_NOT_EXIST_PREFIX);
 }
 
 function resolveNavigatorTargetCount(chartWidth: number): number {

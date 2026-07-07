@@ -6,7 +6,7 @@ import TagAnalyzerBoard from './TagAnalyzerBoard';
 import { Page, Toast } from '@/design-system/components';
 import type { BoardInfo } from './domain/BoardDomain';
 import { getOutdatedTazFormatWarning } from './persistence/TazVersion';
-import { useTagAnalyzerMetadata } from './fetch/metadata/useTagAnalyzerMetadata';
+import { useTagAnalyzerMetadata } from './appState/useTagAnalyzerMetadata';
 import { useTagAnalyzerAppState } from './appState/useTagAnalyzerAppState';
 
 const TagAnalyzer = ({

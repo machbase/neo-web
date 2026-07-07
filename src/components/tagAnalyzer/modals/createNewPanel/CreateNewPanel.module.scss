@@ -111,6 +111,17 @@
     font-weight: 500;
 }
 
+.tagSearchButton {
+    transition:
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.tagSearchButtonPending {
+    background-color: rgba(0, 108, 210, 0.08);
+    box-shadow: 0 0 0 1px rgba(59, 155, 255, 0.45);
+}
+
 
 .itemListGroup {
     display: grid;
@@ -142,8 +153,13 @@
 }
 
 .seriesList {
-    height: 238px;
+    height: 202px;
     overflow: hidden;
+}
+
+.seriesPagination {
+    min-height: 28px;
+    margin-top: 8px;
 }
 
 .availableTagList button {
@@ -238,25 +254,27 @@
 }
 
 .selectedSeriesSourceDetails {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
     min-width: 0;
 }
 
 .selectedSeriesSourceRow {
-    display: grid;
-    grid-template-columns: 42px minmax(0, 1fr);
-    gap: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
     min-width: 0;
 }
 
 .selectedSeriesSourceLabel {
+    flex: 0 0 auto;
     color: #8f8f8f;
     font-size: 11px;
 }
 
 .selectedSeriesSourceValue {
+    min-width: 0;
     overflow: hidden;
     color: #cfcfcf;
     font-size: 11px;

@@ -40,6 +40,7 @@ import {
     MIXED_X_AXIS_KIND_WARNING,
     hasMixedXAxisValueKinds,
     hasNumericBaseTimeSeries,
+    hasSeriesWithoutRollup,
 } from '../domain/SeriesDomain';
 import type { PanelRangeChangeOptions } from '../domain/panelRange/PanelRangeApply';
 import type { RollupTableMap } from '../fetch/panelData/PanelDataFetchTypes';
@@ -147,7 +148,8 @@ function PanelContainer({
     const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.query.tagSet);
     const isNumericXAxis =
         !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.query.tagSet);
-    const effectiveIsRaw = isNumericXAxis || isRaw;
+    const isRawModeRequired = hasSeriesWithoutRollup(panelInfo.query.tagSet);
+    const effectiveIsRaw = isRawModeRequired || isRaw;
     const runtimePanelConfig = useMemo<PanelInfo>(
         () =>
             effectiveIsRaw === panelInfo.mode.isRaw
@@ -267,6 +269,7 @@ function PanelContainer({
         resolvedIntervalOption,
         canSaveLocal: loadStatus.chart === PanelChartLoadStatus.Ready,
         isNumericXAxis,
+        isRawModeRequired,
         overlayMode,
         isEditing,
         isRaw: effectiveIsRaw,
@@ -694,6 +697,7 @@ function PanelContainer({
                     pIsRawMode={effectiveIsRaw}
                     pHasUnsavedBoardChanges={hasUnsavedBoardChanges}
                     pPanelRange={displayPanelRange}
+                    pRollupTableList={rollupTableList}
                 />
             )}
             {runtimeTimeRangeModal !== undefined && (

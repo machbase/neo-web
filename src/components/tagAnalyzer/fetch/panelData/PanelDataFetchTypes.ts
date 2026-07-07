@@ -135,14 +135,3 @@ export type ChartFetchApiResponse = {
 };
 
 export type RollupTableMap = Record<string, Record<string, Record<string, string[]>>>;
-
-export type TableListFetchResponse = {
-    success?: boolean;
-    status?: number;
-    data: unknown;
-};
-
-export type RawTableListData = {
-    columns: unknown[];
-    rows: unknown[];
-};

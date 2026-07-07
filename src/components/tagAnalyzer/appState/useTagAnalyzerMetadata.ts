@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { fetchAllRollupTableInfo } from './RollupMetadata';
-import type { RollupTableMap } from '../panelData/PanelDataFetchTypes';
+import { fetchAllRollupTableInfo } from '../fetch/metadata/RollupMetadata';
+import type { RollupTableMap } from '../fetch/panelData/PanelDataFetchTypes';
 
 export function useTagAnalyzerMetadata({
     enabled = true,

@@ -58,7 +58,14 @@ type SeriesKeyAxisKind = 'datetime' | 'double';
 
 type SeriesWithSourceColumns = {
     sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
+    useRollupTable?: boolean | undefined;
 };
+
+export enum PanelSeriesTimeType {
+    DateTime = 'dateTime',
+    Numeric = 'numeric',
+    Unselected = 'unselected',
+}
 
 export const MIXED_X_AXIS_KIND_WARNING =
     'Datetime and numeric x-axis series cannot be mixed in one chart.';
@@ -92,6 +99,14 @@ export function hasNumericBaseTimeSeries(
     );
 }
 
+export function hasSeriesWithoutRollup(
+    seriesList: SeriesWithSourceColumns[] = [],
+): boolean {
+    return seriesList.some((series) =>
+        series.useRollupTable !== true,
+    );
+}
+
 export function hasMixedXAxisValueKinds(
     seriesList: SeriesWithSourceColumns[] = [],
 ): boolean {
@@ -101,6 +116,46 @@ export function hasMixedXAxisValueKinds(
     );
 
     return sHasNumericBaseTime && sHasDateTimeAxis;
+}
+
+export function getPanelSeriesTimeTypeFromSourceColumns(
+    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
+): PanelSeriesTimeType {
+    if (!sourceColumns?.time) {
+        return PanelSeriesTimeType.Unselected;
+    }
+
+    return isNumericBaseTimeSourceColumns(sourceColumns)
+        ? PanelSeriesTimeType.Numeric
+        : PanelSeriesTimeType.DateTime;
+}
+
+export function getPanelSeriesTimeTypeFromSeries(
+    seriesList: SeriesWithSourceColumns[],
+): PanelSeriesTimeType {
+    const sSelectedTypes = Array.from(
+        new Set(
+            seriesList
+                .map((series) => getPanelSeriesTimeTypeFromSourceColumns(series.sourceColumns))
+                .filter((timeType) => timeType !== PanelSeriesTimeType.Unselected),
+        ),
+    );
+
+    return sSelectedTypes.length === 1
+        ? sSelectedTypes[0]
+        : PanelSeriesTimeType.Unselected;
+}
+
+export function isPanelSeriesTableTimeTypeCompatible(
+    selectedTimeType: PanelSeriesTimeType,
+    tableTimeType: PanelSeriesTimeType | undefined,
+): boolean {
+    return (
+        selectedTimeType === PanelSeriesTimeType.Unselected ||
+        tableTimeType === undefined ||
+        tableTimeType === PanelSeriesTimeType.Unselected ||
+        selectedTimeType === tableTimeType
+    );
 }
 
 export function getSeriesListKeyAxisKind(

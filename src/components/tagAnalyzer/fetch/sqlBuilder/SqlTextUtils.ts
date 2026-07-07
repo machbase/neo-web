@@ -1,5 +1,4 @@
 const SQL_IDENTIFIER_SEGMENT_PATTERN = /^[A-Za-z_][A-Za-z0-9_$]*$/;
-const SQL_LIKE_ESCAPE_CHARACTER = '!';
 
 function assertSqlIdentifierPath(
     identifierPath: string,
@@ -29,24 +28,6 @@ export function buildSqlStringLiteral(value: string | number): string {
 
 export function buildSqlStringLiteralList(values: Array<string | number>): string {
     return values.map(buildSqlStringLiteral).join(', ');
-}
-
-export function buildSqlLikeContainsCondition(
-    identifierPath: string,
-    searchText: string,
-): string | undefined {
-    if (searchText === '') {
-        return undefined;
-    }
-
-    const sEscapedSearchText = searchText.replace(
-        /[!%_]/g,
-        (match) => `${SQL_LIKE_ESCAPE_CHARACTER}${match}`,
-    );
-
-    return `${buildSqlIdentifierPath(identifierPath)} LIKE ${buildSqlStringLiteral(
-        `%${sEscapedSearchText}%`,
-    )} ESCAPE ${buildSqlStringLiteral(SQL_LIKE_ESCAPE_CHARACTER)}`;
 }
 
 export function buildTqlDoubleQuotedString(value: string): string {
