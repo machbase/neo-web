@@ -1,5 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import CommonTable from './CommonTable';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
+
+jest.mock('@/utils/ClipboardCopy', () => ({ ClipboardCopy: jest.fn() }));
 
 describe('CommonTable row action visibility', () => {
     test('keeps edit and delete buttons when row action is hidden in editable table', () => {
@@ -229,5 +232,50 @@ describe('CommonTable numeric alignment regression', () => {
         const numericCell = screen.getByText('123').closest('td');
         expect(numericCell).not.toBeNull();
         expect(numericCell?.className ?? '').toMatch(/numeric-cell/);
+    });
+});
+
+describe('CommonTable copyableColumns opt-in cell copy', () => {
+    beforeEach(() => {
+        (ClipboardCopy as jest.Mock).mockClear();
+    });
+
+    const renderTable = (extraProps: Record<string, unknown> = {}) =>
+        render(
+            <CommonTable
+                {...({
+                    data: { columns: ['NAME', 'TYPE'], rows: [['TAG_01', 'VARCHAR']] },
+                    ...extraProps,
+                } as any)}
+            />
+        );
+
+    test('renders a copy button only on cells of the named column (NAME), not other columns (TYPE)', () => {
+        renderTable({ copyableColumns: ['NAME'] });
+
+        const nameCell = screen.getByText('TAG_01').closest('td');
+        const typeCell = screen.getByText('VARCHAR').closest('td');
+        expect(nameCell).not.toBeNull();
+        expect(typeCell).not.toBeNull();
+        expect(within(nameCell as HTMLElement).queryByRole('button')).not.toBeNull();
+        expect(within(typeCell as HTMLElement).queryByRole('button')).toBeNull();
+    });
+
+    test('copies the cell value via ClipboardCopy when the NAME copy button is clicked', () => {
+        renderTable({ copyableColumns: ['NAME'] });
+
+        const nameCell = screen.getByText('TAG_01').closest('td');
+        const copyButton = within(nameCell as HTMLElement).getByRole('button');
+        fireEvent.click(copyButton);
+
+        expect(ClipboardCopy).toHaveBeenCalledTimes(1);
+        expect(ClipboardCopy).toHaveBeenCalledWith('TAG_01');
+    });
+
+    test('renders no copy buttons when copyableColumns is omitted (regression)', () => {
+        renderTable();
+
+        expect(screen.queryAllByRole('button')).toHaveLength(0);
+        expect(ClipboardCopy).not.toHaveBeenCalled();
     });
 });

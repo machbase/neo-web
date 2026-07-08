@@ -946,9 +946,11 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         }}
                                     />
                                 </Page.DpRowBetween>
+                                {/* mColList/mMetaColList columns are fixed to ['NAME','TYPE','LENGTH','BYTE','DESC'] by resolveDisplayColumnInfo -> buildDisplayColumnInfo (utils.ts), so 'NAME' always exists at index 0 and header-name matching is valid. Rename the header here too if that column list ever changes. */}
                                 <CommonTable
                                     scrollX={false}
                                     cellWidthFix
+                                    copyableColumns={['NAME']}
                                     data={{ columns: mColList?.columns, rows: mColList.rows }}
                                 />
                                 {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
@@ -974,9 +976,11 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                 <Page.DpRow>
                                     <Page.ContentTitle>Meta Column</Page.ContentTitle>
                                 </Page.DpRow>
+                                {/* Same fixed-column guarantee as the Column section above: 'NAME' is always present at index 0, so copyableColumns={['NAME']} matches by header name. */}
                                 <CommonTable
                                     scrollX={false}
                                     cellWidthFix
+                                    copyableColumns={['NAME']}
                                     data={{
                                         columns: mMetaColList?.columns,
                                         rows: mMetaColList.rows,

@@ -36,6 +36,9 @@ interface CommonTableBaseProps {
     // Display options
     showRowNumber?: boolean;
     showCopyButton?: boolean;
+    // Opt-in: show hover copy button only on cells of the named header columns
+    // (collapses to showCopyButton when omitted)
+    copyableColumns?: string[];
     maxRows?: number;
     stickyHeader?: boolean;
     cellWidthFix?: boolean;
