@@ -1,4 +1,4 @@
-import { buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, E_COLUMN_FLAG } from './utils';
+import { buildDataViewerColumnConfigFromColumnRows, buildDropObjectQuery, buildQualifiedTableName, E_COLUMN_FLAG } from './utils';
 
 describe('buildQualifiedTableName', () => {
     test('returns table name only when owner is the current user on the local DB', () => {
@@ -47,6 +47,63 @@ describe('buildQualifiedTableName', () => {
                 currentUserName: 'sys',
             })
         ).toBe('TAG');
+    });
+});
+
+describe('buildDropObjectQuery', () => {
+    test('uses DROP VIEW without CASCADE for VIEW objects (flag 7)', () => {
+        expect(
+            buildDropObjectQuery({
+                tableType: 7,
+                userName: 'USER',
+                tableName: 'V1',
+                cascade: true,
+            })
+        ).toBe('DROP VIEW USER.V1');
+    });
+
+    test('appends CASCADE for TAG objects (flag 6) when cascade is true', () => {
+        expect(
+            buildDropObjectQuery({
+                tableType: 6,
+                userName: 'USER',
+                tableName: 'T1',
+                cascade: true,
+            })
+        ).toBe('DROP TABLE USER.T1 CASCADE');
+    });
+
+    test('omits CASCADE for TAG objects (flag 6) when cascade is false', () => {
+        expect(
+            buildDropObjectQuery({
+                tableType: 6,
+                userName: 'USER',
+                tableName: 'T1',
+                cascade: false,
+            })
+        ).toBe('DROP TABLE USER.T1');
+    });
+
+    test('uses plain DROP TABLE for LOG objects (flag 0) since the call site never enables cascade for them', () => {
+        expect(
+            buildDropObjectQuery({
+                tableType: 0,
+                userName: 'USER',
+                tableName: 'NM',
+                cascade: false,
+            })
+        ).toBe('DROP TABLE USER.NM');
+    });
+
+    test('uses plain DROP TABLE for LOOKUP objects (flag 4) since the call site never enables cascade for them', () => {
+        expect(
+            buildDropObjectQuery({
+                tableType: 4,
+                userName: 'USER',
+                tableName: 'NM',
+                cascade: false,
+            })
+        ).toBe('DROP TABLE USER.NM');
     });
 });
 

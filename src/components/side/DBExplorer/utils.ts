@@ -97,6 +97,22 @@ export const CheckTableFlag = (aTableFlag: number): string => {
     }
 };
 
+export const buildDropObjectQuery = ({
+    tableType,
+    userName,
+    tableName,
+    cascade,
+}: {
+    tableType: number;
+    userName: string;
+    tableName: string;
+    cascade: boolean;
+}): string => {
+    const qualified = `${userName}.${tableName}`;
+    if (CheckTableFlag(tableType) === E_TABLE_TYPE.VIEW) return `DROP VIEW ${qualified}`;
+    return `DROP TABLE ${qualified}${cascade ? ' CASCADE' : ''}`;
+};
+
 export const getTableTypeColor = (aTableType: string) => {
     switch (aTableType) {
         case 'tag':

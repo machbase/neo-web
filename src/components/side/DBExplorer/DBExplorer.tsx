@@ -9,7 +9,7 @@ import { LuDatabaseBackup } from 'react-icons/lu';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_CONTEXT_MENU_INITIAL_VALUE } from './DBExplorerContextMenu';
-import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE } from './utils';
+import { buildDropObjectQuery, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE } from './utils';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
 import { Toast } from '@/design-system/components';
@@ -191,7 +191,12 @@ export const DBExplorer = () => {
         if (sIsDrop) return;
         const sCasCade = CheckTableFlag(sDropTableInfo?.table?.[E_TABLE_INFO.TB_TYPE] as any) === E_TABLE_TYPE.TAG ? sDropTableInfo?.cascade : false;
         setIsDrop(true);
-        const sQuery = `DROP TABLE ${sDropTableInfo?.table?.[E_TABLE_INFO.USER_NM]}.${sDropTableInfo?.table?.[E_TABLE_INFO.TB_NM]}${sCasCade ? ' CASCADE' : ''}`;
+        const sQuery = buildDropObjectQuery({
+            tableType: sDropTableInfo?.table?.[E_TABLE_INFO.TB_TYPE] as number,
+            userName: sDropTableInfo?.table?.[E_TABLE_INFO.USER_NM] as string,
+            tableName: sDropTableInfo?.table?.[E_TABLE_INFO.TB_NM] as string,
+            cascade: sCasCade,
+        });
         const { svrState, svrReason } = await fetchQuery(sQuery);
         if (svrState) init();
         else Toast.error(svrReason);
