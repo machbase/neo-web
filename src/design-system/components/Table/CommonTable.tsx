@@ -76,6 +76,7 @@ const CommonTable = (props: CommonTableProps) => {
     const {
         showRowNumber = false,
         showCopyButton = false,
+        copyableColumns,
         maxRows,
         stickyHeader = false,
         cellWidthFix = false,
@@ -174,6 +175,12 @@ const CommonTable = (props: CommonTableProps) => {
         const config = cellRenderers.find((c) => c.column === columnName);
         return config?.maxWidth;
     };
+
+    // Cell copy button visibility: global showCopyButton, or opt-in per column
+    // via copyableColumns. Collapses to showCopyButton when copyableColumns is
+    // omitted (keeps existing consumers unchanged).
+    const shouldShowCellCopy = (columnIndex: number) =>
+        showCopyButton || (copyableColumns?.includes(data?.columns?.[columnIndex]) ?? false);
 
     // Row class computation for non-selection mode
     const getRowClass = (idx: number): string => {
@@ -298,7 +305,7 @@ const CommonTable = (props: CommonTableProps) => {
                                                 ) : (
                                                     <div className={styles['cell-content']}>
                                                         <span>{cellData?.toString()}</span>
-                                                        {showCopyButton && cellData !== null && cellData?.toString().trim() !== '' && (
+                                                        {shouldShowCellCopy(cellIdx) && cellData !== null && cellData?.toString().trim() !== '' && (
                                                             <CopyCell value={cellData} />
                                                         )}
                                                     </div>
@@ -532,7 +539,7 @@ const CommonTable = (props: CommonTableProps) => {
                                         ) : (
                                             <div className={styles['cell-content']}>
                                                 <span>{cellData?.toString()}</span>
-                                                {showCopyButton && cellData !== null && cellData?.toString().trim() !== '' && <CopyCell value={cellData} />}
+                                                {shouldShowCellCopy(rIdx) && cellData !== null && cellData?.toString().trim() !== '' && <CopyCell value={cellData} />}
                                             </div>
                                         )}
                                     </td>
@@ -694,7 +701,7 @@ const CommonTable = (props: CommonTableProps) => {
                                               <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle}>
                                                   <div className={styles['cell-content']}>
                                                       <span>{cellData?.toString()}</span>
-                                                      {showCopyButton && cellData !== null && cellData?.toString().trim() !== '' && <CopyCell value={cellData} />}
+                                                      {shouldShowCellCopy(cellIdx) && cellData !== null && cellData?.toString().trim() !== '' && <CopyCell value={cellData} />}
                                                   </div>
                                               </td>
                                           );
