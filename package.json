@@ -87,6 +87,10 @@
     },
     "jest": {
         "testEnvironment": "jsdom",
+        "testPathIgnorePatterns": [
+            "/node_modules/",
+            "/\\.claude/"
+        ],
         "transformIgnorePatterns": [
             "/node_modules/(?!split-pane-react)"
         ],

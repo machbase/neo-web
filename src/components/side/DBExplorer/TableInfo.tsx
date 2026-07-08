@@ -2,6 +2,7 @@ import './TableInfo.scss';
 import { getTableInfo, getColumnIndexInfo, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaDatabase, TfiLayoutColumn3Alt, FaUser } from '@/assets/icons/Icon';
+import MaterialIcon from '@/components/common/MaterialIcon';
 import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
@@ -424,7 +425,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                         <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
                                             {sUserName && (
                                                 <TableDiv
-                                                    pId={aTable[1] + aIdx.toString() + '-' + bIdx.toString()}
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
                                                     pTableIcon={<TfiLayoutColumn3Alt style={{ color: getTableTypeColor(aTableType), rotate: '90deg' }} />}
@@ -451,7 +451,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
 };
 
 interface TableDivPropsType {
-    pId: string;
     pShowHiddenObj: boolean;
     pTableIcon: React.ReactElement;
     pTableType: string;
@@ -498,11 +497,20 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
         if (props.pTableFlag == 0 || !props.pShowHiddenObj) fetchRecordCount();
     }, [props.pRefresh, props.pShowHiddenObj]);
 
+    const dataViewerAction = sIsTagTable && !sIsDisabled ? (
+        <Button
+            size="side"
+            variant="ghost"
+            isToolTip
+            toolTipContent="Open Data Viewer"
+            icon={<MaterialIcon name="query_stats" size={14} />}
+            onClick={(e) => props.pHandleOpenDataViewer(e, props.pTable)}
+        />
+    ) : undefined;
+
     return (
         <>
             <Side.Item
-                tooltip={sIsTagTable ? undefined : props.pTableType + ' table ' + sPriv}
-                tooltipPlace="top"
                 paddingLeft={40}
                 onClick={handleTableDetail}
                 onContextMenu={handleContextMenu}
@@ -510,31 +518,16 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
             >
                 <Side.ItemContent>
                     {sIsDisabled ? <div style={{ minWidth: '16px', maxWidth: '16px', marginRight: '2px' }} /> : <Side.ItemArrow isOpen={sIsOpen} />}
-                    <Side.ItemIcon>
-                        {sIsTagTable && !sIsDisabled ? (
-                            <>
-                                <button
-                                    type="button"
-                                    className={`table-data-viewer-icon-button table-data-viewer-icon-${props.pId}`}
-                                    aria-label={`Open Data Viewer for ${props.pTable[E_TABLE_INFO.TB_NM]}`}
-                                    onClick={(e) => props.pHandleOpenDataViewer(e, props.pTable)}
-                                >
-                                    {props.pTableIcon}
-                                </button>
-                                <Tooltip
-                                    place="top"
-                                    positionStrategy="fixed"
-                                    anchorSelect={`.table-data-viewer-icon-${props.pId}`}
-                                    content="Open Data Viewer"
-                                    delayShow={500}
-                                    style={{ zIndex: 9999 }}
-                                />
-                            </>
-                        ) : (
-                            props.pTableIcon
-                        )}
-                    </Side.ItemIcon>
-                    <TableNameCopy pTable={props.pTable} disabled={sIsDisabled} />
+                    <Side.ItemIcon className={`tooltip-table-type-${props.pTable[E_TABLE_INFO.TB_ID]}`}>{props.pTableIcon}</Side.ItemIcon>
+                    <Tooltip
+                        place="top"
+                        positionStrategy="fixed"
+                        anchorSelect={`.tooltip-table-type-${props.pTable[E_TABLE_INFO.TB_ID]}`}
+                        content={props.pTableType + ' table ' + sPriv}
+                        delayShow={700}
+                        style={{ zIndex: 9999 }}
+                    />
+                    <TableNameCopy pTable={props.pTable} disabled={sIsDisabled} actionSlot={dataViewerAction} />
                 </Side.ItemContent>
                 {!sIsDisabled && (
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
@@ -560,7 +553,7 @@ interface ColumnDivPropsType {
     pDatabaseId: string;
     pTableId: string;
 }
-const TableNameCopy = ({ pTable, disabled }: { pTable: (string | number)[]; disabled: boolean }) => {
+const TableNameCopy = ({ pTable, disabled, actionSlot }: { pTable: (string | number)[]; disabled: boolean; actionSlot?: React.ReactNode }) => {
     const [copied, setCopied] = useState(false);
     const dbName = String(pTable[E_TABLE_INFO.DB_NM] ?? '');
     const userName = String(pTable[E_TABLE_INFO.USER_NM] ?? '');
@@ -580,7 +573,7 @@ const TableNameCopy = ({ pTable, disabled }: { pTable: (string | number)[]; disa
     };
 
     return (
-        <Side.ItemText copyable onCopy={handleCopy} showCopyAlways={false}>
+        <Side.ItemText copyable onCopy={handleCopy} showCopyAlways={false} actionSlot={actionSlot} copyTooltip="Copy table name">
             <div className={`table-name-text tooltip-${tooltipId}`} style={disabled ? { color: 'darkgray' } : undefined}>
                 {tableName}
             </div>

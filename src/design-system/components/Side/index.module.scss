@@ -278,16 +278,36 @@
             transition: opacity 0.15s ease;
         }
 
+        .itemTextExtraAction {
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
         &.showAlways .itemTextCopy {
+            opacity: 1;
+        }
+
+        &.showAlways .itemTextExtraAction {
             opacity: 1;
         }
 
         &:not(.showAlways):hover .itemTextCopy {
             opacity: 1;
         }
+
+        &:not(.showAlways):hover .itemTextExtraAction {
+            opacity: 1;
+        }
     }
 
     &:hover .itemTextWrapper:not(.showAlways) .itemTextCopy {
+        opacity: 1;
+    }
+
+    &:hover .itemTextWrapper:not(.showAlways) .itemTextExtraAction {
         opacity: 1;
     }
 
