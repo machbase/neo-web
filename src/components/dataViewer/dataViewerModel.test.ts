@@ -33,6 +33,7 @@ import {
     toggleSelectedTagName,
     formatDataViewerAxisTime,
     formatDataViewerNavigatorRangeLabels,
+    formatDataViewerTimeRangeInput,
     formatTimeRangeLabel,
 } from './dataViewerModel';
 
@@ -241,6 +242,15 @@ describe('data viewer chart helpers', () => {
         expect(formatTimeRangeLabel('', '')).toBe('Time range not set');
         expect(formatTimeRangeLabel('2026-06-01 12:34:56.789', '2026-06-01 12:35:01.789')).toBe('2026-06-01 12:34:56 ~ 2026-06-01 12:35:01');
         expect(formatTimeRangeLabel('2026-06-01T12:34:56.789Z', '2026-06-01T12:35:01.789Z')).not.toMatch(/[TZ]/);
+    });
+
+    test('formatDataViewerTimeRangeInput formats modal inputs without ISO separators', () => {
+        expect(formatDataViewerTimeRangeInput('')).toBe('');
+        expect(formatDataViewerTimeRangeInput('now-5m')).toBe('now-5m');
+        expect(formatDataViewerTimeRangeInput('last')).toBe('last');
+        expect(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z')).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+        expect(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z')).not.toMatch(/[TZ]/);
+        expect(formatDataViewerTimeRangeInput(Date.parse('2026-06-01T12:34:56.789Z'))).toBe(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z'));
     });
 
     test('normalizeSelectedTagNames keeps valid tags and falls back to first selectable tag', () => {

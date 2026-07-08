@@ -45,6 +45,7 @@ import {
     buildDataViewerZoomControlRange,
     buildRawResultColumns,
     extractDataViewerDataZoomRange,
+    formatDataViewerTimeRangeInput,
     formatDataViewerNavigatorRangeLabels,
     filterDataViewerTags,
     filterVisibleAssetRows,
@@ -199,8 +200,8 @@ function TimeRangeModal({
             pSetTimeRangeModal={(open) => {
                 if (!open) onClose();
             }}
-            pStartTime={range.from ?? ''}
-            pEndTime={range.to ?? ''}
+            pStartTime={formatDataViewerTimeRangeInput(range.from)}
+            pEndTime={formatDataViewerTimeRangeInput(range.to)}
             pSetTime={() => undefined}
             pSaveCallback={(from, to) => onApply({ from: from ?? '', to: to ?? '' })}
         />

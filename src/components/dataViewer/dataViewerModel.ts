@@ -378,6 +378,13 @@ export function formatTimeRangeLabel(from: unknown, to: unknown) {
     return `${formatTimeRangeBoundaryLabel(from, 'Start')} ~ ${formatTimeRangeBoundaryLabel(to, 'End')}`;
 }
 
+export function formatDataViewerTimeRangeInput(value: unknown) {
+    const text = String(value ?? '').trim();
+    if (!text) return '';
+    if (text.includes('now') || text.includes('last')) return text;
+    return formatDataViewerTime(value, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL');
+}
+
 function formatTimeRangeBoundaryLabel(value: unknown, fallback: string) {
     const text = String(value || '').trim();
     if (!text) return fallback;
