@@ -6,7 +6,8 @@ import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
-import { Refresh, VscGraphLine } from '@/assets/icons/Icon';
+import { Refresh } from '@/assets/icons/Icon';
+import MaterialIcon from '@/components/common/MaterialIcon';
 import { MetaTablePage } from './metaTablePage';
 import {
     buildDataViewerColumnConfigFromColumnRows,
@@ -855,7 +856,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         <Button
                                             size="xsm"
                                             variant="ghost"
-                                            icon={<VscGraphLine size={14} />}
+                                            icon={<MaterialIcon name="query_stats" size={14} />}
                                             isToolTip
                                             toolTipContent="Open Data Viewer"
                                             onClick={handleOpenDataViewer}

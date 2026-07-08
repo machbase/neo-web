@@ -75,6 +75,8 @@ export interface SideItemTextProps {
     showCopyAlways?: boolean;
     tooltip?: string;
     tooltipPlace?: 'top' | 'top-start' | 'top-end' | 'right' | 'right-start' | 'right-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end';
+    actionSlot?: React.ReactNode;
+    copyTooltip?: string;
 }
 
 export interface SideItemActionProps {
@@ -236,7 +238,7 @@ const SideItemIcon = ({ children, style, className }: SideItemIconProps) => {
     return <span className={`${styles.itemIcon} ${className || ''}`} style={style}>{children}</span>;
 };
 
-const SideItemText = ({ children, copyable, onCopy, showCopyAlways = false, tooltip, tooltipPlace = 'top' }: SideItemTextProps) => {
+const SideItemText = ({ children, copyable, onCopy, showCopyAlways = false, tooltip, tooltipPlace = 'top', actionSlot, copyTooltip }: SideItemTextProps) => {
     const tooltipId = useMemo(() => {
         return tooltip ? `side-item-text-tooltip-${Math.random().toString(36).substring(2, 9)}` : undefined;
     }, [tooltip]);
@@ -265,8 +267,9 @@ const SideItemText = ({ children, copyable, onCopy, showCopyAlways = false, tool
         <div className={`${styles.itemTextWrapper} ${showCopyAlways ? styles.showAlways : ''}`}>
             <span className={`${styles.itemText} ${tooltip ? `tooltip-${tooltipId}` : ''}`}>{children}</span>
             <div className={styles.itemTextCopy}>
-                <Button.Copy size="side" variant="ghost" onClick={onCopy} />
+                <Button.Copy size="side" variant="ghost" onClick={onCopy} isToolTip={!!copyTooltip} toolTipContent={copyTooltip} />
             </div>
+            {actionSlot && <div className={styles.itemTextExtraAction}>{actionSlot}</div>}
 
             {tooltip && (
                 <Tooltip

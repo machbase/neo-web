@@ -1,4 +1,5 @@
 import './icons.scss';
+import MaterialIcon from '@/components/common/MaterialIcon';
 import {
     VscGraphScatter,
     VscGraphLine,
@@ -172,6 +173,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <VscServer size={16} />;
         case 'event':
             return <VscBell size={16} />;
+        case 'DataViewer':
+            return <MaterialIcon name="query_stats" size={14} />;
         default:
             return <VscSymbolFile color="gray" />;
     }
