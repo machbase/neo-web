@@ -6,12 +6,10 @@ import {
     buildDataViewerTagAnalyzerRange,
     buildDataViewerTagAnalyzerTableName,
     buildDataViewerChartResultsFromRawRows,
-    buildDataViewerRawPageTimeRange,
     buildDataViewerRawPageBounds,
     buildDataViewerRawPageRequest,
     buildDataViewerRawRowsPerTagChange,
     buildDataViewerDefaultChartShiftRawPageUpdate,
-    buildDataViewerRawToChartRangeUpdate,
     buildDataViewerSplitRangeUpdate,
     buildDataViewerSplitGroups,
     buildDataViewerShiftMainRangeUpdate,
@@ -231,10 +229,29 @@ describe('data viewer chart helpers', () => {
                 'UTC',
             ),
         ).toEqual({
-            start: '2026-06-01 12:34:56.789',
-            end: '2026-06-01 12:35:01.789',
+            start: '2026-06-01 12:34:56',
+            end: '2026-06-01 12:35:01',
         });
         expect(formatDataViewerNavigatorRangeLabels({}, 'YYYY-MM-DD HH24:MI:SS.mmm', 'UTC')).toEqual({ start: '', end: '' });
+    });
+
+    test('getDataViewerChartRangeMs prefers resolved query range over data extent', () => {
+        const resolvedStart = Date.parse('2026-06-01T12:00:00.000Z');
+        const resolvedEnd = Date.parse('2026-06-01T12:00:10.000Z');
+        const points: Array<[number, number]> = [
+            [Date.parse('2026-06-01T12:00:03.000Z'), 1],
+            [Date.parse('2026-06-01T12:00:07.000Z'), 2],
+        ];
+
+        expect(
+            getDataViewerChartRangeMs(points, {
+                from: new Date(resolvedStart).toISOString(),
+                to: new Date(resolvedEnd).toISOString(),
+            }),
+        ).toEqual({
+            startTime: resolvedStart,
+            endTime: resolvedEnd,
+        });
     });
 
     test('formatTimeRangeLabel formats concrete date ranges without ISO separators', () => {
@@ -302,34 +319,6 @@ describe('data viewer chart helpers', () => {
                 selectedTagNames: ['sensor.a'],
             }),
         ).toBeNull();
-    });
-
-    test('buildDataViewerRawPageTimeRange returns the current raw page time span', () => {
-        expect(
-            buildDataViewerRawPageTimeRange([
-                { time: '2026-06-25T05:09:58.534Z', name: 'sensor.a' },
-                { time: '2026-06-25T05:09:56.100Z', name: 'sensor.b' },
-                { time: '2026-06-25T05:10:01.001Z', name: 'sensor.a' },
-            ]),
-        ).toEqual({
-            from: '2026-06-25T05:09:56.100Z',
-            to: '2026-06-25T05:10:01.001Z',
-        });
-
-        expect(
-            buildDataViewerRawPageTimeRange([
-                { TIME: '2026-06-25T05:09:58.534Z' },
-                { Time: '2026-06-25T05:09:59.534Z' },
-            ]),
-        ).toEqual({
-            from: '2026-06-25T05:09:58.534Z',
-            to: '2026-06-25T05:09:59.534Z',
-        });
-    });
-
-    test('buildDataViewerRawPageTimeRange ignores rows without valid time', () => {
-        expect(buildDataViewerRawPageTimeRange([])).toBeNull();
-        expect(buildDataViewerRawPageTimeRange([{ time: '' }, { time: 'not-a-date' }])).toBeNull();
     });
 
     test('buildDataViewerRawPageBounds returns first, last, and time range for the current page', () => {
@@ -528,42 +517,6 @@ describe('data viewer chart helpers', () => {
         ).toBe(true);
     });
 
-    test('buildDataViewerRawToChartRangeUpdate keeps raw range unchanged and prepares chart range', () => {
-        const rawRange = { from: 'now-1h', to: 'now' };
-
-        expect(
-            buildDataViewerRawToChartRangeUpdate({
-                rows: [
-                    { time: '2026-06-25T05:09:58.534Z' },
-                    { time: '2026-06-25T05:10:01.001Z' },
-                ],
-                rawRange,
-                splitGroups: [
-                    { id: 'split:a', title: 'sensor.a', tagNames: ['sensor.a'] },
-                    { id: 'split:b', title: 'sensor.b', tagNames: ['sensor.b'] },
-                ],
-            }),
-        ).toEqual({
-            rawRange,
-            chartRange: {
-                from: '2026-06-25T05:09:58.534Z',
-                to: '2026-06-25T05:10:01.001Z',
-            },
-            splitRanges: {
-                'split:a': {
-                    from: '2026-06-25T05:09:58.534Z',
-                    to: '2026-06-25T05:10:01.001Z',
-                },
-                'split:b': {
-                    from: '2026-06-25T05:09:58.534Z',
-                    to: '2026-06-25T05:10:01.001Z',
-                },
-            },
-        });
-
-        expect(buildDataViewerRawToChartRangeUpdate({ rows: [], rawRange })).toBeNull();
-    });
-
     test('toggleSelectedTagName removes existing tags or appends new tags', () => {
         expect(toggleSelectedTagName(['sensor.a', 'sensor.b'], 'sensor.a')).toEqual(['sensor.b']);
         expect(toggleSelectedTagName(['sensor.a'], 'sensor.b')).toEqual(['sensor.a', 'sensor.b']);
@@ -632,7 +585,7 @@ describe('data viewer chart helpers', () => {
         ).toEqual([{ id: 'split:0:sensor.a', title: 'sensor.a', tagNames: ['sensor.a'] }]);
     });
 
-    test('buildDataViewerSplitRangeUpdate preserves default ranges and seeds new split ranges', () => {
+    test('buildDataViewerSplitRangeUpdate preserves display ranges without seeding split ranges', () => {
         expect(
             buildDataViewerSplitRangeUpdate({
                 nextGroups: [
@@ -666,13 +619,11 @@ describe('data viewer chart helpers', () => {
             },
             splitRanges: {
                 'split:old': { startTime: 2500, endTime: 4500 },
-                'split:a': { startTime: 0, endTime: 5000 },
-                'split:b': { startTime: 0, endTime: 5000 },
             },
         });
     });
 
-    test('buildDataViewerGlobalTimeUpdate uses visible range first and applies it to every chart range', () => {
+    test('buildDataViewerGlobalTimeUpdate uses the source chart time and display ranges globally', () => {
         expect(
             buildDataViewerGlobalTimeUpdate({
                 sourceGroupId: 'split:b',
