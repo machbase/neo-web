@@ -1202,7 +1202,7 @@
 .neo-data-viewer .data-viewer-chart-stack {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-12);
+    gap: var(--spacing-20);
     flex: 1;
     width: calc(100% + var(--spacing-12));
     min-height: 0;
@@ -1214,6 +1214,26 @@
 
 .neo-data-viewer .data-viewer-chart-card {
     flex: 0 0 auto;
+}
+
+.neo-data-viewer .data-viewer-chart-card.is-main {
+    border-color: var(--color-border);
+}
+
+.neo-data-viewer .data-viewer-chart-card.is-main .data-viewer-chart-panel-header {
+    background-color: var(--color-surface-elevated);
+}
+
+.neo-data-viewer .data-viewer-chart-card.is-main + .data-viewer-chart-card.is-split {
+    margin-top: var(--spacing-12);
+}
+
+.neo-data-viewer .data-viewer-chart-card.is-split {
+    border-left: 3px solid var(--color-primary);
+}
+
+.neo-data-viewer .data-viewer-chart-card.is-split .data-viewer-chart-panel-header {
+    background-color: rgba(0, 95, 184, 0.14);
 }
 
 .neo-data-viewer .data-viewer-chart-panel-header {
