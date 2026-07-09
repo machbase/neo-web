@@ -33,6 +33,7 @@ import {
     formatDataViewerNavigatorRangeLabels,
     formatDataViewerTimeRangeInput,
     formatTimeRangeLabel,
+    resolveTimeRangeInput,
 } from './dataViewerModel';
 
 describe('data viewer chart helpers', () => {
@@ -268,6 +269,13 @@ describe('data viewer chart helpers', () => {
         expect(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z')).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
         expect(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z')).not.toMatch(/[TZ]/);
         expect(formatDataViewerTimeRangeInput(Date.parse('2026-06-01T12:34:56.789Z'))).toBe(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z'));
+    });
+
+    test('resolveTimeRangeInput preserves last range end by rounding to upward millisecond', () => {
+        const base = new Date(2026, 6, 7, 16, 18, 9, 16);
+
+        expect(resolveTimeRangeInput('last-5m', base, 'from')).toBe('2026-07-07 16:13:09.016');
+        expect(resolveTimeRangeInput('last', base, 'to')).toBe('2026-07-07 16:18:09.017');
     });
 
     test('normalizeSelectedTagNames keeps valid tags and falls back to first selectable tag', () => {

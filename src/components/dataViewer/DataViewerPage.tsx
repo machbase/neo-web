@@ -944,9 +944,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const resolveRangeForTagNames = useCallback(async (targetRange: DataViewerTimeRange, tagNames: string[]) => {
         const nowDate = new Date();
         let lastBaseDate: Date | null | undefined;
-        const resolveQueryRange = async (value: unknown) => {
+        const resolveQueryRange = async (value: unknown, boundary: 'from' | 'to') => {
             const text = String(value ?? '').trim();
-            if (!text.startsWith('last')) return resolveTimeRangeInput(value, nowDate);
+            if (!text.startsWith('last')) return resolveTimeRangeInput(value, nowDate, boundary);
 
             if (lastBaseDate === undefined) {
                 const latestTime = await queryTagBoundaryTime({
@@ -962,11 +962,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             }
 
             if (!lastBaseDate) return null;
-            return resolveTimeRangeInput(value, lastBaseDate);
+            return resolveTimeRangeInput(value, lastBaseDate, boundary);
         };
 
-        const from = await resolveQueryRange(targetRange.from);
-        const to = await resolveQueryRange(targetRange.to);
+        const from = await resolveQueryRange(targetRange.from, 'from');
+        const to = await resolveQueryRange(targetRange.to, 'to');
         return { from, to };
     }, [dbName, tableName, tagColumn, timeColumn, userName]);
 

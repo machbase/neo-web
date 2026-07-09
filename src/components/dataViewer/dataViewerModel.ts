@@ -347,15 +347,26 @@ function formatTimeRangeBoundaryLabel(value: unknown, fallback: string) {
     return formatDataViewerTime(text, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL');
 }
 
-export function resolveTimeRangeInput(value: unknown, baseDate = new Date()) {
+function formatDateTimeWithMilliseconds(date: Date) {
+    const pad = (part: number, size = 2) => String(part).padStart(size, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
+}
+
+function ceilDateToNextMillisecond(date: Date) {
+    return new Date(date.getTime() + 1);
+}
+
+export function resolveTimeRangeInput(value: unknown, baseDate = new Date(), boundary: 'from' | 'to' = 'from') {
+    const formatResolvedDate = (date: Date) => formatDateTimeWithMilliseconds(boundary === 'to' ? ceilDateToNextMillisecond(date) : date);
+
     if (typeof value === 'number') {
         if (!Number.isFinite(value)) return null;
-        return formatDateTimeForSql(new Date(value));
+        return formatResolvedDate(new Date(value));
     }
 
     const text = String(value ?? '').trim();
     if (!text) return '';
-    if (text === 'now' || text === 'last') return formatDateTimeForSql(baseDate);
+    if (text === 'now' || text === 'last') return formatResolvedDate(baseDate);
 
     const relative = text.match(/^(now|last)-(\d+)(s|m|h|d|M|y)$/);
     if (relative) {
@@ -368,7 +379,7 @@ export function resolveTimeRangeInput(value: unknown, baseDate = new Date()) {
         if (unit === 'd') date.setDate(date.getDate() - amount);
         if (unit === 'M') date.setMonth(date.getMonth() - amount);
         if (unit === 'y') date.setFullYear(date.getFullYear() - amount);
-        return formatDateTimeForSql(date);
+        return formatResolvedDate(date);
     }
 
     const parsed = new Date(text.replace(' ', 'T'));
@@ -1614,9 +1625,4 @@ export function formatDataViewerNavigatorRangeLabels(
         start: Number.isFinite(startTime) ? formatDataViewerTime(startTime, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
         end: Number.isFinite(endTime) ? formatDataViewerTime(endTime, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
     };
-}
-
-function formatDateTimeForSql(date: Date) {
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
