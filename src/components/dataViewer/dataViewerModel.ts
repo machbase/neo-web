@@ -216,27 +216,6 @@ function getRawRowValueValue(row: unknown) {
     return record.value ?? record.VALUE ?? record.Value;
 }
 
-export function buildDataViewerRawPageTimeRange(rows: unknown[] = []): { from: string; to: string } | null {
-    if (!Array.isArray(rows) || rows.length === 0) return null;
-
-    let min = Number.POSITIVE_INFINITY;
-    let max = Number.NEGATIVE_INFINITY;
-
-    rows.forEach((row) => {
-        const epochMs = toEpochMs(getRawRowTimeValue(row));
-        if (!Number.isFinite(epochMs)) return;
-        if (epochMs < min) min = epochMs;
-        if (epochMs > max) max = epochMs;
-    });
-
-    if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
-
-    return {
-        from: new Date(min).toISOString(),
-        to: new Date(max).toISOString(),
-    };
-}
-
 export type DataViewerRawPageBounds = {
     pageStart: { time: string; name: string };
     pageEnd: { time: string; name: string };
@@ -349,33 +328,16 @@ export function hasDataViewerRawNextPage({
     return Math.max(0, Math.floor(Number(rowCount) || 0)) >= safePageSize;
 }
 
-export function buildDataViewerRawToChartRangeUpdate({
-    rows = [],
-    rawRange = { from: '', to: '' },
-    splitGroups = [],
-}: {
-    rows?: unknown[];
-    rawRange?: { from?: unknown; to?: unknown };
-    splitGroups?: Array<{ id?: string; [key: string]: unknown }>;
-} = {}) {
-    const chartRange = buildDataViewerRawPageTimeRange(rows);
-    if (!chartRange) return null;
-
-    const splitRanges: Record<string, { from: string; to: string }> = {};
-    splitGroups.forEach((group) => {
-        if (group?.id) splitRanges[group.id] = chartRange;
-    });
-
-    return {
-        rawRange,
-        chartRange,
-        splitRanges,
-    };
-}
-
 export function formatTimeRangeLabel(from: unknown, to: unknown) {
     if (!from && !to) return 'Time range not set';
     return `${formatTimeRangeBoundaryLabel(from, 'Start')} ~ ${formatTimeRangeBoundaryLabel(to, 'End')}`;
+}
+
+export function formatDataViewerTimeRangeInput(value: unknown) {
+    const text = String(value ?? '').trim();
+    if (!text) return '';
+    if (text.includes('now') || text.includes('last')) return text;
+    return formatDataViewerTime(value, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL');
 }
 
 function formatTimeRangeBoundaryLabel(value: unknown, fallback: string) {
@@ -385,15 +347,26 @@ function formatTimeRangeBoundaryLabel(value: unknown, fallback: string) {
     return formatDataViewerTime(text, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL');
 }
 
-export function resolveTimeRangeInput(value: unknown, baseDate = new Date()) {
+function formatDateTimeWithMilliseconds(date: Date) {
+    const pad = (part: number, size = 2) => String(part).padStart(size, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
+}
+
+function ceilDateToNextMillisecond(date: Date) {
+    return new Date(date.getTime() + 1);
+}
+
+export function resolveTimeRangeInput(value: unknown, baseDate = new Date(), boundary: 'from' | 'to' = 'from') {
+    const formatResolvedDate = (date: Date) => formatDateTimeWithMilliseconds(boundary === 'to' ? ceilDateToNextMillisecond(date) : date);
+
     if (typeof value === 'number') {
         if (!Number.isFinite(value)) return null;
-        return formatDateTimeForSql(new Date(value));
+        return formatResolvedDate(new Date(value));
     }
 
     const text = String(value ?? '').trim();
     if (!text) return '';
-    if (text === 'now' || text === 'last') return formatDateTimeForSql(baseDate);
+    if (text === 'now' || text === 'last') return formatResolvedDate(baseDate);
 
     const relative = text.match(/^(now|last)-(\d+)(s|m|h|d|M|y)$/);
     if (relative) {
@@ -406,7 +379,7 @@ export function resolveTimeRangeInput(value: unknown, baseDate = new Date()) {
         if (unit === 'd') date.setDate(date.getDate() - amount);
         if (unit === 'M') date.setMonth(date.getMonth() - amount);
         if (unit === 'y') date.setFullYear(date.getFullYear() - amount);
-        return formatDateTimeForSql(date);
+        return formatResolvedDate(date);
     }
 
     const parsed = new Date(text.replace(' ', 'T'));
@@ -619,14 +592,12 @@ export function buildDataViewerSplitRangeUpdate<T extends DataViewerChartStoredR
     const nextSplitRanges: Record<string, T> = { ...splitRanges };
     const sourceViewRange = chartViewRanges?.[sourceGroupId];
     const sourceNavigatorRange = chartNavigatorRanges?.[sourceGroupId];
-    const sourceSplitRange = sourceNavigatorRange || sourceViewRange;
 
     nextGroups.forEach((group) => {
         const id = String(group?.id || '').trim();
         if (!id) return;
         if (sourceViewRange && !nextViewRanges[id]) nextViewRanges[id] = sourceViewRange;
         if (sourceNavigatorRange && !nextNavigatorRanges[id]) nextNavigatorRanges[id] = sourceNavigatorRange;
-        if (sourceSplitRange && !nextSplitRanges[id]) nextSplitRanges[id] = sourceSplitRange;
     });
 
     return {
@@ -1645,18 +1616,13 @@ export function formatDataViewerAxisTime(value: unknown, range: { min?: unknown;
 
 export function formatDataViewerNavigatorRangeLabels(
     range: { startTime?: unknown; endTime?: unknown; from?: unknown; to?: unknown } = {},
-    timeFormat = DEFAULT_TIME_FORMAT,
+    _timeFormat = DEFAULT_TIME_FORMAT,
     timeZone = DEFAULT_TIME_ZONE,
 ) {
     const startTime = toEpochMs(range.startTime ?? range.from);
     const endTime = toEpochMs(range.endTime ?? range.to);
     return {
-        start: Number.isFinite(startTime) ? formatDataViewerTime(startTime, timeFormat, timeZone) : '',
-        end: Number.isFinite(endTime) ? formatDataViewerTime(endTime, timeFormat, timeZone) : '',
+        start: Number.isFinite(startTime) ? formatDataViewerTime(startTime, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
+        end: Number.isFinite(endTime) ? formatDataViewerTime(endTime, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
     };
-}
-
-function formatDateTimeForSql(date: Date) {
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
