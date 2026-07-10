@@ -4,14 +4,17 @@ import { SplitPane, Pane } from '../SplitPane';
 import { Children, isValidElement, useState, useMemo, useEffect } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { Button } from '../Button';
+import { NEO_RELEASES_URL, type NeoUpdateStatus } from '@/api/repository/neoUpdate';
 
 export interface SideWrapperProps {
     pServer?: any;
+    pNeoUpdateStatus?: NeoUpdateStatus;
     children: React.ReactNode;
 }
 
 export interface SideVersionProps {
     pServer?: any;
+    pNeoUpdateStatus?: NeoUpdateStatus;
 }
 
 export interface SideContainerProps {
@@ -96,19 +99,31 @@ export interface SideSectionProps {
     children: React.ReactNode;
 }
 
-const SideWrapper = ({ pServer, children }: SideWrapperProps) => {
+const SideWrapper = ({ pServer, pNeoUpdateStatus, children }: SideWrapperProps) => {
     return (
         <div className={styles.sideWrapper}>
-            <SideVersion pServer={pServer} />
+            <SideVersion pServer={pServer} pNeoUpdateStatus={pNeoUpdateStatus} />
             {children}
         </div>
     );
 };
 
-const SideVersion = ({ pServer }: SideVersionProps) => {
+const SideVersion = ({ pServer, pNeoUpdateStatus }: SideVersionProps) => {
+    const latestVersion = pNeoUpdateStatus?.latestVersion;
+    const showLatest = pNeoUpdateStatus?.state === 'latest';
+    const showUpdate = pNeoUpdateStatus?.state === 'update-available' && latestVersion;
+
+    const handleClick = () => {
+        window.open(NEO_RELEASES_URL, '_blank', 'noopener,noreferrer');
+    };
+
     return (
         <div className={styles.sideVersion}>
-            <span>Machbase-neo {pServer && pServer.version}</span>
+            <button type="button" className={styles.sideVersionButton} onClick={handleClick}>
+                <span className={styles.sideVersionText}>Machbase-neo {pServer && pServer.version}</span>
+                {showLatest && <span className={`${styles.sideVersionChip} ${styles.latest}`}>Latest</span>}
+                {showUpdate && <span className={`${styles.sideVersionChip} ${styles.update}`}>Update {latestVersion}</span>}
+            </button>
         </div>
     );
 };
