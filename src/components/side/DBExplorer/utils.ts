@@ -1,4 +1,5 @@
 import { getColumnType } from '@/utils/dashboardUtil';
+import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 
 export const TableTypeOrderList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue', 'view', 'exception'];
 
@@ -154,10 +155,14 @@ export const CheckIndexFlag = (aIndexFlag: number) => {
             return '';
     }
 };
-export const GettColumnFlag = (aColFlag: number) => {
+export const GettColumnFlag = (aColFlag: number, aColType?: number) => {
     if ((aColFlag & E_COLUMN_FLAG.PK) > 0) return 'PK';
     if ((aColFlag & E_COLUMN_FLAG.TAGNAME) > 0) return 'tag name';
-    if ((aColFlag & E_COLUMN_FLAG.BASETIME) > 0) return 'basetime';
+    if ((aColFlag & E_COLUMN_FLAG.BASETIME) > 0) {
+        // base time and base distance share the same BASETIME flag; the column TYPE disambiguates them.
+        // datetime -> base time, otherwise (e.g. double odometer) -> base distance.
+        return aColType !== undefined && aColType !== DATETIME_COLUMN_TYPE ? 'base distance' : 'base time';
+    }
     if ((aColFlag & E_COLUMN_FLAG.SUMMARIZED) > 0) return 'summarized';
     if ((aColFlag & E_COLUMN_FLAG.METACOLUMN) > 0) {
         if ((aColFlag & E_COLUMN_FLAG.LSL) > 0) return 'meta (lsl)';
@@ -180,7 +185,10 @@ export const buildDataViewerColumnConfigFromColumnRows = (columnRows?: STR_NUM_A
         return rows.find((row) => {
             const desc = row[4];
             if (typeof desc === 'number') return (desc & flag) > 0;
-            return String(desc ?? '').trim().toLowerCase() === normalizedLabel;
+            const normalizedDesc = String(desc ?? '').trim().toLowerCase();
+            // base time and base distance share the BASETIME flag; both display descs start with 'base'.
+            if (flag === E_COLUMN_FLAG.BASETIME) return normalizedDesc.startsWith('base');
+            return normalizedDesc === normalizedLabel;
         })?.[0];
     };
 
@@ -214,9 +222,16 @@ const formatColumnType = (typeValue: string | number) => {
     return `${typeValue ?? ''}`.toLowerCase();
 };
 
-const formatColumnDesc = (descValue: string | number) => {
+const toColumnTypeCode = (typeValue: string | number): number | undefined => {
+    if (typeof typeValue === 'number') return Number.isNaN(typeValue) ? undefined : typeValue;
+
+    const parsed = Number(typeValue);
+    return Number.isNaN(parsed) ? undefined : parsed;
+};
+
+const formatColumnDesc = (descValue: string | number, typeValue: string | number) => {
     if (typeof descValue === 'number' && !Number.isNaN(descValue)) {
-        return GettColumnFlag(descValue);
+        return GettColumnFlag(descValue, toColumnTypeCode(typeValue));
     }
 
     return `${descValue ?? ''}`;
@@ -407,7 +422,7 @@ export const buildDisplayColumnInfo = (rawColumnInfo: FetchCommonType, descColum
                 formatColumnType(getCellValue(row, rawTypeIdx)),
                 logicalLength,
                 byteLength,
-                formatColumnDesc(getCellValue(row, rawDescIdx)),
+                formatColumnDesc(getCellValue(row, rawDescIdx), getCellValue(row, rawTypeIdx)),
             ];
         }),
         types: ['string', 'string', 'number', 'number', 'string'],
