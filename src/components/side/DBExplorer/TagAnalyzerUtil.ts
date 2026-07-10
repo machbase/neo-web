@@ -40,7 +40,8 @@ function normalizeDbExplorerColumnFlag(row: STR_NUM_ARR_TYPE): number {
     const displayDesc = String(row[DB_EXPLORER_DISPLAY_COLUMN_DESC_INDEX] ?? '').trim().toLowerCase();
 
     if (displayDesc !== '') {
-        return displayDesc.includes('basetime') ? E_COLUMN_FLAG.BASETIME : 0;
+        // base time ('base time') and base distance ('base distance') share the BASETIME flag; both start with 'base'.
+        return displayDesc.startsWith('base') ? E_COLUMN_FLAG.BASETIME : 0;
     }
 
     if (row.length > DB_EXPLORER_DISPLAY_COLUMN_DESC_INDEX) {

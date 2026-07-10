@@ -1,4 +1,7 @@
-import { buildDataViewerColumnConfigFromColumnRows, buildDropObjectQuery, buildQualifiedTableName, E_COLUMN_FLAG } from './utils';
+import { buildDataViewerColumnConfigFromColumnRows, buildDisplayColumnInfo, buildDropObjectQuery, buildQualifiedTableName, E_COLUMN_FLAG, GettColumnFlag } from './utils';
+
+const DATETIME_TYPE = 6;
+const DOUBLE_TYPE = 20;
 
 describe('buildQualifiedTableName', () => {
     test('returns table name only when owner is the current user on the local DB', () => {
@@ -107,7 +110,70 @@ describe('buildDropObjectQuery', () => {
     });
 });
 
+describe('GettColumnFlag', () => {
+    test('labels a datetime BASETIME column as base time', () => {
+        expect(GettColumnFlag(E_COLUMN_FLAG.BASETIME, DATETIME_TYPE)).toBe('base time');
+    });
+
+    test('labels a non-datetime (double) BASETIME column as base distance', () => {
+        // base distance and base time share the BASETIME flag; the double TYPE disambiguates them.
+        expect(GettColumnFlag(E_COLUMN_FLAG.BASETIME, DOUBLE_TYPE)).toBe('base distance');
+    });
+
+    test('defaults to base time when the column type is unknown', () => {
+        expect(GettColumnFlag(E_COLUMN_FLAG.BASETIME)).toBe('base time');
+    });
+
+    test('keeps other flag labels regardless of type', () => {
+        expect(GettColumnFlag(E_COLUMN_FLAG.TAGNAME, DOUBLE_TYPE)).toBe('tag name');
+        expect(GettColumnFlag(E_COLUMN_FLAG.SUMMARIZED, DOUBLE_TYPE)).toBe('summarized');
+    });
+});
+
+describe('buildDisplayColumnInfo', () => {
+    test('shows base distance for a double basetime-flagged column (odometer base distance)', () => {
+        const displayColumnInfo = buildDisplayColumnInfo({
+            columns: ['NAME', 'TYPE', 'LENGTH', 'DESC'],
+            rows: [
+                ['NAME', 5, 32, E_COLUMN_FLAG.TAGNAME],
+                ['ODOMETER_M', DOUBLE_TYPE, 8, E_COLUMN_FLAG.BASETIME],
+                ['VALUE', DOUBLE_TYPE, 8, E_COLUMN_FLAG.SUMMARIZED],
+            ],
+            types: ['string', 'number', 'number', 'number'],
+        });
+
+        const descByName = new Map(displayColumnInfo.rows.map((row) => [String(row[0]), row[4]]));
+        expect(descByName.get('ODOMETER_M')).toBe('base distance');
+        expect(descByName.get('NAME')).toBe('tag name');
+    });
+
+    test('still shows base time for a datetime basetime-flagged column', () => {
+        const displayColumnInfo = buildDisplayColumnInfo({
+            columns: ['NAME', 'TYPE', 'LENGTH', 'DESC'],
+            rows: [['TS', DATETIME_TYPE, 8, E_COLUMN_FLAG.BASETIME]],
+            types: ['string', 'number', 'number', 'number'],
+        });
+
+        expect(displayColumnInfo.rows[0][4]).toBe('base time');
+    });
+});
+
 describe('buildDataViewerColumnConfigFromColumnRows', () => {
+    test('resolves the base column from a base distance display desc', () => {
+        expect(
+            buildDataViewerColumnConfigFromColumnRows([
+                ['NAME', 'varchar', 32, 32, 'tag name'],
+                ['ODOMETER_M', 'double', 8, 8, 'base distance'],
+                ['VALUE', 'double', 8, 8, 'summarized'],
+            ])
+        ).toEqual({
+            tagColumn: 'NAME',
+            timeColumn: 'ODOMETER_M',
+            valueColumn: 'VALUE',
+            metaTagColumn: 'NAME',
+        });
+    });
+
     test('uses TAG table flags before hard-coded column names', () => {
         expect(
             buildDataViewerColumnConfigFromColumnRows([
