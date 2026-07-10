@@ -1,6 +1,6 @@
 import type { PanelSeriesDefinition } from '../SeriesDomain';
-import type { TimeRangeInput } from '../time/TimeTypes';
-import type { PanelAnnotation, PanelHighlight } from './PanelConfig';
+import type { TimeRangeInput, TimeRangeMs } from '../time/TimeTypes';
+import type { PanelAnnotation, PanelHighlight } from './PanelInfo';
 import type { RuntimePanelAxes, RuntimePanelDisplay } from './PanelRuntime';
 
 export enum PanelOverlayMode {
@@ -21,17 +21,12 @@ export type PanelNavigatorShiftActions = {
     onShiftRight: () => void;
 };
 
-export type PanelRangeChangeEvent = {
-    min: number;
-    max: number;
-};
-
 export type PanelRangeActions = {
-    applyMainZoomRange: (event: PanelRangeChangeEvent) => unknown;
-    applyMainNavigatorSelectionRange: (event: PanelRangeChangeEvent) => unknown;
-    applyExactMainRange: (event: PanelRangeChangeEvent) => unknown;
+    applyMainZoomRange: (range: TimeRangeMs) => unknown;
+    applyMainNavigatorSelectionRange: (range: TimeRangeMs) => unknown;
+    applyExactMainRange: (range: TimeRangeMs) => unknown;
     applyExactNavigatorRange: (
-        event: PanelRangeChangeEvent,
+        range: TimeRangeMs,
         requestNavigatorRangeInput?: TimeRangeInput,
     ) => unknown;
     shiftMainRangeLeft: () => void;

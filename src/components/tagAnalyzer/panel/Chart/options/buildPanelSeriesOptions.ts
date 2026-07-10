@@ -9,7 +9,11 @@ import type {
 import {
     getPanelSeriesDisplayColor,
 } from '../../../domain/SeriesDomain';
-import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
+import {
+    getChartSeriesEChartsName,
+    type ChartRow,
+    type ChartSeriesData,
+} from '../../../domain/ChartDomain';
 import {
     MAIN_PANEL_SERIES_ID_PREFIX,
     PANEL_NAVIGATOR_SERIES_ID_PREFIX,
@@ -37,13 +41,14 @@ function getLegendHoverState(
 
 function buildPanelLineSeriesOption({
     data,
+    animation = true,
     ...option
 }: LineSeriesOption & { data: ChartRow[] }): SeriesOption {
     return {
         type: 'line',
         legendHoverLink: false,
         data,
-        animation: true,
+        animation,
         animationDuration: 280,
         animationDurationUpdate: 180,
         animationEasing: 'cubicOut',
@@ -71,14 +76,16 @@ export function buildMainSeriesOption(
     display: RuntimePanelDisplay,
     axes: RuntimePanelAxes,
     hoveredLegendSeries?: string | undefined,
+    animateDataUpdate = true,
 ): SeriesOption[] {
     return chartData.map((series, seriesIndex) => {
         const sBaseSymbolSize = display.pointRadius > 0 ? display.pointRadius * 2 : 0;
         const sSymbolSize = display.showPoint
             ? sBaseSymbolSize
             : Math.max(sBaseSymbolSize, PANEL_HOVER_SYMBOL_SIZE);
+        const sEChartsName = getChartSeriesEChartsName(series);
         const { isLegendHoverActive: sIsLegendHoverActive, isHoveredSeries: sIsHoveredSeries } =
-            getLegendHoverState(series.name, hoveredLegendSeries);
+            getLegendHoverState(sEChartsName, hoveredLegendSeries);
         const sSeriesOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_LINE_OPACITY;
         const sItemOpacity =
@@ -103,8 +110,9 @@ export function buildMainSeriesOption(
 
         return buildPanelLineSeriesOption({
             id: `${MAIN_PANEL_SERIES_ID_PREFIX}${seriesIndex}`,
-            name: series.name,
+            name: sEChartsName,
             data: series.data,
+            animation: animateDataUpdate,
             xAxisIndex: 0,
             yAxisIndex: sYAxisIndex,
             symbol: 'circle',
@@ -146,10 +154,12 @@ export function buildMainSeriesOption(
 export function buildNavigatorSeriesOption(
     chartData: ChartSeriesData[],
     hoveredLegendSeries?: string | undefined,
+    animateDataUpdate = true,
 ): SeriesOption[] {
     return chartData.map((series, seriesIndex) => {
+        const sEChartsName = getChartSeriesEChartsName(series);
         const { isLegendHoverActive: sIsLegendHoverActive, isHoveredSeries: sIsHoveredSeries } =
-            getLegendHoverState(series.name, hoveredLegendSeries);
+            getLegendHoverState(sEChartsName, hoveredLegendSeries);
         const sOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries
                 ? PANEL_NAVIGATOR_ACTIVE_OPACITY
@@ -158,8 +168,9 @@ export function buildNavigatorSeriesOption(
 
         return buildPanelLineSeriesOption({
             id: `${PANEL_NAVIGATOR_SERIES_ID_PREFIX}${seriesIndex}`,
-            name: series.name,
+            name: sEChartsName,
             data: series.data,
+            animation: animateDataUpdate,
             xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
             yAxisIndex: 2,
             showSymbol: false,

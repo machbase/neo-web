@@ -1,4 +1,5 @@
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
+import { createTagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
 
 export const PANEL_TAG_LIMIT = 12;
 
@@ -54,11 +55,88 @@ export type PanelSeriesDefinition = {
     [key: string]: unknown;
 };
 
-export type SeriesKeyAxisKind = 'datetime' | 'double';
+type SeriesKeyAxisKind = 'datetime' | 'double';
 
 type SeriesWithSourceColumns = {
     sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
+    useRollupTable?: boolean | undefined;
 };
+
+type SeriesNamingInfo = Pick<
+    PanelSeriesDefinition,
+    'table' | 'sourceTagName'
+> & {
+    alias?: string | undefined;
+    calculationMode?: string | undefined;
+    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
+};
+
+export function getPanelSeriesModeLabel(
+    series: Pick<SeriesNamingInfo, 'calculationMode'>,
+    useRawLabel = false,
+): string {
+    if (useRawLabel) {
+        return 'raw';
+    }
+
+    const sCalculationMode = String(series.calculationMode ?? '')
+        .trim()
+        .toLowerCase();
+
+    return sCalculationMode.length > 0 ? sCalculationMode : 'avg';
+}
+
+export function getPanelSeriesValueLabel(
+    series: Pick<SeriesNamingInfo, 'sourceColumns'>,
+): string {
+    const sValue = String(series.sourceColumns?.value ?? '').trim();
+    const sJsonKey = series.sourceColumns?.jsonKey?.trim();
+
+    return sJsonKey ? `${sValue} -> ${sJsonKey}` : sValue;
+}
+
+export function getDefaultPanelSeriesAlias(
+    series: SeriesNamingInfo,
+): string {
+    const sBaseName = [
+        series.sourceTagName,
+        getPanelSeriesValueLabel(series),
+    ]
+        .map((part) => String(part ?? '').trim())
+        .filter((part) => part.length > 0)
+        .join(' / ');
+    const sTableName = String(series.table ?? '').trim();
+
+    if (sBaseName && sTableName) {
+        return `${sBaseName} (${sTableName})`;
+    }
+
+    return sBaseName || sTableName || getPanelSeriesModeLabel(series);
+}
+
+export function getPanelSeriesDisplayName(
+    series: SeriesNamingInfo,
+): string {
+    const sAlias = series.alias?.trim();
+
+    return sAlias && sAlias.length > 0
+        ? sAlias
+        : getDefaultPanelSeriesAlias(series);
+}
+
+export function isPanelSeriesUsingDefaultAlias(
+    series: SeriesNamingInfo,
+): boolean {
+    const sAlias = series.alias?.trim() ?? '';
+
+    return sAlias.length === 0 || sAlias === getDefaultPanelSeriesAlias(series);
+}
+
+export enum PanelSeriesTimeType {
+    DateTime = 'dateTime',
+    Numeric = 'numeric',
+    Unselected = 'unselected',
+}
 
 export const MIXED_X_AXIS_KIND_WARNING =
     'Datetime and numeric x-axis series cannot be mixed in one chart.';
@@ -72,22 +150,10 @@ export function isNumericBaseTimeSourceColumns(
     );
 }
 
-function isKeyDoubleSourceColumns(
-    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
-): boolean {
-    return isNumericBaseTimeSourceColumns(sourceColumns);
-}
-
-function isKeyDateTimeSourceColumns(
-    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
-): boolean {
-    return !isKeyDoubleSourceColumns(sourceColumns);
-}
-
 function getSeriesKeyAxisKind(
     sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
 ): SeriesKeyAxisKind {
-    return isKeyDoubleSourceColumns(sourceColumns) ? 'double' : 'datetime';
+    return isNumericBaseTimeSourceColumns(sourceColumns) ? 'double' : 'datetime';
 }
 
 export function isBaseTimeSourceColumns(
@@ -100,7 +166,15 @@ export function hasNumericBaseTimeSeries(
     seriesList: SeriesWithSourceColumns[] = [],
 ): boolean {
     return seriesList.some((series) =>
-        isKeyDoubleSourceColumns(series.sourceColumns),
+        isNumericBaseTimeSourceColumns(series.sourceColumns),
+    );
+}
+
+export function hasSeriesWithoutRollup(
+    seriesList: SeriesWithSourceColumns[] = [],
+): boolean {
+    return seriesList.some((series) =>
+        series.useRollupTable !== true,
     );
 }
 
@@ -109,10 +183,58 @@ export function hasMixedXAxisValueKinds(
 ): boolean {
     const sHasNumericBaseTime = hasNumericBaseTimeSeries(seriesList);
     const sHasDateTimeAxis = seriesList.some(
-        (series) => isKeyDateTimeSourceColumns(series.sourceColumns),
+        (series) => !isNumericBaseTimeSourceColumns(series.sourceColumns),
     );
 
     return sHasNumericBaseTime && sHasDateTimeAxis;
+}
+
+export function getPanelSeriesTimeTypeFromSourceColumns(
+    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined,
+): PanelSeriesTimeType {
+    if (!sourceColumns?.time) {
+        return PanelSeriesTimeType.Unselected;
+    }
+
+    return isNumericBaseTimeSourceColumns(sourceColumns)
+        ? PanelSeriesTimeType.Numeric
+        : PanelSeriesTimeType.DateTime;
+}
+
+export function getPanelSeriesTimeTypeFromTableColumns(
+    tableColumns: unknown[] = [],
+): PanelSeriesTimeType {
+    return getPanelSeriesTimeTypeFromSourceColumns(
+        createTagAnalyzerColumnInfo(tableColumns),
+    );
+}
+
+export function getPanelSeriesTimeTypeFromSeries(
+    seriesList: SeriesWithSourceColumns[],
+): PanelSeriesTimeType {
+    const sSelectedTypes = Array.from(
+        new Set(
+            seriesList
+                .map((series) => getPanelSeriesTimeTypeFromSourceColumns(series.sourceColumns))
+                .filter((timeType) => timeType !== PanelSeriesTimeType.Unselected),
+        ),
+    );
+
+    return sSelectedTypes.length === 1
+        ? sSelectedTypes[0]
+        : PanelSeriesTimeType.Unselected;
+}
+
+export function isPanelSeriesTableTimeTypeCompatible(
+    selectedTimeType: PanelSeriesTimeType,
+    tableTimeType: PanelSeriesTimeType | undefined,
+): boolean {
+    return (
+        selectedTimeType === PanelSeriesTimeType.Unselected ||
+        tableTimeType === undefined ||
+        tableTimeType === PanelSeriesTimeType.Unselected ||
+        selectedTimeType === tableTimeType
+    );
 }
 
 export function getSeriesListKeyAxisKind(

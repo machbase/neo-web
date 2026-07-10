@@ -1,26 +1,34 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Button } from '@/design-system/components';
-import PanelSeriesSelectionModal from '../../../modal/createNewPanel/PanelSeriesSelectionModal';
-import { Tooltip } from 'react-tooltip';
+import EditSeriesModal from '../../../modals/createNewPanel/EditSeriesModal';
 import {
+    getDefaultPanelSeriesAlias,
     getPanelSeriesDisplayColor,
+    isPanelSeriesUsingDefaultAlias,
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelInfo } from '../../../domain/panel/PanelConfig';
-import { cx } from './EditorFieldUtils';
+import type { PanelInfo } from '../../../domain/panel/PanelInfo';
+import type { RollupTableMap } from '../../../fetch/panelData/PanelDataFetchTypes';
 import styles from '../PanelEditor.module.scss';
 
-type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
+type EditableSeriesField = 'calculationMode' | 'alias' | 'color';
+type AliasFieldStyle = CSSProperties & {
+    '--editor-alias-expanded-width': string;
+};
+
+const ALIAS_FIELD_MIN_CHARACTER_WIDTH = 14;
+const ALIAS_FIELD_MAX_CHARACTER_WIDTH = 42;
+const ALIAS_FIELD_EXTRA_CHARACTER_WIDTH = 4;
 
 const EditorDataTab = ({
     pQueryDraft,
-    pIsRawMode,
+    pRollupTableList,
     pOnChangeQueryDraft
 }: {
     pQueryDraft: PanelInfo['query'];
-    pIsRawMode: boolean;
+    pRollupTableList: RollupTableMap;
     pOnChangeQueryDraft: (queryDraft: PanelInfo['query']) => void;
 }) => {
     const [isModal, setIsModal] = useState(false);
@@ -32,7 +40,9 @@ const EditorDataTab = ({
     const updateSeriesField = (key: string, field: EditableSeriesField, value: string) =>
         setTagSet(
             pQueryDraft.tagSet.map((item: PanelSeriesDefinition) =>
-                item.key === key ? { ...item, [field]: value } : item,
+                item.key === key
+                    ? updateSeriesEditableField(item, field, value)
+                    : item,
             ),
         );
 
@@ -42,17 +52,26 @@ const EditorDataTab = ({
                     const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
                     const updateItem = (field: EditableSeriesField) => (value: string) =>
                         updateSeriesField(item.key, field, value);
-                    const sTableTooltipClass = `taz-table-name-tooltip-${seriesIndex}`;
 
                     return (
                         <div key={item.key} className={styles.editorCard}>
                             <div className={styles.editorWrappedRow}>
                                 <div
-                                    className={cx(
-                                        styles.editorField,
-                                        pIsRawMode && styles.disabledControl,
-                                    )}
+                                    className={styles.editorSeriesIdentity}
+                                    title={`${item.sourceTagName} (${item.table})`}
                                 >
+                                    <span
+                                        className={styles.editorSeriesTagName}
+                                    >
+                                        {item.sourceTagName}
+                                    </span>
+                                    <span
+                                        className={styles.editorSeriesTableName}
+                                    >
+                                        {item.table}
+                                    </span>
+                                </div>
+                                <div className={styles.editorField}>
                                     <span className={styles.editorFieldLabel}>
                                         Calc Mode
                                     </span>
@@ -61,10 +80,9 @@ const EditorDataTab = ({
                                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                                             value={item.calculationMode ?? 'avg'}
                                             onChange={updateItem('calculationMode')}
-                                            disabled={pIsRawMode}
                                         >
                                             <Dropdown.Trigger
-                                                className={styles.calcModeTrigger}
+                                                className={styles.editorSelectTrigger}
                                             />
                                             <Dropdown.Menu>
                                                 <Dropdown.List />
@@ -72,33 +90,13 @@ const EditorDataTab = ({
                                         </Dropdown.Root>
                                     </div>
                                 </div>
-                                <div className={styles.editorField}>
-                                    <span
-                                        className={cx(
-                                            sTableTooltipClass,
-                                            styles.editorFieldLabel,
-                                        )}
-                                    >
-                                        Source Tag Name
-                                        <span className={styles.editorFieldHint}>
-                                            ({item.table})
-                                        </span>
-                                    </span>
-                                    <Tooltip
-                                        anchorSelect={`.${sTableTooltipClass}`}
-                                        content={item.table}
-                                    />
-                                    <Input
-                                        aria-label="Source Tag Name"
-                                        value={item.sourceTagName}
-                                        onChange={(event) =>
-                                            updateItem('sourceTagName')(event.target.value)
-                                        }
-                                        size="md"
-                                        style={{ width: '128px', height: '30px' }}
-                                    />
-                                </div>
-                                <div className={styles.editorField}>
+                                <div
+                                    className={[
+                                        styles.editorField,
+                                        styles.editorAliasField,
+                                    ].join(' ')}
+                                    style={getAliasFieldStyle(item.alias)}
+                                >
                                     <span className={styles.editorFieldLabel}>Alias</span>
                                     <Input
                                         aria-label="Alias"
@@ -107,7 +105,8 @@ const EditorDataTab = ({
                                             updateItem('alias')(event.target.value)
                                         }
                                         size="sm"
-                                        style={{ width: '120px', height: '30px' }}
+                                        className={styles.editorAliasInput}
+                                        style={{ height: '30px' }}
                                     />
                                 </div>
                                 <div className={styles.editorInlineField}>
@@ -120,6 +119,7 @@ const EditorDataTab = ({
                                 </div>
                                 {pQueryDraft.tagSet.length !== 1 && (
                                     <Button
+                                        className={styles.editorSeriesRemoveButton}
                                         size="xsm"
                                         variant="ghost"
                                         icon={
@@ -137,13 +137,15 @@ const EditorDataTab = ({
                     );
                 })}
             {isModal && (
-                <PanelSeriesSelectionModal
+                <EditSeriesModal
+                    rollupTableList={pRollupTableList}
                     onClose={() => setIsModal(false)}
                     initialSeries={pQueryDraft.tagSet}
                     onUpdateSeries={setTagSet}
                 />
             )}
             <Button
+                className={styles.editorAddSeriesButton}
                 variant="secondary"
                 size="sm"
                 shadow
@@ -158,5 +160,41 @@ const EditorDataTab = ({
         </>
     );
 };
+
+function updateSeriesEditableField(
+    series: PanelSeriesDefinition,
+    field: EditableSeriesField,
+    value: string,
+): PanelSeriesDefinition {
+    if (field !== 'calculationMode') {
+        return { ...series, [field]: value };
+    }
+
+    const sSeries = {
+        ...series,
+        calculationMode: value,
+    };
+
+    return {
+        ...sSeries,
+        alias: isPanelSeriesUsingDefaultAlias(series)
+            ? getDefaultPanelSeriesAlias(sSeries)
+            : series.alias,
+    };
+}
+
+function getAliasFieldStyle(alias: string): AliasFieldStyle {
+    const sCharacterWidth = Math.min(
+        ALIAS_FIELD_MAX_CHARACTER_WIDTH,
+        Math.max(
+            ALIAS_FIELD_MIN_CHARACTER_WIDTH,
+            alias.length + ALIAS_FIELD_EXTRA_CHARACTER_WIDTH,
+        ),
+    );
+
+    return {
+        '--editor-alias-expanded-width': `max(120px, ${sCharacterWidth}ch)`,
+    };
+}
 
 export default EditorDataTab;

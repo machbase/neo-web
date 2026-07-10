@@ -415,10 +415,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 )}
                                 {checkExtension(aItem.type, 'taz') && (
                                     <TagAnalyzer
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        pInfo={aItem as unknown as BoardInfo}
-                                        pSetIsOpenModal={setIsOpenModal}
-                                        pSetIsSaveModal={setIsSaveModal}
+                                        info={aItem as unknown as BoardInfo}
                                     />
                                 )}
                                 {checkExtension(aItem.type, 'term') && (

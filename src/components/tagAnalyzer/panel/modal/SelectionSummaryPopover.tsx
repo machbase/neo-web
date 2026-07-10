@@ -5,7 +5,7 @@ import type { FFTSelectionPayload } from '../../domain/ChartDomain';
 import {
     formatAxisPointerLabel,
     formatRangeSpanLabel,
-} from '../../formatting/TimeFormatters';
+} from '../../domain/time/TimeFormatters';
 import PanelPopover from './PanelPopover';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
@@ -15,6 +15,14 @@ const SUMMARY_FIELD_LABELS: Record<(typeof SUMMARY_FIELDS)[number], string> = {
     max: 'Max',
     avg: 'Avg',
 };
+const NUMERIC_FFT_DISABLED_MESSAGE = 'Numeric cannot be used to generate FFT.';
+
+function buildSummaryFieldKey(
+    item: FFTSelectionPayload['seriesSummaries'][number],
+    field: (typeof SUMMARY_FIELDS)[number],
+): string {
+    return `${item.table}:${item.seriesIndex}:${item.name}:${field}`;
+}
 
 export function SelectionSummaryPopover({
     selection,
@@ -79,10 +87,10 @@ export function SelectionSummaryPopover({
                         {SUMMARY_FIELD_LABELS[field]}
                     </Page.ContentDesc>
                 ))}
-                {selection.seriesSummaries.map((item, index) => (
+                {selection.seriesSummaries.map((item) => (
                     SUMMARY_FIELDS.map((field) => (
                         <Page.ContentText
-                            key={`${item.name}-${index}-${field}`}
+                            key={buildSummaryFieldKey(item, field)}
                             pContent={item[field] ?? ''}
                             style={{
                                 minWidth: 0,
@@ -94,15 +102,20 @@ export function SelectionSummaryPopover({
                 ))}
             </div>
             <Page.Space />
-            <Button
-                size="sm"
-                variant="secondary"
-                onClick={onOpenFft}
-                icon={<LineChart size={16} />}
-                fullWidth
+            <div
+                title={isNumericXAxis ? NUMERIC_FFT_DISABLED_MESSAGE : undefined}
             >
-                Open FFT chart
-            </Button>
+                <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={isNumericXAxis}
+                    onClick={onOpenFft}
+                    icon={<LineChart size={16} />}
+                    fullWidth
+                >
+                    Open FFT chart
+                </Button>
+            </div>
         </PanelPopover>
     );
 }

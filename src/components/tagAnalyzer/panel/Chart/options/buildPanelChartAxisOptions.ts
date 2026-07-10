@@ -8,7 +8,7 @@ import type {
 } from '../../../domain/panel/PanelRuntime';
 import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisValue } from '../../../formatting/TimeFormatters';
+import { formatAxisValue } from '../../../domain/time/TimeFormatters';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,
@@ -88,6 +88,27 @@ function updateAxisBounds(
     if (axisBounds[1] === undefined || axisBounds[1] < sMax) axisBounds[1] = sMax;
 }
 
+function updateAxisBoundsWithThresholds(
+    axisBounds: number[],
+    axis: RuntimePanelAxes['leftY'],
+): void {
+    [
+        axis.upperControlLimit,
+        axis.lowerControlLimit,
+    ].forEach((threshold) => {
+        if (!threshold.enabled || !Number.isFinite(threshold.value)) {
+            return;
+        }
+
+        if (axisBounds[0] === undefined || axisBounds[0] > threshold.value) {
+            axisBounds[0] = threshold.value;
+        }
+        if (axisBounds[1] === undefined || axisBounds[1] < threshold.value) {
+            axisBounds[1] = threshold.value;
+        }
+    });
+}
+
 function roundAxisBounds(axisBounds: number[]): void {
     const sRawMin = axisBounds[0];
     const sRawMax = axisBounds[1];
@@ -136,6 +157,11 @@ function getYAxisValues(
                 : axes.rightY.zeroBase,
         );
     });
+
+    updateAxisBoundsWithThresholds(sYAxis.left, axes.leftY);
+    if (axes.rightYEnabled) {
+        updateAxisBoundsWithThresholds(sYAxis.right, axes.rightY);
+    }
 
     roundAxisBounds(sYAxis.left);
     roundAxisBounds(sYAxis.right);
@@ -284,7 +310,7 @@ export function buildChartYAxisOption(
             id: PANEL_RIGHT_Y_AXIS_ID,
             axisRange: sRightAxisRange,
             position: axes.rightYEnabled ? 'right' : 'left',
-            showAxisLabel: chartData.some((series) => series.yAxis === 1),
+            showAxisLabel: axes.rightYEnabled,
             showTickLine: axes.rightY.showTickline,
         }),
         {

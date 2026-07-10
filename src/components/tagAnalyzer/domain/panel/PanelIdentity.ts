@@ -3,7 +3,7 @@ let runtimePanelKeyCounter = 0;
 export function createPanelIndexKey(): string {
     runtimePanelKeyCounter += 1;
 
-    return `${Date.now()}-${runtimePanelKeyCounter}-${Math.round(Math.random() * 1_000_000)}`;
+    return globalThis.crypto?.randomUUID?.() ?? `panel-${runtimePanelKeyCounter}`;
 }
 
 export function ensureUniquePanelIndexKeys<T extends { key: string }>(panels: T[]): T[] {

@@ -18,9 +18,9 @@ import type {
     ChartSeriesData,
 } from '../../domain/ChartDomain';
 import {
-    formatAxisPointerLabel,
     formatAxisValue,
-} from '../../formatting/TimeFormatters';
+    formatCompactNumericLabel,
+} from '../../domain/time/TimeFormatters';
 import { getSeriesTimeBounds } from './OverlapComparisonUtils';
 import { getTimeRangeWidth } from '../../domain/time/TimeRangeUtils';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
@@ -46,17 +46,14 @@ export type OverlapChartInput = {
     isNumericXAxis: boolean;
 };
 
-export const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
+const OVERLAP_CHART_COLORS = ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'];
 const OVERLAP_Y_AXIS_SPLIT_COUNT = 5;
 const OVERLAP_EMPTY_X_AXIS_PADDING_RATIO = 4;
 const OVERLAP_MIN_EMPTY_X_AXIS_PADDING_MS = 1_000;
-const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-});
-const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 4,
-});
+const OVERLAP_DURATION_SECOND_MS = 1_000;
+const OVERLAP_DURATION_MINUTE_MS = 60 * OVERLAP_DURATION_SECOND_MS;
+const OVERLAP_DURATION_HOUR_MS = 60 * OVERLAP_DURATION_MINUTE_MS;
+const OVERLAP_DURATION_DAY_MS = 24 * OVERLAP_DURATION_HOUR_MS;
 const DEFAULT_NOT_SHOW = {
     show: false,
 } as const;
@@ -75,7 +72,7 @@ const PANEL_AXIS_LABEL_STYLE = {
 const Y_AXIS_LABEL_STYLE = {
     color: '#afb5bc',
     fontSize: 10,
-    formatter: formatYAxisLabel,
+    formatter: formatCompactNumericLabel,
 } satisfies YAXisComponentOption['axisLabel'];
 const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } } satisfies AxisLineStyleOption;
 const AXIS_SPLIT_LINE_STYLE = {
@@ -262,8 +259,9 @@ function formatOverlapTooltip(
                 : undefined;
             const sTimestamp = Number(sValue?.[0] ?? 0);
             const sColor = typeof sParam.color === 'string' ? sParam.color : undefined;
-            const sXAxisLabel = formatAxisPointerLabel(
+            const sXAxisLabel = formatOverlapXAxisLabel(
                 sTimestamp,
+                undefined,
                 isNumericXAxis,
             );
 
@@ -316,24 +314,49 @@ function formatOverlapXAxisLabel(
     visibleRange: TimeRangeMs | undefined,
     isNumericXAxis: boolean,
 ): string {
-    if (!visibleRange) {
+    if (!Number.isFinite(xAxisValue)) {
         return String(xAxisValue);
+    }
+
+    if (!isNumericXAxis) {
+        return formatOverlapElapsedDurationLabel(xAxisValue);
     }
 
     return formatAxisValue(
         xAxisValue,
-        visibleRange,
-        isNumericXAxis,
+        visibleRange ?? { startTime: 0, endTime: 1 },
+        true,
     );
 }
 
-function formatYAxisLabel(value: string | number): string {
-    const sNumeric = Number(value);
-    if (!Number.isFinite(sNumeric)) return String(value);
+export function formatOverlapElapsedDurationLabel(value: number): string {
+    const sSign = value < 0 ? '-' : '';
+    const sAbsoluteValue = Math.trunc(Math.abs(value));
+    const sDays = Math.floor(sAbsoluteValue / OVERLAP_DURATION_DAY_MS);
+    const sRemainingAfterDays =
+        sAbsoluteValue - sDays * OVERLAP_DURATION_DAY_MS;
+    const sHours = Math.floor(sRemainingAfterDays / OVERLAP_DURATION_HOUR_MS);
+    const sRemainingAfterHours =
+        sRemainingAfterDays - sHours * OVERLAP_DURATION_HOUR_MS;
+    const sMinutes = Math.floor(
+        sRemainingAfterHours / OVERLAP_DURATION_MINUTE_MS,
+    );
+    const sRemainingAfterMinutes =
+        sRemainingAfterHours - sMinutes * OVERLAP_DURATION_MINUTE_MS;
+    const sSeconds = Math.floor(
+        sRemainingAfterMinutes / OVERLAP_DURATION_SECOND_MS,
+    );
 
-    return Math.abs(sNumeric) >= 1000
-        ? COMPACT_AXIS_NUMBER_FORMATTER.format(sNumeric)
-        : STANDARD_AXIS_NUMBER_FORMATTER.format(sNumeric);
+    return [
+        `${sSign}${sDays}`,
+        padOverlapDurationPart(sHours),
+        padOverlapDurationPart(sMinutes),
+        padOverlapDurationPart(sSeconds),
+    ].join(':');
+}
+
+function padOverlapDurationPart(value: number): string {
+    return String(value).padStart(2, '0');
 }
 
 export function buildOverlapChartOption(
@@ -379,7 +402,7 @@ export function buildOverlapChartOption(
         ),
         xAxis: {
             ...OVERLAP_X_AXIS_STATIC_OPTION,
-            type: overlapChartInput.isNumericXAxis ? 'value' : 'time',
+            type: 'value',
             min: sXAxisRanges?.axisRange.startTime,
             max: sXAxisRanges?.axisRange.endTime,
             axisLabel: {

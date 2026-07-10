@@ -1,5 +1,6 @@
 import type { YAXisComponentOption } from 'echarts';
 import {
+    getChartSeriesEChartsName,
     type ChartRow,
     type ChartSeriesData,
 } from '../../../domain/ChartDomain';
@@ -7,9 +8,9 @@ import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelAnnotation } from '../../../domain/panel/PanelConfig';
+import type { PanelAnnotation } from '../../../domain/panel/PanelInfo';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { getTimeRangeCenter, getTimeRangeWidth } from '../../../domain/time/TimeRangeUtils';
+import { getTimeRangeCenter } from '../../../domain/time/TimeRangeUtils';
 
 function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {
@@ -65,11 +66,7 @@ const ANNOTATION_LABEL_MIN_WIDTH = 64;
 const ANNOTATION_LABEL_MAX_WIDTH = 220;
 const ANNOTATION_LABEL_HORIZONTAL_PADDING = 18;
 const ANNOTATION_LABEL_WIDTH_PER_CHARACTER = 7;
-const ANNOTATION_ROW_TOP_PADDING_RATIO = 0.08;
-const ANNOTATION_ROW_HEIGHT_RATIO = 0.1;
-const ANNOTATION_TIME_GAP_BASE_RATIO = 0.08;
-const ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO = 0.004;
-const ANNOTATION_TIME_GAP_MAX_RATIO = 0.22;
+const ANNOTATION_LABEL_AXIS_PADDING_RATIO = 0.08;
 
 export type RenderableSeriesAnnotation = {
     seriesIndex: number;
@@ -83,7 +80,6 @@ export type RenderableSeriesAnnotation = {
     anchorTime: number;
     anchorValue: number;
     labelY: number;
-    estimatedTimeWidth: number;
     symbolSize: [number, number];
 };
 
@@ -95,7 +91,7 @@ export function buildRenderableSeriesAnnotations(
     visibleRange: TimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
 ): RenderableSeriesAnnotation[] {
-    return assignAnnotationLabelRows(
+    return keepAnnotationLabelsInsideAxis(
         buildAnnotationAnchors(
             annotations,
             seriesDefinitions,
@@ -116,8 +112,6 @@ function buildAnnotationAnchors(
     visibleRange: TimeRangeMs,
     visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
-    const visibleSpan = Math.max(getTimeRangeWidth(visibleRange), 1);
-
     return annotations.flatMap((annotation, annotationIndex) => {
         const seriesIndex = seriesDefinitions.findIndex(
             (seriesInfo) => seriesInfo.key === annotation.seriesKey,
@@ -130,7 +124,10 @@ function buildAnnotationAnchors(
 
         const chartSeries = chartData[seriesIndex];
 
-        if (chartSeries && visibleSeries[chartSeries.name] === false) {
+        if (
+            chartSeries &&
+            visibleSeries[getChartSeriesEChartsName(chartSeries)] === false
+        ) {
             return [];
         }
 
@@ -171,11 +168,6 @@ function buildAnnotationAnchors(
                     annotationText.length * ANNOTATION_LABEL_WIDTH_PER_CHARACTER,
             ),
         );
-        const labelTimeWidthRatio = Math.min(
-            ANNOTATION_TIME_GAP_MAX_RATIO,
-            ANNOTATION_TIME_GAP_BASE_RATIO +
-                annotationText.length * ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
-        );
 
         return [
             {
@@ -186,11 +178,10 @@ function buildAnnotationAnchors(
                 fillColor: annotation.fillColor,
                 textColor: annotation.textColor,
                 text: annotationText,
-                clip: annotation.clip,
+                clip: true,
                 anchorTime: annotationAnchorTime,
                 anchorValue: anchorValue,
                 labelY: anchorValue,
-                estimatedTimeWidth: Math.max(visibleSpan * labelTimeWidthRatio, 1),
                 symbolSize: [labelWidth, ANNOTATION_LABEL_HEIGHT],
             },
         ];
@@ -218,7 +209,7 @@ function getFallbackAnnotationAnchorValue(
     return 0;
 }
 
-function assignAnnotationLabelRows(
+function keepAnnotationLabelsInsideAxis(
     annotations: RenderableSeriesAnnotation[],
     yAxisOptions: YAXisComponentOption[],
 ): RenderableSeriesAnnotation[] {
@@ -240,32 +231,20 @@ function assignAnnotationLabelRows(
             return;
         }
 
-        const axisRange = Math.max(axisMaximum - axisMinimum, 1);
-        const topPadding = Math.max(axisRange * ANNOTATION_ROW_TOP_PADDING_RATIO, 1);
-        const rowHeight = Math.max(axisRange * ANNOTATION_ROW_HEIGHT_RATIO, 1);
-        const highestLabelY = axisMaximum - topPadding;
-        const lowestLabelY = axisMinimum + topPadding;
-        const rowEndTimes: number[] = [];
+        const axisRange = axisMaximum - axisMinimum;
+        const padding = Math.min(
+            axisRange * 0.45,
+            Math.max(axisRange * ANNOTATION_LABEL_AXIS_PADDING_RATIO, 1),
+        );
+        const highestLabelY = axisMaximum - padding;
+        const lowestLabelY = axisMinimum + padding;
 
-        axisAnnotations
-            .sort(
-                (leftAnnotation, rightAnnotation) =>
-                    leftAnnotation.anchorTime - rightAnnotation.anchorTime,
-            )
-            .forEach((annotation) => {
-                const halfTimeWidth = annotation.estimatedTimeWidth / 2;
-                const reusableRowIndex = rowEndTimes.findIndex(
-                    (rowEndTime) => annotation.anchorTime - halfTimeWidth > rowEndTime,
-                );
-                const rowIndex =
-                    reusableRowIndex >= 0 ? reusableRowIndex : rowEndTimes.length;
-
-                rowEndTimes[rowIndex] = annotation.anchorTime + halfTimeWidth;
-                annotation.labelY = Math.max(
-                    lowestLabelY,
-                    highestLabelY - rowIndex * rowHeight,
-                );
-            });
+        axisAnnotations.forEach((annotation) => {
+            annotation.labelY = Math.min(
+                highestLabelY,
+                Math.max(lowestLabelY, annotation.anchorValue),
+            );
+        });
     });
 
     return nextAnnotations;

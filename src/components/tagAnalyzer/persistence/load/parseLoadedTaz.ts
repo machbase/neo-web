@@ -1,5 +1,5 @@
 import type { BoardInfo } from '../../domain/BoardDomain';
-import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import { isPlainObject } from '../../domain/ObjectGuards';
 import { ensureUniquePanelIndexKeys } from '../../domain/panel/PanelIdentity';
 import {

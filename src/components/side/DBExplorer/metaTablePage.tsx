@@ -1,5 +1,5 @@
 import { Page, Toast, CommonTable } from '@/design-system/components';
-import { createDefaultTazBoard } from '@/components/tagAnalyzer/TazUtility';
+import { createDefaultTazBoard } from '@/components/tagAnalyzer/bridge/TazUtility';
 import { buildSqlIdentifierPath, buildSqlStringLiteral } from '@/components/tagAnalyzer/fetch/sqlBuilder/SqlTextUtils';
 import { canOpenTagAnalyzerFromMetaColumns, createDefaultTagTimeRange, createTagAnalyzerColumnsFromDbExplorer, getTagNameFromMetaRow } from './TagAnalyzerUtil';
 import { buildQualifiedTableName, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, STR_NUM_ARR_TYPE } from './utils';

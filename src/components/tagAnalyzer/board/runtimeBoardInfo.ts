@@ -1,11 +1,10 @@
 import type { BoardInfo } from '../domain/BoardDomain';
 import {
     createRuntimePanelInfo,
-    getPanelConfigFromRuntimePanel,
     type PanelInfo,
     type PanelRangeState,
     type RuntimePanelInfo,
-} from '../domain/panel/PanelConfig';
+} from '../domain/panel/PanelInfo';
 import { ensureUniquePanelIndexKeys } from '../domain/panel/PanelIdentity';
 import { createInitialPanelRangeState } from '../domain/panelRange/PanelRangeApply';
 import type { TimeRangeInput } from '../domain/time/TimeTypes';
@@ -174,12 +173,6 @@ export function setRuntimePanelConfig(
         },
         isOverlapSelected: runtimePanelInfo.isOverlapSelected,
     };
-}
-
-export function getRuntimePanelConfig(
-    runtimePanelInfo: RuntimePanelInfo,
-): PanelInfo {
-    return getPanelConfigFromRuntimePanel(runtimePanelInfo);
 }
 
 function setRuntimePanelRange(

@@ -1,6 +1,5 @@
-import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
-import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
 import type { PersistedPanelInfoV210 } from '../TazPersistenceTypesV210';
 import {
     clonePanelAnnotations,
@@ -10,17 +9,13 @@ import {
 export function mapPanelToPersistedTaz(
     panelInfo: PanelInfo,
 ): PersistedPanelInfoV210 {
-    const sIntervalType =
-        normalizeStoredTimeUnit(panelInfo.query.intervalType ?? '') ??
-        panelInfo.query.intervalType;
-
     return {
         key: panelInfo.key,
         title: panelInfo.title,
         query: {
             tagSet: panelInfo.query.tagSet.map(mapRuntimeSeriesToPersisted),
             count: panelInfo.query.count,
-            intervalType: sIntervalType,
+            intervalType: panelInfo.query.intervalType,
         },
         mode: {
             isRaw: panelInfo.mode.isRaw,

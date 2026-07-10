@@ -3,9 +3,12 @@ import {
     normalizePanelQueryCount,
     type PanelInfo,
     type PanelYAxis,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import { isPlainObject } from '../../domain/ObjectGuards';
-import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
+import {
+    getDefaultPanelSeriesAlias,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
 import { normalizePanelViewRange } from '../../domain/panelRange/PanelRangeResolver';
 import { shouldUseNumericPanelRangeInput } from '../../domain/SeriesDomain';
@@ -59,9 +62,9 @@ export function parseLoadedPanelTazVer210(
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel timeRange structure.');
     }
 
-    const sIntervalType =
-        normalizeStoredTimeUnit(panelInfo.query.intervalType ?? '') ??
-        panelInfo.query.intervalType;
+    const sIntervalType = normalizeStoredTimeUnit(
+        panelInfo.query.intervalType ?? '',
+    );
 
     return {
         key: panelInfo.key,
@@ -303,9 +306,14 @@ function throwInvalidPanelError(path: string): never {
 function mapPersistedSeriesToRuntime(
     series: PanelSeriesDefinition,
 ): PanelSeriesDefinition {
-    return {
+    const sSeries = {
         ...series,
         id: series.id ?? undefined,
         sourceColumns: { ...series.sourceColumns },
+    };
+
+    return {
+        ...sSeries,
+        alias: sSeries.alias?.trim() || getDefaultPanelSeriesAlias(sSeries),
     };
 }

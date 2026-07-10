@@ -1,7 +1,6 @@
 const SQL_IDENTIFIER_SEGMENT_PATTERN = /^[A-Za-z_][A-Za-z0-9_$]*$/;
-const SQL_LIKE_ESCAPE_CHARACTER = '!';
 
-export function assertSqlIdentifierPath(
+function assertSqlIdentifierPath(
     identifierPath: string,
     label = 'SQL identifier',
 ): void {
@@ -31,24 +30,21 @@ export function buildSqlStringLiteralList(values: Array<string | number>): strin
     return values.map(buildSqlStringLiteral).join(', ');
 }
 
-export function buildSqlLikeContainsCondition(
-    identifierPath: string,
-    searchText: string,
-): string | undefined {
-    if (searchText === '') {
-        return undefined;
-    }
-
-    const sEscapedSearchText = searchText.replace(
-        /[!%_]/g,
-        (match) => `${SQL_LIKE_ESCAPE_CHARACTER}${match}`,
-    );
-
-    return `${buildSqlIdentifierPath(identifierPath)} LIKE ${buildSqlStringLiteral(
-        `%${sEscapedSearchText}%`,
-    )} ESCAPE ${buildSqlStringLiteral(SQL_LIKE_ESCAPE_CHARACTER)}`;
-}
-
 export function buildTqlDoubleQuotedString(value: string): string {
     return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+export function joinSqlLines(lines: string[]): string {
+    return lines
+        .filter((line) => line.trim().length > 0)
+        .join('\n');
+}
+
+export function indentSql(sql: string, spaces = 4): string {
+    const sIndent = ' '.repeat(spaces);
+
+    return sql
+        .split('\n')
+        .map((line) => line.length > 0 ? `${sIndent}${line}` : line)
+        .join('\n');
 }

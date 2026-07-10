@@ -1,7 +1,7 @@
 import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
 import { TAZ_FORMAT_VERSION, TazVersion } from '@/components/tagAnalyzer/persistence/TazVersion';
 import { mapPanelToPersistedTaz } from '@/components/tagAnalyzer/persistence/save/mapPanelToPersistedTaz';
-import type { PanelInfo } from '@/components/tagAnalyzer/domain/panel/PanelConfig';
+import type { PanelInfo } from '@/components/tagAnalyzer/domain/panel/PanelInfo';
 import { isBoardSaved } from './boardSaveStatus';
 
 
@@ -23,7 +23,7 @@ function createRuntimePanel(): PanelInfo {
         query: {
             tagSet: [],
             count: -1,
-            intervalType: '',
+            intervalType: undefined,
         },
         mode: {
             isRaw: false,

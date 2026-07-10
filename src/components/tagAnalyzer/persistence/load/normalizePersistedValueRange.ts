@@ -1,7 +1,7 @@
 import {
     AUTO_VALUE_RANGE,
     type ValueRange,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import { asRecord } from '../../domain/ObjectGuards';
 
 export function normalizePersistedValueRange(

@@ -1,6 +1,4 @@
-import { getUserName, isCurUserEqualAdmin } from '@/utils';
-
-export function hasQualifiedTableName(tableName: string): boolean {
+function hasQualifiedTableName(tableName: string): boolean {
     return tableName.split('.').length > 1;
 }
 
@@ -13,14 +11,4 @@ export function addAdminSchemaIfNeeded(
     }
 
     return `${adminSchemaName.toUpperCase()}.${sourceTableName}`;
-}
-
-export function addCurrentUserSchemaIfNeeded(tableName: string): string {
-    const sCurrentUserName = getUserName();
-
-    if (isCurUserEqualAdmin() || hasQualifiedTableName(tableName)) {
-        return tableName;
-    }
-
-    return `${sCurrentUserName}.${tableName}`;
 }

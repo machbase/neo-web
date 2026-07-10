@@ -2,7 +2,7 @@ import type {
     PanelAxes,
     PanelDisplay,
     PanelYAxis,
-} from '../../../domain/panel/PanelConfig';
+} from '../../../domain/panel/PanelInfo';
 
 type PanelSampling = PanelDisplay['mainChartSampling'];
 

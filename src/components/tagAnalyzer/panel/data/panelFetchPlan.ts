@@ -6,7 +6,8 @@ import {
     isTimeRangeWithinTimeRange,
     isValidTimeRange,
 } from '../../domain/time/TimeRangeUtils';
-import { CALCULATED_FETCH_ROW_BUDGET } from '../../fetch/panelData/PanelSeriesDataRepository';
+import { hasNumericBaseTimeSeries } from '../../domain/SeriesDomain';
+import { MAIN_CALCULATED_FETCH_ROW_LIMIT } from '../../fetch/panelData/PanelSeriesDataRepository';
 import type { PanelChartDataLoadConfig } from './panelChartLoadConfig';
 import type {
     MainFetchCacheState,
@@ -27,7 +28,7 @@ type ResolvePanelFetchPlanParams = {
     requestNavigatorRange: TimeRangeMs;
     fullRange: TimeRangeMs;
     loadConfig: PanelChartDataLoadConfig;
-    requestInterval: IntervalOption;
+    requestInterval: IntervalOption | undefined;
     mainReuseKey: string | undefined;
     mainCacheState: MainFetchCacheState;
     navigatorCacheState: NavigatorFetchCacheState;
@@ -58,6 +59,7 @@ export function resolvePanelFetchPlan({
         }),
         navigator: resolveNavigatorFetchDecision({
             requestNavigatorRange,
+            fullRange,
             cacheState: navigatorCacheState,
         }),
     };
@@ -74,7 +76,7 @@ type ResolveMainPanelFetchRangeParams = {
     requestNavigatorRange: TimeRangeMs;
     fullRange: TimeRangeMs;
     loadConfig: PanelChartDataLoadConfig;
-    requestInterval: IntervalOption;
+    requestInterval: IntervalOption | undefined;
     reuseKey: string | undefined;
     cacheState: MainFetchCacheState;
 };
@@ -83,30 +85,42 @@ function resolveMainPanelFetchDecision(
     params: ResolveMainPanelFetchRangeParams,
 ): PanelFetchDecision {
     const sCachedRange = params.cacheState.fetchedRange;
+    const sFetchablePanelRange = getOverlappingTimeRange(
+        params.requestPanelRange,
+        params.fullRange,
+    );
 
-    if (
-        sCachedRange &&
-        !isTimeRangeWithinTimeRange(params.requestPanelRange, params.fullRange)
-    ) {
-        return { kind: 'reuse', fetchedRange: sCachedRange };
+    if (!sFetchablePanelRange) {
+        return sCachedRange
+            ? { kind: 'reuse', fetchedRange: sCachedRange }
+            : { kind: 'fetch', fetchRange: params.requestPanelRange };
     }
 
     if (
         sCachedRange &&
         params.cacheState.reuseKey === params.reuseKey &&
-        isTimeRangeWithinTimeRange(params.requestPanelRange, sCachedRange)
+        isTimeRangeWithinTimeRange(sFetchablePanelRange, sCachedRange)
     ) {
         return { kind: 'reuse', fetchedRange: sCachedRange };
     }
 
+    const sFetchableNavigatorRange =
+        getOverlappingTimeRange(params.requestNavigatorRange, params.fullRange) ??
+        sFetchablePanelRange;
+
     return {
         kind: 'fetch',
-        fetchRange: resolveMainPanelFetchRange(params),
+        fetchRange: resolveMainPanelFetchRange({
+            ...params,
+            requestPanelRange: sFetchablePanelRange,
+            requestNavigatorRange: sFetchableNavigatorRange,
+        }),
     };
 }
 
 type ResolveNavigatorFetchRangeParams = {
     requestNavigatorRange: TimeRangeMs;
+    fullRange: TimeRangeMs;
     cacheState: NavigatorFetchCacheState;
 };
 
@@ -114,22 +128,36 @@ function resolveNavigatorFetchDecision(
     params: ResolveNavigatorFetchRangeParams,
 ): PanelFetchDecision {
     const sCachedRange = params.cacheState.fetchedRange;
+    const sFetchableNavigatorRange = getOverlappingTimeRange(
+        params.requestNavigatorRange,
+        params.fullRange,
+    );
+
+    if (!sFetchableNavigatorRange) {
+        return sCachedRange
+            ? { kind: 'reuse', fetchedRange: sCachedRange }
+            : { kind: 'fetch', fetchRange: params.requestNavigatorRange };
+    }
 
     if (
         sCachedRange &&
-        isTimeRangeWithinTimeRange(params.requestNavigatorRange, sCachedRange)
+        isTimeRangeWithinTimeRange(sFetchableNavigatorRange, sCachedRange)
     ) {
         return { kind: 'reuse', fetchedRange: sCachedRange };
     }
 
     return {
         kind: 'fetch',
-        fetchRange: resolveNavigatorFetchRange(params),
+        fetchRange: resolveNavigatorFetchRange({
+            ...params,
+            requestNavigatorRange: sFetchableNavigatorRange,
+        }),
     };
 }
 
 function resolveNavigatorFetchRange({
     requestNavigatorRange,
+    fullRange,
     cacheState,
 }: ResolveNavigatorFetchRangeParams): TimeRangeMs {
     if (
@@ -139,7 +167,10 @@ function resolveNavigatorFetchRange({
         return cacheState.fetchedRange;
     }
 
-    return buildNavigatorPrefetchRange(requestNavigatorRange);
+    return clipFetchRangeToFullRange(
+        buildNavigatorPrefetchRange(requestNavigatorRange),
+        fullRange,
+    );
 }
 
 function buildNavigatorPrefetchRange(
@@ -161,6 +192,7 @@ function buildNavigatorPrefetchRange(
 function resolveMainPanelFetchRange({
     requestPanelRange,
     requestNavigatorRange,
+    fullRange,
     loadConfig,
     requestInterval,
     reuseKey,
@@ -180,6 +212,17 @@ function resolveMainPanelFetchRange({
 
     if (loadConfig.isRaw) {
         return requestNavigatorRange;
+    }
+
+    if (hasNumericBaseTimeSeries(loadConfig.seriesList)) {
+        return clipFetchRangeToFullRange(
+            buildNumericCalculatedPrefetchRange(requestPanelRange),
+            fullRange,
+        );
+    }
+
+    if (!requestInterval) {
+        throw new Error('Calculated main prefetch requires an interval.');
     }
 
     return resolveSafeCalculatedPrefetchRange({
@@ -205,7 +248,7 @@ function resolveSafeCalculatedPrefetchRange({
         requestInterval,
     );
 
-    if (sRequestPrediction > CALCULATED_FETCH_ROW_BUDGET) {
+    if (sRequestPrediction > MAIN_CALCULATED_FETCH_ROW_LIMIT) {
         return requestPanelRange;
     }
 
@@ -216,7 +259,7 @@ function resolveSafeCalculatedPrefetchRange({
 
     if (
         predictCalculatedRowCount(sPrefetchRange, requestInterval) <=
-        CALCULATED_FETCH_ROW_BUDGET
+        MAIN_CALCULATED_FETCH_ROW_LIMIT
     ) {
         return sPrefetchRange;
     }
@@ -249,7 +292,7 @@ function shrinkPrefetchRangeToPredictedRowBudget(
 ): TimeRangeMs {
     const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
     const sRequestWidth = getTimeRangeWidth(requestPanelRange);
-    const sMaxPrefetchWidth = sIntervalMs * CALCULATED_FETCH_ROW_BUDGET;
+    const sMaxPrefetchWidth = sIntervalMs * MAIN_CALCULATED_FETCH_ROW_LIMIT;
     const sExtraWidthBudget = sMaxPrefetchWidth - sRequestWidth;
 
     if (sIntervalMs <= 0 || sExtraWidthBudget <= 0) {
@@ -297,4 +340,37 @@ function buildPanelPrefetchRange(
         requestPanelRange.startTime - sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
         requestPanelRange.endTime + sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
     );
+}
+
+function buildNumericCalculatedPrefetchRange(
+    requestPanelRange: TimeRangeMs,
+): TimeRangeMs {
+    const sPanelWidth = getTimeRangeWidth(requestPanelRange);
+    if (!Number.isFinite(sPanelWidth) || sPanelWidth <= 0) {
+        return requestPanelRange;
+    }
+
+    return createTimeRangeMs(
+        requestPanelRange.startTime - sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
+        requestPanelRange.endTime + sPanelWidth * PANEL_PREFETCH_SIDE_FACTOR,
+    );
+}
+
+function clipFetchRangeToFullRange(
+    fetchRange: TimeRangeMs,
+    fullRange: TimeRangeMs,
+): TimeRangeMs {
+    return getOverlappingTimeRange(fetchRange, fullRange) ?? fetchRange;
+}
+
+function getOverlappingTimeRange(
+    range: TimeRangeMs,
+    bounds: TimeRangeMs,
+): TimeRangeMs | undefined {
+    const sOverlappingRange = createTimeRangeMs(
+        Math.max(range.startTime, bounds.startTime),
+        Math.min(range.endTime, bounds.endTime),
+    );
+
+    return isValidTimeRange(sOverlappingRange) ? sOverlappingRange : undefined;
 }

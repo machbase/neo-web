@@ -1,7 +1,7 @@
 import type {
     PanelAnnotation,
     PanelHighlight,
-} from '../../../domain/panel/PanelConfig';
+} from '../../../domain/panel/PanelInfo';
 import type {
     RuntimePanelAxes,
     RuntimePanelDisplay,
@@ -21,6 +21,8 @@ export type ChartInfo = {
     useNormalize: boolean;
     visibleSeries: Record<string, boolean>;
     navigatorSeriesData: ChartSeriesData[];
+    animateMainDataUpdate: boolean;
+    animateNavigatorDataUpdate: boolean;
     isNumericXAxis: boolean;
     isWheelZoomEnabled: boolean;
     hoveredLegendSeries?: string;

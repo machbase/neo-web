@@ -8,7 +8,7 @@ import type {
 import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelHighlight,
-} from '../../../domain/panel/PanelConfig';
+} from '../../../domain/panel/PanelInfo';
 import { parseHexColor } from './ColorUtils';
 import {
     DEFAULT_NOT_SHOW,

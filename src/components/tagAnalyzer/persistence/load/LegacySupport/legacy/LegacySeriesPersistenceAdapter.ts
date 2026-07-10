@@ -1,12 +1,10 @@
 import {
     DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
+    getDefaultPanelSeriesAlias,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
 } from '../../../../domain/SeriesDomain';
-import type {
-    LegacyCompatibleSeriesConfig,
-    LegacyTagNameItem,
-} from './LegacySeriesTypes';
+import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
 
 export function normalizeLegacySeriesConfigs(
     items: LegacyCompatibleSeriesConfig[],
@@ -14,43 +12,8 @@ export function normalizeLegacySeriesConfigs(
     return items.map((item) => normalizeLegacySeriesConfig(item));
 }
 
-export function toLegacyTagNameItem<T extends { sourceTagName: string | undefined }>(
-    item: T,
-): LegacyTagNameItem<T> {
-    const { sourceTagName, ...rest } = item;
-
-    return {
-        ...rest,
-        tagName: sourceTagName || '',
-    } as LegacyTagNameItem<T>;
-}
-
-export function toLegacyTagNameList<T extends { sourceTagName: string | undefined }>(
-    items: T[],
-): Array<LegacyTagNameItem<T>> {
-    return items.map((item) => toLegacyTagNameItem(item));
-}
-
-export function toLegacySeriesConfigs(
-    items: PanelSeriesDefinition[],
-): LegacyCompatibleSeriesConfig[] {
-    return toLegacyTagNameList<PanelSeriesDefinition>(items).map((item) => {
-        const legacySeriesConfig = item as LegacyTagNameItem<PanelSeriesDefinition>;
-
-        return {
-            ...legacySeriesConfig,
-            colName: legacySeriesConfig.sourceColumns,
-            use_y2: toLegacyBoolean(legacySeriesConfig.useSecondaryAxis === true),
-        };
-    }) as LegacyCompatibleSeriesConfig[];
-}
-
 export function fromLegacyBoolean(value: 'Y' | 'N' | undefined): boolean {
     return value === 'Y';
-}
-
-export function toLegacyBoolean(value: boolean): 'Y' | 'N' {
-    return value ? 'Y' : 'N';
 }
 
 function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelSeriesDefinition {
@@ -73,7 +36,7 @@ function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelS
     } = item;
     void annotations;
 
-    return {
+    const sSeries = {
         key: key,
         table: table,
         alias: alias,
@@ -89,6 +52,11 @@ function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelS
         sourceTagName: sourceTagName || tagName || '',
         useSecondaryAxis: fromLegacyBoolean(use_y2),
         useRollupTable: onRollup ?? false,
+    };
+
+    return {
+        ...sSeries,
+        alias: sSeries.alias?.trim() || getDefaultPanelSeriesAlias(sSeries),
     };
 }
 

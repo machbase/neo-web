@@ -68,7 +68,7 @@
     gap: 8px;
 }
 
-.dirtyMessage {
+.notAppliedMessage {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
@@ -81,12 +81,8 @@
     white-space: normal;
 }
 
-.dirtyMessageHidden {
+.notAppliedMessageHidden {
     display: none;
-}
-
-.savedMessage {
-    color: #8bd992;
 }
 
 .content {
@@ -128,6 +124,27 @@
     line-height: 16px;
 }
 
+.sectionTag {
+    padding: 1px 6px;
+    border: 1px solid rgba(65, 153, 255, 0.34);
+    border-radius: 4px;
+    background: rgba(65, 153, 255, 0.12);
+    color: rgba(194, 220, 255, 0.9);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 13px;
+}
+
+.sectionHeaderCheckbox {
+    margin-left: 2px;
+}
+
+.rightAxisHeaderActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .controlStack {
     display: flex;
     flex-direction: column;
@@ -162,6 +179,79 @@
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 12px;
     align-items: start;
+}
+
+.dataSettingStack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.dataSettingRuntimeSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.dataSettingMetricGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.dataSettingMetricCard {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: 0 1 auto;
+    gap: 8px 14px;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    padding: 8px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.dataSettingMetricTitle {
+    min-width: 88px;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+}
+
+.dataSettingMetricValue {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 72px;
+}
+
+.dataSettingMetricLabel {
+    color: rgba(255, 255, 255, 0.48);
+    font-size: 10px;
+    line-height: 12px;
+    white-space: nowrap;
+}
+
+.dataSettingMetricNumber {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.dataSettingAlignmentSpacer {
+    min-height: 30px;
 }
 
 .axesGrid .section {
@@ -249,10 +339,6 @@
     width: 200px;
 }
 
-.calcModeTrigger {
-    width: 112px;
-}
-
 .rawRangeLabelWide {
     min-width: 100px;
 }
@@ -260,14 +346,14 @@
 .editorCard {
     border: 1px solid #b8c8da41;
     border-radius: 4px;
-    padding: 6px;
+    padding: 4px;
 }
 
 .editorWrappedRow {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: 8px 14px;
+    gap: 6px 7px;
 }
 
 .editorField {
@@ -276,8 +362,29 @@
     gap: 4px;
 }
 
+.editorAliasField {
+    flex: 0 1 120px;
+    min-width: 120px;
+    max-width: min(100%, 360px);
+    transition: flex-basis 160ms ease;
+}
+
+.editorAliasField:focus-within {
+    flex: 0 1 var(--editor-alias-expanded-width, 120px);
+}
+
+.editorAliasInput {
+    width: 100%;
+}
+
 .editorNarrowControl {
-    width: 112px;
+    width: 120px;
+}
+
+.editorSelectTrigger {
+    width: 120px;
+    height: 30px;
+    padding: 4px 8px;
 }
 
 .editorFieldLabel {
@@ -292,12 +399,39 @@
     white-space: nowrap;
 }
 
-.editorFieldHint {
-    max-width: 70px;
+.editorSeriesIdentity {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 120px;
+    max-width: 180px;
+    min-height: 48px;
+}
+
+.editorSeriesRemoveButton {
+    margin-left: auto;
+    align-self: center;
+    flex-shrink: 0;
+}
+
+.editorSeriesTagName {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
     overflow: hidden;
-    color: rgba(255, 255, 255, 0.42);
-    font-size: 10px;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editorSeriesTableName {
+    color: rgba(255, 255, 255, 0.46);
+    font-size: 11px;
+    line-height: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .editorInlineField {
@@ -318,7 +452,16 @@
     color: rgba(255, 255, 255, 0.72);
     font-size: 11px;
     line-height: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.editorAddSeriesButton {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    font-size: 12px;
 }
 
 .savedRangePreview {
@@ -341,9 +484,47 @@
 
 .timeLayout {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(240px, 0.9fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
     gap: 12px;
     align-items: start;
+    min-width: 0;
+}
+
+.timeConfiguredSection,
+.timeQuickSection {
+    min-width: 0;
+}
+
+.timeSummaryGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    width: 50%;
+    min-width: min(100%, 220px);
+    max-width: 100%;
+}
+
+.timeSummaryGrid .editorFixedValue {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+}
+
+.timeQuickRange {
+    width: 100%;
+    min-width: 0;
+}
+
+.timeQuickRange > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 2px 8px;
+    min-width: 0;
+}
+
+.timeQuickRange > div > div {
+    min-width: 0;
 }
 
 .displayTabRow {
@@ -427,6 +608,17 @@
     .dataSettingGrid,
     .timeLayout {
         grid-template-columns: 1fr;
+    }
+
+    .dataSettingAlignmentSpacer {
+        display: none;
+    }
+}
+
+@media (max-width: 520px) {
+    .timeSummaryGrid {
+        grid-template-columns: 1fr;
+        width: 100%;
     }
 }
 

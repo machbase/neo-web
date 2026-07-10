@@ -1,4 +1,4 @@
-import type { PanelRangeState } from '../panel/PanelConfig';
+import type { PanelRangeState } from '../panel/PanelInfo';
 import type { TimeRangeMs } from '../time/TimeTypes';
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
 import {
@@ -13,27 +13,23 @@ import {
     isValidTimeRange,
 } from '../time/TimeRangeUtils';
 
-export type PanelRangeApplyRequest = {
-    rangeState: PanelRangeState;
-    navigatorSelectionCenterRatio?: number;
-};
-
 export type PanelRangeChangeOptions = {
     navigatorSelectionCenterRatio?: number;
 };
 
-export type BoardPanelRecord = {
+type PanelRangeApplyRequest = PanelRangeChangeOptions & {
     rangeState: PanelRangeState;
-    chartAreaWidth: number | undefined;
-    dataRefreshVersion: number;
 };
 
-export type PanelRangeApplyResult = {
+type BoardPanelRecord = {
+    rangeState: PanelRangeState;
+    chartAreaWidth: number | undefined;
+};
+
+type PanelRangeApplyResult = {
     resolvedRangeState: PanelRangeState;
     didChange: boolean;
 };
-
-export type RequestPanelDataRefresh = (panelKey: string) => void;
 
 export function createInitialPanelRangeState(): PanelRangeState {
     return {
@@ -42,12 +38,6 @@ export function createInitialPanelRangeState(): PanelRangeState {
         fullRange: EMPTY_TIME_RANGE,
     };
 }
-
-export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
-    rangeState: createInitialPanelRangeState(),
-    chartAreaWidth: undefined,
-    dataRefreshVersion: 0,
-});
 
 export function hasConcretePanelRangeState(rangeState: PanelRangeState): boolean {
     return (

@@ -20,8 +20,9 @@ import {
     PANEL_SLIDER_DATA_ZOOM_ID,
 } from './PanelChartOptionConstants';
 import type { RuntimePanelDisplay } from '../../../domain/panel/PanelRuntime';
+import { getChartSeriesEChartsName } from '../../../domain/ChartDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisPointerLabel } from '../../../formatting/TimeFormatters';
+import { formatAxisPointerLabel } from '../../../domain/time/TimeFormatters';
 import {
     getChartLayoutMetrics,
     PANEL_GRID_BOTTOM,
@@ -46,6 +47,7 @@ type PanelChartFrameOptions = Pick<
 >;
 
 const LEGEND_TEXT_STYLE = { color: '#e7e8ea', fontSize: 10 } satisfies LegendComponentOption['textStyle'];
+type SeriesDisplayNameMap = Map<string, string>;
 
 const TOOLTIP_BASE: TooltipComponentOption = {
     trigger: 'axis' as const,
@@ -76,6 +78,8 @@ export function buildPanelChartFrameOptions(
     chartInfo: ChartInfo,
 ): PanelChartFrameOptions {
     const sLayout = getChartLayoutMetrics(chartInfo.display.showLegend);
+    const sSeriesDisplayNameByEChartsName =
+        createSeriesDisplayNameByEChartsName(chartInfo.mainSeriesData);
 
     return {
         grid: [
@@ -101,16 +105,23 @@ export function buildPanelChartFrameOptions(
             top: PANEL_LEGEND_TOP,
             itemGap: 15,
             textStyle: LEGEND_TEXT_STYLE,
+            formatter: (seriesName: string) =>
+                sSeriesDisplayNameByEChartsName.get(seriesName) ?? seriesName,
             selected: Object.fromEntries(
-                chartInfo.mainSeriesData.map((series) => [
-                    series.name,
-                    chartInfo.visibleSeries[series.name] !== false,
-                ]),
+                chartInfo.mainSeriesData.map((series) => {
+                    const sEChartsName = getChartSeriesEChartsName(series);
+
+                    return [
+                        sEChartsName,
+                        chartInfo.visibleSeries[sEChartsName] !== false,
+                    ];
+                }),
             ),
         },
         tooltip: buildChartTooltipOption(
             chartInfo.isNumericXAxis,
             chartInfo.displayPanelRange,
+            sSeriesDisplayNameByEChartsName,
         ),
         dataZoom: buildPanelChartDataZoomOption(
             chartInfo.display,
@@ -121,6 +132,17 @@ export function buildPanelChartFrameOptions(
         toolbox: HIDDEN_PANEL_TOOLBOX_OPTION,
         title: HIDDEN_PANEL_TITLE_OPTION,
     };
+}
+
+function createSeriesDisplayNameByEChartsName(
+    seriesData: ChartInfo['mainSeriesData'],
+): SeriesDisplayNameMap {
+    return new Map(
+        seriesData.map((series) => [
+            getChartSeriesEChartsName(series),
+            series.name,
+        ]),
+    );
 }
 
 function buildPanelChartDataZoomOption(
@@ -207,14 +229,21 @@ function getTooltipPrimitiveArrayValue(
         : undefined;
 }
 
-function formatTooltipRow(tooltipParam: PanelTooltipParam): string {
+function formatTooltipRow(
+    tooltipParam: PanelTooltipParam,
+    seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
+): string {
     const sColorStyle =
         typeof tooltipParam.color === 'string'
             ? `color:${tooltipParam.color};`
             : '';
     const sValue = getTooltipPrimitiveArrayValue(tooltipParam.value);
+    const sSeriesName =
+        seriesDisplayNameByEChartsName.get(tooltipParam.seriesName ?? '') ??
+        tooltipParam.seriesName ??
+        '';
 
-    return `<div style="${sColorStyle}margin:0;padding:0;white-space:nowrap">${tooltipParam.seriesName} : ${sValue?.[1] ?? ''}</div>`;
+    return `<div style="${sColorStyle}margin:0;padding:0;white-space:nowrap">${sSeriesName} : ${sValue?.[1] ?? ''}</div>`;
 }
 
 function getMainSeriesTooltipItems(
@@ -236,6 +265,7 @@ function formatChartTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     isNumericXAxis: boolean,
     panelRange: TimeRangeMs,
+    seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): string {
     const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
     if (sMainSeriesItems.length === 0) {
@@ -252,7 +282,11 @@ function formatChartTooltip(
     return `<div>
             <div style="min-width:0;padding-left:10px;font-size:10px;color:#afb5bc">${sTime}</div>
             <div style="padding:6px 0 0 10px">
-            ${sMainSeriesItems.map(formatTooltipRow).join('')}
+            ${sMainSeriesItems
+                .map((item) =>
+                    formatTooltipRow(item, seriesDisplayNameByEChartsName),
+                )
+                .join('')}
             </div>
         </div>`;
 }
@@ -260,6 +294,7 @@ function formatChartTooltip(
 function buildChartTooltipOption(
     isNumericXAxis: boolean,
     panelRange: TimeRangeMs,
+    seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): TooltipComponentOption {
     return {
         ...TOOLTIP_BASE,
@@ -275,6 +310,7 @@ function buildChartTooltipOption(
                 tooltipFormatterParams,
                 isNumericXAxis,
                 panelRange,
+                seriesDisplayNameByEChartsName,
             ),
     };
 }

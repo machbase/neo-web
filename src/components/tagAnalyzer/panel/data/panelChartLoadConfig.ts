@@ -1,17 +1,17 @@
-import type { PanelInfo } from '../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../domain/panel/PanelInfo';
 import type {
     RuntimePanelSampling,
     RuntimePanelXAxis,
 } from '../../domain/panel/PanelRuntime';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
-import type { TimeRangeMs } from '../../domain/time/TimeTypes';
+import type { TimeRangeMs, TimeUnit } from '../../domain/time/TimeTypes';
 import { isValidTimeRange } from '../../domain/time/TimeRangeUtils';
 import { RAW_NAVIGATOR_SAMPLING_VALUE } from '../../fetch/panelData/PanelSeriesDataRepository';
 
 export type PanelChartDataLoadConfig = {
     seriesList: PanelSeriesDefinition[];
     queryLimit: number;
-    intervalType: string | undefined;
+    intervalType: TimeUnit | undefined;
     isRaw: boolean;
     useOrderBy: boolean;
     xAxis: RuntimePanelXAxis;

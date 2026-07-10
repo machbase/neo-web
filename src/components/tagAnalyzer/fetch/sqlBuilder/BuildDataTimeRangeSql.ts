@@ -19,25 +19,20 @@ import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 import {
     buildSqlIdentifierPath,
     buildSqlStringLiteralList,
+    joinSqlLines,
 } from './SqlTextUtils';
 
 export function buildGroupedSeriesDataTimeRangeSql(tableTagMap: TableTagMap[]): string {
-    return tableTagMap.map((info) => buildTableDataTimeRangeSql(info)).join(` ${UNION_ALL_KEYWORD} `);
+    return tableTagMap.map((info) => buildTableDataTimeRangeSql(info))
+        .join(`\n${UNION_ALL_KEYWORD}\n`);
 }
 
-export function buildVirtualStatOrMountedTableDataTimeRangeSql(
-    tableName: string,
-    tagNameList: string[],
-): string {
-    const sSplitTable = tableName.split('.');
-    const sUserName = getVirtualStatUserName(sSplitTable);
-    const sSourceTableName = sSplitTable.at(-1) ?? tableName;
+export function getSeriesDataTimeRangeTargetTableName(info: TableTagMap): string {
+    const sTableInfo = info.table.split('.');
 
-    return buildVirtualStatTimeRangeSql(
-        sUserName,
-        sSourceTableName,
-        tagNameList,
-    );
+    return isNumericBaseTimeSourceColumns(info.cols)
+        ? getNumericBaseTimeRangeTargetTableName(info, sTableInfo)
+        : getMachbaseStatTimeRangeTargetTableName(info, sTableInfo);
 }
 
 function buildTableDataTimeRangeSql(info: TableTagMap): string {
@@ -54,9 +49,7 @@ function buildNumericBaseTimeRangeSql(
     info: TableTagMap,
     tableInfo: string[],
 ): string {
-    const sTableName = tableInfo.length === 1
-        ? `${ADMIN_ID}.${info.table}`
-        : info.table;
+    const sTableName = getNumericBaseTimeRangeTargetTableName(info, tableInfo);
     const sTags = buildSqlStringLiteralList(info.tags);
     const sTimeColumn = buildSqlIdentifierPath(info.cols.time, 'SQL time column');
     const sNameColumn = buildSqlIdentifierPath(
@@ -68,36 +61,56 @@ function buildNumericBaseTimeRangeSql(
         buildSelectSqlPart([
             `MIN(${sTimeColumn}) ${AS_KEYWORD} ${MIN_TIME_RESULT_ALIAS}`,
             `MAX(${sTimeColumn}) ${AS_KEYWORD} ${MAX_TIME_RESULT_ALIAS}`,
-        ].join(', ')),
+        ].join(',\n    ')),
         buildTableTargetSqlPart(sTableName),
-        `${WHERE_KEYWORD} ${sNameColumn} ${IN_KEYWORD} (${sTags}) ${AND_KEYWORD} ${sTimeColumn} IS NOT NULL`,
+        joinSqlLines([
+            `${WHERE_KEYWORD} ${sNameColumn} ${IN_KEYWORD} (${sTags})`,
+            `  ${AND_KEYWORD} ${sTimeColumn} IS NOT NULL`,
+        ]),
     );
+}
+
+function getNumericBaseTimeRangeTargetTableName(
+    info: TableTagMap,
+    tableInfo: string[],
+): string {
+    return tableInfo.length === 1
+        ? `${ADMIN_ID}.${info.table}`
+        : info.table;
 }
 
 function buildMachbaseStatTimeRangeSql(
     info: TableTagMap,
     tableInfo: string[],
 ): string {
+    return buildVirtualStatTimeRangeSql(
+        getMachbaseStatTimeRangeTargetTableName(info, tableInfo),
+        info.tags,
+    );
+}
+
+function getMachbaseStatTimeRangeTargetTableName(
+    info: TableTagMap,
+    tableInfo: string[],
+): string {
     const sTableName = tableInfo.at(-1) ?? info.table;
     const sUserName = getVirtualStatUserName(tableInfo);
 
-    return buildVirtualStatTimeRangeSql(sUserName, sTableName, info.tags);
+    return `${sUserName}.V$${getVirtualStatSourceTableName(sTableName)}_STAT`;
 }
 
 function buildVirtualStatTimeRangeSql(
-    userName: string,
     tableName: string,
     tagNameList: string[],
 ): string {
     const sTags = buildSqlStringLiteralList(tagNameList);
-    const sVirtualStatTableName = buildVirtualStatTableName(userName, tableName);
 
     return buildQuerySql(
         buildSelectSqlPart([
             `${MIN_TIME_COLUMN_NAME} ${AS_KEYWORD} ${MIN_TIME_RESULT_ALIAS}`,
             `${MAX_TIME_COLUMN_NAME} ${AS_KEYWORD} ${MAX_TIME_RESULT_ALIAS}`,
-        ].join(', ')),
-        buildTableTargetSqlPart(sVirtualStatTableName),
+        ].join(',\n    ')),
+        buildTableTargetSqlPart(tableName),
         `${WHERE_KEYWORD} ${NAME_COLUMN_NAME} ${IN_KEYWORD} (${sTags})`,
     );
 }
@@ -112,18 +125,6 @@ function getVirtualStatUserName(tableInfo: string[]): string {
     }
 
     return tableInfo.at(-2) ?? ADMIN_ID.toUpperCase();
-}
-
-function buildVirtualStatTableName(
-    userName: string,
-    tableName: string,
-): string {
-    const sSourceTableName = getVirtualStatSourceTableName(tableName);
-
-    return buildSqlIdentifierPath(
-        `${userName}.V$${sSourceTableName}_STAT`,
-        'SQL virtual stat table name',
-    );
 }
 
 function getVirtualStatSourceTableName(tableName: string): string {

@@ -3,7 +3,7 @@ import {
     normalizePanelQueryCount,
     type PanelInfo,
     type PanelYAxis,
-} from '../../domain/panel/PanelConfig';
+} from '../../domain/panel/PanelInfo';
 import { isPlainObject } from '../../domain/ObjectGuards';
 import { normalizeStoredTimeUnit } from '../../domain/time/TimeIntervalUtils';
 import { normalizePanelViewRange } from '../../domain/panelRange/PanelRangeResolver';
@@ -71,9 +71,9 @@ export function parseLoadedPanelTazVer204(
         query: {
             tagSet: panelInfo.data.tag_set,
             count: normalizePanelQueryCount(panelInfo.data.count),
-            intervalType:
-                normalizeStoredTimeUnit(panelInfo.data.interval_type ?? '') ??
-                panelInfo.data.interval_type,
+            intervalType: normalizeStoredTimeUnit(
+                panelInfo.data.interval_type ?? '',
+            ),
         },
         mode: {
             isRaw: panelInfo.general.is_raw,

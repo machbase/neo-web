@@ -1,5 +1,5 @@
 import { Checkbox, Input } from '@/design-system/components';
-import type { PanelInfo } from '../../../domain/panel/PanelConfig';
+import type { PanelInfo } from '../../../domain/panel/PanelInfo';
 import styles from '../PanelEditor.module.scss';
 
 type EditorGeneralTabProps = {
@@ -101,7 +101,7 @@ function EditorGeneralTab({
                     <div className={styles.savedRangeWarning}>
                         {pTimeConfig.useLastViewedRange
                             ? "Range will be saved: Save and Save As store this panel's current visible range in the TAZ."
-                            : 'Range is temporary: Save and Save As keep the panel configured time range only.'}
+                            : 'Range is temporary: Save and Save As keep the panel configured range only.'}
                     </div>
                 </div>
             </div>

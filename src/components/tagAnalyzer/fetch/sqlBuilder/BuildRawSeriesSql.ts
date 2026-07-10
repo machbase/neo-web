@@ -21,9 +21,10 @@ import {
 import {
     buildSqlIdentifierPath,
     buildSqlStringLiteral,
+    joinSqlLines,
 } from './SqlTextUtils';
+import { toQueryResultMillisecondsSql } from './SqlTimeValueUtils';
 import type { TimeRangeNs } from '../../domain/time/TimeTypes';
-import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/TimeConstants';
 import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
 import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 
@@ -63,7 +64,7 @@ export function buildRawSeriesSql(
     );
     const sTimeExpression = isNumericBaseTimeSourceColumns(sourceColumnMap)
         ? `${sTimeColumn} ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`
-        : `to_timestamp(${sTimeColumn}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
+        : `${toQueryResultMillisecondsSql(sTimeColumn)} ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
     const sTimeRangeCondition = buildTimeRangeConditionSql(
         sTimeColumn,
         requestedTimeRange.startTime,
@@ -82,12 +83,15 @@ export function buildRawSeriesSql(
         : buildLimitSqlPart(requestedRowCount);
     const sOrderBySql = buildOrderBySqlPart(sortOrder);
     const sSelectSql = sampling.kind === 'enabled'
-        ? `${SELECT_KEYWORD}${sSamplingHintSql} ${sTimeExpression}, ${sValueExpression}`
-        : buildSelectSqlPart(`${sTimeExpression}, ${sValueExpression}`);
+        ? `${SELECT_KEYWORD}${sSamplingHintSql} ${sTimeExpression},\n    ${sValueExpression}`
+        : buildSelectSqlPart(`${sTimeExpression},\n    ${sValueExpression}`);
     const rawSeriesSql = buildQuerySql(
         sSelectSql,
         buildTableTargetSqlPart(sourceTableName),
-        `${WHERE_KEYWORD} ${sNameColumn} = ${buildSqlStringLiteral(tagName)} ${AND_KEYWORD} ${sTimeRangeCondition}`,
+        joinSqlLines([
+            `${WHERE_KEYWORD} ${sNameColumn} = ${buildSqlStringLiteral(tagName)}`,
+            `  ${AND_KEYWORD} ${sTimeRangeCondition}`,
+        ]),
         '',
         sOrderBySql,
         sLimitSql,

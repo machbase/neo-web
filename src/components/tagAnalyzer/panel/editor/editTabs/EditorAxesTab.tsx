@@ -1,7 +1,9 @@
-import { Checkbox, Dropdown } from '@/design-system/components';
-import type { PanelAxes, PanelYAxis } from '../../../domain/panel/PanelConfig';
+import { Duplicate } from '@/assets/icons/Icon';
+import { Button, Checkbox, Dropdown } from '@/design-system/components';
+import type { PanelAxes, PanelYAxis } from '../../../domain/panel/PanelInfo';
 import {
     getPanelSeriesDisplayColor,
+    getPanelSeriesDisplayName,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
 import { cx, isAxisRangeInvalid } from './EditorFieldUtils';
@@ -18,7 +20,7 @@ type ThresholdKey = 'upperControlLimit' | 'lowerControlLimit';
 
 const AXIS_FLAGS = [['zeroBase', 'The scale of the Y-axis start at zero'], ['showTickline', 'Displays the Y-Axis tick line']] as const;
 const RANGES = [['valueRange', 'Custom scale'], ['rawValueRange', 'Custom scale for raw data chart']] as const;
-const THRESHOLDS = [['upperControlLimit', 'use UCL'], ['lowerControlLimit', 'use LCL']] as const;
+const THRESHOLDS = [['lowerControlLimit', 'use LCL'], ['upperControlLimit', 'use UCL']] as const;
 
 const EditorAxesTab = ({
     pAxesConfig,
@@ -44,6 +46,22 @@ const EditorAxesTab = ({
             rightY: {
                 ...pAxesConfig.rightY,
                 enabled: checked,
+            },
+        });
+    };
+    const copyLeftYAxisToRight = () => {
+        const { leftY, rightY } = pAxesConfig;
+
+        pOnChangeAxesConfig({
+            ...pAxesConfig,
+            rightY: {
+                ...rightY,
+                zeroBase: leftY.zeroBase,
+                showTickline: leftY.showTickline,
+                valueRange: { ...leftY.valueRange },
+                rawValueRange: { ...leftY.rawValueRange },
+                upperControlLimit: { ...leftY.upperControlLimit },
+                lowerControlLimit: { ...leftY.lowerControlLimit },
             },
         });
     };
@@ -139,7 +157,7 @@ const EditorAxesTab = ({
                     .filter((item) => !item.useSecondaryAxis)
                     .map((item) => ({
                         value: item.key,
-                        label: item.alias || `${item.sourceTagName}(${item.calculationMode})`,
+                        label: getPanelSeriesDisplayName(item),
                     }))}
                 value="none"
                 onChange={(value) => value !== 'none' && setSeriesAxis(value, true)}
@@ -163,7 +181,7 @@ const EditorAxesTab = ({
                             )}`,
                         }}
                     >
-                        <span>{item.alias || `${item.sourceTagName}(${item.calculationMode})`}</span>
+                        <span>{getPanelSeriesDisplayName(item)}</span>
                     </div>
                 ))}
             </div>
@@ -173,15 +191,31 @@ const EditorAxesTab = ({
         const axis = pAxesConfig[axisKey];
 
         return (
-            <Section title={title}>
-                {axisKey === 'rightY' && (
-                    <Checkbox
-                        checked={pAxesConfig.rightY.enabled}
-                        onChange={(event) => setRightEnabled(event.target.checked)}
-                        label="Enable right Y-axis"
-                        size="sm"
-                    />
-                )}
+            <Section
+                title={title}
+                headerAddon={axisKey === 'rightY' ? (
+                    <div className={styles.rightAxisHeaderActions}>
+                        <Checkbox
+                            checked={pAxesConfig.rightY.enabled}
+                            onChange={(event) => setRightEnabled(event.target.checked)}
+                            label="Enable"
+                            aria-label="Enable right Y-axis"
+                            size="sm"
+                            className={styles.sectionHeaderCheckbox}
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            isToolTip
+                            toolTipContent="Copy left Y-axis settings"
+                            aria-label="Copy left Y-axis settings"
+                            icon={<Duplicate size={14} />}
+                            onClick={copyLeftYAxisToRight}
+                        />
+                    </div>
+                ) : undefined}
+            >
                 {AXIS_FLAGS.map(([field, label]) => (
                     <Checkbox
                         key={field}

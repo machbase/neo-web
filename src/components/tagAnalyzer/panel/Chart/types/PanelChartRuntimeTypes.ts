@@ -25,7 +25,7 @@ export type EChartDataZoomOptionStateItem = {
     endValue?: number | string | Date;
 };
 
-export type EChartBrushAreaPayload = {
+type EChartBrushAreaPayload = {
     coordRange: [number, number] | undefined;
     range: [number, number] | undefined;
 };
@@ -45,7 +45,7 @@ type PanelChartBrushOption = {
     xAxisIndex?: number;
 };
 
-export type PanelChartAction =
+type PanelChartAction =
     | { type: 'takeGlobalCursor'; key: 'brush'; brushOption: PanelChartBrushOption }
     | { type: 'brush'; areas: [] }
     | { type: 'dataZoom'; dataZoomId?: string; startValue: number; endValue: number }
@@ -145,9 +145,11 @@ export type PanelChartInstance = {
         option: PanelChartSetOptionPatch,
         options?: {
             lazyUpdate?: boolean;
+            notMerge?: boolean;
             replaceMerge?: string | string[];
         },
     ) => void) | undefined;
+    clear?: () => void;
     hideLoading?: () => void;
     containPixel?: (finder: { gridIndex: number }, value: [number, number]) => boolean;
     convertFromPixel?: (finder: PanelChartPixelFinder, value: [number, number]) => unknown;

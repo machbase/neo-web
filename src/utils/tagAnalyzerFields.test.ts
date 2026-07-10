@@ -1,4 +1,8 @@
-import { canUseTagAnalyzerRollup, createTagAnalyzerColumnInfoFromDashboardBlock } from './tagAnalyzerFields';
+import {
+    canUseTagAnalyzerRollup,
+    createTagAnalyzerColumnInfoFromDashboardBlock,
+    getTagAnalyzerTimeColumns,
+} from './tagAnalyzerFields';
 
 const BASETIME_FLAG = 0x01000000;
 
@@ -92,5 +96,25 @@ describe('createTagAnalyzerColumnInfoFromDashboardBlock', () => {
         expect(colName.time).toBe('ODOMETER_M');
         expect(colName.timeType).toBe(20);
         expect(colName.timeBaseTime).toBe(true);
+    });
+});
+
+describe('getTagAnalyzerTimeColumns', () => {
+    test('returns every basetime column and every DateTime column', () => {
+        expect(
+            getTagAnalyzerTimeColumns([
+                { name: 'NAME', type: 5, flag: 0 },
+                { name: 'TIME', type: 6, flag: 0 },
+                { name: 'EVENT_AT', type: 6, flag: 0 },
+                { name: 'ODOMETER', type: 20, flag: BASETIME_FLAG },
+                { name: 'SEQ', type: 12, flag: BASETIME_FLAG },
+                { name: 'VALUE', type: 20, flag: 0 },
+            ]),
+        ).toEqual([
+            ['TIME', 6],
+            ['EVENT_AT', 6],
+            ['ODOMETER', 20],
+            ['SEQ', 12],
+        ]);
     });
 });
