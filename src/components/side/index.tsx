@@ -7,10 +7,23 @@ import { SecurityKeySide } from './SecurityKey';
 import { Side } from '@/design-system/components';
 import { TimerSide } from './Timer';
 import { ShellSide } from './Shell';
+import type { NeoUpdateStatus } from '@/api/repository/neoUpdate';
 
-export const SidePanel = ({ pServer, pGetInfo, pSavedPath, pSelectedExtension }: { pServer: any; pGetInfo: any; pSavedPath: any; pSelectedExtension: any }) => {
+export const SidePanel = ({
+    pServer,
+    pNeoUpdateStatus,
+    pGetInfo,
+    pSavedPath,
+    pSelectedExtension,
+}: {
+    pServer: any;
+    pNeoUpdateStatus?: NeoUpdateStatus;
+    pGetInfo: any;
+    pSavedPath: any;
+    pSelectedExtension: any;
+}) => {
     return (
-        <Side.Root pServer={pServer}>
+        <Side.Root pServer={pServer} pNeoUpdateStatus={pNeoUpdateStatus}>
             <FileExplorer pGetInfo={pGetInfo} pSavedPath={pSavedPath} pDisplay={pSelectedExtension === 'EXPLORER'} />
             {pSelectedExtension === 'DBEXPLORER' && <DBExplorer />}
             {pSelectedExtension === 'SHELL' && <ShellSide />}

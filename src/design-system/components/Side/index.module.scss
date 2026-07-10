@@ -21,11 +21,53 @@
     background-color: c.$color-transparent;
     font-size: 12px;
 
-    span {
+    .sideVersionButton {
+        width: 100%;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        color: c.$text-secondary;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0;
+        font: inherit;
+        text-align: left;
+
+        &:hover {
+            color: c.$text-primary;
+        }
+    }
+
+    .sideVersionText {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
         word-break: break-all;
+        min-width: 0;
+    }
+
+    .sideVersionChip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        height: 18px;
+        padding: 0 6px;
+        border-radius: 4px;
+        color: c.$color-white;
+        font-size: 10px;
+        line-height: 18px;
+        white-space: nowrap;
+
+        &.latest {
+            background-color: c.$btn-status;
+        }
+
+        &.update {
+            background-color: c.$warning-main;
+        }
     }
 }
 

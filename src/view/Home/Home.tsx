@@ -19,6 +19,7 @@ import { useExperiment } from '@/hooks/useExperiment';
 import GNBPanel from '@/components/extension/Extension';
 import { SidePanel } from '@/components/side';
 import { useHomeSidePaneSizes } from './useHomeSidePaneSizes';
+import { useNeoUpdateStatus } from '@/hooks/useNeoUpdateStatus';
 
 const HomeContent = () => {
     const { sideSizes: sSideSizes, setSideSizes, openSideBar, closeSideBar } = useHomeSidePaneSizes();
@@ -41,6 +42,7 @@ const HomeContent = () => {
     const { connectWebSocket, disconnectWebSocket } = useWebSocket();
     const navigate = useNavigate();
     const { setExperiment } = useExperiment();
+    const sNeoUpdateStatus = useNeoUpdateStatus((sServer as any)?.version);
 
     const handleOpenSideBar = () => {
         setIsSidebar(true);
@@ -158,7 +160,15 @@ const HomeContent = () => {
             <div className="body-form">
                 <SplitPane split="vertical" allowResize={sIsSidebar} sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     <Pane minSize={0} maxSize="50%">
-                        {sHome ? <SidePanel pServer={sServer} pGetInfo={getInfo} pSavedPath={sSavedPath} pSelectedExtension={sSelectedExtension} /> : null}
+                        {sHome ? (
+                            <SidePanel
+                                pServer={sServer}
+                                pNeoUpdateStatus={sNeoUpdateStatus}
+                                pGetInfo={getInfo}
+                                pSavedPath={sSavedPath}
+                                pSelectedExtension={sSelectedExtension}
+                            />
+                        ) : null}
                     </Pane>
                     <Pane>
                         <div
