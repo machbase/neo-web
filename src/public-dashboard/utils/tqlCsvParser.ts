@@ -19,7 +19,9 @@ const HeaderParser = (colLen: number) => {
 };
 
 export const TqlCsvParser = (raw: any) => {
+    if (String(raw ?? '').trim() === '') return [[], []];
     const sParsedCsvBody: any = BodyParser(raw);
+    if (!sParsedCsvBody.data.length || !sParsedCsvBody.data[0]) return [[], []];
     const sParsedCsvHeader: any = HeaderParser(sParsedCsvBody.data[0].length);
     return [sParsedCsvBody.data, sParsedCsvHeader];
 };
