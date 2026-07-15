@@ -113,6 +113,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const focusSnapshotRef = useRef<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
+    const [sHasRun, setHasRun] = useState<boolean>(false);
     const [sIsInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const sHasHandledInitialCollapsedRun = useRef<boolean>(false);
     const { getExperiment } = useExperiment();
@@ -470,6 +471,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 if (pAllRunCodeStatus) pAllRunCodeCallback(false);
             }
         } finally {
+            setHasRun(true);
             setProcessing(false);
         }
     };
@@ -558,17 +560,38 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     />
                 ) : null}
                 {sTqlResultType === 'mrk' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} pType="wrk-mrk" /> : null}
-                {sTqlResultType === 'xhtml' ? <Markdown pIdx={pIdx} pContents={sTqlMarkdown} /> : null}
-                {sTqlResultType === 'text' && sTqlTextResult ? (
-                    isValidJSON(sTqlTextResult) ? (
-                        <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre>
-                    ) : (
-                        <div className="result-worksheet-pre">
-                            <pre>{sTqlTextResult}</pre>
+                {sTqlResultType === 'xhtml'
+                    ? sTqlMarkdown && String(sTqlMarkdown).trim() !== '' ? (
+                          <Markdown pIdx={pIdx} pContents={sTqlMarkdown} />
+                      ) : sHasRun ? (
+                          <div className="result-worksheet-total">
+                              <span>No record</span>
+                          </div>
+                      ) : null
+                    : null}
+                {sTqlResultType === 'text' ? (
+                    sTqlTextResult ? (
+                        isValidJSON(sTqlTextResult) ? (
+                            <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre>
+                        ) : (
+                            <div className="result-worksheet-pre">
+                                <pre>{sTqlTextResult}</pre>
+                            </div>
+                        )
+                    ) : sHasRun ? (
+                        <div className="result-worksheet-total">
+                            <span>No record</span>
                         </div>
-                    )
+                    ) : null
                 ) : null}
-                {sTqlResultType === 'ndjson' && <pre>{sTqlTextResult}</pre>}
+                {sTqlResultType === 'ndjson' &&
+                    (sTqlTextResult && String(sTqlTextResult).trim() !== '' ? (
+                        <pre>{sTqlTextResult}</pre>
+                    ) : sHasRun ? (
+                        <div className="result-worksheet-total">
+                            <span>No record</span>
+                        </div>
+                    ) : null)}
             </>
         );
     };

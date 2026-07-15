@@ -12,6 +12,20 @@ test.each([
     expect(TqlCsvParser(aQueryText)).toEqual(expected);
 });
 
+// Contract: an empty / whitespace-only CSV body must not crash. papaparse with
+// skipEmptyLines drops blank lines, leaving `data === []` (or a single blank
+// cell for whitespace-only input), which would otherwise throw a TypeError on
+// `data[0].length`. Guard returns an empty body + empty header so the result
+// area renders an empty table instead of surfacing an error. (machbase/neo #1421)
+test.each([
+    ['CSV - empty string', ''],
+    ['CSV - single newline', '\n'],
+    ['CSV - double newline', '\n\n'],
+    ['CSV - whitespace only', '   '],
+])('TQL - %s returns empty body + empty header (no crash)', (_, aQueryText) => {
+    expect(TqlCsvParser(aQueryText)).toEqual([[], []]);
+});
+
 // Contract: a multi-row CSV must be returned as a body containing EVERY data
 // row (no header row split off). This guards the TQL header-toggle regression
 // where the first data row was being consumed as a header.

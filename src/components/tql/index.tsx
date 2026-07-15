@@ -150,6 +150,7 @@ const Tql = (props: TqlProps) => {
     };
 
     const handleChangeHeader = (aValue: any[]) => {
+        if (!aValue?.[0]) return;
         const tempHeaders: string[] = [];
         aValue[0].map((aItem: string, aIdx: number) => {
             if (sIsHeader) {
@@ -249,7 +250,7 @@ const Tql = (props: TqlProps) => {
                                     aria-label="JSON format"
                                 />
                             ) : null}
-                            {sResultType === 'csv' ? (
+                            {sResultType === 'csv' && sCsv.length > 0 ? (
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -284,7 +285,13 @@ const Tql = (props: TqlProps) => {
                         </Button.Group>
                     </Page.Header>
                     <Page.Body style={{ padding: '2px 4px' }}>
-                        {sResultType === 'csv' ? <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} /> : null}
+                        {sResultType === 'csv' ? (
+                            sCsv.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
+                            ) : (
+                                <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} />
+                            )
+                        ) : null}
                         {sResultType === 'text' && sTextField ? (
                             sIsPrettier && isValidJSON(sTextField) ? (
                                 <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
@@ -299,7 +306,12 @@ const Tql = (props: TqlProps) => {
                                 </div>
                             )
                         ) : null}
-                        {sResultType === 'ndjson' && <pre>{sTextField}</pre>}
+                        {sResultType === 'ndjson' &&
+                            (sTextField && String(sTextField).trim() !== '' ? (
+                                <pre>{sTextField}</pre>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
+                            ))}
                         {/* Map & Chart */}
                         {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
                         {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}

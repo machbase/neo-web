@@ -150,3 +150,110 @@ describe('Tql CSV header toggle', () => {
         expect(screen.getByText('column0')).toBeInTheDocument();
     });
 });
+
+// machbase/neo #1421 — an empty text/csv response must render a centered
+// "No record" text (not a crash, not raw error text, and no table frame). This is
+// the SAME empty-state used by the ndjson sink, so both sinks look identical when
+// the query produced zero rows.
+describe('Tql empty CSV result (neo #1421)', () => {
+    // A body of "\n" is what the backend returns for a query that produced no
+    // rows. TqlCsvParser guards it to [[], []] (Phase 1), so sCsv/sCsvHeader end
+    // up empty while sResultType stays 'csv'.
+    const emptyCsvResponse = () => ({ status: 200, headers: CSV_HEADERS, data: '\n' });
+
+    beforeEach(() => {
+        jest.mocked(getTqlChart).mockResolvedValue(emptyCsvResponse() as any);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('renders a centered "No record" text (no table), no error, and no header toggle', async () => {
+        renderTql();
+        runQuery();
+
+        // Empty CSV renders a bare centered "No record" — identical to the ndjson
+        // empty state — with NO table frame.
+        await waitFor(() => expect(screen.getByText(/no record/i)).toBeInTheDocument());
+        expect(document.querySelector('.table-wrapper')).not.toBeInTheDocument();
+
+        // Zero data rows, no crash.
+        expect(getBodyRowCount()).toBe(0);
+
+        // No raw error text leaked, and the transient "Processing..." text is
+        // cleared once the CSV result renders.
+        expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
+        expect(screen.queryByText('Processing...')).not.toBeInTheDocument();
+
+        // Action B: the header toggle button is hidden for an empty result, so
+        // there is no dead/no-op button and no way to reach handleChangeHeader
+        // with an undefined first row.
+        expect(screen.queryByRole('button', { name: 'Hide header' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Show header' })).not.toBeInTheDocument();
+    });
+
+    test('a non-empty result rendered after an empty one restores the working header toggle', async () => {
+        renderTql();
+
+        // Query 1: empty result -> "No record", no table, no toggle button.
+        runQuery();
+        await waitFor(() => expect(screen.getByText(/no record/i)).toBeInTheDocument());
+        expect(document.querySelector('.table-wrapper')).not.toBeInTheDocument();
+        expect(getBodyRowCount()).toBe(0);
+        expect(screen.queryByRole('button', { name: /header$/ })).not.toBeInTheDocument();
+
+        // Query 2: real CSV -> toggle button comes back and works without crashing.
+        jest.mocked(getTqlChart).mockResolvedValue(csvResponse() as any);
+        runQuery();
+        await waitFor(() => expect(getBodyRowCount()).toBe(CSV_ROW_COUNT));
+        expect(() => fireEvent.click(getHeaderToggleButton())).not.toThrow();
+        await waitFor(() => expect(getBodyRowCount()).toBe(CSV_ROW_COUNT - 1));
+    });
+});
+
+// machbase/neo #1421 — an empty ndjson response (whitespace-only body) must show
+// the same centered "No record" hint instead of an invisible blank <pre>. The
+// ndjson result type is only set after a run, so the blank check is safe.
+describe('Tql empty ndjson result (neo #1421)', () => {
+    const NDJSON_HEADERS = { 'content-type': 'application/x-ndjson' };
+
+    // A whitespace-only body is what reaches the ndjson branch for a zero-row
+    // result: DetermineTqlResultType keeps it as NDJSON (non-empty string) while
+    // the payload is visually blank.
+    const emptyNdjsonResponse = () => ({ status: 200, headers: NDJSON_HEADERS, data: '\n' });
+
+    beforeEach(() => {
+        jest.mocked(getTqlChart).mockResolvedValue(emptyNdjsonResponse() as any);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('renders a centered "No record" hint instead of a blank pane', async () => {
+        renderTql();
+        runQuery();
+
+        await waitFor(() => expect(screen.getByText(/no record/i)).toBeInTheDocument());
+
+        // No raw <pre> body is rendered for the blank result, and the transient
+        // "Processing..." text is cleared once the ndjson result renders.
+        expect(document.querySelector('pre')).not.toBeInTheDocument();
+        expect(screen.queryByText('Processing...')).not.toBeInTheDocument();
+    });
+
+    test('a non-empty ndjson result rendered after an empty one shows the raw body', async () => {
+        renderTql();
+
+        // Query 1: empty ndjson -> "No record".
+        runQuery();
+        await waitFor(() => expect(screen.getByText(/no record/i)).toBeInTheDocument());
+
+        // Query 2: real ndjson payload -> raw <pre> body, no "No record".
+        jest.mocked(getTqlChart).mockResolvedValue({ status: 200, headers: NDJSON_HEADERS, data: '{"a":1}\n{"a":2}' } as any);
+        runQuery();
+        await waitFor(() => expect(document.querySelector('pre')?.textContent).toContain('{"a":1}'));
+        expect(screen.queryByText(/no record/i)).not.toBeInTheDocument();
+    });
+});

@@ -75,10 +75,11 @@ export const DetermineTqlResultType = (
 
 const WrkJsonParser = (aData: any) => {
     if (aData && typeof aData === 'object' && aData.success) {
-        if (aData.data.rows && aData.data.rows.length > 10) {
+        if (aData.data?.rows && aData.data.rows.length > 10) {
             const sLength = aData.data.rows.length;
             aData.data.rows = aData.data.rows.filter((_: number[], aIdx: number) => aIdx < 6 || sLength - 6 < aIdx);
             aData.data.rows.splice(5, 0, '....');
         }
     }
+    return aData;
 };
