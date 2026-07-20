@@ -108,6 +108,20 @@ const SideWrapper = ({ pServer, pNeoUpdateStatus, children }: SideWrapperProps) 
     );
 };
 
+const DownloadGlyph = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 3v12" />
+        <path d="m7 11 5 5 5-5" />
+        <path d="M5 21h14" />
+    </svg>
+);
+
+const CheckGlyph = () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20 6 9 17l-5-5" />
+    </svg>
+);
+
 const SideVersion = ({ pServer, pNeoUpdateStatus }: SideVersionProps) => {
     const latestVersion = pNeoUpdateStatus?.latestVersion;
     const showLatest = pNeoUpdateStatus?.state === 'latest';
@@ -120,9 +134,21 @@ const SideVersion = ({ pServer, pNeoUpdateStatus }: SideVersionProps) => {
     return (
         <div className={styles.sideVersion}>
             <button type="button" className={styles.sideVersionButton} onClick={handleClick}>
-                <span className={styles.sideVersionText}>Machbase-neo {pServer && pServer.version}</span>
-                {showLatest && <span className={`${styles.sideVersionChip} ${styles.latest}`}>Latest</span>}
-                {showUpdate && <span className={`${styles.sideVersionChip} ${styles.update}`}>Update {latestVersion}</span>}
+                <span className={styles.sideVersionText}>
+                    Machbase-neo{pServer && pServer.version ? <span className={styles.sideVersionNum}> {pServer.version}</span> : null}
+                </span>
+                {showLatest && (
+                    <span className={styles.sideVersionLatest}>
+                        <CheckGlyph />
+                        latest
+                    </span>
+                )}
+                {showUpdate && (
+                    <span className={styles.sideVersionUpdate}>
+                        <DownloadGlyph />
+                        <span className={styles.sideVersionNum}>{latestVersion}</span>
+                    </span>
+                )}
             </button>
         </div>
     );

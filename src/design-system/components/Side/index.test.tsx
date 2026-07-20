@@ -16,26 +16,29 @@ describe('SideVersion', () => {
         window.open = originalOpen;
     });
 
-    test('renders current version without status chip', () => {
+    test('renders current version without status indicator', () => {
         renderSideVersion({ pServer: { version: 'v8.5.2' } });
 
-        expect(screen.getByText('Machbase-neo v8.5.2')).toBeInTheDocument();
-        expect(screen.queryByText('Latest')).not.toBeInTheDocument();
+        expect(screen.getByText('Machbase-neo')).toBeInTheDocument();
+        expect(screen.getByText('v8.5.2')).toBeInTheDocument();
+        expect(screen.queryByText('latest')).not.toBeInTheDocument();
     });
 
-    test('renders latest chip', () => {
+    test('renders latest indicator', () => {
         renderSideVersion({ pServer: { version: 'v8.5.6' }, pNeoUpdateStatus: { state: 'latest', currentVersion: 'v8.5.6', latestVersion: 'v8.5.6' } });
 
-        expect(screen.getByText('Latest')).toBeInTheDocument();
+        expect(screen.getByText('latest')).toBeInTheDocument();
     });
 
-    test('renders update chip', () => {
+    test('renders update chip with the new version', () => {
         renderSideVersion({
             pServer: { version: 'v8.5.2' },
             pNeoUpdateStatus: { state: 'update-available', currentVersion: 'v8.5.2', latestVersion: 'v8.5.6' },
         });
 
-        expect(screen.getByText('Update v8.5.6')).toBeInTheDocument();
+        // chip carries only the new version (v8.5.6); the current version (v8.5.2) stays as plain text
+        expect(screen.getByText('v8.5.6')).toBeInTheDocument();
+        expect(screen.queryByText('Update v8.5.6')).not.toBeInTheDocument();
     });
 
     test('opens Neo home on click', () => {
