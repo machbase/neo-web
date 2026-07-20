@@ -2,6 +2,9 @@
 @use '../../tokens/mixins' as m;
 @use '../../tokens/scrollbar' as sb;
 
+// shared accent for both version indicators: latest text + update chip (version/icon)
+$version-accent: #4199ff;
+
 .sideWrapper {
     display: flex;
     flex-direction: column;
@@ -30,13 +33,22 @@
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: space-between;
+        gap: 8px;
         padding: 0;
         font: inherit;
         text-align: left;
 
+        // The "Machbase-neo" label keeps its static color; the hover affordance
+        // lives only on the update chip / latest indicator.
         &:hover {
-            color: c.$text-primary;
+            .sideVersionLatest {
+                color: #66adff;
+            }
+
+            .sideVersionUpdate {
+                background: rgba(64, 153, 255, 0.1);
+            }
         }
     }
 
@@ -48,26 +60,59 @@
         min-width: 0;
     }
 
-    .sideVersionChip {
+    .sideVersionNum {
+        font-family: 'D2Coding', monospace;
+        color: c.$text-disabled;
+    }
+
+    // up-to-date: quiet check + "latest" in info blue (no filled chip)
+    .sideVersionLatest {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        gap: 5px;
         flex-shrink: 0;
-        height: 18px;
-        padding: 0 6px;
-        border-radius: 4px;
-        color: c.$color-white;
-        font-size: 10px;
-        line-height: 18px;
+        font-size: 11px;
+        font-weight: 600;
+        color: $version-accent;
         white-space: nowrap;
+    }
 
-        &.latest {
-            background-color: c.$btn-status;
+    // update-available: compact outlined chip, border gently breathes in blue
+    .sideVersionUpdate {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        flex-shrink: 0;
+        height: 20px;
+        padding: 0 8px;
+        border: 1px solid rgba(c.$primary-light, 0.32);
+        border-radius: 5px;
+        background: transparent;
+        color: $version-accent;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        animation: sideVersionPulse 2.6s ease-in-out infinite;
+
+        .sideVersionNum {
+            color: inherit;
         }
 
-        &.update {
-            background-color: c.$warning-main;
+        @media (prefers-reduced-motion: reduce) {
+            animation: none;
+            border-color: rgba(c.$primary-light, 0.5);
         }
+    }
+}
+
+@keyframes sideVersionPulse {
+    0%,
+    100% {
+        border-color: rgba(c.$primary-light, 0.28);
+    }
+    50% {
+        border-color: rgba(64, 153, 255, 0.62);
     }
 }
 
