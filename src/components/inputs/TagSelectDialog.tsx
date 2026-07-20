@@ -35,8 +35,9 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
 
     const getTableInfo = async () => {
         const sFetchTableInfo: any = await fetchTableName(sSelectedTable);
-        if (sFetchTableInfo.success) {
-            const sColumnInfo = { name: sFetchTableInfo.data.rows[0][0], time: sFetchTableInfo.data.rows[1][0], value: sFetchTableInfo.data.rows[2][0] };
+        const sRows = sFetchTableInfo?.data?.rows;
+        if (sFetchTableInfo.success && sRows && sRows.length >= 3) {
+            const sColumnInfo = { name: sRows[0][0], time: sRows[1][0], value: sRows[2][0] };
             setColumns(sColumnInfo);
             return sColumnInfo;
         } else {
@@ -65,7 +66,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
         if (!sColumnName) return;
         const sResult: any = await getTagPagination(sTable, sSearchText, sTagPagination, sColumnName);
         if (sResult.success) {
-            if (!sSkipTagTotal && sTotalRes) setTotal(sTotalRes.data.rows[0][0]);
+            if (!sSkipTagTotal && sTotalRes?.data?.rows?.[0]) setTotal(sTotalRes.data.rows[0][0]);
             setTagList(sResult.data.rows);
         } else setTagList([]);
         setSkipTagTotal(false);

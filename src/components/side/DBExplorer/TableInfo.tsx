@@ -483,7 +483,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
             `${props.pTable[E_TABLE_INFO.TB_NM].toString()}`,
             `${props.pTable[E_TABLE_INFO.DB_NM] !== 'MACHBASEDB' ? props.pTable[E_TABLE_INFO.DB_NM] + '.' : ''}${props.pTable[E_TABLE_INFO.USER_NM].toString()}`
         );
-        if (res.success && res.data && res.data.rows[0][0]) setRecordCount(res.data.rows[0][0]);
+        if (res.success && res.data?.rows?.[0]?.[0]) setRecordCount(res.data.rows[0][0]);
         else setRecordCount(0);
     };
 
