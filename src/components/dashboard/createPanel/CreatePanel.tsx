@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
-import AutoRefreshControl from '../AutoRefreshControl';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
@@ -500,8 +499,6 @@ const CreatePanel = ({
                         </Button>
                         <Button size="icon" variant="ghost" isToolTip toolTipContent="Move range" icon={<VscChevronRight size={14} />} onClick={() => pMoveTimeRange('r')} />
                     </Button.Group>
-                    <Page.Divi direction={'vertical'} />
-                    <AutoRefreshControl pValue={pBoardInfo.dashboard.timeRange.refresh} pReadOnly />
                     <Page.Divi direction={'vertical'} />
                     <Page.DpRow>
                         <Page.TextButton pText="Discard" pType="DELETE" pCallback={handleDiscard} pWidth="75px" mb="0px" mr="4px" />

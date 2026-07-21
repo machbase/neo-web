@@ -36,6 +36,13 @@ interface AutoRefreshControlProps {
     pOnChange?: (aValue: string) => void;
     /** Display-only: shows the current state but the menu can't be opened (e.g. the panel editor header). */
     pReadOnly?: boolean;
+    /**
+     * Bumped by the parent each time the refresh timer starts a fresh cycle (e.g. resuming after the
+     * edit-mode pause, an interval change, or a tab becoming active). Changing it remounts the countdown
+     * ring so it restarts from full, keeping the animation aligned with the real (paused-during-edit)
+     * refresh timer instead of free-running out of phase.
+     */
+    pCycleId?: number;
 }
 
 /**
@@ -44,7 +51,7 @@ interface AutoRefreshControlProps {
  * that applies board-wide (time + distance axes). Off/Running is distinguishable at a glance via
  * a static gray ring (Off) vs. a rotating countdown ring (Running).
  */
-const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false }: AutoRefreshControlProps) => {
+const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId }: AutoRefreshControlProps) => {
     const [sOpen, setOpen] = useState<boolean>(false);
     // Menu is right-anchored to the trigger; { top, right } are viewport coords for the fixed portal.
     const [sPos, setPos] = useState<{ top: number; right: number } | null>(null);
@@ -116,7 +123,9 @@ const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false }: AutoRefres
                         {sIsRunning && (
                             <circle
                                 // key restarts the fill animation (reset the countdown) whenever the interval changes
-                                key={sCurrent.value}
+                                // OR the refresh timer starts a fresh cycle (pCycleId), so the ring realigns with the
+                                // real refresh after the edit-mode pause instead of drifting out of phase.
+                                key={`${sCurrent.value}:${pCycleId ?? 0}`}
                                 className={styles.progress}
                                 cx={15}
                                 cy={15}

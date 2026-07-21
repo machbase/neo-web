@@ -47,6 +47,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sShareModal, setShareModal] = useState<boolean>(false);
+    // Incremented whenever the refresh timer starts a fresh cycle, to realign the header countdown ring
+    // (see the sRefreshDelay effect below). Passed to AutoRefreshControl as pCycleId.
+    const [sRingCycleId, setRingCycleId] = useState<number>(0);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -239,9 +242,20 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         return null;
     };
 
+    const sRefreshDelay = sSetIntervalTime();
+
     useOverlapTimeout(() => {
         handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end, true);
-    }, sSetIntervalTime());
+    }, sRefreshDelay);
+
+    // Bump the countdown ring's cycle id every time the refresh timer starts a fresh cycle — i.e. whenever
+    // sRefreshDelay becomes non-null (resuming after the edit-mode pause / tab switch, or an interval change).
+    // useOverlapTimeout re-schedules its first fire a full period from that same moment, so restarting the
+    // ring from full here keeps the animation aligned with when the data actually refreshes. Skipped while
+    // paused (null), since the ring is hidden under the panel-editor overlay then anyway.
+    useEffect(() => {
+        if (sRefreshDelay != null) setRingCycleId((aId) => aId + 1);
+    }, [sRefreshDelay]);
 
     return (
         // Render after rollup info load
@@ -286,7 +300,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             </Button>
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Move range" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
                             <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
-                            <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} />
+                            <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                             <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Sava" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => pSetIsSaveModal(true)} />
