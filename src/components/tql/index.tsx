@@ -294,10 +294,10 @@ const Tql = (props: TqlProps) => {
                         ) : null}
                         {sResultType === 'text' && sTextField ? (
                             sIsPrettier && isValidJSON(sTextField) ? (
-                                <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
+                                <pre className="tql-result-text-pre">{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
                             ) : (
                                 <div style={{ margin: '-2px -4px', padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                    <span>{sTextField}</span>
+                                    <pre className="tql-result-text-pre">{sTextField}</pre>
                                     {sLoadState && (
                                         <div style={{ marginLeft: '4px' }}>
                                             <Loader width="12px" height="12px" borderRadius="90%" />
