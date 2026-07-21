@@ -8,6 +8,7 @@ import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../utils/constants';
 import { getId, isMobile } from '../../utils';
 import TimeRangeModal from '../../components/modal/TimeRangeModal';
+import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
 import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
@@ -170,6 +171,12 @@ const DashboardView = () => {
         GenChartVariableId();
         return;
     };
+    // Board-wide auto refresh — updating timeRange.refresh re-runs the interval effect below ([sBoardInformation]).
+    const changeAutoRefresh = (aRefresh: string) => {
+        setBoardInformation((aPrev: any) =>
+            aPrev ? { ...aPrev, dashboard: { ...aPrev.dashboard, timeRange: { ...aPrev.dashboard.timeRange, refresh: aRefresh } } } : aPrev
+        );
+    };
     const setIntervalTime = (aTimeRange: any): number => {
         return calcRefreshTime(aTimeRange.refresh);
     };
@@ -321,9 +328,10 @@ const DashboardView = () => {
                             ) : (
                                 <span>Time range not set</span>
                             )}
-                            , Refresh : {sBoardInformation?.dashboard.timeRange.refresh}
                         </Button>
                         <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
+                        <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                        <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} />
                     </div>
                 </Page.Header>
                 <Page.Body ref={sBodyRef} footer>
@@ -393,7 +401,6 @@ const DashboardView = () => {
                     pEndTime={sBoardInformation?.dashboard.timeRange.end}
                     pSetTime={setBoardInformation}
                     pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
-                    pShowRefresh={true}
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}

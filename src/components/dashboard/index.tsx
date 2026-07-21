@@ -9,6 +9,7 @@ import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
 import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdRefresh, Share } from '@/assets/icons/Icon';
 import TimeRangeModal from '../modal/TimeRangeModal';
+import AutoRefreshControl from './AutoRefreshControl';
 import moment from 'moment';
 import { calcRefreshTime, setUnitTime, formatTimeValue } from '@/utils/dashboardUtil';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
@@ -135,6 +136,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                     ? {
                           ...aItem,
                           dashboard: { ...aItem.dashboard, title: e.target.value },
+                      }
+                    : aItem;
+            })
+        );
+    };
+    // Board-wide auto refresh (relocated out of the Time Range modal). Applies to time + distance axes.
+    const changeAutoRefresh = (aRefresh: string) => {
+        setBoardList(
+            sBoardList.map((aItem: any) => {
+                return aItem.id === pInfo.id
+                    ? {
+                          ...aItem,
+                          dashboard: { ...aItem.dashboard, timeRange: { ...aItem.dashboard.timeRange, refresh: aRefresh } },
                       }
                     : aItem;
             })
@@ -269,9 +283,11 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 ) : (
                                     <span>Time range not set</span>
                                 )}
-                                , Refresh : {pInfo.dashboard.timeRange.refresh}
                             </Button>
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Move range" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                            <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Sava" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => pSetIsSaveModal(true)} />
                             {pIsSave ? (
@@ -352,9 +368,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         </Page.Body>
                     )}
                 </Page>
-                {sTimeRangeModal && (
-                    <TimeRangeModal pUseRecoil={true} pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pShowRefresh={true} pSaveCallback={handleSaveTimeRange} />
-                )}
+                {sTimeRangeModal && <TimeRangeModal pUseRecoil={true} pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />}
                 {sCreateModal && (
                     <CreatePanel
                         pLoopMode={false}
