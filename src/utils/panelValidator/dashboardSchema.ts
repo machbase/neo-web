@@ -29,6 +29,11 @@ export const BASE_REQUIRED: RequiredKeyDef[] = [
     { key: 'timeRange', default: { start: '', end: '', refresh: 'Off' } },
     { key: 'useCustomTime', default: false },
     { key: 'transformBlockList', default: [] },
+    // axisInterval predates the panelValidator and was never enrolled, so legacy panels lack it and
+    // crash XAxisOptions on render. It lives at panel top-level (DefaultChartOption) for every type, so
+    // backfill it here in BASE_REQUIRED — including non-axis types that may later be switched to an axis type.
+    { key: 'isAxisInterval', default: false },
+    { key: 'axisInterval', defaultFactory: () => ({ IntervalType: '', IntervalValue: '' }) },
 ];
 
 // Helper to generate standard chart type keys (for types using block + axis)
@@ -52,7 +57,7 @@ export const TYPE_SPECIFIC_KEYS: Record<string, RequiredKeyDef[]> = {
     Text: standardChartKeys('text'),
     Geomap: standardChartKeys('geomap'),
     'Tql chart': [
-        { key: 'tqlInfo', default: { tql: '', param: [] } },
+        { key: 'tqlInfo', default: { path: '', params: [{ name: '', value: '', format: '' }], chart_id: '' } },
         { key: 'chartOptions', defaultFactory: () => structuredClone(getDefaultSeriesOption('tql' as ChartType)) },
         { key: 'commonOptions', defaultFactory: () => structuredClone(DefaultCommonOption) },
     ],

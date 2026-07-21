@@ -67,7 +67,7 @@ export const TqlChartParser = (
         return `?${parsedParamList.join('&')}`;
     };
 
-    const sResult = `${aTqlChartInfo.path}${paramsFilter(aTqlChartInfo.params, aVariableList)}`;
+    const sResult = `${aTqlChartInfo?.path ?? ''}${paramsFilter(aTqlChartInfo?.params ?? [], aVariableList)}`;
     return sResult;
 };
 
