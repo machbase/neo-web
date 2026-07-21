@@ -33,13 +33,11 @@
         flex-direction: column;
 
         .dashboard-tql-panel-sink-pre {
-            .result-worksheet-pre {
-                margin: 4px;
-                pre {
-                    margin-left: 8px;
-                    line-height: 1.4;
-                    white-space: pre-wrap;
-                }
+            pre {
+                margin-left: 8px;
+                line-height: 1.4;
+                white-space: pre;
+                font-family: D2Coding, Monaco, 'Lucida Console', 'Courier New', D2Coding, sans-serif, monospace;
             }
         }
     }
