@@ -1,6 +1,7 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
 import { CheckCustomChartType, CheckPlgChart, DefaultCommonOption, chartTypeConverter, getAvailableChartTypeKeys, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { validateAndRepairDashboardPanel } from '@/utils/panelValidator';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
 import { XAxisOptions } from './option/XAxisOptions';
@@ -72,6 +73,30 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
 
             if (sIsGeomap) sResVal.transformBlockList = [];
 
+            // Normalize the panel for the NEW type BEFORE any block manipulation, using the same repair the
+            // loader runs when opening a .dsh. Backfills blockList (to [] if a TQL/legacy panel never had one),
+            // each block's values/customFullTyping/filter/table/aggregator, axis/common/chart options, and
+            // type-specific deep fields. MUST run before the blockList.map/block.values[0] accesses below —
+            // those crash on an un-backfilled (e.g. blockList-undefined) TQL/legacy panel.
+            //
+            // validateAndRepairDashboardPanel mutates in place, but sResVal is only a shallow copy of the
+            // previous Recoil state (deep-frozen in dev) and chartOptions is a shared default-option constant.
+            // Deep-clone the structures the repair writes to, so its in-place mutations land on fresh,
+            // extensible objects — otherwise validateBlockItem's `block.customFullTyping = {...}` throws
+            // "object is not extensible" on the frozen block, and the geomap deep validator would mutate the
+            // shared default chartOptions.
+            if (Array.isArray(sResVal.blockList)) sResVal.blockList = sResVal.blockList.map((aBlock: any) => structuredClone(aBlock));
+            if (sResVal.chartOptions) {
+                sResVal.chartOptions = structuredClone(sResVal.chartOptions);
+                sResVal.chartInfo = sResVal.chartOptions;
+            }
+            validateAndRepairDashboardPanel(sResVal);
+            // The loader patches xAxisOptions[0].useBlockList in a separate phase (not part of validateAndRepair);
+            // YAxisOptions reads it, so ensure it for axis types here.
+            if (Array.isArray(sResVal.xAxisOptions) && sResVal.xAxisOptions[0] && !Array.isArray(sResVal.xAxisOptions[0].useBlockList)) {
+                sResVal.xAxisOptions = [{ ...sResVal.xAxisOptions[0], useBlockList: [0] }, ...sResVal.xAxisOptions.slice(1)];
+            }
+
             const sBlockCntInfo: CalcBlockTotalType = CalcBlockTotal(sResVal);
             if (sBlockCntInfo.total > sBlockCntInfo.limit) {
                 let sLimit = sBlockCntInfo.limit;
@@ -105,12 +130,13 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             } else {
                 sResVal.blockList = sResVal.blockList.map((block: any) => {
                     const sTmpValues = block.values.map((value: any) => {
-                        if (geomapAggregatorList.includes(value.aggregator) || value.aggregator.match(VARIABLE_REGEX)) return value;
+                        if (geomapAggregatorList.includes(value.aggregator) || value.aggregator?.match(VARIABLE_REGEX)) return value;
                         else return { ...value, aggregator: geomapAggregatorList[0] };
                     });
                     return { ...block, values: sTmpValues, useCustom: true };
                 });
             }
+
             return sResVal;
         });
     };

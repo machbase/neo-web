@@ -80,7 +80,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
         });
     };
     const getBlockList = useMemo((): any[] => {
-        const sBaseXAxis = pPanelOption.xAxisOptions[0].useBlockList[0];
+        const sBaseXAxis = pPanelOption?.xAxisOptions?.[0]?.useBlockList?.[0] ?? 0;
         const sTmpBlockList = JSON.parse(JSON.stringify(pPanelOption?.blockList));
         const sTmpTrxBlockList = JSON.parse(JSON.stringify(pPanelOption?.transformBlockList ?? []));
         if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sTmpBlockList.splice(sBaseXAxis, 1);
