@@ -78,6 +78,15 @@
     overflow-y: auto;
 }
 
+.tql-result-text-pre {
+    margin: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    white-space: pre;
+    overflow-x: auto;
+    font-family: D2Coding, Monaco, 'Lucida Console', 'Courier New', monospace;
+}
+
 .tql-result-btn-group {
     display: flex;
     gap: 3px;
