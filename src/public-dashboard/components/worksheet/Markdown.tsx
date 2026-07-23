@@ -4,6 +4,7 @@ import '../../assets/md/md.css';
 import './Markdown.scss';
 import '../../assets/md/mdDark.css';
 import setMermaid from '../../plugin/mermaid';
+import setChartext, { disposeChartext, resizeChartext } from '../../../plugin/chartext';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '../../recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '../../utils';
@@ -35,6 +36,7 @@ export const Markdown = (props: MarkdownProps) => {
     useEffect(() => {
         if (typeof pContents !== 'string') return;
         drawMermaid();
+        drawChartext();
         if (!sMarkdownId) return;
         const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
@@ -70,12 +72,30 @@ export const Markdown = (props: MarkdownProps) => {
         if (sSelectedTab === pData && sMermaidNodeList.length > 0) {
             (sMermaidNodeList[0] as any)?.dataset?.processed === 'true' ? null : drawMermaid();
         }
+        if (sSelectedTab === pData && sBodyRef?.current) {
+            resizeChartext(sBodyRef.current);
+        }
     }, [sSelectedTab]);
+
+    useEffect(() => {
+        return () => {
+            if (sBodyRef?.current) {
+                disposeChartext(sBodyRef.current);
+            }
+        };
+    }, []);
 
     const drawMermaid = () => {
         if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
             setTimeout(() => {
                 setMermaid();
+            }, pIdx * 10);
+        }
+    };
+    const drawChartext = () => {
+        if (sMdxText && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
+            setTimeout(() => {
+                setChartext(sBodyRef.current);
             }, pIdx * 10);
         }
     };

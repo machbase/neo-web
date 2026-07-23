@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { rpcMarkdownRender } from '@/api/repository/markdown';
 import setMermaid from '@/plugin/mermaid';
+import setChartext, { disposeChartext, resizeChartext } from '@/plugin/chartext';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '@/utils';
@@ -37,6 +38,7 @@ export const Markdown = (props: MarkdownProps) => {
     useEffect(() => {
         if (typeof pContents !== 'string') return;
         drawMermaid();
+        drawChartext();
         if (!sMarkdownId) return;
         const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
@@ -72,11 +74,35 @@ export const Markdown = (props: MarkdownProps) => {
         if (sSelectedTab === pData && sMermaidNodeList.length > 0) {
             (sMermaidNodeList[0] as any)?.dataset?.processed === 'true' ? null : drawMermaid();
         }
+        if (sSelectedTab === pData && sShadowRootRef.current) {
+            resizeChartext(sShadowRootRef.current);
+        }
     }, [sSelectedTab]);
+
+    useEffect(() => {
+        return () => {
+            if (sShadowRootRef.current) {
+                disposeChartext(sShadowRootRef.current);
+            }
+        };
+    }, []);
 
     const drawMermaid = () => {
         if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
             setMermaid(sShadowRootRef.current);
+        }
+    };
+    const drawChartext = () => {
+        if (sMdxText && sShadowRootRef.current) {
+            setChartext(sShadowRootRef.current);
+        }
+    };
+    const handleShadowContentUpdated = (shadowRoot: ShadowRoot) => {
+        if (sMdxText) {
+            setChartext(shadowRoot);
+        }
+        if (sMdxText && pContents && pContents.match(sCheckMermaid)) {
+            setMermaid(shadowRoot);
         }
     };
     const handleCopy = (aText: string) => {
@@ -123,6 +149,7 @@ export const Markdown = (props: MarkdownProps) => {
                     sBodyRef.current = shadowRoot.host;
                     sShadowRootRef.current = shadowRoot;
                 }}
+                onContentUpdated={handleShadowContentUpdated}
             />
         </Page.ContentBlock>
     );

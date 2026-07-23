@@ -5,9 +5,10 @@ interface ShadowContentProps {
     styles?: string;
     className?: string;
     onShadowRootCreated?: (shadowRoot: ShadowRoot) => void;
+    onContentUpdated?: (shadowRoot: ShadowRoot) => void;
 }
 
-export const ShadowContent = ({ html, styles = '', className = '', onShadowRootCreated }: ShadowContentProps) => {
+export const ShadowContent = ({ html, styles = '', className = '', onShadowRootCreated, onContentUpdated }: ShadowContentProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const shadowRootRef = useRef<ShadowRoot | null>(null);
 
@@ -62,7 +63,11 @@ export const ShadowContent = ({ html, styles = '', className = '', onShadowRootC
         });
 
         shadow.appendChild(wrapper);
-    }, [html, styles, className]);
+
+        if (onContentUpdated) {
+            onContentUpdated(shadow);
+        }
+    }, [html, styles, className, onContentUpdated]);
 
     return <div ref={containerRef} style={{ width: '100%', display: 'block' }} />;
 };
