@@ -8,7 +8,13 @@ interface ShadowContentProps {
     onContentUpdated?: (shadowRoot: ShadowRoot) => void;
 }
 
-export const ShadowContent = ({ html, styles = '', className = '', onShadowRootCreated, onContentUpdated }: ShadowContentProps) => {
+export const ShadowContent = ({
+    html,
+    styles = '',
+    className = '',
+    onShadowRootCreated,
+    onContentUpdated,
+}: ShadowContentProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const shadowRootRef = useRef<ShadowRoot | null>(null);
 

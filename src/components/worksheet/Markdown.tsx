@@ -101,6 +101,9 @@ export const Markdown = (props: MarkdownProps) => {
             drawMermaid();
             resizeChartext(sShadowRootRef.current);
         }
+        if (sSelectedTab === pData && sShadowRootRef.current) {
+            resizeChartext(sShadowRootRef.current);
+        }
     }, [sSelectedTab]);
 
     useEffect(() => {
@@ -112,7 +115,14 @@ export const Markdown = (props: MarkdownProps) => {
     }, []);
 
     const drawMermaid = () => {
-        if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
+        if (
+            sMdxText &&
+            pContents &&
+            pContents.match(sCheckMermaid) &&
+            sBodyRef &&
+            sBodyRef?.current &&
+            sBodyRef.current.offsetWidth > 0
+        ) {
             setMermaid(sShadowRootRef.current);
         }
     };
@@ -147,14 +157,18 @@ export const Markdown = (props: MarkdownProps) => {
             let sReperer = sList.replace('/ui', '/api/tql');
             if (pType === 'mrk') {
                 const targetBoard = sBoardList.find(
-                    (aItem) => JSON.stringify(aItem.savedCode) === JSON.stringify(pContents) || JSON.stringify(aItem.code) === JSON.stringify(pContents)
+                    (aItem) =>
+                        JSON.stringify(aItem.savedCode) === JSON.stringify(pContents) ||
+                        JSON.stringify(aItem.code) === JSON.stringify(pContents),
                 );
                 if (targetBoard && targetBoard.path !== '') {
                     sReperer += targetBoard.path + targetBoard.name;
                 }
                 fetchMrk(pContents, sReperer);
             } else if (pType === 'wrk-mrk') {
-                const targetBoard = sBoardList.find((aBoard) => aBoard.type === 'wrk' && aBoard.id === pData);
+                const targetBoard = sBoardList.find(
+                    (aBoard) => aBoard.type === 'wrk' && aBoard.id === pData,
+                );
                 if (targetBoard && targetBoard.path !== '') {
                     sReperer += targetBoard.path + targetBoard.name;
                 }

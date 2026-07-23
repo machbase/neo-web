@@ -85,19 +85,22 @@ const THEME_SRCS_RE = /__themeSrcs\s*=\s*(\[[^\]]*\])/g;
 
 const collectThemeUrls = (root: ChartRoot): string[] => {
     const urls = new Set<string>();
-    root.querySelectorAll<HTMLScriptElement>('.chartext script:not([data-processed])').forEach((script) => {
-        const text = script.textContent ?? '';
-        THEME_SRCS_RE.lastIndex = 0;
-        let m: RegExpExecArray | null;
-        while ((m = THEME_SRCS_RE.exec(text)) !== null) {
-            try {
-                const arr = JSON.parse(m[1]);
-                if (Array.isArray(arr)) arr.forEach((u) => typeof u === 'string' && u && urls.add(u));
-            } catch {
-                // malformed __themeSrcs literal — skip
+    root.querySelectorAll<HTMLScriptElement>('.chartext script:not([data-processed])').forEach(
+        (script) => {
+            const text = script.textContent ?? '';
+            THEME_SRCS_RE.lastIndex = 0;
+            let m: RegExpExecArray | null;
+            while ((m = THEME_SRCS_RE.exec(text)) !== null) {
+                try {
+                    const arr = JSON.parse(m[1]);
+                    if (Array.isArray(arr))
+                        arr.forEach((u) => typeof u === 'string' && u && urls.add(u));
+                } catch {
+                    // malformed __themeSrcs literal — skip
+                }
             }
-        }
-    });
+        },
+    );
     return Array.from(urls);
 };
 
@@ -131,7 +134,9 @@ const disposeCharts = (root: ChartRoot) => {
 };
 
 const executePendingScripts = (root: ChartRoot) => {
-    const scripts = root.querySelectorAll<HTMLScriptElement>('.chartext script:not([data-processed])');
+    const scripts = root.querySelectorAll<HTMLScriptElement>(
+        '.chartext script:not([data-processed])',
+    );
     scripts.forEach((script) => {
         const win = window as any;
         const code = script.textContent ?? '';
@@ -175,7 +180,9 @@ const setChartext = (root?: ShadowRoot | HTMLElement | null) => {
     ensureWhiteTheme();
     const target = root ?? document;
 
-    const pendingScripts = target.querySelectorAll<HTMLScriptElement>('.chartext script:not([data-processed])');
+    const pendingScripts = target.querySelectorAll<HTMLScriptElement>(
+        '.chartext script:not([data-processed])',
+    );
     if (pendingScripts.length === 0) {
         return;
     }
