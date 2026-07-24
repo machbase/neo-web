@@ -5,6 +5,7 @@ import './Markdown.scss';
 import '../../assets/md/mdDark.css';
 import setMermaid from '../../plugin/mermaid';
 import setChartext, { disposeChartext, resizeChartext } from '../../../plugin/chartext';
+import setGeomap, { disposeGeomap, resizeGeomap } from '../../../plugin/geomap';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '../../recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '../../utils';
@@ -37,6 +38,7 @@ export const Markdown = (props: MarkdownProps) => {
         if (typeof pContents !== 'string') return;
         drawMermaid();
         drawChartext();
+        drawGeomap();
         if (!sMarkdownId) return;
         const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
@@ -74,6 +76,7 @@ export const Markdown = (props: MarkdownProps) => {
         }
         if (sSelectedTab === pData && sBodyRef?.current) {
             resizeChartext(sBodyRef.current);
+            resizeGeomap(sBodyRef.current);
         }
     }, [sSelectedTab]);
 
@@ -85,6 +88,7 @@ export const Markdown = (props: MarkdownProps) => {
         return () => {
             if (sHost) {
                 disposeChartext(sHost);
+                disposeGeomap(sBodyRef.current);
             }
         };
     }, []);
@@ -107,6 +111,13 @@ export const Markdown = (props: MarkdownProps) => {
         if (sMdxText && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
             setTimeout(() => {
                 setChartext(sBodyRef.current);
+            }, pIdx * 10);
+        }
+    };
+    const drawGeomap = () => {
+        if (sMdxText && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
+            setTimeout(() => {
+                setGeomap(sBodyRef.current);
             }, pIdx * 10);
         }
     };

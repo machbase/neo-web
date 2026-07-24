@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { rpcMarkdownRender } from '@/api/repository/markdown';
 import setMermaid from '@/plugin/mermaid';
 import setChartext, { disposeChartext, resizeChartext } from '@/plugin/chartext';
+import setGeomap, { disposeGeomap, resizeGeomap } from '@/plugin/geomap';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '@/utils';
@@ -61,6 +62,7 @@ export const Markdown = (props: MarkdownProps) => {
         if (typeof pContents !== 'string') return;
         drawMermaid();
         drawChartext();
+        drawGeomap();
         if (!sMarkdownId) return;
         // Query INSIDE the shadow root — the rendered markdown lives in the shadow DOM, so a
         // document-level query never matches it and the copy buttons would never attach.
@@ -103,6 +105,7 @@ export const Markdown = (props: MarkdownProps) => {
         }
         if (sSelectedTab === pData && sShadowRootRef.current) {
             resizeChartext(sShadowRootRef.current);
+            resizeGeomap(sShadowRootRef.current);
         }
     }, [sSelectedTab]);
 
@@ -110,6 +113,7 @@ export const Markdown = (props: MarkdownProps) => {
         return () => {
             if (sShadowRootRef.current) {
                 disposeChartext(sShadowRootRef.current);
+                disposeGeomap(sShadowRootRef.current);
             }
         };
     }, []);
@@ -131,9 +135,15 @@ export const Markdown = (props: MarkdownProps) => {
             setChartext(sShadowRootRef.current);
         }
     };
+    const drawGeomap = () => {
+        if (sMdxText && sShadowRootRef.current) {
+            setGeomap(sShadowRootRef.current);
+        }
+    };
     const handleShadowContentUpdated = (shadowRoot: ShadowRoot) => {
         if (sMdxText) {
             setChartext(shadowRoot);
+            setGeomap(shadowRoot);
         }
         // mermaid is intentionally NOT booted here: it has no resize path and marks nodes
         // data-processed right after render, so rendering at offsetWidth=0 (hidden tab) would
