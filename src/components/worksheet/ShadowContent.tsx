@@ -12,6 +12,15 @@ export const ShadowContent = ({ html, styles = '', className = '', onShadowRootC
     const containerRef = useRef<HTMLDivElement>(null);
     const shadowRootRef = useRef<ShadowRoot | null>(null);
 
+    // Keep the latest callbacks in refs so their (unstable) identity does NOT feed the
+    // content-update effect deps. Otherwise every parent re-render would recreate these
+    // callbacks, re-run the effect, wipe & re-inject the shadow DOM, and force charts/mermaid
+    // to fully dispose + redraw even though `html` never changed.
+    const onShadowRootCreatedRef = useRef(onShadowRootCreated);
+    const onContentUpdatedRef = useRef(onContentUpdated);
+    onShadowRootCreatedRef.current = onShadowRootCreated;
+    onContentUpdatedRef.current = onContentUpdated;
+
     // Create Shadow DOM only once
     useEffect(() => {
         if (!containerRef.current || shadowRootRef.current) return;
@@ -19,12 +28,10 @@ export const ShadowContent = ({ html, styles = '', className = '', onShadowRootC
         shadowRootRef.current = containerRef.current.attachShadow({ mode: 'open' });
 
         // Call callback
-        if (onShadowRootCreated) {
-            onShadowRootCreated(shadowRootRef.current);
-        }
-    }, [onShadowRootCreated]);
+        onShadowRootCreatedRef.current?.(shadowRootRef.current);
+    }, []);
 
-    // Update content when html or styles change
+    // Rebuild content only when the content itself (html/styles/className) actually changes.
     useEffect(() => {
         if (!shadowRootRef.current) return;
 
@@ -64,10 +71,8 @@ export const ShadowContent = ({ html, styles = '', className = '', onShadowRootC
 
         shadow.appendChild(wrapper);
 
-        if (onContentUpdated) {
-            onContentUpdated(shadow);
-        }
-    }, [html, styles, className, onContentUpdated]);
+        onContentUpdatedRef.current?.(shadow);
+    }, [html, styles, className]);
 
     return <div ref={containerRef} style={{ width: '100%', display: 'block' }} />;
 };

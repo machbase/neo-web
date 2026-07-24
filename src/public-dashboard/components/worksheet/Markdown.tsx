@@ -78,9 +78,13 @@ export const Markdown = (props: MarkdownProps) => {
     }, [sSelectedTab]);
 
     useEffect(() => {
+        // Capture the host node now: sBodyRef is a React host ref, so React nulls sBodyRef.current
+        // during unmount BEFORE this cleanup runs — reading it there would be null and dispose
+        // would silently no-op, leaking the echarts instance + its window 'resize' listener.
+        const sHost = sBodyRef.current;
         return () => {
-            if (sBodyRef?.current) {
-                disposeChartext(sBodyRef.current);
+            if (sHost) {
+                disposeChartext(sHost);
             }
         };
     }, []);

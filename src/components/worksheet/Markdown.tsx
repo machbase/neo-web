@@ -12,6 +12,28 @@ import mdCss from '@/assets/md/md.css?inline';
 // import mdDarkCss from '@/assets/md/mdDark.css?inline';
 // import markdownScss from '@/components/worksheet/Markdown.scss?inline';
 
+// The copy-button styling lives in Markdown.scss (light DOM). Since the markdown now renders
+// inside a Shadow DOM, that stylesheet does NOT cascade in, so the .cp-button div was rendered
+// with no size and its width:100% SVG grew to fill the code block. Inject the button rules into
+// the shadow so it stays a fixed 30x30 icon anchored to the top-right of each <pre>.
+const CP_BUTTON_CSS = `
+pre { position: relative; }
+.cp-button {
+    width: 30px;
+    height: 30px;
+    padding: 5px;
+    box-sizing: border-box;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.cp-button:hover { background-color: #52535a; }
+.cp-button svg:hover { fill: #f8f8f8; }
+`;
+
 interface MarkdownProps {
     pContents?: any;
     pType?: string;
@@ -40,8 +62,10 @@ export const Markdown = (props: MarkdownProps) => {
         drawMermaid();
         drawChartext();
         if (!sMarkdownId) return;
-        const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
-        if (!blocks) return;
+        // Query INSIDE the shadow root — the rendered markdown lives in the shadow DOM, so a
+        // document-level query never matches it and the copy buttons would never attach.
+        const blocks = sShadowRootRef.current?.querySelectorAll('pre:not(.mermaid)');
+        if (!blocks || blocks.length === 0) return;
         const clickHandlers: any = [];
         blocks.forEach((block: any, aIndex: number) => {
             const button = document.createElement('div');
@@ -70,11 +94,11 @@ export const Markdown = (props: MarkdownProps) => {
         };
     }, [sMdxText]);
     useEffect(() => {
-        const sMermaidNodeList = document.getElementsByClassName('mermaid');
-        if (sSelectedTab === pData && sMermaidNodeList.length > 0) {
-            (sMermaidNodeList[0] as any)?.dataset?.processed === 'true' ? null : drawMermaid();
-        }
         if (sSelectedTab === pData && sShadowRootRef.current) {
+            // Render any mermaid nodes that were skipped while the tab was hidden (offsetWidth=0)
+            // and resize echarts charts that may have booted at 0 width. setMermaid skips
+            // already-processed nodes, so this only renders the still-pending ones.
+            drawMermaid();
             resizeChartext(sShadowRootRef.current);
         }
     }, [sSelectedTab]);
@@ -101,9 +125,11 @@ export const Markdown = (props: MarkdownProps) => {
         if (sMdxText) {
             setChartext(shadowRoot);
         }
-        if (sMdxText && pContents && pContents.match(sCheckMermaid)) {
-            setMermaid(shadowRoot);
-        }
+        // mermaid is intentionally NOT booted here: it has no resize path and marks nodes
+        // data-processed right after render, so rendering at offsetWidth=0 (hidden tab) would
+        // freeze a 0-width diagram permanently. drawMermaid() (offsetWidth-guarded) owns the
+        // mermaid boot — from the [sMdxText] effect when visible, and from the [sSelectedTab]
+        // effect when a hidden tab becomes active.
     };
     const handleCopy = (aText: string) => {
         ClipboardCopy(aText);
@@ -143,7 +169,7 @@ export const Markdown = (props: MarkdownProps) => {
         <Page.ContentBlock style={{ padding: 0, margin: 0, whiteSpace: 'normal' }} pHoverNone>
             <ShadowContent
                 html={sMdxText}
-                styles={`${mdCss}`}
+                styles={`${mdCss}${CP_BUTTON_CSS}`}
                 className={`mrk-form markdown-body markdown-body-dark mrk${sMarkdownId}`}
                 onShadowRootCreated={(shadowRoot) => {
                     sBodyRef.current = shadowRoot.host;
