@@ -31,8 +31,16 @@ export const GlobalChecker = () => {
         // 2. Server & license status check
         const res: any = await getLogin();
         if (res) {
+            const nextLicenseStatus = res?.licenseStatus?.toUpperCase();
+            const nextEulaRequired = res?.eulaRequired;
             setGLicense((prev: any) => {
-                return { ...prev, licenseStatus: res?.licenseStatus?.toUpperCase(), eulaRequired: res?.eulaRequired };
+                // Bail out when nothing changed. Returning the same reference makes Recoil
+                // skip the update, so this 30s poll no longer re-renders the whole app tree
+                // (and, in turn, no longer redraws TQL/worksheet/dashboard charts).
+                if (prev?.licenseStatus === nextLicenseStatus && prev?.eulaRequired === nextEulaRequired) {
+                    return prev;
+                }
+                return { ...prev, licenseStatus: nextLicenseStatus, eulaRequired: nextEulaRequired };
             });
             setExperiment(res?.experimentMode ?? false);
         }

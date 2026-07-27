@@ -19,6 +19,11 @@ export const UncaughtErrorObserver = (setConsoleList: any) => {
         return true;
     };
     window.console.warn = (message, loc) => {
+        // ECharts 4.0+ deprecation notices (itemStyle.emphasis / label.normal / controlStyle …) come from
+        // server-rendered TQL/markdown charts whose legacy option+theme syntax neo-web cannot change; they
+        // are harmless back-compat noise. Drop them from BOTH the browser console and the in-app console
+        // panel, mirroring the console.error filters below.
+        if (typeof message === 'string' && message.startsWith('[ECharts] DEPRECATED')) return;
         sWarnTmp(message, loc);
         setConsoleList((preData: any) => [
             ...preData,

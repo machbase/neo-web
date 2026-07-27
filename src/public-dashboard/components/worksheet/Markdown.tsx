@@ -4,6 +4,7 @@ import '../../assets/md/md.css';
 import './Markdown.scss';
 import '../../assets/md/mdDark.css';
 import setMermaid from '../../plugin/mermaid';
+import setChartext, { disposeChartext, resizeChartext } from '../../../plugin/chartext';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '../../recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '../../utils';
@@ -35,6 +36,7 @@ export const Markdown = (props: MarkdownProps) => {
     useEffect(() => {
         if (typeof pContents !== 'string') return;
         drawMermaid();
+        drawChartext();
         if (!sMarkdownId) return;
         const blocks = document.querySelectorAll(`div.mrk${sMarkdownId} pre:not(.mermaid)`);
         if (!blocks) return;
@@ -70,12 +72,34 @@ export const Markdown = (props: MarkdownProps) => {
         if (sSelectedTab === pData && sMermaidNodeList.length > 0) {
             (sMermaidNodeList[0] as any)?.dataset?.processed === 'true' ? null : drawMermaid();
         }
+        if (sSelectedTab === pData && sBodyRef?.current) {
+            resizeChartext(sBodyRef.current);
+        }
     }, [sSelectedTab]);
+
+    useEffect(() => {
+        // Capture the host node now: sBodyRef is a React host ref, so React nulls sBodyRef.current
+        // during unmount BEFORE this cleanup runs — reading it there would be null and dispose
+        // would silently no-op, leaking the echarts instance + its window 'resize' listener.
+        const sHost = sBodyRef.current;
+        return () => {
+            if (sHost) {
+                disposeChartext(sHost);
+            }
+        };
+    }, []);
 
     const drawMermaid = () => {
         if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
             setTimeout(() => {
                 setMermaid();
+            }, pIdx * 10);
+        }
+    };
+    const drawChartext = () => {
+        if (sMdxText && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
+            setTimeout(() => {
+                setChartext(sBodyRef.current);
             }, pIdx * 10);
         }
     };
