@@ -65,6 +65,59 @@ const ensureWhiteTheme = () => {
     }
 };
 
+// A server bootstrap loads its theme asset (e.g. /web/echarts/themes/purple-passion.js) through a
+// window-global, URL-keyed promise cache (window.__chartextScriptPromises). That cache assumes
+// "loaded once ⟹ registered forever": the <script>'s `onload` RESOLVES the promise regardless of
+// whether registerTheme() actually landed on the echarts instance that init() later uses. So if a
+// single theme load ever resolves WITHOUT registering — a transient echarts-instance split, or a
+// stray AMD/CommonJS global diverting the theme UMD off its `window.echarts.registerTheme` branch —
+// that URL is PINNED to a resolved promise. Every later chart and every re-render then reuses it,
+// the <script> is never re-appended, registerTheme is never retried, and those charts silently fall
+// back to ECharts' default (white) theme — permanently, until a full page reload wipes the window
+// cache. That is the reported "works, then once one theme fails it stays broken across other files
+// and survives re-rendering" behavior (issue #1435).
+//
+// Self-healing fix: on every setChartext pass, drop the cached promise for the theme assets the
+// pending charts declare and remove their stale <script> tags, so the bootstrap re-loads and
+// re-registers the theme onto the CURRENT window.echarts this render. A re-render then always
+// recovers instead of inheriting a poisoned cache.
+const THEME_SRCS_RE = /__themeSrcs\s*=\s*(\[[^\]]*\])/g;
+
+const collectThemeUrls = (root: ChartRoot): string[] => {
+    const urls = new Set<string>();
+    root.querySelectorAll<HTMLScriptElement>('.chartext script:not([data-processed])').forEach((script) => {
+        const text = script.textContent ?? '';
+        THEME_SRCS_RE.lastIndex = 0;
+        let m: RegExpExecArray | null;
+        while ((m = THEME_SRCS_RE.exec(text)) !== null) {
+            try {
+                const arr = JSON.parse(m[1]);
+                if (Array.isArray(arr)) arr.forEach((u) => typeof u === 'string' && u && urls.add(u));
+            } catch {
+                // malformed __themeSrcs literal — skip
+            }
+        }
+    });
+    return Array.from(urls);
+};
+
+const refreshThemeAssets = (root: ChartRoot) => {
+    const cache = (window as any).__chartextScriptPromises;
+    if (!cache) return; // first render: nothing cached yet — the bootstrap loads + registers fresh
+    collectThemeUrls(root).forEach((url) => {
+        // Drop the possibly-poisoned cached promise so the bootstrap re-loads the theme this render.
+        if (url in cache) delete cache[url];
+        // Remove the stale theme <script> so repeated re-loads don't accumulate in <head>.
+        try {
+            document
+                .querySelectorAll<HTMLScriptElement>(`script[src="${url}"]`)
+                .forEach((el) => el.remove());
+        } catch {
+            // invalid selector (unexpected chars in url) — cache clear alone still heals
+        }
+    });
+};
+
 const disposeCharts = (root: ChartRoot) => {
     // Dispose the previous generation held in the registry first — these nodes may already be
     // detached, in which case the querySelector below would miss them.
@@ -126,6 +179,10 @@ const setChartext = (root?: ShadowRoot | HTMLElement | null) => {
     if (pendingScripts.length === 0) {
         return;
     }
+
+    // Clear any poisoned theme-asset cache entries so each render re-registers the theme onto the
+    // current window.echarts (defeats the permanent, spreading fallback-to-white failure — #1435).
+    refreshThemeAssets(target);
 
     // Dispose the previous generation (tracked, possibly detached) before booting the new one.
     disposeCharts(target);
