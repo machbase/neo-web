@@ -24,6 +24,10 @@ import { TqlCsvParser } from '../../../utils/tqlCsvParser';
 import { FakeTextBlock } from '../../../utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
 
+// Parent-width changes arrive from a ResizeObserver, i.e. once per frame while dragging. Wait for
+// them to settle for this long before re-running the query.
+const PARENT_WIDTH_DEBOUNCE_MS = 150;
+
 const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo, pOnResolveTheme }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
@@ -35,10 +39,16 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
     const [sTqlData, setTqlData] = useState<any>(undefined);
+    // markdown/text/csv/ndjson sink results are strings, so an unchanged response makes React bail out
+    // of the state update and nothing re-renders. Bump a render key per response to force a remount.
+    const [sSinkRenderKey, setSinkRenderKey] = useState<number>(0);
     // Lift the server-resolved theme so the public panel chrome matches the rendered chart (issue #1435).
     useEffect(() => {
         if (sChartData?.theme) pOnResolveTheme?.(sChartData.theme);
     }, [sChartData?.theme, pOnResolveTheme]);
+    // Sink kind, decided from the response content-type. Anything that is not VISUAL is a
+    // markdown/text/csv/ndjson sink.
+    const sIsNonVisualSink = pPanelInfo.type === 'Tql chart' && sTqlResultType !== TqlResType.VISUAL;
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
 
@@ -111,10 +121,14 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             if (parsedType === TqlResType.VISUAL) {
                 setChartData(parsedData);
                 setIsChartData(parsedStatus);
-            } else if (parsedType === TqlResType.CSV) {
-                const [sParsedCsvBody] = TqlCsvParser(parsedData);
-                setTqlData(sParsedCsvBody);
-            } else setTqlData(parsedData);
+            } else {
+                if (parsedType === TqlResType.CSV) {
+                    const [sParsedCsvBody] = TqlCsvParser(parsedData);
+                    setTqlData(sParsedCsvBody);
+                } else setTqlData(parsedData);
+                // Remount so an unchanged response still redraws (batched with setTqlData above).
+                setSinkRenderKey((aPrev) => aPrev + 1);
+            }
         } else {
             setTqlResultType(TqlResType.VISUAL);
             if (!hasResolvedTimeRange(sStartTime, sEndTime)) {
@@ -271,6 +285,9 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     };
     const sSetIntervalTime = () => {
         if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
+        // markdown/text/csv sink TQL panels opt out of auto refresh (the sink kind is only known from
+        // the first response).
+        if (sIsNonVisualSink) return null;
         if (pPanelInfo.timeRange.refresh !== 'Off') return calcRefreshTime(pPanelInfo.timeRange.refresh);
         return null;
     };
@@ -281,8 +298,10 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
+        // TQL/Video panels can carry an empty blockList (same guard as the main LineChart).
+        if (!sTargetPanel.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
+        const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
@@ -304,6 +323,9 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     };
 
     useEffect(() => {
+        // Dashboard auto-refresh ticks are not applied to markdown/text/csv sink TQL panels. The
+        // Refresh button arrives as refresh=true without the autoRefresh flag, so it still re-queries.
+        if (pBoardTimeMinMax?.autoRefresh && sIsNonVisualSink) return;
         if ((sIsMounted || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
@@ -313,10 +335,13 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             executeTqlChart();
         }
     }, [pPanelInfo.w, pPanelInfo.h, pIsHeader]);
+    // Parent width arrives from a ResizeObserver, once per frame. Re-querying every frame floods the
+    // server and makes sink panels rebuild their shadow DOM repeatedly, so redraw once after the width
+    // settles (same as the main dashboard).
     useEffect(() => {
-        if (sIsMounted) {
-            executeTqlChart(pParentWidth);
-        }
+        if (!sIsMounted) return;
+        const sResizeTimer = setTimeout(() => executeTqlChart(pParentWidth), PARENT_WIDTH_DEBOUNCE_MS);
+        return () => clearTimeout(sResizeTimer);
     }, [pParentWidth]);
     useEffect(() => {
         setIsMounted(true);
@@ -358,7 +383,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                 />
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
-                <div className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
+                <div key={sSinkRenderKey} className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
                     {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: [] }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
