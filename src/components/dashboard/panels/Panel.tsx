@@ -2,7 +2,7 @@ import LineChart from './chart/LineChart';
 import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
 
@@ -24,6 +24,15 @@ const Panel = ({
     pIsActiveTab,
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
+    // The theme the chart is actually rendered with, used to paint the panel chrome. For TQL charts
+    // the panel theme is vestigial (owned by the .tql), so we seed it as undetermined — never the
+    // hardcoded 'dark' default — and let LineChart lift the server-resolved theme (issue #1435).
+    // Non-TQL charts keep their explicit panel theme and reflect edits immediately.
+    const sIsTql = pPanelInfo?.type === 'Tql chart';
+    const [sResolvedTheme, setResolvedTheme] = useState<string | undefined>(sIsTql ? undefined : pPanelInfo.theme);
+    useEffect(() => {
+        if (!sIsTql) setResolvedTheme(pPanelInfo.theme);
+    }, [pPanelInfo.theme, sIsTql]);
     // Ref for VideoPanel to access fullscreen toggle
     const videoPanelRef = useRef<any>(null);
 
@@ -34,7 +43,7 @@ const Panel = ({
     };
 
     return (
-        <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] }}>
+        <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
             <PanelHeader
                 pRefreshCount={sRefreshCount}
                 pSetRefreshCount={setRefreshCount}
@@ -45,6 +54,7 @@ const Panel = ({
                 pIsView={pIsView}
                 pIsHeader={pIsHeader}
                 pOnFullscreen={handleVideoFullscreen}
+                pResolvedTheme={sResolvedTheme}
             />
             {pPanelInfo ? (
                 pPanelInfo?.type === 'Video' ? (
@@ -76,6 +86,7 @@ const Panel = ({
                         pIsView={pIsView}
                         pBoardTimeMinMax={pBoardTimeMinMax}
                         pIsActiveTab={pIsActiveTab}
+                        pOnResolveTheme={setResolvedTheme}
                     />
                 )
             ) : null}

@@ -26,10 +26,37 @@ interface ShowChartProps {
 }
 
 export const ShowVisualization = (props: ShowChartProps) => {
-    const { pData, pIsCenter, pLoopMode, pPanelType, pPanelId, pPanelRef, pSize, pTheme, pChartOpt, pTitle, pResetLegendSelection } = props;
-    const sTheme = pTheme ? pTheme : pData?.theme ? pData.theme : 'dark';
+    const {
+        pData,
+        pIsCenter,
+        pLoopMode,
+        pPanelType,
+        pPanelId,
+        pPanelRef,
+        pSize,
+        pTheme,
+        pChartOpt,
+        pTitle,
+        pResetLegendSelection,
+    } = props;
+    // TQL charts render whatever theme the server resolved from the .tql's own theme(), exposed
+    // as pData.theme. The dashboard must NOT force the panel-picker theme onto them (issue #1435):
+    // ECharts binds a theme at init() only and custom themes aren't registered client-side, so a
+    // forced theme silently mismatches (white axes/text over a forced dark background). Non-TQL
+    // charts keep the existing panel-theme behavior. Inline pPanelType check avoids the TDZ on
+    // GetIsTqlType (defined below).
+    const sTheme =
+        pPanelType === 'Tql chart'
+            ? (pData?.theme ?? 'white')
+            : pTheme
+              ? pTheme
+              : pData?.theme
+                ? pData.theme
+                : 'white';
     const wrapRef = useRef<HTMLDivElement>(null);
-    const [sMapPreviousUniqueName, setMapPreviousUniqueName] = useState<string | undefined>(undefined);
+    const [sMapPreviousUniqueName, setMapPreviousUniqueName] = useState<string | undefined>(
+        undefined,
+    );
     // Legend selection (per-panel). Captured via 'legendselectchanged' event and re-applied
     // after each re-render so user-toggled tag visibility survives time-shift / auto-refresh.
     const selectedLegendRef = useRef<Record<string, boolean> | null>(null);
@@ -38,19 +65,30 @@ export const ShowVisualization = (props: ShowChartProps) => {
     const selectedLegendPanelKeyRef = useRef<string | undefined>(undefined);
 
     const GetVisualID = () =>
-        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) ? E_VISUAL_LOAD_ID.CHART : E_VISUAL_LOAD_ID.MAP;
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART)
+            ? E_VISUAL_LOAD_ID.CHART
+            : E_VISUAL_LOAD_ID.MAP;
     const GetPanelSize = () => {
         let size = { w: pData.style?.width, h: pData.style?.height };
-        if (pPanelRef) size = { w: pPanelRef.current.clientWidth + 'px', h: pPanelRef.current.clientHeight + 'px' };
+        if (pPanelRef)
+            size = {
+                w: pPanelRef.current.clientWidth + 'px',
+                h: pPanelRef.current.clientHeight + 'px',
+            };
         if (pSize) size = { w: pSize?.w + 'px', h: pSize?.h + 'px' };
         return size;
     };
 
     const GetIsTqlType = () => pPanelType && pPanelType === 'Tql chart';
-    const GetElementByResId = () => document.getElementById(pData[GetVisualID()]) as HTMLDivElement | HTMLCanvasElement;
-    const GetElementByPanelName = () => document.getElementsByName(PanelIdParser(pPanelId) as string);
+    const GetElementByResId = () =>
+        document.getElementById(pData[GetVisualID()]) as HTMLDivElement | HTMLCanvasElement;
+    const GetElementByPanelName = () =>
+        document.getElementsByName(PanelIdParser(pPanelId) as string);
     const IsExistElement = () => {
-        if (GetIsTqlType()) return wrapRef.current?.firstElementChild?.getAttribute('name') === PanelIdParser(pPanelId);
+        if (GetIsTqlType())
+            return (
+                wrapRef.current?.firstElementChild?.getAttribute('name') === PanelIdParser(pPanelId)
+            );
         return wrapRef.current?.firstElementChild?.id === pData[GetVisualID()];
     };
     const CreateElement = (): HTMLDivElement => {
@@ -60,9 +98,11 @@ export const ShowVisualization = (props: ShowChartProps) => {
         Element.style.width = sSize.w;
         Element.style.height = sSize.h;
         Element.style.margin = pIsCenter ? 'auto' : 'initial';
-        Element.style.backgroundColor = ChartThemeBackgroundColor[sTheme as ChartTheme] ?? '#252525';
+        Element.style.backgroundColor =
+            ChartThemeBackgroundColor[sTheme as ChartTheme] ?? '#252525';
 
-        GetIsTqlType() && Element.setAttribute('name', PanelIdParser(pPanelId) ?? pData[GetVisualID()]);
+        GetIsTqlType() &&
+            Element.setAttribute('name', PanelIdParser(pPanelId) ?? pData[GetVisualID()]);
 
         return Element;
     };
@@ -87,7 +127,8 @@ export const ShowVisualization = (props: ShowChartProps) => {
             sExisting.dispose();
         }
         const sInstance = echarts.init(sDom, sTheme);
-        if (sTheme === 'dark') sInstance.setOption({ backgroundColor: ChartThemeBackgroundColor['dark'] });
+        if (sTheme === 'dark')
+            sInstance.setOption({ backgroundColor: ChartThemeBackgroundColor['dark'] });
     };
     const EchartInstance = (domElement: any) => {
         const sCommand = pLoopMode ? 'resize' : 'clear';
@@ -98,7 +139,8 @@ export const ShowVisualization = (props: ShowChartProps) => {
 
         if (GetIsTqlType()) domElement.id = pData[GetVisualID()];
         if (sCommand === 'clear')
-            CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.['resize']();
+            CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) &&
+                echarts['getInstanceByDom'](domElement)?.['resize']();
 
         if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART)) {
             const sChart = echarts['getInstanceByDom'](domElement);
@@ -132,10 +174,19 @@ export const ShowVisualization = (props: ShowChartProps) => {
     const LoadCodeScripts = async () => {
         let sCodeAsset = pData.jsCodeAssets;
         // Excluding _opt.js = initialize skip
-        if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && pPanelRef?.current.getAttribute('data-processed')) {
-            if (GetIsTqlType() && sMapPreviousUniqueName === wrapRef.current?.firstElementChild?.getAttribute('name'))
+        if (
+            CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) &&
+            pPanelRef?.current.getAttribute('data-processed')
+        ) {
+            if (
+                GetIsTqlType() &&
+                sMapPreviousUniqueName === wrapRef.current?.firstElementChild?.getAttribute('name')
+            )
                 sCodeAsset = [];
-            else sCodeAsset = sCodeAsset.filter((codeAsset: string) => !codeAsset.includes('_opt.js'));
+            else
+                sCodeAsset = sCodeAsset.filter(
+                    (codeAsset: string) => !codeAsset.includes('_opt.js'),
+                );
         }
 
         if (sCodeAsset) await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: sCodeAsset });
@@ -252,7 +303,9 @@ export const ShowVisualization = (props: ShowChartProps) => {
         try {
             const sCurrentOption = sChart.getOption?.();
             // ECharts canonical source for legend keys: legend.data (or legend[*].data)
-            const sLegendList: any[] = Array.isArray(sCurrentOption?.legend) ? sCurrentOption.legend : [];
+            const sLegendList: any[] = Array.isArray(sCurrentOption?.legend)
+                ? sCurrentOption.legend
+                : [];
             const sValidKeys = new Set<string>();
             sLegendList.forEach((sLegend: any) => {
                 const sData = sLegend?.data;
@@ -370,7 +423,11 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (IsExistElement()) InstanceController();
         else AppendElement(CreateElement());
 
-        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
+        // TQL charts: skip the client-side theme override — the server asset's own
+        // echarts.init(dom, <tqlTheme>) + setOption already applies the correct theme. Forcing a
+        // re-init here re-introduces the theme/background mismatch (issue #1435). Non-TQL charts
+        // still get the override so their panel theme + dark background stay consistent.
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && !GetIsTqlType() && OverrideChartTheme();
         (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) || !pLoopMode) && ShakeNode();
         await LoadCodeScripts();
         pPanelRef && AddRenderCompleteAttr();
@@ -389,7 +446,9 @@ export const ShowVisualization = (props: ShowChartProps) => {
             AttachLegendCaptureHandler();
         }
 
-        GetIsTqlType() && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && setMapPreviousUniqueName(PanelIdParser(pPanelId));
+        GetIsTqlType() &&
+            CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) &&
+            setMapPreviousUniqueName(PanelIdParser(pPanelId));
     };
 
     useEffect(() => {
@@ -412,11 +471,15 @@ export const ShowVisualization = (props: ShowChartProps) => {
 
     return (
         <div className="tql-form">
-            {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} />}
+            {pPanelType === 'Text' && (
+                <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} />
+            )}
             {pPanelType === 'Geomap' && (
                 <div
                     className={'geomap-panel-title'}
-                    style={{ color: pTitle?.color && pTitle.color !== '' ? pTitle?.color : '#000000' }}
+                    style={{
+                        color: pTitle?.color && pTitle.color !== '' ? pTitle?.color : '#000000',
+                    }}
                 >
                     {pTitle?.title}
                 </div>
@@ -424,7 +487,13 @@ export const ShowVisualization = (props: ShowChartProps) => {
             {pData &&
                 pData?.cssAssets &&
                 pData?.cssAssets?.map((cssAsset: string, idx: number) => {
-                    return <link key={`css-asset-${idx?.toString()}`} rel="stylesheet" href={cssAsset} />;
+                    return (
+                        <link
+                            key={`css-asset-${idx?.toString()}`}
+                            rel="stylesheet"
+                            href={cssAsset}
+                        />
+                    );
                 })}
             {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && (
                 <div className="chart_container" ref={wrapRef} />

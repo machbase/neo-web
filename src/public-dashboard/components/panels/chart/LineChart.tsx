@@ -24,7 +24,7 @@ import { TqlCsvParser } from '../../../utils/tqlCsvParser';
 import { FakeTextBlock } from '../../../utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
 
-const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo }: any) => {
+const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo, pOnResolveTheme }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
@@ -35,6 +35,10 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
     const [sTqlData, setTqlData] = useState<any>(undefined);
+    // Lift the server-resolved theme so the public panel chrome matches the rendered chart (issue #1435).
+    useEffect(() => {
+        if (sChartData?.theme) pOnResolveTheme?.(sChartData.theme);
+    }, [sChartData?.theme, pOnResolveTheme]);
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
 

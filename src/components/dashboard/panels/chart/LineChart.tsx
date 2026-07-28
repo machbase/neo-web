@@ -45,6 +45,7 @@ const LineChart = ({
     pIsHeader,
     pBoardTimeMinMax,
     pBoardInfo,
+    pOnResolveTheme,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
@@ -59,6 +60,12 @@ const LineChart = ({
     const [sGeomapTitle, setGeomapTitle] = useState<string | undefined>(undefined);
     const [sVideoTimeRange, setVideoTimeRange] = useState<{ start: Date; end: Date } | null>(null);
     const prevVideoTimeRangeRef = useRef<{ start: Date; end: Date } | null | undefined>(undefined);
+    // Lift the server-resolved theme (pData.theme) so the parent panel chrome can match the
+    // rendered chart. For non-TQL charts this equals the panel theme; for TQL it's the .tql's own
+    // theme (issue #1435). React bails on an unchanged value, so this causes no re-render loop.
+    useEffect(() => {
+        if (sChartData?.theme) pOnResolveTheme?.(sChartData.theme);
+    }, [sChartData?.theme, pOnResolveTheme]);
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
 
