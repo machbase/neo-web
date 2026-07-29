@@ -3,12 +3,12 @@ import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
 import { generateRandomString } from '../../utils';
 
-const PanelHeader = ({ pPanelInfo, pIsHeader }: any) => {
+const PanelHeader = ({ pPanelInfo, pIsHeader, pResolvedTheme }: any) => {
     const sHeaderId = generateRandomString();
     
     return (
         <div
-            className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' panel-theme-white' : ''}`}
+            className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${(pResolvedTheme ?? pPanelInfo.theme) !== 'dark' ? ' panel-theme-white' : ''}`}
         >
             <div className="panel-title">
                 {pPanelInfo?.title || 'Chart'}

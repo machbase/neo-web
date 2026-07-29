@@ -81,11 +81,14 @@ const DashboardView = () => {
         handleRefresh();
         setVariableCollapse(false);
     };
-    const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any) => {
+    const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any, aIsAutoRefresh?: boolean) => {
         const sBoard: any = aBoardInfo ?? sBoardInformation;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoard);
-        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
-        setBoardTimeMinMax(() => sTimeMinMax);
+        // timeMinMaxConverter returns undefined for a mixed time range (only one side is now/last).
+        // Without the same fallback the main dashboard has, every consumer downstream throws.
+        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
+        // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it.
+        setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
         return;
     };
     const defaultMinMax = () => {
@@ -95,8 +98,11 @@ const DashboardView = () => {
     };
     const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
         const sTargetPanel = aBoardInfo.dashboard.panels[0];
+        // The first panel may be a TQL/Video panel with an empty blockList. Without this guard the
+        // TypeError here stops handleRefresh before GenChartVariableId(), leaving Refresh silently dead.
+        if (!sTargetPanel?.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
+        const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
@@ -152,7 +158,12 @@ const DashboardView = () => {
     const handleRefresh = async () => {
         const sTimeRange = sBoardInformation?.dashboard.timeRange;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoardInformation);
-        const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes);
+        // Without the fallback, a mixed time range makes timeMinMaxConverter return undefined and the
+        // .min below throws, so GenChartVariableId() never runs and the Refresh button goes silently dead.
+        const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes) ?? {
+            min: setUnitTime(sTimeRange.start),
+            max: setUnitTime(sTimeRange.end),
+        };
         setBoardTimeMinMax(() => {
             return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
         });
@@ -165,7 +176,7 @@ const DashboardView = () => {
     const ctrBoardInterval = (aTimeRange: any) => {
         clearInterval(sBoardRef.current);
         sBoardRef.current = setInterval(() => {
-            handleDashboardTimeRange(aTimeRange.start, aTimeRange.end);
+            handleDashboardTimeRange(aTimeRange.start, aTimeRange.end, undefined, true);
         }, setIntervalTime(aTimeRange));
     };
     const handleSplitPaneSize = (varId: string = 'ALL') => {

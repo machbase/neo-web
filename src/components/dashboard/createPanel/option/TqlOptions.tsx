@@ -1,41 +1,24 @@
-import { Dropdown, Page } from '@/design-system/components';
-import { generateUUID } from '@/utils';
+import { Page } from '@/design-system/components';
 import { ChartThemeList } from '@/utils/constants';
 
-interface GaugeOptionProps {
-    pPanelOption: any;
-    pSetPanelOption: any;
-}
-
-export const TqlOptions = (props: GaugeOptionProps) => {
-    const { pPanelOption, pSetPanelOption } = props;
-
-    const handleCustomOption = (aValue: string | boolean, aKey: string) => {
-        pSetPanelOption((aPrev: any) => {
-            return {
-                ...aPrev,
-                id: generateUUID(),
-                [aKey]: aValue,
-            };
-        });
-    };
-
+// The panel-level theme picker was removed (issue #1435) — a TQL chart's theme is owned by the
+// .tql's own theme(), so this panel now only shows guidance and takes no props.
+export const TqlOptions = () => {
     return (
         <div>
-            <Page.Collapse title="Panel option" pInitOpen>
+            <Page.Collapse title="Theme" pInitOpen>
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                    <Dropdown.Root
-                        label="Theme"
-                        options={ChartThemeList.map((option) => ({ label: option, value: option }))}
-                        value={pPanelOption.theme}
-                        onChange={(value: string) => handleCustomOption(value, 'theme')}
-                        fullWidth
-                    >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
-                            <Dropdown.List />
-                        </Dropdown.Menu>
-                    </Dropdown.Root>
+                    <Page.ContentDesc>Set the chart theme inside the TQL file with theme("...").</Page.ContentDesc>
+                    <Page.Space />
+                    <div style={{ display: 'flex', flexDirection: 'column', color: '#b6b6b6' }}>
+                        <Page.ContentText pContent="CHART(" />
+                        <Page.ContentText pContent='theme("chalk"),' style={{ color: '#179fff', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
+                        <Page.ContentText pContent="..." />
+                    </div>
+                    <Page.Space />
+                    <Page.ContentText pContent="Available themes" />
+                    <Page.ContentDesc>{ChartThemeList.join(', ')}</Page.ContentDesc>
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />

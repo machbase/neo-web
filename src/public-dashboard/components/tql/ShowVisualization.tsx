@@ -363,7 +363,10 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (IsExistElement()) InstanceController();
         else AppendElement(CreateElement());
 
-        GetIsTqlType() && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
+        // TQL charts own their theme via the .tql (server response). Do NOT force the panel theme
+        // (pTheme) onto them — that overrides e.g. a theme("romantic") .tql with the panel's dark
+        // default (issue #1435). Only non-TQL charts get the panel-theme override.
+        !GetIsTqlType() && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
         (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) || !pLoopMode) && ShakeNode();
         await LoadCodeScripts();
         pPanelRef && AddRenderCompleteAttr();

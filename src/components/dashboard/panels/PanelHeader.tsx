@@ -32,7 +32,7 @@ import { createTazBoardFromTimeRange } from '@/components/tagAnalyzer/bridge/Taz
 import type { PanelSeriesDefinition } from '@/components/tagAnalyzer/domain/SeriesDomain';
 import type { TimeRangeInput } from '@/components/tagAnalyzer/domain/time/TimeTypes';
 
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -403,7 +403,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                                     ? pPanelInfo?.titleColor && pPanelInfo?.titleColor !== ''
                                                         ? pPanelInfo?.titleColor
                                                         : '#000000'
-                                                    : ChartThemeTextColor[pPanelInfo.theme as ChartTheme]
+                                                    : ChartThemeTextColor[(pResolvedTheme ?? pPanelInfo.theme) as ChartTheme]
                                             }
                                         />
                                     }
@@ -465,7 +465,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 </div>
             )}
             <div
-                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${
+                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${(pResolvedTheme ?? pPanelInfo.theme) !== 'dark' ? ' panel-theme-white' : ''}${
                     pType === undefined ? ' cursor-grab' : ''
                 }`}
             >

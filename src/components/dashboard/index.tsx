@@ -148,11 +148,14 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         setBoardTimeMinMax(() => sTimeMinMax);
         GenChartVariableId();
     };
-    const handleDashboardTimeRange = async (sStart: any, sEnd: any) => {
+    const handleDashboardTimeRange = async (sStart: any, sEnd: any, aIsAutoRefresh?: boolean) => {
         // if (pInfo.dashboard.panels.length < 1) return;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
         const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
-        setBoardTimeMinMax(() => sTimeMinMax);
+        // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it. The
+        // Refresh button is unaffected (it bumps chartVariableId), and time-arrows / TimeRangeModal
+        // Save carry no flag at all.
+        setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
         const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart');
@@ -223,7 +226,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
 
     useOverlapTimeout(() => {
-        handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end);
+        handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end, true);
     }, sSetIntervalTime());
 
     return (
