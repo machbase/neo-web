@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { rpcMarkdownRender } from '@/api/repository/markdown';
 import setMermaid from '@/plugin/mermaid';
 import setChartext, { disposeChartext, resizeChartext } from '@/plugin/chartext';
+import setGeomap, { disposeGeomap, resizeGeomap } from '@/plugin/geomap';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID, parseCodeBlocks } from '@/utils';
@@ -61,6 +62,7 @@ export const Markdown = (props: MarkdownProps) => {
         if (typeof pContents !== 'string') return;
         drawMermaid();
         drawChartext();
+        drawGeomap();
         if (!sMarkdownId) return;
         // Query INSIDE the shadow root — the rendered markdown lives in the shadow DOM, so a
         // document-level query never matches it and the copy buttons would never attach.
@@ -101,18 +103,30 @@ export const Markdown = (props: MarkdownProps) => {
             drawMermaid();
             resizeChartext(sShadowRootRef.current);
         }
+        if (sSelectedTab === pData && sShadowRootRef.current) {
+            resizeChartext(sShadowRootRef.current);
+            resizeGeomap(sShadowRootRef.current);
+        }
     }, [sSelectedTab]);
 
     useEffect(() => {
         return () => {
             if (sShadowRootRef.current) {
                 disposeChartext(sShadowRootRef.current);
+                disposeGeomap(sShadowRootRef.current);
             }
         };
     }, []);
 
     const drawMermaid = () => {
-        if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
+        if (
+            sMdxText &&
+            pContents &&
+            pContents.match(sCheckMermaid) &&
+            sBodyRef &&
+            sBodyRef?.current &&
+            sBodyRef.current.offsetWidth > 0
+        ) {
             setMermaid(sShadowRootRef.current);
         }
     };
@@ -121,9 +135,15 @@ export const Markdown = (props: MarkdownProps) => {
             setChartext(sShadowRootRef.current);
         }
     };
+    const drawGeomap = () => {
+        if (sMdxText && sShadowRootRef.current) {
+            setGeomap(sShadowRootRef.current);
+        }
+    };
     const handleShadowContentUpdated = (shadowRoot: ShadowRoot) => {
         if (sMdxText) {
             setChartext(shadowRoot);
+            setGeomap(shadowRoot);
         }
         // mermaid is intentionally NOT booted here: it has no resize path and marks nodes
         // data-processed right after render, so rendering at offsetWidth=0 (hidden tab) would
@@ -147,14 +167,18 @@ export const Markdown = (props: MarkdownProps) => {
             let sReperer = sList.replace('/ui', '/api/tql');
             if (pType === 'mrk') {
                 const targetBoard = sBoardList.find(
-                    (aItem) => JSON.stringify(aItem.savedCode) === JSON.stringify(pContents) || JSON.stringify(aItem.code) === JSON.stringify(pContents)
+                    (aItem) =>
+                        JSON.stringify(aItem.savedCode) === JSON.stringify(pContents) ||
+                        JSON.stringify(aItem.code) === JSON.stringify(pContents),
                 );
                 if (targetBoard && targetBoard.path !== '') {
                     sReperer += targetBoard.path + targetBoard.name;
                 }
                 fetchMrk(pContents, sReperer);
             } else if (pType === 'wrk-mrk') {
-                const targetBoard = sBoardList.find((aBoard) => aBoard.type === 'wrk' && aBoard.id === pData);
+                const targetBoard = sBoardList.find(
+                    (aBoard) => aBoard.type === 'wrk' && aBoard.id === pData,
+                );
                 if (targetBoard && targetBoard.path !== '') {
                     sReperer += targetBoard.path + targetBoard.name;
                 }
