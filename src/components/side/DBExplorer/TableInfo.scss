@@ -367,6 +367,45 @@
         padding-right: 16px;
         align-content: center;
     }
+
+    // Side.ItemText renders the name inside a nested div, and the design-system's
+    // truncation rule only reaches it through .itemTextWrapper (the copyable variant).
+    // This row doesn't use copyable, so the nested div carries its own truncation.
+    .table-name-text {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    // Table row tail: record count by default, swapped for the action icons on hover.
+    // The two are mutually exclusive so the icons never steal width from the table name.
+    .db-table-row-tail {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .db-table-row-actions {
+        display: none;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+        padding-right: 8px;
+    }
+
+    .db-table-row:hover {
+        .r-txt {
+            display: none;
+        }
+
+        .db-table-row-actions {
+            display: flex;
+        }
+    }
     .r-btn {
         display: flex;
         padding-right: 8px;
