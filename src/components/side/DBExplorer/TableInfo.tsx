@@ -497,20 +497,22 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
         if (props.pTableFlag == 0 || !props.pShowHiddenObj) fetchRecordCount();
     }, [props.pRefresh, props.pShowHiddenObj]);
 
-    const dataViewerAction = sIsTagTable && !sIsDisabled ? (
-        <Button
-            size="side"
-            variant="ghost"
-            isToolTip
-            toolTipContent="Open Data Viewer"
-            icon={<MaterialIcon name="query_stats" size={14} />}
-            onClick={(e) => props.pHandleOpenDataViewer(e, props.pTable)}
-        />
-    ) : undefined;
+    const sQualifiedName = buildQualifiedTableName({
+        dbName: String(props.pTable[E_TABLE_INFO.DB_NM] ?? ''),
+        userName: String(props.pTable[E_TABLE_INFO.USER_NM] ?? ''),
+        tableName: String(props.pTable[E_TABLE_INFO.TB_NM] ?? ''),
+        databaseId: Number(props.pTable[E_TABLE_INFO.DB_ID] ?? -1),
+        currentUserName: getUserName(),
+    });
+
+    const handleCopyTableName = () => {
+        ClipboardCopy(sQualifiedName);
+    };
 
     return (
         <>
             <Side.Item
+                className="db-table-row"
                 paddingLeft={40}
                 onClick={handleTableDetail}
                 onContextMenu={handleContextMenu}
@@ -527,13 +529,24 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                         delayShow={700}
                         style={{ zIndex: 9999 }}
                     />
-                    <TableNameCopy pTable={props.pTable} disabled={sIsDisabled} actionSlot={dataViewerAction} />
+                    <TableNameText pTable={props.pTable} disabled={sIsDisabled} qualifiedName={sQualifiedName} />
                 </Side.ItemContent>
-                {!sIsDisabled && (
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
-                        <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                <div className="db-table-row-tail">
+                    {!sIsDisabled && <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>}
+                    <div className="db-table-row-actions">
+                        <Button.Copy size="side" variant="ghost" isToolTip toolTipContent="Copy table name" onClick={handleCopyTableName} />
+                        {sIsTagTable && !sIsDisabled && (
+                            <Button
+                                size="side"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Open Data Viewer"
+                                icon={<MaterialIcon name="query_stats" size={14} />}
+                                onClick={(e) => props.pHandleOpenDataViewer(e, props.pTable)}
+                            />
+                        )}
                     </div>
-                )}
+                </div>
             </Side.Item>
             {!sIsDisabled && sIsOpen && (
                 <ColumnDiv
@@ -553,27 +566,12 @@ interface ColumnDivPropsType {
     pDatabaseId: string;
     pTableId: string;
 }
-const TableNameCopy = ({ pTable, disabled, actionSlot }: { pTable: (string | number)[]; disabled: boolean; actionSlot?: React.ReactNode }) => {
-    const [copied, setCopied] = useState(false);
-    const dbName = String(pTable[E_TABLE_INFO.DB_NM] ?? '');
-    const userName = String(pTable[E_TABLE_INFO.USER_NM] ?? '');
+const TableNameText = ({ pTable, disabled, qualifiedName }: { pTable: (string | number)[]; disabled: boolean; qualifiedName: string }) => {
     const tableName = String(pTable[E_TABLE_INFO.TB_NM] ?? '');
-    const databaseId = Number(pTable[E_TABLE_INFO.DB_ID] ?? -1);
-    const currentUserName = getUserName();
-    const qualifiedName = buildQualifiedTableName({ dbName, userName, tableName, databaseId, currentUserName });
     const tooltipId = `table-name-${pTable[E_TABLE_INFO.TB_ID]}`;
 
-    const handleCopy = () => {
-        if (copied) return;
-        setCopied(true);
-        ClipboardCopy(qualifiedName);
-        setTimeout(() => {
-            setCopied(false);
-        }, 600);
-    };
-
     return (
-        <Side.ItemText copyable onCopy={handleCopy} showCopyAlways={false} actionSlot={actionSlot} copyTooltip="Copy table name">
+        <Side.ItemText>
             <div className={`table-name-text tooltip-${tooltipId}`} style={disabled ? { color: 'darkgray' } : undefined}>
                 {tableName}
             </div>
