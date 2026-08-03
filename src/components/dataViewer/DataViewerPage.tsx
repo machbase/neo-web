@@ -12,7 +12,7 @@ import {
 import NeoTimeRangeModal from '@/components/modal/TimeRangeModal';
 import { TimeZoneModal as NeoTimeZoneModal } from '@/components/modal/TimeZoneModal';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/bridge/createTagAnalyzerBoardFromTagSet';
+import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/integration';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';

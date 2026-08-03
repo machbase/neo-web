@@ -1,0 +1,198 @@
+@use '@/design-system/tokens' as t;
+
+/* Board composition and header layout. */
+
+.tag-analyzer-board-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+
+    &__actions {
+        flex: 0 1 auto;
+    }
+
+    &__unsaved-message {
+        flex: 0 0 auto;
+        min-width: max-content;
+        color: #fdb532;
+        font-size: 12px;
+        font-weight: 500;
+        overflow: visible;
+        white-space: nowrap;
+    }
+
+    &__save-button--unsaved {
+        color: #fdb532 !important;
+
+        svg {
+            color: #fdb532 !important;
+        }
+    }
+}
+
+.taz-help-modal {
+    display: grid;
+    gap: 18px;
+    max-width: 760px;
+
+    &__section {
+        display: grid;
+        gap: 8px;
+    }
+
+    &__section-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0;
+        color: #fdb532;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 20px;
+    }
+
+    &__item-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 6px 12px;
+    }
+
+    &__item {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+    }
+
+    &__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        color: #d6d6d6;
+    }
+
+    &__icon-pair {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    &__glyph {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        line-height: 1;
+
+        &--raw {
+            width: 26px;
+            font-size: 10px;
+        }
+
+        &--text {
+            width: 16px;
+            height: 16px;
+            font-size: 12px;
+        }
+    }
+
+    &__zoom-icon {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+    }
+
+    &__text {
+        display: grid;
+        gap: 1px;
+        min-width: 0;
+        color: #d6d6d6;
+        font-size: 12px;
+        line-height: 16px;
+    }
+
+    &__title {
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 16px;
+    }
+
+    &__description {
+        font-size: 12px;
+        line-height: 16px;
+        opacity: 0.9;
+    }
+}
+
+.taz-save-as-modal {
+    &__nav {
+        display: flex;
+        flex-direction: row;
+        padding: 0 t.$spacing-20 t.$spacing-4 t.$spacing-20;
+        gap: t.$spacing-8;
+        border-bottom: 1px solid #3e3e3e;
+    }
+
+    &__file-list {
+        display: flex;
+        flex-direction: column;
+        padding: t.$spacing-4 t.$spacing-8;
+    }
+
+    &__file-row {
+        height: 30px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: t.$spacing-4 t.$spacing-8;
+        border-radius: t.$border-radius-sm;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+    }
+
+    &__file-row--selected {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &__file-name {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: t.$spacing-8;
+        flex: 1;
+        font-size: t.$font-size-sm;
+        min-width: 0;
+
+        span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    &__file-modified,
+    &__file-size {
+        flex: 1;
+        font-size: t.$font-size-sm;
+        color: t.$text-secondary;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__footer-input {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-8;
+        flex: 1;
+    }
+}

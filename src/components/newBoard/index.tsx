@@ -7,7 +7,7 @@ import { TbParachute } from '@/assets/icons/Icon';
 import { extractionExtension } from '@/utils';
 import { useMemo, useState } from 'react';
 import { Page } from '@/design-system/components';
-import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/TazVersion';
+import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/tazFormat';
 
 interface NewBoardProps {
     pExtentionList: any;

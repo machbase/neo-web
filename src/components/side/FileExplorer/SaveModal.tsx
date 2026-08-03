@@ -16,10 +16,11 @@ import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { Button, Input, Modal, FileListHeader } from '@/design-system/components';
-import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
-import { saveBoardInfoToTaz } from '@/components/tagAnalyzer/persistence/save/saveBoardInfoToTaz';
-import { createSavedTazBoardSnapshot } from '@/components/tagAnalyzer/persistence/save/SavedTazBoardSnapshot';
-import type { BoardInfo } from '@/components/tagAnalyzer/domain/BoardDomain';
+import {
+    loadTazBoard,
+    saveTazBoard,
+} from '@/components/tagAnalyzer/persistence/tazDocumentService';
+import type { BoardInfo } from '@/components/tagAnalyzer/model';
 import './SaveModal.scss';
 
 export interface SaveModalProps {
@@ -178,16 +179,16 @@ export const SaveModal = (props: SaveModalProps) => {
                 name: sFileName,
                 path: sPath,
             };
-            const sDidSave = await saveBoardInfoToTaz(sBoardToSave);
+            const sSavedBoard = await saveTazBoard(sBoardToSave);
             setModalPath(sPath);
-            if (sDidSave) {
+            if (sSavedBoard) {
                 handleClose();
                 const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
                 setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
                 setBoardList(
                     sBoardList.map((aItem: any) =>
                         aItem.id === sSelectedTab
-                            ? createSavedTazBoardSnapshot(sBoardToSave)
+                            ? sSavedBoard
                             : aItem,
                     ),
                 );
@@ -326,7 +327,7 @@ export const SaveModal = (props: SaveModalProps) => {
             if (sType === 'taz') {
                 try {
                     const sParsedTaz = typeof sData === 'string' ? JSON.parse(sData) : sData;
-                    const sTazBoardInfo = loadTazBoardInfo(sParsedTaz, sTmpId, file.name, sPath);
+                    const sTazBoardInfo = loadTazBoard(sParsedTaz, sTmpId, file.name, sPath);
 
                     setBoardList([...sBoardList, sTazBoardInfo as any]);
                     setSelectedTab(sTmpId);

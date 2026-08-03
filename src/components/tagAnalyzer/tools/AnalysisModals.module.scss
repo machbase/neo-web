@@ -1,0 +1,161 @@
+@use '@/design-system/tokens' as t;
+
+.fftModal {
+    min-height: 320px;
+    height: 80vh;
+    max-height: 80vh;
+}
+
+.fftBody {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: t.$spacing-16;
+}
+
+.fftToolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    align-items: end;
+    gap: t.$spacing-16;
+}
+
+.fftFieldset {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.fftControlLabel {
+    padding: 0;
+    color: t.$text-secondary;
+    font-size: t.$font-size-base;
+    font-weight: t.$font-weight-medium;
+}
+
+.fftDimensionButtons {
+    display: flex;
+    gap: t.$spacing-4;
+
+    button {
+        min-width: 56px;
+        height: 32px;
+    }
+}
+
+.fftInputs {
+    display: flex;
+    flex-direction: column;
+}
+
+.fftInputRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: t.$spacing-12;
+}
+
+.fftFrequencyField {
+    width: 132px;
+}
+
+.fftIntervalFields {
+    display: grid;
+    grid-template-columns: 132px 88px;
+    align-items: end;
+    gap: t.$spacing-8;
+}
+
+.fftApplyButton {
+    min-height: 32px;
+    padding-inline: t.$spacing-12;
+}
+
+.fftSelectionSummary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: t.$spacing-8 t.$spacing-20;
+    margin: 0;
+    padding: t.$spacing-10 0;
+    border-top: 1px solid t.$border-color-default;
+    border-bottom: 1px solid t.$border-color-default;
+}
+
+.fftSummaryItem {
+    display: inline-flex;
+    align-items: baseline;
+    gap: t.$spacing-6;
+
+    dt {
+        color: t.$text-tertiary;
+        font-size: t.$font-size-sm;
+    }
+
+    dd {
+        margin: 0;
+        color: t.$text-primary;
+        font-size: t.$font-size-base;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.fftSummaryRange {
+    flex: 1 1 280px;
+    justify-content: flex-end;
+    min-width: 0;
+
+    dd {
+        overflow-wrap: anywhere;
+        text-align: right;
+    }
+}
+
+.fftChartArea {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 180px;
+}
+
+.fftLoading {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    place-items: center;
+}
+
+@media (max-width: 720px) {
+    .fftToolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .fftDimensionButtons button {
+        flex: 1;
+    }
+
+    .fftFrequencyField,
+    .fftIntervalFields {
+        width: 100%;
+    }
+
+    .fftIntervalFields {
+        grid-template-columns: minmax(0, 1fr) 88px;
+    }
+
+    .fftApplyButton {
+        width: 100%;
+    }
+
+    .fftSummaryRange {
+        flex-basis: 100%;
+        justify-content: flex-start;
+
+        dd {
+            text-align: left;
+        }
+    }
+}

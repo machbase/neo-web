@@ -4,8 +4,8 @@ import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
 import { useRecoilState, useRecoilValue, useSetRecoilState, useResetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
-import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
-import type { BoardInfo } from '../tagAnalyzer/domain/BoardDomain';
+import TagAnalyzer from '@/components/tagAnalyzer/TagAnalyzer';
+import type { BoardInfo } from '@/components/tagAnalyzer/model';
 import { Button, Tabs } from '@/design-system/components';
 import Tab from '@/design-system/components/Tabs/Tab';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
@@ -51,8 +51,7 @@ import {
 } from '@/recoil/recoil';
 import { gActiveAppSide } from '@/recoil/appStore';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
-import { saveBoardInfoToTaz } from '@/components/tagAnalyzer/persistence/save/saveBoardInfoToTaz';
-import { createSavedTazBoardSnapshot } from '@/components/tagAnalyzer/persistence/save/SavedTazBoardSnapshot';
+import { saveTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
 const DEFAULT_CONTEXT_MENU_STATE = {
     open: false,
@@ -115,11 +114,11 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
 
                 if (sFileType === 'taz') {
                     try {
-                        const sDidSave = await saveBoardInfoToTaz(sFilterBoard);
-                        if (sDidSave) {
+                        const sSavedBoard = await saveTazBoard(sFilterBoard);
+                        if (sSavedBoard) {
                             const sIndex = sBoardList.findIndex((aBoard) => aBoard.id === sSelectedTab);
                             const sTempBoardList = JSON.parse(JSON.stringify(sBoardList));
-                            sTempBoardList[sIndex] = createSavedTazBoardSnapshot(sFilterBoard) as any;
+                            sTempBoardList[sIndex] = sSavedBoard as any;
                             setBoardList(sTempBoardList);
                         } else {
                             Toast.error('save file fail retry please');

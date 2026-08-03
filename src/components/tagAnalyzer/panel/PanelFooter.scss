@@ -29,50 +29,45 @@
         left: 50%;
         transform: translateX(-50%);
         display: flex;
+        align-items: center;
         width: 100%;
         z-index: 2;
         padding: 0 80px;
         pointer-events: none;
     }
     .toolbar-controls > *,
-    .navigator-shift-controls > * {
+    .navigator-shift-controls > *,
+    .range-labels > * {
         pointer-events: auto;
     }
     .toolbar-controls {
         justify-content: center;
-        align-items: center;
     }
     .navigator-shift-controls {
         width: auto;
         transform: none;
         justify-content: space-between;
-        align-items: center;
         padding: 0;
     }
     .range-labels {
         justify-content: space-between;
-        align-items: center;
         color: #c4c4c4;
         font-size: 12px;
     }
     .range-label {
         min-width: 0;
-    }
-    .range-label-button {
         max-width: 220px;
-        border: 0;
         padding: 1px 4px;
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        border: 0;
         background: transparent;
         color: inherit;
         cursor: text;
         font: inherit;
-        text-align: inherit;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        pointer-events: auto;
 
-        &:hover,
+        &:hover:not(:disabled),
         &:focus-visible {
             color: #fdb532;
             background-color: rgba(253, 181, 50, 0.12);
@@ -80,19 +75,7 @@
         }
 
         &:disabled {
-            color: inherit;
             cursor: default;
-            opacity: 0.7;
-        }
-    }
-
-    .range-label-inline-editor {
-        position: relative;
-        max-width: min(248px, 48%);
-        pointer-events: auto;
-
-        &.is-end {
-            justify-content: flex-end;
         }
     }
 }

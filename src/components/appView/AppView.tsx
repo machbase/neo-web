@@ -1,6 +1,6 @@
 import { Page, Toast } from '@/design-system/components';
 import { gBoardList, gSelectedTab, type GBoardListType } from '@/recoil/recoil';
-import { createTagAnalyzerBoardFromTagSet, TAG_ANALYZER_BRIDGE_APP_NAME } from '@/components/tagAnalyzer/bridge/createTagAnalyzerBoardFromTagSet';
+import { createTagAnalyzerBoardFromTagSet, TAG_ANALYZER_BRIDGE_APP_NAME } from '@/components/tagAnalyzer/integration';
 import { useEffect, useRef } from 'react';
 import { useSetRecoilState } from 'recoil';
 

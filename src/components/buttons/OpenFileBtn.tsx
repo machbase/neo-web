@@ -5,7 +5,7 @@ import { getFiles } from '@/api/repository/fileTree';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import './OpenFileBtn.scss';
 import { Button } from '@/design-system/components';
-import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
+import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
 export const OpenFileBtn = ({
     pType,
@@ -59,7 +59,7 @@ export const OpenFileBtn = ({
                     };
                 } else if (sFileExtension === 'taz') {
                     try {
-                        sTmpBoard = loadTazBoardInfo(JSON.parse(sContentResult), sTmpId, sFileName, sFilePath);
+                        sTmpBoard = loadTazBoard(JSON.parse(sContentResult), sTmpId, sFileName, sFilePath);
                     } catch (error) {
                         pErrorCallback?.(
                             error instanceof Error
