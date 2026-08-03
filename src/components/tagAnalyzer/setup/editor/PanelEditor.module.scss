@@ -1,0 +1,628 @@
+.editor {
+    width: 100%;
+    margin-top: 16px;
+    overflow: hidden;
+    border: 0.5px solid #454545;
+    border-radius: 8px;
+    background: var(--color-background-primary);
+    transform-origin: top center;
+    will-change: max-height, opacity, transform, margin-top;
+}
+
+.editorOpening {
+    animation: panelEditorSlideDown 180ms ease-out both;
+}
+
+.editorClosing {
+    pointer-events: none;
+    animation: panelEditorSlideUp 150ms ease-in both;
+}
+
+.editorPage {
+    width: 100%;
+    background: transparent;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.headerMain {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.title {
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+.tabList {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.buttonRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notAppliedMessage {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 24px;
+    max-width: 420px;
+    color: #fdb532;
+    font-size: 11px;
+    line-height: 14px;
+    white-space: normal;
+}
+
+.notAppliedMessageHidden {
+    display: none;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-sizing: border-box;
+    height: 320px;
+    padding: 8px 16px 16px;
+    overflow-y: auto;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding: 4px;
+}
+
+.sectionHeader {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 22px;
+}
+
+.sectionTitle {
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.sectionTag {
+    padding: 1px 6px;
+    border: 1px solid rgba(65, 153, 255, 0.34);
+    border-radius: 4px;
+    background: rgba(65, 153, 255, 0.12);
+    color: rgba(194, 220, 255, 0.9);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 13px;
+}
+
+.sectionHeaderCheckbox {
+    margin-left: 2px;
+}
+
+.rightAxisHeaderActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.controlStack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.controlRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.controlGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, max-content));
+    gap: 12px 18px;
+    align-items: start;
+}
+
+.axesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px;
+    align-items: start;
+}
+
+.dataSettingGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    align-items: start;
+}
+
+.dataSettingStack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.dataLoadSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.dataSettingMetricGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.dataSettingMetricCard {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    flex: 0 1 auto;
+    gap: 8px 14px;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    padding: 8px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.dataSettingMetricTitle {
+    min-width: 88px;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+}
+
+.dataSettingMetricValue {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 72px;
+}
+
+.dataSettingMetricLabel {
+    color: rgba(255, 255, 255, 0.48);
+    font-size: 10px;
+    line-height: 12px;
+    white-space: nowrap;
+}
+
+.dataSettingMetricNumber {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.dataSettingAlignmentSpacer {
+    min-height: 30px;
+}
+
+.axesGrid .section {
+    gap: 8px;
+}
+
+.axesGrid .controlRow {
+    gap: 6px;
+}
+
+.axesGrid .rangeInputs {
+    gap: 6px;
+}
+
+.axisSubsectionTitle {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 20px;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 14px;
+}
+
+.disabledControl {
+    opacity: 0.45;
+}
+
+.mutedLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.rangeField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.rangeInputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rangeSeparator {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+}
+
+.fieldError {
+    color: #ff6b6b;
+    font-size: 11px;
+    line-height: 14px;
+}
+
+.numberInputCompact {
+    width: 48px;
+}
+
+.numberInputThreshold {
+    width: 80px;
+}
+
+.numberInputStandard {
+    width: 150px;
+}
+
+.titleInput {
+    width: 220px;
+}
+
+.rightAxisTrigger {
+    width: 200px;
+}
+
+.rawRangeLabelWide {
+    min-width: 100px;
+}
+
+.editorCard {
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.editorWrappedRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 6px 7px;
+}
+
+.editorField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.editorAliasField {
+    flex: 0 1 120px;
+    min-width: 120px;
+    max-width: min(100%, 360px);
+    transition: flex-basis 160ms ease;
+}
+
+.editorAliasField:focus-within {
+    flex: 0 1 var(--editor-alias-expanded-width, 120px);
+}
+
+.editorAliasInput {
+    width: 100%;
+}
+
+.editorNarrowControl {
+    width: 120px;
+}
+
+.editorSelectTrigger {
+    width: 120px;
+    height: 30px;
+    padding: 4px 8px;
+}
+
+.editorFieldLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 14px;
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.editorSeriesIdentity {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 120px;
+    max-width: 180px;
+    min-height: 48px;
+}
+
+.editorSeriesRemoveButton {
+    margin-left: auto;
+    align-self: center;
+    flex-shrink: 0;
+}
+
+.editorSeriesTagName {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editorSeriesTableName {
+    color: rgba(255, 255, 255, 0.46);
+    font-size: 11px;
+    line-height: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editorInlineField {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+}
+
+.editorFixedValue {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 11px;
+    line-height: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editorAddSeriesButton {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+.savedRangeNote {
+    display: block;
+    max-width: 640px;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 11px;
+    line-height: 15px;
+}
+
+.timeLayout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    gap: 12px;
+    align-items: start;
+    min-width: 0;
+}
+
+.timeConfiguredSection,
+.timeQuickSection {
+    min-width: 0;
+}
+
+.timeRangeInputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    width: 100%;
+    min-width: 0;
+}
+
+.timeRangeInputs > div {
+    width: 100%;
+}
+
+.timeQuickRange {
+    width: 100%;
+    min-width: 0;
+}
+
+.timeQuickRange > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 2px 8px;
+    min-width: 0;
+}
+
+.timeQuickRange > div > div {
+    min-width: 0;
+}
+
+.displayTabRow {
+    display: flex;
+    gap: 20px;
+}
+
+.displayChartColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.displayNumberColumn {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.chartTypeOptionRow {
+    display: flex;
+    gap: 8px;
+}
+
+.chartTypeOption {
+    width: 80px;
+    height: 64px;
+    border: solid 0.5px #b8c8da41;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.chartTypeOptionCustom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+}
+
+.chartTypeOptionActive {
+    border-color: #4199ff;
+}
+
+.rightAxisSeries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.rightAxisSeriesList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rightAxisSeriesItem {
+    min-width: 0;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 860px) {
+    .header {
+        align-items: flex-start;
+    }
+
+    .dataSettingGrid,
+    .timeLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .dataSettingAlignmentSpacer {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .editorOpening,
+    .editorClosing {
+        animation-duration: 1ms;
+    }
+}
+
+@keyframes panelEditorSlideDown {
+    from {
+        max-height: 0;
+        margin-top: 0;
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+
+    to {
+        max-height: 640px;
+        margin-top: 16px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes panelEditorSlideUp {
+    from {
+        max-height: 640px;
+        margin-top: 16px;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        max-height: 0;
+        margin-top: 0;
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+}

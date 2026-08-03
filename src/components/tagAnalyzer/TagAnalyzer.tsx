@@ -1,60 +1,49 @@
-import {
-    useEffect,
-    useState,
-} from 'react';
-import TagAnalyzerBoard from './TagAnalyzerBoard';
+import { useEffect, useState } from 'react';
+import Board from './board/Board';
 import { Page, Toast } from '@/design-system/components';
-import type { BoardInfo } from './domain/BoardDomain';
-import { getOutdatedTazFormatWarning } from './persistence/TazVersion';
-import { useTagAnalyzerMetadata } from './appState/useTagAnalyzerMetadata';
-import { useTagAnalyzerAppState } from './appState/useTagAnalyzerAppState';
+import { tableMetadataApi } from './api/tableMetadataApi';
+import type { BoardInfo } from './board/boardModel';
+import type { RollupTableMap } from './seriesModel';
+import { useTagAnalyzerAppState } from './integration';
+import { useLatestAsyncRequest } from './hooks/useLatestAsyncRequest';
 
-const TagAnalyzer = ({
-    info,
-}: {
-    info: BoardInfo;
-}) => {
+const EMPTY_ROLLUP_TABLE_LIST: RollupTableMap = {};
+
+export default function TagAnalyzer({ info }: { info: BoardInfo }) {
     const {
         selectedTab: sSelectedTab,
-        fileTree: sFileTree,
-        setFileTree: setGlobalFileTree,
+        handleFileSaved,
         updateSavedBoard: handleSavedBoard,
     } = useTagAnalyzerAppState();
-    const [sRecentModalPath, setRecentModalPath] = useState('/');
+    const [sRollupTableList, setRollupTableList] = useState<RollupTableMap>();
     const sIsActiveTab = sSelectedTab === info.id;
-    const {
-        rollupTableList,
-        sourceTableNames,
-        isLoadingMetadata,
-    } = useTagAnalyzerMetadata({ enabled: sIsActiveTab });
+
+    useLatestAsyncRequest({
+        enabled: sIsActiveTab && sRollupTableList === undefined,
+        requestKey: info.id,
+        fetch: () => tableMetadataApi.fetchRollupMetadata(),
+        onSuccess: setRollupTableList,
+        onError: () => setRollupTableList({}),
+    });
 
     useEffect(() => {
-        const sWarning = getOutdatedTazFormatWarning(info.version, info.panels.length);
+        if (info.loadWarning) Toast.warning(info.loadWarning, undefined);
+    }, [info.loadWarning]);
 
-        if (sWarning) {
-            Toast.warning(sWarning, undefined);
-        }
-    }, [info]);
+    if (sIsActiveTab && sRollupTableList === undefined) return null;
 
     return (
-        !isLoadingMetadata && (
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <Page>
-                    <TagAnalyzerBoard
-                        info={info}
-                        isActiveTab={sIsActiveTab}
-                        rollupTableList={rollupTableList}
-                        sourceTableNames={sourceTableNames}
-                        recentModalPath={sRecentModalPath}
-                        fileTree={sFileTree}
-                        onSavedBoard={handleSavedBoard}
-                        onFileTreeChange={setGlobalFileTree}
-                        onRecentModalPathChange={setRecentModalPath}
-                    />
-                </Page>
-            </div>
-        )
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <Page>
+                <Board
+                    key={info.id}
+                    info={info}
+                    isActiveTab={sIsActiveTab}
+                    rollupTableList={sRollupTableList ?? EMPTY_ROLLUP_TABLE_LIST}
+                    onSavedBoard={handleSavedBoard}
+                    onFileSaved={handleFileSaved}
+                />
+            </Page>
+        </div>
     );
-};
-
-export default TagAnalyzer;
+}

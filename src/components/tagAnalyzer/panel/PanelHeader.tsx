@@ -1,4 +1,4 @@
-import './PanelChartHeader.scss';
+import './PanelHeader.scss';
 import {
     useEffect,
     useId,
@@ -24,44 +24,41 @@ import {
     VscNote,
     VscThreeBars,
 } from '@/assets/icons/Icon';
-import { Button, ContextMenu, Menu } from '@/design-system/components';
+import { Button, ContextMenu, Menu, type ContextMenuPosition } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
-import { PanelOverlayMode } from '../domain/panel/PanelActions';
-import type {
-    IntervalOption,
-    TimeRangeMs,
-} from '../domain/time/TimeTypes';
-import type { PanelSeriesRollupStatus } from '../fetch/panelData/PanelDataFetchTypes';
-import { formatRangeEndpointLabel } from '../domain/time/TimeFormatters';
-import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
-import { formatNumericIntervalValue } from '../domain/time/NumericIntervalUtils';
+import type { IntervalOption } from '../range/intervalResolver';
+import type { AxisRange } from '../range/rangeModel';
+import { formatAxisRange } from '../format/axisFormat';
+import { formatNumericInterval } from '../format/numericFormat';
+import { formatTimeInterval } from '../format/timeFormat';
+import { PanelOverlayMode } from './panelInteraction';
 
-export enum PanelActionKey {
-    TOGGLE_RAW = 'TOGGLE_RAW',
-    TOGGLE_HIGHLIGHT = 'TOGGLE_HIGHLIGHT',
-    TOGGLE_ANNOTATION = 'TOGGLE_ANNOTATION',
-    TOGGLE_DRAG_SELECT = 'TOGGLE_DRAG_SELECT',
-    SET_GLOBAL_TIME = 'SET_GLOBAL_TIME',
-    REFRESH_DATA = 'REFRESH_DATA',
-    REFRESH_TIME = 'REFRESH_TIME',
-    EXPAND_FULL_RANGE = 'EXPAND_FULL_RANGE',
-    TOGGLE_EDIT = 'TOGGLE_EDIT',
-    OPEN_EXPORT_CSV = 'OPEN_EXPORT_CSV',
-    OPEN_DELETE_CONFIRM = 'OPEN_DELETE_CONFIRM',
-}
+export const PanelActionKey = {
+    TOGGLE_RAW: 'TOGGLE_RAW',
+    TOGGLE_HIGHLIGHT: 'TOGGLE_HIGHLIGHT',
+    TOGGLE_ANNOTATION: 'TOGGLE_ANNOTATION',
+    TOGGLE_DRAG_SELECT: 'TOGGLE_DRAG_SELECT',
+    SET_GLOBAL_TIME: 'SET_GLOBAL_TIME',
+    REFRESH_DATA: 'REFRESH_DATA',
+    REFRESH_TIME: 'REFRESH_TIME',
+    EXPAND_FULL_RANGE: 'EXPAND_FULL_RANGE',
+    TOGGLE_EDIT: 'TOGGLE_EDIT',
+    OPEN_EXPORT_CSV: 'OPEN_EXPORT_CSV',
+    OPEN_DELETE_CONFIRM: 'OPEN_DELETE_CONFIRM',
+} as const;
 
-enum PanelActionVisibilityPriority {
-    PRIMARY = 'primary',
-    SECONDARY = 'secondary',
-    WIDE = 'wide',
-}
+export type PanelActionKey =
+    (typeof PanelActionKey)[keyof typeof PanelActionKey];
 
-export type PanelHeaderRuntimeState = {
+type PanelHeaderRuntimeState = {
     title: string;
-    panelRange: TimeRangeMs;
+    mainRange: AxisRange | undefined;
     resolvedIntervalOption: IntervalOption | undefined;
     resolvedNumericInterval: number | undefined;
-    seriesRollupStatusList: PanelSeriesRollupStatus[];
+    seriesRollupStatusList: Array<{
+        seriesName: string;
+        usesRollup: boolean;
+    }>;
     canSetGlobalTime: boolean;
     canSaveLocal: boolean;
     isNumericXAxis: boolean;
@@ -76,34 +73,15 @@ type PanelActionDescriptor = {
     label: string;
     tooltip?: string;
     icon: ReactNode;
-    visibilityPriority: PanelActionVisibilityPriority;
     active?: boolean;
     disabled?: boolean;
     className?: string;
     buttonStyle?: CSSProperties;
     contextLabel?: string;
+    showInMoreMenu?: boolean;
+    showInExtraMenu?: boolean;
+    showInContextMenu?: boolean;
 };
-
-const PANEL_CONTEXT_ACTION_KEYS: PanelActionKey[] = [
-    PanelActionKey.TOGGLE_RAW,
-    PanelActionKey.TOGGLE_DRAG_SELECT,
-    PanelActionKey.SET_GLOBAL_TIME,
-    PanelActionKey.REFRESH_DATA,
-    PanelActionKey.REFRESH_TIME,
-    PanelActionKey.EXPAND_FULL_RANGE,
-    PanelActionKey.TOGGLE_EDIT,
-    PanelActionKey.OPEN_DELETE_CONFIRM,
-];
-const PANEL_EXTRA_ACTION_KEYS = new Set<PanelActionKey>([
-    PanelActionKey.TOGGLE_HIGHLIGHT,
-    PanelActionKey.TOGGLE_ANNOTATION,
-    PanelActionKey.SET_GLOBAL_TIME,
-    PanelActionKey.REFRESH_DATA,
-    PanelActionKey.EXPAND_FULL_RANGE,
-    PanelActionKey.OPEN_EXPORT_CSV,
-]);
-const RAW_BUTTON_STYLE = { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 } as const;
-const DRAG_SELECT_BUTTON_STYLE = { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 } as const;
 
 function joinClassNames(
     ...names: Array<string | false | undefined | null>
@@ -113,44 +91,35 @@ function joinClassNames(
 
 function buildPanelActions(
     state: PanelHeaderRuntimeState,
-    options: { showExportCsv?: boolean } = {},
+    showExportCsv = false,
 ): PanelActionDescriptor[] {
-    const sRawLabel = state.isRaw
-        ? 'Disable raw data mode'
-        : 'Enable raw data mode';
-    const sEditLabel = state.isEditing ? 'Close editor' : 'Open editor';
     const sActions: PanelActionDescriptor[] = [
         {
             key: PanelActionKey.TOGGLE_RAW,
-            label: sRawLabel,
-            icon: (
-                <span
-                    className="panel-header__raw-label"
-                    style={{ color: state.isRaw ? '#fdb532' : undefined }}
-                >
-                    RAW
-                </span>
-            ),
-            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
+            label: state.isRaw
+                ? 'Disable raw data mode'
+                : 'Enable raw data mode',
+            icon: <span className="panel-header__raw-label">RAW</span>,
             active: state.isRaw,
             className: 'panel-header__action--raw',
-            buttonStyle: RAW_BUTTON_STYLE,
+            buttonStyle: { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 },
+            showInContextMenu: true,
         },
         {
             key: PanelActionKey.TOGGLE_HIGHLIGHT,
             label: 'Highlight',
             tooltip: 'Drag on chart to create highlight',
             icon: <PiHighlighterLight size={16} />,
-            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.HIGHLIGHT,
+            showInExtraMenu: true,
         },
         {
             key: PanelActionKey.TOGGLE_ANNOTATION,
             label: 'Annotation',
             tooltip: 'Click chart to create annotation',
             icon: <VscNote size={15} />,
-            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.ANNOTATION,
+            showInExtraMenu: true,
         },
         {
             key: PanelActionKey.TOGGLE_DRAG_SELECT,
@@ -160,134 +129,88 @@ function buildPanelActions(
                 : 'Enable range selection',
             tooltip: 'Select data range for stats and FFT',
             icon: <PiSelectionPlusBold size={18} />,
-            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.overlayMode === PanelOverlayMode.DRAG_SELECT,
-            buttonStyle: DRAG_SELECT_BUTTON_STYLE,
+            buttonStyle: { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 },
+            showInContextMenu: true,
         },
         {
             key: PanelActionKey.SET_GLOBAL_TIME,
             label: 'Set global time',
             icon: <TbTimezone size={15} />,
-            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
             disabled: !state.canSetGlobalTime,
+            showInExtraMenu: true,
+            showInContextMenu: true,
         },
         {
             key: PanelActionKey.REFRESH_DATA,
             label: 'Reload data',
             icon: <Refresh size={14} />,
-            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
+            showInExtraMenu: true,
+            showInContextMenu: true,
         },
         {
             key: PanelActionKey.REFRESH_TIME,
             label: 'Refresh time',
             icon: <LuTimerReset size={16} />,
-            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
+            showInMoreMenu: true,
+            showInContextMenu: true,
         },
         {
             key: PanelActionKey.EXPAND_FULL_RANGE,
             label: 'Expand to full data range',
             icon: <GoArrowBoth size={15} />,
-            visibilityPriority: PanelActionVisibilityPriority.SECONDARY,
+            showInExtraMenu: true,
+            showInContextMenu: true,
         },
         {
             key: PanelActionKey.TOGGLE_EDIT,
-            label: sEditLabel,
+            label: state.isEditing ? 'Close editor' : 'Open editor',
             contextLabel: state.isEditing ? 'Close editor' : 'Edit panel',
             icon: <GearFill size={14} />,
-            visibilityPriority: PanelActionVisibilityPriority.PRIMARY,
             active: state.isEditing,
+            showInContextMenu: true,
         },
         {
             key: PanelActionKey.OPEN_DELETE_CONFIRM,
             label: 'Delete panel',
             icon: <Delete size={16} />,
-            visibilityPriority: PanelActionVisibilityPriority.WIDE,
+            showInMoreMenu: true,
+            showInContextMenu: true,
         },
     ];
 
-    if (options.showExportCsv && state.canSaveLocal) {
+    if (showExportCsv && state.canSaveLocal) {
         sActions.splice(sActions.length - 1, 0, {
             key: PanelActionKey.OPEN_EXPORT_CSV,
             label: 'Export CSV',
             icon: <Download size={16} />,
-            visibilityPriority: PanelActionVisibilityPriority.WIDE,
+            showInExtraMenu: true,
         });
     }
 
     return sActions;
 }
 
-function partitionPanelActions(actions: PanelActionDescriptor[]): {
-    direct: PanelActionDescriptor[];
-    extra: PanelActionDescriptor[];
-    more: PanelActionDescriptor[];
-} {
-    const sDirect: PanelActionDescriptor[] = [];
-    const sExtra: PanelActionDescriptor[] = [];
-    const sMore: PanelActionDescriptor[] = [];
-
-    for (const action of actions) {
-        if (PANEL_EXTRA_ACTION_KEYS.has(action.key)) {
-            sExtra.push(action);
-        } else {
-            sDirect.push(action);
-            if (action.visibilityPriority !== PanelActionVisibilityPriority.PRIMARY) {
-                sMore.push(action);
-            }
-        }
-    }
-
-    return { direct: sDirect, extra: sExtra, more: sMore };
-}
-
-function getActionClass(action: PanelActionDescriptor): string {
-    return joinClassNames(
-        'panel-header__action',
-        `panel-header__action--${action.visibilityPriority}`,
-        action.className,
-        action.active && 'panel-header__action--active',
-    );
-}
-
 function formatPanelTimeText(state: PanelHeaderRuntimeState): string {
-    if (!isValidTimeRange(state.panelRange)) return '';
-    const sStart = formatRangeEndpointLabel(
-        state.panelRange.startTime,
+    if (!state.mainRange) return '';
+    const sFormattedRange = formatAxisRange(
+        state.mainRange,
         state.isNumericXAxis,
-        state.panelRange,
     );
-    const sEnd = formatRangeEndpointLabel(
-        state.panelRange.endTime,
-        state.isNumericXAxis,
-        state.panelRange,
-    );
-    return `${sStart} ~ ${sEnd}`;
+    return `${sFormattedRange.start} ~ ${sFormattedRange.end}`;
 }
 
 function formatIntervalText(state: PanelHeaderRuntimeState): string {
     if (state.isRaw) return '';
 
-    if (state.isNumericXAxis) {
-        return formatNumericIntervalValue(state.resolvedNumericInterval);
-    }
-
-    if (!state.resolvedIntervalOption) return '';
-    return `${state.resolvedIntervalOption.IntervalValue}${state.resolvedIntervalOption.IntervalType}`;
+    return state.isNumericXAxis
+        ? formatNumericInterval(state.resolvedNumericInterval)
+        : state.resolvedIntervalOption
+          ? formatTimeInterval(state.resolvedIntervalOption)
+          : '';
 }
 
-function getIntervalLabel(state: PanelHeaderRuntimeState): string {
-    return state.isNumericXAxis ? 'numeric interval' : 'interval';
-}
-
-type RollupHeaderSummary = {
-    shortText: string;
-    titleText: string;
-    statusList: PanelSeriesRollupStatus[];
-};
-
-function getRollupHeaderSummary(
-    state: PanelHeaderRuntimeState,
-): RollupHeaderSummary | undefined {
+function getRollupHeaderSummary(state: PanelHeaderRuntimeState) {
     if (state.isRaw || state.seriesRollupStatusList.length === 0) {
         return undefined;
     }
@@ -298,123 +221,71 @@ function getRollupHeaderSummary(
     const sTotalCount = state.seriesRollupStatusList.length;
 
     if (sRollupCount === sTotalCount) {
-        return {
-            shortText: 'rollup',
-            titleText: 'all series use rollup',
-            statusList: state.seriesRollupStatusList,
-        };
+        return { shortText: 'rollup', titleText: 'all series use rollup' };
     }
 
     if (sRollupCount === 0) {
-        return {
-            shortText: 'no rollup',
-            titleText: 'no series use rollup',
-            statusList: state.seriesRollupStatusList,
-        };
+        return { shortText: 'no rollup', titleText: 'no series use rollup' };
     }
 
     return {
         shortText: `rollup ${sRollupCount}/${sTotalCount}`,
         titleText: `${sRollupCount}/${sTotalCount} series use rollup`,
-        statusList: state.seriesRollupStatusList,
     };
 }
 
-function getSeriesRollupText(status: PanelSeriesRollupStatus): string {
-    return status.usesRollup ? 'rollup' : 'no rollup';
-}
-
-function PanelHeaderActionButton({
-    action,
-    onAction,
-}: {
-    action: PanelActionDescriptor;
-    onAction: (actionKey: PanelActionKey) => void;
-}) {
-    return (
-        <span className={getActionClass(action)}>
-            <Button
-                aria-label={action.label}
-                size="xsm"
-                variant="ghost"
-                isToolTip
-                toolTipContent={action.tooltip ?? action.label}
-                active={action.active}
-                disabled={action.disabled}
-                icon={action.icon}
-                onClick={() => onAction(action.key)}
-                style={action.buttonStyle}
-            />
-        </span>
-    );
-}
-
-type PanelHeaderMenuProps = {
-    actions: PanelActionDescriptor[];
-    onAction: (actionKey: PanelActionKey) => void;
-    containerClassName: string;
-    activeContainerClassName?: string;
-    activeItemClassName: string;
-    triggerAriaLabel: string;
-    triggerIcon: ReactNode;
-    triggerLabel?: string;
-    triggerIconPosition?: 'right';
-    triggerToolTipContent?: string;
-    showActiveOnTrigger?: boolean;
-    getItemLabel?: (action: PanelActionDescriptor) => string;
-};
-
 function PanelHeaderMenu({
+    variant,
     actions,
     onAction,
-    containerClassName,
-    activeContainerClassName,
-    activeItemClassName,
-    triggerAriaLabel,
-    triggerIcon,
-    triggerLabel,
-    triggerIconPosition,
-    triggerToolTipContent,
-    showActiveOnTrigger,
-    getItemLabel,
-}: PanelHeaderMenuProps) {
-    const sIsActive =
-        (showActiveOnTrigger ?? false) &&
+}: {
+    variant: 'extra' | 'more';
+    actions: PanelActionDescriptor[];
+    onAction: (actionKey: PanelActionKey) => void;
+}) {
+    const sIsExtra = variant === 'extra';
+    const sIsActive = sIsExtra &&
         actions.some((action) => action.active === true);
-    const sResolveLabel = getItemLabel ?? ((action) => action.label);
-
     return (
         <span
             className={joinClassNames(
-                containerClassName,
-                sIsActive && activeContainerClassName,
+                sIsExtra ? 'panel-header__extra' : 'panel-header__more',
+                sIsActive && 'panel-header__extra--active',
             )}
         >
             <Menu.Root>
                 <Menu.Trigger>
                     <Button
-                        aria-label={triggerAriaLabel}
+                        aria-label={`${sIsExtra ? 'Extra' : 'More'} panel actions`}
                         size="xsm"
                         variant="ghost"
-                        isToolTip={triggerToolTipContent !== undefined}
-                        toolTipContent={triggerToolTipContent}
-                        active={showActiveOnTrigger ? sIsActive : undefined}
-                        icon={triggerIcon}
-                        iconPosition={triggerIconPosition}
+                        isToolTip={!sIsExtra}
+                        toolTipContent={sIsExtra ? undefined : 'More'}
+                        active={sIsExtra ? sIsActive : undefined}
+                        icon={sIsExtra
+                            ? <CiCircleMore size={15} />
+                            : <VscThreeBars size={15} />}
+                        iconPosition={sIsExtra ? 'right' : undefined}
                     >
-                        {triggerLabel}
+                        {sIsExtra ? 'Extra' : undefined}
                     </Button>
                 </Menu.Trigger>
                 <Menu.Content align="right">
                     {actions.map((action) => (
                         <Menu.Item
                             key={action.key}
-                            className={action.active ? activeItemClassName : undefined}
+                            className={action.active
+                                ? sIsExtra
+                                    ? 'panel-header__extra-item--active'
+                                    : 'selected'
+                                : undefined}
                             disabled={action.disabled}
                             icon={action.icon}
                             onClick={() => onAction(action.key)}
                         >
-                            {sResolveLabel(action)}
+                            {sIsExtra
+                                ? action.contextLabel ?? action.label
+                                : action.label}
                         </Menu.Item>
                     ))}
                 </Menu.Content>
@@ -431,7 +302,7 @@ type PanelHeaderProps = {
     onOpenTimeRangeModal: () => void;
 };
 
-const PanelHeader = (props: PanelHeaderProps) => {
+function PanelHeader(props: PanelHeaderProps) {
     const { getExperiment } = useExperiment();
     const {
         runtimeState,
@@ -440,43 +311,32 @@ const PanelHeader = (props: PanelHeaderProps) => {
         onRenamePanelTitle,
         onOpenTimeRangeModal,
     } = props;
-    const [isRenamingTitle, setIsRenamingTitle] = useState(false);
-    const [titleDraft, setTitleDraft] = useState(runtimeState.title);
+    const [titleDraft, setTitleDraft] = useState<string | undefined>();
+    const isRenamingTitle = titleDraft !== undefined;
     const titleInputRef = useRef<HTMLInputElement | null>(null);
     const titleRenameClosingRef = useRef(false);
     const sRollupTooltipId = `panel-rollup-tooltip-${useId().replace(/:/g, '')}`;
-    const sHasPanelRange = isValidTimeRange(runtimeState.panelRange);
     const sTimeText = formatPanelTimeText(runtimeState);
     const sIntervalText = formatIntervalText(runtimeState);
     const sRollupSummary = getRollupHeaderSummary(runtimeState);
     const sTimeSummaryBaseText =
         sTimeText && sIntervalText
-            ? `${sTimeText} (${getIntervalLabel(runtimeState)}: ${sIntervalText})`
+            ? `${sTimeText} (${runtimeState.isNumericXAxis ? 'numeric interval' : 'interval'}: ${sIntervalText})`
             : sTimeText;
     const sTimeSummaryText = sRollupSummary
         ? `${sTimeSummaryBaseText}, ${sRollupSummary.titleText}`
         : sTimeSummaryBaseText;
-    const sActions = buildPanelActions(runtimeState, {
-        showExportCsv: getExperiment(),
-    });
-    const {
-        direct: sDirectActions,
-        extra: sExtraActions,
-        more: sMoreActions,
-    } = partitionPanelActions(sActions);
+    const sActions = buildPanelActions(runtimeState, getExperiment());
+    const sExtraActions = sActions.filter((action) =>
+        action.showInExtraMenu,
+    );
+    const sDirectActions = sActions.filter((action) =>
+        !action.showInExtraMenu,
+    );
+    const sMoreActions = sDirectActions.filter((action) => action.showInMoreMenu);
     const sOverlapLabel = runtimeState.isOverlapSelected
         ? 'Remove from overlap chart'
         : 'Add to overlap chart';
-    const sOverlapBoxClassName = joinClassNames(
-        'panel-header__overlap-box',
-        runtimeState.isOverlapSelected && 'panel-header__overlap-box--active',
-    );
-
-    useEffect(() => {
-        if (!isRenamingTitle) {
-            setTitleDraft(runtimeState.title);
-        }
-    }, [isRenamingTitle, runtimeState.title]);
 
     useEffect(() => {
         if (!isRenamingTitle) {
@@ -489,16 +349,14 @@ const PanelHeader = (props: PanelHeaderProps) => {
     function openTitleRename(): void {
         titleRenameClosingRef.current = false;
         setTitleDraft(runtimeState.title);
-        setIsRenamingTitle(true);
     }
 
     function applyTitleRename(): void {
-        if (titleRenameClosingRef.current) return;
+        if (titleRenameClosingRef.current || titleDraft === undefined) return;
         titleRenameClosingRef.current = true;
         const sNextTitle = titleDraft.trim();
-        setIsRenamingTitle(false);
+        setTitleDraft(undefined);
         if (sNextTitle.length === 0 || sNextTitle === runtimeState.title) {
-            setTitleDraft(runtimeState.title);
             return;
         }
         onRenamePanelTitle(sNextTitle);
@@ -507,8 +365,7 @@ const PanelHeader = (props: PanelHeaderProps) => {
     function cancelTitleRename(): void {
         if (titleRenameClosingRef.current) return;
         titleRenameClosingRef.current = true;
-        setTitleDraft(runtimeState.title);
-        setIsRenamingTitle(false);
+        setTitleDraft(undefined);
     }
 
     function handleTitleRenameKeyDown(
@@ -530,7 +387,10 @@ const PanelHeader = (props: PanelHeaderProps) => {
             <div className="panel-header__title-group">
                 <button
                     type="button"
-                    className={sOverlapBoxClassName}
+                    className={joinClassNames(
+                        'panel-header__overlap-box',
+                        runtimeState.isOverlapSelected && 'panel-header__overlap-box--active',
+                    )}
                     title={sOverlapLabel}
                     aria-label={sOverlapLabel}
                     aria-pressed={runtimeState.isOverlapSelected}
@@ -574,7 +434,7 @@ const PanelHeader = (props: PanelHeaderProps) => {
                                 ? 'Set current visible main chart value range'
                                 : 'Set current visible main chart range'
                         }
-                        disabled={!sHasPanelRange}
+                        disabled={!runtimeState.mainRange}
                         onClick={onOpenTimeRangeModal}
                     >
                         {sTimeText}
@@ -603,7 +463,7 @@ const PanelHeader = (props: PanelHeaderProps) => {
                                 className="panel-header__rollup-tooltip"
                             >
                                 <div className="panel-header__rollup-tooltip-content">
-                                    {sRollupSummary.statusList.map(
+                                    {runtimeState.seriesRollupStatusList.map(
                                         (status, index) => (
                                             <div
                                                 key={`${status.seriesName}-${index}`}
@@ -619,7 +479,9 @@ const PanelHeader = (props: PanelHeaderProps) => {
                                                             'panel-header__rollup-tooltip-state--active',
                                                     )}
                                                 >
-                                                    {getSeriesRollupText(status)}
+                                                    {status.usesRollup
+                                                        ? 'rollup'
+                                                        : 'no rollup'}
                                                 </span>
                                             </div>
                                         ),
@@ -632,70 +494,75 @@ const PanelHeader = (props: PanelHeaderProps) => {
             </div>
             <div className="panel-header__actions">
                 {sDirectActions.map((action) => (
-                    <PanelHeaderActionButton
+                    <span
                         key={action.key}
-                        action={action}
-                        onAction={onAction}
-                    />
+                        className={joinClassNames(
+                            'panel-header__action',
+                            action.showInMoreMenu && 'panel-header__action--overflow',
+                            action.className,
+                            action.active && 'panel-header__action--active',
+                        )}
+                    >
+                        <Button
+                            aria-label={action.label}
+                            size="xsm"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={action.tooltip ?? action.label}
+                            active={action.active}
+                            disabled={action.disabled}
+                            icon={action.icon}
+                            onClick={() => onAction(action.key)}
+                            style={action.buttonStyle}
+                        />
+                    </span>
                 ))}
                 <PanelHeaderMenu
+                    variant="extra"
                     actions={sExtraActions}
                     onAction={onAction}
-                    containerClassName="panel-header__extra"
-                    activeContainerClassName="panel-header__extra--active"
-                    activeItemClassName="panel-header__extra-item--active"
-                    triggerAriaLabel="Extra panel actions"
-                    triggerIcon={<CiCircleMore size={15} />}
-                    triggerLabel="Extra"
-                    triggerIconPosition="right"
-                    showActiveOnTrigger
-                    getItemLabel={(action) => action.contextLabel ?? action.label}
                 />
                 <PanelHeaderMenu
+                    variant="more"
                     actions={sMoreActions}
                     onAction={onAction}
-                    containerClassName="panel-header__more"
-                    activeItemClassName="selected"
-                    triggerAriaLabel="More panel actions"
-                    triggerIcon={<VscThreeBars size={15} />}
-                    triggerToolTipContent="More"
                 />
             </div>
         </div>
     );
-};
+}
 
 type PanelContextMenuProps = {
     runtimeState: PanelHeaderRuntimeState;
-    position: { x: number; y: number };
+    position: ContextMenuPosition;
     onClose: () => void;
     onAction: (actionKey: PanelActionKey) => void;
 };
 
-export function PanelContextMenu(props: PanelContextMenuProps) {
-    const { runtimeState, position, onClose, onAction } = props;
+export function PanelContextMenu({
+    runtimeState,
+    position,
+    onClose,
+    onAction,
+}: PanelContextMenuProps) {
     const sActions = buildPanelActions(runtimeState);
-
-    function runActionAfterClose(actionKey: PanelActionKey) {
-        onClose();
-        onAction(actionKey);
-    }
 
     return (
         <ContextMenu isOpen position={position} onClose={onClose}>
-            {PANEL_CONTEXT_ACTION_KEYS.map((key) => {
-                const sAction = sActions.find((action) => action.key === key);
-                if (!sAction) return null;
-                return (
+            {sActions
+                .filter((action) => action.showInContextMenu)
+                .map((sAction) => (
                     <ContextMenu.Item
                         key={sAction.key}
-                        onClick={() => runActionAfterClose(sAction.key)}
+                        onClick={() => {
+                            onClose();
+                            onAction(sAction.key);
+                        }}
                         disabled={sAction.disabled}
                     >
                         {sAction.contextLabel ?? sAction.label}
                     </ContextMenu.Item>
-                );
-            })}
+                ))}
         </ContextMenu>
     );
 }

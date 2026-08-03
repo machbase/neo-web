@@ -1,4 +1,5 @@
-import { deepEqual, isValidJSON } from '@/utils';
+import { isValidJSON } from '@/utils';
+import { isTazBoardSaved as isTagAnalyzerBoardSaved } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
 // Tab types that are always considered "saved" (no unsaved indicator)
 const ALWAYS_SAVED_TYPES = ['appStore', 'appView', 'DBTable', 'camera', 'blackboxsvr', 'event', 'unknown'];
@@ -29,10 +30,7 @@ export const isBoardSaved = (board: any): boolean => {
             }
             return false;
         case 'taz':
-            if (board.savedCode && typeof board.savedCode === 'string' && isValidJSON(board.savedCode)) {
-                return isTazBoardSaved(board, JSON.parse(board.savedCode));
-            }
-            return false;
+            return isTagAnalyzerBoardSaved(board);
         case 'new':
         case 'term':
             return board.savedCode === board.savedCode;
@@ -70,32 +68,3 @@ export const isBoardSaved = (board: any): boolean => {
             return board.code === board.savedCode;
     }
 };
-
-function isTazBoardSaved(board: any, savedCode: unknown): boolean {
-    if (Array.isArray(savedCode)) {
-        return deepEqual(board.panels, savedCode);
-    }
-
-    if (!savedCode || typeof savedCode !== 'object') {
-        return false;
-    }
-
-    const savedTazState = savedCode as {
-        boardTimeRange?: unknown;
-        panels?: unknown;
-    };
-    if (!Array.isArray(savedTazState.panels)) {
-        return false;
-    }
-
-    return deepEqual(
-        {
-            boardTimeRange: board.boardTimeRange,
-            panels: board.panels,
-        },
-        {
-            boardTimeRange: savedTazState.boardTimeRange,
-            panels: savedTazState.panels,
-        },
-    );
-}

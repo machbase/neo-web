@@ -16,7 +16,7 @@ import { Side, ContextMenu, ContextMenuPosition, Button } from '@/design-system/
 import { renameManager } from '@/utils/file-manager';
 import { UrlDownloadModal } from '../../modal/UrlDownloadModal';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
-import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
+import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
 import axios from 'axios';
@@ -165,7 +165,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
             } else if (sFileExtension === 'taz') {
                 try {
                     const sParsedTaz = typeof sContentResult === 'string' ? JSON.parse(sContentResult) : sContentResult;
-                    sTmpBoard = loadTazBoardInfo(sParsedTaz, sTmpId, file.name, file.path);
+                    sTmpBoard = loadTazBoard(sParsedTaz, sTmpId, file.name, file.path);
                 } catch (error) {
                     Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
                     return;

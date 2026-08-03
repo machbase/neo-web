@@ -1,60 +1,46 @@
 import './PanelFooter.scss';
-import {
-    MdCenterFocusStrong,
-    VscChevronLeft,
-    VscChevronRight,
-} from '@/assets/icons/Icon';
+import { MdCenterFocusStrong, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
-import type {
-    PanelNavigatorShiftActions,
-    PanelZoomActions,
-} from '../domain/panel/PanelActions';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
-import {
-    getChartLayoutMetrics,
-    PANEL_NAVIGATOR_GRID_SIDE,
-} from './Chart/layout/PanelChartLayoutMetrics';
-import { formatRangeEndpointLabel } from '../domain/time/TimeFormatters';
-import { isValidTimeRange } from '../domain/time/TimeRangeUtils';
+import { formatAxisRange } from '../format/axisFormat';
+import type { AxisRange } from '../range/rangeModel';
+
+import { getChartLayoutMetrics, PANEL_NAVIGATOR_GRID_SIDE } from '../chart/chartGeometry';
+import type { RangeButtonAction } from '../range/rangeResolver';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
-const RANGE_LABEL_EDGES = ['start', 'end'] as const;
+const NAVIGATOR_RANGE_BOUNDARIES = ['start', 'end'] as const;
 
-const PanelFooter = ({
+export default function PanelFooter({
     pShowLegend,
     pNavigatorRange,
     pIsLoading,
-    pOnOpenTimeRangeModal,
-    pNavigatorShiftActions,
-    pZoomActions,
+    pOnRangeButtonPress,
     pIsNumericXAxis,
+    pOnOpenNavigatorRangeModal,
 }: {
     pShowLegend: boolean;
-    pNavigatorRange: TimeRangeMs;
+    pNavigatorRange: AxisRange | undefined;
     pIsLoading: boolean;
-    pOnOpenTimeRangeModal: () => void;
-    pNavigatorShiftActions: PanelNavigatorShiftActions;
-    pZoomActions: PanelZoomActions;
+    pOnRangeButtonPress: (action: RangeButtonAction) => void;
     pIsNumericXAxis: boolean;
-}) => {
+    pOnOpenNavigatorRangeModal: () => void;
+}) {
     const sLayout = getChartLayoutMetrics(pShowLegend);
-    const sToolbarTop = `${sLayout.toolbarTop}px`;
-    const sNavigatorShiftTop = `${sLayout.sliderTop + 1}px`;
     const sNavigatorSide = `${PANEL_NAVIGATOR_GRID_SIDE}px`;
-    const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
-    const sHasNavigatorRange = isValidTimeRange(pNavigatorRange);
-    // TODO bugfix: Re-enable navigator range editing after default board range behavior is stable.
-    const sCanEditNavigatorRangeFromFooter = false;
+    const sRangeUnavailable = pIsLoading || !pNavigatorRange;
+    const sFormattedNavigatorRange = pNavigatorRange
+        ? formatAxisRange(pNavigatorRange, pIsNumericXAxis)
+        : { start: '', end: '' };
     const navigatorControls = [
-        { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.4) },
-        { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomIn(0.2) },
-        { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: pZoomActions.onFocus },
-        { key: 'zoomOut2', tooltip: 'Zoom out', icon: <img src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomOut(0.2) },
-        { key: 'zoomOut4', tooltip: 'Zoom out', icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pZoomActions.onZoomOut(0.4) },
+        { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-large') },
+        { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-small') },
+        { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('focus') },
+        { key: 'zoomOut2', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-small') },
+        { key: 'zoomOut4', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-large') },
     ];
 
     return (
@@ -64,7 +50,7 @@ const PanelFooter = ({
                     Loading navigator...
                 </span>
             )}
-            <div style={{ top: sToolbarTop }} className="toolbar-controls">
+            <div style={{ top: `${sLayout.toolbarTop}px` }} className="toolbar-controls">
                 <Button.Group
                     style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
                 >
@@ -76,7 +62,7 @@ const PanelFooter = ({
                             isToolTip
                             toolTipContent={control.tooltip}
                             icon={control.icon}
-                            disabled={pIsLoading}
+                            disabled={sRangeUnavailable}
                             onClick={control.action}
                         />
                     ))}
@@ -84,72 +70,45 @@ const PanelFooter = ({
             </div>
             <div
                 style={{
-                    top: sNavigatorShiftTop,
+                    top: `${sLayout.sliderTop + 1}px`,
                     left: sNavigatorSide,
                     right: sNavigatorSide,
                 }}
                 className="navigator-shift-controls"
             >
-                {[
-                    {
-                        key: 'back',
-                        tooltip: 'Move navigator backward',
-                        icon: <VscChevronLeft size={16} />,
-                        action: pNavigatorShiftActions.onShiftLeft,
-                    },
-                    {
-                        key: 'forward',
-                        tooltip: 'Move navigator forward',
-                        icon: <VscChevronRight size={16} />,
-                        action: pNavigatorShiftActions.onShiftRight,
-                    },
-                ].map((control) => (
-                    <Button
-                        key={control.key}
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={control.tooltip}
-                        icon={control.icon}
-                        disabled={pIsLoading}
-                        onClick={control.action}
-                    />
-                ))}
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Move navigator backward"
+                    icon={<VscChevronLeft size={16} />}
+                    disabled={sRangeUnavailable}
+                    onClick={() => pOnRangeButtonPress('shift-navigator-left')}
+                />
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Move navigator forward"
+                    icon={<VscChevronRight size={16} />}
+                    disabled={sRangeUnavailable}
+                    onClick={() => pOnRangeButtonPress('shift-navigator-right')}
+                />
             </div>
-            <div style={{ top: sRangeLabelsTop }} className="range-labels">
-                {RANGE_LABEL_EDGES.map((edge) => {
-                    const value = edge === 'start'
-                        ? pNavigatorRange.startTime
-                        : pNavigatorRange.endTime;
-
-                    const sRangeLabel = sHasNavigatorRange
-                        ? formatRangeEndpointLabel(
-                              value,
-                              pIsNumericXAxis,
-                              pNavigatorRange,
-                          )
-                        : '';
-
-                    return (
-                        <button
-                            key={edge}
-                            type="button"
-                            className="range-label range-label-button"
-                            title="Navigator range editing temporarily disabled"
-                            disabled={pIsLoading || !sHasNavigatorRange}
-                            onClick={
-                                sCanEditNavigatorRangeFromFooter
-                                    ? pOnOpenTimeRangeModal
-                                    : undefined
-                            }
-                        >
-                            {sRangeLabel}
-                        </button>
-                    );
-                })}
+            <div style={{ top: `${sLayout.sliderTop + sLayout.sliderHeight + 4}px` }} className="range-labels">
+                {NAVIGATOR_RANGE_BOUNDARIES.map((boundary) => (
+                    <button
+                        key={boundary}
+                        type="button"
+                        className="range-label"
+                        title="Set current navigator range"
+                        disabled={sRangeUnavailable}
+                        onClick={pOnOpenNavigatorRangeModal}
+                    >
+                        {sFormattedNavigatorRange[boundary]}
+                    </button>
+                ))}
             </div>
         </div>
     );
-};
-
-export default PanelFooter;
+}

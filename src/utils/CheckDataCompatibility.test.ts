@@ -1,7 +1,9 @@
-import { loadTazBoardInfo } from '@/components/tagAnalyzer/persistence/load/loadTazBoardInfo';
-import { TAZ_FORMAT_VERSION, TazVersion } from '@/components/tagAnalyzer/persistence/TazVersion';
-import { mapPanelToPersistedTaz } from '@/components/tagAnalyzer/persistence/save/mapPanelToPersistedTaz';
-import type { PanelInfo } from '@/components/tagAnalyzer/domain/panel/PanelInfo';
+import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
+import {
+    TAZ_FORMAT_VERSION,
+    TazVersion,
+} from '@/components/tagAnalyzer/persistence/tazFormat';
+import type { PanelInfo } from '@/components/tagAnalyzer/panel/panelModel';
 import { isBoardSaved } from './boardSaveStatus';
 
 
@@ -20,9 +22,9 @@ function createRuntimePanel(): PanelInfo {
     return {
         key: 'panel-1',
         title: 'Runtime panel',
+        isOverlapSelected: false,
         query: {
             tagSet: [],
-            count: -1,
             intervalType: undefined,
         },
         mode: {
@@ -58,7 +60,6 @@ function createRuntimePanel(): PanelInfo {
             connectNulls: false,
             useZoom: true,
             pixelsPerTick: {
-                raw: 0.1,
                 calculated: 3,
                 calculatedNavigator: 3,
             },
@@ -173,9 +174,22 @@ function createPersistedYAxisV200() {
     };
 }
 
-describe('loadTazBoardInfo', () => {
+function createPersistedPanelV210() {
+    const { time, ...sPersistedPanel } = createRuntimePanel();
+
+    return {
+        ...sPersistedPanel,
+        timeRange: {
+            ...time.rangeInput,
+            useLastViewedRange: time.useLastViewedRange,
+            lastViewedRange: time.lastViewedRange,
+        },
+    };
+}
+
+describe('loadTazBoard', () => {
     it('loads current TAZ JSON as clean runtime BoardInfo', () => {
-        const boardInfo = loadTazBoardInfo(
+        const boardInfo = loadTazBoard(
             {
                 id: 'file-board-id',
                 type: 'taz',
@@ -184,7 +198,7 @@ describe('loadTazBoardInfo', () => {
                     start: '',
                     end: '',
                 },
-                panels: [mapPanelToPersistedTaz(createRuntimePanel())],
+                panels: [createPersistedPanelV210()],
             },
             loadId,
             loadName,
@@ -200,7 +214,7 @@ describe('loadTazBoardInfo', () => {
     });
 
     it('loads legacy flat TAZ JSON as runtime BoardInfo', () => {
-        const boardInfo = loadTazBoardInfo(
+        const boardInfo = loadTazBoard(
             {
                 id: 'legacy-board-id',
                 type: 'taz',
@@ -235,7 +249,7 @@ describe('loadTazBoardInfo', () => {
     });
 
     it('does not repair modern nested TagAnalyzer panels as legacy flat panels', () => {
-        const boardInfo = loadTazBoardInfo(
+        const boardInfo = loadTazBoard(
             {
                 id: 'board-1',
                 type: 'taz',
@@ -258,7 +272,7 @@ describe('loadTazBoardInfo', () => {
 
     it('throws for unsupported TAZ versions', () => {
         expect(() =>
-            loadTazBoardInfo(
+            loadTazBoard(
                 {
                     id: 'board-1',
                     type: 'taz',
@@ -273,8 +287,8 @@ describe('loadTazBoardInfo', () => {
     });
 
     it('throws for invalid parsed TAZ input', () => {
-        expect(() => loadTazBoardInfo(undefined, loadId, loadName, loadPath)).toThrow();
-        expect(() => loadTazBoardInfo({}, loadId, loadName, loadPath)).toThrow(
+        expect(() => loadTazBoard(undefined, loadId, loadName, loadPath)).toThrow();
+        expect(() => loadTazBoard({}, loadId, loadName, loadPath)).toThrow(
             'Invalid TagAnalyzer .taz board panels structure.',
         );
     });
