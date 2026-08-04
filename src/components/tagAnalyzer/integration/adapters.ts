@@ -20,8 +20,10 @@ import {
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
 } from '../seriesModel';
-import { formatNumericValue } from '../range/format/numericRangeFormat';
-import { formatAbsoluteTimeExpression } from '../range/format/timeRangeFormat';
+import {
+    formatAbsoluteTime,
+    formatNumericValue,
+} from '../persistence/serializeRange';
 import type { RangeExpressionInput } from '../range/rangeModel';
 
 type DashboardTagAnalyzerSeries = {
@@ -357,7 +359,7 @@ export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<Br
     if (!sPayload.ok) return { status: 'error', reason: sPayload.reason };
     const { title, range, tags, isNumericBase } = sPayload.value;
     // Which axis holds the window, and how its ends are written. `formatNumericValue` for a numeric
-    // base and `formatAbsoluteTimeExpression` for a datetime one — the same pairing
+    // base and `formatAbsoluteTime` for a datetime one — the same pairing
     // `createDefaultTazBoard` makes, because a board opened through this bridge and a board opened
     // from the setup dialog have to be the same board.
     const sRangeInput: RangeExpressionInput = resolveBridgeRangeInput(range, isNumericBase);

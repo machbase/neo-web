@@ -1,0 +1,155 @@
+@use '../../TextStyle' as text;
+
+.editor {
+    @include text.control-surface;
+
+    width: 100%;
+    max-height: 0;
+    margin-top: 0;
+    overflow: hidden;
+    border: 0 solid #454545;
+    border-radius: 8px;
+    background: var(--color-background-primary);
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-14px);
+    transition:
+        max-height 150ms ease-in,
+        margin-top 150ms ease-in,
+        opacity 150ms ease-in,
+        transform 150ms ease-in,
+        visibility 0s linear 150ms;
+}
+
+.editor[data-state='open'] {
+    max-height: 640px;
+    margin-top: 16px;
+    border-width: 0.5px;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition-timing-function: ease-out;
+    transition-duration: 180ms;
+    transition-delay: 0s;
+}
+
+.editorPage {
+    width: 100%;
+    background: transparent;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.headerMain {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.title {
+    @include text.title;
+
+    flex-shrink: 0;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.tabList {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.invalidTab {
+    color: #ff6b6b;
+
+    &::after {
+        flex: 0 0 6px;
+        width: 6px;
+        height: 6px;
+        margin-left: 5px;
+        border-radius: 50%;
+        background: currentcolor;
+        content: '';
+    }
+}
+
+.tabButton {
+    @include text.section-title;
+
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: inherit;
+    font-family: inherit;
+}
+
+.actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.buttonRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notAppliedMessage {
+    @include text.support;
+
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 24px;
+    max-width: 420px;
+    color: #fdb532;
+    white-space: normal;
+}
+
+.notAppliedMessageHidden {
+    display: none;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-sizing: border-box;
+    height: 320px;
+    padding: 8px 16px 16px;
+    overflow-y: auto;
+}
+
+.content button,
+.content label,
+.buttonRow button {
+    font-weight: 500;
+}
+
+@media (max-width: 860px) {
+    .header {
+        align-items: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .editor {
+        transition: none;
+    }
+}

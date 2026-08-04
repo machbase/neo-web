@@ -4,7 +4,7 @@ import path from 'path';
 import svgr from 'vite-plugin-svgr';
 // 192.168.0.104
 // 192.168.1.89
-const TestTarget = 'localhost';
+const TestTarget = '127.0.0.1';
 const TestPort = '5654';
 const TestSecurity = '';
 

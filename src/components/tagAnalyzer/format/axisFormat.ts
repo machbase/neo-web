@@ -2,6 +2,7 @@ import moment from 'moment';
 import { getRangeWidth } from '../range/rangeArithmetic';
 import type { AxisRange } from '../range/rangeModel';
 import { formatCompactNumber } from './numericFormat';
+import { DATE_TIME_INPUT_FORMAT } from './inputFormat';
 
 export type FormattedAxisRange = {
     start: string;
@@ -37,9 +38,7 @@ export function formatAxisPointer(
 
     const wholeTimestamp = Math.trunc(value);
     const fraction = String(value).split('.')[1];
-    const formatted = moment(wholeTimestamp).format(
-        'YYYY-MM-DD HH:mm:ss.SSS',
-    );
+    const formatted = moment(wholeTimestamp).format(DATE_TIME_INPUT_FORMAT);
     return fraction ? `${formatted}${fraction}` : formatted;
 }
 

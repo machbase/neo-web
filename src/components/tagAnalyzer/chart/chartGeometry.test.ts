@@ -1,6 +1,7 @@
 import {
-    extractDataZoomEventRange,
+    extractDataZoomOptionRange,
     getPanelChartEventCoordinates,
+    resolveDataZoomEventItem,
 } from './chartGeometry';
 
 describe('panel chart geometry boundaries', () => {
@@ -25,17 +26,22 @@ describe('panel chart geometry boundaries', () => {
     });
 
     it('uses the selected data-zoom batch item before fallback state', () => {
-        expect(extractDataZoomEventRange(
+        const selection = resolveDataZoomEventItem(
             {
                 batch: [
                     { id: 'other', start: 0, end: 100 },
                     { id: 'target', startValue: 40, endValue: 20 },
                 ],
             },
-            { start: 10, end: 30 },
-            { start: 0, end: 100 },
             'target',
             { startValue: 1, endValue: 2 },
-        )).toEqual({ start: 20, end: 40 });
+        );
+
+        expect(
+            extractDataZoomOptionRange(
+                selection,
+                { start: 0, end: 100 },
+            ),
+        ).toEqual({ start: 20, end: 40 });
     });
 });

@@ -33,12 +33,13 @@ export function resolveRangeInput(
     axisKind: AxisKind,
     fullRange: AxisRange,
     currentRange: AxisRange,
+    referenceTimeMs = Date.now(),
 ): AxisRange | undefined {
     if (isRangeExpressionEmpty(input)) {
         return undefined;
     }
 
-    const currentTime = axisKind === 'time' ? Date.now() : 0;
+    const currentTime = axisKind === 'time' ? referenceTimeMs : 0;
     const start = resolveEndpoint(
         input.start,
         axisKind,

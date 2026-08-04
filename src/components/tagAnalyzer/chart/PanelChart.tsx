@@ -7,13 +7,14 @@ import {
     useState,
     type MutableRefObject,
     type MouseEvent,
-    type ReactNode,
 } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { MdBlock, MdCheckCircle } from 'react-icons/md';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
-import type { PanelHighlight, PanelInfo } from '../panel/panelModel';
+import type { PanelInfo } from '../panel/panelModel';
+import type { PanelHighlight } from '../markup/markupModel';
+import { useBlankAnnotationClick } from '../markup/useBlankAnnotationClick';
 import { hasNumericBaseTimeSeries } from '../seriesModel';
 import { getRangeWidth } from '../range/rangeArithmetic';
 import {
@@ -22,16 +23,13 @@ import {
 } from '../range/rangeModel';
 import {
     applyPanelNavigatorCursorStyles,
-    type PanelChartBlankClickPayload,
     type PanelChartInstance,
     type PanelChartRuntime,
+    PanelOverlayMode,
+    type PanelOverlayCursorHintState,
     type RuntimePanelChartConfig,
     resolveRuntimePanelChartConfig,
 } from './chartRuntime';
-import {
-    PanelOverlayMode,
-    type PanelOverlayCursorHintState,
-} from '../panel/panelInteraction';
 import {
     type ChartSeriesVisibilityMap,
     getChartSeriesEChartsName,
@@ -49,7 +47,6 @@ import {
 import {
     convertPanelChartPixelToTimestamp,
     getChartLayoutMetrics,
-    getPanelChartEventCoordinates,
     isSameDataZoomSelection,
     PANEL_CHART_HEIGHT,
     PANEL_GRID_SIDE,
@@ -172,9 +169,9 @@ function usePanelChartRuntime({
         () => getSeriesStructureKey(currentFullOption.series),
         [currentFullOption],
     );
-    const attachBlankChartClickEvent = useBlankChartClickEvent({
+    const attachBlankChartClickEvent = useBlankAnnotationClick({
         chartAreaRef,
-        isAnnotationActive: overlayMode === PanelOverlayMode.ANNOTATION,
+        isActive: overlayMode === PanelOverlayMode.ANNOTATION,
         isNumericXAxis,
         latestHoverTimestampRef,
         latestChartClickRef,
@@ -324,7 +321,7 @@ function usePanelChartRuntime({
         isWheelZoomEnabled: isDragZoomEnabled,
         isNumericXAxis,
         mainRange,
-        applyMainZoomRange: rangeActions.applyMainZoomRange,
+        setMainRange: rangeActions.setMainRange,
     });
 
     useLayoutEffect(() => {
@@ -450,7 +447,6 @@ function usePanelChartRuntime({
             const chartInstance = instance as PanelChartInstance;
             syncChartReady(chartInstance);
             applyFullChartOption(chartInstance);
-            applyRangeChartOption(chartInstance);
             applyPanelNavigatorCursorStyles(chartInstance);
             if (hoveredLegendSeriesRef.current) {
                 applyLegendHoverState(hoveredLegendSeriesRef.current, true);
@@ -515,7 +511,6 @@ function ReadyPanelChart(props: UsePanelChartRuntimeParams) {
             option={option}
             onEvents={onEvents}
             onChartReady={handleChartReady}
-            replaceMerge={['series', 'xAxis', 'yAxis', 'dataZoom']}
             lazyUpdate
             style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
             opts={{ renderer: 'canvas' }}
@@ -543,23 +538,32 @@ export default function PanelChart({
     );
     const { refs, handlers } = runtimeProps;
     const rangeReady = rangeState !== undefined;
+    const overlayLayout = getChartLayoutMetrics(
+        runtimeConfig.display.showLegend,
+    );
 
     return (
         <div className="chart">
             <Button
+                data-testid="main-shift-backward"
                 size="md"
                 variant="secondary"
                 isToolTip
                 toolTipContent="Move range backward"
+                aria-label="Move range backward"
                 icon={<VscChevronLeft size={16} />}
                 disabled={!rangeReady}
                 onClick={handlers.rangeActions.shiftMainRangeLeft}
             />
             <div
+                data-testid="chart"
                 className="chart-body"
                 ref={refs.chartAreaRef}
                 style={{ height: PANEL_CHART_HEIGHT }}
                 onMouseDownCapture={handleChartMouseDownCapture}
+                role="region"
+                aria-label={`${panelInfo.title} chart`}
+                aria-busy={isLoading}
             >
                 {rangeState && (
                     <ReadyPanelChart
@@ -569,52 +573,33 @@ export default function PanelChart({
                     />
                 )}
                 {(isLoading || displayNotice) && (
-                    <PanelMainChartOverlay
-                        showLegend={runtimeConfig.display.showLegend}
+                    <div
                         className={`panel-main-chart-${isLoading ? 'loading' : 'notice'}-overlay`}
+                        style={{
+                            left: PANEL_GRID_SIDE,
+                            right: PANEL_GRID_SIDE,
+                            top: overlayLayout.mainGridTop,
+                            height: overlayLayout.mainGridHeight,
+                        }}
                     >
                         {isLoading && (
                             <span className="panel-main-chart-loading-spinner" />
                         )}
                         <span>{isLoading ? 'Loading...' : displayNotice}</span>
-                    </PanelMainChartOverlay>
+                    </div>
                 )}
             </div>
             <Button
+                data-testid="main-shift-forward"
                 size="md"
                 variant="secondary"
                 isToolTip
                 toolTipContent="Move range forward"
+                aria-label="Move range forward"
                 icon={<VscChevronRight size={16} />}
                 disabled={!rangeReady}
                 onClick={handlers.rangeActions.shiftMainRangeRight}
             />
-        </div>
-    );
-}
-
-function PanelMainChartOverlay({
-    showLegend,
-    className,
-    children,
-}: {
-    showLegend: boolean;
-    className: string;
-    children: ReactNode;
-}) {
-    const layout = getChartLayoutMetrics(showLegend);
-
-    return (
-        <div
-            className={className}
-            style={{
-                left: PANEL_GRID_SIDE,
-                right: PANEL_GRID_SIDE,
-                top: layout.mainGridTop,
-                height: layout.mainGridHeight,
-            }}
-        >
-            {children}
         </div>
     );
 }
@@ -654,7 +639,6 @@ function usePanelChartInstanceSync({
     const handleChartReady = (instance: PanelChartInstance): void => {
         chartInstanceRef.current = instance;
         onChartReady(instance);
-        instance.hideLoading?.();
         syncBrushInteraction(instance);
     };
 
@@ -675,14 +659,14 @@ function usePanelChartWheelZoom({
     isWheelZoomEnabled,
     isNumericXAxis,
     mainRange,
-    applyMainZoomRange,
+    setMainRange,
 }: {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     chartInstanceRef: MutableRefObject<PanelChartInstance | undefined>;
     isWheelZoomEnabled: boolean;
     isNumericXAxis: boolean;
     mainRange: AxisRange;
-    applyMainZoomRange: PanelChartHandlers['rangeActions']['applyMainZoomRange'];
+    setMainRange: PanelChartHandlers['rangeActions']['setMainRange'];
 }): void {
     const handleMouseWheelZoom = useCallback((event: WheelEvent): void => {
         if (event.deltaY === 0 || !isWheelZoomEnabled) {
@@ -722,14 +706,14 @@ function usePanelChartWheelZoom({
         const sNextWidth = sCurrentWidth * sZoomFactor;
         const sNextStart = sAnchorTime - sNextWidth * sAnchorRatio;
 
-        applyMainZoomRange(
+        setMainRange(
             {
                 start: sNextStart,
                 end: sNextStart + sNextWidth,
             },
         );
     }, [
-        applyMainZoomRange,
+        setMainRange,
         chartAreaRef,
         chartInstanceRef,
         isWheelZoomEnabled,
@@ -755,125 +739,6 @@ function usePanelChartWheelZoom({
 
 const PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR = 0.82;
 const PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR = 1.22;
-
-function useBlankChartClickEvent({
-    chartAreaRef,
-    isAnnotationActive,
-    isNumericXAxis,
-    latestHoverTimestampRef,
-    latestChartClickRef,
-    onOpenCreateAnnotation,
-}: {
-    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
-    isAnnotationActive: boolean;
-    isNumericXAxis: boolean;
-    latestHoverTimestampRef: MutableRefObject<number | undefined>;
-    latestChartClickRef: MutableRefObject<number>;
-    onOpenCreateAnnotation:
-        PanelChartHandlers['markupHandlers']['onOpenCreateAnnotation'];
-}): (instance: PanelChartInstance) => void {
-    const sListenerInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
-    const sListenerCleanupRef = useRef<(() => void) | undefined>(undefined);
-    const sOpenCreateAnnotationRef = useRef(onOpenCreateAnnotation);
-    sOpenCreateAnnotationRef.current = onOpenCreateAnnotation;
-
-    const removeBlankChartClickEvent = useCallback((): void => {
-        sListenerCleanupRef.current?.();
-        sListenerCleanupRef.current = undefined;
-        sListenerInstanceRef.current = undefined;
-    }, []);
-
-    const attachBlankChartClickEvent = useCallback((instance: PanelChartInstance): void => {
-        if (
-            sListenerInstanceRef.current === instance &&
-            sListenerCleanupRef.current
-        ) {
-            return;
-        }
-
-        removeBlankChartClickEvent();
-
-        const sZr = instance.getZr?.();
-        if (!sZr?.on || !sZr.off) {
-            return;
-        }
-
-        function handleBlankChartClick(event: PanelChartBlankClickPayload): void {
-            if (!isAnnotationActive) {
-                return;
-            }
-
-            const sChartRect = chartAreaRef.current?.getBoundingClientRect();
-            const { pixel: sPixel, position: sPosition } =
-                getPanelChartEventCoordinates(
-                    event,
-                    sChartRect,
-                );
-            const sChartClickSequence = latestChartClickRef.current;
-
-            if (!sPixel || !sPosition) {
-                return;
-            }
-
-            window.setTimeout(() => {
-                if (latestChartClickRef.current !== sChartClickSequence) {
-                    return;
-                }
-
-                if (
-                    instance.containPixel &&
-                    !instance.containPixel({ gridIndex: 0 }, sPixel)
-                ) {
-                    return;
-                }
-
-                const sTimestamp =
-                    latestHoverTimestampRef.current ??
-                    convertPanelChartPixelToTimestamp(
-                        instance,
-                        sPixel,
-                        isNumericXAxis,
-                    );
-
-                if (sTimestamp === undefined) {
-                    return;
-                }
-
-                sOpenCreateAnnotationRef.current(
-                    sPosition,
-                    undefined,
-                    sTimestamp,
-                );
-            }, 0);
-        }
-
-        sZr.on('click', handleBlankChartClick);
-        sListenerInstanceRef.current = instance;
-        sListenerCleanupRef.current = () =>
-            sZr.off?.('click', handleBlankChartClick);
-    }, [
-        chartAreaRef,
-        isAnnotationActive,
-        isNumericXAxis,
-        latestChartClickRef,
-        latestHoverTimestampRef,
-        removeBlankChartClickEvent,
-    ]);
-
-    useEffect(() => {
-        const sListenerInstance = sListenerInstanceRef.current;
-        if (!sListenerInstance) {
-            return;
-        }
-
-        removeBlankChartClickEvent();
-        attachBlankChartClickEvent(sListenerInstance);
-    }, [attachBlankChartClickEvent, removeBlankChartClickEvent]);
-
-    useEffect(() => removeBlankChartClickEvent, [removeBlankChartClickEvent]);
-
-    return attachBlankChartClickEvent;
-}
 
 // eslint-disable-next-line react-refresh/only-export-components -- Panel owns this chart-only observer.
 export function useChartAreaWidthObserver(

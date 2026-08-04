@@ -1,7 +1,7 @@
 import moment from 'moment';
 import type { AxisKind } from '../range/rangeModel';
 
-const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss.SSS';
+export const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss.SSS';
 const LOCAL_DATE_TIME_PATTERN =
     /^(\d{4})(?:-(\d{0,2})(?:-(\d{0,2})(?:[ T](\d{0,2})(?::(\d{0,2})(?::(\d{0,2})(?:\.(\d{0,3}))?)?)?)?)?)?$/;
 const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;

@@ -4,13 +4,13 @@ import { asRecord, isFiniteNumber, isPlainObject } from '../objectGuards';
 import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     ensureUniquePanelKeys,
-    type PanelAnnotation,
     type PanelAxisThreshold,
     type PanelEChartType,
     type PanelInfo,
     type PanelYAxis,
     type ValueRange,
 } from '../panel/panelModel';
+import type { PanelAnnotation } from '../markup/markupModel';
 import { decodePersistedPanelRangeState } from './persistedPanelRange';
 import {
     decodePersistedTimeUnit,
@@ -26,6 +26,7 @@ import {
     getPanelSeriesDisplayColor,
     getPanelSeriesDisplayName,
     normalizePanelSeriesCalculationMode,
+    assertCompatiblePanelSeriesList,
     normalizePanelSeriesDefinitions,
     PanelSeriesCalculationMode,
     shouldUseNumericPanelRangeInput,
@@ -314,10 +315,19 @@ function buildMigratedPanelInfo(
     };
 }
 
+function normalizeMigratedSampling(enabled: unknown, sampleCount: unknown) {
+    const sSampleCount = isFiniteNumber(sampleCount) ? sampleCount : undefined;
+    return {
+        enabled: enabled === true && sSampleCount !== undefined && sSampleCount > 0,
+        sampleCount: sSampleCount,
+    };
+}
+
 function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,
 ): PanelInfo {
     const sTagSet = (panelInfo.tag_set || []).map(normalizeLegacySeriesConfig);
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz legacy panel');
     const sRangeConfig = resolveLegacyRangeConfig(
         panelInfo,
         createTimeRangeInputFromStoredValues(
@@ -366,10 +376,10 @@ function createPanelInfoFromLegacyFlatPanelInfo(
                 calculated: normalizeNumericValue(panelInfo.pixels_per_tick),
                 calculatedNavigator: normalizeNumericValue(panelInfo.pixels_per_tick),
             },
-            mainChartSampling: {
-                enabled: false,
-                sampleCount: normalizeNumericValue(panelInfo.sampling_value),
-            },
+            mainChartSampling: normalizeMigratedSampling(
+                false,
+                normalizeNumericValue(panelInfo.sampling_value),
+            ),
             rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: [],
@@ -418,7 +428,8 @@ function normalizeLegacyValueRange(
     });
 }
 function normalizeNumericValue(value: number | string | undefined): number {
-    return value === undefined || value === '' ? 0 : Number(value);
+    const sNumber = value === undefined || value === '' ? 0 : Number(value);
+    return Number.isFinite(sNumber) ? sNumber : 0;
 }
 
 function resolveLegacyRangeConfig(
@@ -643,6 +654,7 @@ function parseLoadedPanelTazVer200(
     }
 
     const sTagSet = panelInfo.data.seriesList.map(createSeriesInfoFromPersistedV200);
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz v2.0 panel');
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.rangeConfig,
         shouldUseNumericPanelRangeInput(sTagSet),
@@ -696,10 +708,10 @@ function parseLoadedPanelTazVer200(
                 calculatedNavigator:
                     panelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
             },
-            mainChartSampling: {
-                enabled: sMainChartSampling?.enabled ?? false,
-                sampleCount: sMainChartSampling?.sampleCount ?? 0,
-            },
+            mainChartSampling: normalizeMigratedSampling(
+                sMainChartSampling?.enabled,
+                sMainChartSampling?.sampleCount ?? 0,
+            ),
             rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: clonePanelHighlights(panelInfo.highlights),
@@ -888,6 +900,7 @@ function parseLoadedPanelTazVer204(
     if (!sTagSet) {
         throw new Error('Invalid TagAnalyzer .taz panel series structure.');
     }
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz panel');
 
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.range_config,
@@ -943,10 +956,10 @@ function parseLoadedPanelTazVer204(
                     panelInfo.axes.x_axis.calculated_navigator_pixels_per_tick ??
                     panelInfo.axes.x_axis.calculated_data_pixels_per_tick,
             },
-            mainChartSampling: {
-                enabled: sMainChartSampling?.enabled ?? false,
-                sampleCount: sMainChartSampling?.sample_count,
-            },
+            mainChartSampling: normalizeMigratedSampling(
+                sMainChartSampling?.enabled,
+                sMainChartSampling?.sample_count,
+            ),
             rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: clonePanelHighlights(panelInfo.highlights),

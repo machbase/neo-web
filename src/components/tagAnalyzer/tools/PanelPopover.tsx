@@ -48,6 +48,7 @@ export default function PanelPopover({
     outsideCloseIgnoreSelector,
     closeOnScroll = true,
     size,
+    'data-testid': dataTestId,
 }: {
     title: ReactNode;
     position: ContextMenuPosition;
@@ -58,6 +59,7 @@ export default function PanelPopover({
     outsideCloseIgnoreSelector?: string;
     closeOnScroll?: boolean;
     size: PanelPopoverSize;
+    'data-testid'?: string;
 }) {
     const popoverRef = useRef<HTMLDivElement>(null);
     const dragCleanupRef = useRef<(() => void) | undefined>(undefined);
@@ -164,6 +166,7 @@ export default function PanelPopover({
 
     return createPortal(
         <div
+            data-testid={dataTestId}
             ref={popoverRef}
             className={styles['popover']}
             style={{

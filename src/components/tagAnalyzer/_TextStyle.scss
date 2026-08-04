@@ -1,0 +1,39 @@
+@mixin title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 20px;
+}
+
+@mixin section-title {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+@mixin control($weight: 400) {
+    font-size: 12px;
+    font-weight: $weight;
+    line-height: 16px;
+}
+
+@mixin control-surface {
+    @include control;
+
+    :where(
+        input:not([type='checkbox']),
+        textarea,
+        select,
+        button,
+        label,
+        label > span:last-child
+    ) {
+        font-size: 12px;
+        line-height: 16px;
+    }
+}
+
+@mixin support($weight: 400) {
+    font-size: 11px;
+    font-weight: $weight;
+    line-height: 14px;
+}

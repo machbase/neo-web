@@ -33,7 +33,10 @@ export default function TagAnalyzer({ info }: { info: BoardInfo }) {
     if (sIsActiveTab && sRollupTableList === undefined) return null;
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <div
+            data-testid={sIsActiveTab ? 'tag-analyzer-board' : undefined}
+            style={{ position: 'relative', width: '100%', height: '100%' }}
+        >
             <Page>
                 <Board
                     key={info.id}

@@ -4,11 +4,12 @@ import {
     filterChartDataByRange,
     mapFetchResultToChartData,
 } from '../chart/chartData';
-import { fetchMainSeriesRows } from '../dataLoading/panelDataLoader';
+import { seriesDataApi } from '../api/seriesDataApi';
 import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../hooks/useLatestAsyncRequest';
+import { buildPanelSeriesQuery } from '../panel/series/panelSeriesRequest';
 import {
     createOverlapChartSeriesGroup,
     type OverlapChartSeriesGroup,
@@ -107,11 +108,14 @@ async function fetchOverlapPanelData(
     signal: AbortSignal,
 ) {
     const panelInfo = overlapPanel.panelInfo;
-    const fetchResult = await fetchMainSeriesRows(
-        panelInfo,
-        overlapPanel.visibleRange,
-        OVERLAP_CHART_FETCH_WIDTH_PX,
-        {},
+    const fetchResult = await seriesDataApi.fetchSeriesRows(
+        buildPanelSeriesQuery(
+            'main',
+            panelInfo,
+            overlapPanel.visibleRange,
+            OVERLAP_CHART_FETCH_WIDTH_PX,
+            {},
+        ),
         { signal },
     );
 
