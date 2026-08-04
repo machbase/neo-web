@@ -1774,7 +1774,7 @@ export function buildDataViewerEChartOption({
     // that. Zooming in is what earns a distance tick its decimals back.
     const formatBaseAxisLabel = (value: unknown) =>
         distanceBase
-            ? formatDataViewerAxisDistance(value, Number(panelRange.endTime) - Number(panelRange.startTime))
+            ? formatDataViewerAxisDistance(value, { min: panelRange.startTime, max: panelRange.endTime })
             : formatDataViewerAxisTime(value, { min: panelRange.startTime, max: panelRange.endTime }, timeZone);
 
     return {
@@ -2272,22 +2272,27 @@ function resolveDistanceAxisDecimals(span: unknown) {
 }
 
 /**
- * The suffix the whole distance axis writes, chosen once from its window.
+ * The suffix the whole distance axis writes, chosen once for the axis.
  *
- * Chosen from the span and not from each value, which is the difference between an axis and a
- * column of unrelated numbers. Picking per value puts `0.1K` next to `100K` on one axis, or leaves
- * the axis minimum bare while its neighbours carry a suffix — the reader then has to check the
- * suffix on every tick before comparing two of them.
+ * Chosen for the axis and not per value, which is the difference between an axis and a column of
+ * unrelated numbers. Picking per value puts `0.1K` next to `100K` on one axis, or leaves the axis
+ * minimum bare while its neighbours carry a suffix — the reader then has to check the suffix on
+ * every tick before comparing two of them.
  *
- * The `10 ×` threshold is what stops the suffix from arriving before it helps. A window of 1000
- * would technically fit `K`, but its ticks are then `0.1K 0.2K 0.3K` — longer than the `100 200
- * 300` they replaced, and less legible. Requiring ten units of headroom means the suffix appears
- * only once the ticks are whole multiples of it.
+ * It is the window's *magnitude* that decides, not its span. Those come apart exactly when a wide
+ * odometer is read closely: a window of 996,633 ~ 998,039 spans only 1,406, so a span-driven choice
+ * finds nothing worth compacting and prints seven digits per tick — while the numbers being printed
+ * are plainly million-scale. How long the labels are is a property of how large the readings are.
+ *
+ * The `10 ×` threshold is what stops the suffix from arriving before it helps. Readings that only
+ * just reach 1000 would technically fit `K`, but their ticks are then `0.1K 0.2K 0.3K` — longer
+ * than the `100 200 300` they replaced, and less legible. Requiring ten units of headroom means the
+ * suffix appears only once the whole-number part survives it.
  */
-function resolveDistanceAxisUnit(span: unknown) {
-    const numericSpan = Math.abs(Number(span));
-    if (!Number.isFinite(numericSpan)) return undefined;
-    return COMPACT_NUMBER_UNITS.find((item) => numericSpan >= 10 * item.value);
+function resolveDistanceAxisUnit(magnitude: unknown) {
+    const numericMagnitude = Math.abs(Number(magnitude));
+    if (!Number.isFinite(numericMagnitude)) return undefined;
+    return COMPACT_NUMBER_UNITS.find((item) => numericMagnitude >= 10 * item.value);
 }
 
 /**
@@ -2301,14 +2306,18 @@ function resolveDistanceAxisUnit(span: unknown) {
  * The result is re-parsed rather than left as `toFixed` output so a whole tick reads `200` and not
  * `200.00`: the decimal count is a ceiling on precision, not a demand for it.
  *
+ * The two questions the window answers are separate. Its magnitude picks the suffix — how large the
+ * readings are — and its span picks the decimals — how closely they are being read. A wide odometer
+ * inspected over a few metres needs both answers at once, and either one alone gets it wrong.
+ *
  * The decimals are resolved against the *scaled* span, so the suffix cannot cost resolution: a
  * 15,000-unit window keeps its ticks apart as `1.5K 3K 4.5K` rather than collapsing them to `2K 3K
  * 5K`. Scaling the span and the value by the same unit is the whole of it.
  *
- * `span` is optional because a formatter with no window to consult is better than no labels; it
+ * `window` is optional because a formatter with no window to consult is better than no labels; it
  * falls back to three decimals and no suffix.
  */
-export function formatDataViewerAxisDistance(value: unknown, span?: unknown) {
+export function formatDataViewerAxisDistance(value: unknown, window?: { min?: unknown; max?: unknown }) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return formatDataViewerDistance(value);
 
@@ -2316,12 +2325,15 @@ export function formatDataViewerAxisDistance(value: unknown, span?: unknown) {
     // the reader to wonder whether it means something other than nothing.
     if (numeric === 0) return '0';
 
-    const unit = resolveDistanceAxisUnit(span);
+    const min = Number(window?.min);
+    const max = Number(window?.max);
+    const span = Math.abs(max - min);
+
+    const unit = resolveDistanceAxisUnit(Math.max(Math.abs(min), Math.abs(max)));
     if (!unit) return String(Number(numeric.toFixed(resolveDistanceAxisDecimals(span))));
 
-    const scaled = numeric / unit.value;
-    const decimals = resolveDistanceAxisDecimals(Number(span) / unit.value);
-    return `${String(Number(scaled.toFixed(decimals)))}${unit.suffix}`;
+    const decimals = resolveDistanceAxisDecimals(span / unit.value);
+    return `${String(Number((numeric / unit.value).toFixed(decimals)))}${unit.suffix}`;
 }
 
 export function formatDataViewerNavigatorRangeLabels(

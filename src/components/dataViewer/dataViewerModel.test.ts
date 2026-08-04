@@ -1774,6 +1774,25 @@ describe('data viewer distance base chart axis', () => {
         // the deliberate exception: it reads the same in every unit.
         labelsFor(0, 100_000, [143.932987435, 50_000, 100_000]).forEach((label) => expect(label).toMatch(/K$/));
         expect(labelsFor(0, 100_000, [0])).toEqual(['0']);
+    });
+
+    test('a narrow window on a large odometer is still compacted', () => {
+        // A real reading: 1,406 units of a near-million-unit odometer. The span alone says there is
+        // nothing to compact, and the axis then prints seven digits a tick; the magnitude is what
+        // knows better. Both questions are asked of the same window, and they have different answers.
+        const formatter = distanceOption({ displayRange: { from: 996_633, to: 998_039 } }).xAxis[0].axisLabel.formatter;
+
+        expect([996_633, 996_900, 997_200, 997_500, 997_800, 998_039].map(formatter)).toEqual([
+            '996.63K',
+            '996.9K',
+            '997.2K',
+            '997.5K',
+            '997.8K',
+            '998.04K',
+        ]);
+
+        // The span still owns the decimals: two ticks 300 units apart must not collide at 996.6K.
+        expect(formatter(996_900)).not.toBe(formatter(997_200));
         // A time axis still writes a clock — 500ms into the window would otherwise be '00:00:00'.
         expect(timeOption().xAxis[0].axisLabel.formatter(Date.parse('2026-06-01T00:05:00Z'))).toMatch(DATE_TEXT);
     });
