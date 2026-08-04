@@ -406,6 +406,16 @@
             display: flex;
         }
     }
+
+    // The design-system's `.sideItem .itemContent + div` rule makes the tail shrinkable,
+    // so in a narrow panel the hovered icons were squeezed out of view (justify-content:
+    // flex-end clips the overflow at the left edge, hiding them entirely). Pin the tail
+    // while hovered — 3 classes + pseudo-class outranks the design-system rule — so the
+    // table name absorbs the shrink and the icons stay whole until the row itself no
+    // longer fits.
+    .db-table-row:hover > .db-table-row-tail {
+        flex: 0 0 auto;
+    }
     .r-btn {
         display: flex;
         padding-right: 8px;
