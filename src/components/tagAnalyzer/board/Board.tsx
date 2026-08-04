@@ -435,12 +435,14 @@ export default function Board({
         {
             key: 'save-as',
             toolTipContent: 'Save as',
+            'aria-label': 'Open Save As',
             icon: <SaveAs size={16} />,
             onClick: () => setIsSaveAsModalOpen(true),
         },
         {
             key: 'overlap',
             toolTipContent: overlap.compatibilityMessage ?? 'Overlap chart',
+            'aria-label': 'Open overlap chart',
             icon: <MdOutlineStackedLineChart size={16} />,
             onClick: overlap.openOverlapChart,
             disabled: !overlap.canOpenOverlapChart,
