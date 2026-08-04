@@ -86,6 +86,7 @@ import {
     normalizeSelectedTagNames,
     parseDataViewerDistanceValue,
     resolveDataViewerBaseColumn,
+    resolveDataViewerBaseColumnType,
     resolveDataViewerBaseKind,
     resolveTimeRangeInput,
     snapDataViewerDistanceEdge,
@@ -1447,6 +1448,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // exactly that span, so the provisional answer never reaches a query.
     const baseColumn = resolveDataViewerBaseColumn(baseColumns ?? [], timeColumn);
     const baseKind = resolveDataViewerBaseKind(baseColumns ?? [], baseColumn);
+    // Only the Tag Analyzer handoff reads this: that payload states the axis as a type code rather
+    // than as a kind, and the two must not be derived independently.
+    const baseColumnType = resolveDataViewerBaseColumnType(baseColumns ?? [], baseColumn);
     const baseAxisLabel = getDataViewerBaseAxisLabel(baseKind);
     // `getDataViewerDefaultRange` returns a module constant, so an untouched range keeps one stable
     // identity across renders — every memo and effect keyed on `range` stays quiet.
@@ -2404,7 +2408,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             // not of a vacuous test.
             if (valueColumnIsJson) return;
             const tazRange = chartViewRanges[group.id] || chartData?.range || group.range;
-            const normalizedRange = buildDataViewerTagAnalyzerRange(tazRange);
+            const normalizedRange = buildDataViewerTagAnalyzerRange(tazRange, baseKind);
             const tagAnalyzerTable = buildDataViewerTagAnalyzerTableName({
                 dbName,
                 userName,
@@ -2421,11 +2425,17 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     calculationMode: 'avg',
                     alias: '',
                     weight: 1,
+                    // The base column, named and typed as this table actually declares it. Tag
+                    // Analyzer derives its own axis from exactly this pair — BASETIME plus a
+                    // non-DATETIME type means a numeric axis — so hardcoding the DATETIME type
+                    // here would silently overrule the schema and open a distance table on a time
+                    // axis. `baseColumn` rather than `timeColumn` for the same reason: on a
+                    // distance table `timeColumn` is only the fallback the resolver started from.
                     colName: {
                         name: tagColumn,
-                        time: timeColumn,
+                        time: baseColumn,
                         value: valueColumn,
-                        timeType: 6,
+                        timeType: baseColumnType,
                         timeBaseTime: true,
                         jsonKey: '',
                     },
@@ -2439,7 +2449,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setBoardList((current) => [...current, result.board]);
             setSelectedTab(result.board.id);
         },
-        [chartViewRanges, databaseId, dbName, setBoardList, setSelectedTab, tableName, tagColumn, timeColumn, userName, valueColumn, valueColumnIsJson],
+        [baseColumn, baseColumnType, baseKind, chartViewRanges, databaseId, dbName, setBoardList, setSelectedTab, tableName, tagColumn, userName, valueColumn, valueColumnIsJson],
     );
     const handleSetGlobalTime = useCallback(
         async (groupId: string) => {

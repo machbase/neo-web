@@ -1,5 +1,5 @@
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
-import { getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
+import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 
 export const DEFAULT_TIME_FORMAT = '2006-01-02 15:04:05.000';
 export const DEFAULT_TIME_ZONE = 'LOCAL';
@@ -42,6 +42,32 @@ export function resolveDataViewerBaseColumn(columns: unknown[] = [], fallback = 
 /** BASETIME but not DATETIME ⇒ the base is a distance axis. Anything else — including an unknown schema — is time. */
 export function resolveDataViewerBaseKind(columns: unknown[] = [], baseColumn: string): DataViewerBaseKind {
     return isNonDateTimeBaseTimeColumn(columns as any[], baseColumn, DATA_VIEWER_COLUMN_FLAG_INDEX) ? 'distance' : 'time';
+}
+
+/**
+ * The base column's declared type code, for handing to Tag Analyzer.
+ *
+ * `resolveDataViewerBaseKind` answers the question this page asks — time or distance — but the Tag
+ * Analyzer payload speaks in type codes, not in kinds: its `isNumericBaseTimeSourceColumns` reads
+ * `timeBaseTime === true && timeType !== DATETIME_COLUMN_TYPE`. Handing it a hardcoded 6 tells it
+ * "DATETIME" no matter what the column really is, which is exactly how a distance board used to
+ * open as a 1970 time board. Pass the column's own type instead and the two sides agree by
+ * construction.
+ *
+ * An unresolved schema falls back to DATETIME, matching `resolveDataViewerBaseKind`'s own default:
+ * an unknown base is time, and the two answers must never disagree.
+ */
+export function resolveDataViewerBaseColumnType(columns: unknown[] = [], baseColumn: string): number {
+    const target = String(baseColumn ?? '').trim().toLowerCase();
+    if (!target || !Array.isArray(columns)) return DATETIME_COLUMN_TYPE;
+
+    const row = columns.find(
+        (column) => Array.isArray(column) && String(column[DATA_VIEWER_COLUMN_NAME_INDEX] ?? '').trim().toLowerCase() === target
+    ) as unknown[] | undefined;
+    if (!row) return DATETIME_COLUMN_TYPE;
+
+    const type = Number(row[DATA_VIEWER_COLUMN_TYPE_INDEX]);
+    return Number.isFinite(type) ? type : DATETIME_COLUMN_TYPE;
 }
 
 /**
@@ -1107,9 +1133,32 @@ function normalizeDataViewerTagAnalyzerRangeValue(value: unknown, keyPrefix: 'st
     return { [`${keyPrefix}EpochMs`]: parsed };
 }
 
+/**
+ * The window this page is showing, said in the vocabulary the Tag Analyzer payload expects.
+ *
+ * `baseKind` is a parameter and not a caller-side relabel because the two axes do not share a
+ * vocabulary. A time window travels as `startEpochMs`/`endEpochMs`; a distance window travels as
+ * `startValue`/`endValue` and is never date-parsed. Emitting the time vocabulary for a distance
+ * window is not a cosmetic mistake: `0 ~ 1000` is a run of perfectly finite numbers, so it passes
+ * every validity check on both sides and lands as 1970-01-01T00:00:00Z ~ 1970-01-01T00:00:01Z with
+ * no error anywhere. That silence is the reason the distance branch exists here rather than being
+ * left to the consumer to infer.
+ *
+ * `undefined` means "no usable window" and the caller omits `range` entirely, which is a different
+ * thing from a window the consumer should reject.
+ */
 export function buildDataViewerTagAnalyzerRange(
-    range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown; startIso?: unknown; endIso?: unknown; startEpochMs?: unknown; endEpochMs?: unknown } = {},
+    range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown; startIso?: unknown; endIso?: unknown; startEpochMs?: unknown; endEpochMs?: unknown; startValue?: unknown; endValue?: unknown } = {},
+    baseKind: DataViewerBaseKind = 'time',
 ) {
+    if (baseKind === 'distance') {
+        const startValue = parseDataViewerDistanceValue(range.from ?? range.start ?? range.startValue);
+        const endValue = parseDataViewerDistanceValue(range.to ?? range.end ?? range.endValue);
+        if (startValue === null || endValue === null || endValue <= startValue) return undefined;
+
+        return { startValue, endValue };
+    }
+
     const start = normalizeDataViewerTagAnalyzerRangeValue(range.from ?? range.start ?? range.startTime ?? range.startIso ?? range.startEpochMs, 'start');
     const end = normalizeDataViewerTagAnalyzerRangeValue(range.to ?? range.end ?? range.endTime ?? range.endIso ?? range.endEpochMs, 'end');
     if (Object.keys(start).length === 0 || Object.keys(end).length === 0) return undefined;

@@ -4,6 +4,7 @@ import {
     buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
     buildDataViewerTagAnalyzerRange,
+    resolveDataViewerBaseColumnType,
     buildDataViewerTagAnalyzerTableName,
     buildDataViewerChartResultsFromRawRows,
     buildDataViewerRawPageBounds,
@@ -951,6 +952,54 @@ describe('data viewer chart helpers', () => {
             endEpochMs: Date.parse('2026-06-01T01:00:00.000Z'),
         });
         expect(buildDataViewerTagAnalyzerRange({ startTime: 2000, endTime: 1000 })).toBeUndefined();
+    });
+
+    test('buildDataViewerTagAnalyzerRange sends a distance window in the numeric vocabulary', () => {
+        // The regression this exists for: on the time branch these same numbers pass every check
+        // and arrive as 1970-01-01T00:00:00Z ~ 1970-01-01T00:00:01Z, with no error raised anywhere.
+        // Asserting the shape, not just the values, is what pins the two sides together.
+        expect(buildDataViewerTagAnalyzerRange({ from: 0, to: 1000 }, 'distance')).toEqual({
+            startValue: 0,
+            endValue: 1000,
+        });
+        expect(buildDataViewerTagAnalyzerRange({ from: 0, to: 1000 }, 'distance')).not.toHaveProperty('startEpochMs');
+
+        // Distance arrives from the range editor as text, and it is parsed as a number, never dated.
+        expect(buildDataViewerTagAnalyzerRange({ from: '12.5', to: '99.5' }, 'distance')).toEqual({
+            startValue: 12.5,
+            endValue: 99.5,
+        });
+
+        // Zero is a legitimate distance, so the guard has to be "not a number", not "falsy".
+        expect(buildDataViewerTagAnalyzerRange({ from: 0, to: 1 }, 'distance')).toEqual({ startValue: 0, endValue: 1 });
+
+        expect(buildDataViewerTagAnalyzerRange({ from: 1000, to: 0 }, 'distance')).toBeUndefined();
+        expect(buildDataViewerTagAnalyzerRange({ from: 5, to: 5 }, 'distance')).toBeUndefined();
+        expect(buildDataViewerTagAnalyzerRange({ from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T01:00:00.000Z' }, 'distance')).toBeUndefined();
+
+        // Omitting the argument keeps every existing time caller on the time branch.
+        expect(buildDataViewerTagAnalyzerRange({ startEpochMs: 1000, endEpochMs: 2000 })).toEqual({
+            startEpochMs: 1000,
+            endEpochMs: 2000,
+        });
+    });
+
+    test('resolveDataViewerBaseColumnType reads the base column type the payload has to state', () => {
+        const columns = [
+            ['NAME', 5, 0],
+            ['ODOMETER', 12, 1],
+            ['VALUE', 20, 0],
+        ];
+
+        expect(resolveDataViewerBaseColumnType(columns, 'ODOMETER')).toBe(12);
+        // Case-insensitive, matching how the base column itself is matched.
+        expect(resolveDataViewerBaseColumnType(columns, 'odometer')).toBe(12);
+
+        // An unreadable schema must answer DATETIME, the same default `resolveDataViewerBaseKind`
+        // takes — if these two disagreed the payload would claim an axis the range does not use.
+        expect(resolveDataViewerBaseColumnType(columns, 'MISSING')).toBe(6);
+        expect(resolveDataViewerBaseColumnType([], 'ODOMETER')).toBe(6);
+        expect(resolveDataViewerBaseColumnType(undefined, 'ODOMETER')).toBe(6);
     });
 
     test('buildDataViewerTagAnalyzerTableName matches DB Explorer table qualification rules', () => {

@@ -12,12 +12,16 @@ import {
 import { seriesDataApi } from '../api/seriesDataApi';
 import {
     createPanelSeriesDefinition,
+    hasMixedXAxisValueKinds,
+    isNumericBaseTimeSourceColumns,
+    MIXED_X_AXIS_KIND_WARNING,
     normalizePanelSeriesCalculationMode,
     PANEL_TAG_LIMIT,
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
 } from '../seriesModel';
+import { formatNumericValue } from '../range/format/numericRangeFormat';
 import { formatAbsoluteTimeExpression } from '../range/format/timeRangeFormat';
 import type { RangeExpressionInput } from '../range/rangeModel';
 
@@ -143,14 +147,37 @@ const requiredText = (aValue: unknown, aFieldName: string): Result<string> => {
     return ok(sText);
 };
 
-type NormalizedRange = {
-    min: string | number;
-    max: string | number;
-};
+/**
+ * A window, tagged with which axis it measures.
+ *
+ * The tag is not decoration. A numeric window is a run of ordinary finite numbers, and so is a
+ * millisecond window: `0 ~ 1000` satisfies every check either branch could make. Without a
+ * discriminator the only way to tell them apart is to guess from the field names the sender
+ * happened to use, and a wrong guess does not fail — it opens a distance board showing the first
+ * second of 1970. Carrying the kind lets the board build cross-check it against the columns.
+ *
+ * `absent` is a third answer, distinct from an invalid window: the sender said nothing about a
+ * range, and the default that fills in depends on the axis, which is not known here.
+ */
+type NormalizedRange =
+    | { kind: 'absent' }
+    | { kind: 'time'; min: string | number; max: string | number }
+    | { kind: 'numeric'; min: number; max: number };
 
-const normalizeTimeRange = (aRange: unknown): Result<NormalizedRange> => {
-    if (aRange === undefined || aRange === null) return ok({ min: 'now-1h', max: 'now' });
+const normalizeRange = (aRange: unknown): Result<NormalizedRange> => {
+    if (aRange === undefined || aRange === null) return ok({ kind: 'absent' });
     if (!isPlainObject(aRange)) return fail('range must be an object');
+
+    // Checked before the time vocabularies: a numeric sender states `startValue`/`endValue` and
+    // nothing else, so reaching a date parse with those in hand means the branch order is wrong.
+    if (aRange.startValue !== undefined || aRange.endValue !== undefined) {
+        const sStartValue = Number(aRange.startValue);
+        const sEndValue = Number(aRange.endValue);
+        if (!Number.isFinite(sStartValue) || !Number.isFinite(sEndValue) || sEndValue <= sStartValue) {
+            return fail('range numeric values are invalid');
+        }
+        return ok({ kind: 'numeric', min: sStartValue, max: sEndValue });
+    }
 
     const sStartIso = optionalText(aRange.startIso);
     const sEndIso = optionalText(aRange.endIso);
@@ -158,17 +185,17 @@ const normalizeTimeRange = (aRange: unknown): Result<NormalizedRange> => {
         const sStart = Date.parse(sStartIso);
         const sEnd = Date.parse(sEndIso);
         if (!Number.isFinite(sStart) || !Number.isFinite(sEnd) || sEnd <= sStart) return fail('range ISO values are invalid');
-        return ok({ min: sStartIso, max: sEndIso });
+        return ok({ kind: 'time', min: sStartIso, max: sEndIso });
     }
 
     const sStartMs = Number(aRange.startEpochMs);
     const sEndMs = Number(aRange.endEpochMs);
     if (Number.isFinite(sStartMs) || Number.isFinite(sEndMs)) {
         if (!Number.isFinite(sStartMs) || !Number.isFinite(sEndMs) || sEndMs <= sStartMs) return fail('range epoch values are invalid');
-        return ok({ min: sStartMs, max: sEndMs });
+        return ok({ kind: 'time', min: sStartMs, max: sEndMs });
     }
 
-    return fail('range must include startIso/endIso or startEpochMs/endEpochMs');
+    return fail('range must include startIso/endIso, startEpochMs/endEpochMs, or startValue/endValue');
 };
 
 const normalizeColumnInfo = (aValue: unknown, aIndex: number): Result<TagAnalyzerColumnInfo> => {
@@ -244,6 +271,7 @@ type NormalizedPayload = {
     title: string;
     range: NormalizedRange;
     tags: PanelSeriesDefinition[];
+    isNumericBase: boolean;
 };
 
 const normalizePayload = (aPayload: unknown): Result<NormalizedPayload> => {
@@ -252,7 +280,7 @@ const normalizePayload = (aPayload: unknown): Result<NormalizedPayload> => {
     if (aPayload.tags.length < 1) return fail('payload.tags must not be empty');
     if (aPayload.tags.length > PANEL_TAG_LIMIT) return fail(`payload.tags supports up to ${PANEL_TAG_LIMIT} tags`);
 
-    const sRange = normalizeTimeRange(aPayload.range);
+    const sRange = normalizeRange(aPayload.range);
     if (!sRange.ok) return sRange;
 
     const sTags: PanelSeriesDefinition[] = [];
@@ -262,10 +290,30 @@ const normalizePayload = (aPayload: unknown): Result<NormalizedPayload> => {
         sTags.push(sTag.value);
     }
 
+    // One chart, one x-axis. A payload naming both a datetime base and a numeric one describes a
+    // board that cannot be drawn, and the board already refuses this combination once it is open —
+    // refusing it at the door names the sender instead of the board.
+    if (hasMixedXAxisValueKinds(sTags)) return fail(MIXED_X_AXIS_KIND_WARNING);
+
+    // The columns are the authority on which axis this board has: the payload states the base
+    // column's own type, and every other reader in Tag Analyzer derives the axis from exactly this
+    // predicate. The range only gets to agree or be rejected.
+    const sIsNumericBase = isNumericBaseTimeSourceColumns(sTags[0].sourceColumns);
+
+    // The check the 1970 board was missing. Both windows are finite numbers, so neither side can
+    // catch this alone — only holding the range and the columns together can.
+    if (sIsNumericBase && sRange.value.kind === 'time') {
+        return fail('range must be numeric when the base column is not a datetime column');
+    }
+    if (!sIsNumericBase && sRange.value.kind === 'numeric') {
+        return fail('range must be a time range when the base column is a datetime column');
+    }
+
     return ok({
         title: optionalText(aPayload.title) || 'TAG ANALYZER',
         range: sRange.value,
         tags: sTags,
+        isNumericBase: sIsNumericBase,
     });
 };
 
@@ -273,6 +321,30 @@ function formatBridgeRangeInputValue(value: string | number): string {
     return typeof value === 'number'
         ? formatAbsoluteTimeExpression(value)
         : value;
+}
+
+const EMPTY_BRIDGE_RANGE: RangeExpressionInput = { start: '', end: '' };
+
+/**
+ * The window as the board's range input.
+ *
+ * The `absent` defaults differ per axis and that asymmetry is real, not an oversight: `now-1h ~ now`
+ * is the sensible opening window for a time board, and there is no numeric equivalent — a distance
+ * axis has no "now" to count back from, and inventing `0 ~ 1` would be a claim about the data. A
+ * numeric board with no stated window opens blank and waits, exactly as `createDefaultTazBoard`
+ * leaves it when the range it was handed is not usable.
+ */
+function resolveBridgeRangeInput(range: NormalizedRange, isNumericBase: boolean): RangeExpressionInput {
+    if (range.kind === 'absent') {
+        return isNumericBase ? EMPTY_BRIDGE_RANGE : { start: 'now-1h', end: 'now' };
+    }
+    if (range.kind === 'numeric') {
+        return { start: formatNumericValue(range.min), end: formatNumericValue(range.max) };
+    }
+    return {
+        start: formatBridgeRangeInputValue(range.min),
+        end: formatBridgeRangeInputValue(range.max),
+    };
 }
 
 const isOpenTagAnalyzerMessage = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): aData is TagAnalyzerBridgeMessage => {
@@ -288,11 +360,12 @@ const isOpenTagAnalyzerMessage = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE
 export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<BridgeResult, { status: 'ignored' }> => {
     const sPayload = normalizePayload(aPayload);
     if (!sPayload.ok) return { status: 'error', reason: sPayload.reason };
-    const { title, range, tags } = sPayload.value;
-    const sRangeInput: RangeExpressionInput = {
-        start: formatBridgeRangeInputValue(range.min),
-        end: formatBridgeRangeInputValue(range.max),
-    };
+    const { title, range, tags, isNumericBase } = sPayload.value;
+    // Which axis holds the window, and how its ends are written. `formatNumericValue` for a numeric
+    // base and `formatAbsoluteTimeExpression` for a datetime one — the same pairing
+    // `createDefaultTazBoard` makes, because a board opened through this bridge and a board opened
+    // from the setup dialog have to be the same board.
+    const sRangeInput: RangeExpressionInput = resolveBridgeRangeInput(range, isNumericBase);
 
     return {
         status: 'ok',
@@ -305,10 +378,12 @@ export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<Br
             sheet: [],
             code: '',
             savedCode: false,
-            range_bgn: String(range.min),
-            range_end: String(range.max),
-            boardTimeRange: sRangeInput,
-            boardNumericRange: { start: '', end: '' },
+            range_bgn: sRangeInput.start,
+            range_end: sRangeInput.end,
+            // Exactly one of these carries the window; the idle axis is blank rather than stale, so
+            // a later axis switch cannot resurrect a window that was never valid for it.
+            boardTimeRange: isNumericBase ? EMPTY_BRIDGE_RANGE : sRangeInput,
+            boardNumericRange: isNumericBase ? sRangeInput : EMPTY_BRIDGE_RANGE,
             shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
             dashboard: {
                 timeRange: {
