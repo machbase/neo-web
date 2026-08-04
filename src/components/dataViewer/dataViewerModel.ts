@@ -1336,18 +1336,27 @@ export function buildDataViewerChartXAxis(
     };
 }
 
+/**
+ * The compact suffixes this chart writes. Shared by both axes so one panel never labels its two
+ * axes in two different notations.
+ *
+ * `B` rather than the SI `G`: these are the short-scale suffixes the y axis has always written, and
+ * matching the axis beside it matters more here than matching the SI table.
+ */
+const COMPACT_NUMBER_UNITS = [
+    { value: 1_000_000_000_000, suffix: 'T' },
+    { value: 1_000_000_000, suffix: 'B' },
+    { value: 1_000_000, suffix: 'M' },
+    { value: 1_000, suffix: 'K' },
+];
+
 function formatYAxisLabel(value: unknown) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return String(value);
-    const units = [
-        { value: 1_000_000_000_000, suffix: 'T' },
-        { value: 1_000_000_000, suffix: 'B' },
-        { value: 1_000_000, suffix: 'M' },
-        { value: 1_000, suffix: 'K' },
-    ];
     const normalized = Object.is(numeric, -0) ? 0 : numeric;
     const abs = Math.abs(normalized);
-    const unit = units.find((item) => abs >= item.value);
+    // Per value, not per axis: a y axis is handed no window, so each label answers for itself.
+    const unit = COMPACT_NUMBER_UNITS.find((item) => abs >= item.value);
     if (!unit) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(normalized);
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(normalized / unit.value)}${unit.suffix}`;
 }
@@ -1760,8 +1769,13 @@ export function buildDataViewerEChartOption({
     // in a different coordinate space than the panel it scrolls.
     const distanceBase = baseKind === 'distance';
     const baseAxisType = distanceBase ? 'value' : 'time';
+    // Both branches are handed the window, not just the value: on either axis the tick's useful
+    // resolution is a property of how much ground the panel is covering, and only the caller knows
+    // that. Zooming in is what earns a distance tick its decimals back.
     const formatBaseAxisLabel = (value: unknown) =>
-        distanceBase ? formatDataViewerAxisDistance(value) : formatDataViewerAxisTime(value, { min: panelRange.startTime, max: panelRange.endTime }, timeZone);
+        distanceBase
+            ? formatDataViewerAxisDistance(value, Number(panelRange.endTime) - Number(panelRange.startTime))
+            : formatDataViewerAxisTime(value, { min: panelRange.startTime, max: panelRange.endTime }, timeZone);
 
     return {
         backgroundColor: '#252525',
@@ -2237,16 +2251,77 @@ export function formatDataViewerAxisTime(value: unknown, range: { min?: unknown;
 }
 
 /**
+ * How many decimals a distance tick is worth, given the window it is labelling.
+ *
+ * The same reasoning the time axis already uses: it drops to `MM-DD` once the window passes a
+ * month, because a clock time is noise at that scale. A distance axis has the same problem in a
+ * different unit. Across a 1000-unit window a tick is placed every hundred units, so digits past
+ * the decimal point describe nothing a reader can see, and the axis minimum — which is a real data
+ * boundary, not a round number — prints its full stored precision beside neatly rounded neighbours.
+ *
+ * Roughly ten labelled ticks fit across a panel, so the interval is a tenth of the window, and one
+ * digit finer than that interval keeps neighbouring ticks distinct without printing noise. Capped
+ * at six, which is past any distance a sensor reports and short of float dust.
+ */
+function resolveDistanceAxisDecimals(span: unknown) {
+    const numericSpan = Math.abs(Number(span));
+    if (!Number.isFinite(numericSpan) || numericSpan <= 0) return 3;
+
+    const step = numericSpan / 10;
+    return Math.min(6, Math.max(0, Math.ceil(-Math.log10(step)) + 1));
+}
+
+/**
+ * The suffix the whole distance axis writes, chosen once from its window.
+ *
+ * Chosen from the span and not from each value, which is the difference between an axis and a
+ * column of unrelated numbers. Picking per value puts `0.1K` next to `100K` on one axis, or leaves
+ * the axis minimum bare while its neighbours carry a suffix — the reader then has to check the
+ * suffix on every tick before comparing two of them.
+ *
+ * The `10 ×` threshold is what stops the suffix from arriving before it helps. A window of 1000
+ * would technically fit `K`, but its ticks are then `0.1K 0.2K 0.3K` — longer than the `100 200
+ * 300` they replaced, and less legible. Requiring ten units of headroom means the suffix appears
+ * only once the ticks are whole multiples of it.
+ */
+function resolveDistanceAxisUnit(span: unknown) {
+    const numericSpan = Math.abs(Number(span));
+    if (!Number.isFinite(numericSpan)) return undefined;
+    return COMPACT_NUMBER_UNITS.find((item) => numericSpan >= 10 * item.value);
+}
+
+/**
  * A distance axis tick.
  *
  * ECharts divides a `value` axis into intervals in floating point, so a tick that is conceptually
- * 200 arrives as 199.99999999999997. Twelve significant digits is past anything a sensor reports and
- * short of the noise, so it lands back on the number the axis meant without inventing precision.
+ * 200 arrives as 199.99999999999997. Rounding to the window's own resolution lands it back on the
+ * number the axis meant, and does the same for the axis minimum, which arrives as whatever the data
+ * actually starts at.
+ *
+ * The result is re-parsed rather than left as `toFixed` output so a whole tick reads `200` and not
+ * `200.00`: the decimal count is a ceiling on precision, not a demand for it.
+ *
+ * The decimals are resolved against the *scaled* span, so the suffix cannot cost resolution: a
+ * 15,000-unit window keeps its ticks apart as `1.5K 3K 4.5K` rather than collapsing them to `2K 3K
+ * 5K`. Scaling the span and the value by the same unit is the whole of it.
+ *
+ * `span` is optional because a formatter with no window to consult is better than no labels; it
+ * falls back to three decimals and no suffix.
  */
-export function formatDataViewerAxisDistance(value: unknown) {
+export function formatDataViewerAxisDistance(value: unknown, span?: unknown) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return formatDataViewerDistance(value);
-    return String(Number(numeric.toPrecision(12)));
+
+    // Zero is the one tick that reads the same in every unit, and `0K` beside `10K` only invites
+    // the reader to wonder whether it means something other than nothing.
+    if (numeric === 0) return '0';
+
+    const unit = resolveDistanceAxisUnit(span);
+    if (!unit) return String(Number(numeric.toFixed(resolveDistanceAxisDecimals(span))));
+
+    const scaled = numeric / unit.value;
+    const decimals = resolveDistanceAxisDecimals(Number(span) / unit.value);
+    return `${String(Number(scaled.toFixed(decimals)))}${unit.suffix}`;
 }
 
 export function formatDataViewerNavigatorRangeLabels(

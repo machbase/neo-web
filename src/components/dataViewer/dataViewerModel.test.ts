@@ -1732,6 +1732,48 @@ describe('data viewer distance base chart axis', () => {
         // ECharts divides a value axis in floating point, so a tick that means 200 arrives like this.
         expect(formatter(199.99999999999997)).toBe('200');
         [0, 500, 999990, 12.5].forEach((value) => expect(formatter(value)).not.toMatch(DATE_TEXT));
+
+        // The axis minimum is a data boundary, not a round number, so it arrives with every digit
+        // it was stored with. Across a 1000-unit window those digits describe less than a pixel.
+        expect(formatter(143.932987435)).toBe('144');
+    });
+
+    test('a distance tick is written to the resolution its window can show', () => {
+        // Zoomed out: a tick every hundred units, so decimals are noise.
+        expect(distanceOption({ displayRange: { from: 0, to: 1000 } }).xAxis[0].axisLabel.formatter(143.932987435)).toBe('144');
+
+        // Zoomed in: the same reading is now the thing being looked at, and its digits come back.
+        expect(distanceOption({ displayRange: { from: 143, to: 145 } }).xAxis[0].axisLabel.formatter(143.932987435)).toBe('143.93');
+        expect(distanceOption({ displayRange: { from: 143.9, to: 143.95 } }).xAxis[0].axisLabel.formatter(143.932987435)).toBe('143.933');
+
+        // A whole tick stays whole at every zoom — the decimal count is a ceiling, not a demand.
+        expect(distanceOption({ displayRange: { from: 143, to: 145 } }).xAxis[0].axisLabel.formatter(144)).toBe('144');
+
+        // Float dust is still swallowed at every zoom level, which is what this rounding replaced.
+        expect(distanceOption({ displayRange: { from: 143, to: 145 } }).xAxis[0].axisLabel.formatter(143.99999999999997)).toBe('144');
+    });
+
+    test('a wide distance axis carries one compact suffix across all of its ticks', () => {
+        const labelsFor = (from: number, to: number, values: number[]) => {
+            const formatter = distanceOption({ displayRange: { from, to } }).xAxis[0].axisLabel.formatter;
+            return values.map((value) => formatter(value));
+        };
+
+        // Below the threshold nothing changes: `100 200 300` is already shorter than `0.1K 0.2K`.
+        expect(labelsFor(0, 1000, [0, 100, 500, 1000])).toEqual(['0', '100', '500', '1000']);
+
+        // Ten units of headroom is where the suffix starts paying for itself.
+        expect(labelsFor(0, 100_000, [0, 10_000, 50_000, 100_000])).toEqual(['0', '10K', '50K', '100K']);
+        expect(labelsFor(0, 10_000_000, [0, 2_000_000, 10_000_000])).toEqual(['0', '2M', '10M']);
+
+        // The suffix is the axis's, not each value's: the minimum wears it too, and neighbouring
+        // ticks stay distinct because the decimals are resolved against the scaled window.
+        expect(labelsFor(0, 15_000, [143.932987435, 1500, 3000])).toEqual(['0.1K', '1.5K', '3K']);
+
+        // Every tick on one axis wears the same suffix — never `0.1K` beside a bare `100`. Zero is
+        // the deliberate exception: it reads the same in every unit.
+        labelsFor(0, 100_000, [143.932987435, 50_000, 100_000]).forEach((label) => expect(label).toMatch(/K$/));
+        expect(labelsFor(0, 100_000, [0])).toEqual(['0']);
         // A time axis still writes a clock — 500ms into the window would otherwise be '00:00:00'.
         expect(timeOption().xAxis[0].axisLabel.formatter(Date.parse('2026-06-01T00:05:00Z'))).toMatch(DATE_TEXT);
     });
