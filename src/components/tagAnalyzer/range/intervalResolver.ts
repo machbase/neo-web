@@ -51,6 +51,7 @@ export function roundNumericAxisBounds(
     );
 }
 
+
 function getNiceNumericStep(value: number): number {
     const sMagnitude = 10 ** Math.floor(Math.log10(value));
     const sNormalizedValue = value / sMagnitude;
@@ -84,27 +85,35 @@ type CalculatedIntervalUnit =
     | TimeUnit.Hour
     | TimeUnit.Day;
 
-type IntervalValue = number | ((calculatedSeconds: number) => number);
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
+const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
 
-const INTERVAL_RULES = [
-    [60 * 60 * 12, TimeUnit.Day, (calc) => Math.ceil(calc / (60 * 60 * 24))],
-    [60 * 60 * 6, TimeUnit.Hour, 12],
-    [60 * 60 * 3, TimeUnit.Hour, 6],
-    [60 * 60, TimeUnit.Hour, (calc) => Math.ceil(calc / (60 * 60))],
-    [60 * 30, TimeUnit.Hour, 1],
-    [60 * 20, TimeUnit.Minute, 30],
-    [60 * 15, TimeUnit.Minute, 20],
-    [60 * 10, TimeUnit.Minute, 15],
-    [60 * 5, TimeUnit.Minute, 10],
-    [60 * 3, TimeUnit.Minute, 5],
-    [60, TimeUnit.Minute, (calc) => Math.ceil(calc / 60)],
-    [30, TimeUnit.Minute, 1],
-    [20, TimeUnit.Second, 30],
-    [15, TimeUnit.Second, 20],
-    [10, TimeUnit.Second, 15],
-    [5, TimeUnit.Second, 10],
-    [3, TimeUnit.Second, 5],
-] satisfies Array<readonly [number, CalculatedIntervalUnit, IntervalValue]>;
+const TIME_INTERVAL_STEPS = [
+    [1, TimeUnit.Second, 1],
+    [2, TimeUnit.Second, 2],
+    [5, TimeUnit.Second, 5],
+    [10, TimeUnit.Second, 10],
+    [15, TimeUnit.Second, 15],
+    [30, TimeUnit.Second, 30],
+    [SECONDS_PER_MINUTE, TimeUnit.Minute, 1],
+    [2 * SECONDS_PER_MINUTE, TimeUnit.Minute, 2],
+    [5 * SECONDS_PER_MINUTE, TimeUnit.Minute, 5],
+    [10 * SECONDS_PER_MINUTE, TimeUnit.Minute, 10],
+    [15 * SECONDS_PER_MINUTE, TimeUnit.Minute, 15],
+    [30 * SECONDS_PER_MINUTE, TimeUnit.Minute, 30],
+    [SECONDS_PER_HOUR, TimeUnit.Hour, 1],
+    [2 * SECONDS_PER_HOUR, TimeUnit.Hour, 2],
+    [3 * SECONDS_PER_HOUR, TimeUnit.Hour, 3],
+    [6 * SECONDS_PER_HOUR, TimeUnit.Hour, 6],
+    [12 * SECONDS_PER_HOUR, TimeUnit.Hour, 12],
+    [SECONDS_PER_DAY, TimeUnit.Day, 1],
+    [2 * SECONDS_PER_DAY, TimeUnit.Day, 2],
+    [5 * SECONDS_PER_DAY, TimeUnit.Day, 5],
+    [10 * SECONDS_PER_DAY, TimeUnit.Day, 10],
+    [20 * SECONDS_PER_DAY, TimeUnit.Day, 20],
+    [50 * SECONDS_PER_DAY, TimeUnit.Day, 50],
+] satisfies Array<readonly [number, CalculatedIntervalUnit, number]>;
 
 const FETCH_INTERVAL_UNITS = new Set<TimeUnit>([
     TimeUnit.Second,
@@ -120,17 +129,30 @@ export function calculateInterval(
     pixelsPerTick: number,
 ): IntervalOption {
     const sDiff = endTime - startTime;
-    const sSeconds = Math.floor(sDiff / 1000);
-    const sCalc = sSeconds / (width / pixelsPerTick);
-    const sRule = INTERVAL_RULES.find(([limit]) => sCalc > limit);
-    const sRuleValue = sRule?.[2];
-    const sIntervalValue = typeof sRuleValue === 'function'
-        ? sRuleValue(sCalc)
-        : sRuleValue ?? Math.ceil(sCalc);
+    const sTargetSeconds = sDiff / 1000 / (width / pixelsPerTick);
+
+    if (!(sTargetSeconds > 1)) {
+        return {
+            IntervalType: TimeUnit.Second,
+            IntervalValue: 1,
+        };
+    }
+
+    const sFixedStep = TIME_INTERVAL_STEPS.find(
+        ([durationSeconds]) => sTargetSeconds <= durationSeconds,
+    );
+    if (sFixedStep !== undefined) {
+        return {
+            IntervalType: sFixedStep[1],
+            IntervalValue: sFixedStep[2],
+        };
+    }
 
     return {
-        IntervalType: sRule?.[1] ?? TimeUnit.Second,
-        IntervalValue: sIntervalValue < 1 ? 1 : sIntervalValue,
+        IntervalType: TimeUnit.Day,
+        IntervalValue: getNiceNumericStep(
+            sTargetSeconds / SECONDS_PER_DAY,
+        ),
     };
 }
 

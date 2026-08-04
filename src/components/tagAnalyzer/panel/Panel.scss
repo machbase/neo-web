@@ -2,6 +2,7 @@
 @import '/src/assets/scss/theme.scss';
 
 .panel-form {
+    container: tag-analyzer-panel / inline-size;
     width: 100%;
     min-height: 300px;
     position: relative;

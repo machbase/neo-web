@@ -19,10 +19,10 @@ const PANEL_RANGE_STATE: ResolvedRangeState = {
     navigatorRangeInput: { start: '', end: '' },
 };
 
-function createPanel(): PanelInfo {
+function createPanel(key = 'panel-a'): PanelInfo {
     return {
         ...createNewPanelInfo([], 'Panel', 'Line'),
-        key: 'panel-a',
+        key,
         time: {
             rangeInput: { start: '', end: '' },
             useLastViewedRange: true,
@@ -122,5 +122,85 @@ describe('board runtime hooks', () => {
             isNumericXAxis: false,
         });
         expect(onSelectionChange).not.toHaveBeenCalled();
+    });
+
+    it('keeps commands stable and applies queued panel changes in order', () => {
+        const board = createBoard();
+        const { result, rerender } = renderHook(() => useBoardState(board));
+        const commands = result.current.commands;
+        const appendedPanel = createPanel('panel-b');
+
+        act(() => {
+            commands.setBoardRange('numeric', { start: '1', end: '2' });
+            commands.appendPanel(appendedPanel);
+            commands.setPanelOverlapSelected('panel-b', true);
+            commands.setPanelRange('panel-b', PANEL_RANGE_STATE);
+        });
+
+        expect(result.current.state.info.boardNumericRange).toEqual({
+            start: '1',
+            end: '2',
+        });
+        expect(result.current.state.info.panels[1]).toMatchObject({
+            key: 'panel-b',
+            isOverlapSelected: true,
+        });
+        expect(result.current.state.panelRanges['panel-b']).toBe(
+            PANEL_RANGE_STATE,
+        );
+
+        rerender();
+        expect(result.current.commands).toBe(commands);
+
+        act(() => commands.removePanel('panel-a'));
+        expect(result.current.state.info.panels).toHaveLength(1);
+        expect(result.current.state.info.panels[0].key).toBe('panel-b');
+        expect(result.current.state.panelRanges).toEqual({
+            'panel-b': PANEL_RANGE_STATE,
+        });
+    });
+
+    it('reconciles incoming boards without leaking runtime state across IDs', () => {
+        const board = { ...createBoard(), savedCode: 'saved-a' };
+        const { result, rerender } = renderHook(
+            ({ boardInfo }) => useBoardState(boardInfo),
+            { initialProps: { boardInfo: board } },
+        );
+
+        act(() => {
+            result.current.commands.setPanelOverlapSelected('panel-a', true);
+            result.current.commands.setPanelRange(
+                'panel-a',
+                PANEL_RANGE_STATE,
+            );
+        });
+
+        rerender({
+            boardInfo: {
+                ...board,
+                savedCode: 'saved-b',
+                panels: [{ ...board.panels[0], title: 'Incoming title' }],
+            },
+        });
+        expect(result.current.state.info.panels[0]).toMatchObject({
+            title: 'Incoming title',
+            isOverlapSelected: true,
+        });
+        expect(result.current.state.panelRanges['panel-a']).toBe(
+            PANEL_RANGE_STATE,
+        );
+
+        rerender({
+            boardInfo: {
+                ...createBoard(),
+                id: 'board-b',
+                savedCode: 'saved-c',
+            },
+        });
+        expect(result.current.state.info.id).toBe('board-b');
+        expect(result.current.state.info.panels[0].isOverlapSelected).toBe(
+            false,
+        );
+        expect(result.current.state.panelRanges['panel-a']).toBeUndefined();
     });
 });

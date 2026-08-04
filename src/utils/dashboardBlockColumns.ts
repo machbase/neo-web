@@ -1,6 +1,6 @@
 import { isNumberTypeColumn } from './dashboardUtil';
 import { isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from './dashboardJsonValue';
-import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isBaseTimeColumn, isNonDateTimeBaseTimeColumn, isTimeFieldColumn } from './timeFieldColumns';
+import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isBaseTimeColumn, isNumericBaseTimeBlock, isTimeFieldColumn } from './timeFieldColumns';
 
 const columnName = (aColumn: any) => String(aColumn?.[0] ?? '');
 const columnType = (aColumn: any) => Number(aColumn?.[1]);
@@ -47,6 +47,9 @@ export const repairDashboardBlockForTableColumns = (aBlock: any, aColumns: any[]
     const sName = findColumn(aColumns, aBlock?.name) ? aBlock.name : sDefaultName;
     const sTimeColumn = findColumn(aColumns, aBlock?.time);
     const sTime = sTimeColumn && isTimeFieldColumn(sTimeColumn) ? aBlock.time : sDefaultTime;
+    // Persist the base column's type/flag so its kind (time vs. distance) can be judged on reload
+    // without the full tableInfo. Consumed by convertDashboardMinMaxRows and downstream range/axis logic.
+    const sSelectedTimeColumn = findColumn(aColumns, sTime);
     const sValue = repairValue(aBlock?.value, aBlock?.jsonKey, aColumns, sDefaultValue);
     const sShouldClearViewFilter = aTableType === 'view' && aBlock?.type !== 'view';
     const sValueList =
@@ -69,6 +72,8 @@ export const repairDashboardBlockForTableColumns = (aBlock: any, aColumns: any[]
         useCustom: aTableType === 'view' ? true : aBlock?.useCustom,
         name: sName,
         time: sTime,
+        timeType: sSelectedTimeColumn ? columnType(sSelectedTimeColumn) : DATETIME_COLUMN_TYPE,
+        timeBaseTime: sSelectedTimeColumn ? isBaseTimeColumn(sSelectedTimeColumn) : false,
         value: sValue.value,
         jsonKey: sValue.jsonKey,
         tableInfo: aColumns,
@@ -100,8 +105,7 @@ export const convertDashboardMinMaxRows = (aRows: any[], aBlock: any): { min: nu
     const sMax = Number(aRows?.[0]?.[1]);
     if (!Number.isFinite(sMin) || !Number.isFinite(sMax)) return undefined;
 
-    const sUseNumericBaseTime =
-        isNonDateTimeBaseTimeColumn(aBlock?.tableInfo, aBlock?.time) || (Boolean(aBlock?.timeBaseTime) && Number(aBlock?.timeType) !== DATETIME_COLUMN_TYPE);
+    const sUseNumericBaseTime = isNumericBaseTimeBlock(aBlock);
 
     if (sUseNumericBaseTime) {
         return {

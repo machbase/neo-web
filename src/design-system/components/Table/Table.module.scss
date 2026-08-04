@@ -218,9 +218,29 @@
     text-align: right !important;
     padding-right: 8px !important;
 
+    // Cells in a copyable numeric column end 34px from their right edge: 8px of
+    // their own padding, then the 18px copy button and the 8px `.cell-content`
+    // gap that reserve room for it. The header has to clear the same 34px or its
+    // label sits out of line with the column it names.
     &--with-copy {
-        padding-right: 40px !important;
+        padding-right: 34px !important;
     }
+}
+
+// SQL NULL placeholder. Dimmed + italic so an actual NULL is distinguishable
+// from a VARCHAR whose value is literally the text "NULL".
+.null-cell {
+    opacity: 0.55;
+    font-style: italic;
+}
+
+// A NULL cell has nothing to copy, so it gets no copy button — but it does draw
+// text, and in a right-aligned column that text would then sit where the button
+// used to be. This holds the slot open. Width tracks `.button--side` (18px); the
+// 8px separation comes from `.cell-content`'s own gap.
+.copy-cell-spacer {
+    width: 18px;
+    flex-shrink: 0;
 }
 
 // Unified cell content wrapper (for copy button hover + cell hover color)

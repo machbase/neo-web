@@ -1,7 +1,7 @@
 import { render, waitFor } from '@testing-library/react';
 import type { MutableRefObject } from 'react';
 import { createNewPanelInfo } from '../panel/panelModel';
-import { PanelOverlayMode } from '../panel/panelInteraction';
+import { PanelOverlayMode } from './chartRuntime';
 import type { ChartSeriesData } from './chartData';
 import type { PanelChartHandlers } from './chartModel';
 import PanelChart, { type PanelChartHandle } from './PanelChart';
@@ -9,12 +9,12 @@ import PanelChart, { type PanelChartHandle } from './PanelChart';
 const mockDispatchAction = jest.fn();
 const mockSetOption = jest.fn();
 const mockClear = jest.fn();
+let mockReadyOptionCalls: unknown[][] = [];
 const mockChartInstance = {
     dispatchAction: mockDispatchAction,
     setOption: mockSetOption,
     clear: mockClear,
     getOption: jest.fn(() => ({ dataZoom: [] })),
-    hideLoading: jest.fn(),
     getZr: jest.fn(() => ({
         on: jest.fn(),
         off: jest.fn(),
@@ -35,7 +35,9 @@ jest.mock('echarts-for-react', () => {
             const onChartReadyRef = React.useRef(onChartReady);
 
             React.useEffect(() => {
+                const readyCallStart = mockSetOption.mock.calls.length;
                 onChartReadyRef.current(mockChartInstance);
+                mockReadyOptionCalls = mockSetOption.mock.calls.slice(readyCallStart);
             }, [onChartReadyRef]);
 
             return React.createElement('div', { 'data-testid': 'echarts' });
@@ -55,8 +57,7 @@ function createSeries(data: ChartSeriesData['data']): ChartSeriesData {
 
 const handlers: PanelChartHandlers = {
     rangeActions: {
-        applyMainZoomRange: jest.fn(),
-        applyMainNavigatorSelectionRange: jest.fn(),
+        setMainRange: jest.fn(),
         shiftMainRangeLeft: jest.fn(),
         shiftMainRangeRight: jest.fn(),
     },
@@ -72,6 +73,7 @@ const handlers: PanelChartHandlers = {
 describe('PanelChart brush interaction', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockReadyOptionCalls = [];
     });
 
     it('re-arms drag zoom immediately after resetting reloaded chart data', async () => {
@@ -108,6 +110,18 @@ describe('PanelChart brush interaction', () => {
         );
 
         await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
+        expect(mockReadyOptionCalls).toHaveLength(1);
+        expect(mockReadyOptionCalls[0]?.[0]).toMatchObject({
+            xAxis: expect.arrayContaining([
+                expect.objectContaining({ min: 0, max: 10 }),
+            ]),
+            dataZoom: expect.arrayContaining([
+                expect.objectContaining({ startValue: 0, endValue: 10 }),
+            ]),
+            series: expect.arrayContaining([
+                expect.objectContaining({ data: firstSeries.data }),
+            ]),
+        });
         jest.clearAllMocks();
 
         view.rerender(

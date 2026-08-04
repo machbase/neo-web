@@ -1,0 +1,92 @@
+@use '../TextStyle' as text;
+
+$section-gap: 12px;
+$label-gap: 6px;
+
+.modal {
+    @include text.control-surface;
+}
+
+.modalTitle {
+    @include text.title;
+}
+
+.panelStack {
+    display: flex;
+    flex-direction: column;
+    gap: $section-gap;
+}
+
+.chartTypeSection {
+    display: flex;
+    flex-direction: column;
+    gap: $label-gap;
+    width: 100%;
+}
+
+.chartTypeRow {
+    display: flex;
+    gap: $section-gap;
+    width: 100%;
+}
+
+.chartTypeButton {
+    flex: 1;
+    height: 76px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.chartTypeButton:hover,
+.chartTypeButton:focus-visible {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.chartTypeButtonActive {
+    border-color: #006cd2;
+    box-shadow:
+        inset 0 0 0 1px #006cd2,
+        0 0 0 1px rgba(0, 108, 210, 0.35);
+}
+
+.chartTypeButtonContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.chartTypeLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    @include text.control(500);
+}
+
+.titleIcon {
+    display: inline-flex;
+    align-items: center;
+    color: #3b9bff;
+}
+
+.footerMessage {
+    @include text.support;
+
+    flex: 1;
+    min-width: 0;
+    color: #ef6e6e;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.fieldCell {
+    display: flex;
+    flex-direction: column;
+    gap: $label-gap;
+    min-width: 0;
+}
+
+.fieldLabelTop {
+    display: block;
+    color: #a3a3a3;
+    @include text.control(500);
+}

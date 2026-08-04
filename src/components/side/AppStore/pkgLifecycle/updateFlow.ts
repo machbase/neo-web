@@ -1,4 +1,5 @@
 import { hasScript } from './manifest';
+import { stepArchiveExtract } from './steps/archiveExtract';
 import { stepPkgCopy } from './steps/pkgCopy';
 import { stepReadManifest } from './steps/readManifest';
 import { stepRunInstall } from './steps/runInstall';
@@ -30,7 +31,20 @@ export async function runUpdate(ctx: LifecycleContext): Promise<StepResult> {
     }
 
     // ── Phase 2: overwrite files ──────────────────────────────────────────
-    const copyRes = await stepPkgCopy(ctx, { force: true });
+    // issue #1452 — `stepArchiveExtract` is the offline equivalent of
+    // `stepPkgCopy(ctx, { force: true })`, NOT of the plain copy, and it takes
+    // the SAME `{ force: true }`: "the destination is already populated, write
+    // over it". Passing it is mandatory here — without it the extract step
+    // refuses an existing destination, and (this is the bug it was born from) an
+    // earlier version implemented force as `rm -rf dest` before renaming, which
+    // deleted the user's conf/ and logs/ on every update. Both paths now mean
+    // "overwrite the files the package ships, keep everything else".
+    // Only an explicit local source diverges; `undefined` means "caller picked no
+    // row" and keeps the GitHub path. `source` is the whole condition — it is the
+    // user's pick in the version menu, and the archive itself is found
+    // server-side from `ctx.tag` (steps/archiveExtract.ts).
+    const useArchive = ctx.source === 'local';
+    const copyRes = useArchive ? await stepArchiveExtract(ctx, { force: true }) : await stepPkgCopy(ctx, { force: true });
     if (!copyRes.ok) return { ...copyRes, log: ctx.logs.join('\n') };
 
     // ── Phase 3: post-update manifest ─────────────────────────────────────

@@ -23,9 +23,10 @@ interface ModalRootProps extends UseModalProps {
     className?: string;
     style?: React.CSSProperties;
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'fit';
+    'data-testid'?: string;
 }
 
-const ModalRoot = ({ children, className, style, size = 'fit', ...modalProps }: ModalRootProps) => {
+const ModalRoot = ({ children, className, style, size = 'fit', 'data-testid': dataTestId, ...modalProps }: ModalRootProps) => {
     const modal = useModal(modalProps);
 
     if (!modal.isOpen) return null;
@@ -35,7 +36,7 @@ const ModalRoot = ({ children, className, style, size = 'fit', ...modalProps }: 
     return createPortal(
         <ModalContext.Provider value={modal}>
             <div {...modal.getOverlayProps()} className={styles['modal__overlay']}>
-                <div {...modal.getContentProps()} className={`${styles.modal} ${sizeClass} ${className ?? ''}`} style={style}>
+                <div {...modal.getContentProps()} data-testid={dataTestId} className={`${styles.modal} ${sizeClass} ${className ?? ''}`} style={style}>
                     {children}
                 </div>
             </div>
@@ -139,13 +140,14 @@ interface ModalCloseProps {
     children?: React.ReactNode;
     className?: string;
     style?: React.CSSProperties;
+    'data-testid'?: string;
 }
 
-const ModalClose = ({ children, className, style }: ModalCloseProps) => {
+const ModalClose = ({ children, className, style, 'data-testid': dataTestId }: ModalCloseProps) => {
     const modal = useModalContext();
 
     return (
-        <button {...modal.getCloseButtonProps()} className={`${styles['modal__close']} ${className ?? ''}`} style={style}>
+        <button {...modal.getCloseButtonProps()} data-testid={dataTestId} className={`${styles['modal__close']} ${className ?? ''}`} style={style}>
             {children ?? (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -164,11 +166,12 @@ interface ModalConfirmProps {
     disabled?: boolean;
     loading?: boolean;
     autoFocus?: boolean;
+    'data-testid'?: string;
 }
 
-const ModalConfirm = ({ children, className, style, onClick, disabled, loading, autoFocus }: ModalConfirmProps) => {
+const ModalConfirm = ({ children, className, style, onClick, disabled, loading, autoFocus, 'data-testid': dataTestId }: ModalConfirmProps) => {
     return (
-        <Button variant="primary" className={className} style={style} onClick={onClick} disabled={disabled} loading={loading} autoFocus={autoFocus}>
+        <Button data-testid={dataTestId} variant="primary" className={className} style={style} onClick={onClick} disabled={disabled} loading={loading} autoFocus={autoFocus}>
             {children ?? 'Confirm'}
         </Button>
     );
@@ -181,9 +184,10 @@ interface ModalCancelProps {
     style?: React.CSSProperties;
     onClick?: () => void;
     autoFocus?: boolean;
+    'data-testid'?: string;
 }
 
-const ModalCancel = ({ children, className, style, onClick, autoFocus }: ModalCancelProps) => {
+const ModalCancel = ({ children, className, style, onClick, autoFocus, 'data-testid': dataTestId }: ModalCancelProps) => {
     const modal = useModalContext();
 
     const handleClick = () => {
@@ -195,7 +199,7 @@ const ModalCancel = ({ children, className, style, onClick, autoFocus }: ModalCa
     };
 
     return (
-        <Button variant="secondary" className={className} style={style} onClick={handleClick} autoFocus={autoFocus}>
+        <Button data-testid={dataTestId} variant="secondary" className={className} style={style} onClick={handleClick} autoFocus={autoFocus}>
             {children ?? 'Cancel'}
         </Button>
     );

@@ -1,10 +1,10 @@
 import type { PanelSeriesDefinition } from '../seriesModel';
 import type { TimeUnit } from '../range/intervalResolver';
 import type {
-    AxisRange,
     RangeState,
     RangeExpressionInput,
 } from '../range/rangeModel';
+import type { PanelAnnotation, PanelHighlight } from '../markup/markupModel';
 
 export type ValueRange = {
     min: number | undefined;
@@ -15,6 +15,16 @@ export const AUTO_VALUE_RANGE: ValueRange = {
     min: undefined,
     max: undefined,
 };
+
+export function isValueRangeInvalid(range: ValueRange): boolean {
+    const { min, max } = range;
+
+    if (min === undefined || max === undefined) {
+        return min !== max;
+    }
+
+    return !Number.isFinite(min) || !Number.isFinite(max) || min >= max;
+}
 
 export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot', 'Custom'] as const;
 
@@ -77,22 +87,6 @@ export type PanelDisplay = {
     };
     mainChartSampling: PanelSampling;
     rawNavigatorSampling: PanelSampling;
-};
-
-export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
-export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
-export const DEFAULT_PANEL_HIGHLIGHT_LABEL = 'unnamed';
-
-export type PanelHighlight = {
-    text: string;
-    timeRange: AxisRange;
-    fillColor: string;
-    textColor: string;
-};
-
-export type PanelAnnotation = PanelHighlight & {
-    seriesKey: string;
-    clip: boolean;
 };
 
 export type PanelInfo = {

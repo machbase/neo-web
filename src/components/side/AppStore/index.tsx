@@ -1,39 +1,77 @@
 import './index.scss';
 import { MdRefresh } from 'react-icons/md';
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilValue, useRecoilState, useSetRecoilState, useResetRecoilState } from 'recoil';
-import { fetchPkgHubList, SEARCH_RES } from '@/api/repository/appStore';
-import { getFiles } from '@/api/repository/fileTree';
-import { gSearchPkgs, gPossiblePkgs, gSearchPkgName, gActiveAppSide, gPkgHealth } from '@/recoil/appStore';
+import { useRecoilValue, useRecoilState, useSetRecoilState } from 'recoil';
+import { resetPkgHubBackoff, SEARCH_RES } from '@/api/repository/appStore';
+import { invalidateLocalArchiveCache } from '@/api/repository/onpremCatalog';
+import { gSearchPkgs, gPossiblePkgs, gSearchPkgName, gPkgHealth, gCatalogStatus, gCatalogScanWarnings } from '@/recoil/appStore';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { closeTabState } from '@/components/mainContent/tabCloseUtils';
 import { AppList } from './item';
-import EnterCallback from '@/hooks/useEnter';
 import useDebounce from '@/hooks/useDebounce';
-import { Side, Input, Button } from '@/design-system/components';
-import { checkPkgHealth, readManifest } from './pkgLifecycle';
+import { useExperiment } from '@/hooks/useExperiment';
+import { Side, Button } from '@/design-system/components';
+import { checkPkgHealth } from './pkgLifecycle';
+import { buildCatalog } from './catalog';
+import { CatalogStatusIcon } from './CatalogStatusIcon';
+import { ArchiveScanWarnings } from './ArchiveScanWarnings';
+import { AppFrameStatus } from '@/components/appView/AppFrameStatus';
+import { useAppFrameHealth } from '@/components/appView/useAppFrameHealth';
+import { PkgPillBar } from './PkgPillBar';
+import { CatalogSearchBand } from './CatalogSearchBand';
+import { CatalogProgress } from './CatalogProgress';
+import { useClosePkgSession, usePkgViews, useSelectPkgView } from './pkgViews';
 
 export const AppStoreSide = () => {
     // RECOIL var
     const sPossiblePkgList = useRecoilValue(gPossiblePkgs);
     const setPkgs = useSetRecoilState<SEARCH_RES>(gSearchPkgs);
     const setSearchPkgName = useSetRecoilState(gSearchPkgName);
-    const sActiveAppSide = useRecoilValue(gActiveAppSide);
-    const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
-    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const sBoardList = useRecoilValue<any[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
     const [sPkgHealth, setPkgHealth] = useRecoilState(gPkgHealth);
+    const [sCatalogStatus, setCatalogStatus] = useRecoilState(gCatalogStatus);
+    // issue #1452 — per-archive scan findings, held apart from gCatalogStatus so
+    // they render whatever the hub leg did. See the atom's header.
+    const [sCatalogScanWarnings, setCatalogScanWarnings] = useRecoilState(gCatalogScanWarnings);
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sEnter, setEnter] = useState<number>(0);
-    const [sAppSideCollapse, setAppSideCollapse] = useState<boolean>(true);
+    // STARTS TRUE. `useDebounce` waits 500ms before the first build, and the panel
+    // is empty for that whole window — showing the bar from mount is both honest
+    // ("the catalog is on its way") and avoids it flashing in half a second later.
+    const [sCatalogLoading, setCatalogLoading] = useState<boolean>(true);
+    // Only the LATEST build may clear the flag. Search debounce and Refresh can
+    // overlap, and without this an earlier build finishing second would switch the
+    // bar off while the newer one is still running.
+    const buildTokenRef = useRef<number>(0);
     const sideIframeRef = useRef<HTMLIFrameElement>(null);
+    const { getExperiment } = useExperiment();
+
+    // THE PILL SWITCHER, AND WHAT THE PANEL IS SHOWING BECAUSE OF IT.
+    // `activeView === null` is the catalog; anything else is that package's own
+    // `side.html`, filling the panel.
+    const { openViews, activeView } = usePkgViews();
+    // Pill → panel AND pill → main-area tab; see the hooks for the session rule
+    // both directions share.
+    const selectPkgView = useSelectPkgView();
+    const closePkgSession = useClosePkgSession();
+
+    // A PILL EXISTS ONLY FOR A PACKAGE THAT SHIPS `side.html` — every path that
+    // opens one goes through `useRevealPkgView`, which checks first. So an active
+    // pill IS a side frame; there is nothing to probe or choose between here.
+    const sSideUrl = activeView ? `/public/${activeView}/side.html` : '';
+    const sSideHealth = useAppFrameHealth(sideIframeRef, {
+        enabled: !!activeView,
+        resetKey: activeView ?? '',
+    });
 
     // Activate main.html tab when user interacts with side iframe
     useEffect(() => {
-        if (!sActiveAppSide) return;
+        if (!activeView) return;
         const activateMainTab = () => {
-            const mainTab = sBoardList.find((b: any) => b.type === 'appView' && b.code?.appName === sActiveAppSide);
+            const mainTab = sBoardList.find(
+                (b: any) => b.type === 'appView' && b.code?.appName === activeView,
+            );
             if (mainTab && sSelectedTab !== mainTab.id) {
                 setSelectedTab(mainTab.id);
             }
@@ -48,57 +86,38 @@ export const AppStoreSide = () => {
         };
         window.addEventListener('blur', handleBlur);
         return () => window.removeEventListener('blur', handleBlur);
-    }, [sActiveAppSide, sBoardList, sSelectedTab, setSelectedTab]);
-
-    // Get installed package names by listing /public/ directory
-    const getInstalledNames = async (): Promise<Set<string>> => {
-        try {
-            const res: any = await getFiles('/public/');
-            const children: any[] = res?.data?.children ?? res?.children ?? [];
-            return new Set(children.filter((c: any) => c.isDir).map((c: any) => c.name));
-        } catch {
-            return new Set();
-        }
-    };
+    }, [activeView, sBoardList, sSelectedTab, setSelectedTab]);
 
     // pkgs search
+    //
+    // issue #1452: the whole hub ∪ local-archive ∪ installed merge lives in
+    // buildCatalog, which never rejects and degrades per source. There is
+    // deliberately NO `catch { setPkgs({ possibles: [] }) }` here anymore — an
+    // unreachable hub used to blank the panel, taking the start/stop/uninstall
+    // controls of every installed package down with it.
     const pkgsSearch = async () => {
         setSearchPkgName(sSearchTxt);
+        const token = ++buildTokenRef.current;
+        setCatalogLoading(true);
         try {
-            const [hubPkgs, installedNames] = await Promise.all([fetchPkgHubList(), getInstalledNames()]);
-
-            const allPkgs = await Promise.all(
-                hubPkgs.map(async (pkg) => {
-                    if (!installedNames.has(pkg.name)) return pkg;
-                    // Read manifest once so installed_version + installed_packageService
-                    // come from the same /public/{name}/package.json fetch. Empty string
-                    // matches the prior `getInstalledVersion` fallback for missing/invalid
-                    // manifests; installed_packageService stays undefined for legacy
-                    // packages without a `packageService` block (treated as managed=true
-                    // by `isPackageManaged`).
-                    const manifest = await readManifest(pkg.name);
-                    const installed_version = typeof manifest?.version === 'string' ? manifest.version : '';
-                    return {
-                        ...pkg,
-                        installed_frontend: true,
-                        installed_version,
-                        installed_packageService: manifest?.packageService,
-                    };
-                })
-            );
-
-            const searchLower = sSearchTxt.toLowerCase();
-            const displayed = sSearchTxt
-                ? allPkgs.filter((pkg) => pkg.name.toLowerCase().includes(searchLower) || pkg.github.description.toLowerCase().includes(searchLower))
-                : allPkgs;
-
-            setPkgs({ installed: [], exact: [], possibles: displayed, broken: [] });
+            const { pkgs, mode, hubError, lastSyncAt, scanWarnings } = await buildCatalog({
+                search: sSearchTxt,
+                experimentOn: getExperiment(),
+            });
+            setCatalogStatus({ mode, hubError, lastSyncAt });
+            // issue #1452: written on EVERY build, including the empty case — a
+            // rescan that finds the directories cleaned up must clear the list, not
+            // leave the last set of accusations on screen.
+            setCatalogScanWarnings(scanWarnings);
+            setPkgs({ installed: [], exact: [], possibles: pkgs, broken: [] });
         } catch {
-            setPkgs({ installed: [], exact: [], possibles: [], broken: [] });
+            // Unreachable by contract; keep whatever is already on screen rather
+            // than emptying it, and leave the status untouched.
+        } finally {
+            // `finally`, so a build that somehow throws cannot leave the bar
+            // spinning forever over a list that is not coming.
+            if (buildTokenRef.current === token) setCatalogLoading(false);
         }
-    };
-    const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
-        setSearchTxt((e.target as HTMLInputElement).value);
     };
 
     useDebounce([sEnter, sSearchTxt], pkgsSearch, 500);
@@ -108,8 +127,15 @@ export const AppStoreSide = () => {
     // this, the "fill missing" effect below would treat already-cached entries
     // as fresh and skip the health probe — making the cgi-bin/health request
     // only fire on explicit refresh.
+    //
+    // The local-archive scan cache (module scope in onpremCatalog.ts) is dropped
+    // for the same reason: it also outlives a remount, and a zip dropped into
+    // the archive directory while the panel was closed must show up when it is
+    // reopened. The debounced pkgsSearch below then pays for exactly ONE scan;
+    // every later keystroke reuses it.
     useEffect(() => {
         setPkgHealth({});
+        invalidateLocalArchiveCache();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -117,7 +143,9 @@ export const AppStoreSide = () => {
     // for packages that are no longer installed. The result drives start/stop
     // button visibility AND the running/stopped toggle in the catalog.
     useEffect(() => {
-        const installed = sPossiblePkgList.filter((p: any) => !!p?.installed_frontend).map((p: any) => p.name as string);
+        const installed = sPossiblePkgList
+            .filter((p: any) => !!p?.installed_frontend)
+            .map((p: any) => p.name as string);
         const installedSet = new Set(installed);
 
         // Drop stale entries (uninstalled since last sync).
@@ -138,7 +166,9 @@ export const AppStoreSide = () => {
         if (missing.length === 0) return;
         let cancelled = false;
         (async () => {
-            const pairs = await Promise.all(missing.map(async (n) => [n, await checkPkgHealth(n)] as const));
+            const pairs = await Promise.all(
+                missing.map(async (n) => [n, await checkPkgHealth(n)] as const),
+            );
             if (cancelled) return;
             setPkgHealth((prev) => {
                 const next = { ...prev };
@@ -155,63 +185,117 @@ export const AppStoreSide = () => {
     // installed package gets its cgi-bin/health re-probed. Search-input debounce
     // calls pkgsSearch directly (no cache wipe) since typing should not re-probe
     // filesystem state on every keystroke.
-    const handleRefresh = () => {
+    // An explicit Refresh is also the one place allowed to retry the hub before
+    // its failure backoff expires — the user pressing the button after plugging
+    // the network back in is asking for exactly that (issue #1452).
+    // The local archive directory is rescanned here too: Refresh is the user
+    // saying "look again", and the scan is cached precisely so the search
+    // debounce does NOT look again on its own.
+    const handleRefresh = async () => {
         setPkgHealth({});
-        pkgsSearch();
-    };
-
-    const handleSideClose = () => {
-        const appViewTab = sBoardList.find((b: any) => b.type === 'appView' && b.code?.appName === sActiveAppSide);
-        if (appViewTab) {
-            const { nextBoardList, nextSelectedTabId } = closeTabState(sBoardList, sSelectedTab, appViewTab.id);
-            setBoardList(nextBoardList);
-            setSelectedTab(nextSelectedTabId);
-        }
-        resetActiveAppSide();
+        resetPkgHubBackoff();
+        invalidateLocalArchiveCache();
+        await pkgsSearch();
     };
 
     return (
-        <Side.Container style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
-            {/* Package list area (scrollable) */}
-            <div style={{ flex: sActiveAppSide ? '0 1 auto' : '1 1 auto', overflow: 'auto', minHeight: 0 }}>
-                <Side.Title>
-                    <span>PACKAGES</span>
-                    <Button.Group>
-                        <Button size="side" variant="none" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={16} />} onClick={handleRefresh} />
-                    </Button.Group>
-                </Side.Title>
-                {/* SEARCH */}
-                <div className="app-search-warp">
-                    <Input placeholder="Search" autoFocus onChange={handleSearchTxt} onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} fullWidth size="sm" />
-                </div>
-                <AppList pList={sPossiblePkgList} pTitle={sSearchTxt === '' ? 'CATALOG' : 'SEARCH RESULTS'} pStatus="POSSIBLE" />
-            </div>
+        <Side.Container
+            style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}
+        >
+            {/* ONE CONTENT AREA, SWITCHED BY THE PILL BAR.
+                A package's `side.html` used to be STACKED under the catalog as a
+                second section with its own collapse header, so opening a package
+                left the panel showing two things at once and the package's UI got
+                whatever vertical space the catalog did not want. It is now what the
+                content area SHOWS when its pill is active — the catalog is not
+                below it, it is behind it. */}
+            <div className="app-store-body" style={{ flex: '1 1 auto' }}>
+                {/* ------------------------------------------------------------------
+                    PINNED HEADER. Title, pill bar and — in the catalog — the scan
+                    warnings and the search band.
+                    THE SEARCH BAND MUST NOT SCROLL. It used to sit inside the same
+                    overflow container as the cards, so filtering a long catalog
+                    scrolled the field that was doing the filtering off the top of the
+                    panel. Everything that describes or controls the list stays here;
+                    only the list itself moves.
+                   ------------------------------------------------------------------ */}
+                <div className="app-store-header">
+                    <Side.Title>
+                        {/* CATALOG SOURCE INDICATOR (offline / local-only / hub failure),
+                            issue #1452. LEADS the title, and is not in the button group:
+                            it is a statement about what this list contains, and beside
+                            Refresh it read as a third control the user was meant to press.
+                            It used to be a full-width banner below this title, which cost
+                            three lines of a narrow panel and carried a Retry button that
+                            called the very same `handleRefresh` the Refresh button does.
+                            The explanation is in its tooltip. Renders null while the hub
+                            is answering — so the title must not depend on it for spacing. */}
+                        <span className="app-store-title-lead">
+                            <CatalogStatusIcon pStatus={sCatalogStatus} pEntryCount={sPossiblePkgList.length} />
+                            PACKAGES
+                        </span>
+                        <Button.Group>
+                            <Button
+                                size="side"
+                                variant="none"
+                                isToolTip
+                                toolTipContent="Refresh"
+                                icon={<MdRefresh size={16} />}
+                                onClick={handleRefresh}
+                            />
+                        </Button.Group>
+                    </Side.Title>
 
-            {/* Side iframe area (fixed bottom) */}
-            {sActiveAppSide && (
-                <div style={{ flex: '1 1 50%', minHeight: '150px', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--side-border, rgba(255,255,255,0.1))' }}>
-                    <Side.Collapse pCollapseState={sAppSideCollapse} pCallback={() => setAppSideCollapse(!sAppSideCollapse)}>
-                        <span style={{ flex: 1 }}>SIDE: {sActiveAppSide}</span>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleSideClose();
-                            }}
-                            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '0 4px', fontSize: '14px', lineHeight: 1 }}
-                        >
-                            ✕
-                        </button>
-                    </Side.Collapse>
-                    {sAppSideCollapse && (
-                        <iframe
-                            ref={sideIframeRef}
-                            src={`/public/${sActiveAppSide}/side.html`}
-                            style={{ width: '100%', flex: 1, border: 'none', minHeight: 0 }}
-                            title={`App Side: ${sActiveAppSide}`}
-                        />
+                    <PkgPillBar
+                        pOpen={openViews}
+                        pActive={activeView}
+                        onSelect={(name) => void selectPkgView(name)}
+                        onClose={closePkgSession}
+                    />
+
+                    {/* THE CATALOG'S OWN PINNED CONTROLS, in a wrapper of their own so
+                        the rule that closes them off from the card list belongs to
+                        THEM and not to the header. In a package view these do not
+                        render at all, and the pill bar's bottom border is already the
+                        boundary there — a rule on the header would land on top of it
+                        and draw the same line twice. */}
+                    {activeView === null && (
+                        <div className="app-store-catalog-controls">
+                            {/* PER-ARCHIVE SCAN FINDINGS (issue #1452).
+                                A SIBLING OF THE CATALOG INDICATOR, NOT A CHILD, and rendered
+                                with no reference to sCatalogStatus: a manually extracted directory or
+                                an unreadable zip is just as real on an `online` server, where
+                                the header indicator renders null. Above the search box because it
+                                describes packages that are MISSING from the list below — a
+                                report placed under the cards would be read as being about
+                                them. */}
+                            <ArchiveScanWarnings pWarnings={sCatalogScanWarnings} />
+                            <CatalogSearchBand pValue={sSearchTxt} onChange={setSearchTxt} onEnter={() => setEnter(sEnter + 1)} />
+                            {/* On the seam between these controls and the card list,
+                                overlaying the rule rather than adding a row. */}
+                            <CatalogProgress pLoading={sCatalogLoading} />
+                        </div>
                     )}
                 </div>
-            )}
+
+                {/* THE CONTENT AREA — the catalog, or the active package's own
+                    UI. Only one of them is on screen at a time; that is the whole
+                    point of the pill bar above. */}
+                {activeView === null ? (
+                    <div className="app-store-scroll">
+                        <AppList pList={sPossiblePkgList} pStatus="POSSIBLE" />
+                    </div>
+                ) : (
+                    // `.app-frame` (AppFrameStatus.scss) stretches to its flex host
+                    // and hosts the status overlay. It is deliberately NOT inside
+                    // `.app-store-scroll`: an iframe in a scroll container gets a
+                    // second scrollbar wrapped around the one it already has.
+                    <div className="app-frame">
+                        <iframe ref={sideIframeRef} src={sSideUrl} title={`App Side: ${activeView}`} />
+                        <AppFrameStatus pAppName={activeView} pHealth={sSideHealth} pCompact />
+                    </div>
+                )}
+            </div>
         </Side.Container>
     );
 };

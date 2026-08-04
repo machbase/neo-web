@@ -1,4 +1,17 @@
-import { compareVersions, comparePkgVersions, computeEligibility, isEligible, normalizePkgVersion, stripVPrefix, type PkgVersionInfo } from './utils';
+import {
+    applyOfflineEligibility,
+    applyOfflineSelectable,
+    compareVersions,
+    comparePkgVersions,
+    computeEligibility,
+    isEligible,
+    normalizePkgVersion,
+    pickDefaultInstall,
+    pickDefaultUpdate,
+    resolveActionSource,
+    stripVPrefix,
+    type PkgVersionInfo,
+} from './utils';
 
 describe('normalizePkgVersion', () => {
     test('plain SemVer → 정규형', () => expect(normalizePkgVersion('1.0.4')).toBe('1.0.4'));
@@ -125,5 +138,183 @@ describe('computeEligibility (#1369)', () => {
     test('서버 버전 미수신(빈 문자열) → 차단 없음', () => {
         const e = computeEligibility([V('1.0.5', '8.0.60')], '');
         expect(e.defaultInstall).toBe('1.0.5');
+    });
+
+    test('source 필드는 rows로 그대로 보존된다', () => {
+        const e = computeEligibility(
+            [
+                { version: '1.3.0', minServer: '8.0.10', source: 'hub' },
+                { version: '1.2.0', minServer: '8.0.10', source: 'local' },
+                { version: '1.1.0', minServer: '8.0.10' }, // 태그 없음 → 그대로 undefined
+            ],
+            '8.0.45'
+        );
+        expect(e.rows.map((r) => r.source)).toEqual(['hub', 'local', undefined]);
+    });
+});
+
+describe('applyOfflineSelectable / 오프라인 게이팅 (#1452)', () => {
+    // hub 1.3.0(최신) + local 1.2.0 + local 1.1.0 — 오프라인에서 hub 행만 막혀야 한다
+    const catalog: PkgVersionInfo[] = [
+        { version: '1.3.0', minServer: '8.0.10', source: 'hub' },
+        { version: '1.2.0', minServer: '8.0.10', source: 'local' },
+        { version: '1.1.0', minServer: '8.0.10', source: 'local' },
+    ];
+    const rowOf = (e: { rows: { version: string }[] }, version: string) => e.rows.find((r) => r.version === version) as any;
+
+    test('online=false → source=hub 행만 selectable=false, local 행은 원래 값 유지', () => {
+        const rows = computeEligibility(catalog, '8.0.45').rows;
+        const masked = applyOfflineSelectable(rows, false);
+        expect(masked.find((r) => r.version === '1.3.0')?.selectable).toBe(false);
+        expect(masked.find((r) => r.version === '1.2.0')?.selectable).toBe(true);
+        expect(masked.find((r) => r.version === '1.1.0')?.selectable).toBe(true);
+        // eligible/state는 서버 호환성 판정이므로 손대지 않는다
+        expect(masked.find((r) => r.version === '1.3.0')?.eligible).toBe(true);
+    });
+
+    test('online=true → 어떤 행도 변경되지 않는다 (배열 동일성까지)', () => {
+        const rows = computeEligibility(catalog, '8.0.45').rows;
+        const masked = applyOfflineSelectable(rows, true);
+        expect(masked).toBe(rows);
+        expect(masked.map((r) => r.selectable)).toEqual(rows.map((r) => r.selectable));
+    });
+
+    test('마스킹 후 defaultInstall = selectable local 중 최신', () => {
+        const e = applyOfflineEligibility(computeEligibility(catalog, '8.0.45'), false);
+        expect(e.defaultInstall).toBe('1.2.0');
+        expect(rowOf(e, '1.2.0').state).toBe('default'); // default 뱃지도 함께 이동
+        expect(rowOf(e, '1.3.0').state).toBe('eligible'); // 더 이상 default 아님
+    });
+
+    test('마스킹 후 defaultUpdate = selectable local 중 최신 (설치본보다 위)', () => {
+        const online = computeEligibility(catalog, '8.0.45', '1.1.0');
+        expect(online.defaultUpdate).toBe('1.3.0'); // 온라인이면 hub 최신
+        const e = applyOfflineEligibility(online, false, '1.1.0');
+        expect(e.defaultUpdate).toBe('1.2.0'); // 오프라인이면 로컬 아카이브 최신
+        expect(rowOf(e, '1.1.0').state).toBe('current');
+        expect(rowOf(e, '1.2.0').state).toBe('default');
+    });
+
+    test('설치 가능한 local이 없으면 오프라인에서 default 없음 → Update 버튼이 사라진다', () => {
+        const hubOnly: PkgVersionInfo[] = [
+            { version: '1.3.0', minServer: '8.0.10', source: 'hub' },
+            { version: '1.1.0', minServer: '8.0.10', source: 'hub' },
+        ];
+        const e = applyOfflineEligibility(computeEligibility(hubOnly, '8.0.45', '1.1.0'), false, '1.1.0');
+        expect(e.defaultUpdate).toBeUndefined();
+        expect(e.defaultInstall).toBeUndefined();
+        expect(e.rows.every((r) => !r.selectable)).toBe(true);
+    });
+
+    test('minServer 미충족 local 행은 오프라인이어도 ineligible + selectable=false 유지', () => {
+        const e = applyOfflineEligibility(
+            computeEligibility(
+                [
+                    { version: '2.0.0', minServer: '9.0.0', source: 'local' }, // 서버 미달
+                    { version: '1.2.0', minServer: '8.0.10', source: 'local' },
+                ],
+                '8.0.45'
+            ),
+            false
+        );
+        expect(rowOf(e, '2.0.0').state).toBe('ineligible');
+        expect(rowOf(e, '2.0.0').selectable).toBe(false);
+        expect(e.defaultInstall).toBe('1.2.0');
+    });
+
+    test('설치 버전이 versions[]에 있으면 isIncompatible이 오프라인 후에도 그대로 계산된다', () => {
+        const e = applyOfflineEligibility(
+            computeEligibility([{ version: '1.5.0', minServer: '8.0.60', source: 'hub' }], '8.0.45', '1.5.0'),
+            false,
+            '1.5.0'
+        );
+        expect(e.isIncompatible).toBe(true);
+        expect(e.installedMinServer).toBe('8.0.60');
+        expect(rowOf(e, '1.5.0').state).toBe('current'); // 설치본 행은 계속 보인다
+    });
+
+    test('source 미지정(레거시) 행은 오프라인에서도 마스킹되지 않는다', () => {
+        // hub 태깅은 카탈로그가 명시적으로 채운다(catalog.ts mergeVersions).
+        // 태그가 없는 행은 이 계층에서 임의로 hub로 간주하지 않는다.
+        const rows = computeEligibility([{ version: '1.0.0', minServer: '' }], '8.0.45').rows;
+        expect(applyOfflineSelectable(rows, false)[0].selectable).toBe(true);
+    });
+
+    test('pickDefaultInstall / pickDefaultUpdate 순수 함수 규약', () => {
+        const rows = applyOfflineSelectable(computeEligibility(catalog, '8.0.45', '1.1.0').rows, false);
+        expect(pickDefaultInstall(rows)).toBe('1.2.0');
+        expect(pickDefaultUpdate(rows, '1.1.0')).toBe('1.2.0');
+        expect(pickDefaultUpdate(rows, undefined)).toBeUndefined(); // 설치 전에는 update 대상 없음
+        expect(pickDefaultInstall([])).toBeUndefined();
+    });
+});
+
+describe('resolveActionSource — 카드 기본 버튼이 설치할 버전의 출처 (#1452)', () => {
+    const mixed: PkgVersionInfo[] = [
+        { version: '1.3.0', minServer: '8.0.10', source: 'hub' },
+        { version: '1.2.0', minServer: '8.0.10', source: 'local' },
+        { version: '1.1.0', minServer: '8.0.10', source: 'local' },
+    ];
+
+    test('업데이트 있음 + 대상이 local 행 → local', () => {
+        const localNewest: PkgVersionInfo[] = [
+            { version: '1.3.0', minServer: '8.0.10', source: 'local' },
+            { version: '1.1.0', minServer: '8.0.10', source: 'hub' },
+        ];
+        const e = computeEligibility(localNewest, '8.0.45', '1.1.0');
+        expect(e.defaultUpdate).toBe('1.3.0');
+        expect(resolveActionSource(e, '1.1.0')).toBe('local');
+    });
+
+    test('업데이트 있음 + 대상이 hub 행 → hub (defaultInstall이 local이어도 update가 우선)', () => {
+        const e = computeEligibility(mixed, '8.0.45', '1.1.0');
+        expect(e.defaultUpdate).toBe('1.3.0');
+        expect(resolveActionSource(e, '1.1.0')).toBe('hub');
+    });
+
+    test('미설치 + defaultInstall이 local → local', () => {
+        const e = computeEligibility(
+            [
+                { version: '1.2.0', minServer: '8.0.10', source: 'local' },
+                { version: '1.1.0', minServer: '8.0.10', source: 'hub' },
+            ],
+            '8.0.45'
+        );
+        expect(e.defaultUpdate).toBeUndefined();
+        expect(resolveActionSource(e, undefined)).toBe('local');
+    });
+
+    test('설치됨 + 업데이트 없음 → 설치 버전 행의 출처를 본다 (local)', () => {
+        // 최신이 곧 설치본이라 defaultUpdate 없음. "같은 버전의 로컬 아카이브가 있다"는 정보.
+        const e = computeEligibility([{ version: '1.2.0', minServer: '8.0.10', source: 'local' }], '8.0.45', '1.2.0');
+        expect(e.defaultUpdate).toBeUndefined();
+        expect(resolveActionSource(e, '1.2.0')).toBe('local');
+    });
+
+    test('대응하는 행이 없으면 undefined', () => {
+        // 실험 모드 커스텀 버전처럼 versions[]에 없는 설치본
+        const e = computeEligibility([], '8.0.45', '9.9.9-dev');
+        expect(resolveActionSource(e, '9.9.9-dev')).toBeUndefined();
+        // 대상 자체가 없는 경우(미설치 + 설치 가능 버전 없음)
+        expect(resolveActionSource(computeEligibility([], '8.0.45'), undefined)).toBeUndefined();
+    });
+
+    test('source 태그 없는 레거시 행 → undefined (hub로 넘겨짚지 않는다)', () => {
+        const e = computeEligibility([{ version: '1.0.0', minServer: '' }], '8.0.45');
+        expect(resolveActionSource(e, undefined)).toBeUndefined();
+    });
+
+    test('오프라인 마스킹으로 hub 대상이 빠지면 local이 대상이 되어 local', () => {
+        const online = computeEligibility(mixed, '8.0.45', '1.1.0');
+        expect(resolveActionSource(online, '1.1.0')).toBe('hub'); // 온라인: hub 1.3.0
+
+        const offline = applyOfflineEligibility(online, false, '1.1.0');
+        expect(offline.defaultUpdate).toBe('1.2.0');
+        expect(resolveActionSource(offline, '1.1.0')).toBe('local'); // 오프라인: local 1.2.0
+    });
+
+    test('설치본이 v-prefix여도 카탈로그 행과 매칭된다', () => {
+        const e = computeEligibility([{ version: '1.2.0', minServer: '8.0.10', source: 'local' }], '8.0.45', 'v1.2.0');
+        expect(resolveActionSource(e, 'v1.2.0')).toBe('local');
     });
 });

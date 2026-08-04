@@ -133,6 +133,10 @@ const NewBoard = (props: NewBoardProps) => {
                                   end: 'now',
                                   refresh: 'Off',
                               },
+                              distanceRange: {
+                                  start: '',
+                                  end: '',
+                              },
                               title: 'New dashboard',
                               panels: [],
                           },

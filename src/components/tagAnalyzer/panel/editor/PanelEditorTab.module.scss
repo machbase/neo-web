@@ -1,0 +1,442 @@
+@use '../../TextStyle' as text;
+
+.section,
+.editorCard {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-color: transparent;
+    background: transparent;
+}
+
+.sectionHeader {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-height: 22px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sectionTitle {
+    @include text.section-title;
+
+    margin: 0;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.sectionTag {
+    padding: 1px 6px;
+    border: 1px solid rgba(65, 153, 255, 0.34);
+    border-radius: 4px;
+    background: rgba(65, 153, 255, 0.12);
+    color: rgba(194, 220, 255, 0.9);
+    @include text.support;
+}
+
+.sectionHeaderCheckbox {
+    margin-left: 2px;
+}
+
+.rightAxisHeaderActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.controlStack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.controlRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.controlGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, max-content));
+    gap: 12px 18px;
+    align-items: start;
+}
+
+.axesGrid {
+    display: grid;
+    grid-template-columns: minmax(260px, 300px) minmax(520px, 624px);
+    justify-content: start;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.axisGroup {
+    min-width: 0;
+}
+
+.yAxesGroup {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: 1;
+    gap: 12px;
+    min-height: 0;
+}
+
+.axisSubgroup {
+    height: 100%;
+    padding: 8px;
+}
+
+.axisDisabledMessage {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.52);
+    @include text.support;
+}
+
+.dataSettingGrid,
+.timeLayout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
+    justify-content: start;
+    gap: 12px;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.dataSettingStack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.dataSettingAlignmentSpacer {
+    min-height: 30px;
+}
+
+.axesGrid .section {
+    gap: 8px;
+}
+
+.axesGrid .controlRow {
+    gap: 6px;
+}
+
+.axesGrid .rangeInputs {
+    gap: 6px;
+}
+
+.axisSubsectionTitle {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 20px;
+    color: rgba(255, 255, 255, 0.68);
+    @include text.control(500);
+}
+
+.mutedLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.5);
+    @include text.control(500);
+}
+
+.rangeField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.rangeInputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.rangeSeparator {
+    color: rgba(255, 255, 255, 0.5);
+    @include text.control;
+}
+
+.fieldError {
+    color: #ff6b6b;
+    @include text.support;
+}
+
+.numberInputCompact {
+    width: 48px;
+}
+
+.numberInputThreshold {
+    width: 80px;
+}
+
+.numberInputStandard {
+    width: 150px;
+}
+
+.titleInput {
+    width: 220px;
+}
+
+.rightAxisTrigger {
+    width: 200px;
+}
+
+.editorCard {
+    margin-bottom: 8px;
+}
+
+.editorWrappedRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 14px 24px;
+}
+
+.editorField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.editorAliasField {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.editorAliasInput {
+    width: 100%;
+}
+
+.editorNarrowControl {
+    width: 80px;
+}
+
+.editorSelectTrigger {
+    width: 100%;
+    height: 30px;
+    padding: 4px 8px;
+}
+
+.editorFieldLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 14px;
+    color: rgba(255, 255, 255, 0.66);
+    @include text.control(500);
+    white-space: nowrap;
+}
+
+.editorSeriesIdentity {
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 180px;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 140px;
+    max-width: 180px;
+}
+
+.editorSeriesRemoveButton {
+    margin-left: 0;
+    align-self: flex-end;
+    flex-shrink: 0;
+}
+
+.editorColorField {
+    flex: 0 0 auto;
+}
+
+.editorColorControl {
+    display: flex;
+    align-items: center;
+    min-height: 30px;
+}
+
+.editorSeriesTagName {
+    color: rgba(255, 255, 255, 0.9);
+    @include text.control(600);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editorInlineField {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+}
+
+.editorFixedValue {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.72);
+    @include text.control;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editorAddSeriesButton {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    @include text.control(500);
+}
+
+.savedRangeNote {
+    display: block;
+    max-width: 640px;
+    color: rgba(255, 255, 255, 0.62);
+    @include text.support;
+}
+
+.timeConfiguredSection,
+.timeQuickSection {
+    width: 100%;
+    max-width: 300px;
+    min-width: 0;
+}
+
+.timeRangeInputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    width: 100%;
+    min-width: 0;
+}
+
+.timeRangeInputs > div {
+    width: 100%;
+}
+
+.timeQuickRange {
+    width: 100%;
+    min-width: 0;
+}
+
+.timeQuickRange > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 2px 8px;
+    min-width: 0;
+}
+
+.timeQuickRange > div > div {
+    min-width: 0;
+}
+
+.displayTabRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.displayPresetColumn {
+    flex: 0 1 380px;
+}
+
+.displayConfigColumn {
+    flex: 0 1 400px;
+    gap: 14px;
+    padding: 12px 16px;
+}
+
+.chartTypeOptionRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chartTypeOption {
+    width: 80px;
+    height: 64px;
+    border: solid 0.5px #b8c8da41;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.chartTypeOptionCustom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    @include text.control(500);
+}
+
+.chartTypeOptionActive {
+    border-color: #4199ff;
+}
+
+.rightAxisSeries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.rightAxisSeriesList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rightAxisSeriesItem {
+    min-width: 0;
+    padding: 4px 8px;
+    @include text.control;
+    cursor: pointer;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 860px) {
+    .axesGrid,
+    .dataSettingGrid,
+    .timeLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .yAxesGroup {
+        grid-template-columns: 1fr;
+    }
+
+    .dataSettingAlignmentSpacer {
+        display: none;
+    }
+}

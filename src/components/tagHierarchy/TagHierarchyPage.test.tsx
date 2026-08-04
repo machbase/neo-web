@@ -194,6 +194,33 @@ describe('TagHierarchyPage row actions', () => {
         await waitFor(() => expect(treeInputs()).toHaveLength(3));
     });
 
+    // Typing "감자" and pressing Enter used to leave "감자" on the row and a second row
+    // holding "자" again: the Enter that the IME consumes to commit the syllable also ran the
+    // outliner, so the row was inserted before the commit and the commit landed in it.
+    it('ignores Enter while an IME is still composing the syllable', async () => {
+        renderPage();
+        await enterEdit();
+
+        const rows = treeInputs();
+        expect(rows).toHaveLength(2);
+        const seoul = rows[1];
+
+        // Mid-composition: the browser reports the keydown as the IME's, not the outliner's.
+        fireEvent.compositionStart(seoul);
+        fireEvent.change(seoul, { target: { value: '감자' } });
+        fireEvent.keyDown(seoul, { key: 'Enter', keyCode: 229, isComposing: true });
+        expect(treeInputs()).toHaveLength(2);
+
+        // The commit lands on the row the user was typing in, and the *next* Enter — with
+        // nothing in composition — is the one that adds the sibling.
+        fireEvent.compositionEnd(seoul, { data: '감자' });
+        expect(treeInputs()[1]).toHaveValue('감자');
+        fireEvent.keyDown(seoul, { key: 'Enter' });
+        await waitFor(() => expect(treeInputs()).toHaveLength(3));
+        expect(treeInputs()[1]).toHaveValue('감자');
+        expect(treeInputs()[2]).toHaveValue('');
+    });
+
     it('disables Add sibling at the root and Add child at the schema max depth', async () => {
         renderPage();
         await enterEdit();

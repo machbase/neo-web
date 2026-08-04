@@ -201,6 +201,31 @@ describe('generateTooltipAxisFunction (axis trigger)', () => {
         });
     });
 
+    // A distance (numeric base) panel's x-axis is the panel's *base column*, not one of its series.
+    // The value-axis branch was written for Adv scatter, where the x-axis really is a series, and it
+    // printed that series' name into the axis row of every distance tooltip.
+    describe('distance (BASE_VALUE) axis row', () => {
+        const sDistanceOpt = {
+            xAxisOptions: [{ useBlockList: [0] }],
+            blockList: [{ tag: 'SENSOR_04', aggregator: 'avg', alias: '', color: '#367FEB', time: 'ODOMETER_M', useCustom: false }],
+        };
+
+        test('names the base column and prints the axis value, without any series name', () => {
+            const sSource = generateTooltipAxisFunction(sDistanceOpt, 'BASE_VALUE', undefined, undefined, [{ idx: 0, name: 'SENSOR_04(avg)', color: '#367FEB' }]);
+            const sOutput = compile(sSource)([buildParam({ seriesIndex: 0, value: 0.117, axisValueLabel: '3990' } as any)]);
+            expect(sOutput).toContain('ODOMETER_M');
+            // The series still appears in the rows below — just not as the axis itself.
+            expect(sOutput.split('</table>')[0]).not.toContain('SENSOR_04(avg)');
+        });
+
+        test('Adv scatter keeps naming the series on its x-axis', () => {
+            const sSource = generateTooltipAxisFunction(sDistanceOpt, 'VALUE', undefined, undefined, [{ idx: 0, name: 'SENSOR_04(avg)', color: '#367FEB' }]);
+            const sOutput = compile(sSource)([buildParam({ seriesIndex: 0, value: 0.117 } as any)]);
+            expect(sOutput.split('</table>')[0]).toContain('SENSOR_04(avg)');
+            expect(sOutput).toContain('X-axis');
+        });
+    });
+
     describe('canonical = mirror equivalence', () => {
         test('canonical and public-dashboard mirror return identical stringified output for same input', () => {
             const sMeta: EnabledMeta[] = [
@@ -221,6 +246,15 @@ describe('generateTooltipAxisFunction (axis trigger)', () => {
             const sCanonicalWithFormatter = generateTooltipAxisFunction({}, 'TIME', sFormatter, undefined, sMeta);
             const sMirrorWithFormatter = generateTooltipAxisFunctionMirror({}, 'TIME', sFormatter, undefined, sMeta);
             expect(sCanonicalWithFormatter).toBe(sMirrorWithFormatter);
+
+            // ...including the distance axis row, so the public view renders the same tooltip.
+            const sDistanceOpt = {
+                xAxisOptions: [{ useBlockList: [0] }],
+                blockList: [{ tag: 'SENSOR_04', aggregator: 'avg', alias: '', color: '#367FEB', time: 'ODOMETER_M', useCustom: false }],
+            };
+            expect(generateTooltipAxisFunction(sDistanceOpt, 'BASE_VALUE', undefined, undefined, sMeta)).toBe(
+                generateTooltipAxisFunctionMirror(sDistanceOpt, 'BASE_VALUE', undefined, undefined, sMeta)
+            );
         });
     });
 });

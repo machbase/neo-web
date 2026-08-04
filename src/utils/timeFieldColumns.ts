@@ -29,6 +29,18 @@ export const isNonDateTimeBaseTimeColumn = (aColumns: any[] = [], aColumnName: s
     return Boolean(sColumn) && isBaseTimeColumn(sColumn, aFlagIndex) && !isDateTimeColumn(sColumn);
 };
 
+/**
+ * Whether a dashboard block's base axis is distance (non-datetime BASETIME) rather than time.
+ * Checks the live tableInfo first, then falls back to the block's persisted timeType/timeBaseTime
+ * (stored by repairDashboardBlockForTableColumns) so the kind resolves even without tableInfo on reload.
+ */
+export const isNumericBaseTimeBlock = (aBlock: any): boolean => {
+    return (
+        isNonDateTimeBaseTimeColumn(aBlock?.tableInfo, aBlock?.time) ||
+        (Boolean(aBlock?.timeBaseTime) && Number(aBlock?.timeType) !== DATETIME_COLUMN_TYPE)
+    );
+};
+
 export const getTimeFieldColumns = (aColumns: any[] = [], aFlagIndex = 4): [string, number][] => {
     return aColumns.filter((aColumn) => isTimeFieldColumn(aColumn, aFlagIndex)).map((aColumn) => [columnName(aColumn), columnType(aColumn)]);
 };

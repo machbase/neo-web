@@ -512,7 +512,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     return (
         <>
             <Side.Item
-                className="db-table-row"
+                className="db-explorer-row"
                 paddingLeft={40}
                 onClick={handleTableDetail}
                 onContextMenu={handleContextMenu}
@@ -531,9 +531,9 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                     />
                     <TableNameText pTable={props.pTable} disabled={sIsDisabled} qualifiedName={sQualifiedName} />
                 </Side.ItemContent>
-                <div className="db-table-row-tail">
+                <div className="db-explorer-row-tail">
                     {!sIsDisabled && <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>}
-                    <div className="db-table-row-actions">
+                    <div className="db-explorer-row-actions">
                         <Button.Copy size="side" variant="ghost" isToolTip toolTipContent="Copy table name" onClick={handleCopyTableName} />
                         {sIsTagTable && !sIsDisabled && (
                             <Button
@@ -580,23 +580,81 @@ const TableNameText = ({ pTable, disabled, qualifiedName }: { pTable: (string | 
     );
 };
 
-const ColumnNameCopy = ({ columnName }: { columnName: string }) => {
-    const [copied, setCopied] = useState(false);
+const ColumnNameText = ({ columnName }: { columnName: string }) => {
     const tooltipId = `column-name-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-    const handleCopy = () => {
-        if (copied) return;
-        setCopied(true);
-        ClipboardCopy(columnName);
-        setTimeout(() => {
-            setCopied(false);
-        }, 600);
-    };
     return (
-        <Side.ItemText copyable onCopy={handleCopy} showCopyAlways={false}>
+        <Side.ItemText>
             <div className={`column-name-text tooltip-${tooltipId}`}>{columnName}</div>
             <Tooltip place="top" positionStrategy="fixed" anchorSelect={`.tooltip-${tooltipId}`} content={columnName} delayShow={700} style={{ zIndex: 9999 }} />
         </Side.ItemText>
+    );
+};
+
+const getIndexType = (aType: number): string => {
+    switch (aType) {
+        case 1:
+            return 'BITMAP';
+        case 2:
+            return 'KEYWORD';
+        case 3:
+            return 'REDBLACK';
+        case 6:
+            return 'LSM';
+        case 8:
+            return 'REDBLACK';
+        case 9:
+            return 'KETWORD_LSM';
+        case 11:
+            return 'TAG';
+        default:
+            return '';
+    }
+};
+
+// Columns / index rows follow the table row layout: the trailing meta text (data type,
+// index type) is swapped for the copy button while the row is hovered.
+const ColumnRow = ({ pColumn, pIsLast }: { pColumn: (string | number)[]; pIsLast: boolean }): JSX.Element => {
+    const sColumnName = pColumn[0].toString();
+
+    return (
+        <Side.Item className="db-explorer-row" paddingLeft={71}>
+            <Side.ItemContent>
+                <Side.ItemIcon>{pIsLast ? '└' : '├'}</Side.ItemIcon>
+                <ColumnNameText columnName={sColumnName} />
+            </Side.ItemContent>
+            <div className="db-explorer-row-tail">
+                <span className="r-txt">
+                    {getColumnType(pColumn[1] as number) + ' '}
+                    {pColumn[1] === 5 && `(${pColumn[2]})`}
+                </span>
+                <div className="db-explorer-row-actions">
+                    <Button.Copy size="side" variant="ghost" isToolTip toolTipContent="Copy column name" onClick={() => ClipboardCopy(sColumnName)} />
+                </div>
+            </div>
+        </Side.Item>
+    );
+};
+
+const IndexRow = ({ pIndex, pIsLast }: { pIndex: (string | number)[]; pIsLast: boolean }): JSX.Element => {
+    const sIndexName = pIndex[1].toString();
+
+    return (
+        <Side.Item className="db-explorer-row" paddingLeft={71}>
+            <Side.ItemContent>
+                <Side.ItemIcon>{pIsLast ? '└' : '├'}</Side.ItemIcon>
+                <ColumnNameText columnName={sIndexName} />
+            </Side.ItemContent>
+            <div className="db-explorer-row-tail">
+                <span className="r-txt">
+                    <span>{getIndexType(pIndex[2] as number)}</span>
+                    <span style={{ marginLeft: '3px' }}>({pIndex[0]})</span>
+                </span>
+                <div className="db-explorer-row-actions">
+                    <Button.Copy size="side" variant="ghost" isToolTip toolTipContent="Copy index name" onClick={() => ClipboardCopy(sIndexName)} />
+                </div>
+            </div>
+        </Side.Item>
     );
 };
 
@@ -637,27 +695,6 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
     const [sColumnsLoading, setColumnsLoading] = useState<boolean>(false);
     const [sIndexLoading, setIndexLoading] = useState<boolean>(true);
     const [sIndexFetched, setIndexFetched] = useState<boolean>(false);
-
-    const getIndexType = (aType: number): string => {
-        switch (aType) {
-            case 1:
-                return 'BITMAP';
-            case 2:
-                return 'KEYWORD';
-            case 3:
-                return 'REDBLACK';
-            case 6:
-                return 'LSM';
-            case 8:
-                return 'REDBLACK';
-            case 9:
-                return 'KETWORD_LSM';
-            case 11:
-                return 'TAG';
-            default:
-                return '';
-        }
-    };
 
     const checkDisplay = (aColumn: string, aData?: (string | number)[]): boolean => {
         // if (!props.pShowHiddenObj) return true;
@@ -742,39 +779,13 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                     className="scrollbar-dark"
                                     style={{ height: '40vh', backgroundColor: '#2d2d2d' }}
                                     data={visibleColumns}
-                                    itemContent={(index, bColumn) => {
-                                        const isLast = index === visibleColumns.length - 1;
-                                        return (
-                                            <Side.Item paddingLeft={71}>
-                                                <Side.ItemContent>
-                                                    <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
-                                                    <ColumnNameCopy columnName={bColumn[0].toString()} />
-                                                </Side.ItemContent>
-                                                <div className="r-txt">
-                                                    {getColumnType(bColumn[1] as number) + ' '}
-                                                    {bColumn[1] === 5 && `(${bColumn[2]})`}
-                                                </div>
-                                            </Side.Item>
-                                        );
-                                    }}
+                                    itemContent={(index, bColumn) => <ColumnRow pColumn={bColumn} pIsLast={index === visibleColumns.length - 1} />}
                                 />
                             ) : (
                                 <div style={{ backgroundColor: '#2d2d2d' }}>
-                                    {visibleColumns.map((bColumn, index) => {
-                                        const isLast = index === visibleColumns.length - 1;
-                                        return (
-                                            <Side.Item paddingLeft={71} key={`${props.pKey}-col-${index}`}>
-                                                <Side.ItemContent>
-                                                    <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
-                                                    <ColumnNameCopy columnName={bColumn[0].toString()} />
-                                                </Side.ItemContent>
-                                                <div className="r-txt">
-                                                    {getColumnType(bColumn[1] as number) + ' '}
-                                                    {bColumn[1] === 5 && `(${bColumn[2]})`}
-                                                </div>
-                                            </Side.Item>
-                                        );
-                                    })}
+                                    {visibleColumns.map((bColumn, index) => (
+                                        <ColumnRow key={`${props.pKey}-col-${index}`} pColumn={bColumn} pIsLast={index === visibleColumns.length - 1} />
+                                    ))}
                                 </div>
                             )}
                         </>
@@ -794,39 +805,13 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                             className="scrollbar-dark"
                                             style={{ height: '40vh', backgroundColor: '#2d2d2d' }}
                                             data={visibleIndexes}
-                                            itemContent={(index, aIndex) => {
-                                                const isLast = index === visibleIndexes.length - 1;
-                                                return (
-                                                    <Side.Item paddingLeft={71}>
-                                                        <Side.ItemContent>
-                                                            <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
-                                                            <ColumnNameCopy columnName={aIndex[1].toString()} />
-                                                        </Side.ItemContent>
-                                                        <div className="r-txt">
-                                                            <span>{getIndexType(aIndex[2] as number)}</span>
-                                                            <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
-                                                        </div>
-                                                    </Side.Item>
-                                                );
-                                            }}
+                                            itemContent={(index, aIndex) => <IndexRow pIndex={aIndex} pIsLast={index === visibleIndexes.length - 1} />}
                                         />
                                     ) : (
                                         <div style={{ backgroundColor: '#2d2d2d' }}>
-                                            {visibleIndexes.map((aIndex, index) => {
-                                                const isLast = index === visibleIndexes.length - 1;
-                                                return (
-                                                    <Side.Item paddingLeft={71} key={`${props.pKey}-idx-${index}`}>
-                                                        <Side.ItemContent>
-                                                            <Side.ItemIcon>{isLast ? '└' : '├'}</Side.ItemIcon>
-                                                            <ColumnNameCopy columnName={aIndex[1].toString()} />
-                                                        </Side.ItemContent>
-                                                        <div className="r-txt">
-                                                            <span>{getIndexType(aIndex[2] as number)}</span>
-                                                            <span style={{ marginLeft: '3px' }}>({aIndex[0]})</span>
-                                                        </div>
-                                                    </Side.Item>
-                                                );
-                                            })}
+                                            {visibleIndexes.map((aIndex, index) => (
+                                                <IndexRow key={`${props.pKey}-idx-${index}`} pIndex={aIndex} pIsLast={index === visibleIndexes.length - 1} />
+                                            ))}
                                         </div>
                                     )}
                                 </>

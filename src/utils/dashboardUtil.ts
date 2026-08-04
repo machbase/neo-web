@@ -735,7 +735,22 @@ export const calcRefreshTime = (aTime: string) => {
     else return Number(sTime) * 1000 * 60 * 60;
 };
 
-export const calcInterval = (aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } => {
+// Distance (numeric base) interval: a "nice" step (1/2/5 × 10ⁿ) sized so the bucket count tracks the
+// pixel width the same way the time axis does (~one bucket per 3px, i.e. width/3), rather than being
+// far coarser. IntervalType 'value' is consumed raw by getInterval (no ms/ns scaling), unlike time units.
+export const calcNumericInterval = (aBgn: number, aEnd: number, aWidth: number): { IntervalType: string; IntervalValue: number } => {
+    const sSpan = Math.abs(aEnd - aBgn);
+    const sTargetTicks = Math.max(1, Math.floor((aWidth || 300) / 3));
+    const sRaw = sSpan / sTargetTicks;
+    if (!Number.isFinite(sRaw) || sRaw <= 0) return { IntervalType: 'value', IntervalValue: 1 };
+    const sPow = Math.pow(10, Math.floor(Math.log10(sRaw)));
+    const sNorm = sRaw / sPow; // [1, 10)
+    const sNice = sNorm <= 1 ? 1 : sNorm <= 2 ? 2 : sNorm <= 5 ? 5 : 10;
+    return { IntervalType: 'value', IntervalValue: sNice * sPow };
+};
+
+export const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aIsNumericBase = false): { IntervalType: string; IntervalValue: number } => {
+    if (aIsNumericBase) return calcNumericInterval(aBgn, aEnd, aWidth);
     const sDiff = aEnd - aBgn;
     const sSecond = Math.floor(sDiff / 1000);
     const sCalc = sSecond / (aWidth / 3);

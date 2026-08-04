@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from 'react';
+import { useId, useState, type ReactElement } from 'react';
 import { Calendar, VscTrash } from '@/assets/icons/Icon';
 import {
     Button,
@@ -6,7 +6,7 @@ import {
     Modal,
     Page,
     QuickTimeRange,
-    Toast,
+    TextHighlight,
 } from '@/design-system/components';
 import { resolveRangeInput } from './rangeInput';
 import {
@@ -19,8 +19,10 @@ import {
     NUMERIC_RANGE_PRESETS,
     TIME_RANGE_PRESETS,
 } from './rangePresets';
+import styles from './RangeModal.module.scss';
 
 type RangeModalProps = {
+    title?: string;
     kind: AxisKind;
     initialRangeInput: RangeExpressionInput;
     currentRange: AxisRange;
@@ -34,12 +36,17 @@ type RangeModalProps = {
 };
 
 const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
+const INVALID_RANGE_INPUT_MESSAGE: Record<AxisKind, string> = {
+    time: 'Invalid input - enter both From and To using now-1h, last-1d, first/last, or date/time values, with From before To.',
+    numeric: 'Invalid input - enter both From and To using numbers or first/last expressions, with From less than To.',
+};
 const RANGE_KINDS: readonly AxisKind[] = ['time', 'numeric'];
 const RANGE_ENDPOINTS = [
     ['start', 'From'],
     ['end', 'To'],
 ] as const;
 export function RangeModal({
+    title = 'Range',
     kind,
     initialRangeInput,
     currentRange,
@@ -51,11 +58,14 @@ export function RangeModal({
     const [rangeInput, setRangeInput] = useState<RangeExpressionInput>(() => ({
         ...initialRangeInput,
     }));
+    const [validationMessage, setValidationMessage] = useState<string>();
+    const validationMessageId = useId();
 
     function setRangeValue(
         field: keyof RangeExpressionInput,
         value: string,
     ): void {
+        setValidationMessage(undefined);
         setRangeInput((current) => ({ ...current, [field]: value }));
     }
 
@@ -67,7 +77,7 @@ export function RangeModal({
         }
 
         if (rangeInput.start.trim() === '' || rangeInput.end.trim() === '') {
-            Toast.error('Enter both range boundaries.');
+            setValidationMessage(INVALID_RANGE_INPUT_MESSAGE[kind]);
             return;
         }
 
@@ -78,7 +88,7 @@ export function RangeModal({
             currentRange,
         );
         if (!concreteRange) {
-            Toast.error('Enter a valid range.');
+            setValidationMessage(INVALID_RANGE_INPUT_MESSAGE[kind]);
             return;
         }
 
@@ -87,11 +97,18 @@ export function RangeModal({
     }
 
     return (
-        <Modal.Root isOpen onClose={onClose}>
+        <Modal.Root
+            isOpen
+            onClose={onClose}
+            className={styles.modal}
+            data-testid="tag-analyzer-range-dialog"
+        >
             <Modal.Header>
-                <Modal.Title>
+                <Modal.Title className={styles.modalTitle}>
                     <Calendar />
-                    Range
+                    <span data-testid="tag-analyzer-range-title">
+                        {title}
+                    </span>
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
@@ -102,6 +119,7 @@ export function RangeModal({
                             {RANGE_KINDS.map((rangeKind) => (
                                 <Button
                                     key={rangeKind}
+                                    data-testid={`tag-analyzer-range-kind-${rangeKind}-button`}
                                     size="sm"
                                     variant={
                                         kind === rangeKind
@@ -125,10 +143,18 @@ export function RangeModal({
                 {RANGE_ENDPOINTS.map(([field, label]) => (
                     <Input
                         key={field}
+                        data-testid={`tag-analyzer-range-${field === 'start' ? 'from' : 'to'}-input`}
                         fullWidth
                         label={label}
                         labelPosition="left"
                         value={rangeInput[field]}
+                        variant={validationMessage ? 'error' : 'default'}
+                        aria-invalid={validationMessage !== undefined}
+                        aria-describedby={
+                            validationMessage
+                                ? validationMessageId
+                                : undefined
+                        }
                         placeholder={
                             kind === 'time'
                                 ? 'now-1h, last-1d, or date/time'
@@ -141,6 +167,7 @@ export function RangeModal({
                 ))}
                 <Page.Space />
                 <QuickTimeRange
+                    className={styles.quickRanges}
                     options={
                         kind === 'time'
                             ? TIME_RANGE_PRESETS
@@ -148,25 +175,51 @@ export function RangeModal({
                     }
                     onSelect={(option) => {
                         const [start = '', end = ''] = option.value;
+                        setValidationMessage(undefined);
                         setRangeInput({ start, end });
                     }}
                     title="Quick Range"
                 />
+                {validationMessage && (
+                    <>
+                        <Page.Space />
+                        <div
+                            id={validationMessageId}
+                            className={styles.validation}
+                            role="alert"
+                            data-testid="tag-analyzer-range-validation-message"
+                        >
+                            <TextHighlight variant="error">
+                                {validationMessage}
+                            </TextHighlight>
+                        </div>
+                    </>
+                )}
             </Modal.Body>
             <Modal.Footer style={{ justifyContent: 'space-between' }}>
                 <Button
                     variant="ghost"
                     size="sm"
                     icon={<VscTrash size={16} />}
-                    onClick={() => setRangeInput({ ...EMPTY_RANGE_INPUT })}
+                    onClick={() => {
+                        setValidationMessage(undefined);
+                        setRangeInput({ ...EMPTY_RANGE_INPUT });
+                    }}
                 >
                     Reset
                 </Button>
                 <Button.Group>
-                    <Modal.Confirm onClick={handleApply}>
+                    <Modal.Confirm
+                        data-testid="tag-analyzer-range-apply-button"
+                        onClick={handleApply}
+                    >
                         Apply
                     </Modal.Confirm>
-                    <Modal.Cancel>Cancel</Modal.Cancel>
+                    <Modal.Cancel
+                        data-testid="tag-analyzer-range-cancel-button"
+                    >
+                        Cancel
+                    </Modal.Cancel>
                 </Button.Group>
             </Modal.Footer>
         </Modal.Root>

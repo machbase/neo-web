@@ -7,11 +7,25 @@ import { Toast } from '@/design-system/components';
 import { refreshTimeOptions } from '@/utils/dashboardUtil';
 import { TIME_RANGE } from '@/utils/constants';
 import { DatePicker, Dropdown, Modal, Page, QuickTimeRange, type QuickTimeRangeOption } from '@/design-system/components';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
+import DistanceRangeTab from './DistanceRangeTab';
 
 interface TimeRangeModalPropsBase {
     pSetTimeRangeModal: React.Dispatch<React.SetStateAction<boolean>>;
     pSaveCallback?: (start: any, end: any) => void;
     pShowRefresh?: boolean;
+    /** Which tab to open initially (dashboard mode with a distance panel). */
+    pInitialTab?: 'time' | 'distance';
+    /** Lock the modal to a single axis tab (panel editor: one panel = one base). Hides the tab bar. */
+    pLockTab?: 'time' | 'distance';
+    /**
+     * The block whose base column supplies the distance slider bounds. The panel editor passes the
+     * panel it is editing, which is the only honest extent there: that panel may not be the board's
+     * first distance panel, and while it is being created it is not on the board at all. Omitted on
+     * the board header, where the first distance panel is the reference.
+     */
+    pBoundsBlock?: any;
 }
 
 // Props-based mode (ViewTimeRangeModal pattern)
@@ -43,6 +57,51 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
     const [sStartTime, setStartTime] = useState<any>('');
     const [sEndTime, setEndTime] = useState<any>('');
     const [sRefresh, setRefresh] = useState<any>('');
+
+    // ── Distance (numeric base) range ──────────────────────────────────────────
+    const sModalType = pUseRecoil ? (props as any)?.pType || 'dashboard' : undefined;
+    const sBoard = pUseRecoil ? sBoardList.find((aItem) => aItem.id === sSelectedTab) : undefined;
+    // First non-Tql panel whose base column is distance — its blockList[0] is the range reference.
+    const sDistancePanel = sBoard?.dashboard?.panels?.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+    // Distance range is configurable on any dashboard (even before a distance panel exists), so the
+    // tab is offered whenever the modal is in dashboard mode; bounds are only fetched when a panel exists.
+    const sHasDistance = sModalType === 'dashboard';
+    // When locked (panel editor), the modal is pinned to the edited panel's single base kind: the
+    // tab bar is hidden and the matching content branch is forced.
+    const sLockTab = (props as any)?.pLockTab as 'time' | 'distance' | undefined;
+    // The panel editor names its own block; the board header falls back to the first distance panel.
+    const sBoundsBlock = (props as any)?.pBoundsBlock ?? sDistancePanel?.blockList?.[0];
+
+    const [sTab, setTab] = useState<'time' | 'distance'>(sLockTab ?? (props as any)?.pInitialTab ?? 'time');
+    const [sBounds, setBounds] = useState<{ min: number; max: number }>({ min: 0, max: 0 });
+    // Either a coordinate or an anchored edge ('last-5000', 'first'), stored as written so the window
+    // keeps following the data instead of freezing at today's numbers.
+    const [sDistFrom, setDistFrom] = useState<number | string>(0);
+    const [sDistTo, setDistTo] = useState<number | string>(0);
+    // Why the distance tab's typed range cannot be applied, or '' when it can. The tab reports it;
+    // Apply is here, so refusing is here too.
+    const [sDistNotice, setDistNotice] = useState<string>('');
+
+    useEffect(() => {
+        if (!sHasDistance) return;
+        const sDR = sBoard?.dashboard?.distanceRange ?? {};
+        const sHasStart = sDR.start !== '' && sDR.start != null;
+        const sHasEnd = sDR.end !== '' && sDR.end != null;
+        if (sHasStart) setDistFrom(sDR.start);
+        if (sHasEnd) setDistTo(sDR.end);
+        if (!sBoundsBlock) return;
+        let sCancelled = false;
+        (async () => {
+            const sFetched = await fetchBlockBaseMinMax(sBoundsBlock);
+            if (sCancelled || !sFetched) return;
+            setBounds(sFetched);
+            if (!sHasStart) setDistFrom(sFetched.min);
+            if (!sHasEnd) setDistTo(sFetched.max);
+        })();
+        return () => {
+            sCancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         if (pUseRecoil) {
@@ -102,7 +161,33 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         setRefresh(aValue);
     };
 
+    // Reset the distance axis back to the system default (full [first, last]) range.
+    const handleResetDistanceToFull = () => {
+        setBoardList((aPrev: any) =>
+            aPrev.map((aItem: any) => (aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: '', end: '' } } } : aItem))
+        );
+        pSetTimeRangeModal(false);
+    };
+
     const setGlobalTime = () => {
+        // Distance tab → write the kind-separated dashboard.distanceRange (numeric start/end).
+        if (sTab === 'distance') {
+            if (sDistNotice) {
+                Toast.error(sDistNotice);
+                return;
+            }
+            // Only two coordinates can be put in order; an anchored pair is already ordered by what
+            // it means (`first…` opens, `last…` closes) and reordering it would rewrite the anchors.
+            const sBothNumeric = typeof sDistFrom === 'number' && typeof sDistTo === 'number';
+            const sFrom = sBothNumeric ? Math.min(sDistFrom as number, sDistTo as number) : sDistFrom;
+            const sTo = sBothNumeric ? Math.max(sDistFrom as number, sDistTo as number) : sDistTo;
+            setBoardList((aPrev: any) =>
+                aPrev.map((aItem: any) => (aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: sFrom, end: sTo } } } : aItem))
+            );
+            pSetTimeRangeModal(false);
+            return;
+        }
+
         let sStart: any;
         let sEnd: any;
 
@@ -169,32 +254,73 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             <Modal.Header>
                 <Modal.Title>
                     <Calendar />
-                    Time Range
+                    {sLockTab === 'distance' ? 'Distance Range' : sLockTab === 'time' ? 'Time Range' : sHasDistance ? 'Range' : 'Time Range'}
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
 
             <Modal.Body>
-                <DatePicker pLabel="From" pTopPixel={32} pTimeValue={sStartTime} onChange={(date: any) => handleStartTime(date)} pSetApply={(date: any) => setStartTime(date)} />
-                <DatePicker pLabel="To" pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
-                {pShowRefresh && (
-                    <Dropdown.Root
-                        label="Refresh"
-                        labelPosition="left"
-                        fullWidth
-                        options={refreshTimeOptions}
-                        value={sRefresh}
-                        onChange={HandleRefresh}
-                        placeholder="Select refresh time"
-                    >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
-                            <Dropdown.List />
-                        </Dropdown.Menu>
-                    </Dropdown.Root>
+                {sHasDistance && !sLockTab && (
+                    <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', marginBottom: '12px' }}>
+                        {(['time', 'distance'] as const).map((aKey) => (
+                            <button
+                                key={aKey}
+                                type="button"
+                                onClick={() => setTab(aKey)}
+                                style={{
+                                    padding: '8px 16px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderBottom: sTab === aKey ? '2px solid #2f7fe0' : '2px solid transparent',
+                                    borderRadius: 0,
+                                    color: sTab === aKey ? '#e8e8e8' : '#8a8d94',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {aKey === 'time' ? 'Time' : 'Distance'}
+                            </button>
+                        ))}
+                    </div>
                 )}
-                <Page.Space />
-                <QuickTimeRange options={TIME_RANGE} onSelect={handleQuickTime} title="Quick Range" />
+
+                {(sHasDistance || sLockTab === 'distance') && sTab === 'distance' ? (
+                    <DistanceRangeTab
+                        pBounds={sBounds}
+                        pFrom={sDistFrom}
+                        pTo={sDistTo}
+                        pOnChange={(aFrom, aTo) => {
+                            setDistFrom(aFrom);
+                            setDistTo(aTo);
+                        }}
+                        pOnResetToFull={handleResetDistanceToFull}
+                        pOnValidityChange={setDistNotice}
+                    />
+                ) : (
+                    <>
+                        <DatePicker pLabel="From" pTopPixel={32} pTimeValue={sStartTime} onChange={(date: any) => handleStartTime(date)} pSetApply={(date: any) => setStartTime(date)} />
+                        <DatePicker pLabel="To" pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
+                        {pShowRefresh && (
+                            <Dropdown.Root
+                                label="Refresh"
+                                labelPosition="left"
+                                fullWidth
+                                options={refreshTimeOptions}
+                                value={sRefresh}
+                                onChange={HandleRefresh}
+                                placeholder="Select refresh time"
+                            >
+                                <Dropdown.Trigger />
+                                <Dropdown.Menu>
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
+                        )}
+                        <Page.Space />
+                        <QuickTimeRange options={TIME_RANGE} onSelect={handleQuickTime} title="Quick Range" />
+                    </>
+                )}
             </Modal.Body>
 
             <Modal.Footer>

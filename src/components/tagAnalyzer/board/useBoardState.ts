@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ensureUniquePanelKeys,
     type PanelInfo,
@@ -16,36 +16,9 @@ type BoardRuntimeState = {
     panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
 };
 
-type BoardStateAction =
-    | { type: 'RECONCILE_FROM_PROP'; boardInfo: BoardInfo }
-    | {
-          type: 'APPLY_SAVE_RESULT';
-          boardInfo: BoardInfo;
-      }
-    | {
-          type: 'SET_BOARD_RANGE';
-          rangeKind: AxisKind;
-          rangeInput: RangeExpressionInput;
-      }
-    | { type: 'APPLY_PANEL_INFO'; panelInfo: PanelInfo }
-    | { type: 'APPEND_PANEL_INFO'; panelInfo: PanelInfo }
-    | { type: 'REMOVE_PANEL'; panelKey: string }
-    | {
-          type: 'SET_PANEL_OVERLAP_SELECTED';
-          panelKey: string;
-          isSelected: boolean;
-      }
-    | {
-          type: 'SET_PANEL_RANGE';
-          panelKey: string;
-          rangeState: ResolvedRangeState;
-      };
-
 export function useBoardState(boardInfo: BoardInfo) {
-    const [state, dispatch] = useReducer(
-        boardStateReducer,
-        boardInfo,
-        createBoardRuntimeState,
+    const [state, setState] = useState<BoardRuntimeState>(() =>
+        createBoardRuntimeState(boardInfo),
     );
     const sPreviousBoardInfoRef = useRef(boardInfo);
 
@@ -53,36 +26,83 @@ export function useBoardState(boardInfo: BoardInfo) {
         if (sPreviousBoardInfoRef.current === boardInfo) return;
 
         sPreviousBoardInfoRef.current = boardInfo;
-        dispatch({ type: 'RECONCILE_FROM_PROP', boardInfo });
+        setState((current) => reconcileBoardRuntimeState(current, boardInfo));
     }, [boardInfo]);
 
     const commands = useMemo(() => ({
         setBoardRange: (
             rangeKind: AxisKind,
             rangeInput: RangeExpressionInput,
-        ) => dispatch({ type: 'SET_BOARD_RANGE', rangeKind, rangeInput }),
+        ) => setState((current) => ({
+            ...current,
+            info: {
+                ...current.info,
+                [rangeKind === 'numeric'
+                    ? 'boardNumericRange'
+                    : 'boardTimeRange']: rangeInput,
+            },
+        })),
         applyPanelInfo: (panelInfo: PanelInfo) =>
-            dispatch({ type: 'APPLY_PANEL_INFO', panelInfo }),
-        appendPanel: (panelInfo: PanelInfo) =>
-            dispatch({ type: 'APPEND_PANEL_INFO', panelInfo }),
-        removePanel: (panelKey: string) =>
-            dispatch({ type: 'REMOVE_PANEL', panelKey }),
+            setState((current) => updatePanelInBoardState(
+                current,
+                panelInfo.key,
+                () => panelInfo,
+            )),
+        appendPanel: (panelInfo: PanelInfo) => setState((current) =>
+            createBoardRuntimeState({
+                ...current.info,
+                panels: [...current.info.panels, panelInfo],
+            }, current),
+        ),
+        removePanel: (panelKey: string) => setState((current) => {
+            const sPanelIndex = requirePanelIndex(
+                current.info.panels,
+                panelKey,
+                'delete',
+            );
+            return createBoardRuntimeState({
+                ...current.info,
+                panels: current.info.panels.filter(
+                    (_, index) => index !== sPanelIndex,
+                ),
+            }, current);
+        }),
         setPanelOverlapSelected: (
             panelKey: string,
             isSelected: boolean,
-        ) => dispatch({
-            type: 'SET_PANEL_OVERLAP_SELECTED',
+        ) => setState((current) => updatePanelInBoardState(
+            current,
             panelKey,
-            isSelected,
+            (panelInfo) =>
+                panelInfo.isOverlapSelected === isSelected
+                    ? panelInfo
+                    : { ...panelInfo, isOverlapSelected: isSelected },
+        )),
+        setPanelRange: (
+            panelKey: string,
+            rangeState: ResolvedRangeState,
+        ) => setState((current) => {
+            requirePanelIndex(current.info.panels, panelKey);
+            return {
+                ...current,
+                panelRanges: {
+                    ...current.panelRanges,
+                    [panelKey]: rangeState,
+                },
+            };
         }),
-        setPanelRange: (panelKey: string, rangeState: ResolvedRangeState) =>
-            dispatch({ type: 'SET_PANEL_RANGE', panelKey, rangeState }),
-        applySaveResult: (
-            savedBoardInfo: BoardInfo,
-        ) => dispatch({
-            type: 'APPLY_SAVE_RESULT',
-            boardInfo: savedBoardInfo,
-        }),
+        applySaveResult: (savedBoardInfo: BoardInfo) =>
+            setState((current) =>
+                savedBoardInfo.id === current.info.id
+                    ? {
+                          ...current,
+                          info: mergeSavedBoardMetadata(
+                              current.info,
+                              savedBoardInfo,
+                          ),
+                      }
+                    : current,
+            ),
     }), []);
 
     return {
@@ -132,102 +152,23 @@ function createBoardRuntimeState(
     };
 }
 
-function boardStateReducer(
+function reconcileBoardRuntimeState(
     state: BoardRuntimeState,
-    action: BoardStateAction,
+    boardInfo: BoardInfo,
 ): BoardRuntimeState {
-    switch (action.type) {
-        case 'RECONCILE_FROM_PROP': {
-            const sIncomingSavedCode = action.boardInfo.savedCode;
-            const sIsAlreadyAppliedSavedSnapshot =
-                action.boardInfo.id === state.info.id &&
-                typeof sIncomingSavedCode === 'string' &&
-                sIncomingSavedCode === state.info.savedCode;
-
-            if (sIsAlreadyAppliedSavedSnapshot) {
-                return {
-                    ...state,
-                    info: mergeSavedBoardMetadata(state.info, action.boardInfo),
-                };
-            }
-
-            return createBoardRuntimeState(
-                action.boardInfo,
-                state,
-            );
-        }
-
-        case 'APPLY_SAVE_RESULT':
-            if (action.boardInfo.id !== state.info.id) return state;
-
-            return {
-                ...state,
-                info: mergeSavedBoardMetadata(state.info, action.boardInfo),
-            };
-
-        case 'SET_BOARD_RANGE':
-            return {
-                ...state,
-                info: {
-                    ...state.info,
-                    [action.rangeKind === 'numeric'
-                        ? 'boardNumericRange'
-                        : 'boardTimeRange']: action.rangeInput,
-                },
-            };
-
-        case 'APPLY_PANEL_INFO':
-            return updatePanelInBoardState(
-                state,
-                action.panelInfo.key,
-                () => action.panelInfo,
-            );
-
-        case 'APPEND_PANEL_INFO':
-            return createBoardRuntimeState({
-                ...state.info,
-                panels: [...state.info.panels, action.panelInfo],
-            }, state);
-
-        case 'REMOVE_PANEL': {
-            const sPanelIndex = requirePanelIndex(
-                state.info.panels,
-                action.panelKey,
-                'delete',
-            );
-            return createBoardRuntimeState({
-                ...state.info,
-                panels: state.info.panels.filter(
-                    (_, index) => index !== sPanelIndex,
-                ),
-            }, state);
-        }
-
-        case 'SET_PANEL_OVERLAP_SELECTED': {
-            return updatePanelInBoardState(
-                state,
-                action.panelKey,
-                (panelInfo) =>
-                    panelInfo.isOverlapSelected === action.isSelected
-                        ? panelInfo
-                        : {
-                              ...panelInfo,
-                              isOverlapSelected: action.isSelected,
-                          },
-            );
-        }
-
-        case 'SET_PANEL_RANGE':
-            requirePanelIndex(state.info.panels, action.panelKey);
-
-            return {
-                ...state,
-                panelRanges: {
-                    ...state.panelRanges,
-                    [action.panelKey]: action.rangeState,
-                },
-            };
+    const sIncomingSavedCode = boardInfo.savedCode;
+    if (
+        boardInfo.id === state.info.id &&
+        typeof sIncomingSavedCode === 'string' &&
+        sIncomingSavedCode === state.info.savedCode
+    ) {
+        return {
+            ...state,
+            info: mergeSavedBoardMetadata(state.info, boardInfo),
+        };
     }
+
+    return createBoardRuntimeState(boardInfo, state);
 }
 
 function mergeSavedBoardMetadata(

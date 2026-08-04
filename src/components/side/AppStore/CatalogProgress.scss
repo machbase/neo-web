@@ -1,0 +1,57 @@
+@use '@/design-system/tokens' as t;
+
+// The catalog loading bar (CatalogProgress.tsx).
+//
+// Positioned against `.app-store-catalog-controls`, which is `position: relative`
+// for exactly this — the bar sits ON the 1px rule that closes off the controls, so
+// it reads as that seam lighting up rather than as a new row appearing. Taken out
+// of the flow entirely: the card list below must not move when a rebuild starts.
+.app-store-catalog-progress {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    overflow: hidden;
+    // A faint track, so the sliding segment reads as travelling along something
+    // rather than as a stray mark drifting across the panel.
+    background-color: rgba(255, 255, 255, 0.06);
+    // The bar is a status report, not a control — it must never eat a click meant
+    // for the search band above it or the first card below it.
+    pointer-events: none;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 40%;
+        background-color: t.$primary-base;
+        // 250% = 100 / 40: the distance a 40%-wide segment must travel to clear a
+        // 100%-wide track completely. `translateX` percentages are relative to the
+        // ELEMENT's own width, not the container's, so this number is tied to the
+        // width above — change one and change the other.
+        animation: app-store-catalog-slide 1.1s ease-in-out infinite;
+    }
+}
+
+@keyframes app-store-catalog-slide {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(250%);
+    }
+}
+
+// A bar that never stops moving is exactly what this setting exists to suppress.
+// The indicator still has to say "busy", so it becomes a static filled seam rather
+// than disappearing — losing the signal would be a worse answer than losing the
+// motion.
+@media (prefers-reduced-motion: reduce) {
+    .app-store-catalog-progress::after {
+        width: 100%;
+        animation: none;
+        opacity: 0.7;
+    }
+}

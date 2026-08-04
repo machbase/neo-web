@@ -1,4 +1,19 @@
+import { isNumericBaseTimeBlock } from './timeFieldColumns';
+
 export const isViewTimeMinMaxTarget = (aBlock: any) => Boolean(aBlock?.type === 'view' && aBlock?.time && aBlock.time !== '');
+
+/**
+ * Pick the panel that seeds the board-level time min/max. Distance (numeric-base) panels self-resolve
+ * their range from dashboard.distanceRange inside LineChart, so the single board-level time min/max
+ * must come from a TIME (datetime-base) panel — otherwise a distance-first mixed board leaks the
+ * distance column's numeric extent into every time panel's WHERE. Picks the first non-Tql panel that
+ * has a blockList and whose base is NOT distance; falls back to the first non-Tql panel with a
+ * blockList (pure-distance / tql-only boards, where the returned value is unused).
+ */
+export const pickBoardTimeMinMaxPanel = (aPanels: any[] = []): any => {
+    const sCandidates = (aPanels ?? []).filter((aPanel: any) => aPanel?.type !== 'Tql chart' && aPanel?.blockList?.length);
+    return sCandidates.find((aPanel: any) => !isNumericBaseTimeBlock(aPanel.blockList?.[0])) ?? sCandidates[0];
+};
 
 export const shouldFetchBlockTimeMinMax = (aBlock: any, aCustomTag?: string) => {
     const sHasTag = aBlock?.tag && aBlock.tag !== '';

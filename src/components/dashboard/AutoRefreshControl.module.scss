@@ -1,0 +1,219 @@
+/* Colours go through variables so the same control can sit on the dark board header and on a
+   light-themed panel. The countdown arc keeps its blue on both. */
+.wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+
+    --auto-refresh-fg: #e6e6e6;
+    --auto-refresh-muted: #c4c4c4;
+    --auto-refresh-track: rgba(255, 255, 255, 0.1);
+    --auto-refresh-hover: rgba(255, 255, 255, 0.08);
+}
+
+/* Trigger control (override global button leak: bg/#1a1a1a, radius 8, border) */
+.control {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 8px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #a9adb4;
+    transition: background 0.15s ease;
+
+    /* Literal, not `--auto-refresh-hover`: the menu is portaled to <body>, outside the wrapper those
+       variables are declared on, so a var() here resolves to nothing and the row loses its hover.
+       It is also always on the same dark popup surface, whatever theme the trigger is sitting on. */
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    &:focus-visible {
+        outline: 2px solid #006cd2;
+        outline-offset: 1px;
+    }
+}
+
+/* Panel header: the ring alone, in a 30px strip beside the panel menu. */
+.wrapperCompact {
+    height: 24px;
+}
+
+/* Hover follows the ring rather than boxing it: with any padding the tint is a rectangle wider than
+   the 24px circle it sits behind, which reads as a second, misaligned control. */
+.controlCompact {
+    gap: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
+}
+
+/* Display-only (panel editor): shows state but is not interactive. */
+.controlReadOnly {
+    cursor: default;
+
+    &:hover {
+        background: transparent;
+    }
+}
+
+.label {
+    font-family: 'Pretendard';
+    font-size: 12px;
+    color: #a9adb4;
+    white-space: nowrap;
+}
+
+/* Countdown ring */
+.ring {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex: none;
+}
+
+.ring svg {
+    display: block;
+}
+
+/* After `.ring`, not before it: same specificity, so source order is what decides. */
+.ringCompact {
+    width: 24px;
+    height: 24px;
+}
+
+.track {
+    fill: none;
+    stroke: var(--auto-refresh-track);
+    stroke-width: 2.5;
+}
+
+/* Countdown ring that drains over exactly one refresh interval (duration set inline = interval seconds).
+   The blue arc represents time REMAINING: starts full (just refreshed) and empties as the next refresh
+   approaches, snapping back to full on each cycle. */
+.progress {
+    fill: none;
+    /* matches the active tab's top-edge blue ($primary-base) — muted, not attention-grabbing */
+    stroke: #005fb8;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+    transform: rotate(-90deg);
+    transform-origin: center;
+    transform-box: fill-box;
+    animation-name: autoRefreshCountdown;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+@keyframes autoRefreshCountdown {
+    from {
+        stroke-dashoffset: 0;
+    }
+    to {
+        stroke-dashoffset: 100;
+    }
+}
+
+.center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'D2Coding';
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--auto-refresh-fg);
+    pointer-events: none;
+}
+
+.idleIcon {
+    color: var(--auto-refresh-muted);
+}
+
+/* Dropdown menu — portaled to <body>, so it uses fixed positioning (top/right set inline) and a
+   z-index above dashboard panels ($dsh-draggable-panel-header-idx: 1000, panel tooltip: 10000). */
+.menu {
+    position: fixed;
+    z-index: 10001;
+    min-width: 148px;
+    padding: 4px;
+    /* The surface of the design system's Menu — the panel's own ⋮ menu opens right beside this one,
+       and the two were carrying different shadows (this one had the Dropdown's softer 0 4px 12px /
+       0.3). Same background, border, radius and drop shadow, so they read as one kind of thing. */
+    background: #2d2d2d;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 4px;
+    box-shadow: 8px 8px 8px rgba(0, 0, 0, 0.6);
+    animation: autoRefreshMenuIn 0.15s ease;
+}
+
+@keyframes autoRefreshMenuIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.menuHeader {
+    padding: 6px 8px 4px;
+    font-family: 'Pretendard';
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #7f8289;
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Pretendard';
+    font-size: 12px;
+    color: #d4d4d4;
+    text-align: left;
+    transition: background 0.15s ease;
+
+    /* Literal, not `--auto-refresh-hover`: the menu is portaled to <body>, outside the wrapper those
+       variables are declared on, so a var() here resolves to nothing and the row loses its hover.
+       It is also always on the same dark popup surface, whatever theme the trigger is sitting on. */
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    &:focus-visible {
+        outline: 2px solid #006cd2;
+        outline-offset: -2px;
+    }
+}
+
+.menuItemActive {
+    color: #ffffff;
+}
+
+.check {
+    color: #ffffff;
+    flex: none;
+}

@@ -46,8 +46,6 @@ const MALFORMED_CHART_DATA_MESSAGE: string =
     'Chart data response contained malformed rows.';
 const CHART_DATA_REQUEST_FAILED_MESSAGE: string =
     'Chart data request failed.';
-const inFlightChartSqlRequests: Map<string, Promise<SeriesDataRow[]>> =
-    new Map();
 
 function parseChartQueryResponse(apiResponse: unknown): SeriesDataRow[] {
     const response: QueryResponse = parseQueryResponse(
@@ -83,35 +81,7 @@ async function fetchChartRows(
     querySql: string,
     signal?: AbortSignal,
 ): Promise<SeriesDataRow[]> {
-    if (signal) {
-        const rows: SeriesDataRow[] = await requestSqlQuery(querySql, signal)
-            .then(parseChartQueryResponse);
-
-        return cloneChartFetchRows(rows);
-    }
-
-    const existingRequest: Promise<SeriesDataRow[]> | undefined =
-        inFlightChartSqlRequests.get(querySql);
-    if (existingRequest) {
-        return cloneChartFetchRows(await existingRequest);
-    }
-
-    const chartRowsRequest: Promise<SeriesDataRow[]> =
-        requestSqlQuery(querySql).then(parseChartQueryResponse);
-
-    inFlightChartSqlRequests.set(querySql, chartRowsRequest);
-
-    try {
-        return cloneChartFetchRows(await chartRowsRequest);
-    } finally {
-        if (inFlightChartSqlRequests.get(querySql) === chartRowsRequest) {
-            inFlightChartSqlRequests.delete(querySql);
-        }
-    }
-}
-
-function cloneChartFetchRows(rows: SeriesDataRow[]): SeriesDataRow[] {
-    return rows.map((row) => [...row] as SeriesDataRow);
+    return requestSqlQuery(querySql, signal).then(parseChartQueryResponse);
 }
 
 async function fetchChartTimestamps(
@@ -165,60 +135,6 @@ type CalculatedSeriesFetchOptions = {
     numericBucketWidth?: number;
     signal?: AbortSignal;
 };
-
-async function fetchCalculatedSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    interval: IntervalOption,
-    rowLimit: number,
-    rollupTables: RollupTableMap,
-    options?: CalculatedSeriesFetchOptions,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchPanelSeriesRows(
-        seriesList,
-        options?.signal,
-        (series) =>
-            fetchCalculatedSeriesData(
-                series,
-                timeRange,
-                interval,
-                rowLimit,
-                rollupTables,
-                options,
-            ),
-    );
-}
-
-function fetchRawSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    useOrderBy: boolean,
-    signal?: AbortSignal,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchRawSeriesRowsByQuery(
-        seriesList,
-        timeRange,
-        useOrderBy,
-        { kind: 'raw' },
-        signal,
-    );
-}
-
-function fetchSampledRawSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    sampleCount: number,
-    useOrderBy: boolean,
-    signal?: AbortSignal,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchRawSeriesRowsByQuery(
-        seriesList,
-        timeRange,
-        useOrderBy,
-        { kind: 'sampled', sampleCount },
-        signal,
-    );
-}
 
 async function fetchRawSeriesRowsByQuery(
     seriesList: PanelSeriesDefinition[],
@@ -683,10 +599,62 @@ function getSeriesFullRangeErrorMessage(
     )}`;
 }
 
+export type SeriesRowsQuery =
+    | {
+          kind: 'raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'sampled-raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          sampleCount: number;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'calculated';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          interval: IntervalOption;
+          rowLimit: number;
+          rollupTables: RollupTableMap;
+          numericBucketWidth?: number;
+      };
+
+function fetchSeriesRows(
+    query: SeriesRowsQuery,
+    { signal }: { signal?: AbortSignal } = {},
+): Promise<PanelDataFetchResult | undefined> {
+    if (query.kind === 'calculated') {
+        return fetchPanelSeriesRows(
+            query.seriesList,
+            signal,
+            (series) =>
+                fetchCalculatedSeriesData(
+                    series,
+                    query.range,
+                    query.interval,
+                    query.rowLimit,
+                    query.rollupTables,
+                    { numericBucketWidth: query.numericBucketWidth, signal },
+                ),
+        );
+    }
+    return fetchRawSeriesRowsByQuery(
+        query.seriesList,
+        query.range,
+        query.useOrderBy,
+        query.kind === 'sampled-raw'
+            ? { kind: 'sampled', sampleCount: query.sampleCount }
+            : { kind: 'raw' },
+        signal,
+    );
+}
+
 export const seriesDataApi = {
     rawRowLimit: RAW_SERIES_ROW_LIMIT,
     fetchSeriesFullRange,
-    fetchCalculatedSeriesRows,
-    fetchRawSeriesRows,
-    fetchSampledRawSeriesRows,
+    fetchSeriesRows,
 };

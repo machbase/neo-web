@@ -131,10 +131,6 @@ export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = PANEL_SERIES_CALCULATION_MO
     }),
 );
 
-export const DEFAULT_SERIES_ANNOTATION_FILL_COLOR = '#fff4b8';
-export const DEFAULT_SERIES_ANNOTATION_TEXT_COLOR = '#161616';
-export const DEFAULT_SERIES_ANNOTATION_LABEL = 'note';
-
 export type PanelSeriesDefinition = {
     key: string;
     table: string;
@@ -373,6 +369,21 @@ export function getSeriesListAxisKind(
     return isNumericBaseTimeSourceColumns(seriesList[0]?.sourceColumns)
         ? 'numeric'
         : 'time';
+}
+
+/**
+ * Rejects series lists no panel can plot, at the boundary where untrusted
+ * documents enter. An empty list is fine — that is just a panel you have not
+ * added series to yet — but clashing x-axis kinds have no valid axis, and every
+ * editor path already refuses them, so a document carrying them is malformed.
+ */
+export function assertCompatiblePanelSeriesList(
+    seriesList: SeriesWithSourceColumns[],
+    source: string,
+): void {
+    if (hasMixedXAxisValueKinds(seriesList)) {
+        throw new Error(`${source}: ${MIXED_X_AXIS_KIND_WARNING}`);
+    }
 }
 
 export function shouldUseNumericPanelRangeInput(

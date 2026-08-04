@@ -159,7 +159,20 @@ const HomeContent = () => {
             <GNBPanel pOpenSideBar={handleOpenSideBar} pCloseSideBar={handleCloseSideBar} pIsSidebar={sIsSidebar} pSetEula={setOpenEula} />
             <div className="body-form">
                 <SplitPane split="vertical" allowResize={sIsSidebar} sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
-                    <Pane minSize={0} maxSize="50%">
+                    {/* THE 200–440px BAND IS THE APP STORE'S, NOT EVERY PANEL'S.
+                        The package cards need ~200px before their version chips
+                        start colliding with the name, and nothing in them benefits
+                        from more than 440. The DB Explorer is the opposite case —
+                        long schema-qualified table names — so capping it at 440 to
+                        satisfy the App Store would be a regression in a panel that
+                        never asked for one.
+                        `minSize` stays 0 while the sidebar is CLOSED: the GNB closes
+                        it by driving the size to 0%, and a floor of 200 would fight
+                        that on the next drag. */}
+                    <Pane
+                        minSize={sIsSidebar && sSelectedExtension === 'APPSTORE' ? 200 : 0}
+                        maxSize={sSelectedExtension === 'APPSTORE' ? 440 : '50%'}
+                    >
                         {sHome ? (
                             <SidePanel
                                 pServer={sServer}

@@ -12,6 +12,8 @@ import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_T
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
 import { Button, Page } from '@/design-system/components';
 import { TimeRangeBlock } from './TimeRangeBlock';
+import { DistanceRangeBlock } from './DistanceRangeBlock';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { createDefaultTagTableOption, getTableType } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 
@@ -22,6 +24,10 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
     const isTqlChart = pPanelOption.type === 'Tql chart';
     const isVideo = pPanelOption.type === 'Video';
     const isNormalType = !(isTqlChart || isVideo);
+    // One panel is on one axis, so the range tab is that axis: a distance panel has no `last-1h` to
+    // pick and no timestamp to type, and the time editor written into it would edit a field the
+    // panel never reads (see the distance branch in LineChart).
+    const isDistancePanel = isNumericBaseTimeBlock(pPanelOption.blockList?.[0]);
 
     const HandleAddBlock = () => {
         pSetPanelOption((aPrev: any) => {
@@ -102,7 +108,7 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                             )}
                             {pTableList.length !== 0 && (
                                 <Page.TabItem active={sTab === 'Time'} onClick={() => setTab('Time')}>
-                                    Time
+                                    {isDistancePanel ? 'Distance' : 'Time'}
                                 </Page.TabItem>
                             )}
                         </Page.TabList>
@@ -165,7 +171,15 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                         ) : (
                             <></>
                         )}
-                        {sTab === 'Time' ? <TimeRangeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : <></>}
+                        {sTab === 'Time' ? (
+                            isDistancePanel ? (
+                                <DistanceRangeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
+                            ) : (
+                                <TimeRangeBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />
+                            )
+                        ) : (
+                            <></>
+                        )}
                     </Page.Body>
                 </>
             ) : null}

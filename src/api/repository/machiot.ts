@@ -20,12 +20,27 @@ import {
 import { getBaseJsonRollupValue, ROLLUP_EXT_TYPE_BY_COLUMN } from '@/utils/rollupColumnCandidates';
 // import { getTimeZoneValue } from '@/utils/utils';
 
-const getTqlChart = (aData: string, aType?: 'dsh' | 'pkg', signal?: AbortSignal) => {
+/**
+ * POST a TQL script.
+ *
+ * `aParams` becomes the request query string, which TQL exposes to the script
+ * as `$.params`. Pass it through axios' `params` option — NEVER by hand-appending
+ * `?k=v` to the url: the request interceptor matches `/api/tql/pkg` (and `/dsh`,
+ * `/taz`) with a `$`-anchored regex and then rewrites `config.url` to
+ * `/api/tql`, so a manually appended query would both break the match (losing
+ * the `X-Console-Id` handling) and be discarded by the rewrite.
+ *
+ * Callers that build a script out of untrusted values (package names, file
+ * paths) must pass those values here rather than interpolate them into `aData` —
+ * a `SCRIPT("js", {...})` body is a code context.
+ */
+const getTqlChart = (aData: string, aType?: 'dsh' | 'pkg', signal?: AbortSignal, aParams?: Record<string, string>) => {
     return request({
         method: 'POST',
         url: `/api/tql${aType ? '/' + aType : ''}`,
         data: aData,
         signal,
+        params: aParams,
     });
 };
 

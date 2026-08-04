@@ -27,6 +27,17 @@
     }
 }
 
+// Shown instead of the row list when the hub published no version for this
+// package — e.g. its only GitHub release is a pre-release, which the hub's
+// `releases/latest` lookup skips. In experiment mode the custom-version input
+// below is then the only way to install.
+.pkg-version-menu-empty {
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #9a9a9a;
+}
+
 // Row content wrapper — bleeds over the menu__item padding so hovering anywhere
 // on the row (not just the text) reveals the action hint.
 .pkg-version-menu-row {
@@ -154,5 +165,36 @@
     &--ineligible {
         background-color: rgba(209, 134, 22, 0.18);
         color: #d6943a;
+    }
+    // issue #1452 — this version's archive sits in the local package directory, so
+    // it installs with no network. The blue MUST stay in sync with `span.local` in
+    // item.scss: the card chip and this row badge say the same thing about the same
+    // version, and two different colours for one meaning reads as two meanings.
+    // Distinct from the green "default" target, since a row can be both.
+    &--local {
+        background-color: rgba(45, 156, 219, 0.18);
+        color: #7cc4f0;
+    }
+    // ...and its opposite: hub-only version, hub unreachable → nothing to install from.
+    &--offline {
+        background-color: rgba(140, 140, 140, 0.18);
+        color: #9a9a9a;
+    }
+}
+
+// issue #1452 — banner under the header explaining why hub rows are greyed out.
+.pkg-version-menu-offline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 -#{t.$spacing-4} 2px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #333;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #d6943a;
+
+    svg {
+        flex-shrink: 0;
     }
 }
