@@ -56,8 +56,6 @@ const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
 const FILE_TREE_REFRESH_ERROR_MESSAGE =
     'TAZ file saved, but file tree refresh failed.';
 
-const EMPTY_BOARD_RANGE: RangeExpressionInput = { start: '', end: '' };
-
 const INITIAL_PANEL_BROADCAST_VERSIONS = {
     boardTimeRange: 0,
     boardNumericRange: 0,
@@ -69,17 +67,6 @@ const INITIAL_PANEL_BROADCAST_VERSIONS = {
 
 type PanelBroadcastVersions =
     typeof INITIAL_PANEL_BROADCAST_VERSIONS;
-type PanelBroadcastVersionKey = keyof PanelBroadcastVersions;
-
-function incrementPanelBroadcastVersion(
-    versions: PanelBroadcastVersions,
-    key: PanelBroadcastVersionKey,
-): PanelBroadcastVersions {
-    return {
-        ...versions,
-        [key]: versions[key] + 1,
-    };
-}
 
 type BoardProps = {
     info: BoardInfo;
@@ -181,7 +168,13 @@ export default function Board({
         sPanelBroadcastVersions,
         incrementBroadcastVersion,
     ] = useReducer(
-        incrementPanelBroadcastVersion,
+        (
+            versions: PanelBroadcastVersions,
+            key: keyof PanelBroadcastVersions,
+        ): PanelBroadcastVersions => ({
+            ...versions,
+            [key]: versions[key] + 1,
+        }),
         INITIAL_PANEL_BROADCAST_VERSIONS,
     );
     const sSaveRequestGenerationRef = useRef(0);
@@ -292,19 +285,19 @@ export default function Board({
                   name: destination.fileName,
               }
             : sBoardToSerialize;
-        const sSavedBoard = await saveTazBoard(sBoardToSave);
-        const sIsCurrentSave =
+        const isCurrentSaveRequest = (): boolean =>
             sSaveRequestGenerationRef.current === sRequestGeneration &&
             sActiveBoardIdRef.current === sBoardToSave.id;
+        const sSavedBoard = await saveTazBoard(sBoardToSave);
 
         if (!sSavedBoard) {
-            if (sIsCurrentSave) {
+            if (isCurrentSaveRequest()) {
                 Toast.error(SAVE_ERROR_MESSAGE);
             }
             return false;
         }
 
-        if (!sIsCurrentSave) {
+        if (!isCurrentSaveRequest()) {
             return false;
         }
 
@@ -323,8 +316,7 @@ export default function Board({
             }
         }
 
-        return sSaveRequestGenerationRef.current === sRequestGeneration &&
-            sActiveBoardIdRef.current === sBoardToSave.id;
+        return isCurrentSaveRequest();
     }, [
         applySaveResult,
         onFileSaved,
@@ -573,10 +565,10 @@ export default function Board({
 }
 
 function getInitialBoardRangeKind(info: BoardInfo): AxisKind {
-    const sTimeRange = info.boardTimeRange ?? EMPTY_BOARD_RANGE;
-    const sNumericRange = info.boardNumericRange ?? EMPTY_BOARD_RANGE;
-
-    if (isRangeExpressionEmpty(sTimeRange) && !isRangeExpressionEmpty(sNumericRange)) {
+    if (
+        isRangeExpressionEmpty(info.boardTimeRange) &&
+        !isRangeExpressionEmpty(info.boardNumericRange)
+    ) {
         return 'numeric';
     }
 

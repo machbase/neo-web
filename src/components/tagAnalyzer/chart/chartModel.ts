@@ -123,6 +123,17 @@ const HIDDEN_AXIS_PART = {
     },
 } as const;
 
+function includeAxisValue(
+    axisBounds: number[],
+    value: number,
+    zeroBase = false,
+): void {
+    const sMin = zeroBase ? Math.min(value, 0) : value;
+    const sMax = zeroBase ? Math.max(value, 0) : value;
+    axisBounds[0] = Math.min(axisBounds[0] ?? sMin, sMin);
+    axisBounds[1] = Math.max(axisBounds[1] ?? sMax, sMax);
+}
+
 function updateAxisBounds(
     axisBounds: number[],
     seriesData: ChartRow[],
@@ -141,14 +152,7 @@ function updateAxisBounds(
             continue;
         }
 
-        const sMin = zeroBase ? Math.min(value, 0) : value;
-        const sMax = zeroBase ? Math.max(value, 0) : value;
-        if (axisBounds[0] === undefined || axisBounds[0] > sMin) {
-            axisBounds[0] = sMin;
-        }
-        if (axisBounds[1] === undefined || axisBounds[1] < sMax) {
-            axisBounds[1] = sMax;
-        }
+        includeAxisValue(axisBounds, value, zeroBase);
     }
 }
 
@@ -181,12 +185,7 @@ function updateAxisBoundsWithThresholds(
             return;
         }
 
-        if (axisBounds[0] === undefined || axisBounds[0] > threshold.value) {
-            axisBounds[0] = threshold.value;
-        }
-        if (axisBounds[1] === undefined || axisBounds[1] < threshold.value) {
-            axisBounds[1] = threshold.value;
-        }
+        includeAxisValue(axisBounds, threshold.value);
     });
 }
 
@@ -631,15 +630,6 @@ function getHighlightAreaData(
         );
 }
 
-function getHighlightLabelY(axisMin: number, axisMax: number): number {
-    const sAxisHeight = axisMax - axisMin;
-
-    return (
-        axisMax -
-        (sAxisHeight > 0 ? sAxisHeight * 0.04 : Math.max(Math.abs(axisMax) * 0.04, 1))
-    );
-}
-
 function getHighlightLabelData(
     highlights: PanelHighlight[],
     labelY: number,
@@ -713,7 +703,11 @@ function buildHighlightLabelSeries(
         return [];
     }
 
-    const sLabelY = getHighlightLabelY(sAxisMin, sAxisMax);
+    const sAxisHeight = sAxisMax - sAxisMin;
+    const sLabelPadding = sAxisHeight > 0
+        ? sAxisHeight * 0.04
+        : Math.max(Math.abs(sAxisMax) * 0.04, 1);
+    const sLabelY = sAxisMax - sLabelPadding;
     const sLabelData = getHighlightLabelData(highlights, sLabelY);
 
     if (sLabelData.length === 0) {
@@ -1402,7 +1396,7 @@ const PANEL_CHART_BASE_OPTION: EChartsOption = {
 
 export function buildChartOption(
     chartRuntime: PanelChartRuntime,
-): EChartsOption {
+): EChartsOption & { series: SeriesOption[] } {
     const { config, data, ranges, rendering } = chartRuntime;
     const yAxisOption = buildChartYAxisOption(
         config.axes,

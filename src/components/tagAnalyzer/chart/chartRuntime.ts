@@ -1,17 +1,22 @@
-import { type EChartsOption } from 'echarts';
+import type {
+    ECElementEvent,
+    EChartsOption,
+    EChartsType,
+    ElementEvent,
+} from 'echarts';
 import type { PanelRangeState } from '../range/rangeModel';
 import { AUTO_VALUE_RANGE, type PanelAxisThreshold, type PanelHighlight, type PanelInfo, type PanelSampling, type PanelYAxis, type ValueRange } from '../panel/panelModel';
 import { type ChartSeriesData, type ChartSeriesVisibilityMap } from './chartData';
 
 // ECharts boundary types
-export type EChartDataZoomEventItem = {
-    id?: string;
-    dataZoomId?: string;
+export type EChartDataZoomEventItem = Partial<{
+    id: string;
+    dataZoomId: string;
     start: number;
     end: number;
-    startValue?: number;
-    endValue?: number;
-};
+    startValue: number | string | Date;
+    endValue: number | string | Date;
+}>;
 
 export type EChartDataZoomEventPayload =
     | EChartDataZoomEventItem
@@ -19,46 +24,18 @@ export type EChartDataZoomEventPayload =
           batch: EChartDataZoomEventItem[];
       };
 
-export type EChartDataZoomOptionStateItem = {
-    id?: string;
-    dataZoomId?: string;
-    start?: number;
-    end?: number;
-    startValue?: number | string | Date;
-    endValue?: number | string | Date;
-};
+export type EChartDataZoomOptionStateItem = EChartDataZoomEventItem;
 
 type EChartBrushAreaPayload = {
-    coordRange: [number, number] | undefined;
-    range: [number, number] | undefined;
+    coordRange?: [number, number];
+    range?: [number, number];
 };
 
-export type EChartBrushPayload = {
-    areas: EChartBrushAreaPayload[] | undefined;
-    batch:
-        | Array<{
-              areas: EChartBrushAreaPayload[] | undefined;
-          }>
-        | undefined;
+type EChartBrushSelection = { areas?: EChartBrushAreaPayload[] };
+
+export type EChartBrushPayload = EChartBrushSelection & {
+    batch?: EChartBrushSelection[];
 };
-
-type PanelChartBrushOption = {
-    brushType: 'lineX' | false;
-    brushMode?: 'single';
-    xAxisIndex?: number;
-};
-
-type PanelChartAction =
-    | { type: 'takeGlobalCursor'; key: 'brush'; brushOption: PanelChartBrushOption }
-    | { type: 'brush'; areas: [] }
-    | { type: 'dataZoom'; dataZoomId?: string; startValue: number; endValue: number }
-    | { type: 'hideTip' };
-
-type PanelChartOptionState = {
-    dataZoom: EChartDataZoomOptionStateItem[] | undefined;
-};
-
-type PanelChartPixelFinder = { xAxisIndex: number } | { gridIndex: number };
 
 export type PanelChartLegendChangePayload = {
     selected: ChartSeriesVisibilityMap | undefined;
@@ -80,52 +57,14 @@ export type PanelChartHighlightPayload = Partial<{
     excludeSeriesId: string[];
 }>;
 
-type PanelChartPointerCoordinates = Partial<{
-    clientX: number;
-    clientY: number;
-    offsetX: number;
-    offsetY: number;
-    zrX: number;
-    zrY: number;
-}>;
-
-type PanelChartPointerPayload = PanelChartPointerCoordinates & {
-    event?: PanelChartPointerCoordinates & {
-        event?: PanelChartPointerCoordinates;
+export type PanelChartClickPayload = Partial<ECElementEvent> & {
+    axisValue?: number | string;
+};
+export type PanelChartBlankClickPayload = ElementEvent;
+export type PanelChartInstance = Omit<EChartsType, 'getOption' | 'setOption'> & {
+    getOption?: () => {
+        dataZoom: EChartDataZoomOptionStateItem[] | undefined;
     };
-};
-
-export type PanelChartClickPayload = PanelChartPointerPayload & Partial<{
-    componentType: string;
-    componentSubType: string;
-    seriesId: string;
-    seriesIndex: number;
-    seriesName: string;
-    dataIndex: number;
-    data: unknown;
-    value: unknown;
-    axisValue: number | string;
-}>;
-
-export type PanelChartBlankClickPayload = PanelChartPointerPayload & {
-    target?: unknown;
-};
-
-type PanelChartZrElement = {
-    type?: string;
-    draggable?: boolean;
-    cursor?: string;
-    __tagAnalyzerNavigatorCursor?: string;
-    attr?: (attributes: { cursor: string }) => void;
-    on?: (
-        eventName: 'mousedown' | 'mouseup' | 'mouseout' | 'dragend',
-        handler: () => void,
-    ) => void;
-};
-
-export type PanelChartInstance = {
-    dispatchAction: (action: PanelChartAction) => void;
-    getOption?: () => PanelChartOptionState;
     setOption?: (
         option: EChartsOption,
         options?: {
@@ -134,17 +73,6 @@ export type PanelChartInstance = {
             replaceMerge?: string | string[];
         },
     ) => void;
-    clear?: () => void;
-    hideLoading?: () => void;
-    containPixel?: (finder: { gridIndex: number }, value: [number, number]) => boolean;
-    convertFromPixel?: (finder: PanelChartPixelFinder, value: [number, number]) => unknown;
-    getZr?: () => {
-        on?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
-        off?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
-        storage?: {
-            getDisplayList?: () => PanelChartZrElement[];
-        };
-    };
 };
 
 // Runtime config
@@ -297,13 +225,17 @@ const NAVIGATOR_BODY_CURSOR = 'grab';
 const NAVIGATOR_BODY_ACTIVE_CURSOR = 'grabbing';
 const NAVIGATOR_EDGE_CURSOR = 'ew-resize';
 
-function setCursor(element: PanelChartZrElement, cursor: string): void {
+type NavigatorElement = ReturnType<
+    ReturnType<PanelChartInstance['getZr']>['storage']['getDisplayList']
+>[number] & { __tagAnalyzerNavigatorCursor?: string };
+
+function setCursor(element: NavigatorElement, cursor: string): void {
     element.attr?.({ cursor });
     element.cursor = cursor;
 }
 
 function setNavigatorElementCursor(
-    element: PanelChartZrElement,
+    element: NavigatorElement,
     cursor: string,
     activeCursor = cursor,
 ): void {
@@ -323,7 +255,9 @@ function setNavigatorElementCursor(
 export function applyPanelNavigatorCursorStyles(
     instance: PanelChartInstance | undefined,
 ): void {
-    const sDisplayList = instance?.getZr?.()?.storage?.getDisplayList?.();
+    const sDisplayList = instance?.getZr?.()?.storage?.getDisplayList?.() as
+        | NavigatorElement[]
+        | undefined;
 
     if (!sDisplayList) {
         return;

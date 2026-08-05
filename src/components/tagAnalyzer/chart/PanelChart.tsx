@@ -36,7 +36,6 @@ import {
     type PanelOverlayCursorHintState,
 } from '../panel/panelInteraction';
 import {
-    type ChartSeriesData,
     type ChartSeriesVisibilityMap,
     getChartSeriesEChartsName,
 } from './chartData';
@@ -160,7 +159,7 @@ function usePanelChartRuntime({
         () => ({
             ...currentFullOption,
             series: stripDataFromCachedDataSeries(
-                getChartSeriesOptions(currentFullOption.series),
+                currentFullOption.series,
             ),
         }),
         [currentFullOption],
@@ -430,10 +429,17 @@ function usePanelChartRuntime({
                 },
                 rangeActions,
                 markupHandlers,
-                onHoveredMainSeriesChange: (seriesName) =>
+                onHoveredMainSeriesChange: (seriesName) => {
+                    const sVisibleSeries = seriesName === undefined
+                        ? undefined
+                        : chartData.find(
+                            (series) =>
+                                getChartSeriesEChartsName(series) === seriesName,
+                        );
                     onHoveredMainSeriesChange(
-                        resolveVisibleSeriesName(chartData, seriesName),
-                    ),
+                        sVisibleSeries?.name ?? seriesName,
+                    );
+                },
                 onSelection,
                 legendState: {
                     applyLegendHoverState,
@@ -464,17 +470,6 @@ function usePanelChartRuntime({
     };
 }
 
-function resolveVisibleSeriesName(
-    chartData: ChartSeriesData[],
-    seriesName: string | undefined,
-): string | undefined {
-    return seriesName === undefined
-        ? undefined
-        : chartData.find(
-              (series) => getChartSeriesEChartsName(series) === seriesName,
-          )?.name ?? seriesName;
-}
-
 function stripDataFromCachedDataSeries(
     seriesOptionPatch: ReturnType<typeof buildChartSeriesOption>,
 ): ReturnType<typeof buildChartSeriesOption> {
@@ -494,20 +489,10 @@ function stripDataFromCachedDataSeries(
     });
 }
 
-function getChartSeriesOptions(
-    seriesOption: ReturnType<typeof buildChartOption>['series'],
-): ReturnType<typeof buildChartSeriesOption> {
-    return (Array.isArray(seriesOption)
-        ? seriesOption
-        : seriesOption
-          ? [seriesOption]
-          : []) as ReturnType<typeof buildChartSeriesOption>;
-}
-
 function getSeriesStructureKey(
     seriesOption: ReturnType<typeof buildChartOption>['series'],
 ): string {
-    return getChartSeriesOptions(seriesOption)
+    return seriesOption
         .map((series, seriesIndex) => {
             return [
                 seriesIndex,

@@ -90,12 +90,8 @@ export type PanelHighlight = {
     textColor: string;
 };
 
-export type PanelAnnotation = {
+export type PanelAnnotation = PanelHighlight & {
     seriesKey: string;
-    text: string;
-    timeRange: AxisRange;
-    fillColor: string;
-    textColor: string;
     clip: boolean;
 };
 

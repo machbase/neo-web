@@ -126,10 +126,6 @@ export default memo(function Panel({
 
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
 
-    function limitMainRangeToRawRows(range: AxisRange): void {
-        onRangeUpdate({ type: 'main-range-raw-limited', range });
-    }
-
     const {
         mainChartData,
         navigatorChartData,
@@ -149,7 +145,8 @@ export default memo(function Panel({
         chartAreaWidth,
         rollupTableList,
         dataRefreshVersion,
-        onRawMainRangeLimited: limitMainRangeToRawRows,
+        onRawMainRangeLimited: (range) =>
+            onRangeUpdate({ type: 'main-range-raw-limited', range }),
     });
     const {
         panelRange: renderPanelRange,
@@ -322,6 +319,10 @@ export default memo(function Panel({
                 )
               ? retainedMainRangeInput.rangeInput
             : undefined;
+    const currentRangeModalEmptyBehavior =
+        currentRangeModalTarget === 'navigator'
+            ? { emptyRange: true, onApplyEmpty: onRefreshRange }
+            : {};
 
     function openCurrentRangeModal(target: PanelRangeAuthority): void {
         if (resolvedRangeState) setCurrentRangeModalTarget(target);
@@ -623,7 +624,6 @@ export default memo(function Panel({
                     pOnClose={closeInteractionEditor}
                     pOnAnimationEnd={finishEditorClose}
                     pPanelInfo={panelInfo}
-                    pIsRawMode={isRaw}
                     pHasUnsavedBoardChanges={hasUnsavedBoardChanges}
                     pPanelRange={renderPanelRange}
                     pDataRange={
@@ -645,12 +645,7 @@ export default memo(function Panel({
                                   kind: 'numeric-concrete',
                                   initialRange: currentRangeModal,
                                   onApply: applyCurrentRange,
-                                  ...(currentRangeModalTarget === 'navigator'
-                                      ? {
-                                            emptyRange: true,
-                                            onApplyEmpty: onRefreshRange,
-                                        }
-                                      : {}),
+                                  ...currentRangeModalEmptyBehavior,
                               }
                             : {
                                   kind: 'time',
@@ -675,12 +670,7 @@ export default memo(function Panel({
                                           concreteRange,
                                           rangeInput,
                                       ),
-                                  ...(currentRangeModalTarget === 'navigator'
-                                      ? {
-                                            emptyRange: true,
-                                            onApplyEmpty: onRefreshRange,
-                                        }
-                                      : {}),
+                                  ...currentRangeModalEmptyBehavior,
                               }
                     }
                     onClose={() => setCurrentRangeModalTarget(undefined)}

@@ -1,5 +1,5 @@
 import { validateAndRepairTazPanel } from '@/utils/panelValidator';
-import type { BoardInfo } from '../model';
+import type { BoardInfo } from '../board/boardModel';
 import { asRecord, isFiniteNumber, isPlainObject } from '../objectGuards';
 import {
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
@@ -10,14 +10,13 @@ import {
     type PanelInfo,
     type PanelYAxis,
     type ValueRange,
-} from '../model';
+} from '../panel/panelModel';
 import { decodePersistedPanelRangeState } from './persistedPanelRange';
 import { formatNumericValue } from '../range/format/numericRangeFormat';
 import { formatAbsoluteTimeExpression } from '../range/format/timeRangeFormat';
 import {
     normalizeStoredTimeUnit,
     type RangeExpressionInput,
-    type AxisRange,
     type PanelRangeState,
 } from '../range/rangeModel';
 import { isValidPanelRangeState } from '../range/rangeArithmetic';
@@ -37,7 +36,6 @@ import {
     clonePanelHighlights,
     cloneSeriesAnnotations,
     createTimeRangeInputFromStoredValues,
-    isPersistedPanelInfoV210,
     normalizePersistedPanelChartType,
     normalizePersistedPanelRangeInput,
     normalizePersistedTimeRangeInput,
@@ -50,58 +48,12 @@ import {
     type PersistedBoardRange,
     type PersistedPanelAnnotationInput,
     type PersistedPanelSeries,
-    type PersistedSeriesAnnotationInput,
+    type PersistedTimedMarkupInput,
 } from './tazFormat';
-
-type PersistedSeriesColumnsV200 = {
-    nameColumn: string | undefined;
-    timeColumn: string | undefined;
-    valueColumn: string | undefined;
-    [key: string]: unknown;
-};
-
-type PersistedSeriesInfoV200 = {
-    seriesKey: string;
-    tableName: string;
-    sourceTagName: string;
-    alias: string;
-    calculationMode: string;
-    color?: string;
-    useSecondaryAxis: boolean;
-    id: string | undefined;
-    useRollupTable: boolean;
-    sourceColumns: PersistedSeriesColumnsV200;
-    annotations?: PersistedSeriesAnnotationInput[];
-};
-
-type PersistedPanelMetaV200 = {
-    panelKey: string;
-    chartTitle: string;
-};
-
-type PersistedPanelDataV200 = {
-    seriesList: PersistedSeriesInfoV200[];
-    intervalType: string | undefined;
-};
-
-type PersistedPanelToolbarV200 = {
-    isRaw: boolean;
-};
-
-type PersistedPanelTimeV200 = {
-    rangeConfig: RangeExpressionInput;
-    useLastViewedRange?: boolean;
-    lastViewedRange?: unknown;
-};
 
 type PersistedPanelAxisThresholdV200 = {
     enabled: boolean;
     value: number;
-};
-
-type PersistedPanelXAxisV200 = {
-    showTickLine: boolean;
-    calculatedDataPixelsPerTick: number;
 };
 
 type PersistedPanelSamplingV200 = {
@@ -118,43 +70,64 @@ type PersistedPanelYAxisV200 = {
     lowerControlLimit: PersistedPanelAxisThresholdV200;
 };
 
-type PersistedPanelRightYAxisV200 = PersistedPanelYAxisV200 & {
-    enabled: boolean;
-};
-
-type PersistedPanelAxesV200 = {
-    xAxis: PersistedPanelXAxisV200;
-    sampling?: PersistedPanelSamplingV200;
-    mainChartSampling?: PersistedPanelSamplingV200;
-    leftYAxis: PersistedPanelYAxisV200;
-    rightYAxis: PersistedPanelRightYAxisV200;
-};
-
-type PersistedPanelDisplayV200 = {
-    showLegend: boolean;
-    useZoom: boolean;
-    chartType: PanelEChartType;
-    connectNulls?: boolean;
-    showPoints: boolean;
-    pointRadius: number;
-    fill: number;
-    stroke: number;
-};
-
-type PersistedPanelHighlightV200 = {
-    text: string;
-    timeRange: AxisRange;
-};
-
 type PersistedPanelInfoV200 = {
-    meta: PersistedPanelMetaV200;
-    data: PersistedPanelDataV200;
-    toolbar: PersistedPanelToolbarV200;
-    time: PersistedPanelTimeV200;
-    axes: PersistedPanelAxesV200;
-    display: PersistedPanelDisplayV200;
+    meta: {
+        panelKey: string;
+        chartTitle: string;
+    };
+    data: {
+        seriesList: {
+            seriesKey: string;
+            tableName: string;
+            sourceTagName: string;
+            alias: string;
+            calculationMode: string;
+            color?: string;
+            useSecondaryAxis: boolean;
+            id: string | undefined;
+            useRollupTable: boolean;
+            sourceColumns: {
+                nameColumn: string | undefined;
+                timeColumn: string | undefined;
+                valueColumn: string | undefined;
+                [key: string]: unknown;
+            };
+            annotations?: PersistedTimedMarkupInput[];
+        }[];
+        intervalType: string | undefined;
+    };
+    toolbar: {
+        isRaw: boolean;
+    };
+    time: {
+        rangeConfig: RangeExpressionInput;
+        useLastViewedRange?: boolean;
+        lastViewedRange?: unknown;
+    };
+    axes: {
+        xAxis: {
+            showTickLine: boolean;
+            calculatedDataPixelsPerTick: number;
+        };
+        sampling?: PersistedPanelSamplingV200;
+        mainChartSampling?: PersistedPanelSamplingV200;
+        leftYAxis: PersistedPanelYAxisV200;
+        rightYAxis: PersistedPanelYAxisV200 & {
+            enabled: boolean;
+        };
+    };
+    display: {
+        showLegend: boolean;
+        useZoom: boolean;
+        chartType: PanelEChartType;
+        connectNulls?: boolean;
+        showPoints: boolean;
+        pointRadius: number;
+        fill: number;
+        stroke: number;
+    };
     useNormalizedValues: boolean;
-    highlights?: PersistedPanelHighlightV200[];
+    highlights?: PersistedTimedMarkupInput[];
     annotations?: PersistedPanelAnnotationInput[];
 };
 
@@ -214,15 +187,8 @@ type PersistedPanelInfoV204 = {
         fill: number | undefined;
         stroke: number | undefined;
     };
-    highlights?: PanelInfoV204Highlight[];
+    highlights?: PersistedTimedMarkupInput[];
     annotations?: PersistedPanelAnnotationInput[];
-};
-
-type PanelInfoV204Highlight = {
-    text: string;
-    timeRange: AxisRange;
-    fillColor?: string;
-    textColor?: string;
 };
 
 type LegacyCompatibleSeriesConfig = {
@@ -674,8 +640,13 @@ function isPersistedYAxisContainer(value: unknown): boolean {
 }
 
 function parseLoadedPanelTazVer200(
-    panelInfo: PersistedPanelInfoV200,
+    panelInfo: unknown,
+    version: TazVersion,
 ): PanelInfo {
+    if (!isPersistedPanelInfoV200(panelInfo)) {
+        throw new Error(`Invalid TagAnalyzer .taz ${version} panel structure.`);
+    }
+
     const sTagSet = panelInfo.data.seriesList.map(createSeriesInfoFromPersistedV200);
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.rangeConfig,
@@ -911,8 +882,13 @@ function isOptionalFiniteNumber(value: unknown): boolean {
 }
 
 function parseLoadedPanelTazVer204(
-    panelInfo: PersistedPanelInfoV204,
+    panelInfo: unknown,
+    version: TazVersion,
 ): PanelInfo {
+    if (!isPersistedPanelInfoV204(panelInfo)) {
+        throw new Error(`Invalid TagAnalyzer .taz ${version} panel structure.`);
+    }
+
     const sTagSet = normalizePanelSeriesDefinitions(panelInfo.data.tag_set);
     if (!sTagSet) {
         throw new Error('Invalid TagAnalyzer .taz panel series structure.');
@@ -1127,40 +1103,22 @@ function parseLoadedPanelTazByVersion(
     panelInfo: unknown,
     version: TazVersion,
 ): PanelInfo {
-    if (version === TazVersion.Legacy) {
-        return parseLoadedLegacyPanelTaz(panelInfo);
-    }
-
-    if (version === TAZ_FORMAT_VERSION) {
-        if (isPersistedPanelInfoV210(panelInfo)) {
+    switch (version) {
+        case TazVersion.Legacy:
+            return parseLoadedLegacyPanelTaz(panelInfo);
+        case TAZ_FORMAT_VERSION:
             return parseLoadedPanelTazVer210(panelInfo);
-        }
-
-        throw new Error('Invalid TagAnalyzer .taz v2.1 panel structure.');
+        case TazVersion.V204:
+        case TazVersion.V205:
+            return parseLoadedPanelTazVer204(panelInfo, version);
+        case TazVersion.V200:
+        case TazVersion.V201:
+        case TazVersion.V202:
+        case TazVersion.V203:
+            return parseLoadedPanelTazVer200(panelInfo, version);
+        default:
+            throw new Error(`Unsupported TagAnalyzer .taz version: ${version}`);
     }
-
-    if (version === TazVersion.V204 || version === TazVersion.V205) {
-        if (isPersistedPanelInfoV204(panelInfo)) {
-            return parseLoadedPanelTazVer204(panelInfo);
-        }
-
-        throw new Error(`Invalid TagAnalyzer .taz ${version} panel structure.`);
-    }
-
-    if (
-        version === TazVersion.V200 ||
-        version === TazVersion.V201 ||
-        version === TazVersion.V202 ||
-        version === TazVersion.V203
-    ) {
-        if (isPersistedPanelInfoV200(panelInfo)) {
-            return parseLoadedPanelTazVer200(panelInfo);
-        }
-
-        throw new Error(`Invalid TagAnalyzer .taz ${version} panel structure.`);
-    }
-
-    throw new Error(`Unsupported TagAnalyzer .taz version: ${version}`);
 }
 
 function normalizeLoadedString(value: unknown, fallback = ''): string {

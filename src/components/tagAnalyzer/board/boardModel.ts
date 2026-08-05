@@ -42,23 +42,20 @@ type TagAnalyzerDefaultBoardOptions = {
     sourceColumns: PanelSeriesSourceColumns;
 };
 
-type CreateTazBoardFromTimeRangeOptions = {
+type TazBoardCreationOptions = {
     id: string;
     name: string;
     path: string;
     chartTitle: string;
     chartType?: PanelEChartType;
     seriesList: PanelSeriesDefinition[];
+};
+
+type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
     timeRange: RangeExpressionInput;
 };
 
-type CreateTazBoardFromSeriesOptions = {
-    id: string;
-    name: string;
-    path: string;
-    chartTitle: string;
-    chartType?: PanelEChartType;
-    seriesList: PanelSeriesDefinition[];
+type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
     boardTimeRange: RangeExpressionInput;
     boardNumericRange: RangeExpressionInput;
     panelRange: RangeExpressionInput;

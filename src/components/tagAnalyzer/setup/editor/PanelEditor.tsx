@@ -13,7 +13,7 @@ import EditorGeneralTab from './tabs/EditorGeneralTab';
 import EditorTimeTab from './tabs/EditorTimeTab';
 import { cx, hasInvalidEditorStructure } from './tabs/EditorFieldUtils';
 import styles from './PanelEditor.module.scss';
-import type { PanelInfo } from '../../model';
+import type { PanelInfo } from '../../panel/panelModel';
 import {
     shouldUseNumericPanelRangeInput,
     type RollupTableMap,
@@ -59,7 +59,6 @@ const PanelEditor = ({
     pOnAnimationEnd,
     pAnimationState,
     pPanelInfo,
-    pIsRawMode,
     pHasUnsavedBoardChanges,
     pPanelRange,
     pDataRange,
@@ -71,7 +70,6 @@ const PanelEditor = ({
     pOnAnimationEnd: () => void;
     pAnimationState: PanelEditorAnimationState;
     pPanelInfo: PanelInfo;
-    pIsRawMode: boolean;
     pHasUnsavedBoardChanges: boolean;
     pPanelRange: AxisRange;
     pDataRange: AxisRange;
@@ -208,7 +206,6 @@ const PanelEditor = ({
                         pModeConfig={sModeDraft}
                         pDisplayConfig={sDisplayDraft}
                         pTimeConfig={sTimeDraft}
-                        pIsRawMode={pIsRawMode}
                         pOnChangeTitle={updateEditorDraft('title')}
                         pOnChangeModeConfig={updateEditorDraft('mode')}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
@@ -237,7 +234,7 @@ const PanelEditor = ({
                     <EditorDataSettingTab
                         pDisplayConfig={sEditorConfig.display}
                         pDataMetrics={pDataSettingMetrics}
-                        pIsRawMode={pIsRawMode}
+                        pIsRawMode={sModeDraft.isRaw}
                         pIsNumericXAxis={sIsNumericXAxis}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
                     />

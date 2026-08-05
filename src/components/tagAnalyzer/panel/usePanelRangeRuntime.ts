@@ -193,30 +193,22 @@ function getBroadcastVersions(
     };
 }
 
-export function usePanelRangeRuntime({
-    panelInfo,
-    rangeState,
-    boardRanges,
-    globalRangeRequest,
-    commandVersions,
-    isActive,
-    onRangeStateChange,
-    onBroadcastError,
-}: RuntimeInputs) {
+export function usePanelRangeRuntime(inputs: RuntimeInputs) {
+    const {
+        panelInfo,
+        rangeState,
+        boardRanges,
+        globalRangeRequest,
+        commandVersions,
+        isActive,
+        onRangeStateChange,
+    } = inputs;
     const [sChartAreaWidth, setChartAreaWidth] = useState<
         number | undefined
     >(undefined);
     const [sDataRefreshVersion, setDataRefreshVersion] = useState(0);
     const sChartAreaWidthRef = useRef(sChartAreaWidth);
-    const sInputsRef = useRef<Omit<RuntimeInputs, 'commandVersions'>>({
-        panelInfo,
-        rangeState,
-        boardRanges,
-        globalRangeRequest,
-        isActive,
-        onRangeStateChange,
-        onBroadcastError,
-    });
+    const sInputsRef = useRef(inputs);
     const sRequestRef = useRef<PanelRequestState>({ generation: 0 });
     const sInitializedRef = useRef(false);
     const sSeenVersionsRef = useRef(
@@ -228,24 +220,8 @@ export function usePanelRangeRuntime({
     );
 
     useLayoutEffect(() => {
-        sInputsRef.current = {
-            panelInfo,
-            rangeState,
-            boardRanges,
-            globalRangeRequest,
-            isActive,
-            onRangeStateChange,
-            onBroadcastError,
-        };
-    }, [
-        boardRanges,
-        globalRangeRequest,
-        isActive,
-        onBroadcastError,
-        onRangeStateChange,
-        panelInfo,
-        rangeState,
-    ]);
+        sInputsRef.current = inputs;
+    }, [inputs]);
 
     useLayoutEffect(() => {
         if (
@@ -824,19 +800,6 @@ export function usePanelRangeRuntime({
         syncPanelInitialization();
     }, [isActive, panelInfo, syncPanelInitialization]);
 
-    const runBroadcastAction = useStableCallback(
-        (
-            broadcastKey: string,
-            command: PanelRangeCommand,
-            refreshDataAfter: boolean = false,
-        ): void => {
-            void runPanelRangeCommand(command, {
-                broadcastKey,
-                refreshDataAfter,
-            });
-        },
-    );
-
     const syncBroadcastRequests = useStableCallback(() => {
         const sPrevious = sSeenVersionsRef.current;
         const sNext = getBroadcastVersions(
@@ -902,11 +865,10 @@ export function usePanelRangeRuntime({
         }
 
         if (sRangeBroadcast) {
-            runBroadcastAction(
-                sRangeBroadcast.key,
-                sRangeBroadcast.command,
-                sRefreshDataChanged,
-            );
+            void runPanelRangeCommand(sRangeBroadcast.command, {
+                broadcastKey: sRangeBroadcast.key,
+                refreshDataAfter: sRefreshDataChanged,
+            });
         } else if (sRefreshDataChanged) {
             onRefreshData();
         }
