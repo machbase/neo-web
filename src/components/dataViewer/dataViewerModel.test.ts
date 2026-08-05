@@ -1059,6 +1059,32 @@ describe('data viewer chart helpers', () => {
         expect(yFormatter(1e15)).toBe('1e+15');
     });
 
+    test('a value too small for a plain label is written in exponential too', () => {
+        const yFormatter = (buildDataViewerEChartOption({
+            series: [{ name: 'sensor.a', data: [[Date.parse('2026-06-01T00:00:00Z'), 1e-5]] }],
+            timeRange: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T00:10:00.000Z' },
+            timeZone: 'UTC',
+        }) as any).yAxis[0].axisLabel.formatter;
+
+        // The same failure as the ceiling, upside down: four decimals is as fine as a plain label
+        // goes, so a tag living at 1e-5 drew a line that rose and fell beside an axis reading
+        // `0 0 0 0 0` — every tick different, every label saying they were the same.
+        expect([1e-5, 2e-5, 3e-5, 4e-5].map(yFormatter)).toEqual(['1e-5', '2e-5', '3e-5', '4e-5']);
+        expect(yFormatter(1e-7)).toBe('1e-7');
+        expect(yFormatter(-1e-5)).toBe('-1e-5');
+        expect(yFormatter(1.24e-5)).toBe('1.2e-5');
+
+        // Zero keeps its own label: it is the one reading `0` is the whole truth about.
+        expect(yFormatter(0)).toBe('0');
+        expect(yFormatter(-0)).toBe('0');
+
+        // The boundary, from both sides. 0.0001 is the smallest reading a plain label can state, so
+        // it is the last one that does.
+        expect(yFormatter(0.0001)).toBe('0.0001');
+        expect(yFormatter(0.00009)).toBe('9e-5');
+        expect(yFormatter(0.0012)).toBe('0.0012');
+    });
+
     test('buildDataViewerEChartOption creates a mini navigator and zoom controls target', () => {
         const option = buildDataViewerEChartOption({
             series: [

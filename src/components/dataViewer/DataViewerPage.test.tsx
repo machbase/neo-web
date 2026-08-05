@@ -2104,6 +2104,65 @@ describe('DataViewerPage global time on a distance axis', () => {
         expect(container.querySelector('.data-viewer-range-chip-value')?.textContent).not.toContain('1970');
     });
 
+    // Every assertion above is about what was *asked for* — the query arguments and the toolbar text
+    // — so all of them hold while the panel itself is empty. These two are about what came back.
+    //
+    // Neither reproduces the reported empty main panel, and they are kept as the record of that:
+    // whatever strands it, it is not the plain gesture and not the timing below.
+    test('the main panel still has a chart after the split panel sets the global window', async () => {
+        const { container } = await splitOneTagInChartMode(DISTANCE_BASE_COLUMNS, DISTANCE_ROWS);
+
+        const mainCard = () => container.querySelector<HTMLElement>('.data-viewer-chart-card.is-main')!;
+        expect(mainCard()).not.toBeNull();
+        expect(within(mainCard()).queryByText('No chart data')).toBeNull();
+
+        fireEvent.click(globalTimeItem('Global Distance'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
+        await act(async () => {
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        expect(within(mainCard()).queryByText('No chart data')).toBeNull();
+    });
+
+    // `handleSetGlobalTime` bumps `rowsRequestRef` — the token that tells an in-flight main read its
+    // answer is no longer wanted — and then only re-reads if one of `fetchRows`'s inputs actually
+    // changed. A copied window matching the one already on screen changes none of them, so the
+    // discarded read has nothing replacing it. That it passes says the surviving rows still match
+    // their window; the guard stays because the reasoning is only true by a margin.
+    test('a global window applied while the main read is still open does not strand the panel', async () => {
+        const { container } = await splitOneTagInChartMode(DISTANCE_BASE_COLUMNS, DISTANCE_ROWS);
+        const mainCard = () => container.querySelector<HTMLElement>('.data-viewer-chart-card.is-main')!;
+        expect(within(mainCard()).queryByText('No chart data')).toBeNull();
+
+        // Hold the next main read open. The split panel's own reads stay instant, so the only thing
+        // in flight when the menu item is clicked is the one the main panel is waiting on.
+        let releaseMainRead: () => void = () => {};
+        dataViewerApi.queryTagData.mockImplementation((args: any) =>
+            (args.names || []).length > 1
+                ? new Promise((resolve) => {
+                      releaseMainRead = () => resolve({ rows: DISTANCE_ROWS });
+                  })
+                : Promise.resolve({ rows: DISTANCE_ROWS })
+        );
+
+        dataViewerApi.queryTagData.mockClear();
+        fireEvent.click(screen.getByLabelText('Refresh time range'));
+        await waitFor(() => expect(dataViewerApi.queryTagData.mock.calls.some((call: any[]) => (call[0].names || []).length > 1)).toBe(true));
+
+        fireEvent.click(globalTimeItem('Global Distance'));
+        await act(async () => {
+            releaseMainRead();
+            await Promise.resolve();
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        expect(within(mainCard()).queryByText('No chart data')).toBeNull();
+    });
+
     test('a time axis still copies ISO edges', async () => {
         await splitOneTagInChartMode(TIME_BASE_COLUMNS, ROWS.map((row, index) => ({ ...row, name: index % 2 === 0 ? OTHER_TAG_NAME : TAG_NAME })));
 

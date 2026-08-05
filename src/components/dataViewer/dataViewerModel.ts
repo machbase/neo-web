@@ -1360,8 +1360,24 @@ const COMPACT_NUMBER_UNITS = [
  */
 const COMPACT_NUMBER_CEILING = 1000 * COMPACT_NUMBER_UNITS[0].value;
 
+/** How fine the plain, unsuffixed label goes. Its reciprocal is the smallest reading it can state. */
+const Y_AXIS_MAX_FRACTION_DIGITS = 4;
+
 /**
- * A reading too large for any suffix, written the way such readings are written.
+ * The reading below which the plain label runs out, which is the same failure upside down.
+ *
+ * Four decimals is the finest a label without a suffix is written, so 0.0001 is the smallest
+ * reading it can state and everything under it rounds to `0`. A tag living at 1e-5 therefore draws
+ * a line that visibly rises and falls beside an axis labelled `0 0 0 0 0` — the ticks are all
+ * different and every label says they are the same.
+ *
+ * The ceiling failed by printing digits nobody can count; this fails by printing none at all. Both
+ * are the label refusing to state the scale it is on.
+ */
+const COMPACT_NUMBER_FLOOR = 10 ** -Y_AXIS_MAX_FRACTION_DIGITS;
+
+/**
+ * A reading outside the range the suffixes and decimals cover, written the way such readings are.
  *
  * Rounded first and re-parsed second so the mantissa carries the digits asked for and no more:
  * `toExponential` alone pads to the requested width, and `8.0e+35` is the same claim as `8e+35`
@@ -1376,10 +1392,12 @@ function formatYAxisLabel(value: unknown) {
     if (!Number.isFinite(numeric)) return String(value);
     const normalized = Object.is(numeric, -0) ? 0 : numeric;
     const abs = Math.abs(normalized);
-    if (abs >= COMPACT_NUMBER_CEILING) return formatBeyondCompactRange(normalized, 1);
+    // Zero is excluded from the floor by `abs > 0`, and deliberately: it is the one reading `0` is
+    // the whole truth about, and `0e+0` would be a worse way to say it.
+    if (abs >= COMPACT_NUMBER_CEILING || (abs > 0 && abs < COMPACT_NUMBER_FLOOR)) return formatBeyondCompactRange(normalized, 1);
     // Per value, not per axis: a y axis is handed no window, so each label answers for itself.
     const unit = COMPACT_NUMBER_UNITS.find((item) => abs >= item.value);
-    if (!unit) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(normalized);
+    if (!unit) return new Intl.NumberFormat('en-US', { maximumFractionDigits: Y_AXIS_MAX_FRACTION_DIGITS }).format(normalized);
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(normalized / unit.value)}${unit.suffix}`;
 }
 
