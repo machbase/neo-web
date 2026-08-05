@@ -12,6 +12,9 @@
     --color-surface-input: #353535;
     --color-surface-hover: rgba(255, 255, 255, 0.08);
     --color-surface-hover-block: rgba(255, 255, 255, 0.13);
+    /* Hover for rows that already sit on --color-surface-hover-block; the two translucent
+       hover tints are both dimmer than that, so they would darken a selected row on hover. */
+    --color-surface-hover-light: rgb(75, 75, 75);
     --color-surface-active: rgb(0, 83, 160);
     --color-on-surface: #f1f1f1;
     --color-on-surface-secondary: #c4c4c4;
@@ -856,13 +859,28 @@
     line-height: 1.5;
 }
 
+/* Depth indent adds to the row's own left padding instead of replacing it. Setting
+   `padding-left` inline zeroed it at depth 0, which put the checkbox on top of the
+   selected row's accent bar. */
+.neo-data-viewer .data-viewer-tag-list .data-viewer-tag-row,
+.neo-data-viewer .data-viewer-tag-list .node-tree-row {
+    padding-left: calc(var(--spacing-8) + var(--tree-indent, 0px));
+}
+
 .neo-data-viewer .data-viewer-tag-row:hover {
     background-color: var(--color-surface-hover);
 }
 
+/* Selection is already stated by the checkbox, so the row only needs to read as picked —
+   a filled blue bar per selected tag turns the list into stripes once several are on. */
 .neo-data-viewer .data-viewer-tag-row.is-active {
-    background-color: var(--color-surface-active);
-    color: var(--color-on-primary);
+    background-color: var(--color-surface-hover-block);
+    color: var(--color-on-surface);
+    box-shadow: inset 2px 0 0 var(--color-primary-hover);
+}
+
+.neo-data-viewer .data-viewer-tag-row.is-active:hover {
+    background-color: var(--color-surface-hover-light);
 }
 
 .neo-data-viewer .data-viewer-tag-row input[type='checkbox'] {
@@ -1011,6 +1029,15 @@
     flex-wrap: nowrap;
 }
 
+/* Head of the toolbar. Only the button participates in layout, so it centres against the other
+   controls exactly like any single-line button would. */
+.neo-data-viewer .data-viewer-range-anchor {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
 .neo-data-viewer .data-viewer-query-controls {
     min-width: 0;
 }
@@ -1066,15 +1093,21 @@
     background-color: var(--color-surface-hover);
 }
 
+/* The selected segment is the one piece of state in the toolbar, so it carries the primary
+   fill rather than a tinted label on the same dark surface. */
 .neo-data-viewer .data-viewer-segmented-item.is-active {
-    background-color: var(--color-surface);
-    border-color: var(--color-border);
-    color: #e0c09d;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+    /* Reference uses --shadow-sm, which neo-web does not define; --shadow-switch is this
+       control's existing token and the closest equivalent. */
     box-shadow: var(--shadow-switch);
 }
 
 .neo-data-viewer .data-viewer-segmented-item.is-active:hover {
-    background-color: var(--color-surface);
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    color: var(--color-on-primary);
 }
 
 .neo-data-viewer .btn {
@@ -1120,16 +1153,114 @@
     padding: 0;
 }
 
-.neo-data-viewer .data-viewer-time-range-button {
+/* Range chip — [axis][◀][value][▶], the same shape as the dashboard's RangeChips. The whole chip is
+   the click target (it opens the range editor), so the hover tint sits here and not on the value. */
+.neo-data-viewer .data-viewer-range-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-4);
     height: var(--size-control-height);
-    max-width: min(360px, 32vw);
-    padding: 0 var(--spacing-12);
+    /* The chip carries only what the user set in the modal (`last-1h ~ last`), so it stays
+       compact; the instants it resolved to live on the caption line below. */
+    max-width: min(280px, 30vw);
+    padding: 0 var(--spacing-8);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface-input);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.neo-data-viewer .data-viewer-time-range-button span:last-child {
+.neo-data-viewer .data-viewer-range-chip:hover {
+    background-color: var(--color-surface-hover);
+    border-color: var(--color-on-surface-disabled);
+}
+
+.neo-data-viewer .data-viewer-range-chip:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+/* Axis badge. Colour is the axis identity, carried over from the dashboard chips: time is the
+   primary blue, distance the amber that marks a non-time base. */
+.neo-data-viewer .data-viewer-range-chip-axis {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.neo-data-viewer .data-viewer-range-chip-time .data-viewer-range-chip-axis {
+    color: #4199ff;
+}
+
+.neo-data-viewer .data-viewer-range-chip-distance .data-viewer-range-chip-axis {
+    color: #fdb532;
+}
+
+/* Sits on top of the chip-wide hover, so it needs a stronger tint to stay legible as its own
+   button. `border-radius` is spelled out because src/index.css sets 8px on every <button>. */
+.neo-data-viewer .data-viewer-range-chip-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    border-radius: 3px;
+    background-color: transparent;
+    color: var(--color-on-surface-tertiary);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.neo-data-viewer .data-viewer-range-chip-chevron:hover:not(:disabled) {
+    background-color: var(--color-surface-active, rgba(255, 255, 255, 0.14));
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .data-viewer-range-chip-chevron:disabled {
+    cursor: default;
+}
+
+.neo-data-viewer .data-viewer-range-chip-value {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: var(--font-size-sm);
+    line-height: 1;
+    color: var(--color-on-surface-secondary);
+}
+
+/* Caption under the refresh button — the instants the expression resolved to, which every query on
+   this page is pinned to until something re-resolves them.
+
+   Taken out of flow deliberately. In flow it made the anchor two lines tall, and since the toolbar
+   row centres its children, that dragged the button (and with it the row's optical baseline) off
+   the line the other controls sit on. Hanging it below keeps the icon aligned and lets the caption
+   overhang into the toolbar's 16px bottom margin. `pointer-events: none` so it can never swallow a
+   click meant for the grid header underneath. */
+.neo-data-viewer .data-viewer-time-range-resolved {
+    position: absolute;
+    top: calc(100% + var(--spacing-2));
+    left: 0;
+    white-space: nowrap;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    line-height: 1.2;
+    color: var(--color-on-surface-tertiary);
+    pointer-events: none;
+}
+
+.neo-data-viewer .data-viewer-time-range-refresh {
+    width: var(--size-control-height);
+    height: var(--size-control-height);
+    padding: 0;
+    flex-shrink: 0;
 }
 
 .neo-data-viewer .table-card {
@@ -1210,6 +1341,25 @@
     padding-right: var(--spacing-12);
     overflow-y: auto;
     scrollbar-gutter: stable;
+    /* The loading badge is positioned against this box. */
+    position: relative;
+}
+
+/* Laid over the panels rather than replacing them: the panels stay mounted, so their ECharts
+   instances survive the load and the stack does not blink. Absolutely positioned so it displaces
+   nothing — the panels below sit exactly where they did before the load started, which is the whole
+   point of not swapping them out. */
+.neo-data-viewer .data-viewer-chart-loading-overlay {
+    position: absolute;
+    top: var(--spacing-8);
+    left: 0;
+    right: var(--spacing-12);
+    z-index: 4;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    color: var(--color-on-surface-secondary);
+    font-size: var(--font-size-sm);
 }
 
 .neo-data-viewer .data-viewer-chart-card {
@@ -1228,12 +1378,24 @@
     margin-top: var(--spacing-12);
 }
 
+/* The accent says *which* tag was split out, so it is that tag's own series colour rather than one
+   fixed blue for every panel. The colour is only known at render time — it comes from the palette
+   walk the main chart did — so it arrives as `--split-accent`, set inline on the card. The fallback
+   in every `var()` below is the old hardcoded primary, which is what a panel with no colour to show
+   (no chart result yet, a tag the palette has not reached) still gets. */
 .neo-data-viewer .data-viewer-chart-card.is-split {
-    border-left: 3px solid var(--color-primary);
+    border-left: 3px solid var(--split-accent, var(--color-primary));
 }
 
 .neo-data-viewer .data-viewer-chart-card.is-split .data-viewer-chart-panel-header {
+    /* Two declarations, not one. The header has to be a *tint* of the accent, and the accent is an
+       opaque hex from the series palette — there is no alpha in it to turn down. `color-mix` is the
+       only way to make one from a custom property (an `rgba()` cannot take a var as its channels),
+       and it is Chrome 111 / Safari 16.2 / Firefox 113. The literal above it is what anything older
+       paints: the same blue this rule used before the accent existed, so the panel degrades to the
+       previous appearance rather than to no header background at all. */
     background-color: rgba(0, 95, 184, 0.14);
+    background-color: color-mix(in srgb, var(--split-accent, var(--color-primary)) 14%, transparent);
 }
 
 .neo-data-viewer .data-viewer-chart-panel-header {
@@ -1245,15 +1407,31 @@
     border-bottom: 1px solid var(--color-border);
 }
 
+/* `flex-shrink: 0`, deliberately, with the squeeze taken by `max-width` instead. The title used to
+   be `flex: 0 1 auto; min-width: 0`, which let the flex line shrink the *box* past the width of the
+   icon and the count badge inside it — and a flex item shrunk below its content does not clip it, it
+   spills it. So on a narrow panel the tag name truncated to nothing and the `24` badge came out from
+   under the title and was painted over by the first tag chip (the chips are the later sibling, so
+   they win the paint order). Now the box always keeps its content; `max-width` caps how much of the
+   header it may claim, and the only thing that gives way inside it is the `.truncate` name below.
+   `overflow: hidden` is the belt to that braces — nothing in here can ever reach a sibling again. */
 .neo-data-viewer .data-viewer-chart-panel-title {
     display: flex;
     align-items: center;
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     min-width: 0;
+    max-width: 40%;
+    overflow: hidden;
     gap: var(--spacing-8);
     color: var(--color-on-surface);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
+}
+
+/* Only the name gives; the icon and the count keep their size at every width. */
+.neo-data-viewer .data-viewer-chart-panel-title > .material-symbols-outlined,
+.neo-data-viewer .data-viewer-chart-panel-title > .badge {
+    flex-shrink: 0;
 }
 
 .neo-data-viewer .data-viewer-chart-panel-actions {
@@ -1331,7 +1509,10 @@
     gap: var(--spacing-6);
     flex: 1 1 auto;
     max-width: min(960px, 68vw);
-    min-width: 120px;
+    /* 0, not a 120px floor: this strip is the one part of the header that is *designed* to run out
+       of room — it scrolls. A floor here only moves the overflow onto the neighbours it sits next
+       to (the title on its left, the ⋮ button on its right). */
+    min-width: 0;
     padding: 0;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1370,6 +1551,15 @@
     border-color: var(--color-primary);
     color: var(--color-primary);
     background-color: var(--color-primary-muted);
+}
+
+/* The tag's own name, in the one state where the chip is emphasised. `--color-primary` is #005fb8 —
+   a dark blue that reads clearly as a 1px border against the panel but not as small text sitting on
+   a dark surface, so the split chip's own name was the least legible thing on it. The emphasis stays
+   where it works (the border, the fill); only the name is lifted out of it, and the × keeps the
+   accent so the chip still reads as "click to remove". */
+.neo-data-viewer .data-viewer-chart-tag-chip.is-split .truncate {
+    color: var(--color-white);
 }
 
 .neo-data-viewer .data-viewer-chart-card .table-card-body {
@@ -1613,14 +1803,28 @@
 .neo-data-viewer .data-viewer-raw-table {
     border-collapse: separate;
     border-spacing: 0;
-    table-layout: auto;
+    /* With a virtualised body, `auto` layout computes column widths from only the mounted rows,
+       so the widths jump on every scroll. `fixed` defers to the <colgroup> widths that
+       buildRawColumnWidths derives from the whole result set. */
+    table-layout: fixed;
     font-size: 14px;
 }
 
+/* `white-space: nowrap` is not negotiable: the body is virtualised with a fixed row height
+   (RAW_ROW_HEIGHT), so a wrapped cell would desynchronise every row offset. Overflowing content
+   therefore has to go sideways, which is what `.table-card-body { overflow: auto }` is for — the
+   <colgroup> widths from buildRawColumnWidths size the columns to the whole result set and the
+   table overflows its pane rather than clipping.
+
+   `overflow: hidden` + ellipsis stays as the honest end state for content past that function's
+   cap; it is not what decides the width. A `max-width: 50vw` used to sit here as a "backstop",
+   justified by a header that renders in its own table — TableVirtuoso puts thead and tbody in one
+   table, so that was never true, and measurement in Chrome confirms min/max-width are ignored on
+   cells under `table-layout: fixed` (identical geometry with and without it). Removed rather than
+   left as a rule that reads like a limit and is not one. */
 .neo-data-viewer .data-viewer-raw-table th,
 .neo-data-viewer .data-viewer-raw-table td {
     height: 25px;
-    max-width: 50vw;
     padding: 0 16px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1642,6 +1846,48 @@
     vertical-align: middle;
 }
 
+/* Numbers read as a column only when their digits line up on the right. */
+.neo-data-viewer .data-viewer-raw-table th.is-numeric,
+.neo-data-viewer .data-viewer-raw-table td.is-numeric {
+    text-align: end;
+}
+
+/* Name cell carries the tag's chart series colour, so a row is traceable to its line after
+   switching Raw -> Chart. Drawn as ::before rather than a nested <span>: the body is virtualised
+   but still mounts every visible row on each scroll frame, and an extra element per row is pure
+   overhead when a pseudo-element does the same job. --raw-dot is set per cell. */
+.neo-data-viewer .data-viewer-raw-table td.raw-name::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: var(--spacing-8);
+    border-radius: 50%;
+    background-color: var(--raw-dot, transparent);
+    vertical-align: middle;
+}
+
+/* Zebra striping off. The inherited `.table-clean tbody tr:nth-child(even) td` rule breaks under
+   virtualisation: react-virtuoso pads the tbody with spacer <tr>s above and below the mounted
+   window, so the odd/even parity of a data row flips as you scroll and the spacers themselves
+   get painted. */
+.neo-data-viewer .data-viewer-raw-table tbody tr:nth-child(even) td {
+    background-color: transparent;
+}
+
+/* Same spacer problem for hover: virtuoso's FillerRow is a <tr> containing a real <td>
+   (react-virtuoso/dist/index.mjs), so the inherited `.table-clean tbody tr:hover td` paints a
+   viewport-tall block whenever the pointer crosses the padding above or below the window.
+   Cancel the inherited rule outright, then re-apply it only to the rows virtuoso tags with
+   `data-index` — the attribute it puts on every real item row and never on a spacer. */
+.neo-data-viewer .data-viewer-raw-table tbody tr:hover td {
+    background-color: transparent;
+}
+
+.neo-data-viewer .data-viewer-raw-table tbody tr[data-index]:hover td {
+    background-color: var(--color-surface-hover);
+}
+
 .neo-data-viewer .empty-state {
     padding: var(--spacing-24);
     text-align: center;
@@ -1657,10 +1903,20 @@
     font-size: var(--font-size-sm);
 }
 
+/* Portal target wrapper. It exists only to re-establish the `.neo-data-viewer` scope (every rule and
+   design token below is keyed to it) for a dialog that lives on <body>; `display: contents` keeps it
+   out of layout so it never becomes a stray full-height flex box. */
+.neo-data-viewer.neo-data-viewer-portal {
+    display: contents;
+}
+
 .neo-data-viewer .modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    /* Above $modal-idx (1001, src/assets/scss/variables.scss:78) — this dialog is portalled to
+       <body> so it competes in the root stacking context with the app shell's splitter, which was
+       painting over the old page-local 1000. */
+    z-index: 1002;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1826,6 +2082,265 @@
 
 .neo-data-viewer .data-viewer-format-modal.modal {
     min-width: 430px;
+}
+
+/* Distance range editor — the Data Viewer's stand-in for DistanceRangeTab. It reuses the time
+   modal's shell (.data-viewer-time-modal) so the two editors are visually the same dialog; the body
+   is its own, because a distance window is a bounded interval on a numeric extent — a readout, a
+   dual-thumb slider, a tick scale and two plain numbers — with no picker, timezone or quick list. */
+.neo-data-viewer .data-viewer-distance-modal.modal {
+    min-width: 420px;
+}
+
+/* The title sits left beside its icon here, not centred like the time modal's, because the close
+   button occupies the right edge and a centred title would read as off-centre against it. */
+.neo-data-viewer .data-viewer-distance-modal .data-viewer-distance-header .modal-header-title {
+    justify-content: flex-start;
+}
+
+.neo-data-viewer .data-viewer-distance-close {
+    flex-shrink: 0;
+}
+
+.neo-data-viewer .data-viewer-distance-body {
+    gap: var(--spacing-16);
+}
+
+/* The range on one line and the span on the next, rather than the two pushed to opposite ends of a
+   row: the span is a note about the range above it, and at the far edge of a 420px dialog it read as
+   a second, unrelated number. Left as block flow — both children are block boxes, so they stack
+   without a flex direction to get wrong. */
+.neo-data-viewer .data-viewer-distance-readout {
+    display: block;
+}
+
+.neo-data-viewer .data-viewer-distance-readout-value {
+    font-size: 22px;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-on-surface);
+    /* The two edges change width as they are dragged; without tabular figures the whole readout
+       jitters sideways on every step of the slider. */
+    font-variant-numeric: tabular-nums;
+}
+
+.neo-data-viewer .data-viewer-distance-readout-dash {
+    padding: 0 var(--spacing-4);
+    color: var(--color-on-surface-tertiary);
+}
+
+.neo-data-viewer .data-viewer-distance-readout-span {
+    margin-top: var(--spacing-2);
+    color: var(--color-on-surface-tertiary);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Dual-thumb slider: one visual track, two native range inputs stacked over it. */
+.neo-data-viewer .data-viewer-distance-slider {
+    position: relative;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    /* The track is clickable — a press on it moves the whole window there — so it has to say so.
+       The thumbs override this with `ew-resize`, which is the other half of the affordance: drag
+       an edge, click the rail. */
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-distance-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px;
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.neo-data-viewer .data-viewer-distance-fill {
+    position: absolute;
+    height: 6px;
+    border-radius: 3px;
+    background-color: rgb(0, 108, 210);
+}
+
+.neo-data-viewer .data-viewer-distance-thumb {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    /* Off on the input, back on for the thumb: the two inputs cover each other completely, so
+       without this only the top one would ever receive a drag. */
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.neo-data-viewer .data-viewer-distance-thumb::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: auto;
+    width: 8px;
+    height: 22px;
+    /* Stated, not inherited: the global `button, input { border-radius: 8px }` in src/index.css
+       would otherwise round this 8px-wide bar into a circle. */
+    border-radius: 3px;
+    border: 2px solid #1b1b1b;
+    background-color: rgb(0, 108, 210);
+    cursor: ew-resize;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.neo-data-viewer .data-viewer-distance-thumb::-moz-range-thumb {
+    pointer-events: auto;
+    width: 8px;
+    height: 22px;
+    border-radius: 3px;
+    border: 2px solid #1b1b1b;
+    background-color: rgb(0, 108, 210);
+    cursor: ew-resize;
+}
+
+.neo-data-viewer .data-viewer-distance-thumb::-webkit-slider-runnable-track {
+    background: transparent;
+}
+
+.neo-data-viewer .data-viewer-distance-thumb::-moz-range-track {
+    background: transparent;
+}
+
+/* Ticks are positioned by percentage across the same width the track spans, so each label sits
+   under the value it names. `margin-top` pulls them up into the slider's own 28px box, which is
+   taller than the 6px rail. */
+.neo-data-viewer .data-viewer-distance-ticks {
+    position: relative;
+    height: 26px;
+    margin-top: calc(var(--spacing-12) * -1);
+}
+
+.neo-data-viewer .data-viewer-distance-tick {
+    position: absolute;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-2);
+    /* Centres the label on its tick; the max label at left:100% is pulled fully inside instead. */
+    transform: translateX(-50%);
+    color: var(--color-on-surface-disabled);
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.neo-data-viewer .data-viewer-distance-tick-max {
+    transform: translateX(-100%);
+    align-items: flex-end;
+    color: var(--color-on-surface-tertiary);
+}
+
+.neo-data-viewer .data-viewer-distance-tick-mark {
+    width: 1px;
+    height: 5px;
+    background-color: rgba(255, 255, 255, 0.22);
+}
+
+.neo-data-viewer .data-viewer-distance-tick-max .data-viewer-distance-tick-mark {
+    margin-right: 0;
+}
+
+.neo-data-viewer .data-viewer-distance-fields {
+    display: flex;
+    gap: var(--spacing-12);
+}
+
+.neo-data-viewer .data-viewer-distance-field {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+    user-select: none;
+}
+
+.neo-data-viewer .data-viewer-distance-field-label {
+    color: var(--color-on-surface-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.neo-data-viewer .data-viewer-distance-field input {
+    width: 100%;
+    height: 32px;
+    min-width: 0;
+    padding: 0 var(--spacing-12);
+    border: 1px solid #3e3e3e;
+    /* The global `button, input { border-radius: 8px }` in src/index.css leaks into every control in
+       the app; stating the token here keeps this field on the same radius as the selects beside it
+       instead of inheriting that 8px. */
+    border-radius: var(--radius-base);
+    outline: none;
+    background-color: #2a2a2a;
+    color: var(--color-on-surface);
+    font-size: var(--font-size-base);
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.3s ease;
+}
+
+.neo-data-viewer .data-viewer-distance-field input:hover {
+    border-color: #5a5a5a;
+}
+
+.neo-data-viewer .data-viewer-distance-field input:focus {
+    border-color: var(--color-border-focus);
+}
+
+/* Quick windows: two rows of three, sitting between the From/To fields and the footer. Equal
+   columns rather than content-width buttons, so `Full` lines up under `First 50%` and the block
+   reads as one grid instead of six loose chips. */
+.neo-data-viewer .data-viewer-distance-quick {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-8);
+    /* Separated from the From/To fields above: these are shortcuts that *write* those fields, so
+       sitting flush against them reads as one control group and the label gets lost between the
+       two inputs and the first button row. */
+    margin-top: var(--spacing-16);
+}
+
+.neo-data-viewer .data-viewer-distance-quick-label {
+    color: var(--color-on-surface-tertiary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    user-select: none;
+}
+
+.neo-data-viewer .data-viewer-distance-quick-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-8);
+}
+
+/* The footer's Cancel/Apply are 36px tall and full-weight; these are shortcuts, not the dialog's
+   decision, so they are the same secondary skin one size down. */
+.neo-data-viewer .data-viewer-distance-modal .data-viewer-distance-quick-button {
+    min-height: 30px;
+    padding: 0 var(--spacing-8);
+    font-size: var(--font-size-sm);
+}
+
+/* Full width under both fields, so the message starts at the left edge of the body rather than
+   being squeezed into one of the two input columns. */
+.neo-data-viewer .data-viewer-distance-notice {
+    margin-top: var(--spacing-4);
 }
 
 .neo-data-viewer .data-viewer-select-field,
