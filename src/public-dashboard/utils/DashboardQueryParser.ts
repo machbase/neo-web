@@ -19,7 +19,7 @@ import {
     createRollupAggregationMetric,
 } from '../../utils/rollupQueryBuilder';
 import { parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from '../../utils/dashboardJsonValue';
-import { isNonDateTimeBaseTimeColumn } from '../../utils/timeFieldColumns';
+import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from '../../utils/timeFieldColumns';
 import { getBaseJsonRollupValue } from '../../utils/rollupColumnCandidates';
 
 interface BlockTimeType {
@@ -178,6 +178,9 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             useCustom: bBlock.useCustom,
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
+            // carried so numeric-base (distance) detection survives a reload without tableInfo
+            timeType: bBlock.timeType,
+            timeBaseTime: bBlock.timeBaseTime,
             math: bBlock?.math ?? '',
             isValidMath: true,
             duration: bBlock?.duration ?? { from: '', to: '' },
@@ -205,6 +208,9 @@ export const getInterval = (aType: string, aValue: number) => {
             return aValue * 60 * 60 * 1000;
         case 'day':
             return aValue * 24 * 60 * 60 * 1000;
+        case 'value':
+            // distance (numeric base) — raw step, used unscaled by GetTimeBucketColumn (× 1)
+            return aValue;
         default:
             return 0;
     }
@@ -276,7 +282,7 @@ const GetTimeBucketColumn = (aTime: string, aInterval: { IntervalType: string; I
 
 const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }, aAggregator: string, aRollupList: any) => {
     const sTime = aTable.time;
-    const sUseNumericBaseTime = isNonDateTimeBaseTimeColumn(aTable.tableInfo, sTime);
+    const sUseNumericBaseTime = isNumericBaseTimeBlock(aTable);
     if (!aUseAgg) return sTime;
     if (sUseNumericBaseTime) return GetTimeBucketColumn(sTime, aInterval, true);
     if (aTable.useRollup) {
@@ -435,7 +441,7 @@ const BuildTimeValueAggregationSql = (
     aFilterWhere: string
 ) => {
     const sSourceMode = GetTimeValueAggregationSourceMode(aQuery);
-    const sUseNumericBaseTime = isNonDateTimeBaseTimeColumn(aQuery.tableInfo, aQuery.time);
+    const sUseNumericBaseTime = isNumericBaseTimeBlock(aQuery);
     const sTimeRange = {
         start: sUseNumericBaseTime ? aTime.start : `${aTime.start}000000`,
         end: sUseNumericBaseTime ? aTime.end : `${aTime.end}000000`,
@@ -555,7 +561,7 @@ const QueryParser = (
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
-        const sUseNumericBaseTime = isNonDateTimeBaseTimeColumn(aQuery.tableInfo, aQuery.time);
+        const sUseNumericBaseTime = isNumericBaseTimeBlock(aQuery);
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime, sUseNumericBaseTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;

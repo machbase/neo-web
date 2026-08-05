@@ -19,7 +19,7 @@ import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
-import { isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
+import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
@@ -147,7 +147,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
     const GetQuery = async () => {
         const { min, max } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
         const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
             SqlResDataType(pPanelInfo.type),
@@ -170,7 +170,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const GetSaveDataText = async (blockIndex: number) => {
         const [sParsedQuery, sAliasList] = await GetQuery();
         const { min, max } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
 
         const sTargetItem = sParsedQuery[blockIndex];
         const sBlockInfo = sAliasList[blockIndex];

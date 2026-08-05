@@ -7,7 +7,7 @@ import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
 import { unitFormatter } from './Chart/formatters';
 import { compareVersions } from './version/utils';
-import { isNonDateTimeBaseTimeColumn } from './timeFieldColumns';
+import { isNumericBaseTimeBlock } from './timeFieldColumns';
 // import { generateTooltipAxisFunction } from './Chart/formatters/tooltipFormatter';
 // structure of chart common option
 const StructureOfCommonOption = `{
@@ -221,7 +221,9 @@ const ReplaceTypeOpt = (
         sPolarStructure = PolarOption['structure'];
         sChartOptList = sChartOptList.filter((aChartOpt: string) => !PolarOption['list'].includes(aChartOpt));
         PolarOption['list'].map((aPolarOpt: string) => {
-            sPolarStructure = sPolarStructure.replace(`$${aPolarOpt}$`, aChartOption[aPolarOpt]);
+            // distance (numeric) base → polar radiusAxis must be 'value', not the hardcoded 'time'
+            const sPolarValue = aPolarOpt === 'polarAxis' && aUseValueXAxis ? 'value' : aChartOption[aPolarOpt];
+            sPolarStructure = sPolarStructure.replace(`$${aPolarOpt}$`, sPolarValue);
         });
     }
     // Set xAxis | yAxis
@@ -327,7 +329,7 @@ const buildEnabledSeriesMeta = (aTagList: any[] | undefined): Array<{ idx: numbe
 };
 
 /** replace common opt */
-const ReplaceCommonOpt = (aOpt: any, aPanelType: string, aTagList?: any[]) => {
+const ReplaceCommonOpt = (aOpt: any, aPanelType: string, aTagList?: any[], aUseValueXAxis = false) => {
     const aCommonOpt = aOpt.commonOptions;
     const sCommOptList: string[] = Object.keys(aCommonOpt);
     const sDataType = SqlResDataType(aPanelType);
@@ -348,7 +350,7 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string, aTagList?: any[]) => {
         sResult.tooltip.formatter = unitFormatter(sUnit, aCommonOpt['tooltipDecimals'], 'TOOLTIP', {
             type: sResult.tooltip.trigger,
             opt: aOpt,
-            panelType: aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME',
+            panelType: aPanelType === E_CHART_TYPE.ADV_SCATTER || aUseValueXAxis ? 'VALUE' : 'TIME',
             enabledSeriesMeta: sEnabledSeriesMeta,
         });
     }
@@ -521,14 +523,16 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
     const sUseDualYAxis = aOptionInfo.yAxisOptions.length === 2;
     const sTagList = aTagList.filter(Boolean);
-    const sCommonOpt = ReplaceCommonOpt(aOptionInfo, sConvertedChartType, sTagList);
+    const sXAxisBlockIndex = aOptionInfo.xAxisOptions?.[0]?.useBlockList?.[0] ?? 0;
+    const sXAxisBlock = aOptionInfo.blockList?.[sXAxisBlockIndex] ?? aOptionInfo.blockList?.[0];
+    // Distance (non-datetime BASETIME) base → value x-axis (robust without tableInfo on reload).
+    // Computed before ReplaceCommonOpt so the tooltip formatter gets panelType 'VALUE' (no date leak).
+    const sUseValueXAxis = isNumericBaseTimeBlock(sXAxisBlock);
+    const sCommonOpt = ReplaceCommonOpt(aOptionInfo, sConvertedChartType, sTagList, sUseValueXAxis);
     // Animation false (TIME_VALUE TYPE)
     if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
     const sDefaultChartOption = getDefaultSeriesOption(sConvertedChartType as any) ?? {};
     const sMergedChartOptions = { ...sDefaultChartOption, ...aOptionInfo.chartOptions };
-    const sXAxisBlockIndex = aOptionInfo.xAxisOptions?.[0]?.useBlockList?.[0] ?? 0;
-    const sXAxisBlock = aOptionInfo.blockList?.[sXAxisBlockIndex] ?? aOptionInfo.blockList?.[0];
-    const sUseValueXAxis = isNonDateTimeBaseTimeColumn(sXAxisBlock?.tableInfo, sXAxisBlock?.time);
     const sTypeOpt = ReplaceTypeOpt(
         sConvertedChartType,
         SqlResDataType(sConvertedChartType),

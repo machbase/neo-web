@@ -7,17 +7,20 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdRefresh, Share } from '@/assets/icons/Icon';
+import { TbSquarePlus, Save, SaveAs, MdRefresh, Share } from '@/assets/icons/Icon';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import AutoRefreshControl from './AutoRefreshControl';
+import RangeChips from './RangeChips';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
 import moment from 'moment';
-import { calcRefreshTime, setUnitTime, formatTimeValue } from '@/utils/dashboardUtil';
+import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { Variable } from './variable';
@@ -32,6 +35,7 @@ import { clearBoardVideoStore } from '@/hooks/useVideoSync';
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const boardIdRef = useRef<string>(pInfo?.id);
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
+    const [sInitialRangeTab, setInitialRangeTab] = useState<'time' | 'distance'>('time');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sLoadedRollupTable, setLoadedRollupTable] = useState<boolean>(false);
@@ -83,6 +87,25 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         );
 
         handleDashboardTimeRange(sStartTime, sEndTime);
+    };
+    // Shift only the distance axis by its current span (default/full range resolves to [first, last] first).
+    const moveDistanceRange = async (aDir: 'l' | 'r') => {
+        const sDR = pInfo.dashboard.distanceRange ?? {};
+        let sFrom = Number(sDR.start);
+        let sTo = Number(sDR.end);
+        if (sDR.start === '' || sDR.end === '' || sDR.start == null || sDR.end == null || !Number.isFinite(sFrom) || !Number.isFinite(sTo)) {
+            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
+            if (!sBounds) return;
+            sFrom = sBounds.min;
+            sTo = sBounds.max;
+        }
+        const sShift = ((sTo - sFrom) / 2) * (aDir === 'l' ? -1 : 1);
+        const sNewFrom = Math.round(sFrom + sShift);
+        const sNewTo = Math.round(sTo + sShift);
+        setBoardList(
+            sBoardList.map((aItem: any) => (aItem.id === pInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: sNewFrom, end: sNewTo } } } : aItem))
+        );
     };
     const showEditPanel = (aType: 'create' | 'edit' | undefined, aId?: string) => {
         setThisPanelStatus(aType);
@@ -183,7 +206,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         handleDashboardTimeRange(sStart, sEnd);
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
-        const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
+        // Board-level time min/max must come from a TIME (non-distance) panel; distance panels self-resolve
+        // from distanceRange, so a distance-first mixed board would otherwise leak distance bounds here.
+        const sTargetPanel = pickBoardTimeMinMaxPanel(pInfo.dashboard.panels);
         const sTargetTag = sTargetPanel?.blockList?.[0] ?? { tag: '', filter: [] };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag =
@@ -289,16 +314,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 toolTipContent="Refresh"
                                 onClick={() => HandleRefresh(pInfo.dashboard.timeRange)}
                             />
-                            <Button size="icon" variant="ghost" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} />
-                            <Button size="sm" variant="ghost" onClick={() => setTimeRangeModal(true)}>
-                                <Calendar style={{ paddingRight: '8px' }} />
-                                {pInfo?.dashboard?.timeRange?.start ? (
-                                    <>{formatTimeValue(pInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pInfo.dashboard.timeRange.end)}</>
-                                ) : (
-                                    <span>Time range not set</span>
-                                )}
-                            </Button>
-                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Move range" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
+                            <RangeChips
+                                pBoardInfo={pInfo}
+                                pOnShiftTime={moveTimeRange}
+                                pOnShiftDist={moveDistanceRange}
+                                pOnEditTime={() => {
+                                    setInitialRangeTab('time');
+                                    setTimeRangeModal(true);
+                                }}
+                                pOnEditDist={() => {
+                                    setInitialRangeTab('distance');
+                                    setTimeRangeModal(true);
+                                }}
+                            />
                             <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
                             <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                             <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
@@ -382,7 +410,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         </Page.Body>
                     )}
                 </Page>
-                {sTimeRangeModal && <TimeRangeModal pUseRecoil={true} pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />}
+                {sTimeRangeModal && (
+                    <TimeRangeModal pUseRecoil={true} pType={'dashboard'} pInitialTab={sInitialRangeTab} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />
+                )}
                 {sCreateModal && (
                     <CreatePanel
                         pLoopMode={false}
@@ -394,6 +424,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pModifyState={sModifyState}
                         pSetModifyState={setModifyState}
                         pMoveTimeRange={moveTimeRange}
+                        pMoveDistanceRange={moveDistanceRange}
                         pSetTimeRangeModal={setTimeRangeModal}
                         pSetIsSaveModal={pSetIsSaveModal}
                         pBoardTimeMinMax={sBoardTimeMinMax}

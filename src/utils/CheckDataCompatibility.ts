@@ -22,6 +22,14 @@ const DashboardCompatibility = (aData: any) => {
         };
     }
 
+    // Backfill distance (numeric base) range for pre-distance dashboards. '' = full [first, last].
+    if (!sDashboardInfo?.dashboard?.distanceRange) {
+        sDashboardInfo.dashboard = {
+            ...sDashboardInfo.dashboard,
+            distanceRange: { start: '', end: '' },
+        };
+    }
+
     if (sDashboardInfo?.dashboard?.panels?.length > 0) {
         // Phase 1: Validate and repair all panels (structural integrity)
         sDashboardInfo.dashboard.panels = sDashboardInfo.dashboard.panels

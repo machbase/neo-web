@@ -2,6 +2,8 @@ import './LineChart.scss';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
 import { subscribeTimeRangeChange, unsubscribeTimeRangeChange, TimeRangeEvent, getVideoPanelStateForChart } from '@/hooks/useVideoSync';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -168,6 +170,20 @@ const LineChart = ({
             // Use video time range for Normal/Sync video charts
             sStartTime = sVideoTimeRange.start.getTime();
             sEndTime = sVideoTimeRange.end.getTime();
+        } else if (isNumericBaseTimeBlock(pPanelInfo.blockList?.[0])) {
+            // Distance (numeric base) panel — resolve from the board's kind-separated distanceRange.
+            // Numeric start/end are used as-is; '' means the full [first, last] data extent.
+            const sDistanceRange = pBoardInfo?.dashboard?.distanceRange ?? {};
+            const sHasStart = sDistanceRange.start !== '' && sDistanceRange.start != null;
+            const sHasEnd = sDistanceRange.end !== '' && sDistanceRange.end != null;
+            if (sHasStart && sHasEnd) {
+                sStartTime = Number(sDistanceRange.start);
+                sEndTime = Number(sDistanceRange.end);
+            } else {
+                const sBounds = await fetchBlockBaseMinMax(pPanelInfo.blockList?.[0]);
+                sStartTime = sHasStart ? Number(sDistanceRange.start) : sBounds?.min ?? 0;
+                sEndTime = sHasEnd ? Number(sDistanceRange.end) : sBounds?.max ?? 0;
+            }
         } else if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
             if (!sTimeMinMax) {
@@ -182,7 +198,7 @@ const LineChart = ({
             sEndTime = setUnitTime(pBoardTimeMinMax?.max);
         }
 
-        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
 
         if (pPanelInfo.type === 'Geomap')
             sIntervalInfo = {
@@ -477,7 +493,8 @@ const LineChart = ({
             // 비디오에 종속되지 않은 독립 차트는 항상 대시보드 시간을 따름
             executeTqlChart();
         }
-    }, [pBoardTimeMinMax, pChartVariableId]);
+        // distanceRange is board-level (not carried by pBoardTimeMinMax), so re-query when it changes.
+    }, [pBoardTimeMinMax, pChartVariableId, pBoardInfo?.dashboard?.distanceRange?.start, pBoardInfo?.dashboard?.distanceRange?.end]);
     useEffect(() => {
         if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
             executeTqlChart();

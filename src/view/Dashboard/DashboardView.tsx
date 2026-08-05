@@ -12,7 +12,7 @@ import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VariableHeader } from '@/components/dashboard/variable/header';
@@ -73,7 +73,8 @@ const DashboardView = () => {
         return sNowTimeMinMax;
     };
     const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
-        const sTargetPanel = aBoardInfo.dashboard.panels[0];
+        // Source the board time min/max from a TIME (non-distance) panel — distance panels self-resolve.
+        const sTargetPanel = pickBoardTimeMinMaxPanel(aBoardInfo.dashboard.panels);
         if (!sTargetPanel?.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
         const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {

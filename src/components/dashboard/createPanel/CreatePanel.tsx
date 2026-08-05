@@ -1,4 +1,4 @@
-import { Calendar, IoArrowBackOutline, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
+import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { SplitPane, Pane, Page, Button } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
@@ -14,15 +14,17 @@ import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
-import { formatTimeValue } from '@/utils/dashboardUtil';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { getPanelTimeMinMaxTarget, getTimeMinMaxFetchTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 import { handlePanelEdit } from '@/hooks/useVideoSync';
 import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage } from './validation';
+import TimeRangeModal from '@/components/modal/TimeRangeModal';
+import RangeChips from '../RangeChips';
 
 const CreatePanel = ({
     pLoopMode,
@@ -34,7 +36,7 @@ const CreatePanel = ({
     pModifyState,
     pSetModifyState,
     pMoveTimeRange,
-    pSetTimeRangeModal,
+    pMoveDistanceRange,
     pSetIsSaveModal,
     pBoardTimeMinMax,
     pChartVariableId,
@@ -49,6 +51,7 @@ const CreatePanel = ({
     pModifyState: { id: string; state: boolean };
     pSetModifyState: any;
     pMoveTimeRange: any;
+    pMoveDistanceRange: any;
     pSetTimeRangeModal: (aValue: boolean) => void;
     pSetIsSaveModal: any;
     pBoardTimeMinMax: any;
@@ -66,6 +69,7 @@ const CreatePanel = ({
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
     const [sBoardTimeRange, setBoardTimeRange] = useState<any>(undefined);
     const [sMissingTagBlockId, setMissingTagBlockId] = useState<string | null>(null);
+    const [sRangeModal, setRangeModal] = useState(false);
 
     // Create
     const addPanel = async () => {
@@ -148,7 +152,14 @@ const CreatePanel = ({
                 pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
                 pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
             } else {
-                if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
+                // Adding a TIME panel to an all-distance board must recompute the board time from the new
+                // panel — nothing else recomputes it on add, so it would otherwise keep the stale distance
+                // range the board min/max held while only distance panels existed.
+                const sExistingAllDistance = sChartPanelList.every((panel: any) => isNumericBaseTimeBlock(panel.blockList?.[0]));
+                const sAddingTimePanel = !isNumericBaseTimeBlock(sTmpPanelInfo.blockList?.[0]);
+                if (sExistingAllDistance && sAddingTimePanel) {
+                    pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
+                } else if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
                 else pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
             }
         }
@@ -458,7 +469,7 @@ const CreatePanel = ({
         pSetCreateModal(false);
     };
     const handleTimeRange = () => {
-        pSetTimeRangeModal(true);
+        setRangeModal(true);
     };
     const init = async () => {
         if (pType === 'edit') setCreateModeTimeMinMax(async () => await getTimeMinMax(pBoardInfo?.dashboard?.timeRange));
@@ -479,7 +490,12 @@ const CreatePanel = ({
         }
     }, [pBoardInfo?.dashboard?.timeRange]);
 
+    // The edited panel has a single base x-axis: distance (numeric) or time. The header range chip
+    // and the range modal both follow that kind, so a distance panel shows/edits the distance range.
+    const sIsDistancePanel = isNumericBaseTimeBlock(sPanelOption?.blockList?.[0]);
+
     return (
+        <>
         <Page style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999 }}>
             <Page.Header>
                 <Page.DpRow>
@@ -487,18 +503,14 @@ const CreatePanel = ({
                     Create panel
                 </Page.DpRow>
                 <Page.DpRow>
-                    <Button.Group>
-                        <Button size="icon" variant="ghost" icon={<VscChevronLeft size={14} />} onClick={() => pMoveTimeRange('l')} />
-                        <Button size="sm" variant="ghost" onClick={handleTimeRange}>
-                            <Calendar style={{ paddingRight: '8px' }} />
-                            {pBoardInfo?.dashboard?.timeRange?.start ? (
-                                <>{formatTimeValue(pBoardInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pBoardInfo.dashboard.timeRange.end)}</>
-                            ) : (
-                                <span>Time range not set</span>
-                            )}
-                        </Button>
-                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Move range" icon={<VscChevronRight size={14} />} onClick={() => pMoveTimeRange('r')} />
-                    </Button.Group>
+                    <RangeChips
+                        pBoardInfo={pBoardInfo}
+                        pOnlyAxis={sIsDistancePanel ? 'DIST' : 'TIME'}
+                        pOnShiftTime={pMoveTimeRange}
+                        pOnShiftDist={pMoveDistanceRange}
+                        pOnEditTime={handleTimeRange}
+                        pOnEditDist={handleTimeRange}
+                    />
                     <Page.Divi direction={'vertical'} />
                     <Page.DpRow>
                         <Page.TextButton pText="Discard" pType="DELETE" pCallback={handleDiscard} pWidth="75px" mb="0px" mr="4px" />
@@ -558,6 +570,15 @@ const CreatePanel = ({
                 </SplitPane>
             </Page.Body>
         </Page>
+        {sRangeModal && (
+            <TimeRangeModal
+                pUseRecoil={true}
+                pType={'dashboard'}
+                pLockTab={sIsDistancePanel ? 'distance' : 'time'}
+                pSetTimeRangeModal={setRangeModal}
+            />
+        )}
+        </>
     );
 };
 export default CreatePanel;

@@ -8,6 +8,7 @@ import { Toast } from '@/design-system/components';
 import { Download, Close } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
@@ -75,7 +76,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
 
     const GetQuery = async () => {
         const { min, max } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
         const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
             SqlResDataType(pPanelInfo.type),
@@ -131,7 +132,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
     const GetSaveDataText = async (blockIndex: number) => {
         const [sParsedQuery] = await GetQuery();
         const { min, max } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
 
         const sOutputStr: string = (sOutput as string) === 'DATA(JSON)' ? 'JSON()' : 'CSV()';
         const sTargetItem = sParsedQuery[blockIndex];

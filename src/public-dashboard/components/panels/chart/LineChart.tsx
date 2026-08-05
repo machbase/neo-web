@@ -2,6 +2,8 @@ import './LineChart.scss';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '../../../api/repository/machiot';
 import { useOverlapTimeout } from '../../../hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '../../../utils/dashboardUtil';
+import { isNumericBaseTimeBlock } from '../../../../utils/timeFieldColumns';
+import { fetchBlockBaseMinMax } from '../../../../utils/dashboardBaseMinMax';
 import { useEffect, useRef, useState } from 'react';
 import { DashboardQueryParser, SqlResDataType } from '../../../utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '../../../utils/DashboardChartCodeParser';
@@ -83,7 +85,21 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
 
         let sStartTime = undefined;
         let sEndTime = undefined;
-        if (pPanelInfo.useCustomTime) {
+        if (isNumericBaseTimeBlock(pPanelInfo.blockList?.[0])) {
+            // Distance (numeric base) panel — resolve from the board's kind-separated distanceRange.
+            // Numeric start/end are used as-is; '' means the full [first, last] data extent.
+            const sDistanceRange = pBoardInfo?.dashboard?.distanceRange ?? {};
+            const sHasStart = sDistanceRange.start !== '' && sDistanceRange.start != null;
+            const sHasEnd = sDistanceRange.end !== '' && sDistanceRange.end != null;
+            if (sHasStart && sHasEnd) {
+                sStartTime = Number(sDistanceRange.start);
+                sEndTime = Number(sDistanceRange.end);
+            } else {
+                const sBounds = await fetchBlockBaseMinMax(pPanelInfo.blockList?.[0]);
+                sStartTime = sHasStart ? Number(sDistanceRange.start) : sBounds?.min ?? 0;
+                sEndTime = sHasEnd ? Number(sDistanceRange.end) : sBounds?.max ?? 0;
+            }
+        } else if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
             if (!sTimeMinMax) {
                 sStartTime = setUnitTime(pPanelInfo.timeRange.start);
@@ -97,7 +113,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             sEndTime = setUnitTime(pBoardTimeMinMax?.max);
         }
 
-        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth);
+        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
         if (pPanelInfo.type === 'Geomap')
             sIntervalInfo = {
                 IntervalType: pPanelInfo.chartOptions.intervalType,
@@ -329,7 +345,8 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         if ((sIsMounted || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
-    }, [pBoardTimeMinMax]);
+        // distanceRange is board-level (not carried by pBoardTimeMinMax), so re-query when it changes.
+    }, [pBoardTimeMinMax, pBoardInfo?.dashboard?.distanceRange?.start, pBoardInfo?.dashboard?.distanceRange?.end]);
     useEffect(() => {
         if (sIsMounted) {
             executeTqlChart();

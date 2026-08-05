@@ -1,0 +1,145 @@
+$accent: #2f7fe0;
+
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 8px 4px 0;
+}
+
+.readout {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.readoutValue {
+    font-size: 22px;
+    font-weight: 700;
+    color: #e8e8e8;
+    font-variant-numeric: tabular-nums;
+}
+
+.dash {
+    color: #8a8d94;
+    padding: 0 4px;
+}
+
+.unit {
+    font-size: 14px;
+    font-weight: 500;
+    color: #9aa0a6;
+    margin-left: 2px;
+}
+
+.span {
+    font-size: 12px;
+    color: #8a8d94;
+    white-space: nowrap;
+}
+
+/* reset-to-default (full) range */
+.reset {
+    padding: 2px 6px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #8b8f9a;
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease, color 0.12s ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #c8ccd6;
+    }
+}
+
+/* Dual-thumb slider (overlaid native range inputs) */
+.slider {
+    position: relative;
+    height: 28px;
+    display: flex;
+    align-items: center;
+}
+
+.track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.fill {
+    position: absolute;
+    height: 6px;
+    border-radius: 3px;
+    background: $accent;
+}
+
+.thumb {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    height: 28px;
+    background: transparent;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+
+    &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        pointer-events: auto;
+        width: 8px;
+        height: 22px;
+        border-radius: 3px;
+        background: $accent;
+        border: 2px solid #1b1b1b;
+        cursor: ew-resize;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    &::-moz-range-thumb {
+        pointer-events: auto;
+        width: 8px;
+        height: 22px;
+        border-radius: 3px;
+        background: $accent;
+        border: 2px solid #1b1b1b;
+        cursor: ew-resize;
+    }
+
+    &::-webkit-slider-runnable-track {
+        background: transparent;
+    }
+    &::-moz-range-track {
+        background: transparent;
+    }
+}
+
+.ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: -8px;
+    font-size: 11px;
+    color: #7f8289;
+    font-variant-numeric: tabular-nums;
+}
+
+.tickMax {
+    color: #9aa0a6;
+}
+
+.inputs {
+    display: flex;
+    gap: 12px;
+
+    > * {
+        flex: 1;
+    }
+}
