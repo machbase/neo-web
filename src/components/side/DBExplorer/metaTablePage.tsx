@@ -1,7 +1,6 @@
 import { Page, Toast, CommonTable } from '@/design-system/components';
-import { createDefaultTazBoard } from '@/components/tagAnalyzer/bridge/TazUtility';
-import { buildSqlIdentifierPath, buildSqlStringLiteral } from '@/components/tagAnalyzer/fetch/sqlBuilder/SqlTextUtils';
-import { canOpenTagAnalyzerFromMetaColumns, createDefaultTagTimeRange, createTagAnalyzerColumnsFromDbExplorer, getTagNameFromMetaRow } from './TagAnalyzerUtil';
+import { createTagAnalyzerBoardFromDatabaseSeries } from '@/components/tagAnalyzer/integration';
+import { canOpenTagAnalyzerFromMetaColumns, createTagAnalyzerColumnsFromDbExplorer, getTagNameFromMetaRow } from './TagAnalyzerUtil';
 import { buildQualifiedTableName, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
@@ -138,52 +137,6 @@ export const MetaTablePage = ({
         },
         [pMColInfo]
     );
-    const FetchTagMinMax = async (aTagNm: string) => {
-        if (!sCanOpenTagAnalyzer) return;
-
-        try {
-            const sSourceColumns = createTagAnalyzerColumnsFromDbExplorer(pMColInfo?.rows);
-            const sNameColumn = buildSqlIdentifierPath(
-                sSourceColumns.name,
-                'SQL tag column',
-            );
-            const sTimeColumn = buildSqlIdentifierPath(
-                sSourceColumns.time,
-                'SQL time column',
-            );
-            const sTableName = buildSqlIdentifierPath(
-                mLogicalTableName,
-                'SQL table name',
-            );
-            const sQuery = `select min(${sTimeColumn}) as 'MIN', max(${sTimeColumn}) as 'MAX' from ${sTableName} where ${sNameColumn} in (${buildSqlStringLiteral(aTagNm)})`;
-
-            const { svrState, svrData, svrReason } = await fetchQuery(sQuery);
-
-            if (!svrState) {
-                Toast.error(svrReason ?? 'Failed to fetch tag min/max range.');
-                return;
-            }
-
-            const sTimeRange = createDefaultTagTimeRange(
-                svrData?.rows?.[0],
-                sSourceColumns,
-            );
-            const sTazBoard = createDefaultTazBoard({
-                tag: aTagNm,
-                time: sTimeRange,
-                table: mLogicalTableName,
-                sourceColumns: sSourceColumns,
-            });
-            setBoardList((aPrev: any) => {
-                const sNextBoardList = [...aPrev, sTazBoard];
-                return sNextBoardList;
-            });
-            setSelectedTab(sTazBoard.id);
-        } catch (error) {
-            Toast.error(error instanceof Error ? error.message : 'Failed to open Tag Analyzer.');
-        }
-    };
-
     const convertTagMetaForInsert = (aValues: STR_NUM_ARR_TYPE) => {
         const sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
             if (DATA_NUMBER_TYPE.includes(sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(colNm) as number] as string)) {
@@ -309,11 +262,13 @@ export const MetaTablePage = ({
         setFilter((e.target as HTMLInputElement).value);
     };
     const handleMoveTaz = useCallback(
-        (item: STR_NUM_ARR_TYPE) => {
+        async (item: STR_NUM_ARR_TYPE) => {
             if (!sCanOpenTagAnalyzer) return;
 
-            const sSourceColumns = createTagAnalyzerColumnsFromDbExplorer(pMColInfo?.rows);
-            const sTagName = getTagNameFromMetaRow({
+            const sSourceColumns = createTagAnalyzerColumnsFromDbExplorer(
+                pMColInfo?.rows,
+            );
+            const sTagName: string = getTagNameFromMetaRow({
                 row: item,
                 metaColumns: sMetaTableInfo?.columns,
                 sourceNameColumn: sSourceColumns.name,
@@ -325,9 +280,30 @@ export const MetaTablePage = ({
                 return;
             }
 
-            FetchTagMinMax(sTagName);
+            try {
+                const sTazBoard = await createTagAnalyzerBoardFromDatabaseSeries({
+                    tag: sTagName,
+                    table: mLogicalTableName,
+                    sourceColumns: sSourceColumns,
+                });
+                setBoardList((aPrev: any) => [...aPrev, sTazBoard]);
+                setSelectedTab(sTazBoard.id);
+            } catch (error) {
+                Toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : 'Failed to open Tag Analyzer.',
+                );
+            }
         },
-        [pMColInfo, sCanOpenTagAnalyzer, sMetaTableInfo?.columns]
+        [
+            mLogicalTableName,
+            pMColInfo,
+            sCanOpenTagAnalyzer,
+            sMetaTableInfo?.columns,
+            setBoardList,
+            setSelectedTab,
+        ]
     );
 
     const handleEndOfContent = useCallback(() => {
