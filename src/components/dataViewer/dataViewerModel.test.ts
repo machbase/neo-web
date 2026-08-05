@@ -1032,6 +1032,33 @@ describe('data viewer chart helpers', () => {
         ).toBe('BACKUPDB.SYS.TEST');
     });
 
+    test('a value too large for any suffix is written in exponential, not spelled out', () => {
+        const yFormatter = (buildDataViewerEChartOption({
+            series: [{ name: 'sensor.a', data: [[Date.parse('2026-06-01T00:00:00Z'), 8e35]] }],
+            timeRange: { from: '2026-06-01T00:00:00.000Z', to: '2026-06-01T00:10:00.000Z' },
+            timeZone: 'UTC',
+        }) as any).yAxis[0].axisLabel.formatter;
+
+        // The reported label: `T` was the largest suffix, so it carried everything above it and
+        // stopped abbreviating — 800,000,000,000,000,000,000,000T across the side of the panel.
+        expect(yFormatter(8e35)).toBe('8e+35');
+        expect(yFormatter(8e35)).not.toContain(',');
+        expect(yFormatter(8e35).length).toBeLessThan(10);
+        // The mantissa keeps the digits it needs and no more: `8.0e+35` says nothing extra.
+        expect(yFormatter(1.25e20)).toBe('1.3e+20');
+        expect(yFormatter(-8e35)).toBe('-8e+35');
+
+        // Everything the suffixes still cover is untouched — this raised a ceiling, it did not
+        // replace the notation.
+        expect(yFormatter(0.085)).toBe('0.085');
+        expect(yFormatter(1500)).toBe('1.5K');
+        expect(yFormatter(2_000_000)).toBe('2M');
+        expect(yFormatter(8e12)).toBe('8T');
+        // The last reading `T` still abbreviates, and the first one it does not.
+        expect(yFormatter(999e12)).toBe('999T');
+        expect(yFormatter(1e15)).toBe('1e+15');
+    });
+
     test('buildDataViewerEChartOption creates a mini navigator and zoom controls target', () => {
         const option = buildDataViewerEChartOption({
             series: [

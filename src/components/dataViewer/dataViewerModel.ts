@@ -1350,11 +1350,33 @@ const COMPACT_NUMBER_UNITS = [
     { value: 1_000, suffix: 'K' },
 ];
 
+/**
+ * The reading past which the suffixes run out.
+ *
+ * `T` is the largest suffix in the table, so it is asked to carry everything above it, and it stops
+ * being an abbreviation the moment the value it is dividing exceeds it by more than a thousandfold.
+ * At 8e35 the label became `800,000,000,000,000,000,000,000T` — thirty-odd characters of a scale
+ * nobody can read, on an axis whose whole job is to be scanned.
+ */
+const COMPACT_NUMBER_CEILING = 1000 * COMPACT_NUMBER_UNITS[0].value;
+
+/**
+ * A reading too large for any suffix, written the way such readings are written.
+ *
+ * Rounded first and re-parsed second so the mantissa carries the digits asked for and no more:
+ * `toExponential` alone pads to the requested width, and `8.0e+35` is the same claim as `8e+35`
+ * made two characters longer.
+ */
+function formatBeyondCompactRange(value: number, maximumFractionDigits: number) {
+    return Number(value.toExponential(maximumFractionDigits)).toExponential();
+}
+
 function formatYAxisLabel(value: unknown) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return String(value);
     const normalized = Object.is(numeric, -0) ? 0 : numeric;
     const abs = Math.abs(normalized);
+    if (abs >= COMPACT_NUMBER_CEILING) return formatBeyondCompactRange(normalized, 1);
     // Per value, not per axis: a y axis is handed no window, so each label answers for itself.
     const unit = COMPACT_NUMBER_UNITS.find((item) => abs >= item.value);
     if (!unit) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(normalized);
@@ -2328,6 +2350,11 @@ export function formatDataViewerAxisDistance(value: unknown, window?: { min?: un
     const min = Number(window?.min);
     const max = Number(window?.max);
     const span = Math.abs(max - min);
+
+    // Past the last suffix the same reasoning as the y axis applies. This axis degrades differently
+    // — `String(Number(...))` reaches for exponential on its own, giving `8e+23T` — but a mantissa
+    // wearing a suffix abbreviates nothing, and the two axes should not disagree about it.
+    if (Math.abs(numeric) >= COMPACT_NUMBER_CEILING) return formatBeyondCompactRange(numeric, resolveDistanceAxisDecimals(span));
 
     const unit = resolveDistanceAxisUnit(Math.max(Math.abs(min), Math.abs(max)));
     if (!unit) return String(Number(numeric.toFixed(resolveDistanceAxisDecimals(span))));
