@@ -3,8 +3,10 @@ import { login } from '../../support/login';
 
 test.describe('Tag Analyzer FFT', () => {
     test('opens FFT from a selected range', async ({ page }) => {
-        // 1. Open a saved board.
+        // 1. [M.1] Authenticate.
         await login(page);
+
+        // 2. [1.1.4] Open an existing TagAnalyzer board.
         await page.getByText('TAG ANALYZER.taz', { exact: true }).click();
         await expect(
             page.getByRole('button', {
@@ -13,7 +15,7 @@ test.describe('Tag Analyzer FFT', () => {
             }),
         ).toBeVisible();
 
-        // 2. Enable range selection.
+        // 3. [1.4.4.4.1] Enable range selection.
         const loadedPanel = page.locator(
             '.panel-form:has(button[title="Set current visible main chart range"]:enabled)',
         );
@@ -26,7 +28,7 @@ test.describe('Tag Analyzer FFT', () => {
         await selectRange.click();
         await expect(selectRange).toHaveClass(/button--active/);
 
-        // 3. Select chart data.
+        // 4. [1.4.4.4.3, 1.4.4.4.4] Select chart data and open its summary.
         const chart = loadedPanel.locator('.chart-body');
         await chart.scrollIntoViewIfNeeded();
         await page.waitForTimeout(200);
@@ -48,7 +50,7 @@ test.describe('Tag Analyzer FFT', () => {
             page.getByText('Selection Summary', { exact: true }),
         ).toBeVisible();
 
-        // 4. Open FFT.
+        // 5. [1.4.4.5.1] Open FFT.
         await page
             .getByRole('button', { name: 'Open FFT chart', exact: true })
             .click();
@@ -67,7 +69,7 @@ test.describe('Tag Analyzer FFT', () => {
             fftDialog.getByLabel('Max Hz', { exact: true }),
         ).toHaveValue('0');
 
-        // 5. Close FFT.
+        // 6. [1.4.4.5.2] Close FFT.
         await fftDialog
             .getByRole('button', { name: 'Close', exact: true })
             .click();

@@ -3,11 +3,13 @@ import { login } from '../../support/login';
 
 test.describe('Tag Analyzer Save As', () => {
     test('opens the Save As dialog', async ({ page }) => {
-        // 1. Open Tag Analyzer.
+        // 1. [M.1] Authenticate.
         await login(page);
+
+        // 2. [1.1.3] Open a new TagAnalyzer board.
         await page.getByText('TAG ANALYZER', { exact: true }).click();
 
-        // 2. Open Save As.
+        // 3. [1.2.3.3] Open Save As.
         await page
             .getByRole('button', { name: 'Open Save As', exact: true })
             .click();
@@ -16,12 +18,12 @@ test.describe('Tag Analyzer Save As', () => {
             saveDialog.getByText('Save As', { exact: true }),
         ).toBeVisible();
 
-        // 3. Check the file name.
+        // 4. [1.2.3.5] Validate the default file name.
         await expect(
             saveDialog.getByLabel('File name', { exact: true }),
         ).toHaveValue(/\.taz$/);
 
-        // 4. Cancel without saving.
+        // 5. [1.2.3.18] Cancel without saving.
         await saveDialog
             .getByRole('button', { name: 'Cancel', exact: true })
             .click();

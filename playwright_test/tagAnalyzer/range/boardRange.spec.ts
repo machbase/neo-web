@@ -3,11 +3,13 @@ import { login } from '../../support/login';
 
 test.describe('Tag Analyzer board range', () => {
     test('switches the range type', async ({ page }) => {
-        // 1. Open Tag Analyzer.
+        // 1. [M.1] Authenticate.
         await login(page);
+
+        // 2. [1.1.3] Open a new TagAnalyzer board.
         await page.getByText('TAG ANALYZER', { exact: true }).click();
 
-        // 2. Open Board Range.
+        // 3. [1.2.2.1] Open Board Range.
         await page
             .getByRole('button', { name: 'Board range', exact: true })
             .click();
@@ -16,7 +18,7 @@ test.describe('Tag Analyzer board range', () => {
             rangeDialog.getByText('Board Range', { exact: true }),
         ).toBeVisible();
 
-        // 3. Select Numeric.
+        // 4. [1.2.2.6] Switch to a numeric board range.
         const numericRange = rangeDialog.getByRole('button', {
             name: 'Numeric',
             exact: true,
@@ -30,7 +32,7 @@ test.describe('Tag Analyzer board range', () => {
             rangeDialog.getByLabel('To', { exact: true }),
         ).toBeVisible();
 
-        // 4. Close the dialog.
+        // 5. [1.2.2.2] Close Board Range.
         await rangeDialog
             .getByRole('button', { name: 'Cancel', exact: true })
             .click();

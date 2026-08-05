@@ -3,11 +3,13 @@ import { login } from '../../support/login';
 
 test.describe('Tag Analyzer panel', () => {
     test('renames a chart', async ({ page }) => {
-        // 1. Open Tag Analyzer.
+        // 1. [M.1] Authenticate.
         await login(page);
+
+        // 2. [1.1.3] Open a new TagAnalyzer board.
         await page.getByText('TAG ANALYZER', { exact: true }).click();
 
-        // 2. Create an empty chart.
+        // 3. [1.3.1.1, 1.3.1.3, 1.3.3.3] Create an empty chart.
         await page
             .getByRole('button', { name: 'New Chart', exact: true })
             .click();
@@ -19,7 +21,7 @@ test.describe('Tag Analyzer panel', () => {
             .getByRole('button', { name: 'Apply', exact: true })
             .click();
 
-        // 3. Rename the chart.
+        // 4. [1.4.1.3, 1.4.1.4] Rename the chart with Enter.
         await page
             .getByRole('button', { name: 'Rename smoke', exact: true })
             .click();
@@ -27,7 +29,7 @@ test.describe('Tag Analyzer panel', () => {
         await titleInput.fill('Renamed chart');
         await titleInput.press('Enter');
 
-        // 4. Check the new title.
+        // 5. [1.4.1.4] Verify the committed title.
         await expect(
             page.getByRole('button', {
                 name: 'Renamed chart',

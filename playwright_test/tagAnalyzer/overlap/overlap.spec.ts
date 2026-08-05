@@ -3,8 +3,10 @@ import { login } from '../../support/login';
 
 test.describe('Tag Analyzer overlap', () => {
     test('opens the overlap chart', async ({ page }) => {
-        // 1. Open a saved board.
+        // 1. [M.1] Authenticate.
         await login(page);
+
+        // 2. [1.1.4] Open an existing TagAnalyzer board.
         await page.getByText('TAG ANALYZER.taz', { exact: true }).click();
         await expect(
             page.getByRole('button', {
@@ -13,7 +15,7 @@ test.describe('Tag Analyzer overlap', () => {
             }),
         ).toBeVisible();
 
-        // 2. Select a loaded panel.
+        // 3. [1.4.1.17] Add a loaded panel to the overlap selection.
         const loadedPanel = page.locator(
             '.panel-form:has(button[title="Set current visible main chart range"]:enabled)',
         );
@@ -32,7 +34,7 @@ test.describe('Tag Analyzer overlap', () => {
             }),
         ).toHaveAttribute('aria-pressed', 'true');
 
-        // 3. Open Overlap Chart.
+        // 4. [1.2.4.3] Open the Overlap modal.
         const openOverlap = page.getByRole('button', {
             name: 'Open overlap chart',
             exact: true,
@@ -40,7 +42,7 @@ test.describe('Tag Analyzer overlap', () => {
         await expect(openOverlap).toBeEnabled();
         await openOverlap.click();
 
-        // 4. Check and close it.
+        // 5. [1.2.4.4] Check and close the Overlap modal.
         const overlapDialog = page.getByRole('dialog');
         await expect(
             overlapDialog.getByText('Overlap Chart', { exact: true }),

@@ -41,6 +41,10 @@ src/components/tagAnalyzer/ARCHITECTURE.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 *.md
 !src/components/tagAnalyzer/REACT_BEST_PRACTICES_AUDIT.md
+!playwright_test/feature-meta.md
+!playwright_test/tagAnalyzer/feature-format.md
+!playwright_test/tagAnalyzer/scenario.md
+!playwright_test/tagAnalyzer/tag-analyzer-features.md
 .notion-plan
 coverage/cobertura-coverage.xml
 coverage/cobertura-coverage.xml
