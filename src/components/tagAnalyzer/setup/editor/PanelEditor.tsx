@@ -13,21 +13,21 @@ import EditorGeneralTab from './tabs/EditorGeneralTab';
 import EditorTimeTab from './tabs/EditorTimeTab';
 import { cx, hasInvalidEditorStructure } from './tabs/EditorFieldUtils';
 import styles from './PanelEditor.module.scss';
-import type { PanelInfo } from '../../model';
+import type { PanelInfo } from '../../panel/panelModel';
 import {
     shouldUseNumericPanelRangeInput,
     type RollupTableMap,
 } from '../../seriesModel';
 import type { AxisRange } from '../../range/rangeModel';
-import { normalizePanelRangeInputForAxis } from '../../range/format/rangeFormat';
+import { resolveRangeInput } from '../../range/rangeInput';
 
-enum EditTabPanelType {
+enum PanelEditorTab {
     General = 'General',
     Data = 'Data',
     DataSetting = 'Data Setting',
     Axes = 'Axes',
     Display = 'Display',
-    PanelRange = 'Panel Range',
+    MainRange = 'Main Range',
 }
 
 type PanelEditorAnimationState = 'opening' | 'closing';
@@ -42,7 +42,7 @@ function createEditorDraft(config: PanelInfo): PanelEditorDraft {
     return { title, mode, query, axes, display, time };
 }
 
-function createNotAppliedCheckKey(config: PanelInfo): string {
+function createEditorChangeKey(config: PanelInfo): string {
     const { time, ...draft } = createEditorDraft(config);
     return JSON.stringify({
         key: config.key,
@@ -59,9 +59,8 @@ const PanelEditor = ({
     pOnAnimationEnd,
     pAnimationState,
     pPanelInfo,
-    pIsRawMode,
     pHasUnsavedBoardChanges,
-    pPanelRange,
+    pMainRange,
     pDataRange,
     pRollupTableList,
     pDataSettingMetrics,
@@ -71,19 +70,18 @@ const PanelEditor = ({
     pOnAnimationEnd: () => void;
     pAnimationState: PanelEditorAnimationState;
     pPanelInfo: PanelInfo;
-    pIsRawMode: boolean;
     pHasUnsavedBoardChanges: boolean;
-    pPanelRange: AxisRange;
+    pMainRange: AxisRange;
     pDataRange: AxisRange;
     pRollupTableList: RollupTableMap;
     pDataSettingMetrics: PanelDataLoadMetrics;
 }) => {
     const sInitialEditorConfigKey = useMemo(
-        () => createNotAppliedCheckKey(pPanelInfo),
+        () => createEditorChangeKey(pPanelInfo),
         [pPanelInfo],
     );
-    const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>(
-        EditTabPanelType.General,
+    const [sSelectedTab, setSelectedTab] = useState<PanelEditorTab>(
+        PanelEditorTab.General,
     );
     const [sEditorDraft, setEditorDraft] = useState(() =>
         createEditorDraft(pPanelInfo),
@@ -106,7 +104,7 @@ const PanelEditor = ({
     const sEditorConfigRef = useRef(sEditorConfig);
     sEditorConfigRef.current = sEditorConfig;
     const sEditorConfigKey = useMemo(
-        () => createNotAppliedCheckKey(sEditorConfig),
+        () => createEditorChangeKey(sEditorConfig),
         [sEditorConfig],
     );
     const sIsNumericXAxis = shouldUseNumericPanelRangeInput(
@@ -115,22 +113,32 @@ const PanelEditor = ({
     const sOriginalIsNumericXAxis = shouldUseNumericPanelRangeInput(
         pPanelInfo.query.tagSet,
     );
-    const sNormalizedRangeInput = normalizePanelRangeInputForAxis(
-        sEditorConfig.time.rangeInput,
-        sIsNumericXAxis,
-        pDataRange,
-    );
+    const sRangeInput = sEditorConfig.time.rangeInput;
+    const sIsRangeInputEmpty =
+        sRangeInput.start.trim() === '' && sRangeInput.end.trim() === '';
+    const sAxisKind = sIsNumericXAxis ? 'numeric' : 'time';
+    const sIsRangeInputValid =
+        sIsRangeInputEmpty ||
+        resolveRangeInput(
+            sRangeInput,
+            sAxisKind,
+            pDataRange,
+            pMainRange,
+        ) !== undefined;
     const sUsesOriginalRangeInput =
         sEditorConfig.time.rangeInput.start ===
             pPanelInfo.time.rangeInput.start &&
         sEditorConfig.time.rangeInput.end === pPanelInfo.time.rangeInput.end;
     const sClearsRangeAfterAxisKindChange =
-        sNormalizedRangeInput === undefined &&
+        !sIsRangeInputValid &&
         sIsNumericXAxis !== sOriginalIsNumericXAxis &&
         sUsesOriginalRangeInput;
     const sRangeInputToApply =
-        sNormalizedRangeInput ??
-        (sClearsRangeAfterAxisKindChange ? EMPTY_RANGE_INPUT : undefined);
+        sIsRangeInputValid
+            ? sRangeInput
+            : sClearsRangeAfterAxisKindChange
+              ? EMPTY_RANGE_INPUT
+              : undefined;
     const sTimeConfigForEditor = sClearsRangeAfterAxisKindChange
         ? { ...sEditorConfig.time, rangeInput: EMPTY_RANGE_INPUT }
         : sEditorConfig.time;
@@ -170,7 +178,7 @@ const PanelEditor = ({
         setAppliedEditorConfigKey(sInitialEditorConfigKey);
 
         if (
-            createNotAppliedCheckKey(sEditorConfigRef.current) ===
+            createEditorChangeKey(sEditorConfigRef.current) ===
             sPreviousAppliedEditorConfigKey
         ) {
             resetEditorDraft(pPanelInfo);
@@ -201,21 +209,20 @@ const PanelEditor = ({
         }
 
         switch (sSelectedTab) {
-            case EditTabPanelType.General:
+            case PanelEditorTab.General:
                 return (
                     <EditorGeneralTab
                         pTitle={sTitleDraft}
                         pModeConfig={sModeDraft}
                         pDisplayConfig={sDisplayDraft}
                         pTimeConfig={sTimeDraft}
-                        pIsRawMode={pIsRawMode}
                         pOnChangeTitle={updateEditorDraft('title')}
                         pOnChangeModeConfig={updateEditorDraft('mode')}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
                         pOnChangeTimeConfig={updateEditorDraft('time')}
                     />
                 );
-            case EditTabPanelType.Data:
+            case PanelEditorTab.Data:
                 return (
                     <EditorDataTab
                         pQueryDraft={sQueryDraft}
@@ -223,7 +230,7 @@ const PanelEditor = ({
                         pOnChangeQueryDraft={updateEditorDraft('query')}
                     />
                 );
-            case EditTabPanelType.Axes:
+            case PanelEditorTab.Axes:
                 return (
                     <EditorAxesTab
                         pAxesConfig={sEditorConfig.axes}
@@ -232,24 +239,24 @@ const PanelEditor = ({
                         pOnChangeTagSet={updateTagSet}
                     />
                 );
-            case EditTabPanelType.DataSetting:
+            case PanelEditorTab.DataSetting:
                 return (
                     <EditorDataSettingTab
                         pDisplayConfig={sEditorConfig.display}
                         pDataMetrics={pDataSettingMetrics}
-                        pIsRawMode={pIsRawMode}
+                        pIsRawMode={sModeDraft.isRaw}
                         pIsNumericXAxis={sIsNumericXAxis}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
                     />
                 );
-            case EditTabPanelType.Display:
+            case PanelEditorTab.Display:
                 return (
                     <EditorDisplayTab
                         pDisplayConfig={sEditorConfig.display}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
                     />
                 );
-            case EditTabPanelType.PanelRange:
+                    case PanelEditorTab.MainRange:
                 return (
                     <EditorTimeTab
                         pTimeConfig={sTimeConfigForEditor}
@@ -257,7 +264,7 @@ const PanelEditor = ({
                         pIsRangeInputValid={
                             sRangeInputToApply !== undefined
                         }
-                        pPanelRange={pPanelRange}
+                        pMainRange={pMainRange}
                         pOnChangeTimeConfig={updateEditorDraft('time')}
                     />
                 );
@@ -290,7 +297,7 @@ const PanelEditor = ({
                             <h3 className={styles.title}>Edit panel</h3>
                             <Page.TabContainer style={{ margin: 0 }}>
                                 <Page.TabList className={styles.tabList}>
-                                    {Object.values(EditTabPanelType).map((item) => (
+                                    {Object.values(PanelEditorTab).map((item) => (
                                         <Page.TabItem
                                             key={item}
                                             active={sSelectedTab === item}
@@ -322,7 +329,7 @@ const PanelEditor = ({
                                     )}
                                 >
                                     {sHasEditorChanges ? (
-                                        'Press Apply to apply the change.'
+                                        'You have unapplied changes.'
                                     ) : (
                                         <>
                                             <span>Changes applied to this session.</span>

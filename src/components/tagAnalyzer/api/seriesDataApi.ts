@@ -19,12 +19,10 @@ import {
 import {
     getIntervalMs,
     type IntervalOption,
-    type AxisRange,
-} from '../range/rangeModel';
-import {
-    getCoveringRange,
-    isValidRange,
-} from '../range/rangeArithmetic';
+} from '../range/intervalResolver';
+import { createNonEmptyAxisRange } from '../range/rangeBuilder';
+import type { AxisRange } from '../range/rangeModel';
+import { getEnclosingRange } from '../range/rangeArithmetic';
 import {
     getUnknownErrorMessage,
     parseQueryResponse,
@@ -178,7 +176,6 @@ async function fetchCalculatedSeriesRows(
 ): Promise<PanelDataFetchResult | undefined> {
     return fetchPanelSeriesRows(
         seriesList,
-        timeRange,
         options?.signal,
         (series) =>
             fetchCalculatedSeriesData(
@@ -232,7 +229,6 @@ async function fetchRawSeriesRowsByQuery(
 ): Promise<PanelDataFetchResult | undefined> {
     return fetchPanelSeriesRows(
         seriesList,
-        timeRange,
         signal,
         async (series) => {
             const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
@@ -254,9 +250,9 @@ async function fetchRawSeriesRowsByQuery(
             const insideRows: SeriesDataRow[] = [];
             const afterRows: SeriesDataRow[] = [];
             for (const row of rows) {
-                if (row[0] < timeRange.startTime) {
+                if (row[0] < timeRange.start) {
                     beforeRows.push(row);
-                } else if (row[0] <= timeRange.endTime) {
+                } else if (row[0] <= timeRange.end) {
                     insideRows.push(row);
                 } else {
                     afterRows.push(row);
@@ -281,11 +277,10 @@ async function fetchRawSeriesRowsByQuery(
 
 async function fetchPanelSeriesRows(
     seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
     signal: AbortSignal | undefined,
     fetchSeries: (series: PanelSeriesDefinition) => Promise<PanelSeriesFetchResult>,
 ): Promise<PanelDataFetchResult | undefined> {
-    if (seriesList.length === 0 || !isValidRange(timeRange)) return undefined;
+    if (seriesList.length === 0) return undefined;
 
     return Promise.all(
         seriesList.map(async (series) => {
@@ -415,7 +410,7 @@ async function fetchCalculatedSeriesEdgeRows(
             tableName,
             series.sourceTagName,
             columns,
-            timeRange.startTime,
+            timeRange.start,
             'before',
             interval,
         ),
@@ -423,7 +418,7 @@ async function fetchCalculatedSeriesEdgeRows(
             tableName,
             series.sourceTagName,
             columns,
-            timeRange.endTime,
+            timeRange.end,
             'after',
             interval,
         ),
@@ -432,13 +427,13 @@ async function fetchCalculatedSeriesEdgeRows(
         await fetchChartTimestamps(locatorSql, signal)
     )
         .map((startTime) => ({
-            startTime,
-            endTime: startTime + intervalMs,
+            start: startTime,
+            end: startTime + intervalMs,
         }))
         .filter(
             (range, index, ranges) =>
                 ranges.findIndex(
-                    (candidate) => candidate.startTime === range.startTime,
+                    (candidate) => candidate.start === range.start,
                 ) === index,
         );
     if (edgeRanges.length === 0) return [];
@@ -463,8 +458,8 @@ async function fetchCalculatedSeriesEdgeRows(
     return edgeRows.filter(([timestamp]) =>
         edgeRanges.some(
             (range) =>
-                timestamp >= range.startTime &&
-                timestamp < range.endTime,
+                timestamp >= range.start &&
+                timestamp < range.end,
         ),
     );
 }
@@ -611,14 +606,14 @@ async function fetchSeriesFullRange(
 
     const ranges: AxisRange[] = (
         await Promise.all(rangeRequests.values())
-    ).filter(isValidRange);
+    ).filter((range): range is AxisRange => range !== undefined);
     if (ranges.length === 0) {
         throw new Error(
             errors[0] ??
                 'Cannot resolve a full range because no series has a usable data range.',
         );
     }
-    return ranges.reduce(getCoveringRange);
+    return ranges.reduce(getEnclosingRange);
 }
 
 async function fetchSingleSeriesRange(
@@ -650,17 +645,11 @@ async function fetchSingleSeriesRange(
     if (start === end) {
         throw new Error('Data range has zero width.');
     }
-    if (start > end) {
-        throw new Error(MALFORMED_RANGE_MESSAGE);
-    }
+    const first = start / divisor;
+    const second = end / divisor;
+    const fullRange = createNonEmptyAxisRange(first, second);
+    if (!fullRange) throw noDataError;
 
-    const fullRange: AxisRange = {
-        startTime: start / divisor,
-        endTime: end / divisor,
-    };
-    if (!isValidRange(fullRange)) {
-        throw noDataError;
-    }
     return fullRange;
 }
 

@@ -3,7 +3,7 @@ import { useRecoilValue, useSetRecoilState, type RecoilState } from 'recoil';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { gFileTree } from '@/recoil/fileTree';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import type { BoardInfo } from '../model';
+import type { BoardInfo } from '../board/boardModel';
 
 type FileTreeState = typeof gFileTree extends RecoilState<infer Value>
     ? Value

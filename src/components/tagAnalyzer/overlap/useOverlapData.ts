@@ -87,7 +87,7 @@ export function useOverlapData(initialPanelsInfo: OverlapPanelInput[]) {
             setLoadState((current) => ({
                 ...current,
                 seriesGroups: current.seriesGroups.map((group) => {
-                    if (group.panelInfo.key !== panelKey) return group;
+                    if (group.panelKey !== panelKey) return group;
 
                     const shiftValue = group.shiftValue + delta;
                     return Number.isFinite(shiftValue)
@@ -145,13 +145,13 @@ function preservePanelShifts(
 ): OverlapChartSeriesGroup[] {
     const shiftByPanelKey = new Map(
         currentGroups.map((group) => [
-            group.panelInfo.key,
+            group.panelKey,
             group.shiftValue,
         ]),
     );
 
     return nextGroups.map((group) => ({
         ...group,
-        shiftValue: shiftByPanelKey.get(group.panelInfo.key) ?? 0,
+        shiftValue: shiftByPanelKey.get(group.panelKey) ?? 0,
     }));
 }

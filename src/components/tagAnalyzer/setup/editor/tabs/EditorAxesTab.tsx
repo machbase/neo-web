@@ -4,7 +4,7 @@ import {
     clonePanelYAxis,
     type PanelAxes,
     type PanelYAxis,
-} from '../../../model';
+} from '../../../panel/panelModel';
 import {
     getPanelSeriesDisplayColor,
     getPanelSeriesDisplayName,
@@ -20,9 +20,18 @@ type YAxisKey = 'leftY' | 'rightY';
 type RangeKey = 'valueRange' | 'rawValueRange';
 type ThresholdKey = 'upperControlLimit' | 'lowerControlLimit';
 
-const AXIS_FLAGS = [['zeroBase', 'The scale of the Y-axis start at zero'], ['showTickline', 'Displays the Y-Axis tick line']] as const;
-const RANGES = [['valueRange', 'Custom scale'], ['rawValueRange', 'Custom scale for raw data chart']] as const;
-const THRESHOLDS = [['lowerControlLimit', 'use LCL'], ['upperControlLimit', 'use UCL']] as const;
+const AXIS_FLAGS = [
+    ['zeroBase', 'Start the Y-axis at zero'],
+    ['showTickline', 'Show Y-axis tick marks'],
+] as const;
+const RANGES = [
+    ['valueRange', 'Custom scale'],
+    ['rawValueRange', 'Custom scale for raw data chart'],
+] as const;
+const THRESHOLDS = [
+    ['lowerControlLimit', 'Use LCL'],
+    ['upperControlLimit', 'Use UCL'],
+] as const;
 
 const EditorAxesTab = ({
     pAxesConfig,
@@ -65,7 +74,13 @@ const EditorAxesTab = ({
             patchYAxis(axisKey, { [rangeKey]: { ...axis[rangeKey], [edge]: value } });
 
         return (
-            <div key={rangeKey} className={cx(styles.rangeField, disabled && styles.disabledControl)}>
+            <div
+                key={rangeKey}
+                className={cx(
+                    styles.rangeField,
+                    disabled && styles.disabledControl,
+                )}
+            >
                 <div className={styles.rangeInputs}>
                     <span
                         className={cx(
@@ -95,7 +110,11 @@ const EditorAxesTab = ({
                         width="compact"
                     />
                 </div>
-                {error && <span className={styles.fieldError}>Minimum must be less than maximum.</span>}
+                {error && (
+                    <span className={styles.fieldError}>
+                        Minimum must be less than maximum.
+                    </span>
+                )}
             </div>
         );
     };
@@ -133,7 +152,12 @@ const EditorAxesTab = ({
         );
     };
     const renderRightAxisSeries = () => (
-        <div className={cx(styles.rightAxisSeries, !pAxesConfig.rightY.enabled && styles.disabledControl)}>
+        <div
+            className={cx(
+                styles.rightAxisSeries,
+                !pAxesConfig.rightY.enabled && styles.disabledControl,
+            )}
+        >
             <Dropdown.Root
                 options={pTagSet
                     .filter((item) => !item.useSecondaryAxis)
@@ -230,7 +254,7 @@ const EditorAxesTab = ({
                     onChange={(event) =>
                         patchAxis('x', { showTickline: event.target.checked })
                     }
-                    label="Displays the X-Axis tick line"
+                    label="Show X-axis tick marks"
                     size="sm"
                 />
             </Section>

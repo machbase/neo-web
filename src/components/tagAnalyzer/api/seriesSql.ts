@@ -18,8 +18,8 @@ import {
     getIntervalMs,
     resolveNumericIntervalValue,
     type IntervalOption,
-    type AxisRange,
-} from '../range/rangeModel';
+} from '../range/intervalResolver';
+import type { AxisRange } from '../range/rangeModel';
 import {
     buildSqlStringLiteral,
     buildTimeRangeConditionSql,
@@ -55,10 +55,10 @@ export function buildCalculatedSeriesSql(
             interval.IntervalValue,
         );
     } else if (usesNumericTime) {
-        const startTime: number = timeRange.startTime;
+        const startTime: number = timeRange.start;
         const bucketSize: number = numericBucketWidth ??
             resolveNumericIntervalValue(
-                timeRange.endTime - startTime,
+                timeRange.end - startTime,
                 rowLimit,
             );
         bucketTimeSql = columns.time;
@@ -146,14 +146,12 @@ export function buildCalculatedSeriesSql(
     ]);
 }
 
-export type SeriesBoundaryDirection = 'before' | 'after';
-
 export function buildCalculatedSeriesBoundaryBucketSql(
     tableName: SqlIdentifierPath,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     boundaryTime: number,
-    direction: SeriesBoundaryDirection,
+    direction: 'before' | 'after',
     interval: IntervalOption,
 ): string {
     const bucketTimeSql: string = buildDateBinTimeExpression(
@@ -224,11 +222,11 @@ function createRawSeriesSqlContext(
         `WHERE ${columns.name} = ${buildSqlStringLiteral(tagName)}`,
     ]);
     const startTimeSql: string = toQueryTimeLiteralSql(
-        timeRange.startTime,
+        timeRange.start,
         usesNumericTime,
     );
     const endTimeSql: string = toQueryTimeLiteralSql(
-        timeRange.endTime,
+        timeRange.end,
         usesNumericTime,
     );
     const forwardOrderBySql: string = useOrderBy ? 'ORDER BY mTime ASC' : '';

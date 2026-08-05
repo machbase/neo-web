@@ -9,12 +9,12 @@ import {
 import { useState } from 'react';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Dropdown, Input, Page, Toast } from '@/design-system/components';
-import { formatAxisRange } from '../range/format/rangeFormat';
+import { formatAxisRange } from '../format/axisFormat';
 import {
     getTimeUnitMilliseconds,
-    type AxisRange,
     TimeUnit,
-} from '../range/rangeModel';
+} from '../range/intervalResolver';
+import type { AxisRange } from '../range/rangeModel';
 import {
     buildOverlapChartOption,
     formatOverlapElapsedDurationLabel,
@@ -111,7 +111,7 @@ export default function OverlapModal({
                     <div className="overlap-modal__shift-list">
                         {sSeriesGroups.map((seriesGroup) => (
                             <OverlapPanelRow
-                                key={seriesGroup.panelInfo.key}
+                                key={seriesGroup.panelKey}
                                 seriesGroup={seriesGroup}
                                 isNumericXAxis={isNumericXAxis}
                                 onShiftRange={shiftPanelRange}
@@ -156,7 +156,7 @@ function OverlapPanelRow({
             Toast.error(OVERLAP_SHIFT_ERROR_MESSAGE, undefined);
             return;
         }
-        onShiftRange(seriesGroup.panelInfo.key, delta);
+        onShiftRange(seriesGroup.panelKey, delta);
     }
 
     return (
@@ -234,8 +234,8 @@ function formatOverlapRange(
 ): string {
     if (useElapsedTime && !isNumericXAxis) {
         return `${formatOverlapElapsedDurationLabel(
-            range.startTime,
-        )} ~ ${formatOverlapElapsedDurationLabel(range.endTime)}`;
+            range.start,
+        )} ~ ${formatOverlapElapsedDurationLabel(range.end)}`;
     }
 
     const sFormattedRange = formatAxisRange(range, isNumericXAxis);

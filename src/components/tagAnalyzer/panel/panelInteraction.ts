@@ -1,6 +1,6 @@
 import { useReducer } from 'react';
 import type { ContextMenuPosition } from '@/design-system/components';
-import type { PanelHighlight } from '../model';
+import type { PanelHighlight } from './panelModel';
 import type { AxisRange } from '../range/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
 
@@ -20,13 +20,15 @@ export enum PanelPopupMode {
     EXPORT_CSV = 'EXPORT_CSV',
 }
 
+type FFTSeriesSummary = {
+    series: PanelSeriesDefinition;
+    min: string;
+    max: string;
+    avg: string;
+};
+
 export type FFTSelectionPayload = AxisRange & {
-    seriesSummaries: Array<{
-        series: PanelSeriesDefinition;
-        min: string;
-        max: string;
-        avg: string;
-    }>;
+    seriesSummaries: [FFTSeriesSummary, ...FFTSeriesSummary[]];
 };
 
 export type AnnotationEditorMetaState = {
@@ -73,7 +75,7 @@ type PanelPopupState =
 
 type PanelSelectionSummary = {
     selection: FFTSelectionPayload;
-    popoverPosition: { x: number; y: number };
+    popoverPosition: ContextMenuPosition;
 };
 
 type PanelInteractionState = {

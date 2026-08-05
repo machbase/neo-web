@@ -75,15 +75,10 @@ export function SaveAsModal({
     }, [openDirectory, sInitialDirectory]);
 
     function handleBackPath() {
-        if (sSelectedDir.length === 0) {
-            return;
-        }
-
-        const sCurrentSegments = [...sSelectedDir];
-        const sRemovedSegment = sCurrentSegments.pop();
-
+        if (sSelectedDir.length === 0) return;
+        const sRemovedSegment = sSelectedDir[sSelectedDir.length - 1];
         void openDirectory(
-            sCurrentSegments,
+            sSelectedDir.slice(0, -1),
             sRemovedSegment
                 ? [...sForwardDirStack, sRemovedSegment]
                 : sForwardDirStack,

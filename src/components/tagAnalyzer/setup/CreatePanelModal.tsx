@@ -12,7 +12,7 @@ import {
     DEFAULT_NEW_PANEL_TITLE,
     type PanelEChartType,
     type PanelInfo,
-} from '../model';
+} from '../panel/panelModel';
 import type {
     PanelSeriesDefinition,
     RollupTableMap,

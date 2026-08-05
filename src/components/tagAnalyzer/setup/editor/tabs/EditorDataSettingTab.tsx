@@ -4,7 +4,7 @@ import { Tooltip } from 'react-tooltip';
 import {
     DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
     type PanelDisplay,
-} from '../../../model';
+} from '../../../panel/panelModel';
 import { cx, isValidPositiveEditorNumber } from './EditorFieldUtils';
 import { NumberInput, Section } from './EditorControls';
 import styles from '../PanelEditor.module.scss';
@@ -98,11 +98,15 @@ function DataDensityRatioInput({
     );
 
     useEffect(() => {
+        const sLastPixelsPerTick = sLastEmittedPixelsPerTickRef.current;
         if (
-            areEditorNumbersEqual(
-                pixelsPerTick,
-                sLastEmittedPixelsPerTickRef.current,
-            )
+            Object.is(pixelsPerTick, sLastPixelsPerTick) ||
+            (pixelsPerTick !== undefined &&
+                sLastPixelsPerTick !== undefined &&
+                Number.isFinite(pixelsPerTick) &&
+                Number.isFinite(sLastPixelsPerTick) &&
+                Math.abs(pixelsPerTick - sLastPixelsPerTick) <=
+                    DATA_DENSITY_SYNC_TOLERANCE)
         ) {
             return;
         }
@@ -246,7 +250,7 @@ const EditorDataSettingTab = ({
         });
     };
 
-    const xNumber = (field: PixelsPerTickField) => {
+    const renderDataDensityInput = (field: PixelsPerTickField) => {
         const sPixelsPerTick = pDisplayConfig.pixelsPerTick[field];
         const sDensityTooltipClass = `data-density-${field}-tooltip`;
 
@@ -275,7 +279,7 @@ const EditorDataSettingTab = ({
         );
     };
 
-    const samplingNumber = (
+    const renderSamplingInput = (
         field: 'mainChartSampling' | 'rawNavigatorSampling',
     ) => {
         const config = pDisplayConfig[field];
@@ -312,7 +316,7 @@ const EditorDataSettingTab = ({
             <div className={styles.dataSettingGrid}>
                 <Section title="Calculation Mode">
                     <span className={styles.axisSubsectionTitle}>Main Chart</span>
-                    {xNumber('calculated')}
+                    {renderDataDensityInput('calculated')}
                     <StatusRow
                         anchorClass="calculation-prefetch-main-tooltip"
                         label="Prefetch main chart"
@@ -324,7 +328,7 @@ const EditorDataSettingTab = ({
                         aria-hidden="true"
                     />
                     <span className={styles.axisSubsectionTitle}>Nav Bar</span>
-                    {xNumber('calculatedNavigator')}
+                    {renderDataDensityInput('calculatedNavigator')}
                 </Section>
                 <Section title="Raw Mode">
                     <span className={styles.axisSubsectionTitle}>Main Chart</span>
@@ -349,7 +353,7 @@ const EditorDataSettingTab = ({
                                 }
                                 size="sm"
                             />
-                            {samplingNumber('mainChartSampling')}
+                            {renderSamplingInput('mainChartSampling')}
                         </div>
                     </TooltipRow>
                     <span className={styles.axisSubsectionTitle}>Nav Bar</span>
@@ -372,7 +376,7 @@ const EditorDataSettingTab = ({
                                 }
                                 size="sm"
                             />
-                            {samplingNumber('rawNavigatorSampling')}
+                            {renderSamplingInput('rawNavigatorSampling')}
                             <span className={styles.editorFixedValue}>
                                 {sUseRawNavigatorSampling ? 'Sampled' : 'Average'}
                             </span>
@@ -426,20 +430,6 @@ function toRoundedDataDensityValue(value: number): number {
     }
 
     return Number(value.toPrecision(DATA_DENSITY_VALUE_PRECISION));
-}
-
-function areEditorNumbersEqual(
-    left: number | undefined,
-    right: number | undefined,
-): boolean {
-    return (
-        Object.is(left, right) ||
-        (left !== undefined &&
-            right !== undefined &&
-            Number.isFinite(left) &&
-            Number.isFinite(right) &&
-            Math.abs(left - right) <= DATA_DENSITY_SYNC_TOLERANCE)
-    );
 }
 
 export default EditorDataSettingTab;

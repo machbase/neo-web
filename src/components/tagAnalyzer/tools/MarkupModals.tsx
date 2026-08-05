@@ -4,7 +4,7 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_LABEL,
     type PanelAnnotation,
     type PanelHighlight,
-} from '../model';
+} from '../panel/panelModel';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
@@ -13,17 +13,16 @@ import {
     type PanelSeriesDefinition,
 } from '../seriesModel';
 import {
-    formatAxisInputValue,
-    getAxisInputPlaceholder,
-    parseAxisInputValue,
-} from '../range/format/rangeFormat';
-import { isValidRange } from '../range/rangeArithmetic';
+    formatRangeInputValue,
+    parseRangeInputValue,
+} from '../format/inputFormat';
+import { createNonEmptyAxisRange } from '../range/rangeBuilder';
 import type {
     AnnotationEditorMetaState,
     HighlightEditorState,
 } from '../panel/panelInteraction';
 
-import PanelPopover from '../components/PanelPopover';
+import PanelPopover from './PanelPopover';
 
 type AnnotationFormState = {
     seriesValue: string;
@@ -34,14 +33,14 @@ type AnnotationFormState = {
     clip: boolean;
 };
 
-type AnnotationFormValidation = {
-    annotation: PanelAnnotation | undefined;
-    seriesMessage?: string;
-    timeMessage?: string;
-};
-
 const EMPTY_ANNOTATION_SERIES_VALUE = '';
 const MARKUP_DROPDOWN_MENU_CLASS = 'panel-popover-form__dropdown-menu';
+
+function getRangeInputPlaceholder(isNumericAxis: boolean): string {
+    return isNumericAxis
+        ? 'Numeric value'
+        : 'YYYY-MM-DD HH:mm:ss.SSS';
+}
 
 type MarkupInputFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>,
     'autoFocus' | 'className' | 'onFocus'> & {
@@ -72,6 +71,34 @@ function MarkupInputField({
     );
 }
 
+function MarkupActions({
+    onDelete,
+    onCancel,
+    onApply,
+    applyDisabled,
+}: {
+    onDelete?: () => void;
+    onCancel: () => void;
+    onApply: () => void;
+    applyDisabled: boolean;
+}) {
+    return (
+        <>
+            {onDelete && (
+                <Button size="sm" variant="ghost" onClick={onDelete}>
+                    Delete
+                </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onCancel}>
+                Cancel
+            </Button>
+            <Button size="sm" disabled={applyDisabled} onClick={onApply}>
+                Apply
+            </Button>
+        </>
+    );
+}
+
 function saveMarkupItem<T>(
     items: readonly T[],
     item: T,
@@ -88,28 +115,6 @@ function deleteMarkupItem<T>(items: readonly T[], index: number): T[] {
     return items.filter((_item, currentIndex) => currentIndex !== index);
 }
 
-function createAnnotationFormState(
-    editorMeta: AnnotationEditorMetaState,
-    annotation: PanelAnnotation | undefined,
-    isNumericXAxis: boolean,
-): AnnotationFormState {
-    const timestamp = annotation?.timeRange.startTime ?? editorMeta.timestamp;
-
-    return {
-        seriesValue:
-            annotation?.seriesKey ??
-            editorMeta.seriesKey ??
-            EMPTY_ANNOTATION_SERIES_VALUE,
-        timeText: timestamp === undefined
-            ? ''
-            : formatAxisInputValue(timestamp, isNumericXAxis),
-        labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
-        fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-        textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-        clip: annotation?.clip ?? true,
-    };
-}
-
 function validateAnnotationFormState({
     formState,
     selectedSeriesKey,
@@ -120,8 +125,11 @@ function validateAnnotationFormState({
     selectedSeriesKey: string;
     existingAnnotation: PanelAnnotation | undefined;
     isNumericXAxis: boolean;
-}): AnnotationFormValidation {
-    const annotationTimestamp = parseAxisInputValue(formState.timeText, isNumericXAxis);
+}) {
+    const annotationTimestamp = parseRangeInputValue(
+        formState.timeText,
+        isNumericXAxis ? 'numeric' : 'time',
+    );
     const seriesMessage = selectedSeriesKey === ''
         ? 'Select a series.'
         : undefined;
@@ -139,14 +147,14 @@ function validateAnnotationFormState({
 
     const existingTimeRange = existingAnnotation?.timeRange;
     const existingStartTimeText = existingTimeRange
-        ? formatAxisInputValue(existingTimeRange.startTime, isNumericXAxis)
+        ? formatRangeInputValue(existingTimeRange.start, isNumericXAxis)
         : undefined;
     const annotationTimeRange =
         existingTimeRange && existingStartTimeText === formState.timeText
             ? existingTimeRange
             : {
-                  startTime: annotationTimestamp,
-                  endTime: annotationTimestamp,
+                  start: annotationTimestamp,
+                  end: annotationTimestamp,
               };
 
     return {
@@ -180,9 +188,21 @@ export function EditAnnotationModal({
     const annotation = annotationIndex === undefined
         ? undefined
         : annotations[annotationIndex];
-    const { state, setField } = useEditFormState(() =>
-        createAnnotationFormState(annotationEditorMeta, annotation, isNumericXAxis),
-    );
+    const annotationTimestamp =
+        annotation?.timeRange.start ?? annotationEditorMeta.timestamp;
+    const { state, setField } = useEditFormState<AnnotationFormState>(() => ({
+        seriesValue:
+            annotation?.seriesKey ??
+            annotationEditorMeta.seriesKey ??
+            EMPTY_ANNOTATION_SERIES_VALUE,
+        timeText: annotationTimestamp === undefined
+            ? ''
+            : formatRangeInputValue(annotationTimestamp, isNumericXAxis),
+        labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
+        fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+        textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+        clip: annotation?.clip ?? true,
+    }));
     const seriesOptions = [
         {
             label: 'annotation not selected',
@@ -240,23 +260,12 @@ export function EditAnnotationModal({
             outsideCloseIgnoreSelector={`.${MARKUP_DROPDOWN_MENU_CLASS}`}
             closeOnScroll={false}
             actions={(
-                <>
-                    {annotation !== undefined && (
-                        <Button size="sm" variant="ghost" onClick={deleteAnnotation}>
-                            Delete
-                        </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button
-                        size="sm"
-                        disabled={validation.annotation === undefined}
-                        onClick={applyForm}
-                    >
-                        Apply
-                    </Button>
-                </>
+                <MarkupActions
+                    onDelete={annotation === undefined ? undefined : deleteAnnotation}
+                    onCancel={onClose}
+                    onApply={applyForm}
+                    applyDisabled={validation.annotation === undefined}
+                />
             )}
         >
             <label className="panel-popover-form__field">
@@ -284,7 +293,7 @@ export function EditAnnotationModal({
             <MarkupInputField
                 label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
                 validationMessage={validation.timeMessage}
-                placeholder={getAxisInputPlaceholder(isNumericXAxis)}
+                placeholder={getRangeInputPlaceholder(isNumericXAxis)}
                 value={state.timeText}
                 onChange={(event) => setField('timeText', event.target.value)}
                 onKeyDown={handleKeyDown}
@@ -343,31 +352,13 @@ type HighlightFormState = {
     textColor: string;
 };
 
-type HighlightFormValidation = {
-    highlight: PanelHighlight | undefined;
-    startTimeMessage?: string;
-    endTimeMessage?: string;
-};
-
-function createHighlightFormState(
-    highlight: PanelHighlight,
-    isNumericXAxis: boolean,
-): HighlightFormState {
-    return {
-        labelText: highlight.text,
-        startTimeText: formatAxisInputValue(highlight.timeRange.startTime, isNumericXAxis),
-        endTimeText: formatAxisInputValue(highlight.timeRange.endTime, isNumericXAxis),
-        fillColor: highlight.fillColor,
-        textColor: highlight.textColor,
-    };
-}
-
 function validateHighlightFormState(
     formState: HighlightFormState,
     isNumericXAxis: boolean,
-): HighlightFormValidation {
-    const startTime = parseAxisInputValue(formState.startTimeText, isNumericXAxis);
-    const endTime = parseAxisInputValue(formState.endTimeText, isNumericXAxis);
+) {
+    const sAxisKind = isNumericXAxis ? 'numeric' : 'time';
+    const startTime = parseRangeInputValue(formState.startTimeText, sAxisKind);
+    const endTime = parseRangeInputValue(formState.endTimeText, sAxisKind);
     const axisKindLabel = isNumericXAxis ? 'value' : 'time';
     const startTimeMessage = startTime === undefined
         ? `Enter a valid start ${axisKindLabel}.`
@@ -384,12 +375,11 @@ function validateHighlightFormState(
         };
     }
 
-    const timeRange = { startTime, endTime };
-
-    if (!isValidRange(timeRange)) {
+    const timeRange = createNonEmptyAxisRange(startTime, endTime);
+    if (!timeRange) {
         return {
             highlight: undefined,
-            endTimeMessage: `End ${axisKindLabel} must be greater than start ${axisKindLabel}.`,
+            endTimeMessage: `Start and end ${axisKindLabel} must differ.`,
         };
     }
 
@@ -401,22 +391,6 @@ function validateHighlightFormState(
             textColor: formState.textColor,
         },
     };
-}
-
-function getHighlightEditorValue(
-    editor: HighlightEditorState,
-    draftHighlight: PanelHighlight | undefined,
-    highlights: readonly PanelHighlight[],
-): PanelHighlight {
-    const highlight = draftHighlight ?? (
-        editor.mode === 'edit' ? highlights[editor.highlightIndex] : undefined
-    );
-
-    if (highlight === undefined) {
-        throw new Error('Cannot open the highlight editor without a highlight.');
-    }
-
-    return highlight;
 }
 
 export function EditHighlightModal({
@@ -437,20 +411,30 @@ export function EditHighlightModal({
     const highlightIndex = activeHighlightEditor.mode === 'edit'
         ? activeHighlightEditor.highlightIndex
         : undefined;
-    const highlight = getHighlightEditorValue(
-        activeHighlightEditor,
-        draftHighlight,
-        highlights,
+    const highlight = draftHighlight ?? (
+        activeHighlightEditor.mode === 'edit'
+            ? highlights[activeHighlightEditor.highlightIndex]
+            : undefined
     );
+    if (highlight === undefined) {
+        throw new Error('Cannot open the highlight editor without a highlight.');
+    }
 
-    const { state, setField } = useEditFormState(() =>
-        createHighlightFormState(
-            highlight,
+    const { state, setField } = useEditFormState<HighlightFormState>(() => ({
+        labelText: highlight.text,
+        startTimeText: formatRangeInputValue(
+            highlight.timeRange.start,
             isNumericXAxis,
         ),
-    );
+        endTimeText: formatRangeInputValue(
+            highlight.timeRange.end,
+            isNumericXAxis,
+        ),
+        fillColor: highlight.fillColor,
+        textColor: highlight.textColor,
+    }));
     const validation = validateHighlightFormState(state, isNumericXAxis);
-    const timePlaceholder = getAxisInputPlaceholder(isNumericXAxis);
+    const timePlaceholder = getRangeInputPlaceholder(isNumericXAxis);
 
     function applyForm(): void {
         if (validation.highlight === undefined) return;
@@ -481,23 +465,12 @@ export function EditHighlightModal({
             onClose={onClose}
             size="compact"
             actions={(
-                <>
-                    {activeHighlightEditor.mode === 'edit' && (
-                        <Button size="sm" variant="ghost" onClick={deleteHighlight}>
-                            Delete
-                        </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button
-                        size="sm"
-                        disabled={validation.highlight === undefined}
-                        onClick={applyForm}
-                    >
-                        Apply
-                    </Button>
-                </>
+                <MarkupActions
+                    onDelete={highlightIndex === undefined ? undefined : deleteHighlight}
+                    onCancel={onClose}
+                    onApply={applyForm}
+                    applyDisabled={validation.highlight === undefined}
+                />
             )}
         >
             <MarkupInputField

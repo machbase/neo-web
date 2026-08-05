@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Board from './board/Board';
 import { Page, Toast } from '@/design-system/components';
 import { tableMetadataApi } from './api/tableMetadataApi';
-import type { BoardInfo } from './model';
+import type { BoardInfo } from './board/boardModel';
 import type { RollupTableMap } from './seriesModel';
 import { useTagAnalyzerAppState } from './integration';
 import { useLatestAsyncRequest } from './hooks/useLatestAsyncRequest';
@@ -30,20 +30,20 @@ export default function TagAnalyzer({ info }: { info: BoardInfo }) {
         if (info.loadWarning) Toast.warning(info.loadWarning, undefined);
     }, [info.loadWarning]);
 
+    if (sIsActiveTab && sRollupTableList === undefined) return null;
+
     return (
-        (!sIsActiveTab || sRollupTableList !== undefined) && (
-            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <Page>
-                    <Board
-                        key={info.id}
-                        info={info}
-                        isActiveTab={sIsActiveTab}
-                        rollupTableList={sRollupTableList ?? EMPTY_ROLLUP_TABLE_LIST}
-                        onSavedBoard={handleSavedBoard}
-                        onFileSaved={handleFileSaved}
-                    />
-                </Page>
-            </div>
-        )
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <Page>
+                <Board
+                    key={info.id}
+                    info={info}
+                    isActiveTab={sIsActiveTab}
+                    rollupTableList={sRollupTableList ?? EMPTY_ROLLUP_TABLE_LIST}
+                    onSavedBoard={handleSavedBoard}
+                    onFileSaved={handleFileSaved}
+                />
+            </Page>
+        </div>
     );
 }

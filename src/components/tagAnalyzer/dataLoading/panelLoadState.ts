@@ -61,7 +61,7 @@ function getFetchedRowsRange(
     const startTime = Math.min(...boundaryTimes);
     const endTime = Math.max(...boundaryTimes);
     return {
-        startTime,
-        endTime: Math.max(endTime, startTime + 1),
+        start: startTime,
+        end: Math.max(endTime, startTime + 1),
     };
 }

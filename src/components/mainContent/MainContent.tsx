@@ -5,7 +5,7 @@ import Shell from '../shell/Shell';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
 import TagAnalyzer from '@/components/tagAnalyzer/TagAnalyzer';
-import type { BoardInfo } from '@/components/tagAnalyzer/model';
+import type { BoardInfo } from '@/components/tagAnalyzer/board/boardModel';
 import { Button, Tabs } from '@/design-system/components';
 import Tab from '@/design-system/components/Tabs/Tab';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';

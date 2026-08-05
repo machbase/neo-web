@@ -1,29 +1,29 @@
-import type { AxisRange, PanelRangeState } from './rangeModel';
+import type { AxisRange } from './rangeModel';
 
 export function getRangeWidth(range: AxisRange): number {
-    return range.endTime - range.startTime;
+    return range.end - range.start;
 }
 
 export function getRangeCenter(range: AxisRange): number {
-    return range.startTime + getRangeWidth(range) / 2;
+    return range.start + getRangeWidth(range) / 2;
 }
 
 export function createRangeFromCenterAndWidth(
     center: number,
     width: number,
 ): AxisRange {
-    const halfWidth: number = width / 2;
+    const halfWidth = width / 2;
 
     return {
-        startTime: center - halfWidth,
-        endTime: center + halfWidth,
+        start: center - halfWidth,
+        end: center + halfWidth,
     };
 }
 
 export function shiftRange(range: AxisRange, offset: number): AxisRange {
     return {
-        startTime: range.startTime + offset,
-        endTime: range.endTime + offset,
+        start: range.start + offset,
+        end: range.end + offset,
     };
 }
 
@@ -32,89 +32,52 @@ export function isRangeWithin(
     outerRange: AxisRange,
 ): boolean {
     return (
-        innerRange.startTime >= outerRange.startTime &&
-        innerRange.endTime <= outerRange.endTime
+        innerRange.start >= outerRange.start &&
+        innerRange.end <= outerRange.end
     );
 }
 
-export function clampRangeToBounds(
-    range: AxisRange,
-    bounds: AxisRange,
+export function fitRangeWithinBounds(
+    rangeToFit: AxisRange,
+    containingRange: AxisRange,
 ): AxisRange {
-    const rangeWidth: number = getRangeWidth(range);
-    const boundsWidth: number = getRangeWidth(bounds);
+    const rangeWidth = getRangeWidth(rangeToFit);
+    const containingWidth = getRangeWidth(containingRange);
 
-    if (rangeWidth >= boundsWidth) {
-        return bounds;
+    if (rangeWidth >= containingWidth) {
+        return containingRange;
     }
 
-    if (range.startTime < bounds.startTime) {
+    if (rangeToFit.start < containingRange.start) {
         return {
-            startTime: bounds.startTime,
-            endTime: bounds.startTime + rangeWidth,
+            start: containingRange.start,
+            end: containingRange.start + rangeWidth,
         };
     }
 
-    if (range.endTime > bounds.endTime) {
+    if (rangeToFit.end > containingRange.end) {
         return {
-            startTime: bounds.endTime - rangeWidth,
-            endTime: bounds.endTime,
+            start: containingRange.end - rangeWidth,
+            end: containingRange.end,
         };
     }
 
-    return range;
+    return rangeToFit;
 }
 
-export function getCoveringRange(
-    left: AxisRange,
-    right: AxisRange,
+export function getEnclosingRange(
+    firstRange: AxisRange,
+    secondRange: AxisRange,
 ): AxisRange {
     return {
-        startTime: Math.min(left.startTime, right.startTime),
-        endTime: Math.max(left.endTime, right.endTime),
+        start: Math.min(firstRange.start, secondRange.start),
+        end: Math.max(firstRange.end, secondRange.end),
     };
 }
 
 export function isSameRange(
     left: AxisRange,
     right: AxisRange,
-    tolerance = 0,
 ): boolean {
-    const normalizedTolerance: number = Number.isFinite(tolerance)
-        ? Math.max(tolerance, 0)
-        : 0;
-
-    if (normalizedTolerance <= 0) {
-        return left.startTime === right.startTime &&
-            left.endTime === right.endTime;
-    }
-
-    return (
-        Math.abs(left.startTime - right.startTime) <= normalizedTolerance &&
-        Math.abs(left.endTime - right.endTime) <= normalizedTolerance
-    );
-}
-
-export function isValidRange(
-    range: AxisRange | null | undefined,
-): range is AxisRange {
-    return (
-        range !== null &&
-        range !== undefined &&
-        Number.isFinite(range.startTime) &&
-        Number.isFinite(range.endTime) &&
-        range.endTime > range.startTime
-    );
-}
-
-export function isValidPanelRangeState(
-    rangeState: PanelRangeState | null | undefined,
-): rangeState is PanelRangeState {
-    return (
-        rangeState !== null &&
-        rangeState !== undefined &&
-        isValidRange(rangeState.panelRange) &&
-        isValidRange(rangeState.navigatorRange) &&
-        isRangeWithin(rangeState.panelRange, rangeState.navigatorRange)
-    );
+    return left.start === right.start && left.end === right.end;
 }

@@ -3,7 +3,7 @@ import type {
     PanelDisplay,
     PanelSampling,
     PanelYAxis,
-} from '../../../model';
+} from '../../../panel/panelModel';
 
 export function cx(
     ...classes: Array<string | false | undefined>

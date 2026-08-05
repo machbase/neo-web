@@ -4,11 +4,12 @@ import { seriesDataApi } from '../api/seriesDataApi';
 import type { PanelDataFetchResult } from '../api/seriesDataApi';
 import {
     createNewPanelInfo,
+} from '../panel/panelModel';
+import {
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
-} from '../model';
-import type { ResolvedPanelRangeState } from '../panel/panelRangeSourceState';
-import type { AxisRange } from '../range/rangeModel';
+} from '../seriesModel';
+import type { AxisRange, ResolvedRangeState } from '../range/rangeModel';
 import { fetchMainSeriesRows, usePanelDataLoading } from './panelDataLoader';
 
 const NUMERIC_SERIES: PanelSeriesDefinition = {
@@ -40,8 +41,8 @@ function createLimitedRawResult(range: AxisRange): PanelDataFetchResult {
     return [{
         seriesKey: NUMERIC_SERIES.key,
         data: [
-            [range.startTime, 1],
-            [range.endTime, 2],
+            [range.start, 1],
+            [range.end, 2],
         ],
         metadata: { kind: 'raw', isLimitReached: true },
     }];
@@ -64,7 +65,7 @@ describe('fetchMainSeriesRows', () => {
 
         await fetchMainSeriesRows(
             panelInfo,
-            { startTime: 0, endTime: 100_000 },
+            { start: 0, end: 100_000 },
             400,
             {},
             { numericBucketWidth: 100 },
@@ -87,7 +88,7 @@ describe('fetchMainSeriesRows', () => {
 
         await fetchMainSeriesRows(
             panelInfo,
-            { startTime: 0, endTime: 500_000 },
+            { start: 0, end: 500_000 },
             400,
             {},
         );
@@ -104,15 +105,15 @@ describe('usePanelDataLoading', () => {
     });
 
     it('does not let a stale limited raw result mask a wider requested range', async () => {
-        const initialRange: AxisRange = { startTime: 0, endTime: 100 };
+        const initialRange: AxisRange = { start: 0, end: 100 };
         const initialFetchedRange: AxisRange = {
-            startTime: 20,
-            endTime: 80,
+            start: 20,
+            end: 80,
         };
-        const widerRange: AxisRange = { startTime: 0, endTime: 1_000 };
+        const widerRange: AxisRange = { start: 0, end: 1_000 };
         const widerFetchedRange: AxisRange = {
-            startTime: 100,
-            endTime: 900,
+            start: 100,
+            end: 900,
         };
         const freshRawResult = deferred<PanelDataFetchResult | undefined>();
         const fetchRawSeriesRows = jest
@@ -131,14 +132,13 @@ describe('usePanelDataLoading', () => {
         const onRawMainRangeLimited = jest.fn();
         const createRangeState = (
             range: AxisRange,
-        ): ResolvedPanelRangeState => ({
-            status: 'ready',
+        ): ResolvedRangeState => ({
             range: {
-                panelRange: range,
+                mainRange: range,
                 navigatorRange: range,
             },
             fullRange: widerRange,
-            navigatorRangeInput: undefined,
+            navigatorRangeInput: { start: '', end: '' },
         });
         const { result, rerender } = renderHook(
             ({ rangeState }) => usePanelDataLoading({
@@ -155,7 +155,7 @@ describe('usePanelDataLoading', () => {
         await waitFor(() =>
             expect(result.current.loadStatus.chart).toBe('ready'),
         );
-        expect(result.current.renderRange.panelRange).toEqual(
+        expect(result.current.renderRange?.mainRange).toEqual(
             initialFetchedRange,
         );
         onRawMainRangeLimited.mockClear();
@@ -163,7 +163,7 @@ describe('usePanelDataLoading', () => {
         rerender({ rangeState: createRangeState(widerRange) });
 
         expect(fetchRawSeriesRows).toHaveBeenCalledTimes(2);
-        expect(result.current.renderRange.panelRange).toEqual(widerRange);
+        expect(result.current.renderRange?.mainRange).toEqual(widerRange);
         expect(onRawMainRangeLimited).not.toHaveBeenCalled();
 
         await act(async () => {

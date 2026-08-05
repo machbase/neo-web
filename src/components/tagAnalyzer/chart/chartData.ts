@@ -5,7 +5,6 @@ import {
 } from '../seriesModel';
 import type { PanelDataFetchResult } from '../api/seriesDataApi';
 import type { AxisRange } from '../range/rangeModel';
-import { isValidRange } from '../range/rangeArithmetic';
 
 export type ChartRow = [number, number | null];
 
@@ -24,17 +23,17 @@ export type ChartSeriesData = {
     color: string | undefined;
 };
 
+export type ChartSeriesVisibilityMap = Record<string, boolean>;
+
 export function filterChartDataByRange(
     chartData: ChartSeriesData[],
     range: AxisRange,
 ): ChartSeriesData[] {
-    if (!isValidRange(range)) return chartData;
-
     return chartData.map((series) => ({
         ...series,
         data: series.data.filter(
             ([timestamp]) =>
-                timestamp >= range.startTime && timestamp <= range.endTime,
+                timestamp >= range.start && timestamp <= range.end,
         ),
     }));
 }
