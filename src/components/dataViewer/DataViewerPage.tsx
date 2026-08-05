@@ -1591,6 +1591,35 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         });
     }, [chartGroups]);
 
+    /**
+     * Where each panel is looking belongs to the table it was looking at.
+     *
+     * The pruning above cannot do this. It keeps every entry whose chart group is still live, and
+     * the main panel's group id is the constant `'default'` — live in every table, so its window is
+     * the one thing that never expires. Dragging or wheeling inside the chart writes exactly that
+     * entry and nothing else, which is why a table opened after a drag drew its panel on the
+     * previous table's coordinates: an axis reading 998.001K ~ 998.3K over a window of 0 ~ 1000,
+     * with the range button and the navigator both correctly showing the new table. Refresh could
+     * not clear it because a refresh re-queries rather than moves the panel, and nudging the
+     * navigator did, because that writes these entries afresh.
+     *
+     * A split panel's window is included for the same reason and not only for symmetry: split
+     * groups survive a table change whenever their tag names do, and two tables sharing a tag name
+     * is ordinary.
+     *
+     * Reset from an effect rather than derived through the table key — the way `baseColumns` above
+     * is — because these describe a view and not a query. Nothing is read from the database on the
+     * strength of them, so the one commit they lag by cannot put a query on the wire; that risk is
+     * what makes the schema read state it differently.
+     */
+    useEffect(() => {
+        const clearRanges = (current: Record<string, DataViewerTimeRange>) => (Object.keys(current).length === 0 ? current : {});
+        setChartViewRanges(clearRanges);
+        setChartNavigatorRanges(clearRanges);
+        setSplitChartRanges(clearRanges);
+        setResolvedSplitChartRanges(clearRanges);
+    }, [tableKey]);
+
     const moveRawPage = useCallback(
         (nextPage: number) => {
             const request = buildDataViewerRawPageRequest({

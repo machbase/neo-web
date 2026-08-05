@@ -2814,6 +2814,65 @@ describe('DataViewerPage table switch', () => {
         expect(timeReads.at(-1)).toMatchObject({ names: [TIME_TAG], baseKind: 'time' });
         expect((timeReads.at(-1) as Read & { from?: string }).from).not.toBe('0');
     });
+
+    // The reported symptom: an empty main panel whose axis reads 998.001K ~ 998.3K while the
+    // navigator under it, and the range button above it, both read 0 ~ 1000.
+    //
+    // `chartViewRanges` is the main panel's own window — what a drag or a wheel inside the chart
+    // writes, and what the panel's axis is drawn from. It is keyed by chart group, and pruned by
+    // exactly that: the effect keeps every entry whose group id is still live. The main panel's id
+    // is the constant `'default'`, so it is live in every table, and the pruning never reaches it.
+    // Nothing else clears it on a table change — the reads all re-aim, the window resets, the
+    // navigator redraws, and the one piece of state describing where the panel is looking stays
+    // pointed into the previous table's coordinate space.
+    //
+    // Which is why the range button disagrees with the axis: the button reads the window, and a
+    // drag never touches the window. And why Refresh does not help — it re-queries, it does not
+    // move the panel — while nudging the navigator does, because that writes `chartViewRanges`
+    // afresh from the current table.
+    test('a main panel dragged before the table changed does not keep the old table’s window', async () => {
+        const echartsMock = jest.requireMock('echarts') as { init: jest.Mock };
+        // A far-out odometer, so a window carried over from it is unmistakable against 0 ~ 1000.
+        const FAR_TABLE = { ...DISTANCE_TABLE, tableName: 'DISTANCE_FAR' };
+        COLUMNS_BY_TABLE.DISTANCE_FAR = DISTANCE_BASE_COLUMNS;
+        TAGS_BY_TABLE.DISTANCE_FAR = DISTANCE_TAG;
+        dataViewerApi.queryTagData.mockResolvedValue({
+            rows: Array.from({ length: 10 }, (_, index) => ({ time: 998_000 + index * 30, name: DISTANCE_TAG, value: 0.1 })),
+        });
+
+        const { rerender, container } = renderTable(FAR_TABLE);
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
+        fireEvent.click(screen.getByRole('tab', { name: /^Chart/ }));
+        await waitFor(() => expect(echartsMock.init.mock.calls.length).toBeGreaterThan(0));
+        await settle();
+
+        // The gesture: a zoom inside the main panel. This is the only route that writes the panel's
+        // window without touching the page's, which is what makes it the one that survives.
+        const instance = echartsMock.init.mock.results[0].value as { on: jest.Mock; setOption: jest.Mock };
+        const dataZoomHandler = instance.on.mock.calls.find(([event]) => event === 'datazoom')?.[1];
+        expect(dataZoomHandler).toBeDefined();
+        await act(async () => {
+            dataZoomHandler({ startValue: 998_001, endValue: 998_300 });
+        });
+        await settle();
+
+        await act(async () => {
+            rerender(tree(DISTANCE_TABLE));
+        });
+        await waitFor(() => expect(rowReads().some((read) => read.tableName === 'DISTANCE_SENSOR')).toBe(true));
+        await settle();
+
+        // The axis the panel is actually drawn on, taken from the last option ECharts was handed.
+        const lastOption = instance.setOption.mock.calls.at(-1)?.[0] as any;
+        const mainAxis = lastOption?.xAxis?.[0];
+        expect(mainAxis).toBeDefined();
+        expect([mainAxis.min, mainAxis.max]).not.toEqual([998_001, 998_300]);
+        // Stated the other way, so a panel that merely went blank does not pass: the axis has to be
+        // inside the window the rest of the page is showing.
+        expect(Number(mainAxis.min)).toBeGreaterThanOrEqual(0);
+        expect(Number(mainAxis.max)).toBeLessThanOrEqual(1000);
+        expect(container.querySelector('.data-viewer-chart')).not.toBeNull();
+    });
 });
 
 // jsdom applies no stylesheet, so the colour itself is asserted against the source rule and the DOM
