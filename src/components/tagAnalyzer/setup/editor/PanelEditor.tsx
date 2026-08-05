@@ -13,13 +13,13 @@ import EditorGeneralTab from './tabs/EditorGeneralTab';
 import EditorTimeTab from './tabs/EditorTimeTab';
 import { cx, hasInvalidEditorStructure } from './tabs/EditorFieldUtils';
 import styles from './PanelEditor.module.scss';
-import type { PanelInfo } from '../../panel/panelModel';
+import type { PanelInfo } from '../../model';
 import {
     shouldUseNumericPanelRangeInput,
     type RollupTableMap,
 } from '../../seriesModel';
 import type { AxisRange } from '../../range/rangeModel';
-import { resolveRangeInput } from '../../range/rangeInput';
+import { normalizePanelRangeInputForAxis } from '../../range/format/rangeFormat';
 
 enum PanelEditorTab {
     General = 'General',
@@ -27,7 +27,7 @@ enum PanelEditorTab {
     DataSetting = 'Data Setting',
     Axes = 'Axes',
     Display = 'Display',
-    MainRange = 'Main Range',
+    PanelRange = 'Panel Range',
 }
 
 type PanelEditorAnimationState = 'opening' | 'closing';
@@ -59,8 +59,9 @@ const PanelEditor = ({
     pOnAnimationEnd,
     pAnimationState,
     pPanelInfo,
+    pIsRawMode,
     pHasUnsavedBoardChanges,
-    pMainRange,
+    pPanelRange,
     pDataRange,
     pRollupTableList,
     pDataSettingMetrics,
@@ -70,8 +71,9 @@ const PanelEditor = ({
     pOnAnimationEnd: () => void;
     pAnimationState: PanelEditorAnimationState;
     pPanelInfo: PanelInfo;
+    pIsRawMode: boolean;
     pHasUnsavedBoardChanges: boolean;
-    pMainRange: AxisRange;
+    pPanelRange: AxisRange;
     pDataRange: AxisRange;
     pRollupTableList: RollupTableMap;
     pDataSettingMetrics: PanelDataLoadMetrics;
@@ -113,32 +115,22 @@ const PanelEditor = ({
     const sOriginalIsNumericXAxis = shouldUseNumericPanelRangeInput(
         pPanelInfo.query.tagSet,
     );
-    const sRangeInput = sEditorConfig.time.rangeInput;
-    const sIsRangeInputEmpty =
-        sRangeInput.start.trim() === '' && sRangeInput.end.trim() === '';
-    const sAxisKind = sIsNumericXAxis ? 'numeric' : 'time';
-    const sIsRangeInputValid =
-        sIsRangeInputEmpty ||
-        resolveRangeInput(
-            sRangeInput,
-            sAxisKind,
-            pDataRange,
-            pMainRange,
-        ) !== undefined;
+    const sNormalizedRangeInput = normalizePanelRangeInputForAxis(
+        sEditorConfig.time.rangeInput,
+        sIsNumericXAxis,
+        pDataRange,
+    );
     const sUsesOriginalRangeInput =
         sEditorConfig.time.rangeInput.start ===
             pPanelInfo.time.rangeInput.start &&
         sEditorConfig.time.rangeInput.end === pPanelInfo.time.rangeInput.end;
     const sClearsRangeAfterAxisKindChange =
-        !sIsRangeInputValid &&
+        sNormalizedRangeInput === undefined &&
         sIsNumericXAxis !== sOriginalIsNumericXAxis &&
         sUsesOriginalRangeInput;
     const sRangeInputToApply =
-        sIsRangeInputValid
-            ? sRangeInput
-            : sClearsRangeAfterAxisKindChange
-              ? EMPTY_RANGE_INPUT
-              : undefined;
+        sNormalizedRangeInput ??
+        (sClearsRangeAfterAxisKindChange ? EMPTY_RANGE_INPUT : undefined);
     const sTimeConfigForEditor = sClearsRangeAfterAxisKindChange
         ? { ...sEditorConfig.time, rangeInput: EMPTY_RANGE_INPUT }
         : sEditorConfig.time;
@@ -216,6 +208,7 @@ const PanelEditor = ({
                         pModeConfig={sModeDraft}
                         pDisplayConfig={sDisplayDraft}
                         pTimeConfig={sTimeDraft}
+                        pIsRawMode={pIsRawMode}
                         pOnChangeTitle={updateEditorDraft('title')}
                         pOnChangeModeConfig={updateEditorDraft('mode')}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
@@ -244,7 +237,7 @@ const PanelEditor = ({
                     <EditorDataSettingTab
                         pDisplayConfig={sEditorConfig.display}
                         pDataMetrics={pDataSettingMetrics}
-                        pIsRawMode={sModeDraft.isRaw}
+                        pIsRawMode={pIsRawMode}
                         pIsNumericXAxis={sIsNumericXAxis}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
                     />
@@ -256,7 +249,7 @@ const PanelEditor = ({
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
                     />
                 );
-                    case PanelEditorTab.MainRange:
+            case PanelEditorTab.PanelRange:
                 return (
                     <EditorTimeTab
                         pTimeConfig={sTimeConfigForEditor}
@@ -264,7 +257,7 @@ const PanelEditor = ({
                         pIsRangeInputValid={
                             sRangeInputToApply !== undefined
                         }
-                        pMainRange={pMainRange}
+                        pPanelRange={pPanelRange}
                         pOnChangeTimeConfig={updateEditorDraft('time')}
                     />
                 );

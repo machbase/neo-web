@@ -8,43 +8,47 @@ import {
 import { Toast } from '@/design-system/components';
 import { seriesDataApi } from '../api/seriesDataApi';
 import { getErrorMessageFromValue } from '../errorMessage';
-import { parseRangeInputValue } from '../format/inputFormat';
 import type { PanelInfo } from './panelModel';
-import { resolveRangeInput } from '../range/rangeInput';
 import {
-    enforceChartAreaWidth,
-    resolveButtonPress,
-    resolveRangeChange,
-    type RangeChange,
-    type RangeButtonAction,
-} from '../range/rangeResolver';
+    createResolvedPanelRangeState,
+    resolveConcretePanelRangeState,
+    resolveEnteredMainRangeState,
+    resolveNavigatorDisplayRange,
+    resolveNavigatorInputRangeState,
+    resolvePanelRangeCandidate,
+    resolveRequestedNavigatorRangeState,
+} from './panelRangeResolution';
+import {
+    isResolvedPanelRangeState,
+    type PanelRangeSourceState,
+    type ResolvedPanelRangeState,
+} from './panelRangeSourceState';
+import { parseNumericRangeExpression } from '../range/format/numericRangeFormat';
+import {
+    createPanelRangeButtonCandidate,
+    createPanelRangeUpdateCandidate,
+    type PanelRangeCandidate,
+    type PanelRangeButtonAction,
+    type PanelRangeUpdate,
+} from '../range/panelRangeCommands';
 import {
     getSeriesListAxisKind,
     type PanelSeriesDefinition,
 } from '../seriesModel';
-import {
-    createRangeFromCenterAndWidth,
-    getRangeCenter,
-    getRangeWidth,
-    isSameRange,
-} from '../range/rangeArithmetic';
+import { isSameRange, isValidRange } from '../range/rangeArithmetic';
 import {
     isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
+    type PanelRangeState,
     type RangeExpressionInput,
-    type RangeState,
-    type ResolvedRangeState,
 } from '../range/rangeModel';
 import { useStableCallback } from '../hooks/useStableCallback';
 
 const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
-const INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO = 0.25;
 const RANGE_ACTION_ERROR_MESSAGE = 'Failed to update panel range.';
 const PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE =
     'Cannot resolve panel range because no valid data range was found.';
-
-type RangeChangeType = RangeChange['type'];
 
 export type PanelRangeRuntimeRequests = {
     boardRanges: Record<
@@ -52,8 +56,7 @@ export type PanelRangeRuntimeRequests = {
         { input: RangeExpressionInput; applyVersion: number }
     >;
     globalRangeRequest: {
-        axisKind: AxisKind | undefined;
-        ranges: Partial<Record<AxisKind, RangeState>>;
+        range: PanelRangeState | undefined;
         applyVersion: number;
     };
     commandVersions: {
@@ -63,19 +66,19 @@ export type PanelRangeRuntimeRequests = {
     };
 };
 
-type RangeTaskContext = {
+type PanelRangeCommandContext = {
     panelInfo: PanelInfo;
-    rangeState: ResolvedRangeState | undefined;
+    rangeState: PanelRangeSourceState;
     requestGeneration: number;
 };
 
-type RangeTaskResult =
-    | ResolvedRangeState
-    | Promise<ResolvedRangeState>;
+type ResolvedPanelRangeResult =
+    | ResolvedPanelRangeState
+    | Promise<ResolvedPanelRangeState>;
 
-type RangeTask = (
-    context: RangeTaskContext,
-) => RangeTaskResult | void;
+type PanelRangeCommand = (
+    context: PanelRangeCommandContext,
+) => ResolvedPanelRangeResult | void;
 
 type ConfiguredPanelRangeOptions = {
     applyInitialMainChartWindow: boolean;
@@ -98,9 +101,9 @@ type PanelRequestOptions = {
 
 type RuntimeInputs = PanelRangeRuntimeRequests & {
     panelInfo: PanelInfo;
-    rangeState: ResolvedRangeState | undefined;
+    rangeState: PanelRangeSourceState;
     isActive: boolean;
-    onRangeStateChange: (rangeState: ResolvedRangeState) => void;
+    onRangeStateChange: (rangeState: PanelRangeSourceState) => void;
     onBroadcastError?: (broadcastKey: string, message: string) => void;
 };
 
@@ -148,12 +151,25 @@ async function fetchRequiredFullRange(
     return sFullRange;
 }
 
-function getPanelRangeKind(panelInfo: PanelInfo): AxisKind | undefined {
-    return getSeriesListAxisKind(panelInfo.query.tagSet);
+function resolveExplicitNumericFullRange(
+    rangeInput: RangeExpressionInput,
+): AxisRange | undefined {
+    const sStart = parseNumericRangeExpression(rangeInput.start);
+    const sEnd = parseNumericRangeExpression(rangeInput.end);
+
+    if (sStart?.anchor !== 'value' || sEnd?.anchor !== 'value') {
+        return undefined;
+    }
+
+    const sFullRange = {
+        startTime: sStart.value,
+        endTime: sEnd.value,
+    };
+    return isValidRange(sFullRange) ? sFullRange : undefined;
 }
 
-function getPanelAxisKind(panelInfo: PanelInfo): AxisKind {
-    return getPanelRangeKind(panelInfo) ?? 'time';
+function getPanelRangeKind(panelInfo: PanelInfo): AxisKind | undefined {
+    return getSeriesListAxisKind(panelInfo.query.tagSet);
 }
 
 function getBoardRangeInput(
@@ -177,54 +193,30 @@ function getBroadcastVersions(
     };
 }
 
-function createInitialRange(navigatorRange: AxisRange): RangeState {
-    return {
-        mainRange: createRangeFromCenterAndWidth(
-            getRangeCenter(navigatorRange),
-            getRangeWidth(navigatorRange) *
-                INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO,
-        ),
-        navigatorRange,
-    };
-}
-
-function createNextRangeState(
-    current: ResolvedRangeState,
-    range: RangeState,
-    changeType: RangeChangeType,
-    navigatorRangeInput?: RangeExpressionInput,
-): ResolvedRangeState {
-    return {
-        ...current,
-        range,
-        navigatorRangeInput: changeType === 'navigator'
-            ? { ...(navigatorRangeInput ?? EMPTY_RANGE_INPUT) }
-            : changeType === 'replace' ||
-                isSameRange(
-                    range.navigatorRange,
-                    current.range.navigatorRange,
-                )
-              ? current.navigatorRangeInput
-              : { ...EMPTY_RANGE_INPUT },
-    };
-}
-
-export function usePanelRangeRuntime(inputs: RuntimeInputs) {
-    const {
-        panelInfo,
-        rangeState,
-        boardRanges,
-        globalRangeRequest,
-        commandVersions,
-        isActive,
-        onRangeStateChange,
-    } = inputs;
+export function usePanelRangeRuntime({
+    panelInfo,
+    rangeState,
+    boardRanges,
+    globalRangeRequest,
+    commandVersions,
+    isActive,
+    onRangeStateChange,
+    onBroadcastError,
+}: RuntimeInputs) {
     const [sChartAreaWidth, setChartAreaWidth] = useState<
         number | undefined
     >(undefined);
     const [sDataRefreshVersion, setDataRefreshVersion] = useState(0);
     const sChartAreaWidthRef = useRef(sChartAreaWidth);
-    const sInputsRef = useRef(inputs);
+    const sInputsRef = useRef<Omit<RuntimeInputs, 'commandVersions'>>({
+        panelInfo,
+        rangeState,
+        boardRanges,
+        globalRangeRequest,
+        isActive,
+        onRangeStateChange,
+        onBroadcastError,
+    });
     const sRequestRef = useRef<PanelRequestState>({ generation: 0 });
     const sInitializedRef = useRef(false);
     const sSeenVersionsRef = useRef(
@@ -235,54 +227,49 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         ),
     );
 
-    function buildResolvedRangeState(
-        current: RangeState,
-        change: RangeChange,
-        fullRange: AxisRange,
-        fixedRange: 'main' | 'navigator' =
-            change.type === 'navigator' ? 'navigator' : 'main',
-    ): ResolvedRangeState {
-        const sCurrentState: ResolvedRangeState = {
-            range: current,
-            fullRange,
-            navigatorRangeInput: { ...EMPTY_RANGE_INPUT },
-        };
-        const sResolvedRange = resolveRangeChange(current, change);
-        const sChartAreaWidth = sChartAreaWidthRef.current;
-        const sRange = sChartAreaWidth === undefined
-            ? sResolvedRange
-            : enforceChartAreaWidth(
-                  sResolvedRange,
-                  sChartAreaWidth,
-                  fixedRange,
-              );
-        return createNextRangeState(sCurrentState, sRange, change.type);
-    }
-
     useLayoutEffect(() => {
-        sInputsRef.current = inputs;
-    }, [inputs]);
+        sInputsRef.current = {
+            panelInfo,
+            rangeState,
+            boardRanges,
+            globalRangeRequest,
+            isActive,
+            onRangeStateChange,
+            onBroadcastError,
+        };
+    }, [
+        boardRanges,
+        globalRangeRequest,
+        isActive,
+        onBroadcastError,
+        onRangeStateChange,
+        panelInfo,
+        rangeState,
+    ]);
 
     useLayoutEffect(() => {
         if (
             sChartAreaWidth === undefined ||
-            !rangeState
+            !isResolvedPanelRangeState(rangeState)
         ) {
             return;
         }
 
-        const sRange = enforceChartAreaWidth(
-            rangeState.range,
+        const sNavigatorRange = resolveNavigatorDisplayRange(
+            rangeState.range.panelRange,
+            rangeState.range.navigatorRange,
             sChartAreaWidth,
-            'main',
         );
-        if (isSameRange(sRange.navigatorRange, rangeState.range.navigatorRange)) {
+        if (isSameRange(sNavigatorRange, rangeState.range.navigatorRange)) {
             return;
         }
 
         onRangeStateChange({
             ...rangeState,
-            range: sRange,
+            range: {
+                ...rangeState.range,
+                navigatorRange: sNavigatorRange,
+            },
         });
     }, [onRangeStateChange, rangeState, sChartAreaWidth]);
 
@@ -316,7 +303,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         {
             panelInfo,
             requestGeneration,
-        }: RangeTaskContext,
+        }: PanelRangeCommandContext,
     ): Promise<AxisRange> {
         return fetchRequiredFullRange(
             panelInfo.query.tagSet,
@@ -336,21 +323,21 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
     }
 
     function applyRangeToPanel(
-        nextRangeState: ResolvedRangeState,
+        nextRangeState: ResolvedPanelRangeState,
         requestGeneration: number,
     ): void {
         if (!isCurrentPanelRangeRequest(requestGeneration)) return;
 
         const sCurrentRangeState = sInputsRef.current.rangeState;
         const sDidChange =
-            !sCurrentRangeState ||
+            !isResolvedPanelRangeState(sCurrentRangeState) ||
             !isSameRangeInput(
                 nextRangeState.navigatorRangeInput,
                 sCurrentRangeState.navigatorRangeInput,
             ) ||
             !isSameRange(
-                nextRangeState.range.mainRange,
-                sCurrentRangeState.range.mainRange,
+                nextRangeState.range.panelRange,
+                sCurrentRangeState.range.panelRange,
             ) ||
             !isSameRange(
                 nextRangeState.range.navigatorRange,
@@ -367,8 +354,8 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         }
     }
 
-    async function runRangeTask(
-        task: RangeTask,
+    async function runPanelRangeCommand(
+        command: PanelRangeCommand,
         options: PanelRequestOptions = {},
     ): Promise<void> {
         const sRequestGeneration =
@@ -384,10 +371,12 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
             rangeState: sInputs.rangeState,
             requestGeneration: sRequestGeneration,
         };
-        let sHasUsableRange = sContext.rangeState !== undefined;
+        let sHasUsableRange = isResolvedPanelRangeState(
+            sContext.rangeState,
+        );
 
         try {
-            const sResult = task(sContext);
+            const sResult = command(sContext);
             const sNextRangeState = sResult instanceof Promise
                 ? await sResult
                 : sResult;
@@ -422,330 +411,215 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         }
     }
 
-    function buildConfiguredRangeState(
-        panelInfo: PanelInfo,
-        fullRange: AxisRange,
+    function resolveConfiguredPanelRange(
+        context: PanelRangeCommandContext,
         {
             applyInitialMainChartWindow,
             boardRange = getBoardRangeInput(
-                panelInfo,
+                context.panelInfo,
                 sInputsRef.current.boardRanges,
             ),
             useLastViewedRange = false,
         }: ConfiguredPanelRangeOptions,
-    ): ResolvedRangeState {
-        const sAxisKind = getPanelAxisKind(panelInfo);
-        const sFullRangeState = {
-            mainRange: fullRange,
-            navigatorRange: fullRange,
-        };
-        const buildState = (
-            requested: RangeState,
-            fixedRange: 'main' | 'navigator' = 'main',
-        ) => buildResolvedRangeState(
-            sFullRangeState,
-            { type: 'replace', range: requested },
-            fullRange,
-            fixedRange,
-        );
-        const sBoardRange = isRangeExpressionEmpty(boardRange)
-            ? undefined
-            : resolveRangeInput(
-                  boardRange,
-                  sAxisKind,
-                  fullRange,
-                  fullRange,
-              );
-        if (sBoardRange) {
-            return buildState(
-                applyInitialMainChartWindow
-                    ? createInitialRange(sBoardRange)
-                    : {
-                          mainRange: sBoardRange,
-                          navigatorRange: sBoardRange,
-                      },
-                'navigator',
-            );
-        }
-
-        const sLastViewedRange =
-            useLastViewedRange && panelInfo.time.useLastViewedRange
-                ? panelInfo.time.lastViewedRange
-                : undefined;
-        if (sLastViewedRange) {
-            return buildState(sLastViewedRange);
-        }
-
-        const sRangeInput = panelInfo.time.rangeInput;
-        const sMainRange = isRangeExpressionEmpty(sRangeInput)
-            ? undefined
-            : resolveRangeInput(
-                  sRangeInput,
-                  sAxisKind,
-                  fullRange,
-                  fullRange,
-              );
-        return buildState(
-            !sMainRange &&
-                isRangeExpressionEmpty(sRangeInput) &&
-                applyInitialMainChartWindow
-                ? createInitialRange(fullRange)
-                : {
-                      mainRange: sMainRange ?? fullRange,
-                      navigatorRange: fullRange,
-                  },
-        );
-    }
-
-    function loadConfiguredRangeState(
-        context: RangeTaskContext,
-        options: ConfiguredPanelRangeOptions,
-    ): RangeTaskResult {
-        const sBoardRange =
-            options.boardRange ??
-            getBoardRangeInput(
-                context.panelInfo,
-                sInputsRef.current.boardRanges,
-            );
-        const buildRangeState = (fullRange: AxisRange) =>
-            buildConfiguredRangeState(context.panelInfo, fullRange, {
-                ...options,
-                boardRange: sBoardRange,
+    ): ResolvedPanelRangeResult {
+        const { panelInfo } = context;
+        const sIsNumericAxis =
+            getPanelRangeKind(panelInfo) === 'numeric';
+        const sBoardRangeIsEmpty = isRangeExpressionEmpty(boardRange);
+        const resolveRange = (
+            fullRange: AxisRange,
+        ): ResolvedPanelRangeState =>
+            resolveConcretePanelRangeState({
+                fullRange,
+                rangeInput: panelInfo.time.rangeInput,
+                isNumericAxis: sIsNumericAxis,
+                lastViewedRange:
+                    useLastViewedRange &&
+                    panelInfo.time.useLastViewedRange
+                        ? panelInfo.time.lastViewedRange
+                        : undefined,
+                boardRange,
+                applyInitialMainChartWindow,
+                chartAreaWidth: sChartAreaWidthRef.current,
             });
-        const sPanelRangeInput = context.panelInfo.time.rangeInput;
-        const sExplicitStart =
-            getPanelRangeKind(context.panelInfo) === 'numeric' &&
-            isRangeExpressionEmpty(sBoardRange)
-                ? parseRangeInputValue(sPanelRangeInput.start, 'numeric')
-                : undefined;
-        const sExplicitEnd = sExplicitStart !== undefined
-            ? parseRangeInputValue(sPanelRangeInput.end, 'numeric')
-            : undefined;
         const sExplicitFullRange =
-            sExplicitStart !== undefined &&
-            sExplicitEnd !== undefined &&
-            sExplicitStart < sExplicitEnd
-                ? { start: sExplicitStart, end: sExplicitEnd }
+            sIsNumericAxis && sBoardRangeIsEmpty
+                ? resolveExplicitNumericFullRange(
+                      panelInfo.time.rangeInput,
+                  )
                 : undefined;
 
         return sExplicitFullRange
-            ? buildRangeState(sExplicitFullRange)
-            : fetchPanelFullRange(context).then(buildRangeState);
+            ? resolveRange(sExplicitFullRange)
+            : fetchPanelFullRange(context).then(
+                  resolveRange,
+              );
     }
 
-    async function loadFullRangeState(
-        context: RangeTaskContext,
-        viewRange?: RangeState,
-    ): Promise<ResolvedRangeState> {
+    async function resolveFullPanelRange(
+        context: PanelRangeCommandContext,
+        viewRange?: PanelRangeState,
+    ): Promise<ResolvedPanelRangeState> {
         const sFullRange = await fetchPanelFullRange(context);
-        const sFullRangeState = {
-            mainRange: sFullRange,
-            navigatorRange: sFullRange,
-        };
-        return buildResolvedRangeState(
-            sFullRangeState,
-            {
-                type: 'replace',
-                range: viewRange ?? sFullRangeState,
+        return createResolvedPanelRangeState(
+            viewRange ?? {
+                panelRange: sFullRange,
+                navigatorRange: sFullRange,
             },
             sFullRange,
         );
     }
 
-    function applyNavigatorInput(
-        currentRangeState: ResolvedRangeState,
-        fullRange: AxisRange,
-        input: RangeExpressionInput,
-        axisKind: AxisKind,
-        retainInput = false,
-    ): ResolvedRangeState {
-        const sNavigatorRange = resolveRangeInput(
-            input,
-            axisKind,
-            fullRange,
-            currentRangeState.range.navigatorRange,
-        );
-        if (!sNavigatorRange) return currentRangeState;
-
-        const sCurrentState = { ...currentRangeState, fullRange };
-        const sResolvedRange = resolveRangeChange(
-            currentRangeState.range,
-            {
-                type: 'navigator',
-                range: sNavigatorRange,
-            },
-        );
-        const sChartAreaWidth = sChartAreaWidthRef.current;
-        const sRange = sChartAreaWidth === undefined
-            ? sResolvedRange
-            : enforceChartAreaWidth(
-                  sResolvedRange,
-                  sChartAreaWidth,
-                  'navigator',
-              );
-        return createNextRangeState(
-            sCurrentState,
-            sRange,
-            'navigator',
-            retainInput ? input : undefined,
-        );
-    }
-
-    async function reloadRetainedRangeState(
-        context: RangeTaskContext,
-        currentRangeState: ResolvedRangeState,
-    ): Promise<ResolvedRangeState> {
+    async function resolveRetainedPanelRange(
+        context: PanelRangeCommandContext,
+        currentRangeState: ResolvedPanelRangeState,
+    ): Promise<ResolvedPanelRangeState> {
         const sFullRange = await fetchPanelFullRange(context);
         const sRangeInput = currentRangeState.navigatorRangeInput;
-        return !isRangeExpressionEmpty(sRangeInput)
-            ? applyNavigatorInput(
+        return sRangeInput
+            ? resolveNavigatorInputRangeState(
                   currentRangeState,
                   sFullRange,
                   sRangeInput,
-                  getPanelAxisKind(context.panelInfo),
+                  getPanelRangeKind(context.panelInfo) === 'numeric',
+                  sChartAreaWidthRef.current,
                   true,
               )
-            : buildResolvedRangeState(
+            : createResolvedPanelRangeState(
                   currentRangeState.range,
-                  {
-                      type: 'replace',
-                      range: currentRangeState.range,
-                  },
                   sFullRange,
               );
     }
 
-    function loadBoardOrFallback(
-        context: RangeTaskContext,
-        loadFallback: () => RangeTaskResult,
-    ): RangeTaskResult {
+    function resolveBoardOrFallback(
+        context: PanelRangeCommandContext,
+        resolveFallback: () => ResolvedPanelRangeResult,
+    ): ResolvedPanelRangeResult {
         if (hasUserNavigatorRangeInput(context.rangeState)) {
-            return loadFallback();
+            return resolveFallback();
         }
 
         const sBoardRange = getBoardRangeInput(
             context.panelInfo,
             sInputsRef.current.boardRanges,
         );
-        if (isRangeExpressionEmpty(sBoardRange)) return loadFallback();
+        if (isRangeExpressionEmpty(sBoardRange)) return resolveFallback();
 
         const sCurrentRangeState = context.rangeState;
-        return sCurrentRangeState
+        return isResolvedPanelRangeState(sCurrentRangeState)
             ? fetchPanelFullRange(context).then((fullRange) =>
-                  applyNavigatorInput(
+                  resolveNavigatorInputRangeState(
                       sCurrentRangeState,
                       fullRange,
                       sBoardRange,
-                      getPanelAxisKind(context.panelInfo),
+                      getPanelRangeKind(context.panelInfo) === 'numeric',
+                      sChartAreaWidthRef.current,
                   ),
               )
-            : loadConfiguredRangeState(context, {
+            : resolveConfiguredPanelRange(context, {
                   applyInitialMainChartWindow: true,
                   boardRange: sBoardRange,
               });
     }
 
-    function ensureRangeForDataRefresh(
-        context: RangeTaskContext,
-    ): RangeTaskResult | void {
-        if (!context.rangeState) {
-            return loadConfiguredRangeState(context, {
-                applyInitialMainChartWindow: false,
-            });
+    function resolveRangeForDataRefresh(
+        context: PanelRangeCommandContext,
+    ): ResolvedPanelRangeResult | void {
+        if (!isResolvedPanelRangeState(context.rangeState)) {
+            return resolveConfiguredPanelRange(
+                context,
+                { applyInitialMainChartWindow: false },
+            );
         }
 
         requestDataRefresh(context.requestGeneration, true);
     }
 
-    function reloadConfiguredRangeState(
-        context: RangeTaskContext,
-    ): RangeTaskResult {
-        return loadConfiguredRangeState(context, {
-            applyInitialMainChartWindow: true,
-        });
-    }
-
-    function loadBoardOrFullRange(
-        context: RangeTaskContext,
-        viewRange?: RangeState,
-    ): RangeTaskResult {
-        return loadBoardOrFallback(
+    function resolveRefreshedPanelRange(
+        context: PanelRangeCommandContext,
+    ): ResolvedPanelRangeResult {
+        return resolveConfiguredPanelRange(
             context,
-            () => loadFullRangeState(context, viewRange),
+            { applyInitialMainChartWindow: true },
         );
     }
 
-    function loadBoardRangeState(
-        context: RangeTaskContext,
+    function resolveBoardOrFullRange(
+        context: PanelRangeCommandContext,
+        viewRange?: PanelRangeState,
+    ): ResolvedPanelRangeResult {
+        return resolveBoardOrFallback(
+            context,
+            () => resolveFullPanelRange(context, viewRange),
+        );
+    }
+
+    function resolveBoardRange(
+        context: PanelRangeCommandContext,
         boardRangeToApply: RangeExpressionInput,
-    ): RangeTaskResult | void {
+    ): ResolvedPanelRangeResult | void {
         if (hasUserNavigatorRangeInput(context.rangeState)) return;
 
         if (isRangeExpressionEmpty(boardRangeToApply)) {
-            return context.rangeState
+            return isResolvedPanelRangeState(context.rangeState)
                 ? undefined
-                : loadInitialRangeState(context);
+                : initializePanelRange(context);
         }
 
-        const { rangeState } = context;
-        if (!rangeState) {
-            return loadConfiguredRangeState(context, {
+        const { panelInfo, rangeState } = context;
+        const sIsNumericAxis =
+            getPanelRangeKind(panelInfo) === 'numeric';
+
+        if (!isResolvedPanelRangeState(rangeState)) {
+            return resolveConfiguredPanelRange(context, {
                 applyInitialMainChartWindow: true,
                 boardRange: boardRangeToApply,
             });
         }
 
-        const applyBoardRange = (fullRange: AxisRange) =>
-            applyNavigatorInput(
+        const resolveRange = (fullRange: AxisRange) =>
+            resolveNavigatorInputRangeState(
                 rangeState,
                 fullRange,
                 boardRangeToApply,
-                getPanelAxisKind(context.panelInfo),
+                sIsNumericAxis,
+                sChartAreaWidthRef.current,
             );
-        return getPanelRangeKind(context.panelInfo) === 'numeric'
-            ? fetchPanelFullRange(context).then(applyBoardRange)
-            : applyBoardRange(rangeState.fullRange);
+
+        return sIsNumericAxis
+            ? fetchPanelFullRange(context).then(resolveRange)
+            : resolveRange(rangeState.fullRange);
     }
 
-    async function reloadEditorRangeState(
-        context: RangeTaskContext,
-        currentRangeState: ResolvedRangeState,
-    ): Promise<ResolvedRangeState> {
+    async function resolveEditorMainRange(
+        context: PanelRangeCommandContext,
+        currentRangeState: ResolvedPanelRangeState,
+    ): Promise<ResolvedPanelRangeState> {
+        const sIsNumericAxis =
+            getPanelRangeKind(context.panelInfo) === 'numeric';
+        const sRangeInput = context.panelInfo.time.rangeInput;
         const sFullRange = await fetchPanelFullRange(context);
-        const sMainRange = resolveRangeInput(
-            context.panelInfo.time.rangeInput,
-            getPanelAxisKind(context.panelInfo),
+        const sResolvedRange = resolveEnteredMainRangeState(
+            currentRangeState,
             sFullRange,
-            currentRangeState.range.mainRange,
+            sRangeInput,
+            sIsNumericAxis,
         );
-        if (!sMainRange) {
-            return buildConfiguredRangeState(
-                context.panelInfo,
-                sFullRange,
-                { applyInitialMainChartWindow: false },
-            );
+        if (!sResolvedRange) {
+            return resolveConcretePanelRangeState({
+                fullRange: sFullRange,
+                rangeInput: sRangeInput,
+                isNumericAxis: sIsNumericAxis,
+                lastViewedRange: undefined,
+                boardRange: getBoardRangeInput(
+                    context.panelInfo,
+                    sInputsRef.current.boardRanges,
+                ),
+                applyInitialMainChartWindow: false,
+                chartAreaWidth: sChartAreaWidthRef.current,
+            });
         }
-
-        const sCurrentState = {
-            ...currentRangeState,
-            fullRange: sFullRange,
-        };
-        const sResolvedRange = resolveRangeChange(
-            currentRangeState.range,
-            {
-                type: 'main',
-                range: sMainRange,
-            },
-        );
-        const sChartAreaWidth = sChartAreaWidthRef.current;
-        const sRange = sChartAreaWidth === undefined
-            ? sResolvedRange
-            : enforceChartAreaWidth(sResolvedRange, sChartAreaWidth, 'main');
-        return createNextRangeState(
-            sCurrentState,
-            sRange,
-            'main',
-        );
+        return sResolvedRange;
     }
 
     function reloadAfterEditorSave(
@@ -755,100 +629,123 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         const sRangeKindChanged =
             getPanelRangeKind(sInputsRef.current.panelInfo) !==
             getPanelRangeKind(nextPanelInfo);
-        void runRangeTask((context) => {
+        void runPanelRangeCommand((context) => {
             const sCurrentRangeState = context.rangeState;
             if (
                 preserveCurrentVisibleRange &&
-                sCurrentRangeState
+                isResolvedPanelRangeState(sCurrentRangeState)
             ) {
                 requestDataRefresh(context.requestGeneration, true);
-                return loadBoardOrFallback(
+                return resolveBoardOrFallback(
                     context,
-                    () => reloadRetainedRangeState(context, sCurrentRangeState),
+                    () => resolveRetainedPanelRange(context, sCurrentRangeState),
                 );
             }
 
             requestDataRefresh(context.requestGeneration, false);
             if (
                 !sRangeKindChanged &&
-                sCurrentRangeState
+                isResolvedPanelRangeState(sCurrentRangeState)
             ) {
-                return reloadEditorRangeState(
+                return resolveEditorMainRange(
                     context,
                     sCurrentRangeState,
                 );
             }
 
-            return loadConfiguredRangeState(context, {
+            return resolveConfiguredPanelRange(context, {
                 applyInitialMainChartWindow: false,
                 useLastViewedRange: true,
             });
         }, { panelInfo: nextPanelInfo });
     }
 
-    function loadInitialRangeState(
-        context: RangeTaskContext,
-    ): RangeTaskResult {
+    function initializePanelRange(
+        context: PanelRangeCommandContext,
+    ): ResolvedPanelRangeResult {
         const { panelInfo } = context;
-        const sGlobalRangeRequest =
-            sInputsRef.current.globalRangeRequest;
-        const sRangeKind = getPanelRangeKind(panelInfo);
-        const sGlobalRange = sRangeKind
-            ? sGlobalRangeRequest.ranges[sRangeKind]
-            : undefined;
-        const sShouldApplyNumericGlobalRange =
-            !context.rangeState &&
-            !panelInfo.time.useLastViewedRange &&
-            sRangeKind === 'numeric' &&
-            sGlobalRange !== undefined;
-
-        if (sShouldApplyNumericGlobalRange) {
-            return loadFullRangeState(context, sGlobalRange);
-        }
-
-        return loadBoardOrFallback(
+        const sGlobalRange = sInputsRef.current.globalRangeRequest.range;
+        return resolveBoardOrFallback(
             context,
             () =>
-                context.rangeState
-                    ? reloadRetainedRangeState(context, context.rangeState)
+                isResolvedPanelRangeState(context.rangeState)
+                    ? resolveRetainedPanelRange(context, context.rangeState)
                     : !panelInfo.time.useLastViewedRange &&
-                        sGlobalRange
-                      ? loadFullRangeState(
-                            context,
-                            sGlobalRange,
-                        )
-                      : loadConfiguredRangeState(context, {
+                        sGlobalRange &&
+                        getPanelRangeKind(panelInfo) === 'time'
+                      ? resolveFullPanelRange(context, sGlobalRange)
+                      : resolveConfiguredPanelRange(context, {
                             applyInitialMainChartWindow: true,
                             useLastViewedRange: true,
                         }),
         );
     }
 
-    function commitRange(
-        resolve: (current: RangeState) => RangeState,
-        changeType: RangeChangeType,
-        navigatorRangeInput?: RangeExpressionInput,
+    function applyPanelRangeCandidate(
+        createCandidate: (range: PanelRangeState) => PanelRangeCandidate,
+        {
+            navigatorRangeInput,
+            preservesNavigatorInput = false,
+            replacesNavigatorInput = false,
+        }: {
+            navigatorRangeInput?: RangeExpressionInput;
+            preservesNavigatorInput?: boolean;
+            replacesNavigatorInput?: boolean;
+        } = {},
     ): void {
         const sCurrentRangeState = sInputsRef.current.rangeState;
-        if (!sCurrentRangeState) return;
+        if (!isResolvedPanelRangeState(sCurrentRangeState)) return;
 
-        void runRangeTask(() => {
-            const sResolvedRange = resolve(sCurrentRangeState.range);
-            const sChartAreaWidth = sChartAreaWidthRef.current;
-            const sRange = sChartAreaWidth === undefined
-                ? sResolvedRange
-                : enforceChartAreaWidth(
-                      sResolvedRange,
-                      sChartAreaWidth,
-                      changeType === 'navigator' ? 'navigator' : 'main',
-                  );
-            return createNextRangeState(
-                sCurrentRangeState,
-                sRange,
-                changeType,
-                navigatorRangeInput,
-            );
-        });
+        const sResolvedRange = resolvePanelRangeCandidate(
+            sCurrentRangeState.range,
+            createCandidate(sCurrentRangeState.range),
+        );
+        const sNavigatorChanged = !isSameRange(
+            sResolvedRange.navigatorRange,
+            sCurrentRangeState.range.navigatorRange,
+        );
+        const sNextRangeState = {
+            ...sCurrentRangeState,
+            range: sResolvedRange,
+            navigatorRangeInput: replacesNavigatorInput
+                ? navigatorRangeInput && { ...navigatorRangeInput }
+                : preservesNavigatorInput
+                  ? sCurrentRangeState.navigatorRangeInput
+                : sNavigatorChanged
+                  ? undefined
+                  : sCurrentRangeState.navigatorRangeInput,
+        };
+        void runPanelRangeCommand(() => sNextRangeState);
+    }
+
+    function applyPanelRangeUpdate(update: PanelRangeUpdate): void {
+        applyPanelRangeCandidate(
+            (currentRange) =>
+                update.type === 'navigator-range-entered'
+                    ? {
+                          authority: 'navigator',
+                          requestedRange:
+                              resolveRequestedNavigatorRangeState(
+                                  currentRange,
+                                  update.range,
+                                  sChartAreaWidthRef.current,
+                              ),
+                      }
+                    : createPanelRangeUpdateCandidate(
+                          currentRange,
+                          update,
+                      ),
+            {
+                preservesNavigatorInput:
+                    update.type === 'navigator-selection-dragged',
+                replacesNavigatorInput:
+                    update.type === 'navigator-range-entered',
+                navigatorRangeInput:
+                    update.type === 'navigator-range-entered'
+                        ? update.rangeInput
+                        : undefined,
+            },
+        );
     }
 
     const syncPanelInitialization = useStableCallback(() => {
@@ -870,7 +767,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
             return;
         }
 
-        void runRangeTask(loadInitialRangeState, {
+        void runPanelRangeCommand(initializePanelRange, {
             initializing: true,
         });
     });
@@ -882,68 +779,42 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         },
     );
     const onRangeButtonAction = useStableCallback(
-        (action: RangeButtonAction) =>
-            commitRange(
-                (current) => resolveButtonPress(current, action),
-                action === 'shift-navigator-left' ||
-                    action === 'shift-navigator-right'
-                    ? 'navigator'
-                    : 'main',
-            ),
-    );
-    const onMainRangeChange = useStableCallback(
-        (range: AxisRange) =>
-            commitRange(
-                (current) =>
-                    resolveRangeChange(
-                        current,
-                        { type: 'main', range },
-                    ),
-                'main',
-            ),
-    );
-    const onNavigatorRangeChange = useStableCallback(
-        (range: AxisRange, input?: RangeExpressionInput) => {
-            if (input && isRangeExpressionEmpty(input)) {
-                void runRangeTask(reloadConfiguredRangeState);
-                return;
-            }
+        (action: PanelRangeButtonAction) =>
+            applyPanelRangeCandidate((currentRange) => {
+                const sUsesVisibleNavigator =
+                    action === 'shift-navigator-left' ||
+                    action === 'shift-navigator-right';
+                const sButtonRange = sUsesVisibleNavigator
+                    ? {
+                          ...currentRange,
+                          navigatorRange: resolveNavigatorDisplayRange(
+                              currentRange.panelRange,
+                              currentRange.navigatorRange,
+                              sChartAreaWidthRef.current,
+                          ),
+                      }
+                    : currentRange;
 
-            commitRange(
-                (current) =>
-                    resolveRangeChange(
-                        current,
-                        { type: 'navigator', range },
-                    ),
-                'navigator',
-                input,
-            );
-        },
+                return createPanelRangeButtonCandidate(
+                    sButtonRange,
+                    action,
+                );
+            }),
     );
-    const onRangeReplace = useStableCallback(
-        (range: RangeState) =>
-            commitRange(
-                (current) =>
-                    resolveRangeChange(
-                        current,
-                        { type: 'replace', range },
-                    ),
-                'replace',
-            ),
-    );
+    const onRangeUpdate = useStableCallback(applyPanelRangeUpdate);
     const onRefreshData = useStableCallback(() => {
         const sCurrentRangeState = sInputsRef.current.rangeState;
-        if (sCurrentRangeState) {
+        if (isResolvedPanelRangeState(sCurrentRangeState)) {
             requestDataRefresh(sRequestRef.current.generation, true);
         } else {
-            void runRangeTask(ensureRangeForDataRefresh);
+            void runPanelRangeCommand(resolveRangeForDataRefresh);
         }
     });
     const onRefreshRange = useStableCallback(() => {
-        void runRangeTask(reloadConfiguredRangeState);
+        void runPanelRangeCommand(resolveRefreshedPanelRange);
     });
     const onExpandFullRange = useStableCallback(() => {
-        void runRangeTask(loadBoardOrFullRange);
+        void runPanelRangeCommand(resolveBoardOrFullRange);
     });
     const onReloadAfterEditorSave = useStableCallback(
         reloadAfterEditorSave,
@@ -952,6 +823,19 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
     useLayoutEffect(() => {
         syncPanelInitialization();
     }, [isActive, panelInfo, syncPanelInitialization]);
+
+    const runBroadcastAction = useStableCallback(
+        (
+            broadcastKey: string,
+            command: PanelRangeCommand,
+            refreshDataAfter: boolean = false,
+        ): void => {
+            void runPanelRangeCommand(command, {
+                broadcastKey,
+                refreshDataAfter,
+            });
+        },
+    );
 
     const syncBroadcastRequests = useStableCallback(() => {
         const sPrevious = sSeenVersionsRef.current;
@@ -962,13 +846,10 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         );
         sSeenVersionsRef.current = sNext;
         const sRangeKind = getPanelRangeKind(panelInfo);
-        const sGlobalRange = sRangeKind
-            ? globalRangeRequest.ranges[sRangeKind]
-            : undefined;
         const sRefreshDataChanged =
             sPrevious.refreshDataVersion !== sNext.refreshDataVersion;
-        let sBroadcastTask:
-            | { key: string; task: RangeTask }
+        let sRangeBroadcast:
+            | { key: string; command: PanelRangeCommand }
             | undefined;
 
         if (sRangeKind) {
@@ -977,10 +858,10 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                 : 'boardNumericRangeVersion';
             if (sPrevious[sVersionKey] !== sNext[sVersionKey]) {
                 const sBoardRange = boardRanges[sRangeKind];
-                sBroadcastTask = {
+                sRangeBroadcast = {
                     key: `board-${sRangeKind}:${sBoardRange.applyVersion}`,
-                    task: (context) =>
-                        loadBoardRangeState(
+                    command: (context) =>
+                        resolveBoardRange(
                             context,
                             sBoardRange.input,
                         ),
@@ -989,41 +870,43 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         }
 
         if (
-            sRangeKind === globalRangeRequest.axisKind &&
-            sGlobalRange &&
+            sRangeKind === 'time' &&
+            globalRangeRequest.range &&
             sPrevious.globalRangeVersion !== sNext.globalRangeVersion
         ) {
-            sBroadcastTask = {
+            sRangeBroadcast = {
                 key: `global:${globalRangeRequest.applyVersion}`,
-                task: (context) =>
-                    sRangeKind === 'numeric'
-                        ? loadFullRangeState(context, sGlobalRange)
-                        : loadBoardOrFullRange(context, sGlobalRange),
+                command: (context) =>
+                    resolveBoardOrFullRange(
+                        context,
+                        globalRangeRequest.range,
+                    ),
             };
         }
         if (
             sPrevious.refreshRangeVersion !== sNext.refreshRangeVersion
         ) {
-            sBroadcastTask = {
+            sRangeBroadcast = {
                 key: `refresh-range:${sNext.refreshRangeVersion}`,
-                task: reloadConfiguredRangeState,
+                command: resolveRefreshedPanelRange,
             };
         }
         if (
             sPrevious.expandFullRangeVersion !==
             sNext.expandFullRangeVersion
         ) {
-            sBroadcastTask = {
+            sRangeBroadcast = {
                 key: `expand-full-range:${sNext.expandFullRangeVersion}`,
-                task: loadBoardOrFullRange,
+                command: resolveBoardOrFullRange,
             };
         }
 
-        if (sBroadcastTask) {
-            void runRangeTask(sBroadcastTask.task, {
-                broadcastKey: sBroadcastTask.key,
-                refreshDataAfter: sRefreshDataChanged,
-            });
+        if (sRangeBroadcast) {
+            runBroadcastAction(
+                sRangeBroadcast.key,
+                sRangeBroadcast.command,
+                sRefreshDataChanged,
+            );
         } else if (sRefreshDataChanged) {
             onRefreshData();
         }
@@ -1043,9 +926,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         () => ({
             onChartAreaWidthChange,
             onRangeButtonAction,
-            onMainRangeChange,
-            onNavigatorRangeChange,
-            onRangeReplace,
+            onRangeUpdate,
             onRefreshData,
             onRefreshRange,
             onExpandFullRange,
@@ -1054,10 +935,8 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         [
             onChartAreaWidthChange,
             onExpandFullRange,
-            onMainRangeChange,
-            onNavigatorRangeChange,
             onRangeButtonAction,
-            onRangeReplace,
+            onRangeUpdate,
             onRefreshData,
             onRefreshRange,
             onReloadAfterEditorSave,
@@ -1072,11 +951,11 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
 }
 
 function hasUserNavigatorRangeInput(
-    rangeState: ResolvedRangeState | undefined,
+    rangeState: PanelRangeSourceState,
 ): boolean {
-    const sNavigatorRangeInput = rangeState?.navigatorRangeInput;
     return (
-        sNavigatorRangeInput !== undefined &&
-        !isRangeExpressionEmpty(sNavigatorRangeInput)
+        isResolvedPanelRangeState(rangeState) &&
+        rangeState.navigatorRangeInput !== undefined &&
+        !isRangeExpressionEmpty(rangeState.navigatorRangeInput)
     );
 }

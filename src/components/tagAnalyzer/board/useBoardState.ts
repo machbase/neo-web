@@ -4,16 +4,23 @@ import {
     type PanelInfo,
 } from '../panel/panelModel';
 import type { BoardInfo } from './boardModel';
-import { isSameRange } from '../range/rangeArithmetic';
+import {
+    isResolvedPanelRangeState,
+    LOADING_PANEL_RANGE_STATE,
+    type PanelRangeSourceState,
+} from '../panel/panelRangeSourceState';
+import {
+    isSameRange,
+    isValidPanelRangeState,
+} from '../range/rangeArithmetic';
 import {
     type AxisKind,
     type RangeExpressionInput,
-    type ResolvedRangeState,
 } from '../range/rangeModel';
 
 type BoardRuntimeState = {
     info: BoardInfo;
-    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
+    panelRanges: { [panelKey: string]: PanelRangeSourceState };
 };
 
 type BoardStateAction =
@@ -38,7 +45,7 @@ type BoardStateAction =
     | {
           type: 'SET_PANEL_RANGE';
           panelKey: string;
-          rangeState: ResolvedRangeState;
+          rangeState: PanelRangeSourceState;
       };
 
 export function useBoardState(boardInfo: BoardInfo) {
@@ -75,7 +82,7 @@ export function useBoardState(boardInfo: BoardInfo) {
             panelKey,
             isSelected,
         }),
-        setPanelRange: (panelKey: string, rangeState: ResolvedRangeState) =>
+        setPanelRange: (panelKey: string, rangeState: PanelRangeSourceState) =>
             dispatch({ type: 'SET_PANEL_RANGE', panelKey, rangeState }),
         applySaveResult: (
             savedBoardInfo: BoardInfo,
@@ -87,15 +94,7 @@ export function useBoardState(boardInfo: BoardInfo) {
 
     return {
         state,
-        infoForSave: {
-            ...state.info,
-            panels: state.info.panels.map((panelInfo) =>
-                getPanelInfoForSave(
-                    panelInfo,
-                    state.panelRanges[panelInfo.key],
-                ),
-            ),
-        },
+        infoForSave: getBoardInfoForSave(state),
         commands,
     };
 }
@@ -119,16 +118,42 @@ function createBoardRuntimeState(
     const sPanelRanges = Object.fromEntries(
         sPanels.map((panelInfo) => [
             panelInfo.key,
-            sPreviousState?.panelRanges[panelInfo.key],
+            sPreviousState?.panelRanges[panelInfo.key] ??
+                LOADING_PANEL_RANGE_STATE,
         ]),
     );
 
     return {
         info: {
             ...boardInfo,
+            boardTimeRange: normalizeBoardRangeInput(boardInfo.boardTimeRange),
+            boardNumericRange: normalizeBoardRangeInput(
+                boardInfo.boardNumericRange,
+            ),
             panels: sPanels,
         },
         panelRanges: sPanelRanges,
+    };
+}
+
+function normalizeBoardRangeInput(value: unknown): RangeExpressionInput {
+    if (typeof value !== 'object' || value === null) {
+        return { start: '', end: '' };
+    }
+
+    const sRangeInput = value as { start?: unknown; end?: unknown };
+    return {
+        start: typeof sRangeInput.start === 'string' ? sRangeInput.start : '',
+        end: typeof sRangeInput.end === 'string' ? sRangeInput.end : '',
+    };
+}
+
+function getBoardInfoForSave(state: BoardRuntimeState): BoardInfo {
+    return {
+        ...state.info,
+        panels: state.info.panels.map((panelInfo) =>
+            getPanelInfoForSave(panelInfo, state.panelRanges[panelInfo.key]),
+        ),
     };
 }
 
@@ -177,11 +202,7 @@ function boardStateReducer(
             };
 
         case 'APPLY_PANEL_INFO':
-            return updatePanelInBoardState(
-                state,
-                action.panelInfo.key,
-                () => action.panelInfo,
-            );
+            return replacePanelInBoardState(state, action.panelInfo);
 
         case 'APPEND_PANEL_INFO':
             return createBoardRuntimeState({
@@ -189,36 +210,37 @@ function boardStateReducer(
                 panels: [...state.info.panels, action.panelInfo],
             }, state);
 
-        case 'REMOVE_PANEL': {
-            const sPanelIndex = requirePanelIndex(
-                state.info.panels,
-                action.panelKey,
-                'delete',
-            );
+        case 'REMOVE_PANEL':
             return createBoardRuntimeState({
                 ...state.info,
-                panels: state.info.panels.filter(
-                    (_, index) => index !== sPanelIndex,
-                ),
+                panels: removePanel(state.info.panels, action.panelKey),
             }, state);
-        }
 
         case 'SET_PANEL_OVERLAP_SELECTED': {
-            return updatePanelInBoardState(
-                state,
-                action.panelKey,
-                (panelInfo) =>
-                    panelInfo.isOverlapSelected === action.isSelected
-                        ? panelInfo
-                        : {
-                              ...panelInfo,
-                              isOverlapSelected: action.isSelected,
-                          },
+            const sPanelInfo = state.info.panels.find(
+                (panel) => panel.key === action.panelKey,
             );
+            if (!sPanelInfo) {
+                throw new Error(
+                    `Cannot update missing TagAnalyzer panel: ${action.panelKey}`,
+                );
+            }
+            if (sPanelInfo.isOverlapSelected === action.isSelected) {
+                return state;
+            }
+
+            return replacePanelInBoardState(state, {
+                ...sPanelInfo,
+                isOverlapSelected: action.isSelected,
+            });
         }
 
         case 'SET_PANEL_RANGE':
-            requirePanelIndex(state.info.panels, action.panelKey);
+            if (!state.info.panels.some((panel) => panel.key === action.panelKey)) {
+                throw new Error(
+                    `Cannot update missing TagAnalyzer panel: ${action.panelKey}`,
+                );
+            }
 
             return {
                 ...state,
@@ -234,29 +256,34 @@ function mergeSavedBoardMetadata(
     currentInfo: BoardInfo,
     savedInfo: BoardInfo,
 ): BoardInfo {
-    const { panels, boardTimeRange, boardNumericRange } = currentInfo;
-
     return {
-        ...savedInfo,
-        panels,
-        boardTimeRange,
-        boardNumericRange,
+        ...currentInfo,
+        id: savedInfo.id,
+        type: savedInfo.type,
+        name: savedInfo.name,
+        path: savedInfo.path,
+        code: savedInfo.code,
+        savedCode: savedInfo.savedCode,
+        version: savedInfo.version,
+        loadWarning: savedInfo.loadWarning,
     };
 }
 
-function updatePanelInBoardState(
+function replacePanelInBoardState(
     state: BoardRuntimeState,
-    panelKey: string,
-    updatePanel: (panelInfo: PanelInfo) => PanelInfo,
+    panelInfo: PanelInfo,
 ): BoardRuntimeState {
-    const sPanelIndex = requirePanelIndex(state.info.panels, panelKey);
-    const sPanelInfo = state.info.panels[sPanelIndex];
-    const sNextPanelInfo = updatePanel(sPanelInfo);
-
-    if (sNextPanelInfo === sPanelInfo) return state;
+    const sPanelIndex = state.info.panels.findIndex(
+        (panel) => panel.key === panelInfo.key,
+    );
+    if (sPanelIndex < 0) {
+        throw new Error(
+            `Cannot update missing TagAnalyzer panel: ${panelInfo.key}`,
+        );
+    }
 
     const sNextPanels = [...state.info.panels];
-    sNextPanels[sPanelIndex] = sNextPanelInfo;
+    sNextPanels[sPanelIndex] = panelInfo;
     return {
         ...state,
         info: {
@@ -266,33 +293,28 @@ function updatePanelInBoardState(
     };
 }
 
-function requirePanelIndex(
-    panels: readonly PanelInfo[],
-    panelKey: string,
-    operation: 'update' | 'delete' = 'update',
-): number {
-    const sPanelIndex = panels.findIndex((panel) => panel.key === panelKey);
-    if (sPanelIndex < 0) {
-        throw new Error(
-            `Cannot ${operation} missing TagAnalyzer panel: ${panelKey}`,
-        );
+function removePanel(panels: PanelInfo[], panelKey: string): PanelInfo[] {
+    const sNextPanels = panels.filter((panel) => panel.key !== panelKey);
+    if (sNextPanels.length === panels.length) {
+        throw new Error(`Cannot delete missing TagAnalyzer panel: ${panelKey}`);
     }
-    return sPanelIndex;
+    return sNextPanels;
 }
 
 function getPanelInfoForSave(
     panelInfo: PanelInfo,
-    rangeState: ResolvedRangeState | undefined,
+    rangeState: PanelRangeSourceState | undefined,
 ): PanelInfo {
     const sLastViewedRange = panelInfo.time.lastViewedRange;
 
     if (
         !panelInfo.time.useLastViewedRange ||
         !rangeState ||
-        (sLastViewedRange !== undefined &&
+        !isResolvedPanelRangeState(rangeState) ||
+        (isValidPanelRangeState(sLastViewedRange) &&
             isSameRange(
-                sLastViewedRange.mainRange,
-                rangeState.range.mainRange,
+                sLastViewedRange.panelRange,
+                rangeState.range.panelRange,
             ) &&
             isSameRange(
                 sLastViewedRange.navigatorRange,

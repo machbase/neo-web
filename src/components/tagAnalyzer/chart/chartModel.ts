@@ -1,17 +1,22 @@
 import { type YAXisComponentOption, type XAXisComponentOption, type LineSeriesOption, type SeriesOption, type MarkAreaComponentOption, type ScatterSeriesOption, type CustomSeriesOption, type CustomSeriesRenderItemAPI, type CustomSeriesRenderItemParams, type CustomSeriesRenderItemReturn, type BrushComponentOption, type DataZoomComponentOption, type EChartsOption, type LegendComponentOption, type TooltipComponentOption, type TooltipComponentFormatterCallbackParams as TopLevelFormatterParams } from 'echarts';
-import type { AxisRange, RangeState } from '../range/rangeModel';
-import { roundNumericAxisBounds } from '../range/intervalResolver';
+import {
+    roundNumericAxisBounds,
+    type AxisRange,
+    type PanelRangeState,
+} from '../range/rangeModel';
 import {
     getRangeCenter,
+    getRangeWidth,
     isSameRange,
+    isValidRange,
 } from '../range/rangeArithmetic';
-import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
-import { formatCompactNumber } from '../format/numericFormat';
+import { formatNumericAxisLabel } from '../range/format/numericRangeFormat';
+import { formatAxisValue, formatAxisPointerLabel } from '../range/format/rangeFormat';
 import { type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
 import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
 import { getPanelSeriesDisplayColor, DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../seriesModel';
 import { DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR, type PanelHighlight, type ValueRange } from '../panel/panelModel';
-import { buildRenderableSeriesAnnotations, type AnnotationRenderContext, type RenderableSeriesAnnotation, type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
+import { buildRenderableSeriesAnnotations, type AnnotationRenderContext, type RenderableSeriesAnnotation, type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomEventRange, selectDataZoomItem } from './chartGeometry';
 import { type MutableRefObject } from 'react';
 import { PanelOverlayMode } from '../panel/panelInteraction';
 
@@ -103,7 +108,7 @@ const CHART_AXIS_STYLE = {
     yLabel: {
         color: '#afb5bc',
         fontSize: 10,
-        formatter: (value: number) => formatCompactNumber(value),
+        formatter: (value: number) => formatNumericAxisLabel(value),
     } satisfies YAXisComponentOption['axisLabel'],
 };
 
@@ -118,17 +123,6 @@ const HIDDEN_AXIS_PART = {
     },
 } as const;
 
-function includeAxisValue(
-    axisBounds: number[],
-    value: number,
-    zeroBase = false,
-): void {
-    const sMin = zeroBase ? Math.min(value, 0) : value;
-    const sMax = zeroBase ? Math.max(value, 0) : value;
-    axisBounds[0] = Math.min(axisBounds[0] ?? sMin, sMin);
-    axisBounds[1] = Math.max(axisBounds[1] ?? sMax, sMax);
-}
-
 function updateAxisBounds(
     axisBounds: number[],
     seriesData: ChartRow[],
@@ -140,14 +134,21 @@ function updateAxisBounds(
             value === null ||
             (visibleRange &&
                 !(
-                    timestamp >= visibleRange.start &&
-                    timestamp <= visibleRange.end
+                    timestamp >= visibleRange.startTime &&
+                    timestamp <= visibleRange.endTime
                 ))
         ) {
             continue;
         }
 
-        includeAxisValue(axisBounds, value, zeroBase);
+        const sMin = zeroBase ? Math.min(value, 0) : value;
+        const sMax = zeroBase ? Math.max(value, 0) : value;
+        if (axisBounds[0] === undefined || axisBounds[0] > sMin) {
+            axisBounds[0] = sMin;
+        }
+        if (axisBounds[1] === undefined || axisBounds[1] < sMax) {
+            axisBounds[1] = sMax;
+        }
     }
 }
 
@@ -180,7 +181,12 @@ function updateAxisBoundsWithThresholds(
             return;
         }
 
-        includeAxisValue(axisBounds, threshold.value);
+        if (axisBounds[0] === undefined || axisBounds[0] > threshold.value) {
+            axisBounds[0] = threshold.value;
+        }
+        if (axisBounds[1] === undefined || axisBounds[1] < threshold.value) {
+            axisBounds[1] = threshold.value;
+        }
     });
 }
 
@@ -236,7 +242,7 @@ function resolveAxisRange(
 }
 
 function buildChartXAxisOption(
-    mainRange: AxisRange,
+    panelRange: AxisRange,
     navigatorRange: AxisRange,
     display: RuntimePanelDisplay,
     axes: RuntimePanelAxes,
@@ -249,14 +255,14 @@ function buildChartXAxisOption(
             id: PANEL_MAIN_X_AXIS_ID,
             type: sAxisType,
             gridIndex: PANEL_MAIN_X_AXIS_INDEX,
-            min: mainRange.start,
-            max: mainRange.end,
+            min: panelRange.startTime,
+            max: panelRange.endTime,
             axisLine: CHART_AXIS_STYLE.line,
             axisTick: CHART_AXIS_STYLE.line,
             axisLabel: {
                 ...CHART_AXIS_STYLE.xLabel,
                 formatter: (xAxisValue: number) =>
-                    formatAxisTick(xAxisValue, mainRange, isNumericXAxis),
+                    formatAxisValue(xAxisValue, panelRange, isNumericXAxis),
             },
             splitLine: {
                 show: display.useZoom && axes.x.showTickline,
@@ -275,8 +281,8 @@ function buildChartXAxisOption(
             id,
             type: sAxisType,
             gridIndex: PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
-            min: navigatorRange.start,
-            max: navigatorRange.end,
+            min: navigatorRange.startTime,
+            max: navigatorRange.endTime,
             ...HIDDEN_AXIS_PART,
         })),
     ];
@@ -596,26 +602,41 @@ const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
     z: 3,
 };
 
+function isRenderableHighlight(highlight: PanelHighlight): boolean {
+    return isValidRange(highlight.timeRange);
+}
+
 function getHighlightAreaData(
     highlights: PanelHighlight[],
     includeName: boolean,
 ) {
-    return highlights.map(
-        (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
-            {
-                ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
-                xAxis: highlight.timeRange.start,
-                itemStyle: {
-                    color: createColorWithAlpha(highlight.fillColor, 0.16),
-                    borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
-                    borderType: 'solid',
-                    borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
+    return highlights
+        .filter(isRenderableHighlight)
+        .map(
+            (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
+                {
+                    ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
+                    xAxis: highlight.timeRange.startTime,
+                    itemStyle: {
+                        color: createColorWithAlpha(highlight.fillColor, 0.16),
+                        borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
+                        borderType: 'solid',
+                        borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
+                    },
                 },
-            },
-            {
-                xAxis: highlight.timeRange.end,
-            },
-        ],
+                {
+                    xAxis: highlight.timeRange.endTime,
+                },
+            ],
+        );
+}
+
+function getHighlightLabelY(axisMin: number, axisMax: number): number {
+    const sAxisHeight = axisMax - axisMin;
+
+    return (
+        axisMax -
+        (sAxisHeight > 0 ? sAxisHeight * 0.04 : Math.max(Math.abs(axisMax) * 0.04, 1))
     );
 }
 
@@ -623,17 +644,22 @@ function getHighlightLabelData(
     highlights: PanelHighlight[],
     labelY: number,
 ) {
-    return highlights.map((highlight, highlightIndex) => ({
-        name: highlight.text || 'unnamed',
-        value: [
-            getRangeCenter(highlight.timeRange),
-            labelY,
-        ] as [number, number],
-        highlightIndex,
-        label: {
-            color: highlight.textColor,
-        },
-    }));
+    return highlights
+        .flatMap((highlight, highlightIndex) =>
+            isRenderableHighlight(highlight)
+                ? [{
+                      name: highlight.text || 'unnamed',
+                      value: [
+                          getRangeCenter(highlight.timeRange),
+                          labelY,
+                      ] as [number, number],
+                      highlightIndex,
+                      label: {
+                          color: highlight.textColor,
+                      },
+                  }]
+                : [],
+        );
 }
 
 function createColorWithAlpha(color: string, alpha: number): string {
@@ -687,11 +713,7 @@ function buildHighlightLabelSeries(
         return [];
     }
 
-    const sAxisHeight = sAxisMax - sAxisMin;
-    const sLabelPadding = sAxisHeight > 0
-        ? sAxisHeight * 0.04
-        : Math.max(Math.abs(sAxisMax) * 0.04, 1);
-    const sLabelY = sAxisMax - sLabelPadding;
+    const sLabelY = getHighlightLabelY(sAxisMin, sAxisMax);
     const sLabelData = getHighlightLabelData(highlights, sLabelY);
 
     if (sLabelData.length === 0) {
@@ -1113,12 +1135,12 @@ function buildPanelChartFrameOptions(
         },
         tooltip: buildChartTooltipOption(
             rendering.isNumericXAxis,
-            ranges.mainRange,
+            ranges.panelRange,
             sSeriesDisplayNameByEChartsName,
         ),
         dataZoom: buildPanelChartDataZoomOption(
             config.display,
-            ranges.mainRange,
+            ranges.panelRange,
             interaction.isWheelZoomEnabled,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
@@ -1137,10 +1159,10 @@ export function buildInsideDataZoomOption(
         type: 'inside',
         xAxisIndex: [xAxisIndex],
         filterMode: 'none',
-        ...(visibleRange && visibleRange.start < visibleRange.end
+        ...(visibleRange && visibleRange.startTime < visibleRange.endTime
             ? {
-                  startValue: visibleRange.start,
-                  endValue: visibleRange.end,
+                  startValue: visibleRange.startTime,
+                  endValue: visibleRange.endTime,
               }
             : {}),
         moveOnMouseMove: false,
@@ -1153,13 +1175,13 @@ export function buildInsideDataZoomOption(
 
 function buildPanelChartDataZoomOption(
     display: RuntimePanelDisplay,
-    mainRange: AxisRange,
+    panelRange: AxisRange,
     isWheelZoomEnabled: boolean,
 ): DataZoomComponentOption[] {
-    const sMainRangeDataZoom = mainRange.start < mainRange.end
+    const sPanelRangeDataZoom = panelRange.startTime < panelRange.endTime
         ? {
-              startValue: mainRange.start,
-              endValue: mainRange.end,
+              startValue: panelRange.startTime,
+              endValue: panelRange.endTime,
           }
         : {};
 
@@ -1168,7 +1190,7 @@ function buildPanelChartDataZoomOption(
             id: PANEL_INSIDE_DATA_ZOOM_ID,
             ...buildInsideDataZoomOption(
                 PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
-                mainRange,
+                panelRange,
                 isWheelZoomEnabled,
                 !display.useZoom,
             ),
@@ -1178,7 +1200,7 @@ function buildPanelChartDataZoomOption(
             type: 'slider' as const,
             xAxisIndex: [PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX],
             filterMode: 'none' as const,
-            ...sMainRangeDataZoom,
+            ...sPanelRangeDataZoom,
             realtime: false,
             left: PANEL_NAVIGATOR_GRID_SIDE,
             right: PANEL_NAVIGATOR_GRID_SIDE,
@@ -1263,7 +1285,7 @@ function getMainSeriesTooltipItems(
 function formatChartTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     isNumericXAxis: boolean,
-    mainRange: AxisRange,
+    panelRange: AxisRange,
     seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): string {
     const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
@@ -1272,10 +1294,10 @@ function formatChartTooltip(
     }
 
     const sFirstValue = getTooltipPrimitiveArrayValue(sMainSeriesItems[0].value);
-    const sTime = formatAxisPointer(
+    const sTime = formatAxisPointerLabel(
         Number(sFirstValue?.[0] ?? sMainSeriesItems[0].axisValue),
         isNumericXAxis,
-        mainRange,
+        panelRange,
     );
 
     return `<div>
@@ -1292,7 +1314,7 @@ function formatChartTooltip(
 
 function buildChartTooltipOption(
     isNumericXAxis: boolean,
-    mainRange: AxisRange,
+    panelRange: AxisRange,
     seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): TooltipComponentOption {
     return {
@@ -1308,7 +1330,7 @@ function buildChartTooltipOption(
             formatChartTooltip(
                 tooltipFormatterParams,
                 isNumericXAxis,
-                mainRange,
+                panelRange,
                 seriesDisplayNameByEChartsName,
             ),
     };
@@ -1327,7 +1349,7 @@ export function buildChartSeriesOption(
             data.chartData,
             config.mode.isRaw,
             config.mode.useNormalize,
-            ranges.mainRange,
+            ranges.panelRange,
         );
     const sRenderableHighlights = interaction.draftHighlight
         ? [...config.highlights, interaction.draftHighlight]
@@ -1345,7 +1367,7 @@ export function buildChartSeriesOption(
         ...buildHighlightLabelSeries(sRenderableHighlights, resolvedYAxisOption[0]),
         ...buildSeriesAnnotationSeries({
             ...sAnnotationContext,
-            visibleRange: ranges.mainRange,
+            visibleRange: ranges.panelRange,
         }),
         ...buildMainSeriesOption(
             data.chartData,
@@ -1380,14 +1402,14 @@ const PANEL_CHART_BASE_OPTION: EChartsOption = {
 
 export function buildChartOption(
     chartRuntime: PanelChartRuntime,
-): EChartsOption & { series: SeriesOption[] } {
+): EChartsOption {
     const { config, data, ranges, rendering } = chartRuntime;
     const yAxisOption = buildChartYAxisOption(
         config.axes,
         data.chartData,
         config.mode.isRaw,
         config.mode.useNormalize,
-        ranges.mainRange,
+        ranges.panelRange,
     );
 
     return {
@@ -1397,7 +1419,7 @@ export function buildChartOption(
             rendering.animateNavigatorDataUpdate,
         ...buildPanelChartFrameOptions(chartRuntime),
         xAxis: buildChartXAxisOption(
-            ranges.mainRange,
+            ranges.panelRange,
             ranges.navigatorRange,
             config.display,
             config.axes,
@@ -1423,7 +1445,7 @@ type ChartEvents = {
 };
 
 type BuildChartEventParams = PanelChartHandlers & {
-    ranges: RangeState;
+    ranges: PanelRangeState;
     interactionMode: {
         overlayMode: PanelOverlayMode;
         isSelectionMode: boolean;
@@ -1456,7 +1478,7 @@ export function buildChartEvent({
     onSelection,
     legendState,
 }: BuildChartEventParams): ChartEvents {
-    const { mainRange, navigatorRange } = ranges;
+    const { panelRange, navigatorRange } = ranges;
     const {
         overlayMode,
         isSelectionMode,
@@ -1479,24 +1501,17 @@ export function buildChartEvent({
                 sInstance?.getOption?.()?.dataZoom,
                 PANEL_SLIDER_DATA_ZOOM_ID,
             );
-            const sDataZoomSelection = resolveDataZoomEventItem(
+            const sRange = extractDataZoomEventRange(
                 params,
+                panelRange,
+                navigatorRange,
                 PANEL_SLIDER_DATA_ZOOM_ID,
                 sDataZoomState,
-            );
-            const sRange = extractDataZoomOptionRange(
-                sDataZoomSelection,
-                mainRange,
-                navigatorRange,
             );
 
             if (
                 !sRange ||
-                isSameDataZoomSelection(
-                    sDataZoomSelection,
-                    mainRange,
-                    navigatorRange,
-                )
+                isSameDataZoomRange(sRange, panelRange, isNumericXAxis)
             ) {
                 return;
             }
@@ -1515,7 +1530,7 @@ export function buildChartEvent({
                 areas: [],
             });
 
-            if (sRange.end <= sRange.start) {
+            if (sRange.endTime <= sRange.startTime) {
                 return;
             }
 
@@ -1526,7 +1541,7 @@ export function buildChartEvent({
 
             if (
                 !isDragZoomEnabled ||
-                isSameRange(sRange, mainRange)
+                isSameRange(sRange, panelRange)
             ) {
                 return;
             }
@@ -1649,6 +1664,19 @@ export function buildChartEvent({
             markupHandlers.onActivateHighlightEditor(sPosition, sHighlightIndex);
         },
     };
+}
+
+export function isSameDataZoomRange(
+    left: AxisRange,
+    right: AxisRange,
+    isNumericXAxis: boolean,
+): boolean {
+    const sRangeWidth = Math.abs(getRangeWidth(right));
+    const sTolerance = isNumericXAxis
+        ? Math.max(sRangeWidth * 1e-9, Number.EPSILON)
+        : Math.max(sRangeWidth * 1e-9, 1);
+
+    return isSameRange(left, right, sTolerance);
 }
 
 function isLegendHoverPayload(

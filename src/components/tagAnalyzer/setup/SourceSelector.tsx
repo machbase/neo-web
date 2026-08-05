@@ -25,6 +25,7 @@ import {
     formatRollupRangeLabel,
     getPanelSeriesRollupInfo,
     getPanelSeriesValueSummaryLabel,
+    type PanelSeriesRollupInfo,
     type PanelSeriesSourceColumns,
     type RollupTableMap,
 } from '../seriesModel';
@@ -82,19 +83,25 @@ export function SourceSelector({
     );
     const sValueColumnOptions = useMemo<ComboboxOption[]>(
         () =>
-            getTagAnalyzerValueColumns(tableColumns).map((item) => ({
-                label: isJsonTypeColumn(item[1])
-                    ? `${item[0]} (JSON)`
-                    : formatRollupOptionLabel(
+            getTagAnalyzerValueColumns(tableColumns).map((item) => {
+                const sIsJsonColumn = isJsonTypeColumn(item[1]);
+                const sSummaryLabel = sIsJsonColumn
+                    ? undefined
+                    : getPanelSeriesValueSummaryLabel(
+                          rollupTableList,
+                          selectedTable,
                           item[0],
-                          getPanelSeriesValueSummaryLabel(
-                              rollupTableList,
-                              selectedTable,
-                              item[0],
-                          ),
-                      ),
-                value: item[0],
-            })),
+                      );
+
+                return {
+                    label: sIsJsonColumn
+                        ? `${item[0]} (JSON)`
+                        : sSummaryLabel
+                            ? `${item[0]} (${sSummaryLabel})`
+                            : item[0],
+                    value: item[0],
+                };
+            }),
         [rollupTableList, selectedTable, tableColumns],
     );
     const sIsJsonValue = isTagAnalyzerJsonValue(
@@ -109,17 +116,9 @@ export function SourceSelector({
             const tableColumns = await tableMetadataApi.fetchTableColumns(
                 sColumnRequestTable,
             );
-            const columnInfo = createTagAnalyzerColumnInfo(tableColumns);
             return {
                 table: sColumnRequestTable,
-                sourceColumns: {
-                    name: columnInfo.name || String(tableColumns[0]?.name ?? ''),
-                    time: columnInfo.time,
-                    timeType: columnInfo.timeType,
-                    timeBaseTime: columnInfo.timeBaseTime,
-                    value: columnInfo.value || String(tableColumns[2]?.name ?? ''),
-                    jsonKey: columnInfo.jsonKey ?? '',
-                },
+                sourceColumns: createSourceColumns(tableColumns),
                 tableColumns,
             };
         },
@@ -172,16 +171,7 @@ export function SourceSelector({
         }
     }, [availableSourceTableNames, changeTable, selectedTable]);
 
-    function patchColumnSelection(
-        patch: Partial<PanelSeriesSourceColumns>,
-    ): void {
-        const nextColumns = createTagAnalyzerColumnInfo(
-            tableColumns,
-            {
-                ...sourceColumns,
-                ...patch,
-            },
-        );
+    function applySourceColumns(nextColumns: PanelSeriesSourceColumns): void {
         if (selectedTable) {
             sColumnResultsByTableRef.current[selectedTable] = {
                 sourceColumns: nextColumns,
@@ -189,6 +179,18 @@ export function SourceSelector({
             };
         }
         onSourceChange(selectedTable, nextColumns, tableColumns);
+    }
+
+    function patchColumnSelection(
+        patch: Partial<PanelSeriesSourceColumns>,
+    ): void {
+        applySourceColumns(createTagAnalyzerColumnInfo(
+            tableColumns,
+            {
+                ...sourceColumns,
+                ...patch,
+            },
+        ));
     }
 
     function changeValueColumn(value: string): void {
@@ -287,14 +289,7 @@ function ValueRollupStatus({
     const sLabel = sRollupInfo
         ? `Has Rollup (${formatRollupRangeLabel(sRollupInfo)})`
         : 'No Rollup';
-    const sTooltip = sRollupInfo
-        ? [
-              `Column: ${sRollupInfo.columnName}`,
-              `Minimum Rollup: ${formatRollupIntervalList([sRollupInfo.minimumInterval])}`,
-              `Maximum Rollup: ${formatRollupIntervalList([sRollupInfo.maximumInterval])}`,
-              `Intervals: ${formatRollupIntervalList(sRollupInfo.intervals)}`,
-          ].join('\n')
-        : `No rollup intervals found for ${valueColumn}.`;
+    const sTooltip = getValueRollupTooltip(valueColumn, sRollupInfo);
 
     return (
         <>
@@ -320,6 +315,22 @@ function ValueRollupStatus({
             />
         </>
     );
+}
+
+function getValueRollupTooltip(
+    valueColumn: string,
+    rollupInfo: PanelSeriesRollupInfo | undefined,
+): string {
+    if (!rollupInfo) {
+        return `No rollup intervals found for ${valueColumn}.`;
+    }
+
+    return [
+        `Column: ${rollupInfo.columnName}`,
+        `Minimum Rollup: ${formatRollupIntervalList([rollupInfo.minimumInterval])}`,
+        `Maximum Rollup: ${formatRollupIntervalList([rollupInfo.maximumInterval])}`,
+        `Intervals: ${formatRollupIntervalList(rollupInfo.intervals)}`,
+    ].join('\n');
 }
 
 function JsonKeyField({
@@ -354,18 +365,22 @@ function JsonKeyField({
         : undefined;
     const sJsonKeyOptions = useMemo<ComboboxOption[]>(
         () =>
-            sJsonPathOptions.map((path) => ({
-                label: formatRollupOptionLabel(
-                    displayJsonPathLabel(path),
-                    getPanelSeriesValueSummaryLabel(
-                        rollupTableList,
-                        selectedTable,
-                        valueColumn,
-                        path,
-                    ),
-                ),
-                value: path,
-            })),
+            sJsonPathOptions.map((path) => {
+                const sSummaryLabel = getPanelSeriesValueSummaryLabel(
+                    rollupTableList,
+                    selectedTable,
+                    valueColumn,
+                    path,
+                );
+                const sPathLabel = displayJsonPathLabel(path);
+
+                return {
+                    label: sSummaryLabel
+                        ? `${sPathLabel} (${sSummaryLabel})`
+                        : sPathLabel,
+                    value: path,
+                };
+            }),
         [rollupTableList, sJsonPathOptions, selectedTable, valueColumn],
     );
     const sJsonKeyInputValue =
@@ -481,9 +496,17 @@ function getJsonPathOptionsKey(
         : '';
 }
 
-function formatRollupOptionLabel(
-    label: string,
-    summaryLabel: string | undefined,
-): string {
-    return summaryLabel ? `${label} (${summaryLabel})` : label;
+function createSourceColumns(
+    tableColumns: TableColumn[],
+): PanelSeriesSourceColumns {
+    const sColumnInfo = createTagAnalyzerColumnInfo(tableColumns);
+
+    return {
+        name: sColumnInfo.name || String(tableColumns[0]?.name ?? ''),
+        time: sColumnInfo.time,
+        timeType: sColumnInfo.timeType,
+        timeBaseTime: sColumnInfo.timeBaseTime,
+        value: sColumnInfo.value || String(tableColumns[2]?.name ?? ''),
+        jsonKey: sColumnInfo.jsonKey ?? '',
+    };
 }
