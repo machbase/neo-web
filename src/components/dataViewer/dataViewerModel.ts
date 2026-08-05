@@ -2240,7 +2240,10 @@ export function formatDataViewerTime(value: unknown, timeFormat: string, timeZon
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false,
+        // `hour12: false` is not the same as a 0-23 clock: older ICU builds resolve it against the
+        // locale's preferred cycle, and en-CA prefers h12, so midnight prints as `24:05` there and
+        // `00:05` on newer runtimes. Ask for h23 directly so the hour reads the same on every Node.
+        hourCycle: 'h23',
     })
         .formatToParts(date)
         .reduce<Record<string, string>>((acc, part) => {
