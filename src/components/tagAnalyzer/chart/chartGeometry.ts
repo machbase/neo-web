@@ -1,13 +1,14 @@
-import { type PanelChartAxisPointerPayload, type PanelChartInstance, type EChartBrushPayload, type EChartDataZoomEventItem, type EChartDataZoomEventPayload, type EChartDataZoomOptionStateItem } from './chartRuntime';
+import { type PanelChartAxisPointerPayload, type PanelChartInstance, type EChartBrushPayload, type EChartDataZoomEventPayload, type EChartDataZoomOptionStateItem } from './chartRuntime';
 import {
     getRangeWidth,
     getRangeCenter,
 } from '../range/rangeArithmetic';
-import { type AxisRange } from '../range/rangeModel';
+import { createNonEmptyAxisRange } from '../range/rangeBuilder';
+import type { AxisRange } from '../range/rangeModel';
 import { type YAXisComponentOption } from 'echarts';
-import { type PanelAnnotation } from '../model';
+import { type PanelAnnotation } from '../panel/panelModel';
 import { getPanelSeriesDisplayColor, type PanelSeriesDefinition } from '../seriesModel';
-import { type ChartRow, type ChartSeriesData, getChartSeriesEChartsName } from './chartData';
+import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
 
 // Layout
 export const PANEL_CHART_HEIGHT = 350;
@@ -22,15 +23,7 @@ const PANEL_TOOLBAR_HEIGHT = 28;
 const PANEL_TOOLBAR_GAP = 22;
 const PANEL_MAIN_MIN_HEIGHT = 100;
 
-type PanelChartLayoutMetrics = {
-    mainGridTop: number;
-    mainGridHeight: number;
-    toolbarTop: number;
-    sliderTop: number;
-    sliderHeight: number;
-};
-
-export function getChartLayoutMetrics(showLegend: boolean): PanelChartLayoutMetrics {
+export function getChartLayoutMetrics(showLegend: boolean) {
     const sMainGridTop = showLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
     const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
     const sToolbarTop = sSliderTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
@@ -47,22 +40,34 @@ export function getChartLayoutMetrics(showLegend: boolean): PanelChartLayoutMetr
     };
 }
 
+export function getNavigatorTrackWidth(chartAreaWidth: number): number {
+    if (!Number.isFinite(chartAreaWidth) || chartAreaWidth <= 0) {
+        throw new Error('Cannot calculate navigator limits without chart width.');
+    }
+    return Math.max(chartAreaWidth - PANEL_NAVIGATOR_GRID_SIDE * 2, 1);
+}
+
 // Pointer events
-type PanelChartClientPosition = {
+export type PanelChartClientPosition = {
     x: number;
     y: number;
 };
-
-function getFiniteNumber(value: unknown): number | undefined {
-    return typeof value === 'number' && Number.isFinite(value)
-        ? value
-        : undefined;
-}
 
 export function getPanelChartRecordValue(source: unknown, key: string): unknown {
     return source && typeof source === 'object' && !Array.isArray(source)
         ? (source as Record<string, unknown>)[key]
         : undefined;
+}
+
+function getFiniteRecordValue(
+    source: unknown,
+    ...keys: string[]
+): number | undefined {
+    for (const key of keys) {
+        const value = getPanelChartRecordValue(source, key);
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+    }
+    return undefined;
 }
 
 export function parsePanelChartTimestamp(
@@ -108,27 +113,23 @@ export function getPanelChartEventCoordinates(
     const sEvent = getPanelChartRecordValue(payload, 'event');
     const sNestedEvent = getPanelChartRecordValue(sEvent, 'event');
     const sClientX =
-        getFiniteNumber(getPanelChartRecordValue(sEvent, 'clientX')) ??
-        getFiniteNumber(getPanelChartRecordValue(sNestedEvent, 'clientX'));
+        getFiniteRecordValue(sEvent, 'clientX') ??
+        getFiniteRecordValue(sNestedEvent, 'clientX');
     const sClientY =
-        getFiniteNumber(getPanelChartRecordValue(sEvent, 'clientY')) ??
-        getFiniteNumber(getPanelChartRecordValue(sNestedEvent, 'clientY'));
+        getFiniteRecordValue(sEvent, 'clientY') ??
+        getFiniteRecordValue(sNestedEvent, 'clientY');
     const sClientPosition =
         sClientX !== undefined && sClientY !== undefined
         ? { x: sClientX, y: sClientY }
         : undefined;
     const sOffsetX =
-        getFiniteNumber(getPanelChartRecordValue(payload, 'offsetX')) ??
-        getFiniteNumber(getPanelChartRecordValue(payload, 'zrX')) ??
-        getFiniteNumber(getPanelChartRecordValue(sEvent, 'offsetX')) ??
-        getFiniteNumber(getPanelChartRecordValue(sEvent, 'zrX')) ??
-        getFiniteNumber(getPanelChartRecordValue(sNestedEvent, 'offsetX'));
+        getFiniteRecordValue(payload, 'offsetX', 'zrX') ??
+        getFiniteRecordValue(sEvent, 'offsetX', 'zrX') ??
+        getFiniteRecordValue(sNestedEvent, 'offsetX');
     const sOffsetY =
-        getFiniteNumber(getPanelChartRecordValue(payload, 'offsetY')) ??
-        getFiniteNumber(getPanelChartRecordValue(payload, 'zrY')) ??
-        getFiniteNumber(getPanelChartRecordValue(sEvent, 'offsetY')) ??
-        getFiniteNumber(getPanelChartRecordValue(sEvent, 'zrY')) ??
-        getFiniteNumber(getPanelChartRecordValue(sNestedEvent, 'offsetY'));
+        getFiniteRecordValue(payload, 'offsetY', 'zrY') ??
+        getFiniteRecordValue(sEvent, 'offsetY', 'zrY') ??
+        getFiniteRecordValue(sNestedEvent, 'offsetY');
     const sPixel: [number, number] | undefined =
         sOffsetX !== undefined && sOffsetY !== undefined
             ? [sOffsetX, sOffsetY]
@@ -170,6 +171,30 @@ export function convertPanelChartPixelToTimestamp(
 }
 
 // Range selections
+const DATA_ZOOM_RELATIVE_ERROR_RATIO = 1e-9;
+
+export function resolveDataZoomEventItem(
+    params: EChartDataZoomEventPayload,
+    targetDataZoomId?: string,
+    fallbackState?: EChartDataZoomOptionStateItem,
+): EChartDataZoomOptionStateItem {
+    const sZoomData =
+        'batch' in params
+            ? selectDataZoomItem(params.batch, targetDataZoomId)
+            : params;
+
+    if (
+        sZoomData &&
+        ((sZoomData.startValue !== undefined &&
+            sZoomData.endValue !== undefined) ||
+            (sZoomData.start !== undefined && sZoomData.end !== undefined))
+    ) {
+        return sZoomData;
+    }
+
+    return { ...fallbackState, ...sZoomData };
+}
+
 export function extractDataZoomEventRange(
     params: EChartDataZoomEventPayload,
     currentRange: AxisRange,
@@ -177,15 +202,15 @@ export function extractDataZoomEventRange(
     targetDataZoomId?: string,
     fallbackState?: EChartDataZoomOptionStateItem,
 ): AxisRange | undefined {
-    const sZoomData =
-        'batch' in params
-            ? selectDataZoomItem(params.batch, targetDataZoomId)
-            : params;
-    const sRangeSource = sZoomData && hasExplicitDataZoomRange(sZoomData)
-        ? sZoomData
-        : { ...fallbackState, ...params };
-
-    return extractDataZoomOptionRange(sRangeSource, currentRange, axisRange);
+    return extractDataZoomOptionRange(
+        resolveDataZoomEventItem(
+            params,
+            targetDataZoomId,
+            fallbackState,
+        ),
+        currentRange,
+        axisRange,
+    );
 }
 
 export function extractDataZoomOptionRange(
@@ -193,24 +218,55 @@ export function extractDataZoomOptionRange(
     currentRange: AxisRange,
     axisRange: AxisRange = currentRange,
 ): AxisRange | undefined {
-    const sExplicitZoomRange = getExplicitDataZoomRange(params);
-    if (sExplicitZoomRange) {
-        return sExplicitZoomRange;
-    }
-
     const sAxisSpan = getRangeWidth(axisRange);
     if (
         typeof params.start === 'number' &&
         typeof params.end === 'number' &&
         sAxisSpan > 0
     ) {
-        return {
-            startTime: axisRange.startTime + (sAxisSpan * params.start) / 100,
-            endTime: axisRange.startTime + (sAxisSpan * params.end) / 100,
-        };
+        const sFirst =
+            axisRange.start + (sAxisSpan * params.start) / 100;
+        const sSecond =
+            axisRange.start + (sAxisSpan * params.end) / 100;
+        return createNonEmptyAxisRange(sFirst, sSecond);
     }
 
-    return undefined;
+    return getExplicitDataZoomRange(params);
+}
+
+export function isSameDataZoomSelection(
+    selection: EChartDataZoomOptionStateItem,
+    expectedRange: AxisRange,
+    axisRange: AxisRange,
+): boolean {
+    const sAxisSpan = getRangeWidth(axisRange);
+    const sFirstRatio = typeof selection.start === 'number'
+        ? selection.start / 100
+        : selection.startValue === undefined
+          ? undefined
+          : (Number(selection.startValue) - axisRange.start) / sAxisSpan;
+    const sSecondRatio = typeof selection.end === 'number'
+        ? selection.end / 100
+        : selection.endValue === undefined
+          ? undefined
+          : (Number(selection.endValue) - axisRange.start) / sAxisSpan;
+    const sExpectedStartRatio =
+        (expectedRange.start - axisRange.start) / sAxisSpan;
+    const sExpectedEndRatio =
+        (expectedRange.end - axisRange.start) / sAxisSpan;
+    const sExpectedWidthRatio =
+        sExpectedEndRatio - sExpectedStartRatio;
+
+    return (
+        sFirstRatio !== undefined &&
+        sSecondRatio !== undefined &&
+        Math.abs(Math.min(sFirstRatio, sSecondRatio) - sExpectedStartRatio) /
+            sExpectedWidthRatio <=
+            DATA_ZOOM_RELATIVE_ERROR_RATIO &&
+        Math.abs(Math.max(sFirstRatio, sSecondRatio) - sExpectedEndRatio) /
+            sExpectedWidthRatio <=
+            DATA_ZOOM_RELATIVE_ERROR_RATIO
+    );
 }
 
 export function extractBrushRange(
@@ -226,18 +282,13 @@ export function extractBrushRange(
 
     const sStart = Number(sRange[0]);
     const sEnd = Number(sRange[1]);
-
-    if (!Number.isFinite(sStart) || !Number.isFinite(sEnd)) {
-        throw new Error('Brush range contains a non-finite value.');
-    }
-
     const sMin = Math.min(sStart, sEnd);
     const sMax = Math.max(sStart, sEnd);
 
-    return {
-        startTime: isNumericXAxis ? sMin : Math.floor(sMin),
-        endTime: isNumericXAxis ? sMax : Math.ceil(sMax),
-    };
+    return createNonEmptyAxisRange(
+        isNumericXAxis ? sMin : Math.floor(sMin),
+        isNumericXAxis ? sMax : Math.ceil(sMax),
+    );
 }
 
 export function selectDataZoomItem<
@@ -257,15 +308,6 @@ export function selectDataZoomItem<
     ) ?? zoomData?.[0];
 }
 
-function hasExplicitDataZoomRange(
-    dataZoomState: EChartDataZoomEventItem,
-): boolean {
-    return (
-        (dataZoomState.startValue !== undefined && dataZoomState.endValue !== undefined) ||
-        (dataZoomState.start !== undefined && dataZoomState.end !== undefined)
-    );
-}
-
 function getExplicitDataZoomRange(
     zoomData: EChartDataZoomOptionStateItem,
 ): AxisRange | undefined {
@@ -276,24 +318,16 @@ function getExplicitDataZoomRange(
         return undefined;
     }
 
-    const sStartTime = Number(sStartValue);
-    const sEndTime = Number(sEndValue);
-
-    if (!Number.isFinite(sStartTime) || !Number.isFinite(sEndTime)) {
-        throw new Error('Data zoom range contains a non-finite value.');
-    }
-
-    return {
-        startTime: sStartTime,
-        endTime: sEndTime,
-    };
+    const sFirst = Number(sStartValue);
+    const sSecond = Number(sEndValue);
+    return createNonEmptyAxisRange(sFirst, sSecond);
 }
 
 // Annotation layout
 function getAnnotationAnchorTime(timeRange: AxisRange): number {
-    return timeRange.endTime > timeRange.startTime
+    return timeRange.end > timeRange.start
         ? getRangeCenter(timeRange)
-        : timeRange.startTime;
+        : timeRange.start;
 }
 
 function findNearestChartRow(
@@ -365,7 +399,7 @@ export type AnnotationRenderContext = {
     chartData: ChartSeriesData[];
     yAxisOptions: YAXisComponentOption[];
     visibleRange: AxisRange;
-    visibleSeries?: Record<string, boolean>;
+    visibleSeries?: ChartSeriesVisibilityMap;
 };
 
 export function buildRenderableSeriesAnnotations(
@@ -420,10 +454,10 @@ function buildAnnotationAnchors({
         }
 
         if (
-            !Number.isFinite(visibleRange.startTime) ||
-            !Number.isFinite(visibleRange.endTime) ||
-            annotationAnchorTime < visibleRange.startTime ||
-            annotationAnchorTime > visibleRange.endTime
+            !Number.isFinite(visibleRange.start) ||
+            !Number.isFinite(visibleRange.end) ||
+            annotationAnchorTime < visibleRange.start ||
+            annotationAnchorTime > visibleRange.end
         ) {
             return [];
         }

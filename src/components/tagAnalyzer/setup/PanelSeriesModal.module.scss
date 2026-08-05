@@ -1,27 +1,25 @@
 @use '@/design-system/tokens' as t;
 
-/* Shared panel-series modal layout. */
-
-$create-panel-section-gap: 12px;
-$create-panel-control-gap: 8px;
-$create-panel-label-gap: 6px;
+$section-gap: 12px;
+$control-gap: 8px;
+$label-gap: 6px;
 
 .panelStack {
     display: flex;
     flex-direction: column;
-    gap: $create-panel-section-gap;
+    gap: $section-gap;
 }
 
 .chartTypeSection {
     display: flex;
     flex-direction: column;
-    gap: $create-panel-label-gap;
+    gap: $label-gap;
     width: 100%;
 }
 
 .chartTypeRow {
     display: flex;
-    gap: $create-panel-section-gap;
+    gap: $section-gap;
     width: 100%;
 }
 
@@ -77,20 +75,20 @@ $create-panel-label-gap: 6px;
 .fieldGrid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: $create-panel-section-gap;
+    gap: $section-gap;
 }
 
 .fieldGridFull {
     display: flex;
     align-items: center;
-    gap: $create-panel-control-gap;
+    gap: $control-gap;
     min-width: 0;
 }
 
 .fieldCell {
     display: flex;
     flex-direction: column;
-    gap: $create-panel-label-gap;
+    gap: $label-gap;
     min-width: 0;
 }
 
@@ -157,7 +155,7 @@ $create-panel-label-gap: 6px;
 .itemListGroup {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: $create-panel-section-gap;
+    gap: $section-gap;
 }
 
 .listColumn {
@@ -168,15 +166,15 @@ $create-panel-label-gap: 6px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: $create-panel-control-gap;
+    gap: $control-gap;
     min-height: 28px;
-    margin-bottom: $create-panel-label-gap;
+    margin-bottom: $label-gap;
 }
 
 .columnTitle {
     display: inline-flex;
     align-items: center;
-    gap: $create-panel-control-gap;
+    gap: $control-gap;
     min-width: 0;
 }
 
@@ -256,7 +254,7 @@ $create-panel-label-gap: 6px;
 .selectedSeriesItemContent {
     display: flex;
     flex-direction: column;
-    gap: $create-panel-control-gap;
+    gap: $control-gap;
     min-width: 0;
     width: 100%;
 }
@@ -265,7 +263,7 @@ $create-panel-label-gap: 6px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 82px;
     align-items: center;
-    gap: $create-panel-control-gap;
+    gap: $control-gap;
 }
 
 .selectedSeriesName {
@@ -284,7 +282,7 @@ $create-panel-label-gap: 6px;
 .selectedSeriesSourceDetails {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: $create-panel-control-gap;
+    gap: $control-gap;
     min-width: 0;
 }
 

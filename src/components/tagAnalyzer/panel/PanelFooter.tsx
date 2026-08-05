@@ -5,12 +5,11 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
-import { formatAxisRange } from '../range/format/rangeFormat';
-import { isValidRange } from '../range/rangeArithmetic';
+import { formatAxisRange } from '../format/axisFormat';
 import type { AxisRange } from '../range/rangeModel';
 
 import { getChartLayoutMetrics, PANEL_NAVIGATOR_GRID_SIDE } from '../chart/chartGeometry';
-import type { PanelRangeButtonAction } from '../range/panelRangeCommands';
+import type { RangeButtonAction } from '../range/rangeResolver';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 const NAVIGATOR_RANGE_BOUNDARIES = ['start', 'end'] as const;
@@ -24,16 +23,16 @@ export default function PanelFooter({
     pOnOpenNavigatorRangeModal,
 }: {
     pShowLegend: boolean;
-    pNavigatorRange: AxisRange;
+    pNavigatorRange: AxisRange | undefined;
     pIsLoading: boolean;
-    pOnRangeButtonPress: (action: PanelRangeButtonAction) => void;
+    pOnRangeButtonPress: (action: RangeButtonAction) => void;
     pIsNumericXAxis: boolean;
     pOnOpenNavigatorRangeModal: () => void;
 }) {
     const sLayout = getChartLayoutMetrics(pShowLegend);
     const sNavigatorSide = `${PANEL_NAVIGATOR_GRID_SIDE}px`;
-    const sHasNavigatorRange = isValidRange(pNavigatorRange);
-    const sFormattedNavigatorRange = sHasNavigatorRange
+    const sRangeUnavailable = pIsLoading || !pNavigatorRange;
+    const sFormattedNavigatorRange = pNavigatorRange
         ? formatAxisRange(pNavigatorRange, pIsNumericXAxis)
         : { start: '', end: '' };
     const navigatorControls = [
@@ -63,7 +62,7 @@ export default function PanelFooter({
                             isToolTip
                             toolTipContent={control.tooltip}
                             icon={control.icon}
-                            disabled={pIsLoading}
+                            disabled={sRangeUnavailable}
                             onClick={control.action}
                         />
                     ))}
@@ -83,7 +82,7 @@ export default function PanelFooter({
                     isToolTip
                     toolTipContent="Move navigator backward"
                     icon={<VscChevronLeft size={16} />}
-                    disabled={pIsLoading}
+                    disabled={sRangeUnavailable}
                     onClick={() => pOnRangeButtonPress('shift-navigator-left')}
                 />
                 <Button
@@ -92,7 +91,7 @@ export default function PanelFooter({
                     isToolTip
                     toolTipContent="Move navigator forward"
                     icon={<VscChevronRight size={16} />}
-                    disabled={pIsLoading}
+                    disabled={sRangeUnavailable}
                     onClick={() => pOnRangeButtonPress('shift-navigator-right')}
                 />
             </div>
@@ -103,7 +102,7 @@ export default function PanelFooter({
                         type="button"
                         className="range-label"
                         title="Set current navigator range"
-                        disabled={pIsLoading || !sHasNavigatorRange}
+                        disabled={sRangeUnavailable}
                         onClick={pOnOpenNavigatorRangeModal}
                     >
                         {sFormattedNavigatorRange[boundary]}

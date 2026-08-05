@@ -3,7 +3,6 @@ import { Search } from '@/assets/icons/Icon';
 import {
     Badge,
     Button,
-    Dropdown,
     Input,
     List,
     Pagination,
@@ -20,25 +19,21 @@ import {
     getPanelSeriesRollupColumn,
     hasMixedXAxisValueKinds,
     MIXED_X_AXIS_KIND_WARNING,
-    normalizePanelSeriesCalculationMode,
     PANEL_TAG_LIMIT,
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
     type RollupTableMap,
-    TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     updatePanelSeriesCalculationMode,
 } from '../seriesModel';
 import { getErrorMessageFromValue } from '../errorMessage';
 import { useLatestAsyncRequest } from '../hooks/useLatestAsyncRequest';
 import { SourceSelector } from './SourceSelector';
+import { SeriesCalculationModeSelect } from './SeriesCalculationModeSelect';
 import styles from './PanelSeriesModal.module.scss';
 
 const TAG_PAGE_SIZE = 10;
 
-// Owns everything about editing a series list: the source metadata (tables,
-// columns, rollup info), the tag search, and the selected list. Parents only
-// hold the series list itself and receive changes through onSeriesListChange.
 export function SeriesEditor({
     seriesList,
     rollupTableList,
@@ -203,19 +198,19 @@ export function SeriesEditor({
 
         const sColumns = sSourceColumns;
         if (!sSelectedTable || !sColumns) {
-            setFooterMessage('please select table.');
+            setFooterMessage('Select a table.');
             return;
         }
         if (!sColumns.time) {
-            setFooterMessage('please select time field.');
+            setFooterMessage('Select a time field.');
             return;
         }
         if (!sColumns.value) {
-            setFooterMessage('please select value field.');
+            setFooterMessage('Select a value field.');
             return;
         }
         if (isTagAnalyzerJsonValue(sTableColumns, sColumns.value) && !sColumns.jsonKey) {
-            setFooterMessage('please select JSON key.');
+            setFooterMessage('Select a JSON key.');
             return;
         }
 
@@ -249,8 +244,6 @@ export function SeriesEditor({
         );
     }
 
-    // Table changes reload the columns (in the source selector); source changes
-    // refresh the available tag list using the last applied search text.
     useDebounce(
         [sSelectedTable, sSourceColumns],
         () => {
@@ -340,7 +333,7 @@ export function SeriesEditor({
                     />
                 </div>
 
-                <CreateNewPanelSelectedSeriesList
+                <SelectedSeriesList
                     selectedSeries={seriesList}
                     rollupTableList={rollupTableList}
                     onRemoveSeries={removeSelectedTag}
@@ -352,7 +345,7 @@ export function SeriesEditor({
     );
 }
 
-function CreateNewPanelSelectedSeriesList({
+function SelectedSeriesList({
     selectedSeries,
     rollupTableList,
     onRemoveSeries,
@@ -436,30 +429,14 @@ function CreateNewPanelSelectedSeriesList({
                                             className={styles.modeTriggerWrapper}
                                             onClick={(event) => event.stopPropagation()}
                                         >
-                                            <Dropdown.Root
-                                                options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
+                                            <SeriesCalculationModeSelect
                                                 value={item.calculationMode}
-                                                onChange={(value) => {
-                                                    const sMode =
-                                                        normalizePanelSeriesCalculationMode(
-                                                            value,
-                                                        );
-                                                    if (sMode) {
-                                                        onChangeCalculationMode(
-                                                            item.key,
-                                                            sMode,
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                <Dropdown.Trigger
-                                                    className="dropdown-trigger-sm"
-                                                    style={{ width: '100%' }}
-                                                />
-                                                <Dropdown.Menu>
-                                                    <Dropdown.List />
-                                                </Dropdown.Menu>
-                                            </Dropdown.Root>
+                                                onChange={(mode) =>
+                                                    onChangeCalculationMode(item.key, mode)
+                                                }
+                                                className="dropdown-trigger-sm"
+                                                style={{ width: '100%' }}
+                                            />
                                         </div>
                                     </div>
                                     <SelectedSeriesSourceDetails
@@ -471,7 +448,9 @@ function CreateNewPanelSelectedSeriesList({
                         ))}
                     </div>
                 ) : (
-                    <div className={styles.selectedSeriesEmpty}>no-data</div>
+                    <div className={styles.selectedSeriesEmpty}>
+                        No series selected.
+                    </div>
                 )}
             </div>
         </div>

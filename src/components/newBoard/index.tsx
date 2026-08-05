@@ -124,6 +124,7 @@ const NewBoard = (props: NewBoardProps) => {
                           savedCode: false,
                           version: aValue.type === 'taz' ? TAZ_FORMAT_VERSION : bItem.version,
                           boardTimeRange: aValue.type === 'taz' ? { start: '', end: '' } : bItem.boardTimeRange,
+                          boardNumericRange: aValue.type === 'taz' ? { start: '', end: '' } : bItem.boardNumericRange,
                           shell: { icon: aValue.icon, theme: aValue.theme ? aValue.theme : '', id: aValue.id ? aValue.id : 'SHELL' },
                           dashboard: {
                               variables: [],

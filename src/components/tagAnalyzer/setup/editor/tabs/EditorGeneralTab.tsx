@@ -1,5 +1,5 @@
 import { Checkbox, Input } from '@/design-system/components';
-import type { PanelInfo } from '../../../model';
+import type { PanelInfo } from '../../../panel/panelModel';
 import { Section } from './EditorControls';
 import styles from '../PanelEditor.module.scss';
 
@@ -8,7 +8,6 @@ type EditorGeneralTabProps = {
     pModeConfig: PanelInfo['mode'];
     pDisplayConfig: PanelInfo['display'];
     pTimeConfig: PanelInfo['time'];
-    pIsRawMode: boolean;
     pOnChangeTitle: (title: PanelInfo['title']) => void;
     pOnChangeModeConfig: (modeConfig: PanelInfo['mode']) => void;
     pOnChangeDisplayConfig: (displayConfig: PanelInfo['display']) => void;
@@ -20,7 +19,6 @@ function EditorGeneralTab({
     pModeConfig,
     pDisplayConfig,
     pTimeConfig,
-    pIsRawMode,
     pOnChangeTitle,
     pOnChangeModeConfig,
     pOnChangeDisplayConfig,
@@ -51,16 +49,16 @@ function EditorGeneralTab({
                 />
                 <span
                     title={
-                        pIsRawMode
+                        pModeConfig.isRaw
                             ? undefined
                             : 'This option is only for raw data.'
                     }
                 >
                     <Checkbox
-                        checked={!pIsRawMode || pModeConfig.isOrderBy}
-                        disabled={!pIsRawMode}
+                        checked={!pModeConfig.isRaw || pModeConfig.isOrderBy}
+                        disabled={!pModeConfig.isRaw}
                         onChange={(event) =>
-                            pIsRawMode &&
+                            pModeConfig.isRaw &&
                             pOnChangeModeConfig({
                                 ...pModeConfig,
                                 isOrderBy: event.target.checked,

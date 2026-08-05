@@ -26,8 +26,8 @@ import { HelpModal } from './HelpModal';
 import OverlapModal from '../overlap/OverlapModal';
 import { CreatePanelModal } from '../setup/CreatePanelModal';
 import { SaveAsModal } from './SaveAsModal';
-import type { BoardInfo, PanelInfo } from '../model';
-import type { PanelRangeSourceState } from '../panel/panelRangeSourceState';
+import type { BoardInfo } from './boardModel';
+import type { PanelInfo } from '../panel/panelModel';
 import {
     getSeriesListAxisKind,
     type RollupTableMap,
@@ -35,8 +35,10 @@ import {
 import {
     isRangeExpressionEmpty,
     type AxisKind,
-    type PanelRangeState,
+    type AxisRange,
+    type RangeState,
     type RangeExpressionInput,
+    type ResolvedRangeState,
 } from '../range/rangeModel';
 
 import {
@@ -55,8 +57,6 @@ const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
 const FILE_TREE_REFRESH_ERROR_MESSAGE =
     'TAZ file saved, but file tree refresh failed.';
 
-const EMPTY_BOARD_RANGE: RangeExpressionInput = { start: '', end: '' };
-
 const INITIAL_PANEL_BROADCAST_VERSIONS = {
     boardTimeRange: 0,
     boardNumericRange: 0,
@@ -68,17 +68,6 @@ const INITIAL_PANEL_BROADCAST_VERSIONS = {
 
 type PanelBroadcastVersions =
     typeof INITIAL_PANEL_BROADCAST_VERSIONS;
-type PanelBroadcastVersionKey = keyof PanelBroadcastVersions;
-
-function incrementPanelBroadcastVersion(
-    versions: PanelBroadcastVersions,
-    key: PanelBroadcastVersionKey,
-): PanelBroadcastVersions {
-    return {
-        ...versions,
-        [key]: versions[key] + 1,
-    };
-}
 
 type BoardProps = {
     info: BoardInfo;
@@ -90,18 +79,18 @@ type BoardProps = {
 
 type BoardPanelProps = {
     panelInfo: PanelInfo;
-    rangeState: PanelRangeSourceState;
+    rangeState: ResolvedRangeState | undefined;
     rangeRequests: PanelRangeRuntimeRequests;
     isActive: boolean;
     hasUnsavedBoardChanges: boolean;
     rollupTableList: RollupTableMap;
     onPanelRangeStateChange: (
         panelKey: string,
-        rangeState: PanelRangeSourceState,
+        rangeState: ResolvedRangeState,
     ) => void;
     onBroadcastError: (broadcastKey: string, message: string) => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetGlobalTimeRange: (globalTimeRange: PanelRangeState) => void;
+    onSetGlobalTimeRange: (globalTimeRange: RangeState) => void;
     onDeletePanel: (panelKey: string) => void;
     onToggleOverlap: (panelKey: string) => void;
 };
@@ -121,7 +110,7 @@ const BoardPanel = memo(function BoardPanel({
     onToggleOverlap,
 }: BoardPanelProps) {
     const handleRangeStateChange = useCallback(
-        (nextRangeState: PanelRangeSourceState) =>
+        (nextRangeState: ResolvedRangeState) =>
             onPanelRangeStateChange(panelInfo.key, nextRangeState),
         [onPanelRangeStateChange, panelInfo.key],
     );
@@ -167,10 +156,9 @@ export default function Board({
     rollupTableList,
 }: BoardProps) {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
-    const [sBoardRangeModalLastDataTime, setBoardRangeModalLastDataTime] =
-        useState<number | undefined>(undefined);
+    const [sIsBoardRangeModalOpen, setIsBoardRangeModalOpen] = useState(false);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<PanelRangeState | undefined>(undefined);
+        useState<RangeState | undefined>(undefined);
     const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
     const [sIsSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
     const [sBoardRangeKind, setBoardRangeKind] = useState<AxisKind>(() =>
@@ -180,7 +168,13 @@ export default function Board({
         sPanelBroadcastVersions,
         incrementBroadcastVersion,
     ] = useReducer(
-        incrementPanelBroadcastVersion,
+        (
+            versions: PanelBroadcastVersions,
+            key: keyof PanelBroadcastVersions,
+        ): PanelBroadcastVersions => ({
+            ...versions,
+            [key]: versions[key] + 1,
+        }),
         INITIAL_PANEL_BROADCAST_VERSIONS,
     );
     const sSaveRequestGenerationRef = useRef(0);
@@ -214,6 +208,11 @@ export default function Board({
         sIsNumericBoardRange
             ? sBoardInfo.boardNumericRange
             : sBoardInfo.boardTimeRange;
+    const sBoardRangeReferences = {
+        time: getBoardRangeReference(sPanels, sPanelRanges, 'time'),
+        numeric: getBoardRangeReference(sPanels, sPanelRanges, 'numeric'),
+    };
+    const sBoardRangeReference = sBoardRangeReferences[sBoardRangeKind];
     const sBoardRangeButtonLabel =
         sBoardRangeInput.start.trim() === '' ||
         sBoardRangeInput.end.trim() === ''
@@ -291,19 +290,19 @@ export default function Board({
                   name: destination.fileName,
               }
             : sBoardToSerialize;
-        const sSavedBoard = await saveTazBoard(sBoardToSave);
-        const sIsCurrentSave =
+        const isCurrentSaveRequest = (): boolean =>
             sSaveRequestGenerationRef.current === sRequestGeneration &&
             sActiveBoardIdRef.current === sBoardToSave.id;
+        const sSavedBoard = await saveTazBoard(sBoardToSave);
 
         if (!sSavedBoard) {
-            if (sIsCurrentSave) {
+            if (isCurrentSaveRequest()) {
                 Toast.error(SAVE_ERROR_MESSAGE);
             }
             return false;
         }
 
-        if (!sIsCurrentSave) {
+        if (!isCurrentSaveRequest()) {
             return false;
         }
 
@@ -322,8 +321,7 @@ export default function Board({
             }
         }
 
-        return sSaveRequestGenerationRef.current === sRequestGeneration &&
-            sActiveBoardIdRef.current === sBoardToSave.id;
+        return isCurrentSaveRequest();
     }, [
         applySaveResult,
         onFileSaved,
@@ -340,7 +338,7 @@ export default function Board({
         if (isActiveTab) return;
 
         setIsHelpModalOpen(false);
-        setBoardRangeModalLastDataTime(undefined);
+        setIsBoardRangeModalOpen(false);
         setIsNewPanelModalOpen(false);
         closeSaveAsModal();
         closeOverlapChart();
@@ -385,7 +383,7 @@ export default function Board({
     }
 
     const handleSetGlobalTimeRange = useCallback((
-        globalTimeRange: PanelRangeState,
+        globalTimeRange: RangeState,
     ): void => {
         setGlobalDataAndNavigatorTime(globalTimeRange);
         incrementBroadcastVersion('globalRange');
@@ -458,9 +456,8 @@ export default function Board({
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() =>
-                                setBoardRangeModalLastDataTime(Date.now())
-                            }
+                            disabled={!sBoardRangeReference}
+                            onClick={() => setIsBoardRangeModalOpen(true)}
                         >
                             <Calendar style={{ paddingRight: '8px' }} />
                             {sBoardRangeButtonLabel}
@@ -520,29 +517,27 @@ export default function Board({
                     onClose={() => setIsHelpModalOpen(false)}
                 />
             )}
-            {sBoardRangeModalLastDataTime !== undefined && (
+            {sIsBoardRangeModalOpen && sBoardRangeReference && (
                 <RangeModal
                     key={sBoardRangeKind}
-                    title="Board Range"
-                    rangeKindSelector={{
-                        value: sBoardRangeKind,
-                        onChange: setBoardRangeKind,
+                    kind={sBoardRangeKind}
+                    initialRangeInput={sBoardRangeInput}
+                    currentRange={sBoardRangeReference.currentRange}
+                    fullRange={sBoardRangeReference.fullRange}
+                    onAxisKindChange={(rangeKind) => {
+                        if (sBoardRangeReferences[rangeKind]) {
+                            setBoardRangeKind(rangeKind);
+                            return;
+                        }
+
+                        Toast.error(
+                            `Cannot resolve a ${rangeKind} board range until a matching panel is ready.`,
+                        );
                     }}
-                    mode={{
-                        ...(sIsNumericBoardRange
-                            ? { kind: 'numeric-input' as const }
-                            : {
-                                  kind: 'time' as const,
-                                  dataStartTime: 0,
-                                  dataEndTime:
-                                      sBoardRangeModalLastDataTime,
-                              }),
-                        initialRangeInput: sBoardRangeInput,
-                        emptyRange: true,
-                        onApply: (rangeInput: RangeExpressionInput) =>
-                            applyBoardRange(sBoardRangeKind, rangeInput),
-                    }}
-                    onClose={() => setBoardRangeModalLastDataTime(undefined)}
+                    onApply={(rangeInput: RangeExpressionInput) =>
+                        applyBoardRange(sBoardRangeKind, rangeInput)
+                    }
+                    onClose={() => setIsBoardRangeModalOpen(false)}
                 />
             )}
             {isActiveTab && sIsSaveAsModalOpen && (
@@ -570,10 +565,10 @@ export default function Board({
 }
 
 function getInitialBoardRangeKind(info: BoardInfo): AxisKind {
-    const sTimeRange = info.boardTimeRange ?? EMPTY_BOARD_RANGE;
-    const sNumericRange = info.boardNumericRange ?? EMPTY_BOARD_RANGE;
-
-    if (isRangeExpressionEmpty(sTimeRange) && !isRangeExpressionEmpty(sNumericRange)) {
+    if (
+        isRangeExpressionEmpty(info.boardTimeRange) &&
+        !isRangeExpressionEmpty(info.boardNumericRange)
+    ) {
         return 'numeric';
     }
 
@@ -584,4 +579,47 @@ function getInitialBoardRangeKind(info: BoardInfo): AxisKind {
         !sPanelAxisKinds.includes('time')
         ? 'numeric'
         : 'time';
+}
+
+function getBoardRangeReference(
+    panels: PanelInfo[],
+    panelRanges: Record<string, ResolvedRangeState | undefined>,
+    axisKind: AxisKind,
+): { currentRange: AxisRange; fullRange: AxisRange } | undefined {
+    let currentRange: AxisRange | undefined;
+    let fullRange: AxisRange | undefined;
+
+    for (const panel of panels) {
+        if (getSeriesListAxisKind(panel.query.tagSet) !== axisKind) continue;
+
+        const rangeState = panelRanges[panel.key];
+        if (!rangeState) continue;
+
+        const navigatorRange = rangeState.range.navigatorRange;
+        currentRange = currentRange
+            ? {
+                  start: Math.min(
+                      currentRange.start,
+                      navigatorRange.start,
+                  ),
+                  end: Math.max(currentRange.end, navigatorRange.end),
+              }
+            : navigatorRange;
+        fullRange = fullRange
+            ? {
+                  start: Math.min(
+                      fullRange.start,
+                      rangeState.fullRange.start,
+                  ),
+                  end: Math.max(
+                      fullRange.end,
+                      rangeState.fullRange.end,
+                  ),
+              }
+            : rangeState.fullRange;
+    }
+
+    return currentRange && fullRange
+        ? { currentRange, fullRange }
+        : undefined;
 }

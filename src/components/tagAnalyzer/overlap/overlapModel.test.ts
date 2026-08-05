@@ -1,5 +1,5 @@
 import type { ChartSeriesData } from '../chart/chartData';
-import type { PanelInfo } from '../model';
+import type { PanelInfo } from '../panel/panelModel';
 import {
     buildOverlapChartOption,
     createOverlapChartSeriesGroup,
@@ -28,14 +28,14 @@ describe('overlap chart series groups', () => {
         const firstGroup = createOverlapChartSeriesGroup(
             {
                 panelInfo: createPanel('panel-a'),
-                visibleRange: { startTime: 90, endTime: 130 },
+                visibleRange: { start: 90, end: 130 },
             },
             [createSeries([[95, null], [100, 1], [110, 2]])],
         );
         const secondGroup = createOverlapChartSeriesGroup(
             {
                 panelInfo: createPanel('panel-b'),
-                visibleRange: { startTime: 490, endTime: 530 },
+                visibleRange: { start: 490, end: 530 },
             },
             [createSeries([[500, 3], [510, 4]])],
         );
@@ -47,7 +47,7 @@ describe('overlap chart series groups', () => {
         expect(getOverlapChartSeriesGroupRange({
             ...firstGroup,
             shiftValue: 5,
-        })).toEqual({ startTime: -5, endTime: 35 });
+        })).toEqual({ start: -5, end: 35 });
         expect(seriesData).toEqual([
             expect.objectContaining({
                 id: 'panel-a:0',

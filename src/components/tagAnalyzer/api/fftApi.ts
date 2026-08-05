@@ -80,37 +80,23 @@ async function fetchFftChartData(
               value: configuredColumns.value.toLowerCase(),
           }
         : configuredColumns;
-    const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
-        series.table,
-        'SQL table name',
-    );
+    const tableName: SqlIdentifierPath = parseSqlIdentifierPath(series.table, 'SQL table name');
     const columns: ValidatedPanelSeriesSourceColumns =
         validatePanelSeriesSourceColumns(sourceColumns);
-    const sql: string = buildFftSql(
-        tableName,
-        series.sourceTagName,
-        columns,
-        timeRange,
-    );
-    const chartTql: string = (
-        is3d ? FFT_3D_QUERY_TEMPLATE : FFT_2D_QUERY_TEMPLATE
-    )
+    const sql: string = buildFftSql(tableName, series.sourceTagName, columns, timeRange);
+    const chartTql: string = (is3d ? FFT_3D_QUERY_TEMPLATE : FFT_2D_QUERY_TEMPLATE)
         .replace('{MinMaxHz}', buildFftFrequencyArguments(minHz, maxHz))
         .replace('{interval}', String(threeDimensionalIntervalMs));
 
     return parseFftChartData(
-        await getTqlChart(
-            `SQL(${buildTqlDoubleQuotedString(sql)})\n${chartTql}`,
-        ),
+        await getTqlChart(`SQL(${buildTqlDoubleQuotedString(sql)})\n${chartTql}`),
     );
 }
 
 export const fftApi = { fetchFftChartData };
 
 function buildFftFrequencyArguments(minHz: number, maxHz: number): string {
-    return minHz === 0 && maxHz === 0
-        ? ''
-        : `minHz(${minHz}), maxHz(${maxHz})`;
+    return minHz === 0 && maxHz === 0 ? '' : `minHz(${minHz}), maxHz(${maxHz})`;
 }
 
 function buildFftSql(
@@ -123,27 +109,18 @@ function buildFftSql(
     const timeColumn: SqlIdentifierPath = columns.time;
 
     return [
-        `SELECT ${timeColumn}, ${jsonValueFieldToNumericSql(
-            columns.value,
-            columns.jsonKey,
-        )}`,
+        `SELECT ${timeColumn}, ${jsonValueFieldToNumericSql(columns.value, columns.jsonKey)}`,
         `FROM ${tableName}`,
         `WHERE ${columns.name} IN (${buildSqlStringLiteral(tagName)})`,
-        `AND ${buildTimeRangeConditionSql(
-            columns.time,
-            timeRange,
-            usesNumericTime,
-        )}`,
+        `AND ${buildTimeRangeConditionSql(columns.time, timeRange, usesNumericTime)}`,
         `ORDER BY ${timeColumn}`,
     ].join(' ');
 }
 
 function parseFftChartData(value: unknown): FftChartData {
     const response: Record<string, unknown> | undefined = asRecord(value);
-    const headers: Record<string, unknown> | undefined =
-        asRecord(response?.headers);
-    const data: Record<string, unknown> | undefined =
-        asRecord(response?.data);
+    const headers: Record<string, unknown> | undefined = asRecord(response?.headers);
+    const data: Record<string, unknown> | undefined = asRecord(response?.data);
     if (
         response?.status !== 200 ||
         headers?.['x-chart-type'] !== 'echarts' ||

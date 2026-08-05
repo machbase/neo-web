@@ -6,44 +6,28 @@ import {
     PANEL_DISPLAY_PRESETS,
     type PanelDisplay,
     type PanelEChartType,
-} from '../../../model';
+} from '../../../panel/panelModel';
 import { cx, parseEditorNumber } from './EditorFieldUtils';
 import styles from '../PanelEditor.module.scss';
 
-type ChartTypeOption = {
-    type: PanelEChartType;
-    src?: string;
-    alt: string;
-};
-
-const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
+const CHART_TYPE_OPTIONS = [
     { type: 'Zone', src: InnerLine, alt: 'Zone Chart' },
     { type: 'Dot', src: Scatter, alt: 'Dot Chart' },
     { type: 'Line', src: Line, alt: 'Line Chart' },
-    { type: 'Custom', alt: 'Custom Chart' },
-];
+    { type: 'Custom', src: undefined, alt: 'Custom Chart' },
+] as const;
 
 const DISPLAY_CHECKBOXES = [
     { field: 'showPoint', label: 'Display data points in the line chart', forceCustom: true },
-    { field: 'showLegend', label: 'Display legend' },
-    { field: 'connectNulls', label: 'Connect gaps between missing data points' },
-] satisfies Array<{
-    field: keyof Pick<
-        PanelDisplay,
-        'showPoint' | 'showLegend' | 'connectNulls'
-    >;
-    label: string;
-    forceCustom?: boolean;
-}>;
+    { field: 'showLegend', label: 'Display legend', forceCustom: false },
+    { field: 'connectNulls', label: 'Connect gaps between missing data points', forceCustom: false },
+] as const;
 
 const DISPLAY_NUMBER_INPUTS = [
     { field: 'pointRadius', label: 'Point Radius' },
     { field: 'fill', label: 'Opacity Of Fill Area' },
     { field: 'stroke', label: 'Line Thickness' },
-] satisfies Array<{
-    field: keyof Pick<PanelDisplay, 'pointRadius' | 'fill' | 'stroke'>;
-    label: string;
-}>;
+] as const;
 
 const EditorDisplayTab = ({
     pDisplayConfig,

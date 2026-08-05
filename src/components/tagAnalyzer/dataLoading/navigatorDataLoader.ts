@@ -5,11 +5,11 @@ import {
     getTimeUnitMilliseconds,
     TimeUnit,
     type IntervalOption,
-    type AxisRange,
-} from '../range/rangeModel';
+} from '../range/intervalResolver';
+import type { AxisRange } from '../range/rangeModel';
 import {
-    clampRangeToBounds,
     createRangeFromCenterAndWidth,
+    fitRangeWithinBounds,
     getRangeCenter,
     getRangeWidth,
     isRangeWithin,
@@ -21,7 +21,7 @@ import {
 } from '../hooks/useLatestAsyncRequest';
 import { hasFetchLimitReached } from './panelLoadState';
 
-const NAVIGATOR_QUERY_ROW_LIMIT: number = 1000;
+export const NAVIGATOR_QUERY_ROW_LIMIT = 1000;
 const NAVIGATOR_BUCKET_INTERVAL_LIMIT: number =
     NAVIGATOR_QUERY_ROW_LIMIT - 1;
 const MINIMUM_NUMERIC_BUCKET_WIDTH: number = 0.01;
@@ -32,11 +32,10 @@ const NAVIGATOR_CACHE_ENTRY_LIMIT: number = 2;
 export function getReusablePanelDataRange(
     result: PanelDataFetchResult,
     queryRange: AxisRange,
-    rejectLimitedResult: boolean,
 ): AxisRange | undefined {
     if (
         result.some(({ error }) => error !== undefined) ||
-        (rejectLimitedResult && hasFetchLimitReached(result))
+        hasFetchLimitReached(result)
     ) {
         return undefined;
     }
@@ -53,18 +52,18 @@ export function getReusablePanelDataRange(
     for (const { data } of result) {
         sStart = Math.max(
             sStart,
-            Math.min(queryRange.startTime, data[0]?.[0] ?? queryRange.startTime),
+            Math.min(queryRange.start, data[0]?.[0] ?? queryRange.start),
         );
         sEnd = Math.min(
             sEnd,
             Math.max(
-                queryRange.endTime,
-                data[data.length - 1]?.[0] ?? queryRange.endTime,
+                queryRange.end,
+                data[data.length - 1]?.[0] ?? queryRange.end,
             ),
         );
     }
 
-    return { startTime: sStart, endTime: sEnd };
+    return { start: sStart, end: sEnd };
 }
 
 const SECOND_MS = getTimeUnitMilliseconds(TimeUnit.Second, 1);
@@ -86,7 +85,7 @@ const NAVIGATOR_TIME_BUCKETS: NavigatorTimeBucket[] = [
     createTimeBucket('1month', TimeUnit.Day, 30),
 ];
 
-type NavigatorFetchResolution = {
+export type NavigatorFetchResolution = {
     key: string;
     bucketWidth: number;
     interval: IntervalOption | undefined;
@@ -101,7 +100,6 @@ type NavigatorCacheEntry = {
     resolution: NavigatorFetchResolution;
     reusableRange: AxisRange | undefined;
     result: PanelDataFetchResult;
-    rowLimit: number;
 };
 
 type NavigatorFetchStore = {
@@ -115,7 +113,6 @@ type NavigatorSeriesFetchState = {
     result: PanelDataFetchResult | undefined;
     status: NavigatorFetchStore['status'];
     error: string | undefined;
-    rowLimit: number | undefined;
 };
 
 type NavigatorFetchAction =
@@ -128,20 +125,16 @@ type NavigatorFetchAction =
           delay: number;
           queryRange: AxisRange;
           resolution: NavigatorFetchResolution;
-          rowLimit: number;
       };
 
 type UseNavigatorSeriesFetchParams = {
-    canFetch: boolean;
     baseKey: string;
     requestedRange: AxisRange;
     queryRange: AxisRange;
     usesNumericRange: boolean;
-    rejectLimitedResult: boolean;
     fetchFn: (
         queryRange: AxisRange,
         resolution: NavigatorFetchResolution,
-        rowLimit: number,
         signal: AbortSignal,
     ) => Promise<PanelDataFetchResult | undefined>;
 };
@@ -153,44 +146,51 @@ const INITIAL_NAVIGATOR_FETCH_STORE: NavigatorFetchStore = {
     error: undefined,
 };
 
-export function useNavigatorSeriesFetch({
-    canFetch,
-    baseKey,
-    requestedRange,
-    queryRange,
-    usesNumericRange,
-    rejectLimitedResult,
-    fetchFn,
-}: UseNavigatorSeriesFetchParams): NavigatorSeriesFetchState {
+const NAVIGATOR_FETCH_IDLE_KEY = 'navigator-series:idle';
+
+export function useNavigatorSeriesFetch(
+    request: UseNavigatorSeriesFetchParams | undefined,
+): NavigatorSeriesFetchState {
     const [store, setStore] = useState<NavigatorFetchStore>(
         INITIAL_NAVIGATOR_FETCH_STORE,
     );
-    const requestedWidth: number = getRangeWidth(requestedRange);
-    const desiredResolution: NavigatorFetchResolution = usesNumericRange
-        ? resolveNumericNavigatorResolution(requestedWidth)
-        : resolveDatetimeNavigatorResolution(requestedWidth);
+    const canFetch = request !== undefined;
+    const requestedWidth = request
+        ? getRangeWidth(request.requestedRange)
+        : undefined;
+    const desiredResolution = request && requestedWidth !== undefined
+        ? request.usesNumericRange
+            ? resolveNumericNavigatorResolution(requestedWidth)
+            : resolveDatetimeNavigatorResolution(requestedWidth)
+        : undefined;
     const activeEntry: NavigatorCacheEntry | undefined = store.cache.find(
         (entry) =>
-            entry.baseKey === baseKey &&
+            entry.baseKey === request?.baseKey &&
             entry.resolution.key === store.activeResolutionKey,
     );
     const desiredCacheEntry: NavigatorCacheEntry | undefined =
-        findReusableNavigatorEntry(
-            store.cache,
-            baseKey,
-            desiredResolution.key,
-            requestedRange,
-        );
-    const action: NavigatorFetchAction = resolveNavigatorFetchAction({
-        canFetch,
-        activeEntry,
-        desiredCacheEntry,
-        desiredResolution,
-        requestedRange,
-        requestedWidth,
-        queryRange,
-    });
-    const requestKey: string = buildNavigatorRequestKey(baseKey, action);
+        request && desiredResolution
+            ? findReusableNavigatorEntry(
+                  store.cache,
+                  request.baseKey,
+                  desiredResolution.key,
+                  request.requestedRange,
+              )
+            : undefined;
+    const action: NavigatorFetchAction =
+        request && desiredResolution && requestedWidth !== undefined
+            ? resolveNavigatorFetchAction({
+                  activeEntry,
+                  desiredCacheEntry,
+                  desiredResolution,
+                  requestedRange: request.requestedRange,
+                  requestedWidth,
+                  queryRange: request.queryRange,
+              })
+            : { kind: 'idle' };
+    const requestKey: string = request
+        ? buildNavigatorRequestKey(request.baseKey, action)
+        : NAVIGATOR_FETCH_IDLE_KEY;
     const fetchAction = action.kind === 'fetch' ? action : undefined;
     const actionRef = useRef(action);
     actionRef.current = action;
@@ -228,10 +228,12 @@ export function useNavigatorSeriesFetch({
             if (!fetchAction) {
                 throw new Error('Navigator fetch action is unavailable.');
             }
-            const result = await fetchFn(
+            if (!request) {
+                throw new Error('Navigator fetch request is unavailable.');
+            }
+            const result = await request.fetchFn(
                 fetchAction.queryRange,
                 fetchAction.resolution,
-                fetchAction.rowLimit,
                 signal,
             );
             if (!result) {
@@ -241,17 +243,15 @@ export function useNavigatorSeriesFetch({
             const reusableRange = getReusablePanelDataRange(
                 result,
                 fetchAction.queryRange,
-                rejectLimitedResult,
             );
             return fetchAction.background && !reusableRange
                 ? undefined
                 : {
-                      baseKey,
+                      baseKey: request.baseKey,
                       resolution: fetchAction.resolution,
                       reusableRange,
                       result,
-                      rowLimit: fetchAction.rowLimit,
-                  };
+                };
         },
         onStart: () => {
             if (!fetchAction?.background) {
@@ -303,7 +303,6 @@ export function useNavigatorSeriesFetch({
                 ? 'failed'
                 : 'loading',
         error: store.error,
-        rowLimit: activeEntry?.rowLimit,
     };
 }
 
@@ -418,7 +417,6 @@ function createTimeBucket(
 }
 
 function resolveNavigatorFetchAction({
-    canFetch,
     activeEntry,
     desiredCacheEntry,
     desiredResolution,
@@ -426,7 +424,6 @@ function resolveNavigatorFetchAction({
     requestedWidth,
     queryRange,
 }: {
-    canFetch: boolean;
     activeEntry: NavigatorCacheEntry | undefined;
     desiredCacheEntry: NavigatorCacheEntry | undefined;
     desiredResolution: NavigatorFetchResolution;
@@ -434,8 +431,6 @@ function resolveNavigatorFetchAction({
     requestedWidth: number;
     queryRange: AxisRange;
 }): NavigatorFetchAction {
-    if (!canFetch) return { kind: 'idle' };
-
     if (
         !activeEntry ||
         !activeEntry.reusableRange ||
@@ -495,9 +490,9 @@ function createNavigatorFetchAction(
 ): NavigatorFetchAction {
     const sMaximumQueryWidth =
         resolution.bucketWidth * NAVIGATOR_BUCKET_INTERVAL_LIMIT;
-    const sBoundedQueryRange = getRangeWidth(queryRange) <= sMaximumQueryWidth
+    const sFittedQueryRange = getRangeWidth(queryRange) <= sMaximumQueryWidth
         ? queryRange
-        : clampRangeToBounds(
+        : fitRangeWithinBounds(
               createRangeFromCenterAndWidth(
                   getRangeCenter(requestedRange),
                   sMaximumQueryWidth,
@@ -509,9 +504,8 @@ function createNavigatorFetchAction(
         kind: 'fetch',
         background,
         delay,
-        queryRange: sBoundedQueryRange,
+        queryRange: sFittedQueryRange,
         resolution,
-        rowLimit: NAVIGATOR_QUERY_ROW_LIMIT,
     };
 }
 

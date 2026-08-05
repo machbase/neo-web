@@ -23,7 +23,12 @@ import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { Modal } from '@/design-system/components';
+import type { ReactNode } from 'react';
 import './Board.scss';
+
+function iconPair(first: ReactNode, second: ReactNode) {
+    return <span className="taz-help-modal__icon-pair">{first}{second}</span>;
+}
 
 const HELP_SECTIONS = [
     {
@@ -54,12 +59,7 @@ const HELP_SECTIONS = [
             {
                 title: 'Save / Save as',
                 description: 'Saves the board to the current or a new TAZ file.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <Save size={15} />
-                        <SaveAs size={15} />
-                    </span>
-                ),
+                icon: iconPair(<Save size={15} />, <SaveAs size={15} />),
             },
             {
                 title: 'Overlap chart',
@@ -105,12 +105,7 @@ const HELP_SECTIONS = [
             {
                 title: 'Edit / Delete',
                 description: 'Opens panel editor or deletes this panel.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <GearFill size={15} />
-                        <Delete size={16} />
-                    </span>
-                ),
+                icon: iconPair(<GearFill size={15} />, <Delete size={16} />),
             },
         ],
     },
@@ -152,11 +147,9 @@ const HELP_SECTIONS = [
             {
                 title: 'Zoom in',
                 description: 'Narrows the visible main chart range around its center.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <img alt="" src={ZoomInFour} className="taz-help-modal__zoom-icon" />
-                        <img alt="" src={ZoomInTwo} className="taz-help-modal__zoom-icon" />
-                    </span>
+                icon: iconPair(
+                    <img alt="" src={ZoomInFour} className="taz-help-modal__zoom-icon" />,
+                    <img alt="" src={ZoomInTwo} className="taz-help-modal__zoom-icon" />,
                 ),
             },
             {
@@ -167,21 +160,17 @@ const HELP_SECTIONS = [
             {
                 title: 'Zoom out',
                 description: 'Widens the visible main chart range around its center.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <img alt="" src={ZoomOutTwo} className="taz-help-modal__zoom-icon" />
-                        <img alt="" src={ZoomOutFour} className="taz-help-modal__zoom-icon" />
-                    </span>
+                icon: iconPair(
+                    <img alt="" src={ZoomOutTwo} className="taz-help-modal__zoom-icon" />,
+                    <img alt="" src={ZoomOutFour} className="taz-help-modal__zoom-icon" />,
                 ),
             },
             {
                 title: 'Move navigator',
                 description: 'Moves the navigator window backward or forward.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <VscChevronLeft size={16} />
-                        <VscChevronRight size={16} />
-                    </span>
+                icon: iconPair(
+                    <VscChevronLeft size={16} />,
+                    <VscChevronRight size={16} />,
                 ),
             },
         ],

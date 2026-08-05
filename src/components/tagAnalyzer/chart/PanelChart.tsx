@@ -13,15 +13,12 @@ import ReactECharts from 'echarts-for-react';
 import { MdBlock, MdCheckCircle } from 'react-icons/md';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
-import type { PanelHighlight, PanelInfo } from '../model';
+import type { PanelHighlight, PanelInfo } from '../panel/panelModel';
 import { hasNumericBaseTimeSeries } from '../seriesModel';
-import {
-    getRangeWidth,
-    isValidRange,
-} from '../range/rangeArithmetic';
+import { getRangeWidth } from '../range/rangeArithmetic';
 import {
     type AxisRange,
-    type PanelRangeState,
+    type RangeState,
 } from '../range/rangeModel';
 import {
     applyPanelNavigatorCursorStyles,
@@ -36,7 +33,7 @@ import {
     type PanelOverlayCursorHintState,
 } from '../panel/panelInteraction';
 import {
-    type ChartSeriesData,
+    type ChartSeriesVisibilityMap,
     getChartSeriesEChartsName,
 } from './chartData';
 
@@ -44,18 +41,16 @@ import {
     buildChartEvent,
     buildChartOption,
     buildChartSeriesOption,
-    isSameDataZoomRange,
     MAIN_PANEL_SERIES_ID_PREFIX,
     PANEL_NAVIGATOR_SERIES_ID_PREFIX,
     PANEL_SLIDER_DATA_ZOOM_ID,
-    type PanelMarkupHandlers,
-    type PanelRangeActions,
+    type PanelChartHandlers,
 } from './chartModel';
 import {
     convertPanelChartPixelToTimestamp,
-    extractDataZoomOptionRange,
     getChartLayoutMetrics,
     getPanelChartEventCoordinates,
+    isSameDataZoomSelection,
     PANEL_CHART_HEIGHT,
     PANEL_GRID_SIDE,
 } from './chartGeometry';
@@ -70,25 +65,13 @@ type PanelChartRefs = {
     chartApiRef: MutableRefObject<PanelChartHandle | null>;
 };
 
-type PanelChartData = {
-    chartData: ChartSeriesData[];
-    navigatorChartData: ChartSeriesData[];
-};
-
-type PanelChartHandlers = {
-    rangeActions: PanelRangeActions;
-    markupHandlers: PanelMarkupHandlers;
-    onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
-    onSelection: (selectionRange: AxisRange) => void;
-};
-
 type UsePanelChartRuntimeParams = {
     refs: PanelChartRefs;
     runtimeConfig: RuntimePanelChartConfig;
     draftHighlight?: PanelHighlight;
     overlayMode: PanelOverlayMode;
-    data: PanelChartData;
-    rangeState: PanelRangeState;
+    data: PanelChartRuntime['data'];
+    rangeState: RangeState;
     handlers: PanelChartHandlers;
 };
 
@@ -103,7 +86,7 @@ function usePanelChartRuntime({
 }: UsePanelChartRuntimeParams) {
     const { chartAreaRef, chartApiRef } = refs;
     const { chartData, navigatorChartData } = data;
-    const { panelRange, navigatorRange } = rangeState;
+    const { mainRange, navigatorRange } = rangeState;
     const {
         rangeActions,
         markupHandlers,
@@ -114,19 +97,19 @@ function usePanelChartRuntime({
     const seriesList = query.tagSet;
     const latestHoverTimestampRef = useRef<number | undefined>();
     const latestChartClickRef = useRef(0);
-    const latestPanelRangeRef = useRef(panelRange);
+    const latestMainRangeRef = useRef(mainRange);
     const latestNavigatorRangeRef = useRef(navigatorRange);
     const latestAppliedChartDataRef = useRef(chartData);
     const latestAppliedNavigatorChartDataRef = useRef(navigatorChartData);
     const hoveredLegendSeriesRef = useRef<string | undefined>();
-    const visibleSeriesRef = useRef<Record<string, boolean>>({});
+    const visibleSeriesRef = useRef<ChartSeriesVisibilityMap>({});
 
-    latestPanelRangeRef.current = panelRange;
+    latestMainRangeRef.current = mainRange;
     latestNavigatorRangeRef.current = navigatorRange;
     const sAnimateMainDataUpdate = latestAppliedChartDataRef.current === chartData;
     const sAnimateNavigatorDataUpdate =
         latestAppliedNavigatorChartDataRef.current === navigatorChartData;
-    const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
+    const [visibleSeries, setVisibleSeries] = useState<ChartSeriesVisibilityMap>({});
     const isNumericXAxis = hasNumericBaseTimeSeries(seriesList);
     const isSelectionMode =
         overlayMode === PanelOverlayMode.DRAG_SELECT ||
@@ -138,8 +121,8 @@ function usePanelChartRuntime({
     const chartRuntime = useMemo<PanelChartRuntime>(() => ({
         config: runtimeConfig,
         data: {
-            mainSeriesData: chartData,
-            navigatorSeriesData: navigatorChartData,
+            chartData,
+            navigatorChartData,
         },
         ranges: rangeState,
         interaction: {
@@ -172,7 +155,7 @@ function usePanelChartRuntime({
         () => ({
             ...currentFullOption,
             series: stripDataFromCachedDataSeries(
-                getChartSeriesOptions(currentFullOption.series),
+                currentFullOption.series,
             ),
         }),
         [currentFullOption],
@@ -180,10 +163,7 @@ function usePanelChartRuntime({
     const latestFullOptionRef = useRef(currentFullOption);
     const latestRangeOptionRef = useRef(currentRangeOption);
     const initialOptionRef = useRef(currentFullOption);
-    const lastRenderedChartDataRef = useRef<{
-        chartData: ChartSeriesData[];
-        navigatorChartData: ChartSeriesData[];
-    }>();
+    const lastRenderedChartDataRef = useRef<PanelChartRuntime['data']>();
 
     latestFullOptionRef.current = currentFullOption;
     latestRangeOptionRef.current = currentRangeOption;
@@ -211,9 +191,9 @@ function usePanelChartRuntime({
     const syncMainChartVisibleRange = useCallback((
         chartInstance: PanelChartInstance | undefined = chartInstanceRef.current,
     ): void => {
-        const sPanelRange = latestPanelRangeRef.current;
+        const sMainRange = latestMainRangeRef.current;
 
-        if (!chartInstance || !isValidRange(sPanelRange)) {
+        if (!chartInstance) {
             return;
         }
 
@@ -222,20 +202,12 @@ function usePanelChartRuntime({
                 item.id === PANEL_SLIDER_DATA_ZOOM_ID ||
                 item.dataZoomId === PANEL_SLIDER_DATA_ZOOM_ID,
         );
-        const sSliderRange = sSliderState
-            ? extractDataZoomOptionRange(
-                  sSliderState,
-                  sPanelRange,
-                  latestNavigatorRangeRef.current,
-              )
-            : undefined;
-
         if (
-            sSliderRange &&
-            isSameDataZoomRange(
-                sSliderRange,
-                sPanelRange,
-                isNumericXAxis,
+            sSliderState &&
+            isSameDataZoomSelection(
+                sSliderState,
+                sMainRange,
+                latestNavigatorRangeRef.current,
             )
         ) {
             return;
@@ -244,10 +216,10 @@ function usePanelChartRuntime({
         chartInstance.dispatchAction({
             type: 'dataZoom',
             dataZoomId: PANEL_SLIDER_DATA_ZOOM_ID,
-            startValue: sPanelRange.startTime,
-            endValue: sPanelRange.endTime,
+            startValue: sMainRange.start,
+            endValue: sMainRange.end,
         });
-    }, [chartInstanceRef, isNumericXAxis]);
+    }, [chartInstanceRef]);
     const applyFullChartOption = useCallback((
         chartInstance: PanelChartInstance | undefined = chartInstanceRef.current,
     ): void => {
@@ -307,7 +279,7 @@ function usePanelChartRuntime({
     ): void => {
         const nextHoveredLegendSeries =
             hoveredLegendSeries &&
-            chartRuntime.data.mainSeriesData.some(
+            chartRuntime.data.chartData.some(
                 (series) => getChartSeriesEChartsName(series) === hoveredLegendSeries,
             )
                 ? hoveredLegendSeries
@@ -346,7 +318,7 @@ function usePanelChartRuntime({
         chartInstanceRef,
         isWheelZoomEnabled: isDragZoomEnabled,
         isNumericXAxis,
-        panelRange,
+        mainRange,
         applyMainZoomRange: rangeActions.applyMainZoomRange,
     });
 
@@ -399,6 +371,10 @@ function usePanelChartRuntime({
                 );
             },
         };
+
+        return () => {
+            chartApiRef.current = null;
+        };
     }, [chartApiRef, chartAreaRef, chartData, chartInstanceRef]);
 
     useEffect(() => {
@@ -417,7 +393,7 @@ function usePanelChartRuntime({
     }, [
         applyRangeChartOption,
         navigatorRange,
-        panelRange,
+        mainRange,
     ]);
 
     useEffect(() => {
@@ -445,10 +421,17 @@ function usePanelChartRuntime({
                 },
                 rangeActions,
                 markupHandlers,
-                onHoveredMainSeriesChange: (seriesName) =>
+                onHoveredMainSeriesChange: (seriesName) => {
+                    const sVisibleSeries = seriesName === undefined
+                        ? undefined
+                        : chartData.find(
+                            (series) =>
+                                getChartSeriesEChartsName(series) === seriesName,
+                        );
                     onHoveredMainSeriesChange(
-                        resolveVisibleSeriesName(chartData, seriesName),
-                    ),
+                        sVisibleSeries?.name ?? seriesName,
+                    );
+                },
                 onSelection,
                 legendState: {
                     applyLegendHoverState,
@@ -468,26 +451,7 @@ function usePanelChartRuntime({
                 applyLegendHoverState(hoveredLegendSeriesRef.current, true);
             }
         },
-        chartMouseHandlers: {
-            onMouseDownCapture: (event: MouseEvent<HTMLDivElement>) => {
-                if (event.button === 2) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-            },
-        },
     };
-}
-
-function resolveVisibleSeriesName(
-    chartData: ChartSeriesData[],
-    seriesName: string | undefined,
-): string | undefined {
-    return seriesName === undefined
-        ? undefined
-        : chartData.find(
-              (series) => getChartSeriesEChartsName(series) === seriesName,
-          )?.name ?? seriesName;
 }
 
 function stripDataFromCachedDataSeries(
@@ -509,20 +473,10 @@ function stripDataFromCachedDataSeries(
     });
 }
 
-function getChartSeriesOptions(
-    seriesOption: ReturnType<typeof buildChartOption>['series'],
-): ReturnType<typeof buildChartSeriesOption> {
-    return (Array.isArray(seriesOption)
-        ? seriesOption
-        : seriesOption
-          ? [seriesOption]
-          : []) as ReturnType<typeof buildChartSeriesOption>;
-}
-
 function getSeriesStructureKey(
     seriesOption: ReturnType<typeof buildChartOption>['series'],
 ): string {
-    return getChartSeriesOptions(seriesOption)
+    return seriesOption
         .map((series, seriesIndex) => {
             return [
                 seriesIndex,
@@ -534,31 +488,56 @@ function getSeriesStructureKey(
         .join('|');
 }
 
-type PanelChartProps = Omit<UsePanelChartRuntimeParams, 'runtimeConfig'> & {
+type PanelChartProps = Omit<
+    UsePanelChartRuntimeParams,
+    'rangeState' | 'runtimeConfig'
+> & {
     panelInfo: PanelInfo;
     isLoading: boolean;
-    rangeReady: boolean;
+    rangeState: RangeState | undefined;
     displayNotice: string | undefined;
 };
 
-export default function PanelChart({ panelInfo, ...props }: PanelChartProps) {
-    const runtimeConfig = useMemo(
-        () => resolveRuntimePanelChartConfig(panelInfo),
-        [panelInfo],
-    );
-    const {
-        refs,
-        handlers,
-        isLoading,
-        rangeReady,
-        displayNotice,
-    } = props;
+function ReadyPanelChart(props: UsePanelChartRuntimeParams) {
     const {
         option,
         onEvents,
         handleChartReady,
-        chartMouseHandlers,
-    } = usePanelChartRuntime({ ...props, runtimeConfig });
+    } = usePanelChartRuntime(props);
+
+    return (
+        <ReactECharts
+            option={option}
+            onEvents={onEvents}
+            onChartReady={handleChartReady}
+            replaceMerge={['series', 'xAxis', 'yAxis', 'dataZoom']}
+            lazyUpdate
+            style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
+            opts={{ renderer: 'canvas' }}
+        />
+    );
+}
+
+function handleChartMouseDownCapture(event: MouseEvent<HTMLDivElement>): void {
+    if (event.button === 2) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}
+
+export default function PanelChart({
+    panelInfo,
+    isLoading,
+    rangeState,
+    displayNotice,
+    ...runtimeProps
+}: PanelChartProps) {
+    const runtimeConfig = useMemo(
+        () => resolveRuntimePanelChartConfig(panelInfo),
+        [panelInfo],
+    );
+    const { refs, handlers } = runtimeProps;
+    const rangeReady = rangeState !== undefined;
 
     return (
         <div className="chart">
@@ -574,17 +553,16 @@ export default function PanelChart({ panelInfo, ...props }: PanelChartProps) {
             <div
                 className="chart-body"
                 ref={refs.chartAreaRef}
-                {...chartMouseHandlers}
+                style={{ height: PANEL_CHART_HEIGHT }}
+                onMouseDownCapture={handleChartMouseDownCapture}
             >
-                <ReactECharts
-                    option={option}
-                    onEvents={onEvents}
-                    onChartReady={handleChartReady}
-                    replaceMerge={['series', 'xAxis', 'yAxis', 'dataZoom']}
-                    lazyUpdate
-                    style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
-                    opts={{ renderer: 'canvas' }}
-                />
+                {rangeState && (
+                    <ReadyPanelChart
+                        {...runtimeProps}
+                        runtimeConfig={runtimeConfig}
+                        rangeState={rangeState}
+                    />
+                )}
                 {(isLoading || displayNotice) && (
                     <PanelMainChartOverlay
                         showLegend={runtimeConfig.display.showLegend}
@@ -690,22 +668,18 @@ function usePanelChartWheelZoom({
     chartInstanceRef,
     isWheelZoomEnabled,
     isNumericXAxis,
-    panelRange,
+    mainRange,
     applyMainZoomRange,
 }: {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     chartInstanceRef: MutableRefObject<PanelChartInstance | undefined>;
     isWheelZoomEnabled: boolean;
     isNumericXAxis: boolean;
-    panelRange: AxisRange;
-    applyMainZoomRange: PanelRangeActions['applyMainZoomRange'];
+    mainRange: AxisRange;
+    applyMainZoomRange: PanelChartHandlers['rangeActions']['applyMainZoomRange'];
 }): void {
     const handleMouseWheelZoom = useCallback((event: WheelEvent): void => {
-        if (
-            event.deltaY === 0 ||
-            !isWheelZoomEnabled ||
-            !isValidRange(panelRange)
-        ) {
+        if (event.deltaY === 0 || !isWheelZoomEnabled) {
             return;
         }
 
@@ -726,16 +700,16 @@ function usePanelChartWheelZoom({
         event.preventDefault();
         event.stopPropagation();
 
-        const sCurrentWidth = getRangeWidth(panelRange);
+        const sCurrentWidth = getRangeWidth(mainRange);
         const sAnchorTime =
             convertPanelChartPixelToTimestamp(
                 chartInstance,
                 sPixel,
                 isNumericXAxis,
             ) ??
-            panelRange.startTime + sCurrentWidth / 2;
+            mainRange.start + sCurrentWidth / 2;
         const sAnchorRatio =
-            (sAnchorTime - panelRange.startTime) / sCurrentWidth;
+            (sAnchorTime - mainRange.start) / sCurrentWidth;
         const sZoomFactor = event.deltaY < 0
             ? PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR
             : PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR;
@@ -744,8 +718,8 @@ function usePanelChartWheelZoom({
 
         applyMainZoomRange(
             {
-                startTime: sNextStart,
-                endTime: sNextStart + sNextWidth,
+                start: sNextStart,
+                end: sNextStart + sNextWidth,
             },
         );
     }, [
@@ -754,7 +728,7 @@ function usePanelChartWheelZoom({
         chartInstanceRef,
         isWheelZoomEnabled,
         isNumericXAxis,
-        panelRange,
+        mainRange,
     ]);
 
     useEffect(() => {
@@ -789,7 +763,8 @@ function useBlankChartClickEvent({
     isNumericXAxis: boolean;
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
     latestChartClickRef: MutableRefObject<number>;
-    onOpenCreateAnnotation: PanelMarkupHandlers['onOpenCreateAnnotation'];
+    onOpenCreateAnnotation:
+        PanelChartHandlers['markupHandlers']['onOpenCreateAnnotation'];
 }): (instance: PanelChartInstance) => void {
     const sListenerInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
     const sListenerCleanupRef = useRef<(() => void) | undefined>(undefined);

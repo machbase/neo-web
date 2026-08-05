@@ -1,36 +1,38 @@
 import { isPlainObject } from '../objectGuards';
-import type { AxisRange, PanelRangeState } from '../range/rangeModel';
+import type { RangeState } from '../range/rangeModel';
+import {
+    decodeAxisRange,
+    encodeAxisRange,
+    type PersistedAxisRange,
+} from './serializeRange';
+
+export type PersistedPanelRangeState = {
+    panelRange: PersistedAxisRange;
+    navigatorRange: PersistedAxisRange;
+};
 
 export function decodePersistedPanelRangeState(
     value: unknown,
-): PanelRangeState | undefined {
+): RangeState | undefined {
     if (!isPlainObject(value)) {
         return undefined;
     }
 
-    const panelRange: AxisRange | undefined = decodePersistedAxisRange(
-        value.panelRange,
-    );
-    const navigatorRange: AxisRange | undefined = decodePersistedAxisRange(
-        value.navigatorRange,
-    );
+    const mainRange = decodeAxisRange(value.panelRange);
+    const navigatorRange = decodeAxisRange(value.navigatorRange);
 
-    return panelRange && navigatorRange
-        ? { panelRange, navigatorRange }
-        : undefined;
-}
-
-function decodePersistedAxisRange(value: unknown): AxisRange | undefined {
-    if (
-        !isPlainObject(value) ||
-        typeof value.startTime !== 'number' ||
-        typeof value.endTime !== 'number'
-    ) {
+    if (!mainRange || !navigatorRange) {
         return undefined;
     }
 
+    return { mainRange, navigatorRange };
+}
+
+export function encodePersistedPanelRangeState(
+    range: RangeState,
+): PersistedPanelRangeState {
     return {
-        startTime: value.startTime,
-        endTime: value.endTime,
+        panelRange: encodeAxisRange(range.mainRange),
+        navigatorRange: encodeAxisRange(range.navigatorRange),
     };
 }

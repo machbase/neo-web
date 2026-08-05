@@ -1,15 +1,14 @@
 import { useState, type CSSProperties } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
-import { Input, Dropdown, ColorPicker, Button } from '@/design-system/components';
+import { Input, ColorPicker, Button } from '@/design-system/components';
 import { SeriesEditor } from '../../SeriesEditor';
+import { SeriesCalculationModeSelect } from '../../SeriesCalculationModeSelect';
 import { SeriesModalFrame } from '../../SeriesModalFrame';
-import type { PanelInfo } from '../../../model';
+import type { PanelInfo } from '../../../panel/panelModel';
 import {
     getPanelSeriesDisplayColor,
-    normalizePanelSeriesCalculationMode,
     type PanelSeriesDefinition,
     type RollupTableMap,
-    TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     updatePanelSeriesCalculationMode,
 } from '../../../seriesModel';
 import styles from '../PanelEditor.module.scss';
@@ -84,31 +83,15 @@ const EditorDataTab = ({
                                         Calc Mode
                                     </span>
                                     <div className={styles.editorNarrowControl}>
-                                        <Dropdown.Root
-                                            options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
+                                        <SeriesCalculationModeSelect
                                             value={item.calculationMode}
-                                            onChange={(mode) => {
-                                                const sMode =
-                                                    normalizePanelSeriesCalculationMode(
-                                                        mode,
-                                                    );
-                                                if (sMode) {
-                                                    updateItem(
-                                                        updatePanelSeriesCalculationMode(
-                                                            item,
-                                                            sMode,
-                                                        ),
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            <Dropdown.Trigger
-                                                className={styles.editorSelectTrigger}
-                                            />
-                                            <Dropdown.Menu>
-                                                <Dropdown.List />
-                                            </Dropdown.Menu>
-                                        </Dropdown.Root>
+                                            onChange={(mode) =>
+                                                updateItem(
+                                                    updatePanelSeriesCalculationMode(item, mode),
+                                                )
+                                            }
+                                            className={styles.editorSelectTrigger}
+                                        />
                                     </div>
                                 </div>
                                 <div

@@ -7,8 +7,8 @@ import type {
 } from 'echarts';
 import { getRangeWidth, shiftRange } from '../range/rangeArithmetic';
 import { type AxisRange } from '../range/rangeModel';
-import { formatAxisValue } from '../range/format/rangeFormat';
-import type { PanelInfo } from '../model';
+import { formatAxisTick } from '../format/axisFormat';
+import type { PanelInfo } from '../panel/panelModel';
 import type { ChartRow, ChartSeriesData } from '../chart/chartData';
 import {
     buildInsideDataZoomOption,
@@ -24,7 +24,7 @@ export type OverlapPanelInput = {
 };
 
 export type OverlapChartSeriesGroup = {
-    panelInfo: PanelInfo;
+    panelKey: string;
     name: string;
     sourceRange: AxisRange;
     alignedRange: AxisRange;
@@ -40,15 +40,20 @@ export function createOverlapChartSeriesGroup(
     input: OverlapPanelInput,
     seriesData: ChartSeriesData[],
 ): OverlapChartSeriesGroup {
-    const origin = getSeriesTimeBounds(seriesData, true)?.startTime;
-    const alignmentOffset = -(origin ?? input.visibleRange.startTime);
+    const origin = getSeriesTimeBounds(seriesData, true)?.start;
+    const alignmentOffset = -(origin ?? input.visibleRange.start);
 
     return {
-        panelInfo: input.panelInfo,
+        panelKey: input.panelInfo.key,
         name: input.panelInfo.title.trim() || 'Panel',
         sourceRange: { ...input.visibleRange },
         alignedRange: shiftRange(input.visibleRange, alignmentOffset),
-        seriesData: shiftChartSeriesData(seriesData, alignmentOffset),
+        seriesData: alignmentOffset === 0
+            ? seriesData
+            : seriesData.map((series) => ({
+                  ...series,
+                  data: shiftChartRows(series.data, alignmentOffset),
+              })),
         shiftValue: 0,
     };
 }
@@ -72,7 +77,7 @@ export function joinOverlapChartSeriesGroups(
 
             return {
                 ...series,
-                id: `${group.panelInfo.key}:${seriesIndex}`,
+                id: `${group.panelKey}:${seriesIndex}`,
                 name:
                     duplicateCount === 0
                         ? name
@@ -81,18 +86,6 @@ export function joinOverlapChartSeriesGroups(
             };
         }),
     );
-}
-
-function shiftChartSeriesData(
-    seriesData: ChartSeriesData[],
-    offset: number,
-): ChartSeriesData[] {
-    if (offset === 0) return seriesData;
-
-    return seriesData.map((series) => ({
-        ...series,
-        data: shiftChartRows(series.data, offset),
-    }));
 }
 
 function shiftChartRows(rows: ChartRow[], offset: number): ChartRow[] {
@@ -119,7 +112,7 @@ function getSeriesTimeBounds(
     }
 
     return startTime !== Infinity && (allowSingleTimestamp || endTime > startTime)
-        ? { startTime, endTime }
+        ? { start: startTime, end: endTime }
         : undefined;
 }
 
@@ -177,8 +170,8 @@ function resolveOverlapChartXAxisRanges(chartData: ChartSeriesData[]) {
     return {
         dataRange: sDataRange,
         axisRange: {
-            startTime: sDataRange.startTime - sPadding,
-            endTime: sDataRange.endTime + sPadding,
+            start: sDataRange.start - sPadding,
+            end: sDataRange.end + sPadding,
         },
     };
 }
@@ -226,9 +219,9 @@ function formatOverlapXAxisLabel(
         return formatOverlapElapsedDurationLabel(xAxisValue);
     }
 
-    return formatAxisValue(
+    return formatAxisTick(
         xAxisValue,
-        visibleRange ?? { startTime: 0, endTime: 1 },
+        visibleRange ?? { start: 0, end: 1 },
         true,
     );
 }
@@ -309,8 +302,8 @@ export function buildOverlapChartOption(
         },
         xAxis: {
             ...OVERLAP_X_AXIS_STATIC_OPTION,
-            min: sXAxisRanges?.axisRange.startTime,
-            max: sXAxisRanges?.axisRange.endTime,
+            min: sXAxisRanges?.axisRange.start,
+            max: sXAxisRanges?.axisRange.end,
             axisLabel: {
                 ...OVERLAP_X_AXIS_STATIC_OPTION.axisLabel,
                 formatter: (overlapXAxisValue: number) =>

@@ -4,17 +4,16 @@ import {
     useState,
 } from 'react';
 import { Toast } from '@/design-system/components';
-import type { PanelInfo } from '../model';
-import {
-    isResolvedPanelRangeState,
-    type PanelRangeSourceState,
-} from '../panel/panelRangeSourceState';
+import type { PanelInfo } from '../panel/panelModel';
 import {
     getSeriesListAxisKind,
     hasMixedXAxisValueKinds,
     MIXED_X_AXIS_KIND_WARNING,
 } from '../seriesModel';
-import type { AxisKind } from '../range/rangeModel';
+import {
+    type AxisKind,
+    type ResolvedRangeState,
+} from '../range/rangeModel';
 import { useStableCallback } from '../hooks/useStableCallback';
 import type { OverlapPanelInput } from '../overlap/overlapModel';
 
@@ -31,7 +30,9 @@ type OpenOverlapSession = {
 
 export function useBoardOverlapSelection(
     panels: readonly PanelInfo[],
-    panelRanges: Readonly<Record<string, PanelRangeSourceState>>,
+    panelRanges: Readonly<
+        Record<string, ResolvedRangeState | undefined>
+    >,
     onSelectionChange: (panelKey: string, isSelected: boolean) => void,
 ) {
     const [sOpenSession, setOpenSession] = useState<OpenOverlapSession>();
@@ -110,10 +111,10 @@ export function useBoardOverlapSelection(
 
 function getOverlapSelectionError(
     panel: PanelInfo,
-    rangeState: PanelRangeSourceState | undefined,
+    rangeState: ResolvedRangeState | undefined,
     selectedAxisKind?: AxisKind,
 ): string | undefined {
-    if (!rangeState || !isResolvedPanelRangeState(rangeState)) {
+    if (!rangeState) {
         return 'Overlap requires a loaded chart range.';
     }
     if (hasMixedXAxisValueKinds(panel.query.tagSet)) {
@@ -130,7 +131,9 @@ function getOverlapSelectionError(
 
 function deriveOverlapSelection(
     panels: readonly PanelInfo[],
-    panelRanges: Readonly<Record<string, PanelRangeSourceState>>,
+    panelRanges: Readonly<
+        Record<string, ResolvedRangeState | undefined>
+    >,
 ) {
     const sSelectedPanels = panels.flatMap((panel): OverlapPanelInput[] => {
         if (!panel.isOverlapSelected || panel.query.tagSet.length === 0) {
@@ -138,11 +141,11 @@ function deriveOverlapSelection(
         }
 
         const sRangeState = panelRanges[panel.key];
-        if (!sRangeState || !isResolvedPanelRangeState(sRangeState)) return [];
+        if (!sRangeState) return [];
 
         return [{
             panelInfo: panel,
-            visibleRange: sRangeState.range.panelRange,
+            visibleRange: sRangeState.range.mainRange,
         }];
     });
     const sHasMixedAxisKinds = sSelectedPanels.some(({ panelInfo }) =>

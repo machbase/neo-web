@@ -24,13 +24,13 @@ import {
     VscNote,
     VscThreeBars,
 } from '@/assets/icons/Icon';
-import { Button, ContextMenu, Menu } from '@/design-system/components';
+import { Button, ContextMenu, Menu, type ContextMenuPosition } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
-import type { AxisRange, IntervalOption } from '../range/rangeModel';
-import { isValidRange } from '../range/rangeArithmetic';
-import { formatAxisRange } from '../range/format/rangeFormat';
-import { formatNumericInterval } from '../range/format/numericRangeFormat';
-import { formatTimeInterval } from '../range/format/timeRangeFormat';
+import type { IntervalOption } from '../range/intervalResolver';
+import type { AxisRange } from '../range/rangeModel';
+import { formatAxisRange } from '../format/axisFormat';
+import { formatNumericInterval } from '../format/numericFormat';
+import { formatTimeInterval } from '../format/timeFormat';
 import { PanelOverlayMode } from './panelInteraction';
 
 export const PanelActionKey = {
@@ -50,9 +50,9 @@ export const PanelActionKey = {
 export type PanelActionKey =
     (typeof PanelActionKey)[keyof typeof PanelActionKey];
 
-export type PanelHeaderRuntimeState = {
+type PanelHeaderRuntimeState = {
     title: string;
-    panelRange: AxisRange;
+    mainRange: AxisRange | undefined;
     resolvedIntervalOption: IntervalOption | undefined;
     resolvedNumericInterval: number | undefined;
     seriesRollupStatusList: Array<{
@@ -192,9 +192,9 @@ function buildPanelActions(
 }
 
 function formatPanelTimeText(state: PanelHeaderRuntimeState): string {
-    if (!isValidRange(state.panelRange)) return '';
+    if (!state.mainRange) return '';
     const sFormattedRange = formatAxisRange(
-        state.panelRange,
+        state.mainRange,
         state.isNumericXAxis,
     );
     return `${sFormattedRange.start} ~ ${sFormattedRange.end}`;
@@ -205,7 +205,9 @@ function formatIntervalText(state: PanelHeaderRuntimeState): string {
 
     return state.isNumericXAxis
         ? formatNumericInterval(state.resolvedNumericInterval)
-        : formatTimeInterval(state.resolvedIntervalOption);
+        : state.resolvedIntervalOption
+          ? formatTimeInterval(state.resolvedIntervalOption)
+          : '';
 }
 
 function getRollupHeaderSummary(state: PanelHeaderRuntimeState) {
@@ -432,7 +434,7 @@ function PanelHeader(props: PanelHeaderProps) {
                                 ? 'Set current visible main chart value range'
                                 : 'Set current visible main chart range'
                         }
-                        disabled={!isValidRange(runtimeState.panelRange)}
+                        disabled={!runtimeState.mainRange}
                         onClick={onOpenTimeRangeModal}
                     >
                         {sTimeText}
@@ -532,7 +534,7 @@ function PanelHeader(props: PanelHeaderProps) {
 
 type PanelContextMenuProps = {
     runtimeState: PanelHeaderRuntimeState;
-    position: { x: number; y: number };
+    position: ContextMenuPosition;
     onClose: () => void;
     onAction: (actionKey: PanelActionKey) => void;
 };
