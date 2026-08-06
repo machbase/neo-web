@@ -867,7 +867,10 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         (action: RangeButtonAction) =>
             commitRange(
                 (current) => resolveButtonPress(current, action),
-                'main',
+                action === 'shift-navigator-left' ||
+                    action === 'shift-navigator-right'
+                    ? 'navigator'
+                    : 'main',
             ),
     );
     const onMainRangeChange = useStableCallback(
