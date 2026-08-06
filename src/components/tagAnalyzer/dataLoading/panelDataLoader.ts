@@ -781,10 +781,9 @@ export function usePanelDataLoading({
             const sResolvedRange = resolveRangeChange(
                 sRequestedRange,
                 {
-                    ...sRequestedRange,
-                    mainRange: sPanelDisplay.range,
+                    type: 'main',
+                    range: sPanelDisplay.range,
                 },
-                'main',
             );
             return sChartWidth === undefined
                 ? sResolvedRange

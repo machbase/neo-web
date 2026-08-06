@@ -15,7 +15,7 @@ import {
     enforceChartAreaWidth,
     resolveButtonPress,
     resolveRangeChange,
-    type RangeAuthority,
+    type RangeChange,
     type RangeButtonAction,
 } from '../range/rangeResolver';
 import {
@@ -43,6 +43,8 @@ const INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO = 0.25;
 const RANGE_ACTION_ERROR_MESSAGE = 'Failed to update panel range.';
 const PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE =
     'Cannot resolve panel range because no valid data range was found.';
+
+type RangeChangeType = RangeChange['type'];
 
 export type PanelRangeRuntimeRequests = {
     boardRanges: Record<
@@ -188,15 +190,15 @@ function createInitialRange(navigatorRange: AxisRange): RangeState {
 function createNextRangeState(
     current: ResolvedRangeState,
     range: RangeState,
-    authority: RangeAuthority,
+    changeType: RangeChangeType,
     navigatorRangeInput?: RangeExpressionInput,
 ): ResolvedRangeState {
     return {
         ...current,
         range,
-        navigatorRangeInput: authority === 'navigator'
+        navigatorRangeInput: changeType === 'navigator'
             ? { ...(navigatorRangeInput ?? EMPTY_RANGE_INPUT) }
-            : authority === 'exact' ||
+            : changeType === 'replace' ||
                 isSameRange(
                     range.navigatorRange,
                     current.range.navigatorRange,
@@ -234,22 +236,17 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
 
     function buildResolvedRangeState(
         current: RangeState,
-        requested: RangeState,
-        authority: RangeAuthority,
+        change: RangeChange,
         fullRange: AxisRange,
         fixedRange: 'main' | 'navigator' =
-            authority === 'navigator' ? 'navigator' : 'main',
+            change.type === 'navigator' ? 'navigator' : 'main',
     ): ResolvedRangeState {
         const sCurrentState: ResolvedRangeState = {
             range: current,
             fullRange,
             navigatorRangeInput: { ...EMPTY_RANGE_INPUT },
         };
-        const sResolvedRange = resolveRangeChange(
-            current,
-            requested,
-            authority,
-        );
+        const sResolvedRange = resolveRangeChange(current, change);
         const sChartAreaWidth = sChartAreaWidthRef.current;
         const sRange = sChartAreaWidth === undefined
             ? sResolvedRange
@@ -258,7 +255,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                   sChartAreaWidth,
                   fixedRange,
               );
-        return createNextRangeState(sCurrentState, sRange, authority);
+        return createNextRangeState(sCurrentState, sRange, change.type);
     }
 
     useLayoutEffect(() => {
@@ -443,12 +440,10 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         };
         const buildState = (
             requested: RangeState,
-            authority: RangeAuthority = 'exact',
             fixedRange: 'main' | 'navigator' = 'main',
         ) => buildResolvedRangeState(
             sFullRangeState,
-            requested,
-            authority,
+            { type: 'replace', range: requested },
             fullRange,
             fixedRange,
         );
@@ -468,7 +463,6 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                           mainRange: sBoardRange,
                           navigatorRange: sBoardRange,
                       },
-                applyInitialMainChartWindow ? 'navigator' : 'exact',
                 'navigator',
             );
         }
@@ -499,11 +493,6 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                       mainRange: sMainRange ?? fullRange,
                       navigatorRange: fullRange,
                   },
-            !sMainRange &&
-                isRangeExpressionEmpty(sRangeInput) &&
-                applyInitialMainChartWindow
-                ? 'navigator'
-                : 'exact',
         );
     }
 
@@ -554,8 +543,10 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         };
         return buildResolvedRangeState(
             sFullRangeState,
-            viewRange ?? sFullRangeState,
-            'exact',
+            {
+                type: 'replace',
+                range: viewRange ?? sFullRangeState,
+            },
             sFullRange,
         );
     }
@@ -579,10 +570,9 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         const sResolvedRange = resolveRangeChange(
             currentRangeState.range,
             {
-                ...currentRangeState.range,
-                navigatorRange: sNavigatorRange,
+                type: 'navigator',
+                range: sNavigatorRange,
             },
-            'navigator',
         );
         const sChartAreaWidth = sChartAreaWidthRef.current;
         const sRange = sChartAreaWidth === undefined
@@ -616,8 +606,10 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
               )
             : buildResolvedRangeState(
                   currentRangeState.range,
-                  currentRangeState.range,
-                  'exact',
+                  {
+                      type: 'replace',
+                      range: currentRangeState.range,
+                  },
                   sFullRange,
               );
     }
@@ -740,10 +732,9 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         const sResolvedRange = resolveRangeChange(
             currentRangeState.range,
             {
-                ...currentRangeState.range,
-                mainRange: sMainRange,
+                type: 'main',
+                range: sMainRange,
             },
-            'main',
         );
         const sChartAreaWidth = sChartAreaWidthRef.current;
         const sRange = sChartAreaWidth === undefined
@@ -817,7 +808,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
 
     function commitRange(
         resolve: (current: RangeState) => RangeState,
-        authority: RangeAuthority,
+        changeType: RangeChangeType,
         navigatorRangeInput?: RangeExpressionInput,
     ): void {
         const sCurrentRangeState = sInputsRef.current.rangeState;
@@ -831,12 +822,12 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                 : enforceChartAreaWidth(
                       sResolvedRange,
                       sChartAreaWidth,
-                      authority === 'navigator' ? 'navigator' : 'main',
+                      changeType === 'navigator' ? 'navigator' : 'main',
                   );
             return createNextRangeState(
                 sCurrentRangeState,
                 sRange,
-                authority,
+                changeType,
                 navigatorRangeInput,
             );
         });
@@ -885,30 +876,38 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                 (current) =>
                     resolveRangeChange(
                         current,
-                        { ...current, mainRange: range },
-                        'main',
+                        { type: 'main', range },
                     ),
                 'main',
             ),
     );
     const onNavigatorRangeChange = useStableCallback(
-        (range: AxisRange, input?: RangeExpressionInput) =>
+        (range: AxisRange, input?: RangeExpressionInput) => {
+            if (input && isRangeExpressionEmpty(input)) {
+                void runRangeTask(reloadConfiguredRangeState);
+                return;
+            }
+
             commitRange(
                 (current) =>
                     resolveRangeChange(
                         current,
-                        { ...current, navigatorRange: range },
-                        'navigator',
+                        { type: 'navigator', range },
                     ),
                 'navigator',
                 input,
-            ),
+            );
+        },
     );
     const onRangeReplace = useStableCallback(
         (range: RangeState) =>
             commitRange(
-                (current) => resolveRangeChange(current, range, 'exact'),
-                'exact',
+                (current) =>
+                    resolveRangeChange(
+                        current,
+                        { type: 'replace', range },
+                    ),
+                'replace',
             ),
     );
     const onRefreshData = useStableCallback(() => {
