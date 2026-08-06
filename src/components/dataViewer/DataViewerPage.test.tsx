@@ -795,7 +795,7 @@ describe('DataViewerPage distance base range', () => {
 
         applyDistance('100', "200'; drop table T--");
 
-        expect(screen.getByText('Distance range accepts numbers only.')).toBeInTheDocument();
+        expect(screen.getByText('Distance range accepts numbers, or first / last (e.g. last-5000).')).toBeInTheDocument();
         expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(callsBefore);
     });
 
@@ -1070,11 +1070,29 @@ describe('DataViewerPage distance range slider', () => {
         await openEditorWithSlider();
 
         // 0 .. 4828 in steps of 1000 — the ticks are the axis's round numbers, and 4,828 is the
-        // extent itself, which is neither round nor one of them.
-        expect(tickLabels()).toEqual(['0', '1k', '2k', '3k', '4k', '4,828']);
+        // extent itself, which is neither round nor one of them. The labels are scaled the way the
+        // axis is (`1K`, not `1000`); the bound stays exact, because at this scale it fits.
+        expect(tickLabels()).toEqual(['0', '1K', '2K', '3K', '4K', '4,828']);
         const positions = Array.from(document.querySelectorAll<HTMLElement>('.data-viewer-distance-tick')).map((node) => node.style.left);
         expect(positions.at(0)).toBe('0%');
         expect(positions.at(-1)).toBe('100%');
+    });
+
+    // An odometer window: a few hundred metres of extent around 25 million. One decimal cannot tell
+    // two ticks 200 apart at that magnitude — every label came out `25.1m` — and the bound spelled
+    // out in full (`25,150,885.5`) is long enough to sit on top of the tick beside it.
+    test('a narrow window at a large magnitude keeps its ticks distinct and off each other', async () => {
+        dataViewerApi.queryTagBaseColumnBounds.mockResolvedValue({ min: 25150000, max: 25150885.5 });
+        renderPage();
+        await openEditorWithSlider();
+
+        const labels = tickLabels();
+        expect(new Set(labels).size).toBe(labels.length);
+        // Fewer of them than the six a short-labelled axis draws, because these do not fit.
+        expect(labels.length).toBeLessThanOrEqual(4);
+        // The bound is abbreviated here rather than printed in full — the exact value is on hover.
+        expect(labels.at(-1)).not.toBe('25,150,885.5');
+        expect(document.querySelector('.data-viewer-distance-tick-max')?.getAttribute('title')).toBe('25,150,885.5');
     });
 
     // ── thumb dragging ────────────────────────────────────────────────────────────────────────
@@ -1119,6 +1137,8 @@ describe('DataViewerPage distance range slider', () => {
         fireEvent.change(toInput(), { target: { value: String(to) } });
     };
     const edges = () => [Number(fromInput().value), Number(toInput().value)];
+    // The edges as written — an anchored one ('last-5000') is text, not a coordinate.
+    const edgeTexts = () => [fromInput().value, toInput().value];
 
     test('a thumb dragged past its neighbour swaps with it rather than stopping against it', async () => {
         renderPage();
@@ -1247,41 +1267,77 @@ describe('DataViewerPage distance range slider', () => {
     // ── quick windows ─────────────────────────────────────────────────────────────────────────
     const quickButton = (label: string) => screen.getByRole('button', { name: label });
 
+    // The quick windows write *anchored* edges — `last-1207 ~ last`, not the coordinates those
+    // happen to be today — so the window keeps following the data as it grows, the same way
+    // `last-1h ~ last` does on a time axis. The slider and the readout show them resolved.
     test('the quick windows set both edges from the extent, and the slider follows', async () => {
         renderPage();
         await openEditorWithSlider();
 
         fireEvent.click(quickButton('First 25%'));
-        expect(edges()).toEqual([0, 1207]);
+        expect(edgeTexts()).toEqual(['first', 'first+1207']);
         // The slider is the same pair of values seen a second way, so it has to have moved too.
         expect([Number(fromSlider().value), Number(toSlider().value)]).toEqual([0, 1207]);
         expect(readout()).toBe('0–1,207');
 
         fireEvent.click(quickButton('Last 25%'));
-        expect(edges()).toEqual([3621, 4828]);
+        expect(edgeTexts()).toEqual(['last-1207', 'last']);
+        expect([Number(fromSlider().value), Number(toSlider().value)]).toEqual([3621, 4828]);
 
         fireEvent.click(quickButton('First 10%'));
-        expect(edges()).toEqual([0, 482.8]);
+        expect(edgeTexts()).toEqual(['first', 'first+482.8']);
 
         fireEvent.click(quickButton('First 50%'));
-        expect(edges()).toEqual([0, 2414]);
+        expect(edgeTexts()).toEqual(['first', 'first+2414']);
 
         fireEvent.click(quickButton('Last 50%'));
-        expect(edges()).toEqual([2414, 4828]);
+        expect(edgeTexts()).toEqual(['last-2414', 'last']);
 
+        // The whole extent is both anchors at once — no magnitude that can go out of date.
         fireEvent.click(quickButton('Full'));
-        expect(edges()).toEqual([BOUNDS.min, BOUNDS.max]);
+        expect(edgeTexts()).toEqual(['first', 'last']);
+        expect([Number(fromSlider().value), Number(toSlider().value)]).toEqual([BOUNDS.min, BOUNDS.max]);
         expect(spanReadout()).toBe('4,828');
     });
 
-    test('a quick window is what gets applied', async () => {
+    test('a quick window is what gets applied — resolved against the extent at query time', async () => {
         renderPage();
         await openEditorWithSlider();
 
         fireEvent.click(quickButton('Last 50%'));
         fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
+        // The window is stored as `last-2414 ~ last`; the query gets the coordinates that means today.
         await waitFor(() => expect(queryTagDataArgs().at(-1)).toMatchObject({ from: '2414', to: '4828' }));
+    });
+
+    // The point of anchoring: the same stored window follows the data as it grows, without the user
+    // touching the range again.
+    test('an anchored window is re-measured when the extent moves', async () => {
+        renderPage();
+        await openEditorWithSlider();
+
+        fireEvent.click(quickButton('Last 50%'));
+        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        await waitFor(() => expect(queryTagDataArgs().at(-1)).toMatchObject({ from: '2414', to: '4828' }));
+
+        // More rows arrive: the extent now ends at 6,000 rather than 4,828.
+        dataViewerApi.queryTagBaseColumnBounds.mockResolvedValue({ min: 0, max: 6000 });
+        fireEvent.click(screen.getByLabelText('Refresh time range'));
+
+        await waitFor(() => expect(queryTagDataArgs().at(-1)).toMatchObject({ from: '3586', to: '6000' }));
+    });
+
+    test('a typed anchor is accepted and applied', async () => {
+        renderPage();
+        await openEditorWithSlider();
+
+        fireEvent.change(fromInput(), { target: { value: 'last-1000' } });
+        fireEvent.change(toInput(), { target: { value: 'last' } });
+        expect(readout()).toBe('3,828–4,828');
+        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+        await waitFor(() => expect(queryTagDataArgs().at(-1)).toMatchObject({ from: '3828', to: '4828' }));
     });
 
     test('the section is laid out two rows of three, under the fields and above the footer', async () => {
@@ -1502,7 +1558,9 @@ describe('DataViewerPage distance range slider', () => {
             await openEditorWithSlider();
 
             fireEvent.click(quickButton('Full'));
-            expect(edges()).toEqual([WIDE.min, WIDE.max]);
+            // `first ~ last` — the whole extent, anchored; the sliders show it resolved.
+            expect(edgeTexts()).toEqual(['first', 'last']);
+            expect([Number(fromSlider().value), Number(toSlider().value)]).toEqual([WIDE.min, WIDE.max]);
             expect(spanReadout()).toBe('999,990');
             expect(toSlider().getAttribute('step')).toBe('any');
             expect(fromSlider().getAttribute('step')).toBe('any');

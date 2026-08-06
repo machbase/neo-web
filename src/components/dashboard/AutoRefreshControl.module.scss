@@ -1,8 +1,15 @@
+/* Colours go through variables so the same control can sit on the dark board header and on a
+   light-themed panel. The countdown arc keeps its blue on both. */
 .wrapper {
     position: relative;
     display: inline-flex;
     align-items: center;
     height: 28px;
+
+    --auto-refresh-fg: #e6e6e6;
+    --auto-refresh-muted: #c4c4c4;
+    --auto-refresh-track: rgba(255, 255, 255, 0.1);
+    --auto-refresh-hover: rgba(255, 255, 255, 0.08);
 }
 
 /* Trigger control (override global button leak: bg/#1a1a1a, radius 8, border) */
@@ -19,14 +26,32 @@
     color: #a9adb4;
     transition: background 0.15s ease;
 
+    /* Literal, not `--auto-refresh-hover`: the menu is portaled to <body>, outside the wrapper those
+       variables are declared on, so a var() here resolves to nothing and the row loses its hover.
+       It is also always on the same dark popup surface, whatever theme the trigger is sitting on. */
     &:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.1);
     }
 
     &:focus-visible {
         outline: 2px solid #006cd2;
         outline-offset: 1px;
     }
+}
+
+/* Panel header: the ring alone, in a 30px strip beside the panel menu. */
+.wrapperCompact {
+    height: 24px;
+}
+
+/* Hover follows the ring rather than boxing it: with any padding the tint is a rectangle wider than
+   the 24px circle it sits behind, which reads as a second, misaligned control. */
+.controlCompact {
+    gap: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 50%;
 }
 
 /* Display-only (panel editor): shows state but is not interactive. */
@@ -60,9 +85,15 @@
     display: block;
 }
 
+/* After `.ring`, not before it: same specificity, so source order is what decides. */
+.ringCompact {
+    width: 24px;
+    height: 24px;
+}
+
 .track {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.1);
+    stroke: var(--auto-refresh-track);
     stroke-width: 2.5;
 }
 
@@ -103,12 +134,12 @@
     font-family: 'D2Coding';
     font-size: 10px;
     font-weight: 600;
-    color: #e6e6e6;
+    color: var(--auto-refresh-fg);
     pointer-events: none;
 }
 
 .idleIcon {
-    color: #c4c4c4;
+    color: var(--auto-refresh-muted);
 }
 
 /* Dropdown menu — portaled to <body>, so it uses fixed positioning (top/right set inline) and a
@@ -118,9 +149,13 @@
     z-index: 10001;
     min-width: 148px;
     padding: 4px;
+    /* The surface of the design system's Menu — the panel's own ⋮ menu opens right beside this one,
+       and the two were carrying different shadows (this one had the Dropdown's softer 0 4px 12px /
+       0.3). Same background, border, radius and drop shadow, so they read as one kind of thing. */
     background: #2d2d2d;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 4px;
+    box-shadow: 8px 8px 8px rgba(0, 0, 0, 0.6);
     animation: autoRefreshMenuIn 0.15s ease;
 }
 
@@ -161,8 +196,11 @@
     text-align: left;
     transition: background 0.15s ease;
 
+    /* Literal, not `--auto-refresh-hover`: the menu is portaled to <body>, outside the wrapper those
+       variables are declared on, so a var() here resolves to nothing and the row loses its hover.
+       It is also always on the same dark popup surface, whatever theme the trigger is sitting on. */
     &:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.1);
     }
 
     &:focus-visible {

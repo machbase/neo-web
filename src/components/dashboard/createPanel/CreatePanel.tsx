@@ -575,6 +575,9 @@ const CreatePanel = ({
                 pUseRecoil={true}
                 pType={'dashboard'}
                 pLockTab={sIsDistancePanel ? 'distance' : 'time'}
+                // The panel being edited is the extent the slider has to span — it may not be the
+                // board's first distance panel, and a panel being created is not on the board yet.
+                pBoundsBlock={sPanelOption?.blockList?.[0]}
                 pSetTimeRangeModal={setRangeModal}
             />
         )}

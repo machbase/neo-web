@@ -3,7 +3,8 @@ import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } fro
 import { useOverlapTimeout } from '../../../hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '../../../utils/dashboardUtil';
 import { isNumericBaseTimeBlock } from '../../../../utils/timeFieldColumns';
-import { fetchBlockBaseMinMax } from '../../../../utils/dashboardBaseMinMax';
+import { fetchBlockBaseMinMax } from '../../../utils/dashboardBaseMinMax';
+import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '../../../../utils/distanceRange';
 import { useEffect, useRef, useState } from 'react';
 import { DashboardQueryParser, SqlResDataType } from '../../../utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '../../../utils/DashboardChartCodeParser';
@@ -30,7 +31,7 @@ import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
 // them to settle for this long before re-running the query.
 const PARENT_WIDTH_DEBOUNCE_MS = 150;
 
-const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo, pOnResolveTheme }: any) => {
+const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo, pOnResolveTheme, pOnRefreshTick }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
     const [sChartData, setChartData] = useState<any>(undefined);
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
@@ -70,7 +71,15 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
     };
 
-    const executeTqlChart = async (aWidth?: number) => {
+    // Is this a range the board re-resolves on every tick, rather than a fixed pair of timestamps?
+    const isRelativeRangeEdge = (aValue: unknown) => typeof aValue === 'string' && (aValue.includes('now') || aValue.includes('last'));
+
+    /**
+     * `aSelfRefresh` marks a run driven by *this panel's* own refresh timer rather than by the board:
+     * between board ticks `pBoardTimeMinMax` is a frozen snapshot, so a relative board range would be
+     * re-queried as the same seconds every time.
+     */
+    const executeTqlChart = async (aWidth?: number, aSelfRefresh?: boolean) => {
         if (!pIsActiveTab) return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
@@ -86,19 +95,22 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         let sStartTime = undefined;
         let sEndTime = undefined;
         if (isNumericBaseTimeBlock(pPanelInfo.blockList?.[0])) {
-            // Distance (numeric base) panel — resolve from the board's kind-separated distanceRange.
-            // Numeric start/end are used as-is; '' means the full [first, last] data extent.
-            const sDistanceRange = pBoardInfo?.dashboard?.distanceRange ?? {};
-            const sHasStart = sDistanceRange.start !== '' && sDistanceRange.start != null;
-            const sHasEnd = sDistanceRange.end !== '' && sDistanceRange.end != null;
-            if (sHasStart && sHasEnd) {
-                sStartTime = Number(sDistanceRange.start);
-                sEndTime = Number(sDistanceRange.end);
-            } else {
-                const sBounds = await fetchBlockBaseMinMax(pPanelInfo.blockList?.[0]);
-                sStartTime = sHasStart ? Number(sDistanceRange.start) : sBounds?.min ?? 0;
-                sEndTime = sHasEnd ? Number(sDistanceRange.end) : sBounds?.max ?? 0;
-            }
+            // Distance (numeric base) panel — resolve from the kind-separated distanceRange: the
+            // panel's own window when it has one, otherwise the board's. Numeric start/end are used
+            // as-is; '' means the full [first, last] data extent.
+            const sBoardDistanceRange = pBoardInfo?.dashboard?.distanceRange ?? {};
+            const sPanelDistanceRange = pPanelInfo.useCustomDistance ? pPanelInfo.distanceRange ?? {} : {};
+            const sPick = (aPanelEdge: any, aBoardEdge: any) => (isDistanceEdgeSet(aPanelEdge) ? aPanelEdge : aBoardEdge);
+            const sDistanceRange = { start: sPick(sPanelDistanceRange.start, sBoardDistanceRange.start), end: sPick(sPanelDistanceRange.end, sBoardDistanceRange.end) };
+            const sHasStart = isDistanceEdgeSet(sDistanceRange.start);
+            const sHasEnd = isDistanceEdgeSet(sDistanceRange.end);
+            // An unset edge is the data's own end, and so is an anchored one ('last-5000', 'first') —
+            // both are measured off the extent, which is why the extent is read whenever either edge
+            // is not a plain coordinate. Two coordinates need no round trip at all.
+            const sNeedsExtent = !sHasStart || !sHasEnd || isDistanceAnchorEdge(sDistanceRange.start) || isDistanceAnchorEdge(sDistanceRange.end);
+            const sBounds = sNeedsExtent ? await fetchBlockBaseMinMax(pPanelInfo.blockList?.[0]) : undefined;
+            sStartTime = (sHasStart ? resolveDistanceEdge(sDistanceRange.start, sBounds) : null) ?? sBounds?.min ?? 0;
+            sEndTime = (sHasEnd ? resolveDistanceEdge(sDistanceRange.end, sBounds) : null) ?? sBounds?.max ?? 0;
         } else if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
             if (!sTimeMinMax) {
@@ -109,11 +121,35 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                 sEndTime = sTimeMinMax.max;
             }
         } else {
-            sStartTime = setUnitTime(pBoardTimeMinMax?.min);
-            sEndTime = setUnitTime(pBoardTimeMinMax?.max);
+            const sBoardRange = pBoardInfo?.dashboard?.timeRange;
+            const sBoardRangeIsRelative = isRelativeRangeEdge(sBoardRange?.start) || isRelativeRangeEdge(sBoardRange?.end);
+            if (aSelfRefresh && sBoardRangeIsRelative) {
+                // Resolve the board's own expression again for this query: 'now-3h ~ now' has to mean
+                // now at the moment of the fetch, 'last-1h ~ last' the data's current latest.
+                const sTimeMinMax = await handlePanelTimeRange(sBoardRange.start, sBoardRange.end);
+                sStartTime = sTimeMinMax?.min ?? setUnitTime(sBoardRange.start);
+                sEndTime = sTimeMinMax?.max ?? setUnitTime(sBoardRange.end);
+            } else {
+                sStartTime = setUnitTime(pBoardTimeMinMax?.min);
+                sEndTime = setUnitTime(pBoardTimeMinMax?.max);
+            }
         }
 
-        let sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, sRefClientWidth, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
+        // A distance axis buckets in the base column's own unit, so a *time* unit left over from
+        // before the panel's base column was switched ('min' on an odometer) would bucket metres by
+        // milliseconds. Only those are rejected — any other interval kind is passed through.
+        const sIsNumericBaseInterval = isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]);
+        const sIsTimeUnitInterval = ['sec', 'min', 'hour', 'day'].includes(String(pPanelInfo.axisInterval?.IntervalType).toLowerCase());
+        const sUseManualInterval = pPanelInfo.isAxisInterval && !(sIsNumericBaseInterval && sIsTimeUnitInterval);
+        // No interval on a distance axis means no bucketing — the rows as they are stored. (A time
+        // axis still picks one automatically: 'now-3h ~ now' at raw resolution is a different order
+        // of magnitude of rows, and that auto interval has always been what kept it drawable.)
+        const sEmptyInterval = { IntervalType: '', IntervalValue: '' };
+        let sIntervalInfo = sUseManualInterval
+            ? pPanelInfo.axisInterval
+            : sIsNumericBaseInterval
+              ? sEmptyInterval
+              : calcInterval(sStartTime, sEndTime, sRefClientWidth, false);
         if (pPanelInfo.type === 'Geomap')
             sIntervalInfo = {
                 IntervalType: pPanelInfo.chartOptions.intervalType,
@@ -123,7 +159,10 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             !pLoopMode && setChartData(undefined);
             setIsLoading(false);
 
-            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
+            // On a self refresh the window above was resolved for *this* query; calculateTimeRange()
+            // would read the board's frozen snapshot again and hand the TQL file stale $from_/$to_.
+            const sTqlTimeRange = aSelfRefresh ? { start: sStartTime, end: sEndTime } : calculateTimeRange();
+            const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, sTqlTimeRange, sIntervalInfo, pBoardInfo.dashboard.variables));
             const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.DSH, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
 
             setTqlResultType(parsedType);
@@ -338,10 +377,23 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         return timeMinMaxConverter(sStart, sEnd, sSvrRes);
     };
 
+    // The board window object itself, to tell which dependency moved: `autoRefresh` is a property of
+    // that object and stays set until the board publishes a new one, so a run caused by a distance
+    // range change would otherwise read as an auto-refresh tick.
+    const prevBoardTimeMinMaxRef = useRef<any>(undefined);
     useEffect(() => {
+        const sBoardWindowChanged = prevBoardTimeMinMaxRef.current !== pBoardTimeMinMax;
+        prevBoardTimeMinMaxRef.current = pBoardTimeMinMax;
         // Dashboard auto-refresh ticks are not applied to markdown/text/csv sink TQL panels. The
         // Refresh button arrives as refresh=true without the autoRefresh flag, so it still re-queries.
-        if (pBoardTimeMinMax?.autoRefresh && sIsNonVisualSink) return;
+        if (sBoardWindowChanged && pBoardTimeMinMax?.autoRefresh) {
+            if (sIsNonVisualSink) return;
+            // A panel with its own refresh interval is already re-queried by its own timer
+            // (`useOverlapTimeout` below); letting the board tick through too queried it twice per
+            // board cycle. `sSetIntervalTime()` rather than the stored value, so a panel whose timer
+            // does not actually run still follows the board.
+            if (sSetIntervalTime() !== null) return;
+        }
         if ((sIsMounted || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
@@ -373,7 +425,10 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     }, [pIsActiveTab]);
 
     useOverlapTimeout(() => {
-        !sIsLoading && executeTqlChart();
+        // Announced before the (possibly skipped) query: the next tick is scheduled from this moment
+        // either way, so this is what the header's countdown ring has to be anchored to.
+        pOnRefreshTick?.();
+        !sIsLoading && executeTqlChart(undefined, true);
     }, sSetIntervalTime());
 
     return (

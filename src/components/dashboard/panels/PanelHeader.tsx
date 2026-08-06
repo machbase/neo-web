@@ -27,8 +27,9 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
 import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/integration';
+import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme }: any) => {
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -37,6 +38,38 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
     const getDashboardTimeRange = () => sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange;
+
+    // The panel's own auto-refresh interval, set and shown right here. Drawn wherever it can actually
+    // run: the editor's preview never auto-refreshes (`pType` is set there, and LineChart returns no
+    // interval for create/edit), and a Geomap only honours the interval when its own useAutoRefresh is
+    // on — a control on a panel that will not refresh would be a switch wired to nothing.
+    //
+    // Only on panels that are actually refreshing: one with no interval of its own has nothing to
+    // report, and a ring on every panel is noise. Turning one on is the panel editor's job; from here
+    // the interval can be changed or switched off.
+    const sPanelRefresh = pPanelInfo?.timeRange?.refresh ?? 'Off';
+    const sHonorsPanelRefresh = pPanelInfo?.type !== 'Geomap' || !!pPanelInfo?.chartOptions?.useAutoRefresh;
+    const sShowPanelRefresh = sPanelRefresh !== 'Off' && sHonorsPanelRefresh && pType === undefined;
+
+    // Panel-level, so it goes in the panel rather than in the board — the same field the panel
+    // editor's Time/Distance tab writes, kept in sync by editing the same board list entry.
+    const changePanelRefresh = (aRefresh: string) => {
+        setBoardList((aPrev: any) =>
+            aPrev.map((aBoard: any) =>
+                aBoard.id === sSelectedTab
+                    ? {
+                          ...aBoard,
+                          dashboard: {
+                              ...aBoard.dashboard,
+                              panels: aBoard.dashboard.panels.map((aPanel: any) =>
+                                  aPanel.id === pPanelInfo.id ? { ...aPanel, timeRange: { ...aPanel.timeRange, refresh: aRefresh } } : aPanel
+                              ),
+                          },
+                      }
+                    : aBoard
+            )
+        );
+    };
 
     const removePanel = () => {
         setBoardList(
@@ -356,6 +389,22 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             {!pIsView && (
                 // <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
                 <div className={`draggable-panel-header ${pType !== undefined ? 'display-none' : ''}`}>
+                    {/* The panel's own refresh interval, in the same countdown ring the board header
+                        uses and with the same menu — until now the setting existed only inside the
+                        panel editor, so a panel refreshing on its own schedule looked identical to one
+                        that never did, and changing it meant opening the editor. */}
+                    {sShowPanelRefresh && (
+                        <div className="draggable-panel-header-refresh">
+                            <AutoRefreshControl
+                                pValue={sPanelRefresh}
+                                pOnChange={changePanelRefresh}
+                                pCompact
+                                pInk={ChartThemeTextColor[(pResolvedTheme ?? pPanelInfo.theme) as ChartTheme]}
+                                pCycleId={pRefreshCycleId}
+                                pTitle={`Panel auto refresh: ${sPanelRefresh}`}
+                            />
+                        </div>
+                    )}
                     <div className="draggable-panel-header-menu">
                         <Menu.Root>
                             <Menu.Trigger>
@@ -438,12 +487,23 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             >
                 {/* <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div> */}
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>
-                    <a data-tooltip-place="bottom" className={`panel-header-time-range${!pPanelInfo.useCustomTime ? ' display-none' : ''}`} id={sHeaderId}>
+                    {/* The dot marks a panel on its own range. A distance panel's window is numeric and
+                        lives in its own field, so the tooltip has to read that one — `timeRange` is
+                        empty there, and printing it would label an overridden panel ` ~ `. */}
+                    <a
+                        data-tooltip-place="bottom"
+                        className={`panel-header-time-range${!pPanelInfo.useCustomTime && !pPanelInfo.useCustomDistance ? ' display-none' : ''}`}
+                        id={sHeaderId}
+                    >
                         <VscRecord color="#339900" />
                         <Tooltip
                             className="tooltip"
                             anchorSelect={'#' + sHeaderId}
-                            content={`${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`}
+                            content={
+                                pPanelInfo.useCustomDistance
+                                    ? `${pPanelInfo.distanceRange?.start ?? ''} ~ ${pPanelInfo.distanceRange?.end ?? ''} , ${pPanelInfo.timeRange.refresh}`
+                                    : `${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`
+                            }
                         />
                     </a>
                     {/* {!pIsView && (

@@ -314,6 +314,11 @@ const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: string, aTa
 const GetTimeBucketColumn = (aTime: string, aInterval: { IntervalType: string; IntervalValue: number }, aUseNumericBaseTime = false) => {
     const sInterval = getInterval(aInterval.IntervalType, aInterval.IntervalValue) * (aUseNumericBaseTime ? 1 : 1000000);
     if (!sInterval) return aTime;
+    // `col / N * N` buckets only because integer division truncates — true of a nanosecond TIME
+    // column, but a distance base column can be FLOAT or DOUBLE, and there the expression is exactly
+    // `col`: every row lands in its own bucket and the interval silently does nothing. FLOOR makes
+    // the bucket real on both, and is a no-op for a column that was already truncating.
+    if (aUseNumericBaseTime) return `FLOOR(${aTime} / ${sInterval}) * ${sInterval}`;
     return `${aTime} / ${sInterval} * ${sInterval}`;
 };
 

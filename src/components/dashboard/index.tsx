@@ -13,6 +13,7 @@ import AutoRefreshControl from './AutoRefreshControl';
 import RangeChips from './RangeChips';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
+import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import moment from 'moment';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
@@ -91,9 +92,18 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     // Shift only the distance axis by its current span (default/full range resolves to [first, last] first).
     const moveDistanceRange = async (aDir: 'l' | 'r') => {
         const sDR = pInfo.dashboard.distanceRange ?? {};
+        // An anchored edge has to be measured before it can be shifted; shifting then writes plain
+        // coordinates, the same way the time arrows turn 'now-3h' into two timestamps.
+        const sAnchored = isDistanceAnchorEdge(sDR.start) || isDistanceAnchorEdge(sDR.end);
         let sFrom = Number(sDR.start);
         let sTo = Number(sDR.end);
-        if (sDR.start === '' || sDR.end === '' || sDR.start == null || sDR.end == null || !Number.isFinite(sFrom) || !Number.isFinite(sTo)) {
+        if (sAnchored) {
+            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
+            sFrom = resolveDistanceEdge(sDR.start, sBounds) ?? NaN;
+            sTo = resolveDistanceEdge(sDR.end, sBounds) ?? NaN;
+        }
+        if (!isDistanceEdgeSet(sDR.start) || !isDistanceEdgeSet(sDR.end) || !Number.isFinite(sFrom) || !Number.isFinite(sTo)) {
             const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
             const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
             if (!sBounds) return;
@@ -270,6 +280,11 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const sRefreshDelay = sSetIntervalTime();
 
     useOverlapTimeout(() => {
+        // Restart the ring on the tick itself, not just when the interval changes. `useOverlapTimeout`
+        // re-arms `delay` ms after each callback, so its real period is delay + however long the tick
+        // takes, while a CSS animation of exactly `delay` never waits for anything — the two drift
+        // apart by that difference every cycle. Anchoring the animation here keeps it on the fetch.
+        setRingCycleId((aId) => aId + 1);
         handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end, true);
     }, sRefreshDelay);
 

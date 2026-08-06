@@ -1,5 +1,12 @@
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
 import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
+import {
+    buildDistanceQuickWindow as buildDataViewerDistanceQuickWindow,
+    buildDistanceSliderClickRange as buildDataViewerDistanceSliderClickRange,
+    formatDistanceValue as formatDataViewerDistance,
+    parseDistanceValue as parseDataViewerDistanceValue,
+    snapDistanceEdge as snapDataViewerDistanceEdge,
+} from '@/utils/distanceRange';
 
 export const DEFAULT_TIME_FORMAT = '2006-01-02 15:04:05.000';
 export const DEFAULT_TIME_ZONE = 'LOCAL';
@@ -118,182 +125,11 @@ export function getDataViewerDefaultRange(baseKind: DataViewerBaseKind) {
     return baseKind === 'distance' ? DEFAULT_DATA_VIEWER_DISTANCE_RANGE : DEFAULT_DATA_VIEWER_TIME_RANGE;
 }
 
-// A distance edge is a bare decimal number. `Number()` alone is too generous to build SQL from: it
-// accepts '0x10' (16), '0b11' (3), 'Infinity', and whitespace-only strings (0), and every one of
-// those would either be a silently wrong bound or a literal the server rejects. Requiring the plain
-// decimal shape first means the value interpolated into the WHERE clause is always something the
-// user could have typed into the editor — which is also what makes the interpolation injection-safe.
-const DECIMAL_LITERAL = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
-
-/**
- * A distance range edge as a number, or `null` when the value is not one.
- *
- * `null` is the refusal every distance caller keys off: the SQL builders drop the bound rather than
- * emit the raw text, and the page reports the range as invalid rather than querying with it.
- */
-export function parseDataViewerDistanceValue(value: unknown): number | null {
-    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-    const text = String(value ?? '').trim();
-    if (!text || !DECIMAL_LITERAL.test(text)) return null;
-    const numeric = Number(text);
-    return Number.isFinite(numeric) ? numeric : null;
-}
-
-/** A distance value as text. Never a date — that is the whole point of it existing. */
-export function formatDataViewerDistance(value: unknown) {
-    const numeric = parseDataViewerDistanceValue(value);
-    if (numeric !== null) return String(numeric);
-    return value === null || value === undefined ? '' : String(value);
-}
-
-// A window edge that survives being written into a text input. `(4828 / 3) * 2` is
-// 3218.6666666666665 and `0.1 + 0.2` is 0.30000000000000004; either one printed into the From box
-// is a number nobody typed and nobody can retype. Twelve significant digits is past anything the
-// slider's ~1/1000-of-extent step can resolve, so this only ever removes the noise.
-const roundDistanceEdge = (value: number) => Number(Number(value).toPrecision(12));
-
-/**
- * The finest number the distance editor will write into an edge, for a given extent.
- *
- * `roundDistanceEdge` scrubs the last-bit noise of a float multiplication, but it cannot scrub the
- * noise of a *pixel ratio*: `401578.346465` is twelve honest significant digits and still a number
- * nobody chose and nobody can retype. Quantising to a ten-thousandth of the extent's own decade is
- * what turns one back into a number — tenths on a 4,828 m extent, tens on a 999,990 m one — while
- * staying far finer than the ~1/1000-of-extent step the thumbs move in, so it never costs a value
- * anybody was aiming at.
- */
-function distanceQuantum(extent: number) {
-    if (!Number.isFinite(extent) || extent <= 0) return 0;
-    return 10 ** (Math.floor(Math.log10(extent)) - 4);
-}
-
-const quantizeDistanceEdge = (value: number, quantum: number) =>
-    quantum > 0 ? roundDistanceEdge(Math.round(value / quantum) * quantum) : roundDistanceEdge(value);
-
-/**
- * A distance value read off the slider — a pixel on the rail, or an arrow key — as the number the
- * editor will actually hold. Three things, in this order, and the order is the point:
- *
- * 1. **The bounds are sticky.** The thumbs move in a round step of about a thousandth of the extent,
- *    and a round step almost never divides the extent: 0 .. 999,990 in steps of 1,000 runs out at
- *    999,000 and the last 990 m of the axis are unreachable, which is exactly the range the user
- *    could not apply. Anything within half a step of an end therefore *is* that end, so "drag it all
- *    the way over" and `End` land on the real bound rather than near it.
- * 2. **The interior snaps to the step grid**, so the values between the two ends stay round.
- * 3. **What comes out is quantised and clamped**, so a fractional step cannot leave
- *    `1930.0000000000002` in the From box and nothing can escape the extent.
- */
-export function snapDataViewerDistanceEdge({ value, min, max, step }: { value?: unknown; min?: unknown; max?: unknown; step?: unknown } = {}) {
-    const numeric = Number(value);
-    const lower = Number(min);
-    const upper = Number(max);
-    if (!Number.isFinite(numeric)) return Number.isFinite(lower) ? lower : 0;
-    // No extent is no rail. The editor does not draw one in that state, so the honest answer is the
-    // value it was handed rather than a bound invented out of a broken interval.
-    if (!Number.isFinite(lower) || !Number.isFinite(upper) || !(upper > lower)) return roundDistanceEdge(numeric);
-
-    const grid = Number(step);
-    const reach = Number.isFinite(grid) && grid > 0 ? grid / 2 : 0;
-    if (numeric - lower <= reach) return lower;
-    if (upper - numeric <= reach) return upper;
-
-    const snapped = Number.isFinite(grid) && grid > 0 ? lower + Math.round((numeric - lower) / grid) * grid : numeric;
-    return Math.min(upper, Math.max(lower, quantizeDistanceEdge(snapped, distanceQuantum(upper - lower))));
-}
-
-/**
- * Where the window lands when the slider's *track* is clicked, rather than a thumb dragged.
- *
- * The click names a centre, not an edge: the window keeps the width it already had and slides so
- * that the clicked point is in the middle of it. That is the whole reason this is not just "set the
- * nearest thumb" — a user who has already chosen a 500 m window and wants to see the next stretch of
- * track is asking to move the window, not to resize it.
- *
- * Clamping moves the window instead of shrinking it. Pushing an edge back to the bound while the
- * other stayed put would quietly narrow a window the user never asked to narrow, so a click near
- * either end parks the same-width window flush against that end.
- */
-export function buildDataViewerDistanceSliderClickRange({
-    ratio,
-    from,
-    to,
-    min,
-    max,
-}: {
-    ratio?: unknown;
-    from?: unknown;
-    to?: unknown;
-    min?: unknown;
-    max?: unknown;
-} = {}): { from: number; to: number } | null {
-    const lower = Number(min);
-    const upper = Number(max);
-    const position = Number(ratio);
-    if (![lower, upper, position].every(Number.isFinite)) return null;
-    // No extent is no track: the editor does not draw the slider at all in that state, so there is
-    // nothing a click could mean.
-    if (!(upper > lower)) return null;
-
-    const extent = upper - lower;
-    const clampToExtent = (value: number) => Math.min(Math.max(value, lower), upper);
-    const start = parseDataViewerDistanceValue(from);
-    const end = parseDataViewerDistanceValue(to);
-    // An edge that does not parse has no width to preserve. The bound is where the modal already
-    // parks that thumb, so reading it the same way here keeps the click consistent with what is
-    // drawn rather than inventing a span out of a value nobody can see.
-    const currentStart = start === null ? lower : clampToExtent(start);
-    const currentEnd = end === null ? upper : clampToExtent(end);
-    const span = Math.min(Math.max(currentEnd - currentStart, 0), extent);
-
-    const centre = lower + Math.min(Math.max(position, 0), 1) * extent;
-    // Quantised *before* the clamp, so the two ends still park flush against the bound rather than a
-    // rounding of it. The ratio is a pixel position, which is where `401578.346465` comes from — see
-    // `distanceQuantum` — and the clamp is what preserves the width the click promised to keep.
-    let nextStart = quantizeDistanceEdge(centre - span / 2, distanceQuantum(extent));
-    if (nextStart < lower) nextStart = lower;
-    if (nextStart + span > upper) nextStart = upper - span;
-
-    return { from: roundDistanceEdge(nextStart), to: roundDistanceEdge(nextStart + span) };
-}
-
-/**
- * The window a "quick window" button sets: a fraction of the extent, anchored to one of its ends.
- *
- * `First 25%` is the first quarter of the *extent*, not of whatever window happens to be open — the
- * buttons exist precisely so that a window nobody can find their way back from is one click away
- * from a known one. `Full` is the whole extent, which is the same thing as `First 100%`, so it goes
- * through here too rather than being special-cased at the call site.
- *
- * Returns `null` on an extent that is not a real interval, which is the same answer the slider gives
- * it: with no extent there is no fraction of anything to take, and the buttons are not drawn.
- */
-export function buildDataViewerDistanceQuickWindow({
-    min,
-    max,
-    edge = 'first',
-    ratio = 1,
-}: {
-    min?: unknown;
-    max?: unknown;
-    edge?: 'first' | 'last';
-    ratio?: unknown;
-} = {}): { from: number; to: number } | null {
-    const lower = Number(min);
-    const upper = Number(max);
-    const fraction = Number(ratio);
-    if (![lower, upper, fraction].every(Number.isFinite)) return null;
-    if (!(upper > lower)) return null;
-
-    const extent = upper - lower;
-    const span = Math.min(Math.max(fraction, 0), 1) * extent;
-    // The anchored edge is the bound itself and stays exact — `Full` has to be *the* extent, not a
-    // rounding of it, or the one button that exists to select everything would select all but the
-    // last few metres. Only the free edge, which is a fraction of the extent and so can carry float
-    // noise, is quantised.
-    const quantum = distanceQuantum(extent);
-    const freeEdge = (value: number) => Math.min(upper, Math.max(lower, quantizeDistanceEdge(value, quantum)));
-    return edge === 'last' ? { from: freeEdge(upper - span), to: roundDistanceEdge(upper) } : { from: roundDistanceEdge(lower), to: freeEdge(lower + span) };
-}
+// ── distance edges ────────────────────────────────────────────────────────────────────────────
+// The arithmetic itself lives in `@/utils/distanceRange`, because the dashboard's DistanceRangeTab
+// draws the same editor and a thumb drag has to mean the same number in both. These aliases are the
+// names the Data Viewer has always imported, kept so nothing downstream has to know where it moved.
+export { parseDataViewerDistanceValue, formatDataViewerDistance, snapDataViewerDistanceEdge, buildDataViewerDistanceSliderClickRange, buildDataViewerDistanceQuickWindow };
 
 /**
  * A base-column value, formatted for whichever axis the table actually has.

@@ -43,6 +43,21 @@ interface AutoRefreshControlProps {
      * refresh timer instead of free-running out of phase.
      */
     pCycleId?: number;
+    /**
+     * Ring only, no "auto refresh:" caption. For the panel header, where the control sits in a 30px
+     * strip beside the panel menu and the caption would not fit — the ring already says what it is.
+     */
+    pCompact?: boolean;
+    /**
+     * Ink colour for the ring's label, for a surface that is not the dark board header — a panel
+     * carries one of fourteen chart themes (`chalk` is navy, `white` is white, `vintage` is cream),
+     * so "light or dark" is not a question that can be answered from the theme *name*. Pass the
+     * theme's own text colour (`ChartThemeTextColor`) and the track and hover tints are derived from
+     * it, which lands correctly on every one of them.
+     */
+    pInk?: string;
+    /** Tooltip text for the trigger. Defaults to the aria-label. */
+    pTitle?: string;
 }
 
 /**
@@ -51,7 +66,19 @@ interface AutoRefreshControlProps {
  * that applies board-wide (time + distance axes). Off/Running is distinguishable at a glance via
  * a static gray ring (Off) vs. a rotating countdown ring (Running).
  */
-const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId }: AutoRefreshControlProps) => {
+/** '#eeeeee' -> 'rgba(238, 238, 238, a)'. Non-hex input is returned as-is (already a usable colour). */
+const withAlpha = (aColor: string, aAlpha: number) => {
+    const sHex = aColor.trim();
+    const sMatch = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(sHex);
+    if (!sMatch) return sHex;
+    const sBody = sMatch[1].length === 3 ? sMatch[1].split('').map((aChar) => aChar + aChar).join('') : sMatch[1];
+    const sR = parseInt(sBody.slice(0, 2), 16);
+    const sG = parseInt(sBody.slice(2, 4), 16);
+    const sB = parseInt(sBody.slice(4, 6), 16);
+    return `rgba(${sR}, ${sG}, ${sB}, ${aAlpha})`;
+};
+
+const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId, pCompact = false, pInk, pTitle }: AutoRefreshControlProps) => {
     const [sOpen, setOpen] = useState<boolean>(false);
     // Menu is right-anchored to the trigger; { top, right } are viewport coords for the fixed portal.
     const [sPos, setPos] = useState<{ top: number; right: number } | null>(null);
@@ -101,11 +128,25 @@ const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId }: 
     };
 
     return (
-        <div className={styles.wrapper} ref={sWrapperRef}>
+        <div
+            className={`${styles.wrapper} ${pCompact ? styles.wrapperCompact : ''}`}
+            ref={sWrapperRef}
+            style={
+                pInk
+                    ? ({
+                          '--auto-refresh-fg': pInk,
+                          '--auto-refresh-muted': withAlpha(pInk, 0.75),
+                          '--auto-refresh-track': withAlpha(pInk, 0.2),
+                          '--auto-refresh-hover': withAlpha(pInk, 0.1),
+                      } as React.CSSProperties)
+                    : undefined
+            }
+        >
             <button
                 ref={sTriggerRef}
                 type="button"
-                className={`${styles.control} ${pReadOnly ? styles.controlReadOnly : ''}`}
+                className={`${styles.control} ${pReadOnly ? styles.controlReadOnly : ''} ${pCompact ? styles.controlCompact : ''}`}
+                title={pTitle ?? 'Auto refresh'}
                 aria-haspopup={pReadOnly ? undefined : 'menu'}
                 aria-expanded={pReadOnly ? undefined : sOpen}
                 aria-disabled={pReadOnly || undefined}
@@ -116,9 +157,11 @@ const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId }: 
                     setOpen((aPrev) => !aPrev);
                 }}
             >
-                <span className={styles.label}>auto refresh:</span>
-                <span className={styles.ring}>
-                    <svg width={30} height={30} viewBox="0 0 30 30">
+                {!pCompact && <span className={styles.label}>auto refresh:</span>}
+                <span className={`${styles.ring} ${pCompact ? styles.ringCompact : ''}`}>
+                    {/* One viewBox, two rendered sizes: the geometry below is in viewBox units, so the
+                        compact ring is the same drawing scaled by the <svg> box. */}
+                    <svg width={pCompact ? 24 : 30} height={pCompact ? 24 : 30} viewBox="0 0 30 30">
                         <circle className={styles.track} cx={15} cy={15} r={12} />
                         {sIsRunning && (
                             <circle

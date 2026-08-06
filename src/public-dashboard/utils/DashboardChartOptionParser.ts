@@ -230,8 +230,10 @@ const ReplaceTypeOpt = (
         const sTempXAxis: any = JSON.parse(JSON.stringify(aXAxis[0]));
         if (aChartType === E_CHART_TYPE.ADV_SCATTER || aUseValueXAxis) sTempXAxis.type = 'value';
         if (aChartType !== E_CHART_TYPE.ADV_SCATTER) {
-            sTempXAxis.min = aTime.startTime;
-            sTempXAxis.max = aTime.endTime;
+            // The queried window is the axis, unless the panel names its own bounds — only a value
+            // x-axis can, and only when the user set both (`useMinMax`).
+            if (sTempXAxis.min === undefined || sTempXAxis.min === '') sTempXAxis.min = aTime.startTime;
+            if (sTempXAxis.max === undefined || sTempXAxis.max === '') sTempXAxis.max = aTime.endTime;
         }
         sXAxis = JSON.stringify({ xAxis: [sTempXAxis] });
         sYAxis = JSON.stringify({ yAxis: aYAxis });
@@ -348,7 +350,9 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string, aTagList?: any[], aUseV
         sResult.tooltip.formatter = unitFormatter(sUnit, aCommonOpt['tooltipDecimals'], 'TOOLTIP', {
             type: sResult.tooltip.trigger,
             opt: aOpt,
-            panelType: aPanelType === E_CHART_TYPE.ADV_SCATTER || aUseValueXAxis ? 'VALUE' : 'TIME',
+            // Adv scatter plots a series on x (the tooltip names it); a distance panel's x is its base
+            // column, which has no series name to print — see TooltipXAxisType.
+            panelType: aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : aUseValueXAxis ? 'BASE_VALUE' : 'TIME',
             enabledSeriesMeta: sEnabledSeriesMeta,
         });
     }
@@ -487,10 +491,14 @@ const CheckYAxis = (yAxisOptions: any, panelVersion: string) => {
     });
     return sResult;
 };
-const CheckXAxis = (xAxisOptions: any, aChartType: string, panelVersion: string) => {
+const CheckXAxis = (xAxisOptions: any, aChartType: string, panelVersion: string, aUseValueXAxis = false) => {
     const sResult = xAxisOptions.map((aAxis: any) => {
         const sReturn: any = JSON.parse(JSON.stringify(aAxis));
-        if (aChartType !== E_CHART_TYPE.ADV_SCATTER) {
+        // Adv scatter was once the only chart with a value x-axis; a distance (numeric base) panel is
+        // the other one, and its axis carries the same unit / decimals / min / max the editor offers
+        // for it. On a *time* axis none of them mean anything, so there they are dropped.
+        const sIsValueAxis = aChartType === E_CHART_TYPE.ADV_SCATTER || aUseValueXAxis;
+        if (!sIsValueAxis) {
             delete sReturn.min;
             delete sReturn.max;
             delete sReturn.useBlockList;
@@ -498,6 +506,8 @@ const CheckXAxis = (xAxisOptions: any, aChartType: string, panelVersion: string)
             delete sReturn.label;
             return sReturn;
         }
+        // Which series the axis is measured against is an Adv scatter question only.
+        if (aChartType !== E_CHART_TYPE.ADV_SCATTER) delete sReturn.useBlockList;
         if (sReturn?.label) {
             // version > '1.0.1'
             if (compareVersions(panelVersion, '1.0.1') < 0) sReturn['axisLabel'] = LabelFormatter(aAxis.label);
@@ -505,8 +515,17 @@ const CheckXAxis = (xAxisOptions: any, aChartType: string, panelVersion: string)
             delete sReturn.label;
         }
         if (sReturn?.offset !== '') sReturn.offset = Number(sReturn.offset) ?? 0;
-        if (sReturn.useMinMax) return sReturn;
-        else {
+        if (sReturn.useMinMax) {
+            // The editor writes these from a text input, so they arrive as strings; a value axis given
+            // '400000' rather than 400000 is not the bound the user typed.
+            sReturn.min = Number(sReturn.min);
+            sReturn.max = Number(sReturn.max);
+            if (!Number.isFinite(sReturn.min) || !Number.isFinite(sReturn.max)) {
+                delete sReturn.min;
+                delete sReturn.max;
+            }
+            return sReturn;
+        } else {
             delete sReturn.useMinMax;
             delete sReturn.min;
             delete sReturn.max;
@@ -535,7 +554,7 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
         SqlResDataType(sConvertedChartType),
         sTagList.map((aTagInfo: any) => aTagInfo?.name),
         sMergedChartOptions,
-        CheckXAxis(aOptionInfo.xAxisOptions, sConvertedChartType, aOptionInfo.version),
+        CheckXAxis(aOptionInfo.xAxisOptions, sConvertedChartType, aOptionInfo.version, sUseValueXAxis),
         CheckYAxis(aOptionInfo.yAxisOptions, aOptionInfo.version),
         aTime,
         sUseValueXAxis

@@ -26,10 +26,24 @@
         }
     }
 
+    /* Sits to the left of the panel menu in the same 30px strip. `cursor: default` because the strip
+       itself is the drag handle (`cursor: grab`) and this is a readout, not something to drag by. */
+    .draggable-panel-header-refresh {
+        display: flex;
+        align-items: center;
+        padding-right: 2px;
+        cursor: default;
+    }
+
     .draggable-panel-header-menu {
         // height: 22px;
         padding: 4px;
         border-bottom-left-radius: 4px;
+        /* The trigger is shorter than this wrapper's content box, so without centring it sat 4px above
+           the strip's middle — and beside the refresh ring, which is centred, the two read as two
+           separate rows. Both now sit on the header's centre line. */
+        display: flex;
+        align-items: center;
     }
 
     .display-none {

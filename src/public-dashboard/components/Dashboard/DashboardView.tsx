@@ -3,12 +3,17 @@ import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams, useSearchParams } from 'react-router-dom';
 import moment from 'moment';
-import { Calendar, VscChevronLeft, VscChevronRight, MdRefresh } from '../../assets/icons/Icon';
+import { MdRefresh } from '../../assets/icons/Icon';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../utils/constants';
 import { getId, isMobile } from '../../utils';
 import TimeRangeModal from '../../components/modal/TimeRangeModal';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
+import RangeChips from '@/components/dashboard/RangeChips';
+import DistanceRangeModal from '../modal/DistanceRangeModal';
+import { fetchBlockBaseMinMax } from '../../utils/dashboardBaseMinMax';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
 import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
@@ -35,12 +40,15 @@ const DashboardView = () => {
     const sIsMobile = isMobile();
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
     const sBoardRef = useRef<any>(undefined);
+    // Bumped on every refresh tick so the countdown ring restarts with the fetch rather than free-running.
+    const [sRingCycleId, setRingCycleId] = useState<number>(0);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sChartVariableId, setChartVariableId] = useState<string>('');
     const variableRef = useRef<HTMLDivElement>(null);
     const [sShouldShowFooter, setShouldShowFooter] = useState<boolean>(false);
     const [sIsShareModal, setIsShareModal] = useState<boolean>(false);
+    const [sIsDistanceModal, setIsDistanceModal] = useState<boolean>(false);
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
@@ -120,6 +128,44 @@ const DashboardView = () => {
             return sResult;
         } else return defaultMinMax();
     };
+    // A panel's own refresh interval, changed from the panel itself. Local to this view — there is
+    // nothing to save here — but it drives the same per-panel timer the editor's setting does.
+    const changePanelRefresh = (aPanelId: string, aRefresh: string) => {
+        setBoardInformation((aPrev: any) =>
+            aPrev
+                ? {
+                      ...aPrev,
+                      dashboard: {
+                          ...aPrev.dashboard,
+                          panels: aPrev.dashboard.panels.map((aPanel: any) =>
+                              aPanel.id === aPanelId ? { ...aPanel, timeRange: { ...aPanel.timeRange, refresh: aRefresh } } : aPanel
+                          ),
+                      },
+                  }
+                : aPrev
+        );
+    };
+    // The board's distance window lives beside the time one and is read by every distance panel.
+    const applyDistanceRange = (aRange: { start: number | string; end: number | string }) => {
+        setBoardInformation((aPrev: any) => (aPrev ? { ...aPrev, dashboard: { ...aPrev.dashboard, distanceRange: aRange } } : aPrev));
+    };
+    // Shift only the distance axis by half its span — the same gesture the time chevrons make, and the
+    // same resolution rule: an anchored edge is measured first, then written out as coordinates.
+    const moveDistanceRange = async (aDir: 'l' | 'r') => {
+        const sDR = sBoardInformation?.dashboard?.distanceRange ?? {};
+        const sDistancePanel = sBoardInformation?.dashboard?.panels?.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+        const sAnchored = isDistanceAnchorEdge(sDR.start) || isDistanceAnchorEdge(sDR.end);
+        let sFrom = Number(sDR.start);
+        let sTo = Number(sDR.end);
+        if (sAnchored || !isDistanceEdgeSet(sDR.start) || !isDistanceEdgeSet(sDR.end) || !Number.isFinite(sFrom) || !Number.isFinite(sTo)) {
+            const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
+            if (!sBounds) return;
+            sFrom = resolveDistanceEdge(sDR.start, sBounds) ?? sBounds.min;
+            sTo = resolveDistanceEdge(sDR.end, sBounds) ?? sBounds.max;
+        }
+        const sShift = ((sTo - sFrom) / 2) * (aDir === 'l' ? -1 : 1);
+        applyDistanceRange({ start: Math.round(sFrom + sShift), end: Math.round(sTo + sShift) });
+    };
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = sBoardInformation?.dashboard.timeRange.start;
         let sStartTimeBeforeEnd = sBoardInformation?.dashboard.timeRange.end;
@@ -184,6 +230,10 @@ const DashboardView = () => {
     const ctrBoardInterval = (aTimeRange: any) => {
         clearInterval(sBoardRef.current);
         sBoardRef.current = setInterval(() => {
+            // Restart the header's countdown ring on the tick itself. The animation otherwise runs
+            // from whenever the control mounted, which has nothing to do with when this interval
+            // was armed, so the ring empties at a moment the data does not arrive.
+            setRingCycleId((aId) => aId + 1);
             handleDashboardTimeRange(aTimeRange.start, aTimeRange.end, undefined, true);
         }, setIntervalTime(aTimeRange));
     };
@@ -311,28 +361,18 @@ const DashboardView = () => {
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <Button variant="ghost" size="icon" icon={<Share size={16} />} onClick={() => setIsShareModal(true)} isToolTip toolTipContent="Share" />
                         <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
-                        <Button variant="ghost" size="icon" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} />
-                        <Button size="sm" variant="ghost" onClick={() => setIsTimeRangeModal(true)}>
-                            <Calendar style={{ paddingRight: '8px' }} />
-                            {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
-                                <>
-                                    {(typeof sBoardInformation.dashboard.timeRange.start === 'string' &&
-                                    (sBoardInformation.dashboard.timeRange.start.includes('now') || sBoardInformation.dashboard.timeRange.start.includes('last'))
-                                        ? sBoardInformation.dashboard.timeRange.start
-                                        : moment(sBoardInformation.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
-                                        '~' +
-                                        (typeof sBoardInformation.dashboard.timeRange.end === 'string' &&
-                                        (sBoardInformation.dashboard.timeRange.end.includes('now') || sBoardInformation.dashboard.timeRange.end.includes('last'))
-                                            ? sBoardInformation.dashboard.timeRange.end
-                                            : moment(sBoardInformation.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
-                                </>
-                            ) : (
-                                <span>Time range not set</span>
-                            )}
-                        </Button>
-                        <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
+                        {/* Both axes, as in the dashboard: a distance board could be read here but its
+                            window could not be moved or edited, because the header only ever offered
+                            the time one. */}
+                        <RangeChips
+                            pBoardInfo={sBoardInformation}
+                            pOnShiftTime={moveTimeRange}
+                            pOnShiftDist={moveDistanceRange}
+                            pOnEditTime={() => setIsTimeRangeModal(true)}
+                            pOnEditDist={() => setIsDistanceModal(true)}
+                        />
                         <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
-                        <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} />
+                        <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                     </div>
                 </Page.Header>
                 <Page.Body ref={sBodyRef} footer>
@@ -370,6 +410,7 @@ const DashboardView = () => {
                                             pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
                                             pBoardTimeMinMax={sBoardTimeMinMax}
                                             pIsActiveTab={true}
+                                            pOnChangePanelRefresh={changePanelRefresh}
                                         />
                                     </div>
                                 );
@@ -405,6 +446,8 @@ const DashboardView = () => {
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}
+
+            {sIsDistanceModal && <DistanceRangeModal pBoardInfo={sBoardInformation} pOnApply={applyDistanceRange} pOnClose={() => setIsDistanceModal(false)} />}
 
             {sIsShareModal && <ShareModal isOpen={sIsShareModal} onClose={() => setIsShareModal(false)} />}
         </>

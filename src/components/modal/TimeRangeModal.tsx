@@ -19,6 +19,13 @@ interface TimeRangeModalPropsBase {
     pInitialTab?: 'time' | 'distance';
     /** Lock the modal to a single axis tab (panel editor: one panel = one base). Hides the tab bar. */
     pLockTab?: 'time' | 'distance';
+    /**
+     * The block whose base column supplies the distance slider bounds. The panel editor passes the
+     * panel it is editing, which is the only honest extent there: that panel may not be the board's
+     * first distance panel, and while it is being created it is not on the board at all. Omitted on
+     * the board header, where the first distance panel is the reference.
+     */
+    pBoundsBlock?: any;
 }
 
 // Props-based mode (ViewTimeRangeModal pattern)
@@ -62,23 +69,30 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
     // When locked (panel editor), the modal is pinned to the edited panel's single base kind: the
     // tab bar is hidden and the matching content branch is forced.
     const sLockTab = (props as any)?.pLockTab as 'time' | 'distance' | undefined;
+    // The panel editor names its own block; the board header falls back to the first distance panel.
+    const sBoundsBlock = (props as any)?.pBoundsBlock ?? sDistancePanel?.blockList?.[0];
 
     const [sTab, setTab] = useState<'time' | 'distance'>(sLockTab ?? (props as any)?.pInitialTab ?? 'time');
     const [sBounds, setBounds] = useState<{ min: number; max: number }>({ min: 0, max: 0 });
-    const [sDistFrom, setDistFrom] = useState<number>(0);
-    const [sDistTo, setDistTo] = useState<number>(0);
+    // Either a coordinate or an anchored edge ('last-5000', 'first'), stored as written so the window
+    // keeps following the data instead of freezing at today's numbers.
+    const [sDistFrom, setDistFrom] = useState<number | string>(0);
+    const [sDistTo, setDistTo] = useState<number | string>(0);
+    // Why the distance tab's typed range cannot be applied, or '' when it can. The tab reports it;
+    // Apply is here, so refusing is here too.
+    const [sDistNotice, setDistNotice] = useState<string>('');
 
     useEffect(() => {
         if (!sHasDistance) return;
         const sDR = sBoard?.dashboard?.distanceRange ?? {};
         const sHasStart = sDR.start !== '' && sDR.start != null;
         const sHasEnd = sDR.end !== '' && sDR.end != null;
-        if (sHasStart) setDistFrom(Number(sDR.start));
-        if (sHasEnd) setDistTo(Number(sDR.end));
-        if (!sDistancePanel) return;
+        if (sHasStart) setDistFrom(sDR.start);
+        if (sHasEnd) setDistTo(sDR.end);
+        if (!sBoundsBlock) return;
         let sCancelled = false;
         (async () => {
-            const sFetched = await fetchBlockBaseMinMax(sDistancePanel.blockList?.[0]);
+            const sFetched = await fetchBlockBaseMinMax(sBoundsBlock);
             if (sCancelled || !sFetched) return;
             setBounds(sFetched);
             if (!sHasStart) setDistFrom(sFetched.min);
@@ -158,8 +172,15 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
     const setGlobalTime = () => {
         // Distance tab → write the kind-separated dashboard.distanceRange (numeric start/end).
         if (sTab === 'distance') {
-            const sFrom = Math.min(sDistFrom, sDistTo);
-            const sTo = Math.max(sDistFrom, sDistTo);
+            if (sDistNotice) {
+                Toast.error(sDistNotice);
+                return;
+            }
+            // Only two coordinates can be put in order; an anchored pair is already ordered by what
+            // it means (`first…` opens, `last…` closes) and reordering it would rewrite the anchors.
+            const sBothNumeric = typeof sDistFrom === 'number' && typeof sDistTo === 'number';
+            const sFrom = sBothNumeric ? Math.min(sDistFrom as number, sDistTo as number) : sDistFrom;
+            const sTo = sBothNumeric ? Math.max(sDistFrom as number, sDistTo as number) : sDistTo;
             setBoardList((aPrev: any) =>
                 aPrev.map((aItem: any) => (aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: sFrom, end: sTo } } } : aItem))
             );
@@ -274,6 +295,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                             setDistTo(aTo);
                         }}
                         pOnResetToFull={handleResetDistanceToFull}
+                        pOnValidityChange={setDistNotice}
                     />
                 ) : (
                     <>

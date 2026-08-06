@@ -1,4 +1,5 @@
 import { VscAdd, VscChevronLeft, VscChevronRight } from 'react-icons/vsc';
+import { formatDistanceEdgeLabel, formatDistanceReadout, formatDistanceSiShort, isDistanceAnchorEdge, isDistanceEdgeSet } from '@/utils/distanceRange';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import styles from './RangeChips.module.scss';
 
@@ -20,17 +21,18 @@ interface RangeChipsProps {
     pOnlyAxis?: 'TIME' | 'DIST';
 }
 
-const formatNum = (aValue: number) => (Number.isFinite(aValue) ? Math.round(aValue).toLocaleString() : '-');
 
 interface ChipProps {
     axis: 'TIME' | 'DIST';
     mode: RangeMode;
     value: string;
+    /** Exact edges, for hover: the DIST chip is abbreviated and two nearby edges can print the same. */
+    title?: string;
     onShift: (aDir: 'l' | 'r') => void;
     onEdit: () => void;
 }
 
-const Chip = ({ axis, mode, value, onShift, onEdit }: ChipProps) => {
+const Chip = ({ axis, mode, value, title, onShift, onEdit }: ChipProps) => {
     // Unset axis → empty slot (dashed), prompts to set; no chevrons/value.
     if (mode === 'unset') {
         return (
@@ -68,7 +70,7 @@ const Chip = ({ axis, mode, value, onShift, onEdit }: ChipProps) => {
             >
                 <VscChevronLeft size={12} />
             </button>
-            <span className={styles.value}>
+            <span className={styles.value} title={title}>
                 <span className={mode === 'default' ? styles.valueDefault : undefined}>{value}</span>
                 {mode === 'default' && <span className={styles.defaultCaption}>default</span>}
             </span>
@@ -104,12 +106,33 @@ const RangeChips = ({ pBoardInfo, pOnShiftTime, pOnShiftDist, pOnEditTime, pOnEd
     const sTimeValue = sTimeHasRange ? `${formatTimeValue(sTimeRange.start)} ~ ${formatTimeValue(sTimeRange.end)}` : '';
 
     // DIST: "set" only when an explicit, non-degenerate range exists; otherwise always the unset slot.
+    // An anchored edge ('last-5000', 'first') is explicit too — it just names its coordinate in terms
+    // of the data, so the chip shows the expression rather than a number that would go stale.
+    const sFromAnchored = isDistanceAnchorEdge(sDistRange.start);
+    const sToAnchored = isDistanceAnchorEdge(sDistRange.end);
     const sExplicitFrom = Number(sDistRange.start);
     const sExplicitTo = Number(sDistRange.end);
-    const sDistExplicit = sDistRange.start !== '' && sDistRange.start != null && sDistRange.end !== '' && sDistRange.end != null;
-    const sExplicitValid = sDistExplicit && Number.isFinite(sExplicitFrom) && Number.isFinite(sExplicitTo) && sExplicitFrom !== sExplicitTo;
+    const sDistExplicit = isDistanceEdgeSet(sDistRange.start) && isDistanceEdgeSet(sDistRange.end);
+    const sExplicitValid =
+        sDistExplicit &&
+        (sFromAnchored || Number.isFinite(sExplicitFrom)) &&
+        (sToAnchored || Number.isFinite(sExplicitTo)) &&
+        (sFromAnchored || sToAnchored || sExplicitFrom !== sExplicitTo);
     const sDistMode: RangeMode = sExplicitValid ? 'set' : 'unset';
-    const sDistValue = sExplicitValid ? `${formatNum(sExplicitFrom)} ~ ${formatNum(sExplicitTo)}` : '';
+    // SI short rounds, and a window narrower than the scale it is printed at reads as a single value.
+    // The exact pair stays one hover away rather than being lost.
+    const sDistExact = sExplicitValid
+        ? `${sFromAnchored ? formatDistanceEdgeLabel(sDistRange.start) : formatDistanceReadout(sExplicitFrom)} ~ ${
+              sToAnchored ? formatDistanceEdgeLabel(sDistRange.end) : formatDistanceReadout(sExplicitTo)
+          }`
+        : undefined;
+    // SI short, like the chart axis: a distance chip carries odometer-sized numbers, and
+    // `25,150,651 ~ 25,150,976` is a chip nobody can read at a glance.
+    const sDistValue = sExplicitValid
+        ? `${sFromAnchored ? formatDistanceEdgeLabel(sDistRange.start) : formatDistanceSiShort(sExplicitFrom)} ~ ${
+              sToAnchored ? formatDistanceEdgeLabel(sDistRange.end) : formatDistanceSiShort(sExplicitTo)
+          }`
+        : '';
 
     // Panel editor: render only the forced axis.
     if (pOnlyAxis === 'TIME') {
@@ -122,7 +145,7 @@ const RangeChips = ({ pBoardInfo, pOnShiftTime, pOnShiftDist, pOnEditTime, pOnEd
     if (pOnlyAxis === 'DIST') {
         return (
             <div className={styles.wrap}>
-                <Chip axis="DIST" mode={sDistMode} value={sDistValue} onShift={pOnShiftDist} onEdit={pOnEditDist} />
+                <Chip axis="DIST" mode={sDistMode} value={sDistValue} title={sDistExact} onShift={pOnShiftDist} onEdit={pOnEditDist} />
             </div>
         );
     }
