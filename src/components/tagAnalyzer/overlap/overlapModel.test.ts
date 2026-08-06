@@ -78,5 +78,11 @@ describe('overlap chart series groups', () => {
                 zoomOnMouseWheel: true,
             }),
         ]);
+        expect(option.aria).toEqual(expect.objectContaining({
+            enabled: true,
+            label: expect.objectContaining({
+                description: expect.stringContaining('Same panel / Series'),
+            }),
+        }));
     });
 });

@@ -419,6 +419,7 @@ export default function Board({
             toolTipContent: sHasUnsavedChanges
                 ? 'Save runtime changes to TAZ'
                 : 'Save',
+            'aria-label': 'Save TagAnalyzer board',
             icon: <Save size={16} />,
             onClick: () => void saveBoard(),
         },

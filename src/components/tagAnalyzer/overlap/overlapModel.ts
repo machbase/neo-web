@@ -287,6 +287,15 @@ export function buildOverlapChartOption(
 
     return {
         animation: false,
+        aria: {
+            enabled: true,
+            label: {
+                enabled: true,
+                description: `Overlap chart. Series: ${seriesData
+                    .map(({ name }) => name)
+                    .join(', ')}`,
+            },
+        },
         backgroundColor: '#2a2a2a',
         color: OVERLAP_CHART_COLORS,
         grid: { left: 35, right: 18, top: 42, bottom: 28 },
