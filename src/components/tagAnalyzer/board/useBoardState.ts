@@ -4,23 +4,16 @@ import {
     type PanelInfo,
 } from '../panel/panelModel';
 import type { BoardInfo } from './boardModel';
-import {
-    isResolvedPanelRangeState,
-    LOADING_PANEL_RANGE_STATE,
-    type PanelRangeSourceState,
-} from '../panel/panelRangeSourceState';
-import {
-    isSameRange,
-    isValidPanelRangeState,
-} from '../range/rangeArithmetic';
+import { isSameRange } from '../range/rangeArithmetic';
 import {
     type AxisKind,
     type RangeExpressionInput,
+    type ResolvedRangeState,
 } from '../range/rangeModel';
 
 type BoardRuntimeState = {
     info: BoardInfo;
-    panelRanges: { [panelKey: string]: PanelRangeSourceState };
+    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
 };
 
 type BoardStateAction =
@@ -45,7 +38,7 @@ type BoardStateAction =
     | {
           type: 'SET_PANEL_RANGE';
           panelKey: string;
-          rangeState: PanelRangeSourceState;
+          rangeState: ResolvedRangeState;
       };
 
 export function useBoardState(boardInfo: BoardInfo) {
@@ -82,7 +75,7 @@ export function useBoardState(boardInfo: BoardInfo) {
             panelKey,
             isSelected,
         }),
-        setPanelRange: (panelKey: string, rangeState: PanelRangeSourceState) =>
+        setPanelRange: (panelKey: string, rangeState: ResolvedRangeState) =>
             dispatch({ type: 'SET_PANEL_RANGE', panelKey, rangeState }),
         applySaveResult: (
             savedBoardInfo: BoardInfo,
@@ -126,8 +119,7 @@ function createBoardRuntimeState(
     const sPanelRanges = Object.fromEntries(
         sPanels.map((panelInfo) => [
             panelInfo.key,
-            sPreviousState?.panelRanges[panelInfo.key] ??
-                LOADING_PANEL_RANGE_STATE,
+            sPreviousState?.panelRanges[panelInfo.key],
         ]),
     );
 
@@ -290,14 +282,14 @@ function requirePanelIndex(
 
 function getPanelInfoForSave(
     panelInfo: PanelInfo,
-    rangeState: PanelRangeSourceState,
+    rangeState: ResolvedRangeState | undefined,
 ): PanelInfo {
     const sLastViewedRange = panelInfo.time.lastViewedRange;
 
     if (
         !panelInfo.time.useLastViewedRange ||
-        !isResolvedPanelRangeState(rangeState) ||
-        (isValidPanelRangeState(sLastViewedRange) &&
+        !rangeState ||
+        (sLastViewedRange !== undefined &&
             isSameRange(
                 sLastViewedRange.panelRange,
                 rangeState.range.panelRange,

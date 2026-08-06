@@ -15,13 +15,10 @@ import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import type { PanelHighlight, PanelInfo } from '../panel/panelModel';
 import { hasNumericBaseTimeSeries } from '../seriesModel';
-import {
-    getRangeWidth,
-    isValidRange,
-} from '../range/rangeArithmetic';
+import { getRangeWidth } from '../range/rangeArithmetic';
 import {
     type AxisRange,
-    type PanelRangeState,
+    type RangeState,
 } from '../range/rangeModel';
 import {
     applyPanelNavigatorCursorStyles,
@@ -75,7 +72,7 @@ type UsePanelChartRuntimeParams = {
     draftHighlight?: PanelHighlight;
     overlayMode: PanelOverlayMode;
     data: PanelChartRuntime['data'];
-    rangeState: PanelRangeState;
+    rangeState: RangeState;
     handlers: PanelChartHandlers;
 };
 
@@ -197,7 +194,7 @@ function usePanelChartRuntime({
     ): void => {
         const sPanelRange = latestPanelRangeRef.current;
 
-        if (!chartInstance || !isValidRange(sPanelRange)) {
+        if (!chartInstance) {
             return;
         }
 
@@ -383,6 +380,10 @@ function usePanelChartRuntime({
                 );
             },
         };
+
+        return () => {
+            chartApiRef.current = null;
+        };
     }, [chartApiRef, chartAreaRef, chartData, chartInstanceRef]);
 
     useEffect(() => {
@@ -459,14 +460,6 @@ function usePanelChartRuntime({
                 applyLegendHoverState(hoveredLegendSeriesRef.current, true);
             }
         },
-        chartMouseHandlers: {
-            onMouseDownCapture: (event: MouseEvent<HTMLDivElement>) => {
-                if (event.button === 2) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-            },
-        },
     };
 }
 
@@ -504,31 +497,56 @@ function getSeriesStructureKey(
         .join('|');
 }
 
-type PanelChartProps = Omit<UsePanelChartRuntimeParams, 'runtimeConfig'> & {
+type PanelChartProps = Omit<
+    UsePanelChartRuntimeParams,
+    'rangeState' | 'runtimeConfig'
+> & {
     panelInfo: PanelInfo;
     isLoading: boolean;
-    rangeReady: boolean;
+    rangeState: RangeState | undefined;
     displayNotice: string | undefined;
 };
 
-export default function PanelChart({ panelInfo, ...props }: PanelChartProps) {
-    const runtimeConfig = useMemo(
-        () => resolveRuntimePanelChartConfig(panelInfo),
-        [panelInfo],
-    );
-    const {
-        refs,
-        handlers,
-        isLoading,
-        rangeReady,
-        displayNotice,
-    } = props;
+function ReadyPanelChart(props: UsePanelChartRuntimeParams) {
     const {
         option,
         onEvents,
         handleChartReady,
-        chartMouseHandlers,
-    } = usePanelChartRuntime({ ...props, runtimeConfig });
+    } = usePanelChartRuntime(props);
+
+    return (
+        <ReactECharts
+            option={option}
+            onEvents={onEvents}
+            onChartReady={handleChartReady}
+            replaceMerge={['series', 'xAxis', 'yAxis', 'dataZoom']}
+            lazyUpdate
+            style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
+            opts={{ renderer: 'canvas' }}
+        />
+    );
+}
+
+function handleChartMouseDownCapture(event: MouseEvent<HTMLDivElement>): void {
+    if (event.button === 2) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}
+
+export default function PanelChart({
+    panelInfo,
+    isLoading,
+    rangeState,
+    displayNotice,
+    ...runtimeProps
+}: PanelChartProps) {
+    const runtimeConfig = useMemo(
+        () => resolveRuntimePanelChartConfig(panelInfo),
+        [panelInfo],
+    );
+    const { refs, handlers } = runtimeProps;
+    const rangeReady = rangeState !== undefined;
 
     return (
         <div className="chart">
@@ -544,17 +562,16 @@ export default function PanelChart({ panelInfo, ...props }: PanelChartProps) {
             <div
                 className="chart-body"
                 ref={refs.chartAreaRef}
-                {...chartMouseHandlers}
+                style={{ height: PANEL_CHART_HEIGHT }}
+                onMouseDownCapture={handleChartMouseDownCapture}
             >
-                <ReactECharts
-                    option={option}
-                    onEvents={onEvents}
-                    onChartReady={handleChartReady}
-                    replaceMerge={['series', 'xAxis', 'yAxis', 'dataZoom']}
-                    lazyUpdate
-                    style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
-                    opts={{ renderer: 'canvas' }}
-                />
+                {rangeState && (
+                    <ReadyPanelChart
+                        {...runtimeProps}
+                        runtimeConfig={runtimeConfig}
+                        rangeState={rangeState}
+                    />
+                )}
                 {(isLoading || displayNotice) && (
                     <PanelMainChartOverlay
                         showLegend={runtimeConfig.display.showLegend}
@@ -671,11 +688,7 @@ function usePanelChartWheelZoom({
     applyMainZoomRange: PanelChartHandlers['rangeActions']['applyMainZoomRange'];
 }): void {
     const handleMouseWheelZoom = useCallback((event: WheelEvent): void => {
-        if (
-            event.deltaY === 0 ||
-            !isWheelZoomEnabled ||
-            !isValidRange(panelRange)
-        ) {
+        if (event.deltaY === 0 || !isWheelZoomEnabled) {
             return;
         }
 

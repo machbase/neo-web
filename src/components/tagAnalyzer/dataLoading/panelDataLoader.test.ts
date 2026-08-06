@@ -9,8 +9,7 @@ import {
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
 } from '../seriesModel';
-import type { ResolvedPanelRangeState } from '../panel/panelRangeSourceState';
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange, ResolvedRangeState } from '../range/rangeModel';
 import { fetchMainSeriesRows, usePanelDataLoading } from './panelDataLoader';
 
 const NUMERIC_SERIES: PanelSeriesDefinition = {
@@ -133,8 +132,7 @@ describe('usePanelDataLoading', () => {
         const onRawMainRangeLimited = jest.fn();
         const createRangeState = (
             range: AxisRange,
-        ): ResolvedPanelRangeState => ({
-            status: 'ready',
+        ): ResolvedRangeState => ({
             range: {
                 panelRange: range,
                 navigatorRange: range,
@@ -157,7 +155,7 @@ describe('usePanelDataLoading', () => {
         await waitFor(() =>
             expect(result.current.loadStatus.chart).toBe('ready'),
         );
-        expect(result.current.renderRange.panelRange).toEqual(
+        expect(result.current.renderRange?.panelRange).toEqual(
             initialFetchedRange,
         );
         onRawMainRangeLimited.mockClear();
@@ -165,7 +163,7 @@ describe('usePanelDataLoading', () => {
         rerender({ rangeState: createRangeState(widerRange) });
 
         expect(fetchRawSeriesRows).toHaveBeenCalledTimes(2);
-        expect(result.current.renderRange.panelRange).toEqual(widerRange);
+        expect(result.current.renderRange?.panelRange).toEqual(widerRange);
         expect(onRawMainRangeLimited).not.toHaveBeenCalled();
 
         await act(async () => {

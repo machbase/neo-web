@@ -2,16 +2,15 @@ import { type YAXisComponentOption, type XAXisComponentOption, type LineSeriesOp
 import {
     roundNumericAxisBounds,
     type AxisRange,
-    type PanelRangeState,
+    type RangeState,
 } from '../range/rangeModel';
 import {
     getRangeCenter,
     getRangeWidth,
     isSameRange,
-    isValidRange,
 } from '../range/rangeArithmetic';
-import { formatNumericAxisLabel } from '../range/format/numericRangeFormat';
-import { formatAxisValue, formatAxisPointerLabel } from '../range/format/rangeFormat';
+import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
+import { formatCompactNumber } from '../format/valueFormat';
 import { type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
 import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
 import { getPanelSeriesDisplayColor, DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../seriesModel';
@@ -108,7 +107,7 @@ const CHART_AXIS_STYLE = {
     yLabel: {
         color: '#afb5bc',
         fontSize: 10,
-        formatter: (value: number) => formatNumericAxisLabel(value),
+        formatter: (value: number) => formatCompactNumber(value),
     } satisfies YAXisComponentOption['axisLabel'],
 };
 
@@ -261,7 +260,7 @@ function buildChartXAxisOption(
             axisLabel: {
                 ...CHART_AXIS_STYLE.xLabel,
                 formatter: (xAxisValue: number) =>
-                    formatAxisValue(xAxisValue, panelRange, isNumericXAxis),
+                    formatAxisTick(xAxisValue, panelRange, isNumericXAxis),
             },
             splitLine: {
                 show: display.useZoom && axes.x.showTickline,
@@ -601,55 +600,44 @@ const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
     z: 3,
 };
 
-function isRenderableHighlight(highlight: PanelHighlight): boolean {
-    return isValidRange(highlight.timeRange);
-}
-
 function getHighlightAreaData(
     highlights: PanelHighlight[],
     includeName: boolean,
 ) {
-    return highlights
-        .filter(isRenderableHighlight)
-        .map(
-            (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
-                {
-                    ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
-                    xAxis: highlight.timeRange.startTime,
-                    itemStyle: {
-                        color: createColorWithAlpha(highlight.fillColor, 0.16),
-                        borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
-                        borderType: 'solid',
-                        borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
-                    },
+    return highlights.map(
+        (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
+            {
+                ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
+                xAxis: highlight.timeRange.startTime,
+                itemStyle: {
+                    color: createColorWithAlpha(highlight.fillColor, 0.16),
+                    borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
+                    borderType: 'solid',
+                    borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
                 },
-                {
-                    xAxis: highlight.timeRange.endTime,
-                },
-            ],
-        );
+            },
+            {
+                xAxis: highlight.timeRange.endTime,
+            },
+        ],
+    );
 }
 
 function getHighlightLabelData(
     highlights: PanelHighlight[],
     labelY: number,
 ) {
-    return highlights
-        .flatMap((highlight, highlightIndex) =>
-            isRenderableHighlight(highlight)
-                ? [{
-                      name: highlight.text || 'unnamed',
-                      value: [
-                          getRangeCenter(highlight.timeRange),
-                          labelY,
-                      ] as [number, number],
-                      highlightIndex,
-                      label: {
-                          color: highlight.textColor,
-                      },
-                  }]
-                : [],
-        );
+    return highlights.map((highlight, highlightIndex) => ({
+        name: highlight.text || 'unnamed',
+        value: [
+            getRangeCenter(highlight.timeRange),
+            labelY,
+        ] as [number, number],
+        highlightIndex,
+        label: {
+            color: highlight.textColor,
+        },
+    }));
 }
 
 function createColorWithAlpha(color: string, alpha: number): string {
@@ -1288,7 +1276,7 @@ function formatChartTooltip(
     }
 
     const sFirstValue = getTooltipPrimitiveArrayValue(sMainSeriesItems[0].value);
-    const sTime = formatAxisPointerLabel(
+    const sTime = formatAxisPointer(
         Number(sFirstValue?.[0] ?? sMainSeriesItems[0].axisValue),
         isNumericXAxis,
         panelRange,
@@ -1439,7 +1427,7 @@ type ChartEvents = {
 };
 
 type BuildChartEventParams = PanelChartHandlers & {
-    ranges: PanelRangeState;
+    ranges: RangeState;
     interactionMode: {
         overlayMode: PanelOverlayMode;
         isSelectionMode: boolean;

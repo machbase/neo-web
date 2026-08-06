@@ -12,14 +12,12 @@ import {
     type ValueRange,
 } from '../panel/panelModel';
 import { decodePersistedPanelRangeState } from './persistedPanelRange';
-import { formatNumericValue } from '../range/format/numericRangeFormat';
-import { formatAbsoluteTimeExpression } from '../range/format/timeRangeFormat';
+import { formatAbsoluteTime, formatNumericValue } from './serializeRange';
+import { normalizeStoredTimeUnit } from '../range/intervalResolver';
 import {
-    normalizeStoredTimeUnit,
     type RangeExpressionInput,
-    type PanelRangeState,
+    type RangeState,
 } from '../range/rangeModel';
-import { isValidPanelRangeState } from '../range/rangeArithmetic';
 import {
     DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
     getPanelSeriesDisplayColor,
@@ -145,7 +143,7 @@ type PersistedPanelInfoV204 = {
         chart_title: string;
         use_zoom: boolean;
         use_last_viewed_range: boolean;
-        last_viewed_range?: PanelRangeState;
+        last_viewed_range?: RangeState;
         is_raw: boolean;
         is_order_by?: boolean;
         use_normalize: boolean;
@@ -310,12 +308,6 @@ function buildMigratedPanelInfo(
     return {
         ...panelInfo,
         isOverlapSelected: false,
-        time: {
-            ...panelInfo.time,
-            lastViewedRange: isValidPanelRangeState(panelInfo.time.lastViewedRange)
-                ? panelInfo.time.lastViewedRange
-                : undefined,
-        },
     };
 }
 
@@ -456,7 +448,7 @@ function resolveLegacyRangeConfig(
 
     const sFormatter = isNumericAxis
         ? formatNumericValue
-        : formatAbsoluteTimeExpression;
+        : formatAbsoluteTime;
     return {
         start: sFormatter(sValueRange.min),
         end: sFormatter(sValueRange.max),

@@ -28,7 +28,6 @@ import { CreatePanelModal } from '../setup/CreatePanelModal';
 import { SaveAsModal } from './SaveAsModal';
 import type { BoardInfo } from './boardModel';
 import type { PanelInfo } from '../panel/panelModel';
-import type { PanelRangeSourceState } from '../panel/panelRangeSourceState';
 import {
     getSeriesListAxisKind,
     type RollupTableMap,
@@ -36,8 +35,10 @@ import {
 import {
     isRangeExpressionEmpty,
     type AxisKind,
-    type PanelRangeState,
+    type AxisRange,
+    type RangeState,
     type RangeExpressionInput,
+    type ResolvedRangeState,
 } from '../range/rangeModel';
 
 import {
@@ -78,18 +79,18 @@ type BoardProps = {
 
 type BoardPanelProps = {
     panelInfo: PanelInfo;
-    rangeState: PanelRangeSourceState;
+    rangeState: ResolvedRangeState | undefined;
     rangeRequests: PanelRangeRuntimeRequests;
     isActive: boolean;
     hasUnsavedBoardChanges: boolean;
     rollupTableList: RollupTableMap;
     onPanelRangeStateChange: (
         panelKey: string,
-        rangeState: PanelRangeSourceState,
+        rangeState: ResolvedRangeState,
     ) => void;
     onBroadcastError: (broadcastKey: string, message: string) => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetGlobalTimeRange: (globalTimeRange: PanelRangeState) => void;
+    onSetGlobalTimeRange: (globalTimeRange: RangeState) => void;
     onDeletePanel: (panelKey: string) => void;
     onToggleOverlap: (panelKey: string) => void;
 };
@@ -109,7 +110,7 @@ const BoardPanel = memo(function BoardPanel({
     onToggleOverlap,
 }: BoardPanelProps) {
     const handleRangeStateChange = useCallback(
-        (nextRangeState: PanelRangeSourceState) =>
+        (nextRangeState: ResolvedRangeState) =>
             onPanelRangeStateChange(panelInfo.key, nextRangeState),
         [onPanelRangeStateChange, panelInfo.key],
     );
@@ -155,10 +156,9 @@ export default function Board({
     rollupTableList,
 }: BoardProps) {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
-    const [sBoardRangeModalLastDataTime, setBoardRangeModalLastDataTime] =
-        useState<number | undefined>(undefined);
+    const [sIsBoardRangeModalOpen, setIsBoardRangeModalOpen] = useState(false);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<PanelRangeState | undefined>(undefined);
+        useState<RangeState | undefined>(undefined);
     const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
     const [sIsSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
     const [sBoardRangeKind, setBoardRangeKind] = useState<AxisKind>(() =>
@@ -208,6 +208,11 @@ export default function Board({
         sIsNumericBoardRange
             ? sBoardInfo.boardNumericRange
             : sBoardInfo.boardTimeRange;
+    const sBoardRangeReferences = {
+        time: getBoardRangeReference(sPanels, sPanelRanges, 'time'),
+        numeric: getBoardRangeReference(sPanels, sPanelRanges, 'numeric'),
+    };
+    const sBoardRangeReference = sBoardRangeReferences[sBoardRangeKind];
     const sBoardRangeButtonLabel =
         sBoardRangeInput.start.trim() === '' ||
         sBoardRangeInput.end.trim() === ''
@@ -333,7 +338,7 @@ export default function Board({
         if (isActiveTab) return;
 
         setIsHelpModalOpen(false);
-        setBoardRangeModalLastDataTime(undefined);
+        setIsBoardRangeModalOpen(false);
         setIsNewPanelModalOpen(false);
         closeSaveAsModal();
         closeOverlapChart();
@@ -378,7 +383,7 @@ export default function Board({
     }
 
     const handleSetGlobalTimeRange = useCallback((
-        globalTimeRange: PanelRangeState,
+        globalTimeRange: RangeState,
     ): void => {
         setGlobalDataAndNavigatorTime(globalTimeRange);
         incrementBroadcastVersion('globalRange');
@@ -453,9 +458,8 @@ export default function Board({
                         <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() =>
-                                setBoardRangeModalLastDataTime(Date.now())
-                            }
+                            disabled={!sBoardRangeReference}
+                            onClick={() => setIsBoardRangeModalOpen(true)}
                         >
                             <Calendar style={{ paddingRight: '8px' }} />
                             {sBoardRangeButtonLabel}
@@ -515,29 +519,27 @@ export default function Board({
                     onClose={() => setIsHelpModalOpen(false)}
                 />
             )}
-            {sBoardRangeModalLastDataTime !== undefined && (
+            {sIsBoardRangeModalOpen && sBoardRangeReference && (
                 <RangeModal
                     key={sBoardRangeKind}
-                    title="Board Range"
-                    rangeKindSelector={{
-                        value: sBoardRangeKind,
-                        onChange: setBoardRangeKind,
+                    kind={sBoardRangeKind}
+                    initialRangeInput={sBoardRangeInput}
+                    currentRange={sBoardRangeReference.currentRange}
+                    fullRange={sBoardRangeReference.fullRange}
+                    onAxisKindChange={(rangeKind) => {
+                        if (sBoardRangeReferences[rangeKind]) {
+                            setBoardRangeKind(rangeKind);
+                            return;
+                        }
+
+                        Toast.error(
+                            `Cannot resolve a ${rangeKind} board range until a matching panel is ready.`,
+                        );
                     }}
-                    mode={{
-                        ...(sIsNumericBoardRange
-                            ? { kind: 'numeric-input' as const }
-                            : {
-                                  kind: 'time' as const,
-                                  dataStartTime: 0,
-                                  dataEndTime:
-                                      sBoardRangeModalLastDataTime,
-                              }),
-                        initialRangeInput: sBoardRangeInput,
-                        emptyRange: true,
-                        onApply: (rangeInput: RangeExpressionInput) =>
-                            applyBoardRange(sBoardRangeKind, rangeInput),
-                    }}
-                    onClose={() => setBoardRangeModalLastDataTime(undefined)}
+                    onApply={(rangeInput: RangeExpressionInput) =>
+                        applyBoardRange(sBoardRangeKind, rangeInput)
+                    }
+                    onClose={() => setIsBoardRangeModalOpen(false)}
                 />
             )}
             {isActiveTab && sIsSaveAsModalOpen && (
@@ -579,4 +581,47 @@ function getInitialBoardRangeKind(info: BoardInfo): AxisKind {
         !sPanelAxisKinds.includes('time')
         ? 'numeric'
         : 'time';
+}
+
+function getBoardRangeReference(
+    panels: PanelInfo[],
+    panelRanges: Record<string, ResolvedRangeState | undefined>,
+    axisKind: AxisKind,
+): { currentRange: AxisRange; fullRange: AxisRange } | undefined {
+    let currentRange: AxisRange | undefined;
+    let fullRange: AxisRange | undefined;
+
+    for (const panel of panels) {
+        if (getSeriesListAxisKind(panel.query.tagSet) !== axisKind) continue;
+
+        const rangeState = panelRanges[panel.key];
+        if (!rangeState) continue;
+
+        const panelRange = rangeState.range.navigatorRange;
+        currentRange = currentRange
+            ? {
+                  startTime: Math.min(
+                      currentRange.startTime,
+                      panelRange.startTime,
+                  ),
+                  endTime: Math.max(currentRange.endTime, panelRange.endTime),
+              }
+            : panelRange;
+        fullRange = fullRange
+            ? {
+                  startTime: Math.min(
+                      fullRange.startTime,
+                      rangeState.fullRange.startTime,
+                  ),
+                  endTime: Math.max(
+                      fullRange.endTime,
+                      rangeState.fullRange.endTime,
+                  ),
+              }
+            : rangeState.fullRange;
+    }
+
+    return currentRange && fullRange
+        ? { currentRange, fullRange }
+        : undefined;
 }

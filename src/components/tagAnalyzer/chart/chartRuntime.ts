@@ -4,7 +4,7 @@ import type {
     EChartsType,
     ElementEvent,
 } from 'echarts';
-import type { PanelRangeState } from '../range/rangeModel';
+import type { RangeState } from '../range/rangeModel';
 import { AUTO_VALUE_RANGE, type PanelAxisThreshold, type PanelHighlight, type PanelInfo, type PanelSampling, type PanelYAxis, type ValueRange } from '../panel/panelModel';
 import { type ChartSeriesData, type ChartSeriesVisibilityMap } from './chartData';
 
@@ -123,7 +123,7 @@ export type PanelChartRuntime = {
         chartData: ChartSeriesData[];
         navigatorChartData: ChartSeriesData[];
     };
-    ranges: PanelRangeState;
+    ranges: RangeState;
     interaction: {
         visibleSeries: ChartSeriesVisibilityMap;
         hoveredLegendSeries?: string;

@@ -19,7 +19,10 @@ import {
     type RollupTableMap,
 } from '../../seriesModel';
 import type { AxisRange } from '../../range/rangeModel';
-import { normalizePanelRangeInputForAxis } from '../../range/format/rangeFormat';
+import {
+    resolveRangeExpression,
+    resolveRangeInput,
+} from '../../range/rangeInput';
 
 enum PanelEditorTab {
     General = 'General',
@@ -113,22 +116,40 @@ const PanelEditor = ({
     const sOriginalIsNumericXAxis = shouldUseNumericPanelRangeInput(
         pPanelInfo.query.tagSet,
     );
-    const sNormalizedRangeInput = normalizePanelRangeInputForAxis(
-        sEditorConfig.time.rangeInput,
-        sIsNumericXAxis,
-        pDataRange,
-    );
+    const sRangeInput = sEditorConfig.time.rangeInput;
+    const sIsRangeInputEmpty =
+        sRangeInput.start.trim() === '' && sRangeInput.end.trim() === '';
+    const sAxisKind = sIsNumericXAxis ? 'numeric' : 'time';
+    const sIsRangeInputValid =
+        sIsRangeInputEmpty ||
+        resolveRangeInput(
+            resolveRangeExpression(
+                sRangeInput.start,
+                sAxisKind,
+                pDataRange,
+                pPanelRange.startTime,
+            ),
+            resolveRangeExpression(
+                sRangeInput.end,
+                sAxisKind,
+                pDataRange,
+                pPanelRange.endTime,
+            ),
+        ) !== undefined;
     const sUsesOriginalRangeInput =
         sEditorConfig.time.rangeInput.start ===
             pPanelInfo.time.rangeInput.start &&
         sEditorConfig.time.rangeInput.end === pPanelInfo.time.rangeInput.end;
     const sClearsRangeAfterAxisKindChange =
-        sNormalizedRangeInput === undefined &&
+        !sIsRangeInputValid &&
         sIsNumericXAxis !== sOriginalIsNumericXAxis &&
         sUsesOriginalRangeInput;
     const sRangeInputToApply =
-        sNormalizedRangeInput ??
-        (sClearsRangeAfterAxisKindChange ? EMPTY_RANGE_INPUT : undefined);
+        sIsRangeInputValid
+            ? sRangeInput
+            : sClearsRangeAfterAxisKindChange
+              ? EMPTY_RANGE_INPUT
+              : undefined;
     const sTimeConfigForEditor = sClearsRangeAfterAxisKindChange
         ? { ...sEditorConfig.time, rangeInput: EMPTY_RANGE_INPUT }
         : sEditorConfig.time;

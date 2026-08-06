@@ -1,9 +1,9 @@
 import type { PanelSeriesDefinition } from '../seriesModel';
+import type { TimeUnit } from '../range/intervalResolver';
 import type {
     AxisRange,
-    PanelRangeState,
+    RangeState,
     RangeExpressionInput,
-    TimeUnit,
 } from '../range/rangeModel';
 
 export type ValueRange = {
@@ -111,7 +111,7 @@ export type PanelInfo = {
     time: {
         rangeInput: RangeExpressionInput;
         useLastViewedRange: boolean;
-        lastViewedRange: PanelRangeState | undefined;
+        lastViewedRange: RangeState | undefined;
     };
     axes: PanelAxes;
     display: PanelDisplay;

@@ -5,13 +5,11 @@ import {
     type PanelEChartType,
     type PanelInfo,
 } from '../panel/panelModel';
-import { formatNumericValue } from '../range/format/numericRangeFormat';
-import { formatAbsoluteTimeExpression } from '../range/format/timeRangeFormat';
+import { formatAbsoluteTime, formatNumericValue } from '../persistence/serializeRange';
 import {
     type RangeExpressionInput,
     type AxisRange,
 } from '../range/rangeModel';
-import { isValidRange } from '../range/rangeArithmetic';
 import {
     assertValidPanelSeriesIdentifiers,
     createPanelSeriesDefinition,
@@ -148,13 +146,9 @@ function resolveDefaultPanelRange(
     timeRange: AxisRange,
     sourceColumns: PanelSeriesSourceColumns,
 ): RangeExpressionInput {
-    if (!isValidRange(timeRange)) {
-        return { start: '', end: '' };
-    }
-
     const sFormatValue = isNumericBaseTimeSourceColumns(sourceColumns)
         ? formatNumericValue
-        : formatAbsoluteTimeExpression;
+        : formatAbsoluteTime;
     return {
         start: sFormatValue(timeRange.startTime),
         end: sFormatValue(timeRange.endTime),
