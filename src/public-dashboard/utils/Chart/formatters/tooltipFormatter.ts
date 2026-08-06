@@ -1,6 +1,27 @@
+/** The series a block plots, as the legend names it. Only meaningful when the x-axis *is* a series. */
+const seriesNameOf = (aBlock: any) => {
+    const sAlias = aBlock.useCustom ? aBlock.values?.[0]?.alias : aBlock.alias;
+    if (sAlias && sAlias !== '') return sAlias;
+    if (aBlock.useCustom) return `${aBlock.values?.[0]?.value}(${aBlock.values?.[0]?.aggregator})`;
+    return `${aBlock.tag}(${aBlock.aggregator})`;
+};
+
+/** The label is interpolated into an HTML string that the chart evals, so it cannot carry markup. */
+const escapeHtmlText = (aText: string) => aText.replace(/[&<>"']/g, (aChar) => `&#${aChar.charCodeAt(0)};`);
+
+/**
+ * Which kind of x-axis the tooltip's first row is describing.
+ *
+ * 'VALUE' is an Adv scatter, where the x-axis *is* a series — one block's values plotted against
+ * another's — so the row names it. 'BASE_VALUE' is a distance (numeric base) panel: the axis is the
+ * panel's base column, the same role TIME plays on every other chart, and naming a series there
+ * printed whichever series happened to be first as though it were the axis.
+ */
+export type TooltipXAxisType = 'TIME' | 'VALUE' | 'BASE_VALUE';
+
 export const generateTooltipAxisFunction = (
     aOpt: any,
-    aXAxsisType?: 'TIME' | 'VALUE',
+    aXAxsisType?: TooltipXAxisType,
     aFormatterFn?: string | string[],
     aAliasList?: Array<{ seriesIndex: number; yAxisIdx: number }>,
     aEnabledSeriesMeta?: Array<{ idx: number; name: string; color: string; unit?: string }>
@@ -23,23 +44,19 @@ export const generateTooltipAxisFunction = (
         }
     }
 
-    if (aXAxsisType === 'VALUE') {
+    if (aXAxsisType === 'VALUE' || aXAxsisType === 'BASE_VALUE') {
         const targetBlock = aOpt.blockList?.[aOpt.xAxisOptions?.[0]?.useBlockList?.[0]];
         if (targetBlock) {
-            let name = targetBlock.useCustom ? targetBlock.values[0]?.alias : targetBlock.alias;
-            if (!name || name === '') {
-                if (targetBlock.useCustom) name = targetBlock.values[0]?.value + '(' + targetBlock.values[0]?.aggregator + ')';
-                else name = targetBlock.tag + '(' + targetBlock.aggregator + ')';
-            }
-
             // Use formatter if provided, otherwise use raw axisValue
             const xAxisValueExpression = aFormatterFn
                 ? `(function() { ${formatterDeclaration} return ${Array.isArray(aFormatterFn) ? 'formatter0' : 'formatter'}(params[0].axisValue); })()`
                 : `parseFloat(params[0].axisValue)`;
+            // Only an Adv scatter's x-axis is a series and has a name to print. A distance axis is the
+            // base column, so the row is the axis label and its value, exactly like the time row.
+            const sSeriesCell = aXAxsisType === 'VALUE' ? `<td> ${'&ensp;' + JSON.stringify(seriesNameOf(targetBlock)).replaceAll("'", '"') + '&ensp;'} </td> ` : '';
+            const sLabel = aXAxsisType === 'VALUE' ? 'X-axis' : escapeHtmlText(String(targetBlock.time ?? 'X-axis'));
 
-            sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
-                '&ensp;' + JSON.stringify(name).replaceAll("'", '"') + '&ensp;'
-            } </td> <td><b>' + ${xAxisValueExpression} + '</b></td></tr></table></div>';`;
+            sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>${sLabel}</b>&ensp;:</td>${sSeriesCell}<td><b>' + ${xAxisValueExpression} + '</b></td></tr></table></div>';`;
         }
     }
 
@@ -146,23 +163,17 @@ export const generateTooltipAxisFunction = (
         `}`
     );
 };
-export const generateTooltipItemFunction = (aOpt: any, aXAxsisType?: 'TIME' | 'VALUE', aFormatterFn?: string) => {
+export const generateTooltipItemFunction = (aOpt: any, aXAxsisType?: TooltipXAxisType, aFormatterFn?: string) => {
     let sInjectionOutput = `let d = new Date(0);` + `d.setUTCSeconds(params.data[0] / 1000);` + `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }); output += '<br/>';`;
-    if (aXAxsisType === 'VALUE') {
+    if (aXAxsisType === 'VALUE' || aXAxsisType === 'BASE_VALUE') {
         const targetBlock = aOpt.blockList?.[aOpt.xAxisOptions?.[0]?.useBlockList?.[0]];
         if (targetBlock) {
-            let name = targetBlock.useCustom ? targetBlock.values[0]?.alias : targetBlock.alias;
-            if (!name || name === '') {
-                if (targetBlock.useCustom) name = targetBlock.values[0]?.value + '(' + targetBlock.values[0]?.aggregator + ')';
-                else name = targetBlock.tag + '(' + targetBlock.aggregator + ')';
-            }
-
             // Use formatter if provided, otherwise use raw data
             const xAxisValueExpression = aFormatterFn ? `(function() { const formatter = ${aFormatterFn}; return formatter(params.data[0]); })()` : `params.data[0]`;
+            const sSeriesCell = aXAxsisType === 'VALUE' ? `<td> ${'&ensp;' + JSON.stringify(seriesNameOf(targetBlock)).replaceAll("'", '"') + '&ensp;'} </td> ` : '';
+            const sLabel = aXAxsisType === 'VALUE' ? 'X-axis' : escapeHtmlText(String(targetBlock.time ?? 'X-axis'));
 
-            sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
-                '&ensp;' + JSON.stringify(name).replaceAll("'", '"') + '&ensp;'
-            } </td> <td><b>' + ${xAxisValueExpression} + '</b></td></tr></table></div>';`;
+            sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>${sLabel}</b>&ensp;:</td>${sSeriesCell}<td><b>' + ${xAxisValueExpression} + '</b></td></tr></table></div>';`;
         }
     }
     return (

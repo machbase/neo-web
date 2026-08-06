@@ -33,3 +33,24 @@
         border-radius: 4px;
     }
 }
+
+/* Top-right of the panel, above the chart: this view draws no panel header, so the panel's own
+   refresh control needs a surface of its own. Only the control takes pointer events — the rest of
+   the strip must not swallow clicks meant for the chart. */
+.panel-wrap {
+    position: relative;
+
+    .public-panel-refresh {
+        position: absolute;
+        top: 2px;
+        right: 6px;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        pointer-events: none;
+
+        > * {
+            pointer-events: auto;
+        }
+    }
+}

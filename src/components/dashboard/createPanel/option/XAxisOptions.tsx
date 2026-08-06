@@ -3,6 +3,7 @@ import { E_CHART_TYPE } from '@/type/eChart';
 import { ChartAxisUnits, findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 import { getChartSeriesName } from '@/utils/dashboardUtil';
 import { chartTypeConverter } from '@/utils/eChartHelper';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { useMemo } from 'react';
 
 interface XAxisOptionProps {
@@ -12,7 +13,12 @@ interface XAxisOptionProps {
 
 export const XAxisOptions = (props: XAxisOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
-    const sIntervalTypeList = ['none', 'sec', 'min', 'hour'];
+    // distance (numeric base) panels render a value x-axis: expose unit/decimals/min/max and use a
+    // raw numeric interval ('value') instead of time units.
+    const sIsValueXAxis = isNumericBaseTimeBlock(pPanelOption?.blockList?.[0]);
+    const sIsAdvScatter = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER;
+    const sShowValueAxisOptions = sIsAdvScatter || sIsValueXAxis;
+    const sIntervalTypeList = sIsValueXAxis ? ['none', 'value'] : ['none', 'sec', 'min', 'hour'];
 
     const handleAxisInterval = (aType: string, aValue: number | string) => {
         pSetPanelOption((aPrev: any) => {
@@ -114,7 +120,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                         value={pPanelOption.axisInterval.IntervalValue.toString() ?? ''}
                         onChange={(aEvent) => handleAxisInterval(pPanelOption.axisInterval.IntervalType, aEvent.target.value)}
                     />
-                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
+                    {sShowValueAxisOptions && (
                         <>
                             <Page.Divi />
                             <Page.Collapse title="Options">
@@ -164,7 +170,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                             </Page.Collapse>
                         </>
                     )}
-                    {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && (
+                    {sIsAdvScatter && (
                         <>
                             <Page.Divi />
                             <BadgeSelect label="Series" selectedList={pPanelOption?.xAxisOptions[0]?.useBlockList || [0]} list={getBlockList} onChange={handleSeries} />

@@ -2237,6 +2237,13 @@
     white-space: nowrap;
 }
 
+/* First tick: pinned to the start of the rail instead of centred on it, the mirror of -tick-max.
+   Centred, half of a wide first label hangs off the left edge of the rail. */
+.neo-data-viewer .data-viewer-distance-tick-min {
+    transform: none;
+    align-items: flex-start;
+}
+
 .neo-data-viewer .data-viewer-distance-tick-max {
     transform: translateX(-100%);
     align-items: flex-end;

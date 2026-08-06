@@ -9,9 +9,10 @@ import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { getId, isMobile } from '@/utils';
 import TimeRangeModal from '@/components/modal/TimeRangeModal';
+import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VariableHeader } from '@/components/dashboard/variable/header';
@@ -29,6 +30,8 @@ const DashboardView = () => {
     const sIsMobile = isMobile();
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
     const sBoardRef = useRef<any>(undefined);
+    // Bumped on every refresh tick so the countdown ring restarts with the fetch rather than free-running.
+    const [sRingCycleId, setRingCycleId] = useState<number>(0);
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sChartVariableId, setChartVariableId] = useState<string>('');
@@ -72,7 +75,8 @@ const DashboardView = () => {
         return sNowTimeMinMax;
     };
     const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
-        const sTargetPanel = aBoardInfo.dashboard.panels[0];
+        // Source the board time min/max from a TIME (non-distance) panel — distance panels self-resolve.
+        const sTargetPanel = pickBoardTimeMinMaxPanel(aBoardInfo.dashboard.panels);
         if (!sTargetPanel?.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
         const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
@@ -144,12 +148,22 @@ const DashboardView = () => {
         GenChartVariableId();
         return;
     };
+    // Board-wide auto refresh — updating timeRange.refresh re-runs the interval effect below ([sBoardInformation]).
+    const changeAutoRefresh = (aRefresh: string) => {
+        setBoardInformation((aPrev: any) =>
+            aPrev ? { ...aPrev, dashboard: { ...aPrev.dashboard, timeRange: { ...aPrev.dashboard.timeRange, refresh: aRefresh } } } : aPrev
+        );
+    };
     const setIntervalTime = (aTimeRange: any): number => {
         return calcRefreshTime(aTimeRange.refresh);
     };
     const ctrBoardInterval = (aTimeRange: any) => {
         clearInterval(sBoardRef.current);
         sBoardRef.current = setInterval(() => {
+            // Restart the header's countdown ring on the tick itself. The animation otherwise runs
+            // from whenever the control mounted, which has nothing to do with when this interval
+            // was armed, so the ring empties at a moment the data does not arrive.
+            setRingCycleId((aId) => aId + 1);
             handleDashboardTimeRange(aTimeRange.start, aTimeRange.end, undefined, true);
         }, setIntervalTime(aTimeRange));
     };
@@ -244,9 +258,10 @@ const DashboardView = () => {
                             ) : (
                                 <span>Time range not set</span>
                             )}
-                            , Refresh : {sBoardInformation?.dashboard.timeRange.refresh}
                         </Button>
                         <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
+                        <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                        <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                     </div>
                 </Page.Header>
                 <Page.Body ref={sBodyRef}>
@@ -314,7 +329,6 @@ const DashboardView = () => {
                     pEndTime={sBoardInformation?.dashboard.timeRange.end}
                     pSetTime={setBoardInformation}
                     pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
-                    pShowRefresh={true}
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}

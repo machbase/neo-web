@@ -7,16 +7,21 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdRefresh, Share } from '@/assets/icons/Icon';
+import { TbSquarePlus, Save, SaveAs, MdRefresh, Share } from '@/assets/icons/Icon';
 import TimeRangeModal from '../modal/TimeRangeModal';
+import AutoRefreshControl from './AutoRefreshControl';
+import RangeChips from './RangeChips';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
+import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import moment from 'moment';
-import { calcRefreshTime, setUnitTime, formatTimeValue } from '@/utils/dashboardUtil';
+import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { Variable } from './variable';
@@ -31,6 +36,7 @@ import { clearBoardVideoStore } from '@/hooks/useVideoSync';
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
     const boardIdRef = useRef<string>(pInfo?.id);
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
+    const [sInitialRangeTab, setInitialRangeTab] = useState<'time' | 'distance'>('time');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sLoadedRollupTable, setLoadedRollupTable] = useState<boolean>(false);
@@ -46,6 +52,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sVariableCollapse, setVariableCollapse] = useState<boolean>(false);
     const [sSelectVariable, setSelectVariable] = useState<string>('ALL');
     const [sShareModal, setShareModal] = useState<boolean>(false);
+    // Incremented whenever the refresh timer starts a fresh cycle, to realign the header countdown ring
+    // (see the sRefreshDelay effect below). Passed to AutoRefreshControl as pCycleId.
+    const [sRingCycleId, setRingCycleId] = useState<number>(0);
 
     const moveTimeRange = (aItem: string) => {
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
@@ -79,6 +88,34 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         );
 
         handleDashboardTimeRange(sStartTime, sEndTime);
+    };
+    // Shift only the distance axis by its current span (default/full range resolves to [first, last] first).
+    const moveDistanceRange = async (aDir: 'l' | 'r') => {
+        const sDR = pInfo.dashboard.distanceRange ?? {};
+        // An anchored edge has to be measured before it can be shifted; shifting then writes plain
+        // coordinates, the same way the time arrows turn 'now-3h' into two timestamps.
+        const sAnchored = isDistanceAnchorEdge(sDR.start) || isDistanceAnchorEdge(sDR.end);
+        let sFrom = Number(sDR.start);
+        let sTo = Number(sDR.end);
+        if (sAnchored) {
+            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
+            sFrom = resolveDistanceEdge(sDR.start, sBounds) ?? NaN;
+            sTo = resolveDistanceEdge(sDR.end, sBounds) ?? NaN;
+        }
+        if (!isDistanceEdgeSet(sDR.start) || !isDistanceEdgeSet(sDR.end) || !Number.isFinite(sFrom) || !Number.isFinite(sTo)) {
+            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
+            if (!sBounds) return;
+            sFrom = sBounds.min;
+            sTo = sBounds.max;
+        }
+        const sShift = ((sTo - sFrom) / 2) * (aDir === 'l' ? -1 : 1);
+        const sNewFrom = Math.round(sFrom + sShift);
+        const sNewTo = Math.round(sTo + sShift);
+        setBoardList(
+            sBoardList.map((aItem: any) => (aItem.id === pInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: sNewFrom, end: sNewTo } } } : aItem))
+        );
     };
     const showEditPanel = (aType: 'create' | 'edit' | undefined, aId?: string) => {
         setThisPanelStatus(aType);
@@ -140,6 +177,19 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             })
         );
     };
+    // Board-wide auto refresh (relocated out of the Time Range modal). Applies to time + distance axes.
+    const changeAutoRefresh = (aRefresh: string) => {
+        setBoardList(
+            sBoardList.map((aItem: any) => {
+                return aItem.id === pInfo.id
+                    ? {
+                          ...aItem,
+                          dashboard: { ...aItem.dashboard, timeRange: { ...aItem.dashboard.timeRange, refresh: aRefresh } },
+                      }
+                    : aItem;
+            })
+        );
+    };
     const HandleRefresh = async (aTimeRange: any) => {
         if (pInfo.dashboard.panels.length < 1) return;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
@@ -166,7 +216,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         handleDashboardTimeRange(sStart, sEnd);
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
-        const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
+        // Board-level time min/max must come from a TIME (non-distance) panel; distance panels self-resolve
+        // from distanceRange, so a distance-first mixed board would otherwise leak distance bounds here.
+        const sTargetPanel = pickBoardTimeMinMaxPanel(pInfo.dashboard.panels);
         const sTargetTag = sTargetPanel?.blockList?.[0] ?? { tag: '', filter: [] };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag =
@@ -225,9 +277,25 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         return null;
     };
 
+    const sRefreshDelay = sSetIntervalTime();
+
     useOverlapTimeout(() => {
+        // Restart the ring on the tick itself, not just when the interval changes. `useOverlapTimeout`
+        // re-arms `delay` ms after each callback, so its real period is delay + however long the tick
+        // takes, while a CSS animation of exactly `delay` never waits for anything — the two drift
+        // apart by that difference every cycle. Anchoring the animation here keeps it on the fetch.
+        setRingCycleId((aId) => aId + 1);
         handleDashboardTimeRange(pInfo.dashboard.timeRange.start, pInfo.dashboard.timeRange.end, true);
-    }, sSetIntervalTime());
+    }, sRefreshDelay);
+
+    // Bump the countdown ring's cycle id every time the refresh timer starts a fresh cycle — i.e. whenever
+    // sRefreshDelay becomes non-null (resuming after the edit-mode pause / tab switch, or an interval change).
+    // useOverlapTimeout re-schedules its first fire a full period from that same moment, so restarting the
+    // ring from full here keeps the animation aligned with when the data actually refreshes. Skipped while
+    // paused (null), since the ring is hidden under the panel-editor overlay then anyway.
+    useEffect(() => {
+        if (sRefreshDelay != null) setRingCycleId((aId) => aId + 1);
+    }, [sRefreshDelay]);
 
     return (
         // Render after rollup info load
@@ -261,17 +329,22 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 toolTipContent="Refresh"
                                 onClick={() => HandleRefresh(pInfo.dashboard.timeRange)}
                             />
-                            <Button size="icon" variant="ghost" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} />
-                            <Button size="sm" variant="ghost" onClick={() => setTimeRangeModal(true)}>
-                                <Calendar style={{ paddingRight: '8px' }} />
-                                {pInfo?.dashboard?.timeRange?.start ? (
-                                    <>{formatTimeValue(pInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pInfo.dashboard.timeRange.end)}</>
-                                ) : (
-                                    <span>Time range not set</span>
-                                )}
-                                , Refresh : {pInfo.dashboard.timeRange.refresh}
-                            </Button>
-                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Move range" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
+                            <RangeChips
+                                pBoardInfo={pInfo}
+                                pOnShiftTime={moveTimeRange}
+                                pOnShiftDist={moveDistanceRange}
+                                pOnEditTime={() => {
+                                    setInitialRangeTab('time');
+                                    setTimeRangeModal(true);
+                                }}
+                                pOnEditDist={() => {
+                                    setInitialRangeTab('distance');
+                                    setTimeRangeModal(true);
+                                }}
+                            />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                            <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Sava" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => pSetIsSaveModal(true)} />
                             {pIsSave ? (
@@ -353,7 +426,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                     )}
                 </Page>
                 {sTimeRangeModal && (
-                    <TimeRangeModal pUseRecoil={true} pType={'dashboard'} pSetTimeRangeModal={setTimeRangeModal} pShowRefresh={true} pSaveCallback={handleSaveTimeRange} />
+                    <TimeRangeModal pUseRecoil={true} pType={'dashboard'} pInitialTab={sInitialRangeTab} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />
                 )}
                 {sCreateModal && (
                     <CreatePanel
@@ -366,6 +439,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pModifyState={sModifyState}
                         pSetModifyState={setModifyState}
                         pMoveTimeRange={moveTimeRange}
+                        pMoveDistanceRange={moveDistanceRange}
                         pSetTimeRangeModal={setTimeRangeModal}
                         pSetIsSaveModal={pSetIsSaveModal}
                         pBoardTimeMinMax={sBoardTimeMinMax}

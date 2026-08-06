@@ -43,8 +43,10 @@ import { displayJsonPathLabel, extractJsonPathsFromSamples, isJsonTypeColumn, js
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
 import { isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
 import { repairDashboardBlockForTableColumns } from '@/utils/dashboardBlockColumns';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { MIXED_X_AXIS_KIND_WARNING } from '@/components/tagAnalyzer/seriesModel';
 
-export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount, pShouldFocusTag }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount, pShouldFocusTag }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -285,35 +287,26 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         if (sData && sData?.data && sData?.data?.rows && sData?.data?.rows.length > 0) {
             const sTableType = getTableType(sTable[4]);
             const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
-            if (pType === 'create') {
-                pSetPanelOption((aPrev: any) => {
-                    return {
-                        ...aPrev,
-                        blockList: aPrev.blockList.map((aItem: any) => {
-                            if (aItem.id === pBlockInfo.id) {
-                                return {
-                                    ...repairDashboardBlockForTableColumns(aItem, sVisibleRows, sTableType),
-                                    tableInfo: sData.data.rows,
-                                };
-                            } else return aItem;
-                        }),
-                    };
-                });
-            } else {
-                pSetPanelOption((aPrev: any) => {
-                    return {
-                        ...aPrev,
-                        blockList: aPrev.blockList.map((aItem: any) => {
-                            return aItem.id === pBlockInfo.id
-                                ? {
-                                      ...repairDashboardBlockForTableColumns(aItem, sVisibleRows, sTableType),
-                                      tableInfo: sData.data.rows,
-                                  }
-                                : aItem;
-                        }),
-                    };
-                });
+            const sRepairedBlock = {
+                ...repairDashboardBlockForTableColumns(pBlockInfo, sVisibleRows, sTableType),
+                tableInfo: sData.data.rows,
+            };
+            // Enforce one base kind (time vs distance) per panel: reject a table whose base axis kind
+            // differs from the panel's already-selected blocks — mixed time/distance can't share one chart.
+            const sNewIsDistance = isNumericBaseTimeBlock(sRepairedBlock);
+            const sHasMismatch = (pPanelOption.blockList ?? []).some(
+                (aOther: any) => aOther.id !== pBlockInfo.id && aOther.table && aOther.table !== '' && isNumericBaseTimeBlock(aOther) !== sNewIsDistance
+            );
+            if (sHasMismatch) {
+                Toast.error(MIXED_X_AXIS_KIND_WARNING);
+                return;
             }
+            pSetPanelOption((aPrev: any) => {
+                return {
+                    ...aPrev,
+                    blockList: aPrev.blockList.map((aItem: any) => (aItem.id === pBlockInfo.id ? sRepairedBlock : aItem)),
+                };
+            });
             setColumnList(sData.data.rows);
         } else {
             setColumnList([]);

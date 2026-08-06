@@ -53,7 +53,6 @@ import {
     buildDataViewerSplitGroups,
     buildDataViewerShiftBaseRangeUpdate,
     buildDataViewerShiftMainRangeUpdate,
-    buildDataViewerDistanceQuickWindow,
     buildDataViewerDistanceSliderClickRange,
     buildDataViewerDragRangeUpdate,
     buildDataViewerTagSelectionUpdate,
@@ -84,7 +83,6 @@ import {
     isDataViewerRangeReversed,
     isSameDataViewerChartRange,
     normalizeSelectedTagNames,
-    parseDataViewerDistanceValue,
     resolveDataViewerBaseColumn,
     resolveDataViewerBaseColumnType,
     resolveDataViewerBaseKind,
@@ -93,6 +91,19 @@ import {
     toDataViewerDate,
 } from './dataViewerModel';
 import type { DataViewerBaseKind } from './dataViewerModel';
+import {
+    buildDistanceQuickWindowExpression,
+    buildDistanceTickValues,
+    clampDistance,
+    formatDistanceReadout,
+    formatDistanceAxisLabel,
+    isDistanceAnchorEdge,
+    resolveDistanceEdge,
+    thinDistanceTicks,
+    DISTANCE_QUICK_WINDOWS,
+    DISTANCE_THUMB_GRAB_PX,
+    DISTANCE_THUMB_WIDTH,
+} from '@/utils/distanceRange';
 import './DataViewerPage.scss';
 
 type ResultRow = Record<string, unknown>;
@@ -129,7 +140,7 @@ const TAG_HAS_NO_DATA_MESSAGE = 'The selected tag has no data to anchor the time
 // edges for the identical reason a time window is, but "check the entered time" would send someone
 // looking for a clock on a table that has an odometer.
 const DISTANCE_RANGE_REQUIRED_MESSAGE = 'Distance range requires both From and To.';
-const DISTANCE_RANGE_INVALID_MESSAGE = 'Distance range accepts numbers only.';
+const DISTANCE_RANGE_INVALID_MESSAGE = 'Distance range accepts numbers, or first / last (e.g. last-5000).';
 const DISTANCE_RANGE_ORDER_MESSAGE = 'From should be smaller than To.';
 // A JSON value column holds a document, not a scalar. Raw is unaffected — the grid prints the
 // document as text, which is exactly what someone reading a JSON column wants to see. What breaks
@@ -308,76 +319,15 @@ function TimeRangeModal({
 // extent, a readout, a tick scale, and the From/To numeric inputs — with the same
 // both-edges-required / from-before-to rules the time path enforces.
 //
-// It is modelled on `DistanceRangeTab`, which lands on another branch. This is deliberately not a
-// copy of it: that component is a *tab body* inside the shared modal's shell and styles itself with
-// CSS modules, whereas this one owns its own dialog shell and takes its styling from the
-// `.neo-data-viewer` design tokens. What is kept identical is the contract and the geometry — the
-// same `{ min, max }` bounds prop, the same clamp, the same "no extent ⇒ hide the slider, keep the
-// inputs" fallback — so when the branches meet, this component's *body* is replaced by
-// `<DistanceRangeTab pBounds={...} pFrom={...} pTo={...} pOnChange={...} />` and nothing outside
-// these two seam markers moves. `bounds` is already `pBounds`; `range` in / `onApply` out is
-// already how the page talks to both editors.
+// The dashboard draws the same editor in `components/modal/DistanceRangeTab` — as a *tab body*
+// inside the shared Modal's shell, styled with CSS modules, where this one owns its own dialog and
+// takes its styling from the `.neo-data-viewer` tokens. The two are deliberately not one component
+// for that reason, but they are one *editor*: every value a gesture can produce — tick values and
+// labels, the readout format, the thumb metrics, the snap, the track click, the quick windows —
+// comes from `@/utils/distanceRange` and nowhere else, so a drag lands on the same number in both.
 //
 // No date picker and no quick-range list: `last-1h` has no distance analogue, so the only thing
 // there is to type is a number.
-
-// ~5 round ticks across the extent, at a 1/2/5 × 10ⁿ step — the same family of steps an axis picks,
-// so the labels read `0, 1k, 2k, 3k, 4k` rather than `0, 966, 1932, …`.
-function buildDistanceTickValues(min: number, max: number) {
-    const span = max - min;
-    if (!Number.isFinite(span) || span <= 0) return [];
-    const magnitude = 10 ** Math.floor(Math.log10(span / 4));
-    const step = [1, 2, 5, 10].map((factor) => factor * magnitude).find((candidate) => span / candidate <= 5) ?? magnitude * 10;
-    const ticks: number[] = [];
-    // `toPrecision` because a decimal step accumulates float error over the walk (0.1 + 0.2 …), and
-    // a tick labelled `0.30000000000000004` is worse than no tick at all.
-    for (let value = Math.ceil(min / step) * step, guard = 0; value <= max && guard < 64; value += step, guard += 1) {
-        ticks.push(Number(Number(value).toPrecision(12)));
-    }
-    return ticks;
-}
-
-// Compact, for the tick scale only: the readout and the max label spell the number out in full.
-function formatDistanceTickLabel(value: number) {
-    const units = [
-        { value: 1_000_000_000, suffix: 'b' },
-        { value: 1_000_000, suffix: 'm' },
-        { value: 1_000, suffix: 'k' },
-    ];
-    const normalized = Object.is(value, -0) ? 0 : value;
-    const unit = units.find((item) => Math.abs(normalized) >= item.value);
-    if (!unit) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(normalized);
-    return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(normalized / unit.value)}${unit.suffix}`;
-}
-
-const formatDistanceReadout = (value: number | null) =>
-    value === null || !Number.isFinite(value) ? '-' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(value);
-
-const clampDistance = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-// The thumb is 8px wide (`.data-viewer-distance-thumb::-webkit-slider-thumb`), so a native range
-// input centres it half that far inside each end of the rail. Every pixel↔value conversion below
-// works on the inset rail rather than the element box, which is what keeps a thumb rendered at the
-// maximum sitting under the pointer that put it there.
-const DISTANCE_THUMB_WIDTH = 8;
-// How close a press has to land to count as "on that thumb" rather than as a press on bare track.
-// A little wider than the thumb, because an 8px target is not one.
-const DISTANCE_THUMB_GRAB_PX = 10;
-
-// The two quick windows rows, in the order they are drawn. `Full` is the whole extent, expressed as
-// the same "first N% " the row above it uses, so there is one rule and no special case.
-const DISTANCE_QUICK_WINDOWS: Array<Array<{ label: string; edge: 'first' | 'last'; ratio: number }>> = [
-    [
-        { label: 'First 10%', edge: 'first', ratio: 0.1 },
-        { label: 'First 25%', edge: 'first', ratio: 0.25 },
-        { label: 'First 50%', edge: 'first', ratio: 0.5 },
-    ],
-    [
-        { label: 'Last 50%', edge: 'last', ratio: 0.5 },
-        { label: 'Last 25%', edge: 'last', ratio: 0.25 },
-        { label: 'Full', edge: 'first', ratio: 1 },
-    ],
-];
 
 function DistanceRangeModal({
     range,
@@ -397,12 +347,18 @@ function DistanceRangeModal({
     // there would be invisible until the user closed the very dialog that produced it.
     const [notice, setNotice] = useState('');
 
+    const hasExtent = Boolean(bounds && Number.isFinite(bounds.min) && Number.isFinite(bounds.max) && bounds.max > bounds.min);
     // The text is the source of truth, because the text is what Apply validates. The slider is a
     // second view of the same two strings, so "1e3" or "" or "abc" stay exactly as typed and are
     // still rejected by the same three rules below.
-    const fromValue = parseDataViewerDistanceValue(from);
-    const toValue = parseDataViewerDistanceValue(to);
-    const hasExtent = Boolean(bounds && Number.isFinite(bounds.min) && Number.isFinite(bounds.max) && bounds.max > bounds.min);
+    //
+    // An edge may also be anchored to the data — `last`, `last-5000`, `first`, `first+5000`, the
+    // distance answer to `last-1h ~ last`. Those are resolved against the extent for everything on
+    // screen, and kept as expressions in what Apply hands back, so the window follows the data
+    // instead of freezing at the coordinates it happens to sit on today.
+    const resolveEdge = (value: string) => resolveDistanceEdge(value, hasExtent ? { min: bounds!.min, max: bounds!.max } : null);
+    const fromValue = resolveEdge(from);
+    const toValue = resolveEdge(to);
     const sliderMin = hasExtent ? bounds!.min : 0;
     const sliderMax = hasExtent ? bounds!.max : 0;
     const sliderSpan = sliderMax - sliderMin || 1;
@@ -419,6 +375,25 @@ function DistanceRangeModal({
         return raw >= 1 ? Math.max(1, Math.round(raw)) : raw;
     }, [sliderSpan]);
     const tickValues = useMemo(() => (hasExtent ? buildDistanceTickValues(sliderMin, sliderMax) : []), [hasExtent, sliderMax, sliderMin]);
+    // Labels sized to the tick step, and thinned when that makes them long. An odometer window of a
+    // few hundred metres around 25,150,000 otherwise prints five ticks that all read the same and a
+    // max label long enough to sit on its neighbour — one decimal cannot separate ticks 200 apart at
+    // that magnitude. Same rule as the dashboard's editor.
+    const tickStep = tickValues.length > 1 ? tickValues[1] - tickValues[0] : sliderSpan / 4;
+    const tickLabel = (value: number) => formatDistanceAxisLabel(value, tickStep);
+    // The upper bound is the one number here worth spelling out exactly; it only falls back to the
+    // short form when spelling it out would run into the tick beside it. Exact value on hover.
+    const exactMaxLabel = formatDistanceReadout(sliderMax);
+    const maxTickLabel = exactMaxLabel.length > 9 ? tickLabel(sliderMax) : exactMaxLabel;
+    const drawnTicks = useMemo(() => {
+        const longest = tickValues.reduce((max, value) => Math.max(max, tickLabel(value).length), maxTickLabel.length);
+        const edgeCut = longest > 10 ? 0.6 : longest > 6 ? 0.72 : 0.92;
+        return thinDistanceTicks(
+            tickValues.filter((value) => (value - sliderMin) / sliderSpan <= edgeCut),
+            tickLabel
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tickValues, sliderMin, sliderMax, sliderSpan, tickStep, maxTickLabel]);
 
     // Every value the slider produces — a pixel on the rail, an arrow key — goes through here, so a
     // continuous ratio can never reach the From box as `401578.346465`, and either bound is exactly
@@ -595,11 +570,13 @@ function DistanceRangeModal({
 
     // Whole-extent shortcuts. Only drawn when there *is* an extent: without one there is no "50% of"
     // anything, which is the same reason the slider itself is not drawn (see `hasExtent`).
+    // Anchored, not frozen: `Last 25%` is the most recent quarter of the data as it stands now *and*
+    // as it grows, which is what makes it the distance answer to `Last 1 hour`.
     const applyQuickWindow = (edge: 'first' | 'last', ratio: number) => {
-        const next = buildDataViewerDistanceQuickWindow({ min: sliderMin, max: sliderMax, edge, ratio });
+        const next = buildDistanceQuickWindowExpression({ min: sliderMin, max: sliderMax, edge, ratio });
         if (!next) return;
-        setFrom(String(next.from));
-        setTo(String(next.to));
+        setFrom(next.from);
+        setTo(next.to);
     };
 
     const apply = () => {
@@ -617,9 +594,13 @@ function DistanceRangeModal({
             setNotice(DISTANCE_RANGE_ORDER_MESSAGE);
             return;
         }
-        // Numbers, not the typed text: everything downstream — the frozen window key, the SQL
-        // literal, the chip label — then reads one canonical form of the same value.
-        onApply({ from: fromValue, to: toValue });
+        // A coordinate is handed back as its number, so everything downstream — the frozen window
+        // key, the SQL literal, the chip label — reads one canonical form. An anchored edge is handed
+        // back as its expression, because resolving it here is exactly what it exists to avoid.
+        onApply({
+            from: isDistanceAnchorEdge(from) ? from.trim() : fromValue,
+            to: isDistanceAnchorEdge(to) ? to.trim() : toValue,
+        });
     };
 
     // Escape has to be listened for on the document, not on the dialog: a `onKeyDown` there only
@@ -731,23 +712,24 @@ function DistanceRangeModal({
                                     />
                                 </div>
                                 <div className="data-viewer-distance-ticks">
-                                    {tickValues
-                                        // The upper bound is spelled out in full at the right edge; a round tick
-                                        // sitting on top of it would print two numbers in the same place.
-                                        .filter((value) => (value - sliderMin) / sliderSpan <= 0.92)
-                                        .map((value) => (
+                                    {/* The upper bound is drawn at the right edge, so ticks that would
+                                        land on it are cut above rather than printed over it. */}
+                                    {drawnTicks.map((value) => {
+                                        const percent = ((value - sliderMin) / sliderSpan) * 100;
+                                        return (
                                             <span
                                                 key={value}
-                                                className="data-viewer-distance-tick"
-                                                style={{ left: `${((value - sliderMin) / sliderSpan) * 100}%` }}
+                                                className={`data-viewer-distance-tick${percent < 2 ? ' data-viewer-distance-tick-min' : ''}`}
+                                                style={{ left: `${percent}%` }}
                                             >
                                                 <span className="data-viewer-distance-tick-mark" />
-                                                <span className="data-viewer-distance-tick-label">{formatDistanceTickLabel(value)}</span>
+                                                <span className="data-viewer-distance-tick-label">{tickLabel(value)}</span>
                                             </span>
-                                        ))}
-                                    <span className="data-viewer-distance-tick data-viewer-distance-tick-max" style={{ left: '100%' }}>
+                                        );
+                                    })}
+                                    <span className="data-viewer-distance-tick data-viewer-distance-tick-max" style={{ left: '100%' }} title={exactMaxLabel}>
                                         <span className="data-viewer-distance-tick-mark" />
-                                        <span className="data-viewer-distance-tick-label">{formatDistanceReadout(sliderMax)}</span>
+                                        <span className="data-viewer-distance-tick-label">{maxTickLabel}</span>
                                     </span>
                                 </div>
                             </>
@@ -1828,18 +1810,28 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     }, [dbName, tableName, userName]);
 
     const resolveRangeForTagNames = useCallback(async (targetRange: DataViewerTimeRange, tagNames: string[]) => {
-        // A distance axis has no clock. There is no `last` to anchor to, so no boundary query is
-        // issued — `queryTagBoundaryTime` would come back with the stat view's reinterpreted bit
-        // pattern or a scan of a column that measures metres — and no date parsing happens, so
-        // `toDataViewerDate` never gets the chance to turn 999990 into 1970-01-01. The edges are the
-        // numbers themselves; `null` means the value was not one.
+        // A distance axis has no clock, so no *time* boundary query is issued — `queryTagBoundaryTime`
+        // would come back with the stat view's reinterpreted bit pattern or a scan of a column that
+        // measures metres — and no date parsing happens, so `toDataViewerDate` never gets the chance
+        // to turn 999990 into 1970-01-01. The edges are the numbers themselves; `null` means the
+        // value was not one.
+        //
+        // It does have an *extent*, though, and that is what `first`/`last` are anchored to. Those
+        // edges are resolved here, against the same base-column bounds the slider is drawn from, and
+        // only when one is actually present — a pair of coordinates costs no round trip.
         if (baseKind === 'distance') {
-            const fromValue = parseDataViewerDistanceValue(targetRange.from);
-            const toValue = parseDataViewerDistanceValue(targetRange.to);
+            const needsExtent = isDistanceAnchorEdge(targetRange.from) || isDistanceAnchorEdge(targetRange.to);
+            const extent = needsExtent
+                ? await queryTagBaseColumnBounds({ dbName, userName, tableName, names: tagNames, tagColumn, baseColumn, baseKind }).catch(() => null)
+                : null;
+            const fromValue = resolveDistanceEdge(targetRange.from, extent);
+            const toValue = resolveDistanceEdge(targetRange.to, extent);
             return {
                 from: fromValue === null ? null : formatDataViewerDistance(fromValue),
                 to: toValue === null ? null : formatDataViewerDistance(toValue),
-                missingBoundary: false,
+                // The same signal the time path raises when `last` cannot be resolved: an anchored
+                // edge with no extent behind it is a window nobody can query.
+                missingBoundary: needsExtent && !extent,
             };
         }
 

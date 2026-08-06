@@ -13,6 +13,7 @@ import { Toast } from '@/design-system/components';
 import { Home, TreeFolder, Delete, Download, Play, Search, Save, ArrowLeft, ArrowRight, TbFolderPlus, Close } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 import { calcInterval, CheckObjectKey, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
+import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
@@ -86,7 +87,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     const GetQuery = async () => {
         const { min, max } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50, isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]));
         const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
             SqlResDataType(pPanelInfo.type),
