@@ -12,8 +12,11 @@ import {
     type ValueRange,
 } from '../panel/panelModel';
 import { decodePersistedPanelRangeState } from './persistedPanelRange';
-import { formatAbsoluteTime, formatNumericValue } from './serializeRange';
-import { normalizeStoredTimeUnit } from '../range/intervalResolver';
+import {
+    decodePersistedTimeUnit,
+    formatAbsoluteTime,
+    formatNumericValue,
+} from './serializeRange';
 import {
     type RangeExpressionInput,
     type RangeState,
@@ -328,7 +331,7 @@ function createPanelInfoFromLegacyFlatPanelInfo(
         title: panelInfo.chart_title,
         query: {
             tagSet: sTagSet,
-            intervalType: normalizeStoredTimeUnit(panelInfo.interval_type ?? ''),
+            intervalType: decodePersistedTimeUnit(panelInfo.interval_type),
         },
         mode: {
             isRaw: panelInfo.raw_keeper ?? false,
@@ -655,7 +658,7 @@ function parseLoadedPanelTazVer200(
         title: panelInfo.meta.chartTitle,
         query: {
             tagSet: sTagSet,
-            intervalType: normalizeStoredTimeUnit(panelInfo.data.intervalType ?? ''),
+            intervalType: decodePersistedTimeUnit(panelInfo.data.intervalType),
         },
         mode: {
             isRaw: panelInfo.toolbar.isRaw,
@@ -901,7 +904,7 @@ function parseLoadedPanelTazVer204(
         title: panelInfo.general.chart_title,
         query: {
             tagSet: sTagSet,
-            intervalType: normalizeStoredTimeUnit(panelInfo.data.interval_type ?? ''),
+            intervalType: decodePersistedTimeUnit(panelInfo.data.interval_type),
         },
         mode: {
             isRaw: panelInfo.general.is_raw,

@@ -10,10 +10,7 @@ import { seriesDataApi } from '../api/seriesDataApi';
 import { getErrorMessageFromValue } from '../errorMessage';
 import { parseRangeInputValue } from '../format/inputFormat';
 import type { PanelInfo } from './panelModel';
-import {
-    resolveRangeExpression,
-    resolveRangeInput,
-} from '../range/rangeInput';
+import { resolveRangeInput } from '../range/rangeInput';
 import {
     enforceChartAreaWidth,
     resolveButtonPress,
@@ -32,7 +29,6 @@ import {
     isSameRange,
 } from '../range/rangeArithmetic';
 import {
-    INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO,
     isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
@@ -43,6 +39,7 @@ import {
 import { useStableCallback } from '../hooks/useStableCallback';
 
 const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
+const INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO = 0.25;
 const RANGE_ACTION_ERROR_MESSAGE = 'Failed to update panel range.';
 const PANEL_FULL_RANGE_UNAVAILABLE_MESSAGE =
     'Cannot resolve panel range because no valid data range was found.';
@@ -105,10 +102,10 @@ type RuntimeInputs = PanelRangeRuntimeRequests & {
 };
 
 function isSameRangeInput(
-    left: RangeExpressionInput | undefined,
-    right: RangeExpressionInput | undefined,
+    left: RangeExpressionInput,
+    right: RangeExpressionInput,
 ): boolean {
-    return left?.start === right?.start && left?.end === right?.end;
+    return left.start === right.start && left.end === right.end;
 }
 
 class RequiredFullRangeError extends Error {
@@ -164,28 +161,6 @@ function getBoardRangeInput(
     return sRangeKind ? boardRanges[sRangeKind].input : EMPTY_RANGE_INPUT;
 }
 
-function resolveExpressionRangeInput(
-    input: RangeExpressionInput,
-    axisKind: AxisKind,
-    fullRange: AxisRange,
-    currentRange: AxisRange,
-): AxisRange | undefined {
-    return resolveRangeInput(
-        resolveRangeExpression(
-            input.start,
-            axisKind,
-            fullRange,
-            currentRange.startTime,
-        ),
-        resolveRangeExpression(
-            input.end,
-            axisKind,
-            fullRange,
-            currentRange.endTime,
-        ),
-    );
-}
-
 function getBroadcastVersions(
     boardRanges: PanelRangeRuntimeRequests['boardRanges'],
     globalRangeRequest: PanelRangeRuntimeRequests['globalRangeRequest'],
@@ -201,7 +176,7 @@ function getBroadcastVersions(
 
 function createInitialRange(navigatorRange: AxisRange): RangeState {
     return {
-        panelRange: createRangeFromCenterAndWidth(
+        mainRange: createRangeFromCenterAndWidth(
             getRangeCenter(navigatorRange),
             getRangeWidth(navigatorRange) *
                 INITIAL_MAIN_CHART_VISIBLE_RANGE_RATIO,
@@ -220,14 +195,14 @@ function createNextRangeState(
         ...current,
         range,
         navigatorRangeInput: authority === 'navigator'
-            ? navigatorRangeInput && { ...navigatorRangeInput }
+            ? { ...(navigatorRangeInput ?? EMPTY_RANGE_INPUT) }
             : authority === 'exact' ||
                 isSameRange(
                     range.navigatorRange,
                     current.range.navigatorRange,
                 )
               ? current.navigatorRangeInput
-              : undefined,
+              : { ...EMPTY_RANGE_INPUT },
     };
 }
 
@@ -268,7 +243,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         const sCurrentState: ResolvedRangeState = {
             range: current,
             fullRange,
-            navigatorRangeInput: undefined,
+            navigatorRangeInput: { ...EMPTY_RANGE_INPUT },
         };
         const sResolvedRange = resolveRangeChange(
             current,
@@ -376,8 +351,8 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                 sCurrentRangeState.navigatorRangeInput,
             ) ||
             !isSameRange(
-                nextRangeState.range.panelRange,
-                sCurrentRangeState.range.panelRange,
+                nextRangeState.range.mainRange,
+                sCurrentRangeState.range.mainRange,
             ) ||
             !isSameRange(
                 nextRangeState.range.navigatorRange,
@@ -463,7 +438,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
     ): ResolvedRangeState {
         const sAxisKind = getPanelAxisKind(panelInfo);
         const sFullRangeState = {
-            panelRange: fullRange,
+            mainRange: fullRange,
             navigatorRange: fullRange,
         };
         const buildState = (
@@ -479,7 +454,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         );
         const sBoardRange = isRangeExpressionEmpty(boardRange)
             ? undefined
-            : resolveExpressionRangeInput(
+            : resolveRangeInput(
                   boardRange,
                   sAxisKind,
                   fullRange,
@@ -490,7 +465,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                 applyInitialMainChartWindow
                     ? createInitialRange(sBoardRange)
                     : {
-                          panelRange: sBoardRange,
+                          mainRange: sBoardRange,
                           navigatorRange: sBoardRange,
                       },
                 applyInitialMainChartWindow ? 'navigator' : 'exact',
@@ -507,24 +482,24 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         }
 
         const sRangeInput = panelInfo.time.rangeInput;
-        const sPanelRange = isRangeExpressionEmpty(sRangeInput)
+        const sMainRange = isRangeExpressionEmpty(sRangeInput)
             ? undefined
-            : resolveExpressionRangeInput(
+            : resolveRangeInput(
                   sRangeInput,
                   sAxisKind,
                   fullRange,
                   fullRange,
               );
         return buildState(
-            !sPanelRange &&
+            !sMainRange &&
                 isRangeExpressionEmpty(sRangeInput) &&
                 applyInitialMainChartWindow
                 ? createInitialRange(fullRange)
                 : {
-                      panelRange: sPanelRange ?? fullRange,
+                      mainRange: sMainRange ?? fullRange,
                       navigatorRange: fullRange,
                   },
-            !sPanelRange &&
+            !sMainRange &&
                 isRangeExpressionEmpty(sRangeInput) &&
                 applyInitialMainChartWindow
                 ? 'navigator'
@@ -548,13 +523,19 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                 boardRange: sBoardRange,
             });
         const sPanelRangeInput = context.panelInfo.time.rangeInput;
-        const sExplicitFullRange =
+        const sExplicitStart =
             getPanelRangeKind(context.panelInfo) === 'numeric' &&
             isRangeExpressionEmpty(sBoardRange)
-                ? resolveRangeInput(
-                      parseRangeInputValue(sPanelRangeInput.start, 'numeric'),
-                      parseRangeInputValue(sPanelRangeInput.end, 'numeric'),
-                  )
+                ? parseRangeInputValue(sPanelRangeInput.start, 'numeric')
+                : undefined;
+        const sExplicitEnd = sExplicitStart !== undefined
+            ? parseRangeInputValue(sPanelRangeInput.end, 'numeric')
+            : undefined;
+        const sExplicitFullRange =
+            sExplicitStart !== undefined &&
+            sExplicitEnd !== undefined &&
+            sExplicitStart < sExplicitEnd
+                ? { start: sExplicitStart, end: sExplicitEnd }
                 : undefined;
 
         return sExplicitFullRange
@@ -568,7 +549,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
     ): Promise<ResolvedRangeState> {
         const sFullRange = await fetchPanelFullRange(context);
         const sFullRangeState = {
-            panelRange: sFullRange,
+            mainRange: sFullRange,
             navigatorRange: sFullRange,
         };
         return buildResolvedRangeState(
@@ -586,7 +567,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         axisKind: AxisKind,
         retainInput = false,
     ): ResolvedRangeState {
-        const sNavigatorRange = resolveExpressionRangeInput(
+        const sNavigatorRange = resolveRangeInput(
             input,
             axisKind,
             fullRange,
@@ -625,7 +606,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
     ): Promise<ResolvedRangeState> {
         const sFullRange = await fetchPanelFullRange(context);
         const sRangeInput = currentRangeState.navigatorRangeInput;
-        return sRangeInput
+        return !isRangeExpressionEmpty(sRangeInput)
             ? applyNavigatorInput(
                   currentRangeState,
                   sFullRange,
@@ -738,13 +719,13 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         currentRangeState: ResolvedRangeState,
     ): Promise<ResolvedRangeState> {
         const sFullRange = await fetchPanelFullRange(context);
-        const sPanelRange = resolveExpressionRangeInput(
+        const sMainRange = resolveRangeInput(
             context.panelInfo.time.rangeInput,
             getPanelAxisKind(context.panelInfo),
             sFullRange,
-            currentRangeState.range.panelRange,
+            currentRangeState.range.mainRange,
         );
-        if (!sPanelRange) {
+        if (!sMainRange) {
             return buildConfiguredRangeState(
                 context.panelInfo,
                 sFullRange,
@@ -760,7 +741,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
             currentRangeState.range,
             {
                 ...currentRangeState.range,
-                panelRange: sPanelRange,
+                mainRange: sMainRange,
             },
             'main',
         );
@@ -904,7 +885,7 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
                 (current) =>
                     resolveRangeChange(
                         current,
-                        { ...current, panelRange: range },
+                        { ...current, mainRange: range },
                         'main',
                     ),
                 'main',
@@ -1073,7 +1054,6 @@ function hasUserNavigatorRangeInput(
 ): boolean {
     return (
         rangeState !== undefined &&
-        rangeState.navigatorRangeInput !== undefined &&
         !isRangeExpressionEmpty(rangeState.navigatorRangeInput)
     );
 }

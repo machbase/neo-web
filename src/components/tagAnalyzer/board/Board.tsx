@@ -597,25 +597,25 @@ function getBoardRangeReference(
         const rangeState = panelRanges[panel.key];
         if (!rangeState) continue;
 
-        const panelRange = rangeState.range.navigatorRange;
+        const navigatorRange = rangeState.range.navigatorRange;
         currentRange = currentRange
             ? {
-                  startTime: Math.min(
-                      currentRange.startTime,
-                      panelRange.startTime,
+                  start: Math.min(
+                      currentRange.start,
+                      navigatorRange.start,
                   ),
-                  endTime: Math.max(currentRange.endTime, panelRange.endTime),
+                  end: Math.max(currentRange.end, navigatorRange.end),
               }
-            : panelRange;
+            : navigatorRange;
         fullRange = fullRange
             ? {
-                  startTime: Math.min(
-                      fullRange.startTime,
-                      rangeState.fullRange.startTime,
+                  start: Math.min(
+                      fullRange.start,
+                      rangeState.fullRange.start,
                   ),
-                  endTime: Math.max(
-                      fullRange.endTime,
-                      rangeState.fullRange.endTime,
+                  end: Math.max(
+                      fullRange.end,
+                      rangeState.fullRange.end,
                   ),
               }
             : rangeState.fullRange;

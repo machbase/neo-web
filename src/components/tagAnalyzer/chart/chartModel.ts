@@ -1,16 +1,13 @@
 import { type YAXisComponentOption, type XAXisComponentOption, type LineSeriesOption, type SeriesOption, type MarkAreaComponentOption, type ScatterSeriesOption, type CustomSeriesOption, type CustomSeriesRenderItemAPI, type CustomSeriesRenderItemParams, type CustomSeriesRenderItemReturn, type BrushComponentOption, type DataZoomComponentOption, type EChartsOption, type LegendComponentOption, type TooltipComponentOption, type TooltipComponentFormatterCallbackParams as TopLevelFormatterParams } from 'echarts';
-import {
-    roundNumericAxisBounds,
-    type AxisRange,
-    type RangeState,
-} from '../range/rangeModel';
+import type { AxisRange, RangeState } from '../range/rangeModel';
+import { roundNumericAxisBounds } from '../range/intervalResolver';
 import {
     getRangeCenter,
     getRangeWidth,
     isSameRange,
 } from '../range/rangeArithmetic';
 import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
-import { formatCompactNumber } from '../format/valueFormat';
+import { formatCompactNumber } from '../format/numericFormat';
 import { type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
 import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
 import { getPanelSeriesDisplayColor, DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../seriesModel';
@@ -144,8 +141,8 @@ function updateAxisBounds(
             value === null ||
             (visibleRange &&
                 !(
-                    timestamp >= visibleRange.startTime &&
-                    timestamp <= visibleRange.endTime
+                    timestamp >= visibleRange.start &&
+                    timestamp <= visibleRange.end
                 ))
         ) {
             continue;
@@ -240,7 +237,7 @@ function resolveAxisRange(
 }
 
 function buildChartXAxisOption(
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     navigatorRange: AxisRange,
     display: RuntimePanelDisplay,
     axes: RuntimePanelAxes,
@@ -253,14 +250,14 @@ function buildChartXAxisOption(
             id: PANEL_MAIN_X_AXIS_ID,
             type: sAxisType,
             gridIndex: PANEL_MAIN_X_AXIS_INDEX,
-            min: panelRange.startTime,
-            max: panelRange.endTime,
+            min: mainRange.start,
+            max: mainRange.end,
             axisLine: CHART_AXIS_STYLE.line,
             axisTick: CHART_AXIS_STYLE.line,
             axisLabel: {
                 ...CHART_AXIS_STYLE.xLabel,
                 formatter: (xAxisValue: number) =>
-                    formatAxisTick(xAxisValue, panelRange, isNumericXAxis),
+                    formatAxisTick(xAxisValue, mainRange, isNumericXAxis),
             },
             splitLine: {
                 show: display.useZoom && axes.x.showTickline,
@@ -279,8 +276,8 @@ function buildChartXAxisOption(
             id,
             type: sAxisType,
             gridIndex: PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
-            min: navigatorRange.startTime,
-            max: navigatorRange.endTime,
+            min: navigatorRange.start,
+            max: navigatorRange.end,
             ...HIDDEN_AXIS_PART,
         })),
     ];
@@ -608,7 +605,7 @@ function getHighlightAreaData(
         (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
             {
                 ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
-                xAxis: highlight.timeRange.startTime,
+                xAxis: highlight.timeRange.start,
                 itemStyle: {
                     color: createColorWithAlpha(highlight.fillColor, 0.16),
                     borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
@@ -617,7 +614,7 @@ function getHighlightAreaData(
                 },
             },
             {
-                xAxis: highlight.timeRange.endTime,
+                xAxis: highlight.timeRange.end,
             },
         ],
     );
@@ -1117,12 +1114,12 @@ function buildPanelChartFrameOptions(
         },
         tooltip: buildChartTooltipOption(
             rendering.isNumericXAxis,
-            ranges.panelRange,
+            ranges.mainRange,
             sSeriesDisplayNameByEChartsName,
         ),
         dataZoom: buildPanelChartDataZoomOption(
             config.display,
-            ranges.panelRange,
+            ranges.mainRange,
             interaction.isWheelZoomEnabled,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
@@ -1141,10 +1138,10 @@ export function buildInsideDataZoomOption(
         type: 'inside',
         xAxisIndex: [xAxisIndex],
         filterMode: 'none',
-        ...(visibleRange && visibleRange.startTime < visibleRange.endTime
+        ...(visibleRange && visibleRange.start < visibleRange.end
             ? {
-                  startValue: visibleRange.startTime,
-                  endValue: visibleRange.endTime,
+                  startValue: visibleRange.start,
+                  endValue: visibleRange.end,
               }
             : {}),
         moveOnMouseMove: false,
@@ -1157,13 +1154,13 @@ export function buildInsideDataZoomOption(
 
 function buildPanelChartDataZoomOption(
     display: RuntimePanelDisplay,
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     isWheelZoomEnabled: boolean,
 ): DataZoomComponentOption[] {
-    const sPanelRangeDataZoom = panelRange.startTime < panelRange.endTime
+    const sMainRangeDataZoom = mainRange.start < mainRange.end
         ? {
-              startValue: panelRange.startTime,
-              endValue: panelRange.endTime,
+              startValue: mainRange.start,
+              endValue: mainRange.end,
           }
         : {};
 
@@ -1172,7 +1169,7 @@ function buildPanelChartDataZoomOption(
             id: PANEL_INSIDE_DATA_ZOOM_ID,
             ...buildInsideDataZoomOption(
                 PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
-                panelRange,
+                mainRange,
                 isWheelZoomEnabled,
                 !display.useZoom,
             ),
@@ -1182,7 +1179,7 @@ function buildPanelChartDataZoomOption(
             type: 'slider' as const,
             xAxisIndex: [PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX],
             filterMode: 'none' as const,
-            ...sPanelRangeDataZoom,
+            ...sMainRangeDataZoom,
             realtime: false,
             left: PANEL_NAVIGATOR_GRID_SIDE,
             right: PANEL_NAVIGATOR_GRID_SIDE,
@@ -1267,7 +1264,7 @@ function getMainSeriesTooltipItems(
 function formatChartTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     isNumericXAxis: boolean,
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): string {
     const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
@@ -1279,7 +1276,7 @@ function formatChartTooltip(
     const sTime = formatAxisPointer(
         Number(sFirstValue?.[0] ?? sMainSeriesItems[0].axisValue),
         isNumericXAxis,
-        panelRange,
+        mainRange,
     );
 
     return `<div>
@@ -1296,7 +1293,7 @@ function formatChartTooltip(
 
 function buildChartTooltipOption(
     isNumericXAxis: boolean,
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): TooltipComponentOption {
     return {
@@ -1312,7 +1309,7 @@ function buildChartTooltipOption(
             formatChartTooltip(
                 tooltipFormatterParams,
                 isNumericXAxis,
-                panelRange,
+                mainRange,
                 seriesDisplayNameByEChartsName,
             ),
     };
@@ -1331,7 +1328,7 @@ export function buildChartSeriesOption(
             data.chartData,
             config.mode.isRaw,
             config.mode.useNormalize,
-            ranges.panelRange,
+            ranges.mainRange,
         );
     const sRenderableHighlights = interaction.draftHighlight
         ? [...config.highlights, interaction.draftHighlight]
@@ -1349,7 +1346,7 @@ export function buildChartSeriesOption(
         ...buildHighlightLabelSeries(sRenderableHighlights, resolvedYAxisOption[0]),
         ...buildSeriesAnnotationSeries({
             ...sAnnotationContext,
-            visibleRange: ranges.panelRange,
+            visibleRange: ranges.mainRange,
         }),
         ...buildMainSeriesOption(
             data.chartData,
@@ -1391,7 +1388,7 @@ export function buildChartOption(
         data.chartData,
         config.mode.isRaw,
         config.mode.useNormalize,
-        ranges.panelRange,
+        ranges.mainRange,
     );
 
     return {
@@ -1401,7 +1398,7 @@ export function buildChartOption(
             rendering.animateNavigatorDataUpdate,
         ...buildPanelChartFrameOptions(chartRuntime),
         xAxis: buildChartXAxisOption(
-            ranges.panelRange,
+            ranges.mainRange,
             ranges.navigatorRange,
             config.display,
             config.axes,
@@ -1460,7 +1457,7 @@ export function buildChartEvent({
     onSelection,
     legendState,
 }: BuildChartEventParams): ChartEvents {
-    const { panelRange, navigatorRange } = ranges;
+    const { mainRange, navigatorRange } = ranges;
     const {
         overlayMode,
         isSelectionMode,
@@ -1485,7 +1482,7 @@ export function buildChartEvent({
             );
             const sRange = extractDataZoomEventRange(
                 params,
-                panelRange,
+                mainRange,
                 navigatorRange,
                 PANEL_SLIDER_DATA_ZOOM_ID,
                 sDataZoomState,
@@ -1493,7 +1490,7 @@ export function buildChartEvent({
 
             if (
                 !sRange ||
-                isSameDataZoomRange(sRange, panelRange, isNumericXAxis)
+                isSameDataZoomRange(sRange, mainRange, isNumericXAxis)
             ) {
                 return;
             }
@@ -1512,7 +1509,7 @@ export function buildChartEvent({
                 areas: [],
             });
 
-            if (sRange.endTime <= sRange.startTime) {
+            if (sRange.end <= sRange.start) {
                 return;
             }
 
@@ -1523,7 +1520,7 @@ export function buildChartEvent({
 
             if (
                 !isDragZoomEnabled ||
-                isSameRange(sRange, panelRange)
+                isSameRange(sRange, mainRange)
             ) {
                 return;
             }

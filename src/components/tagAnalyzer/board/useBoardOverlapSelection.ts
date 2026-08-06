@@ -145,7 +145,7 @@ function deriveOverlapSelection(
 
         return [{
             panelInfo: panel,
-            visibleRange: sRangeState.range.panelRange,
+            visibleRange: sRangeState.range.mainRange,
         }];
     });
     const sHasMixedAxisKinds = sSelectedPanels.some(({ panelInfo }) =>

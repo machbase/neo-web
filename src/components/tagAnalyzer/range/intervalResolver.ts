@@ -51,6 +51,31 @@ export function roundNumericAxisBounds(
     );
 }
 
+export function roundNumericAxisBounds(
+    axisBounds: number[],
+    splitCount: number,
+): void {
+    const sRawMin = axisBounds[0];
+    const sRawMax = axisBounds[1];
+    if (sRawMin === undefined || sRawMax === undefined) return;
+
+    const sRange = sRawMax - sRawMin;
+    const sFallbackRange = Math.max(Math.abs(sRawMax), Math.abs(sRawMin), 1);
+    const sReferenceValue = Math.max(
+        Math.abs(sRange > 0 ? sRange : sFallbackRange) / splitCount,
+        Number.MIN_VALUE,
+    );
+    const sStep = getNiceNumericStep(sReferenceValue);
+    const sRoundedMin = Math.floor(sRawMin / sStep) * sStep;
+    const sRoundedMax = Math.ceil(sRawMax / sStep) * sStep;
+
+    axisBounds[0] = Number(sRoundedMin.toPrecision(12));
+    axisBounds[1] = Number(
+        (sRoundedMax > sRoundedMin ? sRoundedMax : sRoundedMin + sStep)
+            .toPrecision(12),
+    );
+}
+
 function getNiceNumericStep(value: number): number {
     const sMagnitude = 10 ** Math.floor(Math.log10(value));
     const sNormalizedValue = value / sMagnitude;

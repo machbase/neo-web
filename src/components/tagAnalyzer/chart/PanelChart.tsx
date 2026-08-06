@@ -87,7 +87,7 @@ function usePanelChartRuntime({
 }: UsePanelChartRuntimeParams) {
     const { chartAreaRef, chartApiRef } = refs;
     const { chartData, navigatorChartData } = data;
-    const { panelRange, navigatorRange } = rangeState;
+    const { mainRange, navigatorRange } = rangeState;
     const {
         rangeActions,
         markupHandlers,
@@ -98,14 +98,14 @@ function usePanelChartRuntime({
     const seriesList = query.tagSet;
     const latestHoverTimestampRef = useRef<number | undefined>();
     const latestChartClickRef = useRef(0);
-    const latestPanelRangeRef = useRef(panelRange);
+    const latestMainRangeRef = useRef(mainRange);
     const latestNavigatorRangeRef = useRef(navigatorRange);
     const latestAppliedChartDataRef = useRef(chartData);
     const latestAppliedNavigatorChartDataRef = useRef(navigatorChartData);
     const hoveredLegendSeriesRef = useRef<string | undefined>();
     const visibleSeriesRef = useRef<ChartSeriesVisibilityMap>({});
 
-    latestPanelRangeRef.current = panelRange;
+    latestMainRangeRef.current = mainRange;
     latestNavigatorRangeRef.current = navigatorRange;
     const sAnimateMainDataUpdate = latestAppliedChartDataRef.current === chartData;
     const sAnimateNavigatorDataUpdate =
@@ -192,7 +192,7 @@ function usePanelChartRuntime({
     const syncMainChartVisibleRange = useCallback((
         chartInstance: PanelChartInstance | undefined = chartInstanceRef.current,
     ): void => {
-        const sPanelRange = latestPanelRangeRef.current;
+        const sMainRange = latestMainRangeRef.current;
 
         if (!chartInstance) {
             return;
@@ -206,7 +206,7 @@ function usePanelChartRuntime({
         const sSliderRange = sSliderState
             ? extractDataZoomOptionRange(
                   sSliderState,
-                  sPanelRange,
+                  sMainRange,
                   latestNavigatorRangeRef.current,
               )
             : undefined;
@@ -215,7 +215,7 @@ function usePanelChartRuntime({
             sSliderRange &&
             isSameDataZoomRange(
                 sSliderRange,
-                sPanelRange,
+                sMainRange,
                 isNumericXAxis,
             )
         ) {
@@ -225,8 +225,8 @@ function usePanelChartRuntime({
         chartInstance.dispatchAction({
             type: 'dataZoom',
             dataZoomId: PANEL_SLIDER_DATA_ZOOM_ID,
-            startValue: sPanelRange.startTime,
-            endValue: sPanelRange.endTime,
+            startValue: sMainRange.start,
+            endValue: sMainRange.end,
         });
     }, [chartInstanceRef, isNumericXAxis]);
     const applyFullChartOption = useCallback((
@@ -327,7 +327,7 @@ function usePanelChartRuntime({
         chartInstanceRef,
         isWheelZoomEnabled: isDragZoomEnabled,
         isNumericXAxis,
-        panelRange,
+        mainRange,
         applyMainZoomRange: rangeActions.applyMainZoomRange,
     });
 
@@ -402,7 +402,7 @@ function usePanelChartRuntime({
     }, [
         applyRangeChartOption,
         navigatorRange,
-        panelRange,
+        mainRange,
     ]);
 
     useEffect(() => {
@@ -677,14 +677,14 @@ function usePanelChartWheelZoom({
     chartInstanceRef,
     isWheelZoomEnabled,
     isNumericXAxis,
-    panelRange,
+    mainRange,
     applyMainZoomRange,
 }: {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     chartInstanceRef: MutableRefObject<PanelChartInstance | undefined>;
     isWheelZoomEnabled: boolean;
     isNumericXAxis: boolean;
-    panelRange: AxisRange;
+    mainRange: AxisRange;
     applyMainZoomRange: PanelChartHandlers['rangeActions']['applyMainZoomRange'];
 }): void {
     const handleMouseWheelZoom = useCallback((event: WheelEvent): void => {
@@ -709,16 +709,16 @@ function usePanelChartWheelZoom({
         event.preventDefault();
         event.stopPropagation();
 
-        const sCurrentWidth = getRangeWidth(panelRange);
+        const sCurrentWidth = getRangeWidth(mainRange);
         const sAnchorTime =
             convertPanelChartPixelToTimestamp(
                 chartInstance,
                 sPixel,
                 isNumericXAxis,
             ) ??
-            panelRange.startTime + sCurrentWidth / 2;
+            mainRange.start + sCurrentWidth / 2;
         const sAnchorRatio =
-            (sAnchorTime - panelRange.startTime) / sCurrentWidth;
+            (sAnchorTime - mainRange.start) / sCurrentWidth;
         const sZoomFactor = event.deltaY < 0
             ? PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR
             : PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR;
@@ -727,8 +727,8 @@ function usePanelChartWheelZoom({
 
         applyMainZoomRange(
             {
-                startTime: sNextStart,
-                endTime: sNextStart + sNextWidth,
+                start: sNextStart,
+                end: sNextStart + sNextWidth,
             },
         );
     }, [
@@ -737,7 +737,7 @@ function usePanelChartWheelZoom({
         chartInstanceRef,
         isWheelZoomEnabled,
         isNumericXAxis,
-        panelRange,
+        mainRange,
     ]);
 
     useEffect(() => {

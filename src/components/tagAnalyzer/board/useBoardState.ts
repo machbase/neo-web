@@ -291,8 +291,8 @@ function getPanelInfoForSave(
         !rangeState ||
         (sLastViewedRange !== undefined &&
             isSameRange(
-                sLastViewedRange.panelRange,
-                rangeState.range.panelRange,
+                sLastViewedRange.mainRange,
+                rangeState.range.mainRange,
             ) &&
             isSameRange(
                 sLastViewedRange.navigatorRange,

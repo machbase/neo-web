@@ -56,7 +56,7 @@ type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
 type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
     boardTimeRange: RangeExpressionInput;
     boardNumericRange: RangeExpressionInput;
-    panelRange: RangeExpressionInput;
+    mainRange: RangeExpressionInput;
 };
 
 export function createDefaultTazBoard(
@@ -65,7 +65,7 @@ export function createDefaultTazBoard(
     const sIsNumericRange = isNumericBaseTimeSourceColumns(
         options.sourceColumns,
     );
-    const sPanelRange = resolveDefaultPanelRange(
+    const sMainRange = resolveDefaultMainRange(
         options.timeRange,
         options.sourceColumns,
     );
@@ -86,11 +86,11 @@ export function createDefaultTazBoard(
         ],
         boardTimeRange: sIsNumericRange
             ? { start: '', end: '' }
-            : { ...sPanelRange },
+            : { ...sMainRange },
         boardNumericRange: sIsNumericRange
-            ? { ...sPanelRange }
+            ? { ...sMainRange }
             : { start: '', end: '' },
-        panelRange: sPanelRange,
+        mainRange: sMainRange,
     });
 }
 
@@ -103,7 +103,7 @@ export function createTazBoardFromTimeRange(
         ...boardOptions,
         boardTimeRange: { ...timeRange },
         boardNumericRange: { start: '', end: '' },
-        panelRange: { ...timeRange },
+        mainRange: { ...timeRange },
     });
 }
 
@@ -116,7 +116,7 @@ function createTazBoardFromSeries(
         chartType = 'Line',
         boardTimeRange,
         boardNumericRange,
-        panelRange,
+        mainRange,
         ...boardIdentity
     } = options;
 
@@ -131,7 +131,7 @@ function createTazBoardFromSeries(
             {
                 ...createNewPanelInfo(seriesList, chartTitle, chartType),
                 time: {
-                    rangeInput: panelRange,
+                    rangeInput: mainRange,
                     useLastViewedRange: false,
                     lastViewedRange: undefined,
                 },
@@ -142,7 +142,7 @@ function createTazBoardFromSeries(
     };
 }
 
-function resolveDefaultPanelRange(
+function resolveDefaultMainRange(
     timeRange: AxisRange,
     sourceColumns: PanelSeriesSourceColumns,
 ): RangeExpressionInput {
@@ -150,7 +150,7 @@ function resolveDefaultPanelRange(
         ? formatNumericValue
         : formatAbsoluteTime;
     return {
-        start: sFormatValue(timeRange.startTime),
-        end: sFormatValue(timeRange.endTime),
+        start: sFormatValue(timeRange.start),
+        end: sFormatValue(timeRange.end),
     };
 }
