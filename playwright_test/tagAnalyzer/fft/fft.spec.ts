@@ -14,9 +14,15 @@ test.describe('Tag Analyzer FFT', () => {
         ).toBeVisible();
 
         // 2. Enable range selection.
-        const loadedPanel = page.locator(
-            '.panel-form:has(button[title="Set current visible main chart range"]:enabled)',
-        );
+        const loadedPanel = page
+            .getByRole('region', { name: / panel$/ })
+            .filter({
+                has: page.getByRole('button', {
+                    name: 'Set current visible main chart range',
+                    exact: true,
+                    disabled: false,
+                }),
+            });
         await expect(loadedPanel).toHaveCount(1);
         await loadedPanel.scrollIntoViewIfNeeded();
         const selectRange = loadedPanel.getByRole('button', {
@@ -24,10 +30,12 @@ test.describe('Tag Analyzer FFT', () => {
             exact: true,
         });
         await selectRange.click();
-        await expect(selectRange).toHaveClass(/button--active/);
+        await expect(selectRange).toHaveAttribute('aria-pressed', 'true');
 
         // 3. Select chart data.
-        const chart = loadedPanel.locator('.chart-body');
+        const chart = loadedPanel.getByRole('region', {
+            name: / chart$/,
+        });
         await chart.scrollIntoViewIfNeeded();
         await page.waitForTimeout(200);
         const chartBox = await chart.boundingBox();
@@ -54,6 +62,12 @@ test.describe('Tag Analyzer FFT', () => {
             .click();
         const fftDialog = page.getByRole('dialog');
         await expect(fftDialog.getByText('FFT', { exact: true })).toBeVisible();
+        await expect(
+            fftDialog.getByRole('region', {
+                name: 'FFT chart',
+                exact: true,
+            }),
+        ).toBeVisible();
         await expect(
             fftDialog.getByRole('button', {
                 name: 'Show 2D FFT chart',

@@ -317,6 +317,9 @@ function PanelHeader(props: PanelHeaderProps) {
     const titleRenameClosingRef = useRef(false);
     const sRollupTooltipId = `panel-rollup-tooltip-${useId().replace(/:/g, '')}`;
     const sTimeText = formatPanelTimeText(runtimeState);
+    const sRangeLabel = runtimeState.isNumericXAxis
+        ? 'Set current visible main chart value range'
+        : 'Set current visible main chart range';
     const sIntervalText = formatIntervalText(runtimeState);
     const sRollupSummary = getRollupHeaderSummary(runtimeState);
     const sTimeSummaryBaseText =
@@ -429,11 +432,8 @@ function PanelHeader(props: PanelHeaderProps) {
                     <button
                         type="button"
                         className="panel-header__time-button panel-header__time-range-button"
-                        title={
-                            runtimeState.isNumericXAxis
-                                ? 'Set current visible main chart value range'
-                                : 'Set current visible main chart range'
-                        }
+                        title={sRangeLabel}
+                        aria-label={sRangeLabel}
                         disabled={!runtimeState.mainRange}
                         onClick={onOpenTimeRangeModal}
                     >
@@ -505,6 +505,7 @@ function PanelHeader(props: PanelHeaderProps) {
                     >
                         <Button
                             aria-label={action.label}
+                            aria-pressed={action.active}
                             size="xsm"
                             variant="ghost"
                             isToolTip

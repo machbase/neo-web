@@ -546,6 +546,7 @@ export default function PanelChart({
                 variant="secondary"
                 isToolTip
                 toolTipContent="Move range backward"
+                aria-label="Move range backward"
                 icon={<VscChevronLeft size={16} />}
                 disabled={!rangeReady}
                 onClick={handlers.rangeActions.shiftMainRangeLeft}
@@ -555,6 +556,9 @@ export default function PanelChart({
                 ref={refs.chartAreaRef}
                 style={{ height: PANEL_CHART_HEIGHT }}
                 onMouseDownCapture={handleChartMouseDownCapture}
+                role="region"
+                aria-label={`${panelInfo.title} chart`}
+                aria-busy={isLoading}
             >
                 {rangeState && (
                     <ReadyPanelChart
@@ -580,6 +584,7 @@ export default function PanelChart({
                 variant="secondary"
                 isToolTip
                 toolTipContent="Move range forward"
+                aria-label="Move range forward"
                 icon={<VscChevronRight size={16} />}
                 disabled={!rangeReady}
                 onClick={handlers.rangeActions.shiftMainRangeRight}

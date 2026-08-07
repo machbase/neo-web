@@ -93,21 +93,27 @@ export default function OverlapModal({
                         toolTipContent="Refresh data"
                         aria-label="Refresh data"
                     />
-                    {sIsLoadingOverlapData ? (
-                        <Page.ContentText pContent="Loading overlap data..." />
-                    ) : sOverlapLoadError ? (
-                        <Page.ContentText pContent={sOverlapLoadError} />
-                    ) : !sCanRenderChart ? (
-                        <Page.ContentText pContent="No overlap data." />
-                    ) : (
-                        <ReactECharts
-                            option={sChartOption}
-                            notMerge
-                            lazyUpdate
-                            style={{ width: '100%', height: 300 }}
-                            opts={{ renderer: 'canvas' }}
-                        />
-                    )}
+                    <div
+                        role="region"
+                        aria-label="Overlap chart"
+                        aria-busy={sIsLoadingOverlapData}
+                    >
+                        {sIsLoadingOverlapData ? (
+                            <Page.ContentText pContent="Loading overlap data..." />
+                        ) : sOverlapLoadError ? (
+                            <Page.ContentText pContent={sOverlapLoadError} />
+                        ) : !sCanRenderChart ? (
+                            <Page.ContentText pContent="No overlap data." />
+                        ) : (
+                            <ReactECharts
+                                option={sChartOption}
+                                notMerge
+                                lazyUpdate
+                                style={{ width: '100%', height: 300 }}
+                                opts={{ renderer: 'canvas' }}
+                            />
+                        )}
+                    </div>
                     <div className="overlap-modal__shift-list">
                         {sSeriesGroups.map((seriesGroup) => (
                             <OverlapPanelRow

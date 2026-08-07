@@ -14,9 +14,15 @@ test.describe('Tag Analyzer overlap', () => {
         ).toBeVisible();
 
         // 2. Select a loaded panel.
-        const loadedPanel = page.locator(
-            '.panel-form:has(button[title="Set current visible main chart range"]:enabled)',
-        );
+        const loadedPanel = page
+            .getByRole('region', { name: / panel$/ })
+            .filter({
+                has: page.getByRole('button', {
+                    name: 'Set current visible main chart range',
+                    exact: true,
+                    disabled: false,
+                }),
+            });
         await expect(loadedPanel).toHaveCount(1);
         await loadedPanel.scrollIntoViewIfNeeded();
         await loadedPanel
@@ -48,6 +54,12 @@ test.describe('Tag Analyzer overlap', () => {
         await expect(
             overlapDialog.getByRole('button', {
                 name: 'Refresh data',
+                exact: true,
+            }),
+        ).toBeVisible();
+        await expect(
+            overlapDialog.getByRole('region', {
+                name: 'Overlap chart',
                 exact: true,
             }),
         ).toBeVisible();

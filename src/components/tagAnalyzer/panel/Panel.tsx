@@ -513,6 +513,8 @@ export default memo(function Panel({
     return (
         <div
             className="panel-form"
+            role="region"
+            aria-label={`${panelInfo.title} panel`}
             style={{ border: `0.5px solid ${isOverlapSelected ? '#FDB532' : '#454545'}` }}
             onContextMenu={handlePanelContextMenu}
             onMouseMove={handlePanelMouseMove}

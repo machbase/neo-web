@@ -356,6 +356,8 @@ function FFTModal({
 
                 <div
                     className={styles.fftChartArea}
+                    role="region"
+                    aria-label="FFT chart"
                     aria-busy={sIsLoading}
                 >
                     {sIsLoading && (
