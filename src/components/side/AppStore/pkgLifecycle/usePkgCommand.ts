@@ -11,10 +11,11 @@
 
 import { useRecoilCallback } from 'recoil';
 import { Toast } from '@/design-system/components';
-import { fetchPkgHubList, SEARCH_RES, APP_INFO } from '@/api/repository/appStore';
+import { fetchPkgHubList, filterExperimentPkgs, SEARCH_RES, APP_INFO } from '@/api/repository/appStore';
 import { getFiles } from '@/api/repository/fileTree';
 import { fileTreeParser } from '@/utils/fileTreeParser';
 import { isCurUserEqualAdmin } from '@/utils';
+import { useExperiment } from '@/hooks/useExperiment';
 import { closeTabState } from '@/components/mainContent/tabCloseUtils';
 import { gActiveAppSide, gPkgBusy, gPkgHealth, gSearchPkgName, gSearchPkgs, PkgCommand } from '@/recoil/appStore';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -66,6 +67,11 @@ async function listInstalledNames(): Promise<Set<string>> {
 }
 
 export function usePkgCommand() {
+    // Captured into the callback below: this refresh path re-seeds gSearchPkgs and
+    // must apply the same experiment gate as AppStoreSide.pkgsSearch, or a package
+    // hidden from the catalog reappears the moment any package is installed or
+    // removed, and stays visible until the next search (issue #1438).
+    const { getExperiment } = useExperiment();
     return useRecoilCallback(
         ({ snapshot, set, reset }) =>
             async (app: APP_INFO, command: PkgCommand, version?: string): Promise<StepResult | null> => {
@@ -151,10 +157,11 @@ export function usePkgCommand() {
                             };
                         })
                     );
+                    const gated = filterExperimentPkgs(allPkgs, getExperiment());
                     const q = search.toLowerCase();
                     const displayed = search
-                        ? allPkgs.filter((p) => p.name.toLowerCase().includes(q) || p.github.description.toLowerCase().includes(q))
-                        : allPkgs;
+                        ? gated.filter((p) => p.name.toLowerCase().includes(q) || p.github.description.toLowerCase().includes(q))
+                        : gated;
                     set(gSearchPkgs, { installed: [], exact: [], possibles: displayed, broken: [] } as SEARCH_RES);
                 } catch {
                     /* leave hub list as-is on refresh failure */

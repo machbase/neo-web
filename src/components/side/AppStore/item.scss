@@ -170,6 +170,19 @@
             background-color: #bf7b00;
             color: #fff;
         }
+        // package kept visible only because it is installed, while the experiment
+        // gate would otherwise hide it (issue #1438)
+        span.experiment {
+            background-color: rgba(137, 111, 217, 0.18);
+            color: #a892e8;
+            gap: 3px;
+            cursor: help;
+
+            svg {
+                flex-shrink: 0;
+            }
+        }
+
         // server-downgrade incompatibility warning (issue #1369)
         span.incompat {
             background-color: rgba(209, 134, 22, 0.18);

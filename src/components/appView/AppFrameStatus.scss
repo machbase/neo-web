@@ -1,0 +1,142 @@
+@use '@/design-system/tokens' as t;
+
+.app-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    // `flex` for a flex-column host (the package side panel), `height` for a
+    // block host (the app tab body) — the wrapper has to fill either one.
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    iframe {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        border: none;
+    }
+}
+
+.app-frame-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    // Opaque: the frame underneath is blank or half-broken, so covering it fully
+    // reads as a deliberate state instead of a rendering glitch.
+    background-color: t.$bg-primary;
+    color: t.$text-secondary;
+    text-align: center;
+    overflow: auto;
+}
+
+.app-frame-overlay__spinner-text {
+    font-size: 12px;
+    color: t.$text-muted;
+}
+
+.app-frame-overlay__icon {
+    color: t.$warning-main;
+    flex-shrink: 0;
+}
+
+.app-frame-overlay__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: t.$text-primary;
+}
+
+.app-frame-overlay__desc {
+    font-size: 12px;
+    line-height: 1.6;
+    color: t.$text-tertiary;
+    max-width: 460px;
+}
+
+.app-frame-overlay__resources {
+    width: 100%;
+    max-width: 460px;
+    margin: 0;
+    padding: 8px 10px;
+    list-style: none;
+    border: 1px solid t.$border-color-default;
+    border-radius: 4px;
+    background-color: t.$bg-secondary;
+    font-family: 'D2Coding', 'Menlo', 'Consolas', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: t.$error-light;
+    text-align: left;
+    overflow-x: auto;
+
+    li {
+        white-space: nowrap;
+    }
+
+    li.app-frame-overlay__resources-more {
+        color: t.$text-muted;
+    }
+}
+
+.app-frame-overlay__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.app-frame-overlay__btn {
+    // The global `button { border-radius: 8px }` reset in index.css would round
+    // these differently from the rest of the app, so the radius is explicit.
+    border-radius: 4px;
+    border: 1px solid t.$border-color-medium;
+    background-color: t.$bg-elevated;
+    color: t.$text-primary;
+    font-size: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+
+    &:hover {
+        background-color: t.$bg-hover-light;
+    }
+
+    &--primary {
+        border-color: t.$border-color-active;
+        background-color: t.$bg-active;
+
+        &:hover {
+            background-color: t.$bg-active-hover;
+        }
+    }
+}
+
+// Side panel is only a few hundred pixels tall — drop the detail that does not fit.
+.app-frame-overlay--compact {
+    gap: 8px;
+    padding: 12px;
+
+    .app-frame-overlay__title {
+        font-size: 12px;
+    }
+
+    .app-frame-overlay__desc {
+        font-size: 11px;
+    }
+
+    .app-frame-overlay__resources {
+        display: none;
+    }
+
+    .app-frame-overlay__btn {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+}

@@ -44,6 +44,12 @@ export const PkgVersionMenu = ({ isOpen, position, mode, serverVersion, rows, on
                 <span>Current server</span>
                 <strong>{serverVersion || 'unknown'}</strong>
             </div>
+            {rows.length === 0 && (
+                <div className="pkg-version-menu-empty">
+                    No published version in the catalog
+                    {experiment ? ' — enter a tag below.' : '.'}
+                </div>
+            )}
             {rows.map((row) => (
                 <ContextMenu.Item
                     key={row.version}
