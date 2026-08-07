@@ -41,7 +41,6 @@ import {
     buildChartEvent,
     buildChartOption,
     buildChartSeriesOption,
-    isSameDataZoomRange,
     MAIN_PANEL_SERIES_ID_PREFIX,
     PANEL_NAVIGATOR_SERIES_ID_PREFIX,
     PANEL_SLIDER_DATA_ZOOM_ID,
@@ -49,9 +48,9 @@ import {
 } from './chartModel';
 import {
     convertPanelChartPixelToTimestamp,
-    extractDataZoomOptionRange,
     getChartLayoutMetrics,
     getPanelChartEventCoordinates,
+    isSameDataZoomSelection,
     PANEL_CHART_HEIGHT,
     PANEL_GRID_SIDE,
 } from './chartGeometry';
@@ -203,20 +202,12 @@ function usePanelChartRuntime({
                 item.id === PANEL_SLIDER_DATA_ZOOM_ID ||
                 item.dataZoomId === PANEL_SLIDER_DATA_ZOOM_ID,
         );
-        const sSliderRange = sSliderState
-            ? extractDataZoomOptionRange(
-                  sSliderState,
-                  sMainRange,
-                  latestNavigatorRangeRef.current,
-              )
-            : undefined;
-
         if (
-            sSliderRange &&
-            isSameDataZoomRange(
-                sSliderRange,
+            sSliderState &&
+            isSameDataZoomSelection(
+                sSliderState,
                 sMainRange,
-                isNumericXAxis,
+                latestNavigatorRangeRef.current,
             )
         ) {
             return;
@@ -228,7 +219,7 @@ function usePanelChartRuntime({
             startValue: sMainRange.start,
             endValue: sMainRange.end,
         });
-    }, [chartInstanceRef, isNumericXAxis]);
+    }, [chartInstanceRef]);
     const applyFullChartOption = useCallback((
         chartInstance: PanelChartInstance | undefined = chartInstanceRef.current,
     ): void => {

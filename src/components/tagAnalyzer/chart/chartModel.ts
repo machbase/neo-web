@@ -3,7 +3,6 @@ import type { AxisRange, RangeState } from '../range/rangeModel';
 import { roundNumericAxisBounds } from '../range/intervalResolver';
 import {
     getRangeCenter,
-    getRangeWidth,
     isSameRange,
 } from '../range/rangeArithmetic';
 import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
@@ -12,7 +11,7 @@ import { type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime
 import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
 import { getPanelSeriesDisplayColor, DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../seriesModel';
 import { DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR, type PanelHighlight, type ValueRange } from '../panel/panelModel';
-import { buildRenderableSeriesAnnotations, type AnnotationRenderContext, type RenderableSeriesAnnotation, type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomEventRange, selectDataZoomItem } from './chartGeometry';
+import { buildRenderableSeriesAnnotations, type AnnotationRenderContext, type RenderableSeriesAnnotation, type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
 import { type MutableRefObject } from 'react';
 import { PanelOverlayMode } from '../panel/panelInteraction';
 
@@ -1480,17 +1479,24 @@ export function buildChartEvent({
                 sInstance?.getOption?.()?.dataZoom,
                 PANEL_SLIDER_DATA_ZOOM_ID,
             );
-            const sRange = extractDataZoomEventRange(
+            const sDataZoomSelection = resolveDataZoomEventItem(
                 params,
-                mainRange,
-                navigatorRange,
                 PANEL_SLIDER_DATA_ZOOM_ID,
                 sDataZoomState,
+            );
+            const sRange = extractDataZoomOptionRange(
+                sDataZoomSelection,
+                mainRange,
+                navigatorRange,
             );
 
             if (
                 !sRange ||
-                isSameDataZoomRange(sRange, mainRange, isNumericXAxis)
+                isSameDataZoomSelection(
+                    sDataZoomSelection,
+                    mainRange,
+                    navigatorRange,
+                )
             ) {
                 return;
             }
@@ -1643,19 +1649,6 @@ export function buildChartEvent({
             markupHandlers.onActivateHighlightEditor(sPosition, sHighlightIndex);
         },
     };
-}
-
-export function isSameDataZoomRange(
-    left: AxisRange,
-    right: AxisRange,
-    isNumericXAxis: boolean,
-): boolean {
-    const sRangeWidth = Math.abs(getRangeWidth(right));
-    const sTolerance = isNumericXAxis
-        ? Math.max(sRangeWidth * 1e-9, Number.EPSILON)
-        : Math.max(sRangeWidth * 1e-9, 1);
-
-    return isSameRange(left, right, sTolerance);
 }
 
 function isLegendHoverPayload(
