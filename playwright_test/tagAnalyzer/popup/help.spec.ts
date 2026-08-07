@@ -1,16 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { login } from '../../support/login';
+import { openNewTagAnalyzerBoard } from '../../support/tagAnalyzer';
 
 test.describe('Tag Analyzer', () => {
     test.beforeEach(async ({ page }) => {
         // 1. [M.1] Authenticate.
         await login(page);
 
-        // 2. [1.1.4] Open an existing TagAnalyzer board.
-        await page.getByText('TAG ANALYZER.taz', { exact: true }).click();
-        await expect(
-            page.getByRole('button', { name: 'TAG ANALYZER.taz', exact: true }),
-        ).toBeVisible();
+        // 2. [1.1.3] Open a new data-free TagAnalyzer board.
+        await openNewTagAnalyzerBoard(page);
     });
 
     test.describe('Help popup', () => {

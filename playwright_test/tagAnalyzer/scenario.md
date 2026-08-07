@@ -5,7 +5,7 @@ Implemented in [`scenarios/scenarios.spec.ts`](scenarios/scenarios.spec.ts).
 ## Shared requirement
 
 - `[M.1]` Authentication - Complete the login flow.
-- `[1.1.1]` Data source - Use `MACHROLL` for every data-backed test.
+- `[1.1.1]` Data source - Use `MACHROLL` with the `pneumatic` tag for every data-backed test.
 
 ## 1. Create a chart
 

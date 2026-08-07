@@ -1,25 +1,23 @@
 import { expect, test } from '@playwright/test';
 import { login } from '../../support/login';
+import {
+    createMachrollPanel,
+    openNewTagAnalyzerBoard,
+} from '../../support/tagAnalyzer';
 
 test.describe('Tag Analyzer FFT', () => {
     test('opens FFT from a selected range', async ({ page }) => {
         // 1. [M.1] Authenticate.
         await login(page);
 
-        // 2. [1.1.4] Open an existing TagAnalyzer board.
-        await page.getByText('TAG ANALYZER.taz', { exact: true }).click();
-        await expect(
-            page.getByRole('button', {
-                name: 'TAG ANALYZER.taz',
-                exact: true,
-            }),
-        ).toBeVisible();
+        // 2. [1.1.3, 1.3.1.1, 1.3.2.1, 1.3.2.3, 1.3.2.6, 1.3.3.3] Create a pneumatic MACHROLL chart.
+        await openNewTagAnalyzerBoard(page);
+        const loadedPanel = await createMachrollPanel(
+            page,
+            'FFT pneumatic chart',
+        );
 
         // 3. [1.4.4.4.1] Enable range selection.
-        const loadedPanel = page.locator(
-            '.panel-form:has(button[title="Set current visible main chart range"]:enabled)',
-        );
-        await expect(loadedPanel).toHaveCount(1);
         await loadedPanel.scrollIntoViewIfNeeded();
         const selectRange = loadedPanel.getByRole('button', {
             name: 'Select data range',
@@ -50,10 +48,19 @@ test.describe('Tag Analyzer FFT', () => {
             page.getByText('Selection Summary', { exact: true }),
         ).toBeVisible();
 
-        // 5. [1.4.4.5.1] Open FFT.
+        // 5. [1.4.4.5.1, 1.4.4.5.4] Open FFT and wait for its chart.
+        const fftResponsePromise = page.waitForResponse((response) => {
+            const request = response.request();
+            return request.method() === 'POST' &&
+                new URL(response.url()).pathname === '/web/api/tql' &&
+                request.postData()?.includes('FFT(') === true;
+        });
         await page
             .getByRole('button', { name: 'Open FFT chart', exact: true })
             .click();
+        const fftResponse = await fftResponsePromise;
+        expect(fftResponse.ok()).toBe(true);
+
         const fftDialog = page.getByRole('dialog');
         await expect(fftDialog.getByText('FFT', { exact: true })).toBeVisible();
         await expect(
@@ -68,6 +75,9 @@ test.describe('Tag Analyzer FFT', () => {
         await expect(
             fftDialog.getByLabel('Max Hz', { exact: true }),
         ).toHaveValue('0');
+        await expect(
+            fftDialog.locator('.chart_container canvas'),
+        ).toBeVisible({ timeout: 30_000 });
 
         // 6. [1.4.4.5.2] Close FFT.
         await fftDialog

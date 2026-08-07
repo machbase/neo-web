@@ -2,7 +2,7 @@
 
 ## 1.1 Meta
 
-- [ ] 1.1.1 Use `MACHROLL` as the data source for every data-backed test.
+- [ ] 1.1.1 Use `MACHROLL` with the `pneumatic` tag for every data-backed test.
 - [ ] 1.1.2 Navigation item - Open TagAnalyzer.
 - [ ] 1.1.3 Clickable card - Open a new TagAnalyzer board.
 - [ ] 1.1.4 File-tree item - Open an existing `.taz` board.
