@@ -1,8 +1,8 @@
 import './item.scss';
-import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
+import { APP_INFO, isGrandfatheredPkg, PKG_STATUS } from '@/api/repository/appStore';
 import { useMemo, useState } from 'react';
 import { MdVerified } from 'react-icons/md';
-import { VscChevronDown, VscExtensions, VscWarning } from 'react-icons/vsc';
+import { VscBeaker, VscChevronDown, VscExtensions, VscWarning } from 'react-icons/vsc';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { generateUUID, isCurUserEqualAdmin } from '@/utils';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -10,6 +10,7 @@ import { gActiveAppSide, gPkgBusy, gPkgHealth, gServerVersion } from '@/recoil/a
 import { Loader } from '@/components/loader';
 import { Side } from '@/design-system/components';
 import { computeEligibility, stripVPrefix } from '@/utils/version/utils';
+import { useExperiment } from '@/hooks/useExperiment';
 import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
 import { PkgVersionMenu } from './PkgVersionMenu';
@@ -60,14 +61,18 @@ type SplitActionProps = {
     onToggle: (e: React.MouseEvent) => void;
     loading?: boolean;
     disabled?: boolean;
+    // Disables the primary action while leaving the caret usable — for the case
+    // where the catalog offers no default target but the menu still has something
+    // to offer (the experiment-mode custom-version input).
+    primaryDisabled?: boolean;
     variant?: 'primary' | 'update';
 };
 
 // Install/Update split button (issue #1369): primary applies the default target,
 // the caret opens the version-selection menu.
-const SplitAction = ({ label, onPrimary, onToggle, loading, disabled, variant = 'primary' }: SplitActionProps) => (
+const SplitAction = ({ label, onPrimary, onToggle, loading, disabled, primaryDisabled, variant = 'primary' }: SplitActionProps) => (
     <div className={`app-store-item-split app-store-item-split--${variant}`}>
-        <button type="button" className="app-store-item-split-main" onClick={onPrimary} disabled={disabled || loading}>
+        <button type="button" className="app-store-item-split-main" onClick={onPrimary} disabled={disabled || loading || primaryDisabled}>
             {loading ? <Loader width="12px" height="12px" /> : label}
         </button>
         <button type="button" className="app-store-item-split-caret" onClick={onToggle} disabled={disabled || loading} aria-label="Select version">
@@ -88,8 +93,27 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
         () => computeEligibility(pItem?.versions ?? [], sServerVersion, isInstalled ? pItem?.installed_version : undefined),
         [pItem?.versions, sServerVersion, isInstalled, pItem?.installed_version]
     );
-    const hasUpdate = isInstalled && !!eligibility.defaultUpdate;
-    const canInstall = !!eligibility.defaultInstall; // false when every version is ineligible
+
+    // issue #1438: this card is only on screen because the package is already
+    // installed — the experiment gate would otherwise have removed it. Keep it
+    // removable (uninstall / stop stay untouched below) but stop advertising
+    // change: the package was pulled back for revalidation, so pushing its newer
+    // unvalidated versions at a non-experiment user defeats the recall.
+    const { getExperiment } = useExperiment();
+    const experimentOn = getExperiment();
+    const isGated = isGrandfatheredPkg(pItem, experimentOn);
+
+    const hasUpdate = isInstalled && !!eligibility.defaultUpdate && !isGated;
+    const canInstall = !!eligibility.defaultInstall && !isGated; // false when every version is ineligible
+
+    // In experiment mode the version menu carries a free-form "Custom version"
+    // input, so it is worth opening even when the catalog offers no installable
+    // target. That happens whenever versions[] is empty — most commonly because
+    // the package's only GitHub release is a pre-release, which `releases/latest`
+    // skips, so the hub publishes no version at all. Without this the caret never
+    // renders and the input is unreachable, leaving the package impossible to
+    // install from the UI.
+    const canPickCustomVersion = experimentOn && !isGated;
     const isIncompatible = isInstalled && eligibility.isIncompatible;
     const sIsAdmin = isCurUserEqualAdmin();
 
@@ -180,6 +204,11 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                                 <span>{pItem?.latest_version ? `v${stripVPrefix(pItem.latest_version)}` : 'N/A'}</span>
                             )}
                             {hasUpdate && eligibility.defaultUpdate && <span className="update">↑v{stripVPrefix(eligibility.defaultUpdate)}</span>}
+                            {isGated && (
+                                <span className="experiment" title="This package is under validation. Updates are unavailable until it is released.">
+                                    <VscBeaker size={11} /> under validation
+                                </span>
+                            )}
                             {isIncompatible && (
                                 <span
                                     className="incompat"
@@ -228,7 +257,18 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                             variant="primary"
                         />
                     )}
-                    {showInstall && !canInstall && (
+                    {showInstall && !canInstall && canPickCustomVersion && (
+                        <SplitAction
+                            label="Install"
+                            onPrimary={(e) => e.stopPropagation()}
+                            onToggle={handleToggleMenu('install')}
+                            primaryDisabled
+                            loading={busyCmd === 'install'}
+                            disabled={isBusy}
+                            variant="primary"
+                        />
+                    )}
+                    {showInstall && !canInstall && !canPickCustomVersion && (
                         <TextAction
                             label="Install"
                             onClick={(e) => e.stopPropagation()}

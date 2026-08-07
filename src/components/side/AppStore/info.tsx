@@ -5,7 +5,8 @@ import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
 import { VscBook, VscExtensions, VscHome, VscInfo, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
-import { getPkgMarkdown } from '@/api/repository/appStore';
+import { getPkgMarkdown, isGrandfatheredPkg } from '@/api/repository/appStore';
+import { useExperiment } from '@/hooks/useExperiment';
 import { useEffect, useMemo, useState } from 'react';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { BiLink } from '@/assets/icons/Icon';
@@ -16,6 +17,12 @@ import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandMo
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     const runCommand = usePkgCommand();
+    const { getExperiment } = useExperiment();
+
+    // issue #1438: detail view for a package that only remains visible because it
+    // is installed. Same policy as the catalog card — stays viewable and
+    // removable, but must not advertise an update to an unvalidated version.
+    const isGated = isGrandfatheredPkg(pCode?.app, getExperiment());
 
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
@@ -32,6 +39,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const hasUpdate = useMemo(() => {
         const installed = pCode?.app?.installed_version;
         const latest = pCode?.app?.latest_version;
+        if (isGated) return false;
         if (!pCode?.app?.installed_frontend || !installed || !latest) return false;
         const r = comparePkgVersions(installed, latest);
         if (r === null) {
@@ -39,7 +47,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             return false;
         }
         return r === -1;
-    }, [pCode?.app?.installed_frontend, pCode?.app?.installed_version, pCode?.app?.latest_version, pCode?.app?.name]);
+    }, [isGated, pCode?.app?.installed_frontend, pCode?.app?.installed_version, pCode?.app?.latest_version, pCode?.app?.name]);
 
     // Surfaces a small info icon when both versions exist but cannot be SemVer-compared
     // (e.g. calendar-style "2024.01.15" vs "1.0.0"). Mirrors the same guard chain as

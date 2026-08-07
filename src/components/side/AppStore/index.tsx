@@ -2,7 +2,7 @@ import './index.scss';
 import { MdRefresh } from 'react-icons/md';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useRecoilState, useSetRecoilState, useResetRecoilState } from 'recoil';
-import { fetchPkgHubList, SEARCH_RES } from '@/api/repository/appStore';
+import { fetchPkgHubList, filterExperimentPkgs, SEARCH_RES } from '@/api/repository/appStore';
 import { getFiles } from '@/api/repository/fileTree';
 import { gSearchPkgs, gPossiblePkgs, gSearchPkgName, gActiveAppSide, gPkgHealth } from '@/recoil/appStore';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -10,8 +10,11 @@ import { closeTabState } from '@/components/mainContent/tabCloseUtils';
 import { AppList } from './item';
 import EnterCallback from '@/hooks/useEnter';
 import useDebounce from '@/hooks/useDebounce';
+import { useExperiment } from '@/hooks/useExperiment';
 import { Side, Input, Button } from '@/design-system/components';
 import { checkPkgHealth, readManifest } from './pkgLifecycle';
+import { AppFrameStatus } from '@/components/appView/AppFrameStatus';
+import { useAppFrameHealth } from '@/components/appView/useAppFrameHealth';
 
 export const AppStoreSide = () => {
     // RECOIL var
@@ -28,6 +31,9 @@ export const AppStoreSide = () => {
     const [sEnter, setEnter] = useState<number>(0);
     const [sAppSideCollapse, setAppSideCollapse] = useState<boolean>(true);
     const sideIframeRef = useRef<HTMLIFrameElement>(null);
+    const { getExperiment } = useExperiment();
+    const sSideUrl = sActiveAppSide ? `/public/${sActiveAppSide}/side.html` : '';
+    const sSideHealth = useAppFrameHealth(sideIframeRef, { enabled: !!sActiveAppSide && sAppSideCollapse, resetKey: sActiveAppSide ?? '' });
 
     // Activate main.html tab when user interacts with side iframe
     useEffect(() => {
@@ -87,10 +93,13 @@ export const AppStoreSide = () => {
                 })
             );
 
+            // issue #1438: gate before search so CATALOG and search results agree.
+            const gated = filterExperimentPkgs(allPkgs, getExperiment());
+
             const searchLower = sSearchTxt.toLowerCase();
             const displayed = sSearchTxt
-                ? allPkgs.filter((pkg) => pkg.name.toLowerCase().includes(searchLower) || pkg.github.description.toLowerCase().includes(searchLower))
-                : allPkgs;
+                ? gated.filter((pkg) => pkg.name.toLowerCase().includes(searchLower) || pkg.github.description.toLowerCase().includes(searchLower))
+                : gated;
 
             setPkgs({ installed: [], exact: [], possibles: displayed, broken: [] });
         } catch {
@@ -203,12 +212,10 @@ export const AppStoreSide = () => {
                         </button>
                     </Side.Collapse>
                     {sAppSideCollapse && (
-                        <iframe
-                            ref={sideIframeRef}
-                            src={`/public/${sActiveAppSide}/side.html`}
-                            style={{ width: '100%', flex: 1, border: 'none', minHeight: 0 }}
-                            title={`App Side: ${sActiveAppSide}`}
-                        />
+                        <div className="app-frame">
+                            <iframe ref={sideIframeRef} src={sSideUrl} title={`App Side: ${sActiveAppSide}`} />
+                            <AppFrameStatus pAppName={sActiveAppSide} pHealth={sSideHealth} pCompact />
+                        </div>
                     )}
                 </div>
             )}

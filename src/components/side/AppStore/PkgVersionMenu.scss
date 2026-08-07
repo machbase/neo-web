@@ -27,6 +27,17 @@
     }
 }
 
+// Shown instead of the row list when the hub published no version for this
+// package — e.g. its only GitHub release is a pre-release, which the hub's
+// `releases/latest` lookup skips. In experiment mode the custom-version input
+// below is then the only way to install.
+.pkg-version-menu-empty {
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #9a9a9a;
+}
+
 // Row content wrapper — bleeds over the menu__item padding so hovering anywhere
 // on the row (not just the text) reveals the action hint.
 .pkg-version-menu-row {

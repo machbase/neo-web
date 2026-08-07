@@ -11,15 +11,35 @@
         @include m.drag-handle-hover-effect;
 
         .custom-split-sash-line {
+            position: relative;
             width: 100%;
             height: 100%;
 
-            &.custom-split-sash-line--vertical {
-                border-right: 1px solid #454544;
+            // The sash straddles the split point, so a border on its trailing
+            // edge lands ~2px inside the next pane and leaves a sliver of that
+            // pane showing beside the divider — invisible on dark panels, but
+            // obvious against a light package page. Center the line instead.
+            &::after {
+                content: '';
+                position: absolute;
+                background-color: #454544;
+                pointer-events: none;
             }
 
-            &.custom-split-sash-line--horizontal {
-                border-bottom: 1px solid #454544;
+            &.custom-split-sash-line--vertical::after {
+                top: 0;
+                bottom: 0;
+                left: 50%;
+                width: 1px;
+                transform: translateX(-50%);
+            }
+
+            &.custom-split-sash-line--horizontal::after {
+                left: 0;
+                right: 0;
+                top: 50%;
+                height: 1px;
+                transform: translateY(-50%);
             }
         }
     }
