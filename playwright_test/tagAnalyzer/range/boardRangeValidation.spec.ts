@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { login } from '../../support/login';
 
-test.describe('Tag Analyzer toast', () => {
-    test('shows an error for an invalid board range', async ({ page }) => {
+test.describe('Tag Analyzer board range validation', () => {
+    test('shows an inline error for an invalid board range', async ({ page }) => {
         // 1. Open Tag Analyzer.
         await login(page);
         await page.getByText('TAG ANALYZER', { exact: true }).click();
@@ -24,10 +24,9 @@ test.describe('Tag Analyzer toast', () => {
             .getByRole('button', { name: 'Apply', exact: true })
             .click();
 
-        // 4. Check the toast.
-        const toast = page.getByRole('status').filter({
-            hasText: 'Please enter both numeric boundaries in a valid order.',
-        });
-        await expect(toast).toBeVisible();
+        // 4. Check the inline validation message.
+        await expect(rangeDialog.getByRole('alert')).toHaveText(
+            'Invalid input - enter both From and To using numbers or first/last expressions, with From less than To.',
+        );
     });
 });

@@ -156,7 +156,9 @@ export default function Board({
     rollupTableList,
 }: BoardProps) {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
-    const [sIsBoardRangeModalOpen, setIsBoardRangeModalOpen] = useState(false);
+    const [sBoardRangeModalOpenedAt, setBoardRangeModalOpenedAt] = useState<
+        number | undefined
+    >(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<RangeState | undefined>(undefined);
     const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
@@ -208,11 +210,15 @@ export default function Board({
         sIsNumericBoardRange
             ? sBoardInfo.boardNumericRange
             : sBoardInfo.boardTimeRange;
-    const sBoardRangeReferences = {
-        time: getBoardRangeReference(sPanels, sPanelRanges, 'time'),
-        numeric: getBoardRangeReference(sPanels, sPanelRanges, 'numeric'),
-    };
-    const sBoardRangeReference = sBoardRangeReferences[sBoardRangeKind];
+    const sBoardRangeReference =
+        getBoardRangeReference(
+            sPanels,
+            sPanelRanges,
+            sBoardRangeKind,
+        ) ?? createBoardRangeEditorReference(
+            sBoardRangeKind,
+            sBoardRangeModalOpenedAt ?? Date.now(),
+        );
     const sBoardRangeButtonLabel =
         sBoardRangeInput.start.trim() === '' ||
         sBoardRangeInput.end.trim() === ''
@@ -338,7 +344,7 @@ export default function Board({
         if (isActiveTab) return;
 
         setIsHelpModalOpen(false);
-        setIsBoardRangeModalOpen(false);
+        setBoardRangeModalOpenedAt(undefined);
         setIsNewPanelModalOpen(false);
         closeSaveAsModal();
         closeOverlapChart();
@@ -458,8 +464,9 @@ export default function Board({
                         <Button
                             size="sm"
                             variant="ghost"
-                            disabled={!sBoardRangeReference}
-                            onClick={() => setIsBoardRangeModalOpen(true)}
+                            onClick={() =>
+                                setBoardRangeModalOpenedAt(Date.now())
+                            }
                         >
                             <Calendar style={{ paddingRight: '8px' }} />
                             {sBoardRangeButtonLabel}
@@ -519,27 +526,19 @@ export default function Board({
                     onClose={() => setIsHelpModalOpen(false)}
                 />
             )}
-            {sIsBoardRangeModalOpen && sBoardRangeReference && (
+            {sBoardRangeModalOpenedAt !== undefined && (
                 <RangeModal
                     key={sBoardRangeKind}
+                    title="Board Range"
                     kind={sBoardRangeKind}
                     initialRangeInput={sBoardRangeInput}
                     currentRange={sBoardRangeReference.currentRange}
                     fullRange={sBoardRangeReference.fullRange}
-                    onAxisKindChange={(rangeKind) => {
-                        if (sBoardRangeReferences[rangeKind]) {
-                            setBoardRangeKind(rangeKind);
-                            return;
-                        }
-
-                        Toast.error(
-                            `Cannot resolve a ${rangeKind} board range until a matching panel is ready.`,
-                        );
-                    }}
+                    onAxisKindChange={setBoardRangeKind}
                     onApply={(rangeInput: RangeExpressionInput) =>
                         applyBoardRange(sBoardRangeKind, rangeInput)
                     }
-                    onClose={() => setIsBoardRangeModalOpen(false)}
+                    onClose={() => setBoardRangeModalOpenedAt(undefined)}
                 />
             )}
             {isActiveTab && sIsSaveAsModalOpen && (
@@ -624,4 +623,15 @@ function getBoardRangeReference(
     return currentRange && fullRange
         ? { currentRange, fullRange }
         : undefined;
+}
+
+function createBoardRangeEditorReference(
+    axisKind: AxisKind,
+    openedAt: number,
+): { currentRange: AxisRange; fullRange: AxisRange } {
+    const range = axisKind === 'time'
+        ? { start: 0, end: openedAt }
+        : { start: 0, end: Number.MAX_SAFE_INTEGER };
+
+    return { currentRange: range, fullRange: range };
 }
