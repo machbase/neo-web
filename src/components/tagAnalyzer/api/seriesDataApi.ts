@@ -683,10 +683,34 @@ function getSeriesFullRangeErrorMessage(
     )}`;
 }
 
+export type PanelSeriesRowsRequest =
+    | {
+          kind: 'raw';
+          args: Parameters<typeof fetchRawSeriesRows>;
+      }
+    | {
+          kind: 'sampled-raw';
+          args: Parameters<typeof fetchSampledRawSeriesRows>;
+      }
+    | {
+          kind: 'calculated';
+          args: Parameters<typeof fetchCalculatedSeriesRows>;
+      };
+
+function fetchSeriesRows(
+    request: PanelSeriesRowsRequest,
+): Promise<PanelDataFetchResult | undefined> {
+    if (request.kind === 'raw') {
+        return fetchRawSeriesRows(...request.args);
+    }
+    if (request.kind === 'sampled-raw') {
+        return fetchSampledRawSeriesRows(...request.args);
+    }
+    return fetchCalculatedSeriesRows(...request.args);
+}
+
 export const seriesDataApi = {
     rawRowLimit: RAW_SERIES_ROW_LIMIT,
     fetchSeriesFullRange,
-    fetchCalculatedSeriesRows,
-    fetchRawSeriesRows,
-    fetchSampledRawSeriesRows,
+    fetchSeriesRows,
 };

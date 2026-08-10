@@ -40,7 +40,7 @@ import {
 import { isSameRange } from '../range/rangeArithmetic';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
 import { filterChartDataByRange } from '../chart/chartData';
-import { usePanelDataLoading } from '../dataLoading/panelDataLoader';
+import { usePanelDataLoading } from './panelData';
 import {
     PanelOverlayMode,
     PanelPopupMode,

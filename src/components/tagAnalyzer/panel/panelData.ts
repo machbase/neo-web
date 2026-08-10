@@ -3,6 +3,7 @@ import { Toast } from '@/design-system/components';
 import {
     seriesDataApi,
     type PanelDataFetchResult,
+    type PanelSeriesRowsRequest,
 } from '../api/seriesDataApi';
 import {
     mapFetchResultToChartData,
@@ -10,25 +11,26 @@ import {
 } from '../chart/chartData';
 import { getNavigatorTrackWidth } from '../chart/chartGeometry';
 import {
-    enforceChartAreaWidth,
-    resolveRangeChange,
-} from '../range/rangeResolver';
+    getAsyncRequestErrorMessage,
+    useLatestAsyncRequest,
+} from '../hooks/useLatestAsyncRequest';
 import {
-    resolveNumericIntervalValue,
     calculateInterval,
     getIntervalMs,
+    resolveNumericIntervalValue,
     TimeUnit,
     type IntervalOption,
 } from '../range/intervalResolver';
+import { getRangeWidth, isSameRange } from '../range/rangeArithmetic';
+import {
+    enforceChartAreaWidth,
+    resolveRangeChange,
+} from '../range/rangeResolver';
 import {
     type AxisRange,
     type RangeState,
     type ResolvedRangeState,
 } from '../range/rangeModel';
-import {
-    getRangeWidth,
-    isSameRange,
-} from '../range/rangeArithmetic';
 import {
     getPanelSeriesDisplayName,
     hasMixedXAxisValueKinds,
@@ -38,33 +40,28 @@ import {
     type RollupTableMap,
 } from '../seriesModel';
 import {
-    DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
-    type PanelInfo,
-    type PanelSampling,
-} from '../panel/panelModel';
-import {
     getReusablePanelDataRange,
-    NAVIGATOR_QUERY_ROW_LIMIT,
-    type NavigatorFetchResolution,
-    useNavigatorSeriesFetch,
-} from './navigatorDataLoader';
-import {
     getUnavailableSeriesCount,
     hasFetchLimitReached,
     hasOnlyNoDataSeriesErrors,
     resolvePanelDisplay,
-} from './panelLoadState';
-import { buildRangeRequestKey, buildRequestKey } from './requestKey';
+} from './panelDataState';
 import {
-    getAsyncRequestErrorMessage,
-    useLatestAsyncRequest,
-} from '../hooks/useLatestAsyncRequest';
+    DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
+    type PanelInfo,
+    type PanelSampling,
+} from './panelModel';
+import { buildRangeRequestKey, buildRequestKey } from './panelRequestKey';
+import {
+    NAVIGATOR_QUERY_ROW_LIMIT,
+    type NavigatorFetchResolution,
+    useNavigatorSeriesFetch,
+} from './useNavigatorSeriesData';
 
 const MAIN_CALCULATED_FETCH_ROW_LIMIT = 10000;
-
 const MAIN_NUMERIC_VISIBLE_BUCKET_TARGET = 1000;
 
-type MainSeriesFetchOptions = {
+type MainSeriesRequestOptions = {
     interval?: IntervalOption;
     numericBucketWidth?: number;
     signal?: AbortSignal;
@@ -120,19 +117,23 @@ function resolvePanelFetchInterval(
 
     return {
         IntervalType: intervalType,
-        IntervalValue: sCalculatedIntervalMs <= 0
-            ? 1
-            : Math.max(1, Math.ceil(sCalculatedIntervalMs / sIntervalUnitMs)),
+        IntervalValue:
+            sCalculatedIntervalMs <= 0
+                ? 1
+                : Math.max(
+                      1,
+                      Math.ceil(sCalculatedIntervalMs / sIntervalUnitMs),
+                  ),
     };
 }
 
-export function fetchMainSeriesRows(
+export function buildMainSeriesRequest(
     panelInfo: PanelInfo,
     range: AxisRange,
     chartWidth: number,
     rollups: RollupTableMap,
-    options: MainSeriesFetchOptions = {},
-): Promise<PanelDataFetchResult | undefined> {
+    options: MainSeriesRequestOptions = {},
+): PanelSeriesRowsRequest {
     const { interval, numericBucketWidth, signal } = options;
     const seriesList = panelInfo.query.tagSet;
     const sampling = panelInfo.display.mainChartSampling;
@@ -150,43 +151,52 @@ export function fetchMainSeriesRows(
     }
 
     if (panelInfo.mode.isRaw) {
-        if (sampleCount === undefined) {
-            return seriesDataApi.fetchRawSeriesRows(
-                seriesList,
-                range,
-                panelInfo.mode.isOrderBy,
-                signal,
-            );
-        }
-
-        return seriesDataApi.fetchSampledRawSeriesRows(
-            seriesList,
-            range,
-            sampleCount,
-            panelInfo.mode.isOrderBy,
-            signal,
-        );
+        return sampleCount === undefined
+            ? {
+                  kind: 'raw',
+                  args: [
+                      seriesList,
+                      range,
+                      panelInfo.mode.isOrderBy,
+                      signal,
+                  ],
+              }
+            : {
+                  kind: 'sampled-raw',
+                  args: [
+                      seriesList,
+                      range,
+                      sampleCount,
+                      panelInfo.mode.isOrderBy,
+                      signal,
+                  ],
+              };
     }
 
-    return seriesDataApi.fetchCalculatedSeriesRows(
-        seriesList,
-        range,
-        interval ?? resolvePanelFetchInterval(
-            panelInfo.query.intervalType,
-            panelInfo.display.pixelsPerTick.calculated ?? 0,
+    return {
+        kind: 'calculated',
+        args: [
+            seriesList,
             range,
-            chartWidth,
-        ),
-        MAIN_CALCULATED_FETCH_ROW_LIMIT,
-        rollups,
-        {
-            numericBucketWidth: numericBucketWidth ??
-                (hasNumericBaseTimeSeries(seriesList)
-                    ? resolveNumericCalculatedIntervalForRange(range)
-                    : undefined),
-            signal,
-        },
-    );
+            interval ??
+                resolvePanelFetchInterval(
+                    panelInfo.query.intervalType,
+                    panelInfo.display.pixelsPerTick.calculated ?? 0,
+                    range,
+                    chartWidth,
+                ),
+            MAIN_CALCULATED_FETCH_ROW_LIMIT,
+            rollups,
+            {
+                numericBucketWidth:
+                    numericBucketWidth ??
+                    (hasNumericBaseTimeSeries(seriesList)
+                        ? resolveNumericCalculatedIntervalForRange(range)
+                        : undefined),
+                signal,
+            },
+        ],
+    };
 }
 
 function resolveNavigatorTimeBucketInterval(
@@ -209,9 +219,7 @@ function resolveNavigatorTimeBucketInterval(
     };
 }
 
-function showPanelDataFeedback(
-    result: PanelDataFetchResult,
-): void {
+function showPanelDataFeedback(result: PanelDataFetchResult): void {
     if (hasFetchLimitReached(result)) {
         Toast.warning(
             'The data limit was reached, so only part of the result is displayed.',
@@ -389,10 +397,8 @@ function resolveMainFetchRange(
     if (params.load.isRaw) return sFetchableMainRange;
 
     const sFetchableNavigatorRange =
-        getOverlappingTimeRange(
-            params.navigatorRange,
-            params.fullRange,
-        ) ?? sFetchableMainRange;
+        getOverlappingTimeRange(params.navigatorRange, params.fullRange) ??
+        sFetchableMainRange;
 
     if (hasNumericBaseTimeSeries(params.load.seriesList)) {
         return clipFetchRangeToFullRange(
@@ -477,14 +483,8 @@ function shrinkPrefetchRangeToPredictedRowBudget(
         return mainRange;
     }
 
-    const sLeftAvailable = Math.max(
-        0,
-        mainRange.start - prefetchRange.start,
-    );
-    const sRightAvailable = Math.max(
-        0,
-        prefetchRange.end - mainRange.end,
-    );
+    const sLeftAvailable = Math.max(0, mainRange.start - prefetchRange.start);
+    const sRightAvailable = Math.max(0, prefetchRange.end - mainRange.end);
     let sLeftPrefetchWidth = Math.min(
         sLeftAvailable,
         sExtraWidthBudget / 2,
@@ -553,121 +553,143 @@ export function usePanelDataLoading({
     onRawMainRangeLimited,
 }: UsePanelDataLoadingParams) {
     const sRequestedRange = rangeState?.range;
-    const sChartWidth = chartAreaWidth !== undefined &&
-        Number.isFinite(chartAreaWidth) && chartAreaWidth > 0
-        ? chartAreaWidth
-        : undefined;
-    const sVisibleRange = sRequestedRange && sChartWidth !== undefined
-        ? enforceChartAreaWidth(sRequestedRange, sChartWidth, 'main')
-        : sRequestedRange;
+    const sChartWidth =
+        chartAreaWidth !== undefined &&
+        Number.isFinite(chartAreaWidth) &&
+        chartAreaWidth > 0
+            ? chartAreaWidth
+            : undefined;
+    const sVisibleRange =
+        sRequestedRange && sChartWidth !== undefined
+            ? enforceChartAreaWidth(sRequestedRange, sChartWidth, 'main')
+            : sRequestedRange;
     const sVisibleNavigatorRange = sVisibleRange?.navigatorRange;
     const loadConfig = resolvePanelDataLoadConfig(panelInfo);
-    const sFetchRequest = rangeState && sVisibleNavigatorRange &&
+    const sFetchRequest =
+        rangeState &&
+        sVisibleNavigatorRange &&
         sChartWidth !== undefined
-        ? resolvePanelDataFetchRequest({
-              load: loadConfig,
-              chartWidth: sChartWidth,
-              rollups: rollupTableList,
-              refreshVersion: dataRefreshVersion,
-              mainRange: rangeState.range.mainRange,
-              navigatorRange: sVisibleNavigatorRange,
-              fullRange: rangeState.fullRange,
-          })
-        : undefined;
+            ? resolvePanelDataFetchRequest({
+                  load: loadConfig,
+                  chartWidth: sChartWidth,
+                  rollups: rollupTableList,
+                  refreshVersion: dataRefreshVersion,
+                  mainRange: rangeState.range.mainRange,
+                  navigatorRange: sVisibleNavigatorRange,
+                  fullRange: rangeState.fullRange,
+              })
+            : undefined;
     const sUsesRawNavigatorData: boolean =
         loadConfig.isRaw && loadConfig.rawNavigatorSampling.enabled;
     const hasMixedXAxisKinds = hasMixedXAxisValueKinds(loadConfig.seriesList);
     const isNumericXAxis =
         !hasMixedXAxisKinds && hasNumericBaseTimeSeries(loadConfig.seriesList);
-    const sCanFetch = sFetchRequest !== undefined &&
+    const sCanFetch =
+        sFetchRequest !== undefined &&
         isActive &&
         !hasMixedXAxisKinds &&
         loadConfig.seriesList.length > 0;
-    const sMainFetchRequest = sCanFetch && sFetchRequest &&
-        rangeState && sChartWidth !== undefined
-        ? {
-              baseKey: sFetchRequest.main.baseKey,
-              requestedRange: rangeState.range.mainRange,
-              queryRange: sFetchRequest.main.range,
-              fetchFn: (queryRange: AxisRange) =>
-                  fetchMainSeriesRows(
-                      panelInfo,
-                      queryRange,
-                      sChartWidth,
-                      rollupTableList,
-                      {
-                          interval: sFetchRequest.requestInterval,
-                          numericBucketWidth: sFetchRequest.numericInterval,
-                      },
-                  ),
-              onSuccess: (result: PanelDataFetchResult) => {
-                  showPanelDataFeedback(result);
-                  const sRequestedMainRange =
-                      rangeState.range.mainRange;
-                  const sFetchedMainRange = resolvePanelDisplay(
-                      result,
-                      sRequestedMainRange,
-                      loadConfig.isRaw,
-                  ).range;
-                  if (!isSameRange(sFetchedMainRange, sRequestedMainRange)) {
-                      onRawMainRangeLimited(sFetchedMainRange);
-                  }
-              },
-          }
-        : undefined;
+    const sMainFetchRequest =
+        sCanFetch && sFetchRequest && rangeState && sChartWidth !== undefined
+            ? {
+                  baseKey: sFetchRequest.main.baseKey,
+                  requestedRange: rangeState.range.mainRange,
+                  queryRange: sFetchRequest.main.range,
+                  fetchFn: (queryRange: AxisRange) =>
+                      seriesDataApi.fetchSeriesRows(
+                          buildMainSeriesRequest(
+                              panelInfo,
+                              queryRange,
+                              sChartWidth,
+                              rollupTableList,
+                              {
+                                  interval: sFetchRequest.requestInterval,
+                                  numericBucketWidth:
+                                      sFetchRequest.numericInterval,
+                              },
+                          ),
+                      ),
+                  onSuccess: (result: PanelDataFetchResult) => {
+                      showPanelDataFeedback(result);
+                      const sRequestedMainRange = rangeState.range.mainRange;
+                      const sFetchedMainRange = resolvePanelDisplay(
+                          result,
+                          sRequestedMainRange,
+                          loadConfig.isRaw,
+                      ).range;
+                      if (
+                          !isSameRange(
+                              sFetchedMainRange,
+                              sRequestedMainRange,
+                          )
+                      ) {
+                          onRawMainRangeLimited(sFetchedMainRange);
+                      }
+                  },
+              }
+            : undefined;
     const {
         result: sMainResult,
         status: sMainStatus,
         error: sMainError,
         queryRange: sMainResultQueryRange,
     } = usePanelSeriesFetch(sMainFetchRequest);
-    const sNavigatorFetchRequest = sCanFetch && sFetchRequest &&
-        sVisibleNavigatorRange
-        ? {
-              baseKey: sFetchRequest.navigator.baseKey,
-              requestedRange: sVisibleNavigatorRange,
-              queryRange: sFetchRequest.navigator.range,
-              usesNumericRange: isNumericXAxis,
-              fetchFn: (
-                  queryRange: AxisRange,
-                  resolution: NavigatorFetchResolution,
-                  signal: AbortSignal,
-              ) => {
-                  if (sUsesRawNavigatorData) {
-                      return seriesDataApi.fetchSampledRawSeriesRows(
-                          loadConfig.seriesList,
-                          queryRange,
-                          loadConfig.rawNavigatorSampling.sampleCount,
-                          loadConfig.useOrderBy,
-                          signal,
-                      );
-                  }
+    const sNavigatorFetchRequest =
+        sCanFetch && sFetchRequest && sVisibleNavigatorRange
+            ? {
+                  baseKey: sFetchRequest.navigator.baseKey,
+                  requestedRange: sVisibleNavigatorRange,
+                  queryRange: sFetchRequest.navigator.range,
+                  usesNumericRange: isNumericXAxis,
+                  fetchFn: (
+                      queryRange: AxisRange,
+                      resolution: NavigatorFetchResolution,
+                      signal: AbortSignal,
+                  ) => {
+                      if (sUsesRawNavigatorData) {
+                          return seriesDataApi.fetchSeriesRows({
+                              kind: 'sampled-raw',
+                              args: [
+                                  loadConfig.seriesList,
+                                  queryRange,
+                                  loadConfig.rawNavigatorSampling.sampleCount,
+                                  loadConfig.useOrderBy,
+                                  signal,
+                              ],
+                          });
+                      }
 
-                  const interval: IntervalOption = resolution.interval ??
-                      resolveNavigatorTimeBucketInterval(queryRange);
-                  const seriesList: PanelSeriesDefinition[] = loadConfig.isRaw
-                      ? loadConfig.seriesList.map((series) => ({
-                            ...series,
-                            calculationMode: PanelSeriesCalculationMode.Average,
-                        }))
-                      : loadConfig.seriesList;
+                      const interval: IntervalOption =
+                          resolution.interval ??
+                          resolveNavigatorTimeBucketInterval(queryRange);
+                      const seriesList: PanelSeriesDefinition[] =
+                          loadConfig.isRaw
+                              ? loadConfig.seriesList.map((series) => ({
+                                    ...series,
+                                    calculationMode:
+                                        PanelSeriesCalculationMode.Average,
+                                }))
+                              : loadConfig.seriesList;
 
-                  return seriesDataApi.fetchCalculatedSeriesRows(
-                      seriesList,
-                      queryRange,
-                      interval,
-                      NAVIGATOR_QUERY_ROW_LIMIT,
-                      rollupTableList,
-                      {
-                          numericBucketWidth: resolution.interval
-                              ? undefined
-                              : resolution.bucketWidth,
-                          signal,
-                      },
-                  );
-              },
-          }
-        : undefined;
+                      return seriesDataApi.fetchSeriesRows({
+                          kind: 'calculated',
+                          args: [
+                              seriesList,
+                              queryRange,
+                              interval,
+                              NAVIGATOR_QUERY_ROW_LIMIT,
+                              rollupTableList,
+                              {
+                                  numericBucketWidth: resolution.interval
+                                      ? undefined
+                                      : resolution.bucketWidth,
+                                  signal,
+                              },
+                          ],
+                      });
+                  },
+              }
+            : undefined;
     const {
         result: sNavigatorResult,
         status: sNavigatorStatus,
@@ -682,19 +704,21 @@ export function usePanelDataLoading({
     }, [sLoadError]);
 
     const sMainChartData = useMemo(
-        () => mapFetchResultToChartData(
-            sMainResult,
-            loadConfig.seriesList,
-            loadConfig.isRaw,
-        ),
+        () =>
+            mapFetchResultToChartData(
+                sMainResult,
+                loadConfig.seriesList,
+                loadConfig.isRaw,
+            ),
         [loadConfig.isRaw, loadConfig.seriesList, sMainResult],
     );
     const sNavigatorChartData = useMemo(
-        () => mapFetchResultToChartData(
-            sNavigatorResult,
-            loadConfig.seriesList,
-            loadConfig.isRaw,
-        ),
+        () =>
+            mapFetchResultToChartData(
+                sNavigatorResult,
+                loadConfig.seriesList,
+                loadConfig.isRaw,
+            ),
         [loadConfig.isRaw, loadConfig.seriesList, sNavigatorResult],
     );
     const sSeriesRollupStatusList = useMemo(
@@ -704,12 +728,15 @@ export function usePanelDataLoading({
                     (seriesConfig) => seriesConfig.key === seriesKey,
                 );
                 return sSeriesConfig
-                    ? [{
-                          seriesName: getPanelSeriesDisplayName(sSeriesConfig),
-                          usesRollup:
-                              metadata?.kind === 'calculated' &&
-                              metadata.usesRollup,
-                      }]
+                    ? [
+                          {
+                              seriesName:
+                                  getPanelSeriesDisplayName(sSeriesConfig),
+                              usesRollup:
+                                  metadata?.kind === 'calculated' &&
+                                  metadata.usesRollup,
+                          },
+                      ]
                     : [];
             }) ?? [],
         [loadConfig.seriesList, sMainResult],
@@ -755,18 +782,16 @@ export function usePanelDataLoading({
     const sMainResultMatchesRequest =
         sFetchRequest !== undefined &&
         sMainResultQueryRange !== undefined &&
-        isSameRange(
-            sMainResultQueryRange,
-            sFetchRequest.main.range,
-        );
+        isSameRange(sMainResultQueryRange, sFetchRequest.main.range);
     const sPanelDisplay = useMemo(
-        () => sRequestedRange
-            ? resolvePanelDisplay(
-                sMainResultMatchesRequest ? sMainResult : undefined,
-                sRequestedRange.mainRange,
-                loadConfig.isRaw,
-            )
-            : undefined,
+        () =>
+            sRequestedRange
+                ? resolvePanelDisplay(
+                      sMainResultMatchesRequest ? sMainResult : undefined,
+                      sRequestedRange.mainRange,
+                      loadConfig.isRaw,
+                  )
+                : undefined,
         [
             loadConfig.isRaw,
             sRequestedRange,
@@ -774,23 +799,17 @@ export function usePanelDataLoading({
             sMainResultMatchesRequest,
         ],
     );
-    const sRenderRange = useMemo<RangeState | undefined>(
-        () => {
-            if (!sRequestedRange || !sPanelDisplay) return undefined;
+    const sRenderRange = useMemo<RangeState | undefined>(() => {
+        if (!sRequestedRange || !sPanelDisplay) return undefined;
 
-            const sResolvedRange = resolveRangeChange(
-                sRequestedRange,
-                {
-                    type: 'main',
-                    range: sPanelDisplay.range,
-                },
-            );
-            return sChartWidth === undefined
-                ? sResolvedRange
-                : enforceChartAreaWidth(sResolvedRange, sChartWidth, 'main');
-        },
-        [sChartWidth, sPanelDisplay, sRequestedRange],
-    );
+        const sResolvedRange = resolveRangeChange(sRequestedRange, {
+            type: 'main',
+            range: sPanelDisplay.range,
+        });
+        return sChartWidth === undefined
+            ? sResolvedRange
+            : enforceChartAreaWidth(sResolvedRange, sChartWidth, 'main');
+    }, [sChartWidth, sPanelDisplay, sRequestedRange]);
 
     return {
         mainChartData: sMainChartData,
@@ -808,12 +827,14 @@ export function usePanelDataLoading({
         isNumericXAxis,
         displayNotice: sPanelDisplay?.notice,
         loadStatus: {
-            chart: rangeState && sChartWidth !== undefined
-                ? sMainStatus
-                : 'loading',
-            navigator: rangeState && sChartWidth !== undefined
-                ? sNavigatorStatus
-                : 'loading',
+            chart:
+                rangeState && sChartWidth !== undefined
+                    ? sMainStatus
+                    : 'loading',
+            navigator:
+                rangeState && sChartWidth !== undefined
+                    ? sNavigatorStatus
+                    : 'loading',
         },
     };
 }
@@ -825,12 +846,17 @@ function createDataSettingMetric(
     pixelWidth: number | undefined,
 ) {
     return {
-        queriedEntries: queryCountPerSeries === undefined
-            ? undefined
-            : Math.max(0, queryCountPerSeries) * Math.max(0, seriesCount),
-        pointCount: queryCountPerSeries === undefined && chartData.length === 0
-            ? undefined
-            : chartData.reduce((sum, series) => sum + series.data.length, 0),
+        queriedEntries:
+            queryCountPerSeries === undefined
+                ? undefined
+                : Math.max(0, queryCountPerSeries) * Math.max(0, seriesCount),
+        pointCount:
+            queryCountPerSeries === undefined && chartData.length === 0
+                ? undefined
+                : chartData.reduce(
+                      (sum, series) => sum + series.data.length,
+                      0,
+                  ),
         pixelWidth,
     };
 }
@@ -870,15 +896,16 @@ function usePanelSeriesFetch(
     const queryRange = request?.queryRange;
     const canFetch = request !== undefined;
     const sReusableRange =
-        baseKey !== undefined && state.result && state.queryRange &&
+        baseKey !== undefined &&
+        state.result &&
+        state.queryRange &&
         state.baseKey === baseKey
-            ? getReusablePanelDataRange(
-                  state.result,
-                  state.queryRange,
-              )
+            ? getReusablePanelDataRange(state.result, state.queryRange)
             : undefined;
     const sCachedQueryRange =
-        requestedRange && state.queryRange && sReusableRange &&
+        requestedRange &&
+        state.queryRange &&
+        sReusableRange &&
         (requestedRange.start >= state.queryRange.start ||
             requestedRange.start > sReusableRange.start) &&
         (requestedRange.end <= state.queryRange.end ||
@@ -886,9 +913,10 @@ function usePanelSeriesFetch(
             ? state.queryRange
             : undefined;
     const sQueryRange = sCachedQueryRange ?? queryRange;
-    const sRequestKey = baseKey !== undefined && sQueryRange
-        ? buildRangeRequestKey(baseKey, sQueryRange)
-        : PANEL_FETCH_IDLE_KEY;
+    const sRequestKey =
+        baseKey !== undefined && sQueryRange
+            ? buildRangeRequestKey(baseKey, sQueryRange)
+            : PANEL_FETCH_IDLE_KEY;
     const sShouldUseCache = sCachedQueryRange !== undefined;
 
     useEffect(() => {

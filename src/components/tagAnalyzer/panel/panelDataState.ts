@@ -3,6 +3,43 @@ import type { AxisRange } from '../range/rangeModel';
 
 type PanelDisplayNotice = 'No Data' | 'Some series unavailable';
 
+export function getReusablePanelDataRange(
+    result: PanelDataFetchResult,
+    queryRange: AxisRange,
+): AxisRange | undefined {
+    if (
+        result.some(({ error }) => error !== undefined) ||
+        hasFetchLimitReached(result)
+    ) {
+        return undefined;
+    }
+
+    if (
+        result.length === 0 ||
+        !result.some(({ metadata }) => metadata?.kind === 'raw')
+    ) {
+        return queryRange;
+    }
+
+    let sStart: number = Number.NEGATIVE_INFINITY;
+    let sEnd: number = Number.POSITIVE_INFINITY;
+    for (const { data } of result) {
+        sStart = Math.max(
+            sStart,
+            Math.min(queryRange.start, data[0]?.[0] ?? queryRange.start),
+        );
+        sEnd = Math.min(
+            sEnd,
+            Math.max(
+                queryRange.end,
+                data[data.length - 1]?.[0] ?? queryRange.end,
+            ),
+        );
+    }
+
+    return { start: sStart, end: sEnd };
+}
+
 export function hasFetchLimitReached(result: PanelDataFetchResult): boolean {
     return result.some(
         ({ metadata }) => metadata?.isLimitReached === true,

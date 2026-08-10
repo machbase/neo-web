@@ -14,12 +14,12 @@ import {
     getRangeWidth,
     isRangeWithin,
 } from '../range/rangeArithmetic';
-import { buildRangeRequestKey } from './requestKey';
+import { buildRangeRequestKey } from './panelRequestKey';
 import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../hooks/useLatestAsyncRequest';
-import { hasFetchLimitReached } from './panelLoadState';
+import { getReusablePanelDataRange } from './panelDataState';
 
 export const NAVIGATOR_QUERY_ROW_LIMIT = 1000;
 const NAVIGATOR_BUCKET_INTERVAL_LIMIT: number =
@@ -28,43 +28,6 @@ const MINIMUM_NUMERIC_BUCKET_WIDTH: number = 0.01;
 const NAVIGATOR_BAND_OVERLAP_RATIO: number = 0.1;
 const NAVIGATOR_FETCH_DEBOUNCE_MS: number = 150;
 const NAVIGATOR_CACHE_ENTRY_LIMIT: number = 2;
-
-export function getReusablePanelDataRange(
-    result: PanelDataFetchResult,
-    queryRange: AxisRange,
-): AxisRange | undefined {
-    if (
-        result.some(({ error }) => error !== undefined) ||
-        hasFetchLimitReached(result)
-    ) {
-        return undefined;
-    }
-
-    if (
-        result.length === 0 ||
-        !result.some(({ metadata }) => metadata?.kind === 'raw')
-    ) {
-        return queryRange;
-    }
-
-    let sStart: number = Number.NEGATIVE_INFINITY;
-    let sEnd: number = Number.POSITIVE_INFINITY;
-    for (const { data } of result) {
-        sStart = Math.max(
-            sStart,
-            Math.min(queryRange.start, data[0]?.[0] ?? queryRange.start),
-        );
-        sEnd = Math.min(
-            sEnd,
-            Math.max(
-                queryRange.end,
-                data[data.length - 1]?.[0] ?? queryRange.end,
-            ),
-        );
-    }
-
-    return { start: sStart, end: sEnd };
-}
 
 const SECOND_MS = getTimeUnitMilliseconds(TimeUnit.Second, 1);
 const DAY_MS = getTimeUnitMilliseconds(TimeUnit.Day, 1);
