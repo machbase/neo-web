@@ -3,7 +3,9 @@ import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeC
 import {
     buildDistanceQuickWindow as buildDataViewerDistanceQuickWindow,
     buildDistanceSliderClickRange as buildDataViewerDistanceSliderClickRange,
+    formatDistanceEdgeLabel,
     formatDistanceValue as formatDataViewerDistance,
+    isDistanceAnchorEdge,
     parseDistanceValue as parseDataViewerDistanceValue,
     snapDistanceEdge as snapDataViewerDistanceEdge,
 } from '@/utils/distanceRange';
@@ -144,14 +146,27 @@ export function formatDataViewerBaseValue(value: unknown, baseKind: DataViewerBa
     return formatDataViewerTime(value, timeFormat, timeZone);
 }
 
-/** The range chip's value, per axis: an expression on time, two numbers on distance. */
+/**
+ * The range chip's value, per axis: an expression on time, a coordinate or an expression on distance.
+ *
+ * A distance edge is not always a number. It can be pinned to the data — `first`, `last`,
+ * `last-5000` — exactly the way `last-1h` is on the time axis, and that is what the quick windows
+ * write. `parseDataViewerDistanceValue` refuses those by design (they are not literals to build SQL
+ * from), so reading the chip off it alone called a perfectly ordinary `first ~ last` window "not
+ * set" while the resolved caption beside it spelled out the very window being queried. An anchored
+ * edge keeps its expression here, the same way the dashboard's DIST chip shows it.
+ */
 export function formatDataViewerBaseRangeLabel(from: unknown, to: unknown, baseKind: DataViewerBaseKind = 'time') {
     if (baseKind !== 'distance') return formatTimeRangeLabel(from, to);
 
     const start = parseDataViewerDistanceValue(from);
     const end = parseDataViewerDistanceValue(to);
-    if (start === null && end === null) return 'Distance range not set';
-    return `${start === null ? 'Start' : formatDataViewerDistance(start)} ~ ${end === null ? 'End' : formatDataViewerDistance(end)}`;
+    const fromAnchored = isDistanceAnchorEdge(from);
+    const toAnchored = isDistanceAnchorEdge(to);
+    if (start === null && end === null && !fromAnchored && !toAnchored) return 'Distance range not set';
+    const startText = fromAnchored ? formatDistanceEdgeLabel(from) : start === null ? 'Start' : formatDataViewerDistance(start);
+    const endText = toAnchored ? formatDistanceEdgeLabel(to) : end === null ? 'End' : formatDataViewerDistance(end);
+    return `${startText} ~ ${endText}`;
 }
 
 /**

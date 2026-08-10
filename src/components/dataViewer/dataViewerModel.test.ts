@@ -1627,6 +1627,18 @@ describe('data viewer distance base range', () => {
         expect(formatDataViewerBaseRangeLabel('', '', 'distance')).toBe('Distance range not set');
     });
 
+    // The quick windows write anchored edges, not coordinates. Reading the chip off the numeric
+    // parse alone called `first ~ last` — the whole extent, the window the page was querying and
+    // spelling out in the caption beside the chip — "Distance range not set".
+    test('keeps an anchored distance edge as the expression the user chose', () => {
+        expect(formatDataViewerBaseRangeLabel('first', 'last', 'distance')).toBe('first ~ last');
+        expect(formatDataViewerBaseRangeLabel('last-5000', 'last', 'distance')).toBe('last-5000 ~ last');
+        expect(formatDataViewerBaseRangeLabel('first', 'first+5000', 'distance')).toBe('first ~ first+5000');
+        // Mixed: a coordinate on one edge, an anchor on the other — neither becomes a placeholder.
+        expect(formatDataViewerBaseRangeLabel(0, 'last', 'distance')).toBe('0 ~ last');
+        expect(formatDataViewerBaseRangeLabel('first', 2495, 'distance')).toBe('first ~ 2495');
+    });
+
     // `new Date('0')` is the year 2000 and `new Date('1000')` is the year 1000, so the date
     // comparison calls the perfectly ordinary default window reversed and refuses to query it.
     test('orders distance edges numerically, not chronologically', () => {
