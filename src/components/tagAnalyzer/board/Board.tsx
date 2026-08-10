@@ -90,7 +90,10 @@ type BoardPanelProps = {
     ) => void;
     onBroadcastError: (broadcastKey: string, message: string) => void;
     onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetGlobalTimeRange: (globalTimeRange: RangeState) => void;
+    onSetGlobalTimeRange: (
+        axisKind: AxisKind,
+        globalTimeRange: RangeState,
+    ) => void;
     onDeletePanel: (panelKey: string) => void;
     onToggleOverlap: (panelKey: string) => void;
 };
@@ -157,8 +160,10 @@ export default function Board({
 }: BoardProps) {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
     const [sIsBoardRangeModalOpen, setIsBoardRangeModalOpen] = useState(false);
-    const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<RangeState | undefined>(undefined);
+    const [sGlobalRangeRequest, setGlobalRangeRequest] = useState<{
+        axisKind: AxisKind | undefined;
+        ranges: Partial<Record<AxisKind, RangeState>>;
+    }>({ axisKind: undefined, ranges: {} });
     const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
     const [sIsSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
     const [sBoardRangeKind, setBoardRangeKind] = useState<AxisKind>(() =>
@@ -233,7 +238,7 @@ export default function Board({
                 },
             },
             globalRangeRequest: {
-                range: sGlobalDataAndNavigatorTime,
+                ...sGlobalRangeRequest,
                 applyVersion: sPanelBroadcastVersions.globalRange,
             },
             commandVersions: {
@@ -248,7 +253,7 @@ export default function Board({
         [
             sBoardInfo.boardNumericRange,
             sBoardInfo.boardTimeRange,
-            sGlobalDataAndNavigatorTime,
+            sGlobalRangeRequest,
             sPanelBroadcastVersions,
         ],
     );
@@ -383,9 +388,16 @@ export default function Board({
     }
 
     const handleSetGlobalTimeRange = useCallback((
+        axisKind: AxisKind,
         globalTimeRange: RangeState,
     ): void => {
-        setGlobalDataAndNavigatorTime(globalTimeRange);
+        setGlobalRangeRequest((current) => ({
+            axisKind,
+            ranges: {
+                ...current.ranges,
+                [axisKind]: globalTimeRange,
+            },
+        }));
         incrementBroadcastVersion('globalRange');
     }, []);
 

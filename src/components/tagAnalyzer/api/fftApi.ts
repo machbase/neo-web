@@ -69,6 +69,7 @@ async function fetchFftChartData(
     minHz: number,
     maxHz: number,
     threeDimensionalIntervalMs?: number,
+    signal?: AbortSignal,
 ): Promise<FftChartData> {
     const is3d: boolean = threeDimensionalIntervalMs !== undefined;
     const configuredColumns: PanelSeriesSourceColumns = series.sourceColumns;
@@ -89,7 +90,11 @@ async function fetchFftChartData(
         .replace('{interval}', String(threeDimensionalIntervalMs));
 
     return parseFftChartData(
-        await getTqlChart(`SQL(${buildTqlDoubleQuotedString(sql)})\n${chartTql}`),
+        await getTqlChart(
+            `SQL(${buildTqlDoubleQuotedString(sql)})\n${chartTql}`,
+            undefined,
+            signal,
+        ),
     );
 }
 

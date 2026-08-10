@@ -52,7 +52,8 @@ export type PanelRangeRuntimeRequests = {
         { input: RangeExpressionInput; applyVersion: number }
     >;
     globalRangeRequest: {
-        range: RangeState | undefined;
+        axisKind: AxisKind | undefined;
+        ranges: Partial<Record<AxisKind, RangeState>>;
         applyVersion: number;
     };
     commandVersions: {
@@ -789,16 +790,33 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         context: RangeTaskContext,
     ): RangeTaskResult {
         const { panelInfo } = context;
-        const sGlobalRange = sInputsRef.current.globalRangeRequest.range;
+        const sGlobalRangeRequest =
+            sInputsRef.current.globalRangeRequest;
+        const sRangeKind = getPanelRangeKind(panelInfo);
+        const sGlobalRange = sRangeKind
+            ? sGlobalRangeRequest.ranges[sRangeKind]
+            : undefined;
+        const sShouldApplyNumericGlobalRange =
+            !context.rangeState &&
+            !panelInfo.time.useLastViewedRange &&
+            sRangeKind === 'numeric' &&
+            sGlobalRange !== undefined;
+
+        if (sShouldApplyNumericGlobalRange) {
+            return loadFullRangeState(context, sGlobalRange);
+        }
+
         return loadBoardOrFallback(
             context,
             () =>
                 context.rangeState
                     ? reloadRetainedRangeState(context, context.rangeState)
                     : !panelInfo.time.useLastViewedRange &&
-                        sGlobalRange &&
-                        getPanelRangeKind(panelInfo) === 'time'
-                      ? loadFullRangeState(context, sGlobalRange)
+                        sGlobalRange
+                      ? loadFullRangeState(
+                            context,
+                            sGlobalRange,
+                        )
                       : loadConfiguredRangeState(context, {
                             applyInitialMainChartWindow: true,
                             useLastViewedRange: true,
@@ -944,6 +962,9 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         );
         sSeenVersionsRef.current = sNext;
         const sRangeKind = getPanelRangeKind(panelInfo);
+        const sGlobalRange = sRangeKind
+            ? globalRangeRequest.ranges[sRangeKind]
+            : undefined;
         const sRefreshDataChanged =
             sPrevious.refreshDataVersion !== sNext.refreshDataVersion;
         let sBroadcastTask:
@@ -968,17 +989,16 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
         }
 
         if (
-            sRangeKind === 'time' &&
-            globalRangeRequest.range &&
+            sRangeKind === globalRangeRequest.axisKind &&
+            sGlobalRange &&
             sPrevious.globalRangeVersion !== sNext.globalRangeVersion
         ) {
             sBroadcastTask = {
                 key: `global:${globalRangeRequest.applyVersion}`,
                 task: (context) =>
-                    loadBoardOrFullRange(
-                        context,
-                        globalRangeRequest.range,
-                    ),
+                    sRangeKind === 'numeric'
+                        ? loadFullRangeState(context, sGlobalRange)
+                        : loadBoardOrFullRange(context, sGlobalRange),
             };
         }
         if (

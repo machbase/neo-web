@@ -52,14 +52,36 @@ const DEFAULT_FFT_APPLIED_VALUES = {
 
 type FFTModalProps = FFTSelectionPayload & {
     isNumericXAxis: boolean;
+    fftChartData: FftChartDataController;
     onClose: () => void;
 };
-type FftLoadTask = { id: number; args: Parameters<typeof fftApi.fetchFftChartData> };
+type FftLoadTask = {
+    id: number;
+    args: {
+        series: PanelSeriesDefinition;
+        range: AxisRange;
+        minHz: number;
+        maxHz: number;
+        intervalMs?: number;
+    };
+};
+type FftChartDataController = {
+    chartData: FftChartData | null;
+    isLoading: boolean;
+    loadChartData: (
+        series: PanelSeriesDefinition,
+        range: AxisRange,
+        minHz: number,
+        maxHz: number,
+        intervalMs?: number,
+    ) => void;
+};
 function FFTModal({
     seriesSummaries,
     start,
     end,
     isNumericXAxis,
+    fftChartData,
     onClose,
 }: FFTModalProps) {
     const [sSelectedInfo, setSelectedInfo] = useState(seriesSummaries[0]);
@@ -73,7 +95,7 @@ function FFTModal({
         chartData: sChartData,
         isLoading: sIsLoading,
         loadChartData,
-    } = useFftChartData();
+    } = fftChartData;
     const sFormattedRange = isNumericXAxis
         ? {
               start: formatCompactNumber(start),
@@ -213,6 +235,7 @@ function FFTModal({
                             options={sDropdownOptions}
                             value={sSelectedInfo.series.key}
                             onChange={handleSelectedSeries}
+                            disabled={sIsLoading}
                             placeholder="Select series"
                             fullWidth
                         >
@@ -235,6 +258,7 @@ function FFTModal({
                                 size="sm"
                                 variant="secondary"
                                 active={sIsChart2D}
+                                disabled={sIsLoading}
                                 aria-pressed={sIsChart2D}
                                 aria-label="Show 2D FFT chart"
                                 onClick={() => handleChartDimension(true)}
@@ -246,7 +270,7 @@ function FFTModal({
                                 size="sm"
                                 variant="secondary"
                                 active={!sIsChart2D}
-                                disabled={isNumericXAxis}
+                                disabled={isNumericXAxis || sIsLoading}
                                 aria-pressed={!sIsChart2D}
                                 aria-label="Show 3D FFT chart"
                                 onClick={() => handleChartDimension(false)}
@@ -322,6 +346,7 @@ function FFTModal({
                             size="sm"
                             variant="primary"
                             icon={<Play size={16} />}
+                            disabled={sIsLoading}
                             onClick={handleApplyInputs}
                         >
                             Apply values
@@ -372,25 +397,51 @@ function useFftChartData() {
     const [sChartData, setChartData] = useState<FftChartData | null>(null);
     const [sIsLoading, setIsLoading] = useState(false);
     const [sLoadTask, setLoadTask] = useState<FftLoadTask>();
+    const sIsLoadingRef = useRef(false);
 
     useLatestAsyncRequest({
         enabled: sLoadTask !== undefined,
         requestKey: String(sLoadTask?.id ?? 0),
-        fetch: () => fftApi.fetchFftChartData(...sLoadTask!.args),
+        fetch: (signal) => {
+            const { series, range, minHz, maxHz, intervalMs } =
+                sLoadTask!.args;
+            return fftApi.fetchFftChartData(
+                series,
+                range,
+                minHz,
+                maxHz,
+                intervalMs,
+                signal,
+            );
+        },
         onSuccess: (chartData) => {
+            sIsLoadingRef.current = false;
             setChartData(chartData);
             setIsLoading(false);
         },
         onError: () => {
+            sIsLoadingRef.current = false;
             setChartData(null);
             setIsLoading(false);
             Toast.error('Failed to load FFT chart.');
         },
     });
 
-    const loadChartData = useCallback((...args: FftLoadTask['args']): void => {
+    const loadChartData = useCallback((
+        series: PanelSeriesDefinition,
+        range: AxisRange,
+        minHz: number,
+        maxHz: number,
+        intervalMs?: number,
+    ): void => {
+        if (sIsLoadingRef.current) return;
+
+        sIsLoadingRef.current = true;
         setIsLoading(true);
-        setLoadTask((currentTask) => ({ id: (currentTask?.id ?? 0) + 1, args }));
+        setLoadTask((currentTask) => ({
+            id: (currentTask?.id ?? 0) + 1,
+            args: { series, range, minHz, maxHz, intervalMs },
+        }));
     }, []);
 
     return { chartData: sChartData, isLoading: sIsLoading, loadChartData };
@@ -407,22 +458,37 @@ export function SelectionSummaryPopover({
     selection,
     position,
     isNumericXAxis,
+    isRaw,
     onClose,
 }: {
     selection: FFTSelectionPayload;
     position: { x: number; y: number };
     isNumericXAxis: boolean;
+    isRaw: boolean;
     onClose: () => void;
 }) {
     const [isFftOpen, setFftOpen] = useState(false);
+    const sFftChartData = useFftChartData();
+    const sFftUnavailableReason = !isRaw
+        ? 'FFT is only available in Raw mode.'
+        : isNumericXAxis
+          ? 'Numeric cannot be used to generate FFT.'
+          : sFftChartData.isLoading
+            ? 'Wait for the current FFT request to finish.'
+          : undefined;
 
-    if (isFftOpen) {
+    useEffect(() => {
+        if (!isRaw) setFftOpen(false);
+    }, [isRaw]);
+
+    if (isFftOpen && isRaw) {
         return (
             <FFTModal
                 seriesSummaries={selection.seriesSummaries}
                 start={selection.start}
                 end={selection.end}
                 isNumericXAxis={isNumericXAxis}
+                fftChartData={sFftChartData}
                 onClose={() => setFftOpen(false)}
             />
         );
@@ -496,13 +562,15 @@ export function SelectionSummaryPopover({
             </div>
             <Page.Space />
             <div
-                title={isNumericXAxis ? 'Numeric cannot be used to generate FFT.' : undefined}
+                title={sFftUnavailableReason}
             >
                 <Button
                     size="sm"
                     variant="secondary"
-                    disabled={isNumericXAxis}
-                    onClick={() => setFftOpen(true)}
+                    disabled={sFftUnavailableReason !== undefined}
+                    onClick={() => {
+                        if (!sFftUnavailableReason) setFftOpen(true);
+                    }}
                     icon={<LineChart size={16} />}
                     fullWidth
                 >

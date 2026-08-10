@@ -29,9 +29,14 @@ import {
     type PanelInfo,
 } from './panelModel';
 import type { usePanelRangeRuntime } from './usePanelRangeRuntime';
-import { MIXED_X_AXIS_KIND_WARNING, type RollupTableMap } from '../seriesModel';
+import {
+    getSeriesListAxisKind,
+    MIXED_X_AXIS_KIND_WARNING,
+    type RollupTableMap,
+} from '../seriesModel';
 import {
     isRangeExpressionEmpty,
+    type AxisKind,
     type AxisRange,
     type RangeExpressionInput,
     type RangeState,
@@ -61,7 +66,10 @@ type PanelProps = {
     };
     actions: ReturnType<typeof usePanelRangeRuntime>['actions'] & {
         onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-        onSetGlobalTimeRange: (globalTimeRange: RangeState) => void;
+        onSetGlobalTimeRange: (
+            axisKind: AxisKind,
+            globalTimeRange: RangeState,
+        ) => void;
         onDeletePanel: () => void;
         onToggleOverlap: () => void;
     };
@@ -209,10 +217,11 @@ export default memo(function Panel({
     }
 
     const isOverlayModeActive = overlayMode !== PanelOverlayMode.NO_OVERLAY;
+    const panelAxisKind = getSeriesListAxisKind(panelInfo.query.tagSet);
     const canSetGlobalTime =
         loadStatus.chart === 'ready' &&
         renderRange !== undefined &&
-        !isNumericXAxis &&
+        panelAxisKind !== undefined &&
         !isRaw;
     const panelHeaderRuntimeState = {
         title: panelInfo.title,
@@ -248,12 +257,12 @@ export default memo(function Panel({
             [PanelActionKey.TOGGLE_DRAG_SELECT]: () =>
                 toggleOverlay(PanelOverlayMode.DRAG_SELECT),
             [PanelActionKey.SET_GLOBAL_TIME]: () => {
-                if (!canSetGlobalTime || !renderRange) {
+                if (!canSetGlobalTime || !renderRange || !panelAxisKind) {
                     throw new Error(
                         'Cannot set global time before the time range is ready.',
                     );
                 }
-                onSetGlobalTimeRange(renderRange);
+                onSetGlobalTimeRange(panelAxisKind, renderRange);
             },
             [PanelActionKey.REFRESH_DATA]: onRefreshData,
             [PanelActionKey.REFRESH_TIME]: onRefreshRange,
@@ -638,6 +647,7 @@ export default memo(function Panel({
                     selection={selectionSummary.selection}
                     position={selectionSummary.popoverPosition}
                     isNumericXAxis={isNumericXAxis}
+                    isRaw={isRaw}
                     onClose={closeSelection}
                 />
             )}
