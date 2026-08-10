@@ -111,7 +111,9 @@ describe('FFT interactions', () => {
             name: 'Open FFT chart',
         });
         expect(openFftButton).toBeDisabled();
-        expect(screen.getByTitle('FFT is only available in Raw mode.')).toBeInTheDocument();
+        expect(screen.getByTitle(
+            'FFT is only allowed during raw mode',
+        )).toBeInTheDocument();
 
         fireEvent.click(openFftButton);
 

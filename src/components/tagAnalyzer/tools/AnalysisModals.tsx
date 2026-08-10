@@ -470,7 +470,7 @@ export function SelectionSummaryPopover({
     const [isFftOpen, setFftOpen] = useState(false);
     const sFftChartData = useFftChartData();
     const sFftUnavailableReason = !isRaw
-        ? 'FFT is only available in Raw mode.'
+        ? 'FFT is only allowed during raw mode'
         : isNumericXAxis
           ? 'Numeric cannot be used to generate FFT.'
           : sFftChartData.isLoading
