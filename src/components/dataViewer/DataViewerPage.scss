@@ -1846,6 +1846,13 @@
     vertical-align: middle;
 }
 
+/* Matches CommonTable's `.null-cell`: dimmed + italic so a SQL NULL is
+   distinguishable from a string whose value is literally the text "NULL". */
+.neo-data-viewer .data-viewer-raw-table td .is-null {
+    opacity: 0.55;
+    font-style: italic;
+}
+
 /* Numbers read as a column only when their digits line up on the right. */
 .neo-data-viewer .data-viewer-raw-table th.is-numeric,
 .neo-data-viewer .data-viewer-raw-table td.is-numeric {
