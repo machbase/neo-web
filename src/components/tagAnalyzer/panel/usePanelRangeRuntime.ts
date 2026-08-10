@@ -105,10 +105,10 @@ type RuntimeInputs = PanelRangeRuntimeRequests & {
 };
 
 function isSameRangeInput(
-    left: RangeExpressionInput,
-    right: RangeExpressionInput,
+    left: RangeExpressionInput | undefined,
+    right: RangeExpressionInput | undefined,
 ): boolean {
-    return left.start === right.start && left.end === right.end;
+    return left?.start === right?.start && left?.end === right?.end;
 }
 
 class RequiredFullRangeError extends Error {
@@ -1074,8 +1074,9 @@ export function usePanelRangeRuntime(inputs: RuntimeInputs) {
 function hasUserNavigatorRangeInput(
     rangeState: ResolvedRangeState | undefined,
 ): boolean {
+    const sNavigatorRangeInput = rangeState?.navigatorRangeInput;
     return (
-        rangeState !== undefined &&
-        !isRangeExpressionEmpty(rangeState.navigatorRangeInput)
+        sNavigatorRangeInput !== undefined &&
+        !isRangeExpressionEmpty(sNavigatorRangeInput)
     );
 }

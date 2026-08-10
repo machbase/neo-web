@@ -183,6 +183,7 @@ function usePanelChartRuntime({
     const {
         chartInstanceRef,
         handleChartReady: syncChartReady,
+        syncBrushInteraction,
     } = usePanelChartInstanceSync({
         isBrushActive: isSelectionMode || isDragZoomEnabled,
         optionRevision: currentRangeOption,
@@ -247,6 +248,9 @@ function usePanelChartRuntime({
                       replaceMerge: ['series', 'xAxis', 'yAxis', 'dataZoom'],
                   },
         );
+        if (sShouldResetChartData) {
+            syncBrushInteraction(chartInstance);
+        }
         lastRenderedChartDataRef.current = {
             chartData,
             navigatorChartData,
@@ -256,6 +260,7 @@ function usePanelChartRuntime({
         chartData,
         chartInstanceRef,
         navigatorChartData,
+        syncBrushInteraction,
         syncMainChartVisibleRange,
     ]);
 
@@ -660,6 +665,7 @@ function usePanelChartInstanceSync({
     return {
         chartInstanceRef,
         handleChartReady,
+        syncBrushInteraction,
     };
 }
 

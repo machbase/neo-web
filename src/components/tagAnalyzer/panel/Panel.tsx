@@ -30,7 +30,6 @@ import {
 } from './panelModel';
 import type { usePanelRangeRuntime } from './usePanelRangeRuntime';
 import {
-    getSeriesListAxisKind,
     MIXED_X_AXIS_KIND_WARNING,
     type RollupTableMap,
 } from '../seriesModel';
@@ -51,6 +50,7 @@ import {
     PanelPopupMode,
     usePanelInteraction,
 } from './panelInteraction';
+import { resolveSetGlobalTimeRequest } from './panelGlobalRange';
 import './Panel.scss';
 
 type PanelProps = {
@@ -217,12 +217,11 @@ export default memo(function Panel({
     }
 
     const isOverlayModeActive = overlayMode !== PanelOverlayMode.NO_OVERLAY;
-    const panelAxisKind = getSeriesListAxisKind(panelInfo.query.tagSet);
-    const canSetGlobalTime =
-        loadStatus.chart === 'ready' &&
-        renderRange !== undefined &&
-        panelAxisKind !== undefined &&
-        !isRaw;
+    const setGlobalTimeRequest = resolveSetGlobalTimeRequest(
+        panelInfo,
+        loadStatus.chart === 'ready',
+        renderRange,
+    );
     const panelHeaderRuntimeState = {
         title: panelInfo.title,
         mainRange: renderMainRange,
@@ -230,7 +229,7 @@ export default memo(function Panel({
         resolvedNumericInterval,
         seriesRollupStatusList,
         canSaveLocal: loadStatus.chart === 'ready',
-        canSetGlobalTime,
+        canSetGlobalTime: setGlobalTimeRequest !== undefined,
         isNumericXAxis,
         overlayMode,
         isEditing: isEditorMounted && !isEditorClosing,
@@ -257,12 +256,15 @@ export default memo(function Panel({
             [PanelActionKey.TOGGLE_DRAG_SELECT]: () =>
                 toggleOverlay(PanelOverlayMode.DRAG_SELECT),
             [PanelActionKey.SET_GLOBAL_TIME]: () => {
-                if (!canSetGlobalTime || !renderRange || !panelAxisKind) {
+                if (!setGlobalTimeRequest) {
                     throw new Error(
                         'Cannot set global time before the time range is ready.',
                     );
                 }
-                onSetGlobalTimeRange(panelAxisKind, renderRange);
+                onSetGlobalTimeRange(
+                    setGlobalTimeRequest.axisKind,
+                    setGlobalTimeRequest.range,
+                );
             },
             [PanelActionKey.REFRESH_DATA]: onRefreshData,
             [PanelActionKey.REFRESH_TIME]: onRefreshRange,
