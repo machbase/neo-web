@@ -60,7 +60,7 @@ type PanelSeriesRollupStatus = {
     usesRollup: boolean;
 };
 
-type PanelQueryResolution =
+export type PanelQueryResolution =
     | { kind: 'unresolved' }
     | { kind: 'raw' }
     | { kind: 'time'; interval: IntervalOption }

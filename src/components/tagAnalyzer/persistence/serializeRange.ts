@@ -1,5 +1,8 @@
 import moment from 'moment';
-import { formatTimeUnitShortCode } from '../format/timeFormat';
+import {
+    formatAbsoluteTime,
+    formatTimeUnitShortCode,
+} from '../format/timeFormat';
 import { isFiniteNumber, isPlainObject } from '../objectGuards';
 import { TimeUnit } from '../range/intervalResolver';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
@@ -111,9 +114,7 @@ export function parseAbsoluteTime(value: string): number | undefined {
     return parsed.isValid() ? parsed.valueOf() : undefined;
 }
 
-export function formatAbsoluteTime(timestamp: number): string {
-    return moment(timestamp).format(DATE_TIME_FORMAT);
-}
+export { formatAbsoluteTime };
 
 export function formatRelativeTime(
     anchor: 'now' | 'first' | 'last',

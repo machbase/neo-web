@@ -150,6 +150,17 @@ export type PanelHighlight = {
     textColor: string;
 };
 
+export function createPanelHighlightDraft(
+    timeRange: AxisRange,
+): PanelHighlight {
+    return {
+        text: DEFAULT_PANEL_HIGHLIGHT_LABEL,
+        timeRange: { ...timeRange },
+        fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+        textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+    };
+}
+
 export type PanelAnnotation = PanelHighlight & {
     seriesKey: string;
     clip: boolean;

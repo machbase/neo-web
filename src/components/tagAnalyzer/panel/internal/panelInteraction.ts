@@ -4,65 +4,59 @@ import {
     PanelOverlayMode,
     type PanelOverlayCursorHintState,
 } from '../../chart/chartRuntime';
-import type { FFTSelectionPayload } from '../../tools/AnalysisModals';
+import type { FFTSelectionPayload } from '../../tools/analysisModel';
 import type {
-    AnnotationEditorMetaState,
-    HighlightEditorState,
-} from '../../tools/MarkupModals';
-import type { PanelHighlight } from '../panelModel';
+    AnnotationEditorSession,
+    HighlightEditorSession,
+} from '../../tools/markupModel';
+import { createNonEmptyAxisRange } from '../../range/rangeBuilder';
+import type { AxisRange } from '../../range/rangeModel';
+import type { PanelSeriesDefinition } from '../../seriesModel';
+import {
+    createPanelHighlightDraft,
+    type PanelHighlight,
+} from '../panelModel';
 
-export enum PanelPopupMode {
-    NONE = 'NONE',
-    CONTEXT_MENU = 'CONTEXT_MENU',
-    HIGHLIGHT_EDITOR = 'HIGHLIGHT_EDITOR',
-    ANNOTATION_EDITOR = 'ANNOTATION_EDITOR',
-    DELETE_CONFIRM = 'DELETE_CONFIRM',
-    EXPORT_CSV = 'EXPORT_CSV',
-}
+type PanelSurfaceContent =
+    | { kind: 'contextMenu'; position: ContextMenuPosition }
+    | { kind: 'highlightEditor'; session: HighlightEditorSession }
+    | { kind: 'annotationEditor'; session: AnnotationEditorSession }
+    | { kind: 'deleteConfirm' }
+    | { kind: 'exportCsv' };
 
-type PanelPopupState =
-    | { mode: PanelPopupMode.NONE }
-    | { mode: PanelPopupMode.CONTEXT_MENU; position: ContextMenuPosition }
-    | {
-          mode: PanelPopupMode.HIGHLIGHT_EDITOR;
-          editor: Extract<HighlightEditorState, { mode: 'create' }>;
-          draftHighlight: PanelHighlight;
-      }
-    | {
-          mode: PanelPopupMode.HIGHLIGHT_EDITOR;
-          editor: Extract<HighlightEditorState, { mode: 'edit' }>;
-          draftHighlight?: undefined;
-      }
-    | {
-          mode: PanelPopupMode.ANNOTATION_EDITOR;
-          editorMeta: AnnotationEditorMetaState;
-      }
-    | { mode: PanelPopupMode.DELETE_CONFIRM }
-    | { mode: PanelPopupMode.EXPORT_CSV };
+export type PanelSurface = PanelSurfaceContent & { id: number };
 
 type PanelSelectionSummary = {
     selection: FFTSelectionPayload;
     popoverPosition: ContextMenuPosition;
 };
 
-type PanelInteractionState = {
+type PanelInteractionReducerState = {
     overlayMode: PanelOverlayMode;
-    popupState: PanelPopupState;
+    activeSurface: PanelSurface | undefined;
+    nextSurfaceId: number;
     editorStatus: 'closed' | 'open' | 'closing';
     selectionSummary: PanelSelectionSummary | undefined;
     overlayCursorHint: PanelOverlayCursorHintState | undefined;
     hoveredMainSeriesName: string | undefined;
 };
 
+type PanelInteractionState = PanelInteractionReducerState & {
+    draftHighlight: PanelHighlight | undefined;
+};
+
 type PanelInteractionAction =
     | { type: 'TOGGLE_OVERLAY'; overlayMode: PanelOverlayMode }
-    | { type: 'SET_OVERLAY'; overlayMode: PanelOverlayMode }
     | {
-          type: 'OPEN_POPUP';
-          popupState: PanelPopupState;
+          type: 'SHOW_SURFACE';
+          surface: PanelSurfaceContent;
           overlayMode?: PanelOverlayMode;
       }
-    | { type: 'CLOSE_POPUP'; popupMode: PanelPopupMode }
+    | {
+          type: 'BEGIN_HIGHLIGHT_CREATE';
+          session: Extract<HighlightEditorSession, { kind: 'create' }> | undefined;
+      }
+    | { type: 'DISMISS_SURFACE'; surfaceId: number }
     | { type: 'TOGGLE_EDITOR' }
     | { type: 'CLOSE_EDITOR' }
     | { type: 'FINISH_EDITOR_CLOSE' }
@@ -80,12 +74,27 @@ type PanelInteraction = {
     state: PanelInteractionState;
     actions: {
         toggleOverlay: (overlayMode: PanelOverlayMode) => void;
-        setOverlayMode: (overlayMode: PanelOverlayMode) => void;
-        openPopup: (
-            popupState: PanelPopupState,
-            overlayMode?: PanelOverlayMode,
+        showContextMenu: (position: ContextMenuPosition) => void;
+        beginHighlightCreate: (
+            range: AxisRange,
+            position: ContextMenuPosition,
         ) => void;
-        closePopup: (popupMode: PanelPopupMode) => void;
+        beginHighlightEdit: (
+            position: ContextMenuPosition,
+            highlightIndex: number,
+        ) => void;
+        beginAnnotationCreate: (
+            position: ContextMenuPosition,
+            seriesIndex: number | undefined,
+            timestamp: number,
+        ) => void;
+        beginAnnotationEdit: (
+            position: ContextMenuPosition,
+            annotationIndex: number,
+        ) => void;
+        requestDelete: () => void;
+        requestExport: () => void;
+        dismissSurface: (surfaceId: number) => void;
         toggleEditor: () => void;
         closeEditor: () => void;
         finishEditorClose: () => void;
@@ -100,10 +109,10 @@ type PanelInteraction = {
     };
 };
 
-const EMPTY_POPUP: PanelPopupState = { mode: PanelPopupMode.NONE };
-const INITIAL_STATE: PanelInteractionState = {
+const INITIAL_STATE: PanelInteractionReducerState = {
     overlayMode: PanelOverlayMode.NO_OVERLAY,
-    popupState: EMPTY_POPUP,
+    activeSurface: undefined,
+    nextSurfaceId: 1,
     editorStatus: 'closed',
     selectionSummary: undefined,
     overlayCursorHint: undefined,
@@ -111,9 +120,9 @@ const INITIAL_STATE: PanelInteractionState = {
 };
 
 function reduceInteraction(
-    state: PanelInteractionState,
+    state: PanelInteractionReducerState,
     action: PanelInteractionAction,
-): PanelInteractionState {
+): PanelInteractionReducerState {
     switch (action.type) {
         case 'TOGGLE_OVERLAY': {
             const overlayMode = state.overlayMode === action.overlayMode
@@ -121,7 +130,7 @@ function reduceInteraction(
                 : action.overlayMode;
             return {
                 ...state,
-                popupState: EMPTY_POPUP,
+                activeSurface: undefined,
                 overlayMode,
                 selectionSummary:
                     action.overlayMode === PanelOverlayMode.ANNOTATION
@@ -129,22 +138,39 @@ function reduceInteraction(
                         : undefined,
             };
         }
-        case 'SET_OVERLAY':
-            return { ...state, overlayMode: action.overlayMode };
-        case 'OPEN_POPUP':
+        case 'SHOW_SURFACE':
             return {
                 ...state,
-                popupState: action.popupState,
+                activeSurface: {
+                    ...action.surface,
+                    id: state.nextSurfaceId,
+                },
+                nextSurfaceId: state.nextSurfaceId + 1,
                 ...(action.overlayMode !== undefined && {
                     overlayMode: action.overlayMode,
                 }),
             };
-        case 'CLOSE_POPUP':
-            if (state.popupState.mode !== action.popupMode) return state;
+        case 'BEGIN_HIGHLIGHT_CREATE':
             return {
                 ...state,
-                popupState: EMPTY_POPUP,
-                ...(action.popupMode === PanelPopupMode.ANNOTATION_EDITOR && {
+                overlayMode: PanelOverlayMode.NO_OVERLAY,
+                activeSurface: action.session
+                    ? {
+                          kind: 'highlightEditor',
+                          session: action.session,
+                          id: state.nextSurfaceId,
+                      }
+                    : undefined,
+                nextSurfaceId: action.session
+                    ? state.nextSurfaceId + 1
+                    : state.nextSurfaceId,
+            };
+        case 'DISMISS_SURFACE':
+            if (state.activeSurface?.id !== action.surfaceId) return state;
+            return {
+                ...state,
+                activeSurface: undefined,
+                ...(state.activeSurface.kind === 'annotationEditor' && {
                     overlayMode: PanelOverlayMode.NO_OVERLAY,
                 }),
             };
@@ -195,17 +221,86 @@ function reduceInteraction(
     }
 }
 
-export function usePanelInteraction(): PanelInteraction {
+export function usePanelInteraction(
+    seriesList: readonly Pick<PanelSeriesDefinition, 'key'>[],
+): PanelInteraction {
     const [state, dispatch] = useReducer(reduceInteraction, INITIAL_STATE);
     const actions = useMemo<PanelInteraction['actions']>(() => ({
         toggleOverlay: (overlayMode) =>
             dispatch({ type: 'TOGGLE_OVERLAY', overlayMode }),
-        setOverlayMode: (overlayMode) =>
-            dispatch({ type: 'SET_OVERLAY', overlayMode }),
-        openPopup: (popupState, overlayMode) =>
-            dispatch({ type: 'OPEN_POPUP', popupState, overlayMode }),
-        closePopup: (popupMode) =>
-            dispatch({ type: 'CLOSE_POPUP', popupMode }),
+        showContextMenu: (position) =>
+            dispatch({
+                type: 'SHOW_SURFACE',
+                surface: { kind: 'contextMenu', position },
+                overlayMode: PanelOverlayMode.NO_OVERLAY,
+            }),
+        beginHighlightCreate: (range, position) => {
+            const timeRange = createNonEmptyAxisRange(range.start, range.end);
+            dispatch({
+                type: 'BEGIN_HIGHLIGHT_CREATE',
+                session: timeRange
+                    ? {
+                          kind: 'create',
+                          position,
+                          initialHighlight: createPanelHighlightDraft(timeRange),
+                      }
+                    : undefined,
+            });
+        },
+        beginHighlightEdit: (position, highlightIndex) =>
+            dispatch({
+                type: 'SHOW_SURFACE',
+                surface: {
+                    kind: 'highlightEditor',
+                    session: { kind: 'edit', position, highlightIndex },
+                },
+                overlayMode: PanelOverlayMode.NO_OVERLAY,
+            }),
+        beginAnnotationCreate: (position, seriesIndex, timestamp) => {
+            if (
+                seriesIndex !== undefined &&
+                (seriesIndex < 0 || seriesIndex >= seriesList.length)
+            ) {
+                throw new Error(`Invalid annotation series index: ${seriesIndex}.`);
+            }
+
+            dispatch({
+                type: 'SHOW_SURFACE',
+                surface: {
+                    kind: 'annotationEditor',
+                    session: {
+                        kind: 'create',
+                        position,
+                        timestamp,
+                        seriesKey: seriesIndex === undefined
+                            ? undefined
+                            : seriesList[seriesIndex].key,
+                    },
+                },
+                overlayMode: PanelOverlayMode.NO_OVERLAY,
+            });
+        },
+        beginAnnotationEdit: (position, annotationIndex) =>
+            dispatch({
+                type: 'SHOW_SURFACE',
+                surface: {
+                    kind: 'annotationEditor',
+                    session: { kind: 'edit', position, annotationIndex },
+                },
+                overlayMode: PanelOverlayMode.NO_OVERLAY,
+            }),
+        requestDelete: () =>
+            dispatch({
+                type: 'SHOW_SURFACE',
+                surface: { kind: 'deleteConfirm' },
+            }),
+        requestExport: () =>
+            dispatch({
+                type: 'SHOW_SURFACE',
+                surface: { kind: 'exportCsv' },
+            }),
+        dismissSurface: (surfaceId) =>
+            dispatch({ type: 'DISMISS_SURFACE', surfaceId }),
         toggleEditor: () => dispatch({ type: 'TOGGLE_EDITOR' }),
         closeEditor: () => dispatch({ type: 'CLOSE_EDITOR' }),
         finishEditorClose: () => dispatch({ type: 'FINISH_EDITOR_CLOSE' }),
@@ -217,7 +312,18 @@ export function usePanelInteraction(): PanelInteraction {
         setHoveredSeries: (seriesName) =>
             dispatch({ type: 'SET_HOVERED_SERIES', seriesName }),
         clearCursorHint: () => dispatch({ type: 'CLEAR_CURSOR_HINT' }),
-    }), []);
+    }), [seriesList]);
+    const draftHighlight =
+        state.activeSurface?.kind === 'highlightEditor' &&
+        state.activeSurface.session.kind === 'create'
+            ? state.activeSurface.session.initialHighlight
+            : undefined;
 
-    return useMemo(() => ({ state, actions }), [actions, state]);
+    return useMemo(
+        () => ({
+            state: { ...state, draftHighlight },
+            actions,
+        }),
+        [actions, draftHighlight, state],
+    );
 }

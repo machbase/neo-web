@@ -17,20 +17,12 @@ import {
     parseRangeInputValue,
 } from '../format/inputFormat';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import type { ContextMenuPosition } from '@/design-system/components';
+import type {
+    AnnotationEditorSession,
+    HighlightEditorSession,
+} from './markupModel';
 
 import PanelPopover from './PanelPopover';
-
-export type AnnotationEditorMetaState = {
-    position: ContextMenuPosition;
-    seriesKey?: string;
-    annotationIndex?: number;
-    timestamp?: number;
-};
-
-export type HighlightEditorState =
-    | { mode: 'create'; position: ContextMenuPosition }
-    | { mode: 'edit'; position: ContextMenuPosition; highlightIndex: number };
 
 type AnnotationFormState = {
     seriesValue: string;
@@ -178,30 +170,34 @@ function validateAnnotationFormState({
 }
 
 export function EditAnnotationModal({
-    annotationEditorMeta,
+    session,
     annotations,
     annotationSeriesList,
     onChange,
     onClose,
     isNumericXAxis,
 }: {
-    annotationEditorMeta: AnnotationEditorMetaState;
+    session: AnnotationEditorSession;
     annotations: readonly PanelAnnotation[];
     annotationSeriesList: PanelSeriesDefinition[];
     onChange: (annotations: PanelAnnotation[]) => void;
     onClose: () => void;
     isNumericXAxis: boolean;
 }) {
-    const annotationIndex = annotationEditorMeta.annotationIndex;
+    const annotationIndex = session.kind === 'edit'
+        ? session.annotationIndex
+        : undefined;
     const annotation = annotationIndex === undefined
         ? undefined
         : annotations[annotationIndex];
     const annotationTimestamp =
-        annotation?.timeRange.start ?? annotationEditorMeta.timestamp;
+        annotation?.timeRange.start ?? (
+            session.kind === 'create' ? session.timestamp : undefined
+        );
     const { state, setField } = useEditFormState<AnnotationFormState>(() => ({
         seriesValue:
             annotation?.seriesKey ??
-            annotationEditorMeta.seriesKey ??
+            (session.kind === 'create' ? session.seriesKey : undefined) ??
             EMPTY_ANNOTATION_SERIES_VALUE,
         timeText: annotationTimestamp === undefined
             ? ''
@@ -262,7 +258,7 @@ export function EditAnnotationModal({
     return (
         <PanelPopover
             title="Edit annotation"
-            position={annotationEditorMeta.position}
+            position={session.position}
             onClose={onClose}
             size="wide"
             outsideCloseIgnoreSelector={`.${MARKUP_DROPDOWN_MENU_CLASS}`}
@@ -402,28 +398,24 @@ function validateHighlightFormState(
 }
 
 export function EditHighlightModal({
-    activeHighlightEditor,
-    draftHighlight,
+    session,
     highlights,
     onChange,
     onClose,
     isNumericXAxis,
 }: {
-    activeHighlightEditor: HighlightEditorState;
-    draftHighlight: PanelHighlight | undefined;
+    session: HighlightEditorSession;
     highlights: readonly PanelHighlight[];
     onChange: (highlights: PanelHighlight[]) => void;
     onClose: () => void;
     isNumericXAxis: boolean;
 }) {
-    const highlightIndex = activeHighlightEditor.mode === 'edit'
-        ? activeHighlightEditor.highlightIndex
+    const highlightIndex = session.kind === 'edit'
+        ? session.highlightIndex
         : undefined;
-    const highlight = draftHighlight ?? (
-        activeHighlightEditor.mode === 'edit'
-            ? highlights[activeHighlightEditor.highlightIndex]
-            : undefined
-    );
+    const highlight = session.kind === 'create'
+        ? session.initialHighlight
+        : highlights[session.highlightIndex];
     if (highlight === undefined) {
         throw new Error('Cannot open the highlight editor without a highlight.');
     }
@@ -468,8 +460,8 @@ export function EditHighlightModal({
 
     return (
         <PanelPopover
-            title={activeHighlightEditor.mode === 'create' ? 'Create highlight' : 'Edit highlight'}
-            position={activeHighlightEditor.position}
+            title={session.kind === 'create' ? 'Create highlight' : 'Edit highlight'}
+            position={session.position}
             onClose={onClose}
             size="compact"
             actions={(

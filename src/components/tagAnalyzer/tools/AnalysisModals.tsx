@@ -25,23 +25,15 @@ import {
 } from '../range/intervalResolver';
 import type { AxisRange } from '../range/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
-import type { ChartSeriesData } from '../chart/chartData';
 import PanelPopover from './PanelPopover';
+import type {
+    FFTSelectionPayload,
+    FFTSeriesSummary,
+} from './analysisModel';
 
 import { fftApi, type FftChartData } from '../api/fftApi';
 import { useLatestAsyncRequest } from '../hooks/useLatestAsyncRequest';
 import styles from './AnalysisModals.module.scss';
-
-type FFTSeriesSummary = {
-    series: PanelSeriesDefinition;
-    min: string;
-    max: string;
-    avg: string;
-};
-
-export type FFTSelectionPayload = AxisRange & {
-    seriesSummaries: [FFTSeriesSummary, ...FFTSeriesSummary[]];
-};
 
 type SelectedRangeSeriesSummary = FFTSeriesSummary;
 
@@ -411,7 +403,6 @@ function FFTModal({
         </Modal.Root>
     );
 }
-
 function useFftChartData() {
     const [sChartData, setChartData] = useState<FftChartData | null>(null);
     const [sIsLoading, setIsLoading] = useState(false);
@@ -600,60 +591,4 @@ export function SelectionSummaryPopover({
             </div>
         </PanelPopover>
     );
-}
-
-// Kept with the analysis UI so selection semantics have a single owner.
-// eslint-disable-next-line react-refresh/only-export-components
-export function buildSelectionSummaryPayload(
-    selectionRange: AxisRange,
-    chartData: ChartSeriesData[],
-    seriesList: PanelSeriesDefinition[],
-): FFTSelectionPayload | undefined {
-    if (chartData.length !== seriesList.length) {
-        throw new Error(
-            `Brush selection series mismatch: ${chartData.length} chart series for ${seriesList.length} panel series.`,
-        );
-    }
-
-    const sSeriesSummaries = chartData.flatMap((series, index) => {
-        const sSeriesConfig = seriesList[index];
-        if (sSeriesConfig === undefined) {
-            throw new Error(`Missing series config for chart data index ${index}.`);
-        }
-
-        let sValueCount = 0;
-        let sTotalValue = 0;
-        let sMinimumValue = Infinity;
-        let sMaximumValue = -Infinity;
-        for (const [timestamp, value] of series.data) {
-            if (
-                timestamp < selectionRange.start ||
-                timestamp > selectionRange.end ||
-                value === null
-            ) {
-                continue;
-            }
-            sValueCount += 1;
-            sTotalValue += value;
-            sMinimumValue = Math.min(sMinimumValue, value);
-            sMaximumValue = Math.max(sMaximumValue, value);
-        }
-
-        if (sValueCount === 0) return [];
-
-        return [{
-            series: sSeriesConfig,
-            min: sMinimumValue.toFixed(5),
-            max: sMaximumValue.toFixed(5),
-            avg: (sTotalValue / sValueCount).toFixed(5),
-        }];
-    });
-
-    const [sFirstSummary, ...sRemainingSummaries] = sSeriesSummaries;
-    return sFirstSummary === undefined
-        ? undefined
-        : {
-              ...selectionRange,
-              seriesSummaries: [sFirstSummary, ...sRemainingSummaries],
-          };
 }

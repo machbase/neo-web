@@ -1,76 +1,37 @@
-import './PanelChrome.scss';
+import './PanelHeader.scss';
 import {
     useEffect,
     useId,
     useRef,
     useState,
-    type CSSProperties,
     type KeyboardEvent,
-    type ReactNode,
 } from 'react';
 import { Tooltip } from 'react-tooltip';
 import {
     Check,
     CiCircleMore,
-    Delete,
-    Download,
-    GearFill,
-    GoArrowBoth,
-    LuTimerReset,
-    MdCenterFocusStrong,
-    PiHighlighterLight,
-    PiSelectionPlusBold,
-    Refresh,
-    TbTimezone,
-    VscChevronLeft,
-    VscChevronRight,
-    VscNote,
     VscThreeBars,
 } from '@/assets/icons/Icon';
-import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
-import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
-import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
-import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
-import { Button, ContextMenu, Menu, type ContextMenuPosition } from '@/design-system/components';
+import { Button, Menu } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
-import {
-    getChartLayoutMetrics,
-    PANEL_NAVIGATOR_GRID_SIDE,
-} from '../../chart/chartGeometry';
 import { formatAxisRange } from '../../format/axisFormat';
+import { formatNumericInterval } from '../../format/numericFormat';
+import { formatTimeInterval } from '../../format/timeFormat';
 import type { AxisRange } from '../../range/rangeModel';
-import type { RangeButtonAction } from '../../range/rangeResolver';
+import {
+    buildPanelActions,
+    type PanelActionDescriptor,
+    type PanelActionKey,
+    type PanelActionState,
+} from './panelActions';
+import type { PanelQueryResolution } from './panelData';
 
-export const PanelActionKey = {
-    TOGGLE_RAW: 'TOGGLE_RAW',
-    TOGGLE_HIGHLIGHT: 'TOGGLE_HIGHLIGHT',
-    TOGGLE_ANNOTATION: 'TOGGLE_ANNOTATION',
-    TOGGLE_DRAG_SELECT: 'TOGGLE_DRAG_SELECT',
-    SET_GLOBAL_RANGE: 'SET_GLOBAL_RANGE',
-    REFRESH_DATA: 'REFRESH_DATA',
-    REFRESH_RANGE: 'REFRESH_RANGE',
-    EXPAND_FULL_RANGE: 'EXPAND_FULL_RANGE',
-    TOGGLE_EDIT: 'TOGGLE_EDIT',
-    OPEN_EXPORT_CSV: 'OPEN_EXPORT_CSV',
-    OPEN_DELETE_CONFIRM: 'OPEN_DELETE_CONFIRM',
-} as const;
-
-export type PanelActionKey =
-    (typeof PanelActionKey)[keyof typeof PanelActionKey];
-
-type PanelActionState = {
-    active: readonly PanelActionKey[];
-    disabled: readonly PanelActionKey[];
-};
-
-type PanelHeaderState = {
+export type PanelHeaderState = {
     title: string;
-    range:
-        | { label: string; actionLabel: string }
-        | undefined;
-    resolution:
-        | { label: string; kind: 'time' | 'numeric' }
-        | undefined;
+    mainRange: AxisRange | undefined;
+    isNumericXAxis: boolean;
+    isRaw: boolean;
+    resolution: PanelQueryResolution | undefined;
     seriesRollupStatusList: Array<{
         seriesName: string;
         usesRollup: boolean;
@@ -80,135 +41,48 @@ type PanelHeaderState = {
     isOverlapSelected: boolean;
 };
 
-type PanelActionDescriptor = {
-    key: PanelActionKey;
-    label: string;
-    tooltip?: string;
-    icon: ReactNode;
-    active?: boolean;
-    disabled?: boolean;
-    className?: string;
-    buttonStyle?: CSSProperties;
-    contextLabel?: string;
-    showInMoreMenu?: boolean;
-    showInExtraMenu?: boolean;
-    showInContextMenu?: boolean;
-};
+function getHeaderRange(state: PanelHeaderState):
+    | { label: string; actionLabel: string }
+    | undefined {
+    if (!state.mainRange) return undefined;
+
+    const formattedRange = formatAxisRange(
+        state.mainRange,
+        state.isNumericXAxis,
+    );
+    return {
+        label: `${formattedRange.start} ~ ${formattedRange.end}`,
+        actionLabel: state.isNumericXAxis
+            ? 'Set current visible main chart value range'
+            : 'Set current visible main chart range',
+    };
+}
+
+function getHeaderResolution(
+    state: PanelHeaderState,
+): { label: string; kind: 'time' | 'numeric' } | undefined {
+    if (state.isRaw || !state.resolution) return undefined;
+
+    switch (state.resolution.kind) {
+        case 'time':
+            return {
+                label: formatTimeInterval(state.resolution.interval),
+                kind: 'time',
+            };
+        case 'numeric': {
+            const label = formatNumericInterval(state.resolution.bucketWidth);
+            return label ? { label, kind: 'numeric' } : undefined;
+        }
+        case 'raw':
+        case 'unresolved':
+            return undefined;
+    }
+}
 
 function joinClassNames(
     ...names: Array<string | false | undefined | null>
 ): string {
     return names.filter(Boolean).join(' ');
-}
-
-function buildPanelActions(
-    actionState: PanelActionState,
-    includeExportCsv = false,
-): PanelActionDescriptor[] {
-    const isActive = (key: PanelActionKey): boolean =>
-        actionState.active.includes(key);
-    const isDisabled = (key: PanelActionKey): boolean =>
-        actionState.disabled.includes(key);
-    const sActions: PanelActionDescriptor[] = [
-        {
-            key: PanelActionKey.TOGGLE_RAW,
-            label: isActive(PanelActionKey.TOGGLE_RAW)
-                ? 'Disable raw data mode'
-                : 'Enable raw data mode',
-            icon: <span className="panel-header__raw-label">RAW</span>,
-            active: isActive(PanelActionKey.TOGGLE_RAW),
-            className: 'panel-header__action--raw',
-            buttonStyle: { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 },
-            showInContextMenu: true,
-        },
-        {
-            key: PanelActionKey.TOGGLE_HIGHLIGHT,
-            label: 'Highlight',
-            tooltip: 'Drag on chart to create highlight',
-            icon: <PiHighlighterLight size={16} />,
-            active: isActive(PanelActionKey.TOGGLE_HIGHLIGHT),
-            showInExtraMenu: true,
-        },
-        {
-            key: PanelActionKey.TOGGLE_ANNOTATION,
-            label: 'Annotation',
-            tooltip: 'Click chart to create annotation',
-            icon: <VscNote size={15} />,
-            active: isActive(PanelActionKey.TOGGLE_ANNOTATION),
-            showInExtraMenu: true,
-        },
-        {
-            key: PanelActionKey.TOGGLE_DRAG_SELECT,
-            label: 'Select data range',
-            contextLabel: isActive(PanelActionKey.TOGGLE_DRAG_SELECT)
-                ? 'Disable range selection'
-                : 'Enable range selection',
-            tooltip: 'Select data range for stats and FFT',
-            icon: <PiSelectionPlusBold size={18} />,
-            active: isActive(PanelActionKey.TOGGLE_DRAG_SELECT),
-            buttonStyle: { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 },
-            showInContextMenu: true,
-        },
-        {
-            key: PanelActionKey.SET_GLOBAL_RANGE,
-            label: 'Set global range',
-            icon: <TbTimezone size={15} />,
-            disabled: isDisabled(PanelActionKey.SET_GLOBAL_RANGE),
-            showInExtraMenu: true,
-            showInContextMenu: true,
-        },
-        {
-            key: PanelActionKey.REFRESH_DATA,
-            label: 'Reload data',
-            icon: <Refresh size={14} />,
-            showInExtraMenu: true,
-            showInContextMenu: true,
-        },
-        {
-            key: PanelActionKey.REFRESH_RANGE,
-            label: 'Refresh range',
-            icon: <LuTimerReset size={16} />,
-            showInMoreMenu: true,
-            showInContextMenu: true,
-        },
-        {
-            key: PanelActionKey.EXPAND_FULL_RANGE,
-            label: 'Expand to full data range',
-            icon: <GoArrowBoth size={15} />,
-            showInExtraMenu: true,
-            showInContextMenu: true,
-        },
-        {
-            key: PanelActionKey.TOGGLE_EDIT,
-            label: isActive(PanelActionKey.TOGGLE_EDIT)
-                ? 'Close editor'
-                : 'Open editor',
-            contextLabel: isActive(PanelActionKey.TOGGLE_EDIT)
-                ? 'Close editor'
-                : 'Edit panel',
-            icon: <GearFill size={14} />,
-            active: isActive(PanelActionKey.TOGGLE_EDIT),
-            showInContextMenu: true,
-        },
-        {
-            key: PanelActionKey.OPEN_DELETE_CONFIRM,
-            label: 'Delete panel',
-            icon: <Delete size={16} />,
-            showInMoreMenu: true,
-            showInContextMenu: true,
-        },
-    ];
-
-    if (includeExportCsv) {
-        sActions.splice(sActions.length - 1, 0, {
-            key: PanelActionKey.OPEN_EXPORT_CSV,
-            label: 'Export CSV',
-            icon: <Download size={16} />,
-            showInExtraMenu: true,
-        });
-    }
-
-    return sActions;
 }
 
 function getRollupHeaderSummary(state: PanelHeaderState) {
@@ -317,14 +191,22 @@ export function PanelHeader(props: PanelHeaderProps) {
     const titleInputRef = useRef<HTMLInputElement | null>(null);
     const titleRenameClosingRef = useRef(false);
     const sRollupTooltipId = `panel-rollup-tooltip-${useId().replace(/:/g, '')}`;
-    const sTimeText = state.range?.label ?? '';
-    const sRangeLabel = state.range?.actionLabel ??
+    const sRange = getHeaderRange(state);
+    const sResolution = getHeaderResolution(state);
+    const sSeriesRollupStatusList = state.isRaw
+        ? []
+        : state.seriesRollupStatusList;
+    const sTimeText = sRange?.label ?? '';
+    const sRangeLabel = sRange?.actionLabel ??
         'Set current visible main chart range';
-    const sIntervalText = state.resolution?.label ?? '';
-    const sRollupSummary = getRollupHeaderSummary(state);
+    const sIntervalText = sResolution?.label ?? '';
+    const sRollupSummary = getRollupHeaderSummary({
+        ...state,
+        seriesRollupStatusList: sSeriesRollupStatusList,
+    });
     const sTimeSummaryBaseText =
         sTimeText && sIntervalText
-            ? `${sTimeText} (${state.resolution?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
+            ? `${sTimeText} (${sResolution?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
             : sTimeText;
     const sTimeSummaryText = sRollupSummary
         ? `${sTimeSummaryBaseText}, ${sRollupSummary.titleText}`
@@ -441,7 +323,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                         className="panel-header__time-button panel-header__time-range-button"
                         title={sRangeLabel}
                         aria-label={sRangeLabel}
-                        disabled={!state.range}
+                        disabled={!sRange}
                         onClick={onOpenMainRangeModal}
                     >
                         {sTimeText}
@@ -470,7 +352,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                                 className="panel-header__rollup-tooltip"
                             >
                                 <div className="panel-header__rollup-tooltip-content">
-                                    {state.seriesRollupStatusList.map(
+                                    {sSeriesRollupStatusList.map(
                                         (status, index) => (
                                             <div
                                                 key={`${status.seriesName}-${index}`}
@@ -536,148 +418,6 @@ export function PanelHeader(props: PanelHeaderProps) {
                     actions={sMoreActions}
                     onAction={onAction}
                 />
-            </div>
-        </div>
-    );
-}
-
-type PanelContextMenuProps = {
-    actionState: PanelActionState;
-    position: ContextMenuPosition;
-    onClose: () => void;
-    onAction: (actionKey: PanelActionKey) => void;
-};
-
-export function PanelContextMenu({
-    actionState,
-    position,
-    onClose,
-    onAction,
-}: PanelContextMenuProps) {
-    const sActions = buildPanelActions(actionState);
-
-    return (
-        <ContextMenu isOpen position={position} onClose={onClose}>
-            {sActions
-                .filter((action) => action.showInContextMenu)
-                .map((sAction) => (
-                    <ContextMenu.Item
-                        key={sAction.key}
-                        onClick={() => {
-                            onClose();
-                            onAction(sAction.key);
-                        }}
-                        disabled={sAction.disabled}
-                    >
-                        {sAction.contextLabel ?? sAction.label}
-                    </ContextMenu.Item>
-                ))}
-        </ContextMenu>
-    );
-}
-
-
-const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
-const NAVIGATOR_RANGE_BOUNDARIES = ['start', 'end'] as const;
-
-export function PanelFooter({
-    pShowLegend,
-    pNavigatorRange,
-    pIsLoading,
-    pOnRangeButtonPress,
-    pIsNumericXAxis,
-    pOnOpenNavigatorRangeModal,
-}: {
-    pShowLegend: boolean;
-    pNavigatorRange: AxisRange | undefined;
-    pIsLoading: boolean;
-    pOnRangeButtonPress: (action: RangeButtonAction) => void;
-    pIsNumericXAxis: boolean;
-    pOnOpenNavigatorRangeModal: () => void;
-}) {
-    const sLayout = getChartLayoutMetrics(pShowLegend);
-    const sNavigatorSide = `${PANEL_NAVIGATOR_GRID_SIDE}px`;
-    const sRangeUnavailable = pIsLoading || !pNavigatorRange;
-    const sFormattedNavigatorRange = pNavigatorRange
-        ? formatAxisRange(pNavigatorRange, pIsNumericXAxis)
-        : { start: '', end: '' };
-    const navigatorControls = [
-        { key: 'zoom-in-large', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-large') },
-        { key: 'zoom-in-small', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-small') },
-        { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('focus') },
-        { key: 'zoom-out-small', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-small') },
-        { key: 'zoom-out-large', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-large') },
-    ];
-
-    return (
-        <div className={`footer-form${pIsLoading ? ' is-loading' : ''}`}>
-            {pIsLoading && (
-                <span className="navigator-loading-indicator">
-                    Loading navigator...
-                </span>
-            )}
-            <div style={{ top: `${sLayout.toolbarTop}px` }} className="toolbar-controls">
-                <Button.Group
-                    style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
-                >
-                    {navigatorControls.map((control) => (
-                        <Button
-                            key={control.key}
-                            data-testid={`panel-navigator-${control.key}`}
-                            size="icon"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent={control.tooltip}
-                            icon={control.icon}
-                            disabled={sRangeUnavailable}
-                            onClick={control.action}
-                        />
-                    ))}
-                </Button.Group>
-            </div>
-            <div
-                style={{
-                    top: `${sLayout.sliderTop + 1}px`,
-                    left: sNavigatorSide,
-                    right: sNavigatorSide,
-                }}
-                className="navigator-shift-controls"
-            >
-                <Button
-                    data-testid="panel-navigator-shift-backward"
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent="Move navigator backward"
-                    icon={<VscChevronLeft size={16} />}
-                    disabled={sRangeUnavailable}
-                    onClick={() => pOnRangeButtonPress('shift-navigator-left')}
-                />
-                <Button
-                    data-testid="panel-navigator-shift-forward"
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent="Move navigator forward"
-                    icon={<VscChevronRight size={16} />}
-                    disabled={sRangeUnavailable}
-                    onClick={() => pOnRangeButtonPress('shift-navigator-right')}
-                />
-            </div>
-            <div style={{ top: `${sLayout.sliderTop + sLayout.sliderHeight + 4}px` }} className="range-labels">
-                {NAVIGATOR_RANGE_BOUNDARIES.map((boundary) => (
-                    <button
-                        key={boundary}
-                        data-testid={`panel-navigator-range-${boundary}`}
-                        type="button"
-                        className="range-label"
-                        title="Set current navigator range"
-                        disabled={sRangeUnavailable}
-                        onClick={pOnOpenNavigatorRangeModal}
-                    >
-                        {sFormattedNavigatorRange[boundary]}
-                    </button>
-                ))}
             </div>
         </div>
     );

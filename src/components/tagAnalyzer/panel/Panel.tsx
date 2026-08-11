@@ -1,37 +1,24 @@
-import { memo, useEffect, useRef, useState, type MouseEvent } from 'react';
-import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
+import { memo, useRef, type MouseEvent } from 'react';
 import PanelChart, {
     ANNOTATION_INVALID_TARGET_MESSAGE,
     PanelOverlayCursorHint,
     type PanelChartHandle,
     useChartAreaWidthObserver,
 } from '../chart/PanelChart';
-import { Toast, type ContextMenuPosition } from '@/design-system/components';
+import { Toast } from '@/design-system/components';
+import { PanelFooter } from './internal/PanelFooter';
+import { PanelHeader } from './internal/PanelHeader';
+import { PanelActionKey } from './internal/panelActions';
 import {
-    PanelFooter,
-    PanelHeader,
-    PanelActionKey,
-    PanelContextMenu,
-} from './internal/PanelChrome';
+    PanelRangeDialog,
+    usePanelRangeDialog,
+} from './internal/PanelRangeDialog';
+import { PanelSurfaceLayer } from './internal/PanelSurfaceLayer';
 import PanelEditor from './editor/PanelEditor';
-import {
-    buildSelectionSummaryPayload,
-    SelectionSummaryPopover,
-} from '../tools/AnalysisModals';
-import { EditAnnotationModal, EditHighlightModal } from '../tools/MarkupModals';
-import { RangeModal } from '../range/RangeModal';
-import { formatRangeInputValue } from '../format/inputFormat';
-import { formatAxisRange } from '../format/axisFormat';
-import { formatNumericInterval } from '../format/numericFormat';
-import { formatTimeInterval } from '../format/timeFormat';
-import { formatAbsoluteTime } from '../persistence/serializeRange';
-import {
-    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-    DEFAULT_PANEL_HIGHLIGHT_LABEL,
-    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    type PanelInfo,
-} from './panelModel';
+import { resolvePanelEditorApply } from './editor/panelEditorPolicy';
+import { SelectionSummaryPopover } from '../tools/AnalysisModals';
+import { buildSelectionSummaryPayload } from '../tools/analysisModel';
+import { type PanelInfo } from './panelModel';
 import {
     resolveSetGlobalRangeRequest,
     usePanelRangeRuntime,
@@ -39,27 +26,17 @@ import {
 } from './panelRuntime';
 import { MIXED_X_AXIS_KIND_WARNING, type RollupTableMap } from '../seriesModel';
 import {
-    isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
-    type RangeExpressionInput,
     type RangeState,
     type ResolvedRangeState,
 } from '../range/rangeModel';
-import { isSameRange } from '../range/rangeArithmetic';
-import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import {
-    filterChartDataByRange,
-    type ChartSeriesData,
-} from '../chart/chartData';
+import { type ChartSeriesData } from '../chart/chartData';
 import {
     usePanelData,
     type PanelDataLoadMetrics,
 } from './internal/panelData';
-import {
-    PanelPopupMode,
-    usePanelInteraction,
-} from './internal/panelInteraction';
+import { usePanelInteraction } from './internal/panelInteraction';
 import { PanelOverlayMode } from '../chart/chartRuntime';
 import './Panel.scss';
 
@@ -84,13 +61,6 @@ type PanelProps = {
         onToggleOverlap: () => void;
     };
 };
-
-type RetainedMainRangeInput = {
-    rangeInput: RangeExpressionInput;
-    concreteRange: AxisRange;
-};
-
-type CurrentRangeTarget = 'main' | 'navigator';
 
 const EMPTY_PANEL_CHART_DATA: ChartSeriesData[] = [];
 const EMPTY_PANEL_DATA_METRIC: PanelDataLoadMetrics['main'] = {
@@ -146,10 +116,11 @@ export default memo(function Panel({
         reloadAfterEditorSave: onReloadAfterEditorSave,
     } = rangeRuntime.actions;
 
-    const interaction = usePanelInteraction();
+    const interaction = usePanelInteraction(panelInfo.query.tagSet);
     const {
         overlayMode,
-        popupState,
+        activeSurface,
+        draftHighlight,
         editorStatus,
         selectionSummary,
         overlayCursorHint,
@@ -157,9 +128,14 @@ export default memo(function Panel({
     } = interaction.state;
     const {
         toggleOverlay,
-        setOverlayMode,
-        openPopup,
-        closePopup,
+        showContextMenu,
+        beginHighlightCreate,
+        beginHighlightEdit,
+        beginAnnotationCreate,
+        beginAnnotationEdit,
+        requestDelete,
+        requestExport,
+        dismissSurface,
         toggleEditor,
         closeEditor: closeInteractionEditor,
         finishEditorClose,
@@ -190,10 +166,6 @@ export default memo(function Panel({
         queryableData?.series.navigator ?? EMPTY_PANEL_CHART_DATA;
     const renderRange = queryableData?.range.render ?? rangeState?.range;
     const resolution = queryableData?.query.resolution;
-    const resolvedIntervalOption =
-        resolution?.kind === 'time' ? resolution.interval : undefined;
-    const resolvedNumericInterval =
-        resolution?.kind === 'numeric' ? resolution.bucketWidth : undefined;
     const seriesRollupStatusList = [
         ...(queryableData?.query.seriesRollupStatuses ?? []),
     ];
@@ -228,6 +200,13 @@ export default memo(function Panel({
     };
     const renderMainRange = renderRange?.mainRange;
     const renderNavigatorRange = renderRange?.navigatorRange;
+    const rangeDialog = usePanelRangeDialog({
+        rangeState,
+        renderRange,
+        isNumericXAxis,
+        onMainRangeChange,
+        onNavigatorRangeChange,
+    });
     function dragNavigatorSelection(range: AxisRange): void {
         onMainRangeChange(range);
     }
@@ -240,38 +219,12 @@ export default memo(function Panel({
     };
 
     function applyEditedPanelConfig(editorConfig: PanelInfo): void {
-        const sRangeInput = editorConfig.time.rangeInput;
-        const sPreserveCurrentVisibleRange =
-            panelInfo.time.rangeInput.start === sRangeInput.start &&
-            panelInfo.time.rangeInput.end === sRangeInput.end;
-        const sNextPanelInfo = {
-            ...editorConfig,
-            query: {
-                ...editorConfig.query,
-                tagSet: editorConfig.axes.rightY.enabled
-                    ? editorConfig.query.tagSet
-                    : editorConfig.query.tagSet.map((series) => ({
-                        ...series,
-                        useSecondaryAxis: false,
-                    })),
-            },
-            time: {
-                ...editorConfig.time,
-                lastViewedRange:
-                    editorConfig.time.useLastViewedRange &&
-                    sPreserveCurrentVisibleRange
-                        ? editorConfig.time.lastViewedRange
-                        : undefined,
-            },
-        };
-
-        onApplyPanelInfo(sNextPanelInfo);
-        onReloadAfterEditorSave(
-            sNextPanelInfo,
-            sPreserveCurrentVisibleRange
-                ? 'preserveVisibleRange'
-                : 'applyConfiguredRange',
+        const { nextPanelInfo, reloadPolicy } = resolvePanelEditorApply(
+            panelInfo,
+            editorConfig,
         );
+        onApplyPanelInfo(nextPanelInfo);
+        onReloadAfterEditorSave(nextPanelInfo, reloadPolicy);
     }
 
     function requireChartAreaRect(action: string): DOMRect {
@@ -289,16 +242,6 @@ export default memo(function Panel({
         loadStatus.chart === 'ready',
         renderRange,
     );
-    const formattedMainRange = renderMainRange
-        ? formatAxisRange(renderMainRange, isNumericXAxis)
-        : undefined;
-    const resolutionLabel = isRaw
-        ? ''
-        : isNumericXAxis
-          ? formatNumericInterval(resolvedNumericInterval)
-          : resolvedIntervalOption
-            ? formatTimeInterval(resolvedIntervalOption)
-            : '';
     const activeHeaderActions: PanelActionKey[] = [];
     if (isRaw) activeHeaderActions.push(PanelActionKey.TOGGLE_RAW);
     if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
@@ -315,23 +258,11 @@ export default memo(function Panel({
     }
     const panelHeaderState = {
         title: panelInfo.title,
-        range: formattedMainRange
-            ? {
-                  label: `${formattedMainRange.start} ~ ${formattedMainRange.end}`,
-                  actionLabel: isNumericXAxis
-                      ? 'Set current visible main chart value range'
-                      : 'Set current visible main chart range',
-              }
-            : undefined,
-        resolution: resolutionLabel
-            ? {
-                  label: resolutionLabel,
-                  kind: isNumericXAxis
-                      ? ('numeric' as const)
-                      : ('time' as const),
-              }
-            : undefined,
-        seriesRollupStatusList: isRaw ? [] : seriesRollupStatusList,
+        mainRange: renderMainRange,
+        isNumericXAxis,
+        isRaw,
+        resolution,
+        seriesRollupStatusList,
         actionState: {
             active: activeHeaderActions,
             disabled: setGlobalRangeRequest
@@ -375,83 +306,22 @@ export default memo(function Panel({
             [PanelActionKey.REFRESH_RANGE]: onRefreshRange,
             [PanelActionKey.EXPAND_FULL_RANGE]: onExpandFullRange,
             [PanelActionKey.TOGGLE_EDIT]: toggleEditor,
-            [PanelActionKey.OPEN_EXPORT_CSV]: () =>
-                openPopup({ mode: PanelPopupMode.EXPORT_CSV }),
-            [PanelActionKey.OPEN_DELETE_CONFIRM]: () =>
-                openPopup({ mode: PanelPopupMode.DELETE_CONFIRM }),
+            [PanelActionKey.OPEN_EXPORT_CSV]: requestExport,
+            [PanelActionKey.OPEN_DELETE_CONFIRM]: requestDelete,
         };
 
         actions[actionKey]();
     }
 
-    const [currentRangeModalTarget, setCurrentRangeModalTarget] = useState<
-        CurrentRangeTarget | undefined
-    >(undefined);
-    const retainedMainRangeInputRef = useRef<RetainedMainRangeInput>();
-
-    useEffect(() => {
-        const sRetainedInput = retainedMainRangeInputRef.current;
-        if (
-            renderMainRange !== undefined &&
-                sRetainedInput !== undefined &&
-                !isSameRange(
-                    sRetainedInput.concreteRange,
-                    renderMainRange,
-                )
-        ) {
-            retainedMainRangeInputRef.current = undefined;
-        }
-    }, [renderMainRange]);
-
-    const currentRangeModal =
-        currentRangeModalTarget !== undefined &&
-        rangeState !== undefined
-            ? currentRangeModalTarget === 'navigator'
-                ? renderNavigatorRange
-                : renderMainRange
-            : undefined;
-    const retainedMainRangeInput = retainedMainRangeInputRef.current;
-    const currentRangeModalInput =
-        currentRangeModalTarget === 'navigator'
-            ? rangeState !== undefined &&
-                !isRangeExpressionEmpty(rangeState.navigatorRangeInput)
-                ? rangeState.navigatorRangeInput
-                : undefined
-            : currentRangeModal !== undefined &&
-                retainedMainRangeInput !== undefined &&
-                isSameRange(
-                    retainedMainRangeInput.concreteRange,
-                    currentRangeModal,
-                )
-              ? retainedMainRangeInput.rangeInput
-            : undefined;
-    function openCurrentRangeModal(target: CurrentRangeTarget): void {
-        if (rangeState) setCurrentRangeModalTarget(target);
-    }
-
-    function applyCurrentRange(
-        range: AxisRange,
-        rangeInput: RangeExpressionInput,
-    ): void {
-        if (currentRangeModalTarget === undefined) return;
-
-        if (currentRangeModalTarget === 'main') {
-            retainedMainRangeInputRef.current = {
-                rangeInput: { ...rangeInput },
-                concreteRange: { ...range },
-            };
-            onMainRangeChange(range);
-            return;
-        }
-
-        onNavigatorRangeChange(range, rangeInput);
-    }
-
     function handleSelection(selectionRange: AxisRange): void {
         if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
-            openCreateHighlightEditorFromBrush(
-                selectionRange.start,
-                selectionRange.end,
+            const sChartRect = requireChartAreaRect('create a highlight');
+            beginHighlightCreate(
+                selectionRange,
+                {
+                    x: sChartRect.left + sChartRect.width / 2,
+                    y: sChartRect.top + sChartRect.height / 2,
+                },
             );
         } else if (overlayMode === PanelOverlayMode.DRAG_SELECT) {
             openSelectionSummaryFromBrush(selectionRange);
@@ -481,21 +351,15 @@ export default memo(function Panel({
     }
 
     const chartMarkupHandlers = {
-        onOpenCreateAnnotation: openCreateAnnotationEditor,
-        onActivateHighlightEditor: openEditHighlightEditor,
-        onActivateAnnotationEditor: openEditAnnotationEditor,
+        onOpenCreateAnnotation: beginAnnotationCreate,
+        onActivateHighlightEditor: beginHighlightEdit,
+        onActivateAnnotationEditor: beginAnnotationEdit,
     };
 
     function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
         event.stopPropagation();
-        openPopup(
-            {
-                mode: PanelPopupMode.CONTEXT_MENU,
-                position: { x: event.clientX, y: event.clientY },
-            },
-            PanelOverlayMode.NO_OVERLAY,
-        );
+        showContextMenu({ x: event.clientX, y: event.clientY });
     }
 
     function isPointInsideMainChart(clientX: number, clientY: number): boolean {
@@ -534,98 +398,6 @@ export default memo(function Panel({
         Toast.error(ANNOTATION_INVALID_TARGET_MESSAGE, undefined);
     }
 
-    function openCreateAnnotationEditor(
-        position: ContextMenuPosition,
-        seriesIndex: number | undefined,
-        timestamp: number,
-    ): void {
-        if (
-            seriesIndex !== undefined &&
-            (seriesIndex < 0 || seriesIndex >= panelInfo.query.tagSet.length)
-        ) {
-            throw new Error(`Invalid annotation series index: ${seriesIndex}.`);
-        }
-
-        const sSeriesKey =
-            seriesIndex !== undefined
-                ? panelInfo.query.tagSet[seriesIndex].key
-                : undefined;
-
-        openPopup(
-            {
-                mode: PanelPopupMode.ANNOTATION_EDITOR,
-                editorMeta: {
-                    position,
-                    seriesKey: sSeriesKey,
-                    timestamp,
-                },
-            },
-            PanelOverlayMode.NO_OVERLAY,
-        );
-    }
-
-    function openEditAnnotationEditor(
-        position: ContextMenuPosition,
-        annotationIndex: number,
-    ): void {
-        openPopup(
-            {
-                mode: PanelPopupMode.ANNOTATION_EDITOR,
-                editorMeta: {
-                    position,
-                    seriesKey: panelInfo.annotations[annotationIndex].seriesKey,
-                    annotationIndex,
-                },
-            },
-            PanelOverlayMode.NO_OVERLAY,
-        );
-    }
-
-    function openEditHighlightEditor(
-        position: ContextMenuPosition,
-        highlightIndex: number,
-    ): void {
-        openPopup(
-            {
-                mode: PanelPopupMode.HIGHLIGHT_EDITOR,
-                editor: {
-                    mode: 'edit',
-                    position,
-                    highlightIndex,
-                },
-            },
-            PanelOverlayMode.NO_OVERLAY,
-        );
-    }
-
-    function openCreateHighlightEditorFromBrush(
-        startTime: number,
-        endTime: number,
-    ): void {
-        setOverlayMode(PanelOverlayMode.NO_OVERLAY);
-        const sTimeRange = createNonEmptyAxisRange(startTime, endTime);
-        if (!sTimeRange) return;
-
-        const sChartRect = requireChartAreaRect('create a highlight');
-
-        openPopup({
-            mode: PanelPopupMode.HIGHLIGHT_EDITOR,
-            editor: {
-                mode: 'create',
-                position: {
-                    x: sChartRect.left + sChartRect.width / 2,
-                    y: sChartRect.top + sChartRect.height / 2,
-                },
-            },
-            draftHighlight: {
-                text: DEFAULT_PANEL_HIGHLIGHT_LABEL,
-                timeRange: sTimeRange,
-                fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-                textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-            },
-        });
-    }
-
     return (
         <div
             data-testid="tag-analyzer-panel"
@@ -648,7 +420,7 @@ export default memo(function Panel({
                 onRenamePanelTitle={(title) =>
                     onApplyPanelInfo({ ...panelInfo, title })
                 }
-                onOpenMainRangeModal={() => openCurrentRangeModal('main')}
+                onOpenMainRangeModal={rangeDialog.openMain}
             />
             {hasMixedXAxisKinds && (
                 <div className="panel-x-axis-warning">
@@ -663,11 +435,7 @@ export default memo(function Panel({
                         chartApiRef: panelChartApiRef,
                     }}
                     panelInfo={panelInfo}
-                    draftHighlight={
-                        popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR
-                            ? popupState.draftHighlight
-                            : undefined
-                    }
+                    draftHighlight={draftHighlight}
                     overlayMode={overlayMode}
                     data={{
                         chartData: mainChartData,
@@ -689,9 +457,7 @@ export default memo(function Panel({
                     pIsLoading={loadStatus.navigator === 'loading'}
                     pOnRangeButtonPress={onRangeButtonAction}
                     pIsNumericXAxis={isNumericXAxis}
-                    pOnOpenNavigatorRangeModal={() =>
-                        openCurrentRangeModal('navigator')
-                    }
+                    pOnOpenNavigatorRangeModal={rangeDialog.openNavigator}
                 />
             </div>
             {isEditorMounted && renderRange && (
@@ -708,50 +474,20 @@ export default memo(function Panel({
                     pDataSettingMetrics={dataSettingMetrics}
                 />
             )}
-            {currentRangeModal !== undefined && (
-                <RangeModal
-                    key={`${currentRangeModalTarget}-${
-                        isNumericXAxis ? 'numeric' : 'time'
-                    }`}
-                    kind={isNumericXAxis ? 'numeric' : 'time'}
-                    initialRangeInput={
-                        currentRangeModalInput ?? {
-                            start: isNumericXAxis
-                                ? formatRangeInputValue(
-                                      currentRangeModal.start,
-                                      true,
-                                  )
-                                : formatAbsoluteTime(
-                                      currentRangeModal.start,
-                                  ),
-                            end: isNumericXAxis
-                                ? formatRangeInputValue(
-                                      currentRangeModal.end,
-                                      true,
-                                  )
-                                : formatAbsoluteTime(
-                                      currentRangeModal.end,
-                                  ),
-                        }
-                    }
-                    fullRange={
-                        rangeState?.fullRange ?? currentRangeModal
-                    }
-                    currentRange={currentRangeModal}
-                    onApply={(rangeInput, concreteRange) =>
-                        applyCurrentRange(concreteRange, rangeInput)
-                    }
-                    onClose={() => setCurrentRangeModalTarget(undefined)}
-                />
-            )}
-            {popupState.mode === PanelPopupMode.CONTEXT_MENU && (
-                <PanelContextMenu
-                    actionState={panelHeaderState.actionState}
-                    onAction={handlePanelAction}
-                    position={popupState.position}
-                    onClose={() => closePopup(PanelPopupMode.CONTEXT_MENU)}
-                />
-            )}
+            <PanelRangeDialog {...rangeDialog} />
+            <PanelSurfaceLayer
+                surface={activeSurface}
+                panelInfo={panelInfo}
+                actionState={panelHeaderState.actionState}
+                isNumericXAxis={isNumericXAxis}
+                mainChartData={mainChartData}
+                renderMainRange={renderMainRange}
+                panelChartApiRef={panelChartApiRef}
+                onPanelAction={handlePanelAction}
+                onApplyPanelInfo={onApplyPanelInfo}
+                onDeletePanel={onDeletePanel}
+                onDismiss={dismissSurface}
+            />
             {selectionSummary !== undefined && (
                 <SelectionSummaryPopover
                     selection={selectionSummary.selection}
@@ -759,60 +495,6 @@ export default memo(function Panel({
                     isNumericXAxis={isNumericXAxis}
                     isRaw={isRaw}
                     onClose={closeSelection}
-                />
-            )}
-            {popupState.mode === PanelPopupMode.HIGHLIGHT_EDITOR && (
-                <EditHighlightModal
-                    key={popupState.draftHighlight !== undefined
-                        ? `create-${popupState.draftHighlight.timeRange.start}-${popupState.draftHighlight.timeRange.end}`
-                        : `edit-${popupState.editor.highlightIndex}`}
-                    activeHighlightEditor={popupState.editor}
-                    draftHighlight={popupState.draftHighlight}
-                    highlights={panelInfo.highlights}
-                    onChange={(highlights) =>
-                        onApplyPanelInfo({ ...panelInfo, highlights })
-                    }
-                    onClose={() => closePopup(PanelPopupMode.HIGHLIGHT_EDITOR)}
-                    isNumericXAxis={isNumericXAxis}
-                />
-            )}
-            {popupState.mode === PanelPopupMode.ANNOTATION_EDITOR && (
-                <EditAnnotationModal
-                    key={popupState.editorMeta.annotationIndex ?? 'new'}
-                    annotationEditorMeta={popupState.editorMeta}
-                    annotations={panelInfo.annotations}
-                    annotationSeriesList={panelInfo.query.tagSet}
-                    onChange={(annotations) =>
-                        onApplyPanelInfo({ ...panelInfo, annotations })
-                    }
-                    onClose={() => closePopup(PanelPopupMode.ANNOTATION_EDITOR)}
-                    isNumericXAxis={isNumericXAxis}
-                />
-            )}
-            {popupState.mode === PanelPopupMode.DELETE_CONFIRM && (
-                <ConfirmModal
-                    pIsDarkMode
-                    setIsOpen={(isOpen) =>
-                        !isOpen && closePopup(PanelPopupMode.DELETE_CONFIRM)
-                    }
-                    pCallback={onDeletePanel}
-                    pContents={
-                        <div className="body-content">Do you want to delete this panel?</div>
-                    }
-                />
-            )}
-            {popupState.mode === PanelPopupMode.EXPORT_CSV &&
-                renderMainRange && (
-                <SavedToLocalModal
-                    pPanelInfo={filterChartDataByRange(
-                        mainChartData,
-                        renderMainRange,
-                    )}
-                    pChartRef={panelChartApiRef}
-                    pIsDarkMode
-                    setIsOpen={(isOpen) =>
-                        !isOpen && closePopup(PanelPopupMode.EXPORT_CSV)
-                    }
                 />
             )}
         </div>
