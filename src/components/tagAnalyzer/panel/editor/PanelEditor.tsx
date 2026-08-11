@@ -309,6 +309,7 @@ const PanelEditor = ({
 
     return (
         <div
+            data-testid="tag-analyzer-panel-editor"
             className={[
                 styles.editor,
                 pAnimationState === 'closing'
@@ -355,6 +356,7 @@ const PanelEditor = ({
                                 className={styles.buttonRow}
                             >
                                 <span
+                                    data-testid="tag-analyzer-panel-editor-status"
                                     className={[
                                         styles.notAppliedMessage,
                                         !sHasEditorChanges &&
@@ -374,6 +376,7 @@ const PanelEditor = ({
                                     )}
                                 </span>
                                 <Button
+                                    data-testid="tag-analyzer-panel-editor-close"
                                     variant="danger"
                                     size="sm"
                                     onClick={discardEditorChanges}
@@ -381,6 +384,7 @@ const PanelEditor = ({
                                     Close
                                 </Button>
                                 <Button
+                                    data-testid="tag-analyzer-panel-editor-apply"
                                     variant="primary"
                                     size="sm"
                                     disabled={!sCanApplyEditorChanges}

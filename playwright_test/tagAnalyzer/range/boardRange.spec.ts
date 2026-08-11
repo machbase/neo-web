@@ -5,35 +5,30 @@ test.describe('Tag Analyzer board range', () => {
     test('switches the range type', async ({ page }) => {
         // 1. Open Tag Analyzer.
         await login(page);
-        await page.getByText('TAG ANALYZER', { exact: true }).click();
+        await page.getByTestId('new-board-taz').click();
 
         // 2. Open Board Range.
-        await page
-            .getByRole('button', { name: 'Board range', exact: true })
-            .click();
-        const rangeDialog = page.getByRole('dialog');
-        await expect(
-            rangeDialog.getByText('Board Range', { exact: true }),
-        ).toBeVisible();
+        await page.getByTestId('tag-analyzer-board-range-button').click();
+        const rangeDialog = page.getByTestId('tag-analyzer-range-dialog');
+        const rangeTitle = rangeDialog.getByTestId('tag-analyzer-range-title');
+        await expect(rangeTitle).toBeVisible();
+        await expect(rangeTitle).toHaveText('Board Range');
 
         // 3. Select Numeric.
-        const numericRange = rangeDialog.getByRole('button', {
-            name: 'Numeric',
-            exact: true,
-        });
+        const numericRange = rangeDialog.getByTestId(
+            'tag-analyzer-range-kind-numeric-button',
+        );
         await numericRange.click();
         await expect(numericRange).toHaveAttribute('aria-pressed', 'true');
         await expect(
-            rangeDialog.getByLabel('From', { exact: true }),
+            rangeDialog.getByTestId('tag-analyzer-range-from-input'),
         ).toBeVisible();
         await expect(
-            rangeDialog.getByLabel('To', { exact: true }),
+            rangeDialog.getByTestId('tag-analyzer-range-to-input'),
         ).toBeVisible();
 
         // 4. Close the dialog.
-        await rangeDialog
-            .getByRole('button', { name: 'Cancel', exact: true })
-            .click();
+        await rangeDialog.getByTestId('tag-analyzer-range-cancel-button').click();
         await expect(rangeDialog).toHaveCount(0);
     });
 });

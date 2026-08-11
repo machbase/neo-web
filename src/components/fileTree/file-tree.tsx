@@ -732,6 +732,7 @@ const FileDiv = ({
             draggable
         >
             <Div
+                data-testid={`file-tree-item-${encodeURIComponent(`${file.path}${file.name}`)}`}
                 depth={depth}
                 isDndItem={checkDndItem(file)}
                 isDndSection={checkDndSection(file)}

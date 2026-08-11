@@ -32,6 +32,7 @@ function iconPair(first: ReactNode, second: ReactNode) {
 
 const HELP_SECTIONS = [
     {
+        id: 'board-header',
         title: 'Board Header',
         icon: <Calendar size={17} />,
         items: [
@@ -69,6 +70,7 @@ const HELP_SECTIONS = [
         ],
     },
     {
+        id: 'panel-header',
         title: 'Panel Header',
         icon: <CiCircleMore size={18} />,
         items: [
@@ -110,6 +112,7 @@ const HELP_SECTIONS = [
         ],
     },
     {
+        id: 'panel-control',
         title: 'Panel Control',
         icon: <PiSelectionPlusBold size={18} />,
         items: [
@@ -141,6 +144,7 @@ const HELP_SECTIONS = [
         ],
     },
     {
+        id: 'panel-range-controls',
         title: 'Panel Range Controls',
         icon: <MdCenterFocusStrong size={18} />,
         items: [
@@ -188,16 +192,20 @@ export function HelpModal({
             onClose={onClose}
             closeOnEscape
             closeOnOutsideClick
+            data-testid="tag-analyzer-help-dialog"
         >
             <Modal.Header>
                 <Modal.Title>Help</Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="tag-analyzer-help-close-button" />
             </Modal.Header>
             <Modal.Body>
                 <div className="taz-help-modal">
                     {HELP_SECTIONS.map((section) => (
-                        <section key={section.title} className="taz-help-modal__section">
-                            <h3 className="taz-help-modal__section-title">
+                        <section key={section.id} className="taz-help-modal__section">
+                            <h3
+                                className="taz-help-modal__section-title"
+                                data-testid={`tag-analyzer-help-${section.id}-heading`}
+                            >
                                 <span className="taz-help-modal__icon">{section.icon}</span>
                                 {section.title}
                             </h3>

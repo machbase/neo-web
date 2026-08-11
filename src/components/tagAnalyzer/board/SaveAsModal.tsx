@@ -151,11 +151,18 @@ export function SaveAsModal({
     if (sFileList === undefined) return null;
 
     return (
-        <Modal.Root isOpen onClose={onClose} size="md">
+        <Modal.Root
+            isOpen
+            onClose={onClose}
+            size="md"
+            data-testid="tag-analyzer-save-as-dialog"
+        >
             <Modal.Header>
                 <Modal.Title>
                     <SaveAs />
-                    <span>Save As</span>
+                    <span data-testid="tag-analyzer-save-as-title">
+                        Save As
+                    </span>
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
@@ -226,6 +233,7 @@ export function SaveAsModal({
             <Modal.Footer style={{ justifyContent: 'space-between' }}>
                 <div className="taz-save-as-modal__footer-input">
                     <Input
+                        data-testid="tag-analyzer-save-as-file-name-input"
                         label="File name"
                         labelPosition="left"
                         value={sSaveFileName}
@@ -233,8 +241,11 @@ export function SaveAsModal({
                     />
                 </div>
                 <Button.Group>
-                    <Modal.Cancel>Cancel</Modal.Cancel>
+                    <Modal.Cancel data-testid="tag-analyzer-save-as-cancel-button">
+                        Cancel
+                    </Modal.Cancel>
                     <Modal.Confirm
+                        data-testid="tag-analyzer-save-as-submit-button"
                         disabled={
                             sIsDirectoryLoading ||
                             !isValidTazFileName(sSaveFileName) ||

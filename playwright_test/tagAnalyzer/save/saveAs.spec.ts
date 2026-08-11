@@ -5,25 +5,23 @@ test.describe('Tag Analyzer Save As', () => {
     test('opens the Save As dialog', async ({ page }) => {
         // 1. Open Tag Analyzer.
         await login(page);
-        await page.getByText('TAG ANALYZER', { exact: true }).click();
+        await page.getByTestId('new-board-taz').click();
 
         // 2. Open Save As.
-        await page
-            .getByRole('button', { name: 'Open Save As', exact: true })
-            .click();
-        const saveDialog = page.getByRole('dialog');
-        await expect(
-            saveDialog.getByText('Save As', { exact: true }),
-        ).toBeVisible();
+        await page.getByTestId('tag-analyzer-save-as-button').click();
+        const saveDialog = page.getByTestId('tag-analyzer-save-as-dialog');
+        const saveTitle = saveDialog.getByTestId('tag-analyzer-save-as-title');
+        await expect(saveTitle).toBeVisible();
+        await expect(saveTitle).toHaveText('Save As');
 
         // 3. Check the file name.
         await expect(
-            saveDialog.getByLabel('File name', { exact: true }),
+            saveDialog.getByTestId('tag-analyzer-save-as-file-name-input'),
         ).toHaveValue(/\.taz$/);
 
         // 4. Cancel without saving.
         await saveDialog
-            .getByRole('button', { name: 'Cancel', exact: true })
+            .getByTestId('tag-analyzer-save-as-cancel-button')
             .click();
         await expect(saveDialog).toHaveCount(0);
     });

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { login } from '../../support/login';
+import { getFileTreeItemTestId } from '../../support/testIds';
 
 test.describe('Tag Analyzer panel editor', () => {
     test('applies editor drafts, discards unapplied changes, and persists the applied value', async ({
@@ -16,124 +17,111 @@ test.describe('Tag Analyzer panel editor', () => {
         try {
             // 1. [M.1, 1.1.4] Open a saved board and select a loaded panel.
             await login(page);
-            await page.getByText('TAG ANALYZER.taz', { exact: true }).click();
-            await expect(
-                page.getByRole('button', {
-                    name: 'TAG ANALYZER.taz',
-                    exact: true,
-                }),
-            ).toBeVisible();
-
-            const readyRangeButton = page
-                .locator(
-                    'button[aria-label="Set current visible main chart range"]:not(:disabled), button[aria-label="Set current visible main chart value range"]:not(:disabled)',
+            await page
+                .getByTestId(
+                    getFileTreeItemTestId('/', 'TAG ANALYZER.taz'),
                 )
-                .first();
-            await expect(readyRangeButton).toBeVisible({ timeout: 30_000 });
-            const panel = readyRangeButton.locator(
-                'xpath=ancestor::*[@role="region" and contains(@aria-label, " panel")][1]',
+                .click();
+            await expect(page.getByTestId('tag-analyzer-board')).toBeVisible();
+
+            const readyRangeButton = page.locator(
+                '[data-testid="tag-analyzer-panel-main-range-button"]:not(:disabled)',
             );
+            const panel = page.getByTestId('tag-analyzer-panel').filter({
+                has: readyRangeButton,
+            });
+            await expect(panel).toHaveCount(1, { timeout: 30_000 });
             await expect(panel).toBeVisible();
 
             // 2. [1.4.3.1.1] Open the editor and change its draft title.
             await panel
-                .getByRole('button', { name: 'Open editor', exact: true })
+                .getByTestId('tag-analyzer-panel-action-toggle-edit')
                 .click();
             await expect(
-                panel.getByRole('heading', {
-                    name: 'Edit panel',
-                    exact: true,
-                }),
+                panel.getByTestId('tag-analyzer-panel-editor'),
             ).toBeVisible();
 
-            const titleInput = panel.getByLabel('Chart title', { exact: true });
+            const titleInput = panel.getByTestId(
+                'tag-analyzer-panel-editor-title-input',
+            );
             const originalTitle = await titleInput.inputValue();
             await titleInput.fill(appliedTitle);
 
             // 3. [1.4.3.2.1] Draft edits do not change the live panel.
-            await expect(panel).toHaveAttribute(
-                'aria-label',
-                `${originalTitle} panel`,
-            );
             await expect(
-                panel.getByText('You have unapplied changes.', { exact: true }),
-            ).toBeVisible();
+                panel.getByTestId('tag-analyzer-panel-title-button'),
+            ).toHaveText(originalTitle);
+            await expect(
+                panel.getByTestId('tag-analyzer-panel-editor-status'),
+            ).toContainText('You have unapplied changes.');
 
             // 4. [1.4.3.1.3] Apply updates the current session.
             await panel
-                .getByRole('button', { name: 'Apply', exact: true })
+                .getByTestId('tag-analyzer-panel-editor-apply')
                 .click();
-            await expect(panel).toHaveAttribute(
-                'aria-label',
-                `${appliedTitle} panel`,
-            );
             await expect(
-                panel.getByText('Changes applied to this session.', {
-                    exact: true,
-                }),
-            ).toBeVisible();
+                panel.getByTestId('tag-analyzer-panel-title-button'),
+            ).toHaveText(appliedTitle);
+            await expect(
+                panel.getByTestId('tag-analyzer-panel-editor-status'),
+            ).toContainText('Changes applied to this session.');
 
             // 5. [1.4.3.1.2] Closing discards a later unapplied draft.
             await titleInput.fill(discardedTitle);
-            await expect(panel).toHaveAttribute(
-                'aria-label',
-                `${appliedTitle} panel`,
-            );
+            await expect(
+                panel.getByTestId('tag-analyzer-panel-title-button'),
+            ).toHaveText(appliedTitle);
             await panel
-                .getByRole('button', { name: 'Close', exact: true })
+                .getByTestId('tag-analyzer-panel-editor-close')
                 .click();
             await expect(
-                panel.getByRole('heading', {
-                    name: 'Edit panel',
-                    exact: true,
-                }),
+                panel.getByTestId('tag-analyzer-panel-editor'),
             ).toHaveCount(0);
-            await expect(panel).toHaveAttribute(
-                'aria-label',
-                `${appliedTitle} panel`,
-            );
+            await expect(
+                panel.getByTestId('tag-analyzer-panel-title-button'),
+            ).toHaveText(appliedTitle);
 
             // 6. [1.2.3.3, 1.2.3.8] Save the applied session as a new file.
             await page
-                .getByRole('button', { name: 'Open Save As', exact: true })
+                .getByTestId('tag-analyzer-save-as-button')
                 .click();
-            const saveDialog = page.getByRole('dialog');
+            const saveDialog = page.getByTestId(
+                'tag-analyzer-save-as-dialog',
+            );
             await saveDialog
-                .getByLabel('File name', { exact: true })
+                .getByTestId('tag-analyzer-save-as-file-name-input')
                 .fill(fileName);
             shouldCleanUp = true;
             await saveDialog
-                .getByRole('button', { name: 'Save', exact: true })
+                .getByTestId('tag-analyzer-save-as-submit-button')
                 .click();
             await expect(
-                page.getByRole('status').filter({
-                    hasText: 'TAZ file saved successfully.',
-                }),
-            ).toBeVisible({ timeout: 15_000 });
+                page.getByTestId('tag-analyzer-save-success-toast'),
+            ).toHaveText(
+                'TAZ file saved successfully.',
+                { timeout: 15_000 },
+            );
             await expect(saveDialog).toHaveCount(0);
 
             // 7. [1.4.3.1.5] Reopen and verify only the applied title persisted.
             await page.reload();
-            const savedFile = page.locator(
-                `span[data-tooltip-content="${fileName}"]`,
+            const savedFile = page.getByTestId(
+                getFileTreeItemTestId('/', fileName),
             );
             await expect(savedFile).toBeVisible({ timeout: 20_000 });
             await savedFile.click();
 
-            const reopenedPanel = page.getByRole('region', {
-                name: `${appliedTitle} panel`,
-                exact: true,
+            const reopenedPanel = page.getByTestId('tag-analyzer-panel').filter({
+                has: readyRangeButton,
             });
-            await expect(
-                reopenedPanel.getByRole('button', {
-                    name: /Set current visible main chart(?: value)? range/,
-                }),
-            ).toBeEnabled({ timeout: 30_000 });
+            await expect(reopenedPanel).toHaveCount(1, { timeout: 30_000 });
             await reopenedPanel
-                .getByRole('button', { name: 'Open editor', exact: true })
+                .getByTestId('tag-analyzer-panel-action-toggle-edit')
                 .click();
             await expect(
-                reopenedPanel.getByLabel('Chart title', { exact: true }),
+                reopenedPanel.getByTestId(
+                    'tag-analyzer-panel-editor-title-input',
+                ),
             ).toHaveValue(appliedTitle);
         } finally {
             if (shouldCleanUp) await deleteSavedBoard(page, fileName);

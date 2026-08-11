@@ -555,6 +555,7 @@ export default function PanelChart({
                 onClick={handlers.rangeActions.shiftMainRangeLeft}
             />
             <div
+                data-testid="tag-analyzer-panel-chart"
                 className="chart-body"
                 ref={refs.chartAreaRef}
                 style={{ height: PANEL_CHART_HEIGHT }}

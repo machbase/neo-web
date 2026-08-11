@@ -7,6 +7,7 @@ export type ToastVariant = 'success' | 'error' | 'info' | 'warning';
 export interface ToastOptions {
     duration?: number;
     position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+    testId?: string;
 }
 
 /**
@@ -18,7 +19,7 @@ export interface ToastOptions {
 
 const showToast = (message: string, variant: ToastVariant = 'info', options?: ToastOptions) => {
     if (!message || !message.trim()) return;
-    const { duration = 3000, position = 'top-right' } = options || {};
+    const { duration = 3000, position = 'top-right', testId } = options || {};
 
     const icons = {
         success: <VscCheck size={16} />,
@@ -40,7 +41,7 @@ const showToast = (message: string, variant: ToastVariant = 'info', options?: To
                 <div className={`${styles['toast__icon']} ${iconClasses[variant]}`} onClick={() => toast.remove(t.id)}>
                     {icons[variant]}
                 </div>
-                <div className={styles['toast__message']}>{message}</div>
+                <div data-testid={testId} className={styles['toast__message']}>{message}</div>
             </div>
         ),
         {

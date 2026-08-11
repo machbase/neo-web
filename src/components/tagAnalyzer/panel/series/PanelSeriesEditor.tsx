@@ -63,6 +63,10 @@ import styles from './PanelSeriesEditor.module.scss';
 
 const TAG_PAGE_SIZE = 10;
 
+function encodeTestIdSegment(value: string): string {
+    return encodeURIComponent(value);
+}
+
 export function PanelSeriesEditor({
     seriesList,
     rollupTableList,
@@ -104,6 +108,7 @@ export function PanelSeriesEditor({
         id: tag,
         label: tag,
         tooltip: tag,
+        testId: `tag-analyzer-series-option-${encodeTestIdSegment(tag)}`,
     }));
 
     useLatestAsyncRequest({
@@ -301,6 +306,7 @@ export function PanelSeriesEditor({
                 </label>
                 <Input
                     id={sTagInputId}
+                    data-testid="tag-analyzer-series-search-input"
                     value={sTagInputValue}
                     placeholder="Search Tag"
                     onChange={(event) => {
@@ -316,6 +322,7 @@ export function PanelSeriesEditor({
                     size="sm"
                     rightIcon={
                         <Button
+                            data-testid="tag-analyzer-series-search-button"
                             variant="ghost"
                             size="icon"
                             icon={<Search size={16} />}
@@ -410,7 +417,10 @@ function SelectedSeriesList({
     return (
         <div className={styles.listColumn}>
             <div className={styles.columnHeader}>
-                <span className={styles.columnTitle}>
+                <span
+                    className={styles.columnTitle}
+                    data-testid="tag-analyzer-selected-series-count"
+                >
                     <span className={styles.columnTitleText}>Selected</span>
                     <Badge
                         variant={sIsAtSelectionLimit ? 'error' : 'primary'}

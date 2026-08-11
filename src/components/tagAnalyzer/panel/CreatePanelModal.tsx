@@ -57,6 +57,7 @@ export function CreatePanelModal({
         <Modal.Root
             isOpen
             onClose={onClose}
+            data-testid="tag-analyzer-create-panel-dialog"
             style={{ maxWidth: '700px', width: '100%' }}
         >
             <Modal.Header>
@@ -79,6 +80,7 @@ export function CreatePanelModal({
                         </label>
                         <Input
                             id={sChartNameInputId}
+                            data-testid="tag-analyzer-create-panel-name-input"
                             value={sChartTitle}
                             onChange={(event) =>
                                 setChartTitle(event.target.value)
@@ -146,7 +148,12 @@ export function CreatePanelModal({
                     </span>
                 ) : null}
                 <Modal.Cancel>Cancel</Modal.Cancel>
-                <Modal.Confirm onClick={applyPanel}>Apply</Modal.Confirm>
+                <Modal.Confirm
+                    data-testid="tag-analyzer-create-panel-apply-button"
+                    onClick={applyPanel}
+                >
+                    Apply
+                </Modal.Confirm>
             </Modal.Footer>
         </Modal.Root>
     );

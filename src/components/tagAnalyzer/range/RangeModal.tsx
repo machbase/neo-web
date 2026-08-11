@@ -96,11 +96,17 @@ export function RangeModal({
     }
 
     return (
-        <Modal.Root isOpen onClose={onClose}>
+        <Modal.Root
+            isOpen
+            onClose={onClose}
+            data-testid="tag-analyzer-range-dialog"
+        >
             <Modal.Header>
                 <Modal.Title>
                     <Calendar />
-                    {title}
+                    <span data-testid="tag-analyzer-range-title">
+                        {title}
+                    </span>
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
@@ -111,6 +117,7 @@ export function RangeModal({
                             {RANGE_KINDS.map((rangeKind) => (
                                 <Button
                                     key={rangeKind}
+                                    data-testid={`tag-analyzer-range-kind-${rangeKind}-button`}
                                     size="sm"
                                     variant={
                                         kind === rangeKind
@@ -134,6 +141,7 @@ export function RangeModal({
                 {RANGE_ENDPOINTS.map(([field, label]) => (
                     <Input
                         key={field}
+                        data-testid={`tag-analyzer-range-${field === 'start' ? 'from' : 'to'}-input`}
                         fullWidth
                         label={label}
                         labelPosition="left"
@@ -172,7 +180,11 @@ export function RangeModal({
                 {validationMessage && (
                     <>
                         <Page.Space />
-                        <div id={validationMessageId} role="alert">
+                        <div
+                            id={validationMessageId}
+                            role="alert"
+                            data-testid="tag-analyzer-range-validation-message"
+                        >
                             <TextHighlight variant="error">
                                 {validationMessage}
                             </TextHighlight>
@@ -193,10 +205,15 @@ export function RangeModal({
                     Reset
                 </Button>
                 <Button.Group>
-                    <Modal.Confirm onClick={handleApply}>
+                    <Modal.Confirm
+                        data-testid="tag-analyzer-range-apply-button"
+                        onClick={handleApply}
+                    >
                         Apply
                     </Modal.Confirm>
-                    <Modal.Cancel>Cancel</Modal.Cancel>
+                    <Modal.Cancel data-testid="tag-analyzer-range-cancel-button">
+                        Cancel
+                    </Modal.Cancel>
                 </Button.Group>
             </Modal.Footer>
         </Modal.Root>

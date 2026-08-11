@@ -6,6 +6,7 @@ export interface ListItem {
     id: string | number;
     label: React.ReactNode;
     tooltip?: string;
+    testId?: string;
 }
 
 export interface ListProps {
@@ -36,7 +37,7 @@ const List = React.forwardRef<HTMLDivElement, ListProps>(({ items, onItemClick, 
                         const tooltipId = `list-tooltip-${item.id}`;
                         return (
                             <React.Fragment key={item.id}>
-                                <button onClick={() => onItemClick(item.id)} className={styles['list__item']} data-tooltip-id={tooltipId} data-tooltip-content={item.tooltip}>
+                                <button data-testid={item.testId} onClick={() => onItemClick(item.id)} className={styles['list__item']} data-tooltip-id={tooltipId} data-tooltip-content={item.tooltip}>
                                     <div className={styles['list__item-label']}>{item.label}</div>
                                 </button>
                                 {item.tooltip && <Tooltip id={tooltipId} place="top" delayShow={700} />}

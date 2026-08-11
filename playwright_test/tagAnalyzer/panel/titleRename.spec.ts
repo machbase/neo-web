@@ -5,35 +5,30 @@ test.describe('Tag Analyzer panel', () => {
     test('renames a chart', async ({ page }) => {
         // 1. Open Tag Analyzer.
         await login(page);
-        await page.getByText('TAG ANALYZER', { exact: true }).click();
+        await page.getByTestId('new-board-taz').click();
 
         // 2. Create an empty chart.
-        await page
-            .getByRole('button', { name: 'New Chart', exact: true })
-            .click();
-        const createDialog = page.getByRole('dialog');
+        await page.getByTestId('tag-analyzer-create-panel-button').click();
+        const createDialog = page.getByTestId(
+            'tag-analyzer-create-panel-dialog',
+        );
         await createDialog
-            .getByLabel('Chart name', { exact: true })
+            .getByTestId('tag-analyzer-create-panel-name-input')
             .fill('Rename smoke');
         await createDialog
-            .getByRole('button', { name: 'Apply', exact: true })
+            .getByTestId('tag-analyzer-create-panel-apply-button')
             .click();
 
         // 3. Rename the chart.
-        await page
-            .getByRole('button', { name: 'Rename smoke', exact: true })
-            .click();
-        const titleInput = page.getByLabel('Chart title', { exact: true });
+        await page.getByTestId('tag-analyzer-panel-title-button').click();
+        const titleInput = page.getByTestId('tag-analyzer-panel-title-input');
         await titleInput.fill('Renamed chart');
         await titleInput.press('Enter');
 
         // 4. Check the new title.
-        await expect(
-            page.getByRole('button', {
-                name: 'Renamed chart',
-                exact: true,
-            }),
-        ).toBeVisible();
+        const titleButton = page.getByTestId('tag-analyzer-panel-title-button');
+        await expect(titleButton).toBeVisible();
+        await expect(titleButton).toHaveText('Renamed chart');
         await expect(titleInput).toHaveCount(0);
     });
 });

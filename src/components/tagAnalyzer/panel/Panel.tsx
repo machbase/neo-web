@@ -628,6 +628,7 @@ export default memo(function Panel({
 
     return (
         <div
+            data-testid="tag-analyzer-panel"
             className="panel-form"
             role="region"
             aria-label={`${panelInfo.title} panel`}

@@ -392,6 +392,7 @@ export function PanelHeader(props: PanelHeaderProps) {
         <div className="panel-header">
             <div className="panel-header__title-group">
                 <button
+                    data-testid="tag-analyzer-panel-overlap-toggle"
                     type="button"
                     className={joinClassNames(
                         'panel-header__overlap-box',
@@ -406,6 +407,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                 </button>
                 {isRenamingTitle ? (
                     <input
+                        data-testid="tag-analyzer-panel-title-input"
                         ref={titleInputRef}
                         className="panel-header__title-input"
                         value={titleDraft}
@@ -416,6 +418,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                     />
                 ) : (
                     <button
+                        data-testid="tag-analyzer-panel-title-button"
                         type="button"
                         className="panel-header__title-button"
                         title="Rename chart"
@@ -433,6 +436,7 @@ export function PanelHeader(props: PanelHeaderProps) {
             <div className="panel-header__time" title={sTimeSummaryText}>
                 <span className="panel-header__time-part">
                     <button
+                        data-testid="tag-analyzer-panel-main-range-button"
                         type="button"
                         className="panel-header__time-button panel-header__time-range-button"
                         title={sRangeLabel}
@@ -507,6 +511,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                         )}
                     >
                         <Button
+                            data-testid={`tag-analyzer-panel-action-${action.key.toLowerCase().replaceAll('_', '-')}`}
                             aria-label={action.label}
                             aria-pressed={action.active}
                             size="xsm"
@@ -597,11 +602,11 @@ export function PanelFooter({
         ? formatAxisRange(pNavigatorRange, pIsNumericXAxis)
         : { start: '', end: '' };
     const navigatorControls = [
-        { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-large') },
-        { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-small') },
+        { key: 'zoom-in-large', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-large') },
+        { key: 'zoom-in-small', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-small') },
         { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('focus') },
-        { key: 'zoomOut2', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-small') },
-        { key: 'zoomOut4', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-large') },
+        { key: 'zoom-out-small', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-small') },
+        { key: 'zoom-out-large', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-large') },
     ];
 
     return (
@@ -618,6 +623,7 @@ export function PanelFooter({
                     {navigatorControls.map((control) => (
                         <Button
                             key={control.key}
+                            data-testid={`panel-navigator-${control.key}`}
                             size="icon"
                             variant="ghost"
                             isToolTip
@@ -638,6 +644,7 @@ export function PanelFooter({
                 className="navigator-shift-controls"
             >
                 <Button
+                    data-testid="panel-navigator-shift-backward"
                     size="xsm"
                     variant="ghost"
                     isToolTip
@@ -647,6 +654,7 @@ export function PanelFooter({
                     onClick={() => pOnRangeButtonPress('shift-navigator-left')}
                 />
                 <Button
+                    data-testid="panel-navigator-shift-forward"
                     size="xsm"
                     variant="ghost"
                     isToolTip
@@ -660,6 +668,7 @@ export function PanelFooter({
                 {NAVIGATOR_RANGE_BOUNDARIES.map((boundary) => (
                     <button
                         key={boundary}
+                        data-testid={`panel-navigator-range-${boundary}`}
                         type="button"
                         className="range-label"
                         title="Set current navigator range"

@@ -5,9 +5,9 @@ export async function login(page: Page) {
 
     await page.goto(`${baseUrl}/web/ui/login`);
 
-    await page.getByPlaceholder('User').fill('sys');
-    await page.getByPlaceholder('Password').fill('Manager');
-    await page.getByRole('button', { name: 'SIGN IN' }).click();
+    await page.getByTestId('login-username-input').fill('sys');
+    await page.getByTestId('login-password-input').fill('Manager');
+    await page.getByTestId('login-submit').click();
 
     await expect(page).toHaveURL(/\/web\/ui\/?$/);
 }

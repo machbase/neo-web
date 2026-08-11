@@ -69,6 +69,7 @@ export default function OverlapModal({
 
     return (
         <Modal.Root
+            data-testid="tag-analyzer-overlap-dialog"
             isOpen={true}
             onClose={onClose}
             size="lg"
@@ -79,11 +80,12 @@ export default function OverlapModal({
                     <MdOutlineStackedLineChart size={16} />
                     <span>Overlap Chart</span>
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="tag-analyzer-overlap-close" />
             </Modal.Header>
             <Modal.Body>
                 <Page.ContentBlock pHoverNone>
                     <Button
+                        data-testid="tag-analyzer-overlap-refresh"
                         variant="secondary"
                         size="xsm"
                         icon={<Refresh size={12} />}
@@ -94,6 +96,7 @@ export default function OverlapModal({
                         aria-label="Refresh data"
                     />
                     <div
+                        data-testid="tag-analyzer-overlap-chart"
                         role="region"
                         aria-label="Overlap chart"
                         aria-busy={sIsLoadingOverlapData}

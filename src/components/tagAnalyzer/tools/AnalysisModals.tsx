@@ -224,6 +224,7 @@ function FFTModal({
 
     return (
         <Modal.Root
+            data-testid="tag-analyzer-fft-dialog"
             isOpen
             onClose={onClose}
             size="lg"
@@ -264,6 +265,7 @@ function FFTModal({
                             className={styles.fftDimensionButtons}
                         >
                             <Button
+                                data-testid="tag-analyzer-fft-2d"
                                 type="button"
                                 size="sm"
                                 variant="secondary"
@@ -296,6 +298,7 @@ function FFTModal({
                 >
                     <div className={styles.fftInputRow}>
                         <Input
+                            data-testid="tag-analyzer-fft-min-hz"
                             className={styles.fftFrequencyField}
                             label="Min Hz"
                             labelPosition="top"
@@ -307,6 +310,7 @@ function FFTModal({
                             onChange={(event) => setMinHz(event.target.value)}
                         />
                         <Input
+                            data-testid="tag-analyzer-fft-max-hz"
                             className={styles.fftFrequencyField}
                             label="Max Hz"
                             labelPosition="top"
@@ -365,6 +369,7 @@ function FFTModal({
                 </div>
 
                 <div
+                    data-testid="tag-analyzer-fft-chart"
                     className={styles.fftChartArea}
                     role="region"
                     aria-label="FFT chart"
@@ -399,7 +404,9 @@ function FFTModal({
                 </dl>
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Cancel>Close</Modal.Cancel>
+                <Modal.Cancel data-testid="tag-analyzer-fft-close">
+                    Close
+                </Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );
@@ -508,6 +515,7 @@ export function SelectionSummaryPopover({
 
     return (
         <PanelPopover
+            data-testid="tag-analyzer-selection-summary"
             title="Selection Summary"
             position={position}
             onClose={onClose}
@@ -577,6 +585,7 @@ export function SelectionSummaryPopover({
                 title={sFftUnavailableReason}
             >
                 <Button
+                    data-testid="tag-analyzer-selection-open-fft"
                     size="sm"
                     variant="secondary"
                     disabled={sFftUnavailableReason !== undefined}

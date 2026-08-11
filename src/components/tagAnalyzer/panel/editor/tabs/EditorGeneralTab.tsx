@@ -28,6 +28,7 @@ function EditorGeneralTab({
         <Section title="Chart title">
             <div className={styles.controlGrid}>
                 <Input
+                    data-testid="tag-analyzer-panel-editor-title-input"
                     aria-label="Chart title"
                     value={pTitle}
                     onChange={(event) => pOnChangeTitle(event.target.value)}
