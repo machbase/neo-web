@@ -1,0 +1,87 @@
+$section-gap: 12px;
+$label-gap: 6px;
+
+.panelStack {
+    display: flex;
+    flex-direction: column;
+    gap: $section-gap;
+}
+
+.chartTypeSection {
+    display: flex;
+    flex-direction: column;
+    gap: $label-gap;
+    width: 100%;
+}
+
+.chartTypeRow {
+    display: flex;
+    gap: $section-gap;
+    width: 100%;
+}
+
+.chartTypeButton {
+    flex: 1;
+    height: 76px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.chartTypeButton:hover,
+.chartTypeButton:focus-visible {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.chartTypeButtonActive {
+    border-color: #006cd2;
+    box-shadow:
+        inset 0 0 0 1px #006cd2,
+        0 0 0 1px rgba(0, 108, 210, 0.35);
+}
+
+.chartTypeButtonContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.chartTypeLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.titleIcon {
+    display: inline-flex;
+    align-items: center;
+    color: #3b9bff;
+}
+
+.footerMessage {
+    flex: 1;
+    min-width: 0;
+    color: #ef6e6e;
+    font-size: 12px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.fieldCell {
+    display: flex;
+    flex-direction: column;
+    gap: $label-gap;
+    min-width: 0;
+}
+
+.fieldLabelTop {
+    display: block;
+    color: #a3a3a3;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 14px;
+    text-transform: uppercase;
+}

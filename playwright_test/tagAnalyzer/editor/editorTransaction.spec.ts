@@ -14,7 +14,7 @@ test.describe('Tag Analyzer panel editor', () => {
         let shouldCleanUp = false;
 
         try {
-            // 1. [M.1, 1.1.4] Open a saved board with one loaded panel.
+            // 1. [M.1, 1.1.4] Open a saved board and select a loaded panel.
             await login(page);
             await page.getByText('TAG ANALYZER.taz', { exact: true }).click();
             await expect(
@@ -24,14 +24,16 @@ test.describe('Tag Analyzer panel editor', () => {
                 }),
             ).toBeVisible();
 
-            const panel = page.getByRole('region', { name: / panel$/ });
-            await expect(panel).toHaveCount(1);
-            await expect(
-                panel.getByRole('button', {
-                    name: 'Set current visible main chart range',
-                    exact: true,
-                }),
-            ).toBeEnabled({ timeout: 30_000 });
+            const readyRangeButton = page
+                .locator(
+                    'button[aria-label="Set current visible main chart range"]:not(:disabled), button[aria-label="Set current visible main chart value range"]:not(:disabled)',
+                )
+                .first();
+            await expect(readyRangeButton).toBeVisible({ timeout: 30_000 });
+            const panel = readyRangeButton.locator(
+                'xpath=ancestor::*[@role="region" and contains(@aria-label, " panel")][1]',
+            );
+            await expect(panel).toBeVisible();
 
             // 2. [1.4.3.1.1] Open the editor and change its draft title.
             await panel
@@ -124,8 +126,7 @@ test.describe('Tag Analyzer panel editor', () => {
             });
             await expect(
                 reopenedPanel.getByRole('button', {
-                    name: 'Set current visible main chart range',
-                    exact: true,
+                    name: /Set current visible main chart(?: value)? range/,
                 }),
             ).toBeEnabled({ timeout: 30_000 });
             await reopenedPanel

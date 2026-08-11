@@ -8,12 +8,13 @@ import PanelChart, {
     useChartAreaWidthObserver,
 } from '../chart/PanelChart';
 import { Toast, type ContextMenuPosition } from '@/design-system/components';
-import PanelFooter from './PanelFooter';
-import PanelHeader, {
+import {
+    PanelFooter,
+    PanelHeader,
     PanelActionKey,
     PanelContextMenu,
-} from './PanelHeader';
-import PanelEditor from '../setup/editor/PanelEditor';
+} from './internal/PanelChrome';
+import PanelEditor from './editor/PanelEditor';
 import {
     buildSelectionSummaryPayload,
     SelectionSummaryPopover,
@@ -21,6 +22,9 @@ import {
 import { EditAnnotationModal, EditHighlightModal } from '../tools/MarkupModals';
 import { RangeModal } from '../range/RangeModal';
 import { formatRangeInputValue } from '../format/inputFormat';
+import { formatAxisRange } from '../format/axisFormat';
+import { formatNumericInterval } from '../format/numericFormat';
+import { formatTimeInterval } from '../format/timeFormat';
 import { formatAbsoluteTime } from '../persistence/serializeRange';
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
@@ -28,10 +32,15 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelInfo,
 } from './panelModel';
-import type { usePanelRangeRuntime } from './usePanelRangeRuntime';
+import {
+    resolveSetGlobalRangeRequest,
+    usePanelRangeRuntime,
+    type PanelBroadcastRequests,
+} from './panelRuntime';
 import { MIXED_X_AXIS_KIND_WARNING, type RollupTableMap } from '../seriesModel';
 import {
     isRangeExpressionEmpty,
+    type AxisKind,
     type AxisRange,
     type RangeExpressionInput,
     type RangeState,
@@ -39,29 +48,38 @@ import {
 } from '../range/rangeModel';
 import { isSameRange } from '../range/rangeArithmetic';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import { filterChartDataByRange } from '../chart/chartData';
-import { usePanelDataLoading } from './panelData';
 import {
-    PanelOverlayMode,
+    filterChartDataByRange,
+    type ChartSeriesData,
+} from '../chart/chartData';
+import {
+    usePanelData,
+    type PanelDataLoadMetrics,
+} from './internal/panelData';
+import {
     PanelPopupMode,
     usePanelInteraction,
-} from './panelInteraction';
+} from './internal/panelInteraction';
+import { PanelOverlayMode } from '../chart/chartRuntime';
 import './Panel.scss';
 
 type PanelProps = {
     panelInfo: PanelInfo;
     rangeState: ResolvedRangeState | undefined;
-    runtime: Pick<
-        ReturnType<typeof usePanelRangeRuntime>,
-        'chartAreaWidth' | 'dataRefreshVersion'
-    > & {
+    broadcastRequests: PanelBroadcastRequests;
+    runtime: {
         isActive: boolean;
         hasUnsavedBoardChanges: boolean;
         rollupTableList: RollupTableMap;
     };
-    actions: ReturnType<typeof usePanelRangeRuntime>['actions'] & {
+    actions: {
+        onRangeStateChange: (rangeState: ResolvedRangeState) => void;
+        onBroadcastError: (broadcastKey: string, message: string) => void;
         onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-        onSetGlobalTimeRange: (globalTimeRange: RangeState) => void;
+        onSetGlobalRange: (
+            axisKind: AxisKind,
+            globalRange: RangeState,
+        ) => void;
         onDeletePanel: () => void;
         onToggleOverlap: () => void;
     };
@@ -74,28 +92,31 @@ type RetainedMainRangeInput = {
 
 type CurrentRangeTarget = 'main' | 'navigator';
 
+const EMPTY_PANEL_CHART_DATA: ChartSeriesData[] = [];
+const EMPTY_PANEL_DATA_METRIC: PanelDataLoadMetrics['main'] = {
+    queriedEntries: undefined,
+    pointCount: undefined,
+    pixelWidth: undefined,
+};
+const EMPTY_PANEL_DATA_METRICS: PanelDataLoadMetrics = {
+    main: EMPTY_PANEL_DATA_METRIC,
+    navigator: EMPTY_PANEL_DATA_METRIC,
+};
+
 export default memo(function Panel({
     panelInfo,
     rangeState,
+    broadcastRequests,
     runtime: {
         isActive,
         hasUnsavedBoardChanges,
-        chartAreaWidth,
-        dataRefreshVersion,
         rollupTableList,
     },
     actions: {
-        onRangeButtonAction,
-        onMainRangeChange,
-        onNavigatorRangeChange,
-        onRangeReplace,
-        onChartAreaWidthChange,
-        onRefreshData,
-        onRefreshRange,
-        onExpandFullRange,
-        onReloadAfterEditorSave,
+        onRangeStateChange,
+        onBroadcastError,
         onApplyPanelInfo,
-        onSetGlobalTimeRange,
+        onSetGlobalRange,
         onDeletePanel,
         onToggleOverlap,
     },
@@ -105,6 +126,27 @@ export default memo(function Panel({
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
 
+    const rangeRuntime = usePanelRangeRuntime({
+        ...broadcastRequests,
+        panelInfo,
+        rangeState,
+        isActive,
+        onRangeStateChange,
+        onBroadcastError,
+    });
+    const { chartAreaWidth, dataRefreshVersion } = rangeRuntime;
+    const {
+        setChartAreaWidth: onChartAreaWidthChange,
+        applyRangeAction: onRangeButtonAction,
+        setMainRange: onMainRangeChange,
+        setNavigatorRange: onNavigatorRangeChange,
+        refreshData: onRefreshData,
+        refreshRange: onRefreshRange,
+        expandFullRange: onExpandFullRange,
+        reloadAfterEditorSave: onReloadAfterEditorSave,
+    } = rangeRuntime.actions;
+
+    const interaction = usePanelInteraction();
     const {
         overlayMode,
         popupState,
@@ -112,6 +154,8 @@ export default memo(function Panel({
         selectionSummary,
         overlayCursorHint,
         hoveredMainSeriesName,
+    } = interaction.state;
+    const {
         toggleOverlay,
         setOverlayMode,
         openPopup,
@@ -124,42 +168,68 @@ export default memo(function Panel({
         showCursorHint,
         setHoveredSeries,
         clearCursorHint,
-    } = usePanelInteraction();
+    } = interaction.actions;
     const isEditorMounted = editorStatus !== 'closed';
     const isEditorClosing = editorStatus === 'closing';
 
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
 
-    const {
-        mainChartData,
-        navigatorChartData,
-        renderRange,
-        resolvedIntervalOption,
-        resolvedNumericInterval,
-        seriesRollupStatusList,
-        dataSettingMetrics,
-        hasMixedXAxisKinds,
-        isNumericXAxis,
-        displayNotice,
-        loadStatus,
-    } = usePanelDataLoading({
+    const panelData = usePanelData({
         panelInfo,
         isActive,
         rangeState,
         chartAreaWidth,
-        rollupTableList,
+        rollupTables: rollupTableList,
         dataRefreshVersion,
-        onRawMainRangeLimited: onMainRangeChange,
     });
+    const queryableData =
+        panelData.kind === 'queryable' ? panelData : undefined;
+    const mainChartData =
+        queryableData?.series.main ?? EMPTY_PANEL_CHART_DATA;
+    const navigatorChartData =
+        queryableData?.series.navigator ?? EMPTY_PANEL_CHART_DATA;
+    const renderRange = queryableData?.range.render ?? rangeState?.range;
+    const resolution = queryableData?.query.resolution;
+    const resolvedIntervalOption =
+        resolution?.kind === 'time' ? resolution.interval : undefined;
+    const resolvedNumericInterval =
+        resolution?.kind === 'numeric' ? resolution.bucketWidth : undefined;
+    const seriesRollupStatusList = [
+        ...(queryableData?.query.seriesRollupStatuses ?? []),
+    ];
+    const dataSettingMetrics =
+        queryableData?.query.metrics ?? EMPTY_PANEL_DATA_METRICS;
+    const hasMixedXAxisKinds =
+        panelData.kind === 'invalid' &&
+        panelData.reason === 'mixedAxisKinds';
+    const isNumericXAxis = queryableData?.query.axisKind === 'numeric';
+    const chartLoadState = queryableData?.load.requests.main;
+    const navigatorLoadState = queryableData?.load.requests.navigator;
+    const hasDataRequestGeometry =
+        rangeState !== undefined &&
+        chartAreaWidth !== undefined &&
+        Number.isFinite(chartAreaWidth) &&
+        chartAreaWidth > 0;
+    const displayNotice =
+        queryableData?.load.notice === 'noData'
+            ? 'No Data'
+            : queryableData?.load.notice === 'partialData'
+              ? 'Some series unavailable'
+              : chartLoadState?.status === 'failed'
+                ? chartLoadState.error
+                : undefined;
+    const loadStatus = {
+        chart: hasDataRequestGeometry
+            ? (chartLoadState?.status ?? 'idle')
+            : 'loading',
+        navigator: hasDataRequestGeometry
+            ? (navigatorLoadState?.status ?? 'idle')
+            : 'loading',
+    };
     const renderMainRange = renderRange?.mainRange;
     const renderNavigatorRange = renderRange?.navigatorRange;
     function dragNavigatorSelection(range: AxisRange): void {
-        if (!renderNavigatorRange) return;
-
-        onRangeReplace({
-            mainRange: range,
-            navigatorRange: renderNavigatorRange,
-        });
+        onMainRangeChange(range);
     }
 
     const rangeActions = {
@@ -196,7 +266,12 @@ export default memo(function Panel({
         };
 
         onApplyPanelInfo(sNextPanelInfo);
-        onReloadAfterEditorSave(sNextPanelInfo, sPreserveCurrentVisibleRange);
+        onReloadAfterEditorSave(
+            sNextPanelInfo,
+            sPreserveCurrentVisibleRange
+                ? 'preserveVisibleRange'
+                : 'applyConfiguredRange',
+        );
     }
 
     function requireChartAreaRect(action: string): DOMRect {
@@ -209,23 +284,61 @@ export default memo(function Panel({
     }
 
     const isOverlayModeActive = overlayMode !== PanelOverlayMode.NO_OVERLAY;
-    const canSetGlobalTime =
-        loadStatus.chart === 'ready' &&
-        renderRange !== undefined &&
-        !isNumericXAxis &&
-        !isRaw;
-    const panelHeaderRuntimeState = {
+    const setGlobalRangeRequest = resolveSetGlobalRangeRequest(
+        panelInfo,
+        loadStatus.chart === 'ready',
+        renderRange,
+    );
+    const formattedMainRange = renderMainRange
+        ? formatAxisRange(renderMainRange, isNumericXAxis)
+        : undefined;
+    const resolutionLabel = isRaw
+        ? ''
+        : isNumericXAxis
+          ? formatNumericInterval(resolvedNumericInterval)
+          : resolvedIntervalOption
+            ? formatTimeInterval(resolvedIntervalOption)
+            : '';
+    const activeHeaderActions: PanelActionKey[] = [];
+    if (isRaw) activeHeaderActions.push(PanelActionKey.TOGGLE_RAW);
+    if (overlayMode === PanelOverlayMode.HIGHLIGHT) {
+        activeHeaderActions.push(PanelActionKey.TOGGLE_HIGHLIGHT);
+    }
+    if (overlayMode === PanelOverlayMode.ANNOTATION) {
+        activeHeaderActions.push(PanelActionKey.TOGGLE_ANNOTATION);
+    }
+    if (overlayMode === PanelOverlayMode.DRAG_SELECT) {
+        activeHeaderActions.push(PanelActionKey.TOGGLE_DRAG_SELECT);
+    }
+    if (isEditorMounted && !isEditorClosing) {
+        activeHeaderActions.push(PanelActionKey.TOGGLE_EDIT);
+    }
+    const panelHeaderState = {
         title: panelInfo.title,
-        mainRange: renderMainRange,
-        resolvedIntervalOption,
-        resolvedNumericInterval,
-        seriesRollupStatusList,
-        canSaveLocal: loadStatus.chart === 'ready',
-        canSetGlobalTime,
-        isNumericXAxis,
-        overlayMode,
-        isEditing: isEditorMounted && !isEditorClosing,
-        isRaw,
+        range: formattedMainRange
+            ? {
+                  label: `${formattedMainRange.start} ~ ${formattedMainRange.end}`,
+                  actionLabel: isNumericXAxis
+                      ? 'Set current visible main chart value range'
+                      : 'Set current visible main chart range',
+              }
+            : undefined,
+        resolution: resolutionLabel
+            ? {
+                  label: resolutionLabel,
+                  kind: isNumericXAxis
+                      ? ('numeric' as const)
+                      : ('time' as const),
+              }
+            : undefined,
+        seriesRollupStatusList: isRaw ? [] : seriesRollupStatusList,
+        actionState: {
+            active: activeHeaderActions,
+            disabled: setGlobalRangeRequest
+                ? []
+                : [PanelActionKey.SET_GLOBAL_RANGE],
+        },
+        canExportCsv: loadStatus.chart === 'ready',
         isOverlapSelected,
     };
     function handlePanelAction(actionKey: PanelActionKey): void {
@@ -247,16 +360,19 @@ export default memo(function Panel({
                 toggleOverlay(PanelOverlayMode.ANNOTATION),
             [PanelActionKey.TOGGLE_DRAG_SELECT]: () =>
                 toggleOverlay(PanelOverlayMode.DRAG_SELECT),
-            [PanelActionKey.SET_GLOBAL_TIME]: () => {
-                if (!canSetGlobalTime || !renderRange) {
+            [PanelActionKey.SET_GLOBAL_RANGE]: () => {
+                if (!setGlobalRangeRequest) {
                     throw new Error(
-                        'Cannot set global time before the time range is ready.',
+                        'Cannot set the global range before the panel range is ready.',
                     );
                 }
-                onSetGlobalTimeRange(renderRange);
+                onSetGlobalRange(
+                    setGlobalRangeRequest.axisKind,
+                    setGlobalRangeRequest.range,
+                );
             },
             [PanelActionKey.REFRESH_DATA]: onRefreshData,
-            [PanelActionKey.REFRESH_TIME]: onRefreshRange,
+            [PanelActionKey.REFRESH_RANGE]: onRefreshRange,
             [PanelActionKey.EXPAND_FULL_RANGE]: onExpandFullRange,
             [PanelActionKey.TOGGLE_EDIT]: toggleEditor,
             [PanelActionKey.OPEN_EXPORT_CSV]: () =>
@@ -525,13 +641,13 @@ export default memo(function Panel({
                 <PanelOverlayCursorHint hint={overlayCursorHint} />
             )}
             <PanelHeader
-                runtimeState={panelHeaderRuntimeState}
+                state={panelHeaderState}
                 onAction={handlePanelAction}
                 onToggleOverlap={onToggleOverlap}
                 onRenamePanelTitle={(title) =>
                     onApplyPanelInfo({ ...panelInfo, title })
                 }
-                onOpenTimeRangeModal={() => openCurrentRangeModal('main')}
+                onOpenMainRangeModal={() => openCurrentRangeModal('main')}
             />
             {hasMixedXAxisKinds && (
                 <div className="panel-x-axis-warning">
@@ -629,7 +745,7 @@ export default memo(function Panel({
             )}
             {popupState.mode === PanelPopupMode.CONTEXT_MENU && (
                 <PanelContextMenu
-                    runtimeState={panelHeaderRuntimeState}
+                    actionState={panelHeaderState.actionState}
                     onAction={handlePanelAction}
                     position={popupState.position}
                     onClose={() => closePopup(PanelPopupMode.CONTEXT_MENU)}
@@ -640,6 +756,7 @@ export default memo(function Panel({
                     selection={selectionSummary.selection}
                     position={selectionSummary.popoverPosition}
                     isNumericXAxis={isNumericXAxis}
+                    isRaw={isRaw}
                     onClose={closeSelection}
                 />
             )}

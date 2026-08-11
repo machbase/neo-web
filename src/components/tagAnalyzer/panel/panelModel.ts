@@ -16,6 +16,16 @@ export const AUTO_VALUE_RANGE: ValueRange = {
     max: undefined,
 };
 
+export function isValueRangeInvalid(range: ValueRange): boolean {
+    const { min, max } = range;
+
+    if (min === undefined || max === undefined) {
+        return min !== max;
+    }
+
+    return !Number.isFinite(min) || !Number.isFinite(max) || min >= max;
+}
+
 export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot', 'Custom'] as const;
 
 export type PanelEChartType = (typeof PANEL_ECHART_TYPE_VALUES)[number];
@@ -78,6 +88,56 @@ export type PanelDisplay = {
     mainChartSampling: PanelSampling;
     rawNavigatorSampling: PanelSampling;
 };
+
+function isInvalidThreshold(threshold: PanelAxisThreshold): boolean {
+    return (
+        threshold.enabled &&
+        (threshold.value === undefined || !Number.isFinite(threshold.value))
+    );
+}
+
+function isInvalidYAxis(axis: PanelYAxis): boolean {
+    return (
+        isValueRangeInvalid(axis.valueRange) ||
+        isValueRangeInvalid(axis.rawValueRange) ||
+        isInvalidThreshold(axis.upperControlLimit) ||
+        isInvalidThreshold(axis.lowerControlLimit)
+    );
+}
+
+function isInvalidOptionalPositiveNumber(
+    value: number | undefined,
+): boolean {
+    return value !== undefined && (!Number.isFinite(value) || value <= 0);
+}
+
+function isInvalidSampling(sampling: PanelSampling): boolean {
+    return (
+        sampling.enabled &&
+        (sampling.sampleCount === undefined ||
+            !Number.isFinite(sampling.sampleCount) ||
+            sampling.sampleCount <= 0)
+    );
+}
+
+export function hasInvalidPanelSettings(
+    axes: PanelAxes,
+    display: PanelDisplay,
+): boolean {
+    return (
+        isInvalidYAxis(axes.leftY) ||
+        (axes.rightY.enabled && isInvalidYAxis(axes.rightY)) ||
+        [display.pointRadius, display.fill, display.stroke].some(
+            (value) => value !== undefined && !Number.isFinite(value),
+        ) ||
+        isInvalidOptionalPositiveNumber(display.pixelsPerTick.calculated) ||
+        isInvalidOptionalPositiveNumber(
+            display.pixelsPerTick.calculatedNavigator,
+        ) ||
+        isInvalidSampling(display.mainChartSampling) ||
+        isInvalidSampling(display.rawNavigatorSampling)
+    );
+}
 
 export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
 export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';

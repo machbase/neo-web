@@ -17,12 +17,20 @@ import {
     parseRangeInputValue,
 } from '../format/inputFormat';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import type {
-    AnnotationEditorMetaState,
-    HighlightEditorState,
-} from '../panel/panelInteraction';
+import type { ContextMenuPosition } from '@/design-system/components';
 
 import PanelPopover from './PanelPopover';
+
+export type AnnotationEditorMetaState = {
+    position: ContextMenuPosition;
+    seriesKey?: string;
+    annotationIndex?: number;
+    timestamp?: number;
+};
+
+export type HighlightEditorState =
+    | { mode: 'create'; position: ContextMenuPosition }
+    | { mode: 'edit'; position: ContextMenuPosition; highlightIndex: number };
 
 type AnnotationFormState = {
     seriesValue: string;

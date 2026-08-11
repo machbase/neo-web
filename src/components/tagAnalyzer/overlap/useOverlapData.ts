@@ -9,7 +9,7 @@ import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../hooks/useLatestAsyncRequest';
-import { buildMainSeriesRequest } from '../panel/panelData';
+import { buildMainSeriesRequest } from '../panel/series/panelSeriesRequest';
 import {
     createOverlapChartSeriesGroup,
     type OverlapChartSeriesGroup,

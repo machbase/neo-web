@@ -7,13 +7,12 @@ import {
 } from '../range/rangeArithmetic';
 import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
 import { formatCompactNumber } from '../format/numericFormat';
-import { type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
+import { PanelOverlayMode, type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
 import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
 import { getPanelSeriesDisplayColor, DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../seriesModel';
 import { DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR, type PanelHighlight, type ValueRange } from '../panel/panelModel';
 import { buildRenderableSeriesAnnotations, type AnnotationRenderContext, type RenderableSeriesAnnotation, type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
 import { type MutableRefObject } from 'react';
-import { PanelOverlayMode } from '../panel/panelInteraction';
 
 export type PanelChartHandlers = {
     rangeActions: {

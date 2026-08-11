@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fftApi, type FftChartData } from '../api/fftApi';
 import type { ChartSeriesData } from '../chart/chartData';
-import type { FFTSelectionPayload } from '../panel/panelInteraction';
+import type { FFTSelectionPayload } from './AnalysisModals';
 import type { PanelSeriesDefinition } from '../seriesModel';
 import {
     buildSelectionSummaryPayload,

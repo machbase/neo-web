@@ -26,14 +26,24 @@ import {
 import type { AxisRange } from '../range/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
 import type { ChartSeriesData } from '../chart/chartData';
-import type { FFTSelectionPayload } from '../panel/panelInteraction';
 import PanelPopover from './PanelPopover';
 
 import { fftApi, type FftChartData } from '../api/fftApi';
 import { useLatestAsyncRequest } from '../hooks/useLatestAsyncRequest';
 import styles from './AnalysisModals.module.scss';
 
-type SelectedRangeSeriesSummary = FFTSelectionPayload['seriesSummaries'][number];
+type FFTSeriesSummary = {
+    series: PanelSeriesDefinition;
+    min: string;
+    max: string;
+    avg: string;
+};
+
+export type FFTSelectionPayload = AxisRange & {
+    seriesSummaries: [FFTSeriesSummary, ...FFTSeriesSummary[]];
+};
+
+type SelectedRangeSeriesSummary = FFTSeriesSummary;
 
 const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,

@@ -1,7 +1,7 @@
 import { render, waitFor } from '@testing-library/react';
 import type { MutableRefObject } from 'react';
 import { createNewPanelInfo } from '../panel/panelModel';
-import { PanelOverlayMode } from '../panel/panelInteraction';
+import { PanelOverlayMode } from './chartRuntime';
 import type { ChartSeriesData } from './chartData';
 import type { PanelChartHandlers } from './chartModel';
 import PanelChart, { type PanelChartHandle } from './PanelChart';

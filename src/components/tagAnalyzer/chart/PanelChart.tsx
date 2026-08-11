@@ -25,13 +25,11 @@ import {
     type PanelChartBlankClickPayload,
     type PanelChartInstance,
     type PanelChartRuntime,
+    PanelOverlayMode,
+    type PanelOverlayCursorHintState,
     type RuntimePanelChartConfig,
     resolveRuntimePanelChartConfig,
 } from './chartRuntime';
-import {
-    PanelOverlayMode,
-    type PanelOverlayCursorHintState,
-} from '../panel/panelInteraction';
 import {
     type ChartSeriesVisibilityMap,
     getChartSeriesEChartsName,
@@ -183,6 +181,7 @@ function usePanelChartRuntime({
     const {
         chartInstanceRef,
         handleChartReady: syncChartReady,
+        syncBrushInteraction,
     } = usePanelChartInstanceSync({
         isBrushActive: isSelectionMode || isDragZoomEnabled,
         optionRevision: currentRangeOption,
@@ -247,6 +246,9 @@ function usePanelChartRuntime({
                       replaceMerge: ['series', 'xAxis', 'yAxis', 'dataZoom'],
                   },
         );
+        if (sShouldResetChartData) {
+            syncBrushInteraction(chartInstance);
+        }
         lastRenderedChartDataRef.current = {
             chartData,
             navigatorChartData,
@@ -256,6 +258,7 @@ function usePanelChartRuntime({
         chartData,
         chartInstanceRef,
         navigatorChartData,
+        syncBrushInteraction,
         syncMainChartVisibleRange,
     ]);
 
@@ -665,6 +668,7 @@ function usePanelChartInstanceSync({
     return {
         chartInstanceRef,
         handleChartReady,
+        syncBrushInteraction,
     };
 }
 

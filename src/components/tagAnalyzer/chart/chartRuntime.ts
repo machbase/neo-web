@@ -8,6 +8,24 @@ import type { RangeState } from '../range/rangeModel';
 import { AUTO_VALUE_RANGE, type PanelAxisThreshold, type PanelHighlight, type PanelInfo, type PanelSampling, type PanelYAxis, type ValueRange } from '../panel/panelModel';
 import { type ChartSeriesData, type ChartSeriesVisibilityMap } from './chartData';
 
+export enum PanelOverlayMode {
+    NO_OVERLAY = 'noOverlay',
+    HIGHLIGHT = 'highlight',
+    ANNOTATION = 'annotation',
+    DRAG_SELECT = 'dragSelect',
+}
+
+export type PanelOverlayCursorHintState = {
+    x: number;
+    y: number;
+    isValidTarget: boolean;
+    hoveredMainSeriesName: string | undefined;
+    overlayMode:
+        | PanelOverlayMode.ANNOTATION
+        | PanelOverlayMode.HIGHLIGHT
+        | PanelOverlayMode.DRAG_SELECT;
+};
+
 // ECharts boundary types
 export type EChartDataZoomEventItem = Partial<{
     id: string;
