@@ -72,6 +72,22 @@ const shouldAlignNumeric = (declaredType: unknown, cellValue: any): boolean => {
     return isNumericValue(cellValue);
 };
 
+// A SQL NULL arrives as `null` in the query response. `''` is a real empty
+// value, so the two must not collapse together.
+const isNullish = (value: any): boolean => value === null || value === undefined;
+
+// A NULL cell prints the word, the way the shell does. An empty cell is
+// indistinguishable from an empty string otherwise, which is the whole problem.
+const NULL_TEXT = 'NULL';
+
+// The dimmed style is what tells an actual NULL apart from a VARCHAR whose value
+// is literally the text "NULL".
+const renderCellText = (cellData: any) =>
+    isNullish(cellData) ? <span className={styles['null-cell']}>{NULL_TEXT}</span> : <span>{cellData.toString()}</span>;
+
+// Nothing to put on the clipboard for a NULL or an empty cell.
+const hasCopyableValue = (cellData: any) => !isNullish(cellData) && cellData.toString().trim() !== '';
+
 const CommonTable = (props: CommonTableProps) => {
     const {
         showRowNumber = false,
@@ -181,6 +197,17 @@ const CommonTable = (props: CommonTableProps) => {
     // omitted (keeps existing consumers unchanged).
     const shouldShowCellCopy = (columnIndex: number) =>
         showCopyButton || (copyableColumns?.includes(data?.columns?.[columnIndex]) ?? false);
+
+    // Trailing slot of a cell. A NULL cell has nothing to copy, but unlike a blank
+    // cell it draws text — so the width the button would occupy inside
+    // `.cell-content` has to stay held open, or NULL slides right and falls out of
+    // line with every other row of a right-aligned numeric column.
+    const renderCellCopy = (cellData: any, columnIndex: number) => {
+        if (!shouldShowCellCopy(columnIndex)) return null;
+        if (hasCopyableValue(cellData)) return <CopyCell value={cellData} />;
+        if (isNullish(cellData)) return <span className={styles['copy-cell-spacer']} aria-hidden="true" />;
+        return null;
+    };
 
     // Row class computation for non-selection mode
     const getRowClass = (idx: number): string => {
@@ -304,10 +331,8 @@ const CommonTable = (props: CommonTableProps) => {
                                                     />
                                                 ) : (
                                                     <div className={styles['cell-content']}>
-                                                        <span>{cellData?.toString()}</span>
-                                                        {shouldShowCellCopy(cellIdx) && cellData !== null && cellData?.toString().trim() !== '' && (
-                                                            <CopyCell value={cellData} />
-                                                        )}
+                                                        {renderCellText(cellData)}
+                                                        {renderCellCopy(cellData, cellIdx)}
                                                     </div>
                                                 )}
                                             </td>
@@ -538,8 +563,8 @@ const CommonTable = (props: CommonTableProps) => {
                                             renderer(rowList)
                                         ) : (
                                             <div className={styles['cell-content']}>
-                                                <span>{cellData?.toString()}</span>
-                                                {shouldShowCellCopy(rIdx) && cellData !== null && cellData?.toString().trim() !== '' && <CopyCell value={cellData} />}
+                                                {renderCellText(cellData)}
+                                                {renderCellCopy(cellData, rIdx)}
                                             </div>
                                         )}
                                     </td>
@@ -700,8 +725,8 @@ const CommonTable = (props: CommonTableProps) => {
                                           return (
                                               <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle}>
                                                   <div className={styles['cell-content']}>
-                                                      <span>{cellData?.toString()}</span>
-                                                      {shouldShowCellCopy(cellIdx) && cellData !== null && cellData?.toString().trim() !== '' && <CopyCell value={cellData} />}
+                                                      {renderCellText(cellData)}
+                                                      {renderCellCopy(cellData, cellIdx)}
                                                   </div>
                                               </td>
                                           );

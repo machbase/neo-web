@@ -2961,7 +2961,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                     // Cells only — TableVirtuoso's default TableRow already supplies the `<tr>`.
                                                     <>
                                                         {rawColumns.map((column) => {
-                                                            const value = column.key === 'time' ? formatBaseValue(row[column.key]) : String(row[column.key] ?? '');
+                                                            const raw = row[column.key];
+                                                            // A NULL reads as `NULL` here for the same reason it does in the SQL
+                                                            // result grid: a blank cell is indistinguishable from an empty string.
+                                                            // Only the value column can be null — `time` is the BASETIME column and
+                                                            // `name` the tag primary key — so `name`'s colour lookup below is safe.
+                                                            const isNull = column.key !== 'time' && (raw === null || raw === undefined);
+                                                            const value = column.key === 'time' ? formatBaseValue(raw) : String(raw ?? '');
                                                             if (column.key === 'name') {
                                                                 // `--raw-dot` feeds the ::before swatch, which ties a row back to its chart line.
                                                                 return (
@@ -2972,7 +2978,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                             }
                                                             return (
                                                                 <td key={column.key} className={`mono${column.key === 'value' && !valueColumnIsJson ? ' is-numeric' : ''}`}>
-                                                                    {value}
+                                                                    {isNull ? <span className="is-null">NULL</span> : value}
                                                                 </td>
                                                             );
                                                         })}

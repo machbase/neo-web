@@ -279,3 +279,66 @@ describe('CommonTable copyableColumns opt-in cell copy', () => {
         expect(ClipboardCopy).not.toHaveBeenCalled();
     });
 });
+
+describe('CommonTable NULL cells', () => {
+    beforeEach(() => {
+        (ClipboardCopy as jest.Mock).mockClear();
+    });
+
+    // `''` is a real empty value and `null` is a SQL NULL; the shell prints only the
+    // latter as NULL, so the two must not collapse into the same blank cell.
+    const renderTable = (extraProps: Record<string, unknown> = {}) =>
+        render(
+            <CommonTable
+                {...({
+                    data: { columns: ['NAME', 'VALUE', 'NOTE'], rows: [['TAG_01', null, '']] },
+                    ...extraProps,
+                } as any)}
+            />
+        );
+
+    test('renders NULL for a null cell and leaves an empty-string cell blank', () => {
+        renderTable();
+
+        const cells = screen.getByText('TAG_01').closest('tr')?.querySelectorAll('td');
+        expect(cells).toHaveLength(3);
+        expect((cells as NodeListOf<HTMLTableCellElement>)[1].textContent).toBe('NULL');
+        expect((cells as NodeListOf<HTMLTableCellElement>)[2].textContent).toBe('');
+    });
+
+    // A NULL has nothing to copy, but it does draw text — so the slot the button
+    // would occupy has to stay held open or NULL falls out of line with the rest
+    // of a right-aligned column.
+    test('replaces the copy button on a NULL cell with a spacer of the same width', () => {
+        const { container } = renderTable({ showCopyButton: true });
+
+        const cells = screen.getByText('TAG_01').closest('tr')?.querySelectorAll('td') as NodeListOf<HTMLTableCellElement>;
+        expect(within(cells[1]).queryByRole('button')).toBeNull();
+        expect(cells[1].querySelector('[class*="copy-cell-spacer"]')).not.toBeNull();
+        expect(container.querySelectorAll('[class*="copy-cell-spacer"]')).toHaveLength(1);
+    });
+
+    test('leaves an empty-string cell with neither a copy button nor a spacer (regression)', () => {
+        renderTable({ showCopyButton: true });
+
+        const cells = screen.getByText('TAG_01').closest('tr')?.querySelectorAll('td') as NodeListOf<HTMLTableCellElement>;
+        expect(within(cells[2]).queryByRole('button')).toBeNull();
+        expect(cells[2].querySelector('[class*="copy-cell-spacer"]')).toBeNull();
+    });
+
+    // CommonTable renders cells from three separate branches; the scroll/editable
+    // one is a different code path from the plain body the tests above exercise.
+    test('renders NULL in the scroll/editable body as well', () => {
+        render(
+            <CommonTable
+                {...({
+                    data: { columns: ['NAME', 'VALUE'], rows: [['TAG_01', null]] },
+                    editable: true,
+                    onSave: jest.fn(),
+                } as any)}
+            />
+        );
+
+        expect(screen.getByText('NULL')).not.toBeNull();
+    });
+});
