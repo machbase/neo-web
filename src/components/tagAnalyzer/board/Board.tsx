@@ -447,7 +447,7 @@ export default function Board({
         },
         {
             key: 'save-as',
-            'data-testid': 'tag-analyzer-save-as-button',
+            'data-testid': 'save-as-button',
             toolTipContent: 'Save as',
             'aria-label': 'Open Save As',
             icon: <SaveAs size={16} />,
@@ -455,7 +455,7 @@ export default function Board({
         },
         {
             key: 'overlap',
-            'data-testid': 'tag-analyzer-overlap-button',
+            'data-testid': 'overlap-button',
             toolTipContent: overlap.compatibilityMessage ?? 'Overlap chart',
             'aria-label': 'Open overlap chart',
             icon: <MdOutlineStackedLineChart size={16} />,
@@ -464,7 +464,7 @@ export default function Board({
         },
         {
             key: 'help',
-            'data-testid': 'tag-analyzer-help-button',
+            'data-testid': 'help-button',
             toolTipContent: 'help',
             icon: <Help size={16} />,
             onClick: () => setIsHelpModalOpen(true),
@@ -477,7 +477,7 @@ export default function Board({
             <Page.Header>
                 <div
                     className="tag-analyzer-board-header"
-                    data-testid="tag-analyzer-board"
+                    data-testid="board-header"
                 >
                     <Page.Space />
                     {sHasUnsavedChanges && (
@@ -487,7 +487,7 @@ export default function Board({
                     )}
                     <Button.Group className="tag-analyzer-board-header__actions">
                         <Button
-                            data-testid="tag-analyzer-board-range-button"
+                            data-testid="range-button"
                             size="sm"
                             variant="ghost"
                             onClick={() =>
@@ -535,7 +535,7 @@ export default function Board({
                 ))}
                 <Page.ContentBlock pHoverNone>
                     <Button
-                        data-testid="tag-analyzer-create-panel-button"
+                        data-testid="create-panel-button"
                         variant="secondary"
                         fullWidth
                         shadow

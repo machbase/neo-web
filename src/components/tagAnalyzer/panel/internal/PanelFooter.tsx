@@ -50,9 +50,15 @@ export function PanelFooter({
     ];
 
     return (
-        <div className={`footer-form${pIsLoading ? ' is-loading' : ''}`}>
+        <div
+            className={`footer-form${pIsLoading ? ' is-loading' : ''}`}
+            data-testid="footer"
+        >
             {pIsLoading && (
-                <span className="navigator-loading-indicator">
+                <span
+                    className="navigator-loading-indicator"
+                    data-testid="navigator-loading"
+                >
                     Loading navigator...
                 </span>
             )}
@@ -63,7 +69,7 @@ export function PanelFooter({
                     {navigatorControls.map((control) => (
                         <Button
                             key={control.key}
-                            data-testid={`panel-navigator-${control.key}`}
+                            data-testid={`navigator-${control.key}`}
                             size="icon"
                             variant="ghost"
                             isToolTip
@@ -84,7 +90,7 @@ export function PanelFooter({
                 className="navigator-shift-controls"
             >
                 <Button
-                    data-testid="panel-navigator-shift-backward"
+                    data-testid="navigator-shift-backward"
                     size="xsm"
                     variant="ghost"
                     isToolTip
@@ -94,7 +100,7 @@ export function PanelFooter({
                     onClick={() => pOnRangeButtonPress('shift-navigator-left')}
                 />
                 <Button
-                    data-testid="panel-navigator-shift-forward"
+                    data-testid="navigator-shift-forward"
                     size="xsm"
                     variant="ghost"
                     isToolTip
@@ -108,7 +114,7 @@ export function PanelFooter({
                 {NAVIGATOR_RANGE_BOUNDARIES.map((boundary) => (
                     <button
                         key={boundary}
-                        data-testid={`panel-navigator-range-${boundary}`}
+                        data-testid={`navigator-range-${boundary}`}
                         type="button"
                         className="range-label"
                         title="Set current navigator range"

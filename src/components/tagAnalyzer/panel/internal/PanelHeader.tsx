@@ -123,6 +123,7 @@ function PanelHeaderMenu({
         actions.some((action) => action.active === true);
     return (
         <span
+            data-testid={`${variant}-actions`}
             className={joinClassNames(
                 sIsExtra ? 'panel-header__extra' : 'panel-header__more',
                 sIsActive && 'panel-header__extra--active',
@@ -131,6 +132,7 @@ function PanelHeaderMenu({
             <Menu.Root>
                 <Menu.Trigger>
                     <Button
+                        data-testid={`${variant}-actions-trigger`}
                         aria-label={`${sIsExtra ? 'Extra' : 'More'} panel actions`}
                         size="xsm"
                         variant="ghost"
@@ -271,10 +273,13 @@ export function PanelHeader(props: PanelHeaderProps) {
     }
 
     return (
-        <div className="panel-header">
+        <div
+            className="panel-header"
+            data-testid="header"
+        >
             <div className="panel-header__title-group">
                 <button
-                    data-testid="tag-analyzer-panel-overlap-toggle"
+                    data-testid="overlap-toggle"
                     type="button"
                     className={joinClassNames(
                         'panel-header__overlap-box',
@@ -289,7 +294,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                 </button>
                 {isRenamingTitle ? (
                     <input
-                        data-testid="tag-analyzer-panel-title-input"
+                        data-testid="title-input"
                         ref={titleInputRef}
                         className="panel-header__title-input"
                         value={titleDraft}
@@ -300,7 +305,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                     />
                 ) : (
                     <button
-                        data-testid="tag-analyzer-panel-title-button"
+                        data-testid="title-button"
                         type="button"
                         className="panel-header__title-button"
                         title="Rename chart"
@@ -318,7 +323,7 @@ export function PanelHeader(props: PanelHeaderProps) {
             <div className="panel-header__time" title={sTimeSummaryText}>
                 <span className="panel-header__time-part">
                     <button
-                        data-testid="tag-analyzer-panel-main-range-button"
+                        data-testid="main-range-button"
                         type="button"
                         className="panel-header__time-button panel-header__time-range-button"
                         title={sRangeLabel}
@@ -393,7 +398,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                         )}
                     >
                         <Button
-                            data-testid={`tag-analyzer-panel-action-${action.key.toLowerCase().replaceAll('_', '-')}`}
+                            data-testid={`action-${action.key.toLowerCase().replaceAll('_', '-')}`}
                             aria-label={action.label}
                             aria-pressed={action.active}
                             size="xsm"

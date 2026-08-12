@@ -398,9 +398,11 @@ export default memo(function Panel({
         Toast.error(ANNOTATION_INVALID_TARGET_MESSAGE, undefined);
     }
 
+    const sPanelTestIdKey = encodeURIComponent(panelInfo.key);
+
     return (
         <div
-            data-testid="tag-analyzer-panel"
+            data-testid={`panel-${sPanelTestIdKey}`}
             className="panel-form"
             role="region"
             aria-label={`${panelInfo.title} panel`}
