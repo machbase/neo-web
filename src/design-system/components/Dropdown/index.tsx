@@ -77,10 +77,11 @@ const DropdownRoot = ({ children, className, label, labelPosition = 'top', fullW
 interface DropdownTriggerProps {
     className?: string;
     style?: React.CSSProperties;
+    'data-testid'?: string;
     children?: (selectedOption: DropdownOption | undefined, isOpen: boolean) => ReactNode;
 }
 
-const DropdownTrigger = ({ className, style, children }: DropdownTriggerProps) => {
+const DropdownTrigger = ({ className, style, children, 'data-testid': dataTestId }: DropdownTriggerProps) => {
     const dropdown = useDropdownContext();
 
     const triggerClasses = [
@@ -95,6 +96,7 @@ const DropdownTrigger = ({ className, style, children }: DropdownTriggerProps) =
     return (
         <button
             {...dropdown.getTriggerProps()}
+            data-testid={dataTestId}
             className={triggerClasses}
             style={style}
         >

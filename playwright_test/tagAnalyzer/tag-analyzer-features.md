@@ -95,8 +95,14 @@ is known. Use panel order only when that order is part of the tested behavior.
 | `1.2.4.3` | Open Overlap | `overlap-button` | Scope under the active board |
 | `1.2.4.3`-`1.2.4.6` | Overlap dialog | `tag-analyzer-overlap-dialog` | Page-scoped dialog |
 | `1.2.4.4` | Close Overlap | `tag-analyzer-overlap-close` | Scope under Overlap dialog |
-| `1.2.4.5` | Overlap chart | `tag-analyzer-overlap-chart` | Scope under Overlap dialog |
+| `1.2.4.5`, `1.2.4.12`-`1.2.4.19` | Overlap chart | `tag-analyzer-overlap-chart` | Scope under Overlap dialog |
+| `1.2.4.16`-`1.2.4.19` | Overlap gesture surface | `viewport-surface` | Scope under Overlap chart |
 | `1.2.4.6` | Refresh Overlap | `tag-analyzer-overlap-refresh` | Scope under Overlap dialog |
+| `1.2.4.5`, `1.2.4.7`-`1.2.4.15` | Selected overlap panel | `tag-analyzer-overlap-panel-{panelKey}` | Stable page-scoped identity inside Overlap dialog |
+| `1.2.4.7`, `1.2.4.8` | Original/altered ranges | `original-range`, `altered-range` | Scope under the selected overlap panel |
+| `1.2.4.7` | Shift left | `shift-left` | Scope under the selected overlap panel |
+| `1.2.4.8` | Shift right | `shift-right` | Scope under the selected overlap panel |
+| `1.2.4.7`-`1.2.4.9` | Shift amount | `shift-amount` | Scope under the selected overlap panel |
 
 ### Add Panel modal
 
@@ -161,12 +167,40 @@ Navigator `{control}` values are `zoom-in-large`, `zoom-in-small`, `focus`,
 | `1.4.4.4.3` | Selection surface | `chart` | Scope under the selected panel |
 | `1.4.4.4.4`-`1.4.4.4.6` | Selection Summary | `tag-analyzer-selection-summary` | Page-scoped popover |
 | `1.4.4.5.1` | Open FFT | `tag-analyzer-selection-open-fft` | Scope under Selection Summary |
-| `1.4.4.5.1`-`1.4.4.5.13` | FFT dialog | `tag-analyzer-fft-dialog` | Page-scoped dialog |
+| `1.4.4.5.1`-`1.4.4.5.17` | FFT dialog | `tag-analyzer-fft-dialog` | Page-scoped dialog |
 | `1.4.4.5.2` | Close FFT | `tag-analyzer-fft-close` | Scope under FFT dialog |
 | `1.4.4.5.4` | 2D mode | `tag-analyzer-fft-2d` | Scope under FFT dialog |
 | `1.4.4.5.4` | FFT chart | `tag-analyzer-fft-chart` | Scope under FFT dialog |
+| `1.4.4.5.5` | 3D mode | `none` | `getByRole('button', { name: 'Show 3D FFT chart' })` under FFT dialog |
 | `1.4.4.5.6` | Minimum frequency | `tag-analyzer-fft-min-hz` | Scope under FFT dialog |
 | `1.4.4.5.7` | Maximum frequency | `tag-analyzer-fft-max-hz` | Scope under FFT dialog |
+| `1.4.4.5.8` | 3D interval | `none` | `getByLabel('Interval')` under FFT dialog |
+| `1.4.4.5.9` | 3D interval unit | `none` | Select the visible unit button by role, then its page-scoped option by role |
+| `1.4.4.5.10` | Apply FFT values | `none` | `getByRole('button', { name: 'Apply values' })` under FFT dialog |
+
+### Markup editors
+
+Highlight and annotation actions are selected from the panel's Extra menu by
+their accessible button names. Editor controls use local IDs scoped through
+their page-scoped editor root.
+
+| Feature ID(s) | Element | `data-testid` | Scope or notes |
+| --- | --- | --- | --- |
+| `1.4.4.1.3`-`1.4.4.1.10`, `1.4.4.3.1`, `1.4.4.3.2` | Highlight editor | `tag-analyzer-highlight-editor` | Page-scoped popover |
+| `1.4.4.1.6` | Highlight start | `start-input` | Scope under Highlight editor |
+| `1.4.4.1.7` | Highlight end | `end-input` | Scope under Highlight editor |
+| `1.4.4.1.8` | Highlight label | `label-input` | Scope under Highlight editor |
+| `1.4.4.1.9` | Highlight fill color | `fill-color-input` | Scope under Highlight editor |
+| `1.4.4.1.10` | Highlight text color | `text-color-input` | Scope under Highlight editor |
+| `1.4.4.2.3`-`1.4.4.2.10`, `1.4.4.3.1`, `1.4.4.3.2` | Annotation editor | `tag-analyzer-annotation-editor` | Page-scoped popover |
+| `1.4.4.2.6` | Annotation series | `series-trigger` | Scope under Annotation editor; options use their accessible names |
+| `1.4.4.2.7` | Annotation anchor | `anchor-input` | Scope under Annotation editor |
+| `1.4.4.2.8` | Annotation text | `text-input` | Scope under Annotation editor |
+| `1.4.4.2.9` | Annotation fill/text colors | `fill-color-input`, `text-color-input` | Scope under Annotation editor |
+| `1.4.4.2.10` | Clip annotation | `clip-checkbox` | Scope under Annotation editor |
+| `1.4.4.1.5`, `1.4.4.2.5` | Delete markup | `delete-button` | Scope under the active editor; only rendered while editing |
+| `1.4.4.3.1` | Apply markup | `apply-button` | Scope under the active editor |
+| `1.4.4.3.2` | Cancel markup | `cancel-button` | Scope under the active editor |
 
 ## 1.1 Meta
 
@@ -238,6 +272,18 @@ Navigator `{control}` values are `zoom-in-large`, `zoom-in-small`, `focus`,
 - [ ] 1.2.4.9 Input - Validate overlap shift values and show failures as toasts.
 - [ ] 1.2.4.10 Preserve the configured Y-axis behavior and zero inclusion.
 - [ ] 1.2.4.11 Handle loading, empty, cancelled, and failed overlap requests.
+- [ ] 1.2.4.12 Open Overlap with one numeric panel.
+- [ ] 1.2.4.13 Open Overlap with one time panel.
+- [ ] 1.2.4.14 Open Overlap with multiple numeric panels.
+- [ ] 1.2.4.15 Open Overlap with multiple time panels.
+- [ ] 1.2.4.16 Chart drag - Pan a numeric overlap chart.
+- [ ] 1.2.4.17 Chart drag - Pan a time overlap chart.
+- [ ] 1.2.4.18 Mouse wheel - Zoom a numeric overlap chart in and out.
+- [ ] 1.2.4.19 Mouse wheel - Zoom a time overlap chart in and out.
+- [ ] 1.2.4.20 Reject a time panel when numeric panels are selected.
+- [ ] 1.2.4.21 Reject a numeric panel when time panels are selected.
+- [ ] 1.2.4.22 Reject panels without a loaded chart range.
+- [ ] 1.2.4.23 Disable Overlap after the final selected panel is removed.
 
 ## 1.3 Add Panel Modal
 
@@ -443,7 +489,11 @@ Navigator `{control}` values are `zoom-in-large`, `zoom-in-small`, `focus`,
 - [ ] 1.4.4.5.10 Reload FFT only after Apply when series, dimension, or values change.
 - [ ] 1.4.4.5.11 Cancel superseded FFT requests.
 - [ ] 1.4.4.5.12 Display backend FFT error reasons.
-- [ ] 1.4.4.5.13 Disable 3D FFT for numeric X-axis panels.
+- [ ] 1.4.4.5.13 Disable FFT for numeric X-axis panels.
+- [ ] 1.4.4.5.14 Disable FFT unless the panel is in raw mode.
+- [ ] 1.4.4.5.15 Reject non-finite or negative frequency values.
+- [ ] 1.4.4.5.16 Reject a minimum frequency greater than the maximum.
+- [ ] 1.4.4.5.17 Reject a non-positive 3D interval.
 
 ## 1.5 Accessibility
 

@@ -109,6 +109,7 @@ export default function OverlapModal({
                             <Page.ContentText pContent="No overlap data." />
                         ) : (
                             <ReactECharts
+                                data-testid="viewport-surface"
                                 option={sChartOption}
                                 notMerge
                                 lazyUpdate
@@ -169,13 +170,19 @@ function OverlapPanelRow({
     }
 
     return (
-        <div className="overlap-modal__shift-row">
+        <div
+            className="overlap-modal__shift-row"
+            data-testid={`tag-analyzer-overlap-panel-${encodeURIComponent(seriesGroup.panelKey)}`}
+        >
             <div className="overlap-modal__shift-text">
                 <strong className="overlap-modal__shift-title">
                     {seriesGroup.name}
                 </strong>
                 <span className="overlap-modal__shift-label">Original</span>
-                <span className="overlap-modal__shift-value">
+                <span
+                    className="overlap-modal__shift-value"
+                    data-testid="original-range"
+                >
                     {formatOverlapRange(
                         seriesGroup.sourceRange,
                         isNumericXAxis,
@@ -183,12 +190,16 @@ function OverlapPanelRow({
                     )}
                 </span>
                 <span className="overlap-modal__shift-label">Altered</span>
-                <span className="overlap-modal__shift-value">
+                <span
+                    className="overlap-modal__shift-value"
+                    data-testid="altered-range"
+                >
                     {formatOverlapRange(alteredRange, isNumericXAxis, true)}
                 </span>
             </div>
             <div className="overlap-modal__shift-controls">
                 <Button
+                    data-testid="shift-left"
                     variant="secondary"
                     size="xsm"
                     icon={<VscChevronLeft size={14} />}
@@ -198,6 +209,7 @@ function OverlapPanelRow({
                     aria-label={`Shift altered range left for ${seriesGroup.name}`}
                 />
                 <Input
+                    data-testid="shift-amount"
                     aria-label={`Shift amount for ${seriesGroup.name}`}
                     type="number"
                     min={0}
@@ -223,6 +235,7 @@ function OverlapPanelRow({
                     </Dropdown.Root>
                 )}
                 <Button
+                    data-testid="shift-right"
                     variant="secondary"
                     size="xsm"
                     icon={<VscChevronRight size={14} />}
