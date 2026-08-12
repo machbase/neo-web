@@ -11,24 +11,27 @@ test.describe('Tag Analyzer FFT', () => {
                 getFileTreeItemTestId('/', 'TAG ANALYZER.taz'),
             )
             .click();
-        await expect(page.getByTestId('tag-analyzer-board')).toBeVisible();
+        const board = page.getByTestId('tag-analyzer-board');
+        await expect(board).toBeVisible();
 
         // 2. Enable range selection.
-        const loadedPanel = page.getByTestId('tag-analyzer-panel').filter({
-            has: page.locator(
-                '[data-testid="tag-analyzer-panel-main-range-button"]:not(:disabled)',
-            ),
-        });
+        const loadedPanel = board
+            .getByTestId(/^panel-/)
+            .filter({
+                has: page.locator(
+                    '[data-testid="main-range-button"]:not(:disabled)',
+                ),
+            });
         await expect(loadedPanel).toHaveCount(1, { timeout: 30_000 });
         await loadedPanel.scrollIntoViewIfNeeded();
         const selectRange = loadedPanel.getByTestId(
-            'tag-analyzer-panel-action-toggle-drag-select',
+            'action-toggle-drag-select',
         );
         await selectRange.click();
         await expect(selectRange).toHaveAttribute('aria-pressed', 'true');
 
         // 3. Select chart data.
-        const chart = loadedPanel.getByTestId('tag-analyzer-panel-chart');
+        const chart = loadedPanel.getByTestId('chart');
         await chart.scrollIntoViewIfNeeded();
         await page.waitForTimeout(200);
         const chartBox = await chart.boundingBox();

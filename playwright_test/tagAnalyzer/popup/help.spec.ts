@@ -16,7 +16,8 @@ test.describe('Tag Analyzer', () => {
 
     test.describe('Help popup', () => {
         test('opens from Tag Analyzer', async ({ page }) => {
-            await page.getByTestId('tag-analyzer-help-button').click();
+            const board = page.getByTestId('tag-analyzer-board');
+            await board.getByTestId('help-button').click();
 
             const popup = page.getByTestId('tag-analyzer-help-dialog');
 

@@ -6,9 +6,11 @@ test.describe('Tag Analyzer board range', () => {
         // 1. Open Tag Analyzer.
         await login(page);
         await page.getByTestId('new-board-taz').click();
+        const board = page.getByTestId('tag-analyzer-board');
+        await expect(board).toBeVisible();
 
         // 2. Open Board Range.
-        await page.getByTestId('tag-analyzer-board-range-button').click();
+        await board.getByTestId('range-button').click();
         const rangeDialog = page.getByTestId('tag-analyzer-range-dialog');
         const rangeTitle = rangeDialog.getByTestId('tag-analyzer-range-title');
         await expect(rangeTitle).toBeVisible();

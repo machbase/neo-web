@@ -30,9 +30,38 @@ data-testid="blue-icon-button"
 data-testid="navigator-button-2"
 ```
 
+## Scoped ownership
+
+Treat stable DOM roots as locator namespace boundaries. Keep a feature-qualified
+ID on the top-level or page-scoped root, then give its DOM descendants short,
+local IDs and chain `getByTestId` calls through their owners. A local ID only
+needs to be unique within the selected owner.
+
+```ts
+const board = page.getByTestId('tag-analyzer-board');
+const panel = board.getByTestId(
+    `panel-${encodeURIComponent(panelKey)}`,
+);
+const footer = panel.getByTestId('footer');
+
+await footer.getByTestId('navigator-shift-backward').click();
+```
+
+Do not repeat the feature and owner names in every DOM-descendant ID. Elements
+rendered by generic menu primitives are not a reason to thread test-only props
+through those primitives. `Menu` and `ContextMenu` must not accept props whose
+only purpose is adding a `data-testid` to their content or items.
+
+```ts
+await panel.getByTestId('more-actions-trigger').click();
+await page.getByRole('button', { name: 'Reload data' }).click();
+```
+
 ## Role, label, and text queries
 
-Do not use `getByRole`, `getByLabel`, or `getByText` as the default way to drive a workflow. Use them only in a focused test whose purpose is to verify the corresponding user-facing contract, such as:
+Do not use `getByRole`, `getByLabel`, or `getByText` as the default way to drive a workflow. Menu and context-menu actions are the exception: select the action with `getByRole('button', { name: ... })`, using its accessible name. This keeps the test aligned with the menu's public user-facing contract without adding test-only props to shared components.
+
+For other controls, use role, label, or text queries only in a focused test whose purpose is to verify the corresponding user-facing contract, such as:
 
 - an element has the correct semantic role;
 - a control has the correct accessible name or label;
@@ -86,5 +115,8 @@ test('moves to the next range', async ({ page }) => {
 
 1. Use `getByTestId` for normal element targeting and workflow interaction.
 2. Use stable, intent-based test IDs that do not change with copy or styling.
-3. Verify role, accessible name, label, text, or visibility only when that property is part of the test's purpose.
-4. Keep accessibility attributes in the product even when Playwright locates the element by test ID.
+3. Scope local descendant IDs through stable owner roots.
+4. Locate menu and context-menu actions by `button` role and accessible name;
+   do not add test-only props to generic menu components.
+5. Verify role, accessible name, label, text, or visibility only when that property is part of the test's purpose.
+6. Keep accessibility attributes in the product even when Playwright locates the element by test ID.

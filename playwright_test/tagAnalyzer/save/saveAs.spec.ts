@@ -6,9 +6,11 @@ test.describe('Tag Analyzer Save As', () => {
         // 1. Open Tag Analyzer.
         await login(page);
         await page.getByTestId('new-board-taz').click();
+        const board = page.getByTestId('tag-analyzer-board');
+        await expect(board).toBeVisible();
 
         // 2. Open Save As.
-        await page.getByTestId('tag-analyzer-save-as-button').click();
+        await board.getByTestId('save-as-button').click();
         const saveDialog = page.getByTestId('tag-analyzer-save-as-dialog');
         const saveTitle = saveDialog.getByTestId('tag-analyzer-save-as-title');
         await expect(saveTitle).toBeVisible();

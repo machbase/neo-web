@@ -11,24 +11,25 @@ test.describe('Tag Analyzer overlap', () => {
                 getFileTreeItemTestId('/', 'TAG ANALYZER.taz'),
             )
             .click();
-        await expect(page.getByTestId('tag-analyzer-board')).toBeVisible();
+        const board = page.getByTestId('tag-analyzer-board');
+        await expect(board).toBeVisible();
 
         // 2. Select a loaded panel.
-        const loadedPanel = page.getByTestId('tag-analyzer-panel').filter({
-            has: page.locator(
-                '[data-testid="tag-analyzer-panel-main-range-button"]:not(:disabled)',
-            ),
-        });
+        const loadedPanel = board
+            .getByTestId(/^panel-/)
+            .filter({
+                has: page.locator(
+                    '[data-testid="main-range-button"]:not(:disabled)',
+                ),
+            });
         await expect(loadedPanel).toHaveCount(1, { timeout: 30_000 });
         await loadedPanel.scrollIntoViewIfNeeded();
-        const overlapToggle = loadedPanel.getByTestId(
-            'tag-analyzer-panel-overlap-toggle',
-        );
+        const overlapToggle = loadedPanel.getByTestId('overlap-toggle');
         await overlapToggle.click();
         await expect(overlapToggle).toHaveAttribute('aria-pressed', 'true');
 
         // 3. Open Overlap Chart.
-        const openOverlap = page.getByTestId('tag-analyzer-overlap-button');
+        const openOverlap = board.getByTestId('overlap-button');
         await expect(openOverlap).toBeEnabled();
         await openOverlap.click();
 

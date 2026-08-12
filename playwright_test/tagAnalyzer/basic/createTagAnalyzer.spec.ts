@@ -13,10 +13,11 @@ test.describe('Tag Analyzer basic flow', () => {
         await login(page);
 
         await page.getByTestId('new-board-taz').click();
-        await expect(page.getByTestId('tag-analyzer-board')).toBeVisible();
+        const board = page.getByTestId('tag-analyzer-board');
+        await expect(board).toBeVisible();
 
         // 2. Open New Chart.
-        await page.getByTestId('tag-analyzer-create-panel-button').click();
+        await board.getByTestId('create-panel-button').click();
         const setup = page.getByTestId('tag-analyzer-create-panel-dialog');
         await expect(setup).toBeVisible();
 
@@ -38,7 +39,9 @@ test.describe('Tag Analyzer basic flow', () => {
         await setup.getByTestId('tag-analyzer-create-panel-apply-button').click();
 
         await expect(setup).toHaveCount(0);
-        const panelTitle = page.getByTestId('tag-analyzer-panel-title-button');
+        const panel = board.getByTestId(/^panel-/);
+        await expect(panel).toHaveCount(1);
+        const panelTitle = panel.getByTestId('title-button');
         await expect(panelTitle).toBeVisible();
         await expect(panelTitle).toHaveText('New chart');
     });

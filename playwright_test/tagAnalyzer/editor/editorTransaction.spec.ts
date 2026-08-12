@@ -22,68 +22,69 @@ test.describe('Tag Analyzer panel editor', () => {
                     getFileTreeItemTestId('/', 'TAG ANALYZER.taz'),
                 )
                 .click();
-            await expect(page.getByTestId('tag-analyzer-board')).toBeVisible();
+            const board = page.getByTestId('tag-analyzer-board');
+            await expect(board).toBeVisible();
 
             const readyRangeButton = page.locator(
-                '[data-testid="tag-analyzer-panel-main-range-button"]:not(:disabled)',
+                '[data-testid="main-range-button"]:not(:disabled)',
             );
-            const panel = page.getByTestId('tag-analyzer-panel').filter({
-                has: readyRangeButton,
-            });
+            const panel = board
+                .getByTestId(/^panel-/)
+                .filter({ has: readyRangeButton });
             await expect(panel).toHaveCount(1, { timeout: 30_000 });
             await expect(panel).toBeVisible();
 
             // 2. [1.4.3.1.1] Open the editor and change its draft title.
             await panel
-                .getByTestId('tag-analyzer-panel-action-toggle-edit')
+                .getByTestId('action-toggle-edit')
                 .click();
             await expect(
-                panel.getByTestId('tag-analyzer-panel-editor'),
+                panel.getByTestId('editor'),
             ).toBeVisible();
 
             const titleInput = panel.getByTestId(
-                'tag-analyzer-panel-editor-title-input',
+                'editor-title-input',
             );
             const originalTitle = await titleInput.inputValue();
             await titleInput.fill(appliedTitle);
 
             // 3. [1.4.3.2.1] Draft edits do not change the live panel.
             await expect(
-                panel.getByTestId('tag-analyzer-panel-title-button'),
+                panel.getByTestId('title-button'),
             ).toHaveText(originalTitle);
             await expect(
-                panel.getByTestId('tag-analyzer-panel-editor-status'),
+                panel.getByTestId('editor-status'),
             ).toContainText('You have unapplied changes.');
 
             // 4. [1.4.3.1.3] Apply updates the current session.
             await panel
-                .getByTestId('tag-analyzer-panel-editor-apply')
+                .getByTestId('editor-apply')
                 .click();
             await expect(
-                panel.getByTestId('tag-analyzer-panel-title-button'),
+                panel.getByTestId('title-button'),
             ).toHaveText(appliedTitle);
             await expect(
-                panel.getByTestId('tag-analyzer-panel-editor-status'),
+                panel.getByTestId('editor-status'),
             ).toContainText('Changes applied to this session.');
 
             // 5. [1.4.3.1.2] Closing discards a later unapplied draft.
             await titleInput.fill(discardedTitle);
             await expect(
-                panel.getByTestId('tag-analyzer-panel-title-button'),
+                panel.getByTestId('title-button'),
             ).toHaveText(appliedTitle);
             await panel
-                .getByTestId('tag-analyzer-panel-editor-close')
+                .getByTestId('editor-close')
                 .click();
             await expect(
-                panel.getByTestId('tag-analyzer-panel-editor'),
+                panel.getByTestId('editor'),
             ).toHaveCount(0);
             await expect(
-                panel.getByTestId('tag-analyzer-panel-title-button'),
+                panel.getByTestId('title-button'),
             ).toHaveText(appliedTitle);
 
             // 6. [1.2.3.3, 1.2.3.8] Save the applied session as a new file.
-            await page
-                .getByTestId('tag-analyzer-save-as-button')
+            await board
+                .getByTestId('save-as-button')
                 .click();
             const saveDialog = page.getByTestId(
                 'tag-analyzer-save-as-dialog',
@@ -111,16 +112,16 @@ test.describe('Tag Analyzer panel editor', () => {
             await expect(savedFile).toBeVisible({ timeout: 20_000 });
             await savedFile.click();
 
-            const reopenedPanel = page.getByTestId('tag-analyzer-panel').filter({
-                has: readyRangeButton,
-            });
+            const reopenedPanel = board
+                .getByTestId(/^panel-/)
+                .filter({ has: readyRangeButton });
             await expect(reopenedPanel).toHaveCount(1, { timeout: 30_000 });
             await reopenedPanel
-                .getByTestId('tag-analyzer-panel-action-toggle-edit')
+                .getByTestId('action-toggle-edit')
                 .click();
             await expect(
                 reopenedPanel.getByTestId(
-                    'tag-analyzer-panel-editor-title-input',
+                    'editor-title-input',
                 ),
             ).toHaveValue(appliedTitle);
         } finally {
