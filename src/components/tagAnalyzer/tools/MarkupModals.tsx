@@ -85,14 +85,29 @@ function MarkupActions({
     return (
         <>
             {onDelete && (
-                <Button size="sm" variant="ghost" onClick={onDelete}>
+                <Button
+                    data-testid="delete-button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={onDelete}
+                >
                     Delete
                 </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={onCancel}>
+            <Button
+                data-testid="cancel-button"
+                size="sm"
+                variant="ghost"
+                onClick={onCancel}
+            >
                 Cancel
             </Button>
-            <Button size="sm" disabled={applyDisabled} onClick={onApply}>
+            <Button
+                data-testid="apply-button"
+                size="sm"
+                disabled={applyDisabled}
+                onClick={onApply}
+            >
                 Apply
             </Button>
         </>
@@ -257,6 +272,7 @@ export function EditAnnotationModal({
 
     return (
         <PanelPopover
+            data-testid="tag-analyzer-annotation-editor"
             title="Edit annotation"
             position={session.position}
             onClose={onClose}
@@ -288,13 +304,17 @@ export function EditAnnotationModal({
                     placeholder="annotation not selected"
                     fullWidth
                 >
-                    <Dropdown.Trigger style={{ height: '32px' }} />
+                    <Dropdown.Trigger
+                        data-testid="series-trigger"
+                        style={{ height: '32px' }}
+                    />
                     <Dropdown.Menu className={MARKUP_DROPDOWN_MENU_CLASS}>
                         <Dropdown.List />
                     </Dropdown.Menu>
                 </Dropdown.Root>
             </label>
             <MarkupInputField
+                data-testid="anchor-input"
                 label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
                 validationMessage={validation.timeMessage}
                 placeholder={getRangeInputPlaceholder(isNumericXAxis)}
@@ -303,6 +323,7 @@ export function EditAnnotationModal({
                 onKeyDown={handleKeyDown}
             />
             <MarkupInputField
+                data-testid="text-input"
                 label="Text"
                 autoSelect
                 value={state.labelText}
@@ -311,6 +332,7 @@ export function EditAnnotationModal({
             />
             <div className="panel-popover-form__row panel-popover-form__row--two">
                 <MarkupInputField
+                    data-testid="fill-color-input"
                     label="Fill color"
                     aria-label="Annotation fill color"
                     type="color"
@@ -318,6 +340,7 @@ export function EditAnnotationModal({
                     onChange={(event) => setField('fillColor', event.target.value)}
                 />
                 <MarkupInputField
+                    data-testid="text-color-input"
                     label="Text color"
                     aria-label="Annotation text color"
                     type="color"
@@ -327,6 +350,7 @@ export function EditAnnotationModal({
             </div>
             <label className="panel-popover-form__checkbox-field">
                 <input
+                    data-testid="clip-checkbox"
                     aria-label="Clip annotation to panel range"
                     type="checkbox"
                     checked={state.clip}
@@ -460,6 +484,7 @@ export function EditHighlightModal({
 
     return (
         <PanelPopover
+            data-testid="tag-analyzer-highlight-editor"
             title={session.kind === 'create' ? 'Create highlight' : 'Edit highlight'}
             position={session.position}
             onClose={onClose}
@@ -474,6 +499,7 @@ export function EditHighlightModal({
             )}
         >
             <MarkupInputField
+                data-testid="label-input"
                 label="Label"
                 autoSelect
                 value={state.labelText}
@@ -482,6 +508,7 @@ export function EditHighlightModal({
             />
             <div className="panel-popover-form__row panel-popover-form__row--two">
                 <MarkupInputField
+                    data-testid="start-input"
                     label={isNumericXAxis ? 'Start value' : 'Start time (Local)'}
                     validationMessage={validation.startTimeMessage}
                     placeholder={timePlaceholder}
@@ -490,6 +517,7 @@ export function EditHighlightModal({
                     onKeyDown={handleKeyDown}
                 />
                 <MarkupInputField
+                    data-testid="end-input"
                     label={isNumericXAxis ? 'End value' : 'End time (Local)'}
                     validationMessage={validation.endTimeMessage}
                     placeholder={timePlaceholder}
@@ -500,6 +528,7 @@ export function EditHighlightModal({
             </div>
             <div className="panel-popover-form__row panel-popover-form__row--two">
                 <MarkupInputField
+                    data-testid="fill-color-input"
                     label="Fill color"
                     aria-label="Highlight fill color"
                     type="color"
@@ -507,6 +536,7 @@ export function EditHighlightModal({
                     onChange={(event) => setField('fillColor', event.target.value)}
                 />
                 <MarkupInputField
+                    data-testid="text-color-input"
                     label="Text color"
                     aria-label="Highlight text color"
                     type="color"
