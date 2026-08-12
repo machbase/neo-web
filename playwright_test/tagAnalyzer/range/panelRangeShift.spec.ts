@@ -15,9 +15,7 @@ test.describe('Tag Analyzer panel range shifting', () => {
         const panel = await createTimeRangePanel(page);
 
         const initialMain = await readMainRange(panel);
-        await panel
-            .getByRole('button', { name: 'Move range backward' })
-            .click();
+        await panel.getByTestId('main-shift-backward').click();
         const backwardMain = await readMainRange(panel);
         expect(backwardMain.start).toBeLessThan(initialMain.start);
         expect(backwardMain.end).toBeLessThan(initialMain.end);
@@ -25,9 +23,7 @@ test.describe('Tag Analyzer panel range shifting', () => {
             Math.abs(rangeSpan(backwardMain) - rangeSpan(initialMain)),
         ).toBeLessThanOrEqual(DISPLAY_PRECISION_MS);
 
-        await panel
-            .getByRole('button', { name: 'Move range forward' })
-            .click();
+        await panel.getByTestId('main-shift-forward').click();
         const restoredMain = await readMainRange(panel);
         expect(
             Math.abs(restoredMain.start - initialMain.start),

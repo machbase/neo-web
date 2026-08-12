@@ -6,7 +6,7 @@ import {
     expectRenderedColorRemoved,
     openHighlightEditor,
     openRenderedMarkupEditor,
-} from '../support';
+} from '../markupEditorTestActions';
 
 const HIGHLIGHT_TEXT_COLOR = '#ff00ff';
 

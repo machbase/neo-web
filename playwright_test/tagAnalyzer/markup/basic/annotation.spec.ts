@@ -8,7 +8,7 @@ import {
     openAnnotationEditor,
     openRenderedMarkupEditor,
     selectAnnotationSeries,
-} from '../support';
+} from '../markupEditorTestActions';
 
 const ANNOTATION_TEXT_COLOR = '#00ff00';
 

@@ -91,6 +91,9 @@ is known. Use panel order only when that order is part of the tested behavior.
 | `1.2.3.7`, `1.2.3.8` | Submit Save As | `tag-analyzer-save-as-submit-button` | Scope under Save As dialog |
 | `1.2.3.18` | Cancel Save As | `tag-analyzer-save-as-cancel-button` | Scope under Save As dialog |
 | `1.2.3.14` | Save success | `tag-analyzer-save-success-toast` | Page-scoped temporary status |
+| `1.2.3.19` | Saved file to switch/open | `file-tree-item-{pathAndFileName}` | Stable full-path identity in the file tree |
+| `1.2.3.20` | File delete dialog | `file-delete-dialog` | Page-scoped confirmation opened from the selected file-tree item |
+| `1.2.3.20` | Confirm file deletion | `file-delete-confirm` | Scope under the file delete dialog |
 | `1.2.4.1`, `1.4.1.17`, `1.4.1.18` | Panel overlap toggle | `overlap-toggle` | Scope under the selected panel |
 | `1.2.4.3` | Open Overlap | `overlap-button` | Scope under the active board |
 | `1.2.4.3`-`1.2.4.6` | Overlap dialog | `tag-analyzer-overlap-dialog` | Page-scoped dialog |
@@ -143,8 +146,8 @@ Direct `{actionKey}` values currently rendered are `toggle-raw`,
 | --- | --- | --- | --- |
 | `1.4.2.1.1`, `1.4.2.1.2` | Panel chart | `chart` | Scope under the selected panel |
 | `1.4.2.2.3` | Main-chart drag zoom surface | `chart` | Scope under the selected panel |
-| `1.4.2.2.7` | Shift main range backward | `none` | `getByRole('button', { name: 'Move range backward' })` under the selected panel |
-| `1.4.2.2.8` | Shift main range forward | `none` | `getByRole('button', { name: 'Move range forward' })` under the selected panel |
+| `1.4.2.2.7` | Shift main range backward | `main-shift-backward` | Scope under the selected panel |
+| `1.4.2.2.8` | Shift main range forward | `main-shift-forward` | Scope under the selected panel |
 | `1.4.2.1.1` | Panel footer | `footer` | Scope under the selected panel |
 | `1.4.2.1.1` | Navigator loading | `navigator-loading` | Scope under the panel footer |
 | `1.4.2.3.1`-`1.4.2.3.5` | Navigator zoom/focus | `navigator-{control}` | Scope under the panel footer; `{control}` is a stable control key |
@@ -159,6 +162,10 @@ Direct `{actionKey}` values currently rendered are `toggle-raw`,
 | `1.4.3.1.3` | Apply editor | `editor-apply` | Scope under the panel editor |
 | `1.4.3.1.4` | Editor status | `editor-status` | Scope under the panel editor |
 | `1.4.3.2.1` | Editor title | `editor-title-input` | Scope under the panel editor |
+| `1.4.3.2.2` | Drag zoom | `editor-use-zoom-checkbox` | Scope under the panel editor |
+| `1.4.3.2.3` | Raw ordering | `editor-order-raw-checkbox` | Scope under the panel editor |
+| `1.4.3.2.5` | Normalize values | `editor-normalize-checkbox` | Scope under the panel editor |
+| `1.4.3.2.4` | Save visible range | `editor-save-visible-range-checkbox` | Scope under the panel editor |
 
 Navigator `{control}` values are `zoom-in-large`, `zoom-in-small`, `focus`,
 `zoom-out-small`, and `zoom-out-large`.
@@ -262,6 +269,8 @@ their page-scoped editor root.
 - [ ] 1.2.3.16 Preserve unique panel identities and saved-versus-unsaved state.
 - [ ] 1.2.3.17 Upgrade a migrated legacy board to the current format when it is saved.
 - [ ] 1.2.3.18 Button - Cancel Save As without saving.
+- [ ] 1.2.3.19 Keep two differently configured test-owned TAZ files isolated while repeatedly switching between them.
+- [ ] 1.2.3.20 Delete both test-owned TAZ files through the file-tree confirmation flow.
 
 ### 1.2.4 Overlap
 
@@ -402,6 +411,7 @@ their page-scoped editor root.
 - [ ] 1.4.3.2.2 Checkbox - Configure drag zoom.
 - [ ] 1.4.3.2.3 Checkbox - Configure raw data ordering.
 - [ ] 1.4.3.2.4 Checkbox - Configure whether the visible range is saved.
+- [ ] 1.4.3.2.5 Checkbox - Configure value normalization.
 
 #### 1.4.3.3 Data Tab
 

@@ -13,8 +13,12 @@ test.describe('Tag Analyzer navigator range input', () => {
         await panel.getByTestId('navigator-range-start').click();
         const dialog = page.getByTestId('tag-analyzer-range-dialog');
         await expect(dialog).toBeVisible();
-        await dialog.getByLabel('From', { exact: true }).fill(EXPECTED_START);
-        await dialog.getByLabel('To', { exact: true }).fill(EXPECTED_END);
+        await dialog
+            .getByTestId('tag-analyzer-range-from-input')
+            .fill(EXPECTED_START);
+        await dialog
+            .getByTestId('tag-analyzer-range-to-input')
+            .fill(EXPECTED_END);
         await dialog
             .getByTestId('tag-analyzer-range-apply-button')
             .click();
@@ -29,10 +33,10 @@ test.describe('Tag Analyzer navigator range input', () => {
 
         await panel.getByTestId('navigator-range-end').click();
         await expect(
-            dialog.getByLabel('From', { exact: true }),
+            dialog.getByTestId('tag-analyzer-range-from-input'),
         ).toHaveValue(EXPECTED_START);
         await expect(
-            dialog.getByLabel('To', { exact: true }),
+            dialog.getByTestId('tag-analyzer-range-to-input'),
         ).toHaveValue(EXPECTED_END);
     });
 });

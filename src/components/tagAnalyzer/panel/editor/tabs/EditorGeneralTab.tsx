@@ -38,6 +38,7 @@ function EditorGeneralTab({
             </div>
             <div className={styles.controlStack}>
                 <Checkbox
+                    data-testid="editor-use-zoom-checkbox"
                     checked={pDisplayConfig.useZoom}
                     onChange={(event) =>
                         pOnChangeDisplayConfig({
@@ -56,6 +57,7 @@ function EditorGeneralTab({
                     }
                 >
                     <Checkbox
+                        data-testid="editor-order-raw-checkbox"
                         checked={!pModeConfig.isRaw || pModeConfig.isOrderBy}
                         disabled={!pModeConfig.isRaw}
                         onChange={(event) =>
@@ -70,6 +72,7 @@ function EditorGeneralTab({
                     />
                 </span>
                 <Checkbox
+                    data-testid="editor-normalize-checkbox"
                     checked={pModeConfig.useNormalize}
                     onChange={(event) =>
                         pOnChangeModeConfig({
@@ -81,6 +84,7 @@ function EditorGeneralTab({
                     size="sm"
                 />
                 <Checkbox
+                    data-testid="editor-save-visible-range-checkbox"
                     checked={pTimeConfig.useLastViewedRange}
                     onChange={(event) =>
                         pOnChangeTimeConfig({

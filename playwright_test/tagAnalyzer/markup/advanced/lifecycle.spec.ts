@@ -8,7 +8,7 @@ import {
     openHighlightEditor,
     openRenderedMarkupEditor,
     selectAnnotationSeries,
-} from '../support';
+} from '../markupEditorTestActions';
 
 test.describe('Tag Analyzer advanced markup lifecycle', () => {
     test.describe.configure({ timeout: 180_000 });

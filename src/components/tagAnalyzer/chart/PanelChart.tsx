@@ -545,6 +545,7 @@ export default function PanelChart({
     return (
         <div className="chart">
             <Button
+                data-testid="main-shift-backward"
                 size="md"
                 variant="secondary"
                 isToolTip
@@ -584,6 +585,7 @@ export default function PanelChart({
                 )}
             </div>
             <Button
+                data-testid="main-shift-forward"
                 size="md"
                 variant="secondary"
                 isToolTip
