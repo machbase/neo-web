@@ -41,20 +41,12 @@ type PanelInteractionReducerState = {
     hoveredMainSeriesName: string | undefined;
 };
 
-type PanelInteractionState = PanelInteractionReducerState & {
-    draftHighlight: PanelHighlight | undefined;
-};
-
 type PanelInteractionAction =
     | { type: 'TOGGLE_OVERLAY'; overlayMode: PanelOverlayMode }
     | {
           type: 'SHOW_SURFACE';
-          surface: PanelSurfaceContent;
+          surface: PanelSurfaceContent | undefined;
           overlayMode?: PanelOverlayMode;
-      }
-    | {
-          type: 'BEGIN_HIGHLIGHT_CREATE';
-          session: Extract<HighlightEditorSession, { kind: 'create' }> | undefined;
       }
     | { type: 'DISMISS_SURFACE'; surfaceId: number }
     | { type: 'TOGGLE_EDITOR' }
@@ -70,44 +62,7 @@ type PanelInteractionAction =
     | { type: 'SET_HOVERED_SERIES'; seriesName: string | undefined }
     | { type: 'CLEAR_CURSOR_HINT' };
 
-type PanelInteraction = {
-    state: PanelInteractionState;
-    actions: {
-        toggleOverlay: (overlayMode: PanelOverlayMode) => void;
-        showContextMenu: (position: ContextMenuPosition) => void;
-        beginHighlightCreate: (
-            range: AxisRange,
-            position: ContextMenuPosition,
-        ) => void;
-        beginHighlightEdit: (
-            position: ContextMenuPosition,
-            highlightIndex: number,
-        ) => void;
-        beginAnnotationCreate: (
-            position: ContextMenuPosition,
-            seriesIndex: number | undefined,
-            timestamp: number,
-        ) => void;
-        beginAnnotationEdit: (
-            position: ContextMenuPosition,
-            annotationIndex: number,
-        ) => void;
-        requestDelete: () => void;
-        requestExport: () => void;
-        dismissSurface: (surfaceId: number) => void;
-        toggleEditor: () => void;
-        closeEditor: () => void;
-        finishEditorClose: () => void;
-        openSelection: (
-            selectionSummary: PanelSelectionSummary,
-            overlayMode?: PanelOverlayMode,
-        ) => void;
-        closeSelection: () => void;
-        showCursorHint: (hint: PanelOverlayCursorHintState) => void;
-        setHoveredSeries: (seriesName: string | undefined) => void;
-        clearCursorHint: () => void;
-    };
-};
+export type PanelInteraction = ReturnType<typeof usePanelInteraction>;
 
 const INITIAL_STATE: PanelInteractionReducerState = {
     overlayMode: PanelOverlayMode.NO_OVERLAY,
@@ -124,46 +79,30 @@ function reduceInteraction(
     action: PanelInteractionAction,
 ): PanelInteractionReducerState {
     switch (action.type) {
-        case 'TOGGLE_OVERLAY': {
-            const overlayMode = state.overlayMode === action.overlayMode
-                ? PanelOverlayMode.NO_OVERLAY
-                : action.overlayMode;
+        case 'TOGGLE_OVERLAY':
             return {
                 ...state,
                 activeSurface: undefined,
-                overlayMode,
+                overlayMode:
+                    state.overlayMode === action.overlayMode
+                        ? PanelOverlayMode.NO_OVERLAY
+                        : action.overlayMode,
                 selectionSummary:
                     action.overlayMode === PanelOverlayMode.ANNOTATION
                         ? state.selectionSummary
                         : undefined,
             };
-        }
         case 'SHOW_SURFACE':
             return {
                 ...state,
-                activeSurface: {
+                activeSurface: action.surface && {
                     ...action.surface,
                     id: state.nextSurfaceId,
                 },
-                nextSurfaceId: state.nextSurfaceId + 1,
+                nextSurfaceId: state.nextSurfaceId + (action.surface ? 1 : 0),
                 ...(action.overlayMode !== undefined && {
                     overlayMode: action.overlayMode,
                 }),
-            };
-        case 'BEGIN_HIGHLIGHT_CREATE':
-            return {
-                ...state,
-                overlayMode: PanelOverlayMode.NO_OVERLAY,
-                activeSurface: action.session
-                    ? {
-                          kind: 'highlightEditor',
-                          session: action.session,
-                          id: state.nextSurfaceId,
-                      }
-                    : undefined,
-                nextSurfaceId: action.session
-                    ? state.nextSurfaceId + 1
-                    : state.nextSurfaceId,
             };
         case 'DISMISS_SURFACE':
             if (state.activeSurface?.id !== action.surfaceId) return state;
@@ -223,50 +162,61 @@ function reduceInteraction(
 
 export function usePanelInteraction(
     seriesList: readonly Pick<PanelSeriesDefinition, 'key'>[],
-): PanelInteraction {
+) {
     const [state, dispatch] = useReducer(reduceInteraction, INITIAL_STATE);
-    const actions = useMemo<PanelInteraction['actions']>(() => ({
-        toggleOverlay: (overlayMode) =>
-            dispatch({ type: 'TOGGLE_OVERLAY', overlayMode }),
-        showContextMenu: (position) =>
+    const actions = useMemo(() => {
+        // Surfaces opened from the chart replace the active overlay mode;
+        // surfaces opened from the header leave it untouched.
+        const showSurface = (surface: PanelSurfaceContent) =>
+            dispatch({ type: 'SHOW_SURFACE', surface });
+        const showChartSurface = (surface: PanelSurfaceContent | undefined) =>
             dispatch({
                 type: 'SHOW_SURFACE',
-                surface: { kind: 'contextMenu', position },
+                surface,
                 overlayMode: PanelOverlayMode.NO_OVERLAY,
-            }),
-        beginHighlightCreate: (range, position) => {
-            const timeRange = createNonEmptyAxisRange(range.start, range.end);
-            dispatch({
-                type: 'BEGIN_HIGHLIGHT_CREATE',
-                session: timeRange
-                    ? {
-                          kind: 'create',
-                          position,
-                          initialHighlight: createPanelHighlightDraft(timeRange),
-                      }
-                    : undefined,
             });
-        },
-        beginHighlightEdit: (position, highlightIndex) =>
-            dispatch({
-                type: 'SHOW_SURFACE',
-                surface: {
+
+        return {
+            toggleOverlay: (overlayMode: PanelOverlayMode) =>
+                dispatch({ type: 'TOGGLE_OVERLAY', overlayMode }),
+            showContextMenu: (position: ContextMenuPosition) =>
+                showChartSurface({ kind: 'contextMenu', position }),
+            beginHighlightCreate: (
+                range: AxisRange,
+                position: ContextMenuPosition,
+            ) => {
+                const timeRange = createNonEmptyAxisRange(range.start, range.end);
+                showChartSurface(
+                    timeRange && {
+                        kind: 'highlightEditor',
+                        session: {
+                            kind: 'create',
+                            position,
+                            initialHighlight: createPanelHighlightDraft(timeRange),
+                        },
+                    },
+                );
+            },
+            beginHighlightEdit: (
+                position: ContextMenuPosition,
+                highlightIndex: number,
+            ) =>
+                showChartSurface({
                     kind: 'highlightEditor',
                     session: { kind: 'edit', position, highlightIndex },
-                },
-                overlayMode: PanelOverlayMode.NO_OVERLAY,
-            }),
-        beginAnnotationCreate: (position, seriesIndex, timestamp) => {
-            if (
-                seriesIndex !== undefined &&
-                (seriesIndex < 0 || seriesIndex >= seriesList.length)
-            ) {
-                throw new Error(`Invalid annotation series index: ${seriesIndex}.`);
-            }
-
-            dispatch({
-                type: 'SHOW_SURFACE',
-                surface: {
+                }),
+            beginAnnotationCreate: (
+                position: ContextMenuPosition,
+                seriesIndex: number | undefined,
+                timestamp: number,
+            ) => {
+                if (
+                    seriesIndex !== undefined &&
+                    (seriesIndex < 0 || seriesIndex >= seriesList.length)
+                ) {
+                    throw new Error(`Invalid annotation series index: ${seriesIndex}.`);
+                }
+                showChartSurface({
                     kind: 'annotationEditor',
                     session: {
                         kind: 'create',
@@ -276,54 +226,43 @@ export function usePanelInteraction(
                             ? undefined
                             : seriesList[seriesIndex].key,
                     },
-                },
-                overlayMode: PanelOverlayMode.NO_OVERLAY,
-            });
-        },
-        beginAnnotationEdit: (position, annotationIndex) =>
-            dispatch({
-                type: 'SHOW_SURFACE',
-                surface: {
+                });
+            },
+            beginAnnotationEdit: (
+                position: ContextMenuPosition,
+                annotationIndex: number,
+            ) =>
+                showChartSurface({
                     kind: 'annotationEditor',
                     session: { kind: 'edit', position, annotationIndex },
-                },
-                overlayMode: PanelOverlayMode.NO_OVERLAY,
-            }),
-        requestDelete: () =>
-            dispatch({
-                type: 'SHOW_SURFACE',
-                surface: { kind: 'deleteConfirm' },
-            }),
-        requestExport: () =>
-            dispatch({
-                type: 'SHOW_SURFACE',
-                surface: { kind: 'exportCsv' },
-            }),
-        dismissSurface: (surfaceId) =>
-            dispatch({ type: 'DISMISS_SURFACE', surfaceId }),
-        toggleEditor: () => dispatch({ type: 'TOGGLE_EDITOR' }),
-        closeEditor: () => dispatch({ type: 'CLOSE_EDITOR' }),
-        finishEditorClose: () => dispatch({ type: 'FINISH_EDITOR_CLOSE' }),
-        openSelection: (selectionSummary, overlayMode) =>
-            dispatch({ type: 'OPEN_SELECTION', selectionSummary, overlayMode }),
-        closeSelection: () => dispatch({ type: 'CLOSE_SELECTION' }),
-        showCursorHint: (hint) =>
-            dispatch({ type: 'SHOW_CURSOR_HINT', hint }),
-        setHoveredSeries: (seriesName) =>
-            dispatch({ type: 'SET_HOVERED_SERIES', seriesName }),
-        clearCursorHint: () => dispatch({ type: 'CLEAR_CURSOR_HINT' }),
-    }), [seriesList]);
-    const draftHighlight =
+                }),
+            requestDelete: () => showSurface({ kind: 'deleteConfirm' }),
+            requestExport: () => showSurface({ kind: 'exportCsv' }),
+            dismissSurface: (surfaceId: number) =>
+                dispatch({ type: 'DISMISS_SURFACE', surfaceId }),
+            toggleEditor: () => dispatch({ type: 'TOGGLE_EDITOR' }),
+            closeEditor: () => dispatch({ type: 'CLOSE_EDITOR' }),
+            finishEditorClose: () => dispatch({ type: 'FINISH_EDITOR_CLOSE' }),
+            openSelection: (
+                selectionSummary: PanelSelectionSummary,
+                overlayMode?: PanelOverlayMode,
+            ) => dispatch({ type: 'OPEN_SELECTION', selectionSummary, overlayMode }),
+            closeSelection: () => dispatch({ type: 'CLOSE_SELECTION' }),
+            showCursorHint: (hint: PanelOverlayCursorHintState) =>
+                dispatch({ type: 'SHOW_CURSOR_HINT', hint }),
+            setHoveredSeries: (seriesName: string | undefined) =>
+                dispatch({ type: 'SET_HOVERED_SERIES', seriesName }),
+            clearCursorHint: () => dispatch({ type: 'CLEAR_CURSOR_HINT' }),
+        };
+    }, [seriesList]);
+    const draftHighlight: PanelHighlight | undefined =
         state.activeSurface?.kind === 'highlightEditor' &&
         state.activeSurface.session.kind === 'create'
             ? state.activeSurface.session.initialHighlight
             : undefined;
 
     return useMemo(
-        () => ({
-            state: { ...state, draftHighlight },
-            actions,
-        }),
+        () => ({ state: { ...state, draftHighlight }, actions }),
         [actions, draftHighlight, state],
     );
 }

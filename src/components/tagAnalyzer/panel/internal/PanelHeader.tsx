@@ -26,57 +26,41 @@ import {
 } from './panelActions';
 import type { PanelQueryResolution } from './panelData';
 
+type PanelSeriesRollupStatusList = Array<{
+    seriesName: string;
+    usesRollup: boolean;
+}>;
+
 export type PanelHeaderState = {
     title: string;
     mainRange: AxisRange | undefined;
     isNumericXAxis: boolean;
     isRaw: boolean;
     resolution: PanelQueryResolution | undefined;
-    seriesRollupStatusList: Array<{
-        seriesName: string;
-        usesRollup: boolean;
-    }>;
+    seriesRollupStatusList: PanelSeriesRollupStatusList;
     actionState: PanelActionState;
     canExportCsv: boolean;
     isOverlapSelected: boolean;
 };
 
-function getHeaderRange(state: PanelHeaderState):
-    | { label: string; actionLabel: string }
-    | undefined {
-    if (!state.mainRange) return undefined;
+type PanelHeaderMenuVariant = 'extra' | 'more';
 
-    const formattedRange = formatAxisRange(
-        state.mainRange,
-        state.isNumericXAxis,
-    );
-    return {
-        label: `${formattedRange.start} ~ ${formattedRange.end}`,
-        actionLabel: state.isNumericXAxis
-            ? 'Set current visible main chart value range'
-            : 'Set current visible main chart range',
-    };
-}
+const HEADER_MENU_ACTIVE_ITEM_CLASS: Record<PanelHeaderMenuVariant, string> = {
+    extra: 'panel-header__extra-item--active',
+    more: 'selected',
+};
 
 function getHeaderResolution(
     state: PanelHeaderState,
 ): { label: string; kind: 'time' | 'numeric' } | undefined {
-    if (state.isRaw || !state.resolution) return undefined;
-
-    switch (state.resolution.kind) {
-        case 'time':
-            return {
-                label: formatTimeInterval(state.resolution.interval),
-                kind: 'time',
-            };
-        case 'numeric': {
-            const label = formatNumericInterval(state.resolution.bucketWidth);
-            return label ? { label, kind: 'numeric' } : undefined;
-        }
-        case 'raw':
-        case 'unresolved':
-            return undefined;
+    const resolution = state.isRaw ? undefined : state.resolution;
+    if (resolution?.kind === 'time') {
+        return { label: formatTimeInterval(resolution.interval), kind: 'time' };
     }
+    if (resolution?.kind !== 'numeric') return undefined;
+
+    const label = formatNumericInterval(resolution.bucketWidth);
+    return label ? { label, kind: 'numeric' } : undefined;
 }
 
 function joinClassNames(
@@ -85,20 +69,14 @@ function joinClassNames(
     return names.filter(Boolean).join(' ');
 }
 
-function getRollupHeaderSummary(state: PanelHeaderState) {
-    if (state.seriesRollupStatusList.length === 0) {
-        return undefined;
-    }
+function getRollupHeaderSummary(statusList: PanelSeriesRollupStatusList) {
+    const sTotalCount = statusList.length;
+    if (sTotalCount === 0) return undefined;
 
-    const sRollupCount = state.seriesRollupStatusList.filter(
-        (status) => status.usesRollup,
-    ).length;
-    const sTotalCount = state.seriesRollupStatusList.length;
-
+    const sRollupCount = statusList.filter((status) => status.usesRollup).length;
     if (sRollupCount === sTotalCount) {
         return { shortText: 'rollup', titleText: 'all series use rollup' };
     }
-
     if (sRollupCount === 0) {
         return { shortText: 'no rollup', titleText: 'no series use rollup' };
     }
@@ -114,18 +92,17 @@ function PanelHeaderMenu({
     actions,
     onAction,
 }: {
-    variant: 'extra' | 'more';
+    variant: PanelHeaderMenuVariant;
     actions: PanelActionDescriptor[];
     onAction: (actionKey: PanelActionKey) => void;
 }) {
     const sIsExtra = variant === 'extra';
-    const sIsActive = sIsExtra &&
-        actions.some((action) => action.active === true);
+    const sIsActive = sIsExtra && actions.some((action) => action.active === true);
     return (
         <span
             data-testid={`${variant}-actions`}
             className={joinClassNames(
-                sIsExtra ? 'panel-header__extra' : 'panel-header__more',
+                `panel-header__${variant}`,
                 sIsActive && 'panel-header__extra--active',
             )}
         >
@@ -152,9 +129,7 @@ function PanelHeaderMenu({
                         <Menu.Item
                             key={action.key}
                             className={action.active
-                                ? sIsExtra
-                                    ? 'panel-header__extra-item--active'
-                                    : 'selected'
+                                ? HEADER_MENU_ACTIVE_ITEM_CLASS[variant]
                                 : undefined}
                             disabled={action.disabled}
                             icon={action.icon}
@@ -193,36 +168,34 @@ export function PanelHeader(props: PanelHeaderProps) {
     const titleInputRef = useRef<HTMLInputElement | null>(null);
     const titleRenameClosingRef = useRef(false);
     const sRollupTooltipId = `panel-rollup-tooltip-${useId().replace(/:/g, '')}`;
-    const sRange = getHeaderRange(state);
+    const sFormattedRange = state.mainRange &&
+        formatAxisRange(state.mainRange, state.isNumericXAxis);
     const sResolution = getHeaderResolution(state);
     const sSeriesRollupStatusList = state.isRaw
         ? []
         : state.seriesRollupStatusList;
-    const sTimeText = sRange?.label ?? '';
-    const sRangeLabel = sRange?.actionLabel ??
-        'Set current visible main chart range';
+    const sTimeText = sFormattedRange
+        ? `${sFormattedRange.start} ~ ${sFormattedRange.end}`
+        : '';
+    const sRangeLabel = state.isNumericXAxis
+        ? 'Set current visible main chart value range'
+        : 'Set current visible main chart range';
     const sIntervalText = sResolution?.label ?? '';
-    const sRollupSummary = getRollupHeaderSummary({
-        ...state,
-        seriesRollupStatusList: sSeriesRollupStatusList,
-    });
-    const sTimeSummaryBaseText =
+    const sRollupSummary = getRollupHeaderSummary(sSeriesRollupStatusList);
+    const sTimeSummaryText = [
         sTimeText && sIntervalText
             ? `${sTimeText} (${sResolution?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
-            : sTimeText;
-    const sTimeSummaryText = sRollupSummary
-        ? `${sTimeSummaryBaseText}, ${sRollupSummary.titleText}`
-        : sTimeSummaryBaseText;
+            : sTimeText,
+        sRollupSummary?.titleText,
+    ]
+        .filter(Boolean)
+        .join(', ');
     const sActions = buildPanelActions(
         state.actionState,
         getExperiment() && state.canExportCsv,
     );
-    const sExtraActions = sActions.filter((action) =>
-        action.showInExtraMenu,
-    );
-    const sDirectActions = sActions.filter((action) =>
-        !action.showInExtraMenu,
-    );
+    const sExtraActions = sActions.filter((action) => action.showInExtraMenu);
+    const sDirectActions = sActions.filter((action) => !action.showInExtraMenu);
     const sMoreActions = sDirectActions.filter((action) => action.showInMoreMenu);
     const sOverlapLabel = state.isOverlapSelected
         ? 'Remove from overlap chart'
@@ -241,35 +214,23 @@ export function PanelHeader(props: PanelHeaderProps) {
         setTitleDraft(state.title);
     }
 
-    function applyTitleRename(): void {
-        if (titleRenameClosingRef.current || titleDraft === undefined) return;
-        titleRenameClosingRef.current = true;
-        const sNextTitle = titleDraft.trim();
-        setTitleDraft(undefined);
-        if (sNextTitle.length === 0 || sNextTitle === state.title) {
-            return;
-        }
-        onRenamePanelTitle(sNextTitle);
-    }
-
-    function cancelTitleRename(): void {
+    /** Closes the rename input, applying `nextTitle` when it is a real change. */
+    function closeTitleRename(nextTitle: string | undefined): void {
         if (titleRenameClosingRef.current) return;
         titleRenameClosingRef.current = true;
         setTitleDraft(undefined);
+        const sNextTitle = nextTitle?.trim();
+        if (sNextTitle && sNextTitle !== state.title) {
+            onRenamePanelTitle(sNextTitle);
+        }
     }
 
     function handleTitleRenameKeyDown(
         event: KeyboardEvent<HTMLInputElement>,
     ): void {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            applyTitleRename();
-            return;
-        }
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            cancelTitleRename();
-        }
+        if (event.key !== 'Enter' && event.key !== 'Escape') return;
+        event.preventDefault();
+        closeTitleRename(event.key === 'Enter' ? titleDraft : undefined);
     }
 
     return (
@@ -300,7 +261,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                         value={titleDraft}
                         aria-label="Chart title"
                         onChange={(event) => setTitleDraft(event.target.value)}
-                        onBlur={applyTitleRename}
+                        onBlur={() => closeTitleRename(titleDraft)}
                         onKeyDown={handleTitleRenameKeyDown}
                     />
                 ) : (
@@ -328,7 +289,7 @@ export function PanelHeader(props: PanelHeaderProps) {
                         className="panel-header__time-button panel-header__time-range-button"
                         title={sRangeLabel}
                         aria-label={sRangeLabel}
-                        disabled={!sRange}
+                        disabled={!sFormattedRange}
                         onClick={onOpenMainRangeModal}
                     >
                         {sTimeText}
@@ -357,29 +318,25 @@ export function PanelHeader(props: PanelHeaderProps) {
                                 className="panel-header__rollup-tooltip"
                             >
                                 <div className="panel-header__rollup-tooltip-content">
-                                    {sSeriesRollupStatusList.map(
-                                        (status, index) => (
-                                            <div
-                                                key={`${status.seriesName}-${index}`}
-                                                className="panel-header__rollup-tooltip-row"
+                                    {sSeriesRollupStatusList.map((status, index) => (
+                                        <div
+                                            key={`${status.seriesName}-${index}`}
+                                            className="panel-header__rollup-tooltip-row"
+                                        >
+                                            <span className="panel-header__rollup-tooltip-name">
+                                                {status.seriesName}
+                                            </span>
+                                            <span
+                                                className={joinClassNames(
+                                                    'panel-header__rollup-tooltip-state',
+                                                    status.usesRollup &&
+                                                        'panel-header__rollup-tooltip-state--active',
+                                                )}
                                             >
-                                                <span className="panel-header__rollup-tooltip-name">
-                                                    {status.seriesName}
-                                                </span>
-                                                <span
-                                                    className={joinClassNames(
-                                                        'panel-header__rollup-tooltip-state',
-                                                        status.usesRollup &&
-                                                            'panel-header__rollup-tooltip-state--active',
-                                                    )}
-                                                >
-                                                    {status.usesRollup
-                                                        ? 'rollup'
-                                                        : 'no rollup'}
-                                                </span>
-                                            </div>
-                                        ),
-                                    )}
+                                                {status.usesRollup ? 'rollup' : 'no rollup'}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
                             </Tooltip>
                         )}
