@@ -1025,9 +1025,13 @@ function SourceComboboxField({
     disabled?: boolean;
     children?: ReactNode;
 }) {
+    const sInputId = useId();
+
     return (
         <div className={styles.fieldCell}>
-            <label className={styles.fieldLabelTop}>{label}</label>
+            <label className={styles.fieldLabelTop} htmlFor={sInputId}>
+                {label}
+            </label>
             <Combobox.Root
                 options={options}
                 value={value}
@@ -1036,7 +1040,7 @@ function SourceComboboxField({
                 fullWidth
                 size="md"
             >
-                <Combobox.Input />
+                <Combobox.Input id={sInputId} />
                 <Combobox.Trigger icon={<ArrowDown size={14} />} />
                 <Combobox.Dropdown>
                     <Combobox.List />

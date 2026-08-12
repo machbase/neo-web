@@ -1,5 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { login } from '../../support/login';
+import {
+    createTagAnalyzerBoard,
+    createLoadedTagAnalyzerPanel,
+} from '../../support/tagAnalyzer';
 import { getFileTreeItemTestId } from '../../support/testIds';
 
 test.describe('Tag Analyzer panel editor', () => {
@@ -15,23 +19,12 @@ test.describe('Tag Analyzer panel editor', () => {
         let shouldCleanUp = false;
 
         try {
-            // 1. [M.1, 1.1.4] Open a saved board and select a loaded panel.
+            // 1. [M.1, 1.1.3, 1.3.1.1] Create a fresh board and panel.
             await login(page);
-            await page
-                .getByTestId(
-                    getFileTreeItemTestId('/', 'TAG ANALYZER.taz'),
-                )
-                .click();
-            const board = page.getByTestId('tag-analyzer-board');
-            await expect(board).toBeVisible();
-
-            const readyRangeButton = page.locator(
-                '[data-testid="main-range-button"]:not(:disabled)',
-            );
-            const panel = board
-                .getByTestId(/^panel-/)
-                .filter({ has: readyRangeButton });
-            await expect(panel).toHaveCount(1, { timeout: 30_000 });
+            const board = await createTagAnalyzerBoard(page);
+            const panel = await createLoadedTagAnalyzerPanel(page, board, {
+                title: 'Editor transaction setup',
+            });
             await expect(panel).toBeVisible();
 
             // 2. [1.4.3.1.1] Open the editor and change its draft title.
@@ -112,10 +105,11 @@ test.describe('Tag Analyzer panel editor', () => {
             await expect(savedFile).toBeVisible({ timeout: 20_000 });
             await savedFile.click();
 
-            const reopenedPanel = board
-                .getByTestId(/^panel-/)
-                .filter({ has: readyRangeButton });
+            const reopenedPanel = board.getByTestId(/^panel-/);
             await expect(reopenedPanel).toHaveCount(1, { timeout: 30_000 });
+            await expect(
+                reopenedPanel.getByTestId('main-range-button'),
+            ).toBeEnabled({ timeout: 30_000 });
             await reopenedPanel
                 .getByTestId('action-toggle-edit')
                 .click();

@@ -1,11 +1,20 @@
 # 1. TagAnalyzer
 
+## Test fixture policy
+
+`TAG ANALYZER.taz` is reserved for tests whose subject is opening, loading,
+migration, or compatibility. All other tests must create a fresh board and any
+required panels through the UI instead of using the shared file as setup.
+
+Never save, overwrite, rename, or delete the shared fixture. Persistence tests
+must use a uniquely named, test-owned `.taz` file and delete it in `finally`.
+
 ## `data-testid` Contract
 
 This registry is the locator contract for the feature checklist below. A
 feature not listed in the registry currently has `data-testid: none`. Add its
 stable ID here before using it in a Playwright test unless the registry
-documents an intentional semantic-role exception.
+documents an intentional semantic-locator exception.
 
 Template values:
 
@@ -95,6 +104,7 @@ is known. Use panel order only when that order is part of the tested behavior.
 | --- | --- | --- | --- |
 | `1.3.1.1`-`1.3.3.4` | New Chart dialog | `tag-analyzer-create-panel-dialog` | Page-scoped dialog |
 | `1.3.1.3` | Chart name | `tag-analyzer-create-panel-name-input` | Scope under New Chart dialog |
+| `1.3.2.1` | Source table | `none` | Use `getByLabel('Table')`; the visible label is part of the form contract |
 | `1.3.2.3`, `1.3.2.4` | Series search input | `tag-analyzer-series-search-input` | Scope under New Chart dialog |
 | `1.3.2.3` | Search series | `tag-analyzer-series-search-button` | Scope under New Chart dialog |
 | `1.3.2.6` | Series result | `tag-analyzer-series-option-{tag}` | Stable repeated-tag identity |
@@ -196,14 +206,14 @@ Navigator `{control}` values are `zoom-in-large`, `zoom-in-small`, `focus`,
 
 ### 1.2.3 Save and Persistence
 
-- [ ] 1.2.3.1 Button - Save from the toolbar.
-- [ ] 1.2.3.2 Keyboard shortcut - Save the board.
+- [ ] 1.2.3.1 Button - Save a test-owned board from the toolbar.
+- [ ] 1.2.3.2 Keyboard shortcut - Save a test-owned board.
 - [ ] 1.2.3.3 Button - Open Save As.
 - [ ] 1.2.3.4 Directory list - Navigate directories in Save As.
 - [ ] 1.2.3.5 Input - Validate the Save As filename.
 - [ ] 1.2.3.6 Button - Confirm overwriting from Save As.
-- [ ] 1.2.3.7 Button - Save and overwrite an existing `.taz` file.
-- [ ] 1.2.3.8 Save As without modifying the original file.
+- [ ] 1.2.3.7 Button - Save and overwrite an existing test-owned `.taz` file.
+- [ ] 1.2.3.8 Save As to a unique test-owned `.taz` file without modifying the source board.
 - [ ] 1.2.3.9 Preserve board ranges, panels, `MACHROLL` series, editor settings, and markup.
 - [ ] 1.2.3.10 Preserve the visible range only when that option is enabled.
 - [ ] 1.2.3.11 Reopen a saved board and reproduce its previous runtime configuration.

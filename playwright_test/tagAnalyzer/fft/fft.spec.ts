@@ -1,29 +1,27 @@
 import { expect, test } from '@playwright/test';
 import { login } from '../../support/login';
-import { getFileTreeItemTestId } from '../../support/testIds';
+import {
+    createTagAnalyzerBoard,
+    createLoadedTagAnalyzerPanel,
+} from '../../support/tagAnalyzer';
 
 test.describe('Tag Analyzer FFT', () => {
     test('opens FFT from a selected range', async ({ page }) => {
-        // 1. Open a saved board.
+        // 1. Create a fresh board with its own data-backed panel.
         await login(page);
-        await page
-            .getByTestId(
-                getFileTreeItemTestId('/', 'TAG ANALYZER.taz'),
-            )
-            .click();
-        const board = page.getByTestId('tag-analyzer-board');
-        await expect(board).toBeVisible();
+        const board = await createTagAnalyzerBoard(page);
+        const loadedPanel = await createLoadedTagAnalyzerPanel(page, board);
 
-        // 2. Enable range selection.
-        const loadedPanel = board
-            .getByTestId(/^panel-/)
-            .filter({
-                has: page.locator(
-                    '[data-testid="main-range-button"]:not(:disabled)',
-                ),
-            });
-        await expect(loadedPanel).toHaveCount(1, { timeout: 30_000 });
+        // 2. Enable raw data and range selection.
         await loadedPanel.scrollIntoViewIfNeeded();
+        const rawData = loadedPanel.getByTestId('action-toggle-raw');
+        await rawData.click();
+        await expect(rawData).toHaveAttribute('aria-pressed', 'true');
+        await expect(loadedPanel.getByTestId('chart')).toHaveAttribute(
+            'aria-busy',
+            'false',
+            { timeout: 30_000 },
+        );
         const selectRange = loadedPanel.getByTestId(
             'action-toggle-drag-select',
         );

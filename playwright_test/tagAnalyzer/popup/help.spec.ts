@@ -1,17 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { login } from '../../support/login';
-import { getFileTreeItemTestId } from '../../support/testIds';
+import { createTagAnalyzerBoard } from '../../support/tagAnalyzer';
 
 test.describe('Tag Analyzer', () => {
     test.beforeEach(async ({ page }) => {
         await login(page);
-
-        await page
-            .getByTestId(
-                getFileTreeItemTestId('/', 'TAG ANALYZER.taz'),
-            )
-            .click();
-        await expect(page.getByTestId('tag-analyzer-board')).toBeVisible();
+        await createTagAnalyzerBoard(page);
     });
 
     test.describe('Help popup', () => {

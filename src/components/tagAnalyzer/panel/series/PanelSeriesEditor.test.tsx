@@ -46,6 +46,7 @@ describe('PanelSeriesEditor', () => {
             />,
         );
 
+        expect(screen.getByLabelText('Table')).toHaveRole('combobox');
         await waitFor(() =>
             expect(tableMetadataApi.fetchTableNames).toHaveBeenCalledTimes(1),
         );
