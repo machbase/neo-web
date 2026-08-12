@@ -142,6 +142,9 @@ Direct `{actionKey}` values currently rendered are `toggle-raw`,
 | Feature ID(s) | Element | `data-testid` | Scope or notes |
 | --- | --- | --- | --- |
 | `1.4.2.1.1`, `1.4.2.1.2` | Panel chart | `chart` | Scope under the selected panel |
+| `1.4.2.2.3` | Main-chart drag zoom surface | `chart` | Scope under the selected panel |
+| `1.4.2.2.7` | Shift main range backward | `none` | `getByRole('button', { name: 'Move range backward' })` under the selected panel |
+| `1.4.2.2.8` | Shift main range forward | `none` | `getByRole('button', { name: 'Move range forward' })` under the selected panel |
 | `1.4.2.1.1` | Panel footer | `footer` | Scope under the selected panel |
 | `1.4.2.1.1` | Navigator loading | `navigator-loading` | Scope under the panel footer |
 | `1.4.2.3.1`-`1.4.2.3.5` | Navigator zoom/focus | `navigator-{control}` | Scope under the panel footer; `{control}` is a stable control key |
@@ -149,6 +152,7 @@ Direct `{actionKey}` values currently rendered are `toggle-raw`,
 | `1.4.2.4.2` | Shift navigator forward | `navigator-shift-forward` | Scope under the panel footer |
 | `1.4.2.4.5` | Navigator range start | `navigator-range-start` | Scope under the panel footer; opens shared Range dialog |
 | `1.4.2.4.6` | Navigator range end | `navigator-range-end` | Scope under the panel footer; opens shared Range dialog |
+| `1.4.2.4.8` | Navigator selection minimum | `main-range-button`, `navigator-range-start`, `navigator-range-end`, `chart` | Compare displayed spans against chart geometry under the selected panel |
 | `1.4.3.1.1`-`1.4.3.1.5` | Panel editor | `editor` | Scope under the selected panel |
 | `1.4.3.1.1` | Open editor | `action-toggle-edit` | Scope under the selected panel |
 | `1.4.3.1.2` | Close editor | `editor-close` | Scope under the panel editor |
@@ -380,6 +384,7 @@ their page-scoped editor root.
 - [ ] 1.4.2.4.5 Range label - Enter a navigator range from the start.
 - [ ] 1.4.2.4.6 Range label - Enter a navigator range from the end.
 - [ ] 1.4.2.4.7 Keep main-chart, navigator, panel, board, and global ranges synchronized.
+- [ ] 1.4.2.4.8 Enforce the navigator selection's minimum displayed width after button and drag zoom.
 
 ### 1.4.3 Panel Editor
 
@@ -435,34 +440,34 @@ their page-scoped editor root.
 
 #### 1.4.4.1 Highlights
 
-- [ ] 1.4.4.1.1 Menu item - Enable highlight mode.
+- [x] 1.4.4.1.1 Menu item - Enable highlight mode.
 - [ ] 1.4.4.1.2 Menu item - Disable highlight mode.
-- [ ] 1.4.4.1.3 Chart drag - Create a highlight.
-- [ ] 1.4.4.1.4 Edit a highlight.
-- [ ] 1.4.4.1.5 Button - Delete a highlight.
-- [ ] 1.4.4.1.6 Input - Validate the highlight start value.
-- [ ] 1.4.4.1.7 Input - Validate the highlight end value.
-- [ ] 1.4.4.1.8 Input - Change the highlight label.
-- [ ] 1.4.4.1.9 Color picker - Change the highlight fill color.
-- [ ] 1.4.4.1.10 Color picker - Change the highlight text color.
+- [x] 1.4.4.1.3 Chart drag - Create a highlight.
+- [x] 1.4.4.1.4 Edit a highlight.
+- [x] 1.4.4.1.5 Button - Delete a highlight.
+- [x] 1.4.4.1.6 Input - Validate the highlight start value.
+- [x] 1.4.4.1.7 Input - Validate the highlight end value.
+- [x] 1.4.4.1.8 Input - Change the highlight label.
+- [x] 1.4.4.1.9 Color picker - Change the highlight fill color.
+- [x] 1.4.4.1.10 Color picker - Change the highlight text color.
 
 #### 1.4.4.2 Annotations
 
-- [ ] 1.4.4.2.1 Menu item - Enable annotation mode.
+- [x] 1.4.4.2.1 Menu item - Enable annotation mode.
 - [ ] 1.4.4.2.2 Menu item - Disable annotation mode.
-- [ ] 1.4.4.2.3 Chart click - Create an annotation.
-- [ ] 1.4.4.2.4 Edit an annotation.
-- [ ] 1.4.4.2.5 Button - Delete an annotation.
-- [ ] 1.4.4.2.6 Dropdown - Select the annotation series.
-- [ ] 1.4.4.2.7 Input - Validate the annotation time or axis value.
-- [ ] 1.4.4.2.8 Input - Change the annotation text.
-- [ ] 1.4.4.2.9 Color picker - Change the annotation colors.
-- [ ] 1.4.4.2.10 Checkbox - Configure clip-to-range.
+- [x] 1.4.4.2.3 Chart click - Create an annotation.
+- [x] 1.4.4.2.4 Edit an annotation.
+- [x] 1.4.4.2.5 Button - Delete an annotation.
+- [x] 1.4.4.2.6 Dropdown - Select the annotation series.
+- [x] 1.4.4.2.7 Input - Validate the annotation time or axis value.
+- [x] 1.4.4.2.8 Input - Change the annotation text.
+- [x] 1.4.4.2.9 Color picker - Change the annotation colors.
+- [x] 1.4.4.2.10 Checkbox - Configure clip-to-range.
 
 #### 1.4.4.3 Markup Apply and Persistence
 
-- [ ] 1.4.4.3.1 Keyboard - Apply markup with Enter.
-- [ ] 1.4.4.3.2 Keyboard - Cancel markup with Escape.
+- [x] 1.4.4.3.1 Keyboard - Apply markup with Enter.
+- [x] 1.4.4.3.2 Keyboard - Cancel markup with Escape.
 - [ ] 1.4.4.3.3 Persist highlights after saving.
 - [ ] 1.4.4.3.4 Persist annotations after saving.
 
