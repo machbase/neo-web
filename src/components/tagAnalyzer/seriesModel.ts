@@ -375,6 +375,21 @@ export function getSeriesListAxisKind(
         : 'time';
 }
 
+/**
+ * Rejects series lists no panel can plot, at the boundary where untrusted
+ * documents enter. An empty list is fine — that is just a panel you have not
+ * added series to yet — but clashing x-axis kinds have no valid axis, and every
+ * editor path already refuses them, so a document carrying them is malformed.
+ */
+export function assertCompatiblePanelSeriesList(
+    seriesList: SeriesWithSourceColumns[],
+    source: string,
+): void {
+    if (hasMixedXAxisValueKinds(seriesList)) {
+        throw new Error(`${source}: ${MIXED_X_AXIS_KIND_WARNING}`);
+    }
+}
+
 export function shouldUseNumericPanelRangeInput(
     seriesList: SeriesWithSourceColumns[] = [],
 ): boolean {

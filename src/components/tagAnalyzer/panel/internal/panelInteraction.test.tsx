@@ -1,10 +1,14 @@
 import { act, renderHook } from '@testing-library/react';
 import { PanelOverlayMode } from '../../chart/chartRuntime';
-import { PanelPopupMode, usePanelInteraction } from './panelInteraction';
+import { usePanelInteraction } from './panelInteraction';
+
+const SERIES_LIST = [{ key: 'temperature' }];
 
 describe('usePanelInteraction', () => {
     it('toggles overlay tools while retaining the current cursor state', () => {
-        const { result } = renderHook(() => usePanelInteraction());
+        const { result } = renderHook(() =>
+            usePanelInteraction(SERIES_LIST),
+        );
 
         act(() => {
             result.current.actions.toggleOverlay(
@@ -49,76 +53,91 @@ describe('usePanelInteraction', () => {
         });
     });
 
-    it('guards popup closure against stale callbacks', () => {
-        const { result } = renderHook(() => usePanelInteraction());
-
-        act(() => {
-            result.current.actions.openPopup({
-                mode: PanelPopupMode.CONTEXT_MENU,
-                position: { x: 4, y: 8 },
-            });
-            result.current.actions.closePopup(PanelPopupMode.DELETE_CONFIRM);
-        });
-
-        expect(result.current.state.popupState.mode).toBe(
-            PanelPopupMode.CONTEXT_MENU,
+    it('ignores stale dismissal for a newer surface of the same kind', () => {
+        const { result } = renderHook(() =>
+            usePanelInteraction(SERIES_LIST),
         );
 
         act(() => {
-            result.current.actions.closePopup(PanelPopupMode.CONTEXT_MENU);
+            result.current.actions.showContextMenu({ x: 4, y: 8 });
+        });
+        const firstSurface = result.current.state.activeSurface;
+
+        expect(firstSurface).toMatchObject({
+            kind: 'contextMenu',
+            position: { x: 4, y: 8 },
         });
 
-        expect(result.current.state.popupState.mode).toBe(PanelPopupMode.NONE);
-    });
+        act(() => {
+            result.current.actions.showContextMenu({ x: 12, y: 16 });
+        });
+        const secondSurface = result.current.state.activeSurface;
 
-    it('closes an open popup when an overlay tool is toggled', () => {
-        const { result } = renderHook(() => usePanelInteraction());
+        expect(secondSurface).toMatchObject({
+            kind: 'contextMenu',
+            position: { x: 12, y: 16 },
+        });
+        expect(secondSurface?.id).not.toBe(firstSurface?.id);
 
         act(() => {
-            result.current.actions.openPopup({
-                mode: PanelPopupMode.CONTEXT_MENU,
-                position: { x: 4, y: 8 },
-            });
+            result.current.actions.dismissSurface(firstSurface!.id);
+        });
+
+        expect(result.current.state.activeSurface).toEqual(secondSurface);
+
+        act(() => {
+            result.current.actions.dismissSurface(secondSurface!.id);
+        });
+
+        expect(result.current.state.activeSurface).toBeUndefined();
+    });
+
+    it('dismisses the active surface when an overlay tool is toggled', () => {
+        const { result } = renderHook(() =>
+            usePanelInteraction(SERIES_LIST),
+        );
+
+        act(() => {
+            result.current.actions.requestDelete();
+        });
+
+        expect(result.current.state.activeSurface?.kind).toBe('deleteConfirm');
+
+        act(() => {
             result.current.actions.toggleOverlay(PanelOverlayMode.HIGHLIGHT);
         });
 
-        expect(result.current.state.popupState.mode).toBe(PanelPopupMode.NONE);
+        expect(result.current.state.activeSurface).toBeUndefined();
         expect(result.current.state.overlayMode).toBe(
             PanelOverlayMode.HIGHLIGHT,
         );
     });
 
-    it('disarms annotation mode when its editor closes', () => {
-        const { result } = renderHook(() => usePanelInteraction());
+    it('opens annotation creation with the selected series key', () => {
+        const { result } = renderHook(() =>
+            usePanelInteraction(SERIES_LIST),
+        );
 
         act(() => {
-            result.current.actions.setOverlayMode(
-                PanelOverlayMode.ANNOTATION,
-            );
-            result.current.actions.openPopup({
-                mode: PanelPopupMode.ANNOTATION_EDITOR,
-                editorMeta: { position: { x: 4, y: 8 } },
-            });
-            result.current.actions.closePopup(
-                PanelPopupMode.ANNOTATION_EDITOR,
+            result.current.actions.toggleOverlay(PanelOverlayMode.ANNOTATION);
+            result.current.actions.beginAnnotationCreate(
+                { x: 4, y: 8 },
+                0,
+                1_234,
             );
         });
 
+        expect(result.current.state.activeSurface).toMatchObject({
+            kind: 'annotationEditor',
+            session: {
+                kind: 'create',
+                position: { x: 4, y: 8 },
+                timestamp: 1_234,
+                seriesKey: 'temperature',
+            },
+        });
         expect(result.current.state.overlayMode).toBe(
             PanelOverlayMode.NO_OVERLAY,
         );
-    });
-
-    it('keeps the editor mounted until its closing animation finishes', () => {
-        const { result } = renderHook(() => usePanelInteraction());
-
-        act(() => result.current.actions.toggleEditor());
-        expect(result.current.state.editorStatus).toBe('open');
-
-        act(() => result.current.actions.closeEditor());
-        expect(result.current.state.editorStatus).toBe('closing');
-
-        act(() => result.current.actions.finishEditorClose());
-        expect(result.current.state.editorStatus).toBe('closed');
     });
 });

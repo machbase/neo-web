@@ -1,5 +1,5 @@
 import type {
-    PanelSeriesRowsRequest,
+    SeriesRowsQuery,
 } from '../../api/seriesDataApi';
 import {
     calculateInterval,
@@ -16,12 +16,6 @@ import {
 import type { PanelInfo } from '../panelModel';
 
 const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
-
-type MainSeriesRequestOptions = {
-    interval?: IntervalOption;
-    numericBucketWidth?: number;
-    signal?: AbortSignal;
-};
 
 function resolveCalculatedInterval(
     intervalType: TimeUnit | undefined,
@@ -55,13 +49,13 @@ function resolveCalculatedInterval(
     };
 }
 
-export function buildMainSeriesRequest(
+export function buildPanelSeriesQuery(
+    target: 'main' | 'navigator',
     panelInfo: Pick<PanelInfo, 'query' | 'mode' | 'display'>,
     range: AxisRange,
     chartWidth: number,
     rollupTables: RollupTableMap,
-    options: MainSeriesRequestOptions = {},
-): PanelSeriesRowsRequest {
+): SeriesRowsQuery {
     if (
         !Number.isFinite(range.start) ||
         !Number.isFinite(range.end) ||
@@ -81,17 +75,22 @@ export function buildMainSeriesRequest(
         );
     }
 
-    if (panelInfo.mode.isRaw) {
-        const sampling = panelInfo.display.mainChartSampling;
+    const useRawQuery =
+        panelInfo.mode.isRaw &&
+        (
+            target === 'main' ||
+            panelInfo.display.rawNavigatorSampling.enabled
+        );
+    if (useRawQuery) {
+        const sampling = target === 'main'
+            ? panelInfo.display.mainChartSampling
+            : panelInfo.display.rawNavigatorSampling;
         if (!sampling.enabled) {
             return {
                 kind: 'raw',
-                args: [
-                    seriesList,
-                    range,
-                    panelInfo.mode.isOrderBy,
-                    options.signal,
-                ],
+                seriesList,
+                range,
+                useOrderBy: panelInfo.mode.isOrderBy,
             };
         }
 
@@ -102,25 +101,24 @@ export function buildMainSeriesRequest(
             sampleCount <= 0
         ) {
             throw new Error(
-                'Raw main-chart sampling requires a positive sample count.',
+                'Raw panel sampling requires a positive sample count.',
             );
         }
 
         return {
             kind: 'sampled-raw',
-            args: [
-                seriesList,
-                range,
-                sampleCount,
-                panelInfo.mode.isOrderBy,
-                options.signal,
-            ],
+            seriesList,
+            range,
+            sampleCount,
+            useOrderBy: panelInfo.mode.isOrderBy,
         };
     }
 
+    const configuredPixelsPerTick = target === 'main'
+        ? panelInfo.display.pixelsPerTick.calculated
+        : panelInfo.display.pixelsPerTick.calculatedNavigator;
     const pixelsPerTick =
-        panelInfo.display.pixelsPerTick.calculated ??
-        DEFAULT_CALCULATED_PIXELS_PER_TICK;
+        configuredPixelsPerTick ?? DEFAULT_CALCULATED_PIXELS_PER_TICK;
     if (!Number.isFinite(pixelsPerTick) || pixelsPerTick <= 0) {
         throw new Error(
             'Calculated panel data requires a positive pixel density.',
@@ -128,29 +126,75 @@ export function buildMainSeriesRequest(
     }
 
     const rowLimit = Math.max(1, Math.floor(chartWidth / pixelsPerTick));
-    const interval =
-        options.interval ??
-        resolveCalculatedInterval(
-            panelInfo.query.intervalType,
-            range,
-            chartWidth,
-            pixelsPerTick,
-        );
+    const interval = resolveCalculatedInterval(
+        panelInfo.query.intervalType,
+        range,
+        chartWidth,
+        pixelsPerTick,
+    );
     const numericBucketWidth =
         axisKind === 'numeric'
-            ? options.numericBucketWidth ??
-              resolveNumericIntervalValue(range.end - range.start, rowLimit)
+            ? resolveNumericIntervalValue(range.end - range.start, rowLimit)
             : undefined;
 
     return {
         kind: 'calculated',
-        args: [
-            seriesList,
-            range,
-            interval,
-            rowLimit,
-            rollupTables,
-            { numericBucketWidth, signal: options.signal },
-        ],
+        seriesList,
+        range,
+        interval,
+        rowLimit,
+        rollupTables,
+        numericBucketWidth,
+    };
+}
+
+export function createSeriesRowsQueryKeys(
+    query: SeriesRowsQuery,
+): { familyKey: string; exactKey: string } {
+    const includeCalculation = query.kind === 'calculated';
+    const seriesKey = query.seriesList.map((series) => ({
+        key: series.key,
+        table: series.table,
+        sourceTagName: series.sourceTagName,
+        sourceColumns: series.sourceColumns,
+        ...(includeCalculation
+            ? {
+                  calculationMode: series.calculationMode,
+                  useRollupTable: series.useRollupTable,
+              }
+            : {}),
+    }));
+    const [familyOptions, resolutionOptions]: [unknown, unknown] =
+        query.kind === 'raw'
+            ? [{ useOrderBy: query.useOrderBy }, undefined]
+            : query.kind === 'sampled-raw'
+              ? [
+                    {
+                        sampleCount: query.sampleCount,
+                        useOrderBy: query.useOrderBy,
+                    },
+                    undefined,
+                ]
+              : [
+                    { rollupTables: query.rollupTables },
+                    {
+                        interval: query.interval,
+                        rowLimit: query.rowLimit,
+                        numericBucketWidth: query.numericBucketWidth,
+                    },
+                ];
+    const familyKey = JSON.stringify([
+        query.kind,
+        seriesKey,
+        familyOptions,
+    ]);
+
+    return {
+        familyKey,
+        exactKey: JSON.stringify([
+            familyKey,
+            query.range,
+            resolutionOptions,
+        ]),
     };
 }

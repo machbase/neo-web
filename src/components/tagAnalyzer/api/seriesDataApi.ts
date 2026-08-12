@@ -46,8 +46,6 @@ const MALFORMED_CHART_DATA_MESSAGE: string =
     'Chart data response contained malformed rows.';
 const CHART_DATA_REQUEST_FAILED_MESSAGE: string =
     'Chart data request failed.';
-const inFlightChartSqlRequests: Map<string, Promise<SeriesDataRow[]>> =
-    new Map();
 
 function parseChartQueryResponse(apiResponse: unknown): SeriesDataRow[] {
     const response: QueryResponse = parseQueryResponse(
@@ -83,35 +81,7 @@ async function fetchChartRows(
     querySql: string,
     signal?: AbortSignal,
 ): Promise<SeriesDataRow[]> {
-    if (signal) {
-        const rows: SeriesDataRow[] = await requestSqlQuery(querySql, signal)
-            .then(parseChartQueryResponse);
-
-        return cloneChartFetchRows(rows);
-    }
-
-    const existingRequest: Promise<SeriesDataRow[]> | undefined =
-        inFlightChartSqlRequests.get(querySql);
-    if (existingRequest) {
-        return cloneChartFetchRows(await existingRequest);
-    }
-
-    const chartRowsRequest: Promise<SeriesDataRow[]> =
-        requestSqlQuery(querySql).then(parseChartQueryResponse);
-
-    inFlightChartSqlRequests.set(querySql, chartRowsRequest);
-
-    try {
-        return cloneChartFetchRows(await chartRowsRequest);
-    } finally {
-        if (inFlightChartSqlRequests.get(querySql) === chartRowsRequest) {
-            inFlightChartSqlRequests.delete(querySql);
-        }
-    }
-}
-
-function cloneChartFetchRows(rows: SeriesDataRow[]): SeriesDataRow[] {
-    return rows.map((row) => [...row] as SeriesDataRow);
+    return requestSqlQuery(querySql, signal).then(parseChartQueryResponse);
 }
 
 async function fetchChartTimestamps(
@@ -683,30 +653,59 @@ function getSeriesFullRangeErrorMessage(
     )}`;
 }
 
-export type PanelSeriesRowsRequest =
+export type SeriesRowsQuery =
     | {
           kind: 'raw';
-          args: Parameters<typeof fetchRawSeriesRows>;
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          useOrderBy: boolean;
       }
     | {
           kind: 'sampled-raw';
-          args: Parameters<typeof fetchSampledRawSeriesRows>;
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          sampleCount: number;
+          useOrderBy: boolean;
       }
     | {
           kind: 'calculated';
-          args: Parameters<typeof fetchCalculatedSeriesRows>;
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          interval: IntervalOption;
+          rowLimit: number;
+          rollupTables: RollupTableMap;
+          numericBucketWidth?: number;
       };
 
 function fetchSeriesRows(
-    request: PanelSeriesRowsRequest,
+    query: SeriesRowsQuery,
+    { signal }: { signal?: AbortSignal } = {},
 ): Promise<PanelDataFetchResult | undefined> {
-    if (request.kind === 'raw') {
-        return fetchRawSeriesRows(...request.args);
+    if (query.kind === 'raw') {
+        return fetchRawSeriesRows(
+            query.seriesList,
+            query.range,
+            query.useOrderBy,
+            signal,
+        );
     }
-    if (request.kind === 'sampled-raw') {
-        return fetchSampledRawSeriesRows(...request.args);
+    if (query.kind === 'sampled-raw') {
+        return fetchSampledRawSeriesRows(
+            query.seriesList,
+            query.range,
+            query.sampleCount,
+            query.useOrderBy,
+            signal,
+        );
     }
-    return fetchCalculatedSeriesRows(...request.args);
+    return fetchCalculatedSeriesRows(
+        query.seriesList,
+        query.range,
+        query.interval,
+        query.rowLimit,
+        query.rollupTables,
+        { numericBucketWidth: query.numericBucketWidth, signal },
+    );
 }
 
 export const seriesDataApi = {

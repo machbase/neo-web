@@ -7,7 +7,7 @@ import {
 } from '../../panelModel';
 import type { PanelDataLoadMetrics } from '../../internal/panelData';
 import type { AxisKind } from '../../../range/rangeModel';
-import { NumberInput, Section } from '../EditorControls';
+import { NumberInput, Section } from './TabControls';
 import styles from '../PanelEditor.module.scss';
 
 type PixelsPerTickField = 'calculated' | 'calculatedNavigator';

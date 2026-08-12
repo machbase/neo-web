@@ -41,6 +41,7 @@ import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    assertCompatiblePanelSeriesList,
     normalizePanelSeriesDefinitions,
     shouldUseNumericPanelRangeInput,
 } from '../seriesModel';
@@ -574,6 +575,7 @@ export function parseLoadedPanelTazVer210(
     if (!sTagSet) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel series structure.');
     }
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz v2.1 panel');
 
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.timeRange,

@@ -26,6 +26,7 @@ import {
     getPanelSeriesDisplayColor,
     getPanelSeriesDisplayName,
     normalizePanelSeriesCalculationMode,
+    assertCompatiblePanelSeriesList,
     normalizePanelSeriesDefinitions,
     PanelSeriesCalculationMode,
     shouldUseNumericPanelRangeInput,
@@ -318,6 +319,7 @@ function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,
 ): PanelInfo {
     const sTagSet = (panelInfo.tag_set || []).map(normalizeLegacySeriesConfig);
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz legacy panel');
     const sRangeConfig = resolveLegacyRangeConfig(
         panelInfo,
         createTimeRangeInputFromStoredValues(
@@ -643,6 +645,7 @@ function parseLoadedPanelTazVer200(
     }
 
     const sTagSet = panelInfo.data.seriesList.map(createSeriesInfoFromPersistedV200);
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz v2.0 panel');
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.rangeConfig,
         shouldUseNumericPanelRangeInput(sTagSet),
@@ -888,6 +891,7 @@ function parseLoadedPanelTazVer204(
     if (!sTagSet) {
         throw new Error('Invalid TagAnalyzer .taz panel series structure.');
     }
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz panel');
 
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.range_config,

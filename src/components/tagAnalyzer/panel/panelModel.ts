@@ -120,22 +120,27 @@ function isInvalidSampling(sampling: PanelSampling): boolean {
     );
 }
 
-export function hasInvalidPanelSettings(
-    axes: PanelAxes,
-    display: PanelDisplay,
-): boolean {
+export function hasInvalidAxesSettings(axes: PanelAxes): boolean {
     return (
         isInvalidYAxis(axes.leftY) ||
-        (axes.rightY.enabled && isInvalidYAxis(axes.rightY)) ||
-        [display.pointRadius, display.fill, display.stroke].some(
-            (value) => value !== undefined && !Number.isFinite(value),
-        ) ||
+        (axes.rightY.enabled && isInvalidYAxis(axes.rightY))
+    );
+}
+
+export function hasInvalidDataSettings(display: PanelDisplay): boolean {
+    return (
         isInvalidOptionalPositiveNumber(display.pixelsPerTick.calculated) ||
         isInvalidOptionalPositiveNumber(
             display.pixelsPerTick.calculatedNavigator,
         ) ||
         isInvalidSampling(display.mainChartSampling) ||
         isInvalidSampling(display.rawNavigatorSampling)
+    );
+}
+
+export function hasInvalidDisplaySettings(display: PanelDisplay): boolean {
+    return [display.pointRadius, display.fill, display.stroke].some(
+        (value) => value !== undefined && !Number.isFinite(value),
     );
 }
 

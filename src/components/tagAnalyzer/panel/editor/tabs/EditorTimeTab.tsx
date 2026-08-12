@@ -16,7 +16,7 @@ import {
     NUMERIC_RANGE_PRESETS,
     TIME_RANGE_PRESETS,
 } from '../../../range/rangePresets';
-import { Section } from '../EditorControls';
+import { Section } from './TabControls';
 
 import styles from '../PanelEditor.module.scss';
 
@@ -28,13 +28,13 @@ const NUMERIC_RANGE_INPUT_PLACEHOLDER = '20, first, first-10, last-10';
 const EditorTimeTab = ({
     pTimeConfig,
     pAxisKind,
-    pIsRangeInputValid,
+    pValidationMessage,
     pMainRange,
     pOnChangeTimeConfig,
 }: {
     pTimeConfig: PanelInfo['time'];
     pAxisKind: AxisKind;
-    pIsRangeInputValid: boolean;
+    pValidationMessage: string | undefined;
     pMainRange: AxisRange;
     pOnChangeTimeConfig: (config: PanelInfo['time']) => void;
 }) => {
@@ -87,7 +87,7 @@ const EditorTimeTab = ({
                         />
                     ))}
                 </div>
-                {!pIsRangeInputValid && (
+                {pValidationMessage && (
                     <span className={styles.fieldError}>
                         {sIsNumericXAxis
                             ? 'Enter both value boundaries in a valid order.'

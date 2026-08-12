@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import {
     seriesDataApi,
     type PanelDataFetchResult,
-    type PanelSeriesRowsRequest,
+    type SeriesRowsQuery,
 } from '../../api/seriesDataApi';
 import {
     mapFetchResultToChartData,
@@ -12,10 +12,7 @@ import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../../hooks/useLatestAsyncRequest';
-import {
-    getIntervalMs,
-    type IntervalOption,
-} from '../../range/intervalResolver';
+import type { IntervalOption } from '../../range/intervalResolver';
 import {
     fitRangeWithinBounds,
     getRangeWidth,
@@ -35,7 +32,10 @@ import {
     type RollupTableMap,
 } from '../../seriesModel';
 import type { PanelInfo } from '../panelModel';
-import { buildMainSeriesRequest } from '../series/panelSeriesRequest';
+import {
+    buildPanelSeriesQuery,
+    createSeriesRowsQueryKeys,
+} from '../series/panelSeriesRequest';
 
 type PanelDataTarget = 'main' | 'navigator';
 type PanelDataNotice = 'noData' | 'partialData';
@@ -66,8 +66,13 @@ export type PanelQueryResolution =
     | { kind: 'time'; interval: IntervalOption }
     | { kind: 'numeric'; bucketWidth: number };
 
+/**
+ * `invalid` covers both an empty series list and series with clashing x-axis
+ * kinds — `getSeriesListAxisKind` reports neither as a usable axis. Only saved
+ * boards can reach it; the panel editor refuses both while you edit.
+ */
 type PanelDataState =
-    | { kind: 'invalid'; reason: 'emptySeries' | 'mixedAxisKinds' }
+    | { kind: 'invalid' }
     | {
           kind: 'queryable';
           series: Record<PanelDataTarget, ChartSeriesData[]>;
@@ -101,11 +106,11 @@ type PanelRequestState =
     | { status: 'failed'; error: string; result?: undefined };
 
 type PanelRequestPlan = {
-    cacheKey: string;
-    key: string;
+    familyKey: string;
+    requestKey: string;
     pixelWidth: number;
+    query: SeriesRowsQuery;
     queryRange: AxisRange;
-    request: PanelSeriesRowsRequest;
     requestedRange: AxisRange;
     resolution: PanelQueryResolution;
 };
@@ -135,7 +140,6 @@ type PanelDataTargetState = {
 const IDLE_REQUEST: PanelRequestState = { status: 'idle' };
 const NAVIGATOR_PREFETCH_RATIO = 0.5;
 const NAVIGATOR_DEBOUNCE_MS = 100;
-const RESOLUTION_REUSE_RATIO = 1.25;
 
 export function usePanelData(params: UsePanelDataParams): PanelDataState {
     const { panelInfo } = params;
@@ -190,12 +194,7 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
         [isRaw, main.request.result, seriesList],
     );
 
-    if (seriesList.length === 0) {
-        return { kind: 'invalid', reason: 'emptySeries' };
-    }
-    if (axisKind === undefined) {
-        return { kind: 'invalid', reason: 'mixedAxisKinds' };
-    }
+    if (axisKind === undefined) return { kind: 'invalid' };
 
     return {
         kind: 'queryable',
@@ -268,13 +267,11 @@ function usePanelRequest(
 
     useLatestAsyncRequest({
         enabled: plan !== undefined,
-        requestKey: plan?.key ?? `${target}:idle`,
+        requestKey: plan?.requestKey ?? `${target}:idle`,
         delay: target === 'navigator' ? NAVIGATOR_DEBOUNCE_MS : undefined,
         fetch: (signal) =>
             plan
-                ? seriesDataApi.fetchSeriesRows(
-                      attachSignal(plan.request, signal),
-                  )
+                ? seriesDataApi.fetchSeriesRows(plan.query, { signal })
                 : Promise.resolve(undefined),
         onStart: () => {
             if (plan) setRecord({ plan, state: { status: 'loading' } });
@@ -300,7 +297,7 @@ function usePanelRequest(
     });
 
     if (!requestedPlan) return IDLE_REQUEST;
-    return record.plan?.key === plan?.key
+    return record.plan?.requestKey === plan?.requestKey
         ? record.state
         : { status: 'loading' };
 }
@@ -314,20 +311,31 @@ function createRequestPlan(
     const { panelInfo, chartWidth, rollupTables, refreshVersion, axisKind } =
         context;
     try {
-        const request = buildMainSeriesRequest(
-            target === 'main' ? panelInfo : createNavigatorPanelInfo(panelInfo),
+        const query = buildPanelSeriesQuery(
+            target,
+            panelInfo,
             queryRange,
             chartWidth,
             rollupTables,
         );
+        const { familyKey, exactKey } = createSeriesRowsQueryKeys(query);
         return {
             plan: {
-                ...createRequestKeys(target, request, refreshVersion),
+                familyKey: JSON.stringify([
+                    target,
+                    refreshVersion,
+                    familyKey,
+                ]),
+                requestKey: JSON.stringify([
+                    target,
+                    refreshVersion,
+                    exactKey,
+                ]),
                 pixelWidth: chartWidth,
+                query,
                 queryRange,
-                request,
                 requestedRange,
-                resolution: resolveResolution(request, axisKind),
+                resolution: resolveResolution(query, axisKind),
             },
         };
     } catch (error) {
@@ -338,24 +346,6 @@ function createRequestPlan(
             ),
         };
     }
-}
-
-function createNavigatorPanelInfo(panelInfo: PanelQueryInfo): PanelQueryInfo {
-    const useRawSampling =
-        panelInfo.mode.isRaw && panelInfo.display.rawNavigatorSampling.enabled;
-
-    return {
-        query: panelInfo.query,
-        mode: { ...panelInfo.mode, isRaw: useRawSampling },
-        display: {
-            ...panelInfo.display,
-            pixelsPerTick: {
-                ...panelInfo.display.pixelsPerTick,
-                calculated: panelInfo.display.pixelsPerTick.calculatedNavigator,
-            },
-            mainChartSampling: panelInfo.display.rawNavigatorSampling,
-        },
-    };
 }
 
 function createNavigatorQueryRange(
@@ -379,9 +369,9 @@ function canReuseNavigatorPlan(
 ): boolean {
     if (
         (cachedState.status !== 'loading' && cachedState.status !== 'ready') ||
-        cachedPlan.cacheKey !== requestedPlan.cacheKey ||
+        cachedPlan.familyKey !== requestedPlan.familyKey ||
         !isRangeWithin(requestedPlan.requestedRange, cachedPlan.queryRange) ||
-        !canReuseResolution(cachedPlan.resolution, requestedPlan.resolution)
+        !isSameResolution(cachedPlan.resolution, requestedPlan.resolution)
     ) {
         return false;
     }
@@ -394,137 +384,34 @@ function canReuseNavigatorPlan(
         );
 }
 
-function canReuseResolution(
+function isSameResolution(
     cached: PanelQueryResolution,
     requested: PanelQueryResolution,
 ): boolean {
     if (cached.kind !== requested.kind) return false;
     if (cached.kind === 'raw') return true;
     if (cached.kind === 'numeric' && requested.kind === 'numeric') {
-        return areNearby(cached.bucketWidth, requested.bucketWidth);
+        return cached.bucketWidth === requested.bucketWidth;
     }
     if (cached.kind !== 'time' || requested.kind !== 'time') return false;
 
-    const cachedMs = getIntervalMs(
-        cached.interval.IntervalType,
-        cached.interval.IntervalValue,
-    );
-    const requestedMs = getIntervalMs(
-        requested.interval.IntervalType,
-        requested.interval.IntervalValue,
-    );
-    return cachedMs > 0 && requestedMs > 0
-        ? areNearby(cachedMs, requestedMs)
-        : cached.interval.IntervalType === requested.interval.IntervalType &&
-              cached.interval.IntervalValue === requested.interval.IntervalValue;
-}
-
-function areNearby(left: number, right: number): boolean {
-    return (
-        Number.isFinite(left) &&
-        Number.isFinite(right) &&
-        left > 0 &&
-        right > 0 &&
-        Math.max(left, right) / Math.min(left, right) <= RESOLUTION_REUSE_RATIO
-    );
-}
-
-function createRequestKeys(
-    target: PanelDataTarget,
-    request: PanelSeriesRowsRequest,
-    refreshVersion: number,
-): Pick<PanelRequestPlan, 'cacheKey' | 'key'> {
-    const [seriesList, range] = request.args;
-    const includeCalculation = request.kind === 'calculated';
-    const seriesKey = seriesList.map((series) => ({
-        key: series.key,
-        table: series.table,
-        sourceTagName: series.sourceTagName,
-        sourceColumns: series.sourceColumns,
-        ...(includeCalculation
-            ? {
-                  calculationMode: series.calculationMode,
-                  useRollupTable: series.useRollupTable,
-              }
-            : {}),
-    }));
-    const [cacheOptions, resolutionOptions]: [unknown, unknown] =
-        request.kind === 'raw'
-            ? [{ useOrderBy: request.args[2] }, undefined]
-            : request.kind === 'sampled-raw'
-              ? [
-                    {
-                        sampleCount: request.args[2],
-                        useOrderBy: request.args[3],
-                    },
-                    undefined,
-                ]
-              : [
-                    { rollupTables: request.args[4] },
-                    {
-                        interval: request.args[2],
-                        rowLimit: request.args[3],
-                        numericBucketWidth: request.args[5]?.numericBucketWidth,
-                    },
-                ];
-    const cacheKey = JSON.stringify([
-        target,
-        refreshVersion,
-        request.kind,
-        seriesKey,
-        cacheOptions,
-    ]);
-
-    return {
-        cacheKey,
-        key: JSON.stringify([cacheKey, range, resolutionOptions]),
-    };
+    return cached.interval.IntervalType === requested.interval.IntervalType &&
+        cached.interval.IntervalValue === requested.interval.IntervalValue;
 }
 
 function resolveResolution(
-    request: PanelSeriesRowsRequest,
+    query: SeriesRowsQuery,
     axisKind: AxisKind,
 ): PanelQueryResolution {
-    if (request.kind !== 'calculated') return { kind: 'raw' };
+    if (query.kind !== 'calculated') return { kind: 'raw' };
     if (axisKind === 'time') {
-        return { kind: 'time', interval: request.args[2] };
+        return { kind: 'time', interval: query.interval };
     }
 
-    const bucketWidth = request.args[5]?.numericBucketWidth;
+    const bucketWidth = query.numericBucketWidth;
     return bucketWidth === undefined
         ? { kind: 'unresolved' }
         : { kind: 'numeric', bucketWidth };
-}
-
-function attachSignal(
-    request: PanelSeriesRowsRequest,
-    signal: AbortSignal,
-): PanelSeriesRowsRequest {
-    if (request.kind === 'raw') {
-        const [seriesList, range, useOrderBy] = request.args;
-        return { kind: 'raw', args: [seriesList, range, useOrderBy, signal] };
-    }
-    if (request.kind === 'sampled-raw') {
-        const [seriesList, range, sampleCount, useOrderBy] = request.args;
-        return {
-            kind: 'sampled-raw',
-            args: [seriesList, range, sampleCount, useOrderBy, signal],
-        };
-    }
-
-    const [seriesList, range, interval, rowLimit, rollupTables, options] =
-        request.args;
-    return {
-        kind: 'calculated',
-        args: [
-            seriesList,
-            range,
-            interval,
-            rowLimit,
-            rollupTables,
-            { ...options, signal },
-        ],
-    };
 }
 
 function createRollupStatuses(

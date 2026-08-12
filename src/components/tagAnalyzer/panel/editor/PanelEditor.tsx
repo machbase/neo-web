@@ -9,22 +9,22 @@ import EditorDataTab from './tabs/EditorDataTab';
 import EditorDisplayTab from './tabs/EditorDisplayTab';
 import EditorGeneralTab from './tabs/EditorGeneralTab';
 import EditorTimeTab from './tabs/EditorTimeTab';
-import styles from './PanelEditor.module.scss';
 import {
-    hasInvalidPanelSettings,
-    type PanelInfo,
-} from '../panelModel';
+    validateAxesTab,
+    validateDataSettingTab,
+    validateDataTab,
+    validateDisplayTab,
+    validateGeneralTab,
+    validateMainRangeTab,
+} from './tabs/tabValidation';
+import styles from './PanelEditor.module.scss';
+import { type PanelInfo } from '../panelModel';
 import type { PanelDataLoadMetrics } from '../internal/panelData';
 import {
     getSeriesListAxisKind,
-    MIXED_X_AXIS_KIND_WARNING,
     type RollupTableMap,
 } from '../../seriesModel';
-import {
-    isRangeExpressionEmpty,
-    type AxisRange,
-} from '../../range/rangeModel';
-import { resolveRangeInput } from '../../range/rangeInput';
+import { type AxisRange } from '../../range/rangeModel';
 
 enum PanelEditorTab {
     General = 'General',
@@ -35,7 +35,15 @@ enum PanelEditorTab {
     MainRange = 'Main Range',
 }
 
-type PanelEditorAnimationState = 'opening' | 'closing';
+const PANEL_EDITOR_TAB_TEST_IDS: Record<PanelEditorTab, string> = {
+    [PanelEditorTab.General]: 'editor-tab-general',
+    [PanelEditorTab.Data]: 'editor-tab-data',
+    [PanelEditorTab.DataSetting]: 'editor-tab-data-setting',
+    [PanelEditorTab.Axes]: 'editor-tab-axes',
+    [PanelEditorTab.Display]: 'editor-tab-display',
+    [PanelEditorTab.MainRange]: 'editor-tab-main-range',
+};
+
 const EMPTY_RANGE_INPUT = { start: '', end: '' };
 type PanelEditorDraft = Pick<
     PanelInfo,
@@ -61,8 +69,7 @@ function createEditorChangeKey(config: PanelInfo): string {
 const PanelEditor = ({
     pOnApplyEditorConfig,
     pOnClose,
-    pOnAnimationEnd,
-    pAnimationState,
+    pIsOpen,
     pPanelInfo,
     pHasUnsavedBoardChanges,
     pMainRange,
@@ -72,8 +79,7 @@ const PanelEditor = ({
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelInfo) => void;
     pOnClose: () => void;
-    pOnAnimationEnd: () => void;
-    pAnimationState: PanelEditorAnimationState;
+    pIsOpen: boolean;
     pPanelInfo: PanelInfo;
     pHasUnsavedBoardChanges: boolean;
     pMainRange: AxisRange;
@@ -118,23 +124,13 @@ const PanelEditor = ({
     const sOriginalAxisKind = getSeriesListAxisKind(
         pPanelInfo.query.tagSet,
     );
-    const sSeriesValidationMessage =
-        sEditorConfig.query.tagSet.length === 0
-            ? 'Add at least one series.'
-            : sAxisKind === undefined
-              ? MIXED_X_AXIS_KIND_WARNING
-              : undefined;
     const sRangeInput = sEditorConfig.time.rangeInput;
-    const sIsRangeInputEmpty = isRangeExpressionEmpty(sRangeInput);
-    const sIsRangeInputValid =
-        sAxisKind === undefined ||
-        sIsRangeInputEmpty ||
-        resolveRangeInput(
-            sRangeInput,
-            sAxisKind,
-            pDataRange,
-            pMainRange,
-        ) !== undefined;
+    const sRangeValidationMessage = validateMainRangeTab(
+        sRangeInput,
+        sAxisKind,
+        pDataRange,
+        pMainRange,
+    );
     const sUsesOriginalRangeInput =
         sEditorConfig.time.rangeInput.start ===
             pPanelInfo.time.rangeInput.start &&
@@ -142,11 +138,11 @@ const PanelEditor = ({
     const sClearsRangeAfterAxisKindChange =
         sAxisKind !== undefined &&
         sOriginalAxisKind !== undefined &&
-        !sIsRangeInputValid &&
+        sRangeValidationMessage !== undefined &&
         sAxisKind !== sOriginalAxisKind &&
         sUsesOriginalRangeInput;
     const sRangeInputToApply =
-        sIsRangeInputValid
+        sRangeValidationMessage === undefined
             ? sRangeInput
             : sClearsRangeAfterAxisKindChange
               ? EMPTY_RANGE_INPUT
@@ -154,18 +150,22 @@ const PanelEditor = ({
     const sTimeConfigForEditor = sClearsRangeAfterAxisKindChange
         ? { ...sEditorConfig.time, rangeInput: EMPTY_RANGE_INPUT }
         : sEditorConfig.time;
-    const sValidationMessage =
-        sEditorConfig.title.trim() === ''
-            ? 'Enter a panel title.'
-            : sSeriesValidationMessage ??
-              (hasInvalidPanelSettings(
-                  sEditorConfig.axes,
-                  sEditorConfig.display,
-              )
-                  ? 'Review the invalid editor settings.'
-                  : sRangeInputToApply === undefined
-                    ? 'Enter a valid range.'
-                    : undefined);
+    const sTabValidation: Record<PanelEditorTab, string | undefined> = {
+        [PanelEditorTab.General]: validateGeneralTab(sEditorConfig.title),
+        [PanelEditorTab.Data]: validateDataTab(sEditorConfig.query.tagSet),
+        [PanelEditorTab.DataSetting]: validateDataSettingTab(
+            sEditorConfig.display,
+        ),
+        [PanelEditorTab.Axes]: validateAxesTab(sEditorConfig.axes),
+        [PanelEditorTab.Display]: validateDisplayTab(sEditorConfig.display),
+        [PanelEditorTab.MainRange]:
+            sRangeInputToApply === undefined
+                ? sRangeValidationMessage
+                : undefined,
+    };
+    const sValidationMessage = Object.values(sTabValidation).find(
+        (message) => message !== undefined,
+    );
     const sHasInvalidEditorValues = sValidationMessage !== undefined;
     const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidEditorValues;
@@ -174,20 +174,32 @@ const PanelEditor = ({
             return;
         }
 
+        const sConfiguredRangeIsUnchanged =
+            sRangeInputToApply.start === pPanelInfo.time.rangeInput.start &&
+            sRangeInputToApply.end === pPanelInfo.time.rangeInput.end;
         pOnApplyEditorConfig({
             ...sEditorConfig,
+            query: {
+                ...sEditorConfig.query,
+                tagSet: sEditorConfig.axes.rightY.enabled
+                    ? sEditorConfig.query.tagSet
+                    : sEditorConfig.query.tagSet.map((series) => ({
+                          ...series,
+                          useSecondaryAxis: false,
+                      })),
+            },
             time: {
                 ...sEditorConfig.time,
                 rangeInput: sRangeInputToApply,
+                lastViewedRange:
+                    sEditorConfig.time.useLastViewedRange &&
+                    sConfiguredRangeIsUnchanged
+                        ? sEditorConfig.time.lastViewedRange
+                        : undefined,
             },
         });
         sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
         setAppliedEditorConfigKey(sEditorConfigKey);
-    };
-
-    const discardEditorChanges = () => {
-        resetEditorDraft(pPanelInfo);
-        pOnClose();
     };
 
     useEffect(() => {
@@ -198,12 +210,16 @@ const PanelEditor = ({
         setAppliedEditorConfigKey(sInitialEditorConfigKey);
 
         if (
+            !pIsOpen ||
             createEditorChangeKey(sEditorConfigRef.current) ===
-            sPreviousAppliedEditorConfigKey
+                sPreviousAppliedEditorConfigKey
         ) {
             resetEditorDraft(pPanelInfo);
         }
-    }, [pPanelInfo, sInitialEditorConfigKey]);
+        if (!pIsOpen) {
+            setSelectedTab(PanelEditorTab.General);
+        }
+    }, [pIsOpen, pPanelInfo, sInitialEditorConfigKey]);
 
     function resetEditorDraft(config: PanelInfo): void {
         setEditorDraft(createEditorDraft(config));
@@ -260,10 +276,13 @@ const PanelEditor = ({
                     />
                 );
             case PanelEditorTab.DataSetting:
-                if (sAxisKind === undefined) {
+                if (
+                    sTabValidation[PanelEditorTab.Data] ||
+                    sAxisKind === undefined
+                ) {
                     return (
                         <span className={styles.fieldError}>
-                            {sSeriesValidationMessage}
+                            {sTabValidation[PanelEditorTab.Data]}
                         </span>
                     );
                 }
@@ -284,10 +303,13 @@ const PanelEditor = ({
                     />
                 );
             case PanelEditorTab.MainRange:
-                if (sAxisKind === undefined) {
+                if (
+                    sTabValidation[PanelEditorTab.Data] ||
+                    sAxisKind === undefined
+                ) {
                     return (
                         <span className={styles.fieldError}>
-                            {sSeriesValidationMessage}
+                            {sTabValidation[PanelEditorTab.Data]}
                         </span>
                     );
                 }
@@ -295,8 +317,8 @@ const PanelEditor = ({
                     <EditorTimeTab
                         pTimeConfig={sTimeConfigForEditor}
                         pAxisKind={sAxisKind}
-                        pIsRangeInputValid={
-                            sRangeInputToApply !== undefined
+                        pValidationMessage={
+                            sTabValidation[PanelEditorTab.MainRange]
                         }
                         pMainRange={pMainRange}
                         pOnChangeTimeConfig={updateEditorDraft('time')}
@@ -310,22 +332,10 @@ const PanelEditor = ({
     return (
         <div
             data-testid="editor"
-            className={[
-                styles.editor,
-                pAnimationState === 'closing'
-                    ? styles.editorClosing
-                    : styles.editorOpening,
-            ]
-                .filter(Boolean)
-                .join(' ')}
-            onAnimationEnd={(event) => {
-                if (
-                    event.currentTarget === event.target &&
-                    pAnimationState === 'closing'
-                ) {
-                    pOnAnimationEnd();
-                }
-            }}
+            data-state={pIsOpen ? 'open' : 'closed'}
+            aria-hidden={!pIsOpen}
+            {...(!pIsOpen && { inert: '' })}
+            className={styles.editor}
         >
             <Page className={styles.editorPage}>
                 <Page.Header>
@@ -334,15 +344,52 @@ const PanelEditor = ({
                             <h3 className={styles.title}>Edit panel</h3>
                             <Page.TabContainer style={{ margin: 0 }}>
                                 <Page.TabList className={styles.tabList}>
-                                    {Object.values(PanelEditorTab).map((item) => (
-                                        <Page.TabItem
-                                            key={item}
-                                            active={sSelectedTab === item}
-                                            onClick={() => setSelectedTab(item)}
-                                        >
-                                            {item}
-                                        </Page.TabItem>
-                                    ))}
+                                    {Object.values(PanelEditorTab).map((item) => {
+                                        const sTabValidationMessage =
+                                            sTabValidation[item];
+                                        return (
+                                            <Page.TabItem
+                                                key={item}
+                                                active={sSelectedTab === item}
+                                                className={
+                                                    sTabValidationMessage
+                                                        ? styles.invalidTab
+                                                        : undefined
+                                                }
+                                                onClick={() => setSelectedTab(item)}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className={styles.tabButton}
+                                                    data-testid={
+                                                        PANEL_EDITOR_TAB_TEST_IDS[
+                                                            item
+                                                        ]
+                                                    }
+                                                    aria-pressed={
+                                                        sSelectedTab === item
+                                                    }
+                                                    aria-invalid={
+                                                        sTabValidationMessage
+                                                            ? true
+                                                            : undefined
+                                                    }
+                                                    aria-label={
+                                                        sTabValidationMessage
+                                                            ? `${item}, invalid settings`
+                                                            : item
+                                                    }
+                                                    title={
+                                                        sTabValidationMessage
+                                                            ? `${item}: ${sTabValidationMessage}`
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {item}
+                                                </button>
+                                            </Page.TabItem>
+                                        );
+                                    })}
                                 </Page.TabList>
                             </Page.TabContainer>
                         </div>
@@ -379,7 +426,7 @@ const PanelEditor = ({
                                     data-testid="editor-close"
                                     variant="danger"
                                     size="sm"
-                                    onClick={discardEditorChanges}
+                                    onClick={pOnClose}
                                 >
                                     Close
                                 </Button>

@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fftApi, type FftChartData } from '../api/fftApi';
 import type { ChartSeriesData } from '../chart/chartData';
-import type { FFTSelectionPayload } from './AnalysisModals';
 import type { PanelSeriesDefinition } from '../seriesModel';
+import { SelectionSummaryPopover } from './AnalysisModals';
 import {
     buildSelectionSummaryPayload,
-    SelectionSummaryPopover,
-} from './AnalysisModals';
+    type FFTSelectionPayload,
+} from './analysisModel';
 
 jest.mock('../api/fftApi', () => ({
     fftApi: {

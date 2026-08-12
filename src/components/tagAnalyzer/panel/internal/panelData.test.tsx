@@ -2,12 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import {
     seriesDataApi,
     type PanelDataFetchResult,
-    type PanelSeriesRowsRequest,
+    type SeriesRowsQuery,
 } from '../../api/seriesDataApi';
 import {
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
 } from '../../seriesModel';
+import { TimeUnit } from '../../range/intervalResolver';
 import { getRangeWidth } from '../../range/rangeArithmetic';
 import type { PanelInfo } from '../panelModel';
 import { usePanelData } from './panelData';
@@ -83,21 +84,13 @@ function createParams(
     };
 }
 
-function getSignal(
-    request: PanelSeriesRowsRequest,
-): AbortSignal | undefined {
-    if (request.kind === 'raw') return request.args[3];
-    if (request.kind === 'sampled-raw') return request.args[4];
-    return request.args[5]?.signal;
-}
-
 function calculatedResult(
-    request: PanelSeriesRowsRequest,
+    query: SeriesRowsQuery,
     usesRollup = false,
 ): PanelDataFetchResult {
     return [{
         seriesKey: TIME_SERIES.key,
-        data: [[request.args[1].end, 1]],
+        data: [[query.range.end, 1]],
         metadata: {
             kind: 'calculated',
             isLimitReached: false,
@@ -117,10 +110,7 @@ describe('usePanelData', () => {
         emptyInfo.query.tagSet = [];
         const empty = renderHook(() => usePanelData(createParams(emptyInfo)));
 
-        expect(empty.result.current).toEqual({
-            kind: 'invalid',
-            reason: 'emptySeries',
-        });
+        expect(empty.result.current).toEqual({ kind: 'invalid' });
         empty.unmount();
 
         const numericSeries: PanelSeriesDefinition = {
@@ -136,10 +126,7 @@ describe('usePanelData', () => {
         mixedInfo.query.tagSet = [TIME_SERIES, numericSeries];
         const mixed = renderHook(() => usePanelData(createParams(mixedInfo)));
 
-        expect(mixed.result.current).toEqual({
-            kind: 'invalid',
-            reason: 'mixedAxisKinds',
-        });
+        expect(mixed.result.current).toEqual({ kind: 'invalid' });
         expect(fetchSpy).not.toHaveBeenCalled();
         mixed.unmount();
     });
@@ -271,13 +258,14 @@ describe('usePanelData', () => {
 
     it('aborts and ignores an obsolete main request without restarting the navigator', async () => {
         const pending: Array<{
-            request: PanelSeriesRowsRequest;
+            query: SeriesRowsQuery;
+            signal: AbortSignal | undefined;
             resolve: (result: PanelDataFetchResult) => void;
         }> = [];
         jest.spyOn(seriesDataApi, 'fetchSeriesRows').mockImplementation(
-            (request) =>
+            (query, options) =>
                 new Promise<PanelDataFetchResult>((resolve) => {
-                    pending.push({ request, resolve });
+                    pending.push({ query, signal: options?.signal, resolve });
                 }),
         );
         const initialParams = createParams();
@@ -289,10 +277,10 @@ describe('usePanelData', () => {
 
         await waitFor(() => expect(pending).toHaveLength(2));
         const oldMain = pending.find(
-            ({ request }) => request.args[1].end === 100,
+            ({ query }) => query.range.end === 100,
         )!;
         const navigator = pending.find(
-            ({ request }) => request.args[1].end === 1_000,
+            ({ query }) => query.range.end === 1_000,
         )!;
 
         rerender({
@@ -309,13 +297,13 @@ describe('usePanelData', () => {
         });
         await waitFor(() => expect(pending).toHaveLength(3));
         const currentMain = pending.find(
-            ({ request }) => request.args[1].end === 90,
+            ({ query }) => query.range.end === 90,
         )!;
 
-        expect(getSignal(oldMain.request)?.aborted).toBe(true);
-        expect(getSignal(navigator.request)?.aborted).toBe(false);
+        expect(oldMain.signal?.aborted).toBe(true);
+        expect(navigator.signal?.aborted).toBe(false);
         await act(async () => {
-            oldMain.resolve(calculatedResult(oldMain.request));
+            oldMain.resolve(calculatedResult(oldMain.query));
             await Promise.resolve();
         });
         if (result.current.kind === 'queryable') {
@@ -324,7 +312,7 @@ describe('usePanelData', () => {
         }
 
         await act(async () => {
-            currentMain.resolve(calculatedResult(currentMain.request));
+            currentMain.resolve(calculatedResult(currentMain.query));
             await Promise.resolve();
         });
         await waitFor(() => {
@@ -333,7 +321,7 @@ describe('usePanelData', () => {
         });
 
         unmount();
-        expect(getSignal(navigator.request)?.aborted).toBe(true);
+        expect(navigator.signal?.aborted).toBe(true);
     });
 
     it('prefetches and reuses a covering navigator request before debounced misses', async () => {
@@ -358,7 +346,7 @@ describe('usePanelData', () => {
 
         await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
         expect(
-            fetchSpy.mock.calls.map(([request]) => request.args[1]),
+            fetchSpy.mock.calls.map(([query]) => query.range),
         ).toContainEqual({ start: 200, end: 1_400 });
 
         rerender({
@@ -411,7 +399,7 @@ describe('usePanelData', () => {
         await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(4));
     });
 
-    it('applies resolution hysteresis to covering navigator data', async () => {
+    it('reuses prefetched navigator data only at the exact fixed resolution', async () => {
         const day = 24 * 60 * 60 * 1_000;
         const fetchSpy = jest.spyOn(seriesDataApi, 'fetchSeriesRows')
             .mockImplementation(async (request) => calculatedResult(request));
@@ -440,14 +428,16 @@ describe('usePanelData', () => {
 
         await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
         const navigatorRequest = fetchSpy.mock.calls
-            .map(([request]) => request)
+            .map(([query]) => query)
             .find(
-                (request) =>
-                    getRangeWidth(request.args[1]) === 500 * day,
+                (query) => getRangeWidth(query.range) === 500 * day,
             );
         expect(navigatorRequest?.kind).toBe('calculated');
         if (navigatorRequest?.kind !== 'calculated') return;
-        expect(navigatorRequest.args[2].IntervalValue).toBe(5);
+        expect(navigatorRequest.interval).toEqual({
+            IntervalType: TimeUnit.Day,
+            IntervalValue: 5,
+        });
 
         rerender({
             params: withNavigatorRange(
@@ -456,10 +446,20 @@ describe('usePanelData', () => {
                 400 * day,
             ),
         });
-        await act(async () => {
-            await new Promise((resolve) => window.setTimeout(resolve, 150));
-        });
         expect(fetchSpy).toHaveBeenCalledTimes(2);
+        await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(3));
+
+        const refreshedNavigator = fetchSpy.mock.calls
+            .map(([query]) => query)
+            .find(
+                (query) => getRangeWidth(query.range) === 600 * day,
+            );
+        expect(refreshedNavigator?.kind).toBe('calculated');
+        if (refreshedNavigator?.kind !== 'calculated') return;
+        expect(refreshedNavigator.interval).toEqual({
+            IntervalType: TimeUnit.Day,
+            IntervalValue: 10,
+        });
 
         rerender({
             params: withNavigatorRange(
@@ -468,8 +468,10 @@ describe('usePanelData', () => {
                 415 * day,
             ),
         });
-        expect(fetchSpy).toHaveBeenCalledTimes(2);
-        await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(3));
+        await act(async () => {
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+        });
+        expect(fetchSpy).toHaveBeenCalledTimes(3);
     });
 });
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Input } from '@/design-system/components';
-import styles from './PanelEditor.module.scss';
+import styles from '../PanelEditor.module.scss';
 
 export function Section({
     title,

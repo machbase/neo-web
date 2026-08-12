@@ -306,6 +306,58 @@ describe('panel range resolution policy', () => {
 describe('usePanelRangeRuntime', () => {
     afterEach(() => jest.restoreAllMocks());
 
+    it('reloads the configured range only when the editor changes its exact input', async () => {
+        const fetchFullRange = jest
+            .spyOn(seriesDataApi, 'fetchSeriesFullRange')
+            .mockResolvedValue(FULL_RANGE);
+        const panelInfo = createPanelInfo();
+        panelInfo.time.rangeInput = { start: '10', end: '30' };
+        const onRangeStateChange = jest.fn();
+        const { result } = renderHook(() =>
+            usePanelRangeRuntime({
+                ...createBroadcastRequests(),
+                panelInfo,
+                rangeState: createResolvedRangeState(),
+                isActive: true,
+                onRangeStateChange,
+                onBroadcastError: jest.fn(),
+            }),
+        );
+        act(() => result.current.actions.setChartAreaWidth(400));
+        await waitFor(() => expect(fetchFullRange).toHaveBeenCalled());
+        fetchFullRange.mockClear();
+        onRangeStateChange.mockClear();
+
+        act(() =>
+            result.current.actions.reloadAfterEditorSave({
+                ...panelInfo,
+                title: 'Renamed panel',
+            }),
+        );
+        await waitFor(() => expect(fetchFullRange).toHaveBeenCalledTimes(1));
+        expect(onRangeStateChange).not.toHaveBeenCalled();
+
+        act(() =>
+            result.current.actions.reloadAfterEditorSave({
+                ...panelInfo,
+                time: {
+                    ...panelInfo.time,
+                    rangeInput: { start: ' 10', end: '30' },
+                },
+            }),
+        );
+        await waitFor(() => expect(fetchFullRange).toHaveBeenCalledTimes(2));
+        await waitFor(() =>
+            expect(onRangeStateChange).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    range: expect.objectContaining({
+                        mainRange: { start: 10, end: 30 },
+                    }),
+                }),
+            ),
+        );
+    });
+
     it('consumes each Board range version once and defers inactive versions', async () => {
         jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(
             FULL_RANGE,

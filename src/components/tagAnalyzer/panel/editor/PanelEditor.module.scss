@@ -1,21 +1,34 @@
 .editor {
     width: 100%;
-    margin-top: 16px;
+    max-height: 0;
+    margin-top: 0;
     overflow: hidden;
-    border: 0.5px solid #454545;
+    border: 0 solid #454545;
     border-radius: 8px;
     background: var(--color-background-primary);
-    transform-origin: top center;
-    will-change: max-height, opacity, transform, margin-top;
-}
-
-.editorOpening {
-    animation: panelEditorSlideDown 180ms ease-out both;
-}
-
-.editorClosing {
+    visibility: hidden;
+    opacity: 0;
     pointer-events: none;
-    animation: panelEditorSlideUp 150ms ease-in both;
+    transform: translateY(-14px);
+    transition:
+        max-height 150ms ease-in,
+        margin-top 150ms ease-in,
+        opacity 150ms ease-in,
+        transform 150ms ease-in,
+        visibility 0s linear 150ms;
+}
+
+.editor[data-state='open'] {
+    max-height: 640px;
+    margin-top: 16px;
+    border-width: 0.5px;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition-timing-function: ease-out;
+    transition-duration: 180ms;
+    transition-delay: 0s;
 }
 
 .editorPage {
@@ -53,6 +66,29 @@
     flex-wrap: nowrap;
     min-width: 0;
     overflow-x: auto;
+}
+
+.invalidTab {
+    color: #ff6b6b;
+
+    &::after {
+        flex: 0 0 6px;
+        width: 6px;
+        height: 6px;
+        margin-left: 5px;
+        border-radius: 50%;
+        background: currentcolor;
+        content: '';
+    }
+}
+
+.tabButton {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: inherit;
+    font: inherit;
 }
 
 .actions {
@@ -589,40 +625,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .editorOpening,
-    .editorClosing {
-        animation-duration: 1ms;
-    }
-}
-
-@keyframes panelEditorSlideDown {
-    from {
-        max-height: 0;
-        margin-top: 0;
-        opacity: 0;
-        transform: translateY(-14px);
-    }
-
-    to {
-        max-height: 640px;
-        margin-top: 16px;
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes panelEditorSlideUp {
-    from {
-        max-height: 640px;
-        margin-top: 16px;
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    to {
-        max-height: 0;
-        margin-top: 0;
-        opacity: 0;
-        transform: translateY(-14px);
+    .editor {
+        transition: none;
     }
 }

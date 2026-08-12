@@ -49,6 +49,11 @@ export type PanelActionDescriptor = {
     showInContextMenu?: boolean;
 };
 
+/** Keeps icon-only header buttons from resizing with their icon. */
+function fixedButtonSize(width: number): CSSProperties {
+    return { minWidth: width, maxWidth: width, minHeight: 22, maxHeight: 22 };
+}
+
 export function buildPanelActions(
     actionState: PanelActionState,
     includeExportCsv = false,
@@ -57,25 +62,17 @@ export function buildPanelActions(
         actionState.active.includes(key);
     const isDisabled = (key: PanelActionKey): boolean =>
         actionState.disabled.includes(key);
-    const sActions: PanelActionDescriptor[] = [
+
+    return [
         {
             key: PanelActionKey.TOGGLE_RAW,
             label: isActive(PanelActionKey.TOGGLE_RAW)
                 ? 'Disable raw data mode'
                 : 'Enable raw data mode',
-            icon: createElement(
-                'span',
-                { className: 'panel-header__raw-label' },
-                'RAW',
-            ),
+            icon: createElement('span', { className: 'panel-header__raw-label' }, 'RAW'),
             active: isActive(PanelActionKey.TOGGLE_RAW),
             className: 'panel-header__action--raw',
-            buttonStyle: {
-                minWidth: 34,
-                maxWidth: 34,
-                minHeight: 22,
-                maxHeight: 22,
-            },
+            buttonStyle: fixedButtonSize(34),
             showInContextMenu: true,
         },
         {
@@ -103,12 +100,7 @@ export function buildPanelActions(
             tooltip: 'Select data range for stats and FFT',
             icon: createElement(PiSelectionPlusBold, { size: 18 }),
             active: isActive(PanelActionKey.TOGGLE_DRAG_SELECT),
-            buttonStyle: {
-                minWidth: 24,
-                maxWidth: 24,
-                minHeight: 22,
-                maxHeight: 22,
-            },
+            buttonStyle: fixedButtonSize(24),
             showInContextMenu: true,
         },
         {
@@ -152,6 +144,16 @@ export function buildPanelActions(
             active: isActive(PanelActionKey.TOGGLE_EDIT),
             showInContextMenu: true,
         },
+        ...(includeExportCsv
+            ? [
+                  {
+                      key: PanelActionKey.OPEN_EXPORT_CSV,
+                      label: 'Export CSV',
+                      icon: createElement(Download, { size: 16 }),
+                      showInExtraMenu: true,
+                  },
+              ]
+            : []),
         {
             key: PanelActionKey.OPEN_DELETE_CONFIRM,
             label: 'Delete panel',
@@ -160,15 +162,4 @@ export function buildPanelActions(
             showInContextMenu: true,
         },
     ];
-
-    if (includeExportCsv) {
-        sActions.splice(sActions.length - 1, 0, {
-            key: PanelActionKey.OPEN_EXPORT_CSV,
-            label: 'Export CSV',
-            icon: createElement(Download, { size: 16 }),
-            showInExtraMenu: true,
-        });
-    }
-
-    return sActions;
 }

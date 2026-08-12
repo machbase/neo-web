@@ -5,7 +5,7 @@ const executablePath =
 
 export default defineConfig({
     testDir: './playwright_test',
-    reporter: 'list',
+    reporter: './playwright_test/reporters/featureReporter.ts',
     timeout: 60_000,
 
     use: {

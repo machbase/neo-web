@@ -1,6 +1,6 @@
 import { Checkbox, Input } from '@/design-system/components';
 import type { PanelInfo } from '../../panelModel';
-import { Section } from '../EditorControls';
+import { Section } from './TabControls';
 import styles from '../PanelEditor.module.scss';
 
 type EditorGeneralTabProps = {

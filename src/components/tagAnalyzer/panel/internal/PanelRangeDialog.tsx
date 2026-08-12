@@ -72,65 +72,55 @@ export function usePanelRangeDialog({
         }
     }, [renderMainRange]);
 
-    const currentRange = target === 'main'
-        ? renderMainRange
-        : target === 'navigator'
-          ? renderRange?.navigatorRange
-          : undefined;
-    const initialRangeInput = getInitialRangeInput({
-        target,
-        currentRange,
-        rangeState,
-        retainedMainRangeInput: retainedMainRangeInputRef.current,
-        isNumericXAxis,
-    });
+    const currentRange = target === undefined
+        ? undefined
+        : target === 'main'
+          ? renderMainRange
+          : renderRange?.navigatorRange;
     const dialog: PanelRangeDialogState | undefined = target !== undefined &&
         rangeState !== undefined &&
         currentRange !== undefined
         ? {
               target,
               kind: isNumericXAxis ? 'numeric' : 'time',
-              initialRangeInput,
+              initialRangeInput: getInitialRangeInput(
+                  target,
+                  currentRange,
+                  rangeState,
+                  retainedMainRangeInputRef.current,
+                  isNumericXAxis,
+              ),
               currentRange,
               fullRange: rangeState.fullRange ?? currentRange,
           }
         : undefined;
 
-    function openMain(): void {
-        if (rangeState !== undefined) setTarget('main');
-    }
-
-    function openNavigator(): void {
-        if (rangeState !== undefined) setTarget('navigator');
-    }
-
-    function close(): void {
-        setTarget(undefined);
+    function open(nextTarget: PanelRangeTarget): void {
+        if (rangeState !== undefined) setTarget(nextTarget);
     }
 
     function apply(
         rangeInput: RangeExpressionInput,
         concreteRange: AxisRange,
     ): void {
+        if (target === 'navigator') {
+            onNavigatorRangeChange(concreteRange, rangeInput);
+            return;
+        }
         if (target === 'main') {
             retainedMainRangeInputRef.current = {
                 rangeInput: { ...rangeInput },
                 concreteRange: { ...concreteRange },
             };
             onMainRangeChange(concreteRange);
-            return;
-        }
-
-        if (target === 'navigator') {
-            onNavigatorRangeChange(concreteRange, rangeInput);
         }
     }
 
     return {
         dialog,
-        openMain,
-        openNavigator,
-        close,
+        openMain: () => open('main'),
+        openNavigator: () => open('navigator'),
+        close: () => setTarget(undefined),
         apply,
     };
 }
@@ -155,38 +145,30 @@ export function PanelRangeDialog({
     );
 }
 
-function getInitialRangeInput({
-    target,
-    currentRange,
-    rangeState,
-    retainedMainRangeInput,
-    isNumericXAxis,
-}: {
-    target: PanelRangeTarget | undefined;
-    currentRange: AxisRange | undefined;
-    rangeState: ResolvedRangeState | undefined;
-    retainedMainRangeInput: RetainedMainRangeInput | undefined;
-    isNumericXAxis: boolean | undefined;
-}): RangeExpressionInput {
+/**
+ * Prefers the expression the user last typed — the navigator's stored input, or
+ * the main input retained while it still describes the visible range — and
+ * falls back to formatting the concrete range.
+ */
+function getInitialRangeInput(
+    target: PanelRangeTarget,
+    currentRange: AxisRange,
+    rangeState: ResolvedRangeState,
+    retainedMainRangeInput: RetainedMainRangeInput | undefined,
+    isNumericXAxis: boolean | undefined,
+): RangeExpressionInput {
     if (
         target === 'navigator' &&
-        rangeState !== undefined &&
         !isRangeExpressionEmpty(rangeState.navigatorRangeInput)
     ) {
         return rangeState.navigatorRangeInput;
     }
-
     if (
         target === 'main' &&
-        currentRange !== undefined &&
         retainedMainRangeInput !== undefined &&
         isSameRange(retainedMainRangeInput.concreteRange, currentRange)
     ) {
         return retainedMainRangeInput.rangeInput;
-    }
-
-    if (currentRange === undefined) {
-        return { start: '', end: '' };
     }
 
     return isNumericXAxis

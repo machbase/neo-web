@@ -292,7 +292,6 @@ export function usePanelRangeRuntime(
         expandFullRange: () => void;
         reloadAfterEditorSave: (
             nextPanelInfo: PanelInfo,
-            rangePolicy: 'preserveVisibleRange' | 'applyConfiguredRange',
         ) => void;
     };
 } {
@@ -818,18 +817,18 @@ export function usePanelRangeRuntime(
 
     const reloadAfterEditorSave = useStableCallback((
         nextPanelInfo: PanelInfo,
-        rangePolicy: 'preserveVisibleRange' | 'applyConfiguredRange',
     ): void => {
         setDataRefreshVersion((current) => current + 1);
 
-        const configuredRangeChanged = !isSameRangeInput(
-            inputsRef.current.panelInfo.time.rangeInput,
-            nextPanelInfo.time.rangeInput,
-        );
+        const currentRangeInput =
+            inputsRef.current.panelInfo.time.rangeInput;
+        const nextRangeInput = nextPanelInfo.time.rangeInput;
+        const configuredRangeChanged =
+            currentRangeInput.start !== nextRangeInput.start ||
+            currentRangeInput.end !== nextRangeInput.end;
         scheduleRangeReload(
             nextPanelInfo,
-            rangePolicy === 'applyConfiguredRange' ||
-                configuredRangeChanged
+            configuredRangeChanged
                 ? 'configured'
                 : 'preserveCurrent',
         );

@@ -11,9 +11,7 @@ import type { AxisRange } from '../../range/rangeModel';
 import type { PanelInfo } from '../panelModel';
 import { PanelContextMenu } from './PanelContextMenu';
 import type { PanelActionKey, PanelActionState } from './panelActions';
-import type {
-    PanelSurface,
-} from './panelInteraction';
+import type { PanelSurface } from './panelInteraction';
 
 type PanelSurfaceLayerProps = {
     surface: PanelSurface | undefined;
@@ -43,6 +41,7 @@ export function PanelSurfaceLayer({
     onDismiss,
 }: PanelSurfaceLayerProps) {
     if (!surface) return null;
+    const dismissOnClose = (isOpen: boolean) => !isOpen && onDismiss(surface.id);
 
     switch (surface.kind) {
         case 'contextMenu':
@@ -92,9 +91,7 @@ export function PanelSurfaceLayer({
             return (
                 <ConfirmModal
                     pIsDarkMode
-                    setIsOpen={(isOpen) =>
-                        !isOpen && onDismiss(surface.id)
-                    }
+                    setIsOpen={dismissOnClose}
                     pCallback={onDeletePanel}
                     pContents={
                         <div className="body-content">
@@ -112,9 +109,7 @@ export function PanelSurfaceLayer({
                     )}
                     pChartRef={panelChartApiRef}
                     pIsDarkMode
-                    setIsOpen={(isOpen) =>
-                        !isOpen && onDismiss(surface.id)
-                    }
+                    setIsOpen={dismissOnClose}
                 />
             ) : null;
     }

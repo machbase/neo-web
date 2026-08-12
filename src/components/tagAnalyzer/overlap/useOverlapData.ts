@@ -9,7 +9,7 @@ import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../hooks/useLatestAsyncRequest';
-import { buildMainSeriesRequest } from '../panel/series/panelSeriesRequest';
+import { buildPanelSeriesQuery } from '../panel/series/panelSeriesRequest';
 import {
     createOverlapChartSeriesGroup,
     type OverlapChartSeriesGroup,
@@ -109,13 +109,14 @@ async function fetchOverlapPanelData(
 ) {
     const panelInfo = overlapPanel.panelInfo;
     const fetchResult = await seriesDataApi.fetchSeriesRows(
-        buildMainSeriesRequest(
+        buildPanelSeriesQuery(
+            'main',
             panelInfo,
             overlapPanel.visibleRange,
             OVERLAP_CHART_FETCH_WIDTH_PX,
             {},
-            { signal },
         ),
+        { signal },
     );
 
     const seriesData = mapFetchResultToChartData(

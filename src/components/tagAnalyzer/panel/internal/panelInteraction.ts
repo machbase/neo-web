@@ -35,7 +35,6 @@ type PanelInteractionReducerState = {
     overlayMode: PanelOverlayMode;
     activeSurface: PanelSurface | undefined;
     nextSurfaceId: number;
-    editorStatus: 'closed' | 'open' | 'closing';
     selectionSummary: PanelSelectionSummary | undefined;
     overlayCursorHint: PanelOverlayCursorHintState | undefined;
     hoveredMainSeriesName: string | undefined;
@@ -49,9 +48,6 @@ type PanelInteractionAction =
           overlayMode?: PanelOverlayMode;
       }
     | { type: 'DISMISS_SURFACE'; surfaceId: number }
-    | { type: 'TOGGLE_EDITOR' }
-    | { type: 'CLOSE_EDITOR' }
-    | { type: 'FINISH_EDITOR_CLOSE' }
     | {
           type: 'OPEN_SELECTION';
           selectionSummary: PanelSelectionSummary;
@@ -68,7 +64,6 @@ const INITIAL_STATE: PanelInteractionReducerState = {
     overlayMode: PanelOverlayMode.NO_OVERLAY,
     activeSurface: undefined,
     nextSurfaceId: 1,
-    editorStatus: 'closed',
     selectionSummary: undefined,
     overlayCursorHint: undefined,
     hoveredMainSeriesName: undefined,
@@ -113,19 +108,6 @@ function reduceInteraction(
                     overlayMode: PanelOverlayMode.NO_OVERLAY,
                 }),
             };
-        case 'TOGGLE_EDITOR':
-            return {
-                ...state,
-                editorStatus: state.editorStatus === 'open' ? 'closing' : 'open',
-            };
-        case 'CLOSE_EDITOR':
-            return state.editorStatus === 'closed'
-                ? state
-                : { ...state, editorStatus: 'closing' };
-        case 'FINISH_EDITOR_CLOSE':
-            return state.editorStatus === 'closing'
-                ? { ...state, editorStatus: 'closed' }
-                : state;
         case 'OPEN_SELECTION':
             return {
                 ...state,
@@ -240,9 +222,6 @@ export function usePanelInteraction(
             requestExport: () => showSurface({ kind: 'exportCsv' }),
             dismissSurface: (surfaceId: number) =>
                 dispatch({ type: 'DISMISS_SURFACE', surfaceId }),
-            toggleEditor: () => dispatch({ type: 'TOGGLE_EDITOR' }),
-            closeEditor: () => dispatch({ type: 'CLOSE_EDITOR' }),
-            finishEditorClose: () => dispatch({ type: 'FINISH_EDITOR_CLOSE' }),
             openSelection: (
                 selectionSummary: PanelSelectionSummary,
                 overlayMode?: PanelOverlayMode,

@@ -1,4 +1,4 @@
-import { memo, useRef, type MouseEvent } from 'react';
+import { memo, useRef, useState, type MouseEvent } from 'react';
 import PanelChart, {
     ANNOTATION_INVALID_TARGET_MESSAGE,
     PanelOverlayCursorHint,
@@ -15,7 +15,6 @@ import {
 } from './internal/PanelRangeDialog';
 import { PanelSurfaceLayer } from './internal/PanelSurfaceLayer';
 import PanelEditor from './editor/PanelEditor';
-import { resolvePanelEditorApply } from './editor/panelEditorPolicy';
 import { SelectionSummaryPopover } from '../tools/AnalysisModals';
 import { buildSelectionSummaryPayload } from '../tools/analysisModel';
 import { type PanelInfo } from './panelModel';
@@ -95,6 +94,7 @@ export default memo(function Panel({
     const isOverlapSelected = panelInfo.isOverlapSelected;
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
+    const [isEditorOpen, setEditorOpen] = useState(false);
 
     const rangeRuntime = usePanelRangeRuntime({
         ...broadcastRequests,
@@ -121,7 +121,6 @@ export default memo(function Panel({
         overlayMode,
         activeSurface,
         draftHighlight,
-        editorStatus,
         selectionSummary,
         overlayCursorHint,
         hoveredMainSeriesName,
@@ -136,18 +135,12 @@ export default memo(function Panel({
         requestDelete,
         requestExport,
         dismissSurface,
-        toggleEditor,
-        closeEditor: closeInteractionEditor,
-        finishEditorClose,
         openSelection,
         closeSelection,
         showCursorHint,
         setHoveredSeries,
         clearCursorHint,
     } = interaction.actions;
-    const isEditorMounted = editorStatus !== 'closed';
-    const isEditorClosing = editorStatus === 'closing';
-
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
 
     const panelData = usePanelData({
@@ -172,8 +165,7 @@ export default memo(function Panel({
     const dataSettingMetrics =
         queryableData?.query.metrics ?? EMPTY_PANEL_DATA_METRICS;
     const hasMixedXAxisKinds =
-        panelData.kind === 'invalid' &&
-        panelData.reason === 'mixedAxisKinds';
+        panelData.kind === 'invalid' && panelInfo.query.tagSet.length > 0;
     const isNumericXAxis = queryableData?.query.axisKind === 'numeric';
     const chartLoadState = queryableData?.load.requests.main;
     const navigatorLoadState = queryableData?.load.requests.navigator;
@@ -219,12 +211,8 @@ export default memo(function Panel({
     };
 
     function applyEditedPanelConfig(editorConfig: PanelInfo): void {
-        const { nextPanelInfo, reloadPolicy } = resolvePanelEditorApply(
-            panelInfo,
-            editorConfig,
-        );
-        onApplyPanelInfo(nextPanelInfo);
-        onReloadAfterEditorSave(nextPanelInfo, reloadPolicy);
+        onApplyPanelInfo(editorConfig);
+        onReloadAfterEditorSave(editorConfig);
     }
 
     function requireChartAreaRect(action: string): DOMRect {
@@ -253,7 +241,7 @@ export default memo(function Panel({
     if (overlayMode === PanelOverlayMode.DRAG_SELECT) {
         activeHeaderActions.push(PanelActionKey.TOGGLE_DRAG_SELECT);
     }
-    if (isEditorMounted && !isEditorClosing) {
+    if (isEditorOpen) {
         activeHeaderActions.push(PanelActionKey.TOGGLE_EDIT);
     }
     const panelHeaderState = {
@@ -305,7 +293,8 @@ export default memo(function Panel({
             [PanelActionKey.REFRESH_DATA]: onRefreshData,
             [PanelActionKey.REFRESH_RANGE]: onRefreshRange,
             [PanelActionKey.EXPAND_FULL_RANGE]: onExpandFullRange,
-            [PanelActionKey.TOGGLE_EDIT]: toggleEditor,
+            [PanelActionKey.TOGGLE_EDIT]: () =>
+                setEditorOpen((open) => !open),
             [PanelActionKey.OPEN_EXPORT_CSV]: requestExport,
             [PanelActionKey.OPEN_DELETE_CONFIRM]: requestDelete,
         };
@@ -462,12 +451,11 @@ export default memo(function Panel({
                     pOnOpenNavigatorRangeModal={rangeDialog.openNavigator}
                 />
             </div>
-            {isEditorMounted && renderRange && (
+            {renderRange && (
                 <PanelEditor
-                    pAnimationState={isEditorClosing ? 'closing' : 'opening'}
+                    pIsOpen={isEditorOpen}
                     pOnApplyEditorConfig={applyEditedPanelConfig}
-                    pOnClose={closeInteractionEditor}
-                    pOnAnimationEnd={finishEditorClose}
+                    pOnClose={() => setEditorOpen(false)}
                     pPanelInfo={panelInfo}
                     pHasUnsavedBoardChanges={hasUnsavedBoardChanges}
                     pMainRange={renderRange.mainRange}

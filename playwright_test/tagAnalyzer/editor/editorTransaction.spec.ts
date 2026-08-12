@@ -27,13 +27,19 @@ test.describe('Tag Analyzer panel editor', () => {
             });
             await expect(panel).toBeVisible();
 
+            const editor = panel.getByTestId('editor');
+            await expect(editor).toHaveCount(1);
+            await expect(editor).toBeHidden();
+            await expect(editor).toHaveAttribute('aria-hidden', 'true');
+            await expect(editor).toHaveAttribute('inert', '');
+
             // 2. [1.4.3.1.1] Open the editor and change its draft title.
             await panel
                 .getByTestId('action-toggle-edit')
                 .click();
-            await expect(
-                panel.getByTestId('editor'),
-            ).toBeVisible();
+            await expect(editor).toBeVisible();
+            await expect(editor).toHaveAttribute('aria-hidden', 'false');
+            await expect(editor).not.toHaveAttribute('inert', '');
 
             const titleInput = panel.getByTestId(
                 'editor-title-input',
@@ -65,15 +71,18 @@ test.describe('Tag Analyzer panel editor', () => {
             await expect(
                 panel.getByTestId('title-button'),
             ).toHaveText(appliedTitle);
-            await panel
-                .getByTestId('editor-close')
-                .click();
-            await expect(
-                panel.getByTestId('editor'),
-            ).toHaveCount(0);
+            await panel.getByTestId('action-toggle-edit').click();
+            await expect(editor).toHaveCount(1);
+            await expect(editor).toBeHidden();
             await expect(
                 panel.getByTestId('title-button'),
             ).toHaveText(appliedTitle);
+
+            await panel.getByTestId('action-toggle-edit').click();
+            await expect(editor).toBeVisible();
+            await expect(titleInput).toHaveValue(appliedTitle);
+            await panel.getByTestId('editor-close').click();
+            await expect(editor).toBeHidden();
 
             // 6. [1.2.3.3, 1.2.3.8] Save the applied session as a new file.
             await board

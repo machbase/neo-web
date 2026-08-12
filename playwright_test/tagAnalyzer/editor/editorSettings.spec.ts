@@ -45,7 +45,8 @@ test.describe('Tag Analyzer panel editor settings', () => {
             'You have unapplied changes.',
         );
         await editor.getByTestId('editor-close').click();
-        await expect(editor).toHaveCount(0);
+        await expect(editor).toHaveCount(1);
+        await expect(editor).toBeHidden();
         await expect(panel.getByTestId('title-button')).toHaveText(
             appliedTitle,
         );
@@ -73,7 +74,10 @@ test.describe('Tag Analyzer panel editor settings', () => {
 
         await editor.getByTestId('editor-title-input').fill('   ');
         await expect(apply).toBeDisabled();
-        await expect(editor.getByTitle('Enter a panel title.')).toHaveCount(1);
+        await expect(editor.getByTestId('editor-tab-general')).toHaveAttribute(
+            'aria-invalid',
+            'true',
+        );
 
         await editor
             .getByTestId('editor-title-input')

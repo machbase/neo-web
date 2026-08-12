@@ -177,19 +177,18 @@ export function PanelHeader(props: PanelHeaderProps) {
     const sTimeText = sFormattedRange
         ? `${sFormattedRange.start} ~ ${sFormattedRange.end}`
         : '';
-    const sRangeLabel = state.isNumericXAxis
+    const sRangeLabel = sFormattedRange && state.isNumericXAxis
         ? 'Set current visible main chart value range'
         : 'Set current visible main chart range';
     const sIntervalText = sResolution?.label ?? '';
     const sRollupSummary = getRollupHeaderSummary(sSeriesRollupStatusList);
-    const sTimeSummaryText = [
+    const sTimeSummaryBaseText =
         sTimeText && sIntervalText
             ? `${sTimeText} (${sResolution?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
-            : sTimeText,
-        sRollupSummary?.titleText,
-    ]
-        .filter(Boolean)
-        .join(', ');
+            : sTimeText;
+    const sTimeSummaryText = sRollupSummary
+        ? `${sTimeSummaryBaseText}, ${sRollupSummary.titleText}`
+        : sTimeSummaryBaseText;
     const sActions = buildPanelActions(
         state.actionState,
         getExperiment() && state.canExportCsv,

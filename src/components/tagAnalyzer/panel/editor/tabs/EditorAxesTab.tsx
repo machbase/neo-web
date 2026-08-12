@@ -12,7 +12,7 @@ import {
     type PanelSeriesDefinition,
 } from '../../../seriesModel';
 
-import { NumberInput, Section } from '../EditorControls';
+import { NumberInput, Section } from './TabControls';
 import styles from '../PanelEditor.module.scss';
 
 type AxisKey = keyof Pick<PanelAxes, 'x' | 'leftY' | 'rightY'>;
