@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { PanelOverlayMode } from '../../chart/chartRuntime';
+import type { FFTSelectionPayload } from '../../tools/analysisModel';
 import { usePanelInteraction } from './panelInteraction';
 
 const SERIES_LIST = [{ key: 'temperature' }];
@@ -139,5 +140,80 @@ describe('usePanelInteraction', () => {
         expect(result.current.state.overlayMode).toBe(
             PanelOverlayMode.NO_OVERLAY,
         );
+    });
+
+    it('retains a selection only while switching to annotation mode', () => {
+        const { result } = renderHook(() =>
+            usePanelInteraction(SERIES_LIST),
+        );
+        const selectionSummary = {
+            selection: { start: 1, end: 2 } as FFTSelectionPayload,
+            popoverPosition: { x: 3, y: 4 },
+        };
+
+        act(() => {
+            result.current.actions.openSelection(
+                selectionSummary,
+            );
+            result.current.actions.toggleOverlay(
+                PanelOverlayMode.ANNOTATION,
+            );
+        });
+        expect(result.current.state.selectionSummary).toEqual(
+            selectionSummary,
+        );
+
+        act(() => {
+            result.current.actions.toggleOverlay(
+                PanelOverlayMode.HIGHLIGHT,
+            );
+        });
+        expect(result.current.state.selectionSummary).toBeUndefined();
+    });
+
+    it('updates and clears the cursor hint with its hovered series', () => {
+        const { result } = renderHook(() =>
+            usePanelInteraction(SERIES_LIST),
+        );
+
+        act(() => {
+            result.current.actions.showCursorHint({
+                x: 10,
+                y: 20,
+                isValidTarget: true,
+                hoveredMainSeriesName: undefined,
+                overlayMode: PanelOverlayMode.ANNOTATION,
+            });
+            result.current.actions.setHoveredSeries('temperature');
+        });
+        expect(result.current.state.overlayCursorHint).toMatchObject({
+            hoveredMainSeriesName: 'temperature',
+        });
+
+        act(() => result.current.actions.clearCursorHint());
+        expect(result.current.state.overlayCursorHint).toBeUndefined();
+        expect(result.current.state.hoveredMainSeriesName).toBeUndefined();
+    });
+
+    it('disarms highlight mode when an empty selection cannot create a draft', () => {
+        const { result } = renderHook(() =>
+            usePanelInteraction(SERIES_LIST),
+        );
+
+        act(() => {
+            result.current.actions.toggleOverlay(
+                PanelOverlayMode.HIGHLIGHT,
+            );
+            result.current.actions.beginHighlightCreate(
+                { start: 5, end: 5 },
+                { x: 10, y: 20 },
+            );
+        });
+
+        expect(result.current.state.overlayMode).toBe(
+            PanelOverlayMode.NO_OVERLAY,
+        );
+        expect(result.current.state.activeSurface).toBeUndefined();
+        expect(result.current.state.draftHighlight).toBeUndefined();
     });
 });

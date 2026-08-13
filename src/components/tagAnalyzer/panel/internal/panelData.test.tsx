@@ -110,7 +110,7 @@ describe('usePanelData', () => {
         emptyInfo.query.tagSet = [];
         const empty = renderHook(() => usePanelData(createParams(emptyInfo)));
 
-        expect(empty.result.current).toEqual({ kind: 'invalid' });
+        expect(empty.result.current.axisKind).toBeUndefined();
         empty.unmount();
 
         const numericSeries: PanelSeriesDefinition = {
@@ -126,9 +126,26 @@ describe('usePanelData', () => {
         mixedInfo.query.tagSet = [TIME_SERIES, numericSeries];
         const mixed = renderHook(() => usePanelData(createParams(mixedInfo)));
 
-        expect(mixed.result.current).toEqual({ kind: 'invalid' });
+        expect(mixed.result.current.axisKind).toBeUndefined();
         expect(fetchSpy).not.toHaveBeenCalled();
         mixed.unmount();
+    });
+
+    it('surfaces invalid enabled sampling as a request error', () => {
+        const panelInfo = createPanelInfo(true);
+        panelInfo.display.mainChartSampling = {
+            enabled: true,
+            sampleCount: 0,
+        };
+
+        const { result } = renderHook(() =>
+            usePanelData(createParams(panelInfo)),
+        );
+
+        expect(result.current.main).toMatchObject({
+            status: 'failed',
+            error: 'Raw panel sampling requires a positive sample count.',
+        });
     });
 
     it('loads independent chart data and derives metrics and rollup status', async () => {
@@ -138,24 +155,19 @@ describe('usePanelData', () => {
         const { result } = renderHook(() => usePanelData(createParams()));
 
         await waitFor(() => {
-            if (result.current.kind !== 'queryable') return;
-            expect(result.current.load.requests).toMatchObject({
-                main: { status: 'ready' },
-                navigator: { status: 'ready' },
-            });
+            expect(result.current.main.status).toBe('ready');
+            expect(result.current.navigator.status).toBe('ready');
         });
 
-        expect(result.current.kind).toBe('queryable');
-        if (result.current.kind !== 'queryable') return;
-        expect(result.current.series.main[0]?.data).toEqual([[100, 1]]);
-        expect(result.current.series.navigator[0]?.data).toEqual([
+        expect(result.current.main.series[0]?.data).toEqual([[100, 1]]);
+        expect(result.current.navigator.series[0]?.data).toEqual([
             [1_000, 1],
         ]);
-        expect(result.current.query.resolution.kind).toBe('time');
-        expect(result.current.query.seriesRollupStatuses).toEqual([
+        expect(result.current.resolution?.kind).toBe('time');
+        expect(result.current.seriesRollupStatuses).toEqual([
             { seriesName: 'Tag A', usesRollup: true },
         ]);
-        expect(result.current.query.metrics).toEqual({
+        expect(result.current.metrics).toEqual({
             main: {
                 queriedEntries: 1,
                 pointCount: 1,
@@ -167,7 +179,7 @@ describe('usePanelData', () => {
                 pixelWidth: 300,
             },
         });
-        expect(result.current.load.notice).toBeUndefined();
+        expect(result.current.notice).toBeUndefined();
     });
 
     it.each([
@@ -194,19 +206,16 @@ describe('usePanelData', () => {
             );
 
             await waitFor(() => {
-                if (result.current.kind !== 'queryable') return;
-                expect(result.current.load.requests.main.status).toBe(
+                expect(result.current.main.status).toBe(
                     expectedStatus,
                 );
-                expect(result.current.load.requests.navigator.status).toBe(
+                expect(result.current.navigator.status).toBe(
                     expectedStatus,
                 );
             });
 
-            expect(result.current.kind).toBe('queryable');
-            if (result.current.kind !== 'queryable') return;
-            expect(result.current.series.main).toEqual([]);
-            expect(result.current.load.notice).toBe(expectedNotice);
+            expect(result.current.main.series).toEqual([]);
+            expect(result.current.notice).toBe(expectedNotice);
         },
     );
 
@@ -231,21 +240,18 @@ describe('usePanelData', () => {
         const { result } = renderHook(() => usePanelData(params));
 
         await waitFor(() => {
-            if (result.current.kind !== 'queryable') return;
-            expect(result.current.range.render?.mainRange.end).toBe(40);
-            expect(result.current.load.requests.navigator.status).toBe(
+            expect(result.current.renderRange?.mainRange.end).toBe(40);
+            expect(result.current.navigator.status).toBe(
                 'ready',
             );
         });
 
-        expect(result.current.kind).toBe('queryable');
-        if (result.current.kind !== 'queryable') return;
-        expect(result.current.range.render).toEqual({
+        expect(result.current.renderRange).toEqual({
             mainRange: { start: 0, end: 40 },
             navigatorRange: { start: 0, end: 44 },
         });
-        expect(result.current.query.resolution).toEqual({ kind: 'raw' });
-        expect(result.current.load.notice).toBe('partialData');
+        expect(result.current.resolution).toEqual({ kind: 'raw' });
+        expect(result.current.notice).toBe('partialData');
         expect(
             fetchSpy.mock.calls.some(([request]) => request.kind === 'raw'),
         ).toBe(true);
@@ -306,18 +312,15 @@ describe('usePanelData', () => {
             oldMain.resolve(calculatedResult(oldMain.query));
             await Promise.resolve();
         });
-        if (result.current.kind === 'queryable') {
-            expect(result.current.series.main).toEqual([]);
-            expect(result.current.load.requests.main.status).toBe('loading');
-        }
+        expect(result.current.main.series).toEqual([]);
+        expect(result.current.main.status).toBe('loading');
 
         await act(async () => {
             currentMain.resolve(calculatedResult(currentMain.query));
             await Promise.resolve();
         });
         await waitFor(() => {
-            if (result.current.kind !== 'queryable') return;
-            expect(result.current.series.main[0]?.data).toEqual([[90, 1]]);
+            expect(result.current.main.series[0]?.data).toEqual([[90, 1]]);
         });
 
         unmount();

@@ -83,25 +83,134 @@ const INVALID_TAB_CASES: Array<{
             panelInfo.time.rangeInput = { start: 'now', end: 'now-1h' };
         },
     },
+    {
+        name: 'Axes',
+        testId: 'editor-tab-axes',
+        mutate: (panelInfo) => {
+            panelInfo.axes.leftY.rawValueRange = { min: 1, max: 1 };
+        },
+    },
+    {
+        name: 'Axes',
+        testId: 'editor-tab-axes',
+        mutate: (panelInfo) => {
+            panelInfo.axes.leftY.upperControlLimit = {
+                enabled: true,
+                value: undefined,
+            };
+        },
+    },
+    {
+        name: 'Axes',
+        testId: 'editor-tab-axes',
+        mutate: (panelInfo) => {
+            panelInfo.axes.rightY.enabled = true;
+            panelInfo.axes.rightY.valueRange = { min: 2, max: 1 };
+        },
+    },
+    {
+        name: 'Data Setting',
+        testId: 'editor-tab-data-setting',
+        mutate: (panelInfo) => {
+            panelInfo.display.mainChartSampling = {
+                enabled: true,
+                sampleCount: undefined,
+            };
+        },
+    },
+    {
+        name: 'Data Setting',
+        testId: 'editor-tab-data-setting',
+        mutate: (panelInfo) => {
+            panelInfo.display.rawNavigatorSampling = {
+                enabled: true,
+                sampleCount: -1,
+            };
+        },
+    },
+    {
+        name: 'Data Setting',
+        testId: 'editor-tab-data-setting',
+        mutate: (panelInfo) => {
+            panelInfo.display.pixelsPerTick.calculatedNavigator =
+                Number.POSITIVE_INFINITY;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.stroke = Number.NEGATIVE_INFINITY;
+        },
+    },
 ];
 
-function renderEditor(
+const VALID_TAB_CASES: Array<{
+    name: string;
+    testId: string;
+    mutate: (panelInfo: PanelInfo) => void;
+}> = [
+    {
+        name: 'a negative control limit',
+        testId: 'editor-tab-axes',
+        mutate: (panelInfo) => {
+            panelInfo.axes.leftY.upperControlLimit = {
+                enabled: true,
+                value: -10,
+            };
+        },
+    },
+    {
+        name: 'an invalid draft on a disabled right axis',
+        testId: 'editor-tab-axes',
+        mutate: (panelInfo) => {
+            panelInfo.axes.rightY.valueRange = { min: 2, max: 1 };
+        },
+    },
+    {
+        name: 'a disabled sampler with a non-finite count',
+        testId: 'editor-tab-data-setting',
+        mutate: (panelInfo) => {
+            panelInfo.display.mainChartSampling = {
+                enabled: false,
+                sampleCount: Number.NaN,
+            };
+        },
+    },
+    {
+        name: 'a finite negative display value',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.fill = -1;
+        },
+    },
+];
+
+function createEditor(
     panelInfo: PanelInfo,
     onApplyEditorConfig = jest.fn(),
+    isOpen = true,
 ) {
-    return render(
+    return (
         <PanelEditor
             pOnApplyEditorConfig={onApplyEditorConfig}
             pOnClose={jest.fn()}
-            pIsOpen
+            pIsOpen={isOpen}
             pPanelInfo={panelInfo}
             pHasUnsavedBoardChanges={false}
             pMainRange={{ start: 0, end: 10 }}
             pDataRange={{ start: 0, end: 100 }}
             pRollupTableList={{}}
             pDataSettingMetrics={EMPTY_METRICS}
-        />,
+        />
     );
+}
+
+function renderEditor(
+    panelInfo: PanelInfo,
+    onApplyEditorConfig = jest.fn(),
+) {
+    return render(createEditor(panelInfo, onApplyEditorConfig));
 }
 
 function changeTitle(value: string): void {
@@ -111,6 +220,29 @@ function changeTitle(value: string): void {
 }
 
 describe('PanelEditor validation', () => {
+    it('keeps every tab validating while rendering only the active view', () => {
+        const panelInfo = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const view = renderEditor(panelInfo);
+
+        const titleInput = screen.getByTestId('editor-title-input');
+        expect(titleInput).toBeVisible();
+        expect(
+            screen.queryByLabelText('Show X-axis tick marks'),
+        ).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByTestId('editor-tab-axes'));
+
+        expect(titleInput).not.toBeInTheDocument();
+        expect(screen.getByLabelText('Show X-axis tick marks')).toBeVisible();
+
+        view.rerender(createEditor(panelInfo, jest.fn(), false));
+
+        expect(screen.getByTestId('editor-title-input')).toBeInTheDocument();
+        expect(
+            screen.queryByLabelText('Show X-axis tick marks'),
+        ).not.toBeInTheDocument();
+    });
+
     it('blocks a blank title', () => {
         renderEditor(createNewPanelInfo([TIME_SERIES], 'Panel', 'Line'));
 
@@ -166,7 +298,7 @@ describe('PanelEditor validation', () => {
     });
 
     it.each(INVALID_TAB_CASES)(
-        'marks $name invalid while its tab is hidden',
+        'marks $name invalid while its tab is hidden ($#)',
         ({ name, testId, mutate }) => {
             const panelInfo = createNewPanelInfo(
                 [TIME_SERIES],
@@ -192,6 +324,26 @@ describe('PanelEditor validation', () => {
         },
     );
 
+    it.each(VALID_TAB_CASES)(
+        'accepts $name',
+        ({ testId, mutate }) => {
+            const panelInfo = createNewPanelInfo(
+                [TIME_SERIES],
+                'Panel',
+                'Line',
+            );
+            mutate(panelInfo);
+            renderEditor(panelInfo);
+
+            changeTitle('Changed panel');
+
+            expect(screen.getByTestId(testId)).not.toHaveAttribute(
+                'aria-invalid',
+            );
+            expect(screen.getByTestId('editor-apply')).toBeEnabled();
+        },
+    );
+
     it('marks every invalid tab from the complete draft', () => {
         const panelInfo = createNewPanelInfo([], 'Panel', 'Line');
         panelInfo.title = '';
@@ -205,6 +357,42 @@ describe('PanelEditor validation', () => {
             'aria-invalid',
             'true',
         );
+    });
+
+    it('revalidates mounted tabs after closing and loading new input', () => {
+        const validPanel = createNewPanelInfo(
+            [TIME_SERIES],
+            'Panel',
+            'Line',
+        );
+        const invalidPanel = createNewPanelInfo(
+            [TIME_SERIES],
+            'Panel',
+            'Line',
+        );
+        invalidPanel.key = validPanel.key;
+        invalidPanel.axes.leftY.valueRange = { min: 2, max: 1 };
+        const onApply = jest.fn();
+        const view = renderEditor(validPanel, onApply);
+
+        view.rerender(createEditor(invalidPanel, onApply, false));
+        view.rerender(createEditor(invalidPanel, onApply));
+        changeTitle('Invalid panel');
+
+        expect(screen.getByTestId('editor-tab-axes')).toHaveAttribute(
+            'aria-invalid',
+            'true',
+        );
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+
+        view.rerender(createEditor(validPanel, onApply, false));
+        view.rerender(createEditor(validPanel, onApply));
+        changeTitle('Valid panel');
+
+        expect(screen.getByTestId('editor-tab-axes')).not.toHaveAttribute(
+            'aria-invalid',
+        );
+        expect(screen.getByTestId('editor-apply')).toBeEnabled();
     });
 });
 

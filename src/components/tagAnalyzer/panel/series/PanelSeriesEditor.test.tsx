@@ -27,6 +27,15 @@ const SERIES: PanelSeriesDefinition = {
         timeBaseTime: false,
     },
 };
+const NUMERIC_SERIES: PanelSeriesDefinition = {
+    ...SERIES,
+    key: 'numeric-series',
+    sourceColumns: {
+        ...SERIES.sourceColumns,
+        timeBaseTime: true,
+        timeType: 4,
+    },
+};
 
 describe('PanelSeriesEditor', () => {
     afterEach(() => {
@@ -41,6 +50,7 @@ describe('PanelSeriesEditor', () => {
             <PanelSeriesEditor
                 seriesList={[SERIES]}
                 rollupTableList={{}}
+                lockedAxisKind="time"
                 onFooterMessageChange={jest.fn()}
                 onSeriesListChange={onSeriesListChange}
             />,
@@ -59,5 +69,44 @@ describe('PanelSeriesEditor', () => {
                 calculationMode: PanelSeriesCalculationMode.Sum,
             },
         ]);
+    });
+
+    it('allows clearing a locked list but blocks selecting another x-axis kind', async () => {
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([]);
+        const onFooterMessageChange = jest.fn();
+        const onSeriesListChange = jest.fn();
+
+        const view = render(
+            <PanelSeriesEditor
+                seriesList={[SERIES]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={onFooterMessageChange}
+                onSeriesListChange={onSeriesListChange}
+            />,
+        );
+
+        await waitFor(() =>
+            expect(tableMetadataApi.fetchTableNames).toHaveBeenCalledTimes(1),
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+        expect(onSeriesListChange).toHaveBeenCalledWith([]);
+
+        view.rerender(
+            <PanelSeriesEditor
+                seriesList={[NUMERIC_SERIES]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={onFooterMessageChange}
+                onSeriesListChange={onSeriesListChange}
+            />,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'AVG' }));
+        fireEvent.click(screen.getByRole('option', { name: 'SUM' }));
+
+        expect(onSeriesListChange).toHaveBeenCalledTimes(1);
+        expect(onFooterMessageChange).toHaveBeenLastCalledWith(
+            'The panel x-axis type cannot be changed.',
+        );
     });
 });

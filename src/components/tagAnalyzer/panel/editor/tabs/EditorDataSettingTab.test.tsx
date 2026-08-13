@@ -31,7 +31,10 @@ describe('EditorDataSettingTab', () => {
                 pDataMetrics={EMPTY_METRICS}
                 pIsRawMode={false}
                 pAxisKind="time"
+                pDataValidationMessage={undefined}
                 pOnChangeDisplayConfig={onDisplayChange}
+                pReportValidity={jest.fn()}
+                pIsActive
             />,
         );
 

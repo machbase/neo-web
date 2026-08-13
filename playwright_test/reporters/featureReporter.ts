@@ -1,20 +1,9 @@
 import type {
     FullConfig,
-    FullResult,
     Reporter,
     Suite,
     TestCase,
-    TestError,
-    TestResult,
 } from '@playwright/test/reporter';
-
-type TestStatus = TestResult['status'];
-
-type RecordedResult = {
-    duration: number;
-    feature: string;
-    status: TestStatus;
-};
 
 const FEATURE_NAMES: Record<string, string> = {
     basic: 'BASIC',
@@ -30,8 +19,6 @@ const FEATURE_NAMES: Record<string, string> = {
 };
 
 export default class FeatureReporter implements Reporter {
-    private readonly results = new Map<string, RecordedResult>();
-
     printsToStdio(): boolean {
         return true;
     }
@@ -43,69 +30,12 @@ export default class FeatureReporter implements Reporter {
             featureCounts.set(feature, (featureCounts.get(feature) ?? 0) + 1);
         }
 
-        writeDivider();
-        writeLine('PLAYWRIGHT TEST PLAN — GROUPED BY FEATURE');
-        writeDivider();
+        writeLine('');
+        writeLine('Feature groups:');
         for (const [feature, count] of [...featureCounts.entries()].sort()) {
-            writeLine(`${feature} FEATURE TESTING — ${count} ${pluralizeTest(count)}`);
+            writeLine(`  ${feature.padEnd(24)} ${count} ${pluralizeTest(count)}`);
         }
-        writeDivider();
-    }
-
-    onTestBegin(test: TestCase): void {
-        writeLine(`TEST START | ${getFeatureName(test)} FEATURE TESTING`);
-        writeLine(`  ${test.title}`);
-    }
-
-    onTestEnd(test: TestCase, result: TestResult): void {
-        const feature = getFeatureName(test);
-        this.results.set(test.id, {
-            duration: result.duration,
-            feature,
-            status: result.status,
-        });
-
-        writeLine(
-            `TEST ${getStatusLabel(result.status)} | ${feature} | ${test.title} (${formatDuration(result.duration)})`,
-        );
-
-        if (result.status === 'failed' || result.status === 'timedOut') {
-            writeError(result.error);
-        }
-    }
-
-    onError(error: TestError): void {
-        writeError(error);
-    }
-
-    onEnd(result: FullResult): void {
-        if (this.results.size === 0) return;
-
-        const groupedResults = new Map<string, RecordedResult[]>();
-        for (const recordedResult of this.results.values()) {
-            const current = groupedResults.get(recordedResult.feature) ?? [];
-            current.push(recordedResult);
-            groupedResults.set(recordedResult.feature, current);
-        }
-
-        writeDivider();
-        writeLine(`TEST RUN ${result.status.toUpperCase()} — FEATURE SUMMARY`);
-        writeDivider();
-        for (const [feature, results] of [...groupedResults.entries()].sort()) {
-            const passed = results.filter(({ status }) => status === 'passed').length;
-            const failed = results.filter(({ status }) =>
-                status === 'failed' || status === 'timedOut'
-            ).length;
-            const skipped = results.filter(({ status }) => status === 'skipped').length;
-            const duration = results.reduce(
-                (total, recordedResult) => total + recordedResult.duration,
-                0,
-            );
-            writeLine(
-                `${feature}: ${passed} passed, ${failed} failed, ${skipped} skipped (${formatDuration(duration)})`,
-            );
-        }
-        writeDivider();
+        writeLine('');
     }
 }
 
@@ -135,39 +65,8 @@ function toDisplayName(value: string): string {
         .toUpperCase();
 }
 
-function getStatusLabel(status: TestStatus): string {
-    switch (status) {
-        case 'passed':
-            return 'PASS';
-        case 'failed':
-        case 'timedOut':
-            return 'FAIL';
-        case 'skipped':
-            return 'SKIP';
-        case 'interrupted':
-            return 'INTERRUPTED';
-    }
-}
-
-function writeError(error: TestError | undefined): void {
-    if (!error) return;
-    const details = error.stack ?? error.message ?? String(error);
-    for (const line of details.split('\n')) {
-        writeLine(`  ${line}`);
-    }
-}
-
-function formatDuration(durationMs: number): string {
-    if (durationMs < 1_000) return `${durationMs}ms`;
-    return `${(durationMs / 1_000).toFixed(1)}s`;
-}
-
 function pluralizeTest(count: number): string {
-    return count === 1 ? 'TEST' : 'TESTS';
-}
-
-function writeDivider(): void {
-    writeLine('='.repeat(72));
+    return count === 1 ? 'test' : 'tests';
 }
 
 function writeLine(value: string): void {

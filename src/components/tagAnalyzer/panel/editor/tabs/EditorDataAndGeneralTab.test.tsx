@@ -7,8 +7,10 @@ import {
 import { createNewPanelInfo } from '../../panelModel';
 import EditorDataTab from './EditorDataTab';
 import EditorGeneralTab from './EditorGeneralTab';
+import { X_AXIS_KIND_CHANGE_WARNING } from '../../series/PanelSeriesEditor';
 
 jest.mock('../../series/PanelSeriesEditor', () => ({
+    X_AXIS_KIND_CHANGE_WARNING: 'The panel x-axis type cannot be changed.',
     PanelSeriesEditor: ({
         onSeriesListChange,
     }: {
@@ -36,6 +38,15 @@ const SERIES: PanelSeriesDefinition = {
         timeBaseTime: false,
     },
 };
+const NUMERIC_SERIES: PanelSeriesDefinition = {
+    ...SERIES,
+    key: 'numeric-series',
+    sourceColumns: {
+        ...SERIES.sourceColumns,
+        timeBaseTime: true,
+        timeType: 4,
+    },
+};
 
 describe('panel editor data and general settings', () => {
     it('updates the configured interval without replacing the query', () => {
@@ -46,7 +57,10 @@ describe('panel editor data and general settings', () => {
             <EditorDataTab
                 pQueryDraft={panel.query}
                 pRollupTableList={{}}
+                pLockedAxisKind={undefined}
                 pOnChangeQueryDraft={onQueryChange}
+                pReportValidity={jest.fn()}
+                pIsActive
             />,
         );
 
@@ -68,7 +82,10 @@ describe('panel editor data and general settings', () => {
             <EditorDataTab
                 pQueryDraft={panel.query}
                 pRollupTableList={{}}
+                pLockedAxisKind={undefined}
                 pOnChangeQueryDraft={onQueryChange}
+                pReportValidity={jest.fn()}
+                pIsActive
             />,
         );
 
@@ -89,7 +106,10 @@ describe('panel editor data and general settings', () => {
             <EditorDataTab
                 pQueryDraft={panel.query}
                 pRollupTableList={{}}
+                pLockedAxisKind="time"
                 pOnChangeQueryDraft={onQueryChange}
+                pReportValidity={jest.fn()}
+                pIsActive
             />,
         );
 
@@ -120,6 +140,73 @@ describe('panel editor data and general settings', () => {
         });
     });
 
+    it('closes its portalled series dialog when the tab becomes inactive', () => {
+        const panel = createNewPanelInfo([SERIES], 'Panel', 'Line');
+        const props = {
+            pQueryDraft: panel.query,
+            pRollupTableList: {},
+            pLockedAxisKind: 'time' as const,
+            pOnChangeQueryDraft: jest.fn(),
+            pReportValidity: jest.fn(),
+        };
+        const view = render(<EditorDataTab {...props} pIsActive />);
+
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Click to add a new series',
+            }),
+        );
+        expect(screen.getByTestId('editor-series-dialog')).toBeInTheDocument();
+
+        view.rerender(<EditorDataTab {...props} pIsActive={false} />);
+        expect(screen.queryByTestId('editor-series-dialog')).not.toBeInTheDocument();
+
+        view.rerender(<EditorDataTab {...props} pIsActive />);
+        expect(screen.queryByTestId('editor-series-dialog')).not.toBeInTheDocument();
+    });
+
+    it('rejects a stale modal draft when the incoming axis kind changes', () => {
+        const timePanel = createNewPanelInfo([SERIES], 'Panel', 'Line');
+        const numericPanel = createNewPanelInfo(
+            [NUMERIC_SERIES],
+            'Panel',
+            'Line',
+        );
+        const onQueryChange = jest.fn();
+        const props = {
+            pRollupTableList: {},
+            pOnChangeQueryDraft: onQueryChange,
+            pReportValidity: jest.fn(),
+            pIsActive: true,
+        };
+        const view = render(
+            <EditorDataTab
+                {...props}
+                pQueryDraft={timePanel.query}
+                pLockedAxisKind="time"
+            />,
+        );
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Click to add a new series',
+            }),
+        );
+
+        view.rerender(
+            <EditorDataTab
+                {...props}
+                pQueryDraft={numericPanel.query}
+                pLockedAxisKind="numeric"
+            />,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+        expect(onQueryChange).not.toHaveBeenCalled();
+        expect(screen.getByRole('status')).toHaveTextContent(
+            X_AXIS_KIND_CHANGE_WARNING,
+        );
+    });
+
     it('updates normalization without replacing the mode', () => {
         const panel = createNewPanelInfo([], 'Panel', 'Line');
         const onModeChange = jest.fn();
@@ -134,6 +221,8 @@ describe('panel editor data and general settings', () => {
                 pOnChangeModeConfig={onModeChange}
                 pOnChangeDisplayConfig={jest.fn()}
                 pOnChangeTimeConfig={jest.fn()}
+                pReportValidity={jest.fn()}
+                pIsActive
             />,
         );
 
