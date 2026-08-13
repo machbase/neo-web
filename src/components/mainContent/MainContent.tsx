@@ -2,7 +2,7 @@ import Sql from '../sql';
 import Tql from '../tql';
 import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
-import { useRecoilState, useRecoilValue, useSetRecoilState, useResetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
 import TagAnalyzer from '@/components/tagAnalyzer/TagAnalyzer';
 import type { BoardInfo } from '@/components/tagAnalyzer/model';
@@ -49,7 +49,7 @@ import {
     gSelectedTab,
     type GBoardListType,
 } from '@/recoil/recoil';
-import { gActiveAppSide } from '@/recoil/appStore';
+import { useClosePkgView, useRevealPkgView } from '@/components/side/AppStore/pkgViews';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
 import { saveTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
@@ -89,8 +89,12 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const setActiveBridge = useSetRecoilState(gActiveBridge);
     const setActiveSubr = useSetRecoilState(gActiveSubr);
     const setActiveCamera = useSetRecoilState(gActiveCamera);
-    const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
-    const setActiveAppSide = useSetRecoilState(gActiveAppSide);
+    // Selecting an `APP: x` tab reveals package x in the App Store panel. It does
+    // NOT reach into the panel's own state directly: `useRevealPkgView` owns the
+    // "only packages with a side.html get a pill" rule and the cached probe that
+    // answers it.
+    const revealPkgView = useRevealPkgView();
+    const closePkgView = useClosePkgView();
 
     const handleMouseWheel = (e: any) => {
         const scrollable: any = sTabRef.current;
@@ -205,7 +209,17 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         if (board.type === 'bridge') setActiveBridge(undefined);
         if (board.type === 'subscriber') setActiveSubr(undefined);
         if (board.type === 'camera') setActiveCamera(undefined);
-        if (board.type === 'appView') resetActiveAppSide();
+        // ONE PACKAGE IS ONE SESSION ACROSS TWO SURFACES. Closing an `APP:` tab
+        // closes its pill in the App Store panel, and the pill's × closes this tab
+        // (AppStore/pkgViews.ts `useClosePkgSession`) — the symmetry is the point.
+        // A rule that propagated one way only is harder to learn than either
+        // extreme, and leaving both independent meant tidying up took two closes
+        // with the leftover half staying quietly alive.
+        //
+        // `closePkgView`, NOT `useClosePkgSession`: the tab is already being closed
+        // by the caller, and asking the session helper to close it again would have
+        // it re-enter `closeTabState` on a board list this pass has not written yet.
+        if (board.type === 'appView' && board.code?.appName) closePkgView(board.code.appName);
     };
 
     const applyCloseState = ({
@@ -271,27 +285,19 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         return () => window.removeEventListener('logoutEvent', expiredRt);
     }, []);
 
-    // Sync side panel when switching between app tabs
+    // MAIN AREA → SIDEBAR. Selecting an `APP: x` tab moves the App Store panel onto
+    // package x, so the two never name different packages at once.
+    //
+    // ONLY `appView` TABS ARE HANDLED, and the other types are not an oversight:
+    // selecting a SQL editor is not a statement about packages, and making the
+    // panel fall back to the catalog every time the user touches an editor would
+    // close a package view they are in the middle of using.
     useEffect(() => {
         const selectedBoard = sBoardList.find((b: any) => b.id === sSelectedTab);
-        if (!selectedBoard) return;
-
-        if (selectedBoard.type === 'appView') {
-            const appName = selectedBoard.code?.appName;
-            if (appName) {
-                const origin = window.location.origin;
-                fetch(`${origin}/public/${appName}/side.html`, { method: 'GET', headers: { Accept: 'text/html' } })
-                    .then((res) => {
-                        if (res.ok && res.headers.get('content-type')?.includes('text/html')) {
-                            setActiveAppSide(appName);
-                        } else {
-                            resetActiveAppSide();
-                        }
-                    })
-                    .catch(() => resetActiveAppSide());
-            }
-        }
-    }, [sSelectedTab]);
+        if (selectedBoard?.type !== 'appView') return;
+        const appName = selectedBoard.code?.appName;
+        if (appName) void revealPkgView(appName);
+    }, [sSelectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useLayoutEffect(() => {
         if (sTabDragInfo.end) {

@@ -9,7 +9,7 @@
 //     `status === 'running'`
 //   - reachable=false → never block (don't punish unreachable controllers)
 
-import { shouldBlockUninstall, buildBlockedMessage } from './usePkgCommand';
+import { shouldBlockUninstall, buildBlockedMessage, shouldBlockHubCommand, buildHubBlockedMessage } from './usePkgCommand';
 import type { PkgHealthStatus } from './steps/pkgHealth';
 
 describe('shouldBlockUninstall', () => {
@@ -90,5 +90,70 @@ describe('buildBlockedMessage', () => {
         const msg = buildBlockedMessage('demo-app', fresh);
         expect(msg).toContain('demo-app');
         expect(msg).toContain('1 service');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// issue #1452 — the command-path gate for hub-sourced install/update
+// ---------------------------------------------------------------------------
+// The card already hides these affordances offline / local-only. That gating is
+// computed at RENDER time though, so a panel that has been open while the policy
+// file was written (or the network dropped) can still deliver a stale click. This
+// predicate is the last checkpoint before the request goes out.
+describe('shouldBlockHubCommand', () => {
+    test.each([
+        ['install', 'localOnly'],
+        ['install', 'offline'],
+        ['update', 'localOnly'],
+        ['update', 'offline'],
+    ] as const)('%s from the hub is refused in %s mode', (command, mode) => {
+        expect(shouldBlockHubCommand(mode, command, 'hub')).toBe(true);
+    });
+
+    test('online lets hub install/update through', () => {
+        expect(shouldBlockHubCommand('online', 'install', 'hub')).toBe(false);
+        expect(shouldBlockHubCommand('online', 'update', 'hub')).toBe(false);
+    });
+
+    // A local archive is a file on this machine — no mode can make that a network
+    // request, and blocking it would strand the one install path that still works.
+    test('a local-sourced command is never blocked, in any mode', () => {
+        expect(shouldBlockHubCommand('localOnly', 'install', 'local')).toBe(false);
+        expect(shouldBlockHubCommand('offline', 'update', 'local')).toBe(false);
+    });
+
+    // `undefined` is the historical shape of every caller that does not pick a row
+    // (start/stop, and the experiment-mode custom-tag input). Widening the check to
+    // "anything not local" would break the custom-tag path for no offline gain.
+    test('an unsourced command keeps its pre-#1452 behaviour', () => {
+        expect(shouldBlockHubCommand('localOnly', 'install', undefined)).toBe(false);
+        expect(shouldBlockHubCommand('offline', 'update', undefined)).toBe(false);
+    });
+
+    // Lifecycle commands touch only what is already on disk.
+    test.each(['start', 'stop', 'uninstall'] as const)('%s is never blocked, even tagged hub', (command) => {
+        expect(shouldBlockHubCommand('localOnly', command, 'hub')).toBe(false);
+    });
+});
+
+describe('buildHubBlockedMessage', () => {
+    // The two refusals have the same effect and completely different causes, so
+    // they must not share wording — an operator who reads "unreachable" for a
+    // deliberate policy goes and debugs a healthy network.
+    test('local-only names the policy and its file', () => {
+        const msg = buildHubBlockedMessage('demo-app', 'localOnly');
+
+        expect(msg).toContain('demo-app');
+        expect(msg).toContain('local-only');
+        expect(msg).toContain('/public/.pkg-conf.json');
+        expect(msg).not.toMatch(/unreachable/i);
+    });
+
+    test('offline says the hub is unreachable and says nothing about policy', () => {
+        const msg = buildHubBlockedMessage('demo-app', 'offline');
+
+        expect(msg).toContain('demo-app');
+        expect(msg).toMatch(/unreachable/i);
+        expect(msg).not.toContain('.pkg-conf.json');
     });
 });

@@ -1,5 +1,218 @@
-.app-search-warp {
+@use '@/design-system/tokens' as t;
+
+// -----------------------------------------------------------------------------
+// PANEL SHELL — a pinned header over exactly one scroll container
+// -----------------------------------------------------------------------------
+// The panel used to put the title, the scan warnings, the search box AND the
+// package cards inside a single `overflow: auto` div. Filtering a long catalog
+// therefore scrolled the search field itself off the top of the panel: the user
+// typed two characters, the list grew, and the input they were typing into was
+// gone. Everything that DESCRIBES or CONTROLS the list is pinned; only the list
+// scrolls.
+//
+// `min-height: 0` on both of these is what makes that true. A flex child's
+// default `min-height: auto` refuses to shrink below its content, so the scroll
+// area would size to the whole catalog and hand the overflow back to the panel —
+// the exact layout this replaced.
+.app-store-body {
     display: flex;
-    width: 100%;
-    padding: 8px;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+// The border that separates the switcher from what it switches lives on
+// `.pkg-pill-bar` (PkgPillBar.scss), NOT here — see the note there for why.
+.app-store-header {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    min-height: 0;
+}
+
+// The catalog's pinned controls (scan findings + search band), and the rule that
+// closes them off from the card list that scrolls beneath them.
+//
+// Rendered only in the catalog, which is why the rule lives here rather than on
+// `.app-store-header`: in a package view these controls are absent and the pill
+// bar's own bottom border is already the boundary, so a rule on the header would
+// stack straight on top of it and draw one line at double weight.
+.app-store-catalog-controls {
+    // `relative` is load-bearing: `.app-store-catalog-progress` anchors to this
+    // block's bottom edge so the loading bar lands ON the rule below without
+    // taking part in the layout. See CatalogProgress.scss.
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid t.$border-color-default;
+}
+
+.app-store-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+// issue #1452 — catalog source indicator (CatalogStatusIcon.tsx).
+//
+// It lives in the panel's title row beside Refresh and MUST NOT add height there:
+// it is one 14px glyph, sized and centred to the icon buttons it sits with, with
+// no padding, no border and no background. This replaced a full-width banner whose
+// three lines came straight out of the package list's scroll area.
+//
+// Not a button and not focusable — the whole explanation is its `title`, and the
+// only action (retry the hub) is the Refresh button next to it. Because it is a
+// `<span>`, the global `button { border-radius: 8px }` in src/index.css cannot
+// reach it; if this ever becomes a <button>, restate the radius here.
+.app-store-catalog-status {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    // SITS IN THE CHEVRON COLUMN, AND COSTS THE TITLE NOTHING.
+    //
+    // `Side.Title` has `padding-left: 20px` and `Side.Collapse` has
+    // `padding-left: 4px` plus a 16px chevron — both design-system rules put
+    // their text at x=20, which is why PACKAGES and CATALOG line up. An icon
+    // laid out BEFORE the title pushed PACKAGES to x=42 and broke that.
+    //
+    // A negative margin equal to its own width pulls it back into the title's
+    // left padding, occupying 4→20 exactly like the chevron below it. The title
+    // therefore stays at x=20 whether this renders or is null (online), so the
+    // column holds in both states with no placeholder to keep in sync.
+    width: 16px;
+    height: 16px;
+    margin-left: -16px;
+    // Nudged off the right edge of its own box so the glyph does not touch the
+    // "P". The box itself does not move — it is what holds the chevron column —
+    // so PACKAGES stays at x=20 and keeps its line with CATALOG below.
+    padding-right: 2px;
+    box-sizing: content-box;
+    cursor: help;
+
+    // Local-only is a configured posture, not an incident: deliberately neutral,
+    // so it does not read as a warning the way --offline / --failed do.
+    &--localOnly {
+        color: t.$text-secondary;
+    }
+
+    &--offline {
+        color: t.$warning-main;
+    }
+
+    &--failed {
+        color: t.$error-main;
+    }
+}
+
+// issue #1452 — per-archive / per-directory scan findings (ArchiveScanWarnings.tsx).
+//
+// The one block in this panel that still owns a full-width frame, and it earns it:
+// unlike the catalog indicator above (one verdict, one sentence, one icon's worth
+// of room), this is a counted list of NAMED files with a remedy each — content
+// that cannot survive being folded into a tooltip.
+//
+// The warning colour is `$warning-main`, i.e. the indicator's `--offline`
+// colour, and NOT `$error-main`. That is the honest level: every one of these
+// findings costs exactly one file or directory (the scan keeps all the others),
+// and none of them stops the panel from working. `$error-main` belongs to
+// `--failed`, where there is no catalog at all.
+//
+// It now lives in the PINNED header, so it is capped and scrolls internally: a
+// server with a dozen findings would otherwise push the package list off the
+// bottom of the panel with a block the user cannot scroll past.
+.app-store-scan-warnings {
+    margin: 8px 8px 6px;
+    max-height: 120px;
+    overflow-y: auto;
+    padding: 8px 10px;
+    border: 1px solid t.$border-color-default;
+    border-radius: 4px;
+    background-color: t.$bg-elevated;
+    font-size: 12px;
+    line-height: 1.4;
+
+    .app-store-scan-warnings-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .app-store-scan-warnings-icon {
+        display: flex;
+        flex-shrink: 0;
+        color: t.$warning-main;
+        font-size: 14px;
+    }
+
+    .app-store-scan-warnings-title {
+        flex: 1;
+        min-width: 0;
+        color: t.$text-primary;
+        font-weight: 600;
+    }
+
+    .app-store-scan-warnings-toggle {
+        // src/index.css carries a GLOBAL `button { border-radius: 8px }` that leaks
+        // into every button in the app: 8px on a text-sized chip inside a 4px box
+        // reads as a stray pill. Restated, not inherited — deleting this line
+        // changes the rendering, it is not a no-op.
+        border-radius: 3px;
+        flex-shrink: 0;
+        padding: 2px 6px;
+        border: none;
+        background: transparent;
+        color: t.$text-secondary;
+        font-size: 11px;
+        cursor: pointer;
+
+        &:hover {
+            background-color: t.$bg-hover;
+            color: t.$text-primary;
+        }
+    }
+
+    .app-store-scan-warnings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .app-store-scan-warnings-item {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    // The file name is the thing being accused, so it keeps the readable colour
+    // and never wraps — a name broken across two lines is hard to match against a
+    // directory listing.
+    .app-store-scan-warnings-subject {
+        color: t.$text-secondary;
+        font-weight: 500;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    // The remedy, on the other hand, WRAPS. It is a full sentence telling the
+    // operator what to do; truncating it to one line would cut off the half that
+    // makes the finding actionable. The full text is on the row's `title` too.
+    .app-store-scan-warnings-message {
+        color: t.$text-tertiary;
+        overflow-wrap: anywhere;
+    }
+}
+
+// Keeps `Side.Title`'s `.filesOpenOption` at TWO flex children. That container is
+// `justify-content: space-between`, so adding the status icon as a third sibling
+// would have parked PACKAGES in the middle of the header instead of at its left
+// edge. Icon and title travel together as one child.
+.app-store-title-lead {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
 }

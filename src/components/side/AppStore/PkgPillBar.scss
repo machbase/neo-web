@@ -1,0 +1,226 @@
+@use '@/design-system/tokens' as t;
+
+// The pill switcher (PkgPillBar.tsx).
+//
+// EVERY button in here restates `border-radius`. `src/index.css` carries a global
+// `button { border-radius: 8px }` that reaches all of them, and 8px on a 20px-tall
+// chip reads as a lozenge; worse, the select/close pair are two adjacent buttons
+// meant to look like ONE pill, and the global radius rounds the seam between them
+// into a visible notch. These declarations are load-bearing, not defaults.
+
+// THE BAR ITSELF DOES NOT SCROLL — `.pkg-pill-bar-scroll` inside it does.
+//
+// When the whole bar was the scroller, the catalog chip scrolled away with the
+// pills, so the one control that gets the user back to the package list was the
+// first thing to disappear once several packages were open. The chip is now a
+// pinned sibling of the scroller rather than its first child.
+//
+// WHERE THE SWITCHER ENDS AND ITS CONTENT BEGINS: `$bg-header` plus a bottom
+// border, which is exactly what `%sideSubTitleBase` gives the PACKAGES row above
+// and the section rows a package's own UI draws below.
+//
+// THE BAND IS THE SEPARATOR; THE BORDER ALONE IS NOT. `$border-color-default` is
+// `rgba(255,255,255,0.13)` — over the panel's own `$bg-panel` that is a 1px line
+// you have to look for, and against a package's `side.html` starting immediately
+// underneath it did not register at all. Every other divider in this panel is a
+// darker BAND with that same faint line at its edge, so a bare line here was both
+// invisible and inconsistent.
+//
+// It is on the bar rather than on the panel header because the bar is the last
+// thing that is the same in both modes: below it comes either the search band and
+// the card list, or a package's own `side.html` filling the panel.
+.pkg-pill-bar {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid t.$border-color-default;
+    background-color: t.$bg-header;
+    overflow: hidden;
+
+    // THE ONLY SIGN THAT THIS BAR SCROLLS.
+    //
+    // Its scrollbar is hidden — a 22px-tall strip has no room for one — so with
+    // three packages open the bar just looked like a pill had been cut off, and
+    // nothing said there was more to the right. These gradients fade the pills out
+    // against the panel instead of clipping them, which is the standard "keep
+    // going" cue and costs no height.
+    //
+    // Painted on the BAR, not on the scroller: a pseudo-element inside an
+    // overflow container scrolls away with the content it is supposed to mark.
+    // `pointer-events: none` keeps the pill underneath clickable.
+    &::before,
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 20px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.12s ease;
+    }
+
+    &::before {
+        // Starts where the SCROLLER does, so the left fade marks its edge and not
+        // the bar's — otherwise it would wash out the pinned chip and the divider.
+        // 8 padding + 24 chip + 4 gap + 2 margin + 1 divider + 2 margin + 4 gap.
+        left: 45px;
+        background: linear-gradient(to right, t.$bg-header, rgba(30, 30, 30, 0));
+    }
+
+    &::after {
+        right: 0;
+        background: linear-gradient(to left, t.$bg-header, rgba(30, 30, 30, 0));
+    }
+
+    &--fade-left::before {
+        opacity: 1;
+    }
+
+    &--fade-right::after {
+        opacity: 1;
+    }
+}
+
+// The seam between the pinned catalog chip and the pills that scroll past it.
+//
+// `$border-color-medium` and NOT `$border-color-default`: the faint 0.13-alpha
+// rule that works as a full-width horizontal divider disappears entirely as a
+// 16px vertical tick. This is a short mark that has to be legible on its own, so
+// it takes the stronger of the two border tokens.
+.pkg-pill-bar-divider {
+    flex-shrink: 0;
+    width: 1px;
+    height: 16px;
+    // Sits in the middle of the bar's 4px gap rather than adding width of its own.
+    margin: 0 2px;
+    background-color: t.$border-color-medium;
+}
+
+.pkg-pill-bar-scroll {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    // Pills spill sideways rather than wrapping onto a second row: the bar sits in
+    // the panel's fixed header, and a wrapping bar would push the package list
+    // down by a line every few opened packages.
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.pkg-pill-bar-catalog {
+    border-radius: 4px;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid transparent;
+    background-color: t.$bg-elevated;
+    color: t.$text-secondary;
+    cursor: pointer;
+
+    &:hover {
+        background-color: t.$bg-hover;
+        color: t.$text-primary;
+    }
+
+    &--active {
+        border-color: t.$primary-base;
+        background-color: t.$primary-base;
+        color: #fff;
+    }
+
+    &--active:hover {
+        background-color: t.$primary-hover;
+        color: #fff;
+    }
+}
+
+.pkg-pill {
+    // BORDER-BOX, OR THE BAR CHANGES HEIGHT WHEN THE FIRST PACKAGE IS OPENED.
+    //
+    // This is a `<span>`, which the app's reset leaves as `content-box`, so its
+    // 1px transparent border was ADDED to the 22px height and made the pill 24px
+    // against the catalog chip's 22px. The bar measured 35px empty and 37px with
+    // one pill, and everything below it — search band, card list — shifted down by
+    // two pixels the moment a pill appeared.
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    max-width: 160px;
+    height: 22px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background-color: t.$bg-elevated;
+
+    &--active {
+        border-color: t.$border-color-active;
+        background-color: t.$bg-active;
+    }
+
+    &:hover {
+        background-color: t.$bg-hover;
+    }
+}
+
+.pkg-pill-select {
+    // Radius on the LEFT corners only: this button is the left half of the pill,
+    // and the close button is the right half. Rounding all four (which the global
+    // rule does) draws a seam down the middle of what must read as one control.
+    border-radius: 3px 0 0 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    height: 100%;
+    padding: 0 2px 0 7px;
+    border: none;
+    background: transparent;
+    color: t.$text-secondary;
+    font-size: 11px;
+    cursor: pointer;
+
+    .pkg-pill--active & {
+        color: t.$text-primary;
+    }
+}
+
+.pkg-pill-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.pkg-pill-close {
+    border-radius: 0 3px 3px 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 18px;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: t.$text-tertiary;
+    cursor: pointer;
+
+    &:hover {
+        background-color: t.$bg-hover-light;
+        color: t.$text-primary;
+    }
+}

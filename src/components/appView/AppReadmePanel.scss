@@ -1,0 +1,204 @@
+@use 'sass:color';
+@use '@/design-system/tokens' as t;
+@use '@/design-system/tokens/mixins' as m;
+
+// THE DRAWER TAKES ITS ACCENT FROM THE README, NOT FROM THE APP.
+//
+// `--color-accent-fg` out of `src/assets/md/md.css` — the blue the rendered
+// markdown already uses for its links. The app's own `$primary-base` (#005fb8) is
+// a different, darker blue, and sitting it beside markdown links inside the same
+// 320px column read as two accent colours arguing.
+//
+// Hardcoded because md.css is injected into a shadow root as an inline string;
+// there is no build-time value to import. If that palette changes, this follows.
+// (Its `--color-border-default` is already identical to `$border-color-default`,
+// which is why the resting edge below needs no equivalent.)
+$readme-accent: #0075e2;
+
+// THE DRAWER FLOATS OVER THE APP, IT DOES NOT PUSH IT.
+//
+// This container is only a positioning context; the package frame keeps the full
+// width it had before the README existed. Laying the two out side by side would
+// RESIZE THE IFRAME every time the README is toggled, and an iframe that changes
+// width re-lays-out the entire document inside it — the package's app would
+// reflow, re-measure its charts and lose scroll positions on a keystroke that has
+// nothing to do with it. Overlaying costs the app nothing.
+.app-view-stack {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.app-readme-panel {
+    // Pinned to the right edge of the stack above, OUT OF FLOW — see its note.
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    // WIDTH COMES FROM THE COMPONENT, not from here: it is draggable and
+    // remembered (useReadmePanelWidth.ts). Deliberately NO `max-width` — the cap
+    // is applied in JS against the CONTAINER's real width, so the package's app
+    // always keeps a usable strip no matter how far the drag goes. A css cap would
+    // silently disagree with the stored number.
+    min-height: 0;
+    // NO `border-left` HERE — the resizer below draws that edge, so the line the
+    // user sees IS the thing they can grab. Two separate 1px lines next to each
+    // other looked like a border with a dead strip beside it.
+    // OPAQUE, and that is required rather than cosmetic: the package's app is
+    // still painted underneath, so any transparency here would show its content
+    // through the README text.
+    background-color: t.$bg-panel;
+    // Says "above", which a flat panel flush against the app cannot.
+    box-shadow: -6px 0 16px rgba(0, 0, 0, 0.35);
+}
+
+// The drag handle, and ALSO the panel's left edge.
+//
+// IT IS VISIBLE AT REST: it was originally a transparent strip that only lit up on
+// hover, so nothing on screen said the panel could be resized. The panel's own
+// `border-left` is gone; this element draws that line, so the edge the user sees
+// is the edge they can grab.
+//
+// THREE STATES — the app's shared resize-handle language, `resize-handle-states`
+// in design-system/tokens/_mixins.scss. The SplitPane sashes use the same mixin,
+// so every draggable divider in the app answers to the pointer identically:
+//
+//   rest      1px neutral line, no glow
+//   hover     same line + soft glow
+//   dragging  same line + full glow
+//
+// The BOX is 7px wide and pulled left of the panel, while the LINE inside it is
+// 1px. A 1px hit target is the classic reason a resizer "does not work"; the wide
+// box fixes that without a 7px border appearing on screen.
+.app-readme-panel-resizer {
+    @include m.resize-handle-states('vertical');
+
+    // After the mixin: it sets `position: relative`, and this element has to be
+    // pinned to the panel's edge.
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    z-index: 1;
+    width: 7px;
+    cursor: col-resize;
+}
+
+// Covers the viewport for the duration of a drag. Pointer capture already routes
+// the events, but this is what stops the package's iframe painting its own cursor
+// and hover states under a pointer that is not talking to it.
+.app-readme-panel-drag-shield {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    cursor: col-resize;
+}
+
+.app-readme-panel-head {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 8px 0 12px;
+    border-bottom: 1px solid t.$border-color-default;
+    background-color: t.$bg-header;
+    color: t.$text-primary;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.app-readme-panel-title {
+    flex-shrink: 0;
+}
+
+.app-readme-panel-version {
+    // Pushes the close button to the far right on its own, so the head needs no
+    // spacer element between them.
+    margin-right: auto;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background-color: $readme-accent;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.app-readme-panel-close {
+    // Restated against the global `button { border-radius: 8px }` in src/index.css
+    // — 8px on a 20px square button reads as a circle next to the square icon
+    // buttons everywhere else in this app.
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    // `auto` and not a spacer: with no version badge the badge's `margin-right`
+    // is gone, so the button has to be able to push itself right on its own.
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: t.$text-secondary;
+    cursor: pointer;
+
+    &:hover {
+        background-color: t.$bg-hover;
+        color: t.$text-primary;
+    }
+}
+
+.app-readme-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 4px 14px 20px;
+}
+
+// The header toggle that opens all this (AppView.tsx). Lives in `Page.Header`,
+// whose `justify-content: space-between` would strand a lone child on the left.
+.app-view-readme-toggle {
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid t.$border-color-default;
+    background-color: t.$bg-elevated;
+    color: t.$text-secondary;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+        background-color: t.$bg-hover;
+        color: t.$text-primary;
+    }
+
+    // Pressed state, because the button TOGGLES a panel rather than performing an
+    // action: with the drawer open the button must say so, or the only way to know
+    // is to look for the drawer itself.
+    // Same accent as the panel it opens — the button, the version badge and the
+    // drag edge are one family, and all three belong to the README rather than to
+    // the app chrome around them.
+    &--on {
+        border-color: $readme-accent;
+        background-color: $readme-accent;
+        color: #fff;
+
+        &:hover {
+            background-color: color.adjust($readme-accent, $lightness: 6%);
+            color: #fff;
+        }
+    }
+}

@@ -3,7 +3,7 @@ import { LuFlipVertical, LuScale } from 'react-icons/lu';
 import { Page, SplitPane, Pane, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
-import { VscBook, VscExtensions, VscHome, VscInfo, VscRepoForked } from 'react-icons/vsc';
+import { VscBook, VscHome, VscInfo, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
 import { getPkgMarkdown, isGrandfatheredPkg } from '@/api/repository/appStore';
 import { useExperiment } from '@/hooks/useExperiment';
@@ -14,10 +14,28 @@ import { Tooltip } from 'react-tooltip';
 import { comparePkgVersions, stripVPrefix, warnOncePkgVersion } from '@/utils/version/utils';
 import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
+import { PkgIcon } from './PkgIcon';
+import { readLocalReadme } from '@/api/repository/onpremCatalog';
+import { useRecoilValue } from 'recoil';
+import { gCatalogStatus } from '@/recoil/appStore';
+
+/**
+ * issue #1452 — shown when local-only mode is on and the package ships no README
+ * on disk.
+ *
+ * Deliberately NOT the generic 'No repository information available.' / 'Failed to
+ * load README.' wording: those describe something that went wrong and invite a
+ * retry. Nothing went wrong here — the fetch was never attempted — and the reader
+ * needs to know that the blank pane is the configured behaviour and where the
+ * configuration lives.
+ */
+const LOCAL_ONLY_README_MSG = 'Local-only mode: remote READMEs are not fetched (/public/.pkg-conf.json). This package has no README.md installed on this server.';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     const runCommand = usePkgCommand();
     const { getExperiment } = useExperiment();
+    const sCatalogStatus = useRecoilValue(gCatalogStatus);
+    const isLocalOnly = sCatalogStatus.mode === 'localOnly';
 
     // issue #1438: detail view for a package that only remains visible because it
     // is installed. Same policy as the catalog card — stays viewable and
@@ -65,6 +83,13 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         if (!pendingCmd || !pCode?.app) return;
         const cmd = pendingCmd;
         setPendingCmd(null);
+        // issue #1452 — `removeDirectory` is the stray card's action and belongs to
+        // the catalog row alone (`item.tsx` + `useStrayRemove`). It is NOT a package
+        // lifecycle command and must never reach `runCommand`, which would route a
+        // directory name into the package flows. The detail view cannot raise it —
+        // nothing here sets it — so this is a type-level dead end, kept explicit so
+        // it stays one.
+        if (cmd === 'removeDirectory') return;
         try {
             const result = await runCommand(pCode.app, cmd);
             if (result?.log) setCommandResLog(result.log);
@@ -91,6 +116,42 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const getReadme = async () => {
         setReadme(undefined);
         setReadmeError(undefined);
+
+        // issue #1452 — LOCAL FIRST, and specifically BEFORE the github guard below.
+        //
+        // An installed package ships its own README at /public/{name}/README.md, on
+        // the same origin as the console, so on an air-gapped server that is the only
+        // copy that can ever load. It is also the copy that matches the *installed*
+        // version rather than the repo's default branch.
+        //
+        // ORDERING IS LOAD-BEARING: a package installed from a local archive may have
+        // no `github` block at all, and the `!sFullName || !sBranch` guard below is an
+        // early return. Moving this read after it means those packages permanently
+        // show "No repository information available." instead of the README sitting
+        // right there on disk.
+        if (pCode?.app?.installed_frontend && appName) {
+            const local = await readLocalReadme(appName);
+            if (local) {
+                // NO relative-image rewriting here. The rewrite below points images at
+                // raw.githubusercontent, which is exactly the host that is unreachable
+                // in the case this branch exists for — a local README's relative links
+                // already resolve against /public/{name}/.
+                setReadme(local);
+                return;
+            }
+        }
+
+        // issue #1452 — LOCAL-ONLY STOPS HERE. The local read above is same-origin
+        // and always allowed; everything below this line goes to
+        // raw.githubusercontent, which is exactly what this mode forbids. Placed
+        // AFTER the local read (so an installed package still shows its own README)
+        // and BEFORE the github guard (so the message is about the policy, not
+        // about missing repository metadata).
+        if (isLocalOnly) {
+            setReadmeError(LOCAL_ONLY_README_MSG);
+            return;
+        }
+
         const sFullName = pCode?.app?.github?.full_name;
         const sBranch = pCode?.app?.github?.default_branch;
         if (!sFullName || !sBranch) {
@@ -126,10 +187,14 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             setReadmeError(e?.message ?? 'Failed to load README.');
         }
     };
+    // `isLocalOnly` is a dependency too: the mode can flip under an open detail tab
+    // (a refresh picks up a newly written .pkg-conf.json), and the README strategy
+    // must follow it rather than stay on whatever the tab opened with.
     useEffect(() => {
         getReadme();
         setCommandResLog(undefined);
-    }, [pCode]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pCode, isLocalOnly]);
 
     if (!pCode?.app) {
         return (
@@ -154,7 +219,14 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                             <Page.ContentBlock pHoverNone pSticky>
                                 <Page.DpRow>
                                     <div className="app-store-item-info">
-                                        <div className="app-store-item-info-thumb">{pCode?.app?.icon ? <img src={pCode.app.icon} /> : <VscExtensions />}</div>
+                                        <PkgIcon
+                                            className="app-store-item-info-thumb"
+                                            pName={pCode?.app?.name}
+                                            pIcon={pCode?.app?.icon}
+                                            pInstalled={!!pCode?.app?.installed_frontend}
+                                            pAllowRemote={!isLocalOnly}
+                                            pInstalledIcon={pCode?.app?.installed_icon}
+                                        />
                                         <div className="app-store-item-info-contents">
                                             {/* TITLE & VERSION */}
                                             <Page.DpRow>

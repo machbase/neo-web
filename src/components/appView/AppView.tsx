@@ -3,8 +3,11 @@ import { gBoardList, gSelectedTab, type GBoardListType } from '@/recoil/recoil';
 import { createTagAnalyzerBoardFromTagSet, TAG_ANALYZER_BRIDGE_APP_NAME } from '@/components/tagAnalyzer/integration';
 import { useEffect, useRef, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
+import { VscBook } from 'react-icons/vsc';
 import { AppFrameStatus } from './AppFrameStatus';
 import { useAppFrameHealth } from './useAppFrameHealth';
+import { AppReadmePanel } from './AppReadmePanel';
+import { useInstalledReadme } from './useInstalledReadme';
 
 interface AppViewProps {
     pAppName: string;
@@ -22,6 +25,11 @@ export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
     // form input). Keeping the frame alive makes that free for every package
     // instead of only the few that used to be allow-listed.
     const [sMounted, setMounted] = useState<boolean>(pIsActiveTab);
+    // Drawer state is per package and survives tab switches for free: this
+    // component mounts once and never unmounts (see the note above `sMounted`),
+    // so coming back to a package finds its README exactly as it was left.
+    const [sReadmeOpen, setReadmeOpen] = useState<boolean>(false);
+    const readme = useInstalledReadme(pAppName);
     // Inspect only while the tab is on screen: a frame parked behind another tab
     // is not painted, and probing it there yields false verdicts.
     const health = useAppFrameHealth(iframeRef, { enabled: sMounted && pIsActiveTab, resetKey: pAppName });
@@ -55,12 +63,43 @@ export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
 
     return (
         <Page>
-            <Page.Header />
+            <Page.Header>
+                {/* THE README MOVES HERE ONCE A PACKAGE IS INSTALLED. Before install it
+                    is the substance of the `PKG:` detail tab; after install the package
+                    has its own app, and the README becomes reference material you want
+                    open BESIDE what you are doing rather than instead of it.
+
+                    Offered only when there is one to show — `useInstalledReadme` has
+                    already read `/public/{name}/README.md`, so a package that ships
+                    none gets no button instead of a button onto an empty panel. */}
+                {readme.readme && (
+                    <button
+                        type="button"
+                        className={`app-view-readme-toggle${sReadmeOpen ? ' app-view-readme-toggle--on' : ''}`}
+                        aria-pressed={sReadmeOpen}
+                        title={sReadmeOpen ? 'Hide README' : 'Show README'}
+                        onClick={() => setReadmeOpen((prev) => !prev)}
+                    >
+                        <VscBook size={13} />
+                        README
+                    </button>
+                )}
+            </Page.Header>
             <Page.Body fullHeight style={{ overflow: 'hidden', height: '100%' }}>
                 {sMounted && (
-                    <div className="app-frame">
-                        <iframe ref={iframeRef} src={defaultUrl} title={`App: ${pAppName}`} />
-                        {pIsActiveTab && <AppFrameStatus pAppName={pAppName} pHealth={health} />}
+                    <div className="app-view-stack">
+                        <div className="app-frame">
+                            <iframe ref={iframeRef} src={defaultUrl} title={`App: ${pAppName}`} />
+                            {pIsActiveTab && <AppFrameStatus pAppName={pAppName} pHealth={health} />}
+                        </div>
+                        {sReadmeOpen && readme.readme && (
+                            <AppReadmePanel
+                                pAppName={pAppName}
+                                pReadme={readme.readme}
+                                pVersion={readme.version}
+                                onClose={() => setReadmeOpen(false)}
+                            />
+                        )}
                     </div>
                 )}
             </Page.Body>

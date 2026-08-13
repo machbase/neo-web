@@ -40,10 +40,24 @@ interface MarkdownProps {
     pType?: string;
     pIdx: number;
     pData?: string;
+    /**
+     * Extra CSS appended AFTER `md.css` inside the shadow root.
+     *
+     * THE ONLY WAY TO RESTYLE THIS CONTENT FROM OUTSIDE. `md.css` is injected into
+     * the shadow root and lands on a wrapper that lives inside it, so no selector
+     * in the page — not even one on the host — can reach past it. A caller that
+     * renders markdown somewhere md.css was not written for (a 320px side drawer,
+     * say, where its 16px page typography leaves four words per line) has nothing
+     * to override with unless it can add to that stylesheet.
+     *
+     * Optional and empty by default, so every existing call site renders exactly
+     * as before.
+     */
+    pExtraCss?: string;
 }
 
 export const Markdown = (props: MarkdownProps) => {
-    const { pContents, pType, pData } = props;
+    const { pContents, pType, pData, pExtraCss } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
     const [sMarkdownId, setMarkdownId] = useState<string>('');
@@ -193,7 +207,7 @@ export const Markdown = (props: MarkdownProps) => {
         <Page.ContentBlock style={{ padding: 0, margin: 0, whiteSpace: 'normal' }} pHoverNone>
             <ShadowContent
                 html={sMdxText}
-                styles={`${mdCss}${CP_BUTTON_CSS}`}
+                styles={`${mdCss}${CP_BUTTON_CSS}${pExtraCss ?? ''}`}
                 className={`mrk-form markdown-body markdown-body-dark mrk${sMarkdownId}`}
                 onShadowRootCreated={(shadowRoot) => {
                     sBodyRef.current = shadowRoot.host;

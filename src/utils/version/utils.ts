@@ -218,6 +218,14 @@ export interface PkgVersionInfo {
     version: string;
     minServer: string;
     released_at?: string;
+    /**
+     * issue #1452 — where this version can be obtained from. Absent on hub rows
+     * (the historical shape, treated as `'hub'`); `'local'` on rows contributed by
+     * the offline archive directory. `computeEligibility` copies rows with
+     * `{ ...v }`, so the flag survives into `PkgVersionRow` untouched and the
+     * version picker can label/route an install without a second lookup.
+     */
+    source?: 'hub' | 'local';
 }
 
 export type PkgVersionState = 'default' | 'current' | 'belowCurrent' | 'eligible' | 'ineligible';
@@ -325,4 +333,122 @@ export function computeEligibility(versions: PkgVersionInfo[], serverVersion: st
     }
 
     return { rows, defaultInstall, defaultUpdate, isIncompatible, installedMinServer };
+}
+
+// ---------------------------------------------------------------------------
+// Offline (air-gapped) gating (issue #1452) — POST-PROCESSING over the result of
+// `computeEligibility`, deliberately NOT baked into it.
+//
+// `computeEligibility` answers one question only: "may this version run on this
+// server?" (the minServer contract of #1369). Reachability of the download
+// source is an orthogonal axis and belongs to whoever knows the catalog status,
+// so it is layered on top instead of adding a second meaning to `selectable`
+// inside the same function. Keeping them apart is also what lets the #1369 tests
+// stay untouched.
+// ---------------------------------------------------------------------------
+
+/**
+ * Mask hub-sourced rows as non-selectable while the hub is unreachable.
+ *
+ * Offline, a `source: 'hub'` version has no bytes anywhere on this machine — the
+ * install would go out to GitHub and fail. A `source: 'local'` row is backed by a
+ * zip in the local archive directory and stays installable.
+ *
+ * ONLY `selectable` is touched: `eligible`/`state` describe the *server
+ * compatibility* verdict and must keep saying what they said, so the picker can
+ * still tell "requires a newer server" apart from "not downloadable right now".
+ *
+ * @param rows - Rows from `computeEligibility`, newest-first.
+ * @param online - Hub reachability from the last catalog build (`gCatalogStatus.online`).
+ * @returns The same array reference when nothing changes, otherwise a new array.
+ */
+export function applyOfflineSelectable(rows: PkgVersionRow[], online: boolean): PkgVersionRow[] {
+    if (online !== false) return rows;
+    let changed = false;
+    const masked = rows.map((row) => {
+        if (row.source !== 'hub' || !row.selectable) return row;
+        changed = true;
+        return { ...row, selectable: false };
+    });
+    return changed ? masked : rows;
+}
+
+/**
+ * Latest selectable row = the default install target.
+ * Rows are already newest-first, so this is the first selectable one.
+ */
+export function pickDefaultInstall(rows: PkgVersionRow[]): string | undefined {
+    return rows.find((r) => r.selectable)?.version;
+}
+
+/**
+ * Latest selectable row strictly newer than `installedVersion` = default update
+ * target. The `comparePkgVersions` re-check is belt-and-braces: `selectable`
+ * already excludes `current`/`belowCurrent`, but only when `computeEligibility`
+ * was given the installed version in the first place.
+ */
+export function pickDefaultUpdate(rows: PkgVersionRow[], installedVersion?: string): string | undefined {
+    if (!installedVersion) return undefined;
+    return rows.find((r) => r.selectable && comparePkgVersions(installedVersion, r.version) === -1)?.version;
+}
+
+/**
+ * Full offline pass over an eligibility result: mask unreachable hub rows AND
+ * recompute the default install/update targets from what is left.
+ *
+ * THE RECOMPUTE IS THE POINT. Masking alone leaves `defaultInstall`/`defaultUpdate`
+ * pointing at the hub version they were computed from, which is exactly the bug
+ * this guards against: offline, the card would still show `Update ↑v1.3.0`, and
+ * pressing it would run a GitHub fetch that cannot succeed. After the recompute
+ * the button either targets a locally archived version or disappears.
+ *
+ * The `default` badge is moved along with the target so the picker does not label
+ * a row the user can no longer choose as the default one.
+ *
+ * @param eligibility - Result of `computeEligibility`.
+ * @param online - Hub reachability; `true` returns `eligibility` untouched.
+ * @param installedVersion - Same value passed to `computeEligibility` (update mode).
+ */
+/**
+ * Where the version the card's primary button would actually apply comes from.
+ *
+ * The card shows one button at a time, so "which version is about to be
+ * installed" is decided in the same order the button itself is: an available
+ * update wins, otherwise the install target, otherwise (installed and fully up
+ * to date) the installed version — which still answers the useful question
+ * "is this exact version sitting in the local archive?".
+ *
+ * The lookup runs over `eligibility.rows`, so it must be handed the eligibility
+ * AFTER `applyOfflineEligibility`: offline, the hub target has already been
+ * masked away and the surviving target is the locally archived one.
+ *
+ * @param eligibility - Result of `computeEligibility` (+ `applyOfflineEligibility`).
+ * @param installedVersion - Installed version, or undefined when not installed.
+ * @returns The target row's `source`, or undefined when there is no target, no
+ *          matching row (e.g. an experiment-mode custom version), or the row
+ *          carries no source tag.
+ */
+export function resolveActionSource(eligibility: PkgEligibility, installedVersion?: string): 'hub' | 'local' | undefined {
+    const target = eligibility?.defaultUpdate ?? eligibility?.defaultInstall ?? installedVersion;
+    if (!target) return undefined;
+    // Exact string first (covers non-SemVer tags), then SemVer equality so a
+    // `v`-prefixed installed_version still matches its plain catalog row — the
+    // same matching `computeEligibility` uses for the installed row.
+    return eligibility.rows.find((r) => r.version === target || comparePkgVersions(r.version, target) === 0)?.source;
+}
+
+export function applyOfflineEligibility(eligibility: PkgEligibility, online: boolean, installedVersion?: string): PkgEligibility {
+    const masked = applyOfflineSelectable(eligibility.rows, online);
+    if (masked === eligibility.rows) return eligibility;
+
+    const defaultInstall = pickDefaultInstall(masked);
+    const defaultUpdate = pickDefaultUpdate(masked, installedVersion);
+    const target = installedVersion ? defaultUpdate : defaultInstall;
+    const rows = masked.map((row) => {
+        if (row.state === 'default' && row.version !== target) return { ...row, state: 'eligible' as PkgVersionState };
+        if (row.selectable && row.version === target && row.state !== 'default') return { ...row, state: 'default' as PkgVersionState };
+        return row;
+    });
+
+    return { ...eligibility, rows, defaultInstall, defaultUpdate };
 }
