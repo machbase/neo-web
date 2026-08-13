@@ -34,7 +34,53 @@ export const getPkgsSync = () => {
 const PKG_HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
 const PKG_HUB_ALL_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages-all.json';
 
-interface PkgHubEntry {
+// issue #1452 — offline hardening of the hub leg.
+//
+// On an air-gapped server `fetch` to raw.githubusercontent does not fail fast: it
+// hangs until the browser's own connect timeout (tens of seconds on some proxy
+// setups), and there is no way to shorten that other than aborting it ourselves.
+/** Per-request abort deadline. Both hub urls get their own budget. */
+export const HUB_FETCH_TIMEOUT_MS = 4000;
+/**
+ * How long the hub leg stays "known down" after a complete failure.
+ *
+ * The App Store re-runs the whole catalog build on a 500ms search debounce, so
+ * without this every keystroke would pay the abort deadline twice (all + legacy
+ * fallback) before the local sources could render. The window is deliberately
+ * much longer than the debounce and shorter than a plausible "I plugged the
+ * network back in" gap; a manual Refresh clears it outright via
+ * `resetPkgHubBackoff`.
+ *
+ * NOTE: `navigator.onLine` is NOT part of this decision and must never be. A
+ * machine on a corporate LAN reports online while GitHub is unreachable, and a
+ * VPN-only host can report offline while the hub is proxied and fine. The only
+ * signal that means anything here is whether the fetch itself succeeded.
+ */
+export const HUB_FAILURE_BACKOFF_MS = 30000;
+/** Thrown (not fetched) while the backoff window is open. */
+export const HUB_BACKOFF_MESSAGE = 'pkg hub unreachable (backoff)';
+
+let hubBackoffUntil = 0;
+
+/**
+ * Drop the failure backoff so the very next call hits the network again.
+ *
+ * Wired to the catalog's explicit Refresh button: an unprompted retry storm is
+ * what the backoff exists to prevent, but a user who just reconnected and
+ * pressed Refresh is asking for exactly one retry and must not be told to wait.
+ * Also used by tests to isolate the module-level window.
+ */
+export const resetPkgHubBackoff = () => {
+    hubBackoffUntil = 0;
+};
+
+/** True while the hub is being skipped because a recent attempt failed. */
+export const isPkgHubBackedOff = () => Date.now() < hubBackoffUntil;
+
+// Exported for issue #1452 (offline catalog): the local-archive index publishes
+// entries in exactly this shape, and `onpremCatalog.ts` aliases this type rather
+// than restating it so the two cannot drift apart.
+export interface PkgHubEntry {
     name: string;
     description: string;
     version?: string;
@@ -67,7 +113,19 @@ interface PkgHubEntry {
     experiment?: boolean;
 }
 
-const mapHubEntry = (entry: PkgHubEntry): APP_INFO => {
+/**
+ * Map a catalog entry (hub OR local archive, issue #1452) to the card model.
+ *
+ * Exported so the offline merge reuses this exact function. Writing a second
+ * mapper for local entries is the trap: the only place `entry.description`
+ * reaches the UI is `github.description` below — the source entry has the field
+ * at the top level, the card model has it nested. A hand-rolled mapper that
+ * copies `github` across verbatim leaves `github.description` undefined, and
+ * `AppStore/index.tsx:101` (and `usePkgCommand.ts:163`) call
+ * `pkg.github.description.toLowerCase()` with no guard, so the catalog renders
+ * fine and then throws a TypeError the moment anyone types in the search box.
+ */
+export const mapHubEntry = (entry: PkgHubEntry): APP_INFO => {
     // Transition window: a hub still on the old single-`version` shape has no
     // versions[]. Synthesize a one-element list with an empty minServer (no
     // constraint → always eligible) so downstream eligibility logic is uniform.
@@ -101,11 +159,20 @@ const mapHubEntry = (entry: PkgHubEntry): APP_INFO => {
 };
 
 const fetchHubEntries = async (url: string): Promise<PkgHubEntry[]> => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch pkg hub: ${res.status}`);
-    const json = await res.json();
-    if (!Array.isArray(json)) throw new Error(`Malformed pkg hub payload at ${url}`);
-    return json;
+    // AbortController, not Promise.race: racing a timer would leave the socket
+    // open and the response still arriving in the background, so an offline
+    // server would accumulate one hung request per keystroke.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), HUB_FETCH_TIMEOUT_MS);
+    try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error(`Failed to fetch pkg hub: ${res.status}`);
+        const json = await res.json();
+        if (!Array.isArray(json)) throw new Error(`Malformed pkg hub payload at ${url}`);
+        return json;
+    } finally {
+        clearTimeout(timer);
+    }
 };
 
 /**
@@ -116,14 +183,28 @@ const fetchHubEntries = async (url: string): Promise<PkgHubEntry[]> => {
  * file out yet, or a rollback, must not take the whole catalog down. The fallback
  * degrades safely: the legacy view contains no gated package at all, so everything it
  * returns is visible, which is exactly what a client without the flag would show.
+ *
+ * STILL REJECTS when both sources fail — but rejection no longer means "the catalog
+ * is empty". `buildCatalog` (components/side/AppStore/catalog.ts) treats this leg as
+ * one settled source among three and renders the local archive + installed packages
+ * without it. Callers must not fall back to clearing the list (issue #1452).
  */
 export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
+    if (isPkgHubBackedOff()) throw new Error(HUB_BACKOFF_MESSAGE);
     let entries: PkgHubEntry[];
     try {
         entries = await fetchHubEntries(PKG_HUB_ALL_URL);
     } catch {
-        entries = await fetchHubEntries(PKG_HUB_URL);
+        try {
+            entries = await fetchHubEntries(PKG_HUB_URL);
+        } catch (e) {
+            // Both urls are gone: assume the host is unreachable rather than that
+            // two files vanished, and stop hammering it until the window closes.
+            hubBackoffUntil = Date.now() + HUB_FAILURE_BACKOFF_MS;
+            throw e;
+        }
     }
+    hubBackoffUntil = 0; // reachable again
     return entries.map(mapHubEntry);
 };
 
@@ -204,6 +285,54 @@ export interface APP_INFO {
     // not-installed packages leave this undefined. Consumed by item.tsx /
     // info.tsx to decide between the RunSwitch and the ServiceSummaryChip.
     installed_packageService?: { managed: boolean; reason?: string };
+    // issue #1452: FILE NAME of the icon shipped by the installed copy, e.g.
+    // `icon.svg` — read off the server by the archive scan, never guessed from the
+    // package name. Three-valued, exactly like the scan field it comes from
+    // (`getInstalledIcons` in onpremCatalog.ts):
+    //   'icon.svg'  → `/public/{name}/icon.svg`
+    //   ''          → the scan looked and this package ships NO icon (no request)
+    //   undefined   → not known (not installed, or no scan) → the `icon.png` guess
+    // Consumed by item.tsx / info.tsx, which pass it to `PkgIcon`.
+    installed_icon?: string;
+    /**
+     * issue #1452 — THIS CARD IS NOT AN INSTALL. Set only on the cards
+     * `buildCatalog` synthesizes for a `/public/` directory that holds an
+     * identifiable package which was never installed through the App Store (an
+     * archive somebody unpacked by hand, or a developer's clone).
+     *
+     * `installed_frontend` IS DELIBERATELY LEFT UNSET on these. It drives
+     * Uninstall / Start / Stop / Update everywhere in the panel, and none of those
+     * mean anything for a tree whose `scripts.install` never ran — offering them
+     * would be a lie about the server's state. `item.tsx` keys off THIS field to
+     * render the stripped-down card instead.
+     *
+     * The rule that produces it lives in `strayDirs.ts`; see that file for why a
+     * hand-unpacked copy is a live unmanaged backend and not a leftover.
+     */
+    stray?: StrayDirCard;
+}
+
+/** The `/public/` directory behind a stray card (issue #1452). */
+export interface StrayDirCard {
+    /**
+     * The DIRECTORY name, which is NOT `APP_INFO.name` (that is what the package
+     * calls itself). Everything about this card that touches the filesystem — the
+     * path shown to the user, the icon lookup, the removal — must use this.
+     */
+    dir: string;
+    /**
+     * May the card offer `Remove directory`? False for a git clone and for any
+     * directory whose `.git` state could not be established.
+     */
+    removable: boolean;
+    /**
+     * A properly installed copy of the SAME package exists as well.
+     *
+     * Both cards are rendered when this is true, and both are correct: the two
+     * trees are both on disk and both served. Merging them would leave the user
+     * unable to tell which directory a button acts on.
+     */
+    duplicate: boolean;
 }
 export interface APP_GITHUB {
     organization: string;

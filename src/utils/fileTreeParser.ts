@@ -36,6 +36,10 @@ interface ResFileType {
     isDir: boolean;
     lastModifiedUnixMillis: bigint;
     name: string;
+    // The file api does return a byte size for regular files; the declaration
+    // simply never carried it (verified against a live response). Optional
+    // because directory entries omit it.
+    size?: number;
     type: string;
     virtual: boolean;
     readOnly?: boolean;

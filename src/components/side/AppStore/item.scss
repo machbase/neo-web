@@ -1,5 +1,40 @@
 @use '@/design-system/tokens' as t;
 
+// issue #1452 — the `AppList` row wrapper around a card that cannot be selected
+// (currently only a stray directory). The wrapper is what carries the row's
+// onClick, so it is also where "this row does not respond to a click" has to be
+// said; the card inside states it again for its own box.
+.app-store-row--static {
+    cursor: default;
+}
+
+// OPEN AND SELECTED ARE TWO FACTS, SO THEY ARE TWO MARKS — AND THEY MUST NOT
+// LOOK ALIKE.
+//
+// Both used to draw the SAME blue `$primary-base` bar, differing only by a
+// `rgba(255,255,255,0.15)` background that is nearly invisible on this panel. With
+// two packages open, both cards showed an identical blue bar and the one the main
+// area was actually displaying was indistinguishable from the one that merely had
+// a pill — so the list read as "marked because a pill exists", which is the
+// opposite of what it means.
+//
+// The two are now separated by HUE, not by opacity:
+//
+//   open      grey bar, no fill   — you have this open somewhere
+//   selected  blue bar + fill     — you are looking at this right now
+//
+// Colour plus fill survives a glance; two shades of the same blue did not.
+.app-store-row--open {
+    box-shadow: inset 2px 0 0 0 t.$text-tertiary;
+}
+
+// Wins whenever both apply: it is declared after `--open`, and the class order in
+// `item.tsx` puts them on the same element rather than nesting them.
+.app-store-row--selected {
+    box-shadow: inset 2px 0 0 0 t.$primary-base;
+    background: rgba(255, 255, 255, 0.15);
+}
+
 .app-store-item {
     padding: 8px 11px 8px 12px;
     display: flex;
@@ -183,6 +218,36 @@
             }
         }
 
+        // the default button's target version is backed by the server's local
+        // package archive (issue #1452) — informational, so a neutral blue that
+        // reads apart from `.experiment` (violet) and `.incompat` (amber).
+        // Padding/height/radius come from the shared `span` rule above, which is
+        // what keeps it aligned with the neighbouring chips.
+        span.local {
+            background-color: rgba(45, 156, 219, 0.18);
+            color: #7cc4f0;
+            gap: 3px;
+            cursor: help;
+
+            svg {
+                flex-shrink: 0;
+            }
+        }
+
+        // a /public/ directory holding a package nobody installed (issue #1452).
+        // Amber, like `.incompat`: both say "this is not the state you think it
+        // is", and both are conditions the user has to act on rather than choices.
+        span.stray {
+            background-color: rgba(209, 134, 22, 0.18);
+            color: #e0a458;
+            gap: 3px;
+            cursor: help;
+
+            svg {
+                flex-shrink: 0;
+            }
+        }
+
         // server-downgrade incompatibility warning (issue #1369)
         span.incompat {
             background-color: rgba(209, 134, 22, 0.18);
@@ -194,6 +259,67 @@
                 flex-shrink: 0;
             }
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // STRAY CARD (issue #1452) — present on disk, never installed
+    // ---------------------------------------------------------------------
+    // It must not read as one of the installed rows above it: it carries no
+    // RunSwitch and no Install/Uninstall, so the only thing left to say "this
+    // row is a different kind of thing" is the frame. Dashed border + a muted
+    // ground, which is the conventional "provisional / not part of the set"
+    // treatment and survives the theme without new tokens.
+    &--stray {
+        border: 1px dashed rgba(224, 164, 88, 0.38);
+        border-bottom: 1px dashed rgba(224, 164, 88, 0.38);
+        background-color: rgba(209, 134, 22, 0.04);
+
+        // issue #1452 — INERT, AND IT MUST LOOK INERT. The base `.app-store-item`
+        // is a clickable row (pointer cursor + hover tint) because clicking it
+        // opens the package's detail tab. A stray has no detail tab to open — see
+        // the guard in `AppList` — so both affordances are taken back here, and the
+        // hover tint is pinned to the resting colour rather than merely removed, so
+        // the base rule cannot leak through. `Remove directory` is the only thing
+        // on this card that reacts to the mouse, and it carries its own cursor.
+        cursor: default;
+
+        &:hover {
+            background-color: rgba(209, 134, 22, 0.04);
+        }
+    }
+
+    // The real directory name, shown in place of the publisher line: for this card
+    // it IS the identity — the title above is what the package calls itself, and
+    // the two deliberately disagree.
+    .app-store-item-stray-dir {
+        font-family: monospace;
+        font-size: 11px;
+        color: #d0a06a;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex: 1;
+    }
+
+    // ONE LINE, ELLIPSED — the same treatment `.app-store-item-desc` gives every
+    // other card's description, and for the same reason.
+    //
+    // It used to WRAP (`white-space: normal` + a `--stray` foot pinned to
+    // flex-start), because the note carried the whole explanation and had to fit.
+    // Three wrapped lines per card is what turned a list of strays into a wall of
+    // prose with `Remove directory` floating beside the top of it. The note is one
+    // short clause now and the full text lives in its `title`, so wrapping buys
+    // nothing and costs the row its shape: with `nowrap` the foot is exactly as
+    // tall as the button, whatever the directory is called.
+    .app-store-item-stray-note {
+        flex: 1;
+        min-width: 0;
+        font-size: 11px;
+        color: #a3a3a3;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
     }
 
     // start/stop run-state toggle switch

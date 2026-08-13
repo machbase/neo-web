@@ -21,6 +21,18 @@ export async function isPkgInstalled(appName: string): Promise<boolean> {
 const DEFAULT_ATTEMPTS = 30;
 const DEFAULT_DELAY_MS = 300;
 
+/**
+ * Polling budget for the offline archive path (issue #1452), kept separate from
+ * the `pkg copy` defaults above (30 × 300ms ≈ 9s).
+ *
+ * Extracting a local archive is a single synchronous unzip of a file that can be
+ * tens of megabytes, and the whole tree is written before the final rename makes
+ * the directory appear — so the observable state flips late and all at once,
+ * unlike `pkg copy`'s incremental fetch. 60 × 500ms ≈ 30s.
+ */
+export const ARCHIVE_PROBE_ATTEMPTS = 60;
+export const ARCHIVE_PROBE_DELAY_MS = 500;
+
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 async function pollUntil(predicate: () => Promise<boolean>, attempts: number, delayMs: number): Promise<boolean> {
