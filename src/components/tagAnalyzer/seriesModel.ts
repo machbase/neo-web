@@ -131,10 +131,6 @@ export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = PANEL_SERIES_CALCULATION_MO
     }),
 );
 
-export const DEFAULT_SERIES_ANNOTATION_FILL_COLOR = '#fff4b8';
-export const DEFAULT_SERIES_ANNOTATION_TEXT_COLOR = '#161616';
-export const DEFAULT_SERIES_ANNOTATION_LABEL = 'note';
-
 export type PanelSeriesDefinition = {
     key: string;
     table: string;

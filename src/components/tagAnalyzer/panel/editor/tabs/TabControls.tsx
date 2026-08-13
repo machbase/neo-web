@@ -59,7 +59,7 @@ export function NumberInput({
         <Input
             type="number"
             disabled={disabled}
-            value={value ?? ''}
+            value={Number.isFinite(value) ? value : ''}
             variant={error ? 'error' : 'default'}
             placeholder={placeholder}
             aria-invalid={error}

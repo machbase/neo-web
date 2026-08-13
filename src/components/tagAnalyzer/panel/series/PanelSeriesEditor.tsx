@@ -46,6 +46,7 @@ import {
     getPanelSeriesRollupColumn,
     getPanelSeriesRollupInfo,
     getPanelSeriesValueSummaryLabel,
+    getSeriesListAxisKind,
     hasMixedXAxisValueKinds,
     MIXED_X_AXIS_KIND_WARNING,
     normalizePanelSeriesCalculationMode,
@@ -57,11 +58,14 @@ import {
     type RollupTableMap,
     updatePanelSeriesCalculationMode,
 } from '../../seriesModel';
+import type { AxisKind } from '../../range/rangeModel';
 import { getErrorMessageFromValue } from '../../errorMessage';
 import { useLatestAsyncRequest } from '../../hooks/useLatestAsyncRequest';
 import styles from './PanelSeriesEditor.module.scss';
 
 const TAG_PAGE_SIZE = 10;
+export const X_AXIS_KIND_CHANGE_WARNING =
+    'The panel x-axis type cannot be changed.';
 
 function encodeTestIdSegment(value: string): string {
     return encodeURIComponent(value);
@@ -70,11 +74,13 @@ function encodeTestIdSegment(value: string): string {
 export function PanelSeriesEditor({
     seriesList,
     rollupTableList,
+    lockedAxisKind,
     onFooterMessageChange: setFooterMessage,
     onSeriesListChange,
 }: {
     seriesList: PanelSeriesDefinition[];
     rollupTableList: RollupTableMap;
+    lockedAxisKind?: AxisKind;
     onFooterMessageChange: (message: string | undefined) => void;
     onSeriesListChange: (seriesList: PanelSeriesDefinition[]) => void;
 }) {
@@ -127,6 +133,15 @@ export function PanelSeriesEditor({
     ): void {
         if (hasMixedXAxisValueKinds(nextSeriesList)) {
             setFooterMessage(MIXED_X_AXIS_KIND_WARNING);
+            return;
+        }
+        const sNextAxisKind = getSeriesListAxisKind(nextSeriesList);
+        if (
+            lockedAxisKind &&
+            sNextAxisKind &&
+            sNextAxisKind !== lockedAxisKind
+        ) {
+            setFooterMessage(X_AXIS_KIND_CHANGE_WARNING);
             return;
         }
 

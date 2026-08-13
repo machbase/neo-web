@@ -1,23 +1,24 @@
-import { type YAXisComponentOption, type XAXisComponentOption, type LineSeriesOption, type SeriesOption, type MarkAreaComponentOption, type ScatterSeriesOption, type CustomSeriesOption, type CustomSeriesRenderItemAPI, type CustomSeriesRenderItemParams, type CustomSeriesRenderItemReturn, type BrushComponentOption, type DataZoomComponentOption, type EChartsOption, type LegendComponentOption, type TooltipComponentOption, type TooltipComponentFormatterCallbackParams as TopLevelFormatterParams } from 'echarts';
+import { type YAXisComponentOption, type XAXisComponentOption, type LineSeriesOption, type SeriesOption, type BrushComponentOption, type DataZoomComponentOption, type EChartsOption, type LegendComponentOption, type TooltipComponentOption, type TooltipComponentFormatterCallbackParams as TopLevelFormatterParams } from 'echarts';
 import type { AxisRange, RangeState } from '../range/rangeModel';
 import { roundNumericAxisBounds } from '../range/intervalResolver';
-import {
-    getRangeCenter,
-    isSameRange,
-} from '../range/rangeArithmetic';
+import { isSameRange } from '../range/rangeArithmetic';
 import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
 import { formatCompactNumber } from '../format/numericFormat';
 import { PanelOverlayMode, type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
 import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
-import { getPanelSeriesDisplayColor, DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../seriesModel';
-import { DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR, type PanelHighlight, type ValueRange } from '../panel/panelModel';
-import { buildRenderableSeriesAnnotations, type AnnotationRenderContext, type RenderableSeriesAnnotation, type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
+import { getPanelSeriesDisplayColor } from '../seriesModel';
+import { type ValueRange } from '../panel/panelModel';
+import {
+    buildChartMarkupSeries,
+    isAnnotationLabelSeries,
+    isHighlightLabelSeries,
+} from '../markup/chartMarkupOptions';
+import { type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
 import { type MutableRefObject } from 'react';
 
 export type PanelChartHandlers = {
     rangeActions: {
-        applyMainZoomRange: (range: AxisRange) => void;
-        applyMainNavigatorSelectionRange: (range: AxisRange) => void;
+        setMainRange: (range: AxisRange) => void;
         shiftMainRangeLeft: () => void;
         shiftMainRangeRight: () => void;
     };
@@ -41,30 +42,15 @@ export type PanelChartHandlers = {
 };
 
 // Chart option constants
-const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6})$/;
 const SAFE_TOOLTIP_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
 const PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX = 1;
 const PANEL_NAVIGATOR_DATA_X_AXIS_INDEX = 2;
 export const PANEL_SLIDER_DATA_ZOOM_ID = 'panel-slider-data-zoom';
-const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
 export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
 export const PANEL_NAVIGATOR_SERIES_ID_PREFIX = 'navigator-series-';
-const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 
 const DEFAULT_NOT_SHOW = { show: false } as const;
-
-function parseHexColor(color: string) {
-    const sRgbHex = HEX_COLOR_PATTERN.exec(color)?.[1];
-
-    return sRgbHex
-        ? {
-              r: Number.parseInt(sRgbHex.slice(0, 2), 16),
-              g: Number.parseInt(sRgbHex.slice(2, 4), 16),
-              b: Number.parseInt(sRgbHex.slice(4, 6), 16),
-          }
-        : undefined;
-}
 
 export function escapeTooltipHtml(value: unknown): string {
     return String(value ?? '')
@@ -524,502 +510,6 @@ function buildNavigatorSeriesOption(
     });
 }
 
-// Highlights
-type HighlightAreaPoint = {
-    name?: string;
-    xAxis: number;
-    itemStyle?: {
-        color: string;
-        borderColor?: string;
-        borderType?: 'solid';
-        borderWidth?: number;
-    };
-};
-
-const HIGHLIGHT_OUTLINE_WIDTH = 1;
-const NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID = 'navigator-highlight-overlay';
-const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
-
-const HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION: LineSeriesOption = {
-    id: 'highlight-overlay',
-    type: 'line',
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    data: [],
-    symbol: 'none',
-    showSymbol: false,
-    silent: true,
-    animation: false,
-    legendHoverLink: false,
-    lineStyle: { width: 0, opacity: 0 },
-    itemStyle: { opacity: 0 },
-    tooltip: DEFAULT_NOT_SHOW,
-    z: 1,
-    emphasis: { disabled: true },
-};
-
-const HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION: MarkAreaComponentOption = {
-    silent: true,
-    itemStyle: { color: 'rgba(253, 181, 50, 0.16)' },
-    label: {
-        ...DEFAULT_NOT_SHOW,
-        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-        fontSize: 10,
-    },
-};
-
-const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
-    id: HIGHLIGHT_LABEL_SERIES_ID,
-    type: 'scatter',
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    symbol: 'circle',
-    symbolSize: 0,
-    animation: false,
-    legendHoverLink: false,
-    itemStyle: {
-        color: TRANSPARENT_COLOR,
-        borderColor: TRANSPARENT_COLOR,
-    },
-    label: {
-        show: true,
-        position: 'inside',
-        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-        fontSize: 10,
-        fontWeight: 600,
-        formatter: '{b}',
-        padding: 0,
-    },
-    emphasis: { scale: false },
-    tooltip: DEFAULT_NOT_SHOW,
-    z: 3,
-};
-
-function getHighlightAreaData(
-    highlights: PanelHighlight[],
-    includeName: boolean,
-) {
-    return highlights.map(
-        (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
-            {
-                ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
-                xAxis: highlight.timeRange.start,
-                itemStyle: {
-                    color: createColorWithAlpha(highlight.fillColor, 0.16),
-                    borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
-                    borderType: 'solid',
-                    borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
-                },
-            },
-            {
-                xAxis: highlight.timeRange.end,
-            },
-        ],
-    );
-}
-
-function getHighlightLabelData(
-    highlights: PanelHighlight[],
-    labelY: number,
-) {
-    return highlights.map((highlight, highlightIndex) => ({
-        name: highlight.text || 'unnamed',
-        value: [
-            getRangeCenter(highlight.timeRange),
-            labelY,
-        ] as [number, number],
-        highlightIndex,
-        label: {
-            color: highlight.textColor,
-        },
-    }));
-}
-
-function createColorWithAlpha(color: string, alpha: number): string {
-    const sRgb = parseHexColor(color);
-
-    if (!sRgb) {
-        return color;
-    }
-
-    return `rgba(${sRgb.r}, ${sRgb.g}, ${sRgb.b}, ${alpha})`;
-}
-
-function buildHighlightOverlaySeries(
-    highlights: PanelHighlight[],
-    target: 'main' | 'navigator',
-): SeriesOption[] {
-    const sIsNavigatorTarget = target === 'navigator';
-    const sHighlightAreas = getHighlightAreaData(highlights, !sIsNavigatorTarget);
-
-    if (sHighlightAreas.length === 0) {
-        return [];
-    }
-
-    return [
-        {
-            ...HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
-            ...(sIsNavigatorTarget
-                ? {
-                      id: NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
-                      xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
-                      yAxisIndex: 2,
-                      z: 0,
-                  }
-                : {}),
-            markArea: {
-                ...HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
-                data: sHighlightAreas,
-            },
-        },
-    ];
-}
-
-function buildHighlightLabelSeries(
-    highlights: PanelHighlight[],
-    primaryYAxis: YAXisComponentOption,
-): SeriesOption[] {
-    const sAxisMin = Number(primaryYAxis.min);
-    const sAxisMax = Number(primaryYAxis.max);
-
-    if (!Number.isFinite(sAxisMin) || !Number.isFinite(sAxisMax)) {
-        return [];
-    }
-
-    const sAxisHeight = sAxisMax - sAxisMin;
-    const sLabelPadding = sAxisHeight > 0
-        ? sAxisHeight * 0.04
-        : Math.max(Math.abs(sAxisMax) * 0.04, 1);
-    const sLabelY = sAxisMax - sLabelPadding;
-    const sLabelData = getHighlightLabelData(highlights, sLabelY);
-
-    if (sLabelData.length === 0) {
-        return [];
-    }
-
-    return [
-        {
-            ...HIGHLIGHT_LABEL_SERIES_STATIC_OPTION,
-            data: sLabelData,
-        },
-    ];
-}
-
-// Annotations
-type CartesianRenderCoordSys = {
-    type: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-};
-
-const ANNOTATION_GUIDE_LINE_OPACITY = 0.9;
-const ANNOTATION_GUIDE_LINE_WIDTH = 1.5;
-const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
-const ANNOTATION_LABEL_BORDER_WIDTH = 1;
-const ANNOTATION_LABEL_CORNER_RADIUS = 3;
-const ANNOTATION_LABEL_FONT_SIZE = 11;
-const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;
-const ANNOTATION_LABEL_TEXT_HORIZONTAL_PADDING = 14;
-const NAVIGATOR_ANNOTATION_LINE_SERIES_ID = 'navigator-annotation-lines';
-
-function buildAnnotationGuideLineData(
-    annotations: RenderableSeriesAnnotation[],
-) {
-    return annotations.flatMap((annotation) => [
-        {
-            value: [annotation.anchorTime, annotation.anchorValue],
-            symbol: 'circle',
-            symbolSize: 6,
-            itemStyle: {
-                color: annotation.fillColor,
-                borderColor: createAnnotationBorderColor(annotation.fillColor),
-                borderWidth: ANNOTATION_LABEL_BORDER_WIDTH,
-            },
-            label: { show: false },
-        },
-        {
-            value: [annotation.anchorTime, annotation.labelY],
-            symbol: 'none',
-            label: { show: false },
-        },
-        {
-            value: [Number.NaN, Number.NaN],
-            symbol: 'none',
-            label: { show: false },
-        },
-    ]);
-}
-
-function buildAnnotationLabelData(
-    annotations: RenderableSeriesAnnotation[],
-) {
-    return annotations.map((annotation) => ({
-        name: annotation.text,
-        value: [annotation.anchorTime, annotation.labelY],
-        annotationIndex: annotation.annotationIndex,
-    }));
-}
-
-function buildAnnotationSeriesId(
-    seriesIdPrefix: string,
-    seriesIndex: number,
-    clip: boolean,
-): string {
-    return `${seriesIdPrefix}${seriesIndex}${clip ? '-clipped' : ''}`;
-}
-
-function isCartesianRenderCoordSys(
-    coordSys: CustomSeriesRenderItemParams['coordSys'],
-): coordSys is CartesianRenderCoordSys {
-    return (
-        coordSys.type === 'cartesian2d' &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).x) &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).y) &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).width) &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).height)
-    );
-}
-
-function clampNumber(value: number, minimum: number, maximum: number): number {
-    return Math.min(maximum, Math.max(minimum, value));
-}
-
-function createAnnotationLabelRenderItem(
-    annotations: RenderableSeriesAnnotation[],
-): NonNullable<CustomSeriesOption['renderItem']> {
-    return (
-        params: CustomSeriesRenderItemParams,
-        api: CustomSeriesRenderItemAPI,
-    ): CustomSeriesRenderItemReturn => {
-        const annotation = annotations[params.dataIndex];
-
-        if (!annotation || !isCartesianRenderCoordSys(params.coordSys)) {
-            return undefined;
-        }
-
-        const xValue = Number(api.value(0));
-        const yValue = Number(api.value(1));
-        const point = api.coord([xValue, yValue]);
-        const centerX = Number(point[0]);
-        const centerY = Number(point[1]);
-
-        if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) {
-            return undefined;
-        }
-
-        const labelWidth = Math.min(annotation.symbolSize[0], params.coordSys.width);
-        const labelHeight = Math.min(annotation.symbolSize[1], params.coordSys.height);
-
-        if (labelWidth <= 0 || labelHeight <= 0) {
-            return undefined;
-        }
-
-        const labelX = clampNumber(
-            centerX - labelWidth / 2,
-            params.coordSys.x,
-            params.coordSys.x + params.coordSys.width - labelWidth,
-        );
-        const labelY = clampNumber(
-            centerY - labelHeight / 2,
-            params.coordSys.y,
-            params.coordSys.y + params.coordSys.height - labelHeight,
-        );
-
-        return {
-            type: 'group',
-            clipPath: {
-                type: 'rect',
-                shape: {
-                    x: params.coordSys.x,
-                    y: params.coordSys.y,
-                    width: params.coordSys.width,
-                    height: params.coordSys.height,
-                },
-            },
-            children: [
-                {
-                    type: 'rect',
-                    shape: {
-                        x: labelX,
-                        y: labelY,
-                        width: labelWidth,
-                        height: labelHeight,
-                        r: ANNOTATION_LABEL_CORNER_RADIUS,
-                    },
-                    style: {
-                        fill: annotation.fillColor,
-                        stroke: createAnnotationBorderColor(annotation.fillColor),
-                        lineWidth: ANNOTATION_LABEL_BORDER_WIDTH,
-                    },
-                },
-                {
-                    type: 'text',
-                    style: {
-                        x: labelX + labelWidth / 2,
-                        y: labelY + labelHeight / 2,
-                        text: annotation.text,
-                        fill: annotation.textColor || ANNOTATION_LABEL_TEXT_COLOR,
-                        font: api.font({
-                            fontSize: ANNOTATION_LABEL_FONT_SIZE,
-                            fontWeight: 600,
-                        }),
-                        align: 'center',
-                        verticalAlign: 'middle',
-                        width: Math.max(
-                            labelWidth - ANNOTATION_LABEL_TEXT_HORIZONTAL_PADDING,
-                            0,
-                        ),
-                        overflow: 'truncate',
-                        lineHeight: 14,
-                    },
-                },
-            ],
-        };
-    };
-}
-
-function createAnnotationSeriesGroup(
-    annotations: RenderableSeriesAnnotation[],
-    seriesPosition: number,
-): SeriesOption[] {
-    const seriesSample = annotations[0];
-    if (!seriesSample) {
-        throw new Error('Cannot create annotation series for an empty annotation group.');
-    }
-
-    const sSharedSeriesOption = {
-        legendHoverLink: false,
-        xAxisIndex: 0,
-        yAxisIndex: seriesSample.yAxisIndex,
-        clip: seriesSample.clip,
-        animation: false,
-        tooltip: DEFAULT_NOT_SHOW,
-    };
-
-    return [
-        {
-            id: buildAnnotationSeriesId(
-                ANNOTATION_GUIDE_SERIES_ID_PREFIX,
-                seriesSample.seriesIndex,
-                seriesSample.clip,
-            ),
-            type: 'line',
-            ...sSharedSeriesOption,
-            silent: true,
-            data: buildAnnotationGuideLineData(annotations),
-            showSymbol: true,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: {
-                color: seriesSample.color,
-                width: ANNOTATION_GUIDE_LINE_WIDTH,
-                opacity: ANNOTATION_GUIDE_LINE_OPACITY,
-                type: 'solid',
-            },
-            z: 4 + seriesPosition,
-            emphasis: {
-                disabled: true,
-            },
-        },
-        {
-            id: buildAnnotationSeriesId(
-                ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                seriesSample.seriesIndex,
-                seriesSample.clip,
-            ),
-            type: 'custom',
-            ...sSharedSeriesOption,
-            coordinateSystem: 'cartesian2d',
-            renderItem: createAnnotationLabelRenderItem(annotations),
-            data: buildAnnotationLabelData(annotations),
-            z: 8,
-        },
-    ];
-}
-
-function buildNavigatorAnnotationLineSeries(
-    context: AnnotationRenderContext,
-): SeriesOption[] {
-    const sAnnotationLines = buildRenderableSeriesAnnotations(context).map((annotation) => ({
-        xAxis: annotation.anchorTime,
-        lineStyle: {
-            color: annotation.fillColor,
-            type: 'solid' as const,
-        },
-    }));
-
-    if (sAnnotationLines.length === 0) {
-        return [];
-    }
-
-    return [
-        {
-            id: NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
-            type: 'line',
-            legendHoverLink: false,
-            silent: true,
-            xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
-            yAxisIndex: 2,
-            data: [],
-            symbol: 'none',
-            showSymbol: false,
-            animation: false,
-            tooltip: DEFAULT_NOT_SHOW,
-            lineStyle: { width: 0, opacity: 0 },
-            itemStyle: { opacity: 0 },
-            markLine: {
-                silent: true,
-                symbol: 'none',
-                label: DEFAULT_NOT_SHOW,
-                lineStyle: { width: 2, opacity: 0.95, type: 'solid' },
-                data: sAnnotationLines,
-            },
-            z: 5,
-            emphasis: {
-                disabled: true,
-            },
-        },
-    ];
-}
-
-function createAnnotationBorderColor(fillColor: string): string {
-    const sRgb = parseHexColor(fillColor);
-
-    if (!sRgb) {
-        return 'rgba(255, 255, 255, 0.55)';
-    }
-
-    const sBrightness = (sRgb.r * 299 + sRgb.g * 587 + sRgb.b * 114) / 1000;
-
-    return sBrightness > 180
-        ? 'rgba(22, 22, 22, 0.36)'
-        : 'rgba(255, 255, 255, 0.62)';
-}
-
-function buildSeriesAnnotationSeries(
-    context: AnnotationRenderContext,
-): SeriesOption[] {
-    const annotationsBySeries = new Map<string, RenderableSeriesAnnotation[]>();
-
-    buildRenderableSeriesAnnotations(context).forEach((annotation) => {
-        const sAnnotationGroupKey = `${annotation.seriesIndex}:${annotation.clip}`;
-        const seriesAnnotations = annotationsBySeries.get(sAnnotationGroupKey) ?? [];
-
-        seriesAnnotations.push(annotation);
-        annotationsBySeries.set(sAnnotationGroupKey, seriesAnnotations);
-    });
-
-    return [...annotationsBySeries.values()].flatMap(
-        (seriesAnnotations, seriesPosition) =>
-            createAnnotationSeriesGroup(
-                seriesAnnotations,
-                seriesPosition,
-            ),
-    );
-}
-
 // Frame and tooltip
 type TooltipArrayValue = Array<number | string | undefined>;
 
@@ -1338,14 +828,15 @@ export function buildChartSeriesOption(
         yAxisOptions: resolvedYAxisOption,
         visibleSeries: interaction.visibleSeries,
     };
+    const sMarkupSeries = buildChartMarkupSeries({
+        highlights: sRenderableHighlights,
+        annotationContext: sAnnotationContext,
+        mainRange: ranges.mainRange,
+        navigatorRange: ranges.navigatorRange,
+    });
 
     return [
-        ...buildHighlightOverlaySeries(sRenderableHighlights, 'main'),
-        ...buildHighlightLabelSeries(sRenderableHighlights, resolvedYAxisOption[0]),
-        ...buildSeriesAnnotationSeries({
-            ...sAnnotationContext,
-            visibleRange: ranges.mainRange,
-        }),
+        ...sMarkupSeries.main,
         ...buildMainSeriesOption(
             data.chartData,
             config.display,
@@ -1358,11 +849,7 @@ export function buildChartSeriesOption(
             interaction.hoveredLegendSeries,
             false,
         ),
-        ...buildHighlightOverlaySeries(sRenderableHighlights, 'navigator'),
-        ...buildNavigatorAnnotationLineSeries({
-            ...sAnnotationContext,
-            visibleRange: ranges.navigatorRange,
-        }),
+        ...sMarkupSeries.navigator,
     ];
 }
 
@@ -1485,7 +972,6 @@ export function buildChartEvent({
             );
             const sRange = extractDataZoomOptionRange(
                 sDataZoomSelection,
-                mainRange,
                 navigatorRange,
             );
 
@@ -1500,7 +986,7 @@ export function buildChartEvent({
                 return;
             }
 
-            rangeActions.applyMainNavigatorSelectionRange(sRange);
+            rangeActions.setMainRange(sRange);
         },
         brushEnd: (params) => {
             const sRange = extractBrushRange(params, isNumericXAxis);
@@ -1530,7 +1016,7 @@ export function buildChartEvent({
                 return;
             }
 
-            rangeActions.applyMainZoomRange(sRange);
+            rangeActions.setMainRange(sRange);
         },
         legendselectchanged: (params) => {
             visibleSeriesRef.current = params.selected ?? {};
@@ -1582,11 +1068,9 @@ export function buildChartEvent({
                 params.seriesId,
                 MAIN_PANEL_SERIES_ID_PREFIX,
             );
-            const sIsAnnotationLabelClick =
-                getSeriesIndexFromSeriesId(
-                    params.seriesId,
-                    ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                ) !== undefined;
+            const sIsAnnotationLabelClick = isAnnotationLabelSeries(
+                params.seriesId,
+            );
             const sAnnotationIndex = parseNonNegativeInteger(
                 getPanelChartRecordValue(params.data, 'annotationIndex'),
             ) ?? (sIsAnnotationLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
@@ -1631,7 +1115,9 @@ export function buildChartEvent({
                 return;
             }
 
-            const sIsHighlightLabelClick = params.seriesId === HIGHLIGHT_LABEL_SERIES_ID;
+            const sIsHighlightLabelClick = isHighlightLabelSeries(
+                params.seriesId,
+            );
             const sHighlightIndex = parseNonNegativeInteger(
                 getPanelChartRecordValue(params.data, 'highlightIndex'),
             ) ?? (sIsHighlightLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);

@@ -24,12 +24,12 @@ import {
     type PanelActionKey,
     type PanelActionState,
 } from './panelActions';
-import type { PanelQueryResolution } from './panelData';
+import type {
+    PanelQueryResolution,
+    PanelSeriesRollupStatus,
+} from './panelData';
 
-type PanelSeriesRollupStatusList = Array<{
-    seriesName: string;
-    usesRollup: boolean;
-}>;
+type PanelSeriesRollupStatusList = readonly PanelSeriesRollupStatus[];
 
 export type PanelHeaderState = {
     title: string;

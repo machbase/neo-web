@@ -1,4 +1,5 @@
 import { Checkbox, Input } from '@/design-system/components';
+import { useLayoutEffect } from 'react';
 import type { PanelInfo } from '../../panelModel';
 import { Section } from './TabControls';
 import styles from '../PanelEditor.module.scss';
@@ -12,6 +13,8 @@ type EditorGeneralTabProps = {
     pOnChangeModeConfig: (modeConfig: PanelInfo['mode']) => void;
     pOnChangeDisplayConfig: (displayConfig: PanelInfo['display']) => void;
     pOnChangeTimeConfig: (timeConfig: PanelInfo['time']) => void;
+    pReportValidity: (tab: 'General', isValid: boolean, message?: string) => void;
+    pIsActive: boolean;
 };
 
 function EditorGeneralTab({
@@ -23,7 +26,18 @@ function EditorGeneralTab({
     pOnChangeModeConfig,
     pOnChangeDisplayConfig,
     pOnChangeTimeConfig,
+    pReportValidity,
+    pIsActive,
 }: EditorGeneralTabProps) {
+    const sIsValid = pTitle.trim() !== '';
+    useLayoutEffect(() => {
+        pReportValidity(
+            'General',
+            sIsValid,
+            sIsValid ? undefined : 'Enter a panel title.',
+        );
+    }, [pReportValidity, sIsValid]);
+    if (!pIsActive) return null;
     return (
         <Section title="Chart title">
             <div className={styles.controlGrid}>

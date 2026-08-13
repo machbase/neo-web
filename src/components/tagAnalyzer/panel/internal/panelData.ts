@@ -24,7 +24,8 @@ import type {
     RangeState,
     ResolvedRangeState,
 } from '../../range/rangeModel';
-import { enforceChartAreaWidth } from '../../range/rangeResolver';
+import { enforceNavigatorTrackWidth } from '../../range/rangeResolver';
+import { getNavigatorTrackWidth } from '../../chart/chartGeometry';
 import {
     getPanelSeriesDisplayName,
     getSeriesListAxisKind,
@@ -40,10 +41,6 @@ import {
 type PanelDataTarget = 'main' | 'navigator';
 type PanelDataNotice = 'noData' | 'partialData';
 
-type PanelDataLoadState =
-    | { status: 'idle' | 'loading' | 'ready' }
-    | { status: 'failed'; error: string };
-
 type PanelDataLoadMetric = {
     queriedEntries: number | undefined;
     pointCount: number | undefined;
@@ -55,39 +52,15 @@ export type PanelDataLoadMetrics = Record<
     PanelDataLoadMetric
 >;
 
-type PanelSeriesRollupStatus = {
+export type PanelSeriesRollupStatus = {
     seriesName: string;
     usesRollup: boolean;
 };
 
 export type PanelQueryResolution =
-    | { kind: 'unresolved' }
     | { kind: 'raw' }
     | { kind: 'time'; interval: IntervalOption }
     | { kind: 'numeric'; bucketWidth: number };
-
-/**
- * `invalid` covers both an empty series list and series with clashing x-axis
- * kinds — `getSeriesListAxisKind` reports neither as a usable axis. Only saved
- * boards can reach it; the panel editor refuses both while you edit.
- */
-type PanelDataState =
-    | { kind: 'invalid' }
-    | {
-          kind: 'queryable';
-          series: Record<PanelDataTarget, ChartSeriesData[]>;
-          range: { render: RangeState | undefined };
-          query: {
-              axisKind: AxisKind;
-              resolution: PanelQueryResolution;
-              seriesRollupStatuses: readonly PanelSeriesRollupStatus[];
-              metrics: PanelDataLoadMetrics;
-          };
-          load: {
-              notice: PanelDataNotice | undefined;
-              requests: Record<PanelDataTarget, PanelDataLoadState>;
-          };
-      };
 
 type PanelQueryInfo = Pick<PanelInfo, 'query' | 'mode' | 'display'>;
 
@@ -110,7 +83,6 @@ type PanelRequestPlan = {
     requestKey: string;
     pixelWidth: number;
     query: SeriesRowsQuery;
-    queryRange: AxisRange;
     requestedRange: AxisRange;
     resolution: PanelQueryResolution;
 };
@@ -126,15 +98,24 @@ type PanelRequestPlanContext = {
     chartWidth: number;
     rollupTables: RollupTableMap;
     refreshVersion: number;
-    axisKind: AxisKind;
 };
 
 /** Everything one chart target contributes to the panel data state. */
-type PanelDataTargetState = {
-    request: PanelRequestState;
+type PanelDataTargetState = PanelRequestState & {
     series: ChartSeriesData[];
-    load: PanelDataLoadState;
     metric: PanelDataLoadMetric;
+};
+
+type PanelDataState = {
+    /** Undefined for an empty series list or incompatible x-axis kinds. */
+    axisKind: AxisKind | undefined;
+    main: PanelDataTargetState;
+    navigator: PanelDataTargetState;
+    renderRange: RangeState | undefined;
+    resolution: PanelQueryResolution | undefined;
+    seriesRollupStatuses: readonly PanelSeriesRollupStatus[];
+    metrics: PanelDataLoadMetrics;
+    notice: PanelDataNotice | undefined;
 };
 
 const IDLE_REQUEST: PanelRequestState = { status: 'idle' };
@@ -146,7 +127,7 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
     const seriesList = panelInfo.query.tagSet;
     const isRaw = panelInfo.mode.isRaw;
     const axisKind = getSeriesListAxisKind(seriesList);
-    const chartWidth = getUsableChartWidth(params.chartAreaWidth);
+    const chartWidth = params.chartAreaWidth;
     const mainRange = params.rangeState?.range.mainRange;
     const planContext: PanelRequestPlanContext | undefined =
         params.isActive && axisKind !== undefined && chartWidth !== undefined
@@ -155,7 +136,6 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
                   chartWidth,
                   rollupTables: params.rollupTables,
                   refreshVersion: params.dataRefreshVersion,
-                  axisKind,
               }
             : undefined;
     const mainPlan = planContext && mainRange
@@ -168,9 +148,9 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
                 params.rangeState?.range,
                 chartWidth,
                 isRaw,
-                main.request.result,
+                main.result,
             ),
-        [chartWidth, isRaw, main.request.result, params.rangeState?.range],
+        [chartWidth, isRaw, main.result, params.rangeState?.range],
     );
     const navigatorPlan = planContext && renderRange && params.rangeState
         ? createRequestPlan(
@@ -190,69 +170,28 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
         isRaw,
     );
     const seriesRollupStatuses = useMemo(
-        () => (isRaw ? [] : createRollupStatuses(main.request.result, seriesList)),
-        [isRaw, main.request.result, seriesList],
+        () => (isRaw ? [] : createRollupStatuses(main.result, seriesList)),
+        [isRaw, main.result, seriesList],
     );
 
-    if (axisKind === undefined) return { kind: 'invalid' };
-
     return {
-        kind: 'queryable',
-        series: { main: main.series, navigator: navigator.series },
-        range: { render: renderRange },
-        query: {
-            axisKind,
-            resolution: mainPlan.plan?.resolution ?? { kind: 'unresolved' },
-            seriesRollupStatuses,
-            metrics: { main: main.metric, navigator: navigator.metric },
-        },
-        load: {
-            notice: resolveNotice(main, navigator),
-            requests: { main: main.load, navigator: navigator.load },
-        },
+        axisKind,
+        main,
+        navigator,
+        renderRange,
+        resolution: mainPlan.plan?.resolution,
+        seriesRollupStatuses,
+        metrics: { main: main.metric, navigator: navigator.metric },
+        notice: resolveNotice(main, navigator),
     };
-}
-
-function getUsableChartWidth(chartWidth: number | undefined): number | undefined {
-    return chartWidth !== undefined && Number.isFinite(chartWidth) && chartWidth > 0
-        ? chartWidth
-        : undefined;
 }
 
 function usePanelDataTarget(
     target: PanelDataTarget,
-    { plan, error }: PanelRequestPlanResult,
+    { plan: requestedPlan, error }: PanelRequestPlanResult,
     seriesList: PanelSeriesDefinition[],
     isRaw: boolean,
 ): PanelDataTargetState {
-    const request = usePanelRequest(target, plan);
-    const series = useMemo(
-        () =>
-            mapFetchResultToChartData(
-                request.result?.filter((entry) => entry.error === undefined),
-                seriesList,
-                isRaw,
-            ),
-        [isRaw, request.result, seriesList],
-    );
-    const isReady = request.status === 'ready';
-
-    return {
-        request,
-        series,
-        load: error ? { status: 'failed', error } : resolveLoadState(request),
-        metric: {
-            queriedEntries: isReady ? countQueriedEntries(request.result) : undefined,
-            pointCount: isReady ? countPoints(series) : undefined,
-            pixelWidth: plan?.pixelWidth,
-        },
-    };
-}
-
-function usePanelRequest(
-    target: PanelDataTarget,
-    requestedPlan: PanelRequestPlan | undefined,
-): PanelRequestState {
     const [record, setRecord] = useState<{
         plan: PanelRequestPlan | undefined;
         state: PanelRequestState;
@@ -277,18 +216,16 @@ function usePanelRequest(
             if (plan) setRecord({ plan, state: { status: 'loading' } });
         },
         onSuccess: (result) => {
-            if (plan) {
-                setRecord({ plan, state: { status: 'ready', result } });
-            }
+            if (plan) setRecord({ plan, state: { status: 'ready', result } });
         },
-        onError: (error) => {
+        onError: (requestError) => {
             if (!plan) return;
             setRecord({
                 plan,
                 state: {
                     status: 'failed',
                     error: getAsyncRequestErrorMessage(
-                        error,
+                        requestError,
                         `Failed to load ${target} panel data.`,
                     ),
                 },
@@ -296,10 +233,36 @@ function usePanelRequest(
         },
     });
 
-    if (!requestedPlan) return IDLE_REQUEST;
-    return record.plan?.requestKey === plan?.requestKey
-        ? record.state
-        : { status: 'loading' };
+    const request = !requestedPlan
+        ? IDLE_REQUEST
+        : record.plan?.requestKey === plan?.requestKey
+          ? record.state
+          : { status: 'loading' as const };
+    const series = useMemo(
+        () =>
+            mapFetchResultToChartData(
+                request.result?.filter(({ error }) => !error),
+                seriesList,
+                isRaw,
+            ),
+        [isRaw, request.result, seriesList],
+    );
+    const isReady = request.status === 'ready';
+    const state = error
+        ? { status: 'failed' as const, error }
+        : resolveLoadState(request);
+
+    return {
+        ...state,
+        series,
+        metric: {
+            queriedEntries: isReady ? countQueriedEntries(request.result) : undefined,
+            pointCount: isReady
+                ? series.reduce((count, entry) => count + entry.data.length, 0)
+                : undefined,
+            pixelWidth: plan?.pixelWidth,
+        },
+    };
 }
 
 function createRequestPlan(
@@ -308,7 +271,7 @@ function createRequestPlan(
     requestedRange: AxisRange,
     queryRange: AxisRange,
 ): PanelRequestPlanResult {
-    const { panelInfo, chartWidth, rollupTables, refreshVersion, axisKind } =
+    const { panelInfo, chartWidth, rollupTables, refreshVersion } =
         context;
     try {
         const query = buildPanelSeriesQuery(
@@ -319,23 +282,19 @@ function createRequestPlan(
             rollupTables,
         );
         const { familyKey, exactKey } = createSeriesRowsQueryKeys(query);
+        const resolution = resolveResolution(query);
         return {
             plan: {
                 familyKey: JSON.stringify([
-                    target,
                     refreshVersion,
                     familyKey,
+                    resolution,
                 ]),
-                requestKey: JSON.stringify([
-                    target,
-                    refreshVersion,
-                    exactKey,
-                ]),
+                requestKey: JSON.stringify([refreshVersion, exactKey]),
                 pixelWidth: chartWidth,
                 query,
-                queryRange,
                 requestedRange,
-                resolution: resolveResolution(query, axisKind),
+                resolution,
             },
         };
     } catch (error) {
@@ -370,8 +329,7 @@ function canReuseNavigatorPlan(
     if (
         (cachedState.status !== 'loading' && cachedState.status !== 'ready') ||
         cachedPlan.familyKey !== requestedPlan.familyKey ||
-        !isRangeWithin(requestedPlan.requestedRange, cachedPlan.queryRange) ||
-        !isSameResolution(cachedPlan.resolution, requestedPlan.resolution)
+        !isRangeWithin(requestedPlan.requestedRange, cachedPlan.query.range)
     ) {
         return false;
     }
@@ -384,34 +342,12 @@ function canReuseNavigatorPlan(
         );
 }
 
-function isSameResolution(
-    cached: PanelQueryResolution,
-    requested: PanelQueryResolution,
-): boolean {
-    if (cached.kind !== requested.kind) return false;
-    if (cached.kind === 'raw') return true;
-    if (cached.kind === 'numeric' && requested.kind === 'numeric') {
-        return cached.bucketWidth === requested.bucketWidth;
-    }
-    if (cached.kind !== 'time' || requested.kind !== 'time') return false;
-
-    return cached.interval.IntervalType === requested.interval.IntervalType &&
-        cached.interval.IntervalValue === requested.interval.IntervalValue;
-}
-
-function resolveResolution(
-    query: SeriesRowsQuery,
-    axisKind: AxisKind,
-): PanelQueryResolution {
+function resolveResolution(query: SeriesRowsQuery): PanelQueryResolution {
     if (query.kind !== 'calculated') return { kind: 'raw' };
-    if (axisKind === 'time') {
-        return { kind: 'time', interval: query.interval };
+    if (query.numericBucketWidth !== undefined) {
+        return { kind: 'numeric', bucketWidth: query.numericBucketWidth };
     }
-
-    const bucketWidth = query.numericBucketWidth;
-    return bucketWidth === undefined
-        ? { kind: 'unresolved' }
-        : { kind: 'numeric', bucketWidth };
+    return { kind: 'time', interval: query.interval };
 }
 
 function createRollupStatuses(
@@ -456,7 +392,7 @@ function resolveRenderRange(
         return requestedRange;
     }
 
-    const narrowed = enforceChartAreaWidth(
+    const narrowed = enforceNavigatorTrackWidth(
         {
             mainRange: {
                 start: requestedRange.mainRange.start,
@@ -464,7 +400,7 @@ function resolveRenderRange(
             },
             navigatorRange: requestedRange.navigatorRange,
         },
-        chartWidth,
+        getNavigatorTrackWidth(chartWidth),
         'main',
     );
     return {
@@ -504,10 +440,10 @@ function findRawLimitEnd(
     return limitedEnd;
 }
 
-function resolveLoadState(request: PanelRequestState): PanelDataLoadState {
+function resolveLoadState(request: PanelRequestState): PanelRequestState {
     if (request.status !== 'ready') return request;
     const failure = getCompleteFailure(request.result);
-    return failure ? { status: 'failed', error: failure } : { status: 'ready' };
+    return failure ? { status: 'failed', error: failure } : request;
 }
 
 function getCompleteFailure(
@@ -532,22 +468,18 @@ function countQueriedEntries(
     );
 }
 
-function countPoints(series: ChartSeriesData[]): number {
-    return series.reduce((count, { data }) => count + data.length, 0);
-}
-
 function resolveNotice(
     main: PanelDataTargetState,
     navigator: PanelDataTargetState,
 ): PanelDataNotice | undefined {
-    if (main.load.status !== 'ready') return undefined;
-    if (countPoints(main.series) === 0) return 'noData';
+    if (main.status !== 'ready') return undefined;
+    if (main.metric.pointCount === 0) return 'noData';
 
-    return hasPartialResult(main.request.result) ||
-        navigator.load.status === 'failed' ||
-        (navigator.load.status === 'ready' &&
-            (countPoints(navigator.series) === 0 ||
-                hasPartialResult(navigator.request.result)))
+    return hasPartialResult(main.result) ||
+        navigator.status === 'failed' ||
+        (navigator.status === 'ready' &&
+            (navigator.metric.pointCount === 0 ||
+                hasPartialResult(navigator.result)))
         ? 'partialData'
         : undefined;
 }

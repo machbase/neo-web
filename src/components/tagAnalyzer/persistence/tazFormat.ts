@@ -2,21 +2,26 @@ import { asRecord, isFiniteNumber, isPlainObject } from '../objectGuards';
 import {
     AUTO_VALUE_RANGE,
     clonePanelYAxis,
-    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     PANEL_ECHART_TYPE_VALUES,
-    type PanelAnnotation,
     type PanelAxes,
     type PanelAxisThreshold,
     type PanelDisplay,
     type PanelEChartType,
-    type PanelHighlight,
     type PanelInfo,
     type PanelSampling,
     type PanelYAxis,
     type ValueRange,
 } from '../panel/panelModel';
+import {
+    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    DEFAULT_SERIES_ANNOTATION_LABEL,
+    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelAnnotation,
+    type PanelHighlight,
+} from '../markup/markupModel';
 import type { BoardInfo } from '../board/boardModel';
 import {
     decodePersistedTimeUnit,
@@ -38,9 +43,6 @@ import {
     type RangeState,
 } from '../range/rangeModel';
 import {
-    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-    DEFAULT_SERIES_ANNOTATION_LABEL,
-    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     assertCompatiblePanelSeriesList,
     normalizePanelSeriesDefinitions,
     shouldUseNumericPanelRangeInput,
@@ -727,7 +729,7 @@ function parseSampling(
         sSampling.sampleCount,
         `${path}.sampleCount`,
     );
-    if (sEnabled && sSampleCount === undefined) {
+    if (sEnabled && (sSampleCount === undefined || sSampleCount <= 0)) {
         throwInvalidPanelValue(`${path}.sampleCount`);
     }
 

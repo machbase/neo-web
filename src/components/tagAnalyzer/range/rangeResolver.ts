@@ -13,7 +13,6 @@ const MAIN_RANGE_SHIFT_RATIO = 0.3;
 const NAVIGATOR_RANGE_SHIFT_RATIO = 0.1;
 const FOCUS_MAIN_RANGE_WIDTH_RATIO = 0.2;
 const INITIAL_MAIN_RANGE_WIDTH_RATIO = 0.25;
-const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
 const MINIMUM_SELECTION_WIDTH_PX = 36;
 const TARGET_SELECTION_WIDTH_PX = 40;
 
@@ -33,15 +32,11 @@ export type RangeChange =
     | { type: 'navigator'; range: AxisRange }
     | { type: 'replace'; range: RangeState };
 
-export function enforceChartAreaWidth(
+export function enforceNavigatorTrackWidth(
     range: RangeState,
-    chartAreaWidth: number,
+    navigatorTrackWidth: number,
     fixedRange: 'main' | 'navigator',
 ): RangeState {
-    const navigatorTrackWidth = Math.max(
-        chartAreaWidth - NAVIGATOR_TRACK_SIDE_OFFSET_PX,
-        1,
-    );
     const mainRangeWidth = getRangeWidth(range.mainRange);
     const navigatorRangeWidth = getRangeWidth(range.navigatorRange);
     const minimumPixelWidth = Math.min(

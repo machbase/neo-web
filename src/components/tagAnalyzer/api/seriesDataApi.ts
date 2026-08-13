@@ -136,60 +136,6 @@ type CalculatedSeriesFetchOptions = {
     signal?: AbortSignal;
 };
 
-async function fetchCalculatedSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    interval: IntervalOption,
-    rowLimit: number,
-    rollupTables: RollupTableMap,
-    options?: CalculatedSeriesFetchOptions,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchPanelSeriesRows(
-        seriesList,
-        options?.signal,
-        (series) =>
-            fetchCalculatedSeriesData(
-                series,
-                timeRange,
-                interval,
-                rowLimit,
-                rollupTables,
-                options,
-            ),
-    );
-}
-
-function fetchRawSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    useOrderBy: boolean,
-    signal?: AbortSignal,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchRawSeriesRowsByQuery(
-        seriesList,
-        timeRange,
-        useOrderBy,
-        { kind: 'raw' },
-        signal,
-    );
-}
-
-function fetchSampledRawSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    sampleCount: number,
-    useOrderBy: boolean,
-    signal?: AbortSignal,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchRawSeriesRowsByQuery(
-        seriesList,
-        timeRange,
-        useOrderBy,
-        { kind: 'sampled', sampleCount },
-        signal,
-    );
-}
-
 async function fetchRawSeriesRowsByQuery(
     seriesList: PanelSeriesDefinition[],
     timeRange: AxisRange,
@@ -681,30 +627,29 @@ function fetchSeriesRows(
     query: SeriesRowsQuery,
     { signal }: { signal?: AbortSignal } = {},
 ): Promise<PanelDataFetchResult | undefined> {
-    if (query.kind === 'raw') {
-        return fetchRawSeriesRows(
+    if (query.kind === 'calculated') {
+        return fetchPanelSeriesRows(
             query.seriesList,
-            query.range,
-            query.useOrderBy,
             signal,
+            (series) =>
+                fetchCalculatedSeriesData(
+                    series,
+                    query.range,
+                    query.interval,
+                    query.rowLimit,
+                    query.rollupTables,
+                    { numericBucketWidth: query.numericBucketWidth, signal },
+                ),
         );
     }
-    if (query.kind === 'sampled-raw') {
-        return fetchSampledRawSeriesRows(
-            query.seriesList,
-            query.range,
-            query.sampleCount,
-            query.useOrderBy,
-            signal,
-        );
-    }
-    return fetchCalculatedSeriesRows(
+    return fetchRawSeriesRowsByQuery(
         query.seriesList,
         query.range,
-        query.interval,
-        query.rowLimit,
-        query.rollupTables,
-        { numericBucketWidth: query.numericBucketWidth, signal },
+        query.useOrderBy,
+        query.kind === 'sampled-raw'
+            ? { kind: 'sampled', sampleCount: query.sampleCount }
+            : { kind: 'raw' },
+        signal,
     );
 }
 

@@ -1,10 +1,8 @@
 import './Board.scss';
 import {
-    memo,
     useCallback,
     useEffect,
     useMemo,
-    useReducer,
     useRef,
     useState,
 } from 'react';
@@ -25,7 +23,8 @@ import { RangeModal } from '../range/RangeModal';
 import { HelpModal } from './HelpModal';
 import OverlapModal from '../overlap/OverlapModal';
 import { CreatePanelModal } from '../panel/CreatePanelModal';
-import { SaveAsModal } from './SaveAsModal';
+import { SaveAsModal } from '../save/SaveAsModal';
+import { useBoardSave } from '../save/useBoardSave';
 import type { BoardInfo } from './boardModel';
 import type { PanelInfo } from '../panel/panelModel';
 import {
@@ -40,31 +39,19 @@ import {
     type RangeExpressionInput,
     type ResolvedRangeState,
 } from '../range/rangeModel';
+import { getEnclosingRange } from '../range/rangeArithmetic';
 
 import type { PanelBroadcastRequests } from '../panel/panelRuntime';
 import { useBoardState } from './useBoardState';
 import { useBoardOverlapSelection } from './useBoardOverlapSelection';
-import {
-    isTazBoardSaved,
-    saveTazBoard,
-} from '../persistence/tazDocumentService';
-
-const SAVE_ERROR_MESSAGE = 'Failed to save TAZ file. Please try again.';
-const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
-const FILE_TREE_REFRESH_ERROR_MESSAGE =
-    'TAZ file saved, but file tree refresh failed.';
 
 const INITIAL_PANEL_BROADCAST_VERSIONS = {
     boardTimeRange: 0,
     boardNumericRange: 0,
-    globalRange: 0,
     refreshData: 0,
     refreshRange: 0,
     expandFullRange: 0,
 };
-
-type PanelBroadcastVersions =
-    typeof INITIAL_PANEL_BROADCAST_VERSIONS;
 
 type BoardProps = {
     info: BoardInfo;
@@ -73,67 +60,6 @@ type BoardProps = {
     onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
     rollupTableList: RollupTableMap;
 };
-
-type BoardPanelProps = {
-    panelInfo: PanelInfo;
-    rangeState: ResolvedRangeState | undefined;
-    broadcastRequests: PanelBroadcastRequests;
-    isActive: boolean;
-    hasUnsavedBoardChanges: boolean;
-    rollupTableList: RollupTableMap;
-    onPanelRangeStateChange: (
-        panelKey: string,
-        rangeState: ResolvedRangeState,
-    ) => void;
-    onBroadcastError: (broadcastKey: string, message: string) => void;
-    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetGlobalRange: (axisKind: AxisKind, globalRange: RangeState) => void;
-    onDeletePanel: (panelKey: string) => void;
-    onToggleOverlap: (panelKey: string) => void;
-};
-
-const BoardPanel = memo(function BoardPanel({
-    panelInfo,
-    rangeState,
-    broadcastRequests,
-    isActive,
-    hasUnsavedBoardChanges,
-    rollupTableList,
-    onPanelRangeStateChange,
-    onBroadcastError,
-    onApplyPanelInfo,
-    onSetGlobalRange,
-    onDeletePanel,
-    onToggleOverlap,
-}: BoardPanelProps) {
-    const handleRangeStateChange = useCallback(
-        (nextRangeState: ResolvedRangeState) =>
-            onPanelRangeStateChange(panelInfo.key, nextRangeState),
-        [onPanelRangeStateChange, panelInfo.key],
-    );
-    return (
-        <Page.ContentBlock pHoverNone>
-            <Panel
-                panelInfo={panelInfo}
-                rangeState={rangeState}
-                broadcastRequests={broadcastRequests}
-                runtime={{
-                    isActive,
-                    hasUnsavedBoardChanges,
-                    rollupTableList,
-                }}
-                actions={{
-                    onRangeStateChange: handleRangeStateChange,
-                    onBroadcastError,
-                    onApplyPanelInfo,
-                    onSetGlobalRange,
-                    onDeletePanel: () => onDeletePanel(panelInfo.key),
-                    onToggleOverlap: () => onToggleOverlap(panelInfo.key),
-                }}
-            />
-        </Page.ContentBlock>
-    );
-});
 
 export default function Board({
     info,
@@ -147,30 +73,22 @@ export default function Board({
         number | undefined
     >(undefined);
     const [sGlobalRangeRequest, setGlobalRangeRequest] = useState<
-        { axisKind: AxisKind; range: RangeState } | undefined
-    >(undefined);
+        PanelBroadcastRequests['rangeRequests']['global']
+    >();
     const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
-    const [sIsSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
     const [sBoardRangeKind, setBoardRangeKind] = useState<AxisKind>(() =>
         getInitialBoardRangeKind(info),
     );
-    const [
-        sPanelBroadcastVersions,
-        incrementBroadcastVersion,
-    ] = useReducer(
-        (
-            versions: PanelBroadcastVersions,
-            key: keyof PanelBroadcastVersions,
-        ): PanelBroadcastVersions => ({
-            ...versions,
-            [key]: versions[key] + 1,
-        }),
+    const [sPanelBroadcastVersions, setPanelBroadcastVersions] = useState(
         INITIAL_PANEL_BROADCAST_VERSIONS,
     );
-    const sSaveRequestGenerationRef = useRef(0);
+    const incrementBroadcastVersion = useCallback((
+        key: keyof typeof INITIAL_PANEL_BROADCAST_VERSIONS,
+    ): void => setPanelBroadcastVersions((versions) => ({
+        ...versions,
+        [key]: versions[key] + 1,
+    })), []);
     const sReportedBroadcastErrorsRef = useRef(new Set<string>());
-    const sActiveBoardIdRef = useRef(info.id);
-    sActiveBoardIdRef.current = info.id;
     const {
         state: sBoardState,
         infoForSave: sBoardInfoForSave,
@@ -212,61 +130,32 @@ export default function Board({
         sBoardRangeInput.end.trim() === ''
             ? 'Board range'
             : `${sIsNumericBoardRange ? 'Numeric' : 'Time'}: ${sBoardRangeInput.start}~${sBoardRangeInput.end}`;
-    const sPanelBroadcastRequests = useMemo<
-        Record<AxisKind | 'invalid', PanelBroadcastRequests>
-    >(
-        () => {
-            const commandVersions = {
+    const sPanelBroadcastRequests = useMemo<PanelBroadcastRequests>(
+        () => ({
+            rangeRequests: {
+                board: {
+                    time: {
+                        input: sBoardInfo.boardTimeRange,
+                        applyVersion:
+                            sPanelBroadcastVersions.boardTimeRange,
+                    },
+                    numeric: {
+                        input: sBoardInfo.boardNumericRange,
+                        applyVersion:
+                            sPanelBroadcastVersions.boardNumericRange,
+                    },
+                },
+                global: sGlobalRangeRequest,
+            },
+            commandVersions: {
                 refreshDataVersion:
                     sPanelBroadcastVersions.refreshData,
                 refreshRangeVersion:
                     sPanelBroadcastVersions.refreshRange,
                 expandFullRangeVersion:
                     sPanelBroadcastVersions.expandFullRange,
-            };
-            return {
-                time: {
-                    rangeRequests: {
-                        boardRangeRequest: {
-                            input: sBoardInfo.boardTimeRange,
-                            applyVersion:
-                                sPanelBroadcastVersions.boardTimeRange,
-                        },
-                        globalRangeRequest:
-                            sGlobalRangeRequest?.axisKind === 'time'
-                                ? {
-                                      range: sGlobalRangeRequest.range,
-                                      applyVersion:
-                                          sPanelBroadcastVersions.globalRange,
-                                  }
-                                : undefined,
-                    },
-                    commandVersions,
-                },
-                numeric: {
-                    rangeRequests: {
-                        boardRangeRequest: {
-                            input: sBoardInfo.boardNumericRange,
-                            applyVersion:
-                                sPanelBroadcastVersions.boardNumericRange,
-                        },
-                        globalRangeRequest:
-                            sGlobalRangeRequest?.axisKind === 'numeric'
-                                ? {
-                                      range: sGlobalRangeRequest.range,
-                                      applyVersion:
-                                          sPanelBroadcastVersions.globalRange,
-                                  }
-                                : undefined,
-                    },
-                    commandVersions,
-                },
-                invalid: {
-                    rangeRequests: undefined,
-                    commandVersions,
-                },
-            };
-        },
+            },
+        }),
         [
             sBoardInfo.boardNumericRange,
             sBoardInfo.boardTimeRange,
@@ -286,77 +175,13 @@ export default function Board({
         },
         [],
     );
-    const sHasUnsavedChanges = !isTazBoardSaved(sBoardInfoForSave);
-
-    useEffect(() => () => {
-        sSaveRequestGenerationRef.current += 1;
-        sActiveBoardIdRef.current = '';
-    }, []);
-
-    const saveBoard = useCallback(async (
-        destination?: { directoryPath: string; fileName: string },
-    ): Promise<boolean> => {
-        const sBoardToSerialize = sBoardInfoForSave;
-
-        if (!destination && !sBoardToSerialize.path) {
-            setIsSaveAsModalOpen(true);
-            return false;
-        }
-
-        const sRequestGeneration = ++sSaveRequestGenerationRef.current;
-
-        const sBoardToSave: BoardInfo = destination
-            ? {
-                  ...sBoardToSerialize,
-                  path: destination.directoryPath,
-                  name: destination.fileName,
-              }
-            : sBoardToSerialize;
-        const isCurrentSaveRequest = (): boolean =>
-            sSaveRequestGenerationRef.current === sRequestGeneration &&
-            sActiveBoardIdRef.current === sBoardToSave.id;
-        const sSavedBoard = await saveTazBoard(sBoardToSave);
-
-        if (!sSavedBoard) {
-            if (isCurrentSaveRequest()) {
-                Toast.error(SAVE_ERROR_MESSAGE);
-            }
-            return false;
-        }
-
-        if (!isCurrentSaveRequest()) {
-            return false;
-        }
-
-        applySaveResult(sSavedBoard);
-        onSavedBoard(sSavedBoard);
-        Toast.success(SAVE_SUCCESS_MESSAGE, {
-            testId: 'tag-analyzer-save-success-toast',
-        });
-
-        if (destination) {
-            try {
-                await onFileSaved(
-                    destination.directoryPath,
-                    destination.fileName,
-                );
-            } catch {
-                Toast.error(FILE_TREE_REFRESH_ERROR_MESSAGE);
-            }
-        }
-
-        return isCurrentSaveRequest();
-    }, [
+    const boardSave = useBoardSave({
+        board: sBoardInfoForSave,
+        isActive: isActiveTab,
         applySaveResult,
-        onFileSaved,
         onSavedBoard,
-        sBoardInfoForSave,
-    ]);
-
-    const closeSaveAsModal = useCallback(
-        () => setIsSaveAsModalOpen(false),
-        [],
-    );
+        onFileSaved,
+    });
 
     useEffect(() => {
         if (isActiveTab) return;
@@ -364,35 +189,8 @@ export default function Board({
         setIsHelpModalOpen(false);
         setBoardRangeModalOpenedAt(undefined);
         setIsNewPanelModalOpen(false);
-        closeSaveAsModal();
         closeOverlapChart();
-    }, [closeOverlapChart, closeSaveAsModal, isActiveTab]);
-
-    useEffect(() => {
-        if (!isActiveTab) return undefined;
-
-        function handleDocumentSaveShortcut(event: KeyboardEvent): void {
-            if (
-                !(event.ctrlKey || event.metaKey) ||
-                event.key.toLowerCase() !== 's'
-            ) {
-                return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
-            void saveBoard();
-        }
-
-        document.addEventListener('keydown', handleDocumentSaveShortcut, true);
-        return () =>
-            document.removeEventListener(
-                'keydown',
-                handleDocumentSaveShortcut,
-                true,
-            );
-    }, [isActiveTab, saveBoard]);
+    }, [closeOverlapChart, isActiveTab]);
 
     function applyBoardRange(
         rangeKind: AxisKind,
@@ -410,8 +208,11 @@ export default function Board({
         axisKind: AxisKind,
         globalRange: RangeState,
     ): void => {
-        setGlobalRangeRequest({ axisKind, range: globalRange });
-        incrementBroadcastVersion('globalRange');
+        setGlobalRangeRequest((request) => ({
+            axisKind,
+            range: globalRange,
+            applyVersion: (request?.applyVersion ?? 0) + 1,
+        }));
     }, []);
 
     const sHeaderActions = [
@@ -436,14 +237,14 @@ export default function Board({
         },
         {
             key: 'save',
-            className: sHasUnsavedChanges
+            className: boardSave.hasUnsavedChanges
                 ? 'tag-analyzer-board-header__save-button--unsaved'
                 : undefined,
-            toolTipContent: sHasUnsavedChanges
+            toolTipContent: boardSave.hasUnsavedChanges
                 ? 'Save runtime changes to TAZ'
                 : 'Save',
             icon: <Save size={16} />,
-            onClick: () => void saveBoard(),
+            onClick: () => void boardSave.save(),
         },
         {
             key: 'save-as',
@@ -451,7 +252,7 @@ export default function Board({
             toolTipContent: 'Save as',
             'aria-label': 'Open Save As',
             icon: <SaveAs size={16} />,
-            onClick: () => setIsSaveAsModalOpen(true),
+            onClick: boardSave.openSaveAs,
         },
         {
             key: 'overlap',
@@ -480,7 +281,7 @@ export default function Board({
                     data-testid="board-header"
                 >
                     <Page.Space />
-                    {sHasUnsavedChanges && (
+                    {boardSave.hasUnsavedChanges && (
                         <span className="tag-analyzer-board-header__unsaved-message">
                             Runtime change not saved to TAZ
                         </span>
@@ -511,27 +312,22 @@ export default function Board({
             </Page.Header>
             <Page.Body>
                 {sPanels.map((sPanelInfo) => (
-                    <BoardPanel
-                        key={sPanelInfo.key}
-                        panelInfo={sPanelInfo}
-                        rangeState={sPanelRanges[sPanelInfo.key]}
-                        broadcastRequests={
-                            sPanelBroadcastRequests[
-                                getSeriesListAxisKind(
-                                    sPanelInfo.query.tagSet,
-                                ) ?? 'invalid'
-                            ]
-                        }
-                        isActive={isActiveTab}
-                        hasUnsavedBoardChanges={sHasUnsavedChanges}
-                        rollupTableList={rollupTableList}
-                        onPanelRangeStateChange={setPanelRange}
-                        onBroadcastError={reportBroadcastError}
-                        onApplyPanelInfo={applyPanelInfo}
-                        onSetGlobalRange={handleSetGlobalRange}
-                        onDeletePanel={removePanel}
-                        onToggleOverlap={overlap.togglePanelOverlap}
-                    />
+                    <Page.ContentBlock key={sPanelInfo.key} pHoverNone>
+                        <Panel
+                            panelInfo={sPanelInfo}
+                            rangeState={sPanelRanges[sPanelInfo.key]}
+                            broadcastRequests={sPanelBroadcastRequests}
+                            isActive={isActiveTab}
+                            hasUnsavedBoardChanges={boardSave.hasUnsavedChanges}
+                            rollupTableList={rollupTableList}
+                            onPanelRangeStateChange={setPanelRange}
+                            onBroadcastError={reportBroadcastError}
+                            onApplyPanelInfo={applyPanelInfo}
+                            onSetGlobalRange={handleSetGlobalRange}
+                            onDeletePanel={removePanel}
+                            onToggleOverlap={overlap.togglePanelOverlap}
+                        />
+                    </Page.ContentBlock>
                 ))}
                 <Page.ContentBlock pHoverNone>
                     <Button
@@ -574,14 +370,12 @@ export default function Board({
                     onClose={() => setBoardRangeModalOpenedAt(undefined)}
                 />
             )}
-            {isActiveTab && sIsSaveAsModalOpen && (
+            {isActiveTab && boardSave.isSaveAsOpen && (
                 <SaveAsModal
                     initialDirectoryPath={sBoardInfo.path}
                     initialFileName={sBoardInfo.name}
-                    onClose={closeSaveAsModal}
-                    onSaveAs={(directoryPath, fileName) =>
-                        saveBoard({ directoryPath, fileName })
-                    }
+                    onClose={boardSave.closeSaveAs}
+                    onSaveAs={boardSave.saveAs}
                 />
             )}
             {isActiveTab && overlap.openSession && (
@@ -631,25 +425,10 @@ function getBoardRangeReference(
 
         const navigatorRange = rangeState.range.navigatorRange;
         currentRange = currentRange
-            ? {
-                  start: Math.min(
-                      currentRange.start,
-                      navigatorRange.start,
-                  ),
-                  end: Math.max(currentRange.end, navigatorRange.end),
-              }
+            ? getEnclosingRange(currentRange, navigatorRange)
             : navigatorRange;
         fullRange = fullRange
-            ? {
-                  start: Math.min(
-                      fullRange.start,
-                      rangeState.fullRange.start,
-                  ),
-                  end: Math.max(
-                      fullRange.end,
-                      rangeState.fullRange.end,
-                  ),
-              }
+            ? getEnclosingRange(fullRange, rangeState.fullRange)
             : rangeState.fullRange;
     }
 

@@ -19,7 +19,7 @@ type RetainedMainRangeInput = {
     concreteRange: AxisRange;
 };
 
-export type PanelRangeDialogState = {
+type PanelRangeDialogState = {
     target: PanelRangeTarget;
     kind: AxisKind;
     initialRangeInput: RangeExpressionInput;
@@ -38,17 +38,6 @@ type UsePanelRangeDialogParams = {
     ) => void;
 };
 
-export type PanelRangeDialogController = {
-    dialog: PanelRangeDialogState | undefined;
-    openMain: () => void;
-    openNavigator: () => void;
-    close: () => void;
-    apply: (
-        rangeInput: RangeExpressionInput,
-        concreteRange: AxisRange,
-    ) => void;
-};
-
 // eslint-disable-next-line react-refresh/only-export-components -- The hook and renderer form one range-dialog boundary.
 export function usePanelRangeDialog({
     rangeState,
@@ -56,7 +45,7 @@ export function usePanelRangeDialog({
     isNumericXAxis,
     onMainRangeChange,
     onNavigatorRangeChange,
-}: UsePanelRangeDialogParams): PanelRangeDialogController {
+}: UsePanelRangeDialogParams) {
     const [target, setTarget] = useState<PanelRangeTarget>();
     const retainedMainRangeInputRef = useRef<RetainedMainRangeInput>();
     const renderMainRange = renderRange?.mainRange;
@@ -91,7 +80,7 @@ export function usePanelRangeDialog({
                   isNumericXAxis,
               ),
               currentRange,
-              fullRange: rangeState.fullRange ?? currentRange,
+              fullRange: rangeState.fullRange,
           }
         : undefined;
 
@@ -129,7 +118,7 @@ export function PanelRangeDialog({
     dialog,
     apply,
     close,
-}: Pick<PanelRangeDialogController, 'dialog' | 'apply' | 'close'>) {
+}: Pick<ReturnType<typeof usePanelRangeDialog>, 'dialog' | 'apply' | 'close'>) {
     if (dialog === undefined) return null;
 
     return (
@@ -171,13 +160,11 @@ function getInitialRangeInput(
         return retainedMainRangeInput.rangeInput;
     }
 
-    return isNumericXAxis
-        ? {
-              start: formatRangeInputValue(currentRange.start, true),
-              end: formatRangeInputValue(currentRange.end, true),
-          }
-        : {
-              start: formatAbsoluteTime(currentRange.start),
-              end: formatAbsoluteTime(currentRange.end),
-          };
+    const formatValue = isNumericXAxis
+        ? (value: number) => formatRangeInputValue(value, true)
+        : formatAbsoluteTime;
+    return {
+        start: formatValue(currentRange.start),
+        end: formatValue(currentRange.end),
+    };
 }

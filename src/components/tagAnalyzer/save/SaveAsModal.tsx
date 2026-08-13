@@ -1,4 +1,11 @@
-import { ArrowLeft, ArrowRight, Home, Play, SaveAs, TreeFolder } from '@/assets/icons/Icon';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Home,
+    Play,
+    SaveAs,
+    TreeFolder,
+} from '@/assets/icons/Icon';
 import {
     Button,
     FileListHeader,
@@ -6,12 +13,16 @@ import {
     Modal,
     Toast,
 } from '@/design-system/components';
-import { elapsedSize, elapsedTime, extractionExtension } from '@/utils';
+import {
+    elapsedSize,
+    elapsedTime,
+    extractionExtension,
+} from '@/utils';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import icons from '@/utils/icons';
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { tazFileApi, type FileListItem } from '../api/tazFileApi';
-import './Board.scss';
+import './SaveAsModal.scss';
 
 const SAVE_AS_OPEN_ERROR_MESSAGE = 'Failed to open Save As. Please try again.';
 

@@ -1,4 +1,5 @@
 import { Checkbox, Input, Page } from '@/design-system/components';
+import { useLayoutEffect } from 'react';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
@@ -31,10 +32,27 @@ const DISPLAY_NUMBER_INPUTS = [
 const EditorDisplayTab = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
+    pReportValidity,
+    pIsActive,
 }: {
     pDisplayConfig: PanelDisplay;
     pOnChangeDisplayConfig: (config: PanelDisplay) => void;
+    pReportValidity: (tab: 'Display', isValid: boolean, message?: string) => void;
+    pIsActive: boolean;
 }) => {
+    const sIsValid = DISPLAY_NUMBER_INPUTS.every(
+        ({ field }) =>
+            pDisplayConfig[field] === undefined ||
+            Number.isFinite(pDisplayConfig[field]),
+    );
+    useLayoutEffect(() => {
+        pReportValidity(
+            'Display',
+            sIsValid,
+            sIsValid ? undefined : 'Review the invalid display settings.',
+        );
+    }, [pReportValidity, sIsValid]);
+    if (!pIsActive) return null;
     const updateDisplayConfig = (patch: Partial<PanelDisplay>) => {
         pOnChangeDisplayConfig({ ...pDisplayConfig, ...patch });
     };
@@ -108,7 +126,11 @@ const EditorDisplayTab = ({
                             label={label}
                             labelPosition="left"
                             type="number"
-                            value={pDisplayConfig[field] ?? ''}
+                            value={
+                                Number.isFinite(pDisplayConfig[field] ?? NaN)
+                                    ? pDisplayConfig[field]
+                                    : ''
+                            }
                             onChange={(event) =>
                                 updateCustomStyle({
                                     [field]:

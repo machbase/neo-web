@@ -2,13 +2,15 @@ import { useState, type InputHTMLAttributes, type KeyboardEvent } from 'react';
 import { Button, Dropdown } from '@/design-system/components';
 import {
     DEFAULT_PANEL_HIGHLIGHT_LABEL,
-    type PanelAnnotation,
-    type PanelHighlight,
-} from '../panel/panelModel';
-import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelAnnotation,
+    type PanelHighlight,
+    type AnnotationEditorSession,
+    type HighlightEditorSession,
+} from './markupModel';
+import {
     getPanelSeriesDisplayName,
     type PanelSeriesDefinition,
 } from '../seriesModel';
@@ -17,12 +19,7 @@ import {
     parseRangeInputValue,
 } from '../format/inputFormat';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import type {
-    AnnotationEditorSession,
-    HighlightEditorSession,
-} from './markupModel';
-
-import PanelPopover from './PanelPopover';
+import PanelPopover from '../tools/PanelPopover';
 
 type AnnotationFormState = {
     seriesValue: string;

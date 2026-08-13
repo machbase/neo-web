@@ -1,5 +1,5 @@
 import { Checkbox } from '@/design-system/components';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Tooltip } from 'react-tooltip';
 import {
     DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
@@ -227,14 +227,43 @@ const EditorDataSettingTab = ({
     pDataMetrics,
     pIsRawMode,
     pAxisKind,
+    pDataValidationMessage,
     pOnChangeDisplayConfig,
+    pReportValidity,
+    pIsActive,
 }: {
     pDisplayConfig: PanelDisplay;
     pDataMetrics: PanelDataLoadMetrics;
     pIsRawMode: boolean;
-    pAxisKind: AxisKind;
+    pAxisKind: AxisKind | undefined;
+    pDataValidationMessage?: string;
     pOnChangeDisplayConfig: (config: PanelDisplay) => void;
+    pReportValidity: (
+        tab: 'Data Setting',
+        isValid: boolean,
+        message?: string,
+    ) => void;
+    pIsActive: boolean;
 }) => {
+    const sIsValid =
+        Object.values(pDisplayConfig.pixelsPerTick).every(
+            (value) => value === undefined || isValidPositiveNumber(value),
+        ) &&
+        [pDisplayConfig.mainChartSampling, pDisplayConfig.rawNavigatorSampling]
+            .every(({ enabled, sampleCount }) =>
+                !enabled || isValidPositiveNumber(sampleCount),
+            );
+    useLayoutEffect(() => {
+        pReportValidity(
+            'Data Setting',
+            sIsValid,
+            sIsValid ? undefined : 'Review the invalid data settings.',
+        );
+    }, [pReportValidity, sIsValid]);
+    if (!pIsActive) return null;
+    if (!pAxisKind) {
+        return <span className={styles.fieldError}>{pDataValidationMessage}</span>;
+    }
     const sIsNumericXAxis = pAxisKind === 'numeric';
     const patchDisplayField = <
         K extends 'pixelsPerTick' | 'mainChartSampling' | 'rawNavigatorSampling',

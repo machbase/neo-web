@@ -30,11 +30,7 @@ import {
     type RangeState,
     type ResolvedRangeState,
 } from '../range/rangeModel';
-import { type ChartSeriesData } from '../chart/chartData';
-import {
-    usePanelData,
-    type PanelDataLoadMetrics,
-} from './internal/panelData';
+import { usePanelData } from './internal/panelData';
 import { usePanelInteraction } from './internal/panelInteraction';
 import { PanelOverlayMode } from '../chart/chartRuntime';
 import './Panel.scss';
@@ -43,52 +39,33 @@ type PanelProps = {
     panelInfo: PanelInfo;
     rangeState: ResolvedRangeState | undefined;
     broadcastRequests: PanelBroadcastRequests;
-    runtime: {
-        isActive: boolean;
-        hasUnsavedBoardChanges: boolean;
-        rollupTableList: RollupTableMap;
-    };
-    actions: {
-        onRangeStateChange: (rangeState: ResolvedRangeState) => void;
-        onBroadcastError: (broadcastKey: string, message: string) => void;
-        onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-        onSetGlobalRange: (
-            axisKind: AxisKind,
-            globalRange: RangeState,
-        ) => void;
-        onDeletePanel: () => void;
-        onToggleOverlap: () => void;
-    };
-};
-
-const EMPTY_PANEL_CHART_DATA: ChartSeriesData[] = [];
-const EMPTY_PANEL_DATA_METRIC: PanelDataLoadMetrics['main'] = {
-    queriedEntries: undefined,
-    pointCount: undefined,
-    pixelWidth: undefined,
-};
-const EMPTY_PANEL_DATA_METRICS: PanelDataLoadMetrics = {
-    main: EMPTY_PANEL_DATA_METRIC,
-    navigator: EMPTY_PANEL_DATA_METRIC,
+    isActive: boolean;
+    hasUnsavedBoardChanges: boolean;
+    rollupTableList: RollupTableMap;
+    onPanelRangeStateChange: (
+        panelKey: string,
+        rangeState: ResolvedRangeState,
+    ) => void;
+    onBroadcastError: (broadcastKey: string, message: string) => void;
+    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
+    onSetGlobalRange: (axisKind: AxisKind, globalRange: RangeState) => void;
+    onDeletePanel: (panelKey: string) => void;
+    onToggleOverlap: (panelKey: string) => void;
 };
 
 export default memo(function Panel({
     panelInfo,
-    rangeState,
+    rangeState: initialRangeState,
     broadcastRequests,
-    runtime: {
-        isActive,
-        hasUnsavedBoardChanges,
-        rollupTableList,
-    },
-    actions: {
-        onRangeStateChange,
-        onBroadcastError,
-        onApplyPanelInfo,
-        onSetGlobalRange,
-        onDeletePanel,
-        onToggleOverlap,
-    },
+    isActive,
+    hasUnsavedBoardChanges,
+    rollupTableList,
+    onPanelRangeStateChange,
+    onBroadcastError,
+    onApplyPanelInfo,
+    onSetGlobalRange,
+    onDeletePanel,
+    onToggleOverlap,
 }: PanelProps) {
     const isRaw = panelInfo.mode.isRaw;
     const isOverlapSelected = panelInfo.isOverlapSelected;
@@ -99,12 +76,13 @@ export default memo(function Panel({
     const rangeRuntime = usePanelRangeRuntime({
         ...broadcastRequests,
         panelInfo,
-        rangeState,
+        rangeState: initialRangeState,
         isActive,
-        onRangeStateChange,
+        onRangeStateChange: (nextRangeState) =>
+            onPanelRangeStateChange(panelInfo.key, nextRangeState),
         onBroadcastError,
     });
-    const { chartAreaWidth, dataRefreshVersion } = rangeRuntime;
+    const { rangeState, chartAreaWidth, dataRefreshVersion } = rangeRuntime;
     const {
         setChartAreaWidth: onChartAreaWidthChange,
         applyRangeAction: onRangeButtonAction,
@@ -151,43 +129,32 @@ export default memo(function Panel({
         rollupTables: rollupTableList,
         dataRefreshVersion,
     });
-    const queryableData =
-        panelData.kind === 'queryable' ? panelData : undefined;
-    const mainChartData =
-        queryableData?.series.main ?? EMPTY_PANEL_CHART_DATA;
-    const navigatorChartData =
-        queryableData?.series.navigator ?? EMPTY_PANEL_CHART_DATA;
-    const renderRange = queryableData?.range.render ?? rangeState?.range;
-    const resolution = queryableData?.query.resolution;
-    const seriesRollupStatusList = [
-        ...(queryableData?.query.seriesRollupStatuses ?? []),
-    ];
-    const dataSettingMetrics =
-        queryableData?.query.metrics ?? EMPTY_PANEL_DATA_METRICS;
+    const mainChartData = panelData.main.series;
+    const navigatorChartData = panelData.navigator.series;
+    const renderRange = panelData.renderRange ?? rangeState?.range;
+    const resolution = panelData.resolution;
+    const seriesRollupStatusList = panelData.seriesRollupStatuses;
+    const dataSettingMetrics = panelData.metrics;
     const hasMixedXAxisKinds =
-        panelData.kind === 'invalid' && panelInfo.query.tagSet.length > 0;
-    const isNumericXAxis = queryableData?.query.axisKind === 'numeric';
-    const chartLoadState = queryableData?.load.requests.main;
-    const navigatorLoadState = queryableData?.load.requests.navigator;
+        panelData.axisKind === undefined && panelInfo.query.tagSet.length > 0;
+    const isNumericXAxis = panelData.axisKind === 'numeric';
     const hasDataRequestGeometry =
         rangeState !== undefined &&
-        chartAreaWidth !== undefined &&
-        Number.isFinite(chartAreaWidth) &&
-        chartAreaWidth > 0;
+        chartAreaWidth !== undefined;
     const displayNotice =
-        queryableData?.load.notice === 'noData'
+        panelData.notice === 'noData'
             ? 'No Data'
-            : queryableData?.load.notice === 'partialData'
+            : panelData.notice === 'partialData'
               ? 'Some series unavailable'
-              : chartLoadState?.status === 'failed'
-                ? chartLoadState.error
+              : panelData.main.status === 'failed'
+                ? panelData.main.error
                 : undefined;
     const loadStatus = {
         chart: hasDataRequestGeometry
-            ? (chartLoadState?.status ?? 'idle')
+            ? panelData.main.status
             : 'loading',
         navigator: hasDataRequestGeometry
-            ? (navigatorLoadState?.status ?? 'idle')
+            ? panelData.navigator.status
             : 'loading',
     };
     const renderMainRange = renderRange?.mainRange;
@@ -199,13 +166,8 @@ export default memo(function Panel({
         onMainRangeChange,
         onNavigatorRangeChange,
     });
-    function dragNavigatorSelection(range: AxisRange): void {
-        onMainRangeChange(range);
-    }
-
     const rangeActions = {
-        applyMainZoomRange: onMainRangeChange,
-        applyMainNavigatorSelectionRange: dragNavigatorSelection,
+        setMainRange: onMainRangeChange,
         shiftMainRangeLeft: () => onRangeButtonAction('shift-main-left'),
         shiftMainRangeRight: () => onRangeButtonAction('shift-main-right'),
     };
@@ -335,7 +297,6 @@ export default memo(function Panel({
                 selection: sSelection,
                 popoverPosition: { x: sChartRect.left - 90, y: sChartRect.top - 35 },
             },
-            PanelOverlayMode.DRAG_SELECT,
         );
     }
 
@@ -407,7 +368,7 @@ export default memo(function Panel({
             <PanelHeader
                 state={panelHeaderState}
                 onAction={handlePanelAction}
-                onToggleOverlap={onToggleOverlap}
+                onToggleOverlap={() => onToggleOverlap(panelInfo.key)}
                 onRenamePanelTitle={(title) =>
                     onApplyPanelInfo({ ...panelInfo, title })
                 }
@@ -475,7 +436,7 @@ export default memo(function Panel({
                 panelChartApiRef={panelChartApiRef}
                 onPanelAction={handlePanelAction}
                 onApplyPanelInfo={onApplyPanelInfo}
-                onDeletePanel={onDeletePanel}
+                onDeletePanel={() => onDeletePanel(panelInfo.key)}
                 onDismiss={dismissSurface}
             />
             {selectionSummary !== undefined && (

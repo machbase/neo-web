@@ -5,7 +5,8 @@ import type {
     ElementEvent,
 } from 'echarts';
 import type { RangeState } from '../range/rangeModel';
-import { AUTO_VALUE_RANGE, type PanelAxisThreshold, type PanelHighlight, type PanelInfo, type PanelSampling, type PanelYAxis, type ValueRange } from '../panel/panelModel';
+import type { PanelHighlight } from '../markup/markupModel';
+import { type PanelInfo, type PanelYAxis } from '../panel/panelModel';
 import { type ChartSeriesData, type ChartSeriesVisibilityMap } from './chartData';
 
 export enum PanelOverlayMode {
@@ -97,11 +98,6 @@ export type PanelChartInstance = Omit<EChartsType, 'getOption' | 'setOption'> & 
 export function resolveRuntimePanelChartConfig(
     panelInfo: PanelInfo,
 ) {
-    assertValidPanelSampling(
-        panelInfo.display.mainChartSampling,
-        'main chart sampling',
-    );
-
     return {
         query: panelInfo.query,
         mode: panelInfo.mode,
@@ -109,14 +105,8 @@ export function resolveRuntimePanelChartConfig(
         annotations: panelInfo.annotations,
         axes: {
             x: { ...panelInfo.axes.x },
-            leftY: resolvePanelYAxisForRuntime(
-                panelInfo.axes.leftY,
-                'left y-axis',
-            ),
-            rightY: resolvePanelYAxisForRuntime(
-                panelInfo.axes.rightY,
-                'right y-axis',
-            ),
+            leftY: resolvePanelYAxisForRuntime(panelInfo.axes.leftY),
+            rightY: resolvePanelYAxisForRuntime(panelInfo.axes.rightY),
             rightYEnabled: panelInfo.axes.rightY.enabled,
         },
         display: {
@@ -155,86 +145,20 @@ export type PanelChartRuntime = {
     };
 };
 
-function assertValidPanelSampling(
-    sampling: PanelSampling,
-    label: string,
-): void {
-    if (
-        sampling.enabled &&
-        (sampling.sampleCount === undefined ||
-            !Number.isFinite(sampling.sampleCount) ||
-            sampling.sampleCount <= 0)
-    ) {
-        throw new Error(`${label} requires a positive sample count when enabled.`);
-    }
-}
-
-function resolvePanelYAxisForRuntime(
-    axis: PanelYAxis,
-    label: string,
-) {
+function resolvePanelYAxisForRuntime(axis: PanelYAxis) {
     return {
         zeroBase: axis.zeroBase,
         showTickline: axis.showTickline,
-        valueRange: resolveValueRangeForRuntime(
-            axis.valueRange,
-            `${label} value range`,
-        ),
-        rawValueRange: resolveValueRangeForRuntime(
-            axis.rawValueRange,
-            `${label} raw value range`,
-        ),
-        upperControlLimit: resolveAxisThresholdForRuntime(
-            axis.upperControlLimit,
-            `${label} upper control limit`,
-        ),
-        lowerControlLimit: resolveAxisThresholdForRuntime(
-            axis.lowerControlLimit,
-            `${label} lower control limit`,
-        ),
-    };
-}
-
-function resolveValueRangeForRuntime(
-    range: ValueRange,
-    label: string,
-): ValueRange {
-    const sMin = range.min;
-    const sMax = range.max;
-
-    if (sMin === undefined || sMax === undefined) {
-        if (sMin !== sMax) {
-            throw new Error(`${label} requires both min and max values.`);
-        }
-        return { ...AUTO_VALUE_RANGE };
-    }
-
-    if (!Number.isFinite(sMin) || !Number.isFinite(sMax)) {
-        throw new Error(`${label} min and max must be finite numbers.`);
-    }
-
-    if (sMin >= sMax) {
-        throw new Error(`${label} min must be less than max.`);
-    }
-
-    return { min: sMin, max: sMax };
-}
-
-function resolveAxisThresholdForRuntime(
-    threshold: PanelAxisThreshold,
-    label: string,
-) {
-    if (
-        threshold.enabled &&
-        (threshold.value === undefined ||
-            !Number.isFinite(threshold.value))
-    ) {
-        throw new Error(`${label} requires a finite value when enabled.`);
-    }
-
-    return {
-        enabled: threshold.enabled,
-        value: threshold.value ?? 0,
+        valueRange: { ...axis.valueRange },
+        rawValueRange: { ...axis.rawValueRange },
+        upperControlLimit: {
+            enabled: axis.upperControlLimit.enabled,
+            value: axis.upperControlLimit.value ?? 0,
+        },
+        lowerControlLimit: {
+            enabled: axis.lowerControlLimit.enabled,
+            value: axis.lowerControlLimit.value ?? 0,
+        },
     };
 }
 

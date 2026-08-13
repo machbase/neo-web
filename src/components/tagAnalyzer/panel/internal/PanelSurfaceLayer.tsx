@@ -6,7 +6,7 @@ import {
     filterChartDataByRange,
     type ChartSeriesData,
 } from '../../chart/chartData';
-import { EditAnnotationModal, EditHighlightModal } from '../../tools/MarkupModals';
+import { EditAnnotationModal, EditHighlightModal } from '../../markup/MarkupModals';
 import type { AxisRange } from '../../range/rangeModel';
 import type { PanelInfo } from '../panelModel';
 import { PanelContextMenu } from './PanelContextMenu';

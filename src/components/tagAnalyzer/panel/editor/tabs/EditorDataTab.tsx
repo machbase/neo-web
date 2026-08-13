@@ -1,13 +1,19 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useState, type CSSProperties } from 'react';
 import { BiSolidChart, PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, ColorPicker, Button, Dropdown } from '@/design-system/components';
 import { Modal } from '@/design-system/components/Modal';
-import { PanelSeriesEditor } from '../../series/PanelSeriesEditor';
+import {
+    PanelSeriesEditor,
+    X_AXIS_KIND_CHANGE_WARNING,
+} from '../../series/PanelSeriesEditor';
 import type { PanelInfo } from '../../panelModel';
+import type { AxisKind } from '../../../range/rangeModel';
 import { TimeUnit } from '../../../range/intervalResolver';
 import {
     getPanelSeriesDisplayColor,
     normalizePanelSeriesCalculationMode,
+    getSeriesListAxisKind,
+    MIXED_X_AXIS_KIND_WARNING,
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
     type RollupTableMap,
@@ -32,17 +38,42 @@ const INTERVAL_TYPE_OPTIONS = [
 const EditorDataTab = ({
     pQueryDraft,
     pRollupTableList,
+    pLockedAxisKind,
     pOnChangeQueryDraft,
+    pReportValidity,
+    pIsActive,
 }: {
     pQueryDraft: PanelInfo['query'];
     pRollupTableList: RollupTableMap;
+    pLockedAxisKind: AxisKind | undefined;
     pOnChangeQueryDraft: (queryDraft: PanelInfo['query']) => void;
+    pReportValidity: (tab: 'Data', isValid: boolean, message?: string) => void;
+    pIsActive: boolean;
 }) => {
     const [sSeriesDraft, setSeriesDraft] = useState<
         PanelSeriesDefinition[] | undefined
     >();
     const [sSeriesFooterMessage, setSeriesFooterMessage] =
         useState<string | undefined>();
+    const sDraftAxisKind = getSeriesListAxisKind(pQueryDraft.tagSet);
+    const sValidationMessage =
+        pQueryDraft.tagSet.length === 0
+            ? 'Add at least one series.'
+            : sDraftAxisKind === undefined
+              ? MIXED_X_AXIS_KIND_WARNING
+              : pLockedAxisKind && sDraftAxisKind !== pLockedAxisKind
+                ? X_AXIS_KIND_CHANGE_WARNING
+              : undefined;
+    useLayoutEffect(() => {
+        pReportValidity('Data', !sValidationMessage, sValidationMessage);
+    }, [pReportValidity, sValidationMessage]);
+    useEffect(() => {
+        if (!pIsActive) {
+            setSeriesDraft(undefined);
+            setSeriesFooterMessage(undefined);
+        }
+    }, [pIsActive]);
+    if (!pIsActive) return null;
 
     const setTagSet = (tagSet: PanelSeriesDefinition[]) => {
         pOnChangeQueryDraft({ ...pQueryDraft, tagSet });
@@ -55,6 +86,15 @@ const EditorDataTab = ({
 
     function applySeriesSelection(): void {
         if (!sSeriesDraft) return;
+        const sNextAxisKind = getSeriesListAxisKind(sSeriesDraft);
+        if (
+            pLockedAxisKind &&
+            sNextAxisKind &&
+            sNextAxisKind !== pLockedAxisKind
+        ) {
+            setSeriesFooterMessage(X_AXIS_KIND_CHANGE_WARNING);
+            return;
+        }
         setTagSet(sSeriesDraft);
         closeSeriesModal();
     }
@@ -216,6 +256,7 @@ const EditorDataTab = ({
                 <Modal.Root
                     isOpen
                     onClose={closeSeriesModal}
+                    data-testid="editor-series-dialog"
                     style={{ maxWidth: '700px', width: '100%' }}
                 >
                     <Modal.Header>
@@ -235,6 +276,7 @@ const EditorDataTab = ({
                             <PanelSeriesEditor
                                 seriesList={sSeriesDraft}
                                 rollupTableList={pRollupTableList}
+                                lockedAxisKind={pLockedAxisKind}
                                 onFooterMessageChange={setSeriesFooterMessage}
                                 onSeriesListChange={setSeriesDraft}
                             />

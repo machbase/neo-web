@@ -1,10 +1,10 @@
 import type { PanelSeriesDefinition } from '../seriesModel';
 import type { TimeUnit } from '../range/intervalResolver';
 import type {
-    AxisRange,
     RangeState,
     RangeExpressionInput,
 } from '../range/rangeModel';
+import type { PanelAnnotation, PanelHighlight } from '../markup/markupModel';
 
 export type ValueRange = {
     min: number | undefined;
@@ -87,88 +87,6 @@ export type PanelDisplay = {
     };
     mainChartSampling: PanelSampling;
     rawNavigatorSampling: PanelSampling;
-};
-
-function isInvalidThreshold(threshold: PanelAxisThreshold): boolean {
-    return (
-        threshold.enabled &&
-        (threshold.value === undefined || !Number.isFinite(threshold.value))
-    );
-}
-
-function isInvalidYAxis(axis: PanelYAxis): boolean {
-    return (
-        isValueRangeInvalid(axis.valueRange) ||
-        isValueRangeInvalid(axis.rawValueRange) ||
-        isInvalidThreshold(axis.upperControlLimit) ||
-        isInvalidThreshold(axis.lowerControlLimit)
-    );
-}
-
-function isInvalidOptionalPositiveNumber(
-    value: number | undefined,
-): boolean {
-    return value !== undefined && (!Number.isFinite(value) || value <= 0);
-}
-
-function isInvalidSampling(sampling: PanelSampling): boolean {
-    return (
-        sampling.enabled &&
-        (sampling.sampleCount === undefined ||
-            !Number.isFinite(sampling.sampleCount) ||
-            sampling.sampleCount <= 0)
-    );
-}
-
-export function hasInvalidAxesSettings(axes: PanelAxes): boolean {
-    return (
-        isInvalidYAxis(axes.leftY) ||
-        (axes.rightY.enabled && isInvalidYAxis(axes.rightY))
-    );
-}
-
-export function hasInvalidDataSettings(display: PanelDisplay): boolean {
-    return (
-        isInvalidOptionalPositiveNumber(display.pixelsPerTick.calculated) ||
-        isInvalidOptionalPositiveNumber(
-            display.pixelsPerTick.calculatedNavigator,
-        ) ||
-        isInvalidSampling(display.mainChartSampling) ||
-        isInvalidSampling(display.rawNavigatorSampling)
-    );
-}
-
-export function hasInvalidDisplaySettings(display: PanelDisplay): boolean {
-    return [display.pointRadius, display.fill, display.stroke].some(
-        (value) => value !== undefined && !Number.isFinite(value),
-    );
-}
-
-export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
-export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
-export const DEFAULT_PANEL_HIGHLIGHT_LABEL = 'unnamed';
-
-export type PanelHighlight = {
-    text: string;
-    timeRange: AxisRange;
-    fillColor: string;
-    textColor: string;
-};
-
-export function createPanelHighlightDraft(
-    timeRange: AxisRange,
-): PanelHighlight {
-    return {
-        text: DEFAULT_PANEL_HIGHLIGHT_LABEL,
-        timeRange: { ...timeRange },
-        fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-        textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    };
-}
-
-export type PanelAnnotation = PanelHighlight & {
-    seriesKey: string;
-    clip: boolean;
 };
 
 export type PanelInfo = {

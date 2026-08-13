@@ -1,5 +1,6 @@
 import { Duplicate } from '@/assets/icons/Icon';
 import { Button, Checkbox, Dropdown } from '@/design-system/components';
+import { useLayoutEffect } from 'react';
 import {
     clonePanelYAxis,
     isValueRangeInvalid,
@@ -33,17 +34,42 @@ const THRESHOLDS = [
     ['upperControlLimit', 'Use UCL'],
 ] as const;
 
+function isYAxisValid(axis: PanelYAxis): boolean {
+    return (
+        !isValueRangeInvalid(axis.valueRange) &&
+        !isValueRangeInvalid(axis.rawValueRange) &&
+        THRESHOLDS.every(
+            ([field]) => !axis[field].enabled || Number.isFinite(axis[field].value),
+        )
+    );
+}
+
 const EditorAxesTab = ({
     pAxesConfig,
     pTagSet,
     pOnChangeAxesConfig,
     pOnChangeTagSet,
+    pReportValidity,
+    pIsActive,
 }: {
     pAxesConfig: PanelAxes;
     pTagSet: PanelSeriesDefinition[];
     pOnChangeAxesConfig: (config: PanelAxes) => void;
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
+    pReportValidity: (tab: 'Axes', isValid: boolean, message?: string) => void;
+    pIsActive: boolean;
 }) => {
+    const sIsValid =
+        isYAxisValid(pAxesConfig.leftY) &&
+        (!pAxesConfig.rightY.enabled || isYAxisValid(pAxesConfig.rightY));
+    useLayoutEffect(() => {
+        pReportValidity(
+            'Axes',
+            sIsValid,
+            sIsValid ? undefined : 'Review the invalid axis settings.',
+        );
+    }, [pReportValidity, sIsValid]);
+    if (!pIsActive) return null;
     const patchAxis = <K extends AxisKey>(key: K, patch: Partial<PanelAxes[K]>) =>
         pOnChangeAxesConfig({ ...pAxesConfig, [key]: { ...pAxesConfig[key], ...patch } });
     const patchYAxis = (key: YAxisKey, patch: Partial<PanelYAxis>) =>
