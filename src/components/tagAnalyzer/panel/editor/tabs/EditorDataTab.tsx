@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { BiSolidChart, PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, ColorPicker, Button, Dropdown } from '@/design-system/components';
 import { Modal } from '@/design-system/components/Modal';
@@ -8,7 +8,6 @@ import {
 } from '../../series/PanelSeriesEditor';
 import type { PanelInfo } from '../../panelModel';
 import type { AxisKind } from '../../../range/rangeModel';
-import { TimeUnit } from '../../../range/intervalResolver';
 import {
     getPanelSeriesDisplayColor,
     normalizePanelSeriesCalculationMode,
@@ -19,21 +18,8 @@ import {
     type RollupTableMap,
     updatePanelSeriesCalculationMode,
 } from '../../../seriesModel';
-import styles from '../PanelEditor.module.scss';
+import styles from '../PanelEditorTab.module.scss';
 import seriesStyles from '../../series/PanelSeriesEditor.module.scss';
-
-const AUTOMATIC_INTERVAL = 'automatic';
-const INTERVAL_TYPE_OPTIONS = [
-    { label: 'Automatic', value: AUTOMATIC_INTERVAL },
-    { label: 'Millisecond', value: TimeUnit.Millisecond },
-    { label: 'Second', value: TimeUnit.Second },
-    { label: 'Minute', value: TimeUnit.Minute },
-    { label: 'Hour', value: TimeUnit.Hour },
-    { label: 'Day', value: TimeUnit.Day },
-    { label: 'Week', value: TimeUnit.Week },
-    { label: 'Month', value: TimeUnit.Month },
-    { label: 'Year', value: TimeUnit.Year },
-];
 
 const EditorDataTab = ({
     pQueryDraft,
@@ -101,44 +87,8 @@ const EditorDataTab = ({
 
     return (
         <>
-            <div className={styles.editorCard}>
-                <div className={styles.editorWrappedRow}>
-                    <div className={styles.editorField}>
-                        <span className={styles.editorFieldLabel}>Interval</span>
-                        <div className={styles.editorNarrowControl}>
-                            <Dropdown.Root
-                                options={INTERVAL_TYPE_OPTIONS}
-                                value={
-                                    pQueryDraft.intervalType ??
-                                    AUTOMATIC_INTERVAL
-                                }
-                                onChange={(value) =>
-                                    pOnChangeQueryDraft({
-                                        ...pQueryDraft,
-                                        intervalType:
-                                            value === AUTOMATIC_INTERVAL
-                                                ? undefined
-                                                : (value as TimeUnit),
-                                    })
-                                }
-                            >
-                                <Dropdown.Trigger
-                                    className={styles.editorSelectTrigger}
-                                />
-                                <Dropdown.Menu>
-                                    <Dropdown.List />
-                                </Dropdown.Menu>
-                            </Dropdown.Root>
-                        </div>
-                    </div>
-                </div>
-            </div>
             {pQueryDraft.tagSet.map((item, seriesIndex) => {
                     const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
-                    const sAliasWidth = Math.min(
-                        42,
-                        Math.max(14, item.alias.length + 4),
-                    );
                     const updateItem = (nextItem: PanelSeriesDefinition) =>
                         setTagSet(
                             pQueryDraft.tagSet.map((series) =>
@@ -149,26 +99,47 @@ const EditorDataTab = ({
                         updateItem({ ...item, ...patch });
 
                     return (
-                        <div key={item.key} className={styles.editorCard}>
+                        <div
+                            key={item.key}
+                            role="group"
+                            aria-label={`${item.sourceTagName} (${item.table}) series`}
+                            className={styles.editorCard}
+                        >
                             <div className={styles.editorWrappedRow}>
                                 <div
                                     className={styles.editorSeriesIdentity}
-                                    title={`${item.sourceTagName} (${item.table})`}
                                 >
                                     <span
                                         className={styles.editorSeriesTagName}
+                                        title={`${item.sourceTagName} (${item.table})`}
                                     >
                                         {item.sourceTagName}
                                     </span>
-                                    <span
-                                        className={styles.editorSeriesTableName}
+                                    <div
+                                        className={[
+                                            styles.editorField,
+                                            styles.editorAliasField,
+                                        ].join(' ')}
                                     >
-                                        {item.table}
-                                    </span>
+                                        <span className={styles.editorFieldLabel}>
+                                            Alias
+                                        </span>
+                                        <Input
+                                            aria-label="Alias"
+                                            title={item.alias}
+                                            value={item.alias}
+                                            onChange={(event) =>
+                                                patchItem({ alias: event.target.value })
+                                            }
+                                            size="sm"
+                                            className={styles.editorAliasInput}
+                                            style={{ height: '30px' }}
+                                        />
+                                    </div>
                                 </div>
                                 <div className={styles.editorField}>
                                     <span className={styles.editorFieldLabel}>
-                                        Calc Mode
+                                        Calculation mode
                                     </span>
                                     <div className={styles.editorNarrowControl}>
                                         <Dropdown.Root
@@ -205,33 +176,17 @@ const EditorDataTab = ({
                                 <div
                                     className={[
                                         styles.editorField,
-                                        styles.editorAliasField,
+                                        styles.editorColorField,
                                     ].join(' ')}
-                                    style={
-                                        {
-                                            '--editor-alias-expanded-width': `max(120px, ${sAliasWidth}ch)`,
-                                        } as CSSProperties
-                                    }
                                 >
-                                    <span className={styles.editorFieldLabel}>Alias</span>
-                                    <Input
-                                        aria-label="Alias"
-                                        value={item.alias}
-                                        onChange={(event) =>
-                                            patchItem({ alias: event.target.value })
-                                        }
-                                        size="sm"
-                                        className={styles.editorAliasInput}
-                                        style={{ height: '30px' }}
-                                    />
-                                </div>
-                                <div className={styles.editorInlineField}>
                                     <span className={styles.editorFieldLabel}>Color</span>
-                                    <ColorPicker
-                                        color={sSeriesColor}
-                                        onChange={(color) => patchItem({ color })}
-                                        tooltipContent="Color"
-                                    />
+                                    <div className={styles.editorColorControl}>
+                                        <ColorPicker
+                                            color={sSeriesColor}
+                                            onChange={(color) => patchItem({ color })}
+                                            tooltipContent="Color"
+                                        />
+                                    </div>
                                 </div>
                                 {pQueryDraft.tagSet.length !== 1 && (
                                     <Button

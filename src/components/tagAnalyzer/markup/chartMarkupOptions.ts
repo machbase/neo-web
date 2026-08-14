@@ -11,7 +11,8 @@ import {
 } from 'echarts';
 
 import type { AxisRange } from '../range/rangeModel';
-import { getRangeCenter } from '../range/rangeArithmetic';
+import { getEnclosingRange, getRangeCenter } from '../range/rangeArithmetic';
+import { PANEL_NAVIGATOR_DATA_X_AXIS_INDEX, PANEL_NAVIGATOR_Y_AXIS_INDEX } from '../chart/chartGeometry';
 import {
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
@@ -49,7 +50,7 @@ type BuildChartMarkupSeriesParams = {
     navigatorRange: AxisRange;
 };
 
-export type ChartMarkupSeries = {
+type ChartMarkupSeries = {
     main: SeriesOption[];
     navigator: SeriesOption[];
 };
@@ -61,9 +62,6 @@ const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 const HIGHLIGHT_OUTLINE_WIDTH = 1;
 const NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID = 'navigator-highlight-overlay';
 const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
-const PANEL_NAVIGATOR_DATA_X_AXIS_INDEX = 2;
-const PANEL_NAVIGATOR_Y_AXIS_INDEX = 2;
-
 const HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION: LineSeriesOption = {
     id: 'highlight-overlay',
     type: 'line',
@@ -125,7 +123,6 @@ const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
 const ANNOTATION_LABEL_BORDER_WIDTH = 1;
 const ANNOTATION_LABEL_CORNER_RADIUS = 3;
 const ANNOTATION_LABEL_FONT_SIZE = 11;
-const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;
 const ANNOTATION_LABEL_TEXT_HORIZONTAL_PADDING = 14;
 const NAVIGATOR_ANNOTATION_LINE_SERIES_ID = 'navigator-annotation-lines';
 
@@ -250,17 +247,17 @@ function buildAnnotationGuideLineData(
                 borderColor: createAnnotationBorderColor(annotation.fillColor),
                 borderWidth: ANNOTATION_LABEL_BORDER_WIDTH,
             },
-            label: { show: false },
+            label: DEFAULT_NOT_SHOW,
         },
         {
             value: [annotation.anchorTime, annotation.labelY],
             symbol: 'none',
-            label: { show: false },
+            label: DEFAULT_NOT_SHOW,
         },
         {
             value: [Number.NaN, Number.NaN],
             symbol: 'none',
-            label: { show: false },
+            label: DEFAULT_NOT_SHOW,
         },
     ]);
 }
@@ -371,7 +368,7 @@ function createAnnotationLabelRenderItem(
                         x: labelX + labelWidth / 2,
                         y: labelY + labelHeight / 2,
                         text: annotation.text,
-                        fill: annotation.textColor || ANNOTATION_LABEL_TEXT_COLOR,
+                        fill: annotation.textColor || DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
                         font: api.font({
                             fontSize: ANNOTATION_LABEL_FONT_SIZE,
                             fontWeight: 600,
@@ -450,17 +447,15 @@ function createAnnotationSeriesGroup(
 }
 
 function buildNavigatorAnnotationLineSeries(
-    context: AnnotationRenderContext,
+    annotations: RenderableSeriesAnnotation[],
 ): SeriesOption[] {
-    const sAnnotationLines = buildRenderableSeriesAnnotations(context).map(
-        (annotation) => ({
-            xAxis: annotation.anchorTime,
-            lineStyle: {
-                color: annotation.fillColor,
-                type: 'solid' as const,
-            },
-        }),
-    );
+    const sAnnotationLines = annotations.map((annotation) => ({
+        xAxis: annotation.anchorTime,
+        lineStyle: {
+            color: annotation.fillColor,
+            type: 'solid' as const,
+        },
+    }));
 
     if (sAnnotationLines.length === 0) {
         return [];
@@ -509,11 +504,11 @@ function createAnnotationBorderColor(fillColor: string): string {
 }
 
 function buildSeriesAnnotationSeries(
-    context: AnnotationRenderContext,
+    annotations: RenderableSeriesAnnotation[],
 ): SeriesOption[] {
     const annotationsBySeries = new Map<string, RenderableSeriesAnnotation[]>();
 
-    buildRenderableSeriesAnnotations(context).forEach((annotation) => {
+    annotations.forEach((annotation) => {
         const sAnnotationGroupKey = annotation.seriesIndex + ':' + annotation.clip;
         const seriesAnnotations = annotationsBySeries.get(sAnnotationGroupKey) ?? [];
 
@@ -533,6 +528,15 @@ export function buildChartMarkupSeries({
     mainRange,
     navigatorRange,
 }: BuildChartMarkupSeriesParams): ChartMarkupSeries {
+    const sAnnotations = buildRenderableSeriesAnnotations({
+        ...annotationContext,
+        visibleRange: getEnclosingRange(mainRange, navigatorRange),
+    });
+    const annotationsInRange = (range: AxisRange) =>
+        sAnnotations.filter(
+            ({ anchorTime }) => anchorTime >= range.start && anchorTime <= range.end,
+        );
+
     return {
         main: [
             ...buildHighlightOverlaySeries(highlights, 'main'),
@@ -540,17 +544,11 @@ export function buildChartMarkupSeries({
                 highlights,
                 annotationContext.yAxisOptions[0],
             ),
-            ...buildSeriesAnnotationSeries({
-                ...annotationContext,
-                visibleRange: mainRange,
-            }),
+            ...buildSeriesAnnotationSeries(annotationsInRange(mainRange)),
         ],
         navigator: [
             ...buildHighlightOverlaySeries(highlights, 'navigator'),
-            ...buildNavigatorAnnotationLineSeries({
-                ...annotationContext,
-                visibleRange: navigatorRange,
-            }),
+            ...buildNavigatorAnnotationLineSeries(annotationsInRange(navigatorRange)),
         ],
     };
 }

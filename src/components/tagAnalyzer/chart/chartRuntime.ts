@@ -28,7 +28,7 @@ export type PanelOverlayCursorHintState = {
 };
 
 // ECharts boundary types
-export type EChartDataZoomEventItem = Partial<{
+type EChartDataZoomEventItem = Partial<{
     id: string;
     dataZoomId: string;
     start: number;

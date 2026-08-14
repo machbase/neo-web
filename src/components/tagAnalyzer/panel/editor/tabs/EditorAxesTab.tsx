@@ -14,7 +14,7 @@ import {
 } from '../../../seriesModel';
 
 import { NumberInput, Section } from './TabControls';
-import styles from '../PanelEditor.module.scss';
+import styles from '../PanelEditorTab.module.scss';
 
 type AxisKey = keyof Pick<PanelAxes, 'x' | 'leftY' | 'rightY'>;
 type YAxisKey = 'leftY' | 'rightY';
@@ -93,37 +93,16 @@ const EditorAxesTab = ({
         axis: PanelYAxis,
         rangeKey: RangeKey,
         label: string,
-        disabled: boolean,
     ) => {
-        const error = !disabled && isValueRangeInvalid(axis[rangeKey]);
+        const error = isValueRangeInvalid(axis[rangeKey]);
         const setEdge = (edge: 'min' | 'max', value: number | undefined) =>
             patchYAxis(axisKey, { [rangeKey]: { ...axis[rangeKey], [edge]: value } });
 
         return (
-            <div
-                key={rangeKey}
-                className={[
-                    styles.rangeField,
-                    disabled && styles.disabledControl,
-                ]
-                    .filter(Boolean)
-                    .join(' ')}
-            >
+            <div key={rangeKey} className={styles.rangeField}>
                 <div className={styles.rangeInputs}>
-                    <span
-                        className={[
-                            styles.mutedLabel,
-                            disabled &&
-                                rangeKey === 'rawValueRange' &&
-                                styles.rawRangeLabelWide,
-                        ]
-                            .filter(Boolean)
-                            .join(' ')}
-                    >
-                        {label}
-                    </span>
+                    <span className={styles.mutedLabel}>{label}</span>
                     <NumberInput
-                        disabled={disabled}
                         value={axis[rangeKey].min}
                         error={error}
                         placeholder="Auto"
@@ -132,7 +111,6 @@ const EditorAxesTab = ({
                     />
                     <span className={styles.rangeSeparator}>~</span>
                     <NumberInput
-                        disabled={disabled}
                         value={axis[rangeKey].max}
                         error={error}
                         placeholder="Auto"
@@ -153,14 +131,12 @@ const EditorAxesTab = ({
         axis: PanelYAxis,
         thresholdKey: ThresholdKey,
         label: string,
-        disabled: boolean,
     ) => {
         const threshold = axis[thresholdKey];
 
         return (
             <div key={thresholdKey} className={styles.controlRow}>
                 <Checkbox
-                    disabled={disabled}
                     checked={threshold.enabled}
                     onChange={(event) =>
                         patchYAxis(axisKey, {
@@ -171,7 +147,7 @@ const EditorAxesTab = ({
                     size="sm"
                 />
                 <NumberInput
-                    disabled={disabled || !threshold.enabled}
+                    disabled={!threshold.enabled}
                     value={threshold.value}
                     onChange={(value) =>
                         patchYAxis(axisKey, { [thresholdKey]: { ...threshold, value } })
@@ -182,14 +158,7 @@ const EditorAxesTab = ({
         );
     };
     const renderRightAxisSeries = () => (
-        <div
-            className={[
-                styles.rightAxisSeries,
-                !pAxesConfig.rightY.enabled && styles.disabledControl,
-            ]
-                .filter(Boolean)
-                .join(' ')}
-        >
+        <div className={styles.rightAxisSeries}>
             <Dropdown.Root
                 options={pTagSet
                     .filter((item) => !item.useSecondaryAxis)
@@ -199,7 +168,6 @@ const EditorAxesTab = ({
                     }))}
                 value="none"
                 onChange={(value) => value !== 'none' && setSeriesAxis(value, true)}
-                disabled={!pAxesConfig.rightY.enabled}
             >
                 <Dropdown.Trigger className={styles.rightAxisTrigger} />
                 <Dropdown.Menu>
@@ -242,45 +210,63 @@ const EditorAxesTab = ({
                             size="sm"
                             className={styles.sectionHeaderCheckbox}
                         />
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            isToolTip
-                            toolTipContent="Copy left Y-axis settings"
-                            aria-label="Copy left Y-axis settings"
-                            icon={<Duplicate size={14} />}
-                            onClick={copyLeftYAxisToRight}
-                        />
+                        {pAxesConfig.rightY.enabled && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                isToolTip
+                                toolTipContent="Copy left Y-axis settings"
+                                aria-label="Copy left Y-axis settings"
+                                icon={<Duplicate size={14} />}
+                                onClick={copyLeftYAxisToRight}
+                            />
+                        )}
                     </div>
                 ) : undefined}
             >
-                {AXIS_FLAGS.map(([field, label]) => (
-                    <Checkbox
-                        key={field}
-                        checked={axis[field]}
-                        onChange={(event) => patchYAxis(axisKey, { [field]: event.target.checked })}
-                        disabled={disabled}
-                        label={label}
-                        size="sm"
-                    />
-                ))}
-                {RANGES.map(([rangeKey, label]) =>
-                    renderRange(axisKey, axis, rangeKey, label, disabled),
+                {disabled ? (
+                    <p className={styles.axisDisabledMessage}>
+                        Enable the right Y axis to configure it.
+                    </p>
+                ) : (
+                    <>
+                        {AXIS_FLAGS.map(([field, label]) => (
+                            <Checkbox
+                                key={field}
+                                checked={axis[field]}
+                                onChange={(event) =>
+                                    patchYAxis(axisKey, {
+                                        [field]: event.target.checked,
+                                    })
+                                }
+                                label={label}
+                                size="sm"
+                            />
+                        ))}
+                        {RANGES.map(([rangeKey, label]) =>
+                            renderRange(axisKey, axis, rangeKey, label),
+                        )}
+                        <div className={styles.controlRow}>
+                            {THRESHOLDS.map(([thresholdKey, label]) =>
+                                renderThreshold(
+                                    axisKey,
+                                    axis,
+                                    thresholdKey,
+                                    label,
+                                ),
+                            )}
+                        </div>
+                        {axisKey === 'rightY' && renderRightAxisSeries()}
+                    </>
                 )}
-                <div className={styles.controlRow}>
-                    {THRESHOLDS.map(([thresholdKey, label]) =>
-                        renderThreshold(axisKey, axis, thresholdKey, label, disabled),
-                    )}
-                </div>
-                {axisKey === 'rightY' && renderRightAxisSeries()}
             </Section>
         );
     };
 
     return (
         <div className={styles.axesGrid}>
-            <Section title="X-Axis">
+            <Section title="X axis" className={styles.axisGroup}>
                 <Checkbox
                     checked={pAxesConfig.x.showTickline}
                     onChange={(event) =>
@@ -290,8 +276,10 @@ const EditorAxesTab = ({
                     size="sm"
                 />
             </Section>
-            {renderYAxis('Left Y-Axis', 'leftY')}
-            {renderYAxis('Right Y-Axis', 'rightY')}
+            <div className={[styles.axisGroup, styles.yAxesGroup].join(' ')}>
+                {renderYAxis('Left Y axis', 'leftY')}
+                {renderYAxis('Right Y axis', 'rightY')}
+            </div>
         </div>
     );
 };

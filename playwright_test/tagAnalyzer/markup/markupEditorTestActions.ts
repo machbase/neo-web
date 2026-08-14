@@ -83,7 +83,7 @@ export async function openAnnotationEditor(
 export async function selectAnnotationSeries(
     page: Page,
     editor: Locator,
-    optionName: string | RegExp = /^pneumatic\b/,
+    optionName: string | RegExp = /^use\b/,
 ): Promise<void> {
     await editor.getByTestId('series-trigger').click();
     const option = typeof optionName === 'string'

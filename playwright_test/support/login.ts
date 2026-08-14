@@ -7,7 +7,25 @@ export async function login(page: Page) {
 
     await page.getByTestId('login-username-input').fill('sys');
     await page.getByTestId('login-password-input').fill('Manager');
+    const homeCheckResponse = page.waitForResponse(
+        (response) =>
+            response.url().endsWith('/web/api/check') &&
+            response.request().method() === 'GET',
+    );
     await page.getByTestId('login-submit').click();
 
     await expect(page).toHaveURL(/\/web\/ui\/?$/);
+
+    const homeCheck = (await (await homeCheckResponse).json()) as {
+        eulaRequired?: boolean;
+    };
+    if (homeCheck.eulaRequired) {
+        const agreeButton = page.getByRole('button', {
+            name: 'Agree',
+            exact: true,
+        });
+        await expect(agreeButton).toBeVisible();
+        await agreeButton.click();
+        await expect(agreeButton).toHaveCount(0);
+    }
 }

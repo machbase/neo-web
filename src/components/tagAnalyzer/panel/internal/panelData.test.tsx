@@ -86,15 +86,15 @@ function createParams(
 
 function calculatedResult(
     query: SeriesRowsQuery,
-    usesRollup = false,
+    timestamp = query.range.end,
 ): PanelDataFetchResult {
     return [{
         seriesKey: TIME_SERIES.key,
-        data: [[query.range.end, 1]],
+        data: [[timestamp, 1]],
         metadata: {
             kind: 'calculated',
             isLimitReached: false,
-            usesRollup,
+            usesRollup: false,
         },
     }];
 }
@@ -110,7 +110,7 @@ describe('usePanelData', () => {
         emptyInfo.query.tagSet = [];
         const empty = renderHook(() => usePanelData(createParams(emptyInfo)));
 
-        expect(empty.result.current.axisKind).toBeUndefined();
+        expect(empty.result.current.main.status).toBe('idle');
         empty.unmount();
 
         const numericSeries: PanelSeriesDefinition = {
@@ -126,7 +126,7 @@ describe('usePanelData', () => {
         mixedInfo.query.tagSet = [TIME_SERIES, numericSeries];
         const mixed = renderHook(() => usePanelData(createParams(mixedInfo)));
 
-        expect(mixed.result.current.axisKind).toBeUndefined();
+        expect(mixed.result.current.main.status).toBe('idle');
         expect(fetchSpy).not.toHaveBeenCalled();
         mixed.unmount();
     });
@@ -142,15 +142,26 @@ describe('usePanelData', () => {
             usePanelData(createParams(panelInfo)),
         );
 
-        expect(result.current.main).toMatchObject({
-            status: 'failed',
-            error: 'Raw panel sampling requires a positive sample count.',
+        expect(result.current).toMatchObject({
+            main: { status: 'failed' },
+            issue: {
+                kind: 'error',
+                message:
+                    'Raw panel sampling requires a positive sample count.',
+            },
         });
     });
 
-    it('loads independent chart data and derives metrics and rollup status', async () => {
+    it('loads independent chart data and reports the main interval', async () => {
         jest.spyOn(seriesDataApi, 'fetchSeriesRows').mockImplementation(
-            async (request) => calculatedResult(request, true),
+            async (request) =>
+                calculatedResult(
+                    request,
+                    request.kind === 'calculated' &&
+                        request.rowLimit === 10_000
+                        ? 100
+                        : request.range.end,
+                ),
         );
         const { result } = renderHook(() => usePanelData(createParams()));
 
@@ -159,43 +170,47 @@ describe('usePanelData', () => {
             expect(result.current.navigator.status).toBe('ready');
         });
 
+        expect(Object.keys(result.current).sort()).toEqual([
+            'issue',
+            'main',
+            'navigator',
+            'rawLimitRange',
+        ]);
+        expect(Object.keys(result.current.main).sort()).toEqual([
+            'interval',
+            'series',
+            'status',
+        ]);
+        expect(Object.keys(result.current.navigator).sort()).toEqual([
+            'series',
+            'status',
+        ]);
         expect(result.current.main.series[0]?.data).toEqual([[100, 1]]);
         expect(result.current.navigator.series[0]?.data).toEqual([
             [1_000, 1],
         ]);
-        expect(result.current.resolution?.kind).toBe('time');
-        expect(result.current.seriesRollupStatuses).toEqual([
-            { seriesName: 'Tag A', usesRollup: true },
-        ]);
-        expect(result.current.metrics).toEqual({
-            main: {
-                queriedEntries: 1,
-                pointCount: 1,
-                pixelWidth: 300,
-            },
-            navigator: {
-                queriedEntries: 1,
-                pointCount: 1,
-                pixelWidth: 300,
-            },
-        });
-        expect(result.current.notice).toBeUndefined();
+        expect(result.current.rawLimitRange).toBeUndefined();
+        expect(result.current.main.interval?.kind).toBe('time');
+        expect(result.current.issue).toBeUndefined();
     });
 
     it.each([
         {
             errorKind: 'no-data' as const,
             expectedStatus: 'ready',
-            expectedNotice: 'noData',
+            expectedIssue: { kind: 'noData' as const },
         },
         {
             errorKind: 'request-failed' as const,
             expectedStatus: 'failed',
-            expectedNotice: undefined,
+            expectedIssue: {
+                kind: 'error' as const,
+                message: 'Series unavailable.',
+            },
         },
     ])(
         'classifies an all-$errorKind response',
-        async ({ errorKind, expectedStatus, expectedNotice }) => {
+        async ({ errorKind, expectedStatus, expectedIssue }) => {
             jest.spyOn(seriesDataApi, 'fetchSeriesRows').mockResolvedValue([{
                 seriesKey: TIME_SERIES.key,
                 data: [],
@@ -206,16 +221,12 @@ describe('usePanelData', () => {
             );
 
             await waitFor(() => {
-                expect(result.current.main.status).toBe(
-                    expectedStatus,
-                );
-                expect(result.current.navigator.status).toBe(
-                    expectedStatus,
-                );
+                expect(result.current.main.status).toBe(expectedStatus);
+                expect(result.current.navigator.status).toBe(expectedStatus);
             });
 
             expect(result.current.main.series).toEqual([]);
-            expect(result.current.notice).toBe(expectedNotice);
+            expect(result.current.issue).toEqual(expectedIssue);
         },
     );
 
@@ -240,18 +251,16 @@ describe('usePanelData', () => {
         const { result } = renderHook(() => usePanelData(params));
 
         await waitFor(() => {
-            expect(result.current.renderRange?.mainRange.end).toBe(40);
-            expect(result.current.navigator.status).toBe(
-                'ready',
-            );
+            expect(result.current.rawLimitRange?.mainRange.end).toBe(40);
+            expect(result.current.navigator.status).toBe('ready');
         });
 
-        expect(result.current.renderRange).toEqual({
+        expect(result.current.rawLimitRange).toEqual({
             mainRange: { start: 0, end: 40 },
             navigatorRange: { start: 0, end: 44 },
         });
-        expect(result.current.resolution).toEqual({ kind: 'raw' });
-        expect(result.current.notice).toBe('partialData');
+        expect(result.current.main.interval).toBeUndefined();
+        expect(result.current.issue).toEqual({ kind: 'partialData' });
         expect(
             fetchSpy.mock.calls.some(([request]) => request.kind === 'raw'),
         ).toBe(true);
@@ -260,6 +269,147 @@ describe('usePanelData', () => {
                 ([request]) => request.kind === 'calculated',
             ),
         ).toBe(true);
+    });
+
+    it('prefetches calculated main data at the visible resolution and reuses it', async () => {
+        const day = 24 * 60 * 60 * 1_000;
+        const fetchSpy = jest.spyOn(seriesDataApi, 'fetchSeriesRows')
+            .mockImplementation(async (query) => calculatedResult(query));
+        const initialParams: UsePanelDataParams = {
+            ...createParams(),
+            rangeState: {
+                range: {
+                    mainRange: { start: 9_950 * day, end: 10_050 * day },
+                    navigatorRange: { start: 0, end: 20_000 * day },
+                },
+                fullRange: { start: 0, end: 20_000 * day },
+                navigatorRangeInput: {
+                    start: '0',
+                    end: String(20_000 * day),
+                },
+            },
+        };
+        const { result, rerender } = renderHook(
+            ({ params }: { params: UsePanelDataParams }) =>
+                usePanelData(params),
+            { initialProps: { params: initialParams } },
+        );
+
+        await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+        const mainQuery = fetchSpy.mock.calls
+            .map(([query]) => query)
+            .find(
+                (query) =>
+                    query.kind === 'calculated' && query.rowLimit === 10_000,
+            );
+        expect(mainQuery?.kind).toBe('calculated');
+        if (mainQuery?.kind !== 'calculated') return;
+        expect(mainQuery.interval).toEqual({
+            IntervalType: TimeUnit.Day,
+            IntervalValue: 1,
+        });
+        expect(getRangeWidth(mainQuery.range)).toBe(9_999 * day);
+        expect(mainQuery.range.start).toBeLessThanOrEqual(9_950 * day);
+        expect(mainQuery.range.end).toBeGreaterThanOrEqual(10_050 * day);
+        await waitFor(() =>
+            expect(result.current.main.status).toBe('ready'),
+        );
+        expect(result.current.issue).toEqual({ kind: 'noData' });
+
+        rerender({
+            params: {
+                ...initialParams,
+                rangeState: {
+                    ...initialParams.rangeState!,
+                    range: {
+                        mainRange: {
+                            start: 9_960 * day,
+                            end: 10_060 * day,
+                        },
+                        navigatorRange:
+                            initialParams.rangeState!.range.navigatorRange,
+                    },
+                },
+            },
+        });
+        await act(async () => {
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+        });
+        expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps raw main requests on the exact visible range', async () => {
+        const fetchSpy = jest.spyOn(seriesDataApi, 'fetchSeriesRows')
+            .mockImplementation(async (query) => calculatedResult(query));
+        const params = createParams(createPanelInfo(true));
+
+        renderHook(() => usePanelData(params));
+        await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+
+        const rawMain = fetchSpy.mock.calls
+            .map(([query]) => query)
+            .find((query) => query.kind === 'raw');
+        expect(rawMain?.range).toEqual(params.rangeState?.range.mainRange);
+    });
+
+    it('reports partial data when an empty series succeeds and a sibling fails', async () => {
+        const failedSeries = { ...TIME_SERIES, key: 'failed-series' };
+        const panelInfo = createPanelInfo();
+        panelInfo.query.tagSet = [TIME_SERIES, failedSeries];
+        jest.spyOn(seriesDataApi, 'fetchSeriesRows').mockResolvedValue([
+            { seriesKey: TIME_SERIES.key, data: [] },
+            {
+                seriesKey: failedSeries.key,
+                data: [],
+                error: {
+                    kind: 'request-failed',
+                    message: 'Series unavailable.',
+                },
+            },
+        ]);
+        const { result } = renderHook(() =>
+            usePanelData(createParams(panelInfo)),
+        );
+
+        await waitFor(() =>
+            expect(result.current.main.status).toBe('ready'),
+        );
+        expect(result.current.main.series[0]?.data).toEqual([]);
+        expect(result.current.issue).toEqual({ kind: 'partialData' });
+    });
+
+    it('reuses a prefetched no-data main result for a contained range', async () => {
+        const fetchSpy = jest.spyOn(seriesDataApi, 'fetchSeriesRows')
+            .mockResolvedValue([{
+                seriesKey: TIME_SERIES.key,
+                data: [],
+                error: { kind: 'no-data', message: 'Data does not exist.' },
+            }]);
+        const initialParams = createParams();
+        const { rerender } = renderHook(
+            ({ params }: { params: UsePanelDataParams }) =>
+                usePanelData(params),
+            { initialProps: { params: initialParams } },
+        );
+
+        await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+        rerender({
+            params: {
+                ...initialParams,
+                rangeState: {
+                    ...initialParams.rangeState!,
+                    range: {
+                        mainRange: { start: 10, end: 90 },
+                        navigatorRange:
+                            initialParams.rangeState!.range.navigatorRange,
+                    },
+                },
+            },
+        });
+        await act(async () => {
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+        });
+        expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 
     it('aborts and ignores an obsolete main request without restarting the navigator', async () => {
@@ -274,7 +424,17 @@ describe('usePanelData', () => {
                     pending.push({ query, signal: options?.signal, resolve });
                 }),
         );
-        const initialParams = createParams();
+        const initialParams: UsePanelDataParams = {
+            ...createParams(),
+            rangeState: {
+                range: {
+                    mainRange: { start: 0, end: 100_000 },
+                    navigatorRange: { start: 0, end: 1_000_000 },
+                },
+                fullRange: { start: 0, end: 1_000_000 },
+                navigatorRangeInput: { start: '0', end: '1000000' },
+            },
+        };
         const { result, rerender, unmount } = renderHook(
             ({ params }: { params: UsePanelDataParams }) =>
                 usePanelData(params),
@@ -283,11 +443,10 @@ describe('usePanelData', () => {
 
         await waitFor(() => expect(pending).toHaveLength(2));
         const oldMain = pending.find(
-            ({ query }) => query.range.end === 100,
+            ({ query }) =>
+                query.kind === 'calculated' && query.rowLimit === 10_000,
         )!;
-        const navigator = pending.find(
-            ({ query }) => query.range.end === 1_000,
-        )!;
+        const navigator = pending.find(({ query }) => query !== oldMain.query)!;
 
         rerender({
             params: {
@@ -295,16 +454,14 @@ describe('usePanelData', () => {
                 rangeState: {
                     ...initialParams.rangeState!,
                     range: {
-                        mainRange: { start: 10, end: 90 },
-                        navigatorRange: { start: 0, end: 1_000 },
+                        mainRange: { start: 0, end: 500_000 },
+                        navigatorRange: { start: 0, end: 1_000_000 },
                     },
                 },
             },
         });
         await waitFor(() => expect(pending).toHaveLength(3));
-        const currentMain = pending.find(
-            ({ query }) => query.range.end === 90,
-        )!;
+        const currentMain = pending[2];
 
         expect(oldMain.signal?.aborted).toBe(true);
         expect(navigator.signal?.aborted).toBe(false);
@@ -320,11 +477,52 @@ describe('usePanelData', () => {
             await Promise.resolve();
         });
         await waitFor(() => {
-            expect(result.current.main.series[0]?.data).toEqual([[90, 1]]);
+            expect(result.current.main.series[0]?.data).toEqual([
+                [currentMain.query.range.end, 1],
+            ]);
         });
 
         unmount();
         expect(navigator.signal?.aborted).toBe(true);
+    });
+
+    it('aborts pending data and ignores its result while inactive', async () => {
+        const pending: Array<{
+            query: SeriesRowsQuery;
+            signal: AbortSignal | undefined;
+            resolve: (result: PanelDataFetchResult) => void;
+        }> = [];
+        jest.spyOn(seriesDataApi, 'fetchSeriesRows').mockImplementation(
+            (query, options) =>
+                new Promise<PanelDataFetchResult>((resolve) => {
+                    pending.push({ query, signal: options?.signal, resolve });
+                }),
+        );
+        const initialParams = createParams();
+        const { result, rerender } = renderHook(
+            ({ params }: { params: UsePanelDataParams }) =>
+                usePanelData(params),
+            { initialProps: { params: initialParams } },
+        );
+
+        await waitFor(() => expect(pending).toHaveLength(2));
+        rerender({
+            params: { ...initialParams, isActive: false },
+        });
+        await waitFor(() => {
+            expect(pending.every(({ signal }) => signal?.aborted)).toBe(true);
+        });
+        expect(result.current.main.status).toBe('idle');
+        expect(result.current.navigator.status).toBe('idle');
+
+        await act(async () => {
+            for (const request of pending) {
+                request.resolve(calculatedResult(request.query));
+            }
+            await Promise.resolve();
+        });
+        expect(result.current.main.series).toEqual([]);
+        expect(result.current.navigator.series).toEqual([]);
     });
 
     it('prefetches and reuses a covering navigator request before debounced misses', async () => {

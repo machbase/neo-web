@@ -40,6 +40,7 @@ src/components/tagAnalyzer/DO_NOT_ADD_TESTS.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 *.md
+!TESTING.md
 !PLAYWRIGHT_LOCATOR_POLICY.md
 !playwright_test/tagAnalyzer/feature-format.md
 !playwright_test/tagAnalyzer/tag-analyzer-features.md

@@ -215,7 +215,7 @@ their page-scoped editor root.
 
 ## 1.1 Meta
 
-- [ ] 1.1.1 Use `MACHROLL` with the `pneumatic` tag for every data-backed test.
+- [ ] 1.1.1 Use `TAG` with the `use` tag for every time-based test.
 - [ ] 1.1.2 Navigation item - Open TagAnalyzer.
 - [ ] 1.1.3 Clickable card - Open a new TagAnalyzer board.
 - [ ] 1.1.4 File-tree item - Open an existing `.taz` board.
@@ -259,7 +259,7 @@ their page-scoped editor root.
 - [ ] 1.2.3.6 Button - Confirm overwriting from Save As.
 - [ ] 1.2.3.7 Button - Save and overwrite an existing test-owned `.taz` file.
 - [ ] 1.2.3.8 Save As to a unique test-owned `.taz` file without modifying the source board.
-- [ ] 1.2.3.9 Preserve board ranges, panels, `MACHROLL` series, editor settings, and markup.
+- [ ] 1.2.3.9 Preserve board ranges, panels, `TAG` series, editor settings, and markup.
 - [ ] 1.2.3.10 Preserve the visible range only when that option is enabled.
 - [ ] 1.2.3.11 Reopen a saved board and reproduce its previous runtime configuration.
 - [ ] 1.2.3.12 Load a supported legacy TAZ version through migration.
@@ -278,7 +278,7 @@ their page-scoped editor root.
 - [ ] 1.2.4.2 Explain why incompatible panel selections cannot be overlapped.
 - [ ] 1.2.4.3 Button - Open the Overlap modal.
 - [ ] 1.2.4.4 Button - Close the Overlap modal.
-- [ ] 1.2.4.5 Render all selected `MACHROLL` series in the overlap chart.
+- [ ] 1.2.4.5 Render all selected `TAG` series in the overlap chart.
 - [ ] 1.2.4.6 Button - Refresh overlap data.
 - [ ] 1.2.4.7 Button - Shift altered ranges left using each supported time unit.
 - [ ] 1.2.4.8 Button - Shift altered ranges right using each supported time unit.
@@ -309,15 +309,15 @@ their page-scoped editor root.
 
 ### 1.3.2 Data and Series
 
-- [ ] 1.3.2.1 Dropdown - Select `MACHROLL` as the table.
+- [ ] 1.3.2.1 Dropdown - Select `TAG` as the table.
 - [ ] 1.3.2.2 Dropdowns - Select name, time, and value source columns.
 - [ ] 1.3.2.3 Button - Search for tags.
 - [ ] 1.3.2.4 Keyboard - Search for tags with Enter.
 - [ ] 1.3.2.5 Pagination buttons - Navigate tag search results.
-- [ ] 1.3.2.6 Button - Add a `MACHROLL` series.
-- [ ] 1.3.2.7 Button - Remove a `MACHROLL` series.
-- [ ] 1.3.2.8 Keyboard - Remove a `MACHROLL` series.
-- [ ] 1.3.2.9 Button - Clear all selected `MACHROLL` series.
+- [ ] 1.3.2.6 Button - Add a `TAG` series.
+- [ ] 1.3.2.7 Button - Remove a `TAG` series.
+- [ ] 1.3.2.8 Keyboard - Remove a `TAG` series.
+- [ ] 1.3.2.9 Button - Clear all selected `TAG` series.
 - [ ] 1.3.2.10 Prevent duplicate series.
 - [ ] 1.3.2.11 Enforce the 12-series limit.
 - [ ] 1.3.2.12 Dropdown - Select a calculation mode.
@@ -415,12 +415,12 @@ their page-scoped editor root.
 
 #### 1.4.3.3 Data Tab
 
-- [ ] 1.4.3.3.1 Button - Add a `MACHROLL` series.
-- [ ] 1.4.3.3.2 Edit a `MACHROLL` series.
-- [ ] 1.4.3.3.3 Button - Remove a `MACHROLL` series.
-- [ ] 1.4.3.3.4 Reorder `MACHROLL` series.
-- [ ] 1.4.3.3.5 Input - Alias a `MACHROLL` series.
-- [ ] 1.4.3.3.6 Color picker - Recolor a `MACHROLL` series.
+- [ ] 1.4.3.3.1 Button - Add a `TAG` series.
+- [ ] 1.4.3.3.2 Edit a `TAG` series.
+- [ ] 1.4.3.3.3 Button - Remove a `TAG` series.
+- [ ] 1.4.3.3.4 Reorder `TAG` series.
+- [ ] 1.4.3.3.5 Input - Alias a `TAG` series.
+- [ ] 1.4.3.3.6 Color picker - Recolor a `TAG` series.
 - [ ] 1.4.3.3.7 Dropdown - Change the calculation mode.
 - [ ] 1.4.3.3.8 Dropdown - Change the secondary-axis assignment.
 
@@ -494,7 +494,7 @@ their page-scoped editor root.
 
 - [ ] 1.4.4.5.1 Button - Open the FFT modal from the Selection Summary.
 - [ ] 1.4.4.5.2 Button - Close the FFT modal.
-- [ ] 1.4.4.5.3 Dropdown - Select a `MACHROLL` series for FFT.
+- [ ] 1.4.4.5.3 Dropdown - Select a `TAG` series for FFT.
 - [ ] 1.4.4.5.4 Render the 2D FFT chart.
 - [ ] 1.4.4.5.5 Render the 3D FFT chart.
 - [ ] 1.4.4.5.6 Input - Validate the minimum frequency.

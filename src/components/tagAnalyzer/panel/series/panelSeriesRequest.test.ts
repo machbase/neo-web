@@ -11,6 +11,7 @@ import type { SeriesRowsQuery } from '../../api/seriesDataApi';
 import {
     buildPanelSeriesQuery,
     createSeriesRowsQueryKeys,
+    resolvePanelSeriesRequest,
 } from './panelSeriesRequest';
 
 const TIME_SERIES: PanelSeriesDefinition = {
@@ -43,7 +44,7 @@ function createPanelConfig(
 }
 
 describe('buildPanelSeriesQuery', () => {
-    it('converts the automatic duration into the configured interval unit', () => {
+    it('honors a configured interval unit from a legacy panel', () => {
         const panelInfo = createPanelConfig();
         panelInfo.query.intervalType = TimeUnit.Second;
 
@@ -88,8 +89,115 @@ describe('buildPanelSeriesQuery', () => {
         expect(query.numericBucketWidth).toBe(10);
     });
 
-    it('uses the sampling setting for the requested chart target', () => {
+    it('expands calculated main data without changing its visible resolution', () => {
+        const numericSeries: PanelSeriesDefinition = {
+            ...TIME_SERIES,
+            sourceColumns: {
+                ...TIME_SERIES.sourceColumns,
+                timeBaseTime: true,
+                timeType: 4,
+            },
+        };
+
+        const query = resolvePanelSeriesRequest({
+            target: 'main',
+            panelInfo: createPanelConfig(numericSeries),
+            rangeState: {
+                range: {
+                    mainRange: { start: 0, end: 1_000 },
+                    navigatorRange: { start: -1_000, end: 2_000 },
+                },
+                fullRange: { start: -1_000, end: 2_000 },
+                navigatorRangeInput: { start: '-1000', end: '2000' },
+            },
+            visibleRange: { start: 0, end: 1_000 },
+            chartWidth: 300,
+            rollupTables: {},
+            refreshVersion: 0,
+        }).fetchQuery;
+
+        expect(query).toMatchObject({
+            kind: 'calculated',
+            range: { start: -1_000, end: 2_000 },
+            rowLimit: 10_000,
+            numericBucketWidth: 10,
+        });
+    });
+
+    it('keeps a larger configured visible row budget during main prefetch', () => {
         const panelInfo = createPanelConfig();
+        panelInfo.display.pixelsPerTick.calculated = 0.01;
+
+        const request = resolvePanelSeriesRequest({
+            target: 'main',
+            panelInfo,
+            rangeState: {
+                range: {
+                    mainRange: { start: 0, end: 1_000 },
+                    navigatorRange: { start: 0, end: 10_000 },
+                },
+                fullRange: { start: 0, end: 10_000 },
+                navigatorRangeInput: { start: '0', end: '10000' },
+            },
+            visibleRange: { start: 0, end: 1_000 },
+            chartWidth: 300,
+            rollupTables: {},
+            refreshVersion: 0,
+        });
+
+        expect(request.fetchQuery).toMatchObject({
+            kind: 'calculated',
+            rowLimit: 30_000,
+        });
+    });
+
+    it('aligns numeric bucket origins across nearby navigator requests', () => {
+        const numericSeries: PanelSeriesDefinition = {
+            ...TIME_SERIES,
+            sourceColumns: {
+                ...TIME_SERIES.sourceColumns,
+                timeBaseTime: true,
+                timeType: 4,
+            },
+        };
+        const panelInfo = createPanelConfig(numericSeries);
+        const createRequest = (start: number) =>
+            resolvePanelSeriesRequest({
+                target: 'navigator',
+                panelInfo,
+                rangeState: {
+                    range: {
+                        mainRange: { start, end: start + 1_000 },
+                        navigatorRange: { start, end: start + 1_000 },
+                    },
+                    fullRange: { start: -5_000, end: 5_000 },
+                    navigatorRangeInput: {
+                        start: String(start),
+                        end: String(start + 1_000),
+                    },
+                },
+                visibleRange: { start, end: start + 1_000 },
+                chartWidth: 300,
+                rollupTables: {},
+                refreshVersion: 0,
+            }).fetchQuery;
+
+        const first = createRequest(0);
+        const shifted = createRequest(1);
+        expect(first.kind).toBe('calculated');
+        expect(shifted.kind).toBe('calculated');
+        if (first.kind !== 'calculated' || shifted.kind !== 'calculated') {
+            return;
+        }
+        expect(first.numericBucketWidth).toBe(shifted.numericBucketWidth);
+        expect(first.range.start).toBe(shifted.range.start);
+    });
+
+    it('uses the sampling setting for the requested chart target', () => {
+        const panelInfo = createPanelConfig({
+            ...TIME_SERIES,
+            calculationMode: PanelSeriesCalculationMode.Maximum,
+        });
         panelInfo.mode.isRaw = true;
         panelInfo.display.rawNavigatorSampling = {
             enabled: true,
@@ -113,13 +221,22 @@ describe('buildPanelSeriesQuery', () => {
 
         expect(mainQuery.kind).toBe('raw');
         expect(navigatorQuery.kind).toBe('sampled-raw');
+        expect(mainQuery.seriesList[0].calculationMode).toBe(
+            PanelSeriesCalculationMode.Maximum,
+        );
         if (navigatorQuery.kind === 'sampled-raw') {
             expect(navigatorQuery.sampleCount).toBe(0.05);
+            expect(navigatorQuery.seriesList[0].calculationMode).toBe(
+                PanelSeriesCalculationMode.Maximum,
+            );
         }
     });
 
     it('calculates the navigator when raw navigator sampling is disabled', () => {
-        const panelInfo = createPanelConfig();
+        const panelInfo = createPanelConfig({
+            ...TIME_SERIES,
+            calculationMode: PanelSeriesCalculationMode.Maximum,
+        });
         panelInfo.mode.isRaw = true;
         panelInfo.display.rawNavigatorSampling.enabled = false;
         panelInfo.display.pixelsPerTick.calculated = 3;
@@ -136,6 +253,9 @@ describe('buildPanelSeriesQuery', () => {
         expect(query.kind).toBe('calculated');
         if (query.kind === 'calculated') {
             expect(query.rowLimit).toBe(50);
+            expect(query.seriesList[0].calculationMode).toBe(
+                PanelSeriesCalculationMode.Average,
+            );
         }
     });
 

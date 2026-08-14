@@ -4,7 +4,6 @@ import {
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
 } from '../../seriesModel';
-import type { PanelDataLoadMetrics } from '../internal/panelData';
 import { createNewPanelInfo, type PanelInfo } from '../panelModel';
 import PanelEditor from './PanelEditor';
 
@@ -32,18 +31,6 @@ const NUMERIC_SERIES: PanelSeriesDefinition = {
         ...TIME_SERIES.sourceColumns,
         timeBaseTime: true,
         timeType: 4,
-    },
-};
-const EMPTY_METRICS: PanelDataLoadMetrics = {
-    main: {
-        queriedEntries: undefined,
-        pointCount: undefined,
-        pixelWidth: undefined,
-    },
-    navigator: {
-        queriedEntries: undefined,
-        pointCount: undefined,
-        pixelWidth: undefined,
     },
 };
 const LAST_VIEWED_RANGE = {
@@ -201,7 +188,6 @@ function createEditor(
             pMainRange={{ start: 0, end: 10 }}
             pDataRange={{ start: 0, end: 100 }}
             pRollupTableList={{}}
-            pDataSettingMetrics={EMPTY_METRICS}
         />
     );
 }
@@ -220,6 +206,23 @@ function changeTitle(value: string): void {
 }
 
 describe('PanelEditor validation', () => {
+    it('shows right-axis settings only after the axis is enabled', () => {
+        renderEditor(createNewPanelInfo([TIME_SERIES], 'Panel', 'Line'));
+        fireEvent.click(screen.getByTestId('editor-tab-axes'));
+
+        expect(
+            screen.getByText('Enable the right Y axis to configure it.'),
+        ).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Start the Y-axis at zero')).toHaveLength(1);
+
+        fireEvent.click(screen.getByLabelText('Enable right Y-axis'));
+
+        expect(
+            screen.queryByText('Enable the right Y axis to configure it.'),
+        ).not.toBeInTheDocument();
+        expect(screen.getAllByLabelText('Start the Y-axis at zero')).toHaveLength(2);
+    });
+
     it('keeps every tab validating while rendering only the active view', () => {
         const panelInfo = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
         const view = renderEditor(panelInfo);

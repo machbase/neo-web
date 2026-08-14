@@ -5,16 +5,16 @@ type CreateLoadedPanelOptions = {
     title?: string;
 };
 
-const PANEL_SOURCE = {
+export const TAG_ANALYZER_FIXTURE_SOURCE = {
     numeric: {
         table: 'DISTANCE_SENSOR',
         search: 'SENSOR_01',
         tag: 'SENSOR_01',
     },
     time: {
-        table: 'MACHROLL',
-        search: 'pneumatic',
-        tag: 'pneumatic',
+        table: 'TAG',
+        search: 'use',
+        tag: 'use',
     },
 } as const;
 
@@ -34,7 +34,7 @@ export async function createLoadedTagAnalyzerPanel(
     const panels = board.getByTestId(/^panel-/);
     const panelCount = await panels.count();
     const panelTitle = options.title ?? 'New chart';
-    const source = PANEL_SOURCE[options.axisKind ?? 'time'];
+    const source = TAG_ANALYZER_FIXTURE_SOURCE[options.axisKind ?? 'time'];
 
     await board.getByTestId('create-panel-button').click();
     const dialog = page.getByTestId('tag-analyzer-create-panel-dialog');

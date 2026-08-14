@@ -1,0 +1,10 @@
+FAKE(oscillator(
+    freq(1/60/60/24/183, 300),
+    range(
+        parseTime("2022-07-01 00:00:00", "DEFAULT", tz("KST")),
+        "731d",
+        "10s"
+    )
+))
+PUSHVALUE(0, 'pneumatic', 'name')
+APPEND(table('machroll'))

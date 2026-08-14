@@ -1,137 +1,209 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { login } from '../../support/login';
 import {
-    createTagAnalyzerBoard,
     createLoadedTagAnalyzerPanel,
+    createTagAnalyzerBoard,
 } from '../../support/tagAnalyzer';
 import { getFileTreeItemTestId } from '../../support/testIds';
 
-test.describe('Tag Analyzer panel editor', () => {
-    test('applies editor drafts, discards unapplied changes, and persists the applied value', async ({
+test.describe('Tag Analyzer panel editor lifecycle', () => {
+    test.describe.configure({ timeout: 180_000 });
+
+    let board: Locator;
+    let panel: Locator;
+    let editor: Locator;
+
+    test.beforeEach(async ({ page }) => {
+        await login(page);
+        board = await createTagAnalyzerBoard(page);
+        panel = await createLoadedTagAnalyzerPanel(page, board, {
+            title: 'Editor lifecycle setup',
+        });
+        editor = panel.getByTestId('editor');
+    });
+
+    test('keeps the editor visually closed before it is opened', async () => {
+        await expect(editor).toBeHidden();
+    });
+
+    test('opens the editor on the General tab', async () => {
+        await openEditor(panel);
+
+        await expect(editor.getByTestId('editor-title-input')).toBeVisible();
+        await expect(editor.getByTestId('editor-tab-general')).toHaveAttribute(
+            'aria-pressed',
+            'true',
+        );
+    });
+
+    test('disables Apply when the draft has no changes', async () => {
+        await openEditor(panel);
+
+        await expect(editor.getByTestId('editor-apply')).toBeDisabled();
+    });
+
+    test('reports an unapplied draft change', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('Draft title');
+
+        await expect(editor.getByTestId('editor-status')).toContainText(
+            'You have unapplied changes.',
+        );
+    });
+
+    test('preserves a draft while switching tabs', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('Preserved draft');
+        await editor.getByTestId('editor-tab-data').click();
+        await editor.getByTestId('editor-tab-general').click();
+
+        await expect(editor.getByTestId('editor-title-input')).toHaveValue(
+            'Preserved draft',
+        );
+    });
+
+    test('renders controls only for the selected tab', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-tab-data').click();
+
+        await expect(editor.getByTestId('editor-title-input')).toHaveCount(0);
+        await expect(
+            editor.getByRole('button', { name: 'Click to add a new series' }),
+        ).toBeVisible();
+    });
+
+    test('marks an invalid background tab and blocks Apply', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('');
+        await editor.getByTestId('editor-tab-data').click();
+
+        await expect(
+            editor.getByRole('button', {
+                name: 'General, invalid settings',
+                exact: true,
+            }),
+        ).toBeVisible();
+        await expect(editor.getByTestId('editor-apply')).toBeDisabled();
+    });
+
+    test('keeps the editor open after Apply', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('Applied draft');
+        await editor.getByTestId('editor-apply').click();
+
+        await expect(editor).toBeVisible();
+    });
+
+    test('reports when changes are applied to the session', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('Applied draft');
+        await editor.getByTestId('editor-apply').click();
+
+        await expect(editor.getByTestId('editor-status')).toContainText(
+            'Changes applied to this session.',
+        );
+    });
+
+    test('discards a draft through the editor Close button', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('Discarded draft');
+        await editor.getByTestId('editor-close').click();
+        await openEditor(panel);
+
+        await expect(editor.getByTestId('editor-title-input')).toHaveValue(
+            'Editor lifecycle setup',
+        );
+    });
+
+    test('discards a draft through the panel editor toggle', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('Discarded draft');
+        await panel.getByTestId('action-toggle-edit').click();
+        await openEditor(panel);
+
+        await expect(editor.getByTestId('editor-title-input')).toHaveValue(
+            'Editor lifecycle setup',
+        );
+    });
+
+    test('reopens on General with the last applied value', async () => {
+        await openEditor(panel);
+        await editor.getByTestId('editor-title-input').fill('Applied value');
+        await editor.getByTestId('editor-apply').click();
+        await editor.getByTestId('editor-tab-data').click();
+        await editor.getByTestId('editor-close').click();
+        await openEditor(panel);
+
+        await expect(editor.getByTestId('editor-tab-general')).toHaveAttribute(
+            'aria-pressed',
+            'true',
+        );
+        await expect(editor.getByTestId('editor-title-input')).toHaveValue(
+            'Applied value',
+        );
+    });
+
+    test('preserves an applied title after saving and reopening the board', async ({
         page,
     }) => {
-        test.setTimeout(180_000);
-
-        const runId = Date.now();
-        const appliedTitle = `Editor transaction ${runId}`;
-        const discardedTitle = `Discarded editor transaction ${runId}`;
-        const fileName = `pw-editor-transaction-${runId}.taz`;
-        let shouldCleanUp = false;
+        const fileName = `pw-editor-title-${Date.now()}.taz`;
 
         try {
-            // 1. [M.1, 1.1.3, 1.3.1.1] Create a fresh board and panel.
-            await login(page);
-            const board = await createTagAnalyzerBoard(page);
-            const panel = await createLoadedTagAnalyzerPanel(page, board, {
-                title: 'Editor transaction setup',
-            });
-            await expect(panel).toBeVisible();
+            await openEditor(panel);
+            await editor
+                .getByTestId('editor-title-input')
+                .fill('Persisted editor title');
+            await editor.getByTestId('editor-apply').click();
+            await editor.getByTestId('editor-close').click();
+            await saveBoardAs(page, board, fileName);
 
-            const editor = panel.getByTestId('editor');
-            await expect(editor).toHaveCount(1);
-            await expect(editor).toBeHidden();
-            await expect(editor).toHaveAttribute('aria-hidden', 'true');
-            await expect(editor).toHaveAttribute('inert', '');
-
-            // 2. [1.4.3.1.1] Open the editor and change its draft title.
-            await panel
-                .getByTestId('action-toggle-edit')
-                .click();
-            await expect(editor).toBeVisible();
-            await expect(editor).toHaveAttribute('aria-hidden', 'false');
-            await expect(editor).not.toHaveAttribute('inert', '');
-
-            const titleInput = panel.getByTestId(
-                'editor-title-input',
-            );
-            const originalTitle = await titleInput.inputValue();
-            await titleInput.fill(appliedTitle);
-
-            // 3. [1.4.3.2.1] Draft edits do not change the live panel.
-            await expect(
-                panel.getByTestId('title-button'),
-            ).toHaveText(originalTitle);
-            await expect(
-                panel.getByTestId('editor-status'),
-            ).toContainText('You have unapplied changes.');
-
-            // 4. [1.4.3.1.3] Apply updates the current session.
-            await panel
-                .getByTestId('editor-apply')
-                .click();
-            await expect(
-                panel.getByTestId('title-button'),
-            ).toHaveText(appliedTitle);
-            await expect(
-                panel.getByTestId('editor-status'),
-            ).toContainText('Changes applied to this session.');
-
-            // 5. [1.4.3.1.2] Closing discards a later unapplied draft.
-            await titleInput.fill(discardedTitle);
-            await expect(
-                panel.getByTestId('title-button'),
-            ).toHaveText(appliedTitle);
-            await panel.getByTestId('action-toggle-edit').click();
-            await expect(editor).toHaveCount(1);
-            await expect(editor).toBeHidden();
-            await expect(
-                panel.getByTestId('title-button'),
-            ).toHaveText(appliedTitle);
-
-            await panel.getByTestId('action-toggle-edit').click();
-            await expect(editor).toBeVisible();
-            await expect(titleInput).toHaveValue(appliedTitle);
-            await panel.getByTestId('editor-close').click();
-            await expect(editor).toBeHidden();
-
-            // 6. [1.2.3.3, 1.2.3.8] Save the applied session as a new file.
-            await board
-                .getByTestId('save-as-button')
-                .click();
-            const saveDialog = page.getByTestId(
-                'tag-analyzer-save-as-dialog',
-            );
-            await saveDialog
-                .getByTestId('tag-analyzer-save-as-file-name-input')
-                .fill(fileName);
-            shouldCleanUp = true;
-            await saveDialog
-                .getByTestId('tag-analyzer-save-as-submit-button')
-                .click();
-            await expect(
-                page.getByTestId('tag-analyzer-save-success-toast'),
-            ).toHaveText(
-                'TAZ file saved successfully.',
-                { timeout: 15_000 },
-            );
-            await expect(saveDialog).toHaveCount(0);
-
-            // 7. [1.4.3.1.5] Reopen and verify only the applied title persisted.
             await page.reload();
             const savedFile = page.getByTestId(
                 getFileTreeItemTestId('/', fileName),
             );
             await expect(savedFile).toBeVisible({ timeout: 20_000 });
             await savedFile.click();
-
             const reopenedPanel = board.getByTestId(/^panel-/);
             await expect(reopenedPanel).toHaveCount(1, { timeout: 30_000 });
-            await expect(
-                reopenedPanel.getByTestId('main-range-button'),
-            ).toBeEnabled({ timeout: 30_000 });
-            await reopenedPanel
-                .getByTestId('action-toggle-edit')
-                .click();
-            await expect(
-                reopenedPanel.getByTestId(
-                    'editor-title-input',
-                ),
-            ).toHaveValue(appliedTitle);
+            await expect(reopenedPanel.getByTestId('main-range-button')).toBeEnabled({
+                timeout: 30_000,
+            });
+
+            await expect(reopenedPanel.getByTestId('title-button')).toHaveText(
+                'Persisted editor title',
+            );
         } finally {
-            if (shouldCleanUp) await deleteSavedBoard(page, fileName);
+            await deleteSavedBoard(page, fileName);
         }
     });
 });
+
+async function openEditor(panel: Locator): Promise<Locator> {
+    await panel.getByTestId('action-toggle-edit').click();
+    const editor = panel.getByTestId('editor');
+    await expect(editor).toBeVisible();
+    return editor;
+}
+
+async function saveBoardAs(
+    page: Page,
+    board: Locator,
+    fileName: string,
+): Promise<void> {
+    await board.getByTestId('save-as-button').click();
+    const dialog = page.getByTestId('tag-analyzer-save-as-dialog');
+    await dialog
+        .getByTestId('tag-analyzer-save-as-file-name-input')
+        .fill(fileName);
+    await dialog
+        .getByTestId('tag-analyzer-save-as-submit-button')
+        .click();
+    await expect(page.getByTestId('tag-analyzer-save-success-toast')).toHaveText(
+        'TAZ file saved successfully.',
+        { timeout: 15_000 },
+    );
+    await expect(dialog).toHaveCount(0);
+}
 
 async function deleteSavedBoard(page: Page, fileName: string): Promise<void> {
     const status = await page.evaluate(async (name) => {

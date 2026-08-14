@@ -1,6 +1,6 @@
 import { type YAXisComponentOption } from 'echarts';
 
-import { type PanelAnnotation } from './markupModel';
+import { DEFAULT_SERIES_ANNOTATION_LABEL, type PanelAnnotation } from './markupModel';
 import {
     getRangeCenter,
 } from '../range/rangeArithmetic';
@@ -149,7 +149,7 @@ function buildAnnotationAnchors({
             chartSeries?.data ?? [],
             annotationAnchorTime,
         );
-        const annotationText = annotation.text.trim() || 'note';
+        const annotationText = annotation.text.trim() || DEFAULT_SERIES_ANNOTATION_LABEL;
         const anchorValue = anchorRow?.[1] ?? fallbackAnchorValue;
         const labelWidth = Math.max(
             ANNOTATION_LABEL_MIN_WIDTH,

@@ -263,6 +263,21 @@ export function PanelSeriesEditor({
             return;
         }
 
+        const sHasDuplicateSource = seriesList.some(
+            (series) =>
+                series.table === sSelectedTable &&
+                series.sourceTagName === tagName &&
+                series.sourceColumns.name === sColumns.name &&
+                series.sourceColumns.time === sColumns.time &&
+                series.sourceColumns.value === sColumns.value &&
+                (series.sourceColumns.jsonKey ?? '') ===
+                    (sColumns.jsonKey ?? ''),
+        );
+        if (sHasDuplicateSource) {
+            setFooterMessage('This series has already been added.');
+            return;
+        }
+
         applyNewSeriesList([
             ...seriesList,
             createPanelSeriesDefinition({

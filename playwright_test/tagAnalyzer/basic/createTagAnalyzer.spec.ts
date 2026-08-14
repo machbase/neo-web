@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { login } from '../../support/login';
+import { TAG_ANALYZER_FIXTURE_SOURCE } from '../../support/tagAnalyzer';
 
 const SERIES_OPTION_TEST_IDS = [
     'tag-analyzer-series-option-SENSOR_01',
@@ -8,7 +9,7 @@ const SERIES_OPTION_TEST_IDS = [
 ];
 
 test.describe('Tag Analyzer basic flow', () => {
-    test('creates a chart with several mnemonic series', async ({ page }) => {
+    test('creates a chart with seeded distance series', async ({ page }) => {
         // 1. Create Tag Analyzer.
         await login(page);
 
@@ -21,7 +22,20 @@ test.describe('Tag Analyzer basic flow', () => {
         const setup = page.getByTestId('tag-analyzer-create-panel-dialog');
         await expect(setup).toBeVisible();
 
-        // 3. Add mnemonic series.
+        // 3. Select the table populated by the test database initializer.
+        const sourceTable = setup.getByLabel('Table', { exact: true });
+        await sourceTable.fill(TAG_ANALYZER_FIXTURE_SOURCE.numeric.table);
+        await page
+            .getByRole('option', {
+                name: TAG_ANALYZER_FIXTURE_SOURCE.numeric.table,
+                exact: true,
+            })
+            .click();
+        await expect(sourceTable).toHaveValue(
+            TAG_ANALYZER_FIXTURE_SOURCE.numeric.table,
+        );
+
+        // 4. Add distance-series tags from the seeded fixture.
         await setup
             .getByTestId('tag-analyzer-series-search-input')
             .fill('SENSOR');
@@ -35,7 +49,7 @@ test.describe('Tag Analyzer basic flow', () => {
             setup.getByTestId('tag-analyzer-selected-series-count'),
         ).toContainText(`${SERIES_OPTION_TEST_IDS.length} / 12`);
 
-        // 4. Apply and close setup.
+        // 5. Apply and close setup.
         await setup.getByTestId('tag-analyzer-create-panel-apply-button').click();
 
         await expect(setup).toHaveCount(0);

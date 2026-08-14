@@ -11,7 +11,6 @@ import EditorGeneralTab from './tabs/EditorGeneralTab';
 import EditorTimeTab from './tabs/EditorTimeTab';
 import styles from './PanelEditor.module.scss';
 import { type PanelInfo } from '../panelModel';
-import type { PanelDataLoadMetrics } from '../internal/panelData';
 import {
     getSeriesListAxisKind,
     type RollupTableMap,
@@ -60,7 +59,6 @@ const PanelEditor = ({
     pMainRange,
     pDataRange,
     pRollupTableList,
-    pDataSettingMetrics,
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelInfo) => void;
     pOnClose: () => void;
@@ -70,7 +68,6 @@ const PanelEditor = ({
     pMainRange: AxisRange;
     pDataRange: AxisRange;
     pRollupTableList: RollupTableMap;
-    pDataSettingMetrics: PanelDataLoadMetrics;
 }) => {
     const sInitialEditorConfigKey = useMemo(
         () => createEditorChangeKey(pPanelInfo),
@@ -342,7 +339,6 @@ const PanelEditor = ({
                     />
                     <EditorDataSettingTab
                         pDisplayConfig={sEditorConfig.display}
-                        pDataMetrics={pDataSettingMetrics}
                         pIsRawMode={sModeDraft.isRaw}
                         pAxisKind={sAxisKind}
                         pDataValidationMessage={sTabValidity.Data?.message}

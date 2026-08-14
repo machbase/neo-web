@@ -1,12 +1,10 @@
 import './PanelHeader.scss';
 import {
     useEffect,
-    useId,
     useRef,
     useState,
     type KeyboardEvent,
 } from 'react';
-import { Tooltip } from 'react-tooltip';
 import {
     Check,
     CiCircleMore,
@@ -24,20 +22,13 @@ import {
     type PanelActionKey,
     type PanelActionState,
 } from './panelActions';
-import type {
-    PanelQueryResolution,
-    PanelSeriesRollupStatus,
-} from './panelData';
-
-type PanelSeriesRollupStatusList = readonly PanelSeriesRollupStatus[];
+import type { PanelIntervalInfo } from './panelData';
 
 export type PanelHeaderState = {
     title: string;
     mainRange: AxisRange | undefined;
     isNumericXAxis: boolean;
-    isRaw: boolean;
-    resolution: PanelQueryResolution | undefined;
-    seriesRollupStatusList: PanelSeriesRollupStatusList;
+    intervalInfo: PanelIntervalInfo | undefined;
     actionState: PanelActionState;
     canExportCsv: boolean;
     isOverlapSelected: boolean;
@@ -50,16 +41,18 @@ const HEADER_MENU_ACTIVE_ITEM_CLASS: Record<PanelHeaderMenuVariant, string> = {
     more: 'selected',
 };
 
-function getHeaderResolution(
+function getHeaderInterval(
     state: PanelHeaderState,
 ): { label: string; kind: 'time' | 'numeric' } | undefined {
-    const resolution = state.isRaw ? undefined : state.resolution;
-    if (resolution?.kind === 'time') {
-        return { label: formatTimeInterval(resolution.interval), kind: 'time' };
+    if (state.intervalInfo?.kind === 'time') {
+        return {
+            label: formatTimeInterval(state.intervalInfo.interval),
+            kind: 'time',
+        };
     }
-    if (resolution?.kind !== 'numeric') return undefined;
+    if (state.intervalInfo?.kind !== 'numeric') return undefined;
 
-    const label = formatNumericInterval(resolution.bucketWidth);
+    const label = formatNumericInterval(state.intervalInfo.bucketWidth);
     return label ? { label, kind: 'numeric' } : undefined;
 }
 
@@ -67,24 +60,6 @@ function joinClassNames(
     ...names: Array<string | false | undefined | null>
 ): string {
     return names.filter(Boolean).join(' ');
-}
-
-function getRollupHeaderSummary(statusList: PanelSeriesRollupStatusList) {
-    const sTotalCount = statusList.length;
-    if (sTotalCount === 0) return undefined;
-
-    const sRollupCount = statusList.filter((status) => status.usesRollup).length;
-    if (sRollupCount === sTotalCount) {
-        return { shortText: 'rollup', titleText: 'all series use rollup' };
-    }
-    if (sRollupCount === 0) {
-        return { shortText: 'no rollup', titleText: 'no series use rollup' };
-    }
-
-    return {
-        shortText: `rollup ${sRollupCount}/${sTotalCount}`,
-        titleText: `${sRollupCount}/${sTotalCount} series use rollup`,
-    };
 }
 
 function PanelHeaderMenu({
@@ -167,28 +142,20 @@ export function PanelHeader(props: PanelHeaderProps) {
     const isRenamingTitle = titleDraft !== undefined;
     const titleInputRef = useRef<HTMLInputElement | null>(null);
     const titleRenameClosingRef = useRef(false);
-    const sRollupTooltipId = `panel-rollup-tooltip-${useId().replace(/:/g, '')}`;
     const sFormattedRange = state.mainRange &&
         formatAxisRange(state.mainRange, state.isNumericXAxis);
-    const sResolution = getHeaderResolution(state);
-    const sSeriesRollupStatusList = state.isRaw
-        ? []
-        : state.seriesRollupStatusList;
+    const sInterval = getHeaderInterval(state);
     const sTimeText = sFormattedRange
         ? `${sFormattedRange.start} ~ ${sFormattedRange.end}`
         : '';
     const sRangeLabel = sFormattedRange && state.isNumericXAxis
         ? 'Set current visible main chart value range'
         : 'Set current visible main chart range';
-    const sIntervalText = sResolution?.label ?? '';
-    const sRollupSummary = getRollupHeaderSummary(sSeriesRollupStatusList);
-    const sTimeSummaryBaseText =
+    const sIntervalText = sInterval?.label ?? '';
+    const sTimeSummaryText =
         sTimeText && sIntervalText
-            ? `${sTimeText} (${sResolution?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
+            ? `${sTimeText} (${sInterval?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
             : sTimeText;
-    const sTimeSummaryText = sRollupSummary
-        ? `${sTimeSummaryBaseText}, ${sRollupSummary.titleText}`
-        : sTimeSummaryBaseText;
     const sActions = buildPanelActions(
         state.actionState,
         getExperiment() && state.canExportCsv,
@@ -295,51 +262,9 @@ export function PanelHeader(props: PanelHeaderProps) {
                     </button>
                 </span>
                 {sIntervalText && (
-                    <>
-                        <span className="panel-header__interval">
-                            {` (interval: ${sIntervalText}`}
-                            {sRollupSummary !== undefined && (
-                                <span
-                                    className="panel-header__rollup-status"
-                                    data-tooltip-id={sRollupTooltipId}
-                                >
-                                    {` · ${sRollupSummary.shortText}`}
-                                </span>
-                            )}
-                            {`)`}
-                        </span>
-                        {sRollupSummary !== undefined && (
-                            <Tooltip
-                                id={sRollupTooltipId}
-                                place="bottom"
-                                positionStrategy="fixed"
-                                delayShow={250}
-                                className="panel-header__rollup-tooltip"
-                            >
-                                <div className="panel-header__rollup-tooltip-content">
-                                    {sSeriesRollupStatusList.map((status, index) => (
-                                        <div
-                                            key={`${status.seriesName}-${index}`}
-                                            className="panel-header__rollup-tooltip-row"
-                                        >
-                                            <span className="panel-header__rollup-tooltip-name">
-                                                {status.seriesName}
-                                            </span>
-                                            <span
-                                                className={joinClassNames(
-                                                    'panel-header__rollup-tooltip-state',
-                                                    status.usesRollup &&
-                                                        'panel-header__rollup-tooltip-state--active',
-                                                )}
-                                            >
-                                                {status.usesRollup ? 'rollup' : 'no rollup'}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </Tooltip>
-                        )}
-                    </>
+                    <span className="panel-header__interval">
+                        {` (interval: ${sIntervalText})`}
+                    </span>
                 )}
             </div>
             <div className="panel-header__actions">

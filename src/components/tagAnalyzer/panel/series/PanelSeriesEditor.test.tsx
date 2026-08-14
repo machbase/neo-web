@@ -109,4 +109,40 @@ describe('PanelSeriesEditor', () => {
             'The panel x-axis type cannot be changed.',
         );
     });
+
+    it('does not add the same source series twice', async () => {
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
+            'TAG',
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([
+            { name: 'NAME', type: 5, flag: 0 },
+            { name: 'TIME', type: 6, flag: 0x01000000 },
+            { name: 'VALUE', type: 20, flag: 0 },
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTags').mockResolvedValue({
+            tags: ['TAG_A'],
+            total: 1,
+        });
+        const onFooterMessageChange = jest.fn();
+        const onSeriesListChange = jest.fn();
+
+        render(
+            <PanelSeriesEditor
+                seriesList={[SERIES]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={onFooterMessageChange}
+                onSeriesListChange={onSeriesListChange}
+            />,
+        );
+
+        fireEvent.click(
+            await screen.findByTestId('tag-analyzer-series-option-TAG_A'),
+        );
+
+        expect(onSeriesListChange).not.toHaveBeenCalled();
+        expect(onFooterMessageChange).toHaveBeenLastCalledWith(
+            'This series has already been added.',
+        );
+    });
 });

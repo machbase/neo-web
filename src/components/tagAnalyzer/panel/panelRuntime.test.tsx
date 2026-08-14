@@ -145,6 +145,35 @@ function createDeferred<T>() {
     return { promise, resolve };
 }
 
+type RuntimeInputs = Parameters<typeof usePanelRangeRuntime>[0];
+
+function renderPanelRangeRuntime(
+    overrides: Partial<
+        Omit<RuntimeInputs, 'onRangeStateChange' | 'onBroadcastError'>
+    > = {},
+) {
+    const onRangeStateChange = jest.fn();
+    const onBroadcastError = jest.fn();
+    const props: RuntimeInputs = {
+        ...createBroadcastRequests(),
+        panelInfo: createPanelInfo(),
+        rangeState: createResolvedRangeState(),
+        isActive: true,
+        ...overrides,
+        onRangeStateChange,
+        onBroadcastError,
+    };
+    return {
+        ...renderHook(
+            (inputs: RuntimeInputs) => usePanelRangeRuntime(inputs),
+            { initialProps: props },
+        ),
+        props,
+        onRangeStateChange,
+        onBroadcastError,
+    };
+}
+
 describe('panel range resolution policy', () => {
     it('uses the supplied reference time for relative configured ranges', () => {
         const resolution = resolveConfiguredRangeState(
@@ -427,6 +456,67 @@ describe('usePanelRangeRuntime', () => {
                 },
             }),
         );
+    });
+
+    it('uses a Board range when the configured initial range is invalid', async () => {
+        jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(
+            FULL_RANGE,
+        );
+        const panelInfo = createPanelInfo();
+        panelInfo.time.rangeInput = { start: 'invalid', end: 'invalid' };
+        const broadcasts = createBroadcastRequests();
+        broadcasts.rangeRequests.board.time = {
+            input: { start: '60', end: '80' },
+            applyVersion: 1,
+        };
+        const { result, onRangeStateChange, onBroadcastError } =
+            renderPanelRangeRuntime({
+                ...broadcasts,
+                panelInfo,
+                rangeState: undefined,
+            });
+
+        act(() => result.current.actions.setChartAreaWidth(400));
+
+        await waitFor(() =>
+            expect(onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
+                range: { navigatorRange: { start: 60, end: 80 } },
+            }),
+        );
+        expect(onBroadcastError).not.toHaveBeenCalled();
+    });
+
+    it('reports an invalid initial Board range once and keeps the default', async () => {
+        jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(
+            FULL_RANGE,
+        );
+        const panelInfo = createPanelInfo();
+        panelInfo.time.rangeInput = { start: 'invalid', end: 'invalid' };
+        const broadcasts = createBroadcastRequests();
+        broadcasts.rangeRequests.board.time = {
+            input: { start: 'invalid', end: 'invalid' },
+            applyVersion: 1,
+        };
+        const runtime = renderPanelRangeRuntime({
+            ...broadcasts,
+            panelInfo,
+            rangeState: undefined,
+        });
+
+        act(() => runtime.result.current.actions.setChartAreaWidth(400));
+
+        await waitFor(() =>
+            expect(runtime.onBroadcastError).toHaveBeenCalledWith(
+                'board-range:time:1',
+                'The board range is invalid for this panel.',
+            ),
+        );
+        expect(runtime.onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
+            fullRange: FULL_RANGE,
+        });
+
+        runtime.rerender(runtime.props);
+        expect(runtime.onBroadcastError).toHaveBeenCalledTimes(1);
     });
 
     it('ignores an obsolete full-range result after a refresh', async () => {
@@ -714,6 +804,80 @@ describe('usePanelRangeRuntime', () => {
         });
     });
 
+    it('keeps a global range when an older range refresh completes', async () => {
+        const refreshRequest = createDeferred<AxisRange>();
+        jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockReturnValue(
+            refreshRequest.promise,
+        );
+        const runtime = renderPanelRangeRuntime();
+
+        act(() => {
+            runtime.result.current.actions.setChartAreaWidth(400);
+            runtime.result.current.actions.refreshRange();
+        });
+        const globalRange = {
+            mainRange: { start: 10, end: 20 },
+            navigatorRange: { start: 0, end: 30 },
+        };
+        runtime.rerender({
+            ...runtime.props,
+            rangeRequests: {
+                ...runtime.props.rangeRequests,
+                global: {
+                    axisKind: 'time',
+                    range: globalRange,
+                    applyVersion: 1,
+                },
+            },
+        });
+        await waitFor(() =>
+            expect(runtime.onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
+                range: globalRange,
+            }),
+        );
+        const callsAfterGlobal = runtime.onRangeStateChange.mock.calls.length;
+
+        await act(async () => refreshRequest.resolve({ start: 0, end: 200 }));
+
+        expect(runtime.onRangeStateChange).toHaveBeenCalledTimes(callsAfterGlobal);
+        expect(runtime.onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
+            range: globalRange,
+        });
+    });
+
+    it('does not invalidate a refresh for another-axis global range', async () => {
+        const refreshRequest = createDeferred<AxisRange>();
+        jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockReturnValue(
+            refreshRequest.promise,
+        );
+        const runtime = renderPanelRangeRuntime();
+
+        act(() => {
+            runtime.result.current.actions.setChartAreaWidth(400);
+            runtime.result.current.actions.refreshRange();
+        });
+        runtime.rerender({
+            ...runtime.props,
+            rangeRequests: {
+                ...runtime.props.rangeRequests,
+                global: {
+                    axisKind: 'numeric',
+                    range: {
+                        mainRange: { start: 10, end: 20 },
+                        navigatorRange: { start: 0, end: 30 },
+                    },
+                    applyVersion: 1,
+                },
+            },
+        });
+
+        await act(async () => refreshRequest.resolve({ start: 0, end: 200 }));
+
+        expect(runtime.onRangeStateChange).toHaveBeenCalledWith(
+            expect.objectContaining({ fullRange: { start: 0, end: 200 } }),
+        );
+    });
+
     it('clears navigator input and queues a range refresh', async () => {
         const pendingRequest = createDeferred<AxisRange>();
         const fetchFullRange = jest
@@ -771,6 +935,25 @@ describe('usePanelRangeRuntime', () => {
         expect(onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
             range: { mainRange: { start: 40, end: 65 } },
         });
+    });
+
+    it('rejects non-finite and non-increasing local ranges', () => {
+        const initialRangeState = createResolvedRangeState();
+        const runtime = renderPanelRangeRuntime({
+            rangeState: initialRangeState,
+        });
+
+        act(() => {
+            runtime.result.current.actions.setMainRange({ start: 60, end: 20 });
+            runtime.result.current.actions.setMainRange({ start: 20, end: 20 });
+            runtime.result.current.actions.setNavigatorRange({
+                start: Number.NaN,
+                end: 80,
+            });
+        });
+
+        expect(runtime.result.current.rangeState).toEqual(initialRangeState);
+        expect(runtime.onRangeStateChange).not.toHaveBeenCalled();
     });
 
     it('makes local range and refresh actions no-ops while inactive', () => {

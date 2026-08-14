@@ -22,9 +22,7 @@ const HEADER_STATE: PanelHeaderState = {
     title: 'Initial title',
     mainRange: { start: 0, end: 10 },
     isNumericXAxis: true,
-    isRaw: false,
-    resolution: { kind: 'numeric', bucketWidth: 1 },
-    seriesRollupStatusList: [],
+    intervalInfo: { kind: 'numeric', bucketWidth: 1 },
     actionState: { active: [], disabled: [] },
     canExportCsv: true,
     isOverlapSelected: false,
@@ -49,6 +47,7 @@ describe('PanelHeader', () => {
         expect(
             screen.getByTestId('header'),
         ).toHaveClass('panel-header');
+        expect(screen.getByText('(interval: 1)')).toBeInTheDocument();
         fireEvent.click(
             screen.getByTestId('title-button'),
         );

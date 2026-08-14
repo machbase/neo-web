@@ -8,7 +8,7 @@ import {
     type PanelDisplay,
     type PanelEChartType,
 } from '../../panelModel';
-import styles from '../PanelEditor.module.scss';
+import styles from '../PanelEditorTab.module.scss';
 
 const CHART_TYPE_OPTIONS = [
     { type: 'Zone', src: InnerLine, alt: 'Zone Chart' },

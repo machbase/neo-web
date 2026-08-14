@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Input } from '@/design-system/components';
-import styles from '../PanelEditor.module.scss';
+import styles from '../PanelEditorTab.module.scss';
 
 export function Section({
     title,
@@ -18,7 +18,7 @@ export function Section({
             className={[styles.section, className].filter(Boolean).join(' ')}
         >
             <div className={styles.sectionHeader}>
-                <span className={styles.sectionTitle}>{title}</span>
+                <h4 className={styles.sectionTitle}>{title}</h4>
                 {headerAddon}
             </div>
             {children}

@@ -23,14 +23,21 @@ import {
     usePanelRangeRuntime,
     type PanelBroadcastRequests,
 } from './panelRuntime';
-import { MIXED_X_AXIS_KIND_WARNING, type RollupTableMap } from '../seriesModel';
+import {
+    getSeriesListAxisKind,
+    MIXED_X_AXIS_KIND_WARNING,
+    type RollupTableMap,
+} from '../seriesModel';
 import {
     type AxisKind,
     type AxisRange,
     type RangeState,
     type ResolvedRangeState,
 } from '../range/rangeModel';
-import { usePanelData } from './internal/panelData';
+import {
+    usePanelData,
+    type PanelDataIssue,
+} from './internal/panelData';
 import { usePanelInteraction } from './internal/panelInteraction';
 import { PanelOverlayMode } from '../chart/chartRuntime';
 import './Panel.scss';
@@ -121,6 +128,7 @@ export default memo(function Panel({
     } = interaction.actions;
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
 
+    const axisKind = getSeriesListAxisKind(panelInfo.query.tagSet);
     const panelData = usePanelData({
         panelInfo,
         isActive,
@@ -129,34 +137,19 @@ export default memo(function Panel({
         rollupTables: rollupTableList,
         dataRefreshVersion,
     });
-    const mainChartData = panelData.main.series;
-    const navigatorChartData = panelData.navigator.series;
-    const renderRange = panelData.renderRange ?? rangeState?.range;
-    const resolution = panelData.resolution;
-    const seriesRollupStatusList = panelData.seriesRollupStatuses;
-    const dataSettingMetrics = panelData.metrics;
+    const {
+        main,
+        navigator,
+        rawLimitRange,
+        issue,
+    } = panelData;
+    const mainChartData = main.series;
+    const navigatorChartData = navigator.series;
+    const renderRange = rawLimitRange ?? rangeState?.range;
+    const displayNotice = getPanelDataIssueMessage(issue);
     const hasMixedXAxisKinds =
-        panelData.axisKind === undefined && panelInfo.query.tagSet.length > 0;
-    const isNumericXAxis = panelData.axisKind === 'numeric';
-    const hasDataRequestGeometry =
-        rangeState !== undefined &&
-        chartAreaWidth !== undefined;
-    const displayNotice =
-        panelData.notice === 'noData'
-            ? 'No Data'
-            : panelData.notice === 'partialData'
-              ? 'Some series unavailable'
-              : panelData.main.status === 'failed'
-                ? panelData.main.error
-                : undefined;
-    const loadStatus = {
-        chart: hasDataRequestGeometry
-            ? panelData.main.status
-            : 'loading',
-        navigator: hasDataRequestGeometry
-            ? panelData.navigator.status
-            : 'loading',
-    };
+        axisKind === undefined && panelInfo.query.tagSet.length > 0;
+    const isNumericXAxis = axisKind === 'numeric';
     const renderMainRange = renderRange?.mainRange;
     const renderNavigatorRange = renderRange?.navigatorRange;
     const rangeDialog = usePanelRangeDialog({
@@ -189,7 +182,7 @@ export default memo(function Panel({
     const isOverlayModeActive = overlayMode !== PanelOverlayMode.NO_OVERLAY;
     const setGlobalRangeRequest = resolveSetGlobalRangeRequest(
         panelInfo,
-        loadStatus.chart === 'ready',
+        main.status === 'ready',
         renderRange,
     );
     const activeHeaderActions: PanelActionKey[] = [];
@@ -210,16 +203,14 @@ export default memo(function Panel({
         title: panelInfo.title,
         mainRange: renderMainRange,
         isNumericXAxis,
-        isRaw,
-        resolution,
-        seriesRollupStatusList,
+        intervalInfo: main.interval,
         actionState: {
             active: activeHeaderActions,
             disabled: setGlobalRangeRequest
                 ? []
                 : [PanelActionKey.SET_GLOBAL_RANGE],
         },
-        canExportCsv: loadStatus.chart === 'ready',
+        canExportCsv: main.status === 'ready',
         isOverlapSelected,
     };
     function handlePanelAction(actionKey: PanelActionKey): void {
@@ -394,7 +385,7 @@ export default memo(function Panel({
                         navigatorChartData,
                     }}
                     rangeState={renderRange}
-                    isLoading={loadStatus.chart === 'loading'}
+                    isLoading={main.status === 'loading'}
                     displayNotice={displayNotice}
                     handlers={{
                         rangeActions,
@@ -406,7 +397,7 @@ export default memo(function Panel({
                 <PanelFooter
                     pShowLegend={panelInfo.display.showLegend}
                     pNavigatorRange={renderNavigatorRange}
-                    pIsLoading={loadStatus.navigator === 'loading'}
+                    pIsLoading={navigator.status === 'loading'}
                     pOnRangeButtonPress={onRangeButtonAction}
                     pIsNumericXAxis={isNumericXAxis}
                     pOnOpenNavigatorRangeModal={rangeDialog.openNavigator}
@@ -422,7 +413,6 @@ export default memo(function Panel({
                     pMainRange={renderRange.mainRange}
                     pDataRange={rangeState?.fullRange ?? renderRange.mainRange}
                     pRollupTableList={rollupTableList}
-                    pDataSettingMetrics={dataSettingMetrics}
                 />
             )}
             <PanelRangeDialog {...rangeDialog} />
@@ -451,3 +441,11 @@ export default memo(function Panel({
         </div>
     );
 });
+
+function getPanelDataIssueMessage(
+    issue: PanelDataIssue | undefined,
+): string | undefined {
+    if (!issue) return undefined;
+    if (issue.kind === 'error') return issue.message;
+    return issue.kind === 'noData' ? 'No Data' : 'Some series unavailable';
+}

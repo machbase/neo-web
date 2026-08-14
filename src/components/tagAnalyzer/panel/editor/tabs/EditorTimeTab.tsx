@@ -20,7 +20,7 @@ import {
 import { resolveRangeInput } from '../../../range/rangeInput';
 import { Section } from './TabControls';
 
-import styles from '../PanelEditor.module.scss';
+import styles from '../PanelEditorTab.module.scss';
 
 const RANGE_ENDPOINTS = [
     ['start', 'From'],

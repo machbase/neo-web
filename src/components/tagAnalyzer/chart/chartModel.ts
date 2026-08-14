@@ -4,6 +4,7 @@ import { roundNumericAxisBounds } from '../range/intervalResolver';
 import { isSameRange } from '../range/rangeArithmetic';
 import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
 import { formatCompactNumber } from '../format/numericFormat';
+import { asRecord } from '../objectGuards';
 import { PanelOverlayMode, type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
 import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
 import { getPanelSeriesDisplayColor } from '../seriesModel';
@@ -13,7 +14,7 @@ import {
     isAnnotationLabelSeries,
     isHighlightLabelSeries,
 } from '../markup/chartMarkupOptions';
-import { type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
+import { type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, PANEL_NAVIGATOR_DATA_X_AXIS_INDEX, PANEL_NAVIGATOR_Y_AXIS_INDEX, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
 import { type MutableRefObject } from 'react';
 
 export type PanelChartHandlers = {
@@ -45,7 +46,6 @@ export type PanelChartHandlers = {
 const SAFE_TOOLTIP_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
 const PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX = 1;
-const PANEL_NAVIGATOR_DATA_X_AXIS_INDEX = 2;
 export const PANEL_SLIDER_DATA_ZOOM_ID = 'panel-slider-data-zoom';
 export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
 export const PANEL_NAVIGATOR_SERIES_ID_PREFIX = 'navigator-series-';
@@ -93,14 +93,11 @@ const CHART_AXIS_STYLE = {
 };
 
 const HIDDEN_AXIS_PART = {
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: { show: false },
-    splitLine: { show: false },
-    axisPointer: {
-        show: false,
-        label: { show: false },
-    },
+    axisLine: DEFAULT_NOT_SHOW,
+    axisTick: DEFAULT_NOT_SHOW,
+    axisLabel: DEFAULT_NOT_SHOW,
+    splitLine: DEFAULT_NOT_SHOW,
+    axisPointer: { show: false, label: DEFAULT_NOT_SHOW },
 } as const;
 
 function includeAxisValue(
@@ -247,11 +244,7 @@ function buildChartXAxisOption(
                 show: display.useZoom && axes.x.showTickline,
                 lineStyle: CHART_AXIS_STYLE.splitLine,
             },
-            axisPointer: {
-                label: {
-                    show: false,
-                },
-            },
+            axisPointer: { label: DEFAULT_NOT_SHOW },
         },
         ...[
             PANEL_NAVIGATOR_X_AXIS_ID,
@@ -487,12 +480,10 @@ function buildNavigatorSeriesOption(
             data: series.data,
             animation: animateDataUpdate,
             xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
-            yAxisIndex: 2,
+            yAxisIndex: PANEL_NAVIGATOR_Y_AXIS_INDEX,
             showSymbol: false,
             silent: true,
-            tooltip: {
-                show: false,
-            },
+            tooltip: DEFAULT_NOT_SHOW,
             lineStyle: {
                 width: sIsHoveredSeries ? 2 : 1,
                 color: sSeriesColor,
@@ -1072,7 +1063,7 @@ export function buildChartEvent({
                 params.seriesId,
             );
             const sAnnotationIndex = parseNonNegativeInteger(
-                getPanelChartRecordValue(params.data, 'annotationIndex'),
+                asRecord(params.data)?.annotationIndex,
             ) ?? (sIsAnnotationLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
 
             if (sIsAnnotationLabelClick && sAnnotationIndex !== undefined) {
@@ -1119,7 +1110,7 @@ export function buildChartEvent({
                 params.seriesId,
             );
             const sHighlightIndex = parseNonNegativeInteger(
-                getPanelChartRecordValue(params.data, 'highlightIndex'),
+                asRecord(params.data)?.highlightIndex,
             ) ?? (sIsHighlightLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
 
             if (
@@ -1197,7 +1188,7 @@ function getChartClickTimestamp(
         parsePanelChartTimestamp(payload.value, isNumericXAxis) ??
         parsePanelChartTimestamp(payload.data, isNumericXAxis) ??
         parsePanelChartTimestamp(
-            getPanelChartRecordValue(payload.data, 'value'),
+            asRecord(payload.data)?.value,
             isNumericXAxis,
         ) ??
         parsePanelChartTimestamp(payload.axisValue, isNumericXAxis) ??

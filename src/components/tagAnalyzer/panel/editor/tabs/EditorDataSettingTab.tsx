@@ -5,17 +5,14 @@ import {
     DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
     type PanelDisplay,
 } from '../../panelModel';
-import type { PanelDataLoadMetrics } from '../../internal/panelData';
 import type { AxisKind } from '../../../range/rangeModel';
 import { NumberInput, Section } from './TabControls';
-import styles from '../PanelEditor.module.scss';
+import styles from '../PanelEditorTab.module.scss';
 
 type PixelsPerTickField = 'calculated' | 'calculatedNavigator';
 
 const DATA_DENSITY_DESCRIPTION =
     'Sets point density. Rollup may use a coarser interval.';
-const DATA_LOAD_METRICS_DESCRIPTION =
-    'Shows the latest loaded query target and rendered point totals.';
 const DATA_DENSITY_VALUE_PRECISION = 6;
 const DEFAULT_DATA_DENSITY_POINTS = 1;
 const MIN_READABLE_DATA_DENSITY_PIXELS = 1;
@@ -25,16 +22,6 @@ type DataDensityDraft = {
     points: number | undefined;
     pixels: number | undefined;
 };
-
-const DATA_LOAD_METRIC_FIELDS = [
-    ['Queried', 'queriedEntries'],
-    ['Points', 'pointCount'],
-    ['Pixels', 'pixelWidth'],
-] as const;
-const DATA_LOAD_METRIC_GROUPS = [
-    ['Main Chart', 'main'],
-    ['Nav Bar', 'navigator'],
-] as const;
 
 type TooltipRowProps = {
     anchorClass: string;
@@ -161,70 +148,8 @@ function DataDensityRatioInput({
     );
 }
 
-function DataLoadSummary({
-    metrics,
-    modeLabel,
-}: {
-    metrics: PanelDataLoadMetrics;
-    modeLabel: string;
-}) {
-    return (
-        <div className={styles.dataLoadSummary}>
-            <div className={styles.controlRow}>
-                <span
-                    className={[
-                        'data-setting-runtime-summary-tooltip',
-                        styles.axisSubsectionTitle,
-                    ].join(' ')}
-                >
-                    Current Data
-                </span>
-                <span className={styles.editorFixedValue}>{modeLabel}</span>
-                <Tooltip
-                    anchorSelect=".data-setting-runtime-summary-tooltip"
-                    content={DATA_LOAD_METRICS_DESCRIPTION}
-                />
-            </div>
-            <div className={styles.dataSettingMetricGrid}>
-                {DATA_LOAD_METRIC_GROUPS.map(([label, metricKey]) => (
-                    <div key={label} className={styles.dataSettingMetricCard}>
-                        <span className={styles.dataSettingMetricTitle}>
-                            {label}
-                        </span>
-                        {DATA_LOAD_METRIC_FIELDS.map(([fieldLabel, field]) => {
-                            const value = metrics[metricKey][field];
-
-                            return (
-                                <span
-                                    key={field}
-                                    className={styles.dataSettingMetricValue}
-                                >
-                                    <span
-                                        className={styles.dataSettingMetricLabel}
-                                    >
-                                        {fieldLabel}
-                                    </span>
-                                    <span
-                                        className={styles.dataSettingMetricNumber}
-                                    >
-                                        {value === undefined ||
-                                        !Number.isFinite(value)
-                                            ? '-'
-                                            : Math.round(value).toLocaleString()}
-                                    </span>
-                                </span>
-                            );
-                        })}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
 const EditorDataSettingTab = ({
     pDisplayConfig,
-    pDataMetrics,
     pIsRawMode,
     pAxisKind,
     pDataValidationMessage,
@@ -233,7 +158,6 @@ const EditorDataSettingTab = ({
     pIsActive,
 }: {
     pDisplayConfig: PanelDisplay;
-    pDataMetrics: PanelDataLoadMetrics;
     pIsRawMode: boolean;
     pAxisKind: AxisKind | undefined;
     pDataValidationMessage?: string;
@@ -340,10 +264,6 @@ const EditorDataSettingTab = ({
         : 'Main chart prefetch is disabled for raw data because raw limits can make expanded ranges unsafe.';
     return (
         <div className={styles.dataSettingStack}>
-            <DataLoadSummary
-                metrics={pDataMetrics}
-                modeLabel={pIsRawMode ? 'Raw Mode' : 'Calculation Mode'}
-            />
             <div className={styles.dataSettingGrid}>
                 <Section title="Calculation Mode">
                     <span className={styles.axisSubsectionTitle}>Main Chart</span>

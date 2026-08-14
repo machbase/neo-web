@@ -4,6 +4,7 @@ import {
 } from '../range/rangeArithmetic';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
 import type { AxisRange } from '../range/rangeModel';
+import { asRecord } from '../objectGuards';
 
 // Layout
 export const PANEL_CHART_HEIGHT = 350;
@@ -11,6 +12,8 @@ export const PANEL_GRID_BOTTOM = 20;
 export const PANEL_GRID_SIDE = 35;
 export const PANEL_NAVIGATOR_GRID_SIDE = 28;
 export const PANEL_SLIDER_HEIGHT = 36;
+export const PANEL_NAVIGATOR_DATA_X_AXIS_INDEX = 2;
+export const PANEL_NAVIGATOR_Y_AXIS_INDEX = 2;
 
 const PANEL_MAIN_TOP = 16;
 const PANEL_MAIN_TOP_WITH_LEGEND = 40;
@@ -48,18 +51,14 @@ export type PanelChartClientPosition = {
     y: number;
 };
 
-export function getPanelChartRecordValue(source: unknown, key: string): unknown {
-    return source && typeof source === 'object' && !Array.isArray(source)
-        ? (source as Record<string, unknown>)[key]
-        : undefined;
-}
-
 function getFiniteRecordValue(
     source: unknown,
     ...keys: string[]
 ): number | undefined {
+    const record = asRecord(source);
+
     for (const key of keys) {
-        const value = getPanelChartRecordValue(source, key);
+        const value = record?.[key];
         if (typeof value === 'number' && Number.isFinite(value)) return value;
     }
     return undefined;
@@ -105,8 +104,8 @@ export function getPanelChartEventCoordinates(
     pixel: [number, number] | undefined;
     position: PanelChartClientPosition | undefined;
 } {
-    const sEvent = getPanelChartRecordValue(payload, 'event');
-    const sNestedEvent = getPanelChartRecordValue(sEvent, 'event');
+    const sEvent = asRecord(payload)?.event;
+    const sNestedEvent = asRecord(sEvent)?.event;
     const sClientX =
         getFiniteRecordValue(sEvent, 'clientX') ??
         getFiniteRecordValue(sNestedEvent, 'clientX');

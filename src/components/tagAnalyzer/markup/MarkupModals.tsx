@@ -15,18 +15,22 @@ import {
     type PanelSeriesDefinition,
 } from '../seriesModel';
 import {
+    DATE_TIME_INPUT_FORMAT,
     formatRangeInputValue,
     parseRangeInputValue,
 } from '../format/inputFormat';
 import { createNonEmptyAxisRange } from '../range/rangeBuilder';
 import PanelPopover from '../tools/PanelPopover';
 
-type AnnotationFormState = {
-    seriesValue: string;
-    timeText: string;
+type MarkupAppearanceState = {
     labelText: string;
     fillColor: string;
     textColor: string;
+};
+
+type AnnotationFormState = MarkupAppearanceState & {
+    seriesValue: string;
+    timeText: string;
     clip: boolean;
 };
 
@@ -36,7 +40,7 @@ const MARKUP_DROPDOWN_MENU_CLASS = 'panel-popover-form__dropdown-menu';
 function getRangeInputPlaceholder(isNumericAxis: boolean): string {
     return isNumericAxis
         ? 'Numeric value'
-        : 'YYYY-MM-DD HH:mm:ss.SSS';
+        : DATE_TIME_INPUT_FORMAT;
 }
 
 type MarkupInputFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>,
@@ -65,6 +69,35 @@ function MarkupInputField({
                 onFocus={autoSelect ? (event) => event.currentTarget.select() : undefined}
             />
         </label>
+    );
+}
+
+type MarkupColorField = 'fillColor' | 'textColor';
+const MARKUP_COLOR_FIELDS: readonly MarkupColorField[] = ['fillColor', 'textColor'];
+
+function MarkupColorFields({ kind, state, onChange }: {
+    kind: 'Annotation' | 'Highlight';
+    state: MarkupAppearanceState;
+    onChange: (field: MarkupColorField, value: string) => void;
+}) {
+    return (
+        <div className="panel-popover-form__row panel-popover-form__row--two">
+            {MARKUP_COLOR_FIELDS.map((field) => {
+                const colorKind = field === 'fillColor' ? 'Fill' : 'Text';
+
+                return (
+                    <MarkupInputField
+                        key={field}
+                        data-testid={`${colorKind.toLowerCase()}-color-input`}
+                        label={`${colorKind} color`}
+                        aria-label={`${kind} ${colorKind.toLowerCase()} color`}
+                        type="color"
+                        value={state[field]}
+                        onChange={(event) => onChange(field, event.target.value)}
+                    />
+                );
+            })}
+        </div>
     );
 }
 
@@ -327,24 +360,11 @@ export function EditAnnotationModal({
                 onChange={(event) => setField('labelText', event.target.value)}
                 onKeyDown={handleKeyDown}
             />
-            <div className="panel-popover-form__row panel-popover-form__row--two">
-                <MarkupInputField
-                    data-testid="fill-color-input"
-                    label="Fill color"
-                    aria-label="Annotation fill color"
-                    type="color"
-                    value={state.fillColor}
-                    onChange={(event) => setField('fillColor', event.target.value)}
-                />
-                <MarkupInputField
-                    data-testid="text-color-input"
-                    label="Text color"
-                    aria-label="Annotation text color"
-                    type="color"
-                    value={state.textColor}
-                    onChange={(event) => setField('textColor', event.target.value)}
-                />
-            </div>
+            <MarkupColorFields
+                kind="Annotation"
+                state={state}
+                onChange={(field, value) => setField(field, value)}
+            />
             <label className="panel-popover-form__checkbox-field">
                 <input
                     data-testid="clip-checkbox"
@@ -369,12 +389,9 @@ export function EditAnnotationModal({
     );
 }
 
-type HighlightFormState = {
-    labelText: string;
+type HighlightFormState = MarkupAppearanceState & {
     startTimeText: string;
     endTimeText: string;
-    fillColor: string;
-    textColor: string;
 };
 
 function validateHighlightFormState(
@@ -523,24 +540,11 @@ export function EditHighlightModal({
                     onKeyDown={handleKeyDown}
                 />
             </div>
-            <div className="panel-popover-form__row panel-popover-form__row--two">
-                <MarkupInputField
-                    data-testid="fill-color-input"
-                    label="Fill color"
-                    aria-label="Highlight fill color"
-                    type="color"
-                    value={state.fillColor}
-                    onChange={(event) => setField('fillColor', event.target.value)}
-                />
-                <MarkupInputField
-                    data-testid="text-color-input"
-                    label="Text color"
-                    aria-label="Highlight text color"
-                    type="color"
-                    value={state.textColor}
-                    onChange={(event) => setField('textColor', event.target.value)}
-                />
-            </div>
+            <MarkupColorFields
+                kind="Highlight"
+                state={state}
+                onChange={(field, value) => setField(field, value)}
+            />
             <div
                 className="panel-popover-form__preview"
                 style={{

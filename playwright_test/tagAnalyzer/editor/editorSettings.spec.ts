@@ -5,84 +5,138 @@ import {
     createTagAnalyzerBoard,
 } from '../../support/tagAnalyzer';
 
-test.describe('Tag Analyzer panel editor settings', () => {
+test.describe('Tag Analyzer panel editor General tab', () => {
     test.describe.configure({ timeout: 120_000 });
 
-    test('applies general settings and discards a later draft', async ({
-        page,
-    }) => {
+    let panel: Locator;
+    let editor: Locator;
+
+    test.beforeEach(async ({ page }) => {
         await login(page);
         const board = await createTagAnalyzerBoard(page);
-        const panel = await createLoadedTagAnalyzerPanel(page, board);
-        const editor = await openEditor(panel);
-        const normalize = editor.getByTestId('editor-normalize-checkbox');
-        const useZoom = editor.getByTestId('editor-use-zoom-checkbox');
-        const saveVisibleRange = editor.getByTestId(
-            'editor-save-visible-range-checkbox',
-        );
-        const initialNormalize = await normalize.isChecked();
-        const initialUseZoom = await useZoom.isChecked();
-        const initialSaveVisibleRange = await saveVisibleRange.isChecked();
-        const appliedTitle = 'Applied general editor settings';
-
-        await setCheckbox(normalize, !initialNormalize);
-        await setCheckbox(useZoom, !initialUseZoom);
-        await setCheckbox(saveVisibleRange, !initialSaveVisibleRange);
-        await editor.getByTestId('editor-title-input').fill(appliedTitle);
-        await expect(editor.getByTestId('editor-status')).toContainText(
-            'You have unapplied changes.',
-        );
-        await editor.getByTestId('editor-apply').click();
-        await expect(editor.getByTestId('editor-status')).toContainText(
-            'Changes applied to this session.',
-        );
-        await expect(panel.getByTestId('title-button')).toHaveText(
-            appliedTitle,
-        );
-
-        await setCheckbox(normalize, initialNormalize);
-        await expect(editor.getByTestId('editor-status')).toContainText(
-            'You have unapplied changes.',
-        );
-        await editor.getByTestId('editor-close').click();
-        await expect(editor).toHaveCount(1);
-        await expect(editor).toBeHidden();
-        await expect(panel.getByTestId('title-button')).toHaveText(
-            appliedTitle,
-        );
-
-        const afterDiscardEditor = await openEditor(panel);
-        await expect(
-            afterDiscardEditor.getByTestId('editor-normalize-checkbox'),
-        ).toBeChecked({ checked: !initialNormalize });
-        await expect(
-            afterDiscardEditor.getByTestId('editor-use-zoom-checkbox'),
-        ).toBeChecked({ checked: !initialUseZoom });
-        await expect(
-            afterDiscardEditor.getByTestId(
-                'editor-save-visible-range-checkbox',
-            ),
-        ).toBeChecked({ checked: !initialSaveVisibleRange });
+        panel = await createLoadedTagAnalyzerPanel(page, board);
+        editor = await openEditor(panel);
     });
 
-    test('blocks Apply when the panel title is blank', async ({ page }) => {
-        await login(page);
-        const board = await createTagAnalyzerBoard(page);
-        const panel = await createLoadedTagAnalyzerPanel(page, board);
-        const editor = await openEditor(panel);
-        const apply = editor.getByTestId('editor-apply');
-
-        await editor.getByTestId('editor-title-input').fill('   ');
-        await expect(apply).toBeDisabled();
-        await expect(editor.getByTestId('editor-tab-general')).toHaveAttribute(
-            'aria-invalid',
-            'true',
-        );
+    test('keeps a title edit in the draft until Apply is clicked', async () => {
+        const originalTitle = await panel.getByTestId('title-button').innerText();
 
         await editor
             .getByTestId('editor-title-input')
-            .fill('Valid editor title');
-        await expect(apply).toBeEnabled();
+            .fill('Unapplied title');
+
+        await expect(panel.getByTestId('title-button')).toHaveText(
+            originalTitle,
+        );
+    });
+
+    test('applies a valid panel title', async () => {
+        await editor.getByTestId('editor-title-input').fill('Applied title');
+        await editor.getByTestId('editor-apply').click();
+
+        await expect(panel.getByTestId('title-button')).toHaveText(
+            'Applied title',
+        );
+    });
+
+    test('blocks Apply when the panel title is blank', async () => {
+        await editor.getByTestId('editor-title-input').fill('   ');
+
+        await expect(editor.getByTestId('editor-apply')).toBeDisabled();
+        await expect(
+            editor.getByRole('button', {
+                name: 'General, invalid settings',
+                exact: true,
+            }),
+        ).toHaveAttribute('title', 'General: Enter a panel title.');
+    });
+
+    test('configures drag zoom after Apply', async () => {
+        const checkbox = editor.getByTestId('editor-use-zoom-checkbox');
+        const nextValue = !(await checkbox.isChecked());
+
+        await setCheckbox(checkbox, nextValue);
+        await editor.getByTestId('editor-apply').click();
+        await closeAndReopenEditor(panel, editor);
+
+        await expect(
+            editor.getByTestId('editor-use-zoom-checkbox'),
+        ).toBeChecked({ checked: nextValue });
+    });
+
+    test('forces raw ordering on and disables it in calculated mode', async () => {
+        const checkbox = editor.getByTestId('editor-order-raw-checkbox');
+
+        await expect(checkbox).toBeChecked();
+        await expect(checkbox).toBeDisabled();
+    });
+
+    test('configures raw data ordering while the panel is in raw mode', async () => {
+        await editor.getByTestId('editor-close').click();
+        await panel.getByTestId('action-toggle-raw').click();
+        editor = await openEditor(panel);
+        const checkbox = editor.getByTestId('editor-order-raw-checkbox');
+
+        await expect(checkbox).toBeEnabled();
+        await setCheckbox(checkbox, true);
+        await editor.getByTestId('editor-apply').click();
+        await closeAndReopenEditor(panel, editor);
+
+        await expect(
+            editor.getByTestId('editor-order-raw-checkbox'),
+        ).toBeChecked();
+    });
+
+    test('configures value normalization after Apply', async () => {
+        const checkbox = editor.getByTestId('editor-normalize-checkbox');
+        const nextValue = !(await checkbox.isChecked());
+
+        await setCheckbox(checkbox, nextValue);
+        await editor.getByTestId('editor-apply').click();
+        await closeAndReopenEditor(panel, editor);
+
+        await expect(
+            editor.getByTestId('editor-normalize-checkbox'),
+        ).toBeChecked({ checked: nextValue });
+    });
+
+    test('shows the configured-range note when visible-range saving is disabled', async () => {
+        const checkbox = editor.getByTestId(
+            'editor-save-visible-range-checkbox',
+        );
+
+        await setCheckbox(checkbox, false);
+
+        await expect(editor).toContainText(
+            'Save and Save As will use the configured panel range.',
+        );
+    });
+
+    test('shows the visible-range note when visible-range saving is enabled', async () => {
+        const checkbox = editor.getByTestId(
+            'editor-save-visible-range-checkbox',
+        );
+
+        await setCheckbox(checkbox, true);
+
+        await expect(editor).toContainText(
+            'Save and Save As will include the current visible range.',
+        );
+    });
+
+    test('configures visible-range saving after Apply', async () => {
+        const checkbox = editor.getByTestId(
+            'editor-save-visible-range-checkbox',
+        );
+        const nextValue = !(await checkbox.isChecked());
+
+        await setCheckbox(checkbox, nextValue);
+        await editor.getByTestId('editor-apply').click();
+        await closeAndReopenEditor(panel, editor);
+
+        await expect(
+            editor.getByTestId('editor-save-visible-range-checkbox'),
+        ).toBeChecked({ checked: nextValue });
     });
 });
 
@@ -91,6 +145,16 @@ async function openEditor(panel: Locator): Promise<Locator> {
     const editor = panel.getByTestId('editor');
     await expect(editor).toBeVisible();
     return editor;
+}
+
+async function closeAndReopenEditor(
+    panel: Locator,
+    editor: Locator,
+): Promise<void> {
+    await editor.getByTestId('editor-close').click();
+    await expect(editor).toBeHidden();
+    await panel.getByTestId('action-toggle-edit').click();
+    await expect(editor).toBeVisible();
 }
 
 async function setCheckbox(

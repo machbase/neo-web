@@ -141,45 +141,6 @@
         font-size: 11px;
     }
 
-    &__rollup-status {
-        color: #fdb532;
-        cursor: help;
-    }
-
-    &__rollup-tooltip {
-        z-index: 9999;
-        max-width: 360px;
-    }
-
-    &__rollup-tooltip-content {
-        display: grid;
-        gap: 5px;
-        min-width: 180px;
-        font-size: 12px;
-    }
-
-    &__rollup-tooltip-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 14px;
-    }
-
-    &__rollup-tooltip-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    &__rollup-tooltip-state {
-        color: #cfcfcf;
-        white-space: nowrap;
-    }
-
-    &__rollup-tooltip-state--active {
-        color: #fdb532;
-    }
-
     &__actions {
         display: flex;
         flex: 0 0 auto;
