@@ -84,10 +84,6 @@ request.interceptors.request.use(
                 sHeaders['Content-Type'] = 'text/javascript';
             }
         }
-        if (sHeaders && (config.url === '/api/md?darkMode=false' || config.url === '/api/md?darkMode=true')) {
-            sHeaders['Content-Type'] = 'text/plain';
-        }
-
         // Only treat as file GET when path does not denote a directory (no trailing slash)
         if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) && config.method === 'get' && !endsWithSlash) {
             config.transformResponse = function (data: any) {
@@ -98,9 +94,6 @@ request.interceptors.request.use(
         if (config.url === '/api/tql') {
             sHeaders['Content-Type'] = 'text/plain';
             config.responseType = 'text';
-        }
-        if (config.url === '/api/splitter/sql') {
-            sHeaders['Content-Type'] = 'text/plain';
         }
 
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
