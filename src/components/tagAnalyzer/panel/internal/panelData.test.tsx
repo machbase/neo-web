@@ -242,7 +242,7 @@ describe('usePanelData', () => {
                               isLimitReached: true,
                           },
                       }]
-                    : calculatedResult(request),
+                    : calculatedResult(request, 20),
             );
         const params = {
             ...createParams(createPanelInfo(true)),
@@ -260,7 +260,7 @@ describe('usePanelData', () => {
             navigatorRange: { start: 0, end: 44 },
         });
         expect(result.current.main.interval).toBeUndefined();
-        expect(result.current.issue).toEqual({ kind: 'partialData' });
+        expect(result.current.issue).toBeUndefined();
         expect(
             fetchSpy.mock.calls.some(([request]) => request.kind === 'raw'),
         ).toBe(true);

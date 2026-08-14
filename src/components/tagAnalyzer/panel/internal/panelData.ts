@@ -101,7 +101,6 @@ type PanelDataStateInput = {
     mainSeries: ChartSeriesData[];
     navigator: PanelDataLane;
     navigatorSeries: ChartSeriesData[];
-    mainRange: AxisRange | undefined;
     renderRange: RangeState | undefined;
     rawLimitRange: RangeState | undefined;
     hasRequestGeometry: boolean;
@@ -173,7 +172,6 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
         mainSeries,
         navigator,
         navigatorSeries,
-        mainRange,
         renderRange,
         rawLimitRange,
         hasRequestGeometry,
@@ -185,7 +183,6 @@ function createPanelDataState({
     mainSeries,
     navigator,
     navigatorSeries,
-    mainRange,
     renderRange,
     rawLimitRange,
     hasRequestGeometry,
@@ -209,8 +206,9 @@ function createPanelDataState({
             mainSeries,
             navigator.state,
             navigatorSeries,
-            mainRange,
+            renderRange?.mainRange,
             renderRange?.navigatorRange,
+            rawLimitRange !== undefined,
         ),
     };
 }
@@ -422,6 +420,7 @@ function resolvePanelDataIssue(
     navigatorSeries: ChartSeriesData[],
     mainRange: AxisRange | undefined,
     navigatorRange: AxisRange | undefined,
+    hasHandledRawLimit: boolean,
 ): PanelDataIssue | undefined {
     if (main.status === 'failed') {
         return { kind: 'error', message: main.error };
@@ -435,7 +434,7 @@ function resolvePanelDataIssue(
             : { kind: 'noData' };
     }
 
-    return hasPartialResult(main.result) ||
+    return hasPartialResult(main.result, hasHandledRawLimit) ||
         navigator.status === 'failed' ||
         (navigator.status === 'ready' &&
             (!navigatorRange ||
@@ -452,11 +451,16 @@ function resolvePanelDataIssue(
 
 function hasPartialResult(
     result: PanelDataFetchResult | undefined,
+    ignoreHandledRawLimit = false,
 ): boolean {
     return (
         result?.some(
             ({ error, metadata }) =>
-                error !== undefined || metadata?.isLimitReached === true,
+                error !== undefined ||
+                (metadata?.isLimitReached === true &&
+                    !(
+                        ignoreHandledRawLimit && metadata.kind === 'raw'
+                    )),
         ) ?? false
     );
 }
