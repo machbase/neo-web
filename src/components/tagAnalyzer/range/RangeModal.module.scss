@@ -1,0 +1,25 @@
+@use '../TextStyle' as text;
+
+.modal {
+    @include text.control-surface;
+}
+
+.modalTitle {
+    @include text.title;
+}
+
+.quickRanges {
+    @include text.section-title;
+}
+
+.quickRanges > :first-child {
+    font: inherit;
+}
+
+.quickRanges button {
+    @include text.control(500);
+}
+
+.validation {
+    @include text.support;
+}

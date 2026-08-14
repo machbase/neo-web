@@ -1,9 +1,19 @@
+@use '../../TextStyle' as text;
+
+.section,
+.editorCard {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #b8c8da41;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
 .section {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    min-width: 0;
-    padding: 4px;
 }
 
 .sectionHeader {
@@ -19,11 +29,10 @@
 }
 
 .sectionTitle {
+    @include text.section-title;
+
     margin: 0;
     color: rgba(255, 255, 255, 0.92);
-    font-size: var(--panel-editor-heading-size, 13px);
-    font-weight: 600;
-    line-height: var(--panel-editor-heading-line-height, 18px);
 }
 
 .sectionTag {
@@ -32,9 +41,7 @@
     border-radius: 4px;
     background: rgba(65, 153, 255, 0.12);
     color: rgba(194, 220, 255, 0.9);
-    font-size: var(--panel-editor-support-size, 11px);
-    font-weight: 400;
-    line-height: var(--panel-editor-support-line-height, 14px);
+    @include text.support;
 }
 
 .sectionHeaderCheckbox {
@@ -70,41 +77,34 @@
 }
 
 .axesGrid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(260px, 300px) minmax(520px, 624px);
+    justify-content: start;
     gap: 12px;
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 .axisGroup {
-    box-sizing: border-box;
-    flex: 0 1 300px;
-    min-width: 260px;
-    padding: 8px;
-    border: 1px solid #b8c8da41;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.025);
+    min-width: 0;
 }
 
 .yAxesGroup {
-    display: flex;
-    flex: 0 1 624px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: 1;
     gap: 12px;
+    min-height: 0;
 }
 
-.yAxesGroup .section {
-    flex: 1 1 260px;
-    max-width: 300px;
-    padding: 0;
+.axisSubgroup {
+    height: 100%;
+    padding: 8px;
 }
 
 .axisDisabledMessage {
     margin: 0;
     color: rgba(255, 255, 255, 0.52);
-    font-size: var(--panel-editor-support-size, 11px);
-    font-weight: 400;
-    line-height: var(--panel-editor-support-line-height, 14px);
+    @include text.support;
 }
 
 .dataSettingGrid,
@@ -113,7 +113,7 @@
     grid-template-columns: repeat(auto-fit, minmax(260px, 300px));
     justify-content: start;
     gap: 12px;
-    align-items: start;
+    align-items: stretch;
     min-width: 0;
 }
 
@@ -146,9 +146,7 @@
     align-self: flex-start;
     min-height: 20px;
     color: rgba(255, 255, 255, 0.68);
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 500;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control(500);
 }
 
 .mutedLabel {
@@ -156,9 +154,7 @@
     align-items: center;
     gap: 4px;
     color: rgba(255, 255, 255, 0.5);
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 500;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control(500);
 }
 
 .rangeField {
@@ -177,16 +173,12 @@
 
 .rangeSeparator {
     color: rgba(255, 255, 255, 0.5);
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 400;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control;
 }
 
 .fieldError {
     color: #ff6b6b;
-    font-size: var(--panel-editor-support-size, 11px);
-    font-weight: 400;
-    line-height: var(--panel-editor-support-line-height, 14px);
+    @include text.support;
 }
 
 .numberInputCompact {
@@ -211,10 +203,6 @@
 
 .editorCard {
     margin-bottom: 8px;
-    padding: 12px;
-    border: 1px solid #b8c8da41;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.025);
 }
 
 .editorWrappedRow {
@@ -258,9 +246,7 @@
     gap: 4px;
     min-height: 14px;
     color: rgba(255, 255, 255, 0.66);
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 500;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control(500);
     white-space: nowrap;
 }
 
@@ -292,9 +278,7 @@
 
 .editorSeriesTagName {
     color: rgba(255, 255, 255, 0.9);
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 600;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control(600);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -316,9 +300,7 @@
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.72);
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 400;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -328,18 +310,14 @@
     width: 100%;
     min-height: 42px;
     padding: 8px 12px;
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 500;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control(500);
 }
 
 .savedRangeNote {
     display: block;
     max-width: 640px;
     color: rgba(255, 255, 255, 0.62);
-    font-size: var(--panel-editor-support-size, 11px);
-    font-weight: 400;
-    line-height: var(--panel-editor-support-line-height, 14px);
+    @include text.support;
 }
 
 .timeConfiguredSection,
@@ -380,21 +358,20 @@
 
 .displayTabRow {
     display: flex;
-    gap: 20px;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 12px;
 }
 
 .displayChartColumn {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    flex: 0 1 380px;
 }
 
 .displayNumberColumn {
-    display: flex;
-    flex-direction: column;
+    flex: 0 1 300px;
     align-items: start;
     gap: 16px;
-    margin-top: 8px;
 }
 
 .chartTypeOptionRow {
@@ -416,9 +393,7 @@
     justify-content: center;
     background: transparent;
     color: rgba(255, 255, 255, 0.72);
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 500;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control(500);
 }
 
 .chartTypeOptionActive {
@@ -441,17 +416,20 @@
 .rightAxisSeriesItem {
     min-width: 0;
     padding: 4px 8px;
-    font-size: var(--panel-editor-control-size, 12px);
-    font-weight: 400;
-    line-height: var(--panel-editor-control-line-height, 16px);
+    @include text.control;
     cursor: pointer;
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 860px) {
+    .axesGrid,
     .dataSettingGrid,
     .timeLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .yAxesGroup {
         grid-template-columns: 1fr;
     }
 

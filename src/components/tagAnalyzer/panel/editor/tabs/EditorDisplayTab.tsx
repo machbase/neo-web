@@ -1,4 +1,4 @@
-import { Checkbox, Input, Page } from '@/design-system/components';
+import { Checkbox, Input } from '@/design-system/components';
 import { useLayoutEffect } from 'react';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
@@ -8,6 +8,7 @@ import {
     type PanelDisplay,
     type PanelEChartType,
 } from '../../panelModel';
+import { Section } from './TabControls';
 import styles from '../PanelEditorTab.module.scss';
 
 const CHART_TYPE_OPTIONS = [
@@ -69,83 +70,78 @@ const EditorDisplayTab = ({
     };
 
     return (
-        <Page.ContentBlock style={{ padding: 0, margin: 0 }} pHoverNone>
-            <Page.DpRow className={styles.displayTabRow}>
-                <div className={styles.displayChartColumn}>
-                    <div className={styles.sectionHeader}>
-                        <span className={styles.sectionTitle}>Chart Type</span>
-                    </div>
-                    <div className={styles.chartTypeOptionRow}>
-                        {CHART_TYPE_OPTIONS.map((option) => {
-                            const sIsActive = pDisplayConfig.chartType === option.type;
-                            const sClassName = [
-                                styles.chartTypeOption,
-                                !option.src && styles.chartTypeOptionCustom,
-                                sIsActive && styles.chartTypeOptionActive,
-                            ]
-                                .filter(Boolean)
-                                .join(' ');
-                            return option.src ? (
-                                <img
-                                    key={option.type}
-                                    onClick={() => changeChartType(option.type)}
-                                    className={sClassName}
-                                    src={option.src}
-                                    alt={option.alt}
-                                />
-                            ) : (
-                                <button
-                                    key={option.type}
-                                    type="button"
-                                    onClick={() => changeChartType(option.type)}
-                                    className={sClassName}
-                                >
-                                    Custom
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {DISPLAY_CHECKBOXES.map(({ field, label, forceCustom }) => (
-                        <Checkbox
-                            key={field}
-                            checked={pDisplayConfig[field]}
-                            onChange={(event) =>
-                                (forceCustom ? updateCustomStyle : updateDisplayConfig)({
-                                    [field]: event.target.checked,
-                                })
-                            }
-                            label={label}
-                            size="sm"
-                        />
-                    ))}
+        <div className={styles.displayTabRow}>
+            <Section title="Chart type" className={styles.displayChartColumn}>
+                <div className={styles.chartTypeOptionRow}>
+                    {CHART_TYPE_OPTIONS.map((option) => {
+                        const sIsActive = pDisplayConfig.chartType === option.type;
+                        const sClassName = [
+                            styles.chartTypeOption,
+                            !option.src && styles.chartTypeOptionCustom,
+                            sIsActive && styles.chartTypeOptionActive,
+                        ]
+                            .filter(Boolean)
+                            .join(' ');
+                        return option.src ? (
+                            <img
+                                key={option.type}
+                                onClick={() => changeChartType(option.type)}
+                                className={sClassName}
+                                src={option.src}
+                                alt={option.alt}
+                            />
+                        ) : (
+                            <button
+                                key={option.type}
+                                type="button"
+                                onClick={() => changeChartType(option.type)}
+                                className={sClassName}
+                            >
+                                Custom
+                            </button>
+                        );
+                    })}
                 </div>
-                <Page.DpRow className={styles.displayNumberColumn}>
-                    {DISPLAY_NUMBER_INPUTS.map(({ field, label }) => (
-                        <Input
-                            key={field}
-                            label={label}
-                            labelPosition="left"
-                            type="number"
-                            value={
-                                Number.isFinite(pDisplayConfig[field] ?? NaN)
-                                    ? pDisplayConfig[field]
-                                    : ''
-                            }
-                            onChange={(event) =>
-                                updateCustomStyle({
-                                    [field]:
-                                        event.target.value === ''
-                                            ? undefined
-                                            : Number(event.target.value),
-                                })
-                            }
-                            size="md"
-                            style={{ width: '150px', height: '30px' }}
-                        />
-                    ))}
-                </Page.DpRow>
-            </Page.DpRow>
-        </Page.ContentBlock>
+                {DISPLAY_CHECKBOXES.map(({ field, label, forceCustom }) => (
+                    <Checkbox
+                        key={field}
+                        checked={pDisplayConfig[field]}
+                        onChange={(event) =>
+                            (forceCustom ? updateCustomStyle : updateDisplayConfig)({
+                                [field]: event.target.checked,
+                            })
+                        }
+                        label={label}
+                        size="sm"
+                    />
+                ))}
+            </Section>
+            <Section title="Custom style" className={styles.displayNumberColumn}>
+                {DISPLAY_NUMBER_INPUTS.map(({ field, label }) => (
+                    <Input
+                        key={field}
+                        label={label}
+                        labelPosition="left"
+                        type="number"
+                        value={
+                            Number.isFinite(pDisplayConfig[field] ?? NaN)
+                                ? pDisplayConfig[field]
+                                : ''
+                        }
+                        onChange={(event) =>
+                            updateCustomStyle({
+                                [field]:
+                                    event.target.value === ''
+                                        ? undefined
+                                        : Number(event.target.value),
+                            })
+                        }
+                        size="md"
+                        style={{ width: '150px', height: '30px' }}
+                    />
+                ))}
+            </Section>
+        </div>
     );
 };
 

@@ -211,11 +211,12 @@ const EditorDataTab = ({
                 <Modal.Root
                     isOpen
                     onClose={closeSeriesModal}
+                    className={seriesStyles.modal}
                     data-testid="editor-series-dialog"
                     style={{ maxWidth: '700px', width: '100%' }}
                 >
                     <Modal.Header>
-                        <Modal.Title>
+                        <Modal.Title className={seriesStyles.modalTitle}>
                             <span
                                 className={seriesStyles.titleIcon}
                                 aria-hidden="true"

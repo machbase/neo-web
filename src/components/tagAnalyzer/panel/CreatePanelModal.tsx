@@ -57,11 +57,12 @@ export function CreatePanelModal({
         <Modal.Root
             isOpen
             onClose={onClose}
+            className={styles.modal}
             data-testid="tag-analyzer-create-panel-dialog"
             style={{ maxWidth: '700px', width: '100%' }}
         >
             <Modal.Header>
-                <Modal.Title>
+                <Modal.Title className={styles.modalTitle}>
                     <span className={styles.titleIcon} aria-hidden="true">
                         <BiSolidChart />
                     </span>

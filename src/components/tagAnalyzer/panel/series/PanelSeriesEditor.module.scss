@@ -1,8 +1,17 @@
 @use '@/design-system/tokens' as t;
+@use '../../TextStyle' as text;
 
 $section-gap: 12px;
 $control-gap: 8px;
 $label-gap: 6px;
+
+.modal {
+    @include text.control-surface;
+}
+
+.modalTitle {
+    @include text.title;
+}
 
 .panelStack {
     display: flex;
@@ -20,8 +29,7 @@ $label-gap: 6px;
     flex: 1;
     min-width: 0;
     color: #ef6e6e;
-    font-size: 12px;
-    line-height: 1.3;
+    @include text.support;
     overflow-wrap: anywhere;
     text-align: right;
 }
@@ -46,18 +54,15 @@ $label-gap: 6px;
     min-width: 0;
 }
 
-.fieldLabelTop,
-.columnTitleText {
-    color: #a3a3a3;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    line-height: 14px;
-    text-transform: uppercase;
-}
-
 .fieldLabelTop {
     display: block;
+    color: #a3a3a3;
+    @include text.control(500);
+}
+
+.columnTitleText {
+    color: #a3a3a3;
+    @include text.section-title;
 }
 
 .valueRollupStatus {
@@ -65,8 +70,7 @@ $label-gap: 6px;
     align-items: center;
     width: fit-content;
     margin-top: 5px;
-    font-size: 11px;
-    line-height: 1.2;
+    @include text.support;
     cursor: help;
 }
 
@@ -84,14 +88,12 @@ $label-gap: 6px;
     gap: 8px;
     min-width: 52px;
     color: #a3a3a3;
-    font-size: 12px;
-    font-weight: 600;
+    @include text.control(600);
 }
 
 .jsonKeyMeta {
     color: #d0d0d0;
-    font-size: 11px;
-    font-weight: 500;
+    @include text.support(500);
 }
 
 .tagSearchButton {
@@ -201,7 +203,7 @@ $label-gap: 6px;
     height: 100%;
     padding: 4px 8px;
     color: t.$text-muted;
-    font-size: t.$font-size-base;
+    @include text.control;
     text-align: center;
 }
 
@@ -223,8 +225,7 @@ $label-gap: 6px;
 .selectedSeriesName {
     overflow: hidden;
     color: #f4f4f4;
-    font-size: 13px;
-    font-weight: 600;
+    @include text.section-title;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -250,17 +251,14 @@ $label-gap: 6px;
 .selectedSeriesSourceLabel {
     flex: 0 0 auto;
     color: #8f8f8f;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    @include text.support(600);
 }
 
 .selectedSeriesSourceValue {
     min-width: 0;
     overflow: hidden;
     color: #cfcfcf;
-    font-size: 11px;
+    @include text.support;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

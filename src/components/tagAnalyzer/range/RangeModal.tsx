@@ -19,6 +19,7 @@ import {
     NUMERIC_RANGE_PRESETS,
     TIME_RANGE_PRESETS,
 } from './rangePresets';
+import styles from './RangeModal.module.scss';
 
 type RangeModalProps = {
     title?: string;
@@ -99,10 +100,11 @@ export function RangeModal({
         <Modal.Root
             isOpen
             onClose={onClose}
+            className={styles.modal}
             data-testid="tag-analyzer-range-dialog"
         >
             <Modal.Header>
-                <Modal.Title>
+                <Modal.Title className={styles.modalTitle}>
                     <Calendar />
                     <span data-testid="tag-analyzer-range-title">
                         {title}
@@ -165,6 +167,7 @@ export function RangeModal({
                 ))}
                 <Page.Space />
                 <QuickTimeRange
+                    className={styles.quickRanges}
                     options={
                         kind === 'time'
                             ? TIME_RANGE_PRESETS
@@ -182,6 +185,7 @@ export function RangeModal({
                         <Page.Space />
                         <div
                             id={validationMessageId}
+                            className={styles.validation}
                             role="alert"
                             data-testid="tag-analyzer-range-validation-message"
                         >
@@ -211,7 +215,9 @@ export function RangeModal({
                     >
                         Apply
                     </Modal.Confirm>
-                    <Modal.Cancel data-testid="tag-analyzer-range-cancel-button">
+                    <Modal.Cancel
+                        data-testid="tag-analyzer-range-cancel-button"
+                    >
                         Cancel
                     </Modal.Cancel>
                 </Button.Group>

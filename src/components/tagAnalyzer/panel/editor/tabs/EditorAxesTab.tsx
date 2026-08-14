@@ -200,6 +200,7 @@ const EditorAxesTab = ({
         return (
             <Section
                 title={title}
+                className={styles.axisSubgroup}
                 headerAddon={axisKey === 'rightY' ? (
                     <div className={styles.rightAxisHeaderActions}>
                         <Checkbox
@@ -276,10 +277,15 @@ const EditorAxesTab = ({
                     size="sm"
                 />
             </Section>
-            <div className={[styles.axisGroup, styles.yAxesGroup].join(' ')}>
-                {renderYAxis('Left Y axis', 'leftY')}
-                {renderYAxis('Right Y axis', 'rightY')}
-            </div>
+            <Section
+                title="Y axes"
+                className={styles.axisGroup}
+            >
+                <div className={styles.yAxesGroup}>
+                    {renderYAxis('Left Y axis', 'leftY')}
+                    {renderYAxis('Right Y axis', 'rightY')}
+                </div>
+            </Section>
         </div>
     );
 };

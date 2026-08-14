@@ -250,7 +250,7 @@ async function openEditorTab(
     }
     await expect(editor).toBeVisible();
     await editor.getByTestId(`editor-tab-${tab}`).click();
-    await expect(editor.getByText('Chart Type', { exact: true })).toBeVisible();
+    await expect(editor.getByText('Chart type', { exact: true })).toBeVisible();
     return editor;
 }
 

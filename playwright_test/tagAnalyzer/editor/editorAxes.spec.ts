@@ -477,7 +477,7 @@ async function openEditor(panel: Locator, tab: string): Promise<Locator> {
 function section(editor: Locator, title: string): Locator {
     return editor
         .getByRole('heading', { name: title, exact: true })
-        .locator('xpath=ancestor::section');
+        .locator('xpath=ancestor::section[1]');
 }
 
 function rangeInputs(

@@ -1,5 +1,15 @@
+@use '../TextStyle' as text;
+
 $section-gap: 12px;
 $label-gap: 6px;
+
+.modal {
+    @include text.control-surface;
+}
+
+.modalTitle {
+    @include text.title;
+}
 
 .panelStack {
     display: flex;
@@ -49,8 +59,7 @@ $label-gap: 6px;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 13px;
-    font-weight: 500;
+    @include text.control(500);
 }
 
 .titleIcon {
@@ -60,11 +69,11 @@ $label-gap: 6px;
 }
 
 .footerMessage {
+    @include text.support;
+
     flex: 1;
     min-width: 0;
     color: #ef6e6e;
-    font-size: 12px;
-    line-height: 1.3;
     overflow-wrap: anywhere;
     text-align: right;
 }
@@ -79,9 +88,5 @@ $label-gap: 6px;
 .fieldLabelTop {
     display: block;
     color: #a3a3a3;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    line-height: 14px;
-    text-transform: uppercase;
+    @include text.control(500);
 }
