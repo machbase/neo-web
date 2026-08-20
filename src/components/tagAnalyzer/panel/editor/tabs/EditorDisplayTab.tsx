@@ -71,7 +71,11 @@ const EditorDisplayTab = ({
 
     return (
         <div className={styles.displayTabRow}>
-            <Section title="Chart type" className={styles.displayChartColumn}>
+            <Section
+                title="Preset"
+                className={styles.displayPresetColumn}
+                testId="editor-display-preset"
+            >
                 <div className={styles.chartTypeOptionRow}>
                     {CHART_TYPE_OPTIONS.map((option) => {
                         const sIsActive = pDisplayConfig.chartType === option.type;
@@ -102,6 +106,12 @@ const EditorDisplayTab = ({
                         );
                     })}
                 </div>
+            </Section>
+            <Section
+                title="Chart Config"
+                className={styles.displayConfigColumn}
+                testId="editor-display-chart-config"
+            >
                 {DISPLAY_CHECKBOXES.map(({ field, label, forceCustom }) => (
                     <Checkbox
                         key={field}
@@ -115,8 +125,6 @@ const EditorDisplayTab = ({
                         size="sm"
                     />
                 ))}
-            </Section>
-            <Section title="Custom style" className={styles.displayNumberColumn}>
                 {DISPLAY_NUMBER_INPUTS.map(({ field, label }) => (
                     <Input
                         key={field}
@@ -137,7 +145,8 @@ const EditorDisplayTab = ({
                             })
                         }
                         size="md"
-                        style={{ width: '150px', height: '30px' }}
+                        fullWidth
+                        style={{ height: '30px' }}
                     />
                 ))}
             </Section>

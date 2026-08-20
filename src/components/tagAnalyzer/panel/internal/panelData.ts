@@ -458,9 +458,7 @@ function hasPartialResult(
             ({ error, metadata }) =>
                 error !== undefined ||
                 (metadata?.isLimitReached === true &&
-                    !(
-                        ignoreHandledRawLimit && metadata.kind === 'raw'
-                    )),
+                    (!ignoreHandledRawLimit || metadata.kind !== 'raw')),
         ) ?? false
     );
 }

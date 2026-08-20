@@ -6,15 +6,18 @@ export function Section({
     title,
     headerAddon,
     className,
+    testId,
     children,
 }: {
     title: string;
     headerAddon?: ReactNode;
     className?: string;
+    testId?: string;
     children: ReactNode;
 }) {
     return (
         <section
+            data-testid={testId}
             className={[styles.section, className].filter(Boolean).join(' ')}
         >
             <div className={styles.sectionHeader}>

@@ -1,4 +1,4 @@
-import { memo, useRef, useState, type MouseEvent } from 'react';
+import { memo, useEffect, useRef, useState, type MouseEvent } from 'react';
 import PanelChart, {
     ANNOTATION_INVALID_TARGET_MESSAGE,
     PanelOverlayCursorHint,
@@ -94,6 +94,7 @@ export default memo(function Panel({
         setChartAreaWidth: onChartAreaWidthChange,
         applyRangeAction: onRangeButtonAction,
         setMainRange: onMainRangeChange,
+        applyRawLimitRange: onRawLimitRange,
         setNavigatorRange: onNavigatorRangeChange,
         refreshData: onRefreshData,
         refreshRange: onRefreshRange,
@@ -143,6 +144,11 @@ export default memo(function Panel({
         rawLimitRange,
         issue,
     } = panelData;
+    useEffect(() => {
+        if (rangeState && rawLimitRange) {
+            onRawLimitRange(rangeState.range, rawLimitRange);
+        }
+    }, [onRawLimitRange, rangeState, rawLimitRange]);
     const mainChartData = main.series;
     const navigatorChartData = navigator.series;
     const renderRange = rawLimitRange ?? rangeState?.range;

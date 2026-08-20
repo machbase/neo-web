@@ -180,14 +180,17 @@ Navigator `{control}` values are `zoom-in-large`, `zoom-in-small`, `focus`,
 | `1.4.4.5.1` | Open FFT | `tag-analyzer-selection-open-fft` | Scope under Selection Summary |
 | `1.4.4.5.1`-`1.4.4.5.17` | FFT dialog | `tag-analyzer-fft-dialog` | Page-scoped dialog |
 | `1.4.4.5.2` | Close FFT | `tag-analyzer-fft-close` | Scope under FFT dialog |
+| `1.4.4.5.3` | FFT series | `tag-analyzer-fft-series` | Scope under FFT dialog; options use `tag-analyzer-fft-series-option-{encodedTag}` |
 | `1.4.4.5.4` | 2D mode | `tag-analyzer-fft-2d` | Scope under FFT dialog |
 | `1.4.4.5.4` | FFT chart | `tag-analyzer-fft-chart` | Scope under FFT dialog |
-| `1.4.4.5.5` | 3D mode | `none` | `getByRole('button', { name: 'Show 3D FFT chart' })` under FFT dialog |
+| `1.4.4.5.5` | 3D mode | `tag-analyzer-fft-3d` | Scope under FFT dialog |
 | `1.4.4.5.6` | Minimum frequency | `tag-analyzer-fft-min-hz` | Scope under FFT dialog |
 | `1.4.4.5.7` | Maximum frequency | `tag-analyzer-fft-max-hz` | Scope under FFT dialog |
-| `1.4.4.5.8` | 3D interval | `none` | `getByLabel('Interval')` under FFT dialog |
-| `1.4.4.5.9` | 3D interval unit | `none` | Select the visible unit button by role, then its page-scoped option by role |
-| `1.4.4.5.10` | Apply FFT values | `none` | `getByRole('button', { name: 'Apply values' })` under FFT dialog |
+| `1.4.4.5.8` | 3D interval | `tag-analyzer-fft-interval` | Scope under FFT dialog |
+| `1.4.4.5.9` | 3D interval unit | `tag-analyzer-fft-interval-unit` | Options use `tag-analyzer-fft-interval-unit-option-{unit}` |
+| `1.4.4.5.10` | Apply FFT values | `tag-analyzer-fft-apply` | Scope under FFT dialog |
+| `1.4.4.5.12` | FFT load error | `tag-analyzer-fft-load-error` | Page-scoped toast |
+| `1.4.4.5.15`-`1.4.4.5.17` | FFT validation errors | `tag-analyzer-fft-{frequency,frequency-range,interval,interval-range}-error` | Page-scoped toasts |
 
 ### Markup editors
 

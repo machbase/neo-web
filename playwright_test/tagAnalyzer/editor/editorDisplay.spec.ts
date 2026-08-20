@@ -153,6 +153,26 @@ test.describe('Tag Analyzer panel editor Display tab', () => {
         );
     });
 
+    test('keeps chart configuration inputs inside the card padding', async ({
+        page,
+    }) => {
+        const { editor } = await createDisplayEditor(page);
+        const config = editor.getByTestId('editor-display-chart-config');
+        const configBox = await config.boundingBox();
+        if (!configBox) throw new Error('Chart Config is not visible.');
+
+        for (const [label] of CUSTOM_NUMBER_FIELDS) {
+            const inputBox = await editor
+                .getByLabel(label)
+                .locator('..')
+                .boundingBox();
+            if (!inputBox) throw new Error(`${label} is not visible.`);
+            const rightPadding =
+                configBox.x + configBox.width - inputBox.x - inputBox.width;
+            expect(rightPadding).toBeGreaterThanOrEqual(12);
+        }
+    });
+
     test('applied display values visibly change the chart', async ({ page }) => {
         const { panel, editor } = await createDisplayEditor(page);
         const chart = panel.getByTestId('chart');
@@ -250,7 +270,12 @@ async function openEditorTab(
     }
     await expect(editor).toBeVisible();
     await editor.getByTestId(`editor-tab-${tab}`).click();
-    await expect(editor.getByText('Chart type', { exact: true })).toBeVisible();
+    await expect(editor.getByTestId('editor-display-preset')).toContainText(
+        'Preset',
+    );
+    await expect(
+        editor.getByTestId('editor-display-chart-config'),
+    ).toContainText('Chart Config');
     return editor;
 }
 

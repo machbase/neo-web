@@ -99,6 +99,17 @@ function calculatedResult(
     }];
 }
 
+function rawResult(
+    data: PanelDataFetchResult[number]['data'],
+    isLimitReached = true,
+): PanelDataFetchResult {
+    return [{
+        seriesKey: TIME_SERIES.key,
+        data,
+        metadata: { kind: 'raw', isLimitReached },
+    }];
+}
+
 afterEach(() => {
     jest.restoreAllMocks();
 });
@@ -230,45 +241,79 @@ describe('usePanelData', () => {
         },
     );
 
-    it('narrows a limited raw render range and summarizes its navigator', async () => {
+    it('requests the committed raw-limit range', async () => {
         const fetchSpy = jest.spyOn(seriesDataApi, 'fetchSeriesRows')
-            .mockImplementation(async (request) =>
-                request.kind === 'raw'
-                    ? [{
-                          seriesKey: TIME_SERIES.key,
-                          data: [[0, 1], [40, 2]],
-                          metadata: {
-                              kind: 'raw',
-                              isLimitReached: true,
-                          },
-                      }]
-                    : calculatedResult(request, 20),
-            );
+            .mockImplementation(async (request) => {
+                if (request.kind !== 'raw') {
+                    return calculatedResult(request, 20);
+                }
+                return rawResult(
+                    [[0, 1], [40, 2]],
+                    request.range.end === 100,
+                );
+            });
         const params = {
             ...createParams(createPanelInfo(true)),
             chartAreaWidth: 100,
         };
-        const { result } = renderHook(() => usePanelData(params));
+        const { result, rerender } = renderHook(
+            ({ currentParams }) => usePanelData(currentParams),
+            { initialProps: { currentParams: params } },
+        );
 
         await waitFor(() => {
             expect(result.current.rawLimitRange?.mainRange.end).toBe(40);
-            expect(result.current.navigator.status).toBe('ready');
         });
 
-        expect(result.current.rawLimitRange).toEqual({
+        const constrainedRange = result.current.rawLimitRange!;
+        expect(constrainedRange).toEqual({
             mainRange: { start: 0, end: 40 },
             navigatorRange: { start: 0, end: 44 },
         });
-        expect(result.current.main.interval).toBeUndefined();
+        expect(result.current.issue).toBeUndefined();
+        rerender({
+            currentParams: {
+                ...params,
+                rangeState: {
+                    ...params.rangeState!,
+                    range: constrainedRange,
+                },
+            },
+        });
+
+        await waitFor(() => {
+            expect(result.current.rawLimitRange).toBeUndefined();
+            expect(result.current.main.status).toBe('ready');
+        });
         expect(result.current.issue).toBeUndefined();
         expect(
-            fetchSpy.mock.calls.some(([request]) => request.kind === 'raw'),
-        ).toBe(true);
-        expect(
-            fetchSpy.mock.calls.some(
-                ([request]) => request.kind === 'calculated',
-            ),
-        ).toBe(true);
+            fetchSpy.mock.calls
+                .map(([request]) => request)
+                .filter((request) => request.kind === 'raw')
+                .map((request) => request.range),
+        ).toEqual([
+            { start: 0, end: 100 },
+            { start: 0, end: 40 },
+        ]);
+    });
+
+    it('warns when a raw limit cannot narrow the range', async () => {
+        jest.spyOn(seriesDataApi, 'fetchSeriesRows')
+            .mockImplementation(async (request) =>
+                request.kind === 'raw'
+                    ? rawResult([[0, 1], [100, 2]])
+                    : calculatedResult(request, 20),
+            );
+        const { result } = renderHook(() =>
+            usePanelData(createParams(createPanelInfo(true))),
+        );
+
+        await waitFor(() => {
+            expect(result.current.main.status).toBe('ready');
+        });
+
+        expect(result.current.rawLimitRange).toBeUndefined();
+        expect(result.current.issue).toEqual({ kind: 'partialData' });
     });
 
     it('prefetches calculated main data at the visible resolution and reuses it', async () => {

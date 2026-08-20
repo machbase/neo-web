@@ -31,6 +31,20 @@ const SELECTION: FFTSelectionPayload = {
         min: '1.00000',
         max: '2.00000',
         avg: '1.50000',
+        sampleTimestamps: [10, 20],
+    }],
+};
+
+const DENSE_SELECTION: FFTSelectionPayload = {
+    ...SELECTION,
+    start: 0,
+    end: 7_500,
+    seriesSummaries: [{
+        ...SELECTION.seriesSummaries[0],
+        sampleTimestamps: Array.from(
+            { length: 16 },
+            (_, index) => index * 500,
+        ),
     }],
 };
 
@@ -59,6 +73,7 @@ test('builds selection statistics from values inside the selected range', () => 
             min: '2.00000',
             max: '4.00000',
             avg: '3.00000',
+            sampleTimestamps: [10, 20],
         }],
     });
 });
@@ -95,6 +110,29 @@ describe('FFT interactions', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
+
+    async function open3dFft(selection: FFTSelectionPayload): Promise<void> {
+        jest.mocked(fftApi.fetchFftChartData).mockResolvedValue({
+            chartID: 'fft-chart',
+        });
+        render(
+            <SelectionSummaryPopover
+                selection={selection}
+                position={{ x: 0, y: 0 }}
+                isNumericXAxis={false}
+                isRaw
+                onClose={jest.fn()}
+            />,
+        );
+        fireEvent.click(screen.getByRole('button', {
+            name: 'Open FFT chart',
+        }));
+        const show3d = await screen.findByRole('button', {
+            name: 'Show 3D FFT chart',
+        });
+        await waitFor(() => expect(show3d).toBeEnabled());
+        fireEvent.click(show3d);
+    }
 
     test('keeps FFT disabled and nonfunctional outside Raw mode', () => {
         render(
@@ -170,6 +208,51 @@ describe('FFT interactions', () => {
             expect(fftApi.fetchFftChartData).toHaveBeenCalledTimes(3);
             expect(applyButton).toBeEnabled();
         });
+    });
+
+    test('warns instead of requesting a 3D FFT with too few samples', async () => {
+        await open3dFft(DENSE_SELECTION);
+
+        expect(fftApi.fetchFftChartData).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('tag-analyzer-fft-warning')).toHaveTextContent(
+            'Every 3D FFT interval contains fewer than 16 samples. Increase the interval and apply again.',
+        );
+
+        fireEvent.change(screen.getByLabelText('Interval'), {
+            target: { value: '8' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'ms' }));
+        fireEvent.click(screen.getByRole('option', { name: 's' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Apply values' }));
+
+        await waitFor(() => {
+            expect(fftApi.fetchFftChartData).toHaveBeenCalledTimes(2);
+        });
+        expect(fftApi.fetchFftChartData).toHaveBeenLastCalledWith(
+            SERIES,
+            { start: 0, end: 7_500 },
+            0,
+            0,
+            8_000,
+            expect.any(AbortSignal),
+        );
+        expect(screen.queryByTestId('tag-analyzer-fft-warning')).toBeNull();
+    });
+
+    test('warns when the selection has fewer than sixteen samples', async () => {
+        await open3dFft(SELECTION);
+
+        expect(fftApi.fetchFftChartData).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('tag-analyzer-fft-warning')).toHaveTextContent(
+            '3D FFT requires at least 16 samples in the selected range.',
+        );
+
+        fireEvent.change(screen.getByLabelText('Interval'), {
+            target: { value: '1000000' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Apply values' }));
+
+        expect(fftApi.fetchFftChartData).toHaveBeenCalledTimes(1);
     });
 
     test('keeps reopening disabled until a closed FFT request finishes', async () => {

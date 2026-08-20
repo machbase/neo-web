@@ -937,6 +937,55 @@ describe('usePanelRangeRuntime', () => {
         });
     });
 
+    it('commits a complete raw-limit range without replacing range metadata', () => {
+        const initialRangeState = createResolvedRangeState();
+        const runtime = renderPanelRangeRuntime({
+            rangeState: initialRangeState,
+        });
+        const constrainedRange = {
+            mainRange: { start: 0, end: 40 },
+            navigatorRange: { start: 0, end: 44 },
+        };
+
+        act(() =>
+            runtime.result.current.actions.applyRawLimitRange(
+                initialRangeState.range,
+                constrainedRange,
+            ),
+        );
+
+        expect(runtime.onRangeStateChange).toHaveBeenLastCalledWith({
+            ...initialRangeState,
+            range: constrainedRange,
+        });
+    });
+
+    it('does not apply a stale raw-limit range over a newer range', () => {
+        const initialRangeState = createResolvedRangeState();
+        const runtime = renderPanelRangeRuntime({
+            rangeState: initialRangeState,
+        });
+
+        act(() => {
+            runtime.result.current.actions.setMainRange({
+                start: 60,
+                end: 80,
+            });
+            runtime.result.current.actions.applyRawLimitRange(
+                initialRangeState.range,
+                {
+                    mainRange: { start: 0, end: 40 },
+                    navigatorRange: { start: 0, end: 44 },
+                },
+            );
+        });
+
+        expect(runtime.result.current.rangeState?.range.mainRange).toEqual({
+            start: 60,
+            end: 80,
+        });
+    });
+
     it('rejects non-finite and non-increasing local ranges', () => {
         const initialRangeState = createResolvedRangeState();
         const runtime = renderPanelRangeRuntime({

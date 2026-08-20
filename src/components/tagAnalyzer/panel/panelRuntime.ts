@@ -215,6 +215,27 @@ function applyDirectRangeChange(
     );
 }
 
+function applyRangeReplacement(
+    state: RangeMachineState,
+    sourceRange: RangeState,
+    constrainedRange: RangeState,
+): RangeMachineState {
+    const normalizedRange = normalizeRangeState(constrainedRange);
+    if (!state.rangeState || !normalizedRange) return state;
+    const currentRange = state.rangeState.range;
+    if (
+        !isSameRange(currentRange.mainRange, sourceRange.mainRange) ||
+        !isSameRange(currentRange.navigatorRange, sourceRange.navigatorRange)
+    ) {
+        return state;
+    }
+    return commitMachineRange(
+        state,
+        { ...state.rangeState, range: normalizedRange },
+        'main',
+    );
+}
+
 function applyNavigatorRange(
     state: RangeMachineState,
     panelInfo: PanelInfo,
@@ -635,6 +656,16 @@ export function usePanelRangeRuntime(
             ),
             setMainRange: (range: AxisRange) => updateActive((current) =>
                 applyDirectRangeChange(current, { type: 'main', range }),
+            ),
+            applyRawLimitRange: (
+                sourceRange: RangeState,
+                constrainedRange: RangeState,
+            ) => updateActive((current) =>
+                applyRangeReplacement(
+                    current,
+                    sourceRange,
+                    constrainedRange,
+                ),
             ),
             setNavigatorRange: (
                 range: AxisRange,

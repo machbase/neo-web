@@ -270,6 +270,7 @@ const DropdownOption = ({ option, index, className, children }: DropdownOptionPr
     return (
         <li
             {...props}
+            data-testid={option.testId}
             className={`${styles['dropdown__option']} ${className ?? ''} ${isSelected ? styles['dropdown__option--selected'] : ''} ${
                 isFocused ? styles['dropdown__option--focused'] : ''
             } ${isDisabled ? styles['dropdown__option--disabled'] : ''}`}

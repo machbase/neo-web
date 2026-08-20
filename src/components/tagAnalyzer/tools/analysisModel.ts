@@ -2,11 +2,14 @@ import type { ChartSeriesData } from '../chart/chartData';
 import type { AxisRange } from '../range/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
 
+export const FFT_MINIMUM_SAMPLE_COUNT = 16;
+
 export type FFTSeriesSummary = {
     series: PanelSeriesDefinition;
     min: string;
     max: string;
     avg: string;
+    sampleTimestamps: number[];
 };
 
 export type FFTSelectionPayload = AxisRange & {
@@ -34,6 +37,7 @@ export function buildSelectionSummaryPayload(
         let totalValue = 0;
         let minimumValue = Infinity;
         let maximumValue = -Infinity;
+        const sampleTimestamps: number[] = [];
         for (const [timestamp, value] of series.data) {
             if (
                 timestamp < selectionRange.start ||
@@ -46,6 +50,7 @@ export function buildSelectionSummaryPayload(
             totalValue += value;
             minimumValue = Math.min(minimumValue, value);
             maximumValue = Math.max(maximumValue, value);
+            sampleTimestamps.push(timestamp);
         }
 
         if (valueCount === 0) return [];
@@ -55,6 +60,7 @@ export function buildSelectionSummaryPayload(
             min: minimumValue.toFixed(5),
             max: maximumValue.toFixed(5),
             avg: (totalValue / valueCount).toFixed(5),
+            sampleTimestamps,
         }];
     });
 

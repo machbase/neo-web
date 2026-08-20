@@ -1,19 +1,23 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import {
+    expect,
+    type Locator,
+    type Page,
+    type Response,
+} from '@playwright/test';
 
 type CreateLoadedPanelOptions = {
     axisKind?: 'numeric' | 'time';
+    tags?: readonly string[];
     title?: string;
 };
 
 export const TAG_ANALYZER_FIXTURE_SOURCE = {
     numeric: {
         table: 'DISTANCE_SENSOR',
-        search: 'SENSOR_01',
         tag: 'SENSOR_01',
     },
     time: {
         table: 'TAG',
-        search: 'use',
         tag: 'use',
     },
 } as const;
@@ -52,18 +56,27 @@ export async function createLoadedTagAnalyzerPanel(
         .getByRole('option', { name: source.table, exact: true })
         .click();
     await expect(sourceTable).toHaveValue(source.table);
+    await expect(dialog.getByLabel('Time', { exact: true })).not.toHaveValue('');
+    await expect(dialog.getByLabel('Value', { exact: true })).not.toHaveValue('');
 
-    await dialog
-        .getByTestId('tag-analyzer-series-search-input')
-        .fill(source.search);
-    await dialog
-        .getByTestId('tag-analyzer-series-search-button')
-        .click();
-    await dialog
-        .getByTestId(
-            `tag-analyzer-series-option-${encodeURIComponent(source.tag)}`,
-        )
-        .click();
+    for (const [index, tag] of (options.tags ?? [source.tag]).entries()) {
+        await dialog
+            .getByTestId('tag-analyzer-series-search-input')
+            .fill(tag);
+        const tagSearch = waitForTagSearch(page, source.table, tag);
+        await dialog
+            .getByTestId('tag-analyzer-series-search-button')
+            .click();
+        await tagSearch;
+        const tagOption = dialog.getByTestId(
+            `tag-analyzer-series-option-${encodeURIComponent(tag)}`,
+        );
+        await expect(tagOption).toBeVisible();
+        await tagOption.click();
+        await expect(
+            dialog.getByTestId('tag-analyzer-selected-series-count'),
+        ).toContainText(`${index + 1} /`);
+    }
 
     await dialog
         .getByTestId('tag-analyzer-create-panel-apply-button')
@@ -76,6 +89,43 @@ export async function createLoadedTagAnalyzerPanel(
         timeout: 30_000,
     });
     return panel;
+}
+
+function waitForTagSearch(
+    page: Page,
+    table: string,
+    searchText?: string,
+): Promise<void> {
+    const waits = ['ORDER BY', 'COUNT(*)'].map((queryMarker) =>
+        page.waitForResponse((response) =>
+            isTagSearchResponse(
+                response,
+                table,
+                searchText,
+                queryMarker,
+            ),
+        ),
+    );
+    return Promise.all(waits).then(() => undefined);
+}
+
+function isTagSearchResponse(
+    response: Response,
+    table: string,
+    searchText: string | undefined,
+    queryMarker: string,
+): boolean {
+    const requestUrl = new URL(response.url());
+    const sql = requestUrl.searchParams.get('q') ?? '';
+    const escapedSearchText = searchText?.replaceAll("'", "''");
+    const matchesSearch = escapedSearchText === undefined
+        ? !sql.includes(' LIKE ')
+        : sql.includes(`%${escapedSearchText}%`);
+    return response.ok() &&
+        requestUrl.pathname.endsWith('/api/query') &&
+        sql.toUpperCase().includes(`_${table.toUpperCase()}_META`) &&
+        sql.includes(queryMarker) &&
+        matchesSearch;
 }
 
 export async function createEmptyTagAnalyzerPanel(

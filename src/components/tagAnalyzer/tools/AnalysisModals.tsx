@@ -6,7 +6,7 @@ import {
 } from 'react';
 import { Close, LineChart, Play } from '@/assets/icons/Icon';
 import { Spinner } from '@/components/spinner/Spinner';
-import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
+import { Alert, Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import {
     formatAxisPointer,
@@ -26,9 +26,10 @@ import {
 import type { AxisRange } from '../range/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
 import PanelPopover from './PanelPopover';
-import type {
-    FFTSelectionPayload,
-    FFTSeriesSummary,
+import {
+    FFT_MINIMUM_SAMPLE_COUNT,
+    type FFTSelectionPayload,
+    type FFTSeriesSummary,
 } from './analysisModel';
 
 import { fftApi, type FftChartData } from '../api/fftApi';
@@ -45,6 +46,7 @@ const FFT_INTERVAL_OPTIONS = [
 ].map((unit) => ({
     value: unit,
     label: formatTimeUnitShortCode(unit),
+    testId: `tag-analyzer-fft-interval-unit-option-${unit}`,
 }));
 const DEFAULT_FFT_APPLIED_VALUES = {
     minHz: 0,
@@ -92,6 +94,7 @@ function FFTModal({
     const [sIntervalUnit, setIntervalUnit] = useState<TimeUnit>(TimeUnit.Millisecond);
     const [sMinHz, setMinHz] = useState('0');
     const [sMaxHz, setMaxHz] = useState('0');
+    const [sFftWarning, setFftWarning] = useState<string>();
     const sAppliedValuesRef = useRef({ ...DEFAULT_FFT_APPLIED_VALUES });
     const {
         chartData: sChartData,
@@ -108,6 +111,7 @@ function FFTModal({
     const sDropdownOptions = seriesSummaries.map((summary) => ({
         value: summary.series.key,
         label: summary.series.alias || summary.series.sourceTagName,
+        testId: `tag-analyzer-fft-series-option-${encodeURIComponent(summary.series.sourceTagName)}`,
     }));
     const rejectNumeric3dFft = (): boolean => {
         if (!isNumericXAxis) return false;
@@ -130,6 +134,12 @@ function FFTModal({
         isChart2D: boolean,
         values = sAppliedValuesRef.current,
     ): void => {
+        const sWarning = isChart2D
+            ? undefined
+            : getFftIntervalWarning(summary, values.intervalMs);
+        setFftWarning(sWarning);
+        if (sWarning !== undefined) return;
+
         const sArgs = [
             summary.series,
             { start, end },
@@ -166,11 +176,15 @@ function FFTModal({
         const sMinHzValue = parseNonNegativeNumber(sMinHz);
         const sMaxHzValue = parseNonNegativeNumber(sMaxHz);
         if (sMinHzValue === undefined || sMaxHzValue === undefined) {
-            Toast.error('FFT frequencies must be finite, non-negative numbers.');
+            Toast.error('FFT frequencies must be finite, non-negative numbers.', {
+                testId: 'tag-analyzer-fft-frequency-error',
+            });
             return;
         }
         if (sMinHzValue > sMaxHzValue) {
-            Toast.error('Min Hz cannot be greater than Max Hz.');
+            Toast.error('Min Hz cannot be greater than Max Hz.', {
+                testId: 'tag-analyzer-fft-frequency-range-error',
+            });
             return;
         }
 
@@ -180,7 +194,9 @@ function FFTModal({
 
             const sIntervalValue = Number(sInterval);
             if (!Number.isFinite(sIntervalValue) || sIntervalValue <= 0) {
-                Toast.error('FFT interval must be a positive number.');
+                Toast.error('FFT interval must be a positive number.', {
+                    testId: 'tag-analyzer-fft-interval-error',
+                });
                 return;
             }
 
@@ -189,7 +205,9 @@ function FFTModal({
                 sIntervalValue,
             );
             if (!Number.isFinite(sIntervalMs) || sIntervalMs <= 0) {
-                Toast.error('FFT interval is outside the supported range.');
+                Toast.error('FFT interval is outside the supported range.', {
+                    testId: 'tag-analyzer-fft-interval-range-error',
+                });
                 return;
             }
         }
@@ -242,7 +260,7 @@ function FFTModal({
                             placeholder="Select series"
                             fullWidth
                         >
-                            <Dropdown.Trigger />
+                            <Dropdown.Trigger data-testid="tag-analyzer-fft-series" />
                             <Dropdown.Menu>
                                 <Dropdown.List />
                             </Dropdown.Menu>
@@ -270,6 +288,7 @@ function FFTModal({
                                 2D
                             </Button>
                             <Button
+                                data-testid="tag-analyzer-fft-3d"
                                 type="button"
                                 size="sm"
                                 variant="secondary"
@@ -316,6 +335,7 @@ function FFTModal({
                         {!sIsChart2D && (
                             <div className={styles.fftIntervalFields}>
                                 <Input
+                                    data-testid="tag-analyzer-fft-interval"
                                     label="Interval"
                                     labelPosition="top"
                                     type="number"
@@ -338,7 +358,7 @@ function FFTModal({
                                         placeholder="Unit"
                                         fullWidth
                                     >
-                                        <Dropdown.Trigger />
+                                        <Dropdown.Trigger data-testid="tag-analyzer-fft-interval-unit" />
                                         <Dropdown.Menu>
                                             <Dropdown.List />
                                         </Dropdown.Menu>
@@ -347,6 +367,7 @@ function FFTModal({
                             </div>
                         )}
                         <Button
+                            data-testid="tag-analyzer-fft-apply"
                             className={styles.fftApplyButton}
                             type="button"
                             size="sm"
@@ -372,22 +393,43 @@ function FFTModal({
                             <Spinner />
                         </div>
                     )}
-                    {!sIsLoading && sChartData && (
+                    {!sIsLoading && sFftWarning && (
+                        <div
+                            data-testid="tag-analyzer-fft-warning"
+                            className={styles.fftLoading}
+                            role="alert"
+                        >
+                            <Alert
+                                variant="warning"
+                                title="Not enough samples per interval"
+                                message={sFftWarning}
+                            />
+                        </div>
+                    )}
+                    {!sIsLoading && !sFftWarning && sChartData && (
                         <ShowVisualization pData={sChartData} pLoopMode={false} />
                     )}
                 </div>
-                <dl className={styles.fftSelectionSummary}>
+                <dl
+                    data-testid="tag-analyzer-fft-summary"
+                    className={styles.fftSelectionSummary}
+                >
                     {[
                         ['Min', sSelectedInfo.min],
                         ['Max', sSelectedInfo.max],
                         ['Avg', sSelectedInfo.avg],
                     ].map(([label, value]) => (
-                        <div key={label} className={styles.fftSummaryItem}>
+                        <div
+                            key={label}
+                            data-testid={`tag-analyzer-fft-summary-${label.toLowerCase()}`}
+                            className={styles.fftSummaryItem}
+                        >
                             <dt>{label}</dt>
                             <dd>{value}</dd>
                         </div>
                     ))}
                     <div
+                        data-testid="tag-analyzer-fft-summary-range"
                         className={`${styles.fftSummaryItem} ${styles.fftSummaryRange}`}
                     >
                         <dt>Selected range</dt>
@@ -433,7 +475,9 @@ function useFftChartData() {
             sIsLoadingRef.current = false;
             setChartData(null);
             setIsLoading(false);
-            Toast.error('Failed to load FFT chart.');
+            Toast.error('Failed to load FFT chart.', {
+                testId: 'tag-analyzer-fft-load-error',
+            });
         },
     });
 
@@ -460,6 +504,25 @@ function useFftChartData() {
 function parseNonNegativeNumber(value: string): number | undefined {
     const sValue = value.trim() === '' ? 0 : Number(value);
     return Number.isFinite(sValue) && sValue >= 0 ? sValue : undefined;
+}
+
+function getFftIntervalWarning(
+    summary: FFTSeriesSummary,
+    intervalMs: number,
+): string | undefined {
+    if (summary.sampleTimestamps.length < FFT_MINIMUM_SAMPLE_COUNT) {
+        return `3D FFT requires at least ${FFT_MINIMUM_SAMPLE_COUNT} samples in the selected range.`;
+    }
+
+    const sampleCountByBucket = new Map<number, number>();
+    for (const timestamp of summary.sampleTimestamps) {
+        const bucket = Math.trunc(timestamp / intervalMs);
+        const sampleCount = (sampleCountByBucket.get(bucket) ?? 0) + 1;
+        if (sampleCount >= FFT_MINIMUM_SAMPLE_COUNT) return undefined;
+        sampleCountByBucket.set(bucket, sampleCount);
+    }
+
+    return `Every 3D FFT interval contains fewer than ${FFT_MINIMUM_SAMPLE_COUNT} samples. Increase the interval and apply again.`;
 }
 
 const SUMMARY_FIELD_LABELS = ['Name', 'Min', 'Max', 'Avg'] as const;
