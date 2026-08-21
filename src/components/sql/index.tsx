@@ -5,13 +5,13 @@ import CHART from '@/components/chart';
 import { gBoardList, GBoardListType } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getTqlChart } from '@/api/repository/machiot';
-import { SQL_BASE_LIMIT, sqlBasicFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
+import { envDirectiveWarning, SQL_BASE_LIMIT, sqlBasicFormatter, sqlCsvDownloadUrl, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { Button } from '@/design-system/components';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, Save, LuFlipVertical, Play, SaveAs, Download, RowNumberOn, RowNumberOff } from '@/assets/icons/Icon';
 import { FaStop } from 'react-icons/fa';
 import { useAbortController } from '@/hooks/useAbortController';
-import { fixedEncodeURIComponent, isJsonString } from '@/utils/utils';
+import { isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
@@ -46,6 +46,8 @@ const Sql = ({
     const [sSqlResponseData, setSqlResponseData] = useState<any>();
     const [sResultLimit, setResultLimit] = useState<number>(1);
     const [sErrLog, setErrLog] = useState<string | null>(null);
+    // `-- env:` directives the splitter could not apply. Non-blocking: shown next to the result, never instead of it.
+    const [sEnvWarnLog, setEnvWarnLog] = useState<string | null>(null);
     const [sTextField, setTextField] = useState<string>('');
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sShowRowNumber, setShowRowNumber] = useState<boolean>(true);
@@ -122,6 +124,7 @@ const Sql = ({
         setTextField('Processing...');
         setSqlResponseData(undefined);
         setErrLog(null);
+        setEnvWarnLog(null);
         setChartQueryList([]);
         setChartAxisList([]);
         const signal = createSignal();
@@ -158,11 +161,12 @@ const Sql = ({
     const fetchSql = useCallback(
         async (aParsedQuery: STATEMENT_TYPE[], signal: AbortSignal) => {
             setEndRecord(() => false);
+            setEnvWarnLog(envDirectiveWarning(aParsedQuery));
             const sQueryReslutList: any = [];
 
             try {
                 for (const curQuery of aParsedQuery) {
-                    const sQueryResult = await getTqlChart(sqlBasicFormatter(curQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, curQuery.env?.bridge), undefined, signal);
+                    const sQueryResult = await getTqlChart(sqlBasicFormatter(curQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, curQuery.env), undefined, signal);
                     sQueryReslutList.push(sQueryResult);
                     if (!sQueryResult?.data?.success) throw new Error('Query failed');
                 }
@@ -222,7 +226,7 @@ const Sql = ({
         const paredQuery = sOldFetchTxt;
         if (!paredQuery?.text) return;
         if (sEndRecord) return;
-        const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery?.text, sResultLimit, sTimeRange, sTimeZone, SQL_BASE_LIMIT, paredQuery?.env?.bridge));
+        const sSqlResult = await getTqlChart(sqlBasicFormatter(paredQuery?.text, sResultLimit, sTimeRange, sTimeZone, SQL_BASE_LIMIT, paredQuery?.env));
         const sParsedSqlResult = JSON.parse(isJsonString(sSqlResult.request.response) ? sSqlResult.request.response : '{}');
         if (sSqlResult.data.data && sParsedSqlResult) {
             setResultLimit(sResultLimit + 1);
@@ -241,16 +245,14 @@ const Sql = ({
 
     const handleDownloadCSV = () => {
         if (sOldFetchTxt && sOldFetchTxt?.text !== '' && sSqlResponseData && !(sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)) {
-            const url = window.location.origin + '/web/api/tql-exec';
-            const token = localStorage.getItem('accessToken');
-            const bridgeText = sOldFetchTxt?.env?.bridge ? encodeURI(`bridge("`) + fixedEncodeURIComponent(sOldFetchTxt?.env?.bridge) + encodeURI(`"),`) : '';
-            const sEncodedText = fixedEncodeURIComponent(sOldFetchTxt.text);
-            const sql =
-                encodeURI(`${url}?$=SQL(`) +
-                bridgeText +
-                encodeURI(`\u0060`) +
-                sEncodedText +
-                encodeURI(`\u0060)\u000ACSV(timeformat("${sTimeRange}"), tz("${sTimeZone}"), httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${token}`);
+            const sql = sqlCsvDownloadUrl({
+                aUrl: window.location.origin + '/web/api/tql-exec',
+                aSql: sOldFetchTxt.text,
+                aTimeFormat: sTimeRange,
+                aTimeZone: sTimeZone,
+                aToken: localStorage.getItem('accessToken'),
+                env: sOldFetchTxt?.env,
+            });
             sqlOriginDataDownloader(sql, DOWNLOADER_EXTENSION.CSV);
         }
     };
@@ -376,29 +378,35 @@ const Sql = ({
                         </Page.Header>
                         <Page.Body>
                             {sSelectedSubTab === 'RESULT' ? (
-                                sErrLog ? (
-                                    <div className="sql-error-body" style={{ padding: '0 1rem' }}>
-                                        {sErrLog}
-                                    </div>
-                                ) : sTextField ? (
-                                    <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                        <span>{sTextField}</span>
-                                        {sProcessing && (
-                                            <div style={{ marginLeft: '4px' }}>
-                                                <Loader width="12px" height="12px" borderRadius="90%" />
+                                <div className="sql-result-body">
+                                    {/* `-- env:` directives the splitter rejected: a banner above the body, so a successful result stays visible. */}
+                                    {sEnvWarnLog ? <div className="sql-env-warn-body">{sEnvWarnLog}</div> : null}
+                                    <div className="sql-result-body-content">
+                                        {sErrLog ? (
+                                            <div className="sql-error-body" style={{ padding: '0 1rem' }}>
+                                                {sErrLog}
                                             </div>
+                                        ) : sTextField ? (
+                                            <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                                <span>{sTextField}</span>
+                                                {sProcessing && (
+                                                    <div style={{ marginLeft: '4px' }}>
+                                                        <Loader width="12px" height="12px" borderRadius="90%" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <RESULT
+                                                pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
+                                                pSqlResponseData={sSqlResponseData}
+                                                pShowRowNumber={sShowRowNumber}
+                                                pExcludeRowNumberFromSelection={true}
+                                                onMoreResult={() => onMoreResult()}
+                                                pHelpTxt={sOldFetchTxt?.text ?? ''}
+                                            />
                                         )}
                                     </div>
-                                ) : (
-                                    <RESULT
-                                        pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
-                                        pSqlResponseData={sSqlResponseData}
-                                        pShowRowNumber={sShowRowNumber}
-                                        pExcludeRowNumberFromSelection={true}
-                                        onMoreResult={() => onMoreResult()}
-                                        pHelpTxt={sOldFetchTxt?.text ?? ''}
-                                    />
-                                )
+                                </div>
                             ) : null}
 
                             <CHART

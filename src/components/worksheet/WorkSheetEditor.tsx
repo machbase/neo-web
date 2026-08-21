@@ -4,7 +4,7 @@ import { getTqlChart } from '@/api/repository/machiot';
 import { useAbortController } from '@/hooks/useAbortController';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
-import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
+import { envDirectiveWarning, sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { CommonTable } from '@/design-system/components';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
@@ -105,6 +105,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : pData.brief === undefined ? 'brief' : 'all');
     const [sSqlLocation, setSqlLocation] = useState<LocationType>(defaultSqlLocation);
     const [sSqlReason, setSqlReason] = useState<string>('');
+    // `-- env:` directives the splitter could not apply. Non-blocking: shown next to the result, never instead of it.
+    const [sEnvWarnLog, setEnvWarnLog] = useState<string>('');
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
@@ -208,6 +210,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setMonacoLanguage('sql');
                 setSql('');
                 setSqlReason('');
+                setEnvWarnLog('');
                 return;
             case 'tql':
                 setSelectedLang('TQL');
@@ -331,6 +334,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
     const changeLanguage = (aLang: ServerLang) => {
         setSqlReason('');
+        setEnvWarnLog('');
         setTqlTextResult('');
         if (aLang === 'SQL') {
             setSelectedLang('SQL');
@@ -355,6 +359,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setProcessing(true);
         setSql(null);
         setSqlReason('');
+        setEnvWarnLog('');
         const signal = createSignal();
 
         try {
@@ -379,11 +384,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     };
     const fetchSql = async (aParsedQuery: STATEMENT_TYPE[], signal: AbortSignal) => {
+        setEnvWarnLog(envDirectiveWarning(aParsedQuery) ?? '');
         const sQueryReslutList: any = [];
         try {
             for (const curQuery of aParsedQuery) {
                 const sQueryResult = await getTqlChart(
-                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, aTimeFormat: pTimeRange, aTimeZone: pTimeZone }),
+                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, use: curQuery.env?.use, aTimeFormat: pTimeRange, aTimeZone: pTimeZone }),
                     undefined,
                     signal
                 );
@@ -522,14 +528,24 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         );
     };
     const SqlResult = () => {
-        return sSql ? (
-            <div className="result-worksheet">
-                <div className="result-worksheet-sql" dangerouslySetInnerHTML={{ __html: sSql }} />
-            </div>
-        ) : (
-            <div className="result-worksheet-total">
-                <span>{sSqlReason}</span>
-            </div>
+        return (
+            <>
+                {/* `-- env:` directives the splitter rejected: rendered above the result so a successful query still shows its data. */}
+                {sEnvWarnLog ? (
+                    <div className="result-worksheet-total" style={{ color: '#fdb532' }}>
+                        <span>{sEnvWarnLog}</span>
+                    </div>
+                ) : null}
+                {sSql ? (
+                    <div className="result-worksheet">
+                        <div className="result-worksheet-sql" dangerouslySetInnerHTML={{ __html: sSql }} />
+                    </div>
+                ) : (
+                    <div className="result-worksheet-total">
+                        <span>{sSqlReason}</span>
+                    </div>
+                )}
+            </>
         );
     };
     const TqlResult = () => {
@@ -642,6 +658,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const handleResultClear = () => {
         setSql('');
         setSqlReason('');
+        setEnvWarnLog('');
         setShellTextResult(undefined);
         setMarkdown('');
         setTqlTextResult('');

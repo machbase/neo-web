@@ -32,13 +32,18 @@ const CHART = ({
         const tmpSize = { width: Math.floor(chartRef.current.clientWidth), height: Math.floor(chartRef.current.clientHeight - sControlPanelHeight) };
         setStyle(tmpSize);
         const sTmpResult = await getTqlChart(
-            sqlBasicChartFormatter(pSqlQueryTxt(), {
-                x: sSelectedXAxis,
-                y: sSelectedYAxis,
-                xIndex: pChartAixsList.indexOf(sSelectedXAxis),
-                yIndex: pChartAixsList.indexOf(sSelectedYAxis),
-                list: pChartAixsList,
-            })
+            sqlBasicChartFormatter(
+                pSqlQueryTxt(),
+                {
+                    x: sSelectedXAxis,
+                    y: sSelectedYAxis,
+                    xIndex: pChartAixsList.indexOf(sSelectedXAxis),
+                    yIndex: pChartAixsList.indexOf(sSelectedYAxis),
+                    list: pChartAixsList,
+                },
+                // `pQueryList` holds the executed statement(s); its `-- env:` directive must reach the chart query too.
+                pQueryList[0]?.env
+            )
         );
         setResult(sTmpResult.data);
         sTmpResult.data &&
