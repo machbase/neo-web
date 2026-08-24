@@ -1,6 +1,6 @@
 import { deepEqual } from '@/utils';
 import { tazFileApi } from '../api/tazFileApi';
-import type { BoardInfo } from '../model';
+import type { BoardInfo } from '../board/boardModel';
 import { isPlainObject } from '../objectGuards';
 import {
     encodeTazBoard,
@@ -10,9 +10,8 @@ import {
 import { parseLoadedTaz } from './tazMigrations';
 import { isRangeExpressionEmpty } from '../range/rangeModel';
 
-type PersistedTazBoard = ReturnType<typeof encodeTazBoard>;
 type TazBoardSnapshotState = Pick<
-    PersistedTazBoard,
+    ReturnType<typeof encodeTazBoard>,
     'boardTimeRange' | 'boardNumericRange' | 'panels'
 >;
 

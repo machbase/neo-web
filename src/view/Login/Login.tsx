@@ -98,6 +98,7 @@ const Login = () => {
                             </Page.DpRow>
                             <Page.Space pHeight="30px" />
                             <Input
+                                data-testid="login-username-input"
                                 ref={sIdRef}
                                 className="input-id"
                                 placeholder="User"
@@ -110,6 +111,7 @@ const Login = () => {
                             />
                             <Page.Space />
                             <PasswordInput
+                                data-testid="login-password-input"
                                 ref={sPasswordRef}
                                 className="input-password"
                                 value={sPassword}
@@ -126,7 +128,7 @@ const Login = () => {
                             <Page.Space />
                             {sIsLogin ? <Alert variant="error" message={sIsLogin} /> : null}
                             <Page.Space />
-                            <Button size="lg" fullWidth variant="primary" type="submit" onKeyDown={keyDownLogin} onClick={login}>
+                            <Button data-testid="login-submit" size="lg" fullWidth variant="primary" type="submit" onKeyDown={keyDownLogin} onClick={login}>
                                 SIGN IN
                             </Button>
                         </Page.ContentBlock>

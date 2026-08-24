@@ -1,75 +1,56 @@
-import { type YAXisComponentOption, type XAXisComponentOption, type LineSeriesOption, type SeriesOption, type MarkAreaComponentOption, type ScatterSeriesOption, type CustomSeriesOption, type CustomSeriesRenderItemAPI, type CustomSeriesRenderItemParams, type CustomSeriesRenderItemReturn, type BrushComponentOption, type DataZoomComponentOption, type EChartsOption, type LegendComponentOption, type TooltipComponentOption, type TooltipComponentFormatterCallbackParams as TopLevelFormatterParams } from 'echarts';
+import { type YAXisComponentOption, type XAXisComponentOption, type LineSeriesOption, type SeriesOption, type BrushComponentOption, type DataZoomComponentOption, type EChartsOption, type LegendComponentOption, type TooltipComponentOption, type TooltipComponentFormatterCallbackParams as TopLevelFormatterParams } from 'echarts';
+import type { AxisRange, RangeState } from '../range/rangeModel';
+import { roundNumericAxisBounds } from '../range/intervalResolver';
+import { isSameRange } from '../range/rangeArithmetic';
+import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
+import { formatCompactNumber } from '../format/numericFormat';
+import { asRecord } from '../objectGuards';
+import { PanelOverlayMode, type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
+import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from './chartData';
+import { getPanelSeriesDisplayColor } from '../seriesModel';
+import { type ValueRange } from '../panel/panelModel';
 import {
-    roundNumericAxisBounds,
-    type AxisRange,
-    type PanelRangeState,
-} from '../range/rangeModel';
-import {
-    getRangeCenter,
-    getRangeWidth,
-    isSameRange,
-    isValidRange,
-} from '../range/rangeArithmetic';
-import { formatNumericAxisLabel } from '../range/format/numericRangeFormat';
-import { formatAxisValue, formatAxisPointerLabel } from '../range/format/rangeFormat';
-import { type RuntimePanelAxes, type RuntimePanelDisplay, type PanelChartRuntime, type EChartBrushPayload, type EChartDataZoomEventPayload, type PanelChartAxisPointerPayload, type PanelChartClickPayload, type PanelChartHighlightPayload, type PanelChartInstance, type PanelChartLegendChangePayload } from './chartRuntime';
-import { type ChartRow, type ChartSeriesData, getChartSeriesEChartsName } from './chartData';
-import { getPanelSeriesDisplayColor, DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../seriesModel';
-import { DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR, type PanelHighlight } from '../model';
-import { buildRenderableSeriesAnnotations, type AnnotationRenderContext, type RenderableSeriesAnnotation, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, getPanelChartRecordValue, parsePanelChartTimestamp, extractBrushRange, extractDataZoomEventRange, selectDataZoomItem } from './chartGeometry';
+    buildChartMarkupSeries,
+    isAnnotationLabelSeries,
+    isHighlightLabelSeries,
+} from '../markup/chartMarkupOptions';
+import { type PanelChartClientPosition, getChartLayoutMetrics, PANEL_GRID_BOTTOM, PANEL_GRID_SIDE, PANEL_NAVIGATOR_GRID_SIDE, PANEL_SLIDER_HEIGHT, PANEL_NAVIGATOR_DATA_X_AXIS_INDEX, PANEL_NAVIGATOR_Y_AXIS_INDEX, convertPanelChartPixelToTimestamp, getPanelChartAxisPointerTimestamp, getPanelChartEventCoordinates, parsePanelChartTimestamp, extractBrushRange, extractDataZoomOptionRange, isSameDataZoomSelection, resolveDataZoomEventItem, selectDataZoomItem } from './chartGeometry';
 import { type MutableRefObject } from 'react';
-import { PanelOverlayMode } from '../panel/panelInteraction';
 
-export type PanelRangeActions = {
-    applyMainZoomRange: (range: AxisRange) => void;
-    applyMainNavigatorSelectionRange: (range: AxisRange) => void;
-    shiftMainRangeLeft: () => void;
-    shiftMainRangeRight: () => void;
-};
-
-export type PanelMarkupHandlers = {
-    onOpenCreateAnnotation: (
-        position: { x: number; y: number },
-        seriesIndex: number | undefined,
-        timestamp: number,
-    ) => void;
-    onActivateHighlightEditor: (
-        position: { x: number; y: number },
-        highlightIndex: number,
-    ) => void;
-    onActivateAnnotationEditor: (
-        position: { x: number; y: number },
-        annotationIndex: number,
-    ) => void;
+export type PanelChartHandlers = {
+    rangeActions: {
+        setMainRange: (range: AxisRange) => void;
+        shiftMainRangeLeft: () => void;
+        shiftMainRangeRight: () => void;
+    };
+    markupHandlers: {
+        onOpenCreateAnnotation: (
+            position: PanelChartClientPosition,
+            seriesIndex: number | undefined,
+            timestamp: number,
+        ) => void;
+        onActivateHighlightEditor: (
+            position: PanelChartClientPosition,
+            highlightIndex: number,
+        ) => void;
+        onActivateAnnotationEditor: (
+            position: PanelChartClientPosition,
+            annotationIndex: number,
+        ) => void;
+    };
+    onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
+    onSelection: (selectionRange: AxisRange) => void;
 };
 
 // Chart option constants
-type RgbColor = { r: number; g: number; b: number };
-
-const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6})$/;
 const SAFE_TOOLTIP_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
 const PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX = 1;
-const PANEL_NAVIGATOR_DATA_X_AXIS_INDEX = 2;
 export const PANEL_SLIDER_DATA_ZOOM_ID = 'panel-slider-data-zoom';
-const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
 export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
 export const PANEL_NAVIGATOR_SERIES_ID_PREFIX = 'navigator-series-';
-const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 
 const DEFAULT_NOT_SHOW = { show: false } as const;
-
-function parseHexColor(color: string): RgbColor | undefined {
-    const sRgbHex = HEX_COLOR_PATTERN.exec(color)?.[1];
-
-    return sRgbHex
-        ? {
-              r: Number.parseInt(sRgbHex.slice(0, 2), 16),
-              g: Number.parseInt(sRgbHex.slice(2, 4), 16),
-              b: Number.parseInt(sRgbHex.slice(4, 6), 16),
-          }
-        : undefined;
-}
 
 export function escapeTooltipHtml(value: unknown): string {
     return String(value ?? '')
@@ -87,14 +68,6 @@ export function getTooltipColorStyle(value: unknown): string {
 }
 
 // Axes
-type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
-type AxisSplitLineStyleOption = NonNullable<NonNullable<XAXisComponentOption['splitLine']>['lineStyle']>;
-
-type ResolvedYAxisRange = {
-    min: number | undefined;
-    max: number | undefined;
-};
-
 type YAxisValueMap = {
     left: number[];
     right: number[];
@@ -109,26 +82,34 @@ const PANEL_RIGHT_Y_AXIS_ID = 'panel-right-y-axis';
 const PANEL_NAVIGATOR_Y_AXIS_ID = 'panel-navigator-y-axis';
 const PANEL_MAIN_X_AXIS_INDEX = 0;
 const CHART_AXIS_STYLE = {
-    line: { lineStyle: { color: '#323333' } } satisfies AxisLineStyleOption,
-    splitLine: { color: '#323333', width: 1 } satisfies AxisSplitLineStyleOption,
+    line: { lineStyle: { color: '#323333' } } satisfies NonNullable<XAXisComponentOption['axisLine']>,
+    splitLine: { color: '#323333', width: 1 } satisfies NonNullable<NonNullable<XAXisComponentOption['splitLine']>['lineStyle']>,
     xLabel: { color: '#f8f8f8', fontSize: 10 } satisfies XAXisComponentOption['axisLabel'],
     yLabel: {
         color: '#afb5bc',
         fontSize: 10,
-        formatter: (value: number) => formatNumericAxisLabel(value),
+        formatter: (value: number) => formatCompactNumber(value),
     } satisfies YAXisComponentOption['axisLabel'],
 };
 
 const HIDDEN_AXIS_PART = {
-    axisLine: { show: false },
-    axisTick: { show: false },
-    axisLabel: { show: false },
-    splitLine: { show: false },
-    axisPointer: {
-        show: false,
-        label: { show: false },
-    },
+    axisLine: DEFAULT_NOT_SHOW,
+    axisTick: DEFAULT_NOT_SHOW,
+    axisLabel: DEFAULT_NOT_SHOW,
+    splitLine: DEFAULT_NOT_SHOW,
+    axisPointer: { show: false, label: DEFAULT_NOT_SHOW },
 } as const;
+
+function includeAxisValue(
+    axisBounds: number[],
+    value: number,
+    zeroBase = false,
+): void {
+    const sMin = zeroBase ? Math.min(value, 0) : value;
+    const sMax = zeroBase ? Math.max(value, 0) : value;
+    axisBounds[0] = Math.min(axisBounds[0] ?? sMin, sMin);
+    axisBounds[1] = Math.max(axisBounds[1] ?? sMax, sMax);
+}
 
 function updateAxisBounds(
     axisBounds: number[],
@@ -141,28 +122,21 @@ function updateAxisBounds(
             value === null ||
             (visibleRange &&
                 !(
-                    timestamp >= visibleRange.startTime &&
-                    timestamp <= visibleRange.endTime
+                    timestamp >= visibleRange.start &&
+                    timestamp <= visibleRange.end
                 ))
         ) {
             continue;
         }
 
-        const sMin = zeroBase ? Math.min(value, 0) : value;
-        const sMax = zeroBase ? Math.max(value, 0) : value;
-        if (axisBounds[0] === undefined || axisBounds[0] > sMin) {
-            axisBounds[0] = sMin;
-        }
-        if (axisBounds[1] === undefined || axisBounds[1] < sMax) {
-            axisBounds[1] = sMax;
-        }
+        includeAxisValue(axisBounds, value, zeroBase);
     }
 }
 
 function resolveChartValueRange(
     chartData: ChartSeriesData[],
     includeZero: boolean,
-): ResolvedYAxisRange {
+): ValueRange {
     const bounds: number[] = [];
     chartData.forEach((series) =>
         updateAxisBounds(bounds, series.data, includeZero),
@@ -188,12 +162,7 @@ function updateAxisBoundsWithThresholds(
             return;
         }
 
-        if (axisBounds[0] === undefined || axisBounds[0] > threshold.value) {
-            axisBounds[0] = threshold.value;
-        }
-        if (axisBounds[1] === undefined || axisBounds[1] < threshold.value) {
-            axisBounds[1] = threshold.value;
-        }
+        includeAxisValue(axisBounds, threshold.value);
     });
 }
 
@@ -239,17 +208,17 @@ function getYAxisValues(
 }
 
 function resolveAxisRange(
-    manualRange: { min: number | undefined; max: number | undefined },
+    manualRange: ValueRange,
     defaultMin: number | undefined,
     defaultMax: number | undefined,
-): ResolvedYAxisRange {
+): ValueRange {
     return manualRange.min === undefined && manualRange.max === undefined
         ? { min: defaultMin, max: defaultMax }
         : { min: manualRange.min, max: manualRange.max };
 }
 
 function buildChartXAxisOption(
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     navigatorRange: AxisRange,
     display: RuntimePanelDisplay,
     axes: RuntimePanelAxes,
@@ -262,24 +231,20 @@ function buildChartXAxisOption(
             id: PANEL_MAIN_X_AXIS_ID,
             type: sAxisType,
             gridIndex: PANEL_MAIN_X_AXIS_INDEX,
-            min: panelRange.startTime,
-            max: panelRange.endTime,
+            min: mainRange.start,
+            max: mainRange.end,
             axisLine: CHART_AXIS_STYLE.line,
             axisTick: CHART_AXIS_STYLE.line,
             axisLabel: {
                 ...CHART_AXIS_STYLE.xLabel,
                 formatter: (xAxisValue: number) =>
-                    formatAxisValue(xAxisValue, panelRange, isNumericXAxis),
+                    formatAxisTick(xAxisValue, mainRange, isNumericXAxis),
             },
             splitLine: {
                 show: display.useZoom && axes.x.showTickline,
                 lineStyle: CHART_AXIS_STYLE.splitLine,
             },
-            axisPointer: {
-                label: {
-                    show: false,
-                },
-            },
+            axisPointer: { label: DEFAULT_NOT_SHOW },
         },
         ...[
             PANEL_NAVIGATOR_X_AXIS_ID,
@@ -288,8 +253,8 @@ function buildChartXAxisOption(
             id,
             type: sAxisType,
             gridIndex: PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
-            min: navigatorRange.startTime,
-            max: navigatorRange.endTime,
+            min: navigatorRange.start,
+            max: navigatorRange.end,
             ...HIDDEN_AXIS_PART,
         })),
     ];
@@ -303,7 +268,7 @@ function buildMainYAxisOption({
     showTickLine,
 }: {
     id: string;
-    axisRange: ResolvedYAxisRange;
+    axisRange: ValueRange;
     position?: 'left' | 'right';
     showAxisLabel?: boolean;
     showTickLine: boolean;
@@ -378,8 +343,6 @@ function buildChartYAxisOption(
 }
 
 // Data series
-type ThresholdMarkLineData = Array<{ yAxis: number }>;
-
 const PANEL_HOVER_SYMBOL_SIZE = 6;
 const PANEL_LEGEND_FADE_LINE_OPACITY = 0.18;
 const PANEL_LEGEND_FADE_ITEM_OPACITY = 0.22;
@@ -409,7 +372,7 @@ export function buildLineSeriesOption({
 
 function buildThresholdMarkLineData(
     axis: RuntimePanelAxes['leftY'],
-): ThresholdMarkLineData {
+) {
     return [
         axis.upperControlLimit.enabled
             ? { yAxis: axis.upperControlLimit.value }
@@ -517,12 +480,10 @@ function buildNavigatorSeriesOption(
             data: series.data,
             animation: animateDataUpdate,
             xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
-            yAxisIndex: 2,
+            yAxisIndex: PANEL_NAVIGATOR_Y_AXIS_INDEX,
             showSymbol: false,
             silent: true,
-            tooltip: {
-                show: false,
-            },
+            tooltip: DEFAULT_NOT_SHOW,
             lineStyle: {
                 width: sIsHoveredSeries ? 2 : 1,
                 color: sSeriesColor,
@@ -540,551 +501,6 @@ function buildNavigatorSeriesOption(
     });
 }
 
-// Highlights
-type HighlightAreaPoint = {
-    name?: string;
-    xAxis: number;
-    itemStyle?: {
-        color: string;
-        borderColor?: string;
-        borderType?: 'solid';
-        borderWidth?: number;
-    };
-};
-
-type HighlightAreaData = Array<[HighlightAreaPoint, HighlightAreaPoint]>;
-
-type HighlightLabelData = Array<{
-    name: string;
-    value: [number, number];
-    highlightIndex: number;
-    label: {
-        color: string;
-    };
-}>;
-
-type HighlightOverlayTarget = 'main' | 'navigator';
-
-const HIGHLIGHT_OUTLINE_WIDTH = 1;
-const NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID = 'navigator-highlight-overlay';
-const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
-
-const HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION: LineSeriesOption = {
-    id: 'highlight-overlay',
-    type: 'line',
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    data: [],
-    symbol: 'none',
-    showSymbol: false,
-    silent: true,
-    animation: false,
-    legendHoverLink: false,
-    lineStyle: { width: 0, opacity: 0 },
-    itemStyle: { opacity: 0 },
-    tooltip: DEFAULT_NOT_SHOW,
-    z: 1,
-    emphasis: { disabled: true },
-};
-
-const HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION: MarkAreaComponentOption = {
-    silent: true,
-    itemStyle: { color: 'rgba(253, 181, 50, 0.16)' },
-    label: {
-        ...DEFAULT_NOT_SHOW,
-        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-        fontSize: 10,
-    },
-};
-
-const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
-    id: HIGHLIGHT_LABEL_SERIES_ID,
-    type: 'scatter',
-    xAxisIndex: 0,
-    yAxisIndex: 0,
-    symbol: 'circle',
-    symbolSize: 0,
-    animation: false,
-    legendHoverLink: false,
-    itemStyle: {
-        color: TRANSPARENT_COLOR,
-        borderColor: TRANSPARENT_COLOR,
-    },
-    label: {
-        show: true,
-        position: 'inside',
-        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-        fontSize: 10,
-        fontWeight: 600,
-        formatter: '{b}',
-        padding: 0,
-    },
-    emphasis: { scale: false },
-    tooltip: DEFAULT_NOT_SHOW,
-    z: 3,
-};
-
-function isRenderableHighlight(highlight: PanelHighlight): boolean {
-    return isValidRange(highlight.timeRange);
-}
-
-function getHighlightAreaData(
-    highlights: PanelHighlight[],
-    includeName: boolean,
-): HighlightAreaData {
-    return highlights
-        .filter(isRenderableHighlight)
-        .map(
-            (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
-                {
-                    ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
-                    xAxis: highlight.timeRange.startTime,
-                    itemStyle: {
-                        color: createColorWithAlpha(highlight.fillColor, 0.16),
-                        borderColor: createColorWithAlpha(highlight.fillColor, 0.82),
-                        borderType: 'solid',
-                        borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
-                    },
-                },
-                {
-                    xAxis: highlight.timeRange.endTime,
-                },
-            ],
-        );
-}
-
-function getHighlightLabelY(axisMin: number, axisMax: number): number {
-    const sAxisHeight = axisMax - axisMin;
-
-    return (
-        axisMax -
-        (sAxisHeight > 0 ? sAxisHeight * 0.04 : Math.max(Math.abs(axisMax) * 0.04, 1))
-    );
-}
-
-function getHighlightLabelData(
-    highlights: PanelHighlight[],
-    labelY: number,
-): HighlightLabelData {
-    return highlights
-        .flatMap((highlight, highlightIndex) =>
-            isRenderableHighlight(highlight)
-                ? [{
-                      name: highlight.text || 'unnamed',
-                      value: [
-                          getRangeCenter(highlight.timeRange),
-                          labelY,
-                      ] as [number, number],
-                      highlightIndex,
-                      label: {
-                          color: highlight.textColor,
-                      },
-                  }]
-                : [],
-        );
-}
-
-function createColorWithAlpha(color: string, alpha: number): string {
-    const sRgb = parseHexColor(color);
-
-    if (!sRgb) {
-        return color;
-    }
-
-    return `rgba(${sRgb.r}, ${sRgb.g}, ${sRgb.b}, ${alpha})`;
-}
-
-function buildHighlightOverlaySeries(
-    highlights: PanelHighlight[],
-    target: HighlightOverlayTarget,
-): SeriesOption[] {
-    const sIsNavigatorTarget = target === 'navigator';
-    const sHighlightAreas = getHighlightAreaData(highlights, !sIsNavigatorTarget);
-
-    if (sHighlightAreas.length === 0) {
-        return [];
-    }
-
-    return [
-        {
-            ...HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
-            ...(sIsNavigatorTarget
-                ? {
-                      id: NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
-                      xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
-                      yAxisIndex: 2,
-                      z: 0,
-                  }
-                : {}),
-            markArea: {
-                ...HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
-                data: sHighlightAreas,
-            },
-        },
-    ];
-}
-
-function buildHighlightLabelSeries(
-    highlights: PanelHighlight[],
-    primaryYAxis: YAXisComponentOption,
-): SeriesOption[] {
-    const sAxisMin = Number(primaryYAxis.min);
-    const sAxisMax = Number(primaryYAxis.max);
-
-    if (!Number.isFinite(sAxisMin) || !Number.isFinite(sAxisMax)) {
-        return [];
-    }
-
-    const sLabelY = getHighlightLabelY(sAxisMin, sAxisMax);
-    const sLabelData = getHighlightLabelData(highlights, sLabelY);
-
-    if (sLabelData.length === 0) {
-        return [];
-    }
-
-    return [
-        {
-            ...HIGHLIGHT_LABEL_SERIES_STATIC_OPTION,
-            data: sLabelData,
-        },
-    ];
-}
-
-// Annotations
-type AnnotationGuideLineData = Array<{
-    value: [number, number];
-    symbol: 'circle' | 'none';
-    symbolSize?: number;
-    itemStyle?: {
-        color: string;
-        borderColor?: string;
-        borderWidth?: number;
-    };
-    label: {
-        show: false;
-    };
-}>;
-
-type AnnotationLabelData = Array<{
-    name: string;
-    value: [number, number];
-    annotationIndex: number;
-}>;
-
-type CartesianRenderCoordSys = {
-    type: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-};
-
-const ANNOTATION_GUIDE_LINE_OPACITY = 0.9;
-const ANNOTATION_GUIDE_LINE_WIDTH = 1.5;
-const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
-const ANNOTATION_LABEL_BORDER_WIDTH = 1;
-const ANNOTATION_LABEL_CORNER_RADIUS = 3;
-const ANNOTATION_LABEL_FONT_SIZE = 11;
-const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;
-const ANNOTATION_LABEL_TEXT_HORIZONTAL_PADDING = 14;
-const NAVIGATOR_ANNOTATION_LINE_SERIES_ID = 'navigator-annotation-lines';
-
-function buildAnnotationGuideLineData(
-    annotations: RenderableSeriesAnnotation[],
-): AnnotationGuideLineData {
-    return annotations.flatMap((annotation) => [
-        {
-            value: [annotation.anchorTime, annotation.anchorValue],
-            symbol: 'circle',
-            symbolSize: 6,
-            itemStyle: {
-                color: annotation.fillColor,
-                borderColor: createAnnotationBorderColor(annotation.fillColor),
-                borderWidth: ANNOTATION_LABEL_BORDER_WIDTH,
-            },
-            label: { show: false },
-        },
-        {
-            value: [annotation.anchorTime, annotation.labelY],
-            symbol: 'none',
-            label: { show: false },
-        },
-        {
-            value: [Number.NaN, Number.NaN],
-            symbol: 'none',
-            label: { show: false },
-        },
-    ]);
-}
-
-function buildAnnotationLabelData(
-    annotations: RenderableSeriesAnnotation[],
-): AnnotationLabelData {
-    return annotations.map((annotation) => ({
-        name: annotation.text,
-        value: [annotation.anchorTime, annotation.labelY],
-        annotationIndex: annotation.annotationIndex,
-    }));
-}
-
-function buildAnnotationSeriesId(
-    seriesIdPrefix: string,
-    seriesIndex: number,
-    clip: boolean,
-): string {
-    return `${seriesIdPrefix}${seriesIndex}${clip ? '-clipped' : ''}`;
-}
-
-function isCartesianRenderCoordSys(
-    coordSys: CustomSeriesRenderItemParams['coordSys'],
-): coordSys is CartesianRenderCoordSys {
-    return (
-        coordSys.type === 'cartesian2d' &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).x) &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).y) &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).width) &&
-        Number.isFinite((coordSys as CartesianRenderCoordSys).height)
-    );
-}
-
-function clampNumber(value: number, minimum: number, maximum: number): number {
-    return Math.min(maximum, Math.max(minimum, value));
-}
-
-function createAnnotationLabelRenderItem(
-    annotations: RenderableSeriesAnnotation[],
-): NonNullable<CustomSeriesOption['renderItem']> {
-    return (
-        params: CustomSeriesRenderItemParams,
-        api: CustomSeriesRenderItemAPI,
-    ): CustomSeriesRenderItemReturn => {
-        const annotation = annotations[params.dataIndex];
-
-        if (!annotation || !isCartesianRenderCoordSys(params.coordSys)) {
-            return undefined;
-        }
-
-        const xValue = Number(api.value(0));
-        const yValue = Number(api.value(1));
-        const point = api.coord([xValue, yValue]);
-        const centerX = Number(point[0]);
-        const centerY = Number(point[1]);
-
-        if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) {
-            return undefined;
-        }
-
-        const labelWidth = Math.min(annotation.symbolSize[0], params.coordSys.width);
-        const labelHeight = Math.min(annotation.symbolSize[1], params.coordSys.height);
-
-        if (labelWidth <= 0 || labelHeight <= 0) {
-            return undefined;
-        }
-
-        const labelX = clampNumber(
-            centerX - labelWidth / 2,
-            params.coordSys.x,
-            params.coordSys.x + params.coordSys.width - labelWidth,
-        );
-        const labelY = clampNumber(
-            centerY - labelHeight / 2,
-            params.coordSys.y,
-            params.coordSys.y + params.coordSys.height - labelHeight,
-        );
-
-        return {
-            type: 'group',
-            clipPath: {
-                type: 'rect',
-                shape: {
-                    x: params.coordSys.x,
-                    y: params.coordSys.y,
-                    width: params.coordSys.width,
-                    height: params.coordSys.height,
-                },
-            },
-            children: [
-                {
-                    type: 'rect',
-                    shape: {
-                        x: labelX,
-                        y: labelY,
-                        width: labelWidth,
-                        height: labelHeight,
-                        r: ANNOTATION_LABEL_CORNER_RADIUS,
-                    },
-                    style: {
-                        fill: annotation.fillColor,
-                        stroke: createAnnotationBorderColor(annotation.fillColor),
-                        lineWidth: ANNOTATION_LABEL_BORDER_WIDTH,
-                    },
-                },
-                {
-                    type: 'text',
-                    style: {
-                        x: labelX + labelWidth / 2,
-                        y: labelY + labelHeight / 2,
-                        text: annotation.text,
-                        fill: annotation.textColor || ANNOTATION_LABEL_TEXT_COLOR,
-                        font: api.font({
-                            fontSize: ANNOTATION_LABEL_FONT_SIZE,
-                            fontWeight: 600,
-                        }),
-                        align: 'center',
-                        verticalAlign: 'middle',
-                        width: Math.max(
-                            labelWidth - ANNOTATION_LABEL_TEXT_HORIZONTAL_PADDING,
-                            0,
-                        ),
-                        overflow: 'truncate',
-                        lineHeight: 14,
-                    },
-                },
-            ],
-        };
-    };
-}
-
-function createAnnotationSeriesGroup(
-    annotations: RenderableSeriesAnnotation[],
-    seriesPosition: number,
-): SeriesOption[] {
-    const seriesSample = annotations[0];
-    if (!seriesSample) {
-        throw new Error('Cannot create annotation series for an empty annotation group.');
-    }
-
-    const sSharedSeriesOption = {
-        legendHoverLink: false,
-        xAxisIndex: 0,
-        yAxisIndex: seriesSample.yAxisIndex,
-        clip: seriesSample.clip,
-        animation: false,
-        tooltip: DEFAULT_NOT_SHOW,
-    };
-
-    return [
-        {
-            id: buildAnnotationSeriesId(
-                ANNOTATION_GUIDE_SERIES_ID_PREFIX,
-                seriesSample.seriesIndex,
-                seriesSample.clip,
-            ),
-            type: 'line',
-            ...sSharedSeriesOption,
-            silent: true,
-            data: buildAnnotationGuideLineData(annotations),
-            showSymbol: true,
-            symbol: 'none',
-            connectNulls: false,
-            lineStyle: {
-                color: seriesSample.color,
-                width: ANNOTATION_GUIDE_LINE_WIDTH,
-                opacity: ANNOTATION_GUIDE_LINE_OPACITY,
-                type: 'solid',
-            },
-            z: 4 + seriesPosition,
-            emphasis: {
-                disabled: true,
-            },
-        },
-        {
-            id: buildAnnotationSeriesId(
-                ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                seriesSample.seriesIndex,
-                seriesSample.clip,
-            ),
-            type: 'custom',
-            ...sSharedSeriesOption,
-            coordinateSystem: 'cartesian2d',
-            renderItem: createAnnotationLabelRenderItem(annotations),
-            data: buildAnnotationLabelData(annotations),
-            z: 8,
-        },
-    ];
-}
-
-function buildNavigatorAnnotationLineSeries(
-    context: AnnotationRenderContext,
-): SeriesOption[] {
-    const sAnnotationLines = buildRenderableSeriesAnnotations(context).map((annotation) => ({
-        xAxis: annotation.anchorTime,
-        lineStyle: {
-            color: annotation.fillColor,
-            type: 'solid' as const,
-        },
-    }));
-
-    if (sAnnotationLines.length === 0) {
-        return [];
-    }
-
-    return [
-        {
-            id: NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
-            type: 'line',
-            legendHoverLink: false,
-            silent: true,
-            xAxisIndex: PANEL_NAVIGATOR_DATA_X_AXIS_INDEX,
-            yAxisIndex: 2,
-            data: [],
-            symbol: 'none',
-            showSymbol: false,
-            animation: false,
-            tooltip: DEFAULT_NOT_SHOW,
-            lineStyle: { width: 0, opacity: 0 },
-            itemStyle: { opacity: 0 },
-            markLine: {
-                silent: true,
-                symbol: 'none',
-                label: DEFAULT_NOT_SHOW,
-                lineStyle: { width: 2, opacity: 0.95, type: 'solid' },
-                data: sAnnotationLines,
-            },
-            z: 5,
-            emphasis: {
-                disabled: true,
-            },
-        },
-    ];
-}
-
-function createAnnotationBorderColor(fillColor: string): string {
-    const sRgb = parseHexColor(fillColor);
-
-    if (!sRgb) {
-        return 'rgba(255, 255, 255, 0.55)';
-    }
-
-    const sBrightness = (sRgb.r * 299 + sRgb.g * 587 + sRgb.b * 114) / 1000;
-
-    return sBrightness > 180
-        ? 'rgba(22, 22, 22, 0.36)'
-        : 'rgba(255, 255, 255, 0.62)';
-}
-
-function buildSeriesAnnotationSeries(
-    context: AnnotationRenderContext,
-): SeriesOption[] {
-    const annotationsBySeries = new Map<string, RenderableSeriesAnnotation[]>();
-
-    buildRenderableSeriesAnnotations(context).forEach((annotation) => {
-        const sAnnotationGroupKey = `${annotation.seriesIndex}:${annotation.clip}`;
-        const seriesAnnotations = annotationsBySeries.get(sAnnotationGroupKey) ?? [];
-
-        seriesAnnotations.push(annotation);
-        annotationsBySeries.set(sAnnotationGroupKey, seriesAnnotations);
-    });
-
-    return [...annotationsBySeries.values()].flatMap(
-        (seriesAnnotations, seriesPosition) =>
-            createAnnotationSeriesGroup(
-                seriesAnnotations,
-                seriesPosition,
-            ),
-    );
-}
-
 // Frame and tooltip
 type TooltipArrayValue = Array<number | string | undefined>;
 
@@ -1100,11 +516,6 @@ type PanelTooltipParam = Partial<{
     value: unknown;
     color: unknown;
 }>;
-
-type PanelChartFrameOptions = Pick<
-    EChartsOption,
-    'brush' | 'dataZoom' | 'grid' | 'legend' | 'title' | 'toolbox' | 'tooltip'
->;
 
 const LEGEND_TEXT_STYLE = { color: '#e7e8ea', fontSize: 10 } satisfies LegendComponentOption['textStyle'];
 type SeriesDisplayNameMap = Map<string, string>;
@@ -1133,11 +544,11 @@ const PANEL_CHART_BRUSH_OPTION: BrushComponentOption = {
 
 function buildPanelChartFrameOptions(
     chartRuntime: PanelChartRuntime,
-): PanelChartFrameOptions {
+) {
     const { config, data, interaction, ranges, rendering } = chartRuntime;
     const sLayout = getChartLayoutMetrics(config.display.showLegend);
     const sSeriesDisplayNameByEChartsName = new Map(
-        data.mainSeriesData.map((series) => [
+        data.chartData.map((series) => [
             getChartSeriesEChartsName(series),
             series.name,
         ]),
@@ -1170,7 +581,7 @@ function buildPanelChartFrameOptions(
             formatter: (seriesName: string) =>
                 sSeriesDisplayNameByEChartsName.get(seriesName) ?? seriesName,
             selected: Object.fromEntries(
-                data.mainSeriesData.map((series) => {
+                data.chartData.map((series) => {
                     const sEChartsName = getChartSeriesEChartsName(series);
 
                     return [
@@ -1182,12 +593,12 @@ function buildPanelChartFrameOptions(
         },
         tooltip: buildChartTooltipOption(
             rendering.isNumericXAxis,
-            ranges.panelRange,
+            ranges.mainRange,
             sSeriesDisplayNameByEChartsName,
         ),
         dataZoom: buildPanelChartDataZoomOption(
             config.display,
-            ranges.panelRange,
+            ranges.mainRange,
             interaction.isWheelZoomEnabled,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
@@ -1206,10 +617,10 @@ export function buildInsideDataZoomOption(
         type: 'inside',
         xAxisIndex: [xAxisIndex],
         filterMode: 'none',
-        ...(visibleRange && visibleRange.startTime < visibleRange.endTime
+        ...(visibleRange && visibleRange.start < visibleRange.end
             ? {
-                  startValue: visibleRange.startTime,
-                  endValue: visibleRange.endTime,
+                  startValue: visibleRange.start,
+                  endValue: visibleRange.end,
               }
             : {}),
         moveOnMouseMove: false,
@@ -1222,13 +633,13 @@ export function buildInsideDataZoomOption(
 
 function buildPanelChartDataZoomOption(
     display: RuntimePanelDisplay,
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     isWheelZoomEnabled: boolean,
 ): DataZoomComponentOption[] {
-    const sPanelRangeDataZoom = panelRange.startTime < panelRange.endTime
+    const sMainRangeDataZoom = mainRange.start < mainRange.end
         ? {
-              startValue: panelRange.startTime,
-              endValue: panelRange.endTime,
+              startValue: mainRange.start,
+              endValue: mainRange.end,
           }
         : {};
 
@@ -1237,7 +648,7 @@ function buildPanelChartDataZoomOption(
             id: PANEL_INSIDE_DATA_ZOOM_ID,
             ...buildInsideDataZoomOption(
                 PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX,
-                panelRange,
+                mainRange,
                 isWheelZoomEnabled,
                 !display.useZoom,
             ),
@@ -1247,7 +658,7 @@ function buildPanelChartDataZoomOption(
             type: 'slider' as const,
             xAxisIndex: [PANEL_NAVIGATOR_SLIDER_X_AXIS_INDEX],
             filterMode: 'none' as const,
-            ...sPanelRangeDataZoom,
+            ...sMainRangeDataZoom,
             realtime: false,
             left: PANEL_NAVIGATOR_GRID_SIDE,
             right: PANEL_NAVIGATOR_GRID_SIDE,
@@ -1332,7 +743,7 @@ function getMainSeriesTooltipItems(
 function formatChartTooltip(
     tooltipFormatterParams: TopLevelFormatterParams,
     isNumericXAxis: boolean,
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): string {
     const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
@@ -1341,10 +752,10 @@ function formatChartTooltip(
     }
 
     const sFirstValue = getTooltipPrimitiveArrayValue(sMainSeriesItems[0].value);
-    const sTime = formatAxisPointerLabel(
+    const sTime = formatAxisPointer(
         Number(sFirstValue?.[0] ?? sMainSeriesItems[0].axisValue),
         isNumericXAxis,
-        panelRange,
+        mainRange,
     );
 
     return `<div>
@@ -1361,7 +772,7 @@ function formatChartTooltip(
 
 function buildChartTooltipOption(
     isNumericXAxis: boolean,
-    panelRange: AxisRange,
+    mainRange: AxisRange,
     seriesDisplayNameByEChartsName: SeriesDisplayNameMap,
 ): TooltipComponentOption {
     return {
@@ -1377,7 +788,7 @@ function buildChartTooltipOption(
             formatChartTooltip(
                 tooltipFormatterParams,
                 isNumericXAxis,
-                panelRange,
+                mainRange,
                 seriesDisplayNameByEChartsName,
             ),
     };
@@ -1393,10 +804,10 @@ export function buildChartSeriesOption(
         yAxisOption ??
         buildChartYAxisOption(
             config.axes,
-            data.mainSeriesData,
+            data.chartData,
             config.mode.isRaw,
             config.mode.useNormalize,
-            ranges.panelRange,
+            ranges.mainRange,
         );
     const sRenderableHighlights = interaction.draftHighlight
         ? [...config.highlights, interaction.draftHighlight]
@@ -1404,35 +815,32 @@ export function buildChartSeriesOption(
     const sAnnotationContext = {
         annotations: config.annotations,
         seriesDefinitions: config.query.tagSet,
-        chartData: data.mainSeriesData,
+        chartData: data.chartData,
         yAxisOptions: resolvedYAxisOption,
         visibleSeries: interaction.visibleSeries,
     };
+    const sMarkupSeries = buildChartMarkupSeries({
+        highlights: sRenderableHighlights,
+        annotationContext: sAnnotationContext,
+        mainRange: ranges.mainRange,
+        navigatorRange: ranges.navigatorRange,
+    });
 
     return [
-        ...buildHighlightOverlaySeries(sRenderableHighlights, 'main'),
-        ...buildHighlightLabelSeries(sRenderableHighlights, resolvedYAxisOption[0]),
-        ...buildSeriesAnnotationSeries({
-            ...sAnnotationContext,
-            visibleRange: ranges.panelRange,
-        }),
+        ...sMarkupSeries.main,
         ...buildMainSeriesOption(
-            data.mainSeriesData,
+            data.chartData,
             config.display,
             config.axes,
             interaction.hoveredLegendSeries,
             rendering.animateMainDataUpdate,
         ),
         ...buildNavigatorSeriesOption(
-            data.navigatorSeriesData,
+            data.navigatorChartData,
             interaction.hoveredLegendSeries,
             false,
         ),
-        ...buildHighlightOverlaySeries(sRenderableHighlights, 'navigator'),
-        ...buildNavigatorAnnotationLineSeries({
-            ...sAnnotationContext,
-            visibleRange: ranges.navigatorRange,
-        }),
+        ...sMarkupSeries.navigator,
     ];
 }
 
@@ -1449,14 +857,14 @@ const PANEL_CHART_BASE_OPTION: EChartsOption = {
 
 export function buildChartOption(
     chartRuntime: PanelChartRuntime,
-): EChartsOption {
+): EChartsOption & { series: SeriesOption[] } {
     const { config, data, ranges, rendering } = chartRuntime;
     const yAxisOption = buildChartYAxisOption(
         config.axes,
-        data.mainSeriesData,
+        data.chartData,
         config.mode.isRaw,
         config.mode.useNormalize,
-        ranges.panelRange,
+        ranges.mainRange,
     );
 
     return {
@@ -1466,7 +874,7 @@ export function buildChartOption(
             rendering.animateNavigatorDataUpdate,
         ...buildPanelChartFrameOptions(chartRuntime),
         xAxis: buildChartXAxisOption(
-            ranges.panelRange,
+            ranges.mainRange,
             ranges.navigatorRange,
             config.display,
             config.axes,
@@ -1491,8 +899,8 @@ type ChartEvents = {
     click: (params: PanelChartClickPayload) => void;
 };
 
-type BuildChartEventParams = {
-    ranges: PanelRangeState;
+type BuildChartEventParams = PanelChartHandlers & {
+    ranges: RangeState;
     interactionMode: {
         overlayMode: PanelOverlayMode;
         isSelectionMode: boolean;
@@ -1505,17 +913,13 @@ type BuildChartEventParams = {
         latestHoverTimestampRef: MutableRefObject<number | undefined>;
         latestChartClickRef: MutableRefObject<number>;
     };
-    rangeActions: PanelRangeActions;
-    markupHandlers: PanelMarkupHandlers;
-    onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
-    onSelection: (selectionRange: AxisRange) => void;
     legendState: {
         applyLegendHoverState: (
             hoveredLegendSeries: string | undefined,
             force?: boolean,
         ) => void;
-        setVisibleSeries: (visibleSeries: Record<string, boolean>) => void;
-        visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
+        setVisibleSeries: (visibleSeries: ChartSeriesVisibilityMap) => void;
+        visibleSeriesRef: MutableRefObject<ChartSeriesVisibilityMap>;
     };
 };
 
@@ -1529,7 +933,7 @@ export function buildChartEvent({
     onSelection,
     legendState,
 }: BuildChartEventParams): ChartEvents {
-    const { panelRange, navigatorRange } = ranges;
+    const { mainRange, navigatorRange } = ranges;
     const {
         overlayMode,
         isSelectionMode,
@@ -1552,22 +956,28 @@ export function buildChartEvent({
                 sInstance?.getOption?.()?.dataZoom,
                 PANEL_SLIDER_DATA_ZOOM_ID,
             );
-            const sRange = extractDataZoomEventRange(
+            const sDataZoomSelection = resolveDataZoomEventItem(
                 params,
-                panelRange,
-                navigatorRange,
                 PANEL_SLIDER_DATA_ZOOM_ID,
                 sDataZoomState,
+            );
+            const sRange = extractDataZoomOptionRange(
+                sDataZoomSelection,
+                navigatorRange,
             );
 
             if (
                 !sRange ||
-                isSameDataZoomRange(sRange, panelRange, isNumericXAxis)
+                isSameDataZoomSelection(
+                    sDataZoomSelection,
+                    mainRange,
+                    navigatorRange,
+                )
             ) {
                 return;
             }
 
-            rangeActions.applyMainNavigatorSelectionRange(sRange);
+            rangeActions.setMainRange(sRange);
         },
         brushEnd: (params) => {
             const sRange = extractBrushRange(params, isNumericXAxis);
@@ -1581,7 +991,7 @@ export function buildChartEvent({
                 areas: [],
             });
 
-            if (sRange.endTime <= sRange.startTime) {
+            if (sRange.end <= sRange.start) {
                 return;
             }
 
@@ -1592,12 +1002,12 @@ export function buildChartEvent({
 
             if (
                 !isDragZoomEnabled ||
-                isSameRange(sRange, panelRange)
+                isSameRange(sRange, mainRange)
             ) {
                 return;
             }
 
-            rangeActions.applyMainZoomRange(sRange);
+            rangeActions.setMainRange(sRange);
         },
         legendselectchanged: (params) => {
             visibleSeriesRef.current = params.selected ?? {};
@@ -1649,13 +1059,11 @@ export function buildChartEvent({
                 params.seriesId,
                 MAIN_PANEL_SERIES_ID_PREFIX,
             );
-            const sIsAnnotationLabelClick =
-                getSeriesIndexFromSeriesId(
-                    params.seriesId,
-                    ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                ) !== undefined;
+            const sIsAnnotationLabelClick = isAnnotationLabelSeries(
+                params.seriesId,
+            );
             const sAnnotationIndex = parseNonNegativeInteger(
-                getPanelChartRecordValue(params.data, 'annotationIndex'),
+                asRecord(params.data)?.annotationIndex,
             ) ?? (sIsAnnotationLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
 
             if (sIsAnnotationLabelClick && sAnnotationIndex !== undefined) {
@@ -1698,9 +1106,11 @@ export function buildChartEvent({
                 return;
             }
 
-            const sIsHighlightLabelClick = params.seriesId === HIGHLIGHT_LABEL_SERIES_ID;
+            const sIsHighlightLabelClick = isHighlightLabelSeries(
+                params.seriesId,
+            );
             const sHighlightIndex = parseNonNegativeInteger(
-                getPanelChartRecordValue(params.data, 'highlightIndex'),
+                asRecord(params.data)?.highlightIndex,
             ) ?? (sIsHighlightLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
 
             if (
@@ -1715,19 +1125,6 @@ export function buildChartEvent({
             markupHandlers.onActivateHighlightEditor(sPosition, sHighlightIndex);
         },
     };
-}
-
-export function isSameDataZoomRange(
-    left: AxisRange,
-    right: AxisRange,
-    isNumericXAxis: boolean,
-): boolean {
-    const sRangeWidth = Math.abs(getRangeWidth(right));
-    const sTolerance = isNumericXAxis
-        ? Math.max(sRangeWidth * 1e-9, Number.EPSILON)
-        : Math.max(sRangeWidth * 1e-9, 1);
-
-    return isSameRange(left, right, sTolerance);
 }
 
 function isLegendHoverPayload(
@@ -1791,7 +1188,7 @@ function getChartClickTimestamp(
         parsePanelChartTimestamp(payload.value, isNumericXAxis) ??
         parsePanelChartTimestamp(payload.data, isNumericXAxis) ??
         parsePanelChartTimestamp(
-            getPanelChartRecordValue(payload.data, 'value'),
+            asRecord(payload.data)?.value,
             isNumericXAxis,
         ) ??
         parsePanelChartTimestamp(payload.axisValue, isNumericXAxis) ??

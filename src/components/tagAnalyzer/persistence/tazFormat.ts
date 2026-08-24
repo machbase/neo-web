@@ -2,49 +2,56 @@ import { asRecord, isFiniteNumber, isPlainObject } from '../objectGuards';
 import {
     AUTO_VALUE_RANGE,
     clonePanelYAxis,
-    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     DEFAULT_RAW_NAVIGATOR_SAMPLING,
     PANEL_ECHART_TYPE_VALUES,
-    type BoardInfo,
-    type PanelAnnotation,
     type PanelAxes,
     type PanelAxisThreshold,
     type PanelDisplay,
     type PanelEChartType,
-    type PanelHighlight,
     type PanelInfo,
     type PanelSampling,
     type PanelYAxis,
     type ValueRange,
-} from '../model';
+} from '../panel/panelModel';
 import {
-    formatNumericRangeExpression,
-    parseNumericRangeExpression,
-    formatNumericValue,
-} from '../range/format/numericRangeFormat';
-import {
-    isValidTimestampRangeExpression,
-    formatAbsoluteTimeExpression,
-    formatRelativeTimeExpression,
-    parseAbsoluteTimeExpression,
-} from '../range/format/timeRangeFormat';
-import {
-    normalizeStoredTimeUnit,
-    type RangeExpressionInput,
-    type AxisRange,
-    type PanelRangeState,
-    TimeUnit,
-} from '../range/rangeModel';
-import { isValidPanelRangeState } from '../range/rangeArithmetic';
-import {
+    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelAnnotation,
+    type PanelHighlight,
+} from '../markup/markupModel';
+import type { BoardInfo } from '../board/boardModel';
+import {
+    decodePersistedTimeUnit,
+    formatAbsoluteTime,
+    formatNumericExpression,
+    formatNumericValue,
+    formatRelativeTime,
+    isValidTimeExpression,
+    parseAbsoluteTime,
+    parseNumericExpression,
+    decodeAxisRange,
+    encodeAxisRange,
+    type PersistedAxisRange,
+} from './serializeRange';
+import { TimeUnit } from '../range/intervalResolver';
+import {
+    type RangeExpressionInput,
+    type AxisRange,
+    type RangeState,
+} from '../range/rangeModel';
+import {
+    assertCompatiblePanelSeriesList,
     normalizePanelSeriesDefinitions,
     shouldUseNumericPanelRangeInput,
 } from '../seriesModel';
-import { decodePersistedPanelRangeState } from './persistedPanelRange';
+import {
+    decodePersistedPanelRangeState,
+    encodePersistedPanelRangeState,
+    type PersistedPanelRangeState,
+} from './persistedPanelRange';
 
 export enum TazVersion {
     Legacy = 'legacy',
@@ -99,15 +106,15 @@ export function getOutdatedTazFormatWarning(
     return `Loaded older TAZ format (${sDisplayVersion}). Current format is ${TAZ_FORMAT_VERSION}. Save the board to update it.`;
 }
 
-export type PersistedSeriesAnnotationInput = {
+export type PersistedTimedMarkupInput = {
     text: string;
-    timeRange: AxisRange;
+    timeRange: PersistedAxisRange;
     fillColor?: string;
     textColor?: string;
     clip?: boolean;
 };
 
-export type PersistedPanelAnnotationInput = PersistedSeriesAnnotationInput & {
+export type PersistedPanelAnnotationInput = PersistedTimedMarkupInput & {
     seriesKey: string;
 };
 
@@ -136,11 +143,9 @@ export type PersistedPanelSeries = {
     };
 };
 
-type PersistedPanelTimeRangeV210 = {
-    start: string;
-    end: string;
+type PersistedPanelTimeRangeV210 = RangeExpressionInput & {
     useLastViewedRange?: boolean;
-    lastViewedRange?: unknown;
+    lastViewedRange?: PersistedPanelRangeState;
 };
 
 type PersistedPanelInfoV210 = {
@@ -158,25 +163,13 @@ type PersistedPanelInfoV210 = {
     };
     timeRange: PersistedPanelTimeRangeV210;
     axes: PanelAxes;
-    display: {
-        chartType: PanelEChartType;
-        showLegend: boolean;
-        showPoint: boolean;
-        pointRadius: number | undefined;
-        fill: number | undefined;
-        stroke: number | undefined;
-        connectNulls: boolean;
-        useZoom: boolean;
-        pixelsPerTick: {
-            raw: number;
-            calculated: number | undefined;
-            calculatedNavigator: number | undefined;
-        };
-        mainChartSampling: PanelSampling;
-        rawNavigatorSampling: PanelSampling;
+    // Same shape as the runtime PanelDisplay, plus the legacy `raw` tick density
+    // that older readers still expect.
+    display: Omit<PanelDisplay, 'pixelsPerTick'> & {
+        pixelsPerTick: PanelDisplay['pixelsPerTick'] & { raw: number };
     };
-    highlights: PanelHighlight[];
-    annotations: PanelAnnotation[];
+    highlights: PersistedTimedMarkupInput[];
+    annotations: PersistedPanelAnnotationInput[];
 };
 
 type PersistedTazBoardInfoV210 = {
@@ -268,7 +261,7 @@ export function createTimeRangeInputFromStoredValues(
 
 function normalizeStoredTimeRangeExpression(value: string | number): string {
     return typeof value === 'number'
-        ? formatAbsoluteTimeExpression(value)
+        ? formatAbsoluteTime(value)
         : value.trim();
 }
 
@@ -291,7 +284,7 @@ function normalizePersistedTimeExpression(
     }
 
     if (sKind === 'absolute' && typeof sRangeValue.timestamp === 'number') {
-        return formatAbsoluteTimeExpression(sRangeValue.timestamp);
+        return formatAbsoluteTime(sRangeValue.timestamp);
     }
 
     if (sKind === 'now' || sKind === 'last') {
@@ -313,7 +306,7 @@ function formatLegacyAnchoredExpression(
     rangeValue: Record<string, unknown>,
 ): string {
     if (typeof rangeValue.offsetMilliseconds === 'number') {
-        return formatRelativeTimeExpression(
+        return formatRelativeTime(
             anchor,
             Math.max(rangeValue.offsetMilliseconds, 0),
             TimeUnit.Millisecond,
@@ -323,10 +316,10 @@ function formatLegacyAnchoredExpression(
     if (typeof rangeValue.amount === 'number') {
         const sUnit =
             typeof rangeValue.unit === 'string'
-                ? normalizeStoredTimeUnit(rangeValue.unit) ?? TimeUnit.Millisecond
+                ? decodePersistedTimeUnit(rangeValue.unit) ?? TimeUnit.Millisecond
                 : TimeUnit.Millisecond;
 
-        return formatRelativeTimeExpression(anchor, rangeValue.amount, sUnit);
+        return formatRelativeTime(anchor, rangeValue.amount, sUnit);
     }
 
     return anchor;
@@ -370,7 +363,7 @@ function normalizePersistedPanelRangeValue(
     if (typeof value === 'number') {
         return isNumericAxis
             ? formatNumericValue(value)
-            : formatAbsoluteTimeExpression(value);
+            : formatAbsoluteTime(value);
     }
 
     if (typeof value === 'string') {
@@ -395,17 +388,17 @@ function normalizePanelExpressionString(
     }
 
     if (isNumericAxis) {
-        const sParsed = parseNumericRangeExpression(sValue);
+        const sParsed = parseNumericExpression(sValue);
         if (sParsed) {
-            return formatNumericRangeExpression(sParsed);
+            return formatNumericExpression(sParsed);
         }
 
         // A numeric panel could legacy-store an absolute datetime string.
-        const sAbsolute = parseAbsoluteTimeExpression(sValue);
+        const sAbsolute = parseAbsoluteTime(sValue);
         return sAbsolute === undefined ? '' : formatNumericValue(sAbsolute);
     }
 
-    return isValidTimestampRangeExpression(sValue) ? sValue : '';
+    return isValidTimeExpression(sValue) ? sValue : '';
 }
 
 function normalizeLegacyStructuredRangeValue(
@@ -423,17 +416,17 @@ function normalizeLegacyStructuredRangeValue(
         case 'numeric_value':
             return isNumericAxis
                 ? formatNumericValue(sValue)
-                : formatAbsoluteTimeExpression(sValue);
+                : formatAbsoluteTime(sValue);
         case 'timestamp_now':
         case 'timestamp_data_end':
-            return formatRelativeTimeExpression(
+            return formatRelativeTime(
                 sKind === 'timestamp_now' ? 'now' : 'last',
                 Math.abs(sValue),
                 TimeUnit.Millisecond,
             );
         case 'numeric_data_start':
         case 'numeric_data_end':
-            return formatNumericRangeExpression({
+            return formatNumericExpression({
                 anchor: sKind === 'numeric_data_start'
                     ? 'data_start'
                     : 'data_end',
@@ -456,27 +449,21 @@ function normalizeLegacyBoardStyleRangeValue(
         return sExpression ?? '';
     }
 
-    const sAbsolute = parseAbsoluteTimeExpression(sExpression);
+    const sAbsolute = parseAbsoluteTime(sExpression);
     return sAbsolute === undefined ? '' : formatNumericValue(sAbsolute);
 }
 
-type PanelHighlightInput = {
-    text: string;
-    timeRange: AxisRange;
-    fillColor?: string;
-    textColor?: string;
-};
-
 function cloneTimedMarkup(
-    markup: PanelHighlightInput,
+    markup: PersistedTimedMarkupInput,
     defaults: { fillColor: string; textColor: string },
-) {
+    timeRange: AxisRange = {
+        start: markup.timeRange.startTime,
+        end: markup.timeRange.endTime,
+    },
+): PanelHighlight {
     return {
         text: markup.text,
-        timeRange: {
-            startTime: markup.timeRange.startTime,
-            endTime: markup.timeRange.endTime,
-        },
+        timeRange,
         fillColor: markup.fillColor ?? defaults.fillColor,
         textColor: markup.textColor ?? defaults.textColor,
     };
@@ -486,7 +473,7 @@ export function cloneSeriesAnnotations(
     annotations: unknown,
 ): Omit<PanelAnnotation, 'seriesKey'>[] {
     const sAnnotations = Array.isArray(annotations)
-        ? annotations as PersistedSeriesAnnotationInput[]
+        ? annotations as PersistedTimedMarkupInput[]
         : [];
     return sAnnotations.map((annotation) => ({
         ...cloneTimedMarkup(annotation, {
@@ -498,14 +485,21 @@ export function cloneSeriesAnnotations(
 }
 
 export function clonePanelHighlights(
-    highlights: PanelHighlightInput[] | undefined,
+    highlights: PersistedTimedMarkupInput[] | undefined,
 ): PanelHighlight[] {
-    return (highlights ?? []).map((highlight) =>
-        cloneTimedMarkup(highlight, {
-            fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-            textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-        }),
-    );
+    return (highlights ?? []).flatMap((highlight) => {
+        const sTimeRange = decodeAxisRange(highlight.timeRange);
+        return sTimeRange
+            ? [cloneTimedMarkup(
+                  highlight,
+                  {
+                      fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+                      textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+                  },
+                  sTimeRange,
+              )]
+            : [];
+    });
 }
 
 export function clonePanelAnnotations(
@@ -527,10 +521,31 @@ export function clonePanelAnnotations(
     }));
 }
 
+function encodeTimedMarkup(
+    markup: PanelHighlight,
+): PersistedTimedMarkupInput {
+    return {
+        text: markup.text,
+        timeRange: encodeAxisRange(markup.timeRange),
+        fillColor: markup.fillColor,
+        textColor: markup.textColor,
+    };
+}
+
+function encodePanelAnnotation(
+    annotation: PanelAnnotation,
+): PersistedPanelAnnotationInput {
+    return {
+        ...encodeTimedMarkup(annotation),
+        seriesKey: annotation.seriesKey,
+        clip: annotation.clip,
+    };
+}
+
 const INVALID_AXIS_RANGE_MESSAGE =
     'Invalid TagAnalyzer .taz v2.1 panel axis range structure.';
 
-export function isPersistedPanelInfoV210(
+function isPersistedPanelInfoV210(
     panelInfo: unknown,
 ): panelInfo is PersistedPanelInfoV210 {
     if (!isPlainObject(panelInfo)) return false;
@@ -552,12 +567,17 @@ export function isPersistedPanelInfoV210(
 }
 
 export function parseLoadedPanelTazVer210(
-    panelInfo: PersistedPanelInfoV210,
+    panelInfo: unknown,
 ): PanelInfo {
+    if (!isPersistedPanelInfoV210(panelInfo)) {
+        throw new Error('Invalid TagAnalyzer .taz v2.1 panel structure.');
+    }
+
     const sTagSet = normalizePanelSeriesDefinitions(panelInfo.query.tagSet);
     if (!sTagSet) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel series structure.');
     }
+    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz v2.1 panel');
 
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.timeRange,
@@ -566,7 +586,7 @@ export function parseLoadedPanelTazVer210(
     if (!sRangeInput) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel timeRange structure.');
     }
-    const lastViewedRange: PanelRangeState | undefined =
+    const lastViewedRange: RangeState | undefined =
         decodePersistedPanelRangeState(panelInfo.timeRange.lastViewedRange);
     assertPanelMarkupList(panelInfo.highlights, false);
     assertPanelMarkupList(panelInfo.annotations, true);
@@ -577,9 +597,7 @@ export function parseLoadedPanelTazVer210(
         isOverlapSelected: false,
         query: {
             tagSet: sTagSet,
-            intervalType: normalizeStoredTimeUnit(
-                panelInfo.query.intervalType ?? '',
-            ),
+            intervalType: decodePersistedTimeUnit(panelInfo.query.intervalType),
         },
         mode: {
             isRaw: panelInfo.mode.isRaw,
@@ -589,9 +607,7 @@ export function parseLoadedPanelTazVer210(
         time: {
             rangeInput: sRangeInput,
             useLastViewedRange: panelInfo.timeRange.useLastViewedRange ?? false,
-            lastViewedRange: isValidPanelRangeState(lastViewedRange)
-                ? lastViewedRange
-                : undefined,
+            lastViewedRange,
         },
         axes: parsePersistedAxes(panelInfo.axes),
         display: parsePersistedDisplay(panelInfo.display),
@@ -713,7 +729,7 @@ function parseSampling(
         sSampling.sampleCount,
         `${path}.sampleCount`,
     );
-    if (sEnabled && sSampleCount === undefined) {
+    if (sEnabled && (sSampleCount === undefined || sSampleCount <= 0)) {
         throwInvalidPanelValue(`${path}.sampleCount`);
     }
 
@@ -728,10 +744,14 @@ function assertPanelMarkupList(value: unknown, requiresSeriesKey: boolean): void
     if (!Array.isArray(value) || !value.every((item) => {
         if (!isPlainObject(item) || !isPlainObject(item.timeRange)) return false;
 
+        const sHasValidTimeRange = requiresSeriesKey
+            ? isFiniteNumber(item.timeRange.startTime) &&
+                isFiniteNumber(item.timeRange.endTime) &&
+                item.timeRange.endTime >= item.timeRange.startTime
+            : decodeAxisRange(item.timeRange) !== undefined;
         return (
             typeof item.text === 'string' &&
-            isFiniteNumber(item.timeRange.startTime) &&
-            isFiniteNumber(item.timeRange.endTime) &&
+            sHasValidTimeRange &&
             (!requiresSeriesKey || typeof item.seriesKey === 'string') &&
             (item.fillColor === undefined || typeof item.fillColor === 'string') &&
             (item.textColor === undefined || typeof item.textColor === 'string') &&
@@ -808,7 +828,11 @@ function mapPanelToPersistedTaz(
         timeRange: {
             ...panelInfo.time.rangeInput,
             useLastViewedRange: panelInfo.time.useLastViewedRange,
-            lastViewedRange: panelInfo.time.lastViewedRange,
+            lastViewedRange: panelInfo.time.lastViewedRange
+                ? encodePersistedPanelRangeState(
+                      panelInfo.time.lastViewedRange,
+                  )
+                : undefined,
         },
         axes: {
             x: { ...panelInfo.axes.x },
@@ -824,7 +848,7 @@ function mapPanelToPersistedTaz(
             mainChartSampling: { ...panelInfo.display.mainChartSampling },
             rawNavigatorSampling: { ...panelInfo.display.rawNavigatorSampling },
         },
-        highlights: clonePanelHighlights(panelInfo.highlights),
-        annotations: clonePanelAnnotations(panelInfo.annotations),
+        highlights: panelInfo.highlights.map(encodeTimedMarkup),
+        annotations: panelInfo.annotations.map(encodePanelAnnotation),
     };
 }

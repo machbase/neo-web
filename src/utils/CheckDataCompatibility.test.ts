@@ -3,7 +3,7 @@ import {
     TAZ_FORMAT_VERSION,
     TazVersion,
 } from '@/components/tagAnalyzer/persistence/tazFormat';
-import type { PanelInfo } from '@/components/tagAnalyzer/model';
+import type { PanelInfo } from '@/components/tagAnalyzer/panel/panelModel';
 import { isBoardSaved } from './boardSaveStatus';
 
 

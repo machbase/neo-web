@@ -9,12 +9,12 @@ import {
 import { useState } from 'react';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Dropdown, Input, Page, Toast } from '@/design-system/components';
-import { formatAxisRange } from '../range/format/rangeFormat';
+import { formatAxisRange } from '../format/axisFormat';
 import {
     getTimeUnitMilliseconds,
-    type AxisRange,
     TimeUnit,
-} from '../range/rangeModel';
+} from '../range/intervalResolver';
+import type { AxisRange } from '../range/rangeModel';
 import {
     buildOverlapChartOption,
     formatOverlapElapsedDurationLabel,
@@ -69,6 +69,7 @@ export default function OverlapModal({
 
     return (
         <Modal.Root
+            data-testid="tag-analyzer-overlap-dialog"
             isOpen={true}
             onClose={onClose}
             size="lg"
@@ -79,11 +80,12 @@ export default function OverlapModal({
                     <MdOutlineStackedLineChart size={16} />
                     <span>Overlap Chart</span>
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="tag-analyzer-overlap-close" />
             </Modal.Header>
             <Modal.Body>
                 <Page.ContentBlock pHoverNone>
                     <Button
+                        data-testid="tag-analyzer-overlap-refresh"
                         variant="secondary"
                         size="xsm"
                         icon={<Refresh size={12} />}
@@ -93,25 +95,33 @@ export default function OverlapModal({
                         toolTipContent="Refresh data"
                         aria-label="Refresh data"
                     />
-                    {sIsLoadingOverlapData ? (
-                        <Page.ContentText pContent="Loading overlap data..." />
-                    ) : sOverlapLoadError ? (
-                        <Page.ContentText pContent={sOverlapLoadError} />
-                    ) : !sCanRenderChart ? (
-                        <Page.ContentText pContent="No overlap data." />
-                    ) : (
-                        <ReactECharts
-                            option={sChartOption}
-                            notMerge
-                            lazyUpdate
-                            style={{ width: '100%', height: 300 }}
-                            opts={{ renderer: 'canvas' }}
-                        />
-                    )}
+                    <div
+                        data-testid="tag-analyzer-overlap-chart"
+                        role="region"
+                        aria-label="Overlap chart"
+                        aria-busy={sIsLoadingOverlapData}
+                    >
+                        {sIsLoadingOverlapData ? (
+                            <Page.ContentText pContent="Loading overlap data..." />
+                        ) : sOverlapLoadError ? (
+                            <Page.ContentText pContent={sOverlapLoadError} />
+                        ) : !sCanRenderChart ? (
+                            <Page.ContentText pContent="No overlap data." />
+                        ) : (
+                            <ReactECharts
+                                data-testid="viewport-surface"
+                                option={sChartOption}
+                                notMerge
+                                lazyUpdate
+                                style={{ width: '100%', height: 300 }}
+                                opts={{ renderer: 'canvas' }}
+                            />
+                        )}
+                    </div>
                     <div className="overlap-modal__shift-list">
                         {sSeriesGroups.map((seriesGroup) => (
                             <OverlapPanelRow
-                                key={seriesGroup.panelInfo.key}
+                                key={seriesGroup.panelKey}
                                 seriesGroup={seriesGroup}
                                 isNumericXAxis={isNumericXAxis}
                                 onShiftRange={shiftPanelRange}
@@ -156,17 +166,23 @@ function OverlapPanelRow({
             Toast.error(OVERLAP_SHIFT_ERROR_MESSAGE, undefined);
             return;
         }
-        onShiftRange(seriesGroup.panelInfo.key, delta);
+        onShiftRange(seriesGroup.panelKey, delta);
     }
 
     return (
-        <div className="overlap-modal__shift-row">
+        <div
+            className="overlap-modal__shift-row"
+            data-testid={`tag-analyzer-overlap-panel-${encodeURIComponent(seriesGroup.panelKey)}`}
+        >
             <div className="overlap-modal__shift-text">
                 <strong className="overlap-modal__shift-title">
                     {seriesGroup.name}
                 </strong>
                 <span className="overlap-modal__shift-label">Original</span>
-                <span className="overlap-modal__shift-value">
+                <span
+                    className="overlap-modal__shift-value"
+                    data-testid="original-range"
+                >
                     {formatOverlapRange(
                         seriesGroup.sourceRange,
                         isNumericXAxis,
@@ -174,12 +190,16 @@ function OverlapPanelRow({
                     )}
                 </span>
                 <span className="overlap-modal__shift-label">Altered</span>
-                <span className="overlap-modal__shift-value">
+                <span
+                    className="overlap-modal__shift-value"
+                    data-testid="altered-range"
+                >
                     {formatOverlapRange(alteredRange, isNumericXAxis, true)}
                 </span>
             </div>
             <div className="overlap-modal__shift-controls">
                 <Button
+                    data-testid="shift-left"
                     variant="secondary"
                     size="xsm"
                     icon={<VscChevronLeft size={14} />}
@@ -189,6 +209,7 @@ function OverlapPanelRow({
                     aria-label={`Shift altered range left for ${seriesGroup.name}`}
                 />
                 <Input
+                    data-testid="shift-amount"
                     aria-label={`Shift amount for ${seriesGroup.name}`}
                     type="number"
                     min={0}
@@ -214,6 +235,7 @@ function OverlapPanelRow({
                     </Dropdown.Root>
                 )}
                 <Button
+                    data-testid="shift-right"
                     variant="secondary"
                     size="xsm"
                     icon={<VscChevronRight size={14} />}
@@ -234,8 +256,8 @@ function formatOverlapRange(
 ): string {
     if (useElapsedTime && !isNumericXAxis) {
         return `${formatOverlapElapsedDurationLabel(
-            range.startTime,
-        )} ~ ${formatOverlapElapsedDurationLabel(range.endTime)}`;
+            range.start,
+        )} ~ ${formatOverlapElapsedDurationLabel(range.end)}`;
     }
 
     const sFormattedRange = formatAxisRange(range, isNumericXAxis);

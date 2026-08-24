@@ -23,10 +23,16 @@ import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { Modal } from '@/design-system/components';
+import type { ReactNode } from 'react';
 import './Board.scss';
+
+function iconPair(first: ReactNode, second: ReactNode) {
+    return <span className="taz-help-modal__icon-pair">{first}{second}</span>;
+}
 
 const HELP_SECTIONS = [
     {
+        id: 'board-header',
         title: 'Board Header',
         icon: <Calendar size={17} />,
         items: [
@@ -54,12 +60,7 @@ const HELP_SECTIONS = [
             {
                 title: 'Save / Save as',
                 description: 'Saves the board to the current or a new TAZ file.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <Save size={15} />
-                        <SaveAs size={15} />
-                    </span>
-                ),
+                icon: iconPair(<Save size={15} />, <SaveAs size={15} />),
             },
             {
                 title: 'Overlap chart',
@@ -69,6 +70,7 @@ const HELP_SECTIONS = [
         ],
     },
     {
+        id: 'panel-header',
         title: 'Panel Header',
         icon: <CiCircleMore size={18} />,
         items: [
@@ -105,16 +107,12 @@ const HELP_SECTIONS = [
             {
                 title: 'Edit / Delete',
                 description: 'Opens panel editor or deletes this panel.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <GearFill size={15} />
-                        <Delete size={16} />
-                    </span>
-                ),
+                icon: iconPair(<GearFill size={15} />, <Delete size={16} />),
             },
         ],
     },
     {
+        id: 'panel-control',
         title: 'Panel Control',
         icon: <PiSelectionPlusBold size={18} />,
         items: [
@@ -146,17 +144,16 @@ const HELP_SECTIONS = [
         ],
     },
     {
+        id: 'panel-range-controls',
         title: 'Panel Range Controls',
         icon: <MdCenterFocusStrong size={18} />,
         items: [
             {
                 title: 'Zoom in',
                 description: 'Narrows the visible main chart range around its center.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <img alt="" src={ZoomInFour} className="taz-help-modal__zoom-icon" />
-                        <img alt="" src={ZoomInTwo} className="taz-help-modal__zoom-icon" />
-                    </span>
+                icon: iconPair(
+                    <img alt="" src={ZoomInFour} className="taz-help-modal__zoom-icon" />,
+                    <img alt="" src={ZoomInTwo} className="taz-help-modal__zoom-icon" />,
                 ),
             },
             {
@@ -167,21 +164,17 @@ const HELP_SECTIONS = [
             {
                 title: 'Zoom out',
                 description: 'Widens the visible main chart range around its center.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <img alt="" src={ZoomOutTwo} className="taz-help-modal__zoom-icon" />
-                        <img alt="" src={ZoomOutFour} className="taz-help-modal__zoom-icon" />
-                    </span>
+                icon: iconPair(
+                    <img alt="" src={ZoomOutTwo} className="taz-help-modal__zoom-icon" />,
+                    <img alt="" src={ZoomOutFour} className="taz-help-modal__zoom-icon" />,
                 ),
             },
             {
                 title: 'Move navigator',
                 description: 'Moves the navigator window backward or forward.',
-                icon: (
-                    <span className="taz-help-modal__icon-pair">
-                        <VscChevronLeft size={16} />
-                        <VscChevronRight size={16} />
-                    </span>
+                icon: iconPair(
+                    <VscChevronLeft size={16} />,
+                    <VscChevronRight size={16} />,
                 ),
             },
         ],
@@ -199,16 +192,20 @@ export function HelpModal({
             onClose={onClose}
             closeOnEscape
             closeOnOutsideClick
+            data-testid="tag-analyzer-help-dialog"
         >
             <Modal.Header>
                 <Modal.Title>Help</Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="tag-analyzer-help-close-button" />
             </Modal.Header>
             <Modal.Body>
                 <div className="taz-help-modal">
                     {HELP_SECTIONS.map((section) => (
-                        <section key={section.title} className="taz-help-modal__section">
-                            <h3 className="taz-help-modal__section-title">
+                        <section key={section.id} className="taz-help-modal__section">
+                            <h3
+                                className="taz-help-modal__section-title"
+                                data-testid={`tag-analyzer-help-${section.id}-heading`}
+                            >
                                 <span className="taz-help-modal__icon">{section.icon}</span>
                                 {section.title}
                             </h3>

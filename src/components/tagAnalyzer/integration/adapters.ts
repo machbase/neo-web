@@ -4,11 +4,10 @@ import type { TagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
 import { isPlainObject } from '../objectGuards';
 import {
     createDefaultTazBoard,
-    createNewPanelInfo,
     createTazBoardFromTimeRange,
     type BoardInfo,
-    type PanelInfo,
-} from '../model';
+} from '../board/boardModel';
+import { createNewPanelInfo } from '../panel/panelModel';
 import { seriesDataApi } from '../api/seriesDataApi';
 import {
     createPanelSeriesDefinition,
@@ -21,8 +20,10 @@ import {
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
 } from '../seriesModel';
-import { formatNumericValue } from '../range/format/numericRangeFormat';
-import { formatAbsoluteTimeExpression } from '../range/format/timeRangeFormat';
+import {
+    formatAbsoluteTime,
+    formatNumericValue,
+} from '../persistence/serializeRange';
 import type { RangeExpressionInput } from '../range/rangeModel';
 
 type DashboardTagAnalyzerSeries = {
@@ -120,11 +121,7 @@ type BridgeResult =
     | { status: 'error'; reason: string }
     | {
           status: 'ok';
-          board: GBoardListType & {
-              boardTimeRange: RangeExpressionInput;
-              boardNumericRange: RangeExpressionInput;
-              panels: PanelInfo[];
-          };
+          board: GBoardListType & BoardInfo;
       };
 
 type Result<T> = { ok: true; value: T } | { ok: false; reason: string };
@@ -319,7 +316,7 @@ const normalizePayload = (aPayload: unknown): Result<NormalizedPayload> => {
 
 function formatBridgeRangeInputValue(value: string | number): string {
     return typeof value === 'number'
-        ? formatAbsoluteTimeExpression(value)
+        ? formatAbsoluteTime(value)
         : value;
 }
 
@@ -362,7 +359,7 @@ export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<Br
     if (!sPayload.ok) return { status: 'error', reason: sPayload.reason };
     const { title, range, tags, isNumericBase } = sPayload.value;
     // Which axis holds the window, and how its ends are written. `formatNumericValue` for a numeric
-    // base and `formatAbsoluteTimeExpression` for a datetime one — the same pairing
+    // base and `formatAbsoluteTime` for a datetime one — the same pairing
     // `createDefaultTazBoard` makes, because a board opened through this bridge and a board opened
     // from the setup dialog have to be the same board.
     const sRangeInput: RangeExpressionInput = resolveBridgeRangeInput(range, isNumericBase);

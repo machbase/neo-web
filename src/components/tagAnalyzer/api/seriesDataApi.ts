@@ -19,12 +19,10 @@ import {
 import {
     getIntervalMs,
     type IntervalOption,
-    type AxisRange,
-} from '../range/rangeModel';
-import {
-    getCoveringRange,
-    isValidRange,
-} from '../range/rangeArithmetic';
+} from '../range/intervalResolver';
+import { createNonEmptyAxisRange } from '../range/rangeBuilder';
+import type { AxisRange } from '../range/rangeModel';
+import { getEnclosingRange } from '../range/rangeArithmetic';
 import {
     getUnknownErrorMessage,
     parseQueryResponse,
@@ -48,8 +46,6 @@ const MALFORMED_CHART_DATA_MESSAGE: string =
     'Chart data response contained malformed rows.';
 const CHART_DATA_REQUEST_FAILED_MESSAGE: string =
     'Chart data request failed.';
-const inFlightChartSqlRequests: Map<string, Promise<SeriesDataRow[]>> =
-    new Map();
 
 function parseChartQueryResponse(apiResponse: unknown): SeriesDataRow[] {
     const response: QueryResponse = parseQueryResponse(
@@ -85,35 +81,7 @@ async function fetchChartRows(
     querySql: string,
     signal?: AbortSignal,
 ): Promise<SeriesDataRow[]> {
-    if (signal) {
-        const rows: SeriesDataRow[] = await requestSqlQuery(querySql, signal)
-            .then(parseChartQueryResponse);
-
-        return cloneChartFetchRows(rows);
-    }
-
-    const existingRequest: Promise<SeriesDataRow[]> | undefined =
-        inFlightChartSqlRequests.get(querySql);
-    if (existingRequest) {
-        return cloneChartFetchRows(await existingRequest);
-    }
-
-    const chartRowsRequest: Promise<SeriesDataRow[]> =
-        requestSqlQuery(querySql).then(parseChartQueryResponse);
-
-    inFlightChartSqlRequests.set(querySql, chartRowsRequest);
-
-    try {
-        return cloneChartFetchRows(await chartRowsRequest);
-    } finally {
-        if (inFlightChartSqlRequests.get(querySql) === chartRowsRequest) {
-            inFlightChartSqlRequests.delete(querySql);
-        }
-    }
-}
-
-function cloneChartFetchRows(rows: SeriesDataRow[]): SeriesDataRow[] {
-    return rows.map((row) => [...row] as SeriesDataRow);
+    return requestSqlQuery(querySql, signal).then(parseChartQueryResponse);
 }
 
 async function fetchChartTimestamps(
@@ -168,61 +136,6 @@ type CalculatedSeriesFetchOptions = {
     signal?: AbortSignal;
 };
 
-async function fetchCalculatedSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    interval: IntervalOption,
-    rowLimit: number,
-    rollupTables: RollupTableMap,
-    options?: CalculatedSeriesFetchOptions,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchPanelSeriesRows(
-        seriesList,
-        timeRange,
-        options?.signal,
-        (series) =>
-            fetchCalculatedSeriesData(
-                series,
-                timeRange,
-                interval,
-                rowLimit,
-                rollupTables,
-                options,
-            ),
-    );
-}
-
-function fetchRawSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    useOrderBy: boolean,
-    signal?: AbortSignal,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchRawSeriesRowsByQuery(
-        seriesList,
-        timeRange,
-        useOrderBy,
-        { kind: 'raw' },
-        signal,
-    );
-}
-
-function fetchSampledRawSeriesRows(
-    seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
-    sampleCount: number,
-    useOrderBy: boolean,
-    signal?: AbortSignal,
-): Promise<PanelDataFetchResult | undefined> {
-    return fetchRawSeriesRowsByQuery(
-        seriesList,
-        timeRange,
-        useOrderBy,
-        { kind: 'sampled', sampleCount },
-        signal,
-    );
-}
-
 async function fetchRawSeriesRowsByQuery(
     seriesList: PanelSeriesDefinition[],
     timeRange: AxisRange,
@@ -232,7 +145,6 @@ async function fetchRawSeriesRowsByQuery(
 ): Promise<PanelDataFetchResult | undefined> {
     return fetchPanelSeriesRows(
         seriesList,
-        timeRange,
         signal,
         async (series) => {
             const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
@@ -254,9 +166,9 @@ async function fetchRawSeriesRowsByQuery(
             const insideRows: SeriesDataRow[] = [];
             const afterRows: SeriesDataRow[] = [];
             for (const row of rows) {
-                if (row[0] < timeRange.startTime) {
+                if (row[0] < timeRange.start) {
                     beforeRows.push(row);
-                } else if (row[0] <= timeRange.endTime) {
+                } else if (row[0] <= timeRange.end) {
                     insideRows.push(row);
                 } else {
                     afterRows.push(row);
@@ -281,11 +193,10 @@ async function fetchRawSeriesRowsByQuery(
 
 async function fetchPanelSeriesRows(
     seriesList: PanelSeriesDefinition[],
-    timeRange: AxisRange,
     signal: AbortSignal | undefined,
     fetchSeries: (series: PanelSeriesDefinition) => Promise<PanelSeriesFetchResult>,
 ): Promise<PanelDataFetchResult | undefined> {
-    if (seriesList.length === 0 || !isValidRange(timeRange)) return undefined;
+    if (seriesList.length === 0) return undefined;
 
     return Promise.all(
         seriesList.map(async (series) => {
@@ -415,7 +326,7 @@ async function fetchCalculatedSeriesEdgeRows(
             tableName,
             series.sourceTagName,
             columns,
-            timeRange.startTime,
+            timeRange.start,
             'before',
             interval,
         ),
@@ -423,7 +334,7 @@ async function fetchCalculatedSeriesEdgeRows(
             tableName,
             series.sourceTagName,
             columns,
-            timeRange.endTime,
+            timeRange.end,
             'after',
             interval,
         ),
@@ -432,13 +343,13 @@ async function fetchCalculatedSeriesEdgeRows(
         await fetchChartTimestamps(locatorSql, signal)
     )
         .map((startTime) => ({
-            startTime,
-            endTime: startTime + intervalMs,
+            start: startTime,
+            end: startTime + intervalMs,
         }))
         .filter(
             (range, index, ranges) =>
                 ranges.findIndex(
-                    (candidate) => candidate.startTime === range.startTime,
+                    (candidate) => candidate.start === range.start,
                 ) === index,
         );
     if (edgeRanges.length === 0) return [];
@@ -463,8 +374,8 @@ async function fetchCalculatedSeriesEdgeRows(
     return edgeRows.filter(([timestamp]) =>
         edgeRanges.some(
             (range) =>
-                timestamp >= range.startTime &&
-                timestamp < range.endTime,
+                timestamp >= range.start &&
+                timestamp < range.end,
         ),
     );
 }
@@ -611,14 +522,14 @@ async function fetchSeriesFullRange(
 
     const ranges: AxisRange[] = (
         await Promise.all(rangeRequests.values())
-    ).filter(isValidRange);
+    ).filter((range): range is AxisRange => range !== undefined);
     if (ranges.length === 0) {
         throw new Error(
             errors[0] ??
                 'Cannot resolve a full range because no series has a usable data range.',
         );
     }
-    return ranges.reduce(getCoveringRange);
+    return ranges.reduce(getEnclosingRange);
 }
 
 async function fetchSingleSeriesRange(
@@ -650,17 +561,11 @@ async function fetchSingleSeriesRange(
     if (start === end) {
         throw new Error('Data range has zero width.');
     }
-    if (start > end) {
-        throw new Error(MALFORMED_RANGE_MESSAGE);
-    }
+    const first = start / divisor;
+    const second = end / divisor;
+    const fullRange = createNonEmptyAxisRange(first, second);
+    if (!fullRange) throw noDataError;
 
-    const fullRange: AxisRange = {
-        startTime: start / divisor,
-        endTime: end / divisor,
-    };
-    if (!isValidRange(fullRange)) {
-        throw noDataError;
-    }
     return fullRange;
 }
 
@@ -694,10 +599,62 @@ function getSeriesFullRangeErrorMessage(
     )}`;
 }
 
+export type SeriesRowsQuery =
+    | {
+          kind: 'raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'sampled-raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          sampleCount: number;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'calculated';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          interval: IntervalOption;
+          rowLimit: number;
+          rollupTables: RollupTableMap;
+          numericBucketWidth?: number;
+      };
+
+function fetchSeriesRows(
+    query: SeriesRowsQuery,
+    { signal }: { signal?: AbortSignal } = {},
+): Promise<PanelDataFetchResult | undefined> {
+    if (query.kind === 'calculated') {
+        return fetchPanelSeriesRows(
+            query.seriesList,
+            signal,
+            (series) =>
+                fetchCalculatedSeriesData(
+                    series,
+                    query.range,
+                    query.interval,
+                    query.rowLimit,
+                    query.rollupTables,
+                    { numericBucketWidth: query.numericBucketWidth, signal },
+                ),
+        );
+    }
+    return fetchRawSeriesRowsByQuery(
+        query.seriesList,
+        query.range,
+        query.useOrderBy,
+        query.kind === 'sampled-raw'
+            ? { kind: 'sampled', sampleCount: query.sampleCount }
+            : { kind: 'raw' },
+        signal,
+    );
+}
+
 export const seriesDataApi = {
     rawRowLimit: RAW_SERIES_ROW_LIMIT,
     fetchSeriesFullRange,
-    fetchCalculatedSeriesRows,
-    fetchRawSeriesRows,
-    fetchSampledRawSeriesRows,
+    fetchSeriesRows,
 };

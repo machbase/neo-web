@@ -1,10 +1,8 @@
 import './Board.scss';
 import {
-    memo,
     useCallback,
     useEffect,
     useMemo,
-    useReducer,
     useRef,
     useState,
 } from 'react';
@@ -24,10 +22,11 @@ import Panel from '../panel/Panel';
 import { RangeModal } from '../range/RangeModal';
 import { HelpModal } from './HelpModal';
 import OverlapModal from '../overlap/OverlapModal';
-import { CreatePanelModal } from '../setup/CreatePanelModal';
-import { SaveAsModal } from './SaveAsModal';
-import type { BoardInfo, PanelInfo } from '../model';
-import type { PanelRangeSourceState } from '../panel/panelRangeSourceState';
+import { CreatePanelModal } from '../panel/CreatePanelModal';
+import { SaveAsModal } from '../save/SaveAsModal';
+import { useBoardSave } from '../save/useBoardSave';
+import type { BoardInfo } from './boardModel';
+import type { PanelInfo } from '../panel/panelModel';
 import {
     getSeriesListAxisKind,
     type RollupTableMap,
@@ -35,50 +34,24 @@ import {
 import {
     isRangeExpressionEmpty,
     type AxisKind,
-    type PanelRangeState,
+    type AxisRange,
+    type RangeState,
     type RangeExpressionInput,
+    type ResolvedRangeState,
 } from '../range/rangeModel';
+import { getEnclosingRange } from '../range/rangeArithmetic';
 
-import {
-    usePanelRangeRuntime,
-    type PanelRangeRuntimeRequests,
-} from '../panel/usePanelRangeRuntime';
+import type { PanelBroadcastRequests } from '../panel/panelRuntime';
 import { useBoardState } from './useBoardState';
 import { useBoardOverlapSelection } from './useBoardOverlapSelection';
-import {
-    isTazBoardSaved,
-    saveTazBoard,
-} from '../persistence/tazDocumentService';
-
-const SAVE_ERROR_MESSAGE = 'Failed to save TAZ file. Please try again.';
-const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
-const FILE_TREE_REFRESH_ERROR_MESSAGE =
-    'TAZ file saved, but file tree refresh failed.';
-
-const EMPTY_BOARD_RANGE: RangeExpressionInput = { start: '', end: '' };
 
 const INITIAL_PANEL_BROADCAST_VERSIONS = {
     boardTimeRange: 0,
     boardNumericRange: 0,
-    globalRange: 0,
     refreshData: 0,
     refreshRange: 0,
     expandFullRange: 0,
 };
-
-type PanelBroadcastVersions =
-    typeof INITIAL_PANEL_BROADCAST_VERSIONS;
-type PanelBroadcastVersionKey = keyof PanelBroadcastVersions;
-
-function incrementPanelBroadcastVersion(
-    versions: PanelBroadcastVersions,
-    key: PanelBroadcastVersionKey,
-): PanelBroadcastVersions {
-    return {
-        ...versions,
-        [key]: versions[key] + 1,
-    };
-}
 
 type BoardProps = {
     info: BoardInfo;
@@ -88,77 +61,6 @@ type BoardProps = {
     rollupTableList: RollupTableMap;
 };
 
-type BoardPanelProps = {
-    panelInfo: PanelInfo;
-    rangeState: PanelRangeSourceState;
-    rangeRequests: PanelRangeRuntimeRequests;
-    isActive: boolean;
-    hasUnsavedBoardChanges: boolean;
-    rollupTableList: RollupTableMap;
-    onPanelRangeStateChange: (
-        panelKey: string,
-        rangeState: PanelRangeSourceState,
-    ) => void;
-    onBroadcastError: (broadcastKey: string, message: string) => void;
-    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetGlobalTimeRange: (globalTimeRange: PanelRangeState) => void;
-    onDeletePanel: (panelKey: string) => void;
-    onToggleOverlap: (panelKey: string) => void;
-};
-
-const BoardPanel = memo(function BoardPanel({
-    panelInfo,
-    rangeState,
-    rangeRequests,
-    isActive,
-    hasUnsavedBoardChanges,
-    rollupTableList,
-    onPanelRangeStateChange,
-    onBroadcastError,
-    onApplyPanelInfo,
-    onSetGlobalTimeRange,
-    onDeletePanel,
-    onToggleOverlap,
-}: BoardPanelProps) {
-    const handleRangeStateChange = useCallback(
-        (nextRangeState: PanelRangeSourceState) =>
-            onPanelRangeStateChange(panelInfo.key, nextRangeState),
-        [onPanelRangeStateChange, panelInfo.key],
-    );
-    const panelRangeRuntime = usePanelRangeRuntime({
-        panelInfo,
-        rangeState,
-        ...rangeRequests,
-        isActive,
-        onRangeStateChange: handleRangeStateChange,
-        onBroadcastError,
-    });
-
-    return (
-        <Page.ContentBlock pHoverNone>
-            <Panel
-                panelInfo={panelInfo}
-                rangeState={rangeState}
-                runtime={{
-                    chartAreaWidth: panelRangeRuntime.chartAreaWidth,
-                    dataRefreshVersion:
-                        panelRangeRuntime.dataRefreshVersion,
-                    isActive,
-                    hasUnsavedBoardChanges,
-                    rollupTableList,
-                }}
-                actions={{
-                    ...panelRangeRuntime.actions,
-                    onApplyPanelInfo,
-                    onSetGlobalTimeRange,
-                    onDeletePanel: () => onDeletePanel(panelInfo.key),
-                    onToggleOverlap: () => onToggleOverlap(panelInfo.key),
-                }}
-            />
-        </Page.ContentBlock>
-    );
-});
-
 export default function Board({
     info,
     isActiveTab,
@@ -167,26 +69,26 @@ export default function Board({
     rollupTableList,
 }: BoardProps) {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
-    const [sBoardRangeModalLastDataTime, setBoardRangeModalLastDataTime] =
-        useState<number | undefined>(undefined);
-    const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<PanelRangeState | undefined>(undefined);
+    const [sBoardRangeModalOpenedAt, setBoardRangeModalOpenedAt] = useState<
+        number | undefined
+    >(undefined);
+    const [sGlobalRangeRequest, setGlobalRangeRequest] = useState<
+        PanelBroadcastRequests['rangeRequests']['global']
+    >();
     const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
-    const [sIsSaveAsModalOpen, setIsSaveAsModalOpen] = useState(false);
     const [sBoardRangeKind, setBoardRangeKind] = useState<AxisKind>(() =>
         getInitialBoardRangeKind(info),
     );
-    const [
-        sPanelBroadcastVersions,
-        incrementBroadcastVersion,
-    ] = useReducer(
-        incrementPanelBroadcastVersion,
+    const [sPanelBroadcastVersions, setPanelBroadcastVersions] = useState(
         INITIAL_PANEL_BROADCAST_VERSIONS,
     );
-    const sSaveRequestGenerationRef = useRef(0);
+    const incrementBroadcastVersion = useCallback((
+        key: keyof typeof INITIAL_PANEL_BROADCAST_VERSIONS,
+    ): void => setPanelBroadcastVersions((versions) => ({
+        ...versions,
+        [key]: versions[key] + 1,
+    })), []);
     const sReportedBroadcastErrorsRef = useRef(new Set<string>());
-    const sActiveBoardIdRef = useRef(info.id);
-    sActiveBoardIdRef.current = info.id;
     const {
         state: sBoardState,
         infoForSave: sBoardInfoForSave,
@@ -214,28 +116,36 @@ export default function Board({
         sIsNumericBoardRange
             ? sBoardInfo.boardNumericRange
             : sBoardInfo.boardTimeRange;
+    const sBoardRangeReference =
+        getBoardRangeReference(
+            sPanels,
+            sPanelRanges,
+            sBoardRangeKind,
+        ) ?? createBoardRangeEditorReference(
+            sBoardRangeKind,
+            sBoardRangeModalOpenedAt ?? Date.now(),
+        );
     const sBoardRangeButtonLabel =
         sBoardRangeInput.start.trim() === '' ||
         sBoardRangeInput.end.trim() === ''
             ? 'Board range'
             : `${sIsNumericBoardRange ? 'Numeric' : 'Time'}: ${sBoardRangeInput.start}~${sBoardRangeInput.end}`;
-    const sPanelRangeRequests = useMemo<PanelRangeRuntimeRequests>(
+    const sPanelBroadcastRequests = useMemo<PanelBroadcastRequests>(
         () => ({
-            boardRanges: {
-                time: {
-                    input: sBoardInfo.boardTimeRange,
-                    applyVersion:
-                        sPanelBroadcastVersions.boardTimeRange,
+            rangeRequests: {
+                board: {
+                    time: {
+                        input: sBoardInfo.boardTimeRange,
+                        applyVersion:
+                            sPanelBroadcastVersions.boardTimeRange,
+                    },
+                    numeric: {
+                        input: sBoardInfo.boardNumericRange,
+                        applyVersion:
+                            sPanelBroadcastVersions.boardNumericRange,
+                    },
                 },
-                numeric: {
-                    input: sBoardInfo.boardNumericRange,
-                    applyVersion:
-                        sPanelBroadcastVersions.boardNumericRange,
-                },
-            },
-            globalRangeRequest: {
-                range: sGlobalDataAndNavigatorTime,
-                applyVersion: sPanelBroadcastVersions.globalRange,
+                global: sGlobalRangeRequest,
             },
             commandVersions: {
                 refreshDataVersion:
@@ -249,7 +159,7 @@ export default function Board({
         [
             sBoardInfo.boardNumericRange,
             sBoardInfo.boardTimeRange,
-            sGlobalDataAndNavigatorTime,
+            sGlobalRangeRequest,
             sPanelBroadcastVersions,
         ],
     );
@@ -265,112 +175,22 @@ export default function Board({
         },
         [],
     );
-    const sHasUnsavedChanges = !isTazBoardSaved(sBoardInfoForSave);
-
-    useEffect(() => () => {
-        sSaveRequestGenerationRef.current += 1;
-        sActiveBoardIdRef.current = '';
-    }, []);
-
-    const saveBoard = useCallback(async (
-        destination?: { directoryPath: string; fileName: string },
-    ): Promise<boolean> => {
-        const sBoardToSerialize = sBoardInfoForSave;
-
-        if (!destination && !sBoardToSerialize.path) {
-            setIsSaveAsModalOpen(true);
-            return false;
-        }
-
-        const sRequestGeneration = ++sSaveRequestGenerationRef.current;
-
-        const sBoardToSave: BoardInfo = destination
-            ? {
-                  ...sBoardToSerialize,
-                  path: destination.directoryPath,
-                  name: destination.fileName,
-              }
-            : sBoardToSerialize;
-        const sSavedBoard = await saveTazBoard(sBoardToSave);
-        const sIsCurrentSave =
-            sSaveRequestGenerationRef.current === sRequestGeneration &&
-            sActiveBoardIdRef.current === sBoardToSave.id;
-
-        if (!sSavedBoard) {
-            if (sIsCurrentSave) {
-                Toast.error(SAVE_ERROR_MESSAGE);
-            }
-            return false;
-        }
-
-        if (!sIsCurrentSave) {
-            return false;
-        }
-
-        applySaveResult(sSavedBoard);
-        onSavedBoard(sSavedBoard);
-        Toast.success(SAVE_SUCCESS_MESSAGE);
-
-        if (destination) {
-            try {
-                await onFileSaved(
-                    destination.directoryPath,
-                    destination.fileName,
-                );
-            } catch {
-                Toast.error(FILE_TREE_REFRESH_ERROR_MESSAGE);
-            }
-        }
-
-        return sSaveRequestGenerationRef.current === sRequestGeneration &&
-            sActiveBoardIdRef.current === sBoardToSave.id;
-    }, [
+    const boardSave = useBoardSave({
+        board: sBoardInfoForSave,
+        isActive: isActiveTab,
         applySaveResult,
-        onFileSaved,
         onSavedBoard,
-        sBoardInfoForSave,
-    ]);
-
-    const closeSaveAsModal = useCallback(
-        () => setIsSaveAsModalOpen(false),
-        [],
-    );
+        onFileSaved,
+    });
 
     useEffect(() => {
         if (isActiveTab) return;
 
         setIsHelpModalOpen(false);
-        setBoardRangeModalLastDataTime(undefined);
+        setBoardRangeModalOpenedAt(undefined);
         setIsNewPanelModalOpen(false);
-        closeSaveAsModal();
         closeOverlapChart();
-    }, [closeOverlapChart, closeSaveAsModal, isActiveTab]);
-
-    useEffect(() => {
-        if (!isActiveTab) return undefined;
-
-        function handleDocumentSaveShortcut(event: KeyboardEvent): void {
-            if (
-                !(event.ctrlKey || event.metaKey) ||
-                event.key.toLowerCase() !== 's'
-            ) {
-                return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-            event.stopImmediatePropagation();
-            void saveBoard();
-        }
-
-        document.addEventListener('keydown', handleDocumentSaveShortcut, true);
-        return () =>
-            document.removeEventListener(
-                'keydown',
-                handleDocumentSaveShortcut,
-                true,
-            );
-    }, [isActiveTab, saveBoard]);
+    }, [closeOverlapChart, isActiveTab]);
 
     function applyBoardRange(
         rangeKind: AxisKind,
@@ -384,11 +204,15 @@ export default function Board({
         );
     }
 
-    const handleSetGlobalTimeRange = useCallback((
-        globalTimeRange: PanelRangeState,
+    const handleSetGlobalRange = useCallback((
+        axisKind: AxisKind,
+        globalRange: RangeState,
     ): void => {
-        setGlobalDataAndNavigatorTime(globalTimeRange);
-        incrementBroadcastVersion('globalRange');
+        setGlobalRangeRequest((request) => ({
+            axisKind,
+            range: globalRange,
+            applyVersion: (request?.applyVersion ?? 0) + 1,
+        }));
     }, []);
 
     const sHeaderActions = [
@@ -413,30 +237,35 @@ export default function Board({
         },
         {
             key: 'save',
-            className: sHasUnsavedChanges
+            className: boardSave.hasUnsavedChanges
                 ? 'tag-analyzer-board-header__save-button--unsaved'
                 : undefined,
-            toolTipContent: sHasUnsavedChanges
+            toolTipContent: boardSave.hasUnsavedChanges
                 ? 'Save runtime changes to TAZ'
                 : 'Save',
             icon: <Save size={16} />,
-            onClick: () => void saveBoard(),
+            onClick: () => void boardSave.save(),
         },
         {
             key: 'save-as',
+            'data-testid': 'save-as-button',
             toolTipContent: 'Save as',
+            'aria-label': 'Open Save As',
             icon: <SaveAs size={16} />,
-            onClick: () => setIsSaveAsModalOpen(true),
+            onClick: boardSave.openSaveAs,
         },
         {
             key: 'overlap',
+            'data-testid': 'overlap-button',
             toolTipContent: overlap.compatibilityMessage ?? 'Overlap chart',
+            'aria-label': 'Open overlap chart',
             icon: <MdOutlineStackedLineChart size={16} />,
             onClick: overlap.openOverlapChart,
             disabled: !overlap.canOpenOverlapChart,
         },
         {
             key: 'help',
+            'data-testid': 'help-button',
             toolTipContent: 'help',
             icon: <Help size={16} />,
             onClick: () => setIsHelpModalOpen(true),
@@ -447,19 +276,23 @@ export default function Board({
     return (
         <>
             <Page.Header>
-                <div className="tag-analyzer-board-header">
+                <div
+                    className="tag-analyzer-board-header"
+                    data-testid="board-header"
+                >
                     <Page.Space />
-                    {sHasUnsavedChanges && (
+                    {boardSave.hasUnsavedChanges && (
                         <span className="tag-analyzer-board-header__unsaved-message">
                             Runtime change not saved to TAZ
                         </span>
                     )}
                     <Button.Group className="tag-analyzer-board-header__actions">
                         <Button
+                            data-testid="range-button"
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                                setBoardRangeModalLastDataTime(Date.now())
+                                setBoardRangeModalOpenedAt(Date.now())
                             }
                         >
                             <Calendar style={{ paddingRight: '8px' }} />
@@ -479,24 +312,26 @@ export default function Board({
             </Page.Header>
             <Page.Body>
                 {sPanels.map((sPanelInfo) => (
-                    <BoardPanel
-                        key={sPanelInfo.key}
-                        panelInfo={sPanelInfo}
-                        rangeState={sPanelRanges[sPanelInfo.key]}
-                        rangeRequests={sPanelRangeRequests}
-                        isActive={isActiveTab}
-                        hasUnsavedBoardChanges={sHasUnsavedChanges}
-                        rollupTableList={rollupTableList}
-                        onPanelRangeStateChange={setPanelRange}
-                        onBroadcastError={reportBroadcastError}
-                        onApplyPanelInfo={applyPanelInfo}
-                        onSetGlobalTimeRange={handleSetGlobalTimeRange}
-                        onDeletePanel={removePanel}
-                        onToggleOverlap={overlap.togglePanelOverlap}
-                    />
+                    <Page.ContentBlock key={sPanelInfo.key} pHoverNone>
+                        <Panel
+                            panelInfo={sPanelInfo}
+                            rangeState={sPanelRanges[sPanelInfo.key]}
+                            broadcastRequests={sPanelBroadcastRequests}
+                            isActive={isActiveTab}
+                            hasUnsavedBoardChanges={boardSave.hasUnsavedChanges}
+                            rollupTableList={rollupTableList}
+                            onPanelRangeStateChange={setPanelRange}
+                            onBroadcastError={reportBroadcastError}
+                            onApplyPanelInfo={applyPanelInfo}
+                            onSetGlobalRange={handleSetGlobalRange}
+                            onDeletePanel={removePanel}
+                            onToggleOverlap={overlap.togglePanelOverlap}
+                        />
+                    </Page.ContentBlock>
                 ))}
                 <Page.ContentBlock pHoverNone>
                     <Button
+                        data-testid="create-panel-button"
                         variant="secondary"
                         fullWidth
                         shadow
@@ -520,39 +355,27 @@ export default function Board({
                     onClose={() => setIsHelpModalOpen(false)}
                 />
             )}
-            {sBoardRangeModalLastDataTime !== undefined && (
+            {sBoardRangeModalOpenedAt !== undefined && (
                 <RangeModal
                     key={sBoardRangeKind}
                     title="Board Range"
-                    rangeKindSelector={{
-                        value: sBoardRangeKind,
-                        onChange: setBoardRangeKind,
-                    }}
-                    mode={{
-                        ...(sIsNumericBoardRange
-                            ? { kind: 'numeric-input' as const }
-                            : {
-                                  kind: 'time' as const,
-                                  dataStartTime: 0,
-                                  dataEndTime:
-                                      sBoardRangeModalLastDataTime,
-                              }),
-                        initialRangeInput: sBoardRangeInput,
-                        emptyRange: true,
-                        onApply: (rangeInput: RangeExpressionInput) =>
-                            applyBoardRange(sBoardRangeKind, rangeInput),
-                    }}
-                    onClose={() => setBoardRangeModalLastDataTime(undefined)}
+                    kind={sBoardRangeKind}
+                    initialRangeInput={sBoardRangeInput}
+                    currentRange={sBoardRangeReference.currentRange}
+                    fullRange={sBoardRangeReference.fullRange}
+                    onAxisKindChange={setBoardRangeKind}
+                    onApply={(rangeInput: RangeExpressionInput) =>
+                        applyBoardRange(sBoardRangeKind, rangeInput)
+                    }
+                    onClose={() => setBoardRangeModalOpenedAt(undefined)}
                 />
             )}
-            {isActiveTab && sIsSaveAsModalOpen && (
+            {isActiveTab && boardSave.isSaveAsOpen && (
                 <SaveAsModal
                     initialDirectoryPath={sBoardInfo.path}
                     initialFileName={sBoardInfo.name}
-                    onClose={closeSaveAsModal}
-                    onSaveAs={(directoryPath, fileName) =>
-                        saveBoard({ directoryPath, fileName })
-                    }
+                    onClose={boardSave.closeSaveAs}
+                    onSaveAs={boardSave.saveAs}
                 />
             )}
             {isActiveTab && overlap.openSession && (
@@ -570,10 +393,10 @@ export default function Board({
 }
 
 function getInitialBoardRangeKind(info: BoardInfo): AxisKind {
-    const sTimeRange = info.boardTimeRange ?? EMPTY_BOARD_RANGE;
-    const sNumericRange = info.boardNumericRange ?? EMPTY_BOARD_RANGE;
-
-    if (isRangeExpressionEmpty(sTimeRange) && !isRangeExpressionEmpty(sNumericRange)) {
+    if (
+        isRangeExpressionEmpty(info.boardTimeRange) &&
+        !isRangeExpressionEmpty(info.boardNumericRange)
+    ) {
         return 'numeric';
     }
 
@@ -584,4 +407,43 @@ function getInitialBoardRangeKind(info: BoardInfo): AxisKind {
         !sPanelAxisKinds.includes('time')
         ? 'numeric'
         : 'time';
+}
+
+function getBoardRangeReference(
+    panels: PanelInfo[],
+    panelRanges: Record<string, ResolvedRangeState | undefined>,
+    axisKind: AxisKind,
+): { currentRange: AxisRange; fullRange: AxisRange } | undefined {
+    let currentRange: AxisRange | undefined;
+    let fullRange: AxisRange | undefined;
+
+    for (const panel of panels) {
+        if (getSeriesListAxisKind(panel.query.tagSet) !== axisKind) continue;
+
+        const rangeState = panelRanges[panel.key];
+        if (!rangeState) continue;
+
+        const navigatorRange = rangeState.range.navigatorRange;
+        currentRange = currentRange
+            ? getEnclosingRange(currentRange, navigatorRange)
+            : navigatorRange;
+        fullRange = fullRange
+            ? getEnclosingRange(fullRange, rangeState.fullRange)
+            : rangeState.fullRange;
+    }
+
+    return currentRange && fullRange
+        ? { currentRange, fullRange }
+        : undefined;
+}
+
+function createBoardRangeEditorReference(
+    axisKind: AxisKind,
+    openedAt: number,
+): { currentRange: AxisRange; fullRange: AxisRange } {
+    const range = axisKind === 'time'
+        ? { start: 0, end: openedAt }
+        : { start: 0, end: Number.MAX_SAFE_INTEGER };
+
+    return { currentRange: range, fullRange: range };
 }

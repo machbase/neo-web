@@ -43,7 +43,11 @@ export const DeleteModal = (props: DeleteModalProps) => {
     };
 
     return (
-        <Modal.Root isOpen={true} onClose={handleClose}>
+        <Modal.Root
+            data-testid="file-delete-dialog"
+            isOpen={true}
+            onClose={handleClose}
+        >
             <Modal.Header>
                 <Modal.Title>
                     <VscWarning />
@@ -65,7 +69,12 @@ export const DeleteModal = (props: DeleteModalProps) => {
 
             <Modal.Footer>
                 <Button.Group>
-                    <Modal.Confirm onClick={() => handleDelete(sIsRecursive)}>OK</Modal.Confirm>
+                    <Modal.Confirm
+                        data-testid="file-delete-confirm"
+                        onClick={() => handleDelete(sIsRecursive)}
+                    >
+                        OK
+                    </Modal.Confirm>
                     <Modal.Cancel>Cancel</Modal.Cancel>
                 </Button.Group>
             </Modal.Footer>

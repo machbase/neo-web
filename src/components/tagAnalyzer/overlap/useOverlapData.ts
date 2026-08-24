@@ -4,11 +4,12 @@ import {
     filterChartDataByRange,
     mapFetchResultToChartData,
 } from '../chart/chartData';
-import { fetchMainSeriesRows } from '../dataLoading/panelDataLoader';
+import { seriesDataApi } from '../api/seriesDataApi';
 import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../hooks/useLatestAsyncRequest';
+import { buildPanelSeriesQuery } from '../panel/series/panelSeriesRequest';
 import {
     createOverlapChartSeriesGroup,
     type OverlapChartSeriesGroup,
@@ -87,7 +88,7 @@ export function useOverlapData(initialPanelsInfo: OverlapPanelInput[]) {
             setLoadState((current) => ({
                 ...current,
                 seriesGroups: current.seriesGroups.map((group) => {
-                    if (group.panelInfo.key !== panelKey) return group;
+                    if (group.panelKey !== panelKey) return group;
 
                     const shiftValue = group.shiftValue + delta;
                     return Number.isFinite(shiftValue)
@@ -107,11 +108,14 @@ async function fetchOverlapPanelData(
     signal: AbortSignal,
 ) {
     const panelInfo = overlapPanel.panelInfo;
-    const fetchResult = await fetchMainSeriesRows(
-        panelInfo,
-        overlapPanel.visibleRange,
-        OVERLAP_CHART_FETCH_WIDTH_PX,
-        {},
+    const fetchResult = await seriesDataApi.fetchSeriesRows(
+        buildPanelSeriesQuery(
+            'main',
+            panelInfo,
+            overlapPanel.visibleRange,
+            OVERLAP_CHART_FETCH_WIDTH_PX,
+            {},
+        ),
         { signal },
     );
 
@@ -145,13 +149,13 @@ function preservePanelShifts(
 ): OverlapChartSeriesGroup[] {
     const shiftByPanelKey = new Map(
         currentGroups.map((group) => [
-            group.panelInfo.key,
+            group.panelKey,
             group.shiftValue,
         ]),
     );
 
     return nextGroups.map((group) => ({
         ...group,
-        shiftValue: shiftByPanelKey.get(group.panelInfo.key) ?? 0,
+        shiftValue: shiftByPanelKey.get(group.panelKey) ?? 0,
     }));
 }

@@ -1,0 +1,264 @@
+@use '@/design-system/tokens' as t;
+@use '../../TextStyle' as text;
+
+$section-gap: 12px;
+$control-gap: 8px;
+$label-gap: 6px;
+
+.modal {
+    @include text.control-surface;
+}
+
+.modalTitle {
+    @include text.title;
+}
+
+.panelStack {
+    display: flex;
+    flex-direction: column;
+    gap: $section-gap;
+}
+
+.titleIcon {
+    display: inline-flex;
+    align-items: center;
+    color: #3b9bff;
+}
+
+.footerMessage {
+    flex: 1;
+    min-width: 0;
+    color: #ef6e6e;
+    @include text.support;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.fieldGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $section-gap;
+}
+
+.fieldGridFull {
+    display: flex;
+    align-items: center;
+    gap: $control-gap;
+    min-width: 0;
+}
+
+.fieldCell {
+    display: flex;
+    flex-direction: column;
+    gap: $label-gap;
+    min-width: 0;
+}
+
+.fieldLabelTop {
+    display: block;
+    color: #a3a3a3;
+    @include text.control(500);
+}
+
+.columnTitleText {
+    color: #a3a3a3;
+    @include text.section-title;
+}
+
+.valueRollupStatus {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    margin-top: 5px;
+    @include text.support;
+    cursor: help;
+}
+
+.valueRollupStatusActive {
+    color: #fdb532;
+}
+
+.valueRollupStatusInactive {
+    color: #8f8f8f;
+}
+
+.jsonKeyLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 52px;
+    color: #a3a3a3;
+    @include text.control(600);
+}
+
+.jsonKeyMeta {
+    color: #d0d0d0;
+    @include text.support(500);
+}
+
+.tagSearchButton {
+    transition:
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.tagSearchButtonPending {
+    background-color: rgba(0, 108, 210, 0.08);
+    box-shadow: 0 0 0 1px rgba(59, 155, 255, 0.45);
+}
+
+
+.itemListGroup {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: $section-gap;
+}
+
+.listColumn {
+    min-width: 0;
+}
+
+.columnHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $control-gap;
+    min-height: 28px;
+    margin-bottom: $label-gap;
+}
+
+.columnTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: $control-gap;
+    min-width: 0;
+}
+
+.seriesList {
+    height: 202px;
+    overflow: hidden;
+}
+
+.seriesPagination {
+    min-height: 28px;
+    margin-top: 8px;
+}
+
+.availableTagList button {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.availableTagList button:hover,
+.availableTagList button:focus-visible {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.selectedSeriesList {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    height: 238px;
+    overflow: hidden;
+    background-color: t.$menu-bg;
+    border: 1px solid t.$menu-border;
+    border-radius: t.$border-radius-sm;
+}
+
+.selectedSeriesItems {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.selectedSeriesItem {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    color: inherit;
+    background-color: transparent;
+    border: none;
+    border-radius: t.$border-radius-sm;
+    outline: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+}
+
+.selectedSeriesItem:hover,
+.selectedSeriesItem:focus-visible {
+    background-color: t.$menu-item-hover-bg;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+
+.selectedSeriesEmpty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 4px 8px;
+    color: t.$text-muted;
+    @include text.control;
+    text-align: center;
+}
+
+.selectedSeriesItemContent {
+    display: flex;
+    flex-direction: column;
+    gap: $control-gap;
+    min-width: 0;
+    width: 100%;
+}
+
+.selectedSeriesHeader {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 82px;
+    align-items: center;
+    gap: $control-gap;
+}
+
+.selectedSeriesName {
+    overflow: hidden;
+    color: #f4f4f4;
+    @include text.section-title;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modeTriggerWrapper {
+    min-width: 0;
+}
+
+.selectedSeriesSourceDetails {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $control-gap;
+    min-width: 0;
+}
+
+.selectedSeriesSourceRow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.selectedSeriesSourceLabel {
+    flex: 0 0 auto;
+    color: #8f8f8f;
+    @include text.support(600);
+}
+
+.selectedSeriesSourceValue {
+    min-width: 0;
+    overflow: hidden;
+    color: #cfcfcf;
+    @include text.support;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

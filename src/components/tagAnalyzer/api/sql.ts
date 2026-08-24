@@ -50,9 +50,9 @@ export function buildTimeRangeConditionSql(
     usesNumericTime: boolean,
 ): string {
     return `${timeColumn} BETWEEN ${toQueryTimeLiteralSql(
-        timeRange.startTime,
+        timeRange.start,
         usesNumericTime,
-    )} AND ${toQueryTimeLiteralSql(timeRange.endTime, usesNumericTime)}`;
+    )} AND ${toQueryTimeLiteralSql(timeRange.end, usesNumericTime)}`;
 }
 
 export function toQueryResultMillisecondsSql(

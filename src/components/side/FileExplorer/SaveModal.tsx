@@ -20,7 +20,7 @@ import {
     loadTazBoard,
     saveTazBoard,
 } from '@/components/tagAnalyzer/persistence/tazDocumentService';
-import type { BoardInfo } from '@/components/tagAnalyzer/model';
+import type { BoardInfo } from '@/components/tagAnalyzer/board/boardModel';
 import './SaveModal.scss';
 
 export interface SaveModalProps {

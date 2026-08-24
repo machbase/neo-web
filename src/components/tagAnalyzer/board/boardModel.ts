@@ -1,0 +1,156 @@
+import { getId } from '@/utils';
+import {
+    createNewPanelInfo,
+    DEFAULT_NEW_PANEL_TITLE,
+    type PanelEChartType,
+    type PanelInfo,
+} from '../panel/panelModel';
+import { formatAbsoluteTime, formatNumericValue } from '../persistence/serializeRange';
+import {
+    type RangeExpressionInput,
+    type AxisRange,
+} from '../range/rangeModel';
+import {
+    assertValidPanelSeriesIdentifiers,
+    createPanelSeriesDefinition,
+    isNumericBaseTimeSourceColumns,
+    PanelSeriesCalculationMode,
+    type PanelSeriesDefinition,
+    type PanelSeriesSourceColumns,
+} from '../seriesModel';
+
+export type BoardInfo = {
+    id: string;
+    type: string;
+    name: string;
+    path: string;
+    code: unknown;
+    panels: PanelInfo[];
+    boardTimeRange: RangeExpressionInput;
+    boardNumericRange: RangeExpressionInput;
+    savedCode: string | false;
+    version?: string;
+    loadWarning?: string;
+};
+
+type TagAnalyzerDefaultBoardOptions = {
+    tag: string;
+    timeRange: AxisRange;
+    table: string;
+    sourceColumns: PanelSeriesSourceColumns;
+};
+
+type TazBoardCreationOptions = {
+    id: string;
+    name: string;
+    path: string;
+    chartTitle: string;
+    chartType?: PanelEChartType;
+    seriesList: PanelSeriesDefinition[];
+};
+
+type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
+    timeRange: RangeExpressionInput;
+};
+
+type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
+    boardTimeRange: RangeExpressionInput;
+    boardNumericRange: RangeExpressionInput;
+    mainRange: RangeExpressionInput;
+};
+
+export function createDefaultTazBoard(
+    options: TagAnalyzerDefaultBoardOptions,
+): BoardInfo {
+    const sIsNumericRange = isNumericBaseTimeSourceColumns(
+        options.sourceColumns,
+    );
+    const sMainRange = resolveDefaultMainRange(
+        options.timeRange,
+        options.sourceColumns,
+    );
+
+    return createTazBoardFromSeries({
+        id: getId(),
+        path: '',
+        name: 'TAG ANALYZER',
+        chartTitle: DEFAULT_NEW_PANEL_TITLE,
+        seriesList: [
+            createPanelSeriesDefinition({
+                key: getId(),
+                table: options.table,
+                tagName: options.tag,
+                calculationMode: PanelSeriesCalculationMode.Average,
+                columns: options.sourceColumns,
+            }),
+        ],
+        boardTimeRange: sIsNumericRange
+            ? { start: '', end: '' }
+            : { ...sMainRange },
+        boardNumericRange: sIsNumericRange
+            ? { ...sMainRange }
+            : { start: '', end: '' },
+        mainRange: sMainRange,
+    });
+}
+
+export function createTazBoardFromTimeRange(
+    options: CreateTazBoardFromTimeRangeOptions,
+): BoardInfo {
+    const { timeRange, ...boardOptions } = options;
+
+    return createTazBoardFromSeries({
+        ...boardOptions,
+        boardTimeRange: { ...timeRange },
+        boardNumericRange: { start: '', end: '' },
+        mainRange: { ...timeRange },
+    });
+}
+
+function createTazBoardFromSeries(
+    options: CreateTazBoardFromSeriesOptions,
+): BoardInfo {
+    const {
+        seriesList,
+        chartTitle,
+        chartType = 'Line',
+        boardTimeRange,
+        boardNumericRange,
+        mainRange,
+        ...boardIdentity
+    } = options;
+
+    seriesList.forEach(assertValidPanelSeriesIdentifiers);
+
+    return {
+        ...boardIdentity,
+        type: 'taz',
+        boardTimeRange,
+        boardNumericRange,
+        panels: [
+            {
+                ...createNewPanelInfo(seriesList, chartTitle, chartType),
+                time: {
+                    rangeInput: mainRange,
+                    useLastViewedRange: false,
+                    lastViewedRange: undefined,
+                },
+            },
+        ],
+        code: '',
+        savedCode: false,
+    };
+}
+
+function resolveDefaultMainRange(
+    timeRange: AxisRange,
+    sourceColumns: PanelSeriesSourceColumns,
+): RangeExpressionInput {
+    const sFormatValue = isNumericBaseTimeSourceColumns(sourceColumns)
+        ? formatNumericValue
+        : formatAbsoluteTime;
+    return {
+        start: sFormatValue(timeRange.start),
+        end: sFormatValue(timeRange.end),
+    };
+}

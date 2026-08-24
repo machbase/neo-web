@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 type LatestAsyncRequest<Result> = {
     enabled: boolean;
@@ -15,6 +15,23 @@ export function useLatestAsyncRequest<Result>(
 ): void {
     const requestRef = useRef(request);
     requestRef.current = request;
+    const committedRequestRef = useRef<
+        { enabled: boolean; requestKey: string } | undefined
+    >();
+
+    useLayoutEffect(() => {
+        const committedRequest = {
+            enabled: request.enabled,
+            requestKey: request.requestKey,
+        };
+        committedRequestRef.current = committedRequest;
+
+        return () => {
+            if (committedRequestRef.current === committedRequest) {
+                committedRequestRef.current = undefined;
+            }
+        };
+    }, [request.enabled, request.requestKey]);
 
     useEffect(() => {
         const currentRequest = requestRef.current;
@@ -26,12 +43,24 @@ export function useLatestAsyncRequest<Result>(
                 currentRequest.onStart?.();
                 void currentRequest.fetch(abortController.signal).then(
                     (result) => {
-                        if (!abortController.signal.aborted) {
+                        const committedRequest = committedRequestRef.current;
+                        if (
+                            !abortController.signal.aborted &&
+                            committedRequest?.enabled &&
+                            committedRequest.requestKey ===
+                                currentRequest.requestKey
+                        ) {
                             requestRef.current.onSuccess(result);
                         }
                     },
                     (error: unknown) => {
-                        if (!abortController.signal.aborted) {
+                        const committedRequest = committedRequestRef.current;
+                        if (
+                            !abortController.signal.aborted &&
+                            committedRequest?.enabled &&
+                            committedRequest.requestKey ===
+                                currentRequest.requestKey
+                        ) {
                             requestRef.current.onError(error);
                         }
                     },
