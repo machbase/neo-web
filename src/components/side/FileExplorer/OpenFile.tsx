@@ -1,11 +1,11 @@
 import { SaveCricle } from '@/assets/icons/Icon';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { gActiveAppSide } from '@/recoil/appStore';
 import { getId } from '@/utils';
+import { useClosePkgView } from '@/components/side/AppStore/pkgViews';
 import { isBoardSaved } from '@/utils/boardSaveStatus';
 import icons from '@/utils/icons';
 import { useState, useEffect } from 'react';
-import { useRecoilState, useResetRecoilState } from 'recoil';
+import { useRecoilState } from 'recoil';
 import { Button, Side } from '@/design-system/components';
 
 const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
@@ -13,7 +13,9 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sHover, setHover] = useState(false);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
-    const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
+    // Closing an `APP:` tab here ends the package's session, exactly as closing it
+    // from the tab strip does — see MainContent.resetActiveStateForClosedBoard.
+    const closePkgView = useClosePkgView();
 
     useEffect(() => {
         compareValue(pBoard);
@@ -48,7 +50,7 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
         const closedBoard = sArray[pIdx];
         sArray.splice(pIdx, 1);
 
-        if (closedBoard?.type === 'appView') resetActiveAppSide();
+        if (closedBoard?.type === 'appView' && closedBoard.code?.appName) closePkgView(closedBoard.code.appName);
 
         setBoardList(sArray);
 

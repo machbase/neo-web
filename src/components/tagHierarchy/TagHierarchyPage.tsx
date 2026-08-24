@@ -1070,6 +1070,15 @@ export const TagHierarchyPage = ({
         path: number[],
         node: HierarchyValueNode,
     ) => {
+        // An IME (Korean, Japanese, Chinese) is mid-composition: this keystroke belongs to the
+        // IME, which is still assembling a syllable, not to the outliner. Acting on it inserts
+        // the row while "자" is uncommitted, and the commit that follows lands in whatever input
+        // focus moved to — which is how typing "감자" and pressing Enter left "감자" on one row
+        // and a second row holding "자" again. The IME consumes this key to commit; the next
+        // press, with nothing in composition, is the one that means Enter/Tab/Arrow.
+        // `keyCode === 229` is the same signal for browsers that do not set `isComposing` on
+        // keydown (Safari), and Firefox additionally reports `key === 'Process'`.
+        if (event.nativeEvent.isComposing || event.keyCode === 229 || event.key === 'Process') return;
         if (event.key === 'Enter') {
             event.preventDefault();
             handleTreeSibling(path);

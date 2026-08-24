@@ -71,6 +71,11 @@ export const FileDshDfltVal = {
             end: 'now',
             refresh: 'Off',
         },
+        // distance (numeric base) range, kind-separated from timeRange. '' start/end = full [first, last].
+        distanceRange: {
+            start: '',
+            end: '',
+        },
         panels: [],
     },
 };

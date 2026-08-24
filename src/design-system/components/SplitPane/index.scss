@@ -1,6 +1,21 @@
 @use '@/design-system/tokens' as t;
 @use '@/design-system/tokens/mixins' as m;
 
+// The sashes speak the app's ONE resize-handle language (`resize-handle-states`
+// in tokens/_mixins.scss), the same one the README drawer's edge uses:
+//
+//   rest      1px neutral line, no glow
+//   hover     same line + soft glow
+//   dragging  same line + full glow
+//
+// Hover and dragging used to be indistinguishable — both jumped the glow straight
+// to full — so the divider never confirmed it had actually been grabbed. Only the
+// glow's intensity differs; the line itself is untouched in every state.
+//
+// STATE LIVES ON THE ANCESTOR HERE, which is why the mixin is invoked with
+// `$state-on-self: false` and the hover/drag halves are applied by hand below:
+// `react-split` puts `--active` / `--dragging` on `.react-split__sash`, two levels
+// up from the element that draws the line.
 .react-split__sash {
     position: relative;
 
@@ -8,27 +23,48 @@
         width: 100%;
         height: 100%;
 
-        @include m.drag-handle-hover-effect;
-
         .custom-split-sash-line {
+            position: relative;
             width: 100%;
             height: 100%;
 
+            // The sash straddles the split point, so a border on its trailing
+            // edge lands ~2px inside the next pane and leaves a sliver of that
+            // pane showing beside the divider — invisible on dark panels, but
+            // obvious against a light package page. The mixin centres the line
+            // instead (`transform: translate…(-50%)`).
             &.custom-split-sash-line--vertical {
-                border-right: 1px solid #454544;
+                @include m.resize-handle-states('vertical', $state-on-self: false);
             }
 
             &.custom-split-sash-line--horizontal {
-                border-bottom: 1px solid #454544;
+                @include m.resize-handle-states('horizontal', $state-on-self: false);
             }
         }
     }
 
-    &:hover .custom-split-sash::before,
-    &:active .custom-split-sash::before,
-    &:focus .custom-split-sash::before,
-    &.react-split__sash--active .custom-split-sash::before,
-    &.react-split__sash--dragging .custom-split-sash::before {
-        opacity: 1;
+    // THE STATE SELECTORS REPEAT THE FULL PATH ON PURPOSE. The base rules above
+    // land at four classes deep (`.react-split__sash .custom-split-sash
+    // .custom-split-sash-line.custom-split-sash-line--vertical::after`); a flatter
+    // `&:hover .custom-split-sash-line--vertical` scores lower and silently loses,
+    // which is exactly how the first attempt shipped a sash whose rest state had
+    // changed but whose hover did nothing.
+    &:hover .custom-split-sash .custom-split-sash-line.custom-split-sash-line--vertical {
+        @include m.resize-handle-hovered;
+    }
+    &:hover .custom-split-sash .custom-split-sash-line.custom-split-sash-line--horizontal {
+        @include m.resize-handle-hovered;
+    }
+
+    // `:active` covers the press before react-split has flipped its class on.
+    &:active .custom-split-sash .custom-split-sash-line.custom-split-sash-line--vertical,
+    &.react-split__sash--active .custom-split-sash .custom-split-sash-line.custom-split-sash-line--vertical,
+    &.react-split__sash--dragging .custom-split-sash .custom-split-sash-line.custom-split-sash-line--vertical {
+        @include m.resize-handle-engaged;
+    }
+    &:active .custom-split-sash .custom-split-sash-line.custom-split-sash-line--horizontal,
+    &.react-split__sash--active .custom-split-sash .custom-split-sash-line.custom-split-sash-line--horizontal,
+    &.react-split__sash--dragging .custom-split-sash .custom-split-sash-line.custom-split-sash-line--horizontal {
+        @include m.resize-handle-engaged;
     }
 }

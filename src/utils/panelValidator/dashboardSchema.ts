@@ -28,6 +28,10 @@ export const BASE_REQUIRED: RequiredKeyDef[] = [
     { key: 'y', default: 0 },
     { key: 'timeRange', default: { start: '', end: '', refresh: 'Off' } },
     { key: 'useCustomTime', default: false },
+    // Per-panel distance (numeric base) window, kind-separated from timeRange for the same reason the
+    // board separates the two: '' means "follow the board's distance range".
+    { key: 'distanceRange', default: { start: '', end: '' } },
+    { key: 'useCustomDistance', default: false },
     { key: 'transformBlockList', default: [] },
     // axisInterval predates the panelValidator and was never enrolled, so legacy panels lack it and
     // crash XAxisOptions on render. It lives at panel top-level (DefaultChartOption) for every type, so

@@ -658,6 +658,96 @@
  * Drag handle hover effect
  * Radial gradient effect for drag handles and split panes
  */
+// THE ONE RESIZE-HANDLE LANGUAGE. Used by the SplitPane sashes and by the README
+// drawer's edge, so every draggable divider in the app answers to the pointer the
+// same way:
+//
+//   rest      1px neutral line, no glow
+//   hover     same line + soft glow    "you can grab this"
+//   dragging  same line + full glow    "you are grabbing it"
+//
+// THE LINE NEVER CHANGES — not its width, not its colour. It is the divider, and a
+// divider that thickens or turns blue under the pointer reads as a rendering
+// artefact rather than as feedback; a 1px hairline in accent blue running the full
+// height of a panel was exactly the complaint that produced this. The glow is the
+// only thing that moves, and its INTENSITY is what separates "grabbable" from
+// "grabbed".
+//
+// `$axis` is which way the LINE runs: 'vertical' for a handle you drag left/right,
+// 'horizontal' for one you drag up/down.
+//
+// The host must own `::before` (the glow) and `::after` (the line).
+// `$state-on-self: false` is for a sash whose hover/drag classes live on an
+// ANCESTOR — the caller then applies the state rules itself, see
+// SplitPane/index.scss.
+@mixin resize-handle-states($axis: 'vertical', $state-on-self: true) {
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        background: radial-gradient(closest-side, rgb(0, 108, 210) 0%, rgba(0, 95, 184, 0) 100%);
+        pointer-events: none;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        background-color: c.$border-color-default;
+        pointer-events: none;
+    }
+
+    @if $axis == 'vertical' {
+        &::after {
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 1px;
+            transform: translateX(-50%);
+        }
+    } @else {
+        &::after {
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            transform: translateY(-50%);
+        }
+    }
+
+    @if $state-on-self {
+        &:hover {
+            @include resize-handle-hovered;
+        }
+        &:focus-visible,
+        &--active {
+            @include resize-handle-engaged;
+        }
+        &:focus-visible {
+            outline: none;
+        }
+    }
+}
+
+/** The hover half of `resize-handle-states`, for callers whose state lives elsewhere. */
+@mixin resize-handle-hovered {
+    &::before {
+        opacity: 0.5;
+    }
+}
+
+/** The dragging half of `resize-handle-states`. */
+@mixin resize-handle-engaged {
+    &::before {
+        opacity: 1;
+    }
+}
+
+// SUPERSEDED by `resize-handle-states` above, and kept only for `DragHandle`,
+// which is a grip affordance rather than a divider and has no line to thicken.
 @mixin drag-handle-hover-effect {
     position: relative;
 

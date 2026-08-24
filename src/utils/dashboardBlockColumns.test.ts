@@ -105,4 +105,56 @@ describe('dashboard block column helpers', () => {
 
         expect(rows).toEqual({ min: 1745910581000, max: 1745914181000 });
     });
+
+    test('persists timeType/timeBaseTime for a distance (non-datetime) base column', () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            { type: 'tag', name: 'NAME', time: 'ODOMETER_M', value: 'VALUE', jsonKey: '', useCustom: false, filter: [], values: [] },
+            [
+                ['NAME', 5, 0, 0, 0],
+                ['ODOMETER_M', 20, 0, 1, BASETIME_FLAG],
+                ['VALUE', 20, 0, 2, 0],
+            ],
+            'tag'
+        );
+
+        expect(repaired.time).toBe('ODOMETER_M');
+        expect(repaired.timeType).toBe(20);
+        expect(repaired.timeBaseTime).toBe(true);
+    });
+
+    test('persists timeType/timeBaseTime for a datetime base column', () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            { type: 'tag', name: 'NAME', time: 'TIME', value: 'VALUE', jsonKey: '', useCustom: false, filter: [], values: [] },
+            [
+                ['NAME', 5, 0, 0, 0],
+                ['TIME', 6, 0, 1, BASETIME_FLAG],
+                ['VALUE', 20, 0, 2, 0],
+            ],
+            'tag'
+        );
+
+        expect(repaired.time).toBe('TIME');
+        expect(repaired.timeType).toBe(6);
+        expect(repaired.timeBaseTime).toBe(true);
+    });
+
+    test('resolves a numeric (distance) base from stored timeType/timeBaseTime without tableInfo', () => {
+        const rows = convertDashboardMinMaxRows([[0, 20.7]], {
+            time: 'ODOMETER_M',
+            timeType: 20,
+            timeBaseTime: true,
+        });
+
+        expect(rows).toEqual({ min: 0, max: 20.7 });
+    });
+
+    test('converts a datetime base from stored timeType without tableInfo', () => {
+        const rows = convertDashboardMinMaxRows([[1745910581000000000, 1745914181000000000]], {
+            time: 'TIME',
+            timeType: 6,
+            timeBaseTime: true,
+        });
+
+        expect(rows).toEqual({ min: 1745910581000, max: 1745914181000 });
+    });
 });

@@ -1,5 +1,189 @@
+import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
+import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
+import {
+    buildDistanceQuickWindow as buildDataViewerDistanceQuickWindow,
+    buildDistanceSliderClickRange as buildDataViewerDistanceSliderClickRange,
+    formatDistanceEdgeLabel,
+    formatDistanceValue as formatDataViewerDistance,
+    isDistanceAnchorEdge,
+    parseDistanceValue as parseDataViewerDistanceValue,
+    snapDistanceEdge as snapDataViewerDistanceEdge,
+} from '@/utils/distanceRange';
+
 export const DEFAULT_TIME_FORMAT = '2006-01-02 15:04:05.000';
 export const DEFAULT_TIME_ZONE = 'LOCAL';
+
+/**
+ * Which axis a TAG table's base column measures.
+ *
+ * Machbase marks exactly one column BASETIME. It is usually a DATETIME — the ordinary time series
+ * case — but a non-DATETIME BASETIME (an odometer, say) is legal and means the rows are ordered by
+ * distance, not time. A time range is meaningless against one, so the page has to be able to tell
+ * them apart.
+ */
+export type DataViewerBaseKind = 'time' | 'distance';
+
+/**
+ * Where each field lives in a `listTableColumns` row.
+ *
+ * That query projects NAME, TYPE, FLAG — three positions, all read by index, and the type and the
+ * flag sit next to each other, so a reader that reaches for the wrong one still finds a number and
+ * fails silently. The whole contract is stated here, once, and every reader in this module goes
+ * through these constants; do not index a Data Viewer column row anywhere else.
+ *
+ * The flag index matters twice over: `@/utils/timeFieldColumns` defaults to 4, which describes the
+ * DB Explorer's wider column row, so passing this module's rows without overriding the index reads
+ * `undefined` as the flag — falsy — and every column silently comes back non-BASETIME.
+ */
+export const DATA_VIEWER_COLUMN_NAME_INDEX = 0;
+export const DATA_VIEWER_COLUMN_TYPE_INDEX = 1;
+export const DATA_VIEWER_COLUMN_FLAG_INDEX = 2;
+
+/**
+ * The table's base column: the BASETIME-flagged one, else the first DATETIME. `fallback` covers a
+ * metadata read that failed or returned nothing — the page passes its configured time column, so
+ * an unknown schema behaves exactly as it did before the lookup existed.
+ */
+export function resolveDataViewerBaseColumn(columns: unknown[] = [], fallback = 'TIME') {
+    return getDefaultTimeFieldColumn(columns as any[], DATA_VIEWER_COLUMN_FLAG_INDEX) || fallback;
+}
+
+/** BASETIME but not DATETIME ⇒ the base is a distance axis. Anything else — including an unknown schema — is time. */
+export function resolveDataViewerBaseKind(columns: unknown[] = [], baseColumn: string): DataViewerBaseKind {
+    return isNonDateTimeBaseTimeColumn(columns as any[], baseColumn, DATA_VIEWER_COLUMN_FLAG_INDEX) ? 'distance' : 'time';
+}
+
+/**
+ * The base column's declared type code, for handing to Tag Analyzer.
+ *
+ * `resolveDataViewerBaseKind` answers the question this page asks — time or distance — but the Tag
+ * Analyzer payload speaks in type codes, not in kinds: its `isNumericBaseTimeSourceColumns` reads
+ * `timeBaseTime === true && timeType !== DATETIME_COLUMN_TYPE`. Handing it a hardcoded 6 tells it
+ * "DATETIME" no matter what the column really is, which is exactly how a distance board used to
+ * open as a 1970 time board. Pass the column's own type instead and the two sides agree by
+ * construction.
+ *
+ * An unresolved schema falls back to DATETIME, matching `resolveDataViewerBaseKind`'s own default:
+ * an unknown base is time, and the two answers must never disagree.
+ */
+export function resolveDataViewerBaseColumnType(columns: unknown[] = [], baseColumn: string): number {
+    const target = String(baseColumn ?? '').trim().toLowerCase();
+    if (!target || !Array.isArray(columns)) return DATETIME_COLUMN_TYPE;
+
+    const row = columns.find(
+        (column) => Array.isArray(column) && String(column[DATA_VIEWER_COLUMN_NAME_INDEX] ?? '').trim().toLowerCase() === target
+    ) as unknown[] | undefined;
+    if (!row) return DATETIME_COLUMN_TYPE;
+
+    const type = Number(row[DATA_VIEWER_COLUMN_TYPE_INDEX]);
+    return Number.isFinite(type) ? type : DATETIME_COLUMN_TYPE;
+}
+
+/**
+ * Is the table's value column a JSON column?
+ *
+ * A JSON value is an object, not a number: the raw grid would print `[object Object]`, the chart
+ * would plot NaN, and every aggregate the page can ask for is undefined against it. The page has no
+ * path extractor, so the honest answer is to refuse the table rather than render nonsense.
+ *
+ * "Unknown" is not "JSON": an empty or unmatched column list means the metadata read failed or the
+ * table is shaped differently than expected, and locking a perfectly good table out of the viewer
+ * because its schema could not be read is the worse failure. Names are compared case-insensitively,
+ * matching how `resolveDataViewerBaseKind` matches its base column.
+ */
+export function isDataViewerJsonValueColumn(columns: unknown[] = [], valueColumn: string) {
+    const target = String(valueColumn ?? '').trim().toLowerCase();
+    if (!target || !Array.isArray(columns)) return false;
+
+    const row = columns.find(
+        (column) => Array.isArray(column) && String(column[DATA_VIEWER_COLUMN_NAME_INDEX] ?? '').trim().toLowerCase() === target
+    ) as unknown[] | undefined;
+    if (!row) return false;
+
+    return isJsonTypeColumn(Number(row[DATA_VIEWER_COLUMN_TYPE_INDEX]));
+}
+
+/** Axis badge on the range chip, matching the dashboard's TIME / DIST chips. */
+export function getDataViewerBaseAxisLabel(baseKind: DataViewerBaseKind) {
+    return baseKind === 'distance' ? 'DIST' : 'TIME';
+}
+
+/**
+ * The window a table opens on, per base axis.
+ *
+ * A time table opens on the last hour of its own newest sample. A distance table has no clock to
+ * anchor that to — `last-1h` is not a distance — so it opens on a fixed numeric span instead.
+ * 0–1000 is a deliberate starting point rather than a measured one: it is small enough to come back
+ * instantly on a million-row odometer table and is where the first samples of such a table live.
+ *
+ * Both are module constants, not literals rebuilt per call, so `getDataViewerDefaultRange` returns a
+ * stable identity — the page uses it as a render-time fallback and a fresh object each render would
+ * re-fire every query that keys off the range.
+ */
+export const DEFAULT_DATA_VIEWER_TIME_RANGE = { from: 'last-1h', to: 'last' };
+export const DEFAULT_DATA_VIEWER_DISTANCE_RANGE = { from: 0, to: 1000 };
+
+export function getDataViewerDefaultRange(baseKind: DataViewerBaseKind) {
+    return baseKind === 'distance' ? DEFAULT_DATA_VIEWER_DISTANCE_RANGE : DEFAULT_DATA_VIEWER_TIME_RANGE;
+}
+
+// ── distance edges ────────────────────────────────────────────────────────────────────────────
+// The arithmetic itself lives in `@/utils/distanceRange`, because the dashboard's DistanceRangeTab
+// draws the same editor and a thumb drag has to mean the same number in both. These aliases are the
+// names the Data Viewer has always imported, kept so nothing downstream has to know where it moved.
+export { parseDataViewerDistanceValue, formatDataViewerDistance, snapDataViewerDistanceEdge, buildDataViewerDistanceSliderClickRange, buildDataViewerDistanceQuickWindow };
+
+/**
+ * A base-column value, formatted for whichever axis the table actually has.
+ *
+ * `formatDataViewerTime` reads any finite number as an epoch, so an odometer reading of 999990 comes
+ * back as `1970-01-01 00:16:39.990` — a date, rendered with total confidence, that is nowhere in the
+ * data. Every base-column display goes through here so that misread has exactly one place it could
+ * come from.
+ */
+export function formatDataViewerBaseValue(value: unknown, baseKind: DataViewerBaseKind, timeFormat: string, timeZone: string) {
+    if (baseKind === 'distance') return formatDataViewerDistance(value);
+    return formatDataViewerTime(value, timeFormat, timeZone);
+}
+
+/**
+ * The range chip's value, per axis: an expression on time, a coordinate or an expression on distance.
+ *
+ * A distance edge is not always a number. It can be pinned to the data — `first`, `last`,
+ * `last-5000` — exactly the way `last-1h` is on the time axis, and that is what the quick windows
+ * write. `parseDataViewerDistanceValue` refuses those by design (they are not literals to build SQL
+ * from), so reading the chip off it alone called a perfectly ordinary `first ~ last` window "not
+ * set" while the resolved caption beside it spelled out the very window being queried. An anchored
+ * edge keeps its expression here, the same way the dashboard's DIST chip shows it.
+ */
+export function formatDataViewerBaseRangeLabel(from: unknown, to: unknown, baseKind: DataViewerBaseKind = 'time') {
+    if (baseKind !== 'distance') return formatTimeRangeLabel(from, to);
+
+    const start = parseDataViewerDistanceValue(from);
+    const end = parseDataViewerDistanceValue(to);
+    const fromAnchored = isDistanceAnchorEdge(from);
+    const toAnchored = isDistanceAnchorEdge(to);
+    if (start === null && end === null && !fromAnchored && !toAnchored) return 'Distance range not set';
+    const startText = fromAnchored ? formatDistanceEdgeLabel(from) : start === null ? 'Start' : formatDataViewerDistance(start);
+    const endText = toAnchored ? formatDistanceEdgeLabel(to) : end === null ? 'End' : formatDataViewerDistance(end);
+    return `${startText} ~ ${endText}`;
+}
+
+/**
+ * Is `from` past `to`?
+ *
+ * On a distance axis this has to be a numeric comparison. `new Date('0')` is the year 2000 and
+ * `new Date('1000')` is the year 1000, so the date path would call the perfectly ordinary window
+ * 0 ~ 1000 reversed and refuse to query it.
+ */
+export function isDataViewerRangeReversed(from: unknown, to: unknown, baseKind: DataViewerBaseKind = 'time') {
+    if (baseKind === 'distance') {
+        const start = parseDataViewerDistanceValue(from);
+        const end = parseDataViewerDistanceValue(to);
+        return start !== null && end !== null && start > end;
+    }
+    return new Date(String(from)).getTime() > new Date(String(to)).getTime();
+}
 
 export const TIME_FORMATS = [
     { label: 'TIMESTAMP(ns)', value: 'ns' },
@@ -78,6 +262,12 @@ export function buildDataViewerHeaderLabels(jobName: string | undefined, tableNa
 
 const RAW_COLUMN_ORDER = ['time', 'name', 'value'];
 const INTERNAL_RAW_RESULT_KEYS = new Set(['buffer', 'names']);
+// The base column is aliased `time` in SQL on both axes, so `time` is the row key, the column order
+// entry and the page-cursor field regardless of what the base column is called or measures. Only
+// the header *label* follows the axis — renaming the key would break every one of those readers for
+// a cosmetic gain.
+const RAW_BASE_COLUMN_KEY = 'time';
+const RAW_BASE_COLUMN_LABELS: Record<DataViewerBaseKind, string> = { time: 'Time', distance: 'Distance' };
 
 function formatRawColumnLabel(key: string) {
     return String(key || '')
@@ -87,7 +277,20 @@ function formatRawColumnLabel(key: string) {
         .join(' ');
 }
 
-export function buildRawResultColumns(rows: Record<string, unknown>[] = [], options: { hiddenKeys?: string[]; hideAssetMetadata?: boolean } = {}) {
+/**
+ * The raw grid's columns, in display order.
+ *
+ * `baseKind` is an option rather than a caller-side relabel because this function already owns
+ * `label` — `formatRawColumnLabel` is its own — and the header and `buildRawColumnWidths` both read
+ * the returned array. Overwriting the label afterwards would mean either two arrays (the widths
+ * would size against a label the header no longer shows) or a second place that knows a base column
+ * is called `time`. It stays a pure function of (rows, options); nothing about the axis is read from
+ * anywhere but the argument.
+ */
+export function buildRawResultColumns(
+    rows: Record<string, unknown>[] = [],
+    options: { hiddenKeys?: string[]; hideAssetMetadata?: boolean; baseKind?: DataViewerBaseKind } = {},
+) {
     const keys: string[] = [];
     const seen = new Set<string>();
     const hiddenKeys = new Set(
@@ -112,10 +315,103 @@ export function buildRawResultColumns(rows: Record<string, unknown>[] = [], opti
     const orderedKeys =
         keys.length > 0 ? [...RAW_COLUMN_ORDER.filter((key) => seen.has(key)), ...keys.filter((key) => !RAW_COLUMN_ORDER.includes(key))] : RAW_COLUMN_ORDER;
 
+    const baseLabel = RAW_BASE_COLUMN_LABELS[options.baseKind === 'distance' ? 'distance' : 'time'];
+
     return orderedKeys.map((key) => ({
         key,
-        label: formatRawColumnLabel(key),
+        label: key === RAW_BASE_COLUMN_KEY ? baseLabel : formatRawColumnLabel(key),
     }));
+}
+
+// Walks PANEL_COLORS in name order, which is how ECharts assigns colours to a panel's series.
+// One map built from the main panel's order is then handed to every panel and to the raw table,
+// so a tag keeps its colour when it is split into its own chart — a split panel holds a single
+// series and would otherwise always take the first palette entry.
+export function buildSeriesColorMap(names: unknown[] = []): Record<string, string> {
+    const colors: Record<string, string> = {};
+    let index = 0;
+
+    for (const raw of Array.isArray(names) ? names : []) {
+        const name = String(raw ?? '');
+        if (!name || colors[name]) continue;
+        colors[name] = PANEL_COLORS[index % PANEL_COLORS.length];
+        index += 1;
+    }
+
+    return colors;
+}
+
+// Colour per tag name for the raw table's name dot. buildTagChartSeries keys its series off the
+// order names first appear in the rows, so feeding the same order here makes a tag's dot match
+// the line it gets in the chart.
+export function buildRawRowNameColors(rows: unknown[] = []): Record<string, string> {
+    return buildSeriesColorMap((Array.isArray(rows) ? rows : []).map((row) => getRawRowNameValue(row)));
+}
+
+// Measured for the raw table's fonts: monospace 14px cells, bold 14px sans headers.
+const RAW_MONO_CHAR_WIDTH = 8.401;
+const RAW_HEADER_CHAR_WIDTH = 7;
+// .data-viewer-raw-table td { padding: 0 16px }
+const RAW_CELL_PADDING = 32;
+const RAW_COLUMN_MIN_WIDTH = 90;
+// The cap is the only thing that can clip a raw cell. The table is `table-layout: fixed` with a
+// definite width (`.table-clean { width: 100% }`), so the <colgroup> widths this function returns
+// are authoritative: whatever does not fit inside them is ellipsized by the td's `overflow: hidden`.
+// Measured in Chrome — a 640px cap over a 231-character JSON value produced a 640px cell holding
+// 1506px of text, i.e. an ellipsis with no horizontal scroll to recover the tail, because the table
+// was never asked to be wider than the pane. (The `max-width` that used to sit on the td is inert
+// under fixed layout; raising the cap alone is what un-clipped the cell.)
+//
+// So the cap has to clear real content, not merely "ordinary tag names". 10000px is ~1190 monospace
+// characters at RAW_MONO_CHAR_WIDTH — whole JSON telemetry documents, full OPC UA paths, long
+// VARCHAR values. It stays finite only so one pathological multi-KB blob cannot produce a table
+// whose scrollbar thumb is too small to grab: against a ~1200px results pane 10000px is roughly
+// eight screens of travel, which is still a usable thumb.
+const RAW_COLUMN_MAX_WIDTH = 10000;
+// Char width is an estimate, so round up and leave a couple of pixels: landing 0.2px short is
+// enough for the browser to ellipsize a value that otherwise fits exactly.
+const RAW_COLUMN_SLACK = 2;
+
+// Column widths derived from the whole result set, not from the rows currently mounted.
+// `table-layout: fixed` is required by the virtualised body, and fixed layout otherwise sizes
+// columns to the ~40 visible rows — content gets clipped and the table can never exceed its
+// container, which is what removes the horizontal scrollbar. Measuring every row instead keeps
+// the widths stable while scrolling and lets the table overflow when the data is genuinely wide.
+export function buildRawColumnWidths(
+    rows: Record<string, unknown>[] = [],
+    columns: Array<{ key: string; label?: string }> = [],
+    options: { timeSample?: string; extra?: Record<string, number>; charWidth?: number } = {},
+): Record<string, number> {
+    // `charWidth` is the advance width measured from the font that actually renders. The constant
+    // below is calibrated for D2Coding, but neo-web declares that face with `format(woff)`
+    // (unquoted — invalid per CSS Fonts 3), so cells can silently fall back to the UA monospace.
+    // An error of 0.24px per character is enough to ellipsize an 11-character value, so prefer a
+    // real measurement and keep the constant only as a fallback (e.g. jsdom, no canvas).
+    const { timeSample = '', extra = {}, charWidth } = options;
+    const monoCharWidth = Number.isFinite(charWidth) && (charWidth as number) > 0 ? (charWidth as number) : RAW_MONO_CHAR_WIDTH;
+    const safeRows = Array.isArray(rows) ? rows : [];
+    const widths: Record<string, number> = {};
+
+    for (const column of Array.isArray(columns) ? columns : []) {
+        if (!column || !column.key) continue;
+        let chars = 0;
+        if (column.key === 'time') {
+            // Timestamps render at a fixed width, so one formatted sample stands for all rows.
+            chars = String(timeSample).length;
+        } else {
+            for (const row of safeRows) {
+                const length = String(row?.[column.key] ?? '').length;
+                if (length > chars) chars = length;
+            }
+        }
+
+        const headerPx = String(column.label ?? '').length * RAW_HEADER_CHAR_WIDTH;
+        const cellPx = chars * monoCharWidth + (extra[column.key] || 0);
+        const px = Math.ceil(Math.max(headerPx, cellPx) + RAW_CELL_PADDING + RAW_COLUMN_SLACK);
+        widths[column.key] = Math.min(RAW_COLUMN_MAX_WIDTH, Math.max(RAW_COLUMN_MIN_WIDTH, px));
+    }
+
+    return widths;
 }
 
 export function getScanDirectionLabel(backwardScan: boolean) {
@@ -227,28 +523,45 @@ export type DataViewerRawPageRequest =
     | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
     | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide: 'next' | 'prev'; cursorTime: string; cursorName: string; cursorOffset: number };
 
-export function buildDataViewerRawPageBounds(rows: unknown[] = []): DataViewerRawPageBounds | null {
+/**
+ * The keyset cursor anchors for the page currently on screen, plus the span it covers.
+ *
+ * `baseKind` decides what a base value *is*. On a distance axis it stays the number it already was:
+ * pushing an odometer reading of 999990 through `new Date(...)` yields `1970-01-01T00:16:39.990Z`,
+ * and the cursor built from that would compare `TO_TIMESTAMP('1970-…')` against a DOUBLE column —
+ * a page move that silently returns nothing. The field is still called `time` because it is the
+ * base-column position in the row, whatever the base column happens to measure.
+ */
+export function buildDataViewerRawPageBounds(rows: unknown[] = [], baseKind: DataViewerBaseKind = 'time'): DataViewerRawPageBounds | null {
     if (!Array.isArray(rows) || rows.length === 0) return null;
+
+    const distance = baseKind === 'distance';
+    const toSortKey = (value: unknown) => {
+        if (distance) return parseDataViewerDistanceValue(value);
+        const epochMs = toEpochMs(value);
+        return Number.isFinite(epochMs) ? epochMs : null;
+    };
+    const toBoundText = (sortKey: number) => (distance ? formatDataViewerDistance(sortKey) : new Date(sortKey).toISOString());
 
     const normalized = rows
         .map((row) => {
-            const epochMs = toEpochMs(getRawRowTimeValue(row));
-            if (!Number.isFinite(epochMs)) return null;
+            const sortKey = toSortKey(getRawRowTimeValue(row));
+            if (sortKey === null) return null;
             return {
-                time: new Date(epochMs).toISOString(),
+                time: toBoundText(sortKey),
                 name: String(getRawRowNameValue(row) ?? ''),
-                epochMs,
+                sortKey,
             };
         })
-        .filter((row): row is { time: string; name: string; epochMs: number } => Boolean(row));
+        .filter((row): row is { time: string; name: string; sortKey: number } => Boolean(row));
 
     if (normalized.length === 0) return null;
 
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
     normalized.forEach((row) => {
-        if (row.epochMs < min) min = row.epochMs;
-        if (row.epochMs > max) max = row.epochMs;
+        if (row.sortKey < min) min = row.sortKey;
+        if (row.sortKey > max) max = row.sortKey;
     });
 
     return {
@@ -261,8 +574,8 @@ export function buildDataViewerRawPageBounds(rows: unknown[] = []): DataViewerRa
             name: normalized[normalized.length - 1].name,
         },
         pageBounds: {
-            from: new Date(min).toISOString(),
-            to: new Date(max).toISOString(),
+            from: toBoundText(min),
+            to: toBoundText(max),
         },
     };
 }
@@ -403,12 +716,27 @@ function toEpochMs(value: unknown) {
     return Date.parse(text);
 }
 
-export function buildTagChartSeries(rows: Record<string, unknown>[] = []) {
+/**
+ * A base-column value as the chart's x coordinate.
+ *
+ * On a time axis that is `toEpochMs`, epoch heuristics and all. On a distance axis the number *is*
+ * the coordinate and `toEpochMs` is actively wrong about it: it divides anything past 1e14 by a
+ * million (a raw double bit pattern read out of a stat view is exactly that large) and hands any
+ * remaining text to `Date.parse`. Refusing a value outright — NaN — is what keeps a bad reading out
+ * of the series instead of plotting it somewhere in 1970.
+ */
+function toChartBaseX(value: unknown, baseKind: DataViewerBaseKind) {
+    if (baseKind !== 'distance') return toEpochMs(value);
+    const numeric = parseDataViewerDistanceValue(value);
+    return numeric === null ? Number.NaN : numeric;
+}
+
+export function buildTagChartSeries(rows: Record<string, unknown>[] = [], baseKind: DataViewerBaseKind = 'time') {
     const seriesByName = new Map<string, [number, number][]>();
 
     rows.forEach((row) => {
         const name = String(getRawRowNameValue(row) ?? '');
-        const x = toEpochMs(getRawRowTimeValue(row));
+        const x = toChartBaseX(getRawRowTimeValue(row), baseKind);
         const y = Number(getRawRowValueValue(row));
         if (!name || !Number.isFinite(x) || !Number.isFinite(y)) return;
         if (!seriesByName.has(name)) {
@@ -427,10 +755,12 @@ export function buildDataViewerChartResultsFromRawRows({
     rows = [],
     rowsByGroup = {},
     chartGroups = [],
+    baseKind = 'time',
 }: {
     rows?: Record<string, unknown>[];
     rowsByGroup?: Record<string, Record<string, unknown>[]>;
     chartGroups?: DataViewerChartGroup[];
+    baseKind?: DataViewerBaseKind;
 } = {}) {
     const safeRows = Array.isArray(rows) ? rows : [];
     const safeRowsByGroup = rowsByGroup && typeof rowsByGroup === 'object' ? rowsByGroup : {};
@@ -443,7 +773,7 @@ export function buildDataViewerChartResultsFromRawRows({
         const groupRows = tagSet.size > 0 ? sourceRows.filter((row) => tagSet.has(String(getRawRowNameValue(row) ?? ''))) : [];
         results[group.id] = {
             range: group.range || { from: '', to: '' },
-            series: buildTagChartSeries(groupRows),
+            series: buildTagChartSeries(groupRows, baseKind),
         };
     });
 
@@ -607,17 +937,33 @@ export function buildDataViewerSplitRangeUpdate<T extends DataViewerChartStoredR
     };
 }
 
-function normalizeDataViewerGlobalTimeRange(range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown } = {}) {
+/**
+ * A source panel's range as the pair "Set global time" writes to every other panel.
+ *
+ * The edges have to come back in the axis's own units, because what this returns is stored as the
+ * page's range and read again by the next query and the next render. `Date.parse` + `toISOString`
+ * is only right on a time axis: on a distance axis it turns the perfectly ordinary window 0 ~ 1000
+ * into `Date.parse('0')` (the year 2000) and `Date.parse('1000')` (the year 1000) — reversed, so
+ * the update is refused outright — and any window it did accept would be stored as a 1970 ISO
+ * string that the next distance query cannot parse. `toChartBaseX`/`formatDataViewerChartRangeEdge`
+ * are the same pair every other distance-aware path already goes through, so the edge a panel
+ * emits on a wheel zoom and the edge global time writes are the same kind of value.
+ */
+function normalizeDataViewerGlobalTimeRange(
+    range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown } = {},
+    baseKind: DataViewerBaseKind = 'time',
+) {
     const startValue = range.from ?? range.start ?? range.startTime;
     const endValue = range.to ?? range.end ?? range.endTime;
-    const startTime = typeof startValue === 'number' ? startValue : Date.parse(String(startValue ?? ''));
-    const endTime = typeof endValue === 'number' ? endValue : Date.parse(String(endValue ?? ''));
+    const distance = baseKind === 'distance';
+    const startTime = distance ? toChartBaseX(startValue, 'distance') : typeof startValue === 'number' ? startValue : Date.parse(String(startValue ?? ''));
+    const endTime = distance ? toChartBaseX(endValue, 'distance') : typeof endValue === 'number' ? endValue : Date.parse(String(endValue ?? ''));
 
     if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime <= startTime) return undefined;
 
     return {
-        from: new Date(startTime).toISOString(),
-        to: new Date(endTime).toISOString(),
+        from: formatDataViewerChartRangeEdge(startTime, baseKind),
+        to: formatDataViewerChartRangeEdge(endTime, baseKind),
     };
 }
 
@@ -638,9 +984,32 @@ function normalizeDataViewerTagAnalyzerRangeValue(value: unknown, keyPrefix: 'st
     return { [`${keyPrefix}EpochMs`]: parsed };
 }
 
+/**
+ * The window this page is showing, said in the vocabulary the Tag Analyzer payload expects.
+ *
+ * `baseKind` is a parameter and not a caller-side relabel because the two axes do not share a
+ * vocabulary. A time window travels as `startEpochMs`/`endEpochMs`; a distance window travels as
+ * `startValue`/`endValue` and is never date-parsed. Emitting the time vocabulary for a distance
+ * window is not a cosmetic mistake: `0 ~ 1000` is a run of perfectly finite numbers, so it passes
+ * every validity check on both sides and lands as 1970-01-01T00:00:00Z ~ 1970-01-01T00:00:01Z with
+ * no error anywhere. That silence is the reason the distance branch exists here rather than being
+ * left to the consumer to infer.
+ *
+ * `undefined` means "no usable window" and the caller omits `range` entirely, which is a different
+ * thing from a window the consumer should reject.
+ */
 export function buildDataViewerTagAnalyzerRange(
-    range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown; startIso?: unknown; endIso?: unknown; startEpochMs?: unknown; endEpochMs?: unknown } = {},
+    range: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown; startIso?: unknown; endIso?: unknown; startEpochMs?: unknown; endEpochMs?: unknown; startValue?: unknown; endValue?: unknown } = {},
+    baseKind: DataViewerBaseKind = 'time',
 ) {
+    if (baseKind === 'distance') {
+        const startValue = parseDataViewerDistanceValue(range.from ?? range.start ?? range.startValue);
+        const endValue = parseDataViewerDistanceValue(range.to ?? range.end ?? range.endValue);
+        if (startValue === null || endValue === null || endValue <= startValue) return undefined;
+
+        return { startValue, endValue };
+    }
+
     const start = normalizeDataViewerTagAnalyzerRangeValue(range.from ?? range.start ?? range.startTime ?? range.startIso ?? range.startEpochMs, 'start');
     const end = normalizeDataViewerTagAnalyzerRangeValue(range.to ?? range.end ?? range.endTime ?? range.endIso ?? range.endEpochMs, 'end');
     if (Object.keys(start).length === 0 || Object.keys(end).length === 0) return undefined;
@@ -689,12 +1058,14 @@ export function buildDataViewerGlobalTimeUpdate({
     chartViewRanges = {},
     chartNavigatorRanges = {},
     chartResults = {},
+    baseKind = 'time',
 }: {
     sourceGroupId?: string;
     chartGroups?: DataViewerChartGroup[];
     chartViewRanges?: Record<string, { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown }>;
     chartNavigatorRanges?: Record<string, { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown }>;
     chartResults?: Record<string, { range?: { from?: unknown; to?: unknown; start?: unknown; end?: unknown; startTime?: unknown; endTime?: unknown } }>;
+    baseKind?: DataViewerBaseKind;
 } = {}) {
     if (!sourceGroupId || chartGroups.length <= 1) return undefined;
 
@@ -702,20 +1073,21 @@ export function buildDataViewerGlobalTimeUpdate({
     if (!sourceGroup) return undefined;
 
     const displayRange =
-        normalizeDataViewerGlobalTimeRange(chartViewRanges?.[sourceGroupId]) ||
-        normalizeDataViewerGlobalTimeRange(chartResults?.[sourceGroupId]?.range) ||
-        normalizeDataViewerGlobalTimeRange(sourceGroup.range);
+        normalizeDataViewerGlobalTimeRange(chartViewRanges?.[sourceGroupId], baseKind) ||
+        normalizeDataViewerGlobalTimeRange(chartResults?.[sourceGroupId]?.range, baseKind) ||
+        normalizeDataViewerGlobalTimeRange(sourceGroup.range, baseKind);
     const navigatorRange =
-        normalizeDataViewerGlobalTimeRange(chartNavigatorRanges?.[sourceGroupId]) ||
-        normalizeDataViewerGlobalTimeRange(chartResults?.[sourceGroupId]?.range) ||
-        normalizeDataViewerGlobalTimeRange(sourceGroup.range) ||
+        normalizeDataViewerGlobalTimeRange(chartNavigatorRanges?.[sourceGroupId], baseKind) ||
+        normalizeDataViewerGlobalTimeRange(chartResults?.[sourceGroupId]?.range, baseKind) ||
+        normalizeDataViewerGlobalTimeRange(sourceGroup.range, baseKind) ||
         displayRange;
 
     if (!displayRange || !navigatorRange) return undefined;
 
-    const splitRanges: Record<string, { from: string; to: string }> = {};
-    const viewRanges: Record<string, { from: string; to: string }> = {};
-    const navigatorRanges: Record<string, { from: string; to: string }> = {};
+    type GlobalTimeRangeEdges = { from: string | number; to: string | number };
+    const splitRanges: Record<string, GlobalTimeRangeEdges> = {};
+    const viewRanges: Record<string, GlobalTimeRangeEdges> = {};
+    const navigatorRanges: Record<string, GlobalTimeRangeEdges> = {};
     chartGroups.forEach((group) => {
         if (group?.split && group.id) {
             splitRanges[group.id] = navigatorRange;
@@ -745,9 +1117,13 @@ const PANEL_NAVIGATOR_GRID_SIDE = 58;
 const PANEL_SLIDER_HEIGHT = 26;
 const PANEL_MAIN_TOP_WITH_LEGEND = 40;
 const PANEL_MAIN_HEIGHT = 178;
-const PANEL_LEGEND_ITEMS_PER_ROW = 4;
-const PANEL_LEGEND_ROW_HEIGHT = 18;
-const PANEL_MAIN_MIN_HEIGHT = 96;
+// The legend is `type: 'scroll'`, and a horizontal scroll legend never wraps — it lays every entry
+// out on one line and pages the overflow away behind its own ‹ 1/5 › control. So its height is one
+// row's, whatever the series count is. This used to be computed as `ceil(series.length / 4)` rows,
+// which is what a *wrapping* legend would need: at 30 tags it reserved 8 rows, pushed the plot down
+// by 126px and clipped its height to the 96px floor, so the panel drew a single-row legend, a wide
+// band of nothing under it, and a chart squashed into the bottom third of the card.
+const PANEL_LEGEND_HEIGHT = PANEL_MAIN_TOP_WITH_LEGEND - PANEL_LEGEND_TOP - 8;
 const PANEL_MAIN_SERIES_ID_PREFIX = 'main-series-';
 const PANEL_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 const PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR = 0.82;
@@ -771,9 +1147,13 @@ function chooseTimeTickInterval(duration: number) {
     return 90 * DAY_MS;
 }
 
-export function buildDataViewerChartXAxis(points: Array<[number, number] | { x?: number }> = [], range: { from?: unknown; to?: unknown } = {}) {
-    const rangeFrom = toEpochMs(range.from);
-    const rangeTo = toEpochMs(range.to);
+export function buildDataViewerChartXAxis(
+    points: Array<[number, number] | { x?: number }> = [],
+    range: { from?: unknown; to?: unknown } = {},
+    baseKind: DataViewerBaseKind = 'time',
+) {
+    const rangeFrom = toChartBaseX(range.from, baseKind);
+    const rangeTo = toChartBaseX(range.to, baseKind);
 
     let min = Number.isFinite(rangeFrom) ? rangeFrom : undefined;
     let max = Number.isFinite(rangeTo) ? rangeTo : undefined;
@@ -800,40 +1180,109 @@ export function buildDataViewerChartXAxis(points: Array<[number, number] | { x?:
     return {
         min: axisMin,
         max: axisMax,
-        tickInterval: chooseTimeTickInterval(axisMax - axisMin),
+        // Every branch of `chooseTimeTickInterval` is a duration (a second, an hour, 90 days), which
+        // is not a quantity a distance axis has. ECharts' own `value` axis picks its ticks, so the
+        // honest answer here is "no opinion" rather than a span of milliseconds relabelled.
+        tickInterval: baseKind === 'distance' ? undefined : chooseTimeTickInterval(axisMax - axisMin),
     };
+}
+
+/**
+ * The compact suffixes this chart writes. Shared by both axes so one panel never labels its two
+ * axes in two different notations.
+ *
+ * `B` rather than the SI `G`: these are the short-scale suffixes the y axis has always written, and
+ * matching the axis beside it matters more here than matching the SI table.
+ */
+const COMPACT_NUMBER_UNITS = [
+    { value: 1_000_000_000_000, suffix: 'T' },
+    { value: 1_000_000_000, suffix: 'B' },
+    { value: 1_000_000, suffix: 'M' },
+    { value: 1_000, suffix: 'K' },
+];
+
+/**
+ * The reading past which the suffixes run out.
+ *
+ * `T` is the largest suffix in the table, so it is asked to carry everything above it, and it stops
+ * being an abbreviation the moment the value it is dividing exceeds it by more than a thousandfold.
+ * At 8e35 the label became `800,000,000,000,000,000,000,000T` — thirty-odd characters of a scale
+ * nobody can read, on an axis whose whole job is to be scanned.
+ */
+const COMPACT_NUMBER_CEILING = 1000 * COMPACT_NUMBER_UNITS[0].value;
+
+/** How fine the plain, unsuffixed label goes. Its reciprocal is the smallest reading it can state. */
+const Y_AXIS_MAX_FRACTION_DIGITS = 4;
+
+/**
+ * The reading below which the plain label runs out, which is the same failure upside down.
+ *
+ * Four decimals is the finest a label without a suffix is written, so 0.0001 is the smallest
+ * reading it can state and everything under it rounds to `0`. A tag living at 1e-5 therefore draws
+ * a line that visibly rises and falls beside an axis labelled `0 0 0 0 0` — the ticks are all
+ * different and every label says they are the same.
+ *
+ * The ceiling failed by printing digits nobody can count; this fails by printing none at all. Both
+ * are the label refusing to state the scale it is on.
+ */
+const COMPACT_NUMBER_FLOOR = 10 ** -Y_AXIS_MAX_FRACTION_DIGITS;
+
+/**
+ * A reading outside the range the suffixes and decimals cover, written the way such readings are.
+ *
+ * Rounded first and re-parsed second so the mantissa carries the digits asked for and no more:
+ * `toExponential` alone pads to the requested width, and `8.0e+35` is the same claim as `8e+35`
+ * made two characters longer.
+ */
+function formatBeyondCompactRange(value: number, maximumFractionDigits: number) {
+    return Number(value.toExponential(maximumFractionDigits)).toExponential();
 }
 
 function formatYAxisLabel(value: unknown) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return String(value);
-    const units = [
-        { value: 1_000_000_000_000, suffix: 'T' },
-        { value: 1_000_000_000, suffix: 'B' },
-        { value: 1_000_000, suffix: 'M' },
-        { value: 1_000, suffix: 'K' },
-    ];
     const normalized = Object.is(numeric, -0) ? 0 : numeric;
     const abs = Math.abs(normalized);
-    const unit = units.find((item) => abs >= item.value);
-    if (!unit) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(normalized);
+    // Zero is excluded from the floor by `abs > 0`, and deliberately: it is the one reading `0` is
+    // the whole truth about, and `0e+0` would be a worse way to say it.
+    if (abs >= COMPACT_NUMBER_CEILING || (abs > 0 && abs < COMPACT_NUMBER_FLOOR)) return formatBeyondCompactRange(normalized, 1);
+    // Per value, not per axis: a y axis is handed no window, so each label answers for itself.
+    const unit = COMPACT_NUMBER_UNITS.find((item) => abs >= item.value);
+    if (!unit) return new Intl.NumberFormat('en-US', { maximumFractionDigits: Y_AXIS_MAX_FRACTION_DIGITS }).format(normalized);
     return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(normalized / unit.value)}${unit.suffix}`;
 }
 
-function getPanelRange(points: Array<[number, number | null]> = [], timeRange: { from?: unknown; to?: unknown; startTime?: unknown; endTime?: unknown } = {}) {
-    const axis = buildDataViewerChartXAxis(points as Array<[number, number]>, {
-        from: timeRange.startTime ?? timeRange.from,
-        to: timeRange.endTime ?? timeRange.to,
-    });
+function getPanelRange(
+    points: Array<[number, number | null]> = [],
+    timeRange: { from?: unknown; to?: unknown; startTime?: unknown; endTime?: unknown } = {},
+    baseKind: DataViewerBaseKind = 'time',
+) {
+    const axis = buildDataViewerChartXAxis(
+        points as Array<[number, number]>,
+        {
+            from: timeRange.startTime ?? timeRange.from,
+            to: timeRange.endTime ?? timeRange.to,
+        },
+        baseKind,
+    );
+    // The fallback is what an empty chart shows. `now - 1h .. now` is a clock reading, so on a
+    // distance axis it would open the panel eighteen digits away from every point the table holds;
+    // the axis's own default window is the only span that means anything there.
     const now = Date.now();
+    const fallbackStart = baseKind === 'distance' ? Number(DEFAULT_DATA_VIEWER_DISTANCE_RANGE.from) : now - HOUR_MS;
+    const fallbackEnd = baseKind === 'distance' ? Number(DEFAULT_DATA_VIEWER_DISTANCE_RANGE.to) : now;
     return {
-        startTime: Number.isFinite(axis.min) ? axis.min : now - HOUR_MS,
-        endTime: Number.isFinite(axis.max) ? axis.max : now,
+        startTime: Number.isFinite(axis.min) ? axis.min : fallbackStart,
+        endTime: Number.isFinite(axis.max) ? axis.max : fallbackEnd,
     };
 }
 
-export function getDataViewerChartRangeMs(points: Array<[number, number | null]> = [], timeRange: { from?: unknown; to?: unknown; startTime?: unknown; endTime?: unknown } = {}) {
-    return getPanelRange(points, timeRange);
+export function getDataViewerChartRangeMs(
+    points: Array<[number, number | null]> = [],
+    timeRange: { from?: unknown; to?: unknown; startTime?: unknown; endTime?: unknown } = {},
+    baseKind: DataViewerBaseKind = 'time',
+) {
+    return getPanelRange(points, timeRange, baseKind);
 }
 
 function getPrimaryDataZoomEventItem(zoomData: any = {}) {
@@ -938,10 +1387,12 @@ export function buildDataViewerShiftMainRangeUpdate({
     direction,
     currentRange = {},
     navigatorRange = {},
+    baseKind = 'time',
 }: {
     direction?: 'backward' | 'forward';
     currentRange?: DataViewerChartRangeMs;
     navigatorRange?: DataViewerChartRangeMs;
+    baseKind?: DataViewerBaseKind;
 } = {}) {
     const currentStart = Number(currentRange.startTime);
     const currentEnd = Number(currentRange.endTime);
@@ -963,13 +1414,55 @@ export function buildDataViewerShiftMainRangeUpdate({
 
     return {
         range: {
-            from: new Date(nextStart).toISOString(),
-            to: new Date(nextEnd).toISOString(),
+            from: formatDataViewerChartRangeEdge(nextStart, baseKind),
+            to: formatDataViewerChartRangeEdge(nextEnd, baseKind),
         },
         navigatorRange: {
-            from: new Date(nextNavigatorStart).toISOString(),
-            to: new Date(nextNavigatorEnd).toISOString(),
+            from: formatDataViewerChartRangeEdge(nextNavigatorStart, baseKind),
+            to: formatDataViewerChartRangeEdge(nextNavigatorEnd, baseKind),
         },
+    };
+}
+
+/**
+ * The range chip's chevrons: the whole window, moved by its own width.
+ *
+ * Deliberately not `buildDataViewerShiftMainRangeUpdate`. That one moves a *panel* view inside a
+ * wider navigator extent — it needs both ranges, moves by a fraction of the navigator, and has
+ * nothing to say when there is no navigator. The chip has no navigator: the window on the toolbar is
+ * the only extent there is, and "previous" means the adjacent window of the same width, the way the
+ * dashboard's range chips step. So the offset is the span itself, not a fraction of something else.
+ *
+ * Both axes go through `toChartBaseX` in and `formatDataViewerChartRangeEdge` out, which is what
+ * keeps the distance case numeric: `new Date(1000)` would store `1970-01-01T00:00:01.000Z` and the
+ * next render would read a window 1000 metres wide as one second of 1970.
+ */
+export function buildDataViewerShiftBaseRangeUpdate({
+    direction,
+    range = {},
+    baseKind = 'time',
+}: {
+    direction?: 'backward' | 'forward';
+    range?: { from?: unknown; to?: unknown };
+    baseKind?: DataViewerBaseKind;
+} = {}): { from: string | number; to: string | number } | null {
+    const shiftDirection = direction === 'backward' ? -1 : direction === 'forward' ? 1 : 0;
+    if (shiftDirection === 0) return null;
+
+    const start = toChartBaseX(range.from, baseKind);
+    const end = toChartBaseX(range.to, baseKind);
+    if (![start, end].every(Number.isFinite)) return null;
+
+    // A zero-width or reversed window has no width to step by, so there is no adjacent window to
+    // move to. Refusing is what keeps a chevron from silently doing nothing *and* rewriting the
+    // range to the same two values, which would still cost a re-query.
+    const span = end - start;
+    if (!(span > 0)) return null;
+
+    const offset = span * shiftDirection;
+    return {
+        from: formatDataViewerChartRangeEdge(start + offset, baseKind),
+        to: formatDataViewerChartRangeEdge(end + offset, baseKind),
     };
 }
 
@@ -1099,11 +1592,13 @@ function getYAxisRange(series: Array<{ data?: Array<[number, number | null]> }>,
     };
 }
 
-function buildNeoLikeTooltipFormatter(params: any, timeFormat: string, timeZone: string) {
+function buildNeoLikeTooltipFormatter(params: any, timeFormat: string, timeZone: string, baseKind: DataViewerBaseKind = 'time') {
     const items = (Array.isArray(params) ? params : [params]).filter((item) => String(item?.seriesId || '').startsWith(PANEL_MAIN_SERIES_ID_PREFIX));
     if (items.length === 0) return '';
     const firstValue = Array.isArray(items[0].value) ? items[0].value : [];
-    const time = formatDataViewerTime(Number(firstValue[0] ?? items[0].axisValue), timeFormat, timeZone);
+    // The heading is the x coordinate the pointer is on, which is a distance on a distance axis.
+    // Routing it through the axis-aware formatter is what keeps a date out of the tooltip.
+    const time = formatDataViewerBaseValue(Number(firstValue[0] ?? items[0].axisValue), baseKind, timeFormat, timeZone);
     return `<div style="max-width:240px">
         <div style="min-width:0;padding-left:10px;font-size:10px;color:#afb5bc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${time}</div>
         <div style="padding:6px 0 0 10px;max-width:230px">
@@ -1129,36 +1624,49 @@ function positionDataViewerTooltip(point: number[], _params: any, _dom: HTMLElem
     return [left, top];
 }
 
-function getPanelLegendLayout(series: Array<{ name: string; data: Array<[number, number | null]> }> = []) {
-    const rowCount = Math.max(1, Math.ceil(Math.max(0, series.length) / PANEL_LEGEND_ITEMS_PER_ROW));
-    const extraLegendHeight = Math.max(0, rowCount - 1) * PANEL_LEGEND_ROW_HEIGHT;
-    const mainTop = PANEL_MAIN_TOP_WITH_LEGEND + extraLegendHeight;
-    return {
-        rowCount,
-        mainTop,
-        mainHeight: Math.max(PANEL_MAIN_MIN_HEIGHT, PANEL_MAIN_HEIGHT - extraLegendHeight),
-        legendHeight: Math.max(PANEL_LEGEND_ROW_HEIGHT, mainTop - PANEL_LEGEND_TOP - 8),
-    };
-}
-
 export function buildDataViewerEChartOption({
     series = [],
     timeRange = {},
     displayRange,
     timeFormat = DEFAULT_TIME_FORMAT,
     timeZone = DEFAULT_TIME_ZONE,
+    baseKind = 'time',
+    // Tag-name keyed colours, so a split panel keeps the colour the tag has in the main chart.
+    // `color: PANEL_COLORS` below only decides a panel's *own* palette order, and a split panel
+    // holds exactly one series — so without this map every split panel takes the palette's first
+    // entry and comes out the same blue as every other one, and none of them matches the tag's
+    // line in the main chart or its dot in the raw grid. Falls back to this panel's own palette
+    // position for names the map does not cover.
+    seriesColors = {},
 }: {
     series?: Array<{ name: string; data: Array<[number, number | null]> }>;
     timeRange?: { from?: unknown; to?: unknown };
     displayRange?: { from?: unknown; to?: unknown };
     timeFormat?: string;
     timeZone?: string;
+    baseKind?: DataViewerBaseKind;
+    seriesColors?: Record<string, string>;
 } = {}) {
+    const colorFor = (item: { name?: unknown } | undefined, index: number) => seriesColors[String(item?.name ?? '')] || PANEL_COLORS[index % PANEL_COLORS.length];
     const allPoints = series.flatMap((item) => (Array.isArray(item?.data) ? item.data : []));
-    const panelRange = getPanelRange(allPoints, displayRange || timeRange) as Required<DataViewerChartRangeMs>;
-    const navigatorRange = getPanelRange(allPoints, timeRange) as Required<DataViewerChartRangeMs>;
+    const panelRange = getPanelRange(allPoints, displayRange || timeRange, baseKind) as Required<DataViewerChartRangeMs>;
+    const navigatorRange = getPanelRange(allPoints, timeRange, baseKind) as Required<DataViewerChartRangeMs>;
     const yAxisRange = getYAxisRange(series, panelRange);
-    const legendLayout = getPanelLegendLayout(series);
+    // A `time` axis interprets every x as an epoch — it would lay 0 .. 999990 out across the first
+    // sixteen minutes of 1970 and label the ticks with clock times. `value` is the same axis the
+    // dashboards switch to for a non-DATETIME base column (see `DashboardChartOptionParser`), and it
+    // reads the numbers as the distances they are. All three x axes switch together: the main axis
+    // and the two navigator axes plot the same series, so a split would put the navigator's window
+    // in a different coordinate space than the panel it scrolls.
+    const distanceBase = baseKind === 'distance';
+    const baseAxisType = distanceBase ? 'value' : 'time';
+    // Both branches are handed the window, not just the value: on either axis the tick's useful
+    // resolution is a property of how much ground the panel is covering, and only the caller knows
+    // that. Zooming in is what earns a distance tick its decimals back.
+    const formatBaseAxisLabel = (value: unknown) =>
+        distanceBase
+            ? formatDataViewerAxisDistance(value, { min: panelRange.startTime, max: panelRange.endTime })
+            : formatDataViewerAxisTime(value, { min: panelRange.startTime, max: panelRange.endTime }, timeZone);
 
     return {
         backgroundColor: '#252525',
@@ -1166,10 +1674,29 @@ export function buildDataViewerEChartOption({
         textStyle: { fontFamily: 'Open Sans, Helvetica, Arial, sans-serif' },
         color: PANEL_COLORS,
         grid: [
-            { id: 'panel-main-grid', left: PANEL_GRID_SIDE, right: PANEL_GRID_SIDE, top: legendLayout.mainTop, height: legendLayout.mainHeight, containLabel: true },
+            { id: 'panel-main-grid', left: PANEL_GRID_SIDE, right: PANEL_GRID_SIDE, top: PANEL_MAIN_TOP_WITH_LEGEND, height: PANEL_MAIN_HEIGHT, containLabel: true },
             { id: 'panel-navigator-grid', left: PANEL_NAVIGATOR_GRID_SIDE, right: PANEL_NAVIGATOR_GRID_SIDE, bottom: PANEL_GRID_BOTTOM, height: PANEL_SLIDER_HEIGHT },
         ],
-        legend: { show: true, type: 'scroll', left: 10, right: 10, top: PANEL_LEGEND_TOP, height: legendLayout.legendHeight, itemGap: 15, textStyle: { color: '#e7e8ea', fontSize: 10 } },
+        legend: {
+            show: true,
+            type: 'scroll',
+            left: 10,
+            right: 10,
+            top: PANEL_LEGEND_TOP,
+            height: PANEL_LEGEND_HEIGHT,
+            itemGap: 15,
+            textStyle: { color: '#e7e8ea', fontSize: 10 },
+            // ECharts' defaults for the pager are ink-on-white — a #2f4554 arrow, a #aaa disabled
+            // arrow and #333 text — and this panel's background is #252525, so on a chart with more
+            // tags than fit on one line the only control that reveals the rest of them was all but
+            // invisible. These are the legend's own text colour for the live parts and a mid grey
+            // for the end-of-range arrow, which is the same contrast pairing the rest of the panel
+            // uses.
+            pageIconColor: '#e7e8ea',
+            pageIconInactiveColor: '#61646b',
+            pageIconSize: 11,
+            pageTextStyle: { color: '#e7e8ea', fontSize: 10 },
+        },
         tooltip: {
             trigger: 'axis',
             confine: true,
@@ -1181,12 +1708,12 @@ export function buildDataViewerEChartOption({
             textStyle: { color: '#afb5bc', fontSize: 10 },
             axisPointer: { type: 'line', snap: false },
             position: positionDataViewerTooltip,
-            formatter: (params: any) => buildNeoLikeTooltipFormatter(params, timeFormat, timeZone),
+            formatter: (params: any) => buildNeoLikeTooltipFormatter(params, timeFormat, timeZone, baseKind),
         },
         xAxis: [
             {
                 id: 'panel-main-x-axis',
-                type: 'time',
+                type: baseAxisType,
                 gridIndex: 0,
                 min: panelRange.startTime,
                 max: panelRange.endTime,
@@ -1194,14 +1721,14 @@ export function buildDataViewerEChartOption({
                 axisTick: AXIS_LINE_STYLE,
                 axisLabel: {
                     ...PANEL_AXIS_LABEL_STYLE,
-                    formatter: (value: unknown) => formatDataViewerAxisTime(value, { min: panelRange.startTime, max: panelRange.endTime }, timeZone),
+                    formatter: formatBaseAxisLabel,
                 },
                 splitLine: { show: true, lineStyle: AXIS_SPLIT_LINE_STYLE },
                 axisPointer: { label: { show: false } },
             },
             {
                 id: 'panel-navigator-x-axis',
-                type: 'time',
+                type: baseAxisType,
                 gridIndex: 1,
                 min: navigatorRange.startTime,
                 max: navigatorRange.endTime,
@@ -1213,7 +1740,7 @@ export function buildDataViewerEChartOption({
             },
             {
                 id: 'panel-navigator-data-x-axis',
-                type: 'time',
+                type: baseAxisType,
                 gridIndex: 1,
                 min: navigatorRange.startTime,
                 max: navigatorRange.endTime,
@@ -1302,8 +1829,8 @@ export function buildDataViewerEChartOption({
                 symbolSize: 6,
                 animation: false,
                 sampling: item.data?.length > 1000 ? 'lttb' : undefined,
-                lineStyle: { width: 1, color: PANEL_COLORS[index % PANEL_COLORS.length], opacity: 1 },
-                itemStyle: { color: PANEL_COLORS[index % PANEL_COLORS.length], opacity: 1 },
+                lineStyle: { width: 1, color: colorFor(item, index), opacity: 1 },
+                itemStyle: { color: colorFor(item, index), opacity: 1 },
                 connectNulls: false,
                 triggerEvent: true,
                 z: 2,
@@ -1321,8 +1848,8 @@ export function buildDataViewerEChartOption({
                 tooltip: { show: false },
                 animation: false,
                 sampling: item.data?.length > 1000 ? 'lttb' : undefined,
-                lineStyle: { width: 1, color: PANEL_COLORS[index % PANEL_COLORS.length], opacity: 0.85 },
-                itemStyle: { color: PANEL_COLORS[index % PANEL_COLORS.length], opacity: 0.85 },
+                lineStyle: { width: 1, color: colorFor(item, index), opacity: 0.85 },
+                itemStyle: { color: colorFor(item, index), opacity: 0.85 },
                 emphasis: { disabled: true },
                 z: 1,
             })),
@@ -1564,7 +2091,10 @@ export function formatDataViewerTime(value: unknown, timeFormat: string, timeZon
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false,
+        // `hour12: false` is not the same as a 0-23 clock: older ICU builds resolve it against the
+        // locale's preferred cycle, and en-CA prefers h12, so midnight prints as `24:05` there and
+        // `00:05` on newer runtimes. Ask for h23 directly so the hour reads the same on every Node.
+        hourCycle: 'h23',
     })
         .formatToParts(date)
         .reduce<Record<string, string>>((acc, part) => {
@@ -1614,15 +2144,122 @@ export function formatDataViewerAxisTime(value: unknown, range: { min?: unknown;
     return formatDataViewerTime(value, '2006-01-02', timeZone);
 }
 
+/**
+ * How many decimals a distance tick is worth, given the window it is labelling.
+ *
+ * The same reasoning the time axis already uses: it drops to `MM-DD` once the window passes a
+ * month, because a clock time is noise at that scale. A distance axis has the same problem in a
+ * different unit. Across a 1000-unit window a tick is placed every hundred units, so digits past
+ * the decimal point describe nothing a reader can see, and the axis minimum — which is a real data
+ * boundary, not a round number — prints its full stored precision beside neatly rounded neighbours.
+ *
+ * Roughly ten labelled ticks fit across a panel, so the interval is a tenth of the window, and one
+ * digit finer than that interval keeps neighbouring ticks distinct without printing noise. Capped
+ * at six, which is past any distance a sensor reports and short of float dust.
+ */
+function resolveDistanceAxisDecimals(span: unknown) {
+    const numericSpan = Math.abs(Number(span));
+    if (!Number.isFinite(numericSpan) || numericSpan <= 0) return 3;
+
+    const step = numericSpan / 10;
+    return Math.min(6, Math.max(0, Math.ceil(-Math.log10(step)) + 1));
+}
+
+/**
+ * The suffix the whole distance axis writes, chosen once for the axis.
+ *
+ * Chosen for the axis and not per value, which is the difference between an axis and a column of
+ * unrelated numbers. Picking per value puts `0.1K` next to `100K` on one axis, or leaves the axis
+ * minimum bare while its neighbours carry a suffix — the reader then has to check the suffix on
+ * every tick before comparing two of them.
+ *
+ * It is the window's *magnitude* that decides, not its span. Those come apart exactly when a wide
+ * odometer is read closely: a window of 996,633 ~ 998,039 spans only 1,406, so a span-driven choice
+ * finds nothing worth compacting and prints seven digits per tick — while the numbers being printed
+ * are plainly million-scale. How long the labels are is a property of how large the readings are.
+ *
+ * The `10 ×` threshold is what stops the suffix from arriving before it helps. Readings that only
+ * just reach 1000 would technically fit `K`, but their ticks are then `0.1K 0.2K 0.3K` — longer
+ * than the `100 200 300` they replaced, and less legible. Requiring ten units of headroom means the
+ * suffix appears only once the whole-number part survives it.
+ */
+function resolveDistanceAxisUnit(magnitude: unknown) {
+    const numericMagnitude = Math.abs(Number(magnitude));
+    if (!Number.isFinite(numericMagnitude)) return undefined;
+    return COMPACT_NUMBER_UNITS.find((item) => numericMagnitude >= 10 * item.value);
+}
+
+/**
+ * A distance axis tick.
+ *
+ * ECharts divides a `value` axis into intervals in floating point, so a tick that is conceptually
+ * 200 arrives as 199.99999999999997. Rounding to the window's own resolution lands it back on the
+ * number the axis meant, and does the same for the axis minimum, which arrives as whatever the data
+ * actually starts at.
+ *
+ * The result is re-parsed rather than left as `toFixed` output so a whole tick reads `200` and not
+ * `200.00`: the decimal count is a ceiling on precision, not a demand for it.
+ *
+ * The two questions the window answers are separate. Its magnitude picks the suffix — how large the
+ * readings are — and its span picks the decimals — how closely they are being read. A wide odometer
+ * inspected over a few metres needs both answers at once, and either one alone gets it wrong.
+ *
+ * The decimals are resolved against the *scaled* span, so the suffix cannot cost resolution: a
+ * 15,000-unit window keeps its ticks apart as `1.5K 3K 4.5K` rather than collapsing them to `2K 3K
+ * 5K`. Scaling the span and the value by the same unit is the whole of it.
+ *
+ * `window` is optional because a formatter with no window to consult is better than no labels; it
+ * falls back to three decimals and no suffix.
+ */
+export function formatDataViewerAxisDistance(value: unknown, window?: { min?: unknown; max?: unknown }) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return formatDataViewerDistance(value);
+
+    // Zero is the one tick that reads the same in every unit, and `0K` beside `10K` only invites
+    // the reader to wonder whether it means something other than nothing.
+    if (numeric === 0) return '0';
+
+    const min = Number(window?.min);
+    const max = Number(window?.max);
+    const span = Math.abs(max - min);
+
+    // Past the last suffix the same reasoning as the y axis applies. This axis degrades differently
+    // — `String(Number(...))` reaches for exponential on its own, giving `8e+23T` — but a mantissa
+    // wearing a suffix abbreviates nothing, and the two axes should not disagree about it.
+    if (Math.abs(numeric) >= COMPACT_NUMBER_CEILING) return formatBeyondCompactRange(numeric, resolveDistanceAxisDecimals(span));
+
+    const unit = resolveDistanceAxisUnit(Math.max(Math.abs(min), Math.abs(max)));
+    if (!unit) return String(Number(numeric.toFixed(resolveDistanceAxisDecimals(span))));
+
+    const decimals = resolveDistanceAxisDecimals(span / unit.value);
+    return `${String(Number((numeric / unit.value).toFixed(decimals)))}${unit.suffix}`;
+}
+
 export function formatDataViewerNavigatorRangeLabels(
     range: { startTime?: unknown; endTime?: unknown; from?: unknown; to?: unknown } = {},
     _timeFormat = DEFAULT_TIME_FORMAT,
     timeZone = DEFAULT_TIME_ZONE,
+    baseKind: DataViewerBaseKind = 'time',
 ) {
-    const startTime = toEpochMs(range.startTime ?? range.from);
-    const endTime = toEpochMs(range.endTime ?? range.to);
+    const startTime = toChartBaseX(range.startTime ?? range.from, baseKind);
+    const endTime = toChartBaseX(range.endTime ?? range.to, baseKind);
     return {
-        start: Number.isFinite(startTime) ? formatDataViewerTime(startTime, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
-        end: Number.isFinite(endTime) ? formatDataViewerTime(endTime, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
+        start: Number.isFinite(startTime) ? formatDataViewerBaseValue(startTime, baseKind, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
+        end: Number.isFinite(endTime) ? formatDataViewerBaseValue(endTime, baseKind, 'YYYY-MM-DD HH24:MI:SS', timeZone) : '',
     };
+}
+
+/**
+ * A chart x coordinate as the range edge the page stores.
+ *
+ * Every interaction — wheel, drag, slider, the shift arrows — hands back a pair of axis coordinates
+ * that the page writes straight back as `{ from, to }` and the next render reads in again. On a time
+ * axis that pair is epoch milliseconds and the stored form is ISO. On a distance axis it is a
+ * distance: `new Date(999990).toISOString()` would store `1970-01-01T00:16:39.990Z`, the next render
+ * would parse it as an epoch, and the panel would jump to 1970 the moment anyone touched it.
+ */
+export function formatDataViewerChartRangeEdge(value: unknown, baseKind: DataViewerBaseKind = 'time'): string | number {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return '';
+    return baseKind === 'distance' ? numeric : new Date(numeric).toISOString();
 }

@@ -1,0 +1,76 @@
+@use '@/design-system/tokens' as t;
+
+// The catalog search band (CatalogSearchBand.tsx).
+//
+// COLLAPSED AND EXPANDED ARE THE SAME HEIGHT ON PURPOSE. The band swaps a label
+// for an input in place; if the two measured differently, the package list below
+// would jump by a few pixels every time the pointer crossed the band.
+.catalog-search-band {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    // Symmetric, and the top half is the point: with no top margin the band's own
+    // border sat directly on the pill bar's divider, so the two lines touched and
+    // read as one thick rule with a box hanging off it.
+    margin: 6px 8px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background-color: t.$bg-elevated;
+    color: t.$text-tertiary;
+
+    &:hover {
+        color: t.$text-secondary;
+    }
+
+    &--open {
+        border-color: t.$border-color-focus;
+        background-color: t.$bg-input;
+    }
+}
+
+.catalog-search-band-trigger {
+    // Restated against the global `button { border-radius: 8px }` in
+    // src/index.css: this button fills a 4px-radius band, and 8px on it draws
+    // rounded corners INSIDE the band's own square ones on hover.
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: text;
+}
+
+.catalog-search-band-hint {
+    color: inherit;
+}
+
+.catalog-search-band-icon {
+    flex-shrink: 0;
+    color: t.$text-tertiary;
+}
+
+.catalog-search-band-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: t.$text-primary;
+    font-size: 12px;
+    outline: none;
+
+    &::placeholder {
+        color: t.$text-tertiary;
+    }
+}

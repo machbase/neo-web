@@ -1,0 +1,119 @@
+.wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Chip: fixed 26px, subtle border. Also resets the global <button> leak for the unset variant. */
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 26px;
+    padding: 0 6px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.12s ease;
+
+    // Whole chip is the click target (opens the range editor) → the entire chip highlights on hover.
+    &:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    &:focus-visible {
+        outline: 2px solid #006cd2;
+        outline-offset: 1px;
+    }
+
+    // The dashboard header (.page-wrapper) defines `span { cursor: default }` (specificity 0,1,1) which
+    // otherwise overrides the inherited pointer on our text spans — including the value's nested
+    // value/caption spans. Two-class selectors (0,2,x) win it back for every span in the chip.
+    .label,
+    .value,
+    .value span {
+        cursor: inherit;
+    }
+}
+
+.chipUnset {
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+
+    // Hover background comes from the shared .chip rule above; only the icon tint is unset-specific.
+    &:hover .icon {
+        color: #c8ccd6;
+    }
+}
+
+.label {
+    font-family: 'Pretendard';
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+}
+
+.labelTime {
+    color: #4199ff;
+}
+.labelDist {
+    color: #fdb532;
+}
+.labelUnset {
+    color: #717171;
+}
+
+/* ◀▶ */
+.chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: #717171;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+
+    // Sits on top of the chip-wide hover, so use a stronger tint to stay distinct as a separate shift button.
+    &:hover {
+        background: rgba(255, 255, 255, 0.14);
+        color: #c8ccd6;
+    }
+}
+
+/* value (clickable → opens the range editor) */
+.value {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 2px 4px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'D2Coding', monospace;
+    font-size: 12px;
+    color: #c8ccd6;
+    white-space: nowrap;
+}
+
+.valueDefault {
+    font-style: italic;
+    color: #8b8f9a;
+}
+
+.defaultCaption {
+    font-size: 9px;
+    color: #8b8f9a;
+}
+
+.icon {
+    color: #717171;
+    flex: none;
+}

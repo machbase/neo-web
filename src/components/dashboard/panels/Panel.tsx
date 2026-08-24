@@ -24,6 +24,11 @@ const Panel = ({
     pIsActiveTab,
 }: any) => {
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
+    // Bumped by the chart every time its own refresh timer fires. The header's countdown ring restarts
+    // on it, so the animation is anchored to the real fetch instead of free-running from mount: a CSS
+    // animation of exactly N seconds and a timer that re-arms N seconds *after each callback* drift
+    // apart by the query duration, every cycle, until the ring is visibly out of step.
+    const [sRefreshCycleId, setRefreshCycleId] = useState<number>(0);
     // The theme the chart is actually rendered with, used to paint the panel chrome. For TQL charts
     // the panel theme is vestigial (owned by the .tql), so we seed it as undetermined — never the
     // hardcoded 'dark' default — and let LineChart lift the server-resolved theme (issue #1435).
@@ -45,6 +50,7 @@ const Panel = ({
     return (
         <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
             <PanelHeader
+                pRefreshCycleId={sRefreshCycleId}
                 pRefreshCount={sRefreshCount}
                 pSetRefreshCount={setRefreshCount}
                 pShowEditPanel={pShowEditPanel}
@@ -87,6 +93,7 @@ const Panel = ({
                         pBoardTimeMinMax={pBoardTimeMinMax}
                         pIsActiveTab={pIsActiveTab}
                         pOnResolveTheme={setResolvedTheme}
+                        pOnRefreshTick={() => setRefreshCycleId((aId) => aId + 1)}
                     />
                 )
             ) : null}

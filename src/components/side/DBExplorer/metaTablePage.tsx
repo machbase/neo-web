@@ -46,6 +46,10 @@ export const MetaTablePage = ({
     const [sIsOpenConfirm, setIsOpenConfirm] = useState<boolean>(false);
     const [sDelInfo, setDelInfo] = useState<string>('');
     const sSearchIIFE = useRef(false);
+    // Bumped on every meta fetch. A response whose token no longer matches belongs to a
+    // table/filter the user has already navigated away from, so its rows are discarded.
+    const sMetaFetchSeq = useRef(0);
+    const sMetaCntFetchSeq = useRef(0);
     const [sVirtualModal, setVirtualModal] = useState<{ state: boolean; filter: string; table: any; recordCnt: number }>({
         state: false,
         filter: '',
@@ -99,7 +103,7 @@ export const MetaTablePage = ({
 
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
-            if (sIsLoading) return; // Prevent multiple simultaneous requests
+            const sFetchSeq = ++sMetaFetchSeq.current;
             setIsLoading(true);
             const currentPage = opt?.page !== undefined ? opt?.page : sPage;
             const currentFilter = opt?.filter !== undefined ? opt.filter : sFilter;
@@ -108,6 +112,9 @@ export const MetaTablePage = ({
             } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select * from ${sTargetTable} order by _id asc`;
             const { svrState, svrData } = await fetchTqlQuery(sQuery, currentPage);
+
+            // A newer fetch already took over; keep its rows and its loading state.
+            if (sFetchSeq !== sMetaFetchSeq.current) return;
 
             if (svrState) {
                 const newRows = svrData?.rows || [];
@@ -122,20 +129,25 @@ export const MetaTablePage = ({
 
             setIsLoading(false);
         },
-        [mTableInfo]
+        [mTableInfo, pMColInfo]
     );
     const FetchMetaTableCnt = useCallback(
         async (filter: string) => {
+            const sFetchSeq = ++sMetaCntFetchSeq.current;
             const currentFilter = filter !== undefined ? filter : sFilter;
             const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
                 pMColInfo?.rows?.[0]?.[0]
             } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
             const sQuery = `select count(*) from ${sTargetTable}`;
             const { svrState, svrData } = await fetchQuery(sQuery);
+
+            // Same guard as FetchMetaTable: a late count must not overwrite a newer one.
+            if (sFetchSeq !== sMetaCntFetchSeq.current) return;
+
             if (svrState) setMetaTableCnt(svrData?.rows?.[0]?.[0] ?? 0);
             else setMetaTableCnt(0);
         },
-        [pMColInfo]
+        [mTableInfo, pMColInfo]
     );
     const convertTagMetaForInsert = (aValues: STR_NUM_ARR_TYPE) => {
         const sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
