@@ -188,3 +188,27 @@
         }
     }
 }
+
+// Result pane layout: the env-directive warning banner stacks above the result/error body,
+// which keeps its own full height. The `.sql-body` block above matches no element, so these stay top level.
+.sql-result-body {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.sql-result-body-content {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.sql-env-warn-body {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 4px 1rem;
+    font-size: 13px;
+    font-family: 'D2Coding', monospace;
+    color: #fdb532;
+    word-break: break-all;
+}

@@ -1,3 +1,5 @@
+import type { STATEMENT_TYPE } from '@/utils/sqlFormatter';
+
 /** POSITION INTERFACE */
 export interface PositionType {
     column: number;
@@ -21,7 +23,7 @@ export interface LocationType {
 export interface SplitItemType {
     beginLine: number;
     endLine: number;
-    env: any;
+    env: STATEMENT_TYPE['env'];
     isComment: boolean;
     text: string;
     length?: number;
