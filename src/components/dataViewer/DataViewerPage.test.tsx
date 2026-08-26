@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import DataViewerPage from './DataViewerPage';
-import { buildRawColumnWidths, buildRawResultColumns, buildRawRowNameColors } from './dataViewerModel';
+import { buildDataViewerColumnSpecs, buildDataViewerGridColumns, buildRawColumnWidths, buildRawRowNameColors } from './dataViewerModel';
 
 // react-virtuoso measures its viewport through `offsetParent`, which jsdom hard-codes to null,
 // so an unassisted render mounts zero rows and every row assertion below would pass vacuously.
@@ -144,10 +144,34 @@ const JSON_VALUE_COLUMNS = [
     ['TIME', DATETIME_TYPE, BASETIME_FLAG],
     ['VALUE', JSON_TYPE, 0],
 ];
-// Must stay in sync with JSON_VALUE_COLUMN_BLOCK_REASON in DataViewerPage.tsx. It is the whole
+// A table whose only extra column is a document: nothing to chart, and nothing else to show either.
+const JSON_ONLY_COLUMNS = JSON_VALUE_COLUMNS;
+// A JSON payload beside a real reading. This is the shape the page used to refuse outright — the
+// value column being JSON stood in for "this table cannot be charted", which it is not.
+const JSON_PLUS_NUMBER_COLUMNS = [
+    ['NAME', VARCHAR_TYPE, 0],
+    ['TIME', DATETIME_TYPE, BASETIME_FLAG],
+    ['VALUE', JSON_TYPE, 0],
+    ['READING', DOUBLE_TYPE, 0],
+];
+// Two numeric columns, which is what puts a choice in front of the chart.
+const TWO_NUMBER_COLUMNS = [
+    ['NAME', VARCHAR_TYPE, 0],
+    ['TIME', DATETIME_TYPE, BASETIME_FLAG],
+    ['VALUE', DOUBLE_TYPE, 0],
+    ['VALUE2', DOUBLE_TYPE, 0],
+];
+// Two documents in one row, each with its own keys to walk.
+const TWO_JSON_COLUMNS = [
+    ['NAME', VARCHAR_TYPE, 0],
+    ['TIME', DATETIME_TYPE, BASETIME_FLAG],
+    ['VALUE', JSON_TYPE, 0],
+    ['PAYLOAD', JSON_TYPE, 0],
+];
+// Must stay in sync with NO_NUMERIC_COLUMN_BLOCK_REASON in DataViewerPage.tsx. It is the whole
 // user-facing explanation for the two disabled controls, so a silent drift here would leave the
 // tests green while the buttons went dark without a reason.
-const JSON_VALUE_BLOCK_REASON = 'Unavailable: the value column of this table is a JSON type, which cannot be charted or analyzed.';
+const JSON_VALUE_BLOCK_REASON = 'Unavailable: this table has no numeric column to chart or analyze.';
 
 const TAG_NAME = 'plant1.line1.temperature';
 const OTHER_TAG_NAME = 'plant1.line1.pressure';
@@ -176,7 +200,8 @@ const renderPage = (pCode: Record<string, string> = {}) =>
         </RecoilRoot>
     );
 
-const queryTagDataArgs = () => dataViewerApi.queryTagData.mock.calls.map((call) => call[0] as { from?: string; to?: string; page?: number });
+const queryTagDataArgs = () =>
+    dataViewerApi.queryTagData.mock.calls.map((call) => call[0] as { from?: string; to?: string; page?: number; extraColumns?: { name: string; key: string }[] });
 const windowOf = (args: { from?: string; to?: string }) => `${args.from} ~ ${args.to}`;
 // The toolbar label renders the frozen window itself. Page requests can carry their own bounds (a
 // tag change refreshes within the current page's rows), so the label is the only place the window
@@ -750,14 +775,23 @@ describe('DataViewerPage distance base range', () => {
         await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
         const table = getRawTable(container)!;
 
-        expect(Array.from(table.querySelectorAll('thead > tr > th')).map((cell) => cell.textContent)).toEqual(['Distance', 'Name', 'Value']);
+        // Four, not three: `RECORDED_AT` is a column of this table and the grid takes its columns
+        // from the schema now. It used to be invisible because the query named three columns and
+        // the grid named its own from the rows that came back.
+        expect(Array.from(table.querySelectorAll('thead > tr > th')).map((cell) => cell.textContent)).toEqual(['Distance', 'Name', 'Value', 'Recorded At']);
         // A renamed row key would leave this column empty while the header still read 'Distance'.
-        expect(Array.from(getDataRows(container)[0].querySelectorAll('td')).map((cell) => cell.textContent)).toEqual(['0', TAG_NAME, '10']);
+        expect(Array.from(getDataRows(container)[0].querySelectorAll('td')).map((cell) => cell.textContent).slice(0, 3)).toEqual(['0', TAG_NAME, '10']);
 
         // The colgroup is sized from the very array the header renders, so the two cannot disagree
         // about which label is on screen. (Both labels clamp to the 90px floor today, so this pins
         // the wiring rather than a difference in pixels.)
-        const expected = buildRawColumnWidths(distanceRows, buildRawResultColumns(distanceRows, { baseKind: 'distance' }), {
+        const specs = buildDataViewerColumnSpecs(DISTANCE_BASE_COLUMNS, {
+            baseColumn: 'ODOMETER_M',
+            tagColumn: 'NAME',
+            valueColumn: 'VALUE',
+            baseKind: 'distance',
+        });
+        const expected = buildRawColumnWidths(distanceRows, buildDataViewerGridColumns(specs), {
             timeSample: '0',
             // Mirrors RAW_NAME_DOT_SPACE in DataViewerPage — the name cell reserves room for its dot.
             extra: { name: 15 },
@@ -766,7 +800,18 @@ describe('DataViewerPage distance base range', () => {
             `${expected.time}px`,
             `${expected.name}px`,
             `${expected.value}px`,
+            `${expected.ex0}px`,
         ]);
+    });
+
+    // The column exists in M$SYS_COLUMNS and therefore in the projection, under the alias the spec
+    // assigned it. Naming it directly would let a table with a column called `VALUE` — legal when
+    // the summarized column is named something else — overwrite the value key.
+    test("names the table's extra columns in the query, aliased by position", async () => {
+        renderPage();
+
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
+        expect(queryTagDataArgs()[0].extraColumns).toEqual([{ name: 'RECORDED_AT', key: 'ex0' }]);
     });
 
     test('the editor refuses an empty edge and leaves the window untouched', async () => {
@@ -3064,11 +3109,11 @@ describe('DataViewerPage JSON key chain', () => {
         value: JSON.stringify({ status: 'running', sensor: { temperature: { value: 20 + index } } }),
     }));
 
-    // The row click is the whole entry point: on a JSON value column it lands on the picker, not on
-    // an inspector whose only useful control would be a button to this same modal.
+    // The way into the keys is the JSON cell's own control, and it names the column it belongs to —
+    // a row of several columns has no single type, so the row click cannot stand for one of them.
     const openKeyPicker = async (container: HTMLElement) => {
         await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
-        fireEvent.click(getDataRows(container)[0]);
+        fireEvent.click(within(getDataRows(container)[0] as HTMLElement).getByLabelText('Explore Value keys'));
         return screen.findByLabelText('Filter keys');
     };
 
@@ -3159,5 +3204,180 @@ describe('DataViewerPage JSON key chain', () => {
 
         expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeChecked();
         expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
+    });
+});
+
+/**
+ * A row of several columns has no single type, so nothing about it can stand for one of them.
+ *
+ * These are the cases the old rule could not answer: two numbers, a number beside a document, two
+ * documents. Each asks the same two questions — what does the grid show, and what does a click do.
+ */
+describe('DataViewerPage mixed column types', () => {
+    const DOC_A = JSON.stringify({ status: 'running', sensor: { temperature: { value: 21 } } });
+    const DOC_B = JSON.stringify({ site: 'seoul', shift: 2 });
+    const LONG_TEXT = 'E'.repeat(400);
+
+    const renderWith = (columns: unknown[], rows: Record<string, unknown>[]) => {
+        dataViewerApi.listTableColumns.mockResolvedValue(columns);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows });
+        return renderPage();
+    };
+
+    const firstRow = async (container: HTMLElement) => {
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        return getDataRows(container)[0] as HTMLElement;
+    };
+    const dataRows = (container: HTMLElement) => getDataRows(container) as HTMLElement[];
+
+    // The rule the whole dispatch rests on. It used to fork here on a JSON value column and go
+    // straight to the picker, which only made sense while the row held one interesting value.
+    test('a row click opens the inspector, even on a table whose value column is a document', async () => {
+        const { container } = renderWith(JSON_ONLY_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: DOC_A }]);
+
+        fireEvent.click(await firstRow(container));
+
+        expect(await screen.findByText('Copy JSON')).toBeInTheDocument();
+        expect(screen.queryByLabelText('Filter keys')).toBeNull();
+    });
+
+    // Two documents, two controls, each naming the column it belongs to — which is the whole reason
+    // the picker had to learn which column it was opened from.
+    test('each document column carries its own control, and the detail reads that column', async () => {
+        const { container } = renderWith(TWO_JSON_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: DOC_A, ex0: DOC_B }]);
+        const row = await firstRow(container);
+
+        expect(within(row).getByLabelText('Explore Value keys')).toBeInTheDocument();
+        fireEvent.click(within(row).getByLabelText('Explore Payload keys'));
+
+        await screen.findByLabelText('Filter keys');
+        fireEvent.click(screen.getByRole('checkbox', { name: 'site' }));
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        await waitFor(() => expect(dataViewerApi.queryTagJsonKeyData).toHaveBeenCalled());
+        expect(dataViewerApi.queryTagJsonKeyData.mock.calls.at(-1)?.[0].valueColumn).toBe('PAYLOAD');
+    });
+
+    // The cell prints the document as it came. What it adds is the control — the row cannot show a
+    // payload whole, and that is what the picker and the inspector are for.
+    test('a document cell prints the document and carries a control', async () => {
+        const { container } = renderWith(JSON_ONLY_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: DOC_A }]);
+        const row = await firstRow(container);
+
+        expect(within(row).getByText(DOC_A)).toBeInTheDocument();
+        expect(within(row).getByLabelText('Explore Value keys')).toBeInTheDocument();
+    });
+
+    // A JSON column is free to hold something that is not a document; there is no tree behind it,
+    // so offering a control would promise a modal that could not open.
+    test('a document column offers nothing on a cell that did not parse', async () => {
+        const { container } = renderWith(JSON_ONLY_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: 'not json' }]);
+        const row = await firstRow(container);
+
+        expect(within(row).getByText('not json')).toBeInTheDocument();
+        expect(within(row).queryByLabelText('Explore Value keys')).toBeNull();
+    });
+
+    // The handoff opens a board and switches to it. Every dialog this page has is portalled to
+    // <body> and the board stays mounted, so one left standing paints over the new tab.
+    test('every dialog closes when the board opens on the keys', async () => {
+        // The handoff offers only what the chart could draw, so the read has to land with a number
+        // in it before the button is anything but disabled.
+        dataViewerApi.queryTagJsonKeyData.mockResolvedValue({ rows: [{ base: '2026-06-01 10:00:00.000', values: [21] }] });
+        const { container } = renderWith(JSON_ONLY_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: DOC_A }]);
+        const row = await firstRow(container);
+
+        // Reached from the inspector's own field control, which is the route that left it behind.
+        // Scoped to the dialog: the grid cell underneath carries a control with the same name.
+        fireEvent.click(row);
+        const inspector = await screen.findByText('Copy JSON');
+        fireEvent.click(within(inspector.closest('.raw-row-modal') as HTMLElement).getByLabelText('Explore Value keys'));
+        await screen.findByLabelText('Filter keys');
+        fireEvent.click(screen.getByRole('checkbox', { name: 'sensor.temperature.value' }));
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        await waitFor(() => expect(screen.getByRole('button', { name: /Open in Tag Analyzer/ })).toBeEnabled());
+        fireEvent.click(screen.getByRole('button', { name: /Open in Tag Analyzer/ }));
+
+        expect(tagAnalyzerBridge.createTagAnalyzerBoardFromPayload).toHaveBeenCalled();
+        // The inspector is the one that used to survive the handoff and paint over the new tab.
+        expect(screen.queryByText('Copy JSON')).toBeNull();
+        expect(screen.queryByLabelText('Filter keys')).toBeNull();
+        expect(screen.queryByRole('button', { name: /Open in Tag Analyzer/ })).toBeNull();
+    });
+
+    // The case the page refused outright: chart mode was closed because the *value* column was
+    // JSON, while a perfectly chartable DOUBLE sat in the next column.
+    test('charts the numeric column of a table that also carries a document', async () => {
+        renderWith(JSON_PLUS_NUMBER_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: DOC_A, ex0: 21 }]);
+
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
+        expect(await screen.findByRole('tab', { name: 'Chart' })).toBeInTheDocument();
+        expect(screen.queryByText(JSON_VALUE_BLOCK_REASON)).toBeNull();
+        // The chart follows the only numeric column there is, so no choice is presented.
+        expect(screen.queryByLabelText('Charted column')).toBeNull();
+    });
+
+    // Nothing numeric anywhere: the same closed chart as before, for a reason that is now about the
+    // table rather than about one column's type.
+    test('closes the chart on a table with no numeric column at all', async () => {
+        renderWith(TWO_JSON_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: DOC_A, ex0: DOC_B }]);
+
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
+        expect(screen.queryByRole('tab', { name: 'Chart' })).toBeNull();
+    });
+
+    // Two numbers is a choice, and the default is the summarized column — so a table shaped the way
+    // every table used to be shaped charts exactly what it charted before.
+    test('offers the numeric columns to the chart, defaulting to the summarized one', async () => {
+        renderWith(TWO_NUMBER_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: 10, ex0: 99 }]);
+
+        fireEvent.click(await screen.findByRole('tab', { name: 'Chart' }));
+
+        const picker = (await screen.findByLabelText('Charted column')) as HTMLSelectElement;
+        expect(Array.from(picker.options).map((option) => option.textContent)).toEqual(['VALUE', 'VALUE2']);
+        expect(picker.value).toBe('value');
+    });
+
+    // The rows already carry every projected column, so following the picker is a key change. A
+    // re-read here would mean the page had thrown away what it already had.
+    test('switching the charted column does not go back to the server', async () => {
+        renderWith(TWO_NUMBER_COLUMNS, [{ time: ROWS[0].time, name: TAG_NAME, value: 10, ex0: 99 }]);
+
+        fireEvent.click(await screen.findByRole('tab', { name: 'Chart' }));
+        const picker = (await screen.findByLabelText('Charted column')) as HTMLSelectElement;
+        const before = dataViewerApi.queryTagData.mock.calls.length;
+
+        fireEvent.change(picker, { target: { value: 'ex0' } });
+
+        await waitFor(() => expect(picker.value).toBe('ex0'));
+        expect(dataViewerApi.queryTagData.mock.calls.length).toBe(before);
+    });
+
+    // A value the row cannot hold gets somewhere it can be read whole. Short text does not — a
+    // control on every cell of a VARCHAR column is noise.
+    test('opens a text value that does not fit, and leaves short ones alone', async () => {
+        const { container } = renderWith(
+            [
+                ['NAME', VARCHAR_TYPE, 0],
+                ['TIME', DATETIME_TYPE, BASETIME_FLAG],
+                ['VALUE', DOUBLE_TYPE, 0],
+                ['NOTE', VARCHAR_TYPE, 0],
+            ],
+            [
+                { time: ROWS[0].time, name: TAG_NAME, value: 10, ex0: LONG_TEXT },
+                { time: ROWS[1].time, name: TAG_NAME, value: 11, ex0: 'ok' },
+            ]
+        );
+
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(1));
+        const rows = dataRows(container);
+        expect(within(rows[1]).queryByLabelText('Open Note')).toBeNull();
+
+        fireEvent.click(within(rows[0]).getByLabelText('Open Note'));
+
+        // The grid cell holds the same string, so this asks the modal's own <pre> for it.
+        expect(await screen.findByText('400 chars')).toBeInTheDocument();
+        expect(document.querySelector('.text-value-modal-text')?.textContent).toBe(LONG_TEXT);
     });
 });

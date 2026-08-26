@@ -55,6 +55,55 @@ describe('data viewer API query builders', () => {
         expect(sql).not.toContain('2026-06-25T05:09:58.534Z');
     });
 
+    // The alias is carried in from the column spec rather than derived here, so this pins the whole
+    // contract: what the SQL says, and what the row key the caller will read it under is.
+    test('names extra columns under the row key the caller asked for', async () => {
+        await queryTagData({
+            dbName: 'MACHBASEDB',
+            userName: 'SYS',
+            tableName: 'TAG',
+            names: ['sensor.a'],
+            direction: 'latest',
+            page: 1,
+            extraColumns: [
+                { name: 'VALUE2', key: 'ex0' },
+                { name: 'STATUS', key: 'ex1' },
+            ],
+        });
+
+        const sql = mockedFetchQuery.mock.calls[0][0];
+        expect(sql).toContain('VALUE as value, VALUE2 as EX0, STATUS as EX1 from');
+    });
+
+    // The projection is the only thing that changes; a caller that names nothing extra must produce
+    // the statement it always produced, down to the comma.
+    test('projects the three fixed columns unchanged when nothing extra is named', async () => {
+        await queryTagData({ dbName: 'MACHBASEDB', userName: 'SYS', tableName: 'TAG', names: ['sensor.a'], direction: 'latest', page: 1 });
+
+        expect(mockedFetchQuery.mock.calls[0][0]).toContain('VALUE as value from');
+    });
+
+    // A name that is not a plain identifier cannot have come from M$SYS_COLUMNS, so it is a caller
+    // bug — and one bad column must not cost the page every row it was going to show.
+    test('drops an extra column whose name is not an identifier, keeping the rest', async () => {
+        await queryTagData({
+            dbName: 'MACHBASEDB',
+            userName: 'SYS',
+            tableName: 'TAG',
+            names: ['sensor.a'],
+            direction: 'latest',
+            page: 1,
+            extraColumns: [
+                { name: 'VALUE2; drop table TAG', key: 'ex0' },
+                { name: 'STATUS', key: 'ex1' },
+            ],
+        });
+
+        const sql = mockedFetchQuery.mock.calls[0][0];
+        expect(sql).toContain('STATUS as EX1');
+        expect(sql).not.toContain('drop table');
+    });
+
     test('raw data and total queries use the same Machbase timestamp format', async () => {
         await queryTagData({
             dbName: 'MACHBASEDB',

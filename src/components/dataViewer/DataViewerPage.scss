@@ -1879,6 +1879,75 @@
     text-align: end;
 }
 
+/* A cell that has somewhere to go — a document to walk, text that does not fit on one line —
+   carries its own controls: copy the value whole, or open it where it can be read.
+
+   They sit at the *head* of the cell. A column that shows a whole payload is wider than the
+   viewport, so a control at the far end is off screen exactly when the value is long enough to
+   need it; the head of the cell is where the reader already is. The space is reserved
+   unconditionally rather than on hover — widening the padding under the pointer would shift every
+   value in the column sideways as the mouse crossed it. */
+.neo-data-viewer .data-viewer-raw-table td.has-cell-action {
+    position: relative;
+    padding-left: 48px;
+}
+
+.neo-data-viewer .data-viewer-raw-table td .raw-cell-actions {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    /* Hidden until the row is under the pointer or a control in it has focus — two buttons on every
+       row of a column competes with the values they sit beside. `visibility` rather than `display`
+       so the buttons keep their boxes and the keyboard can still reach them. */
+    opacity: 0;
+    visibility: hidden;
+}
+
+.neo-data-viewer .data-viewer-raw-table tbody tr[data-index]:hover .raw-cell-actions,
+.neo-data-viewer .data-viewer-raw-table td .raw-cell-actions:focus-within {
+    opacity: 1;
+    visibility: visible;
+}
+
+.neo-data-viewer .data-viewer-raw-table td .raw-cell-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    /* The app sets `button { border-radius: 8px }` globally; on a 20px control that reads as a
+       lozenge, so it is stated here rather than inherited. */
+    border-radius: var(--radius-base);
+    /* Not transparent: these sit over the value, and an icon drawn straight onto a line of JSON is
+       unreadable in both directions. */
+    background-color: var(--color-surface);
+    color: var(--color-on-surface-tertiary);
+    cursor: pointer;
+}
+
+.neo-data-viewer .data-viewer-raw-table td .raw-cell-action:hover {
+    color: var(--color-on-surface);
+    background-color: var(--color-surface-hover);
+}
+
+/* Just after a copy: the icon becomes a tick, so the colour follows it — the same hint the row
+   inspector's copy button gives. */
+.neo-data-viewer .data-viewer-raw-table td .raw-cell-action.is-copied {
+    color: var(--color-success);
+}
+
+/* A column that is deliberately not read (see `buildDataViewerExtraProjection`). Distinct from
+   `.is-null`, which says the row has no value — this says the viewer did not ask for it. */
+.neo-data-viewer .data-viewer-raw-table td .raw-cell-muted {
+    opacity: 0.45;
+}
+
 /* Name cell carries the tag's chart series colour, so a row is traceable to its line after
    switching Raw -> Chart. Drawn as ::before rather than a nested <span>: the body is virtualised
    but still mounts every visible row on each scroll frame, and an extra element per row is pure
@@ -3507,6 +3576,37 @@
     color: var(--color-error, #f08a80);
 }
 
+/* Two controls where there was one, kept in a column so the field grid's third track does not
+   widen and re-wrap every value beside it. */
+.raw-row-modal-field-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* The same weight as copy: neither is the point of the panel. */
+.neo-data-viewer .raw-row-modal-open {
+    border: 0;
+    background: transparent;
+    padding: 2px;
+    border-radius: var(--radius-base);
+    color: var(--color-on-surface-tertiary);
+    opacity: 0.6;
+    cursor: pointer;
+    display: inline-flex;
+}
+
+.neo-data-viewer .raw-row-modal-open:hover {
+    opacity: 1;
+    color: var(--color-on-surface);
+    background-color: var(--color-surface-hover);
+}
+
+.neo-data-viewer .raw-row-modal-open svg {
+    width: 14px;
+    height: 14px;
+}
+
 .neo-data-viewer .modal-footer.raw-row-modal-foot {
     align-items: center;
     justify-content: space-between;
@@ -3523,6 +3623,153 @@
 .raw-row-modal-actions {
     display: flex;
     gap: var(--spacing-8);
+}
+
+/* ─── the text value modal ──────────────────────────────────────────────────
+   One cell's text at a size it can be read at. It borrows the row inspector's chrome — same
+   header shape, same footer — because it is the same act one level down, and a second visual
+   language for "look closer" would make the two read as unrelated tools. */
+.text-value-modal {
+    display: flex;
+    flex-direction: column;
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .modal-header.text-value-modal-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.text-value-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-12);
+}
+
+.text-value-modal-crumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    min-width: 0;
+}
+
+.text-value-modal-chip {
+    font-size: 11px;
+    color: var(--color-on-surface-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The length, which is the one thing about a long value the value itself will not tell you
+   without scrolling to the end of it. */
+.text-value-modal-position {
+    font-size: 11px;
+    color: var(--color-on-surface-tertiary);
+    white-space: nowrap;
+}
+
+.neo-data-viewer .text-value-modal-head button {
+    border: 0;
+    background: transparent;
+    padding: 2px;
+    border-radius: var(--radius-base);
+    color: var(--color-on-surface-tertiary);
+    cursor: pointer;
+    display: inline-flex;
+}
+
+.neo-data-viewer .text-value-modal-head button:hover {
+    color: var(--color-on-surface);
+    background-color: var(--color-surface-hover);
+}
+
+.text-value-modal-title {
+    margin-top: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.neo-data-viewer .modal-body.text-value-modal-body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: var(--spacing-12) var(--spacing-16);
+    overflow: hidden;
+}
+
+.text-value-modal-text {
+    margin: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    /* A global `* { font-family: pretendard }` overrides the UA monospace on <pre> and breaks both
+       its alignment and inheritance, so the face is set on this element rather than on a parent. */
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    /* Wrapped, not scrolled sideways: a 4000-character line read one viewport at a time is not
+       read at all. `anywhere` so a single unbroken token still gives way. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.neo-data-viewer .modal-footer.text-value-modal-foot {
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-12);
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.text-value-modal-hint {
+    font-size: 11px;
+    color: var(--color-on-surface-tertiary);
+}
+
+.text-value-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-8);
+}
+
+.neo-data-viewer .text-value-modal-actions .btn svg {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+}
+
+/* The chart's own column, when the table gives it a choice. */
+.data-viewer-chart-column {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    margin-left: var(--spacing-12);
+}
+
+.data-viewer-chart-column-label {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-on-surface-tertiary);
+}
+
+.neo-data-viewer .data-viewer-chart-column select {
+    height: 26px;
+    padding: 0 var(--spacing-8);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    font-size: 12px;
+    cursor: pointer;
 }
 
 /* ─── modal box metrics ─────────────────────────────────────────────────────
@@ -3543,6 +3790,17 @@
 /* The same 60vh the detail view uses. These two are one flow — pick, read, come back — and a box
    that changes size between the steps reads as a different window each time you cross it. Fixed
    rather than content-sized for the same reason it is there: the tree's depth must not move it. */
+/* Wider than the page's 400px default and taller than its content would ask for: this holds one
+   long value, and a box that resized itself to each value would jump between rows. Declared at
+   0-3-0 so it beats `.neo-data-viewer .modal`'s cap, per the note above. */
+.neo-data-viewer .modal.text-value-modal {
+    width: min(840px, 92vw);
+    max-width: min(840px, 92vw);
+    height: 62vh;
+    max-height: 62vh;
+    min-height: min(360px, 90vh);
+}
+
 .neo-data-viewer .modal.json-key-picker-modal {
     width: min(1080px, 94vw);
     max-width: min(1080px, 94vw);
@@ -3695,7 +3953,7 @@
    — and measured, every one of them was drawn `rgb(255,255,255)` regardless. Letting the icon take
    its button's colour is what those rules were written for. The Tag Analyzer icon is unaffected
    either way: its green is a hard `fill`, not `currentColor`. */
-.neo-data-viewer :is(.json-key-modal, .raw-row-modal) svg {
+.neo-data-viewer :is(.json-key-modal, .raw-row-modal, .text-value-modal) svg {
     color: inherit;
 }
 
@@ -3704,8 +3962,8 @@
    so a keyboard reader had no way to tell where they were. One scoped rule covers all three: the
    picker, the detail view and the row inspector. `:focus-visible` rather than `:focus`, so a mouse
    press does not paint a ring nobody asked for. */
-.neo-data-viewer :is(.json-key-modal, .raw-row-modal) :is(a[href], button, input, select, textarea):focus-visible,
-.neo-data-viewer :is(.json-key-modal, .raw-row-modal):focus-visible,
+.neo-data-viewer :is(.json-key-modal, .raw-row-modal, .text-value-modal) :is(a[href], button, input, select, textarea):focus-visible,
+.neo-data-viewer :is(.json-key-modal, .raw-row-modal, .text-value-modal):focus-visible,
 .neo-data-viewer .data-viewer-raw-row:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 1px;

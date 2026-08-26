@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { VscCheck, VscChevronDown, VscChevronUp, VscClose, VscCopy, VscError } from 'react-icons/vsc';
+import { VscCheck, VscChevronDown, VscChevronUp, VscClose, VscCopy, VscError, VscJson, VscOpenPreview } from 'react-icons/vsc';
 import Modal from '@/components/modal/Modal';
 import DataViewerModalPortal from './DataViewerModalPortal';
 import useOutsideCloseGuard from './useOutsideCloseGuard';
 import useModalDialog from './useModalDialog';
+import { writeClipboard } from './writeClipboard';
 
 /**
  * One raw row, read closely.
@@ -48,54 +49,19 @@ const isTextEntry = (element: EventTarget | null): boolean => {
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable === true;
 };
 
-/**
- * Put the value on the clipboard, and say whether it got there.
- *
- * `navigator.clipboard` exists only in a secure context and refuses even then when the document is
- * not focused — `NotAllowedError: Document is not focused`. Swallowing that rejection is what makes
- * the button look like it does nothing, which is exactly what it did. The deprecated path is tried
- * next, and a failure is reported rather than hidden.
- */
-const writeClipboard = async (text: string, host: HTMLElement | null): Promise<boolean> => {
-    if (navigator.clipboard?.writeText) {
-        try {
-            await navigator.clipboard.writeText(text);
-            return true;
-        } catch {
-            /* not focused, or permission denied — fall through */
-        }
-    }
-    try {
-        const area = document.createElement('textarea');
-        area.value = text;
-        // Pushed off screen rather than hidden: `display: none` cannot be selected, and an
-        // unselectable textarea cannot be copied from.
-        area.setAttribute('readonly', '');
-        area.style.cssText = 'position:fixed;top:-1000px;opacity:0';
-        const parent = host ?? document.body;
-        const restore = document.activeElement as HTMLElement | null;
-        parent.appendChild(area);
-        let ok = false;
-        try {
-            area.select();
-            ok = document.execCommand('copy');
-        } finally {
-            // Removed in `finally`: `execCommand` is deprecated and throws outright in some
-            // environments, and a textarea left behind holds focus inside the dialog.
-            area.remove();
-            if (restore?.isConnected) restore.focus({ preventScroll: true });
-        }
-        return ok;
-    } catch {
-        return false;
-    }
-};
-
 export type RawRowDetailField = {
     key: string;
     label: string;
     /** Column type, written under the label rather than encoded as a colour. */
     typeLabel?: string;
+    /**
+     * What opening this field would give that reading it here does not.
+     *
+     * The inspector prints every value, so this is never "the value is elsewhere" — it is the
+     * second route to the same place the grid's own cell control reaches, kept here so a reader who
+     * opened the row does not have to close it to get at the column they were after.
+     */
+    action?: 'json' | 'text';
     value: unknown;
 };
 
@@ -109,6 +75,8 @@ export interface RawRowDetailModalProps {
     hasNext: boolean;
     onPrevious: () => void;
     onNext: () => void;
+    /** Invoked for a field carrying an `action`. The inspector stays up; the caller decides. */
+    onOpenField?: (key: string, action: 'json' | 'text') => void;
     onClose: () => void;
 }
 
@@ -121,6 +89,7 @@ export const RawRowDetailModal = ({
     hasNext,
     onPrevious,
     onNext,
+    onOpenField,
     onClose,
 }: RawRowDetailModalProps) => {
     // A drag that began inside and ended past the edge is still that gesture, not a click
@@ -257,15 +226,28 @@ export const RawRowDetailModal = ({
                                     {field.empty ? 'NULL' : field.json ? <pre className="raw-row-modal-json">{field.json}</pre> : field.text}
                                 </div>
 
-                                <button
-                                    type="button"
-                                    className={`raw-row-modal-copy${copied?.key === field.key ? (copied.ok ? ' is-copied' : ' is-failed') : ''}`}
-                                    onClick={() => copy(field.key, field.label, field.text)}
-                                    aria-label={`Copy ${field.label}`}
-                                    title={`Copy ${field.label}`}
-                                >
-                                    {copyIcon(field.key)}
-                                </button>
+                                <div className="raw-row-modal-field-actions">
+                                    {field.action && !field.empty && onOpenField ? (
+                                        <button
+                                            type="button"
+                                            className="raw-row-modal-open"
+                                            onClick={() => onOpenField(field.key, field.action as 'json' | 'text')}
+                                            aria-label={field.action === 'json' ? `Explore ${field.label} keys` : `Open ${field.label}`}
+                                            title={field.action === 'json' ? `Explore ${field.label} keys` : `Open ${field.label}`}
+                                        >
+                                            {field.action === 'json' ? <VscJson /> : <VscOpenPreview />}
+                                        </button>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        className={`raw-row-modal-copy${copied?.key === field.key ? (copied.ok ? ' is-copied' : ' is-failed') : ''}`}
+                                        onClick={() => copy(field.key, field.label, field.text)}
+                                        aria-label={`Copy ${field.label}`}
+                                        title={`Copy ${field.label}`}
+                                    >
+                                        {copyIcon(field.key)}
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

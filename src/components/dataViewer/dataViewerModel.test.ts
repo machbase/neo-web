@@ -24,6 +24,9 @@ import {
     buildRawColumnWidths,
     buildRawRowNameColors,
     buildSeriesColorMap,
+    buildDataViewerColumnSpecs,
+    buildDataViewerExtraProjection,
+    buildDataViewerGridColumns,
     buildRawResultColumns,
     buildTagChartSeries,
     extractDataViewerDataZoomRange,
@@ -1700,10 +1703,12 @@ describe('data viewer distance base grid header', () => {
         // Default is the time axis, so every existing caller keeps the header it had.
         expect(buildRawResultColumns(rows)).toEqual(buildRawResultColumns(rows, { baseKind: 'time' }));
         // The column list a query has not answered yet is still labelled by the axis.
+        // `kind` is what the cell renderer branches on. On this path — no schema to read — it is
+        // assumed from the key, which reproduces the alignment the grid had before kinds existed.
         expect(buildRawResultColumns([], { baseKind: 'distance' })).toEqual([
-            { key: 'time', label: 'Distance' },
-            { key: 'name', label: 'Name' },
-            { key: 'value', label: 'Value' },
+            { key: 'time', label: 'Distance', kind: 'datetime' },
+            { key: 'name', label: 'Name', kind: 'text' },
+            { key: 'value', label: 'Value', kind: 'number' },
         ]);
     });
 
@@ -2184,5 +2189,76 @@ describe('distance slider edge snapping', () => {
         expect(snapDataViewerDistanceEdge({ value: 42 })).toBe(42);
         expect(snapDataViewerDistanceEdge({ ...wide, value: 'abc' })).toBe(0);
         expect(snapDataViewerDistanceEdge()).toBe(0);
+    });
+});
+
+describe('data viewer column model', () => {
+    const DOUBLE = 20;
+    const DATETIME = 6;
+    const VARCHAR = 5;
+    const JSON_TYPE = 61;
+    const BLOB = 57;
+    const BASETIME = 0x01000000;
+
+    // Machbase declares a TAG table's tag column first, so schema order and display order differ.
+    const COLUMNS = [
+        ['NAME', VARCHAR, 0],
+        ['TIME', DATETIME, BASETIME],
+        ['VALUE', DOUBLE, 0],
+        ['VALUE2', DOUBLE, 0],
+        ['PAYLOAD', JSON_TYPE, 0],
+        ['RAWDATA', BLOB, 0],
+    ];
+    const specsOf = (columns: unknown[] = COLUMNS) => buildDataViewerColumnSpecs(columns, { baseColumn: 'TIME', tagColumn: 'NAME', valueColumn: 'VALUE' });
+
+    test('puts base, tag and value first and keeps the rest in schema order', () => {
+        expect(specsOf().map((spec) => spec.name)).toEqual(['TIME', 'NAME', 'VALUE', 'VALUE2', 'PAYLOAD', 'RAWDATA']);
+    });
+
+    // The three fixed aliases are what every existing reader addresses a row by; the rest are
+    // positional, and the position is assigned in schema order so it does not move between reads.
+    test('ties each column to the row key its value arrives under', () => {
+        expect(specsOf().map((spec) => spec.key)).toEqual(['time', 'name', 'value', 'ex0', 'ex1', 'ex2']);
+        expect(specsOf().map((spec) => spec.role)).toEqual(['base', 'tag', 'value', 'extra', 'extra', 'extra']);
+    });
+
+    test('reduces the declared type to the kind the renderer branches on', () => {
+        expect(specsOf().map((spec) => spec.kind)).toEqual(['datetime', 'text', 'number', 'number', 'json', 'binary']);
+    });
+
+    // The base column is headed by what its axis measures; every other column by its own name, so a
+    // table with columns of its own is not labelled with the query's aliases.
+    test('heads the base column by its axis and the rest by their own names', () => {
+        expect(specsOf().map((spec) => spec.label)).toEqual(['Time', 'Name', 'Value', 'Value2', 'Payload', 'Rawdata']);
+        expect(buildDataViewerColumnSpecs(COLUMNS, { baseColumn: 'TIME', tagColumn: 'NAME', valueColumn: 'VALUE', baseKind: 'distance' })[0].label).toBe('Distance');
+    });
+
+    // The SQL aliases `… as time` whatever the schema says, so a spec list that cannot account for
+    // one of the three fixed positions would describe a grid whose columns and rows disagree.
+    test('describes nothing when the schema does not account for the query', () => {
+        expect(buildDataViewerColumnSpecs(COLUMNS, { baseColumn: 'NOPE', tagColumn: 'NAME', valueColumn: 'VALUE' })).toEqual([]);
+        expect(buildDataViewerColumnSpecs([], { baseColumn: 'TIME', tagColumn: 'NAME', valueColumn: 'VALUE' })).toEqual([]);
+    });
+
+    // A schema that declares the same name twice — or a table configured with its tag and value on
+    // one column — must not mint two `value` keys: the second would overwrite the first in the row.
+    test('gives a role to one column only', () => {
+        const duplicated = [['NAME', VARCHAR, 0], ['TIME', DATETIME, BASETIME], ['VALUE', DOUBLE, 0], ['VALUE', DOUBLE, 0]];
+        expect(specsOf(duplicated).map((spec) => spec.key)).toEqual(['time', 'name', 'value', 'ex0']);
+    });
+
+    test('hides a column by either its schema name or its row key', () => {
+        expect(buildDataViewerGridColumns(specsOf(), { hiddenKeys: ['payload'] }).map((column) => column.key)).toEqual(['time', 'name', 'value', 'ex0', 'ex2']);
+        expect(buildDataViewerGridColumns(specsOf(), { hiddenKeys: ['ex0'] }).map((column) => column.key)).toEqual(['time', 'name', 'value', 'ex1', 'ex2']);
+    });
+
+    // Binary keeps its column — the grid draws a placeholder — but is never read: there is no cell
+    // that could render it and a page of rows would carry the payload for nothing.
+    test('asks for every extra column except the binary one', () => {
+        expect(buildDataViewerExtraProjection(specsOf())).toEqual([
+            { name: 'VALUE2', key: 'ex0' },
+            { name: 'PAYLOAD', key: 'ex1' },
+        ]);
+        expect(buildDataViewerGridColumns(specsOf()).map((column) => column.key)).toContain('ex2');
     });
 });

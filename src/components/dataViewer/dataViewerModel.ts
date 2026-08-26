@@ -1,3 +1,4 @@
+import { DB_NUMBER_TYPE, TABLE_COLUMN_TYPE } from '@/utils/constants';
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
 import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import {
@@ -320,7 +321,187 @@ export function buildRawResultColumns(
     return orderedKeys.map((key) => ({
         key,
         label: key === RAW_BASE_COLUMN_KEY ? baseLabel : formatRawColumnLabel(key),
+        kind: fallbackColumnKind(key),
     }));
+}
+
+/**
+ * The kind a rows-derived column is assumed to have.
+ *
+ * This path runs only when the schema could not be read, where the row keys are the three the query
+ * aliases and nothing else is known about them. Answering from the key reproduces exactly what the
+ * grid did before kinds existed: the value column right-aligned, everything else plain.
+ */
+const fallbackColumnKind = (key: string): DataViewerColumnKind =>
+    key === RAW_BASE_COLUMN_KEY ? 'datetime' : key === 'value' ? 'number' : 'text';
+
+// ── column model ──────────────────────────────────────────────────────────────────────────────
+// `listTableColumns` already reads every column of the viewed table out of M$SYS_COLUMNS, and the
+// page already holds the result. What was missing is anything that walks that list: every reader
+// asked it for one column at a time — the base axis, the value column's type — so the rest of the
+// schema sat in state and never reached a query. These two functions are that walk, and everything
+// downstream (the SQL projection, the grid header, the cell renderer, the row inspector, the chart's
+// value picker) reads their output rather than indexing a schema row itself.
+
+/** Which of the query's fixed positions a column fills, or `extra` for the ones it never had. */
+export type DataViewerColumnRole = 'base' | 'tag' | 'value' | 'extra';
+
+/**
+ * What a column holds, reduced to the only distinction a renderer acts on.
+ *
+ * Machbase declares seventeen type codes; a cell has five ways to be drawn. Collapsing the codes
+ * here means the grid, the inspector and the chart all branch on the same six words instead of
+ * each keeping its own list of numbers — and a type code this build has never heard of lands on
+ * `text`, which renders as whatever the server sent rather than as nothing.
+ */
+export type DataViewerColumnKind = 'number' | 'datetime' | 'text' | 'json' | 'ip' | 'binary';
+
+const BINARY_TYPE_NAMES = new Set(['BLOB', 'BINARY']);
+const IP_TYPE_NAMES = new Set(['IPV4', 'IPV6']);
+
+/**
+ * A type code's kind, decided from the names the rest of the app already uses.
+ *
+ * `DB_NUMBER_TYPE` and `TABLE_COLUMN_TYPE` are the same tables the DB Explorer and the dashboard
+ * read, so "is this numeric" cannot drift between the Data Viewer and the pages either side of it.
+ * Deriving it here from a second hardcoded list of codes is exactly how that drift starts.
+ */
+export function resolveDataViewerColumnKind(type: unknown): DataViewerColumnKind {
+    const code = Number(type);
+    if (!Number.isFinite(code)) return 'text';
+    if (code === DATETIME_COLUMN_TYPE) return 'datetime';
+    if (isJsonTypeColumn(code)) return 'json';
+
+    const name = TABLE_COLUMN_TYPE.find((entry) => entry.key === code)?.value;
+    if (!name) return 'text';
+    if (DB_NUMBER_TYPE.includes(name)) return 'number';
+    if (BINARY_TYPE_NAMES.has(name)) return 'binary';
+    if (IP_TYPE_NAMES.has(name)) return 'ip';
+    return 'text';
+}
+
+/** The declared type's name — `DOUBLE`, `JSON` — for the label under a field in the row inspector. */
+export function dataViewerColumnTypeLabel(type: unknown): string | undefined {
+    const code = Number(type);
+    return Number.isFinite(code) ? TABLE_COLUMN_TYPE.find((entry) => entry.key === code)?.value : undefined;
+}
+
+/**
+ * Row key prefix for a column the query has no fixed alias for.
+ *
+ * Lowercase because `normalizeRows` lowercases every returned column name into the row key; the SQL
+ * alias is this uppercased, so the two ends agree without either one guessing at identifier folding.
+ */
+export const DATA_VIEWER_EXTRA_KEY_PREFIX = 'ex';
+
+export interface DataViewerColumnSpec {
+    /** The name the schema declares — `VALUE2`. What the SQL projects and what a type lookup keys on. */
+    name: string;
+    /** The row key the value arrives under: `time`, `name`, `value`, or `ex0`, `ex1`, … */
+    key: string;
+    role: DataViewerColumnRole;
+    kind: DataViewerColumnKind;
+    /** Machbase type code, kept so the inspector can name the type the table actually declares. */
+    type: number;
+    label: string;
+}
+
+/** What the grid header and the cell renderer need, which is a spec with the schema half dropped. */
+export type DataViewerGridColumn = { key: string; label: string; kind: DataViewerColumnKind };
+
+/**
+ * The viewed table's columns, in display order, each tied to the row key it will arrive under.
+ *
+ * Returns `[]` — "I cannot describe this query" — unless the schema accounts for all three of the
+ * query's fixed positions. A schema missing one of them would produce a grid whose columns and
+ * whose rows disagree: the SQL aliases `… as time` regardless, so a spec list with no base column
+ * drops the Time header while the rows still carry a `time` key. The empty answer sends the caller
+ * back to the rows-derived path, which is what the page did before this existed.
+ *
+ * Display order is base, tag, value, then the rest in schema order — the order the grid has always
+ * shown, kept because a Machbase TAG table declares its tag column first and adopting schema order
+ * wholesale would silently swap the first two columns of every existing table.
+ */
+export function buildDataViewerColumnSpecs(
+    columns: unknown[] = [],
+    {
+        baseColumn,
+        tagColumn,
+        valueColumn,
+        baseKind = 'time',
+    }: { baseColumn: string; tagColumn: string; valueColumn: string; baseKind?: DataViewerBaseKind },
+): DataViewerColumnSpec[] {
+    if (!Array.isArray(columns) || columns.length === 0) return [];
+
+    const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase();
+    const wanted: Record<Exclude<DataViewerColumnRole, 'extra'>, string> = {
+        base: normalize(baseColumn),
+        tag: normalize(tagColumn),
+        value: normalize(valueColumn),
+    };
+
+    const byRole: Partial<Record<Exclude<DataViewerColumnRole, 'extra'>, DataViewerColumnSpec>> = {};
+    const extras: DataViewerColumnSpec[] = [];
+
+    for (const column of columns) {
+        if (!Array.isArray(column)) continue;
+        const name = String(column[DATA_VIEWER_COLUMN_NAME_INDEX] ?? '').trim();
+        if (!name) continue;
+
+        const lowered = name.toLowerCase();
+        const type = Number(column[DATA_VIEWER_COLUMN_TYPE_INDEX]);
+        // A role is claimed once. A schema that declares the same name twice — or a table whose tag
+        // and value columns are configured to the same name — must not mint two `value` keys, since
+        // the second would overwrite the first in every row.
+        const role: DataViewerColumnRole =
+            lowered === wanted.base && !byRole.base
+                ? 'base'
+                : lowered === wanted.tag && !byRole.tag
+                  ? 'tag'
+                  : lowered === wanted.value && !byRole.value
+                    ? 'value'
+                    : 'extra';
+
+        const spec: DataViewerColumnSpec = {
+            name,
+            key: role === 'base' ? RAW_BASE_COLUMN_KEY : role === 'tag' ? 'name' : role === 'value' ? 'value' : `${DATA_VIEWER_EXTRA_KEY_PREFIX}${extras.length}`,
+            role,
+            kind: resolveDataViewerColumnKind(type),
+            type: Number.isFinite(type) ? type : -1,
+            // The base column is headed by what its axis measures, not by its own name — the same
+            // decision `buildRawResultColumns` makes, for the same reason.
+            label: role === 'base' ? RAW_BASE_COLUMN_LABELS[baseKind === 'distance' ? 'distance' : 'time'] : formatRawColumnLabel(name),
+        };
+
+        if (role === 'extra') extras.push(spec);
+        else byRole[role] = spec;
+    }
+
+    if (!byRole.base || !byRole.tag || !byRole.value) return [];
+    return [byRole.base, byRole.tag, byRole.value, ...extras];
+}
+
+/** The grid's columns: the specs, minus anything the page is hiding (the asset metadata column). */
+export function buildDataViewerGridColumns(specs: DataViewerColumnSpec[] = [], options: { hiddenKeys?: string[] } = {}): DataViewerGridColumn[] {
+    const hidden = new Set(
+        (options.hiddenKeys || [])
+            .map((key) => String(key || '').trim().toLowerCase())
+            .filter(Boolean),
+    );
+
+    return (Array.isArray(specs) ? specs : [])
+        .filter((spec) => spec && spec.key && !hidden.has(spec.name.toLowerCase()) && !hidden.has(spec.key))
+        .map(({ key, label, kind }) => ({ key, label, kind }));
+}
+
+/** The columns the SQL has to name explicitly, paired with the row key each must come back under. */
+export function buildDataViewerExtraProjection(specs: DataViewerColumnSpec[] = []): { name: string; key: string }[] {
+    return (Array.isArray(specs) ? specs : [])
+        // Binary is left out on purpose: there is no cell that can render it and a page of rows
+        // would carry the payload for nothing. The column still has a spec, so the grid draws a
+        // placeholder rather than dropping the column.
+        .filter((spec) => spec && spec.role === 'extra' && spec.kind !== 'binary')
+        .map(({ name, key }) => ({ name, key }));
 }
 
 // Walks PANEL_COLORS in name order, which is how ECharts assigns colours to a panel's series.
@@ -505,10 +686,19 @@ function getRawRowNameValue(row: unknown) {
     return record.name ?? record.NAME ?? record.Name;
 }
 
-function getRawRowValueValue(row: unknown) {
+/**
+ * The value a chart point takes from a row.
+ *
+ * `valueKey` is how the chart follows the column picker: the raw rows already carry every projected
+ * column, so plotting a different one is a key change and not another read. It defaults to `value`,
+ * the alias the query has always given the summarized column, and the positional branch below stays
+ * on index 2 because an array row only ever comes from the fixed three-column chart query.
+ */
+function getRawRowValueValue(row: unknown, valueKey = 'value') {
     if (Array.isArray(row)) return row[2];
     if (!row || typeof row !== 'object') return undefined;
     const record = row as Record<string, unknown>;
+    if (valueKey && valueKey !== 'value') return record[valueKey];
     return record.value ?? record.VALUE ?? record.Value;
 }
 
@@ -731,13 +921,13 @@ function toChartBaseX(value: unknown, baseKind: DataViewerBaseKind) {
     return numeric === null ? Number.NaN : numeric;
 }
 
-export function buildTagChartSeries(rows: Record<string, unknown>[] = [], baseKind: DataViewerBaseKind = 'time') {
+export function buildTagChartSeries(rows: Record<string, unknown>[] = [], baseKind: DataViewerBaseKind = 'time', valueKey = 'value') {
     const seriesByName = new Map<string, [number, number][]>();
 
     rows.forEach((row) => {
         const name = String(getRawRowNameValue(row) ?? '');
         const x = toChartBaseX(getRawRowTimeValue(row), baseKind);
-        const y = Number(getRawRowValueValue(row));
+        const y = Number(getRawRowValueValue(row, valueKey));
         if (!name || !Number.isFinite(x) || !Number.isFinite(y)) return;
         if (!seriesByName.has(name)) {
             seriesByName.set(name, []);
@@ -756,11 +946,14 @@ export function buildDataViewerChartResultsFromRawRows({
     rowsByGroup = {},
     chartGroups = [],
     baseKind = 'time',
+    valueKey = 'value',
 }: {
     rows?: Record<string, unknown>[];
     rowsByGroup?: Record<string, Record<string, unknown>[]>;
     chartGroups?: DataViewerChartGroup[];
     baseKind?: DataViewerBaseKind;
+    /** Row key the chart plots — the column picker's selection. See `getRawRowValueValue`. */
+    valueKey?: string;
 } = {}) {
     const safeRows = Array.isArray(rows) ? rows : [];
     const safeRowsByGroup = rowsByGroup && typeof rowsByGroup === 'object' ? rowsByGroup : {};
@@ -773,7 +966,7 @@ export function buildDataViewerChartResultsFromRawRows({
         const groupRows = tagSet.size > 0 ? sourceRows.filter((row) => tagSet.has(String(getRawRowNameValue(row) ?? ''))) : [];
         results[group.id] = {
             range: group.range || { from: '', to: '' },
-            series: buildTagChartSeries(groupRows, baseKind),
+            series: buildTagChartSeries(groupRows, baseKind, valueKey),
         };
     });
 

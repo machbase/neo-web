@@ -206,6 +206,16 @@ export const jsonKeyTreeLeavesUnder = (nodes: JsonKeyTreeNode[] = [], path: stri
  */
 export const jsonKeyDocumentHasKeys = (value: unknown): boolean => buildJsonKeyTree(value).length > 0;
 
+/**
+ * Whether a value is a JSON document at all.
+ *
+ * The cheap half of `jsonKeyDocumentHasKeys`: it answers from the parse alone, without walking the
+ * document into a tree. That is enough for the two callers that only need to know whether there is
+ * something to open — a grid cell deciding whether to carry a control, and the matching field in the
+ * row inspector — and both of them ask it once per row.
+ */
+export const isJsonKeyDocument = (value: unknown): boolean => parseJsonKeyDocument(value) !== undefined;
+
 /** Paths of every leaf, which is the full set a "select all" may reach. */
 export const jsonKeyTreeLeafPaths = (nodes: JsonKeyTreeNode[] = []): string[] =>
     nodes.filter((node) => node.leaf).map((node) => node.path);

@@ -59,6 +59,35 @@ const normalizeIdentifier = (value: string | undefined, fallback: string) => {
     const next = value?.trim() || fallback;
     return /^[A-Za-z_][A-Za-z0-9_$]*$/.test(next) ? next : fallback;
 };
+/** A column name the SQL can carry as-is, or `null` — there is no sane fallback for a named column. */
+const safeIdentifier = (value: string | undefined) => {
+    const next = String(value ?? '').trim();
+    return /^[A-Za-z_][A-Za-z0-9_$]*$/.test(next) ? next : null;
+};
+
+/**
+ * The columns beyond the query's three fixed positions, each under the row key it must arrive as.
+ *
+ * The alias is carried in rather than recomputed, because `normalizeRows` lowercases every returned
+ * column name into the row key and the caller has already decided what that key is. Naming the
+ * column directly instead would let a table whose extra column is called `VALUE` — legal whenever
+ * the summarized column is named something else — overwrite the `value` key and put the wrong number
+ * in the grid under the right header.
+ *
+ * A name that is not a plain identifier is dropped rather than quoted: it cannot have come from
+ * M$SYS_COLUMNS, so it is a caller bug, and one bad column must not cost the whole page its rows.
+ */
+const buildExtraColumnProjection = (columns: { name: string; key: string }[] = []) => {
+    const parts = (Array.isArray(columns) ? columns : [])
+        .map(({ name, key }) => {
+            const column = safeIdentifier(name);
+            const alias = safeIdentifier(key);
+            return column && alias ? `${column} as ${alias.toUpperCase()}` : '';
+        })
+        .filter(Boolean);
+
+    return parts.length > 0 ? `, ${parts.join(', ')}` : '';
+};
 const formatMachbaseTimestamp = (value: string) => {
     const text = String(value || '').trim();
     if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(text)) return text;
@@ -378,6 +407,7 @@ export async function queryTagData({
     tagColumn = 'NAME',
     timeColumn = 'TIME',
     valueColumn = 'VALUE',
+    extraColumns = [],
     baseKind = 'time',
     boundedRange,
     cursorSide,
@@ -394,6 +424,8 @@ export async function queryTagData({
     tagColumn?: string;
     timeColumn?: string;
     valueColumn?: string;
+    /** Columns past the fixed three, as `{ schema name, row key }`. See `buildExtraColumnProjection`. */
+    extraColumns?: { name: string; key: string }[];
     baseKind?: DataViewerBaseKind;
     boundedRange?: boolean;
     cursorSide?: 'next' | 'prev';
@@ -410,7 +442,7 @@ export async function queryTagData({
     const orderTime = cursor?.orderTime ?? (direction === 'latest' ? 'desc' : 'asc');
     const orderName = cursor?.orderName ?? 'asc';
     const limitClause = cursor || !boundedRange ? ` limit ${offset}, ${pageSize}` : '';
-    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value from ${table} where ${queryWhere.join(' and ')} order by ${timeColumnExpr} ${orderTime}, ${tagColumnExpr} ${orderName}${limitClause}`;
+    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${valueColumnExpr} as value${buildExtraColumnProjection(extraColumns)} from ${table} where ${queryWhere.join(' and ')} order by ${timeColumnExpr} ${orderTime}, ${tagColumnExpr} ${orderName}${limitClause}`;
     const { svrState, svrData, svrReason } = await fetchQuery(sql);
     if (!svrState) throw new Error(svrReason || 'Failed to load data');
 

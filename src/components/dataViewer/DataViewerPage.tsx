@@ -16,7 +16,6 @@ import NeoTimeRangeModal from '@/components/modal/TimeRangeModal';
 import { TimeZoneModal as NeoTimeZoneModal } from '@/components/modal/TimeZoneModal';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/integration';
-import { TABLE_COLUMN_TYPE } from '@/utils/constants';
 import TagEChart, { type DataViewerTimeRange } from './TagEChart';
 import { getUserName } from '@/utils';
 import {
@@ -32,8 +31,10 @@ import {
 } from './dataViewerApi';
 import JsonKeyPickerModal, { type JsonKeyPickerView } from './JsonKeyPickerModal';
 import RawRowDetailModal from './RawRowDetailModal';
+import TextValueModal from './TextValueModal';
+import { writeClipboard } from './writeClipboard';
 import JsonKeyDetailModal from './JsonKeyDetailModal';
-import { jsonKeyDocumentHasKeys } from './jsonKeyTree';
+import { isJsonKeyDocument, jsonKeyDocumentHasKeys } from './jsonKeyTree';
 import { toTagAnalyzerJsonKeyPath } from '@/utils/jsonKeyCatalog';
 import {
     DEFAULT_DATA_VIEWER_ROWS_PER_TAG,
@@ -56,6 +57,10 @@ import {
     buildDataViewerShiftMainRangeUpdate,
     buildDataViewerDistanceSliderClickRange,
     buildDataViewerTagSelectionUpdate,
+    buildDataViewerColumnSpecs,
+    buildDataViewerExtraProjection,
+    buildDataViewerGridColumns,
+    dataViewerColumnTypeLabel,
     buildRawColumnWidths,
     buildRawResultColumns,
     buildRawRowNameColors,
@@ -66,6 +71,7 @@ import {
     formatDataViewerBaseRangeLabel,
     formatDataViewerBaseValue,
     formatDataViewerDistance,
+    formatDataViewerTime,
     getDataViewerBaseAxisLabel,
     getDataViewerDefaultRange,
     getDataViewerRawPageSize,
@@ -78,6 +84,8 @@ import {
     resolveDataViewerBaseColumn,
     resolveDataViewerBaseColumnType,
     resolveDataViewerBaseKind,
+    type DataViewerColumnSpec,
+    type DataViewerGridColumn,
     resolveTimeRangeInput,
     snapDataViewerDistanceEdge,
     toDataViewerDate,
@@ -137,23 +145,24 @@ const DISTANCE_RANGE_ORDER_MESSAGE = 'From should be smaller than To.';
 // is everything that needs a *number*: the chart plots NaN, and Tag Analyzer aggregates (avg/min/
 // max) over the same non-numeric column. So those two doors are the ones that close, and this is
 // what they say when asked why. See `isDataViewerJsonValueColumn`.
-const JSON_VALUE_COLUMN_BLOCK_REASON = 'Unavailable: the value column of this table is a JSON type, which cannot be charted or analyzed.';
+const NO_NUMERIC_COLUMN_BLOCK_REASON = 'Unavailable: this table has no numeric column to chart or analyze.';
 
 // A key is a number once it has been projected out of the document, and the average is Tag
 // Analyzer's own default for a numeric series.
 /**
- * The declared type of a raw column, as the schema read gives it.
+ * How much text a grid cell can carry before the row stops being able to show it.
  *
- * `buildRawResultColumns` names columns from the rows, which carry values and not types, so the
- * type is looked up against the table's own column list. A column the schema does not mention —
- * anything the query added — simply has none to show.
+ * Not a layout measurement — the column widths are measured, and a value under this length is
+ * ellipsised at worst. It is the point past which "read it here" stops being true, which is when
+ * the cell earns a control to open it somewhere it can be read whole.
  */
-const rawColumnTypeLabel = (columns: DataViewerColumnRow[] | null, key: string): string | undefined => {
-    const wanted = String(key ?? '').trim().toLowerCase();
-    const row = (columns ?? []).find((column) => String(column?.[0] ?? '').trim().toLowerCase() === wanted);
-    if (!row) return undefined;
-    return TABLE_COLUMN_TYPE.find((entry) => entry.key === Number(row[1]))?.value;
-};
+const RAW_TEXT_CELL_EXPAND_CHARS = 60;
+
+/** How long a cell's copy button says it copied. Matches the row inspector's own hint. */
+const RAW_CELL_COPY_HINT_MS = 1600;
+
+/** A value the grid's one line cannot hold: too long, or carrying lines of its own. */
+const isExpandableTextCell = (text: string) => text.length > RAW_TEXT_CELL_EXPAND_CHARS || text.includes('\n');
 
 const TAG_ANALYZER_JSON_CALCULATION_MODE = 'avg';
 
@@ -882,17 +891,24 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // A JSON row is the entry point to its own keys: the document it holds already describes them,
     // so opening one is all the discovery this page needs. `picker` holds the row that was clicked,
     // `detail` the keys chosen from it.
-    const [jsonKeyPicker, setJsonKeyPicker] = useState<{ tagName: string; baseLabel: string; document: unknown; selected: string[] } | null>(null);
+    const [jsonKeyPicker, setJsonKeyPicker] = useState<{ tagName: string; baseLabel: string; columnName: string; document: unknown; selected: string[] } | null>(null);
+    // The cell whose text does not fit a row. Held by row index for the same reason `rowDetailIndex`
+    // is: the value itself would freeze while the grid under it moved on.
+    const [textCell, setTextCell] = useState<{ index: number; key: string; label: string } | null>(null);
     // Index into the page's rows rather than a copy of one: the detail view moves between rows with
     // the arrow keys, and holding the row itself would freeze it on whichever one was opened.
     const [rowDetailIndex, setRowDetailIndex] = useState<number | null>(null);
-    const [jsonKeyDetail, setJsonKeyDetail] = useState<{ tagName: string; paths: string[] } | null>(null);
+    const [jsonKeyDetail, setJsonKeyDetail] = useState<{ tagName: string; columnName: string; paths: string[] } | null>(null);
     // The picker's filter and folds, held across the trip into the detail view and back. A ref, not
     // state: nothing on this page renders from it, and putting it in state would re-render the whole
     // Data Viewer on every keystroke typed into a modal filter box. Cleared with the picker itself.
     const jsonKeyPickerViewRef = useRef<JsonKeyPickerView | undefined>(undefined);
     const [selectedTagNames, setSelectedTagNames] = useState<string[]>([]);
     const [mode, setMode] = useState<'raw' | 'chart'>('raw');
+    // Which numeric column the chart draws, or `null` for "still on this table's default". Held as
+    // an override for the same reason the range is: the default cannot be known until the schema
+    // read lands, and seeding state with a guess would let one chart of the wrong column out first.
+    const [chartValueKeyOverride, setChartValueKeyOverride] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     // What the user set, or `null` for "still on the default". Kept as an override rather than as
     // the range itself because the right default depends on the base axis, and the axis is not known
@@ -1024,6 +1040,51 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // than as a kind, and the two must not be derived independently.
     const baseColumnType = resolveDataViewerBaseColumnType(baseColumns ?? [], baseColumn);
     const baseAxisLabel = getDataViewerBaseAxisLabel(baseKind);
+    /**
+     * Every column of the viewed table, tied to the row key its value will arrive under.
+     *
+     * No extra read: `baseColumns` is the M$SYS_COLUMNS result the page already holds, and this is
+     * the first thing that walks it rather than picking one column out of it. `[]` here means the
+     * schema is unreadable or does not account for the query's three fixed positions, which is what
+     * sends the grid back to naming its columns from the rows.
+     */
+    const columnSpecs = useMemo<DataViewerColumnSpec[]>(
+        () => buildDataViewerColumnSpecs(baseColumns ?? [], { baseColumn, tagColumn, valueColumn, baseKind }),
+        [baseColumn, baseColumns, baseKind, tagColumn, valueColumn],
+    );
+    /** Spec by row key, for the readers that hold a key and need the column behind it. */
+    const columnSpecByKey = useMemo(() => new Map(columnSpecs.map((spec) => [spec.key, spec])), [columnSpecs]);
+    /** What the raw query has to name beyond `time`/`name`/`value` — binary excluded, see the model. */
+    const rawExtraColumns = useMemo(() => buildDataViewerExtraProjection(columnSpecs), [columnSpecs]);
+    /**
+     * The columns a chart could draw: every numeric one that is not the base axis.
+     *
+     * The value column is first when it qualifies, because the specs are in display order — so a
+     * table shaped the way every table used to be shaped charts exactly what it charted before,
+     * without the default being written down a second time.
+     */
+    const chartValueColumns = useMemo(() => columnSpecs.filter((spec) => spec.role !== 'base' && spec.kind === 'number'), [columnSpecs]);
+    /** The chosen column, or the first chartable one. An override for a column this table does not have is ignored, not honoured. */
+    const chartValueSpec = useMemo(
+        () => chartValueColumns.find((spec) => spec.key === chartValueKeyOverride) ?? chartValueColumns[0],
+        [chartValueColumns, chartValueKeyOverride],
+    );
+    /** Row key the chart plots. `value` while the schema is unknown, which is the alias it has always read. */
+    const chartValueKey = chartValueSpec?.key ?? 'value';
+    /**
+     * Whether this table has anything to chart.
+     *
+     * This replaces "the value column is JSON", which was the same question only while a row had
+     * one value in it. A table carrying a JSON payload *and* a DOUBLE reading is chartable, and used
+     * to be refused. With no schema to go on the old answer still stands: the value column is
+     * chartable unless the read positively showed it to be JSON.
+     */
+    const canChart = columnSpecs.length > 0 ? chartValueColumns.length > 0 : !valueColumnIsJson;
+    /** A chart of an extra column has to ask for it; the split-panel reads project nothing else. */
+    const chartExtraColumns = useMemo(
+        () => (chartValueSpec && chartValueSpec.role === 'extra' ? [{ name: chartValueSpec.name, key: chartValueSpec.key }] : []),
+        [chartValueSpec],
+    );
     // `getDataViewerDefaultRange` returns a module constant, so an untouched range keeps one stable
     // identity across renders — every memo and effect keyed on `range` stays quiet.
     const range = rangeOverride ?? getDataViewerDefaultRange(baseKind);
@@ -1586,6 +1647,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 tagColumn,
                 timeColumn,
                 valueColumn,
+                extraColumns: rawExtraColumns,
                 baseKind,
                 boundedRange: rawPageRequest.boundedRange,
                 cursorSide: rawPageRequest.cursorSide,
@@ -1613,7 +1675,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         } finally {
             if (rowsRequestRef.current === requestId) setLoading(false);
         }
-    }, [activeWindow, backwardScan, baseKind, canQuery, dbName, page, selectedTagNames, rawPageRequest, rawPageSize, tableName, tagColumn, timeColumn, userName, valueColumn]);
+    }, [activeWindow, backwardScan, baseKind, canQuery, dbName, page, selectedTagNames, rawExtraColumns, rawPageRequest, rawPageSize, tableName, tagColumn, timeColumn, userName, valueColumn]);
 
     useEffect(() => {
         fetchRows();
@@ -1689,6 +1751,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             rowsByGroup: splitChartRows,
             chartGroups,
             baseKind,
+            // The rows already carry every projected column, so following the picker is a key
+            // change and not another read.
+            valueKey: chartValueKey,
         }) as Record<string, { range: DataViewerTimeRange; series: Array<{ name: string; data: Array<[number, number | null]> }> }>;
         if (chartRequestRef.current !== requestId) return undefined;
         setChartResults(nextResults);
@@ -1706,7 +1771,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // `activeWindow` is gone from here on purpose: `chartRowsPending` already answers everything
         // the effect asked it, and keeping both would re-run the rebuild on the commit where the
         // window lands but the rows have not — the one commit this exists to skip.
-    }, [baseKind, canQuery, chartGroups, chartRowsPending, mode, rows, splitChartRows]);
+    }, [baseKind, canQuery, chartGroups, chartRowsPending, chartValueKey, mode, rows, splitChartRows]);
 
     const activeRange = range;
     const rangeEditorRange = useMemo(() => {
@@ -1756,15 +1821,22 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         },
         [mode],
     );
-    // "Chart mode and a JSON value column never coexist", enforced as an invariant rather than as a
-    // second copy of the button's `disabled`. It has to be an invariant because the schema lands
-    // strictly after the first paint: whoever is already looking at a chart when the column read
-    // comes back JSON has to be moved somewhere, and Raw is the honest destination — it renders the
-    // same table without needing the value to be a number. Keeping `mode` in the dependencies makes
-    // the rule total, so the button's `disabled` is the affordance and this is the guarantee.
+    // "Chart mode and a table with nothing numeric in it never coexist", enforced as an invariant
+    // rather than as a second copy of the button's `disabled`. It has to be an invariant because the
+    // schema lands strictly after the first paint: whoever is already looking at a chart when the
+    // column read comes back has to be moved somewhere, and Raw is the honest destination — it
+    // renders the same table without needing a value to be a number. Keeping `mode` in the
+    // dependencies makes the rule total, so the button's `disabled` is the affordance and this is
+    // the guarantee.
     useEffect(() => {
-        if (valueColumnIsJson && mode === 'chart') setMode('raw');
-    }, [mode, valueColumnIsJson]);
+        if (!canChart && mode === 'chart') setMode('raw');
+    }, [canChart, mode]);
+    // A table switch drops the picked column. Keeping it would carry a key that names a different
+    // column on the new table — `ex1` exists almost everywhere and means something different in
+    // each — and the chart would draw it without ever looking wrong.
+    useEffect(() => {
+        setChartValueKeyOverride(null);
+    }, [tableKey]);
     const handleEndPage = useCallback(async () => {
         if (!canQuery || endLoading) return;
         // Jumping to the last page counts the rows inside the *same* frozen window the grid is
@@ -1813,14 +1885,14 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // `baseKind` only renames the base column's header — the row key stays `time`, which is what the
     // cells, the widths and the page cursors all read. Header and widths share this one array, so
     // they cannot disagree about how wide `Distance` is.
-    const rawColumns = useMemo(
-        () =>
-            buildRawResultColumns(rows, {
-                hiddenKeys: assetHierarchy ? [assetHierarchy.column || 'asset'] : [],
-                baseKind,
-            }),
-        [assetHierarchy, baseKind, rows],
-    );
+    const rawColumns = useMemo<DataViewerGridColumn[]>(() => {
+        const hiddenKeys = assetHierarchy ? [assetHierarchy.column || 'asset'] : [];
+        // From the schema when there is one. Naming the columns from the rows means a column whose
+        // values are all NULL on this page has no key to be found under, so it vanishes and comes
+        // back as the reader pages through the table.
+        if (columnSpecs.length > 0) return buildDataViewerGridColumns(columnSpecs, { hiddenKeys });
+        return buildRawResultColumns(rows, { hiddenKeys, baseKind });
+    }, [assetHierarchy, baseKind, columnSpecs, rows]);
     useEffect(() => {
         if (!rawScrollEl) return undefined;
         let alive = true;
@@ -1844,6 +1916,25 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             alive = false;
         };
     }, [rawScrollEl]);
+    /**
+     * Which JSON cells hold a document, decided once per page rather than per render.
+     *
+     * The cell prints the value as it came; this only answers whether there is a tree behind it to
+     * open. Asking inside the cell renderer would re-parse every visible document on every scroll
+     * frame — keyed by row index and column, the page pays for it once.
+     */
+    const jsonDocumentCells = useMemo(() => {
+        const jsonKeys = rawColumns.filter((column) => column.kind === 'json').map((column) => column.key);
+        const cells = new Set<string>();
+        if (jsonKeys.length === 0) return cells;
+
+        rows.forEach((row, index) => {
+            jsonKeys.forEach((key) => {
+                if (isJsonKeyDocument(row?.[key])) cells.add(`${index}:${key}`);
+            });
+        });
+        return cells;
+    }, [rawColumns, rows]);
     const rawColumnWidths = useMemo(
         () =>
             buildRawColumnWidths(rows, rawColumns, {
@@ -1976,6 +2067,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             tagColumn,
                             timeColumn,
                             valueColumn,
+                            extraColumns: chartExtraColumns,
                             baseKind,
                             boundedRange: true,
                         });
@@ -2031,26 +2123,25 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             }
             setRangeEditor(null);
         },
-        [backwardScan, baseKind, canQuery, chartGroups, dbName, rangeEditor, rawRowsPerTag, resolveRangeForTagNames, splitChartRanges, tableName, tagColumn, timeColumn, userName, valueColumn],
+        [backwardScan, baseKind, canQuery, chartExtraColumns, chartGroups, dbName, rangeEditor, rawRowsPerTag, resolveRangeForTagNames, splitChartRanges, tableName, tagColumn, timeColumn, userName, valueColumn],
     );
     const handleOpenTagAnalyzer = useCallback(
         (
             group: { id: string; title: string; tagNames: string[]; range: { from?: unknown; to?: unknown } },
             chartData?: { range?: DataViewerTimeRange },
         ) => {
-            // Tag Analyzer opens a board whose every tag carries `calculationMode: 'avg'` over this
-            // same value column. Averaging a JSON document yields nothing, so the board would open
-            // empty and blame itself.
+            // Tag Analyzer opens a board whose every tag carries `calculationMode: 'avg'` over one
+            // column. Averaging a document — or a string, or nothing at all — yields nothing, so the
+            // board would open empty and blame itself. `chartValueSpec` is the column being drawn,
+            // and its absence is exactly the case where there is no numeric column to hand over.
             //
             // Today this line cannot fire: the only entry point is the chart panel's action menu,
-            // and chart mode is already closed for a JSON value column, so the menu is not on
-            // screen to be clicked. It is kept deliberately, and its redundancy is the reason it is
-            // one line — the reachability is a property of where the entry point happens to live,
-            // not of the rule, and a second entry point (raw's own toolbar, a keyboard shortcut)
-            // would make it load-bearing without anyone remembering to add it. Mutation-tested:
-            // removing it fails nothing, which is the accurate description of a redundant guard,
-            // not of a vacuous test.
-            if (valueColumnIsJson) return;
+            // and chart mode is already closed for a table with nothing chartable in it, so the menu
+            // is not on screen to be clicked. It is kept deliberately, and its redundancy is the
+            // reason it is one line — the reachability is a property of where the entry point
+            // happens to live, not of the rule, and a second entry point (raw's own toolbar, a
+            // keyboard shortcut) would make it load-bearing without anyone remembering to add it.
+            if (!canChart || !chartValueSpec) return;
 
             const tazRange = chartViewRanges[group.id] || chartData?.range || group.range;
             const normalizedRange = buildDataViewerTagAnalyzerRange(tazRange, baseKind);
@@ -2080,7 +2171,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     colName: {
                         name: tagColumn,
                         time: baseColumn,
-                        value: valueColumn,
+                        // The column the chart is drawing, which is the one the reader is looking
+                        // at when they open this menu — not necessarily the summarized column.
+                        value: chartValueSpec.name,
                         timeType: baseColumnType,
                         timeBaseTime: true,
                         jsonKey: '',
@@ -2096,37 +2189,97 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setBoardList((current) => [...current, result.board]);
             setSelectedTab(result.board.id);
         },
-        [baseColumn, baseColumnType, baseKind, chartViewRanges, databaseId, dbName, setBoardList, setSelectedTab, tableName, tagColumn, userName, valueColumn, valueColumnIsJson],
+        [baseColumn, baseColumnType, baseKind, canChart, chartValueSpec, chartViewRanges, databaseId, dbName, setBoardList, setSelectedTab, tableName, tagColumn, userName],
     );
     /**
-     * What a row click opens.
+     * What a row click opens: the row inspector, on every table.
      *
-     * On a JSON value column the row *is* its keys — the picker lists every one of them beside the
-     * value it holds, which is the row read more closely than an inspector could put it, so the
-     * click lands there directly rather than on a modal whose only useful control is a button to
-     * this one. Everywhere else there are no keys to pick and the inspector is the whole answer —
-     * including on a JSON column whose row holds a bare value, which is a document with nothing in
-     * it to pick and would otherwise open an empty tree.
+     * This used to fork on whether the value column held JSON, and go straight to the key picker
+     * when it did — right while a row had one interesting value in it. A row of several columns has
+     * no single type, so that fork has no answer to give: keeping it conditional would mean the same
+     * click opens different things depending on the table's schema, which is a rule nobody can hold.
+     *
+     * The picker is not lost, it moved down one level. A JSON cell carries its own control (see
+     * `openJsonKeyPicker`), and so does the matching field inside the inspector — so both routes
+     * reach the same place, and the cell route names the column instead of assuming it.
      */
     const handleRawRowClick = useCallback(
         (index: number) => {
+            if (!rows[index]) return;
+            setRowDetailIndex(index);
+        },
+        [rows],
+    );
+
+    /**
+     * Open one cell's document as a key tree.
+     *
+     * Keyed by row index and column key rather than handed the document, so the two entry points —
+     * a cell in the grid, a field in the inspector — cannot drift about which row they mean.
+     */
+    const openJsonKeyPicker = useCallback(
+        (index: number, columnKey: string) => {
             const row = rows[index];
-            if (!row) return;
-            if (!valueColumnIsJson || !jsonKeyDocumentHasKeys(row.value)) {
-                setRowDetailIndex(index);
-                return;
-            }
-            // A different row is a different document, so the filter and folds kept for the trip
+            const spec = columnSpecByKey.get(columnKey);
+            if (!row || !spec) return;
+            const document = row[columnKey];
+            // A cell holding something that is not a document at all has no tree to show; the
+            // inspector, which prints it as it came, is the whole answer there.
+            if (!jsonKeyDocumentHasKeys(document)) return;
+            // A different cell is a different document, so the filter and folds kept for the trip
             // into the detail view and back do not carry over to it.
             jsonKeyPickerViewRef.current = undefined;
             setJsonKeyPicker({
                 tagName: String(row.name ?? ''),
                 baseLabel: formatBaseValue(row.time),
-                document: row.value,
+                columnName: spec.name,
+                document,
                 selected: [],
             });
         },
-        [formatBaseValue, rows, valueColumnIsJson],
+        [columnSpecByKey, formatBaseValue, rows],
+    );
+
+    /**
+     * Close every dialog this page has open.
+     *
+     * They are portalled to `<body>`, and the board itself stays mounted when another tab is
+     * selected — so a dialog left standing paints over whatever the user was sent to. That is what
+     * the Tag Analyzer handoff does: it opens a board and switches to it, and the row inspector the
+     * keys were reached from used to stay up on top of the new tab.
+     */
+    const closeRowDialogs = useCallback(() => {
+        setRowDetailIndex(null);
+        setTextCell(null);
+        setJsonKeyDetail(null);
+        setJsonKeyPicker(null);
+    }, []);
+
+    /**
+     * The cell whose value was just copied, so its button can say so.
+     *
+     * One at a time: the hint belongs to the press, and two ticks on screen would leave the reader
+     * working out which one was theirs.
+     */
+    const [copiedCell, setCopiedCell] = useState<string | null>(null);
+    const copiedCellTimer = useRef<number>(0);
+    useEffect(() => () => window.clearTimeout(copiedCellTimer.current), []);
+    const copyCellValue = useCallback((cellKey: string, text: string) => {
+        writeClipboard(text, null).then((ok) => {
+            if (!ok) return;
+            window.clearTimeout(copiedCellTimer.current);
+            setCopiedCell(cellKey);
+            copiedCellTimer.current = window.setTimeout(() => setCopiedCell(null), RAW_CELL_COPY_HINT_MS);
+        });
+    }, []);
+
+    /** Open one cell's text at full size — the grid gives it one ellipsised line. */
+    const openTextCell = useCallback(
+        (index: number, columnKey: string, label: string) => {
+            if (!rows[index]) return;
+            setTextCell({ index, key: columnKey, label });
+        },
+        [rows],
     );
 
     /**
@@ -2159,7 +2312,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
      */
     /** Returns false when nothing opened, so the caller can leave the flow standing. */
     const handleOpenTagAnalyzerJsonKeys = useCallback(
-        (tagName: string, paths: string[], window: { from?: string | number; to?: string | number }): boolean => {
+        (tagName: string, columnName: string, paths: string[], window: { from?: string | number; to?: string | number }): boolean => {
             const normalizedRange = buildDataViewerTagAnalyzerRange({ from: window.from, to: window.to }, baseKind);
 
             // Querying a long key is fine; it is only Tag Analyzer's own field that cannot hold one,
@@ -2187,7 +2340,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     colName: {
                         name: tagColumn,
                         time: baseColumn,
-                        value: valueColumn,
+                        // The column the keys were picked from, which is not necessarily the
+                        // summarized one now that any JSON column in the row can be opened.
+                        value: columnName || valueColumn,
                         timeType: baseColumnType,
                         timeBaseTime: true,
                         jsonKey,
@@ -2259,6 +2414,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             tagColumn,
                             timeColumn,
                             valueColumn,
+                            extraColumns: chartExtraColumns,
                             baseKind,
                             boundedRange: true,
                         });
@@ -2277,6 +2433,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             backwardScan,
             baseKind,
             canQuery,
+            chartExtraColumns,
             chartGroups,
             chartNavigatorRanges,
             chartResults,
@@ -2367,6 +2524,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     tagColumn,
                     timeColumn,
                     valueColumn,
+                    extraColumns: chartExtraColumns,
                     baseKind,
                     boundedRange: true,
                 });
@@ -2382,7 +2540,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 setChartError(err?.message || 'Failed to move chart range');
             }
         },
-        [backwardScan, baseKind, canQuery, dbName, page, rawPageBounds, rawPageSize, rawRowsPerTag, tableName, tagColumn, timeColumn, userName, valueColumn],
+        [backwardScan, baseKind, canQuery, chartExtraColumns, dbName, page, rawPageBounds, rawPageSize, rawRowsPerTag, tableName, tagColumn, timeColumn, userName, valueColumn],
     );
 
     // Opening the range editor is the same act on both axes; which editor appears is decided in one
@@ -2449,13 +2607,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 <div className="page-body-inner">
                     <div className="data-viewer-layout">
                         <aside className="form-card data-viewer-tags">
-                            {!assetHierarchy || valueColumnIsJson ? (
+                            {!assetHierarchy ? (
                                 <div className="form-card-header data-viewer-tags-header">
                                     <span className="section-dot" />
                                     Tags
                                 </div>
                             ) : null}
-                            {assetHierarchy && !valueColumnIsJson ? (
+                            {assetHierarchy ? (
                                 <div className="data-viewer-tag-tabs" role="tablist" aria-label="Tag views">
                                     <button
                                         type="button"
@@ -2483,7 +2641,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             <div className="data-viewer-tag-list">
                                 {tagsLoading ? <div className="empty-state">Loading tags...</div> : null}
                                 {!tagsLoading && activeTagTab === 'tags' && visibleTags.length === 0 ? <div className="empty-state">No tags</div> : null}
-                                {!tagsLoading && !valueColumnIsJson && activeTagTab === 'asset' && assetRows.length === 0 ? <div className="empty-state">No asset tags</div> : null}
+                                {!tagsLoading && activeTagTab === 'asset' && assetRows.length === 0 ? <div className="empty-state">No asset tags</div> : null}
                                 {activeTagTab === 'tags'
 
                                     ? visibleTags.map((tag) => {
@@ -2643,13 +2801,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                             <button type="button" role="tab" aria-selected={mode === 'raw'} className={`data-viewer-segmented-item ${mode === 'raw' ? 'is-active' : ''}`} onClick={() => handleModeChange('raw')}>
                                                 Raw
                                             </button>
-                                            {/* Not rendered at all on a JSON value column, rather than rendered
-                                                disabled: a dead segment still presents Chart as a mode this table
-                                                has, and the control reads as broken instead of as a table that
-                                                only does Raw. Same call as the format/timezone button on a
-                                                distance axis. The mode invariant effect keeps `mode` on 'raw',
-                                                so the remaining segment is always the selected one. */}
-                                            {valueColumnIsJson ? null : (
+                                            {/* Not rendered at all on a table with nothing numeric in it, rather
+                                                than rendered disabled: a dead segment still presents Chart as a
+                                                mode this table has, and the control reads as broken instead of as
+                                                a table that only does Raw. Same call as the format/timezone button
+                                                on a distance axis. The mode invariant effect keeps `mode` on
+                                                'raw', so the remaining segment is always the selected one. */}
+                                            {!canChart ? null : (
                                                 <button
                                                     type="button"
                                                     role="tab"
@@ -2661,6 +2819,27 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 </button>
                                             )}
                                         </div>
+                                        {/* Only when there is a choice to make. A table with one
+                                            numeric column has a value column and always did; putting
+                                            a one-entry picker beside it would present a decision
+                                            that does not exist. */}
+                                        {mode === 'chart' && chartValueColumns.length > 1 ? (
+                                            <label className="data-viewer-chart-column">
+                                                <span className="data-viewer-chart-column-label">Value</span>
+                                                <select
+                                                    value={chartValueKey}
+                                                    onChange={(event) => setChartValueKeyOverride(event.target.value)}
+                                                    aria-label="Charted column"
+                                                    title="Which column the chart draws"
+                                                >
+                                                    {chartValueColumns.map((spec) => (
+                                                        <option key={spec.key} value={spec.key}>
+                                                            {spec.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                        ) : null}
                                     </div>
                                 </div>
                             </div>
@@ -2682,38 +2861,112 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 fixedHeaderContent={() => (
                                                     <tr>
                                                         {rawColumns.map((column) => (
-                                                            // `is-numeric` right-aligns the value column — but only when it holds numbers.
-                                                            // A JSON document right-aligned starts at a different x per row, which makes a
-                                                            // column of documents unreadable. The header carries it too so the
-                                                            // label sits over the digits instead of drifting to the far edge.
-                                                            <th key={column.key} className={column.key === 'value' && !valueColumnIsJson ? 'is-numeric' : undefined}>
+                                                            // `is-numeric` right-aligns a column of numbers — and only that. A JSON
+                                                            // document right-aligned starts at a different x per row, which makes a
+                                                            // column of documents unreadable. The header carries it too so the label
+                                                            // sits over the digits instead of drifting to the far edge. The base
+                                                            // column is left alone on both axes: a distance base is numeric, but
+                                                            // realigning it would move a column that has never moved.
+                                                            <th key={column.key} className={column.key !== 'time' && column.kind === 'number' ? 'is-numeric' : undefined}>
                                                                 {column.label}
                                                             </th>
                                                         ))}
                                                     </tr>
                                                 )}
-                                                itemContent={(_index, row) => (
+                                                itemContent={(index, row) => (
                                                     // Cells only — TableVirtuoso's default TableRow already supplies the `<tr>`.
                                                     <>
                                                         {rawColumns.map((column) => {
                                                             const raw = row[column.key];
                                                             // A NULL reads as `NULL` here for the same reason it does in the SQL
                                                             // result grid: a blank cell is indistinguishable from an empty string.
-                                                            // Only the value column can be null — `time` is the BASETIME column and
-                                                            // `name` the tag primary key — so `name`'s colour lookup below is safe.
+                                                            // The base column cannot be null — it is the BASETIME column — and
+                                                            // neither can the tag, which is the primary key.
                                                             const isNull = column.key !== 'time' && (raw === null || raw === undefined);
-                                                            const value = column.key === 'time' ? formatBaseValue(raw) : String(raw ?? '');
-                                                            if (column.key === 'name') {
-                                                                // `--raw-dot` feeds the ::before swatch, which ties a row back to its chart line.
+
+                                                            if (column.key === 'time') {
                                                                 return (
-                                                                    <td key={column.key} className="mono raw-name" style={{ '--raw-dot': rawNameColors[value] } as React.CSSProperties}>
-                                                                        {value}
+                                                                    <td key={column.key} className="mono">
+                                                                        {formatBaseValue(raw)}
                                                                     </td>
                                                                 );
                                                             }
+                                                            if (column.key === 'name') {
+                                                                const name = String(raw ?? '');
+                                                                // `--raw-dot` feeds the ::before swatch, which ties a row back to its chart line.
+                                                                return (
+                                                                    <td key={column.key} className="mono raw-name" style={{ '--raw-dot': rawNameColors[name] } as React.CSSProperties}>
+                                                                        {name}
+                                                                    </td>
+                                                                );
+                                                            }
+                                                            // Never projected (see `buildDataViewerExtraProjection`), so the cell
+                                                            // says what the column is rather than printing an empty string that
+                                                            // would read as a missing value.
+                                                            if (column.kind === 'binary') {
+                                                                return (
+                                                                    <td key={column.key} className="mono">
+                                                                        <span className="raw-cell-muted">&lt;binary&gt;</span>
+                                                                    </td>
+                                                                );
+                                                            }
+
+                                                            const text = column.kind === 'datetime' ? formatDataViewerTime(raw, timeFormat, timeZone) : String(raw ?? '');
+                                                            // What opening this cell would give that the row cannot: a document to
+                                                            // walk, or text that does not fit. A JSON cell holding something that
+                                                            // did not parse is not a document and has no tree to offer.
+                                                            const action = isNull
+                                                                ? undefined
+                                                                : column.kind === 'json'
+                                                                  ? jsonDocumentCells.has(`${index}:${column.key}`)
+                                                                      ? 'json'
+                                                                      : undefined
+                                                                  : column.kind === 'text' && isExpandableTextCell(text)
+                                                                    ? 'text'
+                                                                    : undefined;
+
+                                                            const cellKey = `${index}:${column.key}`;
                                                             return (
-                                                                <td key={column.key} className={`mono${column.key === 'value' && !valueColumnIsJson ? ' is-numeric' : ''}`}>
-                                                                    {isNull ? <span className="is-null">NULL</span> : value}
+                                                                <td key={column.key} className={`mono${column.kind === 'number' ? ' is-numeric' : ''}${action ? ' has-cell-action' : ''}`}>
+                                                                    {isNull ? <span className="is-null">NULL</span> : text}
+                                                                    {/* Pinned to the head of the cell, not its tail. A column that
+                                                                        shows a whole payload is wider than the viewport, so a
+                                                                        control at the far end is off screen exactly when the value
+                                                                        is long enough to need it. */}
+                                                                    {action ? (
+                                                                        <span className="raw-cell-actions">
+                                                                            <button
+                                                                                type="button"
+                                                                                className={`raw-cell-action${copiedCell === cellKey ? ' is-copied' : ''}`}
+                                                                                // The row is the click target for the inspector, so
+                                                                                // a cell control that did not stop here would open it
+                                                                                // on top of whatever this button did.
+                                                                                onClick={(event) => {
+                                                                                    event.stopPropagation();
+                                                                                    copyCellValue(cellKey, text);
+                                                                                }}
+                                                                                onKeyDown={(event) => event.stopPropagation()}
+                                                                                title={`Copy ${column.label}`}
+                                                                                aria-label={`Copy ${column.label}`}
+                                                                            >
+                                                                                <MaterialIcon name={copiedCell === cellKey ? 'check' : 'content_copy'} className="icon-sm" />
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                className="raw-cell-action"
+                                                                                onClick={(event) => {
+                                                                                    event.stopPropagation();
+                                                                                    if (action === 'json') openJsonKeyPicker(index, column.key);
+                                                                                    else openTextCell(index, column.key, column.label);
+                                                                                }}
+                                                                                onKeyDown={(event) => event.stopPropagation()}
+                                                                                title={action === 'json' ? `Explore ${column.label} keys` : `Open ${column.label}`}
+                                                                                aria-label={action === 'json' ? `Explore ${column.label} keys` : `Open ${column.label}`}
+                                                                            >
+                                                                                <MaterialIcon name={action === 'json' ? 'data_object' : 'notes'} className="icon-sm" />
+                                                                            </button>
+                                                                        </span>
+                                                                    ) : null}
                                                                 </td>
                                                             );
                                                         })}
@@ -2818,9 +3071,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                         type="button"
                                                                         className="data-viewer-chart-menu-item"
                                                                         role="menuitem"
-                                                                        disabled={valueColumnIsJson}
-                                                                        title={valueColumnIsJson ? JSON_VALUE_COLUMN_BLOCK_REASON : undefined}
-                                                                        aria-label={valueColumnIsJson ? `Tag Analyzer — ${JSON_VALUE_COLUMN_BLOCK_REASON}` : undefined}
+                                                                        disabled={!canChart}
+                                                                        title={!canChart ? NO_NUMERIC_COLUMN_BLOCK_REASON : undefined}
+                                                                        aria-label={!canChart ? `Tag Analyzer — ${NO_NUMERIC_COLUMN_BLOCK_REASON}` : undefined}
                                                                         onClick={() => {
                                                                             setOpenChartMenuId(null);
                                                                             handleOpenTagAnalyzer(group, chartData);
@@ -2924,17 +3177,32 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                         key: column.key,
                         label: column.label,
                         // The type the table declares for this column, written under its name — the
-                        // one thing about a value the value itself does not say.
-                        // The query aliases every column (`... as time, ... as name, ... as value`),
-                        // so the alias has to be mapped back to the name the schema declares before
-                        // the type can be looked up — on a table with its own column names, the
-                        // aliases match nothing.
-                        typeLabel: rawColumnTypeLabel(
-                            baseColumns,
-                            column.key === 'time' ? baseColumn : column.key === 'name' ? tagColumn : column.key === 'value' ? valueColumn : column.key,
-                        ),
-                        value: column.key === 'time' ? formatBaseValue(rows[rowDetailIndex]?.time) : rows[rowDetailIndex]?.[column.key],
+                        // one thing about a value the value itself does not say. The spec already
+                        // carries it: the query aliases columns (`… as time, … as value`), so a
+                        // lookup keyed on the alias finds nothing on a table with its own names.
+                        typeLabel: dataViewerColumnTypeLabel(columnSpecByKey.get(column.key)?.type),
+                        // Same question the grid cell asks, asked once more against the same row —
+                        // so the two routes into a value can never disagree about whether there is
+                        // one. A JSON cell that did not parse has no summary and offers nothing.
+                        action:
+                            column.kind === 'json'
+                                ? isJsonKeyDocument(rows[rowDetailIndex]?.[column.key])
+                                    ? ('json' as const)
+                                    : undefined
+                                : column.kind === 'text' && isExpandableTextCell(String(rows[rowDetailIndex]?.[column.key] ?? ''))
+                                  ? ('text' as const)
+                                  : undefined,
+                        value:
+                            column.key === 'time'
+                                ? formatBaseValue(rows[rowDetailIndex]?.time)
+                                : column.kind === 'datetime'
+                                  ? formatDataViewerTime(rows[rowDetailIndex]?.[column.key], timeFormat, timeZone)
+                                  : rows[rowDetailIndex]?.[column.key],
                     }))}
+                    onOpenField={(key, action) => {
+                        if (action === 'json') openJsonKeyPicker(rowDetailIndex, key);
+                        else openTextCell(rowDetailIndex, key, rawColumns.find((column) => column.key === key)?.label || key);
+                    }}
                     hasPrevious={rowDetailIndex > 0}
                     hasNext={rowDetailIndex < rows.length - 1}
                     onPrevious={() => setRowDetailIndex((current) => Math.max(0, (current ?? 0) - 1))}
@@ -2953,7 +3221,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     tagName={jsonKeyPicker.tagName}
                     baseLabel={jsonKeyPicker.baseLabel}
                     document={jsonKeyPicker.document}
-                    valueColumn={valueColumn}
+                    valueColumn={jsonKeyPicker.columnName}
                     initialSelected={jsonKeyPicker.selected}
                     initialView={jsonKeyPickerViewRef.current}
                     onViewChange={(view) => {
@@ -2962,7 +3230,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     onClose={() => setJsonKeyPicker(null)}
                     onConfirm={(paths) => {
                         setJsonKeyPicker((current) => (current ? { ...current, selected: paths } : current));
-                        setJsonKeyDetail({ tagName: jsonKeyPicker.tagName, paths });
+                        setJsonKeyDetail({ tagName: jsonKeyPicker.tagName, columnName: jsonKeyPicker.columnName, paths });
                     }}
                 />
             ) : null}
@@ -2978,7 +3246,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     to={activeWindow?.to}
                     tagColumn={tagColumn}
                     timeColumn={timeColumn}
-                    valueColumn={valueColumn}
+                    valueColumn={jsonKeyDetail.columnName}
                     baseKind={baseKind}
                     baseLabel={baseColumn}
                     formatBase={formatBaseValue}
@@ -2992,14 +3260,25 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                         // Only on the way out. A refused handoff used to tear both modals down
                         // anyway, so a rejected payload cost the whole selection with no way back to
                         // it — the error text landed on a page the user had been pulled away from.
-                        if (!handleOpenTagAnalyzerJsonKeys(jsonKeyDetail.tagName, paths, window)) return;
-                        setJsonKeyDetail(null);
-                        setJsonKeyPicker(null);
+                        if (!handleOpenTagAnalyzerJsonKeys(jsonKeyDetail.tagName, jsonKeyDetail.columnName, paths, window)) return;
+                        closeRowDialogs();
                     }}
                     onClose={() => {
                         setJsonKeyDetail(null);
                         setJsonKeyPicker(null);
                     }}
+                />
+            ) : null}
+
+            {/* A cell's text at full size. Layered over the inspector rather than replacing it: the
+                reader may have opened it from a field there, and closing this should put them back
+                where they were rather than on the grid. */}
+            {textCell && rows[textCell.index] ? (
+                <TextValueModal
+                    title={textCell.label}
+                    subtitle={`${String(rows[textCell.index].name ?? '')} · ${formatBaseValue(rows[textCell.index].time)}`}
+                    value={rows[textCell.index][textCell.key]}
+                    onClose={() => setTextCell(null)}
                 />
             ) : null}
 
