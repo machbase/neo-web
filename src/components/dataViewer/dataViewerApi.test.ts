@@ -1,4 +1,4 @@
-import { fetchQuery } from '@/api/repository/database';
+import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import {
     listTableColumns,
     listTableTags,
@@ -7,15 +7,18 @@ import {
     queryTagChartData,
     queryTagData,
     queryTagDataTotal,
+    queryTagJsonKeyData,
     reinterpretTagStatBaseValue,
 } from './dataViewerApi';
 import { isDataViewerJsonValueColumn, resolveDataViewerBaseColumn, resolveDataViewerBaseKind } from './dataViewerModel';
 
 jest.mock('@/api/repository/database', () => ({
     fetchQuery: jest.fn(),
+    fetchTqlWithoutConsole: jest.fn(),
 }));
 
 const mockedFetchQuery = fetchQuery as jest.MockedFunction<typeof fetchQuery>;
+const mockedFetchTql = fetchTqlWithoutConsole as jest.MockedFunction<typeof fetchTqlWithoutConsole>;
 
 const machbaseTime = (value: string) => {
     const date = new Date(value);
@@ -925,5 +928,89 @@ describe('listTableColumns', () => {
         mockedFetchQuery.mockResolvedValue(columnRows([['', DATETIME_TYPE, BASETIME_FLAG], null as any, ['TIME', DATETIME_TYPE, BASETIME_FLAG]]));
 
         await expect(listTableColumns(table)).resolves.toEqual([['TIME', DATETIME_TYPE, BASETIME_FLAG]]);
+    });
+});
+
+describe('queryTagJsonKeyData', () => {
+    const params = { dbName: 'MACHBASEDB', userName: 'SYS', tableName: 'TAG', tagName: 'sensor.a' };
+
+    beforeEach(() => {
+        mockedFetchTql.mockReset();
+        mockedFetchTql.mockResolvedValue({
+            svrState: true,
+            svrData: { columns: ['TIME', 'NAME', 'JV0', 'JV1'], rows: [] },
+            svrReason: '',
+        } as any);
+    });
+
+    // A json path cannot be an identifier, so every projection is aliased and mapped back by
+    // position. Losing that ordering silently swaps one key's values for another's.
+    test('projects one aliased json extraction per key, in the order they were asked for', async () => {
+        await queryTagJsonKeyData({ ...params, paths: ['[a][b]', '[c]'] });
+
+        const sql = mockedFetchTql.mock.calls[0][0];
+        expect(sql).toContain("VALUE->'$[a][b]' as JV0");
+        expect(sql).toContain("VALUE->'$[c]' as JV1");
+    });
+
+    // The alias is an implementation detail of the wire; a reader that saw it would render a `jv0`
+    // column beside the key it stands for.
+    test('returns one row per cycle with the aliases resolved to positions', async () => {
+        mockedFetchTql.mockResolvedValue({
+            svrState: true,
+            svrData: {
+                columns: ['TIME', 'NAME', 'JV0', 'JV1'],
+                rows: [
+                    ['2026-08-25 10:00:00.000', 'sensor.a', 1, 'x'],
+                    ['2026-08-25 10:00:01.000', 'sensor.a', 2, null],
+                ],
+            },
+            svrReason: '',
+        } as any);
+
+        const { rows } = await queryTagJsonKeyData({ ...params, paths: ['[a]', '[b]'] });
+
+        expect(rows).toEqual([
+            { base: '2026-08-25 10:00:00.000', values: [1, 'x'] },
+            { base: '2026-08-25 10:00:01.000', values: [2, null] },
+        ]);
+    });
+
+    // A key is free to contain a quote, and it reaches SQL inside a string literal.
+    test('escapes a quote inside a key path', async () => {
+        await queryTagJsonKeyData({ ...params, paths: ["['it''s']"] });
+
+        expect(mockedFetchTql.mock.calls[0][0]).toContain("VALUE->'$[''it''''s'']' as JV0");
+    });
+
+    // A JSON document that is a bare value has no key to project out of it, so the column is taken
+    // as it stands — projecting `->'$'` would ask the database for a path that is not there.
+    test('takes the column itself when the path is empty', async () => {
+        await queryTagJsonKeyData({ ...params, paths: [''] });
+
+        const sql = mockedFetchTql.mock.calls[0][0];
+        expect(sql).toContain('VALUE as JV0');
+        expect(sql).not.toContain("VALUE->");
+    });
+
+    // A chart drawn from the oldest N cycles of a window is not a chart of that window — with a
+    // limit here, widening the range on the page changed nothing on screen.
+    test('reads the whole window, with no row limit', async () => {
+        await queryTagJsonKeyData({ ...params, paths: ['[a]'], from: '2026-08-25 10:00:00.000', to: '2026-08-25 12:00:00.000' });
+
+        const sql = mockedFetchTql.mock.calls[0][0];
+        expect(sql).toContain('order by TIME asc');
+        expect(sql).not.toContain('limit');
+    });
+
+    test('asks for nothing when no key was picked', async () => {
+        await expect(queryTagJsonKeyData({ ...params, paths: [] })).resolves.toEqual({ rows: [] });
+        expect(mockedFetchTql).not.toHaveBeenCalled();
+    });
+
+    test('reports the failure reason the server gave', async () => {
+        mockedFetchTql.mockResolvedValue({ svrState: false, svrData: null, svrReason: 'Error in json load.' } as any);
+
+        await expect(queryTagJsonKeyData({ ...params, paths: ['[a]'] })).rejects.toThrow('Error in json load.');
     });
 });

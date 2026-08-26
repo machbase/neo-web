@@ -1,4 +1,5 @@
-import { fetchQuery } from '@/api/repository/database';
+import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
+import { jsonKeyPathToSql } from '@/utils/jsonKeyCatalog';
 import { SQL_BASE_LIMIT } from '@/utils/sqlFormatter';
 import { parseDataViewerDistanceValue, type DataViewerBaseKind } from './dataViewerModel';
 
@@ -75,6 +76,27 @@ export const buildQualifiedMetaTableName = ({ dbName, userName, tableName }: Dat
 // Machbase publishes per-tag statistics (ROW_COUNT, MIN_TIME, MAX_TIME, ...) in a view named after
 // the tag table. Used to resolve time-range boundaries without scanning the table.
 export const buildQualifiedTagStatViewName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}.V$${tableName}_STAT`;
+
+/** Alias prefix for a projected json value. Uppercase so it survives identifier folding. */
+const JSON_VALUE_ALIAS = 'JV';
+
+/**
+ * One row per cycle, carrying every selected key at once.
+ *
+ * The chart puts a series per key on one axis and the grid turns each cycle into one row per value,
+ * so both start from the cycle — which is also the shape the row already has on the wire. Values
+ * come back positionally, `values[i]` for `paths[i]`, because a json path cannot survive identifier
+ * quoting and so cannot be its own column name.
+ */
+export type JsonKeyCycleRow = { base: unknown; values: unknown[] };
+
+const collectJsonKeyCycles = (rows: Record<string, unknown>[], paths: string[]): JsonKeyCycleRow[] => {
+    const aliasPrefix = JSON_VALUE_ALIAS.toLowerCase();
+    return rows.map((row) => ({
+        base: row.time ?? null,
+        values: paths.map((_path, index) => row[`${aliasPrefix}${index}`] ?? null),
+    }));
+};
 
 const normalizeRows = (data: any): Record<string, unknown>[] => {
     const columns: string[] = data?.columns ?? [];
@@ -398,6 +420,74 @@ export async function queryTagData({
         page,
         pageSize,
     };
+}
+
+/**
+ * Read the selected keys of one tag, one row per cycle.
+ *
+ * A json path cannot be carried through identifier quoting, so each projection gets a generated
+ * alias and is mapped back by index — `JV{i}` holds `paths[i]`, and the aliases are dropped on the
+ * way out so no reader ever sees them. Only the projected values cross the wire; the payload
+ * document never does.
+ */
+export async function queryTagJsonKeyData({
+    dbName,
+    userName,
+    tableName,
+    tagName,
+    paths,
+    from,
+    to,
+    tagColumn = 'NAME',
+    timeColumn = 'TIME',
+    valueColumn = 'VALUE',
+    baseKind = 'time',
+    signal,
+}: DataViewerTableParams & {
+    tagName: string;
+    paths: string[];
+    from?: string | number;
+    to?: string | number;
+    tagColumn?: string;
+    timeColumn?: string;
+    valueColumn?: string;
+    baseKind?: DataViewerBaseKind;
+    /** Abandons the read when the caller has moved on — a range chip clicked twice in a second. */
+    signal?: AbortSignal;
+}): Promise<{ rows: JsonKeyCycleRow[] }> {
+    // An empty path is the whole column — a JSON document that is a bare value has no key to
+    // project out of it — so it is kept rather than filtered away with the blanks.
+    const keyPaths = (paths ?? []).filter((path) => path !== null && path !== undefined);
+    if (keyPaths.length === 0) return { rows: [] };
+
+    const table = buildQualifiedTableName({ dbName, userName, tableName });
+    const valueColumnExpr = normalizeIdentifier(valueColumn, 'VALUE');
+    const { tagColumnExpr, timeColumnExpr, where } = buildTagDataWhere({
+        names: [tagName],
+        from,
+        to,
+        tagColumn,
+        timeColumn,
+        baseKind,
+    });
+
+    const projections = keyPaths
+        .map((path, index) => {
+            const sqlPath = jsonKeyPathToSql(path);
+            const expression = sqlPath ? `${valueColumnExpr}->'${escapeSqlString(sqlPath)}'` : valueColumnExpr;
+            return `${expression} as ${JSON_VALUE_ALIAS}${index}`;
+        })
+        .join(', ');
+    // No limit, exactly as `queryTagChartData` reads a window: this view holds a chart, and a chart
+    // drawn from the oldest N cycles of a range is not a chart of that range. With a limit here,
+    // widening the range on the page changed nothing on screen — the same early slice came back
+    // every time, because the rows are ordered ascending and cut at the front.
+    const sql = `select ${timeColumnExpr} as time, ${tagColumnExpr} as name, ${projections} from ${table} where ${where.join(' and ')} order by ${timeColumnExpr} asc`;
+
+    const { svrState, svrData, svrReason } = await fetchTqlWithoutConsole(sql, signal);
+    if (!svrState) throw new Error(svrReason || 'Failed to load data');
+
+    return { rows: collectJsonKeyCycles(normalizeRows(svrData), keyPaths) };
 }
 
 export async function queryTagDataTotal({

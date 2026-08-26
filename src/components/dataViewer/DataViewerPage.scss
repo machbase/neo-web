@@ -883,7 +883,8 @@
     background-color: var(--color-surface-hover-light);
 }
 
-.neo-data-viewer .data-viewer-tag-row input[type='checkbox'] {
+.neo-data-viewer .data-viewer-tag-row input[type='checkbox'],
+.neo-data-viewer .json-key-row input[type='checkbox'] {
     width: var(--size-checkbox);
     height: var(--size-checkbox);
     min-width: var(--size-checkbox);
@@ -905,12 +906,14 @@
     -webkit-appearance: none;
 }
 
-.neo-data-viewer .data-viewer-tag-row input[type='checkbox']:checked {
+.neo-data-viewer .data-viewer-tag-row input[type='checkbox']:checked,
+.neo-data-viewer .json-key-row input[type='checkbox']:checked {
     background-color: var(--color-primary);
     border-color: var(--color-primary);
 }
 
-.neo-data-viewer .data-viewer-tag-row input[type='checkbox']:checked::after {
+.neo-data-viewer .data-viewer-tag-row input[type='checkbox']:checked::after,
+.neo-data-viewer .json-key-row input[type='checkbox']:checked::after {
     content: '';
     position: absolute;
     left: 3px;
@@ -992,6 +995,12 @@
     border-color: rgba(113, 224, 113, 0.3);
     background-color: var(--color-success-muted);
     color: var(--color-success);
+}
+
+.neo-data-viewer .badge-info {
+    border-color: rgba(0, 117, 226, 0.35);
+    background-color: rgba(0, 117, 226, 0.15);
+    color: #6cb6ff;
 }
 
 .neo-data-viewer .badge-muted {
@@ -1128,6 +1137,17 @@
     transition: all 0.2s ease;
     color: var(--color-on-surface);
     background-color: transparent;
+}
+
+/* A disabled control has to look disabled. Without this the picker opens showing a full-saturation
+   blue primary with `cursor: pointer` that does nothing when clicked — measured byte-for-byte
+   identical to its enabled paint. The bespoke controls in this feature already dim exactly like
+   this (`.json-key-detail-handoff:disabled`, `.json-key-detail-step:disabled`); the two shared
+   classes were the only ones left without it. */
+.neo-data-viewer .btn:disabled,
+.neo-data-viewer .btn-icon-sm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .neo-data-viewer .btn-ghost {
@@ -1663,7 +1683,7 @@
 .neo-data-viewer .data-viewer-chart-toolbar-controls {
     position: absolute;
     left: 50%;
-    bottom: 68px;
+    bottom: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2041,6 +2061,30 @@
 
 .neo-data-viewer .data-viewer-time-modal .modal-footer {
     padding: var(--spacing-16) var(--spacing-20);
+}
+
+/* Lifted out of `.data-viewer-time-modal`: the JSON key dialogs use the same buttons, and a
+   primary that only exists inside one dialog is why they had to hand-roll their own. */
+.neo-data-viewer .btn-secondary {
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    color: var(--color-on-surface-secondary);
+}
+
+.neo-data-viewer .btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .btn-primary {
+    border: 1px solid rgb(0, 108, 210);
+    background-color: rgb(0, 108, 210);
+    color: var(--color-white);
+}
+
+.neo-data-viewer .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
 }
 
 .neo-data-viewer .data-viewer-time-modal .btn-primary,
@@ -2615,4 +2659,1081 @@
         flex-wrap: wrap;
         justify-content: flex-end;
     }
+}
+
+/* A JSON tag row carries a name plus several status chips and an action, and the name is the part
+   that identifies the row. Everything else is fixed-size so the name is what gives way — rendering
+   a scan failure inline once pushed the tag name clean off the panel and forced a sideways scroll
+   through a list that had nothing else to show. */
+.neo-data-viewer .data-viewer-tag-row .node-tree-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.neo-data-viewer .data-viewer-tag-row .badge {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* The whole row opens the inspector, so the whole row is the affordance. Confining it to the value
+   cell left a target a sliver of the row wide. */
+.neo-data-viewer .data-viewer-raw-row {
+    cursor: pointer;
+}
+
+/* ─── JSON key modals ───────────────────────────────────────────────────────
+   Scoped by their own classes rather than by `.neo-data-viewer`: these render through the shared
+   overlay, outside this page's subtree, so every page-scoped rule above is out of reach here.
+
+   The three of them share a shell — header, scrolling body, footer — so the shell is written once
+   under `.json-key-modal` and each view adds only what is its own. */
+.json-key-modal {
+    /* Chrome — border, ground, shadow, header and footer spacing — comes from the page's own
+       `.neo-data-viewer .modal` and `.modal-header` / `.modal-body` / `.modal-footer`, which these
+       views use directly. Only what those parts do not cover is written here. */
+    color: var(--color-on-surface);
+}
+
+/* The page's title is one line; these carry a second, so the block stacks instead of running on. */
+.neo-data-viewer .modal-header-title.json-key-modal-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* One line with an ellipsis, the way the subtitle under it already reads. A deep path is 2496px of
+   text in a 422px box at every desktop width, and without this it was amputated mid-token with
+   nothing to say so — the full path stays on the element's `title`, which is the escape hatch. */
+.neo-data-viewer .modal-header-title.json-key-modal-title > span:first-child {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.json-key-modal-sub {
+    font-size: var(--font-size-sm, 12px);
+    font-weight: 400;
+    color: var(--color-on-surface-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* `.modal-body` scrolls as one block, which is right for prose and wrong for a reader that has its
+   own scrolling region — the filter box and the chart would scroll away from what they belong to.
+   These bodies lay their children out instead and hand the scrolling to the one part that needs it. */
+.neo-data-viewer .modal-body.json-key-modal-body {
+    display: flex;
+    flex-direction: column;
+    /* `flex-basis: auto`, not the `.modal-body` default of `0%`. These modals hug their content up
+       to a cap rather than filling a fixed height, and a basis of zero contributes nothing to that
+       content height — the body then collapses to whatever its own first children need and
+       `overflow: hidden` cuts the chart and the grid off below them. `min-height: 0` still lets it
+       shrink past its content once the cap is reached, which is what hands the scroll to the grid. */
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0;
+    /* `auto`, not `hidden`: once the window is short enough that the chart and a readable grid no
+       longer both fit, the body scrolls rather than cutting whatever is at the bottom off the
+       modal. Nothing becomes unreachable; it only takes a scroll to reach. */
+    overflow: auto;
+}
+
+.json-key-modal-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+}
+
+.json-key-modal-filter {
+    flex: 1 1 auto;
+    min-width: 0;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    color: inherit;
+    padding: 6px 10px;
+}
+
+/* The list is the only part that scrolls; the toolbar and the footer stay put so the count and the
+   confirm button are reachable however deep the document goes. */
+.json-key-modal-tree {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 0 8px 8px;
+}
+
+/* [caret][check][key][type][value] — one grid line per row, in the order they are read.
+   The row is two or three controls, not one, and a button cannot nest inside a button — so the row
+   itself is a plain box holding them side by side. */
+.json-key-row {
+    display: flex;
+    /* One baseline for the whole row — the box, the key, the type and the value all centre on it,
+       the way the tag list's rows do. Aligning each to its own top left the tick sitting above the
+       word it belongs to. */
+    align-items: center;
+    gap: var(--spacing-6);
+    padding-right: var(--spacing-8);
+    /* Every row is the full width of the list, so the type and the value keep their own columns
+       down the right edge no matter how deep the key is. The staircase is fitted to a width budget
+       instead (see `TREE_INDENT_BUDGET`), which is what keeps it from dragging those columns
+       diagonally across the panel. */
+    width: 100%;
+    min-height: 28px;
+    /* The depth adds to the row's own left padding rather than replacing it — the same fix the tag
+       list needed. Set on its own, a depth-0 row has no padding at all and its caret lands directly
+       on the selected row's accent rail. */
+    padding-left: calc(var(--spacing-8) + var(--tree-indent, 0px));
+    cursor: pointer;
+}
+
+.json-key-row:hover {
+    background-color: var(--color-surface-hover);
+}
+
+/* A lit ground and a rail, as the tag list does it for a picked tag — but in the accent's own
+   colour, because here the rail runs down a chain of picked keys and has to read as one thing. The
+   rail is an inset shadow rather than a border so it takes no part in layout; the row carries no
+   radius, or the rail's ends would round and break the run into separate chips. */
+.neo-data-viewer .json-key-row.is-active {
+    background-color: rgba(0, 117, 226, 0.16);
+    color: var(--color-on-surface);
+    box-shadow: inset 3px 0 0 var(--color-primary-hover);
+}
+
+/* A branch holding some of its leaves is neither state, and says so at half strength rather than
+   claiming one of the two. */
+.neo-data-viewer .json-key-row.is-partial {
+    box-shadow: inset 3px 0 0 rgba(0, 117, 226, 0.55);
+}
+
+/* The box's own half-answered state, drawn on the tag list's checkbox so it stays the same control. */
+.neo-data-viewer .json-key-row input[type='checkbox']:indeterminate {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.neo-data-viewer .json-key-row input[type='checkbox']:indeterminate::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 5px;
+    width: 7px;
+    height: 0;
+    border-top: 1.5px solid #fff;
+}
+
+/* Every control in the row resets the project's global `button` rule, which would otherwise paint a
+   dark background and round the corners — a grey pill in the middle of a flat list. */
+.json-key-caret,
+.json-key-row .node-tree-toggle {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.neo-data-viewer .json-key-row .badge {
+    flex: 0 0 auto;
+    padding: 1px var(--spacing-6);
+    font-size: 10px;
+    font-family: var(--font-family-mono);
+}
+
+/* Resets the project's global `button` rule, which otherwise paints a dark rounded box behind the
+   fold marker — a grey pill in the middle of a flat list. */
+.json-key-caret {
+    appearance: none;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    font: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    flex: 0 0 auto;
+    color: var(--color-on-surface-tertiary);
+}
+
+/* The shared `.modal svg { font-size: 18px }` would make the fold marker as loud as the key. */
+.neo-data-viewer .json-key-caret svg {
+    font-size: 14px;
+}
+
+.json-key-caret-button {
+    cursor: pointer;
+}
+
+.json-key-caret-button:hover:not(:disabled) {
+    color: var(--color-on-surface);
+}
+
+/* The body of a branch row: a pointer target for the caret's action, so opening a branch is not a
+   20px click. */
+.json-key-open {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    flex: 1 1 auto;
+    min-width: 0;
+    align-self: stretch;
+    cursor: pointer;
+}
+
+.json-key-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    line-height: 20px;
+}
+
+/* A key is an identifier, and a proportional face makes `RENAME_11` and `RENAME_ll` the same shape. */
+.json-key-name-leaf {
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+/* The path a filtered match came from. Dimmed because it is context, not the thing that matched. */
+.json-key-prefix {
+    color: #777;
+}
+
+/* The value, kept to one line: it is here to tell two similar keys apart at a glance, and the
+   whole of it is in the row's tooltip for anyone who needs it. */
+.json-key-preview {
+    flex: 0 1 auto;
+    /* Enough for a device id at the modal's own width — measured: at 40% a value like
+       `SEOUL.FACTORY.LINE_01.EDGE_07` lost its tail as soon as the tree grew a scrollbar. */
+    max-width: 48%;
+    margin-left: auto;
+    padding-left: 12px;
+    /* The palette's tertiary rather than an off-palette grey: #8f8f8f measured 4.32:1 on this
+       ground, under the 4.5:1 that 11px text needs, and this token is the one the rest of the page
+       already uses for a value written small beside a label. */
+    color: var(--color-on-surface-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    line-height: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* `.modal-footer` pushes everything right; the picker reads left-to-right as "what is picked" then
+   "what to do with it", so its count keeps the left edge. */
+.neo-data-viewer .modal-footer.json-key-modal-footer {
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Three columns rather than two ends: the pager holds the centre of the grid no matter how wide the
+   row count beside it grows, which is what keeps it from drifting as you page. */
+/* `1fr` has an automatic minimum of min-content, so three nowrap groups in a narrow column stop
+   shrinking and simply hang past its edge — the column clips with `overflow: hidden`, and at 1024
+   the last page-size chip landed 28px outside the modal entirely, over the scrim, where clicking it
+   closed the dialog instead of changing the page size. `minmax(0, …)` lets the tracks yield, the
+   groups wrap inside themselves, and the pager grows a second line instead of leaving the box. */
+.json-key-detail-pager {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--spacing-8);
+    white-space: nowrap;
+    flex: 0 0 auto;
+    padding: var(--spacing-8) var(--spacing-12);
+    border-top: 1px solid var(--color-border);
+}
+
+.json-key-detail-pager > * {
+    min-width: 0;
+}
+
+.json-key-detail-pager .json-key-modal-count {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.json-key-detail-pager-controls,
+.json-key-detail-sizes {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.json-key-detail-pager .json-key-modal-count {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.json-key-detail-pager .json-key-detail-pager-controls {
+    grid-column: 2;
+}
+
+.json-key-detail-pager .json-key-detail-sizes {
+    grid-column: 3;
+    justify-self: end;
+}
+
+.json-key-modal-count {
+    color: var(--color-on-surface-secondary);
+    font-size: 12px;
+}
+
+.json-key-modal-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* ─── JSON key detail ─────────────────────────────────────────────────────── */
+
+
+/* Three equal-basis columns rather than two ends: with `space-between` the middle child only lands
+   in the centre when the two beside it happen to weigh the same, and the title's width changes with
+   every key. Equal `1fr` sides pin the window to the true centre whatever the title says. */
+.neo-data-viewer .modal-header.json-key-detail-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--spacing-12);
+}
+
+.json-key-detail-head-actions {
+    display: flex;
+    align-items: center;
+    justify-self: end;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.json-key-detail-chips,
+.json-key-detail-sizes {
+    display: flex;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.json-key-detail-chip {
+    appearance: none;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    color: var(--color-on-surface-secondary);
+    cursor: pointer;
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    padding: 3px 8px;
+}
+
+.json-key-detail-chip:hover:not(.is-active) {
+    border-color: var(--color-border-strong, #555);
+    color: var(--color-on-surface);
+}
+
+/* The page's primary, which is what a chosen option is drawn in everywhere else here. The number
+   itself stays white — it is the value being read, and tinting it to match its own frame is what
+   made the chosen chip harder to read than the two beside it. */
+.json-key-detail-chip.is-active {
+    background-color: rgba(0, 117, 226, 0.16);
+    border-color: var(--color-primary-hover);
+    color: var(--color-on-surface);
+}
+
+/* The window this view is showing — the one thing on the header that cannot be read off anything
+   else in the modal. Truncates rather than pushing the title or the buttons out of their columns. */
+.json-key-detail-window {
+    min-width: 0;
+    justify-self: center;
+    text-align: center;
+    /* Same reason as the key preview below: 11px text has to clear 4.5:1, and #8f8f8f did not. */
+    color: var(--color-on-surface-tertiary);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Outlined in amber rather than filled: it leaves the page, which is worth marking, but it is not
+   the thing this modal is for — the chart and the grid are. */
+/* The icon carries it alone — the word "Tag Analyzer" beside its own icon says the same thing
+   twice, and the toolbar has one other control to fit. The name stays on the button as its tooltip
+   and its accessible name.
+ 
+   Bordered, deliberately: an icon on its own reads as a status mark, and this one leaves the page.
+   The border is the ordinary one every other button here wears — the colour belongs to the icon,
+   which is where the app puts it, and a tinted border would make the button itself the coloured
+   thing. */
+.json-key-detail-handoff {
+    appearance: none;
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    color: var(--color-on-surface-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+}
+
+.json-key-detail-handoff:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    border-color: var(--color-border-strong, #555);
+}
+
+.json-key-detail-handoff:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* The icon keeps its own `#26a69a` — the colour identifies Tag Analyzer, not this button. */
+
+/* Side by side: the chart is the shape of the rows in the grid, and stacked they could not both be
+   read without scrolling one of them away. */
+/* Side by side at three parts chart to two — the chart is the thing being read, and the grid beside
+   it only has to fit three columns. A zero basis makes that ratio hold at every width, so a narrower
+   modal shrinks both rather than dropping one of them.
+
+   `overflow: hidden` here on purpose: the split must not be the thing that scrolls, or the grid
+   column grows past the modal and its own table never gets a scrollbar. */
+.json-key-detail-split {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: var(--spacing-8);
+    padding: 0 var(--spacing-8) var(--spacing-8);
+    overflow: hidden;
+}
+
+.json-key-detail-chart-col {
+    display: flex;
+    flex-direction: column;
+    flex: 3 1 0;
+    min-width: 0;
+    min-height: 0;
+    /* The chart has a floor of its own — plot, toolbar and navigator do not compress past about
+       260px — and a column shorter than that does not shrink it, it just lets it paint outside.
+       At a 600px-tall window the navigator was drawn cut in half across the modal's bottom edge.
+       The min-height on the modal keeps that from happening at any ordinary size; this clips it
+       rather than spilling it at the extremes below that. */
+    overflow: hidden;
+}
+
+.json-key-detail-grid-col {
+    display: flex;
+    flex-direction: column;
+    flex: 2 1 0;
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    overflow: hidden;
+}
+
+.json-key-detail-grid-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-12);
+    flex: 0 0 auto;
+    padding: var(--spacing-8) var(--spacing-12);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.json-key-detail-grid-title {
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--color-on-surface-secondary);
+}
+
+/* The plot now takes whatever the column gives it (see `panelHeight` in `buildDataViewerEChartOption`),
+   so the floor is only what the legend, the labels, the controls and the navigator need. */
+.json-key-detail-chart {
+    flex: 1 1 auto;
+    min-height: 260px;
+    position: relative;
+}
+
+.json-key-detail-chart > div {
+    height: 100%;
+}
+
+/* Named rather than silently missing: a key holding text is real data and belongs in the grid, but
+   it has no place on a value axis, and an unexplained gap reads as a bug. */
+.json-key-detail-note {
+    flex: 0 0 auto;
+    margin: 6px 4px 0;
+    color: #a3a3a3;
+    font-size: 11px;
+}
+
+.json-key-detail-error {
+    flex: 0 0 auto;
+    margin: 8px 16px 0;
+    color: #f08a80;
+    font-size: 12px;
+}
+
+/* A floor, because a grid squeezed to nothing is the one thing this view cannot be without: the
+   chart already keeps its own height, and without this the two of them settle every short window in
+   the chart's favour — measured at a 480px viewport, the grid came out 5px tall with no row in it. */
+.json-key-detail-grid {
+    flex: 1 1 auto;
+    min-height: 140px;
+    overflow: auto;
+}
+
+.json-key-detail-grid table {
+    width: 100%;
+    /* `separate`, not `collapse`: a collapsed border belongs to the table rather than to the cell,
+       so it does not travel with a sticky header — the row underneath scrolls into the seam and
+       shows through above it. The header's rule is drawn as an inset shadow instead, which is part
+       of the cell and sticks with it. */
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+}
+
+.json-key-detail-grid th {
+    position: sticky;
+    top: 0;
+    /* Above the rows that scroll under it — every one of them, including the one it half covers. */
+    z-index: 2;
+    /* Opaque, and it has to stay that way: rows scroll under this and a translucent ground would
+       show them through it. */
+    background-color: #252525;
+    color: #a3a3a3;
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-align: left;
+    padding: 6px 10px;
+    box-shadow: inset 0 -1px 0 var(--color-border);
+    white-space: nowrap;
+}
+
+.json-key-detail-grid td {
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-on-surface);
+}
+
+.json-key-detail-grid .mono {
+    font-family: var(--font-family-mono);
+}
+
+.json-key-detail-grid .is-numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* The same dot the raw grid puts beside a tag name, so a row here and a line in the chart above are
+   matched by eye. A key the chart could not draw has no colour, and the dot is simply not painted. */
+.json-key-detail-grid .json-key-detail-name::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: var(--spacing-8);
+    border-radius: 50%;
+    background-color: var(--raw-dot, transparent);
+    vertical-align: middle;
+}
+
+/* The same treatment the row inspector gives an absent value — the word, dimmed. */
+.json-key-detail-grid .is-null {
+    color: var(--color-on-surface-tertiary);
+}
+
+.json-key-detail-pager-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.json-key-detail-step {
+    appearance: none;
+    background: none;
+    border: 1px solid #3a3a3a;
+    border-radius: 4px;
+    color: #c4c4c4;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    min-width: 24px;
+    padding: 4px 0;
+}
+
+.json-key-detail-step:hover:not(:disabled) {
+    border-color: #555;
+    color: #f1f1f1;
+}
+
+.json-key-detail-step:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Fixed width, so the arrows either side of it hold still. `1 / 1` and `10 / 10` are different
+   widths, and letting the readout size to its text walks the buttons sideways as you page. */
+.json-key-detail-page {
+    min-width: 72px;
+    text-align: center;
+    color: var(--color-on-surface-secondary);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    padding: 0 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.json-key-modal .empty-state {
+    padding: 24px;
+    text-align: center;
+    color: #818181;
+    font-size: 12px;
+}
+
+/* ─── raw row inspector ─────────────────────────────────────────────────────
+   Ported from the OPC UA package's row inspector, its measurements included — the layout was copied
+   once already and the numbers were not, which is how the fields ended up flush against the panel
+   edge with a copy button twice the weight of the value beside it. */
+.raw-row-modal {
+    display: flex;
+    flex-direction: column;
+    color: var(--color-on-surface);
+}
+
+.neo-data-viewer .modal-header.raw-row-modal-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.raw-row-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-12);
+}
+
+.raw-row-modal-crumbs {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    min-width: 0;
+    font-size: 11px;
+    color: var(--color-on-surface-tertiary);
+}
+
+.raw-row-modal-chip {
+    padding: 1px var(--spacing-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.raw-row-modal-position {
+    font-variant-numeric: tabular-nums;
+}
+
+/* One line. The whole of it is in the NAME field below, which is what wraps. */
+.raw-row-modal-title {
+    margin-top: 4px;
+    font-size: 15px;
+    color: var(--color-on-surface);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.raw-row-modal-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.neo-data-viewer .raw-row-modal-nav button {
+    border: 0;
+    background: transparent;
+    padding: 4px;
+    border-radius: var(--radius-base);
+    color: var(--color-on-surface-tertiary);
+    cursor: pointer;
+    display: inline-flex;
+}
+
+.neo-data-viewer .raw-row-modal-nav button:hover:not(:disabled) {
+    color: var(--color-on-surface);
+    background-color: var(--color-surface-hover);
+}
+
+.neo-data-viewer .raw-row-modal-nav button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.neo-data-viewer .raw-row-modal-nav button svg,
+.neo-data-viewer .raw-row-modal-copy svg {
+    font-size: 16px;
+}
+
+.raw-row-modal-divider {
+    width: 1px;
+    height: 16px;
+    margin: 0 6px;
+    background-color: var(--color-border);
+}
+
+/* `min-height: 0`, or a flex item's default `auto` lets the body grow to its content and the modal
+   pushes its own footer off the screen on a table with many columns. */
+.neo-data-viewer .modal-body.raw-row-modal-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.raw-row-modal-fields {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 16px 8px;
+}
+
+/* [label | value | copy]. No input shells: a read-only value put in one looks editable, and the box
+   padding alone would push the values off the panel. */
+.raw-row-modal-field {
+    display: grid;
+    grid-template-columns: 118px 1fr auto;
+    gap: var(--spacing-12);
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.raw-row-modal-field:last-child {
+    border-bottom: 0;
+}
+
+.raw-row-modal-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-on-surface-secondary);
+}
+
+.raw-row-modal-type {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--color-on-surface-tertiary);
+}
+
+/* Not truncating is the reason this panel exists. A tag name can be one unbroken token, so it is
+   broken anywhere rather than left to overflow. */
+.raw-row-modal-value {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-on-surface);
+    white-space: pre-wrap;
+    word-break: break-all;
+    user-select: text;
+}
+
+.raw-row-modal-value.is-null {
+    color: var(--color-on-surface-tertiary);
+}
+
+.raw-row-modal-json {
+    margin: 0;
+    max-height: 44vh;
+    overflow: auto;
+    /* A global `* { font-family: pretendard }` overrides the UA monospace on <pre> and breaks its
+       alignment, so the face is set on the element itself. */
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* Light on purpose: the value is what the panel is for, and a copy button as heavy as the value
+   beside it competes with what it is meant to serve. */
+.neo-data-viewer .raw-row-modal-copy {
+    border: 0;
+    background: transparent;
+    padding: 2px;
+    border-radius: var(--radius-base);
+    color: var(--color-on-surface-tertiary);
+    opacity: 0.6;
+    cursor: pointer;
+    display: inline-flex;
+}
+
+.neo-data-viewer .raw-row-modal-copy:hover {
+    opacity: 1;
+    color: var(--color-on-surface);
+    background-color: var(--color-surface-hover);
+}
+
+/* Just after a copy: the icon becomes a tick, so the colour follows it. */
+.neo-data-viewer .raw-row-modal-copy.is-copied {
+    opacity: 1;
+    color: var(--color-success);
+}
+
+.neo-data-viewer .raw-row-modal-copy.is-failed {
+    opacity: 1;
+    color: var(--color-error, #f08a80);
+}
+
+.neo-data-viewer .modal-footer.raw-row-modal-foot {
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-12);
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.raw-row-modal-hint {
+    font-size: 11px;
+    color: var(--color-on-surface-tertiary);
+}
+
+.raw-row-modal-actions {
+    display: flex;
+    gap: var(--spacing-8);
+}
+
+/* ─── modal box metrics ─────────────────────────────────────────────────────
+   Three rules compete for these, all of them caps:
+
+     `.modal`                      744 x 570   (0-1-0, src/components/modal/Modal.scss)
+     `.neo-data-viewer .modal`     400 x 80vh  (0-2-0, this file — the page's own small dialogs)
+     `.neo-data-viewer .modal-md`  560         (0-2-0, this file — the page's own size variant)
+
+   A cap beats a width whatever the specificity, so a size written with a single class is silently
+   discarded. The two dialogs that hold two panels side by side declare their own at 0-3-0, which is
+   what makes them apply without depending on file order.
+
+   Both are given a settled height rather than one that hugs their content: a box that grew and
+   shrank as its list or its table changed size moved every control out from under the cursor. */
+
+/* Two columns — the tree and the running selection — so it takes the width of the two of them. */
+/* The same 60vh the detail view uses. These two are one flow — pick, read, come back — and a box
+   that changes size between the steps reads as a different window each time you cross it. Fixed
+   rather than content-sized for the same reason it is there: the tree's depth must not move it. */
+.neo-data-viewer .modal.json-key-picker-modal {
+    width: min(1080px, 94vw);
+    max-width: min(1080px, 94vw);
+    height: 60vh;
+    max-height: 60vh;
+    /* …but never so short that the chart's own floor paints through the bottom edge. */
+    min-height: min(420px, 92vh);
+}
+
+.neo-data-viewer .modal-header.json-key-picker-header {
+    align-items: baseline;
+    gap: var(--spacing-12);
+}
+
+.json-key-picker-header .modal-header-title {
+    flex: 0 0 auto;
+}
+
+/* The document's identity belongs with the title, but the title is what the eye lands on — so it
+   sits at the far end rather than under it, where it would compete. */
+.json-key-picker-header .json-key-modal-sub {
+    flex: 1 1 auto;
+    text-align: right;
+}
+
+.neo-data-viewer .modal-body.json-key-picker-body {
+    flex-direction: row;
+    gap: var(--spacing-12);
+    padding: 0 var(--spacing-16) var(--spacing-12);
+    overflow: hidden;
+}
+
+.json-key-picker-tree-col {
+    display: flex;
+    flex-direction: column;
+    flex: 3 1 0;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* What is picked, gathered in one place. Ticked keys are otherwise scattered down a tree that
+   folds, filters and scrolls, so the only way to review a selection was to go looking for it. */
+.json-key-picker-selected {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-width: 220px;
+    min-height: 0;
+    margin-top: var(--spacing-12);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    overflow: hidden;
+}
+
+.json-key-picker-selected-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-8);
+    flex: 0 0 auto;
+    padding: var(--spacing-4) var(--spacing-8) var(--spacing-4) var(--spacing-12);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.json-key-picker-selected-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--color-on-surface-secondary);
+}
+
+.json-key-picker-selected-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--spacing-8);
+}
+
+/* One picked key, written out in full — two keys called `value` are the reason this panel exists.
+   Square, not rounded: these are rows of a list, not free-floating tokens, and the rail down the
+   left edge is what marks them — rounding the corners breaks that rail into detached segments and
+   pulls the whole column out of line with the tree beside it. */
+.json-key-picker-chip {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
+    flex: 0 0 auto;
+    padding: var(--spacing-4) var(--spacing-4) var(--spacing-4) var(--spacing-8);
+    border-radius: 0;
+    background-color: rgba(0, 117, 226, 0.16);
+    box-shadow: inset 2px 0 0 var(--color-primary-hover);
+}
+
+/* A pick the chart cannot draw. It still belongs in the grid, so it is dimmed rather than refused —
+   the accent rail is what marks the ones that will become a line, which is the only thing a chip
+   has to say about type. The glyph belongs in the tree, where it is a column that can be scanned;
+   repeated on a chip it is one mark per row saying what the rail already said. */
+.json-key-picker-chip.is-flat {
+    background-color: var(--color-surface-hover);
+    box-shadow: inset 2px 0 0 var(--color-border);
+}
+
+.json-key-picker-chip.is-flat .json-key-picker-chip-name {
+    color: var(--color-on-surface-secondary);
+}
+
+/* Wrapped, never truncated — the same rule the tree row follows, and for the same reason: sibling
+   keys share long prefixes, so an ellipsis that keeps only the front turns two different keys into
+   the same chip. A 100-deep path measured 2151px of name in a 200px box, all of it front. The panel
+   is a column, so a chip has the room to run onto a second line. */
+.json-key-picker-chip-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--color-on-surface);
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.neo-data-viewer .json-key-picker-chip button {
+    appearance: none;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-base);
+    /* 2px of padding around a 12px glyph is a 16px target, which is under any pointer guideline and
+       well under a touch one. The chip row has the height to give, so it gives it. */
+    padding: var(--spacing-6);
+    flex: 0 0 auto;
+    display: inline-flex;
+    color: var(--color-on-surface-tertiary);
+    cursor: pointer;
+}
+
+.neo-data-viewer .json-key-picker-chip button:hover {
+    background-color: var(--color-surface-hover);
+    color: var(--color-on-surface);
+}
+
+/* The shared modal stylesheet paints every icon inside a dark modal white
+   (`.modal-theme-dark svg { color: white }`, Modal.scss:49). These dialogs style their icon buttons
+   themselves — the close X, the chip's remove, Clear selection all set `--color-on-surface-tertiary`
+   — and measured, every one of them was drawn `rgb(255,255,255)` regardless. Letting the icon take
+   its button's colour is what those rules were written for. The Tag Analyzer icon is unaffected
+   either way: its green is a hard `fill`, not `currentColor`. */
+.neo-data-viewer :is(.json-key-modal, .raw-row-modal) svg {
+    color: inherit;
+}
+
+/* `src/index.css` turns the UA focus ring off globally (`*:focus { outline: 0 }`), and nothing in
+   these dialogs put one back — measured, 73 of 75 controls were byte-identical focused and blurred,
+   so a keyboard reader had no way to tell where they were. One scoped rule covers all three: the
+   picker, the detail view and the row inspector. `:focus-visible` rather than `:focus`, so a mouse
+   press does not paint a ring nobody asked for. */
+.neo-data-viewer :is(.json-key-modal, .raw-row-modal) :is(a[href], button, input, select, textarea):focus-visible,
+.neo-data-viewer :is(.json-key-modal, .raw-row-modal):focus-visible,
+.neo-data-viewer .data-viewer-raw-row:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+.neo-data-viewer .json-key-picker-chip svg {
+    font-size: 12px;
+}
+
+/* A fixed column, which is what lets the types be scanned down rather than hunted for. */
+.json-key-glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    flex: 0 0 auto;
+    color: var(--color-on-surface-tertiary);
+}
+
+.neo-data-viewer .json-key-glyph svg {
+    font-size: 14px;
+}
+
+.neo-data-viewer .modal.json-key-detail-modal {
+    width: 100%;
+    max-width: min(1180px, 94vw);
+    height: 60vh;
+    max-height: 60vh;
+    /* …but never so short that the chart's own floor paints through the bottom edge. */
+    min-height: min(420px, 92vh);
 }

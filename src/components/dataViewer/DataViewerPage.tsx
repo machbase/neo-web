@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useEsc from '@/hooks/useEsc';
 import { useSearchParams } from 'react-router-dom';
-import * as echarts from 'echarts';
 import { TableVirtuoso, type TableComponents } from 'react-virtuoso';
 import { useSetRecoilState } from 'recoil';
 import {
@@ -17,10 +16,8 @@ import NeoTimeRangeModal from '@/components/modal/TimeRangeModal';
 import { TimeZoneModal as NeoTimeZoneModal } from '@/components/modal/TimeZoneModal';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/integration';
-import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
-import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
-import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
-import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
+import { TABLE_COLUMN_TYPE } from '@/utils/constants';
+import TagEChart, { type DataViewerTimeRange } from './TagEChart';
 import { getUserName } from '@/utils';
 import {
     DataViewerAssetHierarchy,
@@ -33,6 +30,11 @@ import {
     queryTagData,
     queryTagDataTotal,
 } from './dataViewerApi';
+import JsonKeyPickerModal, { type JsonKeyPickerView } from './JsonKeyPickerModal';
+import RawRowDetailModal from './RawRowDetailModal';
+import JsonKeyDetailModal from './JsonKeyDetailModal';
+import { jsonKeyDocumentHasKeys } from './jsonKeyTree';
+import { toTagAnalyzerJsonKeyPath } from '@/utils/jsonKeyCatalog';
 import {
     DEFAULT_DATA_VIEWER_ROWS_PER_TAG,
     DEFAULT_TIME_FORMAT,
@@ -40,7 +42,6 @@ import {
     buildAssetTreeRows,
     buildDataViewerChartGroups,
     buildDataViewerChartResultsFromRawRows,
-    buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
     buildDataViewerTagAnalyzerRange,
     buildDataViewerTagAnalyzerTableName,
@@ -54,34 +55,25 @@ import {
     buildDataViewerShiftBaseRangeUpdate,
     buildDataViewerShiftMainRangeUpdate,
     buildDataViewerDistanceSliderClickRange,
-    buildDataViewerDragRangeUpdate,
     buildDataViewerTagSelectionUpdate,
-    buildDataViewerWheelZoomRange,
-    buildDataViewerZoomControlRange,
     buildRawColumnWidths,
     buildRawResultColumns,
     buildRawRowNameColors,
     buildSeriesColorMap,
-    extractDataViewerDataZoomRange,
     formatDataViewerTimeRangeInput,
-    formatDataViewerNavigatorRangeLabels,
     filterDataViewerTags,
     filterVisibleAssetRows,
     formatDataViewerBaseRangeLabel,
     formatDataViewerBaseValue,
-    formatDataViewerChartRangeEdge,
     formatDataViewerDistance,
-    getDataViewerChartRangeMs,
     getDataViewerBaseAxisLabel,
     getDataViewerDefaultRange,
     getDataViewerRawPageSize,
     getTimeFormatLabel,
     getTimeZoneLabel,
     hasDataViewerRawNextPage,
-    hasExplicitDataViewerDataZoomEventRange,
     isDataViewerJsonValueColumn,
     isDataViewerRangeReversed,
-    isSameDataViewerChartRange,
     normalizeSelectedTagNames,
     resolveDataViewerBaseColumn,
     resolveDataViewerBaseColumnType,
@@ -90,7 +82,6 @@ import {
     snapDataViewerDistanceEdge,
     toDataViewerDate,
 } from './dataViewerModel';
-import type { DataViewerBaseKind } from './dataViewerModel';
 import {
     buildDistanceQuickWindowExpression,
     buildDistanceTickValues,
@@ -107,7 +98,6 @@ import {
 import './DataViewerPage.scss';
 
 type ResultRow = Record<string, unknown>;
-type DataViewerTimeRange = { from?: string | number; to?: string | number; start?: string | number; end?: string | number; startTime?: number; endTime?: number };
 type RawPageRequest = {
     page: number;
     from?: string;
@@ -148,6 +138,24 @@ const DISTANCE_RANGE_ORDER_MESSAGE = 'From should be smaller than To.';
 // max) over the same non-numeric column. So those two doors are the ones that close, and this is
 // what they say when asked why. See `isDataViewerJsonValueColumn`.
 const JSON_VALUE_COLUMN_BLOCK_REASON = 'Unavailable: the value column of this table is a JSON type, which cannot be charted or analyzed.';
+
+// A key is a number once it has been projected out of the document, and the average is Tag
+// Analyzer's own default for a numeric series.
+/**
+ * The declared type of a raw column, as the schema read gives it.
+ *
+ * `buildRawResultColumns` names columns from the rows, which carry values and not types, so the
+ * type is looked up against the table's own column list. A column the schema does not mention —
+ * anything the query added — simply has none to show.
+ */
+const rawColumnTypeLabel = (columns: DataViewerColumnRow[] | null, key: string): string | undefined => {
+    const wanted = String(key ?? '').trim().toLowerCase();
+    const row = (columns ?? []).find((column) => String(column?.[0] ?? '').trim().toLowerCase() === wanted);
+    if (!row) return undefined;
+    return TABLE_COLUMN_TYPE.find((entry) => entry.key === Number(row[1]))?.value;
+};
+
+const TAG_ANALYZER_JSON_CALCULATION_MODE = 'avg';
 
 // `rawPageRequest` is a dependency of `fetchRows`, so a fresh `{ page: 1 }` object is a fresh
 // identity and re-fires the row query even when nothing about the request changed. Several places
@@ -812,436 +820,6 @@ function FormatTimezoneModal({
     );
 }
 
-function TagEChart({
-    series,
-    timeFormat,
-    timeZone,
-    timeRange,
-    displayRange,
-    baseKind = 'time',
-    seriesColors,
-    pending = false,
-    onDisplayRangeChange,
-    onShiftMainRange,
-}: {
-    series: Array<{ name: string; data: Array<[number, number | null]> }>;
-    timeFormat: string;
-    timeZone: string;
-    timeRange: DataViewerTimeRange;
-    displayRange?: DataViewerTimeRange;
-    baseKind?: DataViewerBaseKind;
-    seriesColors?: Record<string, string>;
-    /**
-     * The rows this panel would be drawn from have not arrived yet.
-     *
-     * Only the empty state reads it, and only to stay silent: "no data" and "not here yet" look
-     * identical from inside the chart — both are an empty `series` — and announcing the first while
-     * the second is true is the flicker the page's `chartRowsPending` exists to remove. The series
-     * is still drawn while this is true, because during a transition it is the *previous* window's
-     * series and holding it is the point.
-     */
-    pending?: boolean;
-    onDisplayRangeChange?: (range: DataViewerTimeRange, navigatorRange?: DataViewerTimeRange) => void;
-    onShiftMainRange?: (direction: 'backward' | 'forward', currentRange: any, navigatorRange: any) => void;
-}) {
-    const containerRef = useRef<HTMLDivElement | null>(null);
-    const chartRef = useRef<echarts.ECharts | null>(null);
-    // `baseKind` rides in the ref alongside the ranges because the interaction effect below is
-    // installed once (on mount) and every emitted edge has to be written in the axis's own units —
-    // a captured value would keep emitting ISO strings after a distance table loaded.
-    const rangeRef = useRef({ currentRange: {}, navigatorRange: {}, onDisplayRangeChange, baseKind });
-    const dragStateRef = useRef<{
-        mode: 'zoom-in' | 'pan' | 'zoom-out';
-        startTime: number;
-        startX: number;
-        containerLeft: number;
-        currentRange: any;
-        navigatorRange: any;
-        onDisplayRangeChange?: (range: DataViewerTimeRange, navigatorRange?: DataViewerTimeRange) => void;
-        gridBounds: { top: number; height: number };
-        // The plot's own left/right edge in container pixels, read once when the gesture starts. The
-        // guide is drawn against these so it stops at the axis rather than following the cursor off
-        // into the legend, the navigator and the page beyond.
-        plotBounds?: { left: number; right: number };
-    } | null>(null);
-    const [dragPreview, setDragPreview] = useState<{ mode: 'zoom-in' | 'zoom-out'; left: number; width: number; top: number; height: number } | null>(null);
-    const allPoints = useMemo(() => series.flatMap((item) => item.data), [series]);
-    const hasChartData = allPoints.length > 0;
-    const options = useMemo(
-        () => buildDataViewerEChartOption({ series, timeFormat, timeZone, timeRange, displayRange, baseKind, seriesColors }),
-        [baseKind, displayRange, series, seriesColors, timeFormat, timeRange, timeZone],
-    );
-    const currentRange = useMemo(() => getDataViewerChartRangeMs(allPoints, displayRange || timeRange, baseKind), [allPoints, baseKind, displayRange, timeRange]);
-    const navigatorRange = useMemo(() => getDataViewerChartRangeMs(allPoints, timeRange, baseKind), [allPoints, baseKind, timeRange]);
-
-    useEffect(() => {
-        rangeRef.current = { currentRange, navigatorRange, onDisplayRangeChange, baseKind };
-    }, [baseKind, currentRange, navigatorRange, onDisplayRangeChange]);
-
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return undefined;
-
-        const chart = echarts.init(container, null, { renderer: 'canvas' });
-        chartRef.current = chart;
-        const getDataZoomEventState = (params: any = {}) => {
-            const eventState = Array.isArray(params.batch) ? params.batch[0] : params;
-            const dataZoomOptions = (chart.getOption?.()?.dataZoom || []) as any[];
-            const dataZoomIndex = Number(eventState?.dataZoomIndex);
-            const dataZoomId = eventState?.dataZoomId;
-            const optionState = dataZoomId ? dataZoomOptions.find((item) => item?.id === dataZoomId) : Number.isFinite(dataZoomIndex) ? dataZoomOptions[dataZoomIndex] : undefined;
-            return {
-                ...(optionState || dataZoomOptions[1] || dataZoomOptions[0] || {}),
-                ...(eventState || {}),
-            };
-        };
-        // `outside: 'clamp'` is what makes a drag survive leaving the plot. A gesture that starts on
-        // the chart and ends over the tag list is still a gesture the user finished deliberately, and
-        // ECharts extrapolates happily past the axis — so the pixel converts to a real value, it is
-        // simply one the axis does not show. Pinning it to the visible edge is the range the guide
-        // was already drawing, which is the one the user was aiming at.
-        //
-        // `outside: 'reject'` (the default) stays on the *entry* points — mousedown and the wheel.
-        // A press that lands on the legend or the navigator is not a main-plot gesture at all, and
-        // accepting it there would start a zoom from a coordinate nothing on screen points at.
-        const convertMouseEventToTimestamp = (event: MouseEvent | WheelEvent, outside: 'reject' | 'clamp' = 'reject') => {
-            const rect = container.getBoundingClientRect?.();
-            if (!rect) return undefined;
-            const pixel = [event.clientX - rect.left, event.clientY - rect.top];
-            const inside = Boolean(chart.containPixel?.({ gridIndex: 0 }, pixel));
-            if (!inside && outside === 'reject') return undefined;
-            const fromAxis = chart.convertFromPixel?.({ xAxisIndex: 0 }, pixel);
-            const fromGrid = chart.convertFromPixel?.({ gridIndex: 0 }, pixel);
-            const axisTime = Array.isArray(fromAxis) ? Number(fromAxis[0]) : Number(fromAxis);
-            const gridTime = Array.isArray(fromGrid) ? Number(fromGrid[0]) : Number(fromGrid);
-            const { currentRange: activeRange } = rangeRef.current as any;
-            const start = Number(activeRange?.startTime);
-            const end = Number(activeRange?.endTime);
-            const converted = Number.isFinite(axisTime)
-                ? axisTime
-                : Number.isFinite(gridTime)
-                  ? gridTime
-                  : Number.isFinite(start) && Number.isFinite(end)
-                    ? start + (end - start) / 2
-                    : undefined;
-            if (converted === undefined || inside) return converted;
-            // Outside: clamp onto the window the axis is currently showing. `currentRange` is the
-            // same pair `buildDataViewerEChartOption` writes into `xAxis.min/max`, so its two edges
-            // *are* the plot's two edges, said in the axis's units rather than in pixels.
-            if (!Number.isFinite(start) || !Number.isFinite(end)) return converted;
-            return Math.min(Math.max(converted, Math.min(start, end)), Math.max(start, end));
-        };
-        // The plot's horizontal extent in container pixels. `convertToPixel` on the main x axis is
-        // the only honest source for it: the option says `left: 35, right: 35` but `containLabel`
-        // then insets the left edge by however wide the y-axis labels came out, so anything derived
-        // from the option alone would put the boundary in the wrong place on exactly the tables
-        // whose values are widest.
-        const getPlotXBounds = () => {
-            const { currentRange: activeRange } = rangeRef.current as any;
-            // `convertToPixel`'s published signature takes a string or an array; a bare number on a
-            // single-axis finder is what ECharts actually accepts (and what returns the axis's own
-            // pixel), so the cast is the type definition being narrower than the runtime.
-            const toPixel = (value: unknown) => Number((chart.convertToPixel as any)?.({ xAxisIndex: 0 }, Number(value)));
-            const left = toPixel(activeRange?.startTime);
-            const right = toPixel(activeRange?.endTime);
-            if (!Number.isFinite(left) || !Number.isFinite(right)) return undefined;
-            return { left: Math.min(left, right), right: Math.max(left, right) };
-        };
-        // The axis hands back coordinates; the page stores range edges. On a distance axis those are
-        // numbers, so the conversion goes through one helper rather than four inline `new Date(...)`
-        // calls that would each have to be remembered.
-        const toRangeEdge = (value: unknown) => formatDataViewerChartRangeEdge(value, (rangeRef.current as any).baseKind);
-        const handleMouseWheelZoom = (event: WheelEvent) => {
-            if (event.deltaY === 0) return;
-            const { currentRange: activeRange, navigatorRange: activeNavigatorRange, onDisplayRangeChange: activeRangeChange } = rangeRef.current as any;
-            const anchorTime = convertMouseEventToTimestamp(event);
-            const nextRange = buildDataViewerWheelZoomRange(event.deltaY, anchorTime, activeRange, activeNavigatorRange);
-            if (!nextRange || isSameDataViewerChartRange(nextRange, activeRange)) return;
-            event.preventDefault();
-            event.stopPropagation();
-            activeRangeChange?.(
-                { from: toRangeEdge(nextRange.startTime), to: toRangeEdge(nextRange.endTime) },
-                { from: toRangeEdge(activeNavigatorRange.startTime), to: toRangeEdge(activeNavigatorRange.endTime) },
-            );
-        };
-        const getDragMode = (button: number) => {
-            if (button === 0) return 'zoom-in';
-            if (button === 1) return 'pan';
-            if (button === 2) return 'zoom-out';
-            return undefined;
-        };
-        const getMainGridBounds = () => {
-            const grid = ((chart.getOption?.()?.grid as any[]) || [])[0] || {};
-            const top = Number(grid.top);
-            const height = Number(grid.height);
-            return {
-                top: Number.isFinite(top) ? top : 40,
-                height: Number.isFinite(height) ? height : 178,
-            };
-        };
-        const emitDragRange = (dragState: NonNullable<typeof dragStateRef.current>, endTime: number) => {
-            const nextRange = buildDataViewerDragRangeUpdate({
-                mode: dragState.mode,
-                dragStartTime: dragState.startTime,
-                dragEndTime: endTime,
-                currentRange: dragState.currentRange,
-                navigatorRange: dragState.navigatorRange,
-            });
-            if (!nextRange || isSameDataViewerChartRange(nextRange, dragState.currentRange)) return;
-
-            dragState.onDisplayRangeChange?.(
-                { from: toRangeEdge(nextRange.startTime), to: toRangeEdge(nextRange.endTime) },
-                { from: toRangeEdge(dragState.navigatorRange.startTime), to: toRangeEdge(dragState.navigatorRange.endTime) },
-            );
-        };
-        const applyDragRange = (event: MouseEvent) => {
-            const dragState = dragStateRef.current;
-            dragStateRef.current = null;
-            setDragPreview(null);
-            if (!dragState) return;
-
-            // Released outside the plot still counts, clamped to the edge it left through. Rejecting
-            // it — which is what happens when the conversion refuses a pixel it does not contain —
-            // threw the whole gesture away, so a drag that overshot by two pixels selected nothing
-            // and the user had to start again with no explanation.
-            const endTime = convertMouseEventToTimestamp(event, 'clamp');
-            if (!Number.isFinite(endTime) || Math.abs(event.clientX - dragState.startX) < 8) return;
-
-            emitDragRange(dragState, Number(endTime));
-        };
-        // Container-relative x, held inside the plot. The guide is the promise the release keeps, so
-        // the two clamp against the same boundary: what the rectangle covers when the pointer is out
-        // in the tag list is exactly the range that lands when the button comes up there.
-        const toPlotX = (clientX: number, dragState: NonNullable<typeof dragStateRef.current>) => {
-            const x = clientX - dragState.containerLeft;
-            const bounds = dragState.plotBounds;
-            return bounds ? Math.min(Math.max(x, bounds.left), bounds.right) : x;
-        };
-        const handleDragMove = (event: MouseEvent) => {
-            const dragState = dragStateRef.current;
-            if (!dragState) return;
-            event.preventDefault();
-            event.stopPropagation();
-
-            const endTime = convertMouseEventToTimestamp(event, 'clamp');
-            if (dragState.mode === 'pan') {
-                if (Number.isFinite(endTime) && Math.abs(event.clientX - dragState.startX) >= 1) {
-                    emitDragRange(dragState, Number(endTime));
-                }
-                return;
-            }
-            const startX = toPlotX(dragState.startX, dragState);
-            const currentX = toPlotX(event.clientX, dragState);
-            setDragPreview({ mode: dragState.mode, left: Math.min(startX, currentX), width: Math.abs(currentX - startX), ...dragState.gridBounds });
-        };
-        const handleDragEnd = (event: MouseEvent) => {
-            if (!dragStateRef.current) return;
-            event.preventDefault();
-            event.stopPropagation();
-            window.removeEventListener('mousemove', handleDragMove, true);
-            window.removeEventListener('mouseup', handleDragEnd, true);
-            applyDragRange(event);
-        };
-        const handleMouseDownDrag = (event: MouseEvent) => {
-            const mode = getDragMode(event.button);
-            if (!mode) return;
-            const startTime = convertMouseEventToTimestamp(event);
-            if (!Number.isFinite(startTime)) return;
-            const numericStartTime = Number(startTime);
-
-            const rect = container.getBoundingClientRect?.();
-            if (!rect) return;
-            event.preventDefault();
-            event.stopPropagation();
-
-            const { currentRange: activeRange, navigatorRange: activeNavigatorRange, onDisplayRangeChange: activeRangeChange } = rangeRef.current as any;
-            dragStateRef.current = {
-                mode,
-                startTime: numericStartTime,
-                startX: event.clientX,
-                containerLeft: rect.left,
-                currentRange: activeRange,
-                navigatorRange: activeNavigatorRange,
-                onDisplayRangeChange: activeRangeChange,
-                gridBounds: getMainGridBounds(),
-                plotBounds: getPlotXBounds(),
-            };
-            setDragPreview(mode === 'pan' ? null : { mode, left: toPlotX(event.clientX, dragStateRef.current), width: 0, ...dragStateRef.current.gridBounds });
-            window.addEventListener('mousemove', handleDragMove, true);
-            window.addEventListener('mouseup', handleDragEnd, true);
-        };
-        const handleContextMenu = (event: MouseEvent) => {
-            const startTime = convertMouseEventToTimestamp(event);
-            if (!Number.isFinite(startTime)) return;
-            event.preventDefault();
-        };
-        const handleDataZoom = (params: any) => {
-            const { currentRange: activeRange, navigatorRange: activeNavigatorRange, onDisplayRangeChange: activeRangeChange } = rangeRef.current as any;
-            const dataZoomState = getDataZoomEventState(params);
-            const nextRange = hasExplicitDataViewerDataZoomEventRange(params)
-                ? extractDataViewerDataZoomRange(params, activeRange, activeNavigatorRange)
-                : extractDataViewerDataZoomRange(dataZoomState, activeRange, activeNavigatorRange);
-            if (!nextRange || isSameDataViewerChartRange(nextRange, activeRange)) return;
-            activeRangeChange?.(
-                { from: toRangeEdge(nextRange.startTime), to: toRangeEdge(nextRange.endTime) },
-                { from: toRangeEdge(activeNavigatorRange.startTime), to: toRangeEdge(activeNavigatorRange.endTime) },
-            );
-        };
-        chart.on('datazoom', handleDataZoom);
-        container.addEventListener('wheel', handleMouseWheelZoom, { passive: false, capture: true });
-        container.addEventListener('mousedown', handleMouseDownDrag, { capture: true });
-        container.addEventListener('contextmenu', handleContextMenu, { capture: true });
-
-        const resize = () => chart.resize();
-        let observer: ResizeObserver | undefined;
-        if (typeof ResizeObserver !== 'undefined') {
-            observer = new ResizeObserver(resize);
-            observer.observe(container);
-        } else {
-            window.addEventListener('resize', resize);
-        }
-        resize();
-
-        return () => {
-            chart.off('datazoom', handleDataZoom);
-            container.removeEventListener('wheel', handleMouseWheelZoom, true);
-            container.removeEventListener('mousedown', handleMouseDownDrag, true);
-            container.removeEventListener('contextmenu', handleContextMenu, true);
-            window.removeEventListener('mousemove', handleDragMove, true);
-            window.removeEventListener('mouseup', handleDragEnd, true);
-            if (observer) observer.disconnect();
-            else window.removeEventListener('resize', resize);
-            chart.dispose();
-            chartRef.current = null;
-            dragStateRef.current = null;
-        };
-        // Mount-once, deliberately. This used to depend on `hasChartData`, from a version of the
-        // component that *early-returned* `<div>No chart data</div>` — the container really was
-        // unmounted then, so the instance had to be rebuilt when it came back. The empty state is an
-        // overlay now (`data-viewer-chart-empty-overlay`) and the container never leaves the tree, so
-        // the dependency's only remaining effect was to `dispose()` and `echarts.init()` again every
-        // time the series went empty and refilled. Changing tags does exactly that — the rows blank
-        // while the window re-resolves — so the canvas was torn down and rebuilt twice per tag
-        // change. That is the blink: the axis never moves, the *canvas* disappears. Nothing inside
-        // reads props; the handlers all go through `rangeRef`, which is why this can be `[]` at all.
-    }, []);
-
-    useEffect(() => {
-        if (!chartRef.current) return;
-        chartRef.current.setOption(options as any, true);
-        if (Number.isFinite(currentRange.startTime) && Number.isFinite(currentRange.endTime)) {
-            chartRef.current.dispatchAction?.({ type: 'dataZoom', dataZoomId: 'panel-inside-data-zoom', startValue: currentRange.startTime, endValue: currentRange.endTime });
-            chartRef.current.dispatchAction?.({ type: 'dataZoom', dataZoomId: 'panel-slider-data-zoom', startValue: currentRange.startTime, endValue: currentRange.endTime });
-        }
-        chartRef.current.resize();
-    }, [currentRange, options]);
-
-    const applyZoomControl = useCallback(
-        (action: string, zoom?: number) => {
-            const nextRange = buildDataViewerZoomControlRange(action, currentRange, navigatorRange, zoom);
-            if (!nextRange || isSameDataViewerChartRange(nextRange, currentRange)) return;
-            const navigatorStart = Number(navigatorRange.startTime);
-            const navigatorEnd = Number(navigatorRange.endTime);
-            onDisplayRangeChange?.(
-                { from: formatDataViewerChartRangeEdge(nextRange.startTime, baseKind), to: formatDataViewerChartRangeEdge(nextRange.endTime, baseKind) },
-                Number.isFinite(navigatorStart) && Number.isFinite(navigatorEnd)
-                    ? { from: formatDataViewerChartRangeEdge(navigatorStart, baseKind), to: formatDataViewerChartRangeEdge(navigatorEnd, baseKind) }
-                    : undefined,
-            );
-        },
-        [baseKind, currentRange, navigatorRange, onDisplayRangeChange],
-    );
-
-    const zoomControlsDisabled =
-        !Number.isFinite(currentRange.startTime) || !Number.isFinite(currentRange.endTime) || !Number.isFinite(navigatorRange.startTime) || !Number.isFinite(navigatorRange.endTime);
-    const navigatorLabels = useMemo(
-        () => formatDataViewerNavigatorRangeLabels(navigatorRange, timeFormat, timeZone, baseKind),
-        [baseKind, navigatorRange, timeFormat, timeZone],
-    );
-
-    return (
-        <div className="data-viewer-chart-shell">
-            <button
-                type="button"
-                className="data-viewer-chart-range-shift data-viewer-chart-range-shift-left"
-                title="Move range backward"
-                aria-label="Move range backward"
-                disabled={zoomControlsDisabled}
-                onClick={() => onShiftMainRange?.('backward', currentRange, navigatorRange)}
-            >
-                <VscChevronLeft size={20} />
-            </button>
-            <div className="data-viewer-chart-footer-form" aria-label="Chart zoom controls">
-                <div className="data-viewer-chart-toolbar-controls">
-                    <div className="data-viewer-chart-toolbar-group">
-                        {[
-                            ['zoom-in', ZoomInFour, 'Zoom in', 0.4],
-                            ['zoom-in', ZoomInTwo, 'Zoom in', 0.2],
-                            ['focus', undefined, 'Focus', undefined],
-                            ['zoom-out', ZoomOutTwo, 'Zoom out', 0.2],
-                            ['zoom-out', ZoomOutFour, 'Zoom out', 0.4],
-                        ].map(([action, image, label, zoom], index) => (
-                            <button
-                                key={`${action}-${index}`}
-                                type="button"
-                                className="data-viewer-chart-toolbar-button"
-                                title={String(label)}
-                                aria-label={String(label)}
-                                disabled={zoomControlsDisabled}
-                                onClick={() => applyZoomControl(String(action), zoom as number | undefined)}
-                            >
-                                {image ? <img src={image as string} alt="" className="data-viewer-chart-toolbar-image" /> : <MaterialIcon name="center_focus_strong" className="data-viewer-chart-toolbar-icon" />}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            <div
-                ref={containerRef}
-                className={`data-viewer-chart${dragStateRef.current?.mode === 'pan' ? ' is-panning' : ''}`}
-                data-display-from={Number.isFinite(currentRange.startTime) ? String(Math.floor(Number(currentRange.startTime))) : ''}
-                data-display-to={Number.isFinite(currentRange.endTime) ? String(Math.ceil(Number(currentRange.endTime))) : ''}
-                data-navigator-from={Number.isFinite(navigatorRange.startTime) ? String(Math.floor(Number(navigatorRange.startTime))) : ''}
-                data-navigator-to={Number.isFinite(navigatorRange.endTime) ? String(Math.ceil(Number(navigatorRange.endTime))) : ''}
-            />
-            {dragPreview ? (
-                <div
-                    className={`data-viewer-chart-drag-preview data-viewer-chart-drag-preview-${dragPreview.mode}`}
-                    style={{
-                        left: `${48 + Math.max(0, dragPreview.left)}px`,
-                        top: `${dragPreview.top}px`,
-                        width: `${dragPreview.width}px`,
-                        height: `${dragPreview.height}px`,
-                    }}
-                />
-            ) : null}
-            {/* `pending` and not just `hasChartData`: an empty series during a transition is a panel
-                waiting for its rows, not a window with nothing in it, and saying "No chart data"
-                over it is the blink the user sees. See `chartRowsPending` on the page. */}
-            {!hasChartData && !pending ? (
-                <div className="data-viewer-chart-empty-overlay" aria-live="polite">
-                    No chart data
-                </div>
-            ) : null}
-            {navigatorLabels.start || navigatorLabels.end ? (
-                <div className="data-viewer-chart-navigator-labels" aria-label="Mini chart time range">
-                    <span title={navigatorLabels.start}>{navigatorLabels.start}</span>
-                    <span title={navigatorLabels.end}>{navigatorLabels.end}</span>
-                </div>
-            ) : null}
-            <button
-                type="button"
-                className="data-viewer-chart-range-shift data-viewer-chart-range-shift-right"
-                title="Move range forward"
-                aria-label="Move range forward"
-                disabled={zoomControlsDisabled}
-                onClick={() => onShiftMainRange?.('forward', currentRange, navigatorRange)}
-            >
-                <VscChevronRight size={20} />
-            </button>
-        </div>
-    );
-}
 
 interface DataViewerPageProps {
     pCode?: {
@@ -1301,6 +879,18 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const [tagFilter, setTagFilter] = useState('');
     const [activeTagTab, setActiveTagTab] = useState<'tags' | 'asset'>('tags');
     const [collapsedAssetFolders, setCollapsedAssetFolders] = useState<Set<string>>(() => new Set());
+    // A JSON row is the entry point to its own keys: the document it holds already describes them,
+    // so opening one is all the discovery this page needs. `picker` holds the row that was clicked,
+    // `detail` the keys chosen from it.
+    const [jsonKeyPicker, setJsonKeyPicker] = useState<{ tagName: string; baseLabel: string; document: unknown; selected: string[] } | null>(null);
+    // Index into the page's rows rather than a copy of one: the detail view moves between rows with
+    // the arrow keys, and holding the row itself would freeze it on whichever one was opened.
+    const [rowDetailIndex, setRowDetailIndex] = useState<number | null>(null);
+    const [jsonKeyDetail, setJsonKeyDetail] = useState<{ tagName: string; paths: string[] } | null>(null);
+    // The picker's filter and folds, held across the trip into the detail view and back. A ref, not
+    // state: nothing on this page renders from it, and putting it in state would re-render the whole
+    // Data Viewer on every keystroke typed into a modal filter box. Cleared with the picker itself.
+    const jsonKeyPickerViewRef = useRef<JsonKeyPickerView | undefined>(undefined);
     const [selectedTagNames, setSelectedTagNames] = useState<string[]>([]);
     const [mode, setMode] = useState<'raw' | 'chart'>('raw');
     const [page, setPage] = useState(1);
@@ -1920,7 +1510,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // `frozenWindowKey` is the real trigger — `range` and `selectedTagNames` are listed because
         // the effect reads them, but they are state objects whose identity only changes alongside
         // the key, so they add no extra runs.
-    }, [baseKind, canQuery, frozenWindowKey, range, resolveRangeForTagNames, selectedTagNames]);
+    }, [baseKind, canQuery, frozenWindowKey, selectedTagNames, range, resolveRangeForTagNames]);
 
     // The distance editor's slider bounds, read when the editor opens rather than with the table:
     // it is the only thing that wants them, and a dialog nobody opens should not have cost a query.
@@ -1952,7 +1542,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         return () => {
             alive = false;
         };
-    }, [baseColumn, baseKind, canQuery, dbName, rangeEditor, selectedTagNames, tableName, tagColumn, userName]);
+    }, [baseColumn, baseKind, canQuery, dbName, selectedTagNames, rangeEditor, tableName, tagColumn, userName]);
 
     const fetchRows = useCallback(async () => {
         const requestId = rowsRequestRef.current + 1;
@@ -2023,7 +1613,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         } finally {
             if (rowsRequestRef.current === requestId) setLoading(false);
         }
-    }, [activeWindow, backwardScan, baseKind, canQuery, dbName, page, rawPageRequest, rawPageSize, selectedTagNames, tableName, tagColumn, timeColumn, userName, valueColumn]);
+    }, [activeWindow, backwardScan, baseKind, canQuery, dbName, page, selectedTagNames, rawPageRequest, rawPageSize, tableName, tagColumn, timeColumn, userName, valueColumn]);
 
     useEffect(() => {
         fetchRows();
@@ -2187,6 +1777,8 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         setEndLoading(true);
         setError('');
         try {
+            // The total counts cycles, not projected rows — the key fan-out happens after the read,
+            // so multiplying it here would overstate the page count by the number of selected keys.
             const result = await queryTagDataTotal({
                 dbName,
                 userName,
@@ -2217,7 +1809,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         } finally {
             if (endPageRequestRef.current === requestId) setEndLoading(false);
         }
-    }, [activeWindow, baseKind, canQuery, dbName, endLoading, page, rawPageBounds, rawPageSize, selectedTagNames, tableName, tagColumn, timeColumn, userName]);
+    }, [activeWindow, baseKind, canQuery, dbName, endLoading, page, selectedTagNames, rawPageBounds, rawPageSize, tableName, tagColumn, timeColumn, userName]);
     // `baseKind` only renames the base column's header — the row key stays `time`, which is what the
     // cells, the widths and the page cursors all read. Header and widths share this one array, so
     // they cannot disagree about how wide `Distance` is.
@@ -2281,6 +1873,37 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // `<table>` (and with it the scroll position) on each keystroke elsewhere in the page.
     const rawComponents = useMemo<TableComponents<ResultRow>>(
         () => ({
+            // The whole row opens the detail. Confining it to the value cell made the target a
+            // sliver of the row, and the cell is also the one part a user may want to select text in.
+            TableRow: (props) => {
+                // `item` is the row object Virtuoso passes alongside the DOM props; spreading it onto
+                // a <tr> would emit it as an attribute. The index it also passes is what the detail
+                // view needs, since that view moves between rows on its own.
+                const { item, ...rest } = props as typeof props & { item?: unknown };
+                void item;
+                const index = rest['data-index'] as number;
+                // The row is the only door into the key flow, so it has to be a control and not just
+                // a click target: a bare `<tr onClick>` is invisible to the keyboard, and a 120-press
+                // Tab sweep in both directions never once landed inside this grid. `role="button"`
+                // over the row rather than a nested one keeps the whole row as the target, which is
+                // what the pointer already gets.
+                return (
+                    <tr
+                        {...rest}
+                        className="data-viewer-raw-row"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => rawRowClickRef.current(index)}
+                        onKeyDown={(event) => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                            // Space scrolls the grid otherwise, which moves the row out from under
+                            // the press that was meant to open it.
+                            event.preventDefault();
+                            rawRowClickRef.current(index);
+                        }}
+                    />
+                );
+            },
             Table: ({ style, children, ...props }) => (
                 // `children` has to be destructured and re-rendered after the colgroup: TableProps
                 // carries thead/tbody as a `children` prop, so writing JSX children on a spread
@@ -2428,6 +2051,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             // removing it fails nothing, which is the accurate description of a redundant guard,
             // not of a vacuous test.
             if (valueColumnIsJson) return;
+
             const tazRange = chartViewRanges[group.id] || chartData?.range || group.range;
             const normalizedRange = buildDataViewerTagAnalyzerRange(tazRange, baseKind);
             const tagAnalyzerTable = buildDataViewerTagAnalyzerTableName({
@@ -2437,6 +2061,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 databaseId,
                 currentUserName: getUserName(),
             });
+
             const payload = {
                 title: group.title || 'Data Viewer',
                 ...(normalizedRange ? { range: normalizedRange } : {}),
@@ -2462,6 +2087,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     },
                 })),
             };
+
             const result = createTagAnalyzerBoardFromPayload(payload);
             if (result.status !== 'ok') {
                 setError(result.reason || 'Cannot open Tag Analyzer.');
@@ -2471,6 +2097,114 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setSelectedTab(result.board.id);
         },
         [baseColumn, baseColumnType, baseKind, chartViewRanges, databaseId, dbName, setBoardList, setSelectedTab, tableName, tagColumn, userName, valueColumn, valueColumnIsJson],
+    );
+    /**
+     * What a row click opens.
+     *
+     * On a JSON value column the row *is* its keys — the picker lists every one of them beside the
+     * value it holds, which is the row read more closely than an inspector could put it, so the
+     * click lands there directly rather than on a modal whose only useful control is a button to
+     * this one. Everywhere else there are no keys to pick and the inspector is the whole answer —
+     * including on a JSON column whose row holds a bare value, which is a document with nothing in
+     * it to pick and would otherwise open an empty tree.
+     */
+    const handleRawRowClick = useCallback(
+        (index: number) => {
+            const row = rows[index];
+            if (!row) return;
+            if (!valueColumnIsJson || !jsonKeyDocumentHasKeys(row.value)) {
+                setRowDetailIndex(index);
+                return;
+            }
+            // A different row is a different document, so the filter and folds kept for the trip
+            // into the detail view and back do not carry over to it.
+            jsonKeyPickerViewRef.current = undefined;
+            setJsonKeyPicker({
+                tagName: String(row.name ?? ''),
+                baseLabel: formatBaseValue(row.time),
+                document: row.value,
+                selected: [],
+            });
+        },
+        [formatBaseValue, rows, valueColumnIsJson],
+    );
+
+    /**
+     * The row click, held where the memo below can reach it without depending on it.
+     *
+     * `rawComponents` has to keep one identity for the life of the grid — Virtuoso remounts the
+     * whole table when it changes — but the handler moves with `rows`, so listing it as a dependency
+     * would rebuild the memo on every read. Reading it through a ref keeps both: a stable table and
+     * a handler that is never a page behind.
+     */
+    const rawRowClickRef = useRef(handleRawRowClick);
+    useEffect(() => {
+        rawRowClickRef.current = handleRawRowClick;
+    }, [handleRawRowClick]);
+
+    // The table name Tag Analyzer receives, resolved once so the confirm dialog states exactly the
+    // string the board will be built with rather than a second rendering of it.
+    const tagAnalyzerTableName = useMemo(
+        () => buildDataViewerTagAnalyzerTableName({ dbName, userName, tableName, databaseId, currentUserName: getUserName() }),
+        [databaseId, dbName, tableName, userName],
+    );
+
+    /**
+     * Open a board on one tag's JSON keys.
+     *
+     * Deliberately not `handleOpenTagAnalyzer`: that one refuses a JSON value column outright,
+     * because averaging a document yields nothing. Here a key has been picked, so what is handed
+     * over is a number — the `jsonKey` field is what turns the board's projection from the document
+     * into that key, and it is the whole reason this path exists.
+     */
+    /** Returns false when nothing opened, so the caller can leave the flow standing. */
+    const handleOpenTagAnalyzerJsonKeys = useCallback(
+        (tagName: string, paths: string[], window: { from?: string | number; to?: string | number }): boolean => {
+            const normalizedRange = buildDataViewerTagAnalyzerRange({ from: window.from, to: window.to }, baseKind);
+
+            // Querying a long key is fine; it is only Tag Analyzer's own field that cannot hold one,
+            // so the check belongs here. An empty path is the column itself and passes through as an
+            // empty `jsonKey`, which is exactly how Tag Analyzer says "no key".
+            const converted = paths.map((path) => (path ? toTagAnalyzerJsonKeyPath(path) : ({ ok: true, path: '' } as const)));
+            const jsonKeys = converted.flatMap((entry) => (entry.ok ? [entry.path] : []));
+            if (jsonKeys.length === 0) {
+                const refused = converted.flatMap((entry) => (entry.ok ? [] : [entry.reason]));
+                setError(refused[0] || 'Cannot open Tag Analyzer.');
+                return false;
+            }
+
+            const payload = {
+                title: tagName || 'Data Viewer',
+                ...(normalizedRange ? { range: normalizedRange } : {}),
+                tags: jsonKeys.map((jsonKey) => ({
+                    tagName,
+                    table: tagAnalyzerTableName,
+                    calculationMode: TAG_ANALYZER_JSON_CALCULATION_MODE,
+                    alias: '',
+                    weight: 1,
+                    // Same contract as the non-JSON handoff above — see its note on `colName` —
+                    // plus the key, which is the one field that differs.
+                    colName: {
+                        name: tagColumn,
+                        time: baseColumn,
+                        value: valueColumn,
+                        timeType: baseColumnType,
+                        timeBaseTime: true,
+                        jsonKey,
+                    },
+                })),
+            };
+
+            const result = createTagAnalyzerBoardFromPayload(payload);
+            if (result.status !== 'ok') {
+                setError(result.reason || 'Cannot open Tag Analyzer.');
+                return false;
+            }
+            setBoardList((current) => [...current, result.board]);
+            setSelectedTab(result.board.id);
+            return true;
+        },
+        [baseColumn, baseColumnType, baseKind, setBoardList, setSelectedTab, tagAnalyzerTableName, tagColumn, valueColumn],
     );
     const handleSetGlobalTime = useCallback(
         async (groupId: string) => {
@@ -2715,13 +2449,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 <div className="page-body-inner">
                     <div className="data-viewer-layout">
                         <aside className="form-card data-viewer-tags">
-                            {!assetHierarchy ? (
+                            {!assetHierarchy || valueColumnIsJson ? (
                                 <div className="form-card-header data-viewer-tags-header">
                                     <span className="section-dot" />
                                     Tags
                                 </div>
                             ) : null}
-                            {assetHierarchy ? (
+                            {assetHierarchy && !valueColumnIsJson ? (
                                 <div className="data-viewer-tag-tabs" role="tablist" aria-label="Tag views">
                                     <button
                                         type="button"
@@ -2749,8 +2483,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             <div className="data-viewer-tag-list">
                                 {tagsLoading ? <div className="empty-state">Loading tags...</div> : null}
                                 {!tagsLoading && activeTagTab === 'tags' && visibleTags.length === 0 ? <div className="empty-state">No tags</div> : null}
-                                {!tagsLoading && activeTagTab === 'asset' && assetRows.length === 0 ? <div className="empty-state">No asset tags</div> : null}
+                                {!tagsLoading && !valueColumnIsJson && activeTagTab === 'asset' && assetRows.length === 0 ? <div className="empty-state">No asset tags</div> : null}
                                 {activeTagTab === 'tags'
+
                                     ? visibleTags.map((tag) => {
                                           const checked = selectedTagNames.includes(tag.name);
                                           return (
@@ -3177,6 +2912,96 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     </div>
                 </div>
             </main>
+
+            {/* The row inspector. It moves between rows itself, so the page hands it an index and
+                the row list rather than a snapshot of one row. */}
+            {rowDetailIndex !== null && rows[rowDetailIndex] ? (
+                <RawRowDetailModal
+                    subtitle={tableName}
+                    position={`row ${rowDetailIndex + 1} of ${rows.length}`}
+                    title={String(rows[rowDetailIndex].name ?? '')}
+                    fields={rawColumns.map((column) => ({
+                        key: column.key,
+                        label: column.label,
+                        // The type the table declares for this column, written under its name — the
+                        // one thing about a value the value itself does not say.
+                        // The query aliases every column (`... as time, ... as name, ... as value`),
+                        // so the alias has to be mapped back to the name the schema declares before
+                        // the type can be looked up — on a table with its own column names, the
+                        // aliases match nothing.
+                        typeLabel: rawColumnTypeLabel(
+                            baseColumns,
+                            column.key === 'time' ? baseColumn : column.key === 'name' ? tagColumn : column.key === 'value' ? valueColumn : column.key,
+                        ),
+                        value: column.key === 'time' ? formatBaseValue(rows[rowDetailIndex]?.time) : rows[rowDetailIndex]?.[column.key],
+                    }))}
+                    hasPrevious={rowDetailIndex > 0}
+                    hasNext={rowDetailIndex < rows.length - 1}
+                    onPrevious={() => setRowDetailIndex((current) => Math.max(0, (current ?? 0) - 1))}
+                    onNext={() => setRowDetailIndex((current) => Math.min(rows.length - 1, (current ?? 0) + 1))}
+                    onClose={() => setRowDetailIndex(null)}
+                />
+            ) : null}
+
+            {/* The picker is built from the row that was opened, and the detail from what was picked
+                there. Nothing about a JSON key outlives these modals — but the picker's selection
+                outlives the picker, so "Back to keys" returns to the tree as it was left rather
+                than to an empty one. The picker stays in state while the detail is up, and is
+                simply not rendered; closing the detail is what ends both. */}
+            {jsonKeyPicker && !jsonKeyDetail ? (
+                <JsonKeyPickerModal
+                    tagName={jsonKeyPicker.tagName}
+                    baseLabel={jsonKeyPicker.baseLabel}
+                    document={jsonKeyPicker.document}
+                    valueColumn={valueColumn}
+                    initialSelected={jsonKeyPicker.selected}
+                    initialView={jsonKeyPickerViewRef.current}
+                    onViewChange={(view) => {
+                        jsonKeyPickerViewRef.current = view;
+                    }}
+                    onClose={() => setJsonKeyPicker(null)}
+                    onConfirm={(paths) => {
+                        setJsonKeyPicker((current) => (current ? { ...current, selected: paths } : current));
+                        setJsonKeyDetail({ tagName: jsonKeyPicker.tagName, paths });
+                    }}
+                />
+            ) : null}
+
+            {jsonKeyDetail ? (
+                <JsonKeyDetailModal
+                    dbName={dbName}
+                    userName={userName}
+                    tableName={tableName}
+                    tagName={jsonKeyDetail.tagName}
+                    paths={jsonKeyDetail.paths}
+                    from={activeWindow?.from}
+                    to={activeWindow?.to}
+                    tagColumn={tagColumn}
+                    timeColumn={timeColumn}
+                    valueColumn={valueColumn}
+                    baseKind={baseKind}
+                    baseLabel={baseColumn}
+                    formatBase={formatBaseValue}
+                    timeFormat={timeFormat}
+                    timeZone={timeZone}
+                    onBack={jsonKeyPicker ? () => setJsonKeyDetail(null) : undefined}
+                    // Straight to the board, and this page's dialogs close behind it — the tab has
+                    // already changed, so leaving them up would put a modal over a board that has
+                    // nothing to do with them.
+                    onOpenTagAnalyzer={(paths, window) => {
+                        // Only on the way out. A refused handoff used to tear both modals down
+                        // anyway, so a rejected payload cost the whole selection with no way back to
+                        // it — the error text landed on a page the user had been pulled away from.
+                        if (!handleOpenTagAnalyzerJsonKeys(jsonKeyDetail.tagName, paths, window)) return;
+                        setJsonKeyDetail(null);
+                        setJsonKeyPicker(null);
+                    }}
+                    onClose={() => {
+                        setJsonKeyDetail(null);
+                        setJsonKeyPicker(null);
+                    }}
+                />
+            ) : null}
 
             {/* ─── distance-base seam (mount point) ─────────────────────────────────────────────
                 The ONE place the page picks a range editor. Both editors take the same three core

@@ -32,14 +32,19 @@ jest.mock('react-virtuoso', () => {
 
 // The page's data access is stubbed at the module boundary so this test stays independent of how
 // dataViewerApi builds its SQL.
+// The name builders are pure string helpers, not requests, so the real ones are kept: stubbing them
+// would only give the page names it could never have produced.
 jest.mock('./dataViewerApi', () => ({
+    ...jest.requireActual<typeof import('./dataViewerApi')>('./dataViewerApi'),
     listTableTags: jest.fn(),
     listTableColumns: jest.fn(),
     queryTagData: jest.fn(),
     queryTagDataTotal: jest.fn(),
     queryTagBoundaryTime: jest.fn(),
     queryTagBaseColumnBounds: jest.fn(),
+    queryTagJsonKeyData: jest.fn(),
 }));
+
 
 // TimeRangeModal is shared with the dashboards, which legitimately allow an open-ended side, so it
 // cannot be the place the Data Viewer's both-edges-required rule lives. Standing in for it here
@@ -106,6 +111,7 @@ const dataViewerApi = jest.requireMock('./dataViewerApi') as {
     queryTagDataTotal: jest.Mock;
     queryTagBoundaryTime: jest.Mock;
     queryTagBaseColumnBounds: jest.Mock;
+    queryTagJsonKeyData: jest.Mock;
 };
 
 const tagAnalyzerBridge = jest.requireMock('@/components/tagAnalyzer/integration') as {
@@ -201,6 +207,7 @@ beforeEach(() => {
     // The distance editor's slider extent. `null` — "extent unknown" — is the default so that every
     // test that is not about the slider sees the same editor it saw before it existed.
     dataViewerApi.queryTagBaseColumnBounds.mockResolvedValue(null);
+    dataViewerApi.queryTagJsonKeyData.mockResolvedValue({ rows: [] });
 });
 
 describe('DataViewerPage raw grid', () => {
@@ -3039,5 +3046,118 @@ describe('DataViewerPage split tag chip legibility', () => {
         expect(chip.querySelector('.truncate')?.textContent).toBe(TAG_NAME);
         // The × stays outside it, so it keeps the accent and the chip still reads as removable.
         expect(chip.querySelector('.material-symbols-outlined')?.textContent).toBe('close');
+    });
+});
+
+/**
+ * Row → keys → detail → Tag Analyzer, on the page rather than on the parts.
+ *
+ * Each modal is covered on its own in `jsonKeyModals.test.tsx`; what only the page can answer is
+ * whether they hand off to each other — that the picker is built from the row that was clicked,
+ * that the detail is queried for the keys ticked in it, and that the board is opened on the same
+ * keys in the form Tag Analyzer reads.
+ */
+describe('DataViewerPage JSON key chain', () => {
+    const JSON_ROWS = Array.from({ length: 5 }, (_, index) => ({
+        time: `2026-06-01T10:00:0${index}.000Z`,
+        name: TAG_NAME,
+        value: JSON.stringify({ status: 'running', sensor: { temperature: { value: 20 + index } } }),
+    }));
+
+    // The row click is the whole entry point: on a JSON value column it lands on the picker, not on
+    // an inspector whose only useful control would be a button to this same modal.
+    const openKeyPicker = async (container: HTMLElement) => {
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        fireEvent.click(getDataRows(container)[0]);
+        return screen.findByLabelText('Filter keys');
+    };
+
+    const pickTemperature = () => fireEvent.click(screen.getByRole('checkbox', { name: 'sensor.temperature.value' }));
+
+    const renderJson = () => {
+        dataViewerApi.listTableColumns.mockResolvedValue(JSON_VALUE_COLUMNS);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: JSON_ROWS });
+        return renderPage();
+    };
+
+    test('the picker is built from the row that was clicked', async () => {
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        expect(screen.getByText('Select keys')).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'status' })).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeInTheDocument();
+    });
+
+    // A table whose value column is not a document has no keys to pick, and there the inspector is
+    // the whole answer — so the same click has to reach two different places.
+    test('a non-JSON table still opens the row inspector', async () => {
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+
+        fireEvent.click(getDataRows(container)[0]);
+
+        expect(await screen.findByText(/row 1 of/)).toBeInTheDocument();
+        expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
+    });
+
+    test('the detail is read for the keys that were ticked, over the page window', async () => {
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        pickTemperature();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        await waitFor(() => expect(dataViewerApi.queryTagJsonKeyData).toHaveBeenCalled());
+        const args = dataViewerApi.queryTagJsonKeyData.mock.calls[0][0] as { paths: string[]; tagName: string };
+        expect(args.paths).toEqual(['[sensor][temperature][value]']);
+        expect(args.tagName).toBe(TAG_NAME);
+    });
+
+    // The key has to arrive in the field Tag Analyzer projects from, and this page's dialogs have to
+    // get out of the way — the tab has already changed by the time they would be read again.
+    test('the board opens on the key, and the dialogs close behind it', async () => {
+        const { createTagAnalyzerBoardFromPayload } = tagAnalyzerBridge;
+        createTagAnalyzerBoardFromPayload.mockClear();
+
+        // The handoff offers only what the chart could draw, so the read has to have landed with a
+        // number in it before the button is anything but disabled.
+        dataViewerApi.queryTagJsonKeyData.mockResolvedValue({
+            rows: [{ base: '2026-06-01 10:00:00.000', values: [21] }],
+        });
+
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        pickTemperature();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        await waitFor(() => expect(screen.getByRole('button', { name: /Open in Tag Analyzer/ })).toBeEnabled());
+        fireEvent.click(screen.getByRole('button', { name: /Open in Tag Analyzer/ }));
+
+        expect(createTagAnalyzerBoardFromPayload).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('button', { name: /Open in Tag Analyzer/ })).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
+        const payload = createTagAnalyzerBoardFromPayload.mock.calls[0][0] as { tags: { colName: { jsonKey: string; value: string } }[] };
+        expect(payload.tags).toHaveLength(1);
+        // Plain segments stay unquoted — the same spelling `.taz`/`.dsh` files already carry, so a
+        // board opened from here reads identically to one saved by hand.
+        expect(payload.tags[0].colName.jsonKey).toBe('[sensor][temperature][value]');
+        expect(payload.tags[0].colName.value).toBe('VALUE');
+    });
+
+    // Going back has to land on the tree as it was left, or it is indistinguishable from starting
+    // over — which is the whole reason the selection outlives the picker.
+    test('back to keys returns to the selection the detail was opened from', async () => {
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        pickTemperature();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        fireEvent.click(await screen.findByRole('button', { name: /Back to keys/ }));
+
+        expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeChecked();
+        expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
     });
 });

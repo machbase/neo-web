@@ -972,14 +972,22 @@ function normalizeDataViewerTagAnalyzerRangeValue(value: unknown, keyPrefix: 'st
         const time = value.getTime();
         return Number.isFinite(time) ? { [`${keyPrefix}EpochMs`]: time } : {};
     }
+    // Through `toEpochMs`, not raw. A base value read straight off the wire is epoch NANOSECONDS —
+    // Machbase returns a DATETIME that way — and 1.787e18 is past `Date`'s +-8.64e15 limit, so the
+    // board opened on the literal string "Invalid date~Invalid date" and drew a window nobody asked
+    // for. Nothing rejected it on the way: both edges were finite and `end > start` held, so every
+    // guard on both sides passed. This is the one converter in this file that was skipping the
+    // normalisation the chart's own axis has always applied.
     if (typeof value === 'number') {
-        return Number.isFinite(value) ? { [`${keyPrefix}EpochMs`]: value } : {};
+        const time = toEpochMs(value);
+        return Number.isFinite(time) ? { [`${keyPrefix}EpochMs`]: time } : {};
     }
 
     const text = String(value ?? '').trim();
     if (!text) return {};
 
-    const parsed = Date.parse(text);
+    // A numeric string is the same value wearing quotes, so it takes the same road.
+    const parsed = toEpochMs(text);
     if (!Number.isFinite(parsed)) return {};
     return { [`${keyPrefix}EpochMs`]: parsed };
 }
@@ -1117,6 +1125,16 @@ const PANEL_NAVIGATOR_GRID_SIDE = 58;
 const PANEL_SLIDER_HEIGHT = 26;
 const PANEL_MAIN_TOP_WITH_LEGEND = 40;
 const PANEL_MAIN_HEIGHT = 178;
+/**
+ * What the panel keeps below the plot: the x-axis labels, the zoom controls and the navigator.
+ *
+ * The plot is anchored to the top and the navigator to the bottom, so on a container taller than
+ * the two of them the middle is dead space — a 700px column drew a 178px plot and 300px of nothing.
+ * Given a container height, the plot takes everything except this.
+ */
+const PANEL_BOTTOM_RESERVE = 106;
+/** Below this the plot stops being a plot, so the panel keeps its own size and scrolls instead. */
+const PANEL_MIN_MAIN_HEIGHT = 96;
 // The legend is `type: 'scroll'`, and a horizontal scroll legend never wraps — it lays every entry
 // out on one line and pages the overflow away behind its own ‹ 1/5 › control. So its height is one
 // row's, whatever the series count is. This used to be computed as `ceil(series.length / 4)` rows,
@@ -1125,7 +1143,7 @@ const PANEL_MAIN_HEIGHT = 178;
 // band of nothing under it, and a chart squashed into the bottom third of the card.
 const PANEL_LEGEND_HEIGHT = PANEL_MAIN_TOP_WITH_LEGEND - PANEL_LEGEND_TOP - 8;
 const PANEL_MAIN_SERIES_ID_PREFIX = 'main-series-';
-const PANEL_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+export const PANEL_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 const PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR = 0.82;
 const PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR = 1.22;
 const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } };
@@ -1631,6 +1649,13 @@ export function buildDataViewerEChartOption({
     timeFormat = DEFAULT_TIME_FORMAT,
     timeZone = DEFAULT_TIME_ZONE,
     baseKind = 'time',
+    /**
+     * The container's own height, when the caller knows it.
+     *
+     * Without it the plot keeps the fixed `PANEL_MAIN_HEIGHT` it has always had — which is right
+     * for a panel sized to that number and wrong for anything taller.
+     */
+    panelHeight,
     // Tag-name keyed colours, so a split panel keeps the colour the tag has in the main chart.
     // `color: PANEL_COLORS` below only decides a panel's *own* palette order, and a split panel
     // holds exactly one series — so without this map every split panel takes the palette's first
@@ -1645,8 +1670,12 @@ export function buildDataViewerEChartOption({
     timeFormat?: string;
     timeZone?: string;
     baseKind?: DataViewerBaseKind;
+    panelHeight?: number;
     seriesColors?: Record<string, string>;
 } = {}) {
+    const mainHeight = Number.isFinite(panelHeight)
+        ? Math.max(PANEL_MIN_MAIN_HEIGHT, Math.round(Number(panelHeight) - PANEL_MAIN_TOP_WITH_LEGEND - PANEL_BOTTOM_RESERVE))
+        : PANEL_MAIN_HEIGHT;
     const colorFor = (item: { name?: unknown } | undefined, index: number) => seriesColors[String(item?.name ?? '')] || PANEL_COLORS[index % PANEL_COLORS.length];
     const allPoints = series.flatMap((item) => (Array.isArray(item?.data) ? item.data : []));
     const panelRange = getPanelRange(allPoints, displayRange || timeRange, baseKind) as Required<DataViewerChartRangeMs>;
@@ -1674,7 +1703,7 @@ export function buildDataViewerEChartOption({
         textStyle: { fontFamily: 'Open Sans, Helvetica, Arial, sans-serif' },
         color: PANEL_COLORS,
         grid: [
-            { id: 'panel-main-grid', left: PANEL_GRID_SIDE, right: PANEL_GRID_SIDE, top: PANEL_MAIN_TOP_WITH_LEGEND, height: PANEL_MAIN_HEIGHT, containLabel: true },
+            { id: 'panel-main-grid', left: PANEL_GRID_SIDE, right: PANEL_GRID_SIDE, top: PANEL_MAIN_TOP_WITH_LEGEND, height: mainHeight, containLabel: true },
             { id: 'panel-navigator-grid', left: PANEL_NAVIGATOR_GRID_SIDE, right: PANEL_NAVIGATOR_GRID_SIDE, bottom: PANEL_GRID_BOTTOM, height: PANEL_SLIDER_HEIGHT },
         ],
         legend: {
@@ -1722,6 +1751,12 @@ export function buildDataViewerEChartOption({
                 axisLabel: {
                     ...PANEL_AXIS_LABEL_STYLE,
                     formatter: formatBaseAxisLabel,
+                    // The label width is a formatted timestamp; the number of labels comes from the
+                    // axis. Put that axis in a narrow box — the detail view's chart column at a
+                    // 1024px window is 465px — and the stamps run into each other into an unreadable
+                    // band. ECharts drops the ones that would collide when asked to; it is not asked
+                    // to by default.
+                    hideOverlap: true,
                 },
                 splitLine: { show: true, lineStyle: AXIS_SPLIT_LINE_STYLE },
                 axisPointer: { label: { show: false } },
