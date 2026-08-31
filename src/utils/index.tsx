@@ -1,4 +1,5 @@
-import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from '@/utils/constants';
+import { ADMIN_ID, IMAGE_EXTENSION_LIST } from '@/utils/constants';
+import { getCurrentDatabaseId, getCurrentDatabaseName } from '@/utils/currentDatabaseState';
 import { buildRollupTimeExpression } from './rollupQueryBuilder';
 import { findRollupColumnMatch, getRollupColumnNameCandidates } from './rollupColumnCandidates';
 
@@ -135,12 +136,19 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'NAME');
     let sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[4] === 'Tag Table');
 
+    // The comparison is against the database this session is actually in, not the literal
+    // 'MACHBASEDB'. Before v8.7 those were the same thing; now a server can hold several
+    // databases and a non-admin filtered by the literal would never see any of the others.
+    // The name can also arrive null from an older query shape, hence the guard.
+    const sCurrentDbName = getCurrentDatabaseName().toUpperCase();
+    const sIsCurrentDb = (aName: any) => (aName ?? '').toString().toUpperCase() === sCurrentDbName;
+
     if (!isCurUserEqualAdmin()) {
-        sParseTables = sParseTables.filter((aItem: any) => aItem[sDbIdx].toUpperCase() === DEFAULT_DB_NAME.toUpperCase());
+        sParseTables = sParseTables.filter((aItem: any) => sIsCurrentDb(aItem[sDbIdx]));
     }
 
     return sParseTables.map((aItem: any) => {
-        if (aItem[sDbIdx].toUpperCase() !== DEFAULT_DB_NAME.toUpperCase()) {
+        if (!sIsCurrentDb(aItem[sDbIdx])) {
             return aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
         } else {
             if (isCurUserEqualAdmin() && compareString(aItem[sUserIdx], ADMIN_ID)) return aItem[sTableIdx];
@@ -156,21 +164,27 @@ export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER_NAME');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'TABLE_NAME');
 
+    // Same reasoning as parseTables: compare against the current database, by id here because
+    // this row shape carries DBID. On v8.7 the id is 1, not -1, so the old comparison sent
+    // every table down the mounted-database branch and prefixed names that needed no prefix.
+    const sCurrentDbId = getCurrentDatabaseId();
+    const sCurrentDbName = getCurrentDatabaseName().toUpperCase();
+
     let sParseTables: any = aTableInfo.rows;
     if (!isCurUserEqualAdmin()) {
-        sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[sDbIdx].toUpperCase() === DEFAULT_DB_NAME.toUpperCase());
+        sParseTables = aTableInfo.rows.filter((aItem: any) => (aItem[sDbIdx] ?? '').toString().toUpperCase() === sCurrentDbName);
     }
 
     return sParseTables.map((aItem: any) => {
-        // MACHBASE_DB
-        if (aItem[sMount] === -1) {
+        // The database we are already in — no qualification needed.
+        if (aItem[sMount] === sCurrentDbId) {
             if (isCurUserEqualAdmin() && compareString(aItem[sUserIdx], ADMIN_ID)) return aItem;
             else {
                 aItem[sTableIdx] = aItem[sUserIdx] + '.' + aItem[sTableIdx];
                 return aItem;
             }
         }
-        // MOUNTED DB
+        // Another database on the same server — qualify with database and owner.
         else {
             aItem[sTableIdx] = aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
             return aItem;

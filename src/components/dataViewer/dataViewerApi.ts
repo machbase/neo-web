@@ -1,4 +1,5 @@
 import { fetchQuery } from '@/api/repository/database';
+import { getCurrentDatabaseId, getCurrentDatabaseName, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { SQL_BASE_LIMIT } from '@/utils/sqlFormatter';
 import { parseDataViewerDistanceValue, type DataViewerBaseKind } from './dataViewerModel';
 
@@ -302,7 +303,11 @@ export async function listTableTags(params: DataViewerTableParams & { tagColumn?
 // `resolveTableSchemaTarget` in tagAnalyzer/fetch/tableSchema/fetchTableSchema.ts.
 const buildDatabaseIdExpression = (dbName: string) => {
     const name = String(dbName ?? '').trim();
-    if (!name || name.toUpperCase() === 'MACHBASEDB') return '-1';
+    // The database this session is in needs no lookup — its id is already known. Only a name
+    // that points somewhere else has to be resolved, through V$DATABASES on v8.7 and through
+    // the mounted-backup catalogue on the older servers that had no logical databases.
+    if (!name || name.toUpperCase() === getCurrentDatabaseName().toUpperCase()) return String(getCurrentDatabaseId());
+    if (hasLogicalDatabases()) return `(select DATABASE_ID from V$DATABASES WHERE NAME = '${escapeSqlString(name)}')`;
     return `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${escapeSqlString(name)}')`;
 };
 

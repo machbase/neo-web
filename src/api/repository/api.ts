@@ -1,6 +1,7 @@
 import request from '@/api/core';
 import { rpcCall, RpcMethod } from '@/api/repository/rpc';
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
+import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 
 const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 
@@ -85,11 +86,38 @@ export const getBackupDBList = async () => {
 };
 const getTableList = async () => {
     const U_NAME = getUserName();
+    // v8.7 renamed nothing here — it added a column. `M$SYS_TABLES.DATABASE_NAME` carries the
+    // database name directly, which is why the old `V$STORAGE_MOUNT_DATABASES` join disappears
+    // below: that join only ever produced a name for mounted backups, and on v8.7 it returns
+    // NULL for every ordinary table, which is what left the tree's DB column empty.
+    const sDb = await ensureCurrentDatabase();
+    const sHasLogicalDb = sDb.id !== -1;
+    const sDbNameExpr = sHasLogicalDb
+        ? 'a.DATABASE_NAME'
+        : `case a.DATABASE_ID when -1 then 'MACHBASEDB' else d.MOUNTDB end`;
+    const sMountJoin = sHasLogicalDb ? '' : ' left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID';
     let queryString;
     if (!isCurUserEqualAdmin())
-        queryString = `/api/query?q=SELECT case a.DATABASE_ID when -1 then 'MACHBASEDB' end as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID , '' as priv from M$SYS_TABLES a left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}' and a.database_id=-1 union all SELECT dl.*, ua.priv from M$SYS_USER_ACCESS ua, (SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID) dl WHERE ua.TABLE_NAME = dl.DB_NAME || '.' || dl.USER_NAME || '.' || dl.TABLE_NAME AND dl.USER_NAME <> '${U_NAME?.toUpperCase()}' and ua.USER_NAME = '${U_NAME?.toUpperCase()}' order by dl.TABLE_NAME`;
+    {
+        // Four separate v8.7 changes meet in this one statement, and fixing fewer than all of
+        // them just moves the failure: the union throws ERR-2156 until `priv` types match, and
+        // once it compiles the grant join still matches nothing until it stops comparing a
+        // three-part string to a bare table name.
+        //   1. `M$SYS_USER_ACCESS.PRIV` became int64, so the placeholder must be 0, not ''.
+        //   2. DB_NAME comes from `a.DATABASE_NAME`; the mount join yielded NULL for every row.
+        //   3. Grants now carry DB_NAME / OWNER_NAME as columns instead of a `db.user.table` key.
+        //   4. `a.database_id = -1` selects nothing once databases are numbered from 1.
+        const sPrivPlaceholder = sHasLogicalDb ? '0' : `''`;
+        const sOwnScope = sHasLogicalDb ? '' : ' and a.database_id=-1';
+        const sGrantJoin = sHasLogicalDb
+            ? `ua.DB_NAME = dl.DB_NAME AND ua.OWNER_NAME = dl.USER_NAME AND ua.TABLE_NAME = dl.TABLE_NAME`
+            : `ua.TABLE_NAME = dl.DB_NAME || '.' || dl.USER_NAME || '.' || dl.TABLE_NAME`;
+        queryString = `/api/query?q=SELECT ${sDbNameExpr} as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID , ${sPrivPlaceholder} as priv from M$SYS_TABLES a${sMountJoin} left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}'${sOwnScope} union all SELECT dl.*, ua.priv from M$SYS_USER_ACCESS ua, (SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID) dl WHERE ${sGrantJoin} AND dl.USER_NAME <> '${U_NAME?.toUpperCase()}' and ua.USER_NAME = '${U_NAME?.toUpperCase()}' order by dl.TABLE_NAME`;
+    }
     else
-        queryString = `/api/query?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID, '' as priv from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, case a.DATABASE_ID  when -1 then 'MACHBASEDB' else d.MOUNTDB end as DB_NAME from M$SYS_TABLES a left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID) as j where u.USER_ID = j.USER_ID order by j.NAME`;
+        // Admins take the same DB_NAME source; the mount join left this column NULL for all 58
+        // rows on v8.7, which is what the tree rendered as an empty database name.
+        queryString = `/api/query?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID, '' as priv from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID order by j.NAME`;
     return await request({
         method: 'GET',
         url: queryString,
@@ -219,12 +247,19 @@ export const databaseBackup = (backupInfo: { type: string; duration: { type: str
     });
 };
 /** GET TABLE (LOG | TAG) */
-export const getAllowBackupTable = () => {
+export const getAllowBackupTable = async () => {
+    // Backup targets are scoped to the database this session is in. Before v8.7 that was the
+    // only database and its id was -1; the constant is now whatever the server reports.
+    // The type filter follows the manual's backup support table (17.6.8): TAG(6), LOG(0),
+    // LOOKUP(4) and TRANSACTION(8) can be backed up; VOLATILE(3) cannot, being memory-resident.
+    // TRANSACTION matters most here — it is what a bare `CREATE TABLE` produces on v8.7, so
+    // leaving it out would quietly hide most newly created tables from the backup picker.
+    const sDb = await ensureCurrentDatabase();
     return request({
         method: 'POST',
         url: '/api/query',
         data: {
-            q: `SELECT u.USER_ID, u.NAME as USER_NAME, m.ID as TABLE_ID, decode(u.name, 'SYS', m.NAME, u.name || '.' || m.NAME) as TABLE_NAME, m.TYPE as TABLE_TYPE, decode(u.name, 'SYS',  ' ', u.name) as un from M$SYS_USERS u, (select * from M$SYS_TABLES where database_id = -1 and flag = 0 and type in (0,6)) as m where u.USER_ID = m.USER_ID order by un, m.NAME`,
+            q: `SELECT u.USER_ID, u.NAME as USER_NAME, m.ID as TABLE_ID, decode(u.name, 'SYS', m.NAME, u.name || '.' || m.NAME) as TABLE_NAME, m.TYPE as TABLE_TYPE, decode(u.name, 'SYS',  ' ', u.name) as un from M$SYS_USERS u, (select * from M$SYS_TABLES where database_id = ${sDb.id} and flag = 0 and type in (0,4,6,8)) as m where u.USER_ID = m.USER_ID order by un, m.NAME`,
         },
     });
 };

@@ -50,6 +50,11 @@ export const DBExplorer = () => {
                 return 'tag';
             case 7:
                 return 'view';
+            case 8:
+                // Without this, TYPE 8 falls through to 'exception', which
+                // DISABLED_TABLE_TYPES renders greyed out and unclickable — and on v8.7 a
+                // plain `CREATE TABLE` produces TYPE 8, so that would be most new tables.
+                return 'transaction';
             default:
                 return 'exception';
         }
@@ -72,7 +77,7 @@ export const DBExplorer = () => {
                       return {
                           dbName: aName,
                           userList: USER_NAME_LIST.map((aUser: string) => {
-                              return { userName: aUser, total: 0, tableList: { log: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [], view: [], exception: [] } };
+                              return { userName: aUser, total: 0, tableList: { log: [], transaction: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [], view: [], exception: [] } };
                           }),
                           tableLen: 0,
                       };

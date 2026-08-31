@@ -801,6 +801,10 @@ export const getTableType = (aTypeNumber: number) => {
             return 'kv';
         case 6:
             return 'tag';
+        case 7:
+            return 'view';
+        case 8:
+            return 'transaction';
         default:
             return '';
     }

@@ -1,4 +1,6 @@
 import request from '../core';
+import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
+import { getCurrentDatabaseId, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { Toast } from '@/design-system/components';
 import { createMinMaxQuery, createTableTagMap, getRollupMatch, getUserName, isCurUserEqualAdmin } from '../../utils';
 import { ADMIN_ID } from '../../utils/constants';
@@ -228,14 +230,20 @@ const fetchTableName = async (aTable: string) => {
     let sTableName = aTable;
     let sUserName = ADMIN_ID.toUpperCase();
     const sTableInfos = aTable.split('.');
+    // A name with no database part means the database this session is in — which is -1 only on
+    // pre-v8.7 servers. A three-part name names a logical database on v8.7 (V$DATABASES) and a
+    // mounted backup on older ones, which is the only multi-database concept they had.
+    await ensureCurrentDatabase();
     if (aTable.indexOf('.') === -1 || sTableInfos.length < 3) {
-        DBName = String(-1);
+        DBName = String(getCurrentDatabaseId());
         if (sTableInfos.length === 2) {
             sUserName = sTableInfos[0];
             sTableName = sTableInfos[sTableInfos.length - 1];
         }
     } else {
-        DBName = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${sTableInfos[0]}')`;
+        DBName = hasLogicalDatabases()
+            ? `(select DATABASE_ID from V$DATABASES WHERE NAME = '${sTableInfos[0]}')`
+            : `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${sTableInfos[0]}')`;
         sTableName = sTableInfos[sTableInfos.length - 1];
         sUserName = sTableInfos[1];
     }
@@ -595,7 +603,22 @@ const fetchOnRollupTable = async (table: string) => {
 };
 const getRollupTableList = async () => {
     const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
-    let sUrl = `select t1.user_name as user_name, 
+    // v8.7 gave v$rollup a DATABASE_NAME column. The old shape reached into
+    // V$STORAGE_MOUNT_DATABASES, which names only mounted backups — on v8.7 that join matches
+    // nothing for an ordinary table and every root_table came back NULL.
+    await ensureCurrentDatabase();
+    let sUrl = hasLogicalDatabases()
+        ? `select t1.user_name as user_name, 
+    t1.database_name || '.' || t1.root_table as root_table, 
+    t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 
+  from (
+    select v.database_name, u.name as user_name, root_table, interval_time, column_name, ext_type 
+    from v$rollup as v, m$sys_users as u 
+    where v.user_id = u.user_id 
+    group by v.database_name, root_table, interval_time, user_name, column_name, ext_type 
+  ) as t1 
+  order by user_name, root_table asc, interval_time desc`
+        : `select t1.user_name as user_name, 
     case when t1.database_id = -1 then 'MACHBASEDB' else t2.MOUNTDB end || '.' || t1.root_table as root_table, 
     t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 
   from (

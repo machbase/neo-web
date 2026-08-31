@@ -1,7 +1,10 @@
 import { getColumnType } from '@/utils/dashboardUtil';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 
-export const TableTypeOrderList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue', 'view', 'exception'];
+// Doubles as the tree's bucket order and as the sort key for getTableType results, so the
+// entries must match DBExplorer's TableTypeConverter output exactly. 'transaction' sits
+// next to 'log' because that is what it replaced for unqualified CREATE TABLE on v8.7.
+export const TableTypeOrderList: string[] = ['tag', 'log', 'transaction', 'fixed', 'volatile', 'lookup', 'keyValue', 'view', 'exception'];
 
 export type STR_NUM_ARR_TYPE = (string | number)[];
 export type FetchCommonType = {
@@ -17,6 +20,9 @@ export enum E_TABLE_TYPE {
     KV = 'KV',
     TAG = 'TAG',
     VIEW = 'VIEW',
+    // v8.7. An unqualified `CREATE TABLE` produces this type, where pre-v8.7 servers produced
+    // LOG — so it is not a rare corner, it is what most newly created tables now are.
+    TRANSACTION = 'TRANSACTION',
 }
 export enum E_TABLE_INFO {
     DB_NM = 0,
@@ -63,6 +69,7 @@ export const E_TABLE_TYPE_COLOR = {
     KV: 'rgb(92, 226, 220)',
     TAG: 'rgb(92, 163, 220)',
     VIEW: '#9C8FFF',
+    TRANSACTION: 'rgb(157, 196, 133)',
 } as const;
 export enum E_COLUMN_FLAG {
     TAGNAME = 0x08000000, // 134217728
@@ -93,6 +100,8 @@ export const CheckTableFlag = (aTableFlag: number): string => {
             return E_TABLE_TYPE.TAG;
         case 7:
             return E_TABLE_TYPE.VIEW;
+        case 8:
+            return E_TABLE_TYPE.TRANSACTION;
         default:
             return 'UNKWON';
     }
@@ -130,6 +139,8 @@ export const getTableTypeColor = (aTableType: string) => {
             return E_TABLE_TYPE_COLOR.LOOKUP;
         case 'view':
             return E_TABLE_TYPE_COLOR.VIEW;
+        case 'transaction':
+            return E_TABLE_TYPE_COLOR.TRANSACTION;
         default:
             return 'darkgray';
     }

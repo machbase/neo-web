@@ -387,6 +387,13 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         let sSubCol = '';
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG)
             sSubCol = `, MIN(${mColList?.rows?.[1]?.[0]}) as MIN, MAX(${mColList?.rows?.[1]?.[0]}) as MAX`;
+        // v8.7 renamed V$STORAGE_DC_TABLE_INDEXES.DATABASE_ID to TABLESPACE_ID, so joining on
+        // the old column no longer compiles (ERR-2056). Scoping by TABLE_ID instead is not a
+        // workaround but the narrower statement: this panel shows the indexes of one table, and
+        // `sub` is already restricted to that table. Substituting TABLESPACE_ID would compile
+        // and return nothing — it compares a logical database id against a physical tablespace
+        // id, which is 0 for every database. TABLE_ID exists on both engines, so one query text
+        // serves v8.5 and v8.7 alike.
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG)
             sSubCol = ', MIN(_ARRIVAL_TIME) as MIN, MAX(_ARRIVAL_TIME) as MAX';
         const sQuery = `SELECT COUNT(*) as CNT ${sSubCol} FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
@@ -500,7 +507,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             sQuery = `
 SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.END_RID) AS DISK_GAP FROM V$STORAGE_DC_TABLE_INDEXES vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id, CASE WHEN c.database_id = -1 THEN 0 ELSE c.database_id END AS database_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id AND c.database_id = i.database_id WHERE c.table_id=${
                 mTableInfo[E_TABLE_INFO.TB_ID]
-            } and c.DATABASE_ID = ${mTableInfo[E_TABLE_INFO.DB_ID]} ) sub ON vi.id = sub.index_id AND vi.DATABASE_ID = sub.DATABASE_ID`;
+            } and c.DATABASE_ID = ${mTableInfo[E_TABLE_INFO.DB_ID]} ) sub ON vi.id = sub.index_id AND vi.TABLE_ID = sub.table_id`;
 
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) {

@@ -852,6 +852,8 @@ export const getTableType = (aTypeNumber: number) => {
             return 'tag';
         case 7:
             return 'view';
+        case 8:
+            return 'transaction';
         default:
             return '';
     }

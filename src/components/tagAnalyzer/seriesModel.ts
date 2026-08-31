@@ -1,4 +1,5 @@
 import { ADMIN_ID } from '@/utils/constants';
+import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { isFiniteNumber, isPlainObject } from './objectGuards';
@@ -50,13 +51,17 @@ export function findRollupTableEntry(
 ): RollupTableEntry | undefined {
     if (!rollupMetadata) return undefined;
 
+    // A name with no database part means the one this session is in. Rollup metadata is keyed
+    // `database.table`, so the unqualified form is also tried for the current database — that
+    // is where a bare name would have been stored before the key gained its prefix.
+    const sCurrentDb = getCurrentDatabaseName();
     const [
         table,
         user = ADMIN_ID.toUpperCase(),
-        database = 'MACHBASEDB',
+        database = sCurrentDb,
     ] = tableName.split('.').reverse();
     const qualifiedTable = `${database}.${table}`;
-    const tableNames = database.toUpperCase() === 'MACHBASEDB'
+    const tableNames = database.toUpperCase() === sCurrentDb.toUpperCase()
         ? [qualifiedTable, table]
         : [qualifiedTable];
 

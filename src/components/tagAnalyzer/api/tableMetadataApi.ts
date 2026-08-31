@@ -1,4 +1,6 @@
 import request from '@/api/core';
+import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
+import { getCurrentDatabaseId, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { fetchDashboardJsonColumnSamples } from '@/api/repository/machiot';
 import { Toast } from '@/design-system/components';
 import { parseTables } from '@/utils';
@@ -112,6 +114,9 @@ async function fetchTableNames(): Promise<string[]> {
 async function fetchTableColumns(tableName: string): Promise<TableColumn[]> {
     if (!tableName) return [];
 
+    // resolveTableColumnsTarget reads the current database synchronously, so the probe has to
+    // have settled before it runs — otherwise a short table name is scoped to the pre-v8.7 -1.
+    await ensureCurrentDatabase();
     const sql: string = buildTableColumnsSql(
         resolveTableColumnsTarget(tableName),
     );
@@ -216,7 +221,23 @@ function getConfiguredRollupVersion(): string | null {
 async function fetchRollupMetadataUncached(
     rollupVersion: string | null,
 ): Promise<RollupTableMap> {
-    let sql: string = `SELECT t1.user_name AS user_name,
+    // v8.7 gave `v$rollup` a DATABASE_NAME column, so the database a rollup belongs to can be
+    // read straight off the row. The older shape had to reach into V$STORAGE_MOUNT_DATABASES,
+    // which only ever names *mounted backups* — on v8.7 that join matches nothing for ordinary
+    // tables and every root_table came back NULL, taking the whole rollup map with it.
+    await ensureCurrentDatabase();
+    let sql: string = hasLogicalDatabases()
+        ? `SELECT t1.user_name AS user_name,
+  t1.database_name || '.' || t1.root_table AS root_table,
+  t1.interval_time AS interval_time, t1.column_name AS column_name, t1.ext_type AS ext_type
+FROM (
+  SELECT v.database_name, u.name AS user_name, root_table, interval_time, column_name, ext_type
+  FROM v$rollup AS v, m$sys_users AS u
+  WHERE v.user_id = u.user_id
+  GROUP BY v.database_name, root_table, interval_time, user_name, column_name, ext_type
+) AS t1
+ORDER BY user_name, root_table ASC, interval_time DESC`
+        : `SELECT t1.user_name AS user_name,
   CASE WHEN t1.database_id = -1 THEN 'MACHBASEDB' ELSE t2.MOUNTDB END || '.' || t1.root_table AS root_table,
   t1.interval_time AS interval_time, t1.column_name AS column_name, t1.ext_type AS ext_type
 FROM (
@@ -328,9 +349,15 @@ function resolveTableColumnsTarget(tableName: string): TableColumnsTarget {
         ? tableParts[1]
         : tableParts[0];
     return {
+        // Three-part names carry their database in the first part. On v8.7 that is a logical
+        // database, resolved through V$DATABASES; on older servers the only multi-database
+        // concept was a mounted backup, so the lookup stays on V$STORAGE_MOUNT_DATABASES.
+        // A shorter name means "the database this session is in", which is -1 only pre-v8.7.
         databaseIdQuery: tableParts.length >= 3
-            ? `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(tableParts[0])})`
-            : String(-1),
+            ? hasLogicalDatabases()
+                ? `(SELECT DATABASE_ID FROM V$DATABASES WHERE NAME = ${buildSqlStringLiteral(tableParts[0])})`
+                : `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(tableParts[0])})`
+            : String(getCurrentDatabaseId()),
         tableName: parseSqlIdentifierPath(
             tableParts.at(-1) ?? '',
             'SQL table name',
