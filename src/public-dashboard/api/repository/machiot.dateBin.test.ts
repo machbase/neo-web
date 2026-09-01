@@ -5,6 +5,11 @@ jest.mock('../core', () => jest.fn());
 
 const mockedRequest = request as unknown as jest.Mock;
 
+/**
+ * Rollup metadata is keyed `database.root_table` (see `getRollupTableList`), so the fixture
+ * carries the database the lookup builds. A bare key matched only while the lookup asked the
+ * narrower `=== 'RECENT'` question.
+ */
 describe('public fetchCalculationData JSON value SQL', () => {
     beforeEach(() => {
         mockedRequest.mockReset();
@@ -78,7 +83,7 @@ describe('public fetchCalculationData JSON value SQL', () => {
             Rollup: true,
             RollupList: {
                 SYS: {
-                    EXAMPLE: {
+                    'MACHBASEDB.EXAMPLE': {
                         VALUE: [420000],
                         EXT_TYPE: [0],
                     },
@@ -110,7 +115,7 @@ describe('public fetchCalculationData JSON value SQL', () => {
             Rollup: true,
             RollupList: {
                 SYS: {
-                    SENSOR_JSON_RAW: {
+                    'MACHBASEDB.SENSOR_JSON_RAW': {
                         PAYLOAD: [420000],
                         EXT_TYPE: [0],
                     },
