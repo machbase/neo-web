@@ -1,12 +1,13 @@
 import request from '@/api/core';
+import { qualifyTableName, qualifySiblingObject } from '@/utils/qualifiedTableName';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { getCurrentDatabaseId, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { Toast } from '@/design-system/components';
-import { createMinMaxQuery, createTableTagMap, getRollupMatch, getUserName, isCurUserEqualAdmin } from '@/utils';
+import { getRollupMatch, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
 import { toSqlValueExpressionForAggregator, jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
-import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '@/utils/dbUtils';
 import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
@@ -343,23 +344,6 @@ const fetchRawData = async (params: any) => {
     return sConvertData;
 };
 
-const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
-    const convert = createTableTagMap(tableTagInfo);
-    const query = createMinMaxQuery(convert, userName);
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(`${query}`),
-    });
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Toast.error(sData.data.reason);
-        } else {
-            Toast.error(sData.data);
-        }
-    }
-    return sData;
-};
-
 export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
     const sTime = aTargetInfo.time || aTargetInfo.tableInfo[1][0];
     const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
@@ -385,23 +369,34 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
     return sData.data.rows;
 };
 
-const getTableName = (targetTxt: string) => {
-    if (targetTxt.includes('.')) return targetTxt.split('.').at(-1);
-    else return targetTxt;
-};
 
 export const fetchTimeMinMax = async (aTargetInfo: any) => {
     let sQuery: string | undefined = undefined;
     // Query tag table
     if (aTargetInfo.type === 'tag') {
         const sIsVirtualTable = aTargetInfo.table.includes('V$');
-        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
         const sTime = aTargetInfo.time || 'TIME';
         const sName = aTargetInfo.name || 'NAME';
         if (sTime.toUpperCase() === 'TIME') {
-            sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+            // The block names either the stat view (a Gauge / Pie panel stores that) or the
+            // source table, and either way the name keeps the database it came with. Reducing
+            // it to the bare table and re-attaching only the owner built `SYS.V$ATABLE_STAT`,
+            // which resolves in whichever database the session is in — so a panel on FACTORY_A
+            // read MACHBASEDB's empty copy of the view, got no extent, and fell back to a
+            // `now - 1h` window. The data query is correctly qualified, so the panel asked the
+            // right table for the wrong hour and drew a blank chart with no error. Measured:
+            // FACTORY_A.SYS.V$ATABLE_STAT answers a real range where SYS.V$ATABLE_STAT is empty.
+            const sStatView = sIsVirtualTable
+                ? qualifyTableName(aTargetInfo.userName, aTargetInfo.table)
+                : qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => `V$${n}_STAT`);
+            sQuery = `select min_time, max_time from ${sStatView} where name in ('${aTargetInfo.tag}')`;
         } else {
-            sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.userName}.${sTableName} where ${sName} in ('${aTargetInfo.tag}')`;
+            // A non-TIME base column is not in the stat view, so read the source table — undoing
+            // the decoration on the last segment alone, for the same reason.
+            const sSourceTable = sIsVirtualTable
+                ? qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => removeV$Table(n))
+                : qualifyTableName(aTargetInfo.userName, aTargetInfo.table);
+            sQuery = `select min(${sTime}), max(${sTime}) from ${sSourceTable} where ${sName} in ('${aTargetInfo.tag}')`;
         }
     }
     // Query log table
@@ -429,32 +424,6 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
         return [sNowTimeMinMax];
     }
 
-    return sData.data.rows;
-};
-
-export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], aTagSet?: any) => {
-    const sTime = aTagSet ? aTagSet.colName.time : 'TIME';
-    const sName = aTagSet ? aTagSet.colName.name : 'NAME';
-    const sSplitTable = aTable.split('.');
-    const sTags = `'${aTagList.join("','")}'`;
-    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN (${sTags})`;
-
-    if (aTable.split('.').length > 2 || sTime.toUpperCase() !== 'TIME') {
-        const sTableName = sSplitTable.length === 1 ? `${ADMIN_ID}.${aTable}` : aTable;
-        query = `select min(${sTime}), max(${sTime}) from ${sTableName} where ${sName} in (${sTags})`;
-    }
-
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(query),
-    });
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Toast.error(sData.data.reason);
-        } else {
-            Toast.error(sData.data);
-        }
-    }
     return sData.data.rows;
 };
 
@@ -676,6 +645,15 @@ export const getTagTotal = async (aTable: string, aFilter: string, aColName: str
     return sData;
 };
 
+/**
+ * The block time-extent reader for this tree, bound to its transports.
+ *
+ * Call this instead of branching on `isMountedTableName` at the call site — the branch needs the
+ * database catalogue to have been fetched first, and this is where that await lives. See
+ * `createBlockTimeMinMaxFetcher`.
+ */
+export const fetchBlockTimeMinMax = createBlockTimeMinMaxFetcher({ ensureCurrentDatabase, fetchTimeMinMax, fetchMountTimeMinMax });
+
 export {
     fetchCalculationData,
     fetchRawData,
@@ -685,7 +663,6 @@ export {
     fetchTags,
     fetchRollUp,
     fetchOnRollupTable,
-    fetchOnMinMaxTable,
     fetchData,
     postTerminalSize,
     getChartData,

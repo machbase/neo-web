@@ -24,7 +24,34 @@ const getReasonText = (data: any) => {
     }
 };
 
-const wrapSqlForTql = (sql: string) => `SQL(\`${sql.replace(/`/g, '\\`')}\`)\nJSON()`;
+/**
+ * A database name is safe to interpolate into `use('...')` only if it is an identifier.
+ *
+ * (Named `build…` rather than `use…` so the react-hooks lint rule does not read it as a hook.)
+ *
+ * The engine has no placeholder for this position, so anything else is dropped rather than
+ * quoted — a name that could close the literal must never reach the statement.
+ */
+const buildUseDirective = (aDatabase?: string) => {
+    const sName = String(aDatabase ?? '').trim();
+    return /^[A-Za-z_][A-Za-z0-9_]*$/.test(sName) ? `use('${sName}')` : '';
+};
+
+/**
+ * `use` runs the statement against a named database instead of the session's own.
+ *
+ * Some catalogue views are scoped to the session's database and carry no column saying so —
+ * `V$RETENTION_JOB` is one: measured, the same `SYS`/`DEMO_TAG` row answers `ZZRET_DEMO` from a
+ * MACHBASEDB session and `ZZRET_FACTORY` from a FACTORY_A one. Reading such a view for a table
+ * in another database therefore needs the session moved, not the statement filtered.
+ *
+ * Servers older than v8.7 do not know the directive and answer `unknown env: use`, so callers
+ * pass a database only when `hasLogicalDatabases()` says the server has them.
+ */
+const wrapSqlForTql = (sql: string, database?: string) => {
+    const sUse = buildUseDirective(database);
+    return `SQL(${sUse ? sUse + ', ' : ''}\`${sql.replace(/`/g, '\\`')}\`)\nJSON()`;
+};
 
 export const fetchQuery = async (query: string) => {
     const sData: any = await request({
@@ -33,8 +60,8 @@ export const fetchQuery = async (query: string) => {
     });
     return { svrState: sData?.success ?? false, svrData: sData?.data, svrReason: sData?.data?.reason ?? sData?.reason ?? sData?.toString() };
 };
-export const fetchTqlWithoutConsole = async (aSql: string) => {
-    const query = wrapSqlForTql(aSql);
+export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string) => {
+    const query = wrapSqlForTql(aSql, aDatabase);
     const consoleId = localStorage.getItem('consoleId');
 
     const requestConfig: any = {

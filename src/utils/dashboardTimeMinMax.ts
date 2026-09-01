@@ -1,4 +1,5 @@
 import { isNumericBaseTimeBlock } from './timeFieldColumns';
+import { isMountedTableName } from './qualifiedTableName';
 
 export const isViewTimeMinMaxTarget = (aBlock: any) => Boolean(aBlock?.type === 'view' && aBlock?.time && aBlock.time !== '');
 
@@ -24,6 +25,38 @@ export const getTimeMinMaxFetchTarget = (aBlock: any, aCustomTag?: string) => {
     if (isViewTimeMinMaxTarget(aBlock)) return aBlock;
     return aBlock?.useCustom ? { ...aBlock, tag: aCustomTag } : aBlock;
 };
+
+interface BlockTimeMinMaxDeps {
+    /** Settles the catalogue that `isMountedTableName` reads. */
+    ensureCurrentDatabase: () => Promise<unknown>;
+    /** Tag/log/view min-max for a block. */
+    fetchTimeMinMax: (aTarget: any) => Promise<any>;
+    /** The same, for a table in a mounted database (`db.user.table`). */
+    fetchMountTimeMinMax: (aBlock: any) => Promise<any>;
+}
+
+/**
+ * "Where do I read this block's time extent from?" — one place, over a given pair of transports.
+ *
+ * Ten call sites used to answer this inline, and every one of them got the ordering wrong in the
+ * same way: `isMountedTableName` reads the catalogue synchronously, but the catalogue is filled by
+ * an async probe, so a caller that had not awaited it saw an empty list and read *every* table as
+ * unmounted. `/view/*` hits that deterministically — its mount effect goes straight from the .dsh
+ * file to the board's time range without touching a repository function, so on first paint a
+ * mounted table takes the ordinary min/max query and gets nothing back.
+ *
+ * Awaiting here rather than at each caller means the requirement cannot be forgotten by the next
+ * site that needs this, and the promise is the shared memoised one, so the await is free after the
+ * first. Transports stay injected for the reason `createBlockBaseMinMaxFetcher` does it: the
+ * public dashboard is unauthenticated and speaks to different endpoints than the editor.
+ */
+export const createBlockTimeMinMaxFetcher =
+    ({ ensureCurrentDatabase: aEnsure, fetchTimeMinMax: aFetch, fetchMountTimeMinMax: aFetchMount }: BlockTimeMinMaxDeps) =>
+    async (aBlock: any, aCustomTag?: string): Promise<any> => {
+        await aEnsure();
+        if (isMountedTableName(aBlock?.table)) return aFetchMount(aBlock);
+        return aFetch(getTimeMinMaxFetchTarget(aBlock, aCustomTag));
+    };
 
 export const getPanelTimeMinMaxTarget = (aCurrentPanel: any, aFallbackPanels: any[] = [], aPanelId?: string) => {
     if (aCurrentPanel?.blockList?.length) return aCurrentPanel;

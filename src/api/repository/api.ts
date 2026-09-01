@@ -2,6 +2,9 @@ import request from '@/api/core';
 import { rpcCall, RpcMethod } from '@/api/repository/rpc';
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
+import { fetchQuery } from '@/api/repository/database';
+import { LEGACY_DATABASE } from '@/utils/currentDatabaseState';
+import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
 
 const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 
@@ -84,6 +87,31 @@ export const getBackupDBList = async () => {
         url: '/api/backup/archives',
     });
 };
+/**
+ * The databases this user may connect to, by name.
+ *
+ * `M$SYS_USER_ACCESS` holds both grades of grant in one table, told apart by whether the object
+ * columns are filled: a row with `OWNER_NAME` and `TABLE_NAME` NULL is a *database* grant, and
+ * anything else is a table grant. That NULL is also why the tree's existing grant join can never
+ * surface a database-only grant — it equates those very columns, and NULL equals nothing.
+ *
+ * Only CONNECT counts. The mask can carry CREATE or BACKUP without it, and a user who cannot
+ * connect has no business seeing the database in their tree.
+ *
+ * Returns `undefined` for an administrator: SYS has zero rows in this table (verified), so an
+ * empty result there means "unrestricted", not "nothing". Callers must not confuse the two.
+ */
+export const getConnectableDatabases = async (): Promise<string[] | undefined> => {
+    if (isCurUserEqualAdmin()) return undefined;
+    const sDb = await ensureCurrentDatabase();
+    // Pre-v8.7 servers have one database and no database-level grants to read.
+    if (sDb.id === LEGACY_DATABASE.id) return undefined;
+    const sUser = getUserName()?.toUpperCase();
+    const sSql = `select DB_NAME from M$SYS_USER_ACCESS where USER_NAME = '${sUser}' and TABLE_NAME is NULL and BITAND(PRIV, ${DATABASE_PERMISSION.CONNECT}) = ${DATABASE_PERMISSION.CONNECT}`;
+    const { svrState, svrData } = await fetchQuery(sSql);
+    if (!svrState) return undefined;
+    return (svrData?.rows ?? []).map((aRow: any[]) => String(aRow[0] ?? '')).filter(Boolean);
+};
 const getTableList = async () => {
     const U_NAME = getUserName();
     // v8.7 renamed nothing here — it added a column. `M$SYS_TABLES.DATABASE_NAME` carries the
@@ -91,7 +119,12 @@ const getTableList = async () => {
     // below: that join only ever produced a name for mounted backups, and on v8.7 it returns
     // NULL for every ordinary table, which is what left the tree's DB column empty.
     const sDb = await ensureCurrentDatabase();
-    const sHasLogicalDb = sDb.id !== -1;
+    const sHasLogicalDb = sDb.id !== LEGACY_DATABASE.id;
+    // A mounted database's id is tagged in bit 62 and overflows a JS number, so the tree has to
+    // receive it as text (see `DatabaseId`) — every DBID the explorer later writes back into
+    // SQL comes from this column. Only v8.7 mounts databases; pre-v8.7 servers keep the plain
+    // column and answer -1, which normalises to the same '-1' either way.
+    const sDbIdExpr = sHasLogicalDb ? 'TO_CHAR(a.DATABASE_ID)' : 'a.DATABASE_ID';
     const sDbNameExpr = sHasLogicalDb
         ? 'a.DATABASE_NAME'
         : `case a.DATABASE_ID when -1 then 'MACHBASEDB' else d.MOUNTDB end`;
@@ -112,12 +145,12 @@ const getTableList = async () => {
         const sGrantJoin = sHasLogicalDb
             ? `ua.DB_NAME = dl.DB_NAME AND ua.OWNER_NAME = dl.USER_NAME AND ua.TABLE_NAME = dl.TABLE_NAME`
             : `ua.TABLE_NAME = dl.DB_NAME || '.' || dl.USER_NAME || '.' || dl.TABLE_NAME`;
-        queryString = `/api/query?q=SELECT ${sDbNameExpr} as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID , ${sPrivPlaceholder} as priv from M$SYS_TABLES a${sMountJoin} left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}'${sOwnScope} union all SELECT dl.*, ua.priv from M$SYS_USER_ACCESS ua, (SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID) dl WHERE ${sGrantJoin} AND dl.USER_NAME <> '${U_NAME?.toUpperCase()}' and ua.USER_NAME = '${U_NAME?.toUpperCase()}' order by dl.TABLE_NAME`;
+        queryString = `/api/query?q=SELECT ${sDbNameExpr} as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, ${sDbIdExpr} as DBID , ${sPrivPlaceholder} as priv from M$SYS_TABLES a${sMountJoin} left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}'${sOwnScope} union all SELECT dl.*, ua.priv from M$SYS_USER_ACCESS ua, (SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, ${sDbIdExpr} as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID) dl WHERE ${sGrantJoin} AND dl.USER_NAME <> '${U_NAME?.toUpperCase()}' and ua.USER_NAME = '${U_NAME?.toUpperCase()}' order by dl.TABLE_NAME`;
     }
     else
         // Admins take the same DB_NAME source; the mount join left this column NULL for all 58
         // rows on v8.7, which is what the tree rendered as an empty database name.
-        queryString = `/api/query?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID, '' as priv from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID order by j.NAME`;
+        queryString = `/api/query?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID, '' as priv from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, ${sDbIdExpr} as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID order by j.NAME`;
     return await request({
         method: 'GET',
         url: queryString,
@@ -130,8 +163,18 @@ const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
         url: queryString,
     });
 };
+/**
+ * Columns of a `V$` view — the tag statistics view a Gauge / Pie / Liquid fill panel reads.
+ *
+ * The inner lookup is scoped by DATABASE_ID as well as by name. v8.7 gives every logical
+ * database its own copy of the view, so `select ID from v$tables where name = 'V$X_STAT'`
+ * answers one row per database and the single-row subquery fails outright with
+ * `ERR-2131, Single-row subquery returns more than one row`. Measured on a server with two
+ * active databases: the same view name resolved to ids 462 and 480. The outer
+ * `DATABASE_ID = ...` filter does not help — it constrains v$columns, not the subquery.
+ */
 export const getVirtualTableInfo = async (aDataBaseId: string, aTableName: string, aUserName: string) => {
-    const queryString = `/api/query?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}' and user_ID = (select USER_ID from M$sys_users where name = '${aUserName}')) ORDER BY ID`;
+    const queryString = `/api/query?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}' and DATABASE_ID = ${aDataBaseId} and user_ID = (select USER_ID from M$sys_users where name = '${aUserName}')) ORDER BY ID`;
     return await request({
         method: 'GET',
         url: queryString,
@@ -139,14 +182,6 @@ export const getVirtualTableInfo = async (aDataBaseId: string, aTableName: strin
 };
 const getColumnIndexInfo = async (aDataBaseId: string, aTableId: string) => {
     const queryString = `/api/query?q=select c.name as col_name, i.name as index_name, i.type as index_type from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${aDataBaseId} and c.table_id=${aTableId}`;
-    return await request({
-        method: 'GET',
-        url: queryString,
-    });
-};
-const getRollupTable = async (aTableName: string, aUserName: string) => {
-    // select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc;
-    const queryString = `/api/query?q=select root_table, interval_time, rollup_table, enabled, m.name as user_name from v$rollup as v, m$sys_users as m where v.user_id=m.user_id and m.name='${aUserName}' and root_table='${aTableName}' group by user_name, root_table, enabled, interval_time, rollup_table order by interval_time asc`;
     return await request({
         method: 'GET',
         url: queryString,
@@ -278,7 +313,6 @@ export const postSplitter = async (txt: string, signal?: AbortSignal) => {
 
 export {
     getColumnIndexInfo,
-    getRollupTable,
     getFileList,
     postFileList,
     getLicense,

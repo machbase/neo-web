@@ -1,4 +1,5 @@
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
+import { getCurrentDatabaseId, normalizeDatabaseId } from '@/utils/currentDatabaseState';
 import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import {
     buildDistanceQuickWindow as buildDataViewerDistanceQuickWindow,
@@ -1040,9 +1041,12 @@ export function buildDataViewerTagAnalyzerTableName({
     const table = String(tableName ?? '').trim();
     const user = String(userName ?? '').trim();
     const db = String(dbName ?? '').trim();
-    const rawDatabaseId = String(databaseId ?? '').trim();
-    const numericDatabaseId = Number(rawDatabaseId);
-    const isMountedDatabase = rawDatabaseId !== '' && Number.isFinite(numericDatabaseId) && numericDatabaseId !== -1;
+    const rawDatabaseId = normalizeDatabaseId(databaseId);
+    // A database other than the one this session is in — a mounted backup, or simply another
+    // logical database on v8.7. Either way the name has to carry all three parts. The ids are
+    // compared as text: a mounted database's id overflows a JS number (see `DatabaseId`), so
+    // the numeric comparison this replaced could not tell two mounts apart.
+    const isMountedDatabase = rawDatabaseId !== '' && rawDatabaseId !== getCurrentDatabaseId();
 
     if (isMountedDatabase) return [db, user, table].filter(Boolean).join('.');
 

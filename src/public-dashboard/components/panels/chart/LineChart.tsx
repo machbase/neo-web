@@ -1,5 +1,5 @@
 import './LineChart.scss';
-import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '../../../api/repository/machiot';
+import { fetchBlockTimeMinMax, getTqlChart, getTqlScripts } from '../../../api/repository/machiot';
 import { useOverlapTimeout } from '../../../hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '../../../utils/dashboardUtil';
 import { isNumericBaseTimeBlock } from '../../../../utils/timeFieldColumns';
@@ -14,7 +14,7 @@ import { gRollupTableList } from '../../../recoil/recoil';
 import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../../utils/constants';
 import { chartTypeConverter } from '../../../utils/eChartHelper';
 import { timeMinMaxConverter } from '../../../utils/bgnEndTimeRange';
-import { getTimeMinMaxFetchTarget, hasResolvedTimeRange, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { hasResolvedTimeRange, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { TqlChartParser } from '../../../utils/DashboardTqlChartParser';
 import moment from 'moment';
@@ -360,13 +360,8 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
-            let sSvrResult: any = undefined;
             if (sTargetTag.customTable) return defaultMinMax();
-            if (sTargetTag.table.split('.').length > 2) {
-                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
-            } else {
-                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
-            }
+            const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);
             const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
             if (!sResult) return defaultMinMax();
             return sResult;

@@ -1,4 +1,5 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
+import { getCurrentDatabaseId, isSameDatabaseId } from '@/utils/currentDatabaseState';
 import { fetchDashboardJsonColumnSamples, getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { generateUUID } from '@/utils';
@@ -45,6 +46,66 @@ import { isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
 import { repairDashboardBlockForTableColumns } from '@/utils/dashboardBlockColumns';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { MIXED_X_AXIS_KIND_WARNING } from '@/components/tagAnalyzer/seriesModel';
+import { isMountedTableName, matchesQualifiedName, qualifySiblingObject } from '@/utils/qualifiedTableName';
+import { isMountedDatabase } from '@/utils/currentDatabaseState';
+
+/**
+ * The `V$<TABLE>_STAT` view that belongs to a table-list row.
+ *
+ * Rows arrive from `parseDashboardTables`, which since v8.7 always qualifies a name to
+ * `database.owner.table`. The decoration therefore has to land on the last segment alone:
+ * treating the name as `owner.table` and prefixing the whole thing built
+ * `MACHBASEDB.V$SYS_STAT`, which the engine reads as a user named MACHBASEDB and rejects with
+ * `ERR-2080, User (MACHBASEDB) does not exist`. Row indices follow E_TABLE_INFO — 1 is
+ * USER_NAME, 3 is TABLE_NAME. The owner argument only matters for a row whose name carries no
+ * owner of its own, which is not a shape the current query produces; it is passed so the
+ * helper stays correct if one ever does.
+ */
+const statViewNameOf = (aRow: any[]): string =>
+    qualifySiblingObject(String(aRow?.[1] ?? ''), String(aRow?.[3] ?? ''), (aName) => `V$${aName}_STAT`);
+
+/**
+ * The table-list row a block's stored table name refers to.
+ *
+ * Two names lead to one row: the table itself, and its `V$<TABLE>_STAT` view, which a Gauge /
+ * Pie / Liquid fill panel stores in the very same field.
+ *
+ * An exact hit wins outright — that is what a config written on v8.7 holds. Failing that the
+ * name is under-qualified, which a config written earlier always is, and the short name is now
+ * genuinely ambiguous: `ATABLE` exists in three databases on a test server, and `SYS.ATABLE`
+ * and `KEV.ATABLE` sit side by side within one. So the missing parts are supplied from what
+ * the config does carry — its `userName`, and the database the session is in, which is what
+ * the short name meant when it was written and what the engine still resolves it to.
+ *
+ * When that still leaves more than one candidate the answer is nothing rather than a guess:
+ * `find` would otherwise return whichever row the engine happened to list first — measured,
+ * `ATABLE` comes back MACHBASEDB-first and `DEMO_TAG` FACTORY_A-first from the same statement —
+ * and binding a panel's columns and TABLE_ID to a different table than its data query reads is
+ * worse than showing no columns. Table ids are not unique across databases either: `ATABLE` is
+ * id 130 in both MACHBASEDB and a mount of it, so a wrong bind does not look wrong.
+ *
+ * A mounted row is never a candidate at all. Only an under-qualified name reaches this point,
+ * and such a name was written when mounted tables were already stored in full, so it never
+ * meant the mount — while binding to one reads columns that look plausible and belong to
+ * another table.
+ */
+const findTableRow = (aTableList: any, aName: string, aUserName?: string): any => {
+    if (!aName || !Array.isArray(aTableList)) return undefined;
+    const sExact = aTableList.find((aRow: any) => aRow?.[3] === aName || statViewNameOf(aRow) === aName);
+    if (sExact) return sExact;
+
+    const sCandidates = aTableList
+        .filter((aRow: any) => matchesQualifiedName(aRow?.[3], aName) || matchesQualifiedName(statViewNameOf(aRow), aName))
+        .filter((aRow: any) => !isMountedDatabase(aRow?.[6]));
+    if (sCandidates.length < 2) return sCandidates[0];
+
+    const sOwner = String(aUserName ?? '').toUpperCase();
+    const sOwned = sOwner ? sCandidates.filter((aRow: any) => String(aRow?.[1] ?? '').toUpperCase() === sOwner) : [];
+    const sPool = sOwned.length ? sOwned : sCandidates;
+
+    const sHere = sPool.filter((aRow: any) => isSameDatabaseId(aRow?.[6], getCurrentDatabaseId()));
+    return sHere.length === 1 ? sHere[0] : undefined;
+};
 
 export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount, pShouldFocusTag }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -274,12 +335,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         });
     };
     const getColumnList = async (aTable: string) => {
-        const sTable = pTableList.find(
-            (aItem: any) =>
-                aItem[3] === aTable ||
-                `V$${aItem[3]}_STAT` === aTable ||
-                (aItem[3].split('.').length === 2 && `${aItem[1]}.V$${aItem[3].split('.').at(-1)}_STAT` === pBlockInfo.table)
-        );
+        const sTable = findTableRow(pTableList, aTable, pBlockInfo.userName);
+        // The reads below index into the row unguarded. Clearing matches the failure path at
+        // the end of this function, so a table that cannot be resolved does not leave the
+        // previous one's columns on screen.
+        if (!sTable) {
+            setColumnList([]);
+            return;
+        }
         const sIsVirtualTable = aTable.includes('V$');
         const sData = sIsVirtualTable
             ? await getVirtualTableInfo(sTable?.[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
@@ -633,17 +696,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         const sTableList = sSortedTableList.map((aItem: any) => aItem[3]);
 
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
-            // sTagTableList has only MACHBASEDB
-            const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag' && aTable[6] === -1);
-            sTagTableList.filter((aTagTable: any) => {
-                // check user
-                if (aTagTable[3].includes('.')) {
-                    const sSplitInfo = aTagTable[3].split('.');
-                    const sTable = sSplitInfo[1];
-                    const sUser = sSplitInfo[0];
-                    return aTagTable.splice(3, 0, `${sUser}.V$${sTable}_STAT`);
-                } else return aTagTable.splice(3, 0, `V$${aTagTable[3]}_STAT`);
-            });
+            // Every tag table whose database actually has a `V$<TABLE>_STAT` view — which is
+            // every database except a mounted backup. Restricting this to the session's own
+            // database also excluded a second *active* one, whose view exists and reads fine
+            // (measured: FACTORY_A.SYS.V$DEMO_TAG_STAT answers 2 rows from a MACHBASEDB session).
+            const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter(
+                (aTable: any) => getTableType(aTable[4]) === 'tag' && !isMountedTableName(String(aTable[3] ?? ''))
+            );
+            // The stat view name replaces TABLE_NAME in the copied row, which is what the
+            // option list below reads. It must be computed before the splice, since the splice
+            // shifts TABLE_NAME out of index 3.
+            sTagTableList.forEach((aTagTable: any) => aTagTable.splice(3, 0, statViewNameOf(aTagTable)));
             const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => bTagTable[3]));
             return sResult;
         } else {
@@ -668,12 +731,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     };
     /** init */
     const init = async () => {
-        const sTable = pTableList.find(
-            (aItem: any) =>
-                aItem[3] === pBlockInfo.table ||
-                `V$${aItem[3]}_STAT` === pBlockInfo.table ||
-                (aItem[3].split('.').length === 2 && `${aItem[1]}.V$${aItem[3].split('.').at(-1)}_STAT` === pBlockInfo.table)
-        );
+        const sTable = findTableRow(pTableList, pBlockInfo.table, pBlockInfo.userName);
         if (!sTable) return;
         const sIsVirtualTable = pBlockInfo.table.includes('V$');
         const sTableType = getTableType(sTable[4]);

@@ -1,3 +1,4 @@
+import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { parseFiniteNumber } from '../objectGuards';
@@ -466,6 +467,11 @@ async function fetchSeriesFullRange(
     if (seriesList.length === 0) {
         throw new Error('Cannot resolve a full range without any series.');
     }
+    // `buildSeriesFullRangeSql` reads the catalogue synchronously to decide whether a table can
+    // be read through its statistics view, and the catalogue is filled by an async probe. This
+    // runs from a mount effect, so without the await the first request of a page load asks an
+    // empty list — and a mounted table then gets a `V$<TABLE>_STAT` query that does not exist.
+    await ensureCurrentDatabase();
     if (hasMixedXAxisValueKinds(seriesList)) {
         throw new Error(
             'Numeric basetime and datetime series cannot be mixed in one panel.',

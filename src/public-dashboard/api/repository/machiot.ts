@@ -1,11 +1,15 @@
 import request from '../core';
-import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
+import { qualifyTableName, qualifySiblingObject } from '@/utils/qualifiedTableName';
+// This tree's own resolver, not the editor's: the editor's rides `/web/api/query`, which answers
+// 401 for an unauthenticated board and would leave every lookup below on the pre-v8.7 fallback.
+import { ensureCurrentDatabase } from './currentDatabase';
+import { executeQuery } from './publicQuery';
 import { getCurrentDatabaseId, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { Toast } from '@/design-system/components';
-import { createMinMaxQuery, createTableTagMap, getRollupMatch, getUserName, isCurUserEqualAdmin } from '../../utils';
+import { getRollupMatch, getUserName, isCurUserEqualAdmin } from '../../utils';
 import { ADMIN_ID } from '../../utils/constants';
 import { getInterval } from '../../utils/DashboardQueryParser';
-import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { jsonValueFieldToNumericSql, toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import { removeV$Table } from '../../utils/dbUtils';
 import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
@@ -21,38 +25,10 @@ import {
 } from '../../../utils/rollupQueryBuilder';
 import { getBaseJsonRollupValue, ROLLUP_EXT_TYPE_BY_COLUMN } from '@/utils/rollupColumnCandidates';
 
-const getTableName = (targetTxt: string) => {
-    if (targetTxt.includes('.')) return targetTxt.split('.').at(-1);
-    else return targetTxt;
-};
 
-export const executeQuery = async (query: string) => {
-    try {
-        const response = await fetch(`/db/query?q=${encodeURIComponent(query)}`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-            },
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            return result;
-        } else {
-            return {
-                data: { reason: `Query failed: ${response.statusText}` },
-                status: response.status,
-                success: false,
-            };
-        }
-    } catch (error) {
-        return {
-            data: { reason: `Network error: ${error}` },
-            status: 500,
-            success: false,
-        };
-    }
-};
+// Moved to `./publicQuery` so the database resolver can be built on it without the two files
+// importing each other. Re-exported because DashboardView imports it from here.
+export { executeQuery };
 
 const getTqlChart = async (aData: string, _aType?: 'dsh') => {
     try {
@@ -168,13 +144,28 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
     // Query tag table
     if (aTargetInfo.type === 'tag') {
         const sIsVirtualTable = aTargetInfo.table.includes('V$');
-        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
         const sTime = aTargetInfo.time || 'TIME';
         const sName = aTargetInfo.name || 'NAME';
         if (sTime.toUpperCase() === 'TIME') {
-            sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+            // The block names either the stat view (a Gauge / Pie panel stores that) or the
+            // source table, and either way the name keeps the database it came with. Reducing
+            // it to the bare table and re-attaching only the owner built `SYS.V$ATABLE_STAT`,
+            // which resolves in whichever database the session is in — so a panel on FACTORY_A
+            // read MACHBASEDB's empty copy of the view, got no extent, and fell back to a
+            // `now - 1h` window. The data query is correctly qualified, so the panel asked the
+            // right table for the wrong hour and drew a blank chart with no error. Measured:
+            // FACTORY_A.SYS.V$ATABLE_STAT answers a real range where SYS.V$ATABLE_STAT is empty.
+            const sStatView = sIsVirtualTable
+                ? qualifyTableName(aTargetInfo.userName, aTargetInfo.table)
+                : qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => `V$${n}_STAT`);
+            sQuery = `select min_time, max_time from ${sStatView} where name in ('${aTargetInfo.tag}')`;
         } else {
-            sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.userName}.${sTableName} where ${sName} in ('${aTargetInfo.tag}')`;
+            // A non-TIME base column is not in the stat view, so read the source table — undoing
+            // the decoration on the last segment alone, for the same reason.
+            const sSourceTable = sIsVirtualTable
+                ? qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => removeV$Table(n))
+                : qualifyTableName(aTargetInfo.userName, aTargetInfo.table);
+            sQuery = `select min(${sTime}), max(${sTime}) from ${sSourceTable} where ${sName} in ('${aTargetInfo.tag}')`;
         }
     }
     // Query log table
@@ -481,48 +472,6 @@ const fetchRawData = async (params: any) => {
     return sConvertData;
 };
 
-const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
-    const convert = createTableTagMap(tableTagInfo);
-    const query = createMinMaxQuery(convert, userName);
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(`select MIN(min_tm), MAX(max_tm) from (${query})`),
-    });
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Toast.error(sData.data.reason);
-        } else {
-            Toast.error(sData.data);
-        }
-    }
-    return sData;
-};
-
-export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], aTagSet?: any) => {
-    const sTime = aTagSet ? aTagSet.colName.time : 'TIME';
-    const sSplitTable = aTable.split('.');
-    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN ('${aTagList.join(
-        "','"
-    )}')`;
-
-    if (aTable.split('.').length > 2) {
-        query = `select min(${sTime}), max(${sTime}) from ${aTable}`;
-    }
-
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(query),
-    });
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Toast.error(sData.data.reason);
-        } else {
-            Toast.error(sData.data);
-        }
-    }
-    return sData.data.rows;
-};
-
 const fetchRollupData = async (params: any) => {
     const { Table } = params;
 
@@ -723,6 +672,15 @@ export const getTagTotal = async (aTable: string, aFilter: string, aColName: str
     return sData;
 };
 
+/**
+ * The block time-extent reader for this tree, bound to its transports.
+ *
+ * Call this instead of branching on `isMountedTableName` at the call site — the branch needs the
+ * database catalogue to have been fetched first, and this is where that await lives. See
+ * `createBlockTimeMinMaxFetcher`.
+ */
+export const fetchBlockTimeMinMax = createBlockTimeMinMaxFetcher({ ensureCurrentDatabase, fetchTimeMinMax, fetchMountTimeMinMax });
+
 export {
     fetchCalculationData,
     fetchRawData,
@@ -732,7 +690,6 @@ export {
     fetchTags,
     fetchRollUp,
     fetchOnRollupTable,
-    fetchOnMinMaxTable,
     fetchData,
     postTerminalSize,
     getChartData,

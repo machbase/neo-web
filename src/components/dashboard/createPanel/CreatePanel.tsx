@@ -11,11 +11,11 @@ import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { getPanelTimeMinMaxTarget, getTimeMinMaxFetchTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getPanelTimeMinMaxTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { Toast } from '@/design-system/components';
@@ -396,12 +396,7 @@ const CreatePanel = ({
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag) || sIsCreateModeFirstPanel) {
             const sIsViewTimeMinMax = isViewTimeMinMaxTarget(sTargetTag);
             if (sTargetTag?.customTable || (!sIsViewTimeMinMax && (sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag))) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
-            let sSvrResult: any = undefined;
-            if ((sTargetTag.table ?? '').split('.').length > 2) {
-                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
-            } else {
-                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
-            }
+            const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);
             if (sSvrResult?.[0]?.[0] == null) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             const sSvrMinMax = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
             if (!sSvrMinMax) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();

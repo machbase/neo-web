@@ -35,31 +35,37 @@ export enum E_TABLE_INFO {
     PRIV = 7,
 }
 
+/**
+ * The name to copy, and the name a query can use.
+ *
+ * Always three parts. The shorter forms this used to produce — `table` for your own tables,
+ * `owner.table` for someone else's — are only unambiguous while a server holds one database.
+ * v8.7 allows several, and a bare or two-part name silently resolves to the *current* one: ask
+ * for `ATABLE` while looking at FACTORY_A's copy and you read MACHBASEDB's instead. That is a
+ * wrong answer rather than an error, so the qualified form is the only safe one to hand out.
+ *
+ * `database.owner.object` also works against the current database and against pre-v8.7 servers,
+ * so no version branch is needed. Note that the owner may not be dropped: `database.object`
+ * makes the engine read the first part as a user (ERR-2080).
+ *
+ * Callers still pass `databaseId` / `currentUserName`; they no longer select a name form, and
+ * are kept so the signature does not churn across the three call sites.
+ */
 export const buildQualifiedTableName = ({
     dbName,
     userName,
     tableName,
-    databaseId,
-    currentUserName,
 }: {
     dbName: string;
     userName: string;
     tableName: string;
-    databaseId: number;
+    databaseId?: string | number;
     currentUserName?: string;
 }): string => {
-    if (databaseId !== -1) {
-        return `${dbName}.${userName}.${tableName}`;
-    }
-
-    const normalizedCurrentUser = (currentUserName ?? '').toUpperCase();
-    const normalizedOwner = (userName ?? '').toUpperCase();
-
-    if (normalizedCurrentUser !== '' && normalizedCurrentUser === normalizedOwner) {
-        return tableName;
-    }
-
-    return `${userName}.${tableName}`;
+    const sParts = [dbName, userName, tableName].map((aPart) => String(aPart ?? '').trim());
+    // A missing database or owner would produce `.SYS.TAG` or `DB..TAG`, neither of which
+    // resolves — fall back to whatever parts we actually have rather than emitting a broken name.
+    return sParts.every(Boolean) ? sParts.join('.') : sParts.filter(Boolean).join('.');
 };
 export const E_TABLE_TYPE_COLOR = {
     LOG: 'rgb(252, 121, 118)',
@@ -107,18 +113,34 @@ export const CheckTableFlag = (aTableFlag: number): string => {
     }
 };
 
+/**
+ * DROP names the object in full, database included.
+ *
+ * A two-part `owner.table` resolves against the *current* database, so dropping a table the
+ * tree showed under another database would delete the same-named table here instead — silently,
+ * because both names are valid. Measured: with `ZZDROPTEST` present in MACHBASEDB and
+ * FACTORY_A, `DROP TABLE SYS.ZZDROPTEST` issued for the FACTORY_A row removed the MACHBASEDB
+ * one. `dbName` is therefore required rather than optional.
+ */
 export const buildDropObjectQuery = ({
     tableType,
+    dbName,
     userName,
     tableName,
     cascade,
 }: {
     tableType: number;
+    dbName: string;
     userName: string;
     tableName: string;
     cascade: boolean;
 }): string => {
-    const qualified = `${userName}.${tableName}`;
+    const qualified = buildQualifiedTableName({ dbName, userName, tableName });
+    // `buildQualifiedTableName` shortens rather than emitting an empty segment, so a row that
+    // carried no database name yields `SYS.ATABLE` — the two-part form described above, which
+    // deletes the current database's copy of a table the tree showed under another one. There
+    // is no statement that means what the user clicked, so build none and let the caller say so.
+    if (qualified.split('.').length < 3) return '';
     if (CheckTableFlag(tableType) === E_TABLE_TYPE.VIEW) return `DROP VIEW ${qualified}`;
     return `DROP TABLE ${qualified}${cascade ? ' CASCADE' : ''}`;
 };
@@ -449,4 +471,109 @@ export const TABLE_PERMISSION = {
 
 export const hasTablePermission = (permissions: number, permission: number): boolean => {
     return (permissions & permission) === permission;
+};
+
+/**
+ * `M$SYS_USER_ACCESS.PRIV` as a number, whichever encoding the server used.
+ *
+ * v8.7 types the column `int64` and hands over a bitmask (`1`, `575`, …). Older servers typed
+ * it `varchar` and packed two fields into `"<mask>|<label>"`. Calling `.split` on the new form
+ * throws — a number has no such method — and that threw inside a render, so the whole explorer
+ * went down with it rather than one badge.
+ *
+ * Anything unparseable answers 0: no privileges, which is the safe reading.
+ */
+export const parseTablePrivilege = (aPriv: unknown): number => {
+    if (typeof aPriv === 'number') return Number.isFinite(aPriv) ? aPriv : 0;
+    const sText = String(aPriv ?? '').trim();
+    if (!sText) return 0;
+    const sMask = Number(sText.includes('|') ? sText.split('|')[0].trim() : sText);
+    return Number.isFinite(sMask) ? sMask : 0;
+};
+
+/** The granted privileges spelled out, e.g. `SELECT, INSERT`. Empty when none are set. */
+export const describeTablePrivilege = (aPriv: unknown): string => {
+    const sMask = parseTablePrivilege(aPriv);
+    return Object.entries(TABLE_PERMISSION)
+        .filter(([, aBit]) => hasTablePermission(sMask, aBit))
+        .map(([aName]) => aName)
+        .join(', ');
+};
+
+/**
+ * The database-level privilege bits, as `M$SYS_USER_ACCESS.PRIV` encodes them.
+ *
+ * Measured on a v8.7 server by granting one privilege at a time to a scratch user and reading
+ * the mask back (each grant revoked afterwards). `ALL` is 944 — every bit below except MOUNT,
+ * which is instance-scoped and only accepted on MACHBASEDB.
+ *
+ * These are a different space from `TABLE_PERMISSION` (1/2/4/8): the engine refuses
+ * `GRANT SELECT ON DATABASE` with ERR-2186, and refuses `GRANT CONNECT ON TABLE` likewise.
+ */
+export const DATABASE_PERMISSION = {
+    CREATE: 16,
+    DROP: 32,
+    MOUNT: 64,
+    ALTER: 128,
+    BACKUP: 256,
+    CONNECT: 512,
+} as const;
+
+/** Does this `M$SYS_USER_ACCESS.PRIV` mask carry the privilege? */
+export const hasDatabasePermission = (aPriv: unknown, aBit: number): boolean => (parseTablePrivilege(aPriv) & aBit) === aBit;
+
+/**
+ * Which databases get a node in the tree, in the order they should appear.
+ *
+ * The tree used to derive this from the table rows themselves, which cannot represent a
+ * database holding no tables the user can see — a freshly created one is invisible, and there
+ * is no way to tell from the UI that `CREATE DATABASE` did anything at all. (That is also why
+ * 'MACHBASEDB' was hardcoded for admins: the one database guaranteed to exist, forced in
+ * because the derivation could not be trusted to produce it.)
+ *
+ * So the catalogue leads and the table rows follow:
+ *
+ *  - `aCatalogue` is `V$DATABASES`, already resolved for other reasons, ordered by KIND then
+ *    DATABASE_ID — active databases first, mounted backups below them, stable across refreshes
+ *    where "first seen in the table rows" was not. This function preserves that order rather
+ *    than imposing one of its own.
+ *  - `aConnectable` restricts it to the databases a non-admin may actually connect to. Pass
+ *    `undefined` for an admin, who is not listed in `M$SYS_USER_ACCESS` at all (SYS has zero
+ *    rows there) and may see everything.
+ *  - `aTableRowDbNames` is unioned in last rather than intersected. A database that has rows in
+ *    the table query but is missing from the catalogue must still appear, or its tables vanish
+ *    from the tree — reachable for a non-admin whose CONNECT was revoked while they still own
+ *    tables there. Losing a table is worse than showing a database node.
+ *
+ * An empty catalogue means the server has no `V$DATABASES` (pre-v8.7) or would not answer, and
+ * the old table-derived behaviour stands.
+ */
+export const buildDatabaseNodeList = ({
+    catalogue,
+    connectable,
+    tableRowDbNames,
+}: {
+    catalogue: { name: string }[];
+    connectable?: string[];
+    tableRowDbNames: string[];
+}): string[] => {
+    const sKey = (aName: unknown) => String(aName ?? '').trim().toUpperCase();
+    const sFromRows = tableRowDbNames.map((aName) => String(aName ?? '').trim()).filter(Boolean);
+    const sRowKeys = new Set(sFromRows.map(sKey));
+
+    if (!catalogue.length) return Array.from(new Set(sFromRows));
+
+    const sAllowed = connectable === undefined ? undefined : new Set(connectable.map(sKey));
+    const sNames = catalogue
+        .map((aDb) => String(aDb.name ?? '').trim())
+        .filter(Boolean)
+        .filter((aName) => sAllowed === undefined || sAllowed.has(sKey(aName)) || sRowKeys.has(sKey(aName)));
+
+    const sSeen = new Set(sNames.map(sKey));
+    for (const aName of sFromRows) {
+        if (sSeen.has(sKey(aName))) continue;
+        sSeen.add(sKey(aName));
+        sNames.push(aName);
+    }
+    return sNames;
 };
