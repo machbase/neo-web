@@ -3,11 +3,11 @@
 // Migrated (RPC exists): getBridge→bridge.list, genBridge→bridge.add, delBridge→bridge.delete,
 //   commandBridge→bridge.test / bridge.exec / (bridge.query + bridge.result.fetch/close cursor),
 //   getSubr→schedule.list (filtered to type=subscriber), genSubr→schedule.subscriber.add,
-//   delSubr→schedule.delete, commandSubr→schedule.start / schedule.stop.
-// Kept on REST: getSubrItem (no single-item read RPC `schedule.get` exists).
+//   delSubr→schedule.delete, commandSubr→schedule.start / schedule.stop,
+//   getSubrItem→schedule.get (the single-item read RPC landed after the first wave, replacing the
+//   last REST call `GET /api/subscribers/:name`).
 // The external signatures and return envelopes ({ data, success, reason, elapse }) are kept as-is so
 // the bridge components render unchanged; only the internals are swapped to RPC + adapters.
-import request from '@/api/core';
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 
 export type BridgeType = 'SQLite' | 'PostgreSQL' | 'MySQL' | 'MSSQL' | 'MQTT' | 'NATS';
@@ -24,6 +24,10 @@ interface SubrItemType {
 }
 interface SUBR_RES_TYPE extends RES_COMM {
     data: SubrItemType[];
+}
+export interface SUBR_ITEM_RES_TYPE extends RES_COMM {
+    data: SubrItemType;
+    statusText?: string;
 }
 interface RES_COMM {
     elapse: string;
@@ -232,6 +236,27 @@ export const commandBridge = async (aState: CommandBridgeStateType, aBridgeName:
 /** Subscriber */
 
 /**
+ * Map one `schedule.*` RPC row (backend `scheduler.Schedule`) into SubrItemType.
+ * Every field of that struct is tagged `omitempty`, so `autoStart:false` / `QoS:0` and empty
+ * strings arrive as MISSING keys — default them here. The struct has no `queue` field at all,
+ * so a NATS queue group cannot be recovered from either `schedule.list` or `schedule.get`.
+ */
+const toSubrItem = (s: any): SubrItemType => {
+    const qos = s?.QoS ?? s?.qos;
+    return {
+        name: s?.name ?? s?.Name ?? '',
+        autoStart: Boolean(s?.autoStart ?? s?.AutoStart),
+        state: s?.state ?? s?.State ?? '',
+        task: s?.task ?? s?.Task ?? '',
+        bridge: s?.bridge ?? s?.Bridge ?? '',
+        topic: s?.topic ?? s?.Topic ?? '',
+        type: s?.type ?? s?.Type ?? '',
+        QoS: qos === undefined || qos === null ? undefined : String(qos),
+        queue: s?.queue ?? s?.Queue ?? undefined,
+    };
+};
+
+/**
  * Get subr list — `schedule.list` (params: []) filtered to type=subscriber.
  * RPC result is the full `Schedule[]`; map subscriber entries into the existing SubrItemType shape.
  * NOTE: the Schedule struct has no `queue` field, so `queue` cannot be populated from this RPC.
@@ -242,36 +267,27 @@ export const getSubr = async (): Promise<SUBR_RES_TYPE> => {
         const err = rpcErrMessage(res);
         if (err) return { success: false, reason: err, elapse: '', data: [] };
         const rows = (res?.result ?? []) as any[];
-        const data: SubrItemType[] = rows
-            .filter((s) => String(s?.type ?? s?.Type ?? '').toLowerCase() === 'subscriber')
-            .map((s) => {
-                const qos = s?.QoS ?? s?.qos;
-                return {
-                    name: s?.name ?? s?.Name ?? '',
-                    autoStart: Boolean(s?.autoStart ?? s?.AutoStart),
-                    state: s?.state ?? s?.State ?? '',
-                    task: s?.task ?? s?.Task ?? '',
-                    bridge: s?.bridge ?? s?.Bridge ?? '',
-                    topic: s?.topic ?? s?.Topic ?? '',
-                    type: s?.type ?? s?.Type ?? '',
-                    QoS: qos === undefined || qos === null ? undefined : String(qos),
-                    queue: s?.queue ?? s?.Queue ?? undefined,
-                };
-            });
+        const data: SubrItemType[] = rows.filter((s) => String(s?.type ?? s?.Type ?? '').toLowerCase() === 'subscriber').map(toSubrItem);
         return { success: true, reason: 'success', elapse: '', data };
     } catch (e) {
         return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '', data: [] };
     }
 };
 /**
- * Get subr item — stays on REST (no single-item read RPC `schedule.get` exists).
+ * Get subr item — `schedule.get(name)` (params: [name]).
+ * The backend lowercases the name internally and resolves timers and subscribers alike;
+ * this call site only ever asks for subscriber names.
  * @returns subr info
  */
-export const getSubrItem = (aSubrName: string): Promise<SubrItemType> => {
-    return request({
-        method: 'GET',
-        url: `/api/subscribers/${aSubrName}`,
-    });
+export const getSubrItem = async (aSubrName: string): Promise<SUBR_ITEM_RES_TYPE> => {
+    try {
+        const res = await rpcCall<any>(RpcMethod.schedule.get, [aSubrName]);
+        const err = rpcErrMessage(res);
+        if (err) return errEnvelope(err);
+        return { success: true, reason: 'success', elapse: '', data: toSubrItem(res?.result) };
+    } catch (e) {
+        return errEnvelope(e instanceof Error ? e.message : String(e));
+    }
 };
 
 /**

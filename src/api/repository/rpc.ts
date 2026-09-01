@@ -256,8 +256,10 @@ export const RpcMethod = {
     },
     schedule: {
         list: 'schedule.list',
+        get: 'schedule.get',
         timer: { add: 'schedule.timer.add' },
         subscriber: { add: 'schedule.subscriber.add' },
+        update: 'schedule.update',
         delete: 'schedule.delete',
         start: 'schedule.start',
         stop: 'schedule.stop',

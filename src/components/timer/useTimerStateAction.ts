@@ -31,7 +31,7 @@ export const useTimerStateAction = () => {
                 return { success: false, reason: getReason(commandResponse) };
             }
 
-            const timerInfoResponse: any = await getTimerItem(timer.name);
+            const timerInfoResponse = await getTimerItem(timer.name);
             if (!timerInfoResponse?.success) {
                 return { success: false, reason: getReason(timerInfoResponse) };
             }

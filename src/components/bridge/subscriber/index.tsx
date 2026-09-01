@@ -37,7 +37,7 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
         if (sState === 'STARTING' || sState === 'RUNNING') sSetState = 'STOP';
         else sSetState = 'STARTING';
         const sResCommand: any = await commandSubr(sSetState === 'STOP' ? 'stop' : 'start', pCode.subr.name);
-        const sResSubrInfo: any = await getSubrItem(pCode.subr.name);
+        const sResSubrInfo = await getSubrItem(pCode.subr.name);
         if (sResCommand.success) {
             setCommandResMessage(undefined);
         } else setCommandResMessage(sResCommand?.data ? (sResCommand as any).data.reason : (sResCommand.statusText as string));

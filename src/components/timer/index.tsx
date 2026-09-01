@@ -76,10 +76,10 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     };
     /** edit item */
     const editItem = async () => {
-        const sResult: any = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.name);
+        const sResult = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.name);
 
         if (sResult.success) {
-            const sTimerInfo: any = await getTimerItem(sPayload.name);
+            const sTimerInfo = await getTimerItem(sPayload.name);
             const sTmpTimerList =
                 sTimerList &&
                 sTimerList.map((aTimerInfo: any) => {
@@ -105,8 +105,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             setPayload(sTimerInfo.success ? sTimerInfo.data : sPayload);
             setResMessage(undefined);
         } else {
-            if (sResult?.data && sResult?.data.reason) setResMessage(sResult?.data.reason);
-            else setResMessage(sResult.statusText);
+            // every modTimer failure path fills `reason` (RPC error / transport error)
+            setResMessage(sResult.reason);
         }
     };
     const handleCommand = async () => {
