@@ -389,7 +389,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         try {
             for (const curQuery of aParsedQuery) {
                 const sQueryResult = await getTqlChart(
-                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, use: curQuery.env?.use, aTimeFormat: pTimeRange, aTimeZone: pTimeZone }),
+                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', env: curQuery.env, aTimeFormat: pTimeRange, aTimeZone: pTimeZone }),
                     undefined,
                     signal
                 );
