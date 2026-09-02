@@ -35,6 +35,7 @@ import {
     isTagAnalyzerJsonValue,
 } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
+import { splitQualifiedTableName } from '@/utils/qualifiedTableName';
 import {
     tableMetadataApi,
     type TableColumn,
@@ -647,14 +648,18 @@ function SourceSelector({
     const sJsonKeyByColumnRef = useRef<Record<string, string>>({});
     const [sColumnRequestTable, setColumnRequestTable] = useState('');
 
+    // `database.owner.table` in one line is wider than this cell, so the name is split: the table's
+    // own name is the label, the qualifying parts the second line. Both are searched.
     const sTableOptions = useMemo<ComboboxOption[]>(
         () =>
             availableSourceTableNames.map((table) => ({
                 value: table,
-                label: table,
+                tooltip: table,
+                ...splitQualifiedTableName(table),
             })),
         [availableSourceTableNames],
     );
+    const sSelectedTableNote = useMemo(() => splitQualifiedTableName(selectedTable).description, [selectedTable]);
     const sTimeColumnOptions = useMemo<ComboboxOption[]>(
         () =>
             getTagAnalyzerTimeColumns(tableColumns).map((item) => ({
@@ -810,10 +815,12 @@ function SourceSelector({
             <div className={styles.fieldGrid}>
                 <SourceComboboxField
                     label="Table"
+                    labelNote={sSelectedTableNote}
                     options={sTableOptions}
                     value={selectedTable}
                     onChange={changeTable}
                     disabled={isTableNameLoading}
+                    dropdownWidth="auto"
                 />
                 <SourceComboboxField
                     label="Time"
@@ -1042,17 +1049,26 @@ function JsonKeyField({
 
 function SourceComboboxField({
     label,
+    labelNote,
     options,
     value,
     onChange,
     disabled,
+    dropdownWidth,
     children,
 }: {
     label: string;
+    /**
+     * Trailing note on the label line. The Table field puts the selected table's database and
+     * owner here: the field itself shows the bare name, and this is where the rest of it goes
+     * without costing the cell any height.
+     */
+    labelNote?: string;
     options: ComboboxOption[];
     value: string;
     onChange: (value: string) => void;
     disabled?: boolean;
+    dropdownWidth?: 'trigger' | 'auto';
     children?: ReactNode;
 }) {
     const sInputId = useId();
@@ -1060,7 +1076,8 @@ function SourceComboboxField({
     return (
         <div className={styles.fieldCell}>
             <label className={styles.fieldLabelTop} htmlFor={sInputId}>
-                {label}
+                <span>{label}</span>
+                {labelNote ? <span className={styles.fieldLabelNote}>{labelNote}</span> : null}
             </label>
             <Combobox.Root
                 options={options}
@@ -1072,7 +1089,7 @@ function SourceComboboxField({
             >
                 <Combobox.Input id={sInputId} />
                 <Combobox.Trigger icon={<ArrowDown size={14} />} />
-                <Combobox.Dropdown>
+                <Combobox.Dropdown width={dropdownWidth}>
                     <Combobox.List />
                 </Combobox.Dropdown>
             </Combobox.Root>

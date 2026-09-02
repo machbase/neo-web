@@ -55,9 +55,28 @@ $label-gap: 6px;
 }
 
 .fieldLabelTop {
-    display: block;
+    display: flex;
+    align-items: baseline;
+    gap: $control-gap;
     color: #a3a3a3;
     @include text.control(500);
+}
+
+/**
+ * The database · owner of the selected table, on the label line.
+ *
+ * It sits here rather than under the input so the cell keeps its height: the field is one line
+ * tall in every column of the grid, and only this one would have grown.
+ */
+.fieldLabelNote {
+    margin-left: auto;
+    min-width: 0;
+    font-size: 10px;
+    font-weight: 400;
+    color: #8a8a8a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .columnTitleText {

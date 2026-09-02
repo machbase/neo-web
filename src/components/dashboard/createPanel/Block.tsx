@@ -28,6 +28,7 @@ import { Toast } from '@/design-system/components';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import TagSelectDialog from '@/components/inputs/TagSelectDialog';
 import { Duration } from './Duration';
+import { TableInputSelect, tableSelectOptionOf, type TableSelectOption } from './TableInputSelect';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
 import { buildFullTypingQuery } from '@/utils/fullTypingDateBin';
@@ -686,14 +687,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         }
     }, [pPanelOption.type, pBlockInfo.aggregator, pBlockInfo.values, pBlockInfo.useCustom]);
 
-    const getTableList = useMemo((): string[] => {
+    const getTableList = useMemo((): TableSelectOption[] => {
         const sSortedTableList = [...pTableList].sort((aTable: any, bTable: any) => {
             const aType = getTableType(aTable[4]);
             const bType = getTableType(bTable[4]);
             return TableTypeOrderList.indexOf(aType) - TableTypeOrderList.indexOf(bType);
         });
 
-        const sTableList = sSortedTableList.map((aItem: any) => aItem[3]);
+        const sTableList = sSortedTableList.map((aItem: any) => tableSelectOptionOf(aItem[3]));
 
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             // Every tag table whose database actually has a `V$<TABLE>_STAT` view — which is
@@ -707,7 +708,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             // option list below reads. It must be computed before the splice, since the splice
             // shifts TABLE_NAME out of index 3.
             sTagTableList.forEach((aTagTable: any) => aTagTable.splice(3, 0, statViewNameOf(aTagTable)));
-            const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => bTagTable[3]));
+            const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => tableSelectOptionOf(bTagTable[3])));
             return sResult;
         } else {
             // Time_value data chart reset
@@ -723,7 +724,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             }
             return sTableList;
         }
-    }, [pPanelOption.type]);
+        // pTableList belongs in here: the refresh button beside the Table label calls pGetTables(),
+        // and without the dependency the option list kept whatever it held when the panel opened.
+    }, [pPanelOption.type, pTableList]);
     /** return use duration */
     const getUseDuration = () => {
         if (pBlockInfo.type.toUpperCase() === 'LOG' && pBlockInfo.time.toUpperCase() !== '_ARRIVAL_TIME') return true;
@@ -910,7 +913,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             {/* TABLE */}
                             <Page.DpRow style={FIELD_ROW_STYLE}>
-                                <InputSelect
+                                <TableInputSelect
                                     label={
                                         <>
                                             Table
@@ -924,15 +927,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                             />
                                         </>
                                     }
-                                    labelPosition="left"
-                                    labelAlign="right"
-                                    type="text"
-                                    options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
+                                    options={getTableList}
                                     value={pBlockInfo.table}
-                                    onChange={(aEvent: any) => changedOption('table', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                    selectValue={pBlockInfo.table}
-                                    onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
-                                    size="md"
+                                    onInputChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customInput' } })}
+                                    onSelectChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customSelect' } })}
                                     style={FIELD_STYLE}
                                 />
                                 {sIsVirtualStatTable && sPrimaryValue ? (
@@ -1015,22 +1013,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                     {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use ? (
                         <div style={FIELD_STACK_STYLE}>
                             <Page.DpRow style={FIELD_ROW_STYLE}>
-                                <InputSelect
+                                <TableInputSelect
                                     label={
                                         <>
                                             Table
                                             <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} style={{ marginLeft: '4px' }} />
                                         </>
                                     }
-                                    labelPosition="left"
-                                    labelAlign="right"
-                                    type="text"
-                                    options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
+                                    options={getTableList}
                                     value={pBlockInfo.table}
-                                    onChange={(aEvent: any) => changedOption('table', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                    selectValue={pBlockInfo.table}
-                                    onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
-                                    size="md"
+                                    onInputChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customInput' } })}
+                                    onSelectChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customSelect' } })}
                                     style={FIELD_STYLE}
                                 />
 

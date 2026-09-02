@@ -110,6 +110,46 @@ describe('PanelSeriesEditor', () => {
         );
     });
 
+    it('splits a qualified table name across the option and the label, and searches both halves', async () => {
+        // `database.owner.table` on one line is wider than this cell — it showed the qualifying
+        // prefix and no table name at all — and the same table name exists in several databases,
+        // so the qualifying parts have to stay visible somewhere.
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
+            'MACHBASEDB.SYS.ATABLE',
+            'FACTORY_A.SYS.ATABLE',
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([]);
+
+        render(
+            <PanelSeriesEditor
+                seriesList={[]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={jest.fn()}
+                onSeriesListChange={jest.fn()}
+            />,
+        );
+
+        const table = await screen.findByRole('combobox', { name: /^Table/ });
+        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        // The database and owner the field no longer shows sit on the label line instead.
+        expect(screen.getByText('Table').closest('label')).toHaveTextContent(
+            'MACHBASEDB · SYS',
+        );
+
+        fireEvent.keyDown(table, { key: 'ArrowDown' });
+        const options = screen.getAllByRole('option');
+        expect(options).toHaveLength(2);
+        expect(options[0]).toHaveTextContent('ATABLE');
+        expect(options[0]).toHaveTextContent('MACHBASEDB · SYS');
+        expect(options[1]).toHaveTextContent('FACTORY_A · SYS');
+
+        // Searching the database name still works, even though it left the label.
+        fireEvent.change(table, { target: { value: 'FACTORY' } });
+        expect(screen.getAllByRole('option')).toHaveLength(1);
+        expect(screen.getByRole('option')).toHaveTextContent('FACTORY_A · SYS');
+    });
+
     it('does not add the same source series twice', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
             'TAG',

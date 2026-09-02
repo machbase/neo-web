@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MdClose } from 'react-icons/md';
 import { useCombobox, type UseComboboxProps, type UseComboboxReturn, type ComboboxOption } from '../../hooks/useCombobox';
@@ -11,6 +11,10 @@ import styles from './index.module.scss';
 interface ComboboxContextValue extends UseComboboxReturn {}
 
 const ComboboxContext = createContext<ComboboxContextValue | null>(null);
+
+/** Breathing room the dropdown keeps from either viewport edge when it is wider than its trigger. */
+const DROPDOWN_VIEWPORT_MARGIN = 8;
+const DEFAULT_DROPDOWN_MAX_WIDTH = 420;
 
 const useComboboxContext = () => {
     const context = useContext(ComboboxContext);
@@ -153,11 +157,20 @@ const ComboboxClear = ({ className }: ComboboxClearProps) => {
 interface ComboboxDropdownProps {
     children: ReactNode;
     className?: string;
+    /**
+     * `trigger` pins the dropdown to the field's width, as it has always been. `auto` lets it grow
+     * to its content — the field width is the floor, `maxWidth` and the viewport are the ceiling —
+     * and shifts it left when it would otherwise run off the right edge.
+     */
+    width?: 'trigger' | 'auto';
+    /** Ceiling for `width="auto"`. */
+    maxWidth?: number;
 }
 
-const ComboboxDropdown = ({ children, className }: ComboboxDropdownProps) => {
+const ComboboxDropdown = ({ children, className, width = 'trigger', maxWidth = DEFAULT_DROPDOWN_MAX_WIDTH }: ComboboxDropdownProps) => {
     const combobox = useComboboxContext();
     const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+    const [leftAdjust, setLeftAdjust] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -183,6 +196,25 @@ const ComboboxDropdown = ({ children, className }: ComboboxDropdownProps) => {
             });
         }
     }, [combobox.isOpen, combobox.containerRef]);
+
+    // An auto-width dropdown is only measurable once mounted, so the horizontal correction lands
+    // here rather than in the effect above. useLayoutEffect runs before paint, so it is never seen
+    // at the uncorrected left. The computation always starts from position.left, never from the
+    // corrected value, so repeated runs converge instead of drifting. `left` is a document
+    // coordinate — the dropdown is absolutely positioned — hence the scrollX terms.
+    useLayoutEffect(() => {
+        if (!combobox.isOpen || width !== 'auto') {
+            setLeftAdjust(null);
+            return;
+        }
+        const element = dropdownRef.current;
+        if (!element) return;
+
+        const viewportWidth = document.documentElement.clientWidth;
+        const rightLimit = window.scrollX + viewportWidth - DROPDOWN_VIEWPORT_MARGIN - element.offsetWidth;
+        const nextLeft = Math.max(window.scrollX + DROPDOWN_VIEWPORT_MARGIN, Math.min(position.left, rightLimit));
+        setLeftAdjust(nextLeft === position.left ? null : nextLeft);
+    }, [combobox.isOpen, width, position.left, combobox.filteredOptions]);
 
     // Handle outside click for Portal-rendered dropdown
     useEffect(() => {
@@ -213,8 +245,14 @@ const ComboboxDropdown = ({ children, className }: ComboboxDropdownProps) => {
             style={{
                 position: 'absolute',
                 top: `${position.top}px`,
-                left: `${position.left}px`,
-                width: `${position.width}px`,
+                left: `${leftAdjust ?? position.left}px`,
+                ...(width === 'auto'
+                    ? {
+                          minWidth: `${position.width}px`,
+                          width: 'max-content',
+                          maxWidth: `min(${maxWidth}px, calc(100vw - ${DROPDOWN_VIEWPORT_MARGIN * 2}px))`,
+                      }
+                    : { width: `${position.width}px` }),
             }}
         >
             {children}
@@ -266,13 +304,21 @@ const ComboboxOption = ({ option, index, className, children }: ComboboxOptionPr
     return (
         <li
             {...props}
+            title={option.tooltip ?? undefined}
             className={`${styles['combobox__option']} ${className ?? ''} ${isSelected ? styles['combobox__option--selected'] : ''} ${
                 isFocused ? styles['combobox__option--focused'] : ''
             } ${isDisabled ? styles['combobox__option--disabled'] : ''}`}
         >
             {children ?? (
                 <>
-                    <span className={styles['combobox__option-label']}>{option.label}</span>
+                    {option.description ? (
+                        <span className={styles['combobox__option-text']}>
+                            <span className={styles['combobox__option-label']}>{option.label}</span>
+                            <span className={styles['combobox__option-description']}>{option.description}</span>
+                        </span>
+                    ) : (
+                        <span className={styles['combobox__option-label']}>{option.label}</span>
+                    )}
                     {isSelected && <FaCheck size={10} className={styles['combobox__option-check']} />}
                 </>
             )}

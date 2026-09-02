@@ -1,4 +1,4 @@
-import { isMountedTableName, isQualifiedTableName, matchesQualifiedName, qualifySiblingObject, qualifyTableName, qualifyThreePart } from './qualifiedTableName';
+import { isMountedTableName, isQualifiedTableName, matchesQualifiedName, qualifySiblingObject, qualifyTableName, qualifyThreePart, splitQualifiedTableName } from './qualifiedTableName';
 import { resetCurrentDatabase, setCurrentDatabase, setDatabases } from './currentDatabaseState';
 
 describe('qualifyTableName', () => {
@@ -184,5 +184,35 @@ describe('isMountedTableName', () => {
         test('case and whitespace do not change the answer', () => {
             expect(isMountedTableName(' machbasedb.SYS.TAG ')).toBe(false);
         });
+    });
+});
+
+describe('splitQualifiedTableName — what a picker shows', () => {
+    test('a three-part name gives the table name and the parts that qualify it', () => {
+        expect(splitQualifiedTableName('MACHBASEDB.SYS.STOCK_HISTORY')).toEqual({
+            label: 'STOCK_HISTORY',
+            description: 'MACHBASEDB \u00B7 SYS',
+        });
+    });
+
+    test('a stat view keeps its decoration on the label, where the decoration was applied', () => {
+        // `qualifySiblingObject` decorates the last segment alone, so the leading segments are
+        // still the database and owner the view is read under.
+        expect(splitQualifiedTableName('FACTORY_A.SYS.V$SENSOR_STAT')).toEqual({
+            label: 'V$SENSOR_STAT',
+            description: 'FACTORY_A \u00B7 SYS',
+        });
+    });
+
+    test('a pre-v8.7 owner-only name describes with the owner alone', () => {
+        expect(splitQualifiedTableName('SYS.TAG')).toEqual({ label: 'TAG', description: 'SYS' });
+    });
+
+    test('a bare name has nothing to qualify it', () => {
+        expect(splitQualifiedTableName('TAG')).toEqual({ label: 'TAG', description: '' });
+    });
+
+    test('no name at all is not a crash', () => {
+        expect(splitQualifiedTableName(undefined)).toEqual({ label: '', description: '' });
     });
 });

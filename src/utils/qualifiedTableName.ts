@@ -35,6 +35,24 @@ export const qualifyThreePart = (aDb: unknown, aUser: unknown, aTable: unknown):
         .filter(Boolean)
         .join('.');
 
+/**
+ * A qualified name split into what a picker should show: the table's own name, and the parts
+ * that qualify it.
+ *
+ * `database.owner.table` is 225-277px wide at 13px Pretendard, against 118px of usable width in
+ * the dashboard's Table field — one line showed `MACHBASEDB.SYS.` and no table name at all. The
+ * qualifying parts are still needed, because the same table name can exist in several databases
+ * and under several owners, so they move to a second line instead of being dropped.
+ *
+ * Shorter names degrade rather than break: `SYS.TAG` describes as `SYS`, a bare `TAG` as nothing.
+ */
+export const splitQualifiedTableName = (aName: string | undefined | null): { label: string; description: string } => {
+    const sName = String(aName ?? '').trim();
+    const sSegments = sName.split('.');
+    const sLabel = sSegments.pop() ?? '';
+    return { label: sLabel || sName, description: sSegments.join(' · ') };
+};
+
 /** True when the name already carries at least an owner. */
 export const isQualifiedTableName = (aTable: string | undefined | null): boolean => String(aTable ?? '').includes('.');
 
