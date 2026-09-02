@@ -1,6 +1,10 @@
 import request from '@/api/core';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
-import { getCurrentDatabaseId, hasLogicalDatabases } from '@/utils/currentDatabaseState';
+import {
+    getCurrentDatabaseId,
+    getCurrentDatabaseName,
+    hasLogicalDatabases,
+} from '@/utils/currentDatabaseState';
 import { fetchDashboardJsonColumnSamples } from '@/api/repository/machiot';
 import { Toast } from '@/design-system/components';
 import { parseTables } from '@/utils';
@@ -345,19 +349,21 @@ function parseRollupMetadataRow(
 function resolveTableColumnsTarget(tableName: string): TableColumnsTarget {
     const tableParts: string[] = tableName.split('.');
     const hasUserName: boolean = tableParts.length >= 2;
+    const databaseName: string | undefined = tableParts.length >= 3
+        ? tableParts[0]
+        : undefined;
     const userName: string = tableParts.length >= 3
         ? tableParts[1]
         : tableParts[0];
     return {
-        // Three-part names carry their database in the first part. On v8.7 that is a logical
-        // database, resolved through V$DATABASES; on older servers the only multi-database
-        // concept was a mounted backup, so the lookup stays on V$STORAGE_MOUNT_DATABASES.
-        // A shorter name means "the database this session is in", which is -1 only pre-v8.7.
-        databaseIdQuery: tableParts.length >= 3
-            ? hasLogicalDatabases()
-                ? `(SELECT DATABASE_ID FROM V$DATABASES WHERE NAME = ${buildSqlStringLiteral(tableParts[0])})`
-                : `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(tableParts[0])})`
-            : String(getCurrentDatabaseId()),
+        // The current database already has a resolved id. Only a different database needs a
+        // catalogue lookup; otherwise MACHBASEDB is mistaken for a mounted backup pre-v8.7.
+        databaseIdQuery: !databaseName ||
+            databaseName.toUpperCase() === getCurrentDatabaseName().toUpperCase()
+            ? String(getCurrentDatabaseId())
+            : hasLogicalDatabases()
+                ? `(SELECT DATABASE_ID FROM V$DATABASES WHERE NAME = ${buildSqlStringLiteral(databaseName)})`
+                : `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(databaseName)})`,
         tableName: parseSqlIdentifierPath(
             tableParts.at(-1) ?? '',
             'SQL table name',

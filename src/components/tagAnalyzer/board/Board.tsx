@@ -218,18 +218,24 @@ export default function Board({
     const sHeaderActions = [
         {
             key: 'refresh-data',
+            'data-testid': 'refresh-data-button',
+            'aria-label': 'Refresh all panel data',
             toolTipContent: 'Refresh data',
             icon: <Refresh size={15} />,
             onClick: () => incrementBroadcastVersion('refreshData'),
         },
         {
             key: 'refresh-range',
+            'data-testid': 'refresh-range-button',
+            'aria-label': 'Refresh all panel ranges',
             toolTipContent: 'Refresh ranges',
             icon: <LuTimerReset size={16} />,
             onClick: () => incrementBroadcastVersion('refreshRange'),
         },
         {
             key: 'expand-full-range',
+            'data-testid': 'expand-full-range-button',
+            'aria-label': 'Expand all panels to full data range',
             toolTipContent: 'Expand all panels to full data range',
             icon: <GoArrowBoth size={15} />,
             onClick: () =>
@@ -237,6 +243,8 @@ export default function Board({
         },
         {
             key: 'save',
+            'data-testid': 'save-button',
+            'aria-label': 'Save Tag Analyzer board',
             className: boardSave.hasUnsavedChanges
                 ? 'tag-analyzer-board-header__save-button--unsaved'
                 : undefined,

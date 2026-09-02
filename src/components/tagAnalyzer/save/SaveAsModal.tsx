@@ -179,6 +179,8 @@ export function SaveAsModal({
             </Modal.Header>
             <div className="taz-save-as-modal__nav">
                 <Button
+                    data-testid="tag-analyzer-save-as-back-button"
+                    aria-label="Go to parent directory"
                     size="sm"
                     variant="ghost"
                     active={sSelectedDir.length > 0}
@@ -188,6 +190,8 @@ export function SaveAsModal({
                     onClick={handleBackPath}
                 />
                 <Button
+                    data-testid="tag-analyzer-save-as-forward-button"
+                    aria-label="Go to next directory"
                     size="sm"
                     variant="ghost"
                     active={sForwardDirStack.length > 0}
@@ -197,6 +201,7 @@ export function SaveAsModal({
                     onClick={handleForwardPath}
                 />
                 <Input
+                    data-testid="tag-analyzer-save-as-directory-path"
                     leftIcon={
                         <>
                             <Home size={14} />
@@ -214,6 +219,7 @@ export function SaveAsModal({
                     {sFileList.map((fileItem) => (
                         <div
                             key={fileItem.name}
+                            data-testid={`tag-analyzer-save-as-item-${encodeURIComponent(fileItem.name)}`}
                             className={`taz-save-as-modal__file-row${sSelectedFileName === fileItem.name ? ' taz-save-as-modal__file-row--selected' : ''}`}
                             onClick={(event) => handleSelectFile(event, fileItem)}
                         >

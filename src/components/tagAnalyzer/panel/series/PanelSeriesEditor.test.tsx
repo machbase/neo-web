@@ -42,6 +42,34 @@ describe('PanelSeriesEditor', () => {
         jest.restoreAllMocks();
     });
 
+    it('assigns an encoded test ID to each table option', async () => {
+        const tableName = 'PW TABLE/1';
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
+            tableName,
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([]);
+
+        render(
+            <PanelSeriesEditor
+                seriesList={[]}
+                rollupTableList={{}}
+                lockedAxisKind={undefined}
+                onFooterMessageChange={jest.fn()}
+                onSeriesListChange={jest.fn()}
+            />,
+        );
+
+        const tableInput = screen.getByLabelText('Table');
+        fireEvent.focus(tableInput);
+        fireEvent.change(tableInput, { target: { value: tableName } });
+
+        expect(
+            await screen.findByTestId(
+                `tag-analyzer-table-option-${encodeURIComponent(tableName)}`,
+            ),
+        ).toHaveTextContent(tableName);
+    });
+
     it('updates a selected series calculation mode', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([]);
         const onSeriesListChange = jest.fn();

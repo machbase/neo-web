@@ -75,6 +75,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
 
     return (
         <button
+            data-testid={`main-tab-${encodeURIComponent(pBoard.id)}`}
             onClick={() => pSetSelectedTab(pBoard.id)}
             onContextMenu={(event) => pOnContextMenu(event, pBoard.id)}
             onMouseEnter={() => handleHover(true)}

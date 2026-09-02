@@ -652,6 +652,7 @@ function SourceSelector({
             availableSourceTableNames.map((table) => ({
                 value: table,
                 label: table,
+                testId: `tag-analyzer-table-option-${encodeTestIdSegment(table)}`,
             })),
         [availableSourceTableNames],
     );
