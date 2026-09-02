@@ -34,6 +34,8 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const getShowShellList = useRecoilValue<any>(gShowShellList);
     const [sActiveShellName, setActiveShellName] = useRecoilState<any>(gActiveShellManage);
+    // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
+    const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sPayload, setPayload] = useState<any>(pCode);
     const [sResMessage, setResMessage] = useState<string | undefined>(undefined);
@@ -284,8 +286,8 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                     <SplitPane
                         sashRender={() => Resizer()}
                         split={'vertical'}
-                        sizes={['50', '50']}
-                        onChange={() => {}}
+                        sizes={sGroupWidth}
+                        onChange={setGroupWidth}
                     >
                         <Pane minSize={400}>
                             <Page.Header />

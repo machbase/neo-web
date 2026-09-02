@@ -1,192 +1,221 @@
-import { Copy, LuFlipVertical } from '@/assets/icons/Icon';
-import { useEffect, useRef, useState } from 'react';
-import { IconButton } from '@/components/buttons/IconButton';
+import { useRef, useState } from 'react';
 import { CreatePayloadType, GenKeyResType, KeyItemType, genKey, getKeyList } from '@/api/repository/key';
-import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { gBoardList, gKeyList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Page, Button, Alert } from '@/design-system/components';
+import { SplitPane, Pane, Page, Alert } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import moment from 'moment';
+import { PiCertificateLight } from 'react-icons/pi';
+import { FactRow, detailStyles as styles } from './detailParts';
 
-// key.generate returns { certificate, key(privateKey), token }; when store=true it also returns serverKey
-// and zip (base64). When store=false serverKey is merged in by genKey via server.certificate.get and there
-// is no zip. The *.zip download button is shown only when a zip is present (i.e. store=true).
+// `key.generate(name, typ, notBefore, notAfter, store)` returns { id, name, certificate, key } and —
+// only when store=true — `serverKey` and `zip`. There is no token: API tokens moved to `token.*`.
+// None of certificate / privateKey / zip can be fetched again, hence the warnings before and after issuing.
+
 const KEY_TYPE_LIST: { name: string; data: string }[] = [
     { name: 'ECDSA', data: 'ecdsa' },
     { name: 'RSA', data: 'rsa' },
 ];
+const NAME_MAX = 40;
+/**
+ * The server's own check is `regexp.MatchString("[a-z][a-z0-9_.@-]+", name)` — unanchored, so it only
+ * needs a matching substring: "Has Space!!xy" passes and lands a space inside the certificate URN.
+ * Anchor it here so the client never sends a name the server would mangle.
+ */
+const NAME_RULE = /^[a-z][a-z0-9_.@-]*$/;
 
-export const CreateKey = () => {
-    const DOWNLOAD_LIST: string[] = ['certificate', 'privateKey', 'token', 'serverKey'];
-    const RES_CAUTION: string = 'Caution: This is your only chance to copy the certificate, private key, and token. They cannot be regenerated.';
+const RESPONSE_CAUTION = 'certificate · privateKey · zip are in this response only — they cannot be fetched again.';
+
+/** @param pInitialName prefilled client id, handed over by the detail view's Reissue action */
+export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
     const [sGenKeyInfo, setGenKeyInfo] = useState<GenKeyResType | undefined>(undefined);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
-    const setSecurityKeyList = useSetRecoilState<KeyItemType[] | undefined>(gKeyList);
+    const setCertList = useSetRecoilState<KeyItemType[] | undefined>(gKeyList);
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
-    const [sTooltipTxt, setTooltipTxt] = useState<string>('Copy');
     const sBodyRef: any = useRef(null);
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
-    const [isVertical, setIsVertical] = useState<boolean>(true);
-    const [sStartTime, sSetStartTime] = useState<string>('');
-    const [sEndTime, sSetEndTime] = useState<string>('');
+    const [sStartTime, setStartTime] = useState<string>('');
+    const [sEndTime, setEndTime] = useState<string>('');
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
-        name: '',
+        name: pInitialName ?? '',
         type: 'ecdsa',
         notBefore: 0,
         notAfter: 0,
         store: true,
     });
 
-    /** check time format (string date -> valid?) */
-    const isTimeFormat = (aTxt: string): boolean => {
-        if (aTxt === '0') return false;
-        if (Number(aTxt)) return false;
-        return moment(aTxt).isValid();
+    const sName = String(sCreatePayload.name ?? '');
+    const sNameInvalid = sName.length > 0 && !NAME_RULE.test(sName);
+    const sNameError = sNameInvalid ? 'must start with a lowercase letter and use only a-z 0-9 _ . @ -' : undefined;
+
+    /** string date -> unix seconds; empty or unparseable means "let the server decide" (0) */
+    const toUnix = (aTxt: string): number => {
+        if (!aTxt || Number(aTxt)) return 0;
+        const sMoment = moment(`${aTxt} 00:00:00`);
+        return sMoment.isValid() ? sMoment.unix() : 0;
     };
-    /** create key — `key.generate(id, typ, notBefore, notAfter, store)` */
+
+    /**
+     * The server validates neither the order of the two dates nor whether notAfter is already past —
+     * it happily issues a certificate that is dead on arrival. Block both here.
+     * An empty notBefore means the server will use `now`, so that is what notAfter is compared against.
+     */
+    const sNotBefore = toUnix(sStartTime);
+    const sNotAfter = toUnix(sEndTime);
+    const sNowSec = Math.floor(Date.now() / 1000);
+    const sRangeError =
+        sNotAfter === 0
+            ? undefined
+            : sNotBefore > 0 && sNotAfter <= sNotBefore
+              ? 'notAfter must come after notBefore'
+              : sNotBefore === 0 && sNotAfter <= sNowSec
+                ? 'notAfter must be in the future'
+                : undefined;
+
+    const sCanSubmit = sName.length > 0 && !sNameError && !sRangeError;
+
+    /** create certificate — `key.generate(name, typ, notBefore, notAfter, store)` */
     const createKey = async () => {
+        if (!sCanSubmit) return;
         const sRes = await genKey({
-            name: sCreatePayload.name,
+            name: sName,
             type: sCreatePayload.type,
-            notBefore: isTimeFormat(sStartTime + ' 00:00:00') ? moment(sStartTime + ' 00:00:00').unix() : 0,
-            notAfter: isTimeFormat(sEndTime + ' 00:00:00') ? moment(sEndTime + ' 00:00:00').unix() : 0,
+            notBefore: sNotBefore,
+            notAfter: sNotAfter,
             store: sCreatePayload.store,
         });
         if (sRes.success) {
-            setGenKeyInfo({ ...sRes, name: sCreatePayload.name as string });
-            const sKeyList = await getKeyList();
-            if (sKeyList.success) setSecurityKeyList(sKeyList.data);
-            else setSecurityKeyList(undefined);
+            // the server lowercases the name; keep its value rather than the raw form input
+            setGenKeyInfo(sRes);
+            const sList = await getKeyList();
+            setCertList(sList.success ? sList.data : undefined);
             handleSavedCode(true);
             setResErrMessage(undefined);
         } else {
             setGenKeyInfo(undefined);
-            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+            setResErrMessage(sRes.reason);
         }
     };
-    /** handle key info */
-    const handlePayload = (aTarget: string, aEvent: React.FormEvent<HTMLInputElement>) => {
-        const sTarget = aEvent.target as HTMLInputElement;
-        setCreatePayload((prev) => ({ ...prev, [aTarget]: sTarget.value }));
+    const handlePayload = (aTarget: string, aValue: string | boolean) => {
+        setCreatePayload((prev) => ({ ...prev, [aTarget]: aValue }));
         handleSavedCode(false);
     };
     /** Saved status */
     const handleSavedCode = (aSavedStatus: boolean) => {
-        setBoardList((aBoardList: any) => {
-            return aBoardList.map((aBoard: any) => {
-                if (aBoard.type === 'key') {
-                    return {
-                        ...aBoard,
-                        name: `KEY: create`,
-                        savedCode: aSavedStatus,
-                    };
-                }
-                return aBoard;
-            });
-        });
+        setBoardList((aBoardList: any) => aBoardList.map((aBoard: any) => (aBoard.type === 'key' ? { ...aBoard, name: 'CERT: create', savedCode: aSavedStatus } : aBoard)));
     };
-    /** download zip file (server.pem, {id}_cert.pem, {id}_key.pem, {id}_token.txt) — store=true only */
+    /** download zip (server.pem, {name}_cert.pem, {name}_key.pem) — store=true only */
     const handleDownloadFile = () => {
-        if (sGenKeyInfo && sGenKeyInfo.zip) {
-            const byteCharacters = atob(sGenKeyInfo.zip as string);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'application/zip' });
-            const blobUrl = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.setAttribute('download', `${sGenKeyInfo.name as string}.zip`);
-            document.body.appendChild(link);
-            link.click();
-        }
+        if (!sGenKeyInfo?.zip) return;
+        const sBytes = atob(sGenKeyInfo.zip as string);
+        const sNumbers = new Array(sBytes.length);
+        for (let i = 0; i < sBytes.length; i++) sNumbers[i] = sBytes.charCodeAt(i);
+        const sBlob = new Blob([new Uint8Array(sNumbers)], { type: 'application/zip' });
+        const sUrl = URL.createObjectURL(sBlob);
+        const sLink = document.createElement('a');
+        sLink.href = sUrl;
+        sLink.setAttribute('download', `${sGenKeyInfo.name}.zip`);
+        document.body.appendChild(sLink);
+        sLink.click();
+        document.body.removeChild(sLink);
+        URL.revokeObjectURL(sUrl);
     };
-    /** copy clipboard */
-    const handleCopy = (aKey: string) => {
-        setTooltipTxt('Copied!');
-        sGenKeyInfo && ClipboardCopy(sGenKeyInfo[aKey] as string);
-        setTimeout(() => {
-            setTooltipTxt('Copy');
-        }, 600);
-    };
-    /** set validity period (Valid After / Valid Before) */
-    const handleTime = (aTarget: string, aValue: any) => {
-        if (aTarget === 'startTime') sSetStartTime(aValue);
-        else sSetEndTime(aValue);
+    const handleTime = (aTarget: 'start' | 'end', aValue: string) => {
+        if (aTarget === 'start') setStartTime(aValue);
+        else setEndTime(aValue);
         handleSavedCode(false);
     };
-    const Resizer = () => {
-        return <SashContent className={`security-key-sash-style`} />;
-    };
-    /** init validity period: Valid After = now, Valid Before = now + 10y (server default) */
-    const init = () => {
-        const sDate = new Date();
-        sSetStartTime(moment(sDate).format('YYYY-MM-DD'));
-        sSetEndTime(moment(sDate).add(10, 'y').format('YYYY-MM-DD'));
-    };
-
-    useEffect(() => {
-        init();
-    }, []);
+    const Resizer = () => <SashContent className={`security-key-sash-style`} />;
 
     return (
         <Page pRef={sBodyRef}>
-            <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
+            <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
                     <Page.Header />
                     <Page.Body>
                         <Page.ContentBlock>
+                            <div className={styles.titleRow}>
+                                <PiCertificateLight size={20} className={styles.glyph} />
+                                <span className={styles.title}>New certificate</span>
+                            </div>
+                            <span className={styles.subline}>X.509 key pair for MQTT TLS and gRPC mutual auth</span>
+                        </Page.ContentBlock>
+
+                        <Page.ContentBlock>
                             <Page.DpRow>
-                                <Page.ContentTitle>Client id</Page.ContentTitle>
+                                <Page.ContentTitle>name</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span className={styles.req}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
-                            <Page.ContentDesc>Unique client id — lowercase letters, digits, and _ . @ - only</Page.ContentDesc>
-                            <Page.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
-                        </Page.ContentBlock>
-                        <Page.ContentBlock>
-                            <Page.DpRow>
-                                <Page.ContentTitle>Type</Page.ContentTitle>
-                            </Page.DpRow>
-                            <Page.ContentDesc>Key algorithm</Page.ContentDesc>
-                            <Page.ContentDesc>{'Tokens authenticate HTTP API & MQTT clients; X.509 keys are for MQTT TLS and gRPC.'}</Page.ContentDesc>
-                            <Page.Selector
-                                pList={KEY_TYPE_LIST}
-                                pSelectedItem={sCreatePayload.type}
-                                pCallback={(aSelectedItem: string) => handlePayload('type', { target: { value: aSelectedItem } } as any)}
+                            <Page.ContentDesc>{`starts with a lowercase letter · a-z 0-9 _ . @ - only · max ${NAME_MAX}`}</Page.ContentDesc>
+                            <Page.Input
+                                pAutoFocus
+                                pValue={sName}
+                                pMaxLen={NAME_MAX}
+                                pPlaceholder="edge-gw-02"
+                                pCallback={(aEvent: React.FormEvent<HTMLInputElement>) => handlePayload('name', (aEvent.target as HTMLInputElement).value)}
                             />
+                            {sNameError && (
+                                <>
+                                    {/* ContentBlock has no internal gap, so the alert would sit flush on the input */}
+                                    <Page.Space pHeight="8px" />
+                                    <Page.TextResErr pText={sNameError} />
+                                </>
+                            )}
                         </Page.ContentBlock>
+
                         <Page.ContentBlock>
                             <Page.DpRow>
-                                <Page.ContentTitle>Valid After</Page.ContentTitle>
+                                <Page.ContentTitle>type</Page.ContentTitle>
+                                <Page.ContentDesc>
+                                    <span className={styles.req}>*</span>
+                                </Page.ContentDesc>
                             </Page.DpRow>
-                            <Page.ContentDesc>Key validity start (empty = now)</Page.ContentDesc>
-                            <Page.DatePicker pTime={sStartTime} pSetApply={(e: any) => handleTime('startTime', e)} />
+                            <Page.Selector pList={KEY_TYPE_LIST} pSelectedItem={String(sCreatePayload.type)} pCallback={(aValue: string) => handlePayload('type', aValue)} />
                         </Page.ContentBlock>
+
                         <Page.ContentBlock>
-                            <Page.DpRow>
-                                <Page.ContentTitle>Valid Before</Page.ContentTitle>
-                            </Page.DpRow>
-                            <Page.ContentDesc>Key validity end (empty = now + 10 years)</Page.ContentDesc>
-                            <Page.DatePicker pTime={sEndTime} pSetApply={(e: any) => handleTime('endTime', e)} />
+                            <Page.ContentTitle>notBefore</Page.ContentTitle>
+                            <Page.DatePicker pTime={sStartTime} pPlaceholder="empty = now" pSetApply={(aValue: any) => handleTime('start', aValue)} />
                         </Page.ContentBlock>
+
                         <Page.ContentBlock>
-                            <Page.ContentTitle>Store</Page.ContentTitle>
+                            <Page.ContentTitle>notAfter</Page.ContentTitle>
+                            <Page.DatePicker pTime={sEndTime} pPlaceholder="empty = +10 years" pSetApply={(aValue: any) => handleTime('end', aValue)} />
+                            {sRangeError && (
+                                <>
+                                    <Page.Space pHeight="8px" />
+                                    <Page.TextResErr pText={sRangeError} />
+                                </>
+                            )}
+                        </Page.ContentBlock>
+
+                        <Page.ContentBlock>
+                            <Page.ContentTitle>store</Page.ContentTitle>
+                            {/* the shared checkbox wrapper is `justify-content: center`, so it needs a
+                                flex row around it to sit on the label's left edge like every other field */}
                             <Page.DpRow>
                                 <Page.Checkbox
-                                    label="Store the generated key on the server (so it appears in the key list)"
-                                    pValue={sCreatePayload.store as boolean}
-                                    pCallback={(value: boolean) => handlePayload('store', { target: { value } } as any)}
+                                    label="keep on the server and list it"
+                                    pValue={Boolean(sCreatePayload.store)}
+                                    pCallback={(aValue: boolean) => handlePayload('store', aValue)}
                                 />
                             </Page.DpRow>
+                            {!sCreatePayload.store && <Page.ContentDesc>without store the key is not listed, id comes back as 0, and serverKey · zip are not returned</Page.ContentDesc>}
                         </Page.ContentBlock>
+
                         <Page.ContentBlock>
-                            <Page.TextButton pText="Generate" pType="CREATE" pCallback={createKey} />
+                            <Page.TextButton pText="Generate certificate" pWidth="150px" pType="CREATE" pIsDisable={!sCanSubmit} pCallback={createKey} />
                         </Page.ContentBlock>
+
+                        <Page.ContentBlock>
+                            <div className={styles.formNote}>
+                                <span>ⓘ</span>
+                                <span>{RESPONSE_CAUTION}</span>
+                            </div>
+                        </Page.ContentBlock>
+
                         {!sGenKeyInfo && sResErrMessage && (
                             <Page.ContentBlock>
                                 <Alert variant="error" message={sResErrMessage} />
@@ -194,67 +223,45 @@ export const CreateKey = () => {
                         )}
                     </Page.Body>
                 </Pane>
-                <Pane>
-                    <Page.Header>
-                        <div />
-                        <Button.Group>
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                active={isVertical}
-                                isToolTip
-                                toolTipContent="Vertical"
-                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
-                                onClick={() => setIsVertical(true)}
-                            />
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                active={!isVertical}
-                                isToolTip
-                                toolTipContent="Horizontal"
-                                icon={<LuFlipVertical size={16} />}
-                                onClick={() => setIsVertical(false)}
-                            />
-                        </Button.Group>
-                    </Page.Header>
+
+                <Pane minSize={360}>
+                    <Page.Header />
                     {sGenKeyInfo && sGenKeyInfo.success && (
                         <Page.Body>
                             <Page.ContentBlock>
-                                <Page.SubTitle>Response</Page.SubTitle>
-                                <Page.ContentDesc>
-                                    <Alert variant="warning" message={RES_CAUTION} />
-                                </Page.ContentDesc>
+                                <div className={styles.titleRow}>
+                                    <span className={styles.title}>Response</span>
+                                </div>
+                                <span className={styles.subline}>{`id ${sGenKeyInfo.id} · store=${String(Boolean(sGenKeyInfo.zip))}`}</span>
                             </Page.ContentBlock>
-                            {sGenKeyInfo.zip && (
+                            <Page.ContentBlock>
+                                <Alert variant="warning" message={RESPONSE_CAUTION} />
+                            </Page.ContentBlock>
+                            <Page.ContentBlock>
+                                <div className={styles.facts}>
+                                    <FactRow pLabel="id" pValue={String(sGenKeyInfo.id)} />
+                                    <FactRow pLabel="name" pValue={String(sGenKeyInfo.name)} />
+                                </div>
+                            </Page.ContentBlock>
+                            {sGenKeyInfo.zip ? (
                                 <Page.ContentBlock>
-                                    <Page.DpRow>
-                                        <div style={{ marginRight: '4px' }}>
-                                            <Page.TextButton pWidth="120px" pText={`Download *.zip`} pType="CREATE" pCallback={handleDownloadFile} />
-                                        </div>
-                                    </Page.DpRow>
-                                    <Page.ContentDesc>{'Zip contains: server cert, {id}_cert.pem, {id}_key.pem, {id}_token (only when "Store" is checked).'}</Page.ContentDesc>
+                                    <Page.TextButton pText="Download *.zip" pWidth="120px" pType="CREATE" pCallback={handleDownloadFile} />
+                                    <Page.ContentDesc>{`zip: server.pem · ${sGenKeyInfo.name}_cert.pem · ${sGenKeyInfo.name}_key.pem`}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                            ) : (
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>issued with store off — id is 0 and no zip is provided</Page.ContentDesc>
                                 </Page.ContentBlock>
                             )}
-                            {DOWNLOAD_LIST.map((aTxt: string) => {
-                                return (
-                                    <Page.ContentBlock key={aTxt}>
-                                        <Page.DpRow>
-                                            <Page.ContentTitle>{aTxt}</Page.ContentTitle>
-                                            <IconButton
-                                                pIsToopTip
-                                                pToolTipContent={sTooltipTxt}
-                                                pToolTipId={'shell-key-' + aTxt + '-block-math'}
-                                                pWidth={25}
-                                                pHeight={25}
-                                                pIcon={<Copy />}
-                                                onClick={() => handleCopy(aTxt)}
-                                            />
-                                        </Page.DpRow>
-                                        <Page.ContentText pContent={sGenKeyInfo[aTxt] as string} />
-                                    </Page.ContentBlock>
-                                );
-                            })}
+                            <Page.ContentBlock>
+                                <Page.CopyBlock pTitle="certificate" pContent={sGenKeyInfo.certificate as string} />
+                            </Page.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.CopyBlock pTitle="privateKey" pContent={sGenKeyInfo.privateKey as string} />
+                            </Page.ContentBlock>
+                            <Page.ContentBlock>
+                                <Page.CopyBlock pTitle="serverKey" pContent={sGenKeyInfo.serverKey as string} />
+                            </Page.ContentBlock>
                         </Page.Body>
                     )}
                 </Pane>

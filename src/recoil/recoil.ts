@@ -137,6 +137,16 @@ export const gActiveKey = atom<any>({
     default: '' as string,
 });
 
+export const gTokenList = atom<any>({
+    key: 'gTokenList',
+    default: [] as any,
+});
+
+export const gActiveToken = atom<any>({
+    key: 'gActiveToken',
+    default: '' as string,
+});
+
 export const gTimerList = atom<any>({
     key: 'gTimerList',
     default: [] as any,

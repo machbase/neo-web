@@ -1,64 +1,63 @@
-import { KeyItemType, delKey, getKeyList } from '@/api/repository/key';
+import { ApiTokenItemType, delApiToken, getApiTokens } from '@/api/repository/token';
 import { Page, SplitPane, Pane, Alert } from '@/design-system/components';
-import { CreateKey } from '@/components/securityKey/createKey';
+import { CreateToken } from '@/components/securityKey/createToken';
 import { useRecoilState } from 'recoil';
-import { gActiveKey, gBoardList, gKeyList } from '@/recoil/recoil';
+import { gActiveToken, gBoardList, gTokenList } from '@/recoil/recoil';
 import { SashContent } from 'split-pane-react';
 import { useState } from 'react';
 import { ConfirmModal } from '../modal/ConfirmModal';
-import { PiCertificateLight } from 'react-icons/pi';
-import { StatusBadge, ValidityBar, FactRow, UsageBlock, expiryState, asDate, humanizeSpan, detailStyles as styles } from './detailParts';
+import { TokenIcon } from './icons';
+import { StatusBadge, ValidityBar, FactRow, UsageBlock, expiryState, asDateTime, humanizeSpan, detailStyles as styles } from './detailParts';
 
-// Certificate board. `gActiveKey` holds the numeric management id of the selected certificate;
-// an empty value means the create form. Names are NOT unique, so every lookup and the delete
-// confirmation are keyed on `id`.
+// API token board. `gActiveToken` holds the numeric id of the selected token; empty means the
+// create form. The list never carries the plaintext token — only `hint` — so this view offers no
+// copy action for the secret; a lost token has to be reissued.
 
-export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: string } }) => {
-    const [sCertList, setCertList] = useRecoilState<KeyItemType[] | undefined>(gKeyList);
+export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: string } }) => {
+    const [sTokenList, setTokenList] = useRecoilState<ApiTokenItemType[] | undefined>(gTokenList);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const [sActiveKey, setActiveKey] = useRecoilState<any>(gActiveKey);
+    const [sActiveToken, setActiveToken] = useRecoilState<any>(gActiveToken);
     // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sDeleteError, setDeleteError] = useState<string | undefined>(undefined);
 
-    const sTarget = sBoardList.find((aBoard: any) => aBoard.type === 'key');
+    const sTarget = sBoardList.find((aBoard: any) => aBoard.type === 'token');
 
-    /** delete certificate — `key.delete(id)` takes the numeric management id */
-    const deleteKey = async () => {
-        const sRes = await delKey(pCode.id);
+    /** delete token — `token.delete(id)` */
+    const deleteToken = async () => {
+        const sRes = await delApiToken(pCode.id);
         if (!sRes.success) {
             setDeleteError(sRes.reason);
             setIsDeleteModal(false);
             return;
         }
         setDeleteError(undefined);
-        const sList = await getKeyList();
-        setCertList(sList.success ? sList.data : undefined);
+        const sList = await getApiTokens();
+        setTokenList(sList.success ? sList.data : undefined);
 
-        const sRemain = (sCertList ?? []).filter((aCert) => aCert.id !== pCode.id);
+        const sRemain = (sTokenList ?? []).filter((aToken) => aToken.id !== pCode.id);
         if (sRemain.length > 0) {
-            setActiveKey(sRemain[0].id);
+            setActiveToken(sRemain[0].id);
             setBoardList((aBoardList: any) =>
-                aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: `CERT: ${sRemain[0].name}`, code: sRemain[0], savedCode: sRemain[0] } : aBoard))
+                aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: `TOKEN: ${sRemain[0].name}`, code: sRemain[0], savedCode: sRemain[0] } : aBoard))
             );
         } else {
-            setActiveKey('');
+            setActiveToken('');
             setBoardList((aBoardList: any) =>
-                aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: 'CERT: create', code: undefined, savedCode: undefined } : aBoard))
+                aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: 'TOKEN: create', code: undefined, savedCode: undefined } : aBoard))
             );
         }
         setIsDeleteModal(false);
     };
     /*
-     * Reissue — hidden for now, kept because the flow is the only way to renew: a certificate cannot
-     * be renewed in place, so it means generating a new key pair under the same client id, deploying
-     * it, then deleting this one. Restoring it is this block plus the button below.
+     * Reissue — hidden for now, kept because the secret is unrecoverable and so "renewing" is always
+     * issue-new-then-delete-old. Restoring it is this block plus the button below.
      *
      * const handleReissue = () => {
-     *     setActiveKey('');
+     *     setActiveToken('');
      *     setBoardList((aBoardList: any) =>
-     *         aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: 'CERT: create', code: { reissueName: pCode.name }, savedCode: false } : aBoard))
+     *         aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: 'TOKEN: create', code: { reissueName: pCode.name }, savedCode: false } : aBoard))
      *     );
      * };
      */
@@ -68,7 +67,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
     };
     const Resizer = () => <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
 
-    const sHasSelection = sActiveKey !== '' && sActiveKey !== undefined && sActiveKey !== null && !!pCode?.name;
+    const sHasSelection = sActiveToken !== '' && sActiveToken !== undefined && sActiveToken !== null && !!pCode?.hint;
     const sState = sHasSelection ? expiryState(pCode.notAfter) : 'ok';
 
     return (
@@ -83,11 +82,11 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                                     <div className={styles.head}>
                                         <div className={styles.headMain}>
                                             <div className={styles.titleRow}>
-                                                <PiCertificateLight size={20} className={styles.glyph} />
+                                                <TokenIcon size={20} className={styles.glyph} />
                                                 <span className={styles.title}>{pCode.name}</span>
                                                 <StatusBadge pState={sState} pNotAfter={pCode.notAfter} />
                                             </div>
-                                            <span className={styles.subline}>{`X.509 client certificate · id ${pCode.id} · CN ${pCode.name}`}</span>
+                                            <span className={styles.subline}>{`API bearer token · id ${pCode.id} · user ${pCode.user}`}</span>
                                         </div>
                                         <div className={styles.actions}>
                                             {/* <Page.TextButton pText="Reissue" pWidth="80px" pType="CREATE" mr="0px" mb="0px" pCallback={handleReissue} /> */}
@@ -102,7 +101,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                                             variant={sState === 'expired' ? 'error' : 'warning'}
                                             message={
                                                 sState === 'expired'
-                                                    ? 'This certificate has expired. Clients presenting it can no longer authenticate — issue a replacement and deploy it.'
+                                                    ? 'This token has expired. Clients presenting it can no longer authenticate — issue a replacement and deploy it.'
                                                     : `Expires in ${humanizeSpan(pCode.notAfter - Date.now() / 1000)}. Issue a replacement, deploy it to the client, then delete this one.`
                                             }
                                         />
@@ -110,21 +109,18 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                                 )}
 
                                 <Page.ContentBlock>
-                                    <ValidityBar pFrom={pCode.notBefore} pTo={pCode.notAfter} pState={sState} />
+                                    <ValidityBar pFrom={pCode.createdAt} pTo={pCode.notAfter} pState={sState} />
                                 </Page.ContentBlock>
 
                                 <Page.ContentBlock>
                                     <div className={styles.facts}>
                                         <FactRow pLabel="id" pValue={String(pCode.id)} />
-                                        <FactRow pLabel="notBefore" pValue={asDate(pCode.notBefore)} />
-                                        <FactRow pLabel="notAfter" pValue={asDate(pCode.notAfter)} pTone={sState} />
-                                        {/*
-                                          * The certificate's SAN URI (`urn:machbase:neo:client:<name>`) is deliberately NOT shown here.
-                                          * `key.list` does not return it — it would have to be reassembled client-side from the server's
-                                          * formatting rule, so it would sit in this table looking like API data while actually being a guess
-                                          * that goes stale the moment the server changes the format. It also carries nothing the name above
-                                          * does not already say.
-                                          */}
+                                        <FactRow pLabel="user" pValue={pCode.user} />
+                                        <FactRow pLabel="hint" pValue={pCode.hint} pMono />
+                                        <FactRow pLabel="createdAt" pValue={asDateTime(pCode.createdAt)} />
+                                        <FactRow pLabel="notAfter" pValue={asDateTime(pCode.notAfter)} pTone={sState} />
+                                        {/* omitempty on the server — absent means never used, not epoch 0 */}
+                                        <FactRow pLabel="lastUsedAt" pValue={pCode.lastUsedAt ? asDateTime(pCode.lastUsedAt) : '— never used'} />
                                     </div>
                                 </Page.ContentBlock>
 
@@ -140,32 +136,30 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                             <Page.Body>
                                 <Page.ContentBlock>
                                     <UsageBlock
-                                        pWhere="MQTT TLS · gRPC mutual auth"
-                                        pCode={`mosquitto_pub --cafile server.pem \\\n  --cert ${pCode.name}_cert.pem --key ${pCode.name}_key.pem \\\n  -h 127.0.0.1 -p 5653 -t db/append/EXAMPLE`}
+                                        pWhere="HTTP API · MQTT client auth"
+                                        pCode={`curl -H "Authorization: Bearer $TOKEN" \\\n  http://127.0.0.1:5654/db/query?q=select+1\n\nmosquitto_pub -u "$TOKEN" \\\n  -h 127.0.0.1 -p 5653 -t db/append/EXAMPLE`}
                                     />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
-                                    <Page.ContentDesc>
-                                        The certificate body and private key exist only in the issue response and cannot be retrieved here. If lost, reissue.
-                                    </Page.ContentDesc>
+                                    <Page.ContentDesc>The plaintext token exists only in the issue response. The list keeps just the hint, so if lost, reissue.</Page.ContentDesc>
                                 </Page.ContentBlock>
                             </Page.Body>
                         </Pane>
                     </SplitPane>
                 </Page>
             )}
-            {!sHasSelection && <CreateKey pInitialName={pCode?.reissueName} />}
+            {!sHasSelection && <CreateToken pInitialName={pCode?.reissueName} />}
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
-                    pCallback={deleteKey}
+                    pCallback={deleteToken}
                     pContents={
                         <div className="body-content">
                             {/* names are not unique — show the id that actually identifies the row */}
                             <span>{pCode.name}</span>
                             <span>(id {pCode.id})</span>
-                            <span>{`Do you want to delete this certificate?`}</span>
+                            <span>{`Do you want to delete this token?`}</span>
                         </div>
                     }
                 />

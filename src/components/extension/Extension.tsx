@@ -10,6 +10,7 @@ import { RxLapTimer } from 'react-icons/rx';
 import { generateUUID, getId } from '@/utils';
 import { GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
+import { BsShieldLock } from 'react-icons/bs';
 import { PasswordModal } from '../password';
 import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
@@ -104,7 +105,9 @@ const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPane
             case 'REFERENCE':
                 return <VscLibrary />;
             case 'KEY':
-                return <VscKey />;
+                // shield-with-lock, not a key glyph: this rail entry now covers BOTH certificates and
+                // tokens, and a key would read as one of them rather than the section
+                return <BsShieldLock />;
             case 'TIMER':
                 return <RxLapTimer />;
             case 'SHELL':

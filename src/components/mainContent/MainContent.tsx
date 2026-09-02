@@ -20,6 +20,7 @@ import { ContextMenu, Toast } from '@/design-system/components';
 import { ImageBox } from '@/components/imageBox/ImageBox';
 import { TextExtension } from '@/components/textExtension/TextExtension';
 import { SecurityKey } from '@/components/securityKey';
+import { ApiToken } from '../securityKey/apiToken';
 import { Timer } from '../timer';
 import { ShellManage } from '@/components/ShellManage';
 import { Bridge } from '../bridge';
@@ -41,6 +42,7 @@ import {
     gActiveBridge,
     gActiveCamera,
     gActiveKey,
+    gActiveToken,
     gActiveShellManage,
     gActiveSubr,
     gActiveTimer,
@@ -86,6 +88,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const setActiveTimer = useSetRecoilState<any>(gActiveTimer);
     const setActiveShellManage = useSetRecoilState<any>(gActiveShellManage);
     const setActiveKey = useSetRecoilState<any>(gActiveKey);
+    const setActiveToken = useSetRecoilState<any>(gActiveToken);
     const setActiveBridge = useSetRecoilState(gActiveBridge);
     const setActiveSubr = useSetRecoilState(gActiveSubr);
     const setActiveCamera = useSetRecoilState(gActiveCamera);
@@ -206,6 +209,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         if (board.type === 'timer') setActiveTimer(undefined);
         if (board.type === 'shell-manage') setActiveShellManage(undefined);
         if (board.type === 'key') setActiveKey(undefined);
+        if (board.type === 'token') setActiveToken(undefined);
         if (board.type === 'bridge') setActiveBridge(undefined);
         if (board.type === 'subscriber') setActiveSubr(undefined);
         if (board.type === 'camera') setActiveCamera(undefined);
@@ -521,6 +525,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                     <ImageBox pBase64Code={aItem.code} pType={aItem.type} />
                                 )}
                                 {checkExtension(aItem.type, 'key') && <SecurityKey pCode={aItem.code} />}
+                                {checkExtension(aItem.type, 'token') && <ApiToken pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'timer') && <Timer pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'shell-manage') && <ShellManage pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'bridge') && <Bridge pCode={aItem.code} />}

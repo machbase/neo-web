@@ -416,6 +416,7 @@ export const IMAGE_EXTENSION_LIST = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp',
 export const FILE_EXTENSION_LIST = ['new', 'term', 'sql', 'tql', 'taz', 'dsh', 'wrk', 'json', 'csv', 'md', 'txt', 'html', 'css', 'js'];
 export const SIDE_EXTENSION_LIST = [
     'key',
+    'token',
     'timer',
     'shell-manage',
     'bridge',

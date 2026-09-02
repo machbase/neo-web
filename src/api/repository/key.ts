@@ -5,11 +5,13 @@
 //   - typ: 'ecdsa' | 'rsa'
 //   - notBefore / notAfter: unix seconds from the create form's Valid After / Valid Before date pickers; 0 = now / now+10y (server default).
 //   - store: when true the key is persisted server-side (appears in key.list).
-// Result: always { id, certificate, key, token } (key == privateKey). When store=true the result ALSO
-// includes `serverKey` (server certificate PEM) and `zip` (base64 string; Go []byte → JSON std base64).
-// The zip bundles server.pem, {id}_cert.pem, {id}_key.pem, {id}_token.txt. When store=false there is no
-// serverKey in the result, so genKey falls back to `server.certificate.get` to keep the mTLS serverKey
-// display, and zip is empty (no zip download for unstored keys).
+// Result: { id, name, certificate, key } (key == privateKey). `token` was REMOVED by server PR #469 —
+// API tokens are now their own credential under `token.*` (see token.ts), so nothing here carries one.
+// When store=true the result ALSO includes `serverKey` (server certificate PEM) and `zip` (base64 string;
+// Go []byte → JSON std base64), and `id` is the stored key's management id. The zip bundles server.pem,
+// {name}_cert.pem and {name}_key.pem — there is no token file. When store=false the server returns id 0
+// with no serverKey and no zip, so genKey falls back to `server.certificate.get` to keep the mTLS
+// serverKey display.
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 import { rpcServerCertificateGet } from './server';
 
@@ -33,17 +35,18 @@ interface KeyListResType {
     success: boolean;
 }
 export interface GenKeyResType {
-    [key: string]: string | boolean | undefined;
+    [key: string]: string | number | boolean | undefined;
     success: boolean;
     elapse: string;
     reason: string;
-    // TOKEN_INFO
+    /** management id of the stored key. 0 when store=false (nothing was persisted). */
+    id: number;
+    /** CommonName as the server normalized it (lowercased) — use this, not the raw form input. */
+    name: string;
     certificate: string;
     privateKey: string;
     serverKey: string;
-    token: string;
     zip: string;
-    name?: string | undefined;
 }
 export interface CreatePayloadType {
     [key: string]: string | number | boolean;
@@ -88,10 +91,10 @@ export const getKeyList = async (): Promise<KeyListResType> => {
 };
 
 /**
- * Gen security key — `key.generate(id, typ, notBefore, notAfter, store)`
- * (params order: [id, typ, notBefore, notAfter, store]).
+ * Gen security key — `key.generate(name, typ, notBefore, notAfter, store)`
+ * (params order: [name, typ, notBefore, notAfter, store]).
  * notBefore/notAfter are unix seconds (0 = server default: now / now+10y). The RPC returns
- * { id, certificate, key, token } (key == privateKey), plus `serverKey` and `zip` (base64) WHEN store=true.
+ * { id, name, certificate, key } (key == privateKey), plus `serverKey` and `zip` (base64) WHEN store=true.
  * When store=false the result has no serverKey, so the server certificate is fetched separately via
  * `server.certificate.get` (best-effort) to keep the mTLS serverKey display, and zip is empty.
  * @aData { name, type ('rsa'|'ecdsa'), notBefore, notAfter, store }
@@ -102,20 +105,21 @@ export const genKey = async (aData: CreatePayloadType): Promise<GenKeyResType> =
         reason: msg,
         elapse: '',
         statusText: msg,
+        id: 0,
+        name: '',
         certificate: '',
         privateKey: '',
         serverKey: '',
-        token: '',
         zip: '',
     });
     try {
-        const res = await rpcCall<{ id?: string; certificate?: string; key?: string; token?: string; serverKey?: string; zip?: string }>(
+        const res = await rpcCall<{ id?: number; name?: string; certificate?: string; key?: string; serverKey?: string; zip?: string }>(
             RpcMethod.key.generate,
             [aData.name, String(aData.type).toLowerCase(), Number(aData.notBefore) || 0, Number(aData.notAfter) || 0, Boolean(aData.store)]
         );
         const err = rpcErrMessage(res);
         if (err) return fail(err);
-        const r = (res?.result ?? {}) as { id?: string; certificate?: string; key?: string; token?: string; serverKey?: string; zip?: string };
+        const r = (res?.result ?? {}) as { id?: number; name?: string; certificate?: string; key?: string; serverKey?: string; zip?: string };
         // store=true → serverKey & zip are in the result. store=false → fetch the server certificate
         // separately for mTLS trust (no zip without store).
         let serverKey = r.serverKey ?? '';
@@ -131,10 +135,11 @@ export const genKey = async (aData: CreatePayloadType): Promise<GenKeyResType> =
             success: true,
             reason: 'success',
             elapse: '',
+            id: Number(r.id ?? 0),
+            name: String(r.name ?? ''),
             certificate: r.certificate ?? '',
             privateKey: r.key ?? '',
             serverKey,
-            token: r.token ?? '',
             zip: r.zip ?? '',
         };
     } catch (e) {

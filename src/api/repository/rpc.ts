@@ -269,6 +269,11 @@ export const RpcMethod = {
         generate: 'key.generate',
         delete: 'key.delete',
     },
+    token: {
+        list: 'token.list',
+        generate: 'token.generate',
+        delete: 'token.delete',
+    },
     server: {
         info: { get: 'server.info.get' },
         certificate: { get: 'server.certificate.get' },

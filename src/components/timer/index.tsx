@@ -14,6 +14,8 @@ import { isTimerRunningState, useTimerStateAction } from './useTimerStateAction'
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
+    const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sTimerList, setResTimerList] = useRecoilState<TimerItemType[] | undefined>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
     const [sCommandRes, setCommandRes] = useState<string | undefined>(undefined);
@@ -167,7 +169,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             {/* Show info */}
             {sActiveTimer && sPayload && (
                 <Page>
-                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
+                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
                             <Page.Body>
