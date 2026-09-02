@@ -51,6 +51,52 @@ describe('data viewer API query builders', () => {
         expect(sql).not.toContain('2026-06-25T05:09:58.534Z');
     });
 
+    test('resolved numeric time ranges are sent as absolute timestamps', async () => {
+        const from = Date.parse('2026-06-25T05:09:58.534Z');
+        const to = Date.parse('2026-06-25T05:19:58.534Z');
+
+        await queryTagChartData({
+            dbName: 'MACHBASEDB',
+            userName: 'SYS',
+            tableName: 'TAG',
+            names: ['sensor.a'],
+            from,
+            to,
+        });
+
+        const sql = String(mockedFetchQuery.mock.calls[0][0]);
+        expect(sql).toContain(`TIME >= FROM_TIMESTAMP(${BigInt(from) * BigInt(1000000)})`);
+        expect(sql).toContain(`TIME <= FROM_TIMESTAMP(${BigInt(to) * BigInt(1000000)})`);
+        expect(sql).not.toContain('TO_TIMESTAMP');
+        expect(sql).not.toContain('2026-06-25');
+    });
+
+    test('numeric raw bounds and paging cursor stay absolute timestamps', async () => {
+        const from = Date.parse('2026-06-25T05:09:58.534Z');
+        const to = Date.parse('2026-06-25T05:19:58.534Z');
+
+        await queryTagData({
+            dbName: 'MACHBASEDB',
+            userName: 'SYS',
+            tableName: 'TAG',
+            names: ['sensor.a'],
+            from,
+            to,
+            cursorSide: 'next',
+            cursorTime: from,
+            cursorName: 'sensor.a',
+            direction: 'oldest',
+            page: 2,
+        });
+
+        const sql = String(mockedFetchQuery.mock.calls[0][0]);
+        const fromLiteral = `FROM_TIMESTAMP(${BigInt(from) * BigInt(1000000)})`;
+        expect(sql).toContain(`TIME >= ${fromLiteral}`);
+        expect(sql).toContain(`TIME <= FROM_TIMESTAMP(${BigInt(to) * BigInt(1000000)})`);
+        expect(sql).toContain(`TIME > ${fromLiteral}`);
+        expect(sql).not.toContain('TO_TIMESTAMP');
+    });
+
     test('raw data and total queries use the same Machbase timestamp format', async () => {
         await queryTagData({
             dbName: 'MACHBASEDB',

@@ -46,7 +46,13 @@ jest.mock('./dataViewerApi', () => ({
 // keeps these tests on the page's own apply path (and off the design-system date pickers).
 jest.mock('@/components/modal/TimeRangeModal', () => {
     const React = jest.requireActual<typeof import('react')>('react');
+    const moment = jest.requireActual<typeof import('moment')>('moment');
     const Actual = jest.requireActual<{ default: any }>('@/components/modal/TimeRangeModal').default;
+    const modalCallbackValue = (value: unknown) => {
+        if (typeof value !== 'number') return value;
+        const displayed = moment.unix(value / 1000).format('YYYY-MM-DD HH:mm:ss');
+        return moment(displayed).unix() * 1000;
+    };
     return {
         __esModule: true,
         // Time: a stub, because what these tests check is the *page's* refusal of an open-ended side,
@@ -59,9 +65,22 @@ jest.mock('@/components/modal/TimeRangeModal', () => {
                 : React.createElement(
                       'div',
                       null,
+                      React.createElement('span', { 'data-testid': 'negative-time-opt-in' }, String(props?.pAllowNegativeTime)),
                       React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('2026-06-01 09:00:00', '') }, 'apply-without-to'),
                       React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('', '2026-06-01 10:00:00') }, 'apply-without-from'),
-                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('2026-06-01 09:00:00', '2026-06-01 10:00:00') }, 'apply-both')
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('2026-06-01 09:00:00', '2026-06-01 10:00:00') }, 'apply-both'),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.(0, 1000) }, 'apply-epoch-zero'),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.(1780290000789, 1780293600123) }, 'apply-millisecond-range'),
+                      React.createElement(
+                          'button',
+                          {
+                              type: 'button',
+                              onClick: () =>
+                                  props?.pSaveCallback?.(modalCallbackValue(props.pStartTime), modalCallbackValue(props.pEndTime)),
+                          },
+                          'apply-current-displayed'
+                      ),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('2026-06-01 13:00:00', modalCallbackValue(props.pEndTime)) }, 'edit-from-only')
                   ),
     };
 });
@@ -177,8 +196,8 @@ const renderPage = (pCode: Record<string, string> = {}) =>
         </RecoilRoot>
     );
 
-const queryTagDataArgs = () => dataViewerApi.queryTagData.mock.calls.map((call) => call[0] as { from?: string; to?: string; page?: number });
-const windowOf = (args: { from?: string; to?: string }) => `${args.from} ~ ${args.to}`;
+const queryTagDataArgs = () => dataViewerApi.queryTagData.mock.calls.map((call) => call[0] as { from?: string | number; to?: string | number; page?: number });
+const windowOf = (args: { from?: string | number; to?: string | number }) => `${args.from} ~ ${args.to}`;
 // The toolbar label renders the frozen window itself. Page requests can carry their own bounds (a
 // tag change refreshes within the current page's rows), so the label is the only place the window
 // is observable without that interference.
@@ -337,11 +356,11 @@ describe('DataViewerPage frozen time window', () => {
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
         const [args] = queryTagDataArgs();
 
-        // Both edges are literal timestamps. A `last`/`now` placeholder reaching the query builder
-        // would be dropped from the WHERE clause and silently reopen the scan on that side.
-        expect(args.from).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
-        expect(args.to).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
-        expect(new Date(args.from!).getTime()).toBeLessThan(new Date(args.to!).getTime());
+        // Both edges are absolute epoch-millisecond timestamps. A local date literal here would be
+        // interpreted again by the SQL session and could move when browser and server zones differ.
+        expect(typeof args.from).toBe('number');
+        expect(typeof args.to).toBe('number');
+        expect(Number(args.from)).toBeLessThan(Number(args.to));
     });
 
     // The reason the frozen window exists. Re-resolving `last` per read makes the window chase the
@@ -409,13 +428,11 @@ describe('DataViewerPage frozen time window', () => {
         // EVERY request issued after the change, not just the last one: the bug showed up as an
         // intermediate query against the stale span, which a `.at(-1)` check would sail past once
         // the corrected query followed it.
-        const after = dataViewerApi.queryTagData.mock.calls.slice(before).map((call) => call[0] as { from?: string; to?: string; boundedRange?: boolean });
+        const after = dataViewerApi.queryTagData.mock.calls.slice(before).map((call) => call[0] as { from?: string | number; to?: string | number; boundedRange?: boolean });
         expect(after.length).toBeGreaterThan(0);
         for (const args of after) {
-            // Row bounds are ISO strings straight off the row timestamps; a resolved window is a
-            // local literal from resolveTimeRangeInput. The suffix tells them apart.
-            expect(args.from).not.toMatch(/Z$/);
-            expect(args.to).not.toMatch(/Z$/);
+            expect(typeof args.from).toBe('number');
+            expect(typeof args.to).toBe('number');
             expect(args.boundedRange).toBeFalsy();
             // And it really is the *new* window — the boundary advanced between the resolutions.
             expect(windowOf(args)).not.toBe(firstWindow);
@@ -528,7 +545,60 @@ describe('DataViewerPage frozen time window', () => {
         fireEvent.click(screen.getByLabelText('Set time range'));
         fireEvent.click(screen.getByText('apply-both'));
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
-        expect(queryTagDataArgs()[1]).toMatchObject({ from: '2026-06-01 09:00:00', to: '2026-06-01 10:00:00' });
+        expect(queryTagDataArgs()[1]).toMatchObject({
+            from: new Date('2026-06-01T09:00:00').getTime(),
+            to: new Date('2026-06-01T10:00:00').getTime(),
+        });
+    });
+
+    test('epoch zero is a valid time edge, not an empty range', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-epoch-zero'));
+
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+        expect(queryTagDataArgs().at(-1)).toMatchObject({ from: 0, to: 1000 });
+        expect(screen.queryByText('Time range requires both From and To.')).not.toBeInTheDocument();
+    });
+
+    test('opts the time editor into pre-1970 timestamps', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        expect(screen.getByTestId('negative-time-opt-in')).toHaveTextContent('true');
+    });
+
+    test('reapplying an unchanged modal preserves each absolute edge millisecond', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-millisecond-range'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-current-displayed'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(3));
+
+        expect(queryTagDataArgs().at(-1)).toMatchObject({ from: 1780290000789, to: 1780293600123 });
+    });
+
+    test('editing only From preserves the untouched To millisecond', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-millisecond-range'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('edit-from-only'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(3));
+
+        expect(queryTagDataArgs().at(-1)?.to).toBe(1780293600123);
     });
 });
 
@@ -564,7 +634,7 @@ describe('DataViewerPage base axis chip', () => {
         renderPage();
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
         const before = queryTagDataArgs().at(-1)!;
-        const span = Date.parse(String(before.to)) - Date.parse(String(before.from));
+        const span = Number(before.to) - Number(before.from);
         expect(span).toBeGreaterThan(0);
 
         gotoPage(2);
@@ -575,8 +645,8 @@ describe('DataViewerPage base axis chip', () => {
 
         // The next window along: adjacent to the one it left, and exactly as wide.
         const forward = queryTagDataArgs().at(-1)!;
-        expect(Date.parse(String(forward.from))).toBe(Date.parse(String(before.to)));
-        expect(Date.parse(String(forward.to)) - Date.parse(String(forward.from))).toBe(span);
+        expect(Number(forward.from)).toBe(Number(before.to));
+        expect(Number(forward.to) - Number(forward.from)).toBe(span);
         // A window that moved has no page 2 to still be on.
         expect(forward.page).toBe(1);
         await waitFor(() => expect(screen.getByLabelText('Current result page')).toHaveValue('1'));
@@ -588,8 +658,8 @@ describe('DataViewerPage base axis chip', () => {
         fireEvent.click(screen.getByLabelText('TIME previous'));
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(4));
         const back = queryTagDataArgs().at(-1)!;
-        expect(Date.parse(String(back.from))).toBe(Date.parse(String(before.from)));
-        expect(Date.parse(String(back.to))).toBe(Date.parse(String(before.to)));
+        expect(Number(back.from)).toBe(Number(before.from));
+        expect(Number(back.to)).toBe(Number(before.to));
         expect(modalIsOpen()).toBe(false);
     });
 

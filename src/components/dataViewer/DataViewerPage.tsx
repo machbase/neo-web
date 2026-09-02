@@ -60,7 +60,8 @@ import {
     buildRawRowNameColors,
     buildSeriesColorMap,
     extractDataViewerDataZoomRange,
-    formatDataViewerTimeRangeInput,
+    toDataViewerTimeRangeModalValue,
+    preserveDataViewerTimeRangeModalEdge,
     formatDataViewerNavigatorRangeLabels,
     filterDataViewerTags,
     filterVisibleAssetRows,
@@ -94,16 +95,17 @@ type ResultRow = Record<string, unknown>;
 type DataViewerTimeRange = { from?: string | number; to?: string | number; start?: string | number; end?: string | number; startTime?: number; endTime?: number };
 type RawPageRequest = {
     page: number;
-    from?: string;
-    to?: string;
+    from?: string | number;
+    to?: string | number;
     boundedRange?: boolean;
     cursorSide?: 'next' | 'prev';
-    cursorTime?: string;
+    cursorTime?: string | number;
     cursorName?: string;
     cursorOffset?: number;
 };
 
 const getParam = (params: URLSearchParams, key: string) => params.get(key)?.trim() ?? '';
+const isMissingRangeEdge = (value: unknown) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
 
 // Every read is bounded on both edges, so the range the user types is only ever an *expression*:
 // `last-1h ~ last` means "one hour back from this tag's newest sample". Resolving it per query would
@@ -111,7 +113,7 @@ const getParam = (params: URLSearchParams, key: string) => params.get(key)?.trim
 // FrozenWindow and every subsequent read — including paging — reuses that literal timestamp pair.
 // `key` records the inputs the window was resolved from; when it stops matching the current inputs
 // the window is stale and no query goes out until the resolver has produced a fresh one.
-type FrozenWindow = { from: string; to: string; key: string };
+type FrozenWindow = { from: string | number; to: string | number; key: string };
 
 // Both edges are mandatory: an open edge is exactly the unbounded scan the frozen window exists to
 // prevent. The shared TimeRangeModal still allows an empty side (dashboards rely on it), so the
@@ -306,10 +308,16 @@ function RangeEditorModal({
             }}
             // A distance edge is a number or an anchor expression and is handed over as written; a
             // time edge goes through the page's own input formatting first.
-            pStartTime={distance ? (range.from as string | number) : formatDataViewerTimeRangeInput(range.from)}
-            pEndTime={distance ? (range.to as string | number) : formatDataViewerTimeRangeInput(range.to)}
+            pStartTime={distance ? (range.from as string | number) : toDataViewerTimeRangeModalValue(range.from)}
+            pEndTime={distance ? (range.to as string | number) : toDataViewerTimeRangeModalValue(range.to)}
             pSetTime={() => undefined}
-            pSaveCallback={(from, to) => onApply({ from: from ?? '', to: to ?? '' })}
+            pAllowNegativeTime={!distance}
+            pSaveCallback={(from, to) =>
+                onApply({
+                    from: distance ? from ?? '' : preserveDataViewerTimeRangeModalEdge(range.from, from ?? ''),
+                    to: distance ? to ?? '' : preserveDataViewerTimeRangeModalEdge(range.to, to ?? ''),
+                })
+            }
             pLockTab={distance ? 'distance' : 'time'}
             pBounds={distance ? bounds : undefined}
         />
@@ -1421,7 +1429,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     setError(distance ? DISTANCE_RANGE_INVALID_MESSAGE : missingBoundary ? TAG_HAS_NO_DATA_MESSAGE : TIME_RANGE_INVALID_MESSAGE);
                     return;
                 }
-                if (!from || !to) {
+                if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
                     setFrozenWindow(null);
                     setError(distance ? DISTANCE_RANGE_REQUIRED_MESSAGE : TIME_RANGE_REQUIRED_MESSAGE);
                     return;
@@ -1497,7 +1505,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // `error` is left alone so the resolver's message survives.
         const from = activeWindow?.from;
         const to = activeWindow?.to;
-        if (!from || !to) {
+        if (!activeWindow || isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
             setRows([]);
             setRowsWindowKey(null);
             setRawPageBounds(null);
@@ -1709,7 +1717,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // showing. Re-resolving here would count a different window than the one paged through.
         const from = activeWindow?.from;
         const to = activeWindow?.to;
-        if (!from || !to) return;
+        if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) return;
         const requestId = endPageRequestRef.current + 1;
         endPageRequestRef.current = requestId;
         setEndLoading(true);
@@ -1860,7 +1868,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             setChartError(baseKind === 'distance' ? DISTANCE_RANGE_INVALID_MESSAGE : TIME_RANGE_INVALID_MESSAGE);
                             return;
                         }
-                        if (!from || !to) {
+                        if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
                             setChartError(requiredMessage);
                             return;
                         }

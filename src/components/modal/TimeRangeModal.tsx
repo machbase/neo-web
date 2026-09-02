@@ -16,6 +16,8 @@ interface TimeRangeModalPropsBase {
     pSetTimeRangeModal: React.Dispatch<React.SetStateAction<boolean>>;
     pSaveCallback?: (start: any, end: any) => void;
     pShowRefresh?: boolean;
+    /** Allow pre-1970 absolute timestamps. Off by default to preserve existing callers. */
+    pAllowNegativeTime?: boolean;
     /** Which tab to open initially (dashboard mode with a distance panel). */
     pInitialTab?: 'time' | 'distance';
     /** Lock the modal to a single axis tab (panel editor: one panel = one base). Hides the tab bar. */
@@ -60,7 +62,7 @@ interface TimeRangeModalPropsRecoil extends TimeRangeModalPropsBase {
 type TimeRangeModalProps = TimeRangeModalPropsExternal | TimeRangeModalPropsRecoil;
 
 const TimeRangeModal = (props: TimeRangeModalProps) => {
-    const { pSetTimeRangeModal, pSaveCallback, pShowRefresh = false, pUseRecoil = false } = props;
+    const { pSetTimeRangeModal, pSaveCallback, pShowRefresh = false, pUseRecoil = false, pAllowNegativeTime = false } = props;
 
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -247,7 +249,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             sStart = sStartTime;
         } else {
             sStart = moment(sStartTime).unix() * 1000;
-            if (sStart < 0 || isNaN(sStart)) {
+            if ((!pAllowNegativeTime && sStart < 0) || isNaN(sStart)) {
                 Toast.error('Please check the entered time.');
                 return;
             }
@@ -256,7 +258,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             sEnd = sEndTime;
         } else {
             sEnd = moment(sEndTime).unix() * 1000;
-            if (sEnd < 0 || isNaN(sEnd)) {
+            if ((!pAllowNegativeTime && sEnd < 0) || isNaN(sEnd)) {
                 Toast.error('Please check the entered time.');
                 return;
             }

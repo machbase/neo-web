@@ -72,6 +72,19 @@ const formatMachbaseTimestamp = (value: string) => {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
 };
 
+const millisecondsToNanoseconds = (milliseconds: number) => {
+    const wholeMilliseconds = Math.trunc(milliseconds);
+    const fractionalNanoseconds = Math.round((milliseconds - wholeMilliseconds) * 1000000);
+    return String(BigInt(wholeMilliseconds) * BigInt(1000000) + BigInt(fractionalNanoseconds));
+};
+
+const buildTimeLiteral = (value: string | number) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return `FROM_TIMESTAMP(${millisecondsToNanoseconds(value)})`;
+    }
+    return `TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(String(value)))}')`;
+};
+
 export const buildQualifiedTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}.${tableName}`;
 export const buildQualifiedMetaTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}._${tableName}_META`;
 // Machbase publishes per-tag statistics (ROW_COUNT, MIN_TIME, MAX_TIME, ...) in a view named after
@@ -177,8 +190,8 @@ const buildTagDataWhere = ({
 
     const fromText = from === undefined || from === null ? '' : String(from);
     const toText = to === undefined || to === null ? '' : String(to);
-    if (fromText && !isUnresolvedRangeToken(fromText)) where.push(`${timeColumnExpr} >= TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(fromText))}')`);
-    if (toText && !isUnresolvedRangeToken(toText)) where.push(`${timeColumnExpr} <= TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(toText))}')`);
+    if (fromText && !isUnresolvedRangeToken(fromText)) where.push(`${timeColumnExpr} >= ${buildTimeLiteral(from as string | number)}`);
+    if (toText && !isUnresolvedRangeToken(toText)) where.push(`${timeColumnExpr} <= ${buildTimeLiteral(to as string | number)}`);
     return { tagColumnExpr, timeColumnExpr, where };
 };
 
@@ -186,7 +199,7 @@ const buildTagDataWhere = ({
 // `null` means the anchor is unusable — on distance, a value that is not a number.
 const buildCursorBaseSql = (value: string | number, baseKind: DataViewerBaseKind) => {
     if (baseKind === 'distance') return buildDistanceLiteral(value);
-    return `TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(String(value)))}')`;
+    return buildTimeLiteral(value);
 };
 
 const buildTagDataCursor = ({

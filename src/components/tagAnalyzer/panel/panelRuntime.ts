@@ -2,6 +2,7 @@ import {
     useEffect,
     useState,
 } from 'react';
+import { resolveDistanceRange } from '@/utils/distanceRange';
 import { seriesDataApi } from '../api/seriesDataApi';
 import { parseRangeInputValue } from '../format/inputFormat';
 import {
@@ -713,7 +714,7 @@ export function resolveConfiguredRangeState(
     input: RangeExpressionInput,
     referenceTimeMs: number,
 ): ResolvedRangeState | undefined {
-    const configuredRange = resolveRangeInput(
+    const configuredRange = resolveRuntimeRangeInput(
         input,
         axisKind,
         fullRange,
@@ -739,7 +740,7 @@ export function resolveNavigatorRangeState(
     input: RangeExpressionInput,
     referenceTimeMs: number,
 ): ResolvedRangeState | undefined {
-    const range = resolveRangeInput(
+    const range = resolveRuntimeRangeInput(
         input,
         axisKind,
         fullRange,
@@ -756,6 +757,41 @@ export function resolveNavigatorRangeState(
               current?.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
           )
         : undefined;
+}
+
+function resolveRuntimeRangeInput(
+    input: RangeExpressionInput,
+    axisKind: AxisKind,
+    fullRange: AxisRange,
+    currentRange: AxisRange,
+    referenceTimeMs: number,
+): AxisRange | undefined {
+    if (axisKind === 'time') {
+        return resolveRangeInput(
+            input,
+            axisKind,
+            fullRange,
+            currentRange,
+            referenceTimeMs,
+        );
+    }
+
+    if (isRangeExpressionEmpty(input)) return undefined;
+
+    const resolved = resolveDistanceRange(
+        input.start,
+        input.end,
+        { min: fullRange.start, max: fullRange.end },
+    );
+    if (
+        resolved.from === null ||
+        resolved.to === null ||
+        resolved.from >= resolved.to
+    ) {
+        return undefined;
+    }
+
+    return { start: resolved.from, end: resolved.to };
 }
 
 export function createFullRangeState(
