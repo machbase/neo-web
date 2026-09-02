@@ -189,6 +189,23 @@ describe('panel range resolution policy', () => {
         });
     });
 
+    it('restores a board numeric range written with a first offset', () => {
+        const resolution = resolveConfiguredRangeState(
+            'numeric',
+            FULL_RANGE,
+            undefined,
+            { start: 'first', end: 'first+25' },
+            1,
+        );
+
+        expect(resolution).toMatchObject({
+            range: {
+                mainRange: { start: 0, end: 25 },
+                navigatorRange: FULL_RANGE,
+            },
+        });
+    });
+
     it('restores a valid last view and skips invalid configured input on initialization', async () => {
         jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(
             FULL_RANGE,
@@ -241,6 +258,28 @@ describe('panel range resolution policy', () => {
                 navigatorRange: { start: 10, end: 30 },
             },
             navigatorRangeInput: { start: 'first', end: 'last' },
+        });
+    });
+
+    it('restores a navigator numeric range written with a last offset', () => {
+        const current = createResolvedRangeState(
+            { start: 0, end: 100 },
+            FULL_RANGE,
+        );
+
+        const resolution = resolveNavigatorRangeState(
+            'numeric',
+            FULL_RANGE,
+            current,
+            { start: 'last-25', end: 'last' },
+            1,
+        );
+
+        expect(resolution).toMatchObject({
+            range: {
+                mainRange: { start: 75, end: 100 },
+                navigatorRange: { start: 75, end: 100 },
+            },
         });
     });
 
