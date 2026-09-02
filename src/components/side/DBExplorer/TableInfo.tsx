@@ -12,6 +12,7 @@ import { Toast } from '@/design-system/components';
 import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { normalizeBackupStatus } from '@/components/database/backup/backupPayload';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, describeTablePrivilege, getTableTypeColor } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
@@ -31,34 +32,7 @@ export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
         e.stopPropagation();
 
         const sResBackupStatus: any = await backupStatus();
-        let sStatusCode: any = undefined;
-        if (sResBackupStatus && sResBackupStatus?.success) {
-            // Set default
-            if (!sResBackupStatus.data?.type)
-                sStatusCode = {
-                    type: 'database',
-                    duration: {
-                        type: 'full',
-                        after: '',
-                        from: '',
-                        to: '',
-                    },
-                    path: '',
-                    tableName: '',
-                };
-            else sStatusCode = sResBackupStatus.data;
-        } else
-            sStatusCode = {
-                type: 'database',
-                duration: {
-                    type: 'full',
-                    after: '',
-                    from: '',
-                    to: '',
-                },
-                path: '',
-                tableName: '',
-            };
+        const sStatusCode = normalizeBackupStatus(sResBackupStatus?.success ? sResBackupStatus?.data : undefined);
 
         if (sStatusCode.path === '') pBackupRefresh();
 

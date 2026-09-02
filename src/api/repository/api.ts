@@ -3,8 +3,9 @@ import { rpcCall, RpcMethod } from '@/api/repository/rpc';
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { fetchQuery } from '@/api/repository/database';
-import { LEGACY_DATABASE } from '@/utils/currentDatabaseState';
+import { findDatabaseByName, LEGACY_DATABASE } from '@/utils/currentDatabaseState';
 import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
+import type { BackupRequest } from '@/components/database/backup/backupPayload';
 
 const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 
@@ -276,7 +277,7 @@ export const backupStatus = () => {
  * Time Duration backup: Backup of data for a specific period
  * @returns
  */
-export const databaseBackup = (backupInfo: { type: string; duration: { type: string; after: string; from: string; to: string }; path: string }) => {
+export const databaseBackup = (backupInfo: BackupRequest) => {
     return request({
         method: 'POST',
         url: `/api/backup/archive`,
@@ -284,14 +285,21 @@ export const databaseBackup = (backupInfo: { type: string; duration: { type: str
     });
 };
 /** GET TABLE (LOG | TAG) */
-export const getAllowBackupTable = async () => {
-    // Backup targets are scoped to the database this session is in. Before v8.7 that was the
-    // only database and its id was -1; the constant is now whatever the server reports.
+export const getAllowBackupTable = async (aDatabase?: string | null) => {
+    // Which database's tables to offer. Named, it is the one the backup form picked; otherwise the
+    // database this session is in — before v8.7 the only one there was, whose id was -1.
+    //
+    // `M$SYS_TABLES` is instance-wide and carries `DATABASE_ID`, so another database's tables come
+    // back from this session without moving it (measured on v8.7: `database_id = 2` returns
+    // FACTORY_A's seven tables). That is not true of every meta object — `V$<TABLE>_STAT` outside
+    // the session database answers MACHCLI-ERR-3031 (machbase/neo#1492) — but it is true here.
+    //
     // The type filter follows the manual's backup support table (17.6.8): TAG(6), LOG(0),
     // LOOKUP(4) and TRANSACTION(8) can be backed up; VOLATILE(3) cannot, being memory-resident.
     // TRANSACTION matters most here — it is what a bare `CREATE TABLE` produces on v8.7, so
     // leaving it out would quietly hide most newly created tables from the backup picker.
-    const sDb = await ensureCurrentDatabase();
+    const sSession = await ensureCurrentDatabase();
+    const sDb = findDatabaseByName(aDatabase) ?? sSession;
     return request({
         method: 'POST',
         url: '/api/query',

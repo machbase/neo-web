@@ -9,6 +9,7 @@ import { DBMountModal } from './DBMountModal';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { normalizeBackupStatus } from '@/components/database/backup/backupPayload';
 import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_CONTEXT_MENU_INITIAL_VALUE } from './DBExplorerContextMenu';
 import { buildDatabaseNodeList, buildDropObjectQuery, buildQualifiedTableName, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, parseTablePrivilege } from './utils';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
@@ -130,34 +131,7 @@ export const DBExplorer = () => {
         e.stopPropagation();
 
         const sResBackupStatus: any = await backupStatus();
-        let sStatusCode: any = undefined;
-        if (sResBackupStatus && sResBackupStatus?.success) {
-            // Set default
-            if (!sResBackupStatus.data?.type)
-                sStatusCode = {
-                    type: 'database',
-                    duration: {
-                        type: 'full',
-                        after: '',
-                        from: '',
-                        to: '',
-                    },
-                    path: '',
-                    tableName: '',
-                };
-            else sStatusCode = sResBackupStatus.data;
-        } else
-            sStatusCode = {
-                type: 'database',
-                duration: {
-                    type: 'full',
-                    after: '',
-                    from: '',
-                    to: '',
-                },
-                path: '',
-                tableName: '',
-            };
+        const sStatusCode = normalizeBackupStatus(sResBackupStatus?.success ? sResBackupStatus?.data : undefined);
 
         if (sStatusCode.path === '') getBackupDatabaseList();
 
