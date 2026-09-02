@@ -38,8 +38,10 @@ import {
     shouldFetchDataViewerRowsForMode,
     toggleSelectedTagName,
     formatDataViewerAxisTime,
+    formatDataViewerTime,
     formatDataViewerNavigatorRangeLabels,
-    formatDataViewerTimeRangeInput,
+    toDataViewerTimeRangeModalValue,
+    preserveDataViewerTimeRangeModalEdge,
     formatTimeRangeLabel,
     resolveTimeRangeInput,
     DATA_VIEWER_COLUMN_FLAG_INDEX,
@@ -407,20 +409,48 @@ describe('data viewer chart helpers', () => {
         expect(formatTimeRangeLabel('2026-06-01T12:34:56.789Z', '2026-06-01T12:35:01.789Z')).not.toMatch(/[TZ]/);
     });
 
-    test('formatDataViewerTimeRangeInput formats modal inputs without ISO separators', () => {
-        expect(formatDataViewerTimeRangeInput('')).toBe('');
-        expect(formatDataViewerTimeRangeInput('now-5m')).toBe('now-5m');
-        expect(formatDataViewerTimeRangeInput('last')).toBe('last');
-        expect(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z')).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
-        expect(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z')).not.toMatch(/[TZ]/);
-        expect(formatDataViewerTimeRangeInput(Date.parse('2026-06-01T12:34:56.789Z'))).toBe(formatDataViewerTimeRangeInput('2026-06-01T12:34:56.789Z'));
+    test('toDataViewerTimeRangeModalValue passes absolute ranges as timestamps', () => {
+        const timestamp = Date.parse('2026-06-01T12:34:56.789Z');
+        expect(toDataViewerTimeRangeModalValue('')).toBe('');
+        expect(toDataViewerTimeRangeModalValue('now-5m')).toBe('now-5m');
+        expect(toDataViewerTimeRangeModalValue('last')).toBe('last');
+        expect(toDataViewerTimeRangeModalValue('2026-06-01T12:34:56.789Z')).toBe(timestamp);
+        expect(toDataViewerTimeRangeModalValue(timestamp)).toBe(timestamp);
+    });
+
+    test('preserves untouched milliseconds independently and keeps edited modal values', () => {
+        const start = Date.parse('2026-06-01T12:34:56.789Z');
+        const end = Date.parse('2026-06-01T12:35:01.123Z');
+
+        expect(preserveDataViewerTimeRangeModalEdge(start, Math.floor(start / 1000) * 1000)).toBe(start);
+        expect(preserveDataViewerTimeRangeModalEdge(end, Math.floor(end / 1000) * 1000)).toBe(end);
+        expect(preserveDataViewerTimeRangeModalEdge(start, Math.floor(start / 1000) * 1000 + 5000)).toBe(Math.floor(start / 1000) * 1000 + 5000);
+        expect(preserveDataViewerTimeRangeModalEdge(start, formatDataViewerTime(start, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL'))).toBe(start);
+        expect(preserveDataViewerTimeRangeModalEdge(start, '2026-06-01 13:00:00')).toBe('2026-06-01 13:00:00');
+        expect(preserveDataViewerTimeRangeModalEdge('last-1h', 'last-2h')).toBe('last-2h');
+    });
+
+    test('preserves either original instant when a DST fallback displays the same local second', () => {
+        const firstOccurrence = Date.parse('2026-11-01T05:30:00.789Z');
+        const secondOccurrence = Date.parse('2026-11-01T06:30:00.123Z');
+        const ambiguousDisplay = '2026-11-01 01:30:00';
+
+        expect(formatDataViewerTime(firstOccurrence, 'YYYY-MM-DD HH24:MI:SS', 'America/New_York')).toBe(ambiguousDisplay);
+        expect(formatDataViewerTime(secondOccurrence, 'YYYY-MM-DD HH24:MI:SS', 'America/New_York')).toBe(ambiguousDisplay);
+        expect(preserveDataViewerTimeRangeModalEdge(firstOccurrence, ambiguousDisplay, 'America/New_York')).toBe(firstOccurrence);
+        expect(preserveDataViewerTimeRangeModalEdge(secondOccurrence, ambiguousDisplay, 'America/New_York')).toBe(secondOccurrence);
+        // The real TimeRangeModal parses its displayed string and calls back with a number. In an
+        // ambiguous fall-back hour that number can point at the first occurrence.
+        expect(preserveDataViewerTimeRangeModalEdge(secondOccurrence, firstOccurrence - (firstOccurrence % 1000), 'America/New_York')).toBe(secondOccurrence);
     });
 
     test('resolveTimeRangeInput preserves last range end by rounding to upward millisecond', () => {
         const base = new Date(2026, 6, 7, 16, 18, 9, 16);
 
-        expect(resolveTimeRangeInput('last-5m', base, 'from')).toBe('2026-07-07 16:13:09.016');
-        expect(resolveTimeRangeInput('last', base, 'to')).toBe('2026-07-07 16:18:09.017');
+        expect(resolveTimeRangeInput('last-5m', base, 'from')).toBe(base.getTime() - 5 * 60 * 1000);
+        expect(resolveTimeRangeInput('last', base, 'to')).toBe(base.getTime() + 1);
+        expect(resolveTimeRangeInput(base.getTime(), base, 'to')).toBe(base.getTime());
+        expect(resolveTimeRangeInput(0, base, 'from')).toBe(0);
     });
 
     test('normalizeSelectedTagNames keeps valid tags and falls back to first selectable tag', () => {
@@ -482,11 +512,11 @@ describe('data viewer chart helpers', () => {
                 { time: '2026-06-25T05:09:56.100Z', name: 'sensor.a' },
             ]),
         ).toEqual({
-            pageStart: { time: '2026-06-25T05:10:01.001Z', name: 'sensor.a' },
-            pageEnd: { time: '2026-06-25T05:09:56.100Z', name: 'sensor.a' },
+            pageStart: { time: Date.parse('2026-06-25T05:10:01.001Z'), name: 'sensor.a' },
+            pageEnd: { time: Date.parse('2026-06-25T05:09:56.100Z'), name: 'sensor.a' },
             pageBounds: {
-                from: '2026-06-25T05:09:56.100Z',
-                to: '2026-06-25T05:10:01.001Z',
+                from: Date.parse('2026-06-25T05:09:56.100Z'),
+                to: Date.parse('2026-06-25T05:10:01.001Z'),
             },
         });
 
@@ -495,11 +525,11 @@ describe('data viewer chart helpers', () => {
 
     test('buildDataViewerRawPageRequest uses cursor boundaries for page movement', () => {
         const currentBounds = {
-            pageStart: { time: '2026-06-25T05:10:01.001Z', name: 'sensor.a' },
-            pageEnd: { time: '2026-06-25T05:09:56.100Z', name: 'sensor.c' },
+            pageStart: { time: Date.parse('2026-06-25T05:10:01.001Z'), name: 'sensor.a' },
+            pageEnd: { time: Date.parse('2026-06-25T05:09:56.100Z'), name: 'sensor.c' },
             pageBounds: {
-                from: '2026-06-25T05:09:56.100Z',
-                to: '2026-06-25T05:10:01.001Z',
+                from: Date.parse('2026-06-25T05:09:56.100Z'),
+                to: Date.parse('2026-06-25T05:10:01.001Z'),
             },
         };
 
@@ -514,7 +544,7 @@ describe('data viewer chart helpers', () => {
         ).toEqual({
             page: 2,
             cursorSide: 'next',
-            cursorTime: '2026-06-25T05:09:56.100Z',
+            cursorTime: Date.parse('2026-06-25T05:09:56.100Z'),
             cursorName: 'sensor.c',
             cursorOffset: 0,
         });
@@ -542,7 +572,7 @@ describe('data viewer chart helpers', () => {
         ).toEqual({
             page: 2,
             cursorSide: 'prev',
-            cursorTime: '2026-06-25T05:10:01.001Z',
+            cursorTime: Date.parse('2026-06-25T05:10:01.001Z'),
             cursorName: 'sensor.a',
             cursorOffset: 0,
         });
@@ -557,10 +587,25 @@ describe('data viewer chart helpers', () => {
             }),
         ).toEqual({
             page: 3,
-            from: '2026-06-25T05:09:56.100Z',
-            to: '2026-06-25T05:10:01.001Z',
+            from: Date.parse('2026-06-25T05:09:56.100Z'),
+            to: Date.parse('2026-06-25T05:10:01.001Z'),
             boundedRange: true,
         });
+    });
+
+    test('buildDataViewerRawPageRequest keeps epoch zero as a keyset cursor', () => {
+        expect(
+            buildDataViewerRawPageRequest({
+                currentPage: 1,
+                nextPage: 2,
+                pageSize: 100,
+                currentBounds: {
+                    pageStart: { time: 1000, name: 'sensor.a' },
+                    pageEnd: { time: 0, name: 'sensor.b' },
+                    pageBounds: { from: 0, to: 1000 },
+                },
+            }),
+        ).toEqual({ page: 2, cursorSide: 'next', cursorTime: 0, cursorName: 'sensor.b', cursorOffset: 0 });
     });
 
     test('buildDataViewerDefaultChartShiftRawPageUpdate maps chart movement through raw scan direction', () => {
@@ -1621,8 +1666,9 @@ describe('data viewer distance base range', () => {
         expect(formatDataViewerBaseRangeLabel(0, 1000, 'distance')).toBe('0 ~ 1000');
         expect(formatDataViewerBaseRangeLabel('0', '999990', 'distance')).toBe('0 ~ 999990');
         expect(formatDataViewerBaseRangeLabel('last-1h', 'last', 'time')).toBe('last-1h ~ last');
-        // The time label collapses a falsy edge to a placeholder; on distance, 0 is a real bound.
-        expect(formatTimeRangeLabel(0, 1000)).toContain('Start');
+        expect(formatTimeRangeLabel(0, 1000)).toContain(formatDataViewerTime(0, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL'));
+        expect(formatTimeRangeLabel(0, 1000)).not.toContain('Start');
+        expect(formatTimeRangeLabel(0, 0)).not.toBe('Time range not set');
         expect(formatDataViewerBaseRangeLabel(0, 1000, 'distance')).not.toContain('Start');
         expect(formatDataViewerBaseRangeLabel('', '', 'distance')).toBe('Distance range not set');
     });
@@ -1639,23 +1685,23 @@ describe('data viewer distance base range', () => {
         expect(formatDataViewerBaseRangeLabel('first', 2495, 'distance')).toBe('first ~ 2495');
     });
 
-    // `new Date('0')` is the year 2000 and `new Date('1000')` is the year 1000, so the date
-    // comparison calls the perfectly ordinary default window reversed and refuses to query it.
-    test('orders distance edges numerically, not chronologically', () => {
+    test('orders numeric edges on both distance and timestamp axes', () => {
         expect(isDataViewerRangeReversed('0', '1000', 'distance')).toBe(false);
-        expect(isDataViewerRangeReversed('0', '1000', 'time')).toBe(true);
+        expect(isDataViewerRangeReversed('0', '1000', 'time')).toBe(false);
         expect(isDataViewerRangeReversed('900', '100', 'distance')).toBe(true);
         expect(isDataViewerRangeReversed('100', '100', 'distance')).toBe(false);
         // A non-numeric edge is refused elsewhere; it is not reported as reversed here.
         expect(isDataViewerRangeReversed('abc', '100', 'distance')).toBe(false);
         expect(isDataViewerRangeReversed('2026-06-25 04:00:00', '2026-06-25 05:00:00', 'time')).toBe(false);
         expect(isDataViewerRangeReversed('2026-06-25 05:00:00', '2026-06-25 04:00:00', 'time')).toBe(true);
+        expect(isDataViewerRangeReversed(2000, 1000, 'time')).toBe(true);
+        expect(isDataViewerRangeReversed(1000, 2000, 'time')).toBe(false);
     });
 
     // The page bounds are the next page's cursor anchors. Pushing an odometer reading through
     // `new Date(...)` turns 999990 into 1970-01-01T00:16:39.990Z, and the cursor built from that
     // compares a timestamp against a DOUBLE column — a page move that returns nothing.
-    test('page bounds stay numeric on a distance base and stay ISO on a time base', () => {
+    test('page bounds keep distance decimals and epoch-ms timestamps distinct', () => {
         const rows = [
             { time: 0, name: 'SENSOR_01', value: 1 },
             { time: 20, name: 'SENSOR_02', value: 2 },
@@ -1669,7 +1715,7 @@ describe('data viewer distance base range', () => {
         });
 
         const timeBounds = buildDataViewerRawPageBounds(rows, 'time');
-        expect(timeBounds?.pageBounds.to).toBe('1970-01-01T00:00:00.020Z');
+        expect(timeBounds?.pageBounds.to).toBe(20);
         // Default is the time axis, so every existing caller keeps its behaviour untouched.
         expect(buildDataViewerRawPageBounds(rows)).toEqual(timeBounds);
     });
