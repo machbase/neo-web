@@ -381,6 +381,7 @@ const isFailedMinMaxResponse = (aData: any) => (aData?.status ?? 0) >= 400 || aD
 const minMaxFailureReason = (aData: any) => (typeof aData?.data === 'object' ? aData?.data?.reason ?? '' : aData?.data ?? '');
 const hasMinMaxRow = (aData: any) => Boolean(aData?.data?.rows?.length) && aData.data.rows[0]?.[0] != null;
 
+/**
  * A tag block's base extent, from the stat view when that view can answer and from the column when
  * it cannot.
  *
