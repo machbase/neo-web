@@ -4,6 +4,7 @@ import {
     buildDisplayColumnInfo,
     buildDropObjectQuery,
     buildQualifiedTableName,
+    buildRetentionQuery,
     describeTablePrivilege,
     E_COLUMN_FLAG,
     formatTableBaseExtent,
@@ -63,6 +64,40 @@ describe('buildQualifiedTableName', () => {
             })
         ).toBe('SYS.TAG');
     });
+});
+
+describe('buildRetentionQuery', () => {
+    // Measured on engine dev-4158, MACHBASEDB (id 1) and FACTORY_A (id 2) each holding a
+    // `SYS.DEMO_TAG`: `V$RETENTION_JOB` carries `DATABASE_ID`/`DATABASE_NAME` and returns both
+    // jobs whatever the session is, so the statement — not the session — has to say which
+    // database is meant.
+    test('scopes the job view by DATABASE_ID when the server has logical databases', () => {
+        const sQuery = buildRetentionQuery({ tableName: 'DEMO_TAG', userName: 'SYS', databaseId: '2' });
+
+        expect(sQuery).toContain("table_name=upper('DEMO_TAG')");
+        expect(sQuery).toContain("user_name=upper('SYS')");
+        expect(sQuery).toContain('and DATABASE_ID=2');
+    });
+
+    test('accepts the id as a number as well as text', () => {
+        expect(buildRetentionQuery({ tableName: 'T', userName: 'SYS', databaseId: 1073741825 })).toContain(
+            'and DATABASE_ID=1073741825'
+        );
+    });
+
+    test('leaves the statement unscoped on a server without logical databases', () => {
+        // There the column does not exist, and the view is scoped to the session anyway.
+        expect(buildRetentionQuery({ tableName: 'T', userName: 'SYS' })).not.toContain('DATABASE_ID');
+    });
+
+    test.each([['-1'], [''], ['   '], ['2 or 1=1'], ['MACHBASEDB']])(
+        'drops the condition rather than interpolating %p',
+        (aId) => {
+            expect(buildRetentionQuery({ tableName: 'T', userName: 'SYS', databaseId: aId })).not.toContain(
+                'DATABASE_ID'
+            );
+        }
+    );
 });
 
 describe('buildDropObjectQuery', () => {

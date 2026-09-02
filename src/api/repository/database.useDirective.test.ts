@@ -8,12 +8,14 @@ const mockedRequest = request as unknown as jest.Mock;
 const sentScript = () => String(mockedRequest.mock.calls[0][0].data);
 
 /**
- * Some catalogue views are scoped to the session's own database and carry no column saying so.
+ * `use()` moves the session for one statement, for catalogue views that are scoped to the
+ * session's own database and carry no column a WHERE clause could use.
  *
- * `V$RETENTION_JOB` is the one that forced this: measured against a server holding MACHBASEDB
- * and FACTORY_A, each with a `SYS.DEMO_TAG`, the identical `SYS`/`DEMO_TAG` row answers
- * `ZZRET_DEMO` from a MACHBASEDB session and `ZZRET_FACTORY` from a FACTORY_A one. A statement
- * cannot filter what the view will not distinguish, so the session is moved instead.
+ * `V$RETENTION_JOB` is the view that forced this in and no longer needs it — engine dev-4158
+ * gave it `DATABASE_ID`/`DATABASE_NAME` and made it report every database, so its caller filters
+ * instead (`buildRetentionQuery`). No caller passes a database today; these tests hold the
+ * directive's shape — quoting, escaping, and the rejection of anything but an identifier — for
+ * whichever view needs it next.
  */
 describe('fetchTqlWithoutConsole can run a statement against another database', () => {
     beforeEach(() => {

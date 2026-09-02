@@ -147,6 +147,47 @@ export const buildDropObjectQuery = ({
     return `DROP TABLE ${qualified}${cascade ? ' CASCADE' : ''}`;
 };
 
+/**
+ * The retention policy of one table, read from the database the table actually lives in.
+ *
+ * `V$RETENTION_JOB` used to be scoped to the session's own database and to carry no column
+ * saying which one, so the only way to read another database's policy was to move the session
+ * with TQL's `use()`. The engine changed that: the view gained `DATABASE_ID`/`DATABASE_NAME`
+ * and now reports *every* database's jobs regardless of the session. Measured on engine
+ * dev-4158 with `SYS.DEMO_TAG` present in both MACHBASEDB and FACTORY_A, the directive form
+ * answered `ZZRET_DEMO` *and* `ZZRET_FACTORY` under `use('FACTORY_A')`, under
+ * `use('MACHBASEDB')` and with no directive at all — identical rows in all three. `use()` no
+ * longer narrows this view, so the panel was showing a table one policy that was its own and
+ * one that belonged to a same-named table in another database.
+ *
+ * The join can only be narrowed on the job side: `M$RETENTION` is `USER_ID, POLICY_NAME,
+ * DURATION, INTERVAL` and has never distinguished databases. `DATABASE_ID` is therefore the
+ * filter, which is also how the rest of this panel scopes its catalogue queries.
+ *
+ * Naming the target in the statement also makes this independent of the session. How the view
+ * is scoped is the server's to decide and may change again; what the panel needs is the policy
+ * of the table it is displaying, and an id says which table that is either way.
+ *
+ * A server without logical databases has no such column and still scopes the view to the
+ * session, so `databaseId` is omitted there and the statement stays as it was.
+ */
+export const buildRetentionQuery = ({
+    tableName,
+    userName,
+    databaseId,
+}: {
+    tableName: string;
+    userName: string;
+    databaseId?: string | number;
+}): string => {
+    // Only a plain unsigned id is interpolated. The value comes from the catalogue, but this
+    // position takes no placeholder, and the legacy sentinel `-1` must not be written into a
+    // column that never holds it. Anything else leaves the statement in its pre-v8.7 shape.
+    const sDatabaseId = String(databaseId ?? '').trim();
+    const sDatabaseCondition = /^[0-9]+$/.test(sDatabaseId) ? ` and DATABASE_ID=${sDatabaseId}` : '';
+    return `select j.POLICY_NAME as 'POLICY', r.'DURATION' as "DURATION", r.'INTERVAL' as "INTERVAL", j.STATE, j.LAST_DELETED_TIME from M$retention r, V$retention_job j where r.policy_name=j.policy_name and table_name=upper('${tableName}') and user_name=upper('${userName}')${sDatabaseCondition}`;
+};
+
 export const getTableTypeColor = (aTableType: string) => {
     switch (aTableType) {
         case 'tag':

@@ -14,6 +14,7 @@ import { MetaTablePage } from './metaTablePage';
 import {
     buildDataViewerColumnConfigFromColumnRows,
     buildQualifiedTableName,
+    buildRetentionQuery,
     CheckIndexFlag,
     CheckTableFlag,
     E_TABLE_INFO,
@@ -671,20 +672,17 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         } else setRollupInfo(undefined);
     };
     const FetchRetention = async () => {
-        const sQuery = `select j.POLICY_NAME as 'POLICY', r.'DURATION' as "DURATION", r.'INTERVAL' as "INTERVAL", j.STATE, j.LAST_DELETED_TIME from M$retention r, V$retention_job j where r.policy_name=j.policy_name and table_name=upper('${
-            mTableInfo[E_TABLE_INFO.TB_NM]
-        }') and user_name=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}')`;
-        // `V$RETENTION_JOB` is scoped to the session's own database and carries no column
-        // saying which one — measured, the same `SYS`/`DEMO_TAG` row answers `ZZRET_DEMO` from
-        // a MACHBASEDB session and `ZZRET_FACTORY` from a FACTORY_A one. The statement cannot
-        // be filtered, so the session is moved instead: `use()` runs it against the database
-        // the table actually lives in. Without it a table in another database was shown the
-        // session database's policy for a same-named table — a plausible wrong answer, which is
-        // why this used to be skipped entirely for anything but the current database.
-        const { svrState, svrData } = await fetchTqlWithoutConsole(
-            sQuery,
-            hasLogicalDatabases() ? String(mTableInfo[E_TABLE_INFO.DB_NM] ?? '') : undefined
-        );
+        const sQuery = buildRetentionQuery({
+            tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
+            userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
+            // Pre-v8.7 the view has no `DATABASE_ID` to filter on and is scoped to the session
+            // anyway; there the table shown is always the session's, so an unscoped statement
+            // is the right one. See `buildRetentionQuery` for what changed on v8.7.
+            databaseId: hasLogicalDatabases()
+                ? normalizeDatabaseId(mTableInfo[E_TABLE_INFO.DB_ID])
+                : undefined,
+        });
+        const { svrState, svrData } = await fetchTqlWithoutConsole(sQuery);
         if (svrState) {
             svrData.rows.map((row: (string | number)[]) => {
                 const durationValue = row[svrData.columns.indexOf('DURATION')];
@@ -826,9 +824,9 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 SetLastFetchTime();
                 FetchColumn();
                 FetchIndex();
-                // On v8.7 the query carries its own `use()`, so any database can be read. An
-                // older server has no directive to carry, and there the session's database is
-                // the only one whose retention the view can be trusted to describe.
+                // On v8.7 the query carries its own `DATABASE_ID` condition, so any database
+                // can be read. An older server has no such column, and there the session's
+                // database is the only one whose retention the view can be trusted to describe.
                 if (hasLogicalDatabases() || isSameDatabaseId(mTableInfo[E_TABLE_INFO.DB_ID], getCurrentDatabaseId())) FetchRetention();
                 else setRetentionInfo(undefined);
                 // Cond rollup (TAG)
