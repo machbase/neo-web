@@ -35,7 +35,7 @@ export const SecurityKeySide = () => {
                     if (aBoard.id === aTarget.id) {
                         return {
                             ...aTarget,
-                            name: `KEY: ${aValue.id}`,
+                            name: `KEY: ${aValue.name}`,
                             code: aValue,
                             savedCode: aValue,
                         };
@@ -52,7 +52,7 @@ export const SecurityKeySide = () => {
                 {
                     id: sId,
                     type: 'key',
-                    name: `KEY: ${aValue.id}`,
+                    name: `KEY: ${aValue.name}`,
                     code: aValue,
                     savedCode: aValue,
                 },
@@ -133,12 +133,12 @@ export const SecurityKeySide = () => {
                     <Side.List>
                         {sSecurityKeyList &&
                             sSecurityKeyList.length !== 0 &&
-                            sSecurityKeyList.map((aKey, aIdx: number) => {
+                            sSecurityKeyList.map((aKey) => {
                                 return (
-                                    <Side.Item key={aIdx} onClick={() => openSecurityKey(aKey)}>
+                                    <Side.Item key={aKey.id} onClick={() => openSecurityKey(aKey)}>
                                         <Side.ItemContent>
                                             <Side.ItemIcon>{icons('key')}</Side.ItemIcon>
-                                            <Side.ItemText>{aKey.id}</Side.ItemText>
+                                            <Side.ItemText>{aKey.name}</Side.ItemText>
                                         </Side.ItemContent>
                                     </Side.Item>
                                 );

@@ -32,7 +32,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                         if (aBoard.id === aTarget.id) {
                             return {
                                 ...aTarget,
-                                name: `KEY: ${sTempKeyList[0].id}`,
+                                name: `KEY: ${sTempKeyList[0].name}`,
                                 code: sTempKeyList[0],
                                 savedCode: sTempKeyList[0],
                             };
@@ -84,6 +84,10 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
                             <Page.Body>
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>Client id</Page.ContentTitle>
+                                    <Page.ContentDesc>{pCode.name}</Page.ContentDesc>
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Key id</Page.ContentTitle>
                                     <Page.ContentDesc>{pCode.id}</Page.ContentDesc>
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>

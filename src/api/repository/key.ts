@@ -1,7 +1,7 @@
 // security key repository — migrated to the machbase-neo UI-API (JSON-RPC) (#1334).
 //
 // list/delete/generate are all on RPC now (`key.list`/`key.delete`/`key.generate`).
-// `key.generate(id, typ, notBefore, notAfter, store)` (params order: [id, typ, notBefore, notAfter, store]).
+// `key.generate(name, typ, notBefore, notAfter, store)` (params order: [name, typ, notBefore, notAfter, store]).
 //   - typ: 'ecdsa' | 'rsa'
 //   - notBefore / notAfter: unix seconds from the create form's Valid After / Valid Before date pickers; 0 = now / now+10y (server default).
 //   - store: when true the key is persisted server-side (appears in key.list).
@@ -14,8 +14,15 @@ import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 import { rpcServerCertificateGet } from './server';
 
 export interface KeyItemType {
-    id: string;
+    /** management id (auto-increment). This is what `key.delete` takes. */
+    id: number;
     idx: number;
+    /**
+     * certificate CommonName — the value that used to live in `id`.
+     * NOT unique (a name may be reused across owners or reissued certs), so always
+     * identify a key by `id` and only ever *display* `name`.
+     */
+    name: string;
     notAfter: number;
     notBefore: number;
 }
@@ -57,7 +64,9 @@ const rpcErrMessage = (res: JsonRpcResponse<unknown>): string | null =>
 
 /**
  * Get security key list — `key.list`.
- * The RPC result is `KeyInfo[]` ({id, notBefore, notAfter}). idx is not in the RPC, so fill it from the array index.
+ * The RPC result is `KeyInfo[]` ({idx, id, name, notBefore, notAfter}). `id` is the numeric
+ * management id and `name` is the CommonName that used to be sent as `id`; `idx` falls back to
+ * the array index when the server omits it.
  */
 export const getKeyList = async (): Promise<KeyListResType> => {
     try {
@@ -66,10 +75,11 @@ export const getKeyList = async (): Promise<KeyListResType> => {
         if (err) return { success: false, reason: err, elapse: '', data: [] };
         const rows = (res?.result ?? []) as any[];
         const data: KeyItemType[] = rows.map((it, i) => ({
-            id: it?.id ?? it?.Id ?? '',
-            idx: i,
-            notBefore: Number(it?.notBefore ?? it?.NotBefore ?? 0),
-            notAfter: Number(it?.notAfter ?? it?.NotAfter ?? 0),
+            id: Number(it?.id ?? 0),
+            idx: Number(it?.idx ?? i),
+            name: String(it?.name ?? ''),
+            notBefore: Number(it?.notBefore ?? 0),
+            notAfter: Number(it?.notAfter ?? 0),
         }));
         return { success: true, reason: 'success', elapse: '', data };
     } catch (e) {
@@ -133,11 +143,12 @@ export const genKey = async (aData: CreatePayloadType): Promise<GenKeyResType> =
 };
 
 /**
- * Delete security key — `key.delete(id)`.
+ * Delete security key — `key.delete(id)`. `id` is the numeric management id from `key.list`,
+ * not the key name; the server rejects a string with JSON-RPC -32602.
  */
-export const delKey = async (aTargetKeyName: string): Promise<DelKeyResType> => {
+export const delKey = async (aKeyId: number): Promise<DelKeyResType> => {
     try {
-        const res = await rpcCall(RpcMethod.key.delete, [aTargetKeyName]);
+        const res = await rpcCall(RpcMethod.key.delete, [aKeyId]);
         const err = rpcErrMessage(res);
         return err ? { success: false, reason: err, elapse: '' } : { success: true, reason: 'success', elapse: '' };
     } catch (e) {
