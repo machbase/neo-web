@@ -10,7 +10,8 @@ import { toSqlValueExpressionForAggregator, jsonValueFieldToNumericSql } from '@
 import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '@/utils/dbUtils';
 import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
-import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
+import { DATETIME_COLUMN_TYPE, isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { buildTagStatExtentSelect, isMissingStatColumnError, otherTagStatBaseKind, type TagStatBaseKind } from '@/utils/tagStatColumns';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
 import {
@@ -370,45 +371,87 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
 };
 
 
-export const fetchTimeMinMax = async (aTargetInfo: any) => {
-    let sQuery: string | undefined = undefined;
-    // Query tag table
-    if (aTargetInfo.type === 'tag') {
-        const sIsVirtualTable = aTargetInfo.table.includes('V$');
-        const sTime = aTargetInfo.time || 'TIME';
-        const sName = aTargetInfo.name || 'NAME';
-        if (sTime.toUpperCase() === 'TIME') {
-            // The block names either the stat view (a Gauge / Pie panel stores that) or the
-            // source table, and either way the name keeps the database it came with. Reducing
-            // it to the bare table and re-attaching only the owner built `SYS.V$ATABLE_STAT`,
-            // which resolves in whichever database the session is in — so a panel on FACTORY_A
-            // read MACHBASEDB's empty copy of the view, got no extent, and fell back to a
-            // `now - 1h` window. The data query is correctly qualified, so the panel asked the
-            // right table for the wrong hour and drew a blank chart with no error. Measured:
-            // FACTORY_A.SYS.V$ATABLE_STAT answers a real range where SYS.V$ATABLE_STAT is empty.
-            const sStatView = sIsVirtualTable
-                ? qualifyTableName(aTargetInfo.userName, aTargetInfo.table)
-                : qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => `V$${n}_STAT`);
-            sQuery = `select min_time, max_time from ${sStatView} where name in ('${aTargetInfo.tag}')`;
-        } else {
-            // A non-TIME base column is not in the stat view, so read the source table — undoing
-            // the decoration on the last segment alone, for the same reason.
-            const sSourceTable = sIsVirtualTable
-                ? qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => removeV$Table(n))
-                : qualifyTableName(aTargetInfo.userName, aTargetInfo.table);
-            sQuery = `select min(${sTime}), max(${sTime}) from ${sSourceTable} where ${sName} in ('${aTargetInfo.tag}')`;
-        }
-    }
-    // Query log table
-    if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
-    // Query view table
-    if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
-    if (!sQuery) return;
-
-    const sData = await request({
+const requestMinMaxQuery = async (aQuery: string) =>
+    request({
         method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(sQuery),
+        url: `/api/query?q=` + encodeURIComponent(aQuery),
     });
+
+const isFailedMinMaxResponse = (aData: any) => (aData?.status ?? 0) >= 400 || aData?.data?.success === false;
+const minMaxFailureReason = (aData: any) => (typeof aData?.data === 'object' ? aData?.data?.reason ?? '' : aData?.data ?? '');
+const hasMinMaxRow = (aData: any) => Boolean(aData?.data?.rows?.length) && aData.data.rows[0]?.[0] != null;
+
+ * A tag block's base extent, from the stat view when that view can answer and from the column when
+ * it cannot.
+ *
+ * Which axis columns to ask for is the block's own base kind — a distance block's view publishes
+ * MIN_DISTANCE / MAX_DISTANCE and no MIN_TIME at all, and vice versa. Two things can make that guess
+ * wrong, and one retry covers both: a Gauge / Pie panel stores the *stat view* as its table, whose
+ * columns carry no BASETIME flag to read a kind off, and a server older than the base-distance stat
+ * columns publishes the time names for a distance table. Either way the answer is ERR-2056 and the
+ * other set is the right one.
+ *
+ * A query that still fails reads the source column instead — correct on any table and any server,
+ * just slower (measured on a 10-tag distance table: 216µs through the view, 106ms over the column).
+ */
+const fetchTagTimeMinMaxResponse = async (aTargetInfo: any) => {
+    const sIsVirtualTable = aTargetInfo.table.includes('V$');
+    const sTime = aTargetInfo.time || 'TIME';
+    const sName = aTargetInfo.name || 'NAME';
+    const sBaseKind: TagStatBaseKind = isNumericBaseTimeBlock(aTargetInfo) ? 'distance' : 'time';
+
+    // The block names either the stat view (a Gauge / Pie panel stores that) or the
+    // source table, and either way the name keeps the database it came with. Reducing
+    // it to the bare table and re-attaching only the owner built `SYS.V$ATABLE_STAT`,
+    // which resolves in whichever database the session is in — so a panel on FACTORY_A
+    // read MACHBASEDB's empty copy of the view, got no extent, and fell back to a
+    // `now - 1h` window. The data query is correctly qualified, so the panel asked the
+    // right table for the wrong hour and drew a blank chart with no error. Measured:
+    // FACTORY_A.SYS.V$ATABLE_STAT answers a real range where SYS.V$ATABLE_STAT is empty.
+    const sStatView = sIsVirtualTable
+        ? qualifyTableName(aTargetInfo.userName, aTargetInfo.table)
+        : qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => `V$${n}_STAT`);
+    // Undoing the decoration on the last segment alone, for the same reason.
+    const sSourceTable = sIsVirtualTable
+        ? qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => removeV$Table(n))
+        : qualifyTableName(aTargetInfo.userName, aTargetInfo.table);
+    const sScanQuery = `select min(${sTime}), max(${sTime}) from ${sSourceTable} where ${sName} in ('${aTargetInfo.tag}')`;
+
+    // A time base has to be on the default TIME column: MIN_TIME describes BASETIME, and for any
+    // other datetime column the view would answer a question nobody asked — successfully. A distance
+    // base has no such caveat, since MIN_DISTANCE can only be about the one BASE DISTANCE column.
+    // The block's own tag column does not matter either way: the view keys its rows by `NAME`
+    // whatever the source table calls that column, which is why the filter below is not `sName`.
+    const sCanUseStatView = sBaseKind === 'distance' || sTime.toUpperCase() === 'TIME';
+    if (!sCanUseStatView) return requestMinMaxQuery(sScanQuery);
+
+    // Aggregated because the view answers one row per tag, and one row per warehouse per tag on a
+    // cluster; the aggregate is the extent either way and always a single row.
+    const sStatQuery = (aBaseKind: TagStatBaseKind) => `select ${buildTagStatExtentSelect(aBaseKind, 'mn', 'mx')} from ${sStatView} where name in ('${aTargetInfo.tag}')`;
+    const sStatData = await requestMinMaxQuery(sStatQuery(sBaseKind));
+    if (!isFailedMinMaxResponse(sStatData)) return sStatData;
+
+    if (isMissingStatColumnError(minMaxFailureReason(sStatData))) {
+        const sRetryData = await requestMinMaxQuery(sStatQuery(otherTagStatBaseKind(sBaseKind)));
+        if (!isFailedMinMaxResponse(sRetryData)) return sRetryData;
+    }
+
+    return requestMinMaxQuery(sScanQuery);
+};
+
+export const fetchTimeMinMax = async (aTargetInfo: any) => {
+    let sData: any;
+    if (aTargetInfo.type === 'tag') {
+        sData = await fetchTagTimeMinMaxResponse(aTargetInfo);
+    } else {
+        let sQuery: string | undefined = undefined;
+        // Query log table
+        if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
+        // Query view table
+        if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
+        if (!sQuery) return;
+        sData = await requestMinMaxQuery(sQuery);
+    }
 
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -418,7 +461,10 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
         }
     }
 
-    if (!sData?.data || !sData.data?.rows || sData.data.rows.length === 0) {
+    // An aggregate always answers a row, so a tag with no data arrives as `[[null, null]]` where an
+    // unaggregated read answered no rows at all. Both say the same thing — no extent — and every
+    // caller reads `rows[0][0]`, where `Number(null)` is a perfectly finite 0.
+    if (!hasMinMaxRow(sData)) {
         const sNowTime = moment().unix() * 1000000;
         const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
         return [sNowTimeMinMax];

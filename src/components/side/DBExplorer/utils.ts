@@ -1,5 +1,7 @@
 import { getColumnType } from '@/utils/dashboardUtil';
+import { formatDistanceReadout } from '@/utils/distanceRange';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
+import moment from 'moment';
 
 // Doubles as the tree's bucket order and as the sort key for getTableType results, so the
 // entries must match DBExplorer's TableTypeConverter output exactly. 'transaction' sits
@@ -203,6 +205,44 @@ export const GettColumnFlag = (aColFlag: number, aColType?: number) => {
         return 'meta';
     }
     return '';
+};
+
+/** The display DESC `GettColumnFlag` writes for the one column a tag table orders its rows by. */
+export const BASE_DISTANCE_DESC = 'base distance';
+
+/**
+ * The table header's base column: its name, and whether it measures distance rather than time.
+ *
+ * Read off the DESC the Column table already shows, because `GettColumnFlag` has decided that
+ * question once and a second derivation here could disagree with what the user is looking at. The
+ * positional fallback is what a table whose DESC could not be resolved falls back to — index 1 is
+ * the base column of every tag table by construction.
+ */
+export const resolveTableBaseColumn = (aColumnInfo?: FetchCommonType) => {
+    const sRows = aColumnInfo?.rows ?? [];
+    const sDescIndex = aColumnInfo?.columns?.indexOf('DESC') ?? -1;
+    const sDescOf = (aRow?: STR_NUM_ARR_TYPE) => (sDescIndex < 0 ? '' : String(aRow?.[sDescIndex] ?? '').trim().toLowerCase());
+    const sBaseRow = sRows.find((aRow) => sDescOf(aRow).startsWith('base')) ?? sRows[1];
+    return {
+        name: String(sBaseRow?.[0] ?? ''),
+        isDistance: sDescOf(sBaseRow) === BASE_DISTANCE_DESC,
+    };
+};
+
+/**
+ * One edge of the table header's data range.
+ *
+ * A base time is nanoseconds since the epoch; a base distance is a number in the column's own unit,
+ * and dividing it by a million and calling it a date is how DISTANCE_SENSOR's 0 .. 999990 came to
+ * read `N/A ~ 1970-01-01 09:00:00`. Note which value each axis refuses: 0 is not a timestamp any
+ * table holds, but it is the first metre of every odometer.
+ */
+export const formatTableBaseExtent = (aValue: unknown, aIsDistance: boolean) => {
+    if (aValue === null || aValue === undefined || aValue === '') return 'N/A';
+    const sNumeric = Number(aValue);
+    if (!Number.isFinite(sNumeric)) return 'N/A';
+    if (aIsDistance) return formatDistanceReadout(sNumeric);
+    return sNumeric > 0 ? moment(sNumeric / 1000000).format('YYYY-MM-DD HH:mm:ss') : 'N/A';
 };
 
 export const buildDataViewerColumnConfigFromColumnRows = (columnRows?: STR_NUM_ARR_TYPE[]) => {

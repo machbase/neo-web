@@ -24,9 +24,11 @@ interface ModalRootProps extends UseModalProps {
     style?: React.CSSProperties;
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'fit';
     'data-testid'?: string;
+    /** Key handling for the dialog as a whole — e.g. Enter to apply, wherever focus sits inside it. */
+    onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
 }
 
-const ModalRoot = ({ children, className, style, size = 'fit', 'data-testid': dataTestId, ...modalProps }: ModalRootProps) => {
+const ModalRoot = ({ children, className, style, size = 'fit', 'data-testid': dataTestId, onKeyDown, ...modalProps }: ModalRootProps) => {
     const modal = useModal(modalProps);
 
     if (!modal.isOpen) return null;
@@ -35,8 +37,8 @@ const ModalRoot = ({ children, className, style, size = 'fit', 'data-testid': da
 
     return createPortal(
         <ModalContext.Provider value={modal}>
-            <div {...modal.getOverlayProps()} className={styles['modal__overlay']}>
-                <div {...modal.getContentProps()} data-testid={dataTestId} className={`${styles.modal} ${sizeClass} ${className ?? ''}`} style={style}>
+            <div {...modal.getOverlayProps()} className={styles['modal__overlay']} data-testid="modal-overlay">
+                <div {...modal.getContentProps()} data-testid={dataTestId} onKeyDown={onKeyDown} className={`${styles.modal} ${sizeClass} ${className ?? ''}`} style={style}>
                     {children}
                 </div>
             </div>
@@ -129,7 +131,7 @@ interface ModalFooterProps {
 
 const ModalFooter = ({ children, className, style }: ModalFooterProps) => {
     return (
-        <div className={`${styles['modal__footer']} ${className ?? ''}`} style={style}>
+        <div className={`${styles['modal__footer']} ${className ?? ''}`} style={style} data-testid="modal-footer">
             {children}
         </div>
     );

@@ -1,6 +1,7 @@
 import { fetchQuery } from '@/api/repository/database';
 import { getCurrentDatabaseId, getCurrentDatabaseName, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { SQL_BASE_LIMIT } from '@/utils/sqlFormatter';
+import { buildTagStatExtentSelect, tagStatAxisColumns } from '@/utils/tagStatColumns';
 import { parseDataViewerDistanceValue, type DataViewerBaseKind } from './dataViewerModel';
 
 export interface DataViewerTableParams {
@@ -480,25 +481,19 @@ export async function queryTagBoundaryTime({
     // we did not ask — and it would answer it *successfully*, which the fallback below cannot
     // detect. Skipping outright is the only way to keep that from becoming a silent wrong boundary.
     //
-    // On a distance-base table the answer is not merely the wrong column, it is not a quantity at
-    // all. Measured against MACHBASEDB.SYS.DISTANCE_SENSOR (base column ODOMETER_M, DOUBLE, BASETIME;
-    // 10 tags x 100,000 rows; min 0, max 999990):
-    //   select max(MAX_TIME) from V$DISTANCE_SENSOR_STAT  ->  4696837060785340416
-    // 4696837060785340416 is the IEEE-754 bit pattern of the double 999990, reinterpreted as an
-    // integer — the view stores BASETIME's raw 8 bytes and labels them a time. Reading it as a
-    // boundary would put the window ~148 billion years out. The fallback below, which orders the
-    // real column, answers 999990 as it should. This guard is what keeps that from happening.
-    //
-    // `queryTagBaseColumnBounds` does read the view on a distance base, which is not a contradiction:
-    // it undoes the labelling first (`reinterpretTagStatBaseValue`) and its caller wants a distance.
-    // This function's answer feeds `toDataViewerDate`, which wants a time — there is nothing here to
-    // reinterpret *into*, so skipping is the only correct move.
+    // A distance base cannot reach here at all: this function's answer feeds `toDataViewerDate`,
+    // which wants a time, and the page's distance path resolves its edges through
+    // `queryTagBaseColumnBounds` without ever asking for a boundary *time*. If one did arrive, the
+    // stat view would answer `MACHCLI-ERR-2056` — a distance table's view publishes MIN_DISTANCE /
+    // MAX_DISTANCE and no MIN_TIME at all — and the fallback below would scan a column measuring
+    // metres. Loud either way, which is why the guard is about the column, not the axis.
     //
     // Also requires the default tag column and a non-empty name list: the stat view keys its rows by
     // `NAME`, and `NAME in ()` is a syntax error the server rejects outright.
     if (timeColumnExpr === DEFAULT_TIME_COLUMN && tagColumnExpr === DEFAULT_TAG_COLUMN && normalizedNames.length > 0) {
         const statView = buildQualifiedTagStatViewName({ dbName, userName, tableName });
-        const statColumn = direction === 'latest' ? 'max(MAX_TIME)' : 'min(MIN_TIME)';
+        const timeAxis = tagStatAxisColumns('time');
+        const statColumn = direction === 'latest' ? `max(${timeAxis.max})` : `min(${timeAxis.min})`;
         const statSql = `select ${statColumn} as time from ${statView} where NAME in (${normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ')})`;
         const stat = await fetchQuery(statSql).catch(() => ({ svrState: false, svrData: undefined, svrReason: '' }));
         if (stat.svrState) {
@@ -516,76 +511,21 @@ export async function queryTagBoundaryTime({
     return normalizeRows(svrData)[0]?.time;
 }
 
-// A pattern at or past this has its sign bit set.
-const IEEE754_SIGN_BIT = 1n << 63n;
-
-// The eight bytes behind a stat-view payload, or `null` when the payload is not eight bytes of
-// anything this can reason about.
-//
-// The upper limit is the sign bit, and two separate things ride on it. Ordering: for *non-negative*
-// doubles the unsigned bit pattern rises with the value, which is the only reason `min(MIN_TIME)` is
-// the smallest reading rather than an arbitrary one — a signed pattern inverts that and the
-// aggregate stops meaning what it says. Precision: a JSON number past `Number.MAX_SAFE_INTEGER` is
-// the *nearest double* to the integer the server wrote, so the pattern's low bits may already have
-// been rounded away. Below the sign bit that rounding is bounded — at most half an ulp, 512 counts,
-// which moves the reinterpreted double by ~2e-13 of itself (1.2e-7 on the reference table's 999990,
-// against a slider whose own step is ~1000). At or past it there is no bound left to appeal to, so
-// the caller is sent to scan the column instead. A `string` or `bigint` payload has no such
-// question: decimal digits never crossed a double, so the pattern is exactly what the server sent.
-const toTagStatBits = (raw: unknown): bigint | null => {
-    const bits =
-        typeof raw === 'bigint'
-            ? raw
-            : typeof raw === 'string'
-              ? /^\d+$/.test(raw.trim())
-                  ? BigInt(raw.trim())
-                  : null
-              : typeof raw === 'number' && Number.isInteger(raw)
-                ? BigInt(raw)
-                : null;
-    if (bits === null) return null;
-    return bits >= 0n && bits < IEEE754_SIGN_BIT ? bits : null;
-};
-
-/**
- * A `V$<TABLE>_STAT` MIN_TIME / MAX_TIME payload, read back as the double it actually is.
- *
- * The view stores the BASETIME column's raw eight bytes and labels the field a time. On a time base
- * those bytes *are* a timestamp; on a distance base they are the IEEE-754 bit pattern of a double.
- * Measured against MACHBASEDB.SYS.DISTANCE_SENSOR (ODOMETER_M, DOUBLE, BASETIME, 0 .. 999990):
- * `select max(MAX_TIME) from V$DISTANCE_SENSOR_STAT` answers 4696837060785340416, which is
- * 0x412E846C00000000 — the bits of 999990. Reinterpreting them is what turns that back into an
- * answer about metres.
- *
- * `null` means "do not trust this", and the caller reads it as "ask the column instead": a payload
- * that is not a non-negative integer, one whose sign bit is set (see `toTagStatBits`), and one whose
- * exponent field is all ones — 0x7FF8000000000000 arrives as a perfectly ordinary-looking
- * 9221120237041090560 and reinterprets to NaN, which is not a distance and must not become a bound.
- */
-export function reinterpretTagStatBaseValue(raw: unknown): number | null {
-    const bits = toTagStatBits(raw);
-    if (bits === null) return null;
-    const view = new DataView(new ArrayBuffer(8));
-    view.setBigUint64(0, bits);
-    const value = view.getFloat64(0);
-    return Number.isFinite(value) ? value : null;
-}
-
 /**
  * The full extent of the base column across a set of tags — the distance range editor's slider
  * bounds. `{ min, max }`, or `null` when there is no usable extent.
  *
  * Two ways to answer it, in this order:
  *
- *  1. `V$<TABLE>_STAT`, whose MIN_TIME / MAX_TIME already hold the BASETIME column's extent as
- *     metadata, with no rows read at all. `baseKind` has to say `distance` for this path to open,
- *     and that is not a formality: the view's bytes only need reinterpreting *because* they are a
- *     double. Run the same code against a time base and it reads a perfectly good nanosecond
- *     timestamp as a bit pattern — MACHROLL's real 1656601200000000000 .. 1785741995214000000 comes
- *     back as 3.49e-206 .. 3.53e-206.
- *  2. `min()`/`max()` over the column itself. Correct on any table, any column, any sign, and the
+ *  1. `V$<TABLE>_STAT`, whose MIN_DISTANCE / MAX_DISTANCE hold the BASETIME column's extent as
+ *     metadata, in the column's own unit and its own type, with no rows read at all. `baseKind` has
+ *     to say `distance` for this path to open, and that is not a formality: those columns exist only
+ *     on a distance base. A time base publishes MIN_TIME / MAX_TIME instead, and asking it for
+ *     MIN_DISTANCE is `MACHCLI-ERR-2056, Column name (MIN_DISTANCE) not found`.
+ *  2. `min()`/`max()` over the column itself. Correct on any table, any column, any server, and the
  *     answer whenever the stat view is skipped, missing, keyed by a tag column it does not have, or
- *     hands back a pattern `reinterpretTagStatBaseValue` will not vouch for.
+ *     rejects the query — which is also what a server too old to publish the distance columns does,
+ *     so this path is the whole of that compatibility story.
  *
  * Both paths were run against MACHBASEDB.SYS.DISTANCE_SENSOR and agree exactly — 0 .. 999990 — for
  * one tag, three tags and all ten. What separates them is cost, and it is the tag filter that makes
@@ -594,6 +534,7 @@ export function reinterpretTagStatBaseValue(raw: unknown): number | null {
  *
  *     tags   stat view    column scan
  *        1      197µs         10.3ms
+ *        2      259µs        333.0ms
  *        3      284µs         29.1ms
  *       10      1.46ms       156.5ms
  *
@@ -632,12 +573,17 @@ export async function queryTagBaseColumnBounds({
     // asked about at all.
     if (baseKind === 'distance' && tagColumnExpr === DEFAULT_TAG_COLUMN) {
         const statView = buildQualifiedTagStatViewName({ dbName, userName, tableName });
-        const statSql = `select min(MIN_TIME) as mn, max(MAX_TIME) as mx from ${statView} where NAME in (${nameList})`;
+        // Aggregated, not a bare pair of columns: the view answers one row per tag, and on a cluster
+        // one row per warehouse per tag, and the extent is the aggregate over all of them.
+        const statSql = `select ${buildTagStatExtentSelect('distance', 'mn', 'mx')} from ${statView} where NAME in (${nameList})`;
         const stat = await fetchQuery(statSql).catch(() => ({ svrState: false, svrData: undefined, svrReason: '' }));
         if (stat.svrState) {
             const statRow = normalizeRows(stat.svrData)[0] || {};
-            const statMin = reinterpretTagStatBaseValue(statRow.mn);
-            const statMax = reinterpretTagStatBaseValue(statRow.mx);
+            // The same parser the column scan below uses, because the two now carry the same thing: a
+            // number in the base column's unit. A LONG or ULONG base past 2^53 loses its low bits on
+            // the way through JSON either way, so the two paths stay in agreement even there.
+            const statMin = parseDataViewerDistanceValue(statRow.mn);
+            const statMax = parseDataViewerDistanceValue(statRow.mx);
             if (statMin !== null && statMax !== null && statMax > statMin) return { min: statMin, max: statMax };
         }
     }

@@ -22,8 +22,16 @@ export const executeQuery = async (query: string) => {
             const result = await response.json();
             return result;
         } else {
+            // A rejected SQL statement is an HTTP 500 whose *body* carries the engine's reason
+            // (`{"success":false,"reason":"MACHCLI-ERR-2056, Column name (MIN_TIME) not found."}`).
+            // `statusText` alone is "Internal Server Error", which tells a caller nothing about
+            // what to do next — the tag stat reader keys its retry on the reason text.
+            const reason = await response
+                .json()
+                .then((body: any) => String(body?.reason ?? '').trim())
+                .catch(() => '');
             return {
-                data: { reason: `Query failed: ${response.statusText}` },
+                data: { reason: reason || `Query failed: ${response.statusText}` },
                 status: response.status,
                 success: false,
             };

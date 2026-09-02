@@ -1,4 +1,5 @@
 import { Calendar } from '@/assets/icons/Icon';
+import MaterialIcon from '@/components/common/MaterialIcon';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -26,6 +27,15 @@ interface TimeRangeModalPropsBase {
      * the board header, where the first distance panel is the reference.
      */
     pBoundsBlock?: any;
+    /**
+     * The distance slider's extent, supplied by the caller instead of read from a board.
+     *
+     * The dashboard has a block to measure — `pBoundsBlock` — but a caller that is not a board has
+     * already read the same extent for its own axis (the Data Viewer holds it for the slider it
+     * draws beside the grid), and it has no `blockList` to hand over. Passing it in skips the fetch
+     * entirely; the fetch stays for the board, which cannot know its extent until the modal opens.
+     */
+    pBounds?: { min: number; max: number } | null;
 }
 
 // Props-based mode (ViewTimeRangeModal pattern)
@@ -71,6 +81,11 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
     const sLockTab = (props as any)?.pLockTab as 'time' | 'distance' | undefined;
     // The panel editor names its own block; the board header falls back to the first distance panel.
     const sBoundsBlock = (props as any)?.pBoundsBlock ?? sDistancePanel?.blockList?.[0];
+    // `null` from a caller means "extent unknown" — the same thing an unread board extent means, so
+    // it falls through to {0,0} and the tab hides the slider rather than drawing a bogus rail.
+    const sInjectedBoundsProp = (props as any)?.pBounds as { min: number; max: number } | null | undefined;
+    const sInjectedBounds =
+        sInjectedBoundsProp && Number.isFinite(sInjectedBoundsProp.min) && Number.isFinite(sInjectedBoundsProp.max) ? sInjectedBoundsProp : undefined;
 
     const [sTab, setTab] = useState<'time' | 'distance'>(sLockTab ?? (props as any)?.pInitialTab ?? 'time');
     const [sBounds, setBounds] = useState<{ min: number; max: number }>({ min: 0, max: 0 });
@@ -78,11 +93,20 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
     // keeps following the data instead of freezing at today's numbers.
     const [sDistFrom, setDistFrom] = useState<number | string>(0);
     const [sDistTo, setDistTo] = useState<number | string>(0);
+    // The board fetches its extent into state; a props-mode caller passes one in. Everything below
+    // reads this one value so the two paths cannot drift.
+    const sEffectiveBounds = sInjectedBounds ?? sBounds;
     // Why the distance tab's typed range cannot be applied, or '' when it can. The tab reports it;
     // Apply is here, so refusing is here too.
     const [sDistNotice, setDistNotice] = useState<string>('');
 
     useEffect(() => {
+        // An injected extent settles both questions the board answers below: there is nothing to
+        // fetch, and the range to show is the one the caller passed as pStartTime/pEndTime (seeded
+        // by the init effect), not a board's stored distanceRange. It is read live rather than
+        // copied into state here, because the caller reads it asynchronously and it can land after
+        // this modal is already open — a mount-time copy would leave the slider permanently hidden.
+        if (sInjectedBoundsProp !== undefined) return;
         if (!sHasDistance) return;
         const sDR = sBoard?.dashboard?.distanceRange ?? {};
         const sHasStart = sDR.start !== '' && sDR.start != null;
@@ -136,6 +160,16 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         } else {
             // Props-based mode (ViewTimeRangeModal pattern)
             const { pStartTime, pEndTime, pRefresh } = props;
+            // A distance range is never a clock reading: `0` is metre zero, not 1970, so it must not
+            // go through the epoch formatting the time axis needs.
+            if (sLockTab === 'distance') {
+                setDistFrom(pStartTime ?? 0);
+                setDistTo(pEndTime ?? 0);
+                setStartTime(pStartTime);
+                setEndTime(pEndTime);
+                setRefresh(pRefresh);
+                return;
+            }
             const sStart = typeof pStartTime === 'number' ? moment.unix(pStartTime / 1000).format('YYYY-MM-DD HH:mm:ss') : pStartTime;
             const sEnd = typeof pEndTime === 'number' ? moment.unix(pEndTime / 1000).format('YYYY-MM-DD HH:mm:ss') : pEndTime;
             setStartTime(sStart);
@@ -163,6 +197,17 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
 
     // Reset the distance axis back to the system default (full [first, last]) range.
     const handleResetDistanceToFull = () => {
+        // Full means the whole extent. A board stores that as the empty pair and resolves it per
+        // query; a props-mode caller has the extent in hand and needs two real edges, because an
+        // empty edge there is an unbounded scan rather than "open-ended". With no extent read there
+        // is no "full" to reset to — writing the {0,0} placeholder would apply as a zero-width
+        // window, so the control is disabled and this is a no-op if it is reached anyway.
+        if (!pUseRecoil) {
+            if (!sInjectedBounds) return;
+            setDistFrom(sEffectiveBounds.min);
+            setDistTo(sEffectiveBounds.max);
+            return;
+        }
         setBoardList((aPrev: any) =>
             aPrev.map((aItem: any) => (aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: '', end: '' } } } : aItem))
         );
@@ -181,6 +226,13 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             const sBothNumeric = typeof sDistFrom === 'number' && typeof sDistTo === 'number';
             const sFrom = sBothNumeric ? Math.min(sDistFrom as number, sDistTo as number) : sDistFrom;
             const sTo = sBothNumeric ? Math.max(sDistFrom as number, sDistTo as number) : sDistTo;
+            // A props-mode caller owns its own range — writing the board's distanceRange from here
+            // would edit whichever dashboard happens to be the selected tab.
+            if (!pUseRecoil) {
+                if (pSaveCallback) pSaveCallback(sFrom, sTo);
+                pSetTimeRangeModal(false);
+                return;
+            }
             setBoardList((aPrev: any) =>
                 aPrev.map((aItem: any) => (aItem.id === sSelectedTab ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: sFrom, end: sTo } } } : aItem))
             );
@@ -250,10 +302,26 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
     };
 
     return (
-        <Modal.Root isOpen={true} onClose={() => pSetTimeRangeModal(false)}>
+        <Modal.Root
+            isOpen={true}
+            onClose={() => pSetTimeRangeModal(false)}
+            // Enter applies, which is what the Data Viewer's own distance dialog did before it was
+            // folded into this one — a range is typed, and typing ends with Enter.
+            onKeyDown={(aEvent) => {
+                if (aEvent.key !== 'Enter') return;
+                const sTag = (aEvent.target as HTMLElement)?.tagName;
+                // A button under Enter is already doing its own thing (Cancel is a Cancel), and a
+                // textarea's Enter is a newline.
+                if (sTag === 'BUTTON' || sTag === 'TEXTAREA') return;
+                aEvent.preventDefault();
+                setGlobalTime();
+            }}
+        >
             <Modal.Header>
                 <Modal.Title>
-                    <Calendar />
+                    {/* A calendar over an odometer reading is the same category error the axis
+                        itself guards against, so the icon follows the locked axis. */}
+                    {sLockTab === 'distance' ? <MaterialIcon name="straighten" size={16} /> : <Calendar />}
                     {sLockTab === 'distance' ? 'Distance Range' : sLockTab === 'time' ? 'Time Range' : sHasDistance ? 'Range' : 'Time Range'}
                 </Modal.Title>
                 <Modal.Close />
@@ -287,7 +355,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
 
                 {(sHasDistance || sLockTab === 'distance') && sTab === 'distance' ? (
                     <DistanceRangeTab
-                        pBounds={sBounds}
+                        pBounds={sEffectiveBounds}
                         pFrom={sDistFrom}
                         pTo={sDistTo}
                         pOnChange={(aFrom, aTo) => {
@@ -295,6 +363,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                             setDistTo(aTo);
                         }}
                         pOnResetToFull={handleResetDistanceToFull}
+                        pResetDisabled={!pUseRecoil && !sInjectedBounds}
                         pOnValidityChange={setDistNotice}
                     />
                 ) : (

@@ -148,6 +148,30 @@ describe('dashboard block column helpers', () => {
         expect(rows).toEqual({ min: 0, max: 20.7 });
     });
 
+    // A BASE DISTANCE column may be DOUBLE, LONG or ULONG — those three and no others. Their type
+    // codes, read off M$SYS_COLUMNS on a live server, are 20, 12 and 112. All three have to read as
+    // distance: the kind is what routes the block to MIN_DISTANCE / MAX_DISTANCE and what stops the
+    // extent being divided by a million on its way to the axis.
+    test.each([
+        ['DOUBLE', 20, 999990],
+        ['LONG', 12, 12345],
+        // Past 2^53, written as the double JS actually holds: the server answers 9007199254740995
+        // and both the stat view and the column scan arrive as this same rounded value, which is
+        // the property the fallback between them depends on.
+        ['ULONG', 112, 9007199254740996],
+    ])('reads a %s base distance column as a distance', (_label, timeType, max) => {
+        expect(convertDashboardMinMaxRows([[0, max]], { time: 'ODO', timeType, timeBaseTime: true })).toEqual({ min: 0, max });
+    });
+
+    // The one type that is *not* a distance, for contrast: a DATETIME base is nanoseconds, and the
+    // same rows come back divided into milliseconds.
+    test('a DATETIME base is still read as time', () => {
+        expect(convertDashboardMinMaxRows([[1745910581000000000, 1745914181000000000]], { time: 'TIME', timeType: 6, timeBaseTime: true })).toEqual({
+            min: 1745910581000,
+            max: 1745914181000,
+        });
+    });
+
     test('converts a datetime base from stored timeType without tableInfo', () => {
         const rows = convertDashboardMinMaxRows([[1745910581000000000, 1745914181000000000]], {
             time: 'TIME',

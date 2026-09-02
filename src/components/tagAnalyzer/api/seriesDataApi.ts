@@ -1,6 +1,7 @@
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
+import { isMissingStatColumnError } from '@/utils/tagStatColumns';
 import { parseFiniteNumber } from '../objectGuards';
 import {
     findRollupTableEntry,
@@ -517,6 +518,12 @@ async function fetchSeriesFullRange(
                     fetchSingleSeriesRange(
                         usesNumericTime,
                         sqlQueries,
+                        () => buildSeriesFullRangeSql(
+                            tableName,
+                            series.sourceTagName,
+                            columns,
+                            { forceSourceTable: true },
+                        ),
                     ).catch((error: unknown) =>
                         reportSeriesError(series, error)),
                 );
@@ -538,7 +545,31 @@ async function fetchSeriesFullRange(
     return ranges.reduce(getEnclosingRange);
 }
 
+/**
+ * A series' full extent, with one retry against the source table.
+ *
+ * The statistics view is the fast path and the retry is what makes it safe to take: a server older
+ * than the base distance stat columns rejects MIN_DISTANCE with `MACHCLI-ERR-2056`, and scanning the
+ * column answers the same question, just slower. Only that error retries — "Data does not exist" and
+ * a zero-width range are answers, not failures, and re-asking them over a scan would cost a full
+ * table read to arrive at the same place.
+ */
 async function fetchSingleSeriesRange(
+    usesNumericTime: boolean,
+    sqlQueries: SeriesFullRangeSqlQueries,
+    buildSourceTableQueries?: () => SeriesFullRangeSqlQueries,
+): Promise<AxisRange> {
+    try {
+        return await resolveSeriesRange(usesNumericTime, sqlQueries);
+    } catch (error: unknown) {
+        if (!buildSourceTableQueries || !isMissingStatColumnError(error instanceof Error ? error.message : error)) {
+            throw error;
+        }
+        return resolveSeriesRange(usesNumericTime, buildSourceTableQueries());
+    }
+}
+
+async function resolveSeriesRange(
     usesNumericTime: boolean,
     sqlQueries: SeriesFullRangeSqlQueries,
 ): Promise<AxisRange> {

@@ -1,4 +1,16 @@
-import { buildDatabaseNodeList, buildDataViewerColumnConfigFromColumnRows, buildDisplayColumnInfo, buildDropObjectQuery, buildQualifiedTableName, describeTablePrivilege, E_COLUMN_FLAG, GettColumnFlag, parseTablePrivilege } from './utils';
+import {
+    buildDatabaseNodeList,
+    buildDataViewerColumnConfigFromColumnRows,
+    buildDisplayColumnInfo,
+    buildDropObjectQuery,
+    buildQualifiedTableName,
+    describeTablePrivilege,
+    E_COLUMN_FLAG,
+    formatTableBaseExtent,
+    GettColumnFlag,
+    parseTablePrivilege,
+    resolveTableBaseColumn,
+} from './utils';
 
 const DATETIME_TYPE = 6;
 const DOUBLE_TYPE = 20;
@@ -397,5 +409,79 @@ describe('buildDatabaseNodeList ordering', () => {
                 tableRowDbNames: ['MOUNT_DDD', 'FACTORY_A'],
             })
         ).toEqual(['MACHBASEDB', 'FACTORY_A', 'FACTORY_B', 'MOUNT_DDD']);
+    });
+});
+
+/**
+ * The table detail header's data range.
+ *
+ * A base distance is a plain number in the column's own unit. Dividing it by a million and
+ * formatting it as a date is what made DISTANCE_SENSOR — whose ODOMETER_M runs 0 .. 999990 —
+ * read `N/A ~ 1970-01-01 09:00:00`: the min was rejected by a `> 0` guard that is only true of
+ * timestamps, and 999990 ns is a millisecond past the epoch.
+ */
+describe('formatTableBaseExtent', () => {
+    test('renders a base distance as the number it is', () => {
+        expect(formatTableBaseExtent(999990, true)).toBe('999,990');
+        // 0 is the first metre of the odometer, not "no data" — the bug this replaced showed N/A.
+        expect(formatTableBaseExtent(0, true)).toBe('0');
+        expect(formatTableBaseExtent(12345.5, true)).toBe('12,345.5');
+    });
+
+    test('still renders a base time as a timestamp', () => {
+        expect(formatTableBaseExtent(1788134400000000000, false)).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+        // Epoch 0 is not a timestamp any table holds, so the time axis keeps refusing it.
+        expect(formatTableBaseExtent(0, false)).toBe('N/A');
+    });
+
+    test('refuses what is not a number, on either axis', () => {
+        [true, false].forEach((isDistance) => {
+            expect(formatTableBaseExtent(null, isDistance)).toBe('N/A');
+            expect(formatTableBaseExtent(undefined, isDistance)).toBe('N/A');
+            expect(formatTableBaseExtent('', isDistance)).toBe('N/A');
+            expect(formatTableBaseExtent('nope', isDistance)).toBe('N/A');
+        });
+    });
+});
+
+/** The header reads the axis off the DESC the Column table already shows. */
+describe('resolveTableBaseColumn', () => {
+    const columns = ['NAME', 'TYPE', 'LENGTH', 'BYTE', 'DESC'];
+
+    test('finds a base distance column and says so', () => {
+        const info = {
+            columns,
+            types: [],
+            rows: [
+                ['NAME', 'varchar', 32, 32, 'tag name'],
+                ['ODOMETER_M', 'double', 17, 8, 'base distance'],
+                ['VALUE', 'double', 17, 8, ''],
+            ],
+        } as any;
+        expect(resolveTableBaseColumn(info)).toEqual({ name: 'ODOMETER_M', isDistance: true });
+    });
+
+    test('finds a base time column and says it is not a distance', () => {
+        const info = {
+            columns,
+            types: [],
+            rows: [
+                ['NAME', 'varchar', 32, 32, 'tag name'],
+                ['TIME', 'datetime', 31, 8, 'base time'],
+                ['VALUE', 'double', 17, 8, 'summarized'],
+            ],
+        } as any;
+        expect(resolveTableBaseColumn(info)).toEqual({ name: 'TIME', isDistance: false });
+    });
+
+    // Index 1 is the base column of every tag table by construction, so an unreadable DESC still
+    // names the right column — it just cannot claim the axis.
+    test('falls back to the second column when there is no DESC to read', () => {
+        const info = { columns: ['NAME', 'TYPE'], types: [], rows: [['NAME', 'varchar'], ['ODOMETER_M', 'double']] } as any;
+        expect(resolveTableBaseColumn(info)).toEqual({ name: 'ODOMETER_M', isDistance: false });
+    });
+
+    test('survives a missing column list', () => {
+        expect(resolveTableBaseColumn(undefined)).toEqual({ name: '', isDistance: false });
     });
 });

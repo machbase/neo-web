@@ -4,6 +4,7 @@ import {
 } from '@/utils/dashboardJsonValue';
 import { ADMIN_ID } from '@/utils/constants';
 import { isMountedTableName, qualifySiblingObject, qualifyTableName } from '@/utils/qualifiedTableName';
+import { buildTagStatExtentSelect } from '@/utils/tagStatColumns';
 import {
     buildDateBinTimeExpression,
     buildRollupTimeExpression,
@@ -301,10 +302,18 @@ export type SeriesFullRangeSqlQueries =
     | [rangeSql: string]
     | [startSql: string, endSql: string];
 
+/**
+ * The SQL for a series' full data extent.
+ *
+ * `forceSourceTable` gives the caller the scanning form of the same question, for the one case the
+ * statistics view can fail on a server that otherwise answers it: an engine older than the base
+ * distance stat columns rejects MIN_DISTANCE with `MACHCLI-ERR-2056`. See `fetchSingleSeriesRange`.
+ */
 export function buildSeriesFullRangeSql(
     tableName: SqlIdentifierPath,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
+    options: { forceSourceTable?: boolean } = {},
 ): SeriesFullRangeSqlQueries {
     const usesNumericTime: boolean = isNumericBaseTimeSourceColumns(columns);
     // Whether a table lives in a mounted backup is a catalogue fact, not a dot count. It used
@@ -312,10 +321,15 @@ export function buildSeriesFullRangeSql(
     // carries all three parts, so counting them sent *every* table down the scanning branch and
     // left the statistics view unreachable. Measured on a 54k-row tag table: the stat view
     // answers in 0.9 ms where the scan takes 10.2 ms, and the gap widens with row count.
+    //
+    // A numeric (distance) base reads the view too, through MIN_DISTANCE / MAX_DISTANCE — the
+    // columns the view publishes in place of MIN_TIME / MAX_TIME when the base column measures
+    // distance. Its time *column name* is not part of the test the way a datetime base's is: the
+    // view has exactly one BASE DISTANCE column to describe, whatever the table calls it.
     const usesSourceTable: boolean =
-        usesNumericTime ||
+        Boolean(options.forceSourceTable) ||
         isMountedTableName(tableName) ||
-        columns.time.toUpperCase() !== 'TIME';
+        (!usesNumericTime && columns.time.toUpperCase() !== 'TIME');
     let targetTableName: string;
     if (usesSourceTable) {
         targetTableName = qualifyTableName(ADMIN_ID, tableName);
@@ -335,9 +349,10 @@ export function buildSeriesFullRangeSql(
     const tagNameSql: string = buildSqlStringLiteral(tagName);
 
     if (!usesSourceTable) {
+        // Aggregated: the view answers one row per tag, and on a cluster one row per warehouse per
+        // tag, so the extent is the aggregate over whatever it returns — always a single row here.
         return [joinSqlLines([
-            'SELECT min_time AS min_tm,',
-            '       max_time AS max_tm',
+            `SELECT ${buildTagStatExtentSelect(usesNumericTime ? 'distance' : 'time', 'min_tm', 'max_tm')}`,
             `FROM ${queryTableName}`,
             `WHERE NAME IN (${tagNameSql})`,
         ])];
