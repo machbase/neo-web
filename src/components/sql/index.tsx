@@ -361,6 +361,21 @@ const Sql = ({
         return sParts.join(' · ');
     }, [sSqlResponseData, sElapse]);
 
+    /**
+     * The statement the CHART tab draws from, with the chip's value merged in.
+     *
+     * The chip rides on `pQueryList` rather than CHART's `pTargetDb` on purpose. Both reach the
+     * same place — `applyTargetDatabase` inside the chart is a no-op once `pTargetDb` is null, so
+     * `env.use` set here is what the chart query carries — but only `pTargetDb` sits in the
+     * chart's redraw effect. Handing the value over this way means picking a database costs
+     * nothing: the drawing stays as it is until the user presses the chart's own play button,
+     * which reads this prop at click time and redraws against whatever the chip says then.
+     *
+     * If CHART's effect ever grows a `pQueryList` dependency, that gating is gone and every chip
+     * change fires a query again.
+     */
+    const sChartQueryListForDraw = useMemo(() => applyTargetDatabase<STATEMENT_TYPE>(sChartQueryList, sTargetDb), [sChartQueryList, sTargetDb]);
+
     return (
         <>
             <Page pRef={sSaveCommand}>
@@ -519,8 +534,7 @@ const Sql = ({
                             ) : null}
 
                             <CHART
-                                pQueryList={sChartQueryList}
-                                pTargetDb={sTargetDb}
+                                pQueryList={sChartQueryListForDraw}
                                 pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
                                 pChartAixsList={sChartAxisList}
                                 pIsVertical={isVertical}
