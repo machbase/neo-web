@@ -40,12 +40,12 @@ describe('getVirtualTableInfo scopes its lookup to one database', () => {
         expect(sentQuery()).toContain('v$columns WHERE DATABASE_ID = 2');
     });
 
-    test('a mounted database id survives as digits rather than being rounded', async () => {
-        // Ids are carried as text precisely so this one arrives intact; a JSON number would
-        // have become 4611686018427388000 and matched no row.
-        await getVirtualTableInfo('4611686018427387913', 'V$ATABLE_STAT', 'SYS');
+    test('a mounted database id reaches the statement as the digits it came in as', async () => {
+        // A mounted id is tagged in bit 30 (measured: `AA2` reports 1073741825) and no longer
+        // overflows a JS number, but it still has to be interpolated verbatim rather than
+        // reformatted — this is the value the explorer read off its own table row.
+        await getVirtualTableInfo('1073741825', 'V$ATABLE_STAT', 'SYS');
 
-        expect(sentQuery()).toContain('DATABASE_ID = 4611686018427387913');
-        expect(sentQuery()).not.toContain('4611686018427388000');
+        expect(sentQuery()).toContain('DATABASE_ID = 1073741825');
     });
 });

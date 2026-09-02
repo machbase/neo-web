@@ -21,25 +21,28 @@ export type CurrentDatabase = {
 export const LEGACY_DATABASE: CurrentDatabase = { id: '-1', name: 'MACHBASEDB' };
 
 /**
- * A database id as decimal text — the only form that survives the trip from the server.
+ * A database id as decimal text — one form, so that ids from different queries compare.
  *
- * `DATABASE_ID` is int64, and v8.7 tags a mounted database's id in bit 62: `MOUNT_DDD` reports
- * `4611686018427387913`. That exceeds `Number.MAX_SAFE_INTEGER`, and JSON has only one numeric
- * type, so `JSON.parse` rounds the value to `4611686018427388000` before any of our code sees
- * it. Nothing downstream can undo that — writing the rounded id back into SQL matches no rows
- * at all, and two mounts less than 1024 apart collapse onto the same JavaScript number.
+ * `DATABASE_ID` is declared int64 and reaches us as a JSON number, which for a while could not
+ * be trusted: early v8.7 tagged a mounted database's id in bit 62, so `MOUNT_DDD` reported
+ * `4611686018427387913` — past `Number.MAX_SAFE_INTEGER`, rounded to `4611686018427388000` by
+ * `JSON.parse` before any of our code saw it, matching no rows when written back into SQL, and
+ * collapsing two mounts less than 1024 apart onto the same JavaScript number. The queries that
+ * produced an id worked around that with `TO_CHAR(DATABASE_ID)`.
  *
- * So the queries that *produce* an id select `TO_CHAR(DATABASE_ID)` and we carry the digits as
- * a string from there on. Interpolating a string back into SQL yields the same bare literal a
- * number would, so only the comparisons had to change.
+ * The server now generates ids inside int32 and tags mounts in bit 30 instead — measured on
+ * engine dev-4158, a mounted `AA2` reports `1073741825` (2^30 + 1) — so the number form is
+ * exact again and the `TO_CHAR` wrappers are gone.
  *
- * This covers the statements the front end writes itself. Results of user-typed SQL — the SQL
- * editor, TQL — still show the rounded value, which needs the server to stop sending
- * out-of-range int64 as a JSON number.
+ * Text remains the carried form regardless. It is what the ids were already keyed by across the
+ * tree, it costs nothing (interpolating a string back into SQL yields the same bare literal a
+ * number would), and it keeps a single normalisation point should the range ever move again:
+ * `normalizeDatabaseId` below is where a number becomes a key, and every comparison goes
+ * through it.
  */
 export type DatabaseId = string;
 
-/** Whatever a caller happens to hold — string from TO_CHAR, number from a legacy row — as text. */
+/** Whatever a caller happens to hold — a number off a row, text from another id — as text. */
 export const normalizeDatabaseId = (aId: unknown): DatabaseId => String(aId ?? '').trim();
 
 /**
@@ -121,9 +124,9 @@ export const findDatabaseById = (aId: unknown): DatabaseEntry | undefined => {
  * instance. Names are compared case-insensitively because the catalogue and the UI do not
  * always agree on case.
  *
- * Ids work as keys too, now that they are carried as text (see `DatabaseId`) — but only where
- * the value came from a `TO_CHAR(DATABASE_ID)` query. A row that reached us as a JSON number
- * has already been rounded, and a name is the safer key when the provenance is unclear.
+ * Ids work as keys too, now that every id is normalised to text (see `DatabaseId`) and the
+ * server keeps them inside int32, so a row that reached us as a JSON number is exact. A name is
+ * still the more direct key where that is all a caller holds.
  */
 export const findDatabaseByName = (aName: string | undefined | null): DatabaseEntry | undefined => {
     const sName = String(aName ?? '').trim().toUpperCase();

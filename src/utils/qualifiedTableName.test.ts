@@ -141,7 +141,7 @@ describe('isMountedTableName', () => {
             setDatabases([
                 { id: '1', name: 'MACHBASEDB', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: true },
                 { id: '2', name: 'FACTORY_A', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: false },
-                { id: '4611686018427387913', name: 'MOUNT_DDD', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
+                { id: '1073741825', name: 'MOUNT_DDD', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
             ]);
             setCurrentDatabase({ id: '1', name: 'MACHBASEDB' });
         });

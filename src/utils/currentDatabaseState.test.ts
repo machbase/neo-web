@@ -18,13 +18,14 @@ import {
 /**
  * The three rows a v8.7 server reports once a backup is attached.
  *
- * Ids are text because the resolver selects `TO_CHAR(DATABASE_ID)`: `MOUNT_DDD`'s id is tagged
- * in bit 62 and does not survive `JSON.parse` as a number.
+ * Ids are carried as text (see `DatabaseId`) even though the server now keeps them inside int32:
+ * `MOUNT_DDD`'s is tagged in bit 30, the same shape a live server reports for a mounted `AA2`
+ * (measured: 1073741825 = 2^30 + 1).
  */
 const V87_CATALOGUE = [
     { id: '1', name: 'MACHBASEDB', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: true },
     { id: '2', name: 'FACTORY_A', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: false },
-    { id: '4611686018427387913', name: 'MOUNT_DDD', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
+    { id: '1073741825', name: 'MOUNT_DDD', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
 ];
 
 beforeEach(() => resetCurrentDatabase());
@@ -88,28 +89,33 @@ describe('with a v8.7 catalogue', () => {
         expect(isMountedDatabaseName('MACHBASEDB')).toBe(false);
     });
 
-    test('a mounted id works as a key because it is carried as text', () => {
-        // Why the ids are strings: the server tags a mounted id in bit 62, the value exceeds
-        // Number.MAX_SAFE_INTEGER, and two mounts 9 apart land on the same JavaScript number.
-        expect(Number(V87_CATALOGUE[2].id)).toBeGreaterThan(Number.MAX_SAFE_INTEGER);
-        expect(JSON.parse('4611686018427387913')).toBe(JSON.parse('4611686018427387904'));
+    test('a mounted id resolves whether it arrives as text or as a number', () => {
+        // A mounted id is tagged, but the tag sits in bit 30 and the value stays inside int32,
+        // so JSON carries it exactly and both forms normalise to the same key. This is what
+        // let the `TO_CHAR(DATABASE_ID)` wrappers come back out of the queries that produce it.
+        expect(Number(V87_CATALOGUE[2].id)).toBeLessThan(Number.MAX_SAFE_INTEGER);
+        expect(JSON.parse('1073741825')).toBe(1073741825);
 
-        // TO_CHAR keeps the digits, so the lookup that a number would have broken resolves.
-        expect(findDatabaseById('4611686018427387913')?.name).toBe('MOUNT_DDD');
-        expect(isMountedDatabase('4611686018427387913')).toBe(true);
+        expect(findDatabaseById('1073741825')?.name).toBe('MOUNT_DDD');
+        expect(findDatabaseById(1073741825)?.name).toBe('MOUNT_DDD');
+        expect(isMountedDatabase('1073741825')).toBe(true);
+        expect(isMountedDatabase(1073741825)).toBe(true);
 
-        // And a neighbouring mount is a different database rather than the same one. Passing
-        // the rounded number instead matches nothing, which is the failure this guards.
-        expect(findDatabaseById('4611686018427387904')).toBeUndefined();
-        expect(findDatabaseById(Number('4611686018427387913'))).toBeUndefined();
+        // A neighbouring mount is still a different database — the rounding that used to
+        // collapse ids 9 apart onto one number cannot happen in this range.
+        expect(findDatabaseById('1073741826')).toBeUndefined();
+        expect(findDatabaseById(1073741826)).toBeUndefined();
 
         expect(isMountedDatabaseName('MOUNT_DDD')).toBe(true);
     });
 
     test('id comparison is by text, and an absent id is never the current database', () => {
-        expect(isSameDatabaseId('4611686018427387913', V87_CATALOGUE[2].id)).toBe(true);
-        // A caller holding the number form compares unequal rather than falsely matching.
-        expect(isSameDatabaseId(Number('4611686018427387913'), V87_CATALOGUE[2].id)).toBe(false);
+        expect(isSameDatabaseId('1073741825', V87_CATALOGUE[2].id)).toBe(true);
+        // A caller holding the number form off a row compares equal, because normalisation gets
+        // the same digits out of it now that the id is inside int32.
+        expect(isSameDatabaseId(1073741825, V87_CATALOGUE[2].id)).toBe(true);
+        // A different id is still a different database.
+        expect(isSameDatabaseId(1073741826, V87_CATALOGUE[2].id)).toBe(false);
         // Whitespace and the legacy numeric -1 normalise to the same key.
         expect(isSameDatabaseId(' 2 ', '2')).toBe(true);
         expect(isSameDatabaseId(-1, '-1')).toBe(true);
@@ -158,6 +164,6 @@ describe('without a catalogue, writability falls back to identity rather than ye
         // A second *active* database takes DDL through a three-part name, so identity is not
         // the question once the catalogue can answer the real one.
         expect(isDatabaseWritable('2')).toBe(true);
-        expect(isDatabaseWritable('4611686018427387913')).toBe(false);
+        expect(isDatabaseWritable('1073741825')).toBe(false);
     });
 });

@@ -211,7 +211,7 @@ describe('Block refuses to guess which row an ambiguous legacy name means', () =
     const KEV_ROW = ['MACHBASEDB', 'KEV', 494, 'MACHBASEDB.KEV.ATABLE', 6, 0, '1'];
     const SYS_ROW = ['MACHBASEDB', 'SYS', 130, 'MACHBASEDB.SYS.ATABLE', 6, 0, '1'];
     const FACTORY_ROW = ['FACTORY_A', 'SYS', 291, 'FACTORY_A.SYS.ATABLE', 6, 0, '2'];
-    const MOUNT_ROW = ['MOUNT_DDD', 'SYS', 130, 'MOUNT_DDD.SYS.ATABLE', 6, 0, '4611686018427387913'];
+    const MOUNT_ROW = ['MOUNT_DDD', 'SYS', 130, 'MOUNT_DDD.SYS.ATABLE', 6, 0, '1073741825'];
     const LINE_B_ROW = ['LINE_B', 'SYS', 77, 'LINE_B.SYS.ATABLE', 6, 0, '3'];
 
     beforeEach(() => {
@@ -220,7 +220,7 @@ describe('Block refuses to guess which row an ambiguous legacy name means', () =
             { id: '1', name: 'MACHBASEDB', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: true },
             { id: '2', name: 'FACTORY_A', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: false },
             { id: '3', name: 'LINE_B', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: false },
-            { id: '4611686018427387913', name: 'MOUNT_DDD', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
+            { id: '1073741825', name: 'MOUNT_DDD', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
         ]);
         setCurrentDatabase({ id: '1', name: 'MACHBASEDB' });
         jest.mocked(getTableInfo).mockResolvedValue({ data: { rows: TABLE_ROWS } } as any);

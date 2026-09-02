@@ -30,9 +30,13 @@ export type CurrentDatabaseQuery = (aSql: string) => Promise<{ svrState?: boolea
  * not connected to: `KIND` (`ACTIVE` / `MOUNTED`) and `ACCESS_MODE` (`READ_WRITE` / `READ_ONLY`).
  * Those, not identity, decide whether a table may be written to.
  *
- * The id goes through `TO_CHAR` because a mounted database's is tagged in bit 62 and exceeds
- * `Number.MAX_SAFE_INTEGER` — as a JSON number it arrives rounded, and writing that back into SQL
- * matches no rows (see `DatabaseId`).
+ * `DATABASE_ID` is read as the plain column. It used to go through `TO_CHAR`: v8.7 tagged a
+ * mounted database's id in bit 62, so `MOUNT_DDD` reported `4611686018427387913` — past
+ * `Number.MAX_SAFE_INTEGER`, so `JSON.parse` handed it over already rounded and writing it back
+ * into SQL matched no rows. The server now generates ids inside int32 and the tag has moved to
+ * bit 30: measured on engine dev-4158, a mounted `AA2` reports `1073741825` (2^30 + 1), which
+ * survives JSON exactly. Ids are still carried as text (see `DatabaseId`) — `normalizeDatabaseId`
+ * absorbs the number form this column now returns.
  *
  * `KIND` leads the ordering so mounted backups sit below the active databases — they are
  * read-only attachments, not places to work, and the tree renders this list in order.
@@ -48,16 +52,21 @@ export type CurrentDatabaseQuery = (aSql: string) => Promise<{ svrState?: boolea
  * the server happens to return (measured: MACHBASEDB, FACTORY_C, FACTORY_B, FACTORY_A), which
  * would move the tree around between refreshes.
  *
+ * That tie-break needs the plain column rather than an aliased expression. `TO_CHAR(DATABASE_ID)
+ * as DATABASE_ID` makes `order by DATABASE_ID` bind to the alias and sort as text — measured,
+ * that returned `1, 1073741825, 2, 5, 6`. Harmless while every active id is one digit, wrong the
+ * moment a server holds ten of them.
+ *
  * `CAN_USE` is the server's own answer to "may this session make this database its target", and it
  * is not derivable from the other columns: measured on v8.7 as SYS, a MOUNTED database reports
  * `CAN_USE = 0` while its STATE is still NORMAL, and `use()` on it fails with
  * *MACHCLI-ERR-2840, Database (AA2) is not an active database.*
  *
  * Columns are named rather than `select *`. The view carries three more — TABLESPACE_ID,
- * SOURCE_DATABASE_ID, STATE — and, more to the point, `*` would hand back the raw DATABASE_ID and
- * undo the `TO_CHAR` above.
+ * SOURCE_DATABASE_ID, STATE — that nothing here reads, and naming them keeps the row indices
+ * below tied to this statement rather than to whatever order the view happens to declare.
  */
-const RESOLVE_SQL = 'select TO_CHAR(DATABASE_ID) as DATABASE_ID, NAME, KIND, ACCESS_MODE, IS_DEFAULT, CAN_USE from V$DATABASES order by KIND, DATABASE_ID';
+const RESOLVE_SQL = 'select DATABASE_ID, NAME, KIND, ACCESS_MODE, IS_DEFAULT, CAN_USE from V$DATABASES order by KIND, DATABASE_ID';
 
 /**
  * Builds the resolver over one tree's transport.
