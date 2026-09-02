@@ -212,3 +212,23 @@
     color: #fdb532;
     word-break: break-all;
 }
+
+/* Where the result came from. Sits under the table, outside the scroll area. */
+.sql-result-meta {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 3px 1rem 5px;
+    font-family: 'D2Coding', monospace;
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: #727272;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The chip points at a database that is no longer in the catalogue: no query was sent. */
+.sql-error-body--db-not-found {
+    border-left: 2px solid #e53935;
+    color: #fa6464;
+}

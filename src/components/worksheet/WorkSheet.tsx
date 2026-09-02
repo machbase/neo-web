@@ -9,18 +9,22 @@ import { FaStop } from 'react-icons/fa';
 import { Button, Page } from '@/design-system/components';
 import { RiTimeZoneLine } from 'react-icons/ri';
 import { TimeZoneModal } from '../modal/TimeZoneModal';
+import { TargetDatabaseChip, useTargetDatabases } from '@/components/database/targetDatabase';
+import { readTargetDatabaseForPath, touchRecentDatabase, writeTargetDatabaseForPath } from '@/utils/targetDatabaseStore';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
     pIsActiveTab: boolean;
     pId: string;
+    /** The saved file path, or '' for an unsaved worksheet. Keys the chip's restore. */
+    pPath?: string;
     pSheet: any;
     pHandleSaveModalOpen: () => void;
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const WorkSheet = (props: WorkSheetProps) => {
-    const { pIsActiveTab, pId, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
+    const { pIsActiveTab, pId, pPath, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
     const setSaveWorkSheet = useSetRecoilState(gSaveWorkSheets);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sWorkSheets, setWorkSheets] = useState<any>([]);
@@ -44,6 +48,25 @@ export const WorkSheet = (props: WorkSheetProps) => {
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
     const [sIsTimeZoneModal, setIsTimeZoneModal] = useState<boolean>(false);
+    /**
+     * One target database for the whole worksheet, applied from the header to every SQL cell —
+     * the same shape as the time format and zone beside it, and it travels the same prop path.
+     * Never written into the `.wrk` file: the saved cell payload is a fixed whitelist, and this
+     * value is not part of it.
+     */
+    const [sTargetDb, setTargetDb] = useState<string | null>(() => readTargetDatabaseForPath(pPath));
+    const { databases: sDatabaseList, sessionDatabase: sSessionDb, reload: reloadDatabases } = useTargetDatabases();
+
+    /** Save As gives the worksheet its path only now; carry the already-picked value over to it. */
+    useEffect(() => {
+        if (pPath) writeTargetDatabaseForPath(pPath, sTargetDb);
+    }, [pPath]);
+
+    const handleChangeTargetDb = (aDatabase: string | null) => {
+        setTargetDb(aDatabase);
+        writeTargetDatabaseForPath(pPath, aDatabase);
+        if (aDatabase) touchRecentDatabase(aDatabase);
+    };
     const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));
     const [sCurrentScrollTop, setCurrentScrollTop] = useState<number>(0);
     const worksheetBodyRef = useRef<HTMLDivElement>(null);
@@ -258,18 +281,33 @@ export const WorkSheet = (props: WorkSheetProps) => {
                         icon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
                         onClick={checkSectionState() ? handleInterrupt : handleAllRun}
                     />
-                    <Button.Group>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent="Time format / Time zone"
-                            icon={<RiTimeZoneLine size={18} />}
-                            onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
-                        />
-                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
-                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
-                    </Button.Group>
+                    <div className="editor-header-actions">
+                        <Button.Group>
+                            {/* Only where there is a choice to make — an empty catalogue is every pre-v8.7 server. */}
+                            {sDatabaseList.length > 1 ? (
+                                <TargetDatabaseChip
+                                    sessionDatabase={sSessionDb}
+                                    databases={sDatabaseList}
+                                    value={sTargetDb}
+                                    onChange={handleChangeTargetDb}
+                                    onOpen={reloadDatabases}
+                                />
+                            ) : null}
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Time format / Time zone"
+                                icon={<RiTimeZoneLine size={18} />}
+                                onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                            />
+                        </Button.Group>
+                        <span className="editor-header-divider" />
+                        <Button.Group>
+                            <Button size="sm" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
+                            <Button size="sm" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
+                        </Button.Group>
+                    </div>
                 </Page.Header>
                 <Page.Body ref={worksheetBodyRef} scrollButtons style={{ padding: '12px 24px 12px 16px' }}>
                     <Page.ContentBlock pHoverNone style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -280,6 +318,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                                     <WorkSheetEditor
                                         pTimeRange={sTimeRange}
                                         pTimeZone={sTimeZone}
+                                        pTargetDb={sTargetDb}
                                         pIsActiveTab={pIsActiveTab}
                                         key={'sheet-' + aSheetItem.id}
                                         pData={aSheetItem}

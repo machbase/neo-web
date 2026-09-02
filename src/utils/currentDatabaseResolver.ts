@@ -17,8 +17,8 @@ import { CurrentDatabase, DatabaseEntry, getCurrentDatabase, normalizeDatabaseId
  * `DATABASE_ID = -1` returns nothing, and `getRollupTableList` falls back to a join that yields a
  * NULL `root_table`. `src/utils/dashboardBaseMinMax.ts` splits its fetchers for the same reason.
  *
- * Servers older than v8.7 have neither `V$DATABASES` nor `CURRENT_DATABASE()`, so the query fails
- * and the legacy answer stands. That fallback is the entire version gate — nothing downstream has
+ * Servers older than v8.7 have no `V$DATABASES` at all, so the query fails and the legacy answer
+ * stands. That fallback is the entire version gate — nothing downstream has
  * to branch on a server version or cache one in localStorage.
  */
 
@@ -48,18 +48,16 @@ export type CurrentDatabaseQuery = (aSql: string) => Promise<{ svrState?: boolea
  * the server happens to return (measured: MACHBASEDB, FACTORY_C, FACTORY_B, FACTORY_A), which
  * would move the tree around between refreshes.
  *
- * Columns are named rather than `select *`. The view carries four more — TABLESPACE_ID,
- * SOURCE_DATABASE_ID, CAN_USE, STATE — and, more to the point, `*` would hand back the raw
- * DATABASE_ID and undo the `TO_CHAR` above.
+ * `CAN_USE` is the server's own answer to "may this session make this database its target", and it
+ * is not derivable from the other columns: measured on v8.7 as SYS, a MOUNTED database reports
+ * `CAN_USE = 0` while its STATE is still NORMAL, and `use()` on it fails with
+ * *MACHCLI-ERR-2840, Database (AA2) is not an active database.*
+ *
+ * Columns are named rather than `select *`. The view carries three more — TABLESPACE_ID,
+ * SOURCE_DATABASE_ID, STATE — and, more to the point, `*` would hand back the raw DATABASE_ID and
+ * undo the `TO_CHAR` above.
  */
-const RESOLVE_SQL = 'select TO_CHAR(DATABASE_ID) as DATABASE_ID, NAME, KIND, ACCESS_MODE, IS_DEFAULT from V$DATABASES order by KIND, DATABASE_ID';
-
-/**
- * Which of those rows is ours. The manual names `CURRENT_DATABASE()` the recommended check — it
- * describes the session rather than the instance, so it stays right even where `IS_DEFAULT` would
- * not. It returns a name only, which is why the list above supplies the id.
- */
-const CURRENT_SQL = 'select CURRENT_DATABASE()';
+const RESOLVE_SQL = 'select TO_CHAR(DATABASE_ID) as DATABASE_ID, NAME, KIND, ACCESS_MODE, IS_DEFAULT, CAN_USE from V$DATABASES order by KIND, DATABASE_ID';
 
 /**
  * Builds the resolver over one tree's transport.
@@ -74,7 +72,7 @@ export const createCurrentDatabaseResolver = (aQuery: CurrentDatabaseQuery) => {
 
     const resolve = async (): Promise<CurrentDatabase> => {
         try {
-            const [sList, sCurrent] = await Promise.all([aQuery(RESOLVE_SQL), aQuery(CURRENT_SQL)]);
+            const sList = await aQuery(RESOLVE_SQL);
             const sRows: any[][] = sList?.svrState ? sList.svrData?.rows ?? [] : [];
             if (sRows.length) {
                 const sEntries: DatabaseEntry[] = sRows.map((aRow) => ({
@@ -83,13 +81,17 @@ export const createCurrentDatabaseResolver = (aQuery: CurrentDatabaseQuery) => {
                     kind: String(aRow[2] ?? ''),
                     accessMode: String(aRow[3] ?? ''),
                     isDefault: Number(aRow[4]) === 1,
+                    canUse: Number(aRow[5]) === 1,
                 }));
                 setDatabases(sEntries);
 
-                const sName = sCurrent?.svrState ? sCurrent.svrData?.rows?.[0]?.[0] : undefined;
-                // Match on the name the session reports; fall back to the flagged default so a
-                // server that answers the list but not CURRENT_DATABASE() still resolves.
-                const sMatch = sEntries.find((aDb) => aDb.name === String(sName ?? '')) ?? sEntries.find((aDb) => aDb.isDefault);
+                // `IS_DEFAULT` alone, because this transport has no way to be anywhere else.
+                // `CURRENT_DATABASE()` used to be asked alongside — it describes the session while
+                // `IS_DEFAULT` describes the instance — but measured against a v8.7 server the two
+                // agree, and there is no mechanism to make them diverge here: `M$SYS_USERS` carries
+                // no per-user default (USER_ID, NAME, PWD_POLICY_LEVEL, VALID_BEFORE) and only TQL's
+                // `use()` moves a session, which this plain `/query` transport never sends.
+                const sMatch = sEntries.find((aDb) => aDb.isDefault);
                 if (sMatch) setCurrentDatabase({ id: sMatch.id, name: sMatch.name });
             }
         } catch {
@@ -122,6 +124,25 @@ export const createCurrentDatabaseResolver = (aQuery: CurrentDatabaseQuery) => {
                 });
             }
             return sPending;
+        },
+        /**
+         * Ask the server again, for the callers that must not read a page-old catalogue — the SQL
+         * editor's database chip re-reads on every open, so a database another session created,
+         * dropped, mounted or unmounted shows up without a refresh.
+         *
+         * A failure here keeps the catalogue that is already loaded. Emptying it would be far worse
+         * than a stale list: `sDatabases` is global, `isDatabaseWritable` reads an empty list as
+         * "not writable", and DROP, rollup editing and metadata editing would grey out across the
+         * whole explorer with nothing on screen to explain it. The memo is dropped instead, so the
+         * next `ensureCurrentDatabase()` retries.
+         */
+        refreshDatabases: (): Promise<CurrentDatabase> => {
+            const sNext = resolve().catch(() => {
+                if (sPending === sNext) sPending = null;
+                return getCurrentDatabase();
+            });
+            sPending = sNext;
+            return sNext;
         },
         /** Test seam. Not used by application code. */
         reset: () => {

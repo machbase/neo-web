@@ -72,6 +72,15 @@ export type DatabaseEntry = {
     /** `READ_WRITE` or `READ_ONLY`. */
     accessMode: string;
     isDefault: boolean;
+    /**
+     * `V$DATABASES.CAN_USE` — may this session make the database its target?
+     *
+     * Distinct from `accessMode`: a MOUNTED backup is queryable through a three-part name but
+     * reports `CAN_USE = 0`, and `use()` on it answers *MACHCLI-ERR-2840, … is not an active
+     * database*. Undefined on any server or fixture that did not report the column, which callers
+     * read as "no reason to think otherwise".
+     */
+    canUse?: boolean;
 };
 
 let sCurrent: CurrentDatabase = LEGACY_DATABASE;

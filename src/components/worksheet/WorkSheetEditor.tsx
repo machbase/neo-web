@@ -5,6 +5,8 @@ import { useAbortController } from '@/hooks/useAbortController';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import { envDirectiveWarning, sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
+import { applyTargetDatabase } from '@/utils/sqlTargetDatabase';
+import { isKnownDatabase } from '@/components/database/targetDatabase';
 import { CommonTable } from '@/design-system/components';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
@@ -32,6 +34,8 @@ type ShowResultType = 'brief' | 'all';
 interface WorkSheetEditorProps {
     pTimeRange: string;
     pTimeZone: string;
+    /** The worksheet header's target database, applied to every SQL cell that does not say otherwise. */
+    pTargetDb: string | null;
     pIsActiveTab: boolean;
     pData: any;
     pIdx: number;
@@ -67,6 +71,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const {
         pTimeRange,
         pTimeZone,
+        pTargetDb,
         pIsActiveTab,
         pData,
         pWrkId,
@@ -356,6 +361,18 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         return undefined;
     };
     const getSqlData = async (aText: string, aOpt: { aLocation?: LocationType; aRunAll?: boolean }) => {
+        // The header chip may still point at a database another session dropped. Answer that here
+        // rather than sending a query we know the server will refuse — including during a run-all,
+        // which reaches every cell through this same function.
+        if (pTargetDb && !isKnownDatabase(pTargetDb)) {
+            setSql(null);
+            setEnvWarnLog('');
+            setSqlReason(`MACHCLI-ERR-2839, Database (${pTargetDb}) does not exist.`);
+            setProcessing(false);
+            if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            return;
+        }
+
         setProcessing(true);
         setSql(null);
         setSqlReason('');
@@ -366,7 +383,10 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             const splitList = await fetchSplitter(aText, signal);
             const location = aOpt.aLocation ?? sSqlLocation;
             const sRunAllState = pAllRunCodeStatus ? true : aOpt.aRunAll ? true : false;
-            const sParsedQuery: SplitItemType[] = SqlSplitHelper(location, splitList, sRunAllState);
+            // The header's value joins `env` here, once — the single place this worksheet turns a
+            // statement into TQL is `sqlSheetFormatter` below, and it reads `curQuery.env`.
+            const statements = applyTargetDatabase<SplitItemType>(splitList, pTargetDb);
+            const sParsedQuery: SplitItemType[] = SqlSplitHelper(location, statements, sRunAllState);
 
             setSqlLocation(location);
             if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {

@@ -11,6 +11,9 @@ const sResolver = createCurrentDatabaseResolver(fetchQuery);
 
 export const ensureCurrentDatabase = sResolver.ensureCurrentDatabase;
 
+/** Re-read `V$DATABASES` — the SQL editor's database chip calls this every time it opens. */
+export const refreshDatabases = sResolver.refreshDatabases;
+
 /** Test seam. Not used by application code. */
 export const __resetCurrentDatabaseResolver = sResolver.reset;
 

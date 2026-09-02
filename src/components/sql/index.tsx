@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { SplitPane, Pane, Page, Tabs } from '@/design-system/components';
 import RESULT from './result';
 import CHART from '@/components/chart';
@@ -17,9 +17,26 @@ import { MonacoEditor } from '../monaco/MonacoEditor';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 import { postSplitter } from '@/api/repository/api';
 import { Loader } from '../loader';
-import { SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
+import { SqlSplitHelper, SplitItemType } from '@/utils/TQL/SqlSplitHelper';
 import { RiTimeZoneLine } from 'react-icons/ri';
 import { TimeZoneModal } from '../modal/TimeZoneModal';
+import { isKnownDatabase, TargetDatabaseChip, useTargetDatabases } from '@/components/database/targetDatabase';
+import { applyTargetDatabase } from '@/utils/sqlTargetDatabase';
+import { readTargetDatabaseForPath, touchRecentDatabase, writeTargetDatabaseForPath } from '@/utils/targetDatabaseStore';
+
+/**
+ * `4.100208ms` from the TQL sink, as `4.1 ms` for the result footer. An unfamiliar shape is passed
+ * through untouched rather than dropped — a number we cannot parse is still information.
+ */
+const formatElapse = (aElapse: unknown): string => {
+    const sText = String(aElapse ?? '').trim();
+    const sMatch = /^([0-9]*\.?[0-9]+)\s*([a-zµ]+)$/i.exec(sText);
+    if (!sMatch) return sText;
+    return `${Number(sMatch[1]).toFixed(1)} ${sMatch[2]}`;
+};
+
+/** `10 rows`, `1 row`. */
+const formatRows = (aCount: number): string => `${aCount} ${aCount === 1 ? 'row' : 'rows'}`;
 
 const Sql = ({
     pInfo,
@@ -46,8 +63,14 @@ const Sql = ({
     const [sSqlResponseData, setSqlResponseData] = useState<any>();
     const [sResultLimit, setResultLimit] = useState<number>(1);
     const [sErrLog, setErrLog] = useState<string | null>(null);
+    // The error is "the chip points at a database that no longer exists", which gets its own banner colour.
+    const [sDbNotFound, setDbNotFound] = useState<boolean>(false);
     // `-- env:` directives the splitter could not apply. Non-blocking: shown next to the result, never instead of it.
     const [sEnvWarnLog, setEnvWarnLog] = useState<string | null>(null);
+    // The toolbar's target database. Never written into the worksheet — only into `env.use` at TQL assembly time.
+    const [sTargetDb, setTargetDb] = useState<string | null>(() => readTargetDatabaseForPath(pInfo.path));
+    const [sElapse, setElapse] = useState<string>('');
+    const { databases: sDatabaseList, sessionDatabase: sSessionDb, reload: reloadDatabases } = useTargetDatabases();
     const [sTextField, setTextField] = useState<string>('');
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sShowRowNumber, setShowRowNumber] = useState<boolean>(true);
@@ -113,6 +136,22 @@ const Sql = ({
         return sOldFetchTxt?.text ?? '';
     };
 
+    /**
+     * Picking a database says nothing anywhere else. The console is shared by every tab, so a line
+     * about this worksheet's chip would surface while the user is running something in another one
+     * — the chip's own label and the result footer say which database is in play, and both are
+     * scoped to the tab they belong to.
+     */
+    const handleChangeTargetDb = (aDatabase: string | null) => {
+        setTargetDb(aDatabase);
+        writeTargetDatabaseForPath(pInfo.path, aDatabase);
+        if (aDatabase) touchRecentDatabase(aDatabase);
+        if (sDbNotFound) {
+            setDbNotFound(false);
+            setErrLog(null);
+        }
+    };
+
     const sqlMultiLineParser = async (
         _?: string,
         aLocation?: {
@@ -120,10 +159,28 @@ const Sql = ({
             selection: SelectionType;
         }
     ) => {
+        // The chip may still point at a database another session dropped. Answer that here rather
+        // than sending a query we know the server will refuse.
+        if (sTargetDb && !isKnownDatabase(sTargetDb)) {
+            // Word for word what the server answers for `use()` on a name it does not have —
+            // measured on v8.7 — so the banner reads the same whether we caught it or it did.
+            const sReason = `MACHCLI-ERR-2839, Database (${sTargetDb}) does not exist.`;
+            setSqlResponseData(undefined);
+            setChartQueryList([]);
+            setChartAxisList([]);
+            setEnvWarnLog(null);
+            setDbNotFound(true);
+            setErrLog(sReason);
+            setTextField('');
+            setProcessing(false);
+            return;
+        }
+
         setProcessing(true);
         setTextField('Processing...');
         setSqlResponseData(undefined);
         setErrLog(null);
+        setDbNotFound(false);
         setEnvWarnLog(null);
         setChartQueryList([]);
         setChartAxisList([]);
@@ -132,7 +189,13 @@ const Sql = ({
         try {
             const splitList = await fetchSplitter(signal);
             const location = aLocation ?? sSqlLocation;
-            const sParsedQuery = SqlSplitHelper(location, splitList);
+            // The chip's value joins `env` here, once — the grid, "more rows" and the CSV download
+            // all read the statement this produces, so they stay pinned to the database the run used.
+            // Filter first, then merge, so the raw and merged arrays stay index-aligned. The CHART
+            // tab needs the raw one: it issues its own query and has to re-apply the *current*
+            // chip, which it cannot do to a statement that already carries an injected `env.use`.
+            const sRawQuery = SqlSplitHelper(location, splitList);
+            const sParsedQuery = applyTargetDatabase<SplitItemType>(sRawQuery, sTargetDb);
 
             setSqlLocation(location);
             if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {
@@ -140,7 +203,7 @@ const Sql = ({
                 setTextField('');
                 return;
             }
-            await fetchSql(sParsedQuery, signal);
+            await fetchSql(sParsedQuery, sRawQuery, signal);
         } catch (e: any) {
             if (e?.code === 'ERR_CANCELED') {
                 setTextField('Cancelled.');
@@ -159,7 +222,7 @@ const Sql = ({
     };
 
     const fetchSql = useCallback(
-        async (aParsedQuery: STATEMENT_TYPE[], signal: AbortSignal) => {
+        async (aParsedQuery: STATEMENT_TYPE[], aRawQuery: STATEMENT_TYPE[], signal: AbortSignal) => {
             setEndRecord(() => false);
             setEnvWarnLog(envDirectiveWarning(aParsedQuery));
             const sQueryReslutList: any = [];
@@ -179,10 +242,13 @@ const Sql = ({
             }
 
             const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1];
+            // The chart gets the statement as the splitter reported it — `-- env: use=` intact, no
+            // chip value merged in — so a later chip change is not mistaken for a directive.
+            const sLowerRawQuery = aRawQuery[sQueryReslutList.length - 1] ?? sLowerQuery;
 
             // insert, create, delete, update...
             if (sQueryReslutList.at(-1)?.data?.success && sQueryReslutList.at(-1)?.data?.data && sQueryReslutList.at(-1)?.data?.data?.columns) {
-                setChartQueryList([sLowerQuery]);
+                setChartQueryList([sLowerRawQuery]);
                 setChartAxisList(sQueryReslutList.at(-1).data.data.columns);
             } else {
                 setChartQueryList([]);
@@ -190,6 +256,7 @@ const Sql = ({
             }
 
             setResultLimit(2);
+            setElapse(String(sQueryReslutList.at(-1)?.data?.elapse ?? ''));
             setSqlResponseData(sQueryReslutList.at(-1).data.data);
 
             if (sQueryReslutList.at(-1).data.success === true) {
@@ -262,12 +329,37 @@ const Sql = ({
         setIsTimeZoneModal(false);
     };
 
+    /**
+     * A worksheet saved for the first time only gets its path now, and the chip was picked before
+     * there was anything to key it to — carry the value over so reopening the file restores it.
+     */
+    useEffect(() => {
+        if (pInfo.path) writeTargetDatabaseForPath(pInfo.path, sTargetDb);
+    }, [pInfo.path]);
+
     useEffect(() => {
         if (sMoreResult) {
             fetchMoreResult();
             setMoreResult(false);
         }
     }, [sMoreResult]);
+
+    /**
+     * `10 rows · elapsed 4.1 ms`.
+     *
+     * No database here. The footer used to name one, and it could not be right: a statement that
+     * names `db.user.table` reads that database whatever `use()` says (measured both ways on
+     * v8.7), and a join can span several — so "the database this result came from" has no single
+     * answer to print. Reporting the `use()` scope instead would be true but reads as the same
+     * claim, which is worse than saying nothing.
+     */
+    const sResultMeta = useMemo(() => {
+        if (!sSqlResponseData) return '';
+        const sParts = [formatRows(sSqlResponseData?.rows?.length ?? 0)];
+        const sElapsed = formatElapse(sElapse);
+        if (sElapsed) sParts.push(`elapsed ${sElapsed}`);
+        return sParts.join(' · ');
+    }, [sSqlResponseData, sElapse]);
 
     return (
         <>
@@ -290,18 +382,33 @@ const Sql = ({
                                 icon={sProcessing ? <FaStop size={14} /> : <Play size={16} />}
                                 onClick={() => (sProcessing ? abort() : checkCtrl())}
                             />
-                            <Button.Group>
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    isToolTip
-                                    toolTipContent="Time format / Time zone"
-                                    icon={<RiTimeZoneLine size={16} />}
-                                    onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
-                                />
-                                <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
-                                <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => setIsSaveModal(true)} />
-                            </Button.Group>
+                            <div className="editor-header-actions">
+                                <Button.Group>
+                                    {/* Only where there is a choice to make — an empty catalogue is every pre-v8.7 server. */}
+                                    {sDatabaseList.length > 1 ? (
+                                        <TargetDatabaseChip
+                                            sessionDatabase={sSessionDb}
+                                            databases={sDatabaseList}
+                                            value={sTargetDb}
+                                            onChange={handleChangeTargetDb}
+                                            onOpen={reloadDatabases}
+                                        />
+                                    ) : null}
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Time format / Time zone"
+                                        icon={<RiTimeZoneLine size={16} />}
+                                        onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                                    />
+                                </Button.Group>
+                                <span className="editor-header-divider" />
+                                <Button.Group>
+                                    <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
+                                    <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => setIsSaveModal(true)} />
+                                </Button.Group>
+                            </div>
                         </Page.Header>
                         <Page.Body>
                             <MonacoEditor
@@ -383,7 +490,7 @@ const Sql = ({
                                     {sEnvWarnLog ? <div className="sql-env-warn-body">{sEnvWarnLog}</div> : null}
                                     <div className="sql-result-body-content">
                                         {sErrLog ? (
-                                            <div className="sql-error-body" style={{ padding: '0 1rem' }}>
+                                            <div className={sDbNotFound ? 'sql-error-body sql-error-body--db-not-found' : 'sql-error-body'} style={{ padding: '0 1rem' }}>
                                                 {sErrLog}
                                             </div>
                                         ) : sTextField ? (
@@ -406,11 +513,14 @@ const Sql = ({
                                             />
                                         )}
                                     </div>
+                                    {/* Which database these rows came from — the chip leaves no trace in the worksheet, so this is the record. */}
+                                    {!sErrLog && !sTextField && sSqlResponseData ? <div className="sql-result-meta">{sResultMeta}</div> : null}
                                 </div>
                             ) : null}
 
                             <CHART
                                 pQueryList={sChartQueryList}
+                                pTargetDb={sTargetDb}
                                 pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
                                 pChartAixsList={sChartAxisList}
                                 pIsVertical={isVertical}

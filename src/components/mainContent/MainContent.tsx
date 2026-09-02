@@ -448,6 +448,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                     <WorkSheet
                                         pIsActiveTab={aItem.id === sSelectedTab}
                                         pId={aItem.id}
+                                        pPath={aItem.path}
                                         pSheet={aItem.sheet}
                                         pHandleSaveModalOpen={handleSaveModalOpen}
                                         setIsSaveModal={setIsSaveModal}
