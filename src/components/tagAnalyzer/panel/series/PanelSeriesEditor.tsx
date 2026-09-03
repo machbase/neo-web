@@ -21,8 +21,8 @@ import {
     Pagination,
     type ComboboxOption,
 } from '@/design-system/components';
-import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
+import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
 import {
     displayJsonPathLabel,
     isJsonTypeColumn,
@@ -35,7 +35,7 @@ import {
     isTagAnalyzerJsonValue,
 } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
-import { resolveStoredTableName, splitQualifiedTableName } from '@/utils/qualifiedTableName';
+import { resolveStoredTableName } from '@/utils/qualifiedTableName';
 import {
     tableMetadataApi,
     type TableColumn,
@@ -100,6 +100,8 @@ export function PanelSeriesEditor({
     const [sTagInputValue, setTagInputValue] = useState('');
     const [sAppliedTagSearchText, setAppliedTagSearchText] = useState('');
     const [sTagRequest, setTagRequest] = useState<{
+        table: string;
+        tagColumn: string;
         searchText: string;
         page: number;
         generation: number;
@@ -155,15 +157,38 @@ export function PanelSeriesEditor({
         sourceColumns: PanelSeriesSourceColumns | undefined,
         tableColumns: TableColumn[],
     ): void => {
-        setTagRequest(undefined);
-        setAvailableTags([]);
-        setTagTotal(0);
+        const sTagSourceChanged =
+            table !== sSelectedTable ||
+            sourceColumns?.name !== sSourceColumns?.name;
+
         setFooterMessage(undefined);
         setSelectedTableState(table);
         setSourceColumns(sourceColumns);
         setTableColumns(tableColumns);
+
+        if (!sTagSourceChanged) return;
+
+        setAvailableTags([]);
+        setTagTotal(0);
         setTagPageState(1);
-    }, [setFooterMessage]);
+        if (!table || !sourceColumns?.name) {
+            setTagRequest(undefined);
+            return;
+        }
+
+        setTagRequest((current) => ({
+            table,
+            tagColumn: sourceColumns.name,
+            searchText: sAppliedTagSearchText,
+            page: 1,
+            generation: (current?.generation ?? 0) + 1,
+        }));
+    }, [
+        sAppliedTagSearchText,
+        sSelectedTable,
+        sSourceColumns?.name,
+        setFooterMessage,
+    ]);
 
     function loadTagList(
         searchText = sAppliedTagSearchText,
@@ -176,6 +201,8 @@ export function PanelSeriesEditor({
             return;
         }
         setTagRequest((current) => ({
+            table: sSelectedTable,
+            tagColumn: sSourceColumns.name,
             searchText,
             page,
             generation: (current?.generation ?? 0) + 1,
@@ -186,14 +213,14 @@ export function PanelSeriesEditor({
         enabled: sTagRequest !== undefined,
         requestKey: JSON.stringify(sTagRequest),
         fetch: async () => {
-            if (!sTagRequest || !sSourceColumns?.name) {
+            if (!sTagRequest) {
                 throw new Error('Tag search source is unavailable.');
             }
             return {
                 request: sTagRequest,
                 result: await tableMetadataApi.fetchTags(
-                    sSelectedTable,
-                    sSourceColumns.name,
+                    sTagRequest.table,
+                    sTagRequest.tagColumn,
                     sTagRequest.searchText,
                     sTagRequest.page,
                     TAG_PAGE_SIZE,
@@ -308,15 +335,6 @@ export function PanelSeriesEditor({
             ),
         );
     }
-
-    useDebounce(
-        [sSelectedTable, sSourceColumns],
-        () => {
-            loadTagList();
-        },
-        200,
-        undefined,
-    );
 
     return (
         <>
@@ -618,6 +636,13 @@ type TableColumnsCacheEntry = {
     tableColumns: TableColumn[];
 };
 
+type SourceTableOption = {
+    database: string;
+    owner: string;
+    table: string;
+    qualifiedName: string;
+};
+
 const EMPTY_JSON_PATH_OPTIONS: string[] = [];
 
 function SourceSelector({
@@ -647,19 +672,79 @@ function SourceSelector({
         useRef<Record<string, TableColumnsCacheEntry>>({});
     const sJsonKeyByColumnRef = useRef<Record<string, string>>({});
     const [sColumnRequestTable, setColumnRequestTable] = useState('');
+    const [sSelectedDatabase, setSelectedDatabase] = useState('');
 
-    // `database.owner.table` in one line is wider than this cell, so the name is split: the table's
-    // own name is the label, the qualifying parts the second line. Both are searched.
-    const sTableOptions = useMemo<ComboboxOption[]>(
-        () =>
-            availableSourceTableNames.map((table) => ({
-                value: table,
-                tooltip: table,
-                ...splitQualifiedTableName(table),
-            })),
+    const sSourceTables = useMemo<SourceTableOption[]>(
+        () => availableSourceTableNames.map(parseSourceTableOption),
         [availableSourceTableNames],
     );
-    const sSelectedTableNote = useMemo(() => splitQualifiedTableName(selectedTable).description, [selectedTable]);
+    const sDatabaseNames = useMemo<string[]>(
+        () => [...new Set(sSourceTables.map(({ database }) => database))],
+        [sSourceTables],
+    );
+    const sDatabaseOptions = useMemo<ComboboxOption[]>(
+        () =>
+            sDatabaseNames.map((database) => ({
+                value: database,
+                label: database,
+                testId: `tag-analyzer-database-option-${encodeTestIdSegment(database)}`,
+            })),
+        [sDatabaseNames],
+    );
+    const sSelectedSourceTable = sSourceTables.find(
+        ({ qualifiedName }) => qualifiedName === selectedTable,
+    );
+    const sSelectedTableDatabase = sSelectedSourceTable?.database;
+    const sActiveDatabase = sDatabaseNames.includes(sSelectedDatabase)
+        ? sSelectedDatabase
+        : sSelectedTableDatabase ?? sDatabaseNames[0] ?? '';
+    const sActiveDatabaseTables = useMemo<SourceTableOption[]>(
+        () =>
+            sSourceTables.filter(
+                ({ database }) => database === sActiveDatabase,
+            ),
+        [sActiveDatabase, sSourceTables],
+    );
+    const sActiveDatabaseOwners = useMemo<string[]>(
+        () => [
+            ...new Set(
+                sActiveDatabaseTables
+                    .map(({ owner }) => owner)
+                    .filter(Boolean),
+            ),
+        ],
+        [sActiveDatabaseTables],
+    );
+    const sDisplayedOwner =
+        sSelectedSourceTable?.database === sActiveDatabase
+            ? sSelectedSourceTable.owner
+            : sActiveDatabaseOwners.length === 1
+              ? sActiveDatabaseOwners[0]
+              : '';
+    const sTableOptions = useMemo<ComboboxOption[]>(
+        () => {
+            const sTableNameCounts = new Map<string, number>();
+            for (const { table } of sActiveDatabaseTables) {
+                sTableNameCounts.set(
+                    table,
+                    (sTableNameCounts.get(table) ?? 0) + 1,
+                );
+            }
+
+            return sActiveDatabaseTables.map(
+                ({ owner, table, qualifiedName }) => ({
+                    value: qualifiedName,
+                    label:
+                        sTableNameCounts.get(table) === 1
+                            ? table
+                            : [owner, table].filter(Boolean).join('.'),
+                    tooltip: qualifiedName,
+                    testId: `tag-analyzer-table-option-${encodeTestIdSegment(qualifiedName)}`,
+                }),
+            );
+        },
+        [sActiveDatabaseTables],
+    );
     const sTimeColumnOptions = useMemo<ComboboxOption[]>(
         () =>
             getTagAnalyzerTimeColumns(tableColumns).map((item) => ({
@@ -747,13 +832,24 @@ function SourceSelector({
 
     const changeTable = useCallback(
         (value: string): void => {
+            if (value === selectedTable && sourceColumns) return;
+
+            setColumnRequestTable('');
             onSourceChange(value, undefined, []);
 
             if (value) {
                 loadColumns(value);
             }
         },
-        [loadColumns, onSourceChange],
+        [loadColumns, onSourceChange, selectedTable, sourceColumns],
+    );
+
+    const changeDatabase = useCallback(
+        (value: string): void => {
+            setSelectedDatabase(value);
+            if (value !== sSelectedTableDatabase) changeTable('');
+        },
+        [changeTable, sSelectedTableDatabase],
     );
 
     /**
@@ -784,9 +880,13 @@ function SourceSelector({
             return;
         }
         if (!selectedTable) {
-            // A new series has nothing to preserve. The list leads with the session database
-            // (see `sortTableNames`), so this is the same default as before.
-            changeTable(availableSourceTableNames[0]);
+            // Keep the initial default, but after an explicit database change leave Table
+            // empty so the user chooses a source inside that database.
+            if (sDatabaseNames.includes(sSelectedDatabase)) return;
+            changeTable(
+                sActiveDatabaseTables[0]?.qualifiedName ??
+                    availableSourceTableNames[0],
+            );
             return;
         }
         onError(
@@ -794,7 +894,15 @@ function SourceSelector({
                 ? `${selectedTable} matches ${sResolved.candidates.length} tables (${sResolved.candidates.join(', ')}). Pick one so the series names its database.`
                 : `${selectedTable} is not in this server's tag table list. The series still points at it.`,
         );
-    }, [availableSourceTableNames, changeTable, onError, selectedTable]);
+    }, [
+        availableSourceTableNames,
+        changeTable,
+        onError,
+        sActiveDatabaseTables,
+        sDatabaseNames,
+        sSelectedDatabase,
+        selectedTable,
+    ]);
 
     function patchColumnSelection(
         patch: Partial<PanelSeriesSourceColumns>,
@@ -840,39 +948,66 @@ function SourceSelector({
 
     return (
         <>
-            <div className={styles.fieldGrid}>
-                <SourceComboboxField
-                    label="Table"
-                    labelNote={sSelectedTableNote}
-                    options={sTableOptions}
-                    value={selectedTable}
-                    onChange={changeTable}
-                    disabled={isTableNameLoading}
-                    dropdownWidth="auto"
-                />
-                <SourceComboboxField
-                    label="Time"
-                    options={sTimeColumnOptions}
-                    value={sourceColumns?.time ?? ''}
-                    onChange={(value) =>
-                        patchColumnSelection({ time: value })
-                    }
-                    disabled={isTableNameLoading || !selectedTable}
-                />
-                <SourceComboboxField
-                    label="Value"
-                    options={sValueColumnOptions}
-                    value={sourceColumns?.value ?? ''}
-                    onChange={changeValueColumn}
-                    disabled={isTableNameLoading || !selectedTable}
+            <div className={styles.fieldGroups}>
+                <div
+                    className={styles.sourceFieldGrid}
+                    role="group"
+                    aria-label="Source location"
                 >
-                    <ValueRollupStatus
-                        rollupTableList={rollupTableList}
-                        selectedTable={selectedTable}
-                        valueColumn={sourceColumns?.value ?? ''}
-                        jsonKey={sourceColumns?.jsonKey}
+                    <SourceComboboxField
+                        label="Database"
+                        options={sDatabaseOptions}
+                        value={sActiveDatabase}
+                        onChange={changeDatabase}
+                        disabled={isTableNameLoading}
                     />
-                </SourceComboboxField>
+                    <SourceReadOnlyField
+                        label="User"
+                        value={sDisplayedOwner}
+                        placeholder={
+                            sActiveDatabaseOwners.length > 1
+                                ? 'Select a table'
+                                : undefined
+                        }
+                    />
+                    <SourceComboboxField
+                        label="Table"
+                        options={sTableOptions}
+                        value={selectedTable}
+                        onChange={changeTable}
+                        disabled={isTableNameLoading || !sActiveDatabase}
+                        dropdownWidth="auto"
+                    />
+                </div>
+                <div
+                    className={styles.columnFieldGrid}
+                    role="group"
+                    aria-label="Source fields"
+                >
+                    <SourceComboboxField
+                        label="Time"
+                        options={sTimeColumnOptions}
+                        value={sourceColumns?.time ?? ''}
+                        onChange={(value) =>
+                            patchColumnSelection({ time: value })
+                        }
+                        disabled={isTableNameLoading || !selectedTable}
+                    />
+                    <SourceComboboxField
+                        label="Value"
+                        options={sValueColumnOptions}
+                        value={sourceColumns?.value ?? ''}
+                        onChange={changeValueColumn}
+                        disabled={isTableNameLoading || !selectedTable}
+                    >
+                        <ValueRollupStatus
+                            rollupTableList={rollupTableList}
+                            selectedTable={selectedTable}
+                            valueColumn={sourceColumns?.value ?? ''}
+                            jsonKey={sourceColumns?.jsonKey}
+                        />
+                    </SourceComboboxField>
+                </div>
             </div>
 
             {sIsJsonValue ? (
@@ -887,6 +1022,19 @@ function SourceSelector({
             ) : null}
         </>
     );
+}
+
+function parseSourceTableOption(qualifiedName: string): SourceTableOption {
+    const sParts = qualifiedName.split('.');
+    const sTable = sParts.at(-1) ?? qualifiedName;
+
+    return {
+        database:
+            sParts.length >= 3 ? sParts[0] : getCurrentDatabaseName(),
+        owner: sParts.length >= 2 ? sParts.at(-2) ?? '' : '',
+        table: sTable,
+        qualifiedName,
+    };
 }
 
 function ValueRollupStatus({
@@ -1077,7 +1225,6 @@ function JsonKeyField({
 
 function SourceComboboxField({
     label,
-    labelNote,
     options,
     value,
     onChange,
@@ -1086,12 +1233,6 @@ function SourceComboboxField({
     children,
 }: {
     label: string;
-    /**
-     * Trailing note on the label line. The Table field puts the selected table's database and
-     * owner here: the field itself shows the bare name, and this is where the rest of it goes
-     * without costing the cell any height.
-     */
-    labelNote?: string;
     options: ComboboxOption[];
     value: string;
     onChange: (value: string) => void;
@@ -1104,8 +1245,7 @@ function SourceComboboxField({
     return (
         <div className={styles.fieldCell}>
             <label className={styles.fieldLabelTop} htmlFor={sInputId}>
-                <span>{label}</span>
-                {labelNote ? <span className={styles.fieldLabelNote}>{labelNote}</span> : null}
+                {label}
             </label>
             <Combobox.Root
                 options={options}
@@ -1122,6 +1262,34 @@ function SourceComboboxField({
                 </Combobox.Dropdown>
             </Combobox.Root>
             {children}
+        </div>
+    );
+}
+
+function SourceReadOnlyField({
+    label,
+    value,
+    placeholder,
+}: {
+    label: string;
+    value: string;
+    placeholder?: string;
+}) {
+    const sInputId = useId();
+
+    return (
+        <div className={styles.fieldCell}>
+            <label className={styles.fieldLabelTop} htmlFor={sInputId}>
+                {label}
+            </label>
+            <Input
+                id={sInputId}
+                value={value}
+                placeholder={placeholder}
+                readOnly
+                fullWidth
+                size="md"
+            />
         </div>
     );
 }

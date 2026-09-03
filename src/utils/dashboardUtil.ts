@@ -45,6 +45,10 @@ export const formatTimeValue = (timeValue: string | number | undefined | null, f
     if (!timeValue && timeValue !== 0) return '';
     if (isSpecialTimeValue(timeValue)) return timeValue as string;
     if (typeof timeValue === 'number') return moment(timeValue).format(format);
+    const numericTimeValue = Number(timeValue);
+    if (timeValue.trim() !== '' && Number.isFinite(numericTimeValue)) {
+        return moment(numericTimeValue).format(format);
+    }
     // Try to parse as date string
     try {
         return moment(timeValue).format(format);

@@ -3,6 +3,7 @@ import {
     render,
     screen,
     waitFor,
+    within,
 } from '@testing-library/react';
 import { tableMetadataApi } from '../../api/tableMetadataApi';
 import {
@@ -39,6 +40,7 @@ const NUMERIC_SERIES: PanelSeriesDefinition = {
 
 describe('PanelSeriesEditor', () => {
     afterEach(() => {
+        jest.useRealTimers();
         jest.restoreAllMocks();
     });
 
@@ -110,15 +112,15 @@ describe('PanelSeriesEditor', () => {
         );
     });
 
-    it('splits a qualified table name across the option and the label, and searches both halves', async () => {
-        // `database.owner.table` on one line is wider than this cell — it showed the qualifying
-        // prefix and no table name at all — and the same table name exists in several databases,
-        // so the qualifying parts have to stay visible somewhere.
+    it('selects database and table while displaying the table owner', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
             'MACHBASEDB.SYS.ATABLE',
-            'FACTORY_A.SYS.ATABLE',
+            'FACTORY_A.USER_A.ATABLE',
+            'FACTORY_A.USER_B.ATABLE',
         ]);
-        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([]);
+        const fetchColumns = jest
+            .spyOn(tableMetadataApi, 'fetchTableColumns')
+            .mockResolvedValue([]);
 
         render(
             <PanelSeriesEditor
@@ -130,24 +132,51 @@ describe('PanelSeriesEditor', () => {
             />,
         );
 
-        const table = await screen.findByRole('combobox', { name: /^Table/ });
+        const sourceLocation = screen.getByRole('group', {
+            name: 'Source location',
+        });
+        const sourceFields = screen.getByRole('group', {
+            name: 'Source fields',
+        });
+        const database = within(sourceLocation).getByLabelText('Database');
+        const user = within(sourceLocation).getByLabelText('User');
+        const table = within(sourceLocation).getByLabelText('Table');
+
+        expect(user).toHaveAttribute('readonly');
+        expect(within(sourceFields).getByLabelText('Time')).toBeInTheDocument();
+        expect(within(sourceFields).getByLabelText('Value')).toBeInTheDocument();
+        await waitFor(() => expect(database).toHaveValue('MACHBASEDB'));
         await waitFor(() => expect(table).toHaveValue('ATABLE'));
-        // The database and owner the field no longer shows sit on the label line instead.
-        expect(screen.getByText('Table').closest('label')).toHaveTextContent(
-            'MACHBASEDB · SYS',
+        expect(user).toHaveValue('SYS');
+
+        fireEvent.focus(database);
+        fireEvent.change(database, { target: { value: 'FACTORY_A' } });
+        fireEvent.click(
+            await screen.findByTestId(
+                'tag-analyzer-database-option-FACTORY_A',
+            ),
+        );
+        await waitFor(() => expect(table).toHaveValue(''));
+        expect(user).toHaveValue('');
+        expect(user).toHaveAttribute('placeholder', 'Select a table');
+
+        fireEvent.focus(table);
+        expect(
+            await screen.findByTestId(
+                'tag-analyzer-table-option-FACTORY_A.USER_A.ATABLE',
+            ),
+        ).toHaveTextContent('USER_A.ATABLE');
+        fireEvent.click(
+            screen.getByTestId(
+                'tag-analyzer-table-option-FACTORY_A.USER_B.ATABLE',
+            ),
         );
 
-        fireEvent.keyDown(table, { key: 'ArrowDown' });
-        const options = screen.getAllByRole('option');
-        expect(options).toHaveLength(2);
-        expect(options[0]).toHaveTextContent('ATABLE');
-        expect(options[0]).toHaveTextContent('MACHBASEDB · SYS');
-        expect(options[1]).toHaveTextContent('FACTORY_A · SYS');
-
-        // Searching the database name still works, even though it left the label.
-        fireEvent.change(table, { target: { value: 'FACTORY' } });
-        expect(screen.getAllByRole('option')).toHaveLength(1);
-        expect(screen.getByRole('option')).toHaveTextContent('FACTORY_A · SYS');
+        await waitFor(() => expect(user).toHaveValue('USER_B'));
+        expect(table).toHaveValue('USER_B.ATABLE');
+        expect(fetchColumns).toHaveBeenLastCalledWith(
+            'FACTORY_A.USER_B.ATABLE',
+        );
     });
 
     it('offers tables from every database, mounted backups included', async () => {
@@ -173,21 +202,31 @@ describe('PanelSeriesEditor', () => {
             />,
         );
 
-        const table = await screen.findByRole('combobox', { name: /^Table/ });
-        // The session database leads the list, so a new series still starts where it used to.
-        await waitFor(() =>
-            expect(screen.getByText('Table').closest('label')).toHaveTextContent('MACHBASEDB · SYS'),
+        const database = await screen.findByLabelText('Database');
+        const user = screen.getByLabelText('User');
+        const table = screen.getByLabelText('Table');
+        await waitFor(() => expect(database).toHaveValue('MACHBASEDB'));
+
+        fireEvent.focus(database);
+        fireEvent.change(database, { target: { value: 'EEEEE' } });
+        fireEvent.click(
+            await screen.findByTestId(
+                'tag-analyzer-database-option-EEEEE',
+            ),
+        );
+        await waitFor(() => expect(table).toHaveValue(''));
+        expect(user).toHaveValue('SYS');
+
+        fireEvent.focus(table);
+        fireEvent.click(
+            await screen.findByTestId(
+                'tag-analyzer-table-option-EEEEE.SYS.ATABLE',
+            ),
         );
 
-        fireEvent.keyDown(table, { key: 'ArrowDown' });
-        expect(screen.getAllByRole('option')).toHaveLength(3);
-
-        fireEvent.change(table, { target: { value: 'EEEEE' } });
-        fireEvent.click(screen.getByRole('option'));
-
-        await waitFor(() =>
-            expect(screen.getByText('Table').closest('label')).toHaveTextContent('EEEEE · SYS'),
-        );
+        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        expect(database).toHaveValue('EEEEE');
+        expect(user).toHaveValue('SYS');
     });
 
     it('keeps the picked table when the list cannot account for it', async () => {
@@ -250,5 +289,98 @@ describe('PanelSeriesEditor', () => {
         expect(onFooterMessageChange).toHaveBeenLastCalledWith(
             'This series has already been added.',
         );
+    });
+
+    it('applies an explicit tag search after the initial tag load', async () => {
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
+            'MACHBASEDB.SYS.TAG',
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([
+            { name: 'NAME', type: 5, flag: 0 },
+            { name: 'TIME', type: 6, flag: 0x01000000 },
+            { name: 'VALUE', type: 20, flag: 0 },
+        ]);
+        const fetchTags = jest
+            .spyOn(tableMetadataApi, 'fetchTags')
+            .mockImplementation(async (_table, _column, searchText) =>
+                searchText
+                    ? { tags: ['use'], total: 1 }
+                    : { tags: ['barn'], total: 1 },
+            );
+
+        render(
+            <PanelSeriesEditor
+                seriesList={[]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={jest.fn()}
+                onSeriesListChange={jest.fn()}
+            />,
+        );
+
+        await waitFor(() =>
+            expect(screen.getByLabelText('Table')).toHaveValue('TAG'),
+        );
+        await waitFor(() => expect(fetchTags).toHaveBeenCalledTimes(1));
+        fireEvent.change(screen.getByLabelText('Tag'), {
+            target: { value: 'use' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Search tags' }));
+
+        expect(
+            await screen.findByTestId('tag-analyzer-series-option-use'),
+        ).toBeInTheDocument();
+
+        await waitFor(() => expect(fetchTags).toHaveBeenCalledTimes(2));
+        expect(fetchTags.mock.calls.map((call) => call[2])).toEqual([
+            '',
+            'use',
+        ]);
+        expect(
+            screen.getByTestId('tag-analyzer-series-option-use'),
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByTestId('tag-analyzer-series-option-barn'),
+        ).not.toBeInTheDocument();
+    });
+
+    it('keeps tag results when the current table is selected again', async () => {
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
+            'MACHBASEDB.SYS.TAG',
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([
+            { name: 'NAME', type: 5, flag: 0 },
+            { name: 'TIME', type: 6, flag: 0x01000000 },
+            { name: 'VALUE', type: 20, flag: 0 },
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTags').mockResolvedValue({
+            tags: ['TAG_A'],
+            total: 1,
+        });
+
+        render(
+            <PanelSeriesEditor
+                seriesList={[]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={jest.fn()}
+                onSeriesListChange={jest.fn()}
+            />,
+        );
+
+        expect(
+            await screen.findByTestId('tag-analyzer-series-option-TAG_A'),
+        ).toBeInTheDocument();
+
+        fireEvent.focus(screen.getByLabelText('Table'));
+        fireEvent.click(
+            await screen.findByTestId(
+                'tag-analyzer-table-option-MACHBASEDB.SYS.TAG',
+            ),
+        );
+
+        expect(
+            screen.getByTestId('tag-analyzer-series-option-TAG_A'),
+        ).toBeInTheDocument();
     });
 });

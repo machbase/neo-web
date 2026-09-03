@@ -14,6 +14,7 @@ export interface ComboboxOption {
     /** Tooltip content. Defaults to `label`, which is not enough once a description carries half the identity. */
     tooltip?: string;
     disabled?: boolean;
+    testId?: string;
 }
 
 export interface UseComboboxProps {
