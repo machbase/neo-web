@@ -33,7 +33,7 @@ import { Duration } from './Duration';
 import { TableInputSelect, tableSelectOptionOf, type TableSelectOption } from './TableInputSelect';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
-import { buildFullTypingQuery } from '@/utils/fullTypingDateBin';
+import { deactivateFullTyping, enterFullTyping, exitFullTyping, fullTypingAfterTableChange, updateFullTypingText } from '@/utils/fullTypingDateBin';
 import { FullQueryHelper } from './Block/FullQueryHelper';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { TransformBlockType } from './Transform/type';
@@ -212,7 +212,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                     return {
                         ...aPrev,
                         blockList: aPrev.blockList.map((block: any) => {
-                            if (block.id === pBlockInfo.id) return { ...block, table: aData.target.value, userName: '', tableInfo: [], customTable: true };
+                            if (block.id === pBlockInfo.id)
+                                return {
+                                    ...block,
+                                    table: aData.target.value,
+                                    userName: '',
+                                    tableInfo: [],
+                                    customTable: true,
+                                    customFullTyping: fullTypingAfterTableChange(block),
+                                };
                             else return block;
                         }),
                     };
@@ -244,7 +252,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             }
 
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
-                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color } : aTable;
+                return aTable.id === pBlockInfo.id
+                    ? {
+                          ...sDefaultBlockOption[0],
+                          id: generateUUID(),
+                          color: aTable.color,
+                          customFullTyping: fullTypingAfterTableChange(aTable),
+                      }
+                    : aTable;
             });
 
             pSetPanelOption((aPrev: any) => {
@@ -342,17 +357,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
                     if (aItem.id === pBlockInfo.id) {
-                        const sTmpItem = {
-                            ...aItem,
-                            customFullTyping: {
-                                ...aItem.customFullTyping,
-                                [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
-                            },
-                        };
-                        if (aKey === 'use' && aData?.target?.value === true) {
-                            sTmpItem.customFullTyping.text = buildFullTypingQuery(pBlockInfo);
-                        }
+                        const sValue = Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value;
+                        const sTmpItem = { ...aItem };
+                        if (aKey === 'use') sTmpItem.customFullTyping = sValue ? enterFullTyping(aItem) : exitFullTyping(aItem);
                         if (aKey === 'text') {
+                            sTmpItem.customFullTyping = updateFullTypingText(aItem, sValue);
                             if (aData?.target?.value?.trim() === '') setIsValidCustomQuery(true);
                             else setIsValidCustomQuery(() => false);
                         }
@@ -744,9 +753,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             const sTargetChart = pPanelOption.blockList?.[0]?.table?.includes('V$');
             if (sTargetChart && sChartDataType) {
                 pSetPanelOption((aPrev: any) => {
+                    const sDefaultBlockList = createDefaultTagTableOption(pTableList[0][1], pTableList[0], getTableType(pTableList[0][4]), '');
                     return {
                         ...aPrev,
-                        blockList: createDefaultTagTableOption(pTableList[0][1], pTableList[0], getTableType(pTableList[0][4]), ''),
+                        blockList: sDefaultBlockList.map((aBlock: any, aIdx: number) => ({
+                            ...aBlock,
+                            customFullTyping: deactivateFullTyping(aPrev.blockList?.[aIdx] ?? aBlock),
+                        })),
                     };
                 });
             }
@@ -797,6 +810,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     }, [pBlockInfo.filter, sFilterTagDialogInfo.filterId, sFilterTagDialogInfo.isOpen]);
 
     const handleExitCustomField = async () => {
+        if (!pBlockInfo?.customFullTyping.use) return setIsValidCustomQuery(true);
         if (sIsValidCustomQuery) return;
         const sQuery = replaceVariablesInTql(pBlockInfo?.customFullTyping.text, pVariables, {
             interval: { IntervalType: 'min', IntervalValue: 20 },
@@ -814,7 +828,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     };
 
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
-    useDebounce([pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
+    useDebounce([pBlockInfo?.customFullTyping.use, pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
 
     useEffect(() => {
         if (!pShouldFocusTag) return;
@@ -839,9 +853,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 size="side"
                                 variant="ghost"
                                 active={pBlockInfo.customFullTyping.use}
-                                disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar') || pBlockInfo.customFullTyping?.text?.trim() !== ''}
+                                disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar')}
                                 icon={<GoPencil size={14} />}
                                 onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
+                                aria-label={pBlockInfo.customFullTyping.use ? 'Switch to selecting' : 'Switch to typing'}
                                 isToolTip
                                 toolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
                             />
@@ -1036,7 +1051,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                         <div ref={sCustomQueryRef} style={{ position: 'relative' }}>
                             <Textarea
                                 placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
-                                defaultValue={pBlockInfo.customFullTyping.text}
+                                value={pBlockInfo.customFullTyping.text}
                                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
                                 onFocus={(e) => e.target.setSelectionRange(0, pBlockInfo?.customFullTyping?.text?.length)}
                                 autoFocus

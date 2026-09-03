@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { RecoilRoot } from 'recoil';
 import { Block } from './Block';
@@ -53,10 +53,10 @@ const createBlockInfo = (overrides: Record<string, any> = {}) => ({
     ...overrides,
 });
 
-const renderBlock = (blockOverrides: Record<string, any> = {}, tableList: any[] = TABLE_LIST) => {
+const renderBlock = (blockOverrides: Record<string, any> = {}, tableList: any[] = TABLE_LIST, panelType = 'Gauge', setPanelOption = jest.fn()) => {
     const blockInfo = createBlockInfo(blockOverrides);
     const panelOption = {
-        type: 'Gauge',
+        type: panelType,
         blockList: [blockInfo],
         transformBlockList: [],
     };
@@ -70,13 +70,43 @@ const renderBlock = (blockOverrides: Record<string, any> = {}, tableList: any[] 
                 pTableList={tableList}
                 pType="modify"
                 pGetTables={jest.fn()}
-                pSetPanelOption={jest.fn()}
+                pSetPanelOption={setPanelOption}
                 pBlockOrder={0}
                 pBlockCount={{ addable: true }}
             />
         </RecoilRoot>
     );
 };
+
+describe('Block full typing mode', () => {
+    beforeEach(() => {
+        jest.mocked(getTableInfo).mockResolvedValue({ data: { rows: TABLE_ROWS } } as any);
+        jest.mocked(getVirtualTableInfo).mockResolvedValue({ data: { rows: TABLE_ROWS } } as any);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('can return to selecting without deleting an edited query', async () => {
+        const setPanelOption = jest.fn();
+        const blockInfo = createBlockInfo({
+            customFullTyping: { use: true, text: 'SELECT edited', dirty: true },
+        });
+        renderBlock(blockInfo, TABLE_LIST, 'Line', setPanelOption);
+
+        await waitFor(() => expect(getTableInfo).toHaveBeenCalled());
+        setPanelOption.mockClear();
+
+        const switchButton = screen.getByRole('button', { name: 'Switch to selecting' });
+        expect(switchButton).toBeEnabled();
+        fireEvent.click(switchButton);
+
+        const updatePanel = setPanelOption.mock.calls[0][0];
+        const nextPanel = updatePanel({ type: 'Line', blockList: [blockInfo] });
+        expect(nextPanel.blockList[0].customFullTyping).toEqual({ use: false, text: 'SELECT edited', dirty: true });
+    });
+});
 
 const getTableRow = () => {
     const row = screen.getByText('Table').closest('.page-dp-row');

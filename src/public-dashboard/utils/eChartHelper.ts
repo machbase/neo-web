@@ -268,6 +268,7 @@ export const DefaultVariableTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -296,6 +297,7 @@ export const DefaultTagTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -324,6 +326,7 @@ export const DefaultViewTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -352,6 +355,7 @@ export const DefaultTransactionTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -380,6 +384,7 @@ export const DefaultLogTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };

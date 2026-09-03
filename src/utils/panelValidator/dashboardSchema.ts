@@ -208,8 +208,11 @@ export function validateBlockItem(block: any): string[] {
         repaired.push('useCustom');
     }
     if (block.customFullTyping === undefined) {
-        block.customFullTyping = { use: false, text: '' };
+        block.customFullTyping = { use: false, text: '', dirty: false };
         repaired.push('customFullTyping');
+    } else if (block.customFullTyping.dirty === undefined) {
+        block.customFullTyping.dirty = typeof block.customFullTyping.text === 'string' && block.customFullTyping.text.trim() !== '';
+        repaired.push('customFullTyping.dirty');
     }
     if (block.isValidMath === undefined) block.isValidMath = true;
     if (block.isVisible === undefined) block.isVisible = true;

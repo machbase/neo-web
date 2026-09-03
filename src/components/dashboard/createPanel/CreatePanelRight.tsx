@@ -23,6 +23,7 @@ import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
 import { Page } from '@/design-system/components';
 import { getFiles } from '@/api/repository/fileTree';
+import { deactivateFullTyping } from '@/utils/fullTypingDateBin';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -120,7 +121,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
             if (sConvertedChartType !== E_CHART_TYPE.GEOMAP) {
                 if (sConvertedChartType !== E_CHART_TYPE.LINE && sConvertedChartType !== E_CHART_TYPE.BAR) {
                     sResVal.blockList = sResVal.blockList.map((block: any) => {
-                        return { ...block, values: [block.values[0]], customFullTyping: { use: false, text: '' } };
+                        return { ...block, values: [block.values[0]], customFullTyping: deactivateFullTyping(block) };
                     });
                 } else {
                     sResVal.blockList = sResVal.blockList.map((block: any) => {
@@ -133,7 +134,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         if (geomapAggregatorList.includes(value.aggregator) || value.aggregator?.match(VARIABLE_REGEX)) return value;
                         else return { ...value, aggregator: geomapAggregatorList[0] };
                     });
-                    return { ...block, values: sTmpValues, useCustom: true };
+                    return { ...block, values: sTmpValues, useCustom: true, customFullTyping: deactivateFullTyping(block) };
                 });
             }
 

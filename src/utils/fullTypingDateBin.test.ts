@@ -4,6 +4,12 @@ import {
     PUBLIC_FULL_TYPING_QUERY_PLACEHOLDER,
     PUBLIC_FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR,
     buildFullTypingQuery,
+    deactivateFullTyping,
+    enterFullTyping,
+    exitFullTyping,
+    fullTypingAfterTableChange,
+    normalizeFullTypingOption,
+    updateFullTypingText,
 } from './fullTypingDateBin';
 
 const expectNoLegacyBucketSql = (sql: string) => {
@@ -76,5 +82,94 @@ describe('full typing DATE_BIN SQL', () => {
         expect(sql).not.toContain("AVG(PAYLOAD->'$[metrics][temperature]')");
         expect(sql).not.toContain('PAYLOAD AS VALUE');
         expectNoLegacyBucketSql(sql);
+    });
+});
+
+describe('full typing mode state', () => {
+    test('builds a fresh query from selecting settings when the draft was not edited', () => {
+        const block = createBlockInfo({
+            tag: 'new-tag',
+            customFullTyping: { use: false, text: 'old generated query', dirty: false },
+        });
+
+        const next = enterFullTyping(block);
+
+        expect(next).toEqual({
+            use: true,
+            text: expect.stringContaining("NAME IN ('new-tag')"),
+            dirty: false,
+        });
+        expect(next.text).not.toBe('old generated query');
+    });
+
+    test('restores an edited query when returning to typing mode', () => {
+        const block = createBlockInfo({
+            customFullTyping: { use: false, text: 'SELECT edited', dirty: true },
+        });
+
+        expect(enterFullTyping(block)).toEqual({ use: true, text: 'SELECT edited', dirty: true });
+    });
+
+    test('marks the typing draft dirty as soon as its text changes', () => {
+        const block = createBlockInfo({
+            customFullTyping: { use: true, text: 'SELECT generated', dirty: false },
+        });
+
+        expect(updateFullTypingText(block, 'SELECT changed')).toEqual({ use: true, text: 'SELECT changed', dirty: true });
+    });
+
+    test('rebuilds an empty draft from selecting settings when returning to selecting mode', () => {
+        const block = createBlockInfo({
+            tag: 'kept-tag',
+            customFullTyping: { use: true, text: '   ', dirty: true },
+        });
+
+        const next = exitFullTyping(block);
+
+        expect(next).toEqual({
+            use: false,
+            text: expect.stringContaining("NAME IN ('kept-tag')"),
+            dirty: false,
+        });
+    });
+
+    test('keeps a non-empty edited draft when returning to selecting mode', () => {
+        const block = createBlockInfo({
+            customFullTyping: { use: true, text: 'SELECT edited', dirty: true },
+        });
+
+        expect(exitFullTyping(block)).toEqual({ use: false, text: 'SELECT edited', dirty: true });
+    });
+
+    test('treats non-empty legacy text as edited so it is never overwritten', () => {
+        expect(normalizeFullTypingOption({ use: true, text: 'SELECT legacy' })).toEqual({
+            use: true,
+            text: 'SELECT legacy',
+            dirty: true,
+        });
+    });
+
+    test('keeps the typing draft but deactivates it when the chart type stops supporting typing', () => {
+        const block = createBlockInfo({
+            customFullTyping: { use: true, text: 'SELECT edited', dirty: true },
+        });
+
+        expect(deactivateFullTyping(block)).toEqual({ use: false, text: 'SELECT edited', dirty: true });
+    });
+
+    test('keeps an edited typing draft when the selecting table changes', () => {
+        const block = createBlockInfo({
+            customFullTyping: { use: false, text: 'SELECT edited', dirty: true },
+        });
+
+        expect(fullTypingAfterTableChange(block)).toEqual({ use: false, text: 'SELECT edited', dirty: true });
+    });
+
+    test('drops an unedited generated query when the selecting table changes', () => {
+        const block = createBlockInfo({
+            customFullTyping: { use: false, text: 'SELECT generated for old table', dirty: false },
+        });
+
+        expect(fullTypingAfterTableChange(block)).toEqual({ use: false, text: '', dirty: false });
     });
 });
