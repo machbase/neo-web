@@ -36,7 +36,7 @@ export const BridgeSide = () => {
     // OPEN SUBSCRIBER
     const openSubrInfo = (aItem: any, aInfo: any) => {
         const sExistKeyTab = checkExistTab(SUBR_TYPE);
-        setActiveSubrName(aInfo.name);
+        setActiveSubrName(aInfo.id);
 
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === SUBR_TYPE);
@@ -200,7 +200,7 @@ export const BridgeSide = () => {
                                         {aItem?.childs &&
                                             aItem.childs.map((aChild, bIdx) => {
                                                 return (
-                                                    <Side.Item key={bIdx} onClick={() => openSubrInfo(aItem, aChild)} active={sActiveSubrName === aChild.name}>
+                                                    <Side.Item key={aChild.id} onClick={() => openSubrInfo(aItem, aChild)} active={sActiveSubrName === aChild.id}>
                                                         <Side.ItemContent>
                                                             <Side.ItemIcon>{aItem?.childs?.length == bIdx + 1 ? '└' : '├'}</Side.ItemIcon>
                                                             <Side.ItemIcon>{icons('bridge-child')}</Side.ItemIcon>

@@ -87,7 +87,7 @@ export const gExtensionList = atom<any>({
         {
             id: 'KEY',
             type: 'KEY',
-            label: 'KEY',
+            label: 'SECURITY',
         },
         {
             id: 'APPSTORE',
@@ -244,11 +244,11 @@ export const gDelSubr = selector({
         const sTmpBridgeList = get(gBridgeList);
         const sApplyList = sTmpBridgeList.map((aBridge: any) => {
             if (aBridge.name === newValue.bridge.name) {
-                const sChildList = aBridge.childs.filter((aChild: any) => aChild.name !== newValue.subr.name);
+                const sChildList = aBridge.childs.filter((aChild: any) => aChild.id !== newValue.subr.id);
                 const sTmpBoardList = get(gBoardList);
                 let sApplyBoardList: any = undefined;
                 if (sChildList.length > 0) {
-                    set(gActiveSubr, sChildList.at(-1).name);
+                    set(gActiveSubr, sChildList.at(-1).id);
                     sApplyBoardList = sTmpBoardList.map((aBoard) => {
                         if (aBoard.type === 'subscriber') {
                             return {
@@ -289,10 +289,10 @@ export const gStateSubr = selector({
         const sApplyBridgeList = sTmpBridgeList.map((aBridge: any) => {
             if (aBridge.name === newValue.target.bridge.name) {
                 const sApplyChildList = aBridge.childs.map((aChild: any) => {
-                    if (aChild.name === newValue.target.subr.name) {
+                    if (aChild.id === newValue.target.subr.id) {
                         sApplyData = { ...aChild, state: newValue.state };
                         // Update tab data
-                        set(gActiveSubr, aChild.name);
+                        set(gActiveSubr, aChild.id);
                         return sApplyData;
                     } else return aChild;
                 });

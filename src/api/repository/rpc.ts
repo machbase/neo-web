@@ -254,15 +254,27 @@ export const RpcMethod = {
         update: 'shell.update',
         delete: 'shell.delete',
     },
-    schedule: {
-        list: 'schedule.list',
-        get: 'schedule.get',
-        timer: { add: 'schedule.timer.add' },
-        subscriber: { add: 'schedule.subscriber.add' },
-        update: 'schedule.update',
-        delete: 'schedule.delete',
-        start: 'schedule.start',
-        stop: 'schedule.stop',
+    // `schedule.*` was split into `timer.*` / `subscriber.*` (neo-server PR #474) and the old
+    // namespace was REMOVED in the same commit — there is no overlap window, so nothing here may
+    // fall back to it. Every method below addresses an entry by its numeric `id`, not its name:
+    // passing a name string fails with `-32602 unmarshal to int64`.
+    timer: {
+        list: 'timer.list',
+        get: 'timer.get',
+        add: 'timer.add',
+        update: 'timer.update',
+        delete: 'timer.delete',
+        start: 'timer.start',
+        stop: 'timer.stop',
+    },
+    subscriber: {
+        list: 'subscriber.list',
+        get: 'subscriber.get',
+        add: 'subscriber.add',
+        update: 'subscriber.update',
+        delete: 'subscriber.delete',
+        start: 'subscriber.start',
+        stop: 'subscriber.stop',
     },
     key: {
         list: 'key.list',

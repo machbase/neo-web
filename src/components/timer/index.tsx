@@ -28,15 +28,15 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
     /** delete timer */
     const deleteTimer = async () => {
-        const sRes = await delTimer(pCode.name);
+        const sRes = await delTimer(pCode.id);
         if (sRes.success) {
             const sTimerList = await getTimer();
             if (sTimerList.success) setResTimerList(sTimerList.data);
             else setResTimerList([]);
 
-            const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.name !== pCode.name);
+            const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.id !== pCode.id);
             if (sTempTimerList && sTempTimerList.length > 0) {
-                setActiveTimer(sTempTimerList[0].name);
+                setActiveTimer(sTempTimerList[0].id);
                 const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
                 setBoardList((aBoardList: any) => {
                     return aBoardList.map((aBoard: any) => {
@@ -78,14 +78,16 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     };
     /** edit item */
     const editItem = async () => {
-        const sResult = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.name);
+        // `timer.update` REPLACES the definition — every editable field has to go in every time,
+        // or the omitted one is reset on the server (omitting autoStart turns it off).
+        const sResult = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
 
         if (sResult.success) {
-            const sTimerInfo = await getTimerItem(sPayload.name);
+            const sTimerInfo = await getTimerItem(sPayload.id);
             const sTmpTimerList =
                 sTimerList &&
                 sTimerList.map((aTimerInfo: any) => {
-                    if (aTimerInfo.name === sPayload.name) {
+                    if (aTimerInfo.id === sPayload.id) {
                         return sTimerInfo.success ? sTimerInfo.data : aTimerInfo;
                     } else return aTimerInfo;
                 });
@@ -155,6 +157,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         setResMessage(undefined);
         pCode &&
             setPayload({
+                id: pCode.id,
                 name: pCode.name || '',
                 type: pCode.type || 'TIMER',
                 state: pCode.state || 'STOP',
