@@ -104,6 +104,15 @@
             border-color: #e53935;
             outline: 2px solid rgba(229, 57, 53, 0.1);
         }
+
+        /**
+         * On an error field the placeholder is not a hint, it is the reason the field is empty —
+         * the dashboard's Time field puts `No DATETIME column.` there, inside the box the message
+         * is about, so that saying it costs the row no height. So it is coloured as the error.
+         */
+        .input-select-input::placeholder {
+            color: #e53935;
+        }
     }
 
     &--success {
@@ -127,6 +136,17 @@
             padding-left: t.$spacing-8;
         }
     }
+}
+
+/**
+ * A field that is both disabled and in error carries its message in the placeholder, and
+ * `--disabled`'s blanket 0.5 opacity would fade the only text explaining why it is disabled.
+ * The greyed background and the dimmed chevron still read as inert without the fade.
+ *
+ * Two classes (0-2-0) so it outranks the single-class `--disabled` rule above.
+ */
+.input-select-wrapper--error.input-select-wrapper--disabled {
+    opacity: 1;
 }
 
 .input-select-input {

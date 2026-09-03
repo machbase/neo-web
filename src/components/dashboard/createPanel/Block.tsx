@@ -17,7 +17,7 @@ import {
 } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { isCollapsibleTableType, isTaglessTableType, visibleColumnsForTableType } from '@/utils/dashboardTableKind';
-import { TIME_FIELD_MISSING_MESSAGE } from './validation';
+import { TIME_FIELD_MISSING_MESSAGE, VALUE_FIELD_MISSING_MESSAGE } from './validation';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -157,6 +157,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         if (sColumnList.length === 0 || sSelectedTableType === 'vir_tag' || pBlockInfo.customFullTyping?.use) return false;
         return sTimeFieldColumnList.length === 0;
     }, [sColumnList, sTimeFieldColumnList, sSelectedTableType, pBlockInfo.customFullTyping?.use]);
+    /**
+     * The same fact about the Value field: the columns are loaded and none of them can be plotted.
+     *
+     * Kept separate from `sHasNoTimeField` because a table can fail either test on its own — a
+     * VARCHAR-only view has a DATETIME column and nothing to plot, and the Time field beside it
+     * was the only one that said so.
+     */
+    const sHasNoValueField = useMemo(() => {
+        if (sColumnList.length === 0 || pBlockInfo.customFullTyping?.use) return false;
+        return sValueFieldColumnList.length === 0;
+    }, [sColumnList, sValueFieldColumnList, pBlockInfo.customFullTyping?.use]);
 
     const sJsonColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
@@ -760,6 +771,21 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         getColumnList(pBlockInfo.table);
         setOption(sTableType, pBlockInfo.tag);
     };
+    /**
+     * `init()` has to wait for `pTableList`, which is why this is not a mount-only effect.
+     *
+     * CreatePanel renders the block list as soon as the panel has an id and fetches its table list
+     * afterwards, so a block always mounts with `pTableList` still empty. `init()` then fails to
+     * resolve its own table and returns without setting either the table type or the column list —
+     * and nothing ran it again. A panel reopened from a saved board therefore sat with
+     * `sSelectedTableType` at `''` and no columns: the Time and Value pickers had nothing to
+     * offer, and neither could say why, since both messages treat an empty column list as a load
+     * still in flight.
+     *
+     * Re-running while the type is unresolved fixes that. The guard is what keeps a later refresh
+     * of `pTableList` from overwriting `vir_tag` / `variable_tag`, which are UI states no table row
+     * can reproduce, and it also stops the retry once a table genuinely cannot be found.
+     */
     useEffect(() => {
         init();
     }, []);
@@ -960,6 +986,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                             selectValue={getValueFieldFromValue(sPrimaryValue.value)}
                                             onSelectChange={(value: string) => changeValueOption('value', { target: { value } }, sPrimaryValue.id, 'values')}
                                             disabled={!sValueFieldColumnList[0]}
+                                            placeholder={sHasNoValueField ? VALUE_FIELD_MISSING_MESSAGE : undefined}
+                                            variant={sHasNoValueField ? 'error' : 'default'}
                                             size="md"
                                             style={sPrimaryJsonColumn ? FIELD_STYLE : WIDE_FIELD_STYLE}
                                         />
@@ -995,7 +1023,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         selectValue={pBlockInfo.time}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
-                                        error={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
+                                        placeholder={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
+                                        variant={sHasNoTimeField ? 'error' : 'default'}
                                         size="md"
                                         style={WIDE_FIELD_STYLE}
                                     />
@@ -1051,7 +1080,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         selectValue={pBlockInfo.time}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
-                                        error={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
+                                        placeholder={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
+                                        variant={sHasNoTimeField ? 'error' : 'default'}
                                         size="md"
                                         style={WIDE_FIELD_STYLE}
                                     />
@@ -1073,6 +1103,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         onChange={(aEvent: any) => changedOption('value', { target: { value: aEvent.target.value, name: 'customInput' } })}
                                         selectValue={getValueFieldFromValue(pBlockInfo.value)}
                                         onSelectChange={(value: string) => changedOption('value', { target: { value, name: 'customSelect' } })}
+                                        placeholder={sHasNoValueField ? VALUE_FIELD_MISSING_MESSAGE : undefined}
+                                        variant={sHasNoValueField ? 'error' : 'default'}
                                         size="md"
                                         style={getJsonColumnFromValue(pBlockInfo.value) ? FIELD_STYLE : WIDE_FIELD_STYLE}
                                     />
@@ -1187,6 +1219,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                       pChangeJsonKeyOption={changeJsonKeyOption}
                                       pPanelOption={pPanelOption}
                                       pAggList={getAggregatorList}
+                                      pHasNoValueField={sHasNoValueField}
                                       pHideValueFieldRow={sIsVirtualStatTable && aIdx === 0}
                                   />
                               );

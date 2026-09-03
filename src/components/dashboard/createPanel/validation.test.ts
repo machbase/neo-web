@@ -6,6 +6,9 @@ import {
     getTagSelectionValidationMessage,
     getTimeFieldValidationMessage,
     TIME_FIELD_REQUIRED_MESSAGE,
+    getFirstMissingValueFieldBlockId,
+    getValueFieldValidationMessage,
+    VALUE_FIELD_REQUIRED_MESSAGE,
 } from './validation';
 
 const createTagBlock = (overrides: Record<string, any> = {}) => ({
@@ -148,5 +151,79 @@ describe('getFirstMissingTimeFieldBlockId', () => {
         expect(getFirstMissingTimeFieldBlockId(undefined)).toBeUndefined();
         expect(getFirstMissingTimeFieldBlockId({})).toBeUndefined();
         expect(getTimeFieldValidationMessage(undefined)).toBeUndefined();
+    });
+});
+
+/**
+ * Value-field validation. Column rows are `[name, type, ...]` with the type codes the server
+ * reports: 5 VARCHAR, 6 DATETIME, 12 LONG, 20 DOUBLE, 61 JSON.
+ *
+ * The case that motivated this is a view whose only numeric column is the phantom `_RID` the
+ * engine refuses to select — unfiltered it looks plottable, which is why the block's own table
+ * type has to take part in the decision.
+ */
+describe('getFirstMissingValueFieldBlockId', () => {
+    const blockWith = (columns: any[], overrides: Record<string, any> = {}) => ({
+        id: 'b1',
+        type: 'view',
+        useCustom: true,
+        customFullTyping: { use: false, text: '' },
+        tableInfo: columns,
+        ...overrides,
+    });
+    const VARCHAR = ['DEVICE', 5];
+    const DATETIME = ['TS', 6];
+    const RID = ['_RID', 12];
+    const DOUBLE = ['VALUE', 20];
+    const JSON_COL = ['PAYLOAD', 61];
+
+    test('a view with only text and datetime columns has nothing to plot', () => {
+        expect(getFirstMissingValueFieldBlockId(createPanelOption('Line', [blockWith([VARCHAR, DATETIME])]))).toBe('b1');
+    });
+
+    test("a view's phantom _RID does not count as plottable", () => {
+        expect(getFirstMissingValueFieldBlockId(createPanelOption('Line', [blockWith([VARCHAR, DATETIME, RID])]))).toBe('b1');
+    });
+
+    test('a numeric column clears it', () => {
+        expect(getFirstMissingValueFieldBlockId(createPanelOption('Line', [blockWith([VARCHAR, DATETIME, DOUBLE])]))).toBeUndefined();
+    });
+
+    test('a JSON column clears it too', () => {
+        expect(getFirstMissingValueFieldBlockId(createPanelOption('Line', [blockWith([VARCHAR, DATETIME, JSON_COL])]))).toBeUndefined();
+    });
+
+    test('_RID on a log table is a real column, so it counts', () => {
+        expect(getFirstMissingValueFieldBlockId(createPanelOption('Line', [blockWith([VARCHAR, RID], { type: 'log' })]))).toBeUndefined();
+    });
+
+    test('columns not loaded yet is not a verdict', () => {
+        expect(getFirstMissingValueFieldBlockId(createPanelOption('Line', [blockWith([])]))).toBeUndefined();
+    });
+
+    test('a block writing its own SQL is left alone', () => {
+        expect(
+            getFirstMissingValueFieldBlockId(createPanelOption('Line', [blockWith([VARCHAR], { customFullTyping: { use: true, text: 'select 1' } })]))
+        ).toBeUndefined();
+    });
+
+    test('a stat view block is left alone, since it saves with an empty value on purpose', () => {
+        expect(getFirstMissingValueFieldBlockId(createPanelOption('Gauge', [blockWith([VARCHAR], { table: 'V$DEMO_STAT', type: 'tag' })]))).toBeUndefined();
+    });
+
+    test('panels that do not read a table are skipped', () => {
+        TAG_INDEPENDENT_PANEL_TYPES.forEach((aType) => {
+            expect(getFirstMissingValueFieldBlockId(createPanelOption(aType, [blockWith([VARCHAR, DATETIME])]))).toBeUndefined();
+        });
+    });
+
+    test('the message is returned only when a block is missing one', () => {
+        expect(getValueFieldValidationMessage(createPanelOption('Line', [blockWith([VARCHAR, DATETIME])]))).toBe(VALUE_FIELD_REQUIRED_MESSAGE);
+        expect(getValueFieldValidationMessage(createPanelOption('Line', [blockWith([DOUBLE])]))).toBeUndefined();
+    });
+
+    test('a malformed panel is not an error', () => {
+        expect(getFirstMissingValueFieldBlockId(undefined)).toBeUndefined();
+        expect(getFirstMissingValueFieldBlockId({ type: 'Line' })).toBeUndefined();
     });
 });

@@ -23,7 +23,7 @@ import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 import { handlePanelEdit } from '@/hooks/useVideoSync';
-import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage, getTimeFieldValidationMessage } from './validation';
+import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage, getTimeFieldValidationMessage, getValueFieldValidationMessage } from './validation';
 import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import RangeChips from '../RangeChips';
 
@@ -82,6 +82,9 @@ const CreatePanel = ({
             return;
         }
         if (!validateTimeField(sPanelOption)) {
+            return;
+        }
+        if (!validateValueField(sPanelOption)) {
             return;
         }
 
@@ -179,6 +182,9 @@ const CreatePanel = ({
             return;
         }
         if (!validateTimeField(sPanelOption)) {
+            return;
+        }
+        if (!validateValueField(sPanelOption)) {
             return;
         }
 
@@ -292,6 +298,17 @@ const CreatePanel = ({
         return false;
     };
 
+    /**
+     * The same refusal for the Value field: a block whose table offers nothing to plot builds a
+     * query with an empty select item, so it is stopped here rather than saved and left to fail.
+     */
+    const validateValueField = (aPanelInfo: any) => {
+        const sMessage = getValueFieldValidationMessage(aPanelInfo);
+        if (!sMessage) return true;
+        Toast.error(sMessage);
+        return false;
+    };
+
     useEffect(() => {
         if (!sMissingTagBlockId) return;
         if (getFirstMissingTagSelectionBlockId(sPanelOption) !== sMissingTagBlockId) {
@@ -308,6 +325,9 @@ const CreatePanel = ({
             return;
         }
         if (!validateTimeField(sPanelOption)) {
+            return;
+        }
+        if (!validateValueField(sPanelOption)) {
             return;
         }
 
