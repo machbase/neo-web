@@ -26,6 +26,8 @@ export const EditTimer = () => {
 
     /** create timer */
     const createTimer = async () => {
+        // `timer.add` now rejects a duplicate name and a command whose tql file is missing — both
+        // arrive as plain `reason` text, and nothing is stored when they do.
         const sRes = await genTimer(sCreatePayload, sCreateName);
         if (sRes?.success) {
             setResErrMessage(undefined);
@@ -42,8 +44,10 @@ export const EditTimer = () => {
                         return {
                             ...aTarget,
                             name: `TIMER: create`,
-                            code: { ...sCreatePayload, name: sCreateName },
-                            savedCode: { ...sCreatePayload, name: sCreateName },
+                            // `timer.add` answers with the created id — carry it so anything that
+                            // later addresses this timer has an id rather than only a name.
+                            code: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
+                            savedCode: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
                         };
                     }
                     return aBoard;
