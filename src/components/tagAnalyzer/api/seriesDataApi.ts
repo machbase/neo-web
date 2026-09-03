@@ -1,7 +1,8 @@
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
+import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
+import { qualifyThreePart } from '@/utils/qualifiedTableName';
 import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
-import { isMissingStatColumnError } from '@/utils/tagStatColumns';
 import { parseFiniteNumber } from '../objectGuards';
 import {
     findRollupTableEntry,
@@ -37,6 +38,7 @@ import {
     buildCalculatedSeriesSql,
     buildRawSeriesSql,
     buildSeriesFullRangeSql,
+    usesTagStatViewForFullRange,
     RAW_SERIES_ROW_LIMIT,
     type SeriesFullRangeSqlQueries,
     type RollupMode,
@@ -442,12 +444,29 @@ function resolveCalculatedRollupMode(
     return undefined;
 }
 
+/**
+ * A bare table name, given the owner *and database* a bare name would have resolved against.
+ *
+ * The owner half is old; the database half is not. `SYS.SENSOR` means "SENSOR in whichever database
+ * this session is in", which was unambiguous until v8.7 allowed several — after which the same
+ * two-part name reads a different table depending on the session, without an error to say so.
+ * Everything upstream now carries three parts (`fetchTableNames`, `resolveStoredTableName`), so this
+ * is a backstop for a name that slipped through rather than the normal path; it should still say
+ * what it means rather than lean on the session a second time.
+ *
+ * An already-qualified name is returned untouched — prefixing it would give
+ * `MACHBASEDB.SYS.FACTORY_A.SYS.SENSOR`, which resolves to nothing.
+ */
 function addAdminSchemaIfNeeded(
     tableName: string,
 ): string {
     return tableName.includes('.')
         ? tableName
-        : `${ADMIN_ID.toUpperCase()}.${tableName}`;
+        : qualifyThreePart(
+              getCurrentDatabaseName(),
+              ADMIN_ID.toUpperCase(),
+              tableName,
+          );
 }
 
 const RANGE_REQUEST_FAILED_MESSAGE: string =
@@ -518,12 +537,16 @@ async function fetchSeriesFullRange(
                     fetchSingleSeriesRange(
                         usesNumericTime,
                         sqlQueries,
-                        () => buildSeriesFullRangeSql(
-                            tableName,
-                            series.sourceTagName,
-                            columns,
-                            { forceSourceTable: true },
-                        ),
+                        // Only the view has something to fall back *from*. Where the scan was
+                        // already chosen, a retry would repeat the same read verbatim.
+                        usesTagStatViewForFullRange(tableName, columns)
+                            ? () => buildSeriesFullRangeSql(
+                                  tableName,
+                                  series.sourceTagName,
+                                  columns,
+                                  { forceSourceTable: true },
+                              )
+                            : undefined,
                     ).catch((error: unknown) =>
                         reportSeriesError(series, error)),
                 );
@@ -546,13 +569,36 @@ async function fetchSeriesFullRange(
 }
 
 /**
+ * Is this the view answering the question, rather than failing to be asked?
+ *
+ * "Data does not exist" and a zero-width range are answers — the tag is empty, or it holds a single
+ * instant — and re-asking them over a scan costs a full table read to arrive at the same place. A
+ * malformed response is not worth a second round trip either. Everything else means the *view* was
+ * unusable, whatever the engine called it, and the source table can still answer.
+ */
+function isSeriesRangeAnswer(error: unknown): boolean {
+    const message: string = error instanceof Error
+        ? error.message
+        : String(error ?? '');
+    return message === 'Data does not exist.' ||
+        message === 'Data range has zero width.' ||
+        message === MALFORMED_RANGE_MESSAGE;
+}
+
+/**
  * A series' full extent, with one retry against the source table.
  *
- * The statistics view is the fast path and the retry is what makes it safe to take: a server older
- * than the base distance stat columns rejects MIN_DISTANCE with `MACHCLI-ERR-2056`, and scanning the
- * column answers the same question, just slower. Only that error retries — "Data does not exist" and
- * a zero-width range are answers, not failures, and re-asking them over a scan would cost a full
- * table read to arrive at the same place.
+ * The retry used to fire on `MACHCLI-ERR-2056` alone — the one way the view was known to fail, on a
+ * server older than the base distance stat columns. Measured on v8.7 there is a second way, and it
+ * has a different code: a three-part name into another database answers `ERR-3031, Protocol error`
+ * for an active database and `ERR-2025` for a mounted one. Enumerating codes is what let that
+ * through, so the rule is inverted — anything that is not an *answer* retries once against the
+ * source table, which is measured to work across databases.
+ *
+ * This is not a second safety net over `usesTagStatViewForFullRange` — that one decides which query
+ * to send, this one decides what to do when the sent query fails, and the retry it governs already
+ * existed. What changed is only how it recognises a failure: by what an answer looks like, which is
+ * a closed set this module owns, rather than by a list of engine error codes, which is not.
  */
 async function fetchSingleSeriesRange(
     usesNumericTime: boolean,
@@ -562,7 +608,7 @@ async function fetchSingleSeriesRange(
     try {
         return await resolveSeriesRange(usesNumericTime, sqlQueries);
     } catch (error: unknown) {
-        if (!buildSourceTableQueries || !isMissingStatColumnError(error instanceof Error ? error.message : error)) {
+        if (!buildSourceTableQueries || isSeriesRangeAnswer(error)) {
             throw error;
         }
         return resolveSeriesRange(usesNumericTime, buildSourceTableQueries());

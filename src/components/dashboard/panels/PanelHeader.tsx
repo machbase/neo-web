@@ -27,6 +27,7 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
 import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/integration';
+import { qualifyTableName } from '@/utils/qualifiedTableName';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
@@ -100,7 +101,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             .filter((aTag: any) => aTag.type === 'tag' && !aTag.useCustom && aTag.isVisible && !aTag.customFullTyping.use)
             .map((aPanel: any) => ({
                 sourceTagName: aPanel.tag,
-                table: aPanel.table,
+                // The block keeps `table` and `userName` apart and joins them at query time
+                // (`getBlockTableName`); handing the raw field over skipped that, so a board saved
+                // before v8.7 arrived in the Tag Analyzer as a bare `SENSOR` and resolved against
+                // whichever database the session happened to be in.
+                table: qualifyTableName(aPanel.userName, aPanel.table),
                 alias: aPanel.alias ?? '',
                 sourceColumns: createTagAnalyzerColumnInfoFromDashboardBlock(aPanel),
             }));

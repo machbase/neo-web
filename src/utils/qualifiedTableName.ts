@@ -133,3 +133,80 @@ export const isMountedTableName = (aTable: string | undefined | null): boolean =
     // sent a mounted table to `V$<TABLE>_STAT`, which does not exist there (ERR-2025).
     return sParts[0].trim().toUpperCase() !== getCurrentDatabaseName().trim().toUpperCase();
 };
+
+/**
+ * May `V$<TABLE>_STAT` be read for this table?
+ *
+ * The tree used to ask `isMountedTableName` here, on the reasoning that a mounted backup is the
+ * only database without the view. Measured against a v8.7 server from a MACHBASEDB session, that
+ * is not what the engine does — the view is unreachable through *any* three-part name, and the two
+ * cases fail differently:
+ *
+ *   select * from SYS.V$DEMO_TAG_STAT            -> 2 rows
+ *   select * from FACTORY_A.SYS.V$DEMO_TAG_STAT  -> MACHCLI-ERR-3031, Protocol error
+ *   select * from EEEEE.SYS.V$DEMO_TAG_STAT      -> MACHCLI-ERR-2025, Table ... does not exist
+ *
+ * FACTORY_A is an ordinary active database and `V$TABLES` lists the view in it, so its absence is
+ * not a catalogue fact the way the mounted one's is; the name simply does not resolve across
+ * databases. Either way the caller must scan the source table instead, so both answer `false`
+ * here and the mounted test is absorbed rather than kept alongside.
+ *
+ * A name with fewer than three parts belongs to the session's own database, which is exactly where
+ * the view does work — that is the fast path, and it stays the default for every pre-v8.7 name.
+ */
+export const isStatViewReadable = (aTable: string | undefined | null): boolean => {
+    const sParts = String(aTable ?? '').split('.');
+    if (sParts.length < 3) return true;
+    return sParts[0].trim().toUpperCase() === getCurrentDatabaseName().trim().toUpperCase();
+};
+
+/**
+ * What a stored table name refers to, once the current table list is known.
+ *
+ * A `.taz` board, a dashboard hand-off and the table list are written at different times and do not
+ * agree on how much of a name to carry: files saved before v8.7 hold `SENSOR` or `SYS.SENSOR`,
+ * while every row of the list is `database.owner.table` now. Comparing them as strings — which is
+ * what the series editor did — fails on that difference alone, and the editor's response was to
+ * silently swap in the first table of the list, so a board opened after the upgrade charted
+ * somebody else's data under its own title.
+ *
+ * `matchesQualifiedName` is the same tail rule the engine accepts, so a short stored name is
+ * *promoted* to the full one rather than discarded. What is new here is the ambiguity that v8.7
+ * introduces: `SYS.ATABLE` now matches a row in three databases at once. The session's own database
+ * breaks that tie, because a short name is exactly what the engine would have resolved there.
+ *
+ * `missing` and `ambiguous` are reported rather than repaired. There is no name that means what the
+ * board intended, and choosing one anyway is the failure this function exists to remove.
+ */
+export type ResolvedTableName =
+    /** The stored name is already a row of the list. */
+    | { status: 'exact'; name: string }
+    /** A shorter stored name resolved to exactly one row — `name` is the qualified form. */
+    | { status: 'promoted'; name: string }
+    /** Several rows match and none is in the session database. `name` is the stored name, unchanged. */
+    | { status: 'ambiguous'; name: string; candidates: string[] }
+    /** Nothing in the list matches. `name` is the stored name, unchanged. */
+    | { status: 'missing'; name: string };
+
+export const resolveStoredTableName = (
+    aStored: string | undefined | null,
+    aAvailable: readonly string[]
+): ResolvedTableName => {
+    const sStored = String(aStored ?? '').trim();
+    if (!sStored) return { status: 'missing', name: '' };
+    if (aAvailable.includes(sStored)) return { status: 'exact', name: sStored };
+
+    const sCandidates = aAvailable.filter((aName) => matchesQualifiedName(aName, sStored));
+    if (sCandidates.length === 0) return { status: 'missing', name: sStored };
+    if (sCandidates.length === 1) return { status: 'promoted', name: sCandidates[0] };
+
+    // The engine resolves a short name against the database the session is in, so that is the
+    // reading the board had when it was saved — not a guess.
+    const sCurrentDb = getCurrentDatabaseName().trim().toUpperCase();
+    const sInCurrent = sCandidates.filter((aName) => {
+        const sParts = aName.split('.');
+        return sParts.length >= 3 && sParts[0].trim().toUpperCase() === sCurrentDb;
+    });
+    if (sInCurrent.length === 1) return { status: 'promoted', name: sInCurrent[0] };
+    return { status: 'ambiguous', name: sStored, candidates: sCandidates };
+};

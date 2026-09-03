@@ -12,16 +12,31 @@ const rangeSql = (aTable: string, aColumns = timeColumns) =>
     buildSeriesFullRangeSql(parseSqlIdentifierPath(aTable), 'TAG_01', aColumns).join('\n');
 
 /**
- * Which database a table lives in is a catalogue fact, not a dot count.
+ * The statistics view is the session database's fast path, and only its own.
  *
- * It used to be both: only a mounted backup's name was ever qualified to three parts, so
- * `parts.length > 2` meant "mounted, therefore no V$<TABLE>_STAT view, therefore scan". Since
- * v8.7 every name carries three parts, so that test became universally true and the statistics
- * read went unreachable — every full-range query turned into a column scan. Measured on a
- * 54,372-row tag table: 0.886 ms through the stat view against 10.17 ms scanning, and the gap
- * grows with row count.
+ * Two corrections live in this file, in the order they were found.
+ *
+ * The first: which database a table lives in is a catalogue fact, not a dot count. Only a mounted
+ * backup's name was ever qualified to three parts, so `parts.length > 2` meant "mounted, therefore
+ * no view, therefore scan" — and since v8.7 qualifies every name that test became universally true,
+ * sending every full-range query to a column scan. Measured on a 54,372-row tag table: 0.886 ms
+ * through the view against 10.17 ms scanning, and the gap grows with row count. So the fast path is
+ * worth keeping where it works.
+ *
+ * The second: it works in fewer places than the catalogue suggests. Measured against a v8.7 server
+ * from a MACHBASEDB session, a three-part name does not reach the view in any *other* database —
+ *
+ *   select * from SYS.V$DEMO_TAG_STAT            -> 2 rows
+ *   select * from FACTORY_A.SYS.V$DEMO_TAG_STAT  -> MACHCLI-ERR-3031, Protocol error
+ *   select * from EEEEE.SYS.V$DEMO_TAG_STAT      -> MACHCLI-ERR-2025 (mounted)
+ *
+ * — and FACTORY_A is an ordinary active database whose copy of the view `V$TABLES` does list. This
+ * file previously asserted the opposite for the active case, on a reading of the catalogue rather
+ * than a measurement. It is not a slow query when it is wrong: the error propagates and the panel
+ * never opens, so the range read now stays on the source table for every database but the
+ * session's own.
  */
-describe('buildSeriesFullRangeSql picks the statistics view by catalogue, not by dot count', () => {
+describe('buildSeriesFullRangeSql reads the statistics view only in the session database', () => {
     beforeEach(() => {
         resetCurrentDatabase();
         setDatabases([
@@ -38,15 +53,21 @@ describe('buildSeriesFullRangeSql picks the statistics view by catalogue, not by
         expect(rangeSql('MACHBASEDB.SYS.TEST')).toContain('FROM MACHBASEDB.SYS.V$TEST_STAT');
     });
 
-    test('a second active database reads its own copy of the view', () => {
-        // Naming the view in the session's database instead would read an empty one.
-        expect(rangeSql('FACTORY_A.SYS.ATABLE')).toContain('FROM FACTORY_A.SYS.V$ATABLE_STAT');
+    test('a second active database is scanned — its view is unreachable by name', () => {
+        // Measured: FACTORY_A.SYS.V$ATABLE_STAT answers ERR-3031 from a MACHBASEDB session, even
+        // though V$TABLES lists the view in FACTORY_A. The scan is measured to work there.
+        const sSql = rangeSql('FACTORY_A.SYS.ATABLE');
+        expect(sSql).toContain('FROM FACTORY_A.SYS.ATABLE');
+        expect(sSql).not.toContain('V$');
     });
 
     test('the database is never mistaken for the owner', () => {
-        // Reading `parts[0]` as the owner produced `FACTORY_A.V$ATABLE_STAT`, which the engine
-        // rejects with `ERR-2080, User (FACTORY_A) does not exist`.
-        expect(rangeSql('FACTORY_A.SYS.ATABLE')).not.toContain('FROM FACTORY_A.V$');
+        // Reading `parts[0]` as the owner produced `MACHBASEDB.V$ATABLE_STAT`, which the engine
+        // rejects with `ERR-2080, User (MACHBASEDB) does not exist`. Asked of the session database,
+        // because that is now the only one that takes the view path at all.
+        const sSql = rangeSql('MACHBASEDB.SYS.ATABLE');
+        expect(sSql).toContain('FROM MACHBASEDB.SYS.V$ATABLE_STAT');
+        expect(sSql).not.toContain('FROM MACHBASEDB.V$');
     });
 
     test('a mounted database is scanned, because it has no statistics view', () => {
@@ -65,8 +86,8 @@ describe('buildSeriesFullRangeSql picks the statistics view by catalogue, not by
     // view publishes in place of MIN_TIME / MAX_TIME. Its name is irrelevant: a table has exactly
     // one base column and the view describes that one, whatever it is called.
     test('a base distance column reads the statistics view under its distance columns', () => {
-        const sSql = rangeSql('FACTORY_A.SYS.ATABLE', baseDistanceColumns);
-        expect(sSql).toContain('FROM FACTORY_A.SYS.V$ATABLE_STAT');
+        const sSql = rangeSql('MACHBASEDB.SYS.ATABLE', baseDistanceColumns);
+        expect(sSql).toContain('FROM MACHBASEDB.SYS.V$ATABLE_STAT');
         expect(sSql).toContain('min(MIN_DISTANCE) as min_tm');
         expect(sSql).toContain('max(MAX_DISTANCE) as max_tm');
         expect(sSql).not.toContain('MIN_TIME');
@@ -81,6 +102,12 @@ describe('buildSeriesFullRangeSql picks the statistics view by catalogue, not by
         expect(sSql).toContain('FROM FACTORY_A.SYS.ATABLE');
         expect(sSql).not.toContain('V$');
         expect(sSql).toContain('ORDER BY');
+    });
+
+    test('a base distance column in another database is scanned like any other', () => {
+        const sSql = rangeSql('FACTORY_A.SYS.ATABLE', baseDistanceColumns);
+        expect(sSql).toContain('FROM FACTORY_A.SYS.ATABLE');
+        expect(sSql).not.toContain('V$');
     });
 
     // A mounted backup has no statistics view at all, distance base or not.

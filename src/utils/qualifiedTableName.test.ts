@@ -1,4 +1,4 @@
-import { isMountedTableName, isQualifiedTableName, matchesQualifiedName, qualifySiblingObject, qualifyTableName, qualifyThreePart, splitQualifiedTableName } from './qualifiedTableName';
+import { isMountedTableName, isQualifiedTableName, isStatViewReadable, matchesQualifiedName, qualifySiblingObject, qualifyTableName, qualifyThreePart, resolveStoredTableName, splitQualifiedTableName } from './qualifiedTableName';
 import { resetCurrentDatabase, setCurrentDatabase, setDatabases } from './currentDatabaseState';
 
 describe('qualifyTableName', () => {
@@ -214,5 +214,129 @@ describe('splitQualifiedTableName — what a picker shows', () => {
 
     test('no name at all is not a crash', () => {
         expect(splitQualifiedTableName(undefined)).toEqual({ label: '', description: '' });
+    });
+});
+
+/**
+ * The catalogue a v8.7 test server actually reports, so the ambiguity below is the real one:
+ * `ATABLE` exists in all three databases and `DEMO_TAG` in two.
+ */
+const withCatalogue = () => {
+    resetCurrentDatabase();
+    setDatabases([
+        { id: '1', name: 'MACHBASEDB', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: true },
+        { id: '2', name: 'FACTORY_A', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: false },
+        { id: '1073741827', name: 'EEEEE', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
+    ]);
+    setCurrentDatabase({ id: '1', name: 'MACHBASEDB' });
+};
+
+const TABLE_LIST = [
+    'MACHBASEDB.SYS.ATABLE',
+    'MACHBASEDB.SYS.DEMO_TAG',
+    'MACHBASEDB.KEV.KEV_TAG',
+    'FACTORY_A.SYS.ATABLE',
+    'FACTORY_A.SYS.DEMO_TAG',
+    'EEEEE.SYS.ATABLE',
+];
+
+describe('isStatViewReadable', () => {
+    beforeEach(withCatalogue);
+    afterEach(() => resetCurrentDatabase());
+
+    test('the session database can read its own statistics view', () => {
+        expect(isStatViewReadable('MACHBASEDB.SYS.DEMO_TAG')).toBe(true);
+    });
+
+    test('another active database cannot, however ordinary it is', () => {
+        // Measured: FACTORY_A.SYS.V$DEMO_TAG_STAT -> MACHCLI-ERR-3031, Protocol error, even though
+        // V$TABLES lists the view in FACTORY_A. This is the case `isMountedTableName` let through.
+        expect(isStatViewReadable('FACTORY_A.SYS.DEMO_TAG')).toBe(false);
+    });
+
+    test('a mounted backup cannot either — ERR-2025, and it is absorbed by the same rule', () => {
+        expect(isStatViewReadable('EEEEE.SYS.ATABLE')).toBe(false);
+    });
+
+    test('a short name means the session database, which is where the view works', () => {
+        expect(isStatViewReadable('SYS.DEMO_TAG')).toBe(true);
+        expect(isStatViewReadable('DEMO_TAG')).toBe(true);
+    });
+
+    test('the comparison ignores case and whitespace', () => {
+        expect(isStatViewReadable('  machbasedb.SYS.DEMO_TAG')).toBe(true);
+    });
+});
+
+describe('resolveStoredTableName', () => {
+    beforeEach(withCatalogue);
+    afterEach(() => resetCurrentDatabase());
+
+    test('a name already in the list is used as it stands', () => {
+        expect(resolveStoredTableName('FACTORY_A.SYS.DEMO_TAG', TABLE_LIST)).toEqual({
+            status: 'exact',
+            name: 'FACTORY_A.SYS.DEMO_TAG',
+        });
+    });
+
+    test('a name that matches exactly one row is promoted to the qualified form', () => {
+        // A .taz written before v8.7 holds `KEV.KEV_TAG`; only one database has it.
+        expect(resolveStoredTableName('KEV.KEV_TAG', TABLE_LIST)).toEqual({
+            status: 'promoted',
+            name: 'MACHBASEDB.KEV.KEV_TAG',
+        });
+    });
+
+    test('an ambiguous short name resolves to the session database, as the engine would', () => {
+        expect(resolveStoredTableName('SYS.DEMO_TAG', TABLE_LIST)).toEqual({
+            status: 'promoted',
+            name: 'MACHBASEDB.SYS.DEMO_TAG',
+        });
+    });
+
+    test('a bare legacy name resolves the same way', () => {
+        expect(resolveStoredTableName('DEMO_TAG', TABLE_LIST)).toEqual({
+            status: 'promoted',
+            name: 'MACHBASEDB.SYS.DEMO_TAG',
+        });
+    });
+
+    test('a name matching several databases and none of them the session one is reported, not guessed', () => {
+        resetCurrentDatabase();
+        setDatabases([
+            { id: '2', name: 'FACTORY_A', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: false },
+            { id: '1073741827', name: 'EEEEE', kind: 'MOUNTED', accessMode: 'READ_ONLY', isDefault: false },
+        ]);
+        setCurrentDatabase({ id: '2', name: 'FACTORY_B' });
+        expect(resolveStoredTableName('SYS.ATABLE', TABLE_LIST)).toEqual({
+            status: 'ambiguous',
+            name: 'SYS.ATABLE',
+            candidates: ['MACHBASEDB.SYS.ATABLE', 'FACTORY_A.SYS.ATABLE', 'EEEEE.SYS.ATABLE'],
+        });
+    });
+
+    test('a name in no database keeps what the board said', () => {
+        // The regression: the editor replaced this with the first row of the list and charted it.
+        expect(resolveStoredTableName('GONE.SYS.SENSOR', TABLE_LIST)).toEqual({
+            status: 'missing',
+            name: 'GONE.SYS.SENSOR',
+        });
+    });
+
+    test('no stored name at all is missing rather than a match', () => {
+        expect(resolveStoredTableName('', TABLE_LIST)).toEqual({ status: 'missing', name: '' });
+        expect(resolveStoredTableName(undefined, TABLE_LIST)).toEqual({ status: 'missing', name: '' });
+    });
+
+    test('a tail match stops at a segment boundary', () => {
+        // Without the dot, `TAG` would also match `KEV_TAG`.
+        expect(resolveStoredTableName('TAG', TABLE_LIST)).toEqual({ status: 'missing', name: 'TAG' });
+    });
+
+    test('an empty list resolves nothing rather than inventing a match', () => {
+        expect(resolveStoredTableName('SYS.DEMO_TAG', [])).toEqual({
+            status: 'missing',
+            name: 'SYS.DEMO_TAG',
+        });
     });
 });

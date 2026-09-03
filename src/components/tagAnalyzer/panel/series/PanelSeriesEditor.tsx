@@ -35,7 +35,7 @@ import {
     isTagAnalyzerJsonValue,
 } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
-import { splitQualifiedTableName } from '@/utils/qualifiedTableName';
+import { resolveStoredTableName, splitQualifiedTableName } from '@/utils/qualifiedTableName';
 import {
     tableMetadataApi,
     type TableColumn,
@@ -756,17 +756,45 @@ function SourceSelector({
         [loadColumns, onSourceChange],
     );
 
+    /**
+     * Reconcile the series' stored table with the list the server just returned.
+     *
+     * This used to be a string comparison against the list, and anything that failed it was
+     * replaced by `availableSourceTableNames[0]`. The three names a board can hold —
+     * `SENSOR` from before v8.7, `SYS.SENSOR`, and the `FACTORY_A.SYS.SENSOR` the explorer hands
+     * over — do not compare equal to each other, so opening a saved board silently repointed its
+     * series at an unrelated table and charted it under the board's own title.
+     *
+     * `resolveStoredTableName` applies the tail rule the engine itself accepts, so the short forms
+     * are *promoted* to the qualified name rather than discarded. Only a genuinely new series
+     * (no table at all) still takes the first entry; a name that resolves to nothing, or to several
+     * tables in different databases, keeps what the board said and says so in the footer. There is
+     * no name that means what the board intended, and picking one anyway is the bug being removed.
+     */
     useEffect(() => {
-        const sFallbackTable = availableSourceTableNames[0] ?? '';
-        const sShouldPickFallback =
-            !selectedTable ||
-            (availableSourceTableNames.length > 0 &&
-                !availableSourceTableNames.includes(selectedTable));
+        if (availableSourceTableNames.length === 0) return;
 
-        if (sShouldPickFallback && sFallbackTable !== selectedTable) {
-            changeTable(sFallbackTable);
+        const sResolved = resolveStoredTableName(
+            selectedTable,
+            availableSourceTableNames,
+        );
+        if (sResolved.status === 'exact') return;
+        if (sResolved.status === 'promoted') {
+            if (sResolved.name !== selectedTable) changeTable(sResolved.name);
+            return;
         }
-    }, [availableSourceTableNames, changeTable, selectedTable]);
+        if (!selectedTable) {
+            // A new series has nothing to preserve. The list leads with the session database
+            // (see `sortTableNames`), so this is the same default as before.
+            changeTable(availableSourceTableNames[0]);
+            return;
+        }
+        onError(
+            sResolved.status === 'ambiguous'
+                ? `${selectedTable} matches ${sResolved.candidates.length} tables (${sResolved.candidates.join(', ')}). Pick one so the series names its database.`
+                : `${selectedTable} is not in this server's tag table list. The series still points at it.`,
+        );
+    }, [availableSourceTableNames, changeTable, onError, selectedTable]);
 
     function patchColumnSelection(
         patch: Partial<PanelSeriesSourceColumns>,

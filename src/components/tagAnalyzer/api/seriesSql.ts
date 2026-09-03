@@ -3,7 +3,7 @@ import {
     toSqlValueExpressionForAggregator,
 } from '@/utils/dashboardJsonValue';
 import { ADMIN_ID } from '@/utils/constants';
-import { isMountedTableName, qualifySiblingObject, qualifyTableName } from '@/utils/qualifiedTableName';
+import { isStatViewReadable, qualifySiblingObject, qualifyTableName } from '@/utils/qualifiedTableName';
 import { buildTagStatExtentSelect } from '@/utils/tagStatColumns';
 import {
     buildDateBinTimeExpression,
@@ -303,6 +303,37 @@ export type SeriesFullRangeSqlQueries =
     | [startSql: string, endSql: string];
 
 /**
+ * Can this series' extent come from `V$<TABLE>_STAT` rather than a scan?
+ *
+ * Two independent conditions, and both were once written as something narrower:
+ *
+ *  - **The database.** The test used to be `isMountedTableName`, because a mounted backup was the
+ *    only database known to lack the view. Measured on a v8.7 server from a MACHBASEDB session, a
+ *    three-part name does not reach the view in *any* other database: an ordinary active
+ *    `FACTORY_A.SYS.V$DEMO_TAG_STAT` answers `MACHCLI-ERR-3031, Protocol error` even though
+ *    `V$TABLES` lists the view in FACTORY_A, and the mounted one answers `ERR-2025`. So the
+ *    question is whether the table is in the session's own database — `isStatViewReadable` — and
+ *    the mounted case falls out of it. Getting this wrong is not a slow query but a thrown error:
+ *    the panel never resolves a range and does not open.
+ *
+ *  - **The time column.** The view describes the table's BASETIME column, so a datetime base that
+ *    the table calls something other than `TIME` cannot be read through it. A numeric (distance)
+ *    base is exempt: the view publishes MIN_DISTANCE / MAX_DISTANCE for it whatever the column is
+ *    named, since a table has exactly one BASE DISTANCE column to describe.
+ *
+ * Worth keeping the fast path for where it does apply — measured on a 54k-row tag table, the view
+ * answers in 0.9 ms against 10.2 ms for the scan, and the gap widens with row count.
+ */
+export function usesTagStatViewForFullRange(
+    tableName: string,
+    columns: ValidatedPanelSeriesSourceColumns,
+): boolean {
+    if (!isStatViewReadable(tableName)) return false;
+    return isNumericBaseTimeSourceColumns(columns) ||
+        columns.time.toUpperCase() === 'TIME';
+}
+
+/**
  * The SQL for a series' full data extent.
  *
  * `forceSourceTable` gives the caller the scanning form of the same question, for the one case the
@@ -316,20 +347,9 @@ export function buildSeriesFullRangeSql(
     options: { forceSourceTable?: boolean } = {},
 ): SeriesFullRangeSqlQueries {
     const usesNumericTime: boolean = isNumericBaseTimeSourceColumns(columns);
-    // Whether a table lives in a mounted backup is a catalogue fact, not a dot count. It used
-    // to be both — only a mounted name was ever qualified that far — but since v8.7 every name
-    // carries all three parts, so counting them sent *every* table down the scanning branch and
-    // left the statistics view unreachable. Measured on a 54k-row tag table: the stat view
-    // answers in 0.9 ms where the scan takes 10.2 ms, and the gap widens with row count.
-    //
-    // A numeric (distance) base reads the view too, through MIN_DISTANCE / MAX_DISTANCE — the
-    // columns the view publishes in place of MIN_TIME / MAX_TIME when the base column measures
-    // distance. Its time *column name* is not part of the test the way a datetime base's is: the
-    // view has exactly one BASE DISTANCE column to describe, whatever the table calls it.
     const usesSourceTable: boolean =
         Boolean(options.forceSourceTable) ||
-        isMountedTableName(tableName) ||
-        (!usesNumericTime && columns.time.toUpperCase() !== 'TIME');
+        !usesTagStatViewForFullRange(tableName, columns);
     let targetTableName: string;
     if (usesSourceTable) {
         targetTableName = qualifyTableName(ADMIN_ID, tableName);

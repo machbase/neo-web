@@ -150,6 +150,72 @@ describe('PanelSeriesEditor', () => {
         expect(screen.getByRole('option')).toHaveTextContent('FACTORY_A · SYS');
     });
 
+    it('offers tables from every database, mounted backups included', async () => {
+        // The picker used to be fed by `GET /api/tables`, which measured against a v8.7 server
+        // returns only the session database — so another database's tables, and a mounted backup's,
+        // were not merely hard to tell apart, they were absent. `fetchTableNames` now reads the same
+        // catalogue query the dashboard uses; this pins that the whole list reaches the field and
+        // that picking a row keeps the database it names.
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
+            'MACHBASEDB.SYS.ATABLE',
+            'FACTORY_A.SYS.ATABLE',
+            'EEEEE.SYS.ATABLE',
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([]);
+
+        render(
+            <PanelSeriesEditor
+                seriesList={[]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={jest.fn()}
+                onSeriesListChange={jest.fn()}
+            />,
+        );
+
+        const table = await screen.findByRole('combobox', { name: /^Table/ });
+        // The session database leads the list, so a new series still starts where it used to.
+        await waitFor(() =>
+            expect(screen.getByText('Table').closest('label')).toHaveTextContent('MACHBASEDB · SYS'),
+        );
+
+        fireEvent.keyDown(table, { key: 'ArrowDown' });
+        expect(screen.getAllByRole('option')).toHaveLength(3);
+
+        fireEvent.change(table, { target: { value: 'EEEEE' } });
+        fireEvent.click(screen.getByRole('option'));
+
+        await waitFor(() =>
+            expect(screen.getByText('Table').closest('label')).toHaveTextContent('EEEEE · SYS'),
+        );
+    });
+
+    it('keeps the picked table when the list cannot account for it', async () => {
+        // The behaviour replaced: anything the list did not contain verbatim was swapped for
+        // `availableSourceTableNames[0]` without a word, so the next tag added went to a table the
+        // user never chose. An empty list is the reachable form of that here — nothing to swap to,
+        // and nothing should be swapped.
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([]);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([]);
+        const onSeriesListChange = jest.fn();
+
+        render(
+            <PanelSeriesEditor
+                seriesList={[SERIES]}
+                rollupTableList={{}}
+                lockedAxisKind="time"
+                onFooterMessageChange={jest.fn()}
+                onSeriesListChange={onSeriesListChange}
+            />,
+        );
+
+        await waitFor(() =>
+            expect(tableMetadataApi.fetchTableNames).toHaveBeenCalledTimes(1),
+        );
+        expect(await screen.findByRole('combobox', { name: /^Table/ })).toHaveValue('');
+        expect(onSeriesListChange).not.toHaveBeenCalled();
+    });
+
     it('does not add the same source series twice', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
             'TAG',
