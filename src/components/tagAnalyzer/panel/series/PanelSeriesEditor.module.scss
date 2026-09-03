@@ -34,10 +34,24 @@ $label-gap: 6px;
     text-align: right;
 }
 
-.fieldGrid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+.fieldGroups {
+    display: flex;
+    flex-direction: column;
     gap: $section-gap;
+}
+
+.sourceFieldGrid,
+.columnFieldGrid {
+    display: grid;
+    gap: $section-gap;
+}
+
+.sourceFieldGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.columnFieldGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .fieldGridFull {
@@ -55,28 +69,9 @@ $label-gap: 6px;
 }
 
 .fieldLabelTop {
-    display: flex;
-    align-items: baseline;
-    gap: $control-gap;
+    display: block;
     color: #a3a3a3;
     @include text.control(500);
-}
-
-/**
- * The database · owner of the selected table, on the label line.
- *
- * It sits here rather than under the input so the cell keeps its height: the field is one line
- * tall in every column of the grid, and only this one would have grown.
- */
-.fieldLabelNote {
-    margin-left: auto;
-    min-width: 0;
-    font-size: 10px;
-    font-weight: 400;
-    color: #8a8a8a;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .columnTitleText {

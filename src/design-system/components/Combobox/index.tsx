@@ -304,6 +304,7 @@ const ComboboxOption = ({ option, index, className, children }: ComboboxOptionPr
     return (
         <li
             {...props}
+            data-testid={option.testId}
             title={option.tooltip ?? undefined}
             className={`${styles['combobox__option']} ${className ?? ''} ${isSelected ? styles['combobox__option--selected'] : ''} ${
                 isFocused ? styles['combobox__option--focused'] : ''

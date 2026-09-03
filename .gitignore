@@ -36,7 +36,17 @@ learn/
 **/.example/
 src/components/tagAnalyzer/ARCHITECTURE.md
 coverage/cobertura-coverage.xml
-/test-results/
+
+# Tests are maintained in a separate repository
+*.test.*
+*.spec.*
+/__mocks__/
+/playwright_test/
+/playwright.config.ts
+/setupTests.ts
+/test_config/
+/test_runner/
+/test-results*/
 /playwright-report/
 /blob-report/
 src/components/tagAnalyzer/DO_NOT_ADD_TESTS.md

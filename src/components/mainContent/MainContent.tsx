@@ -389,7 +389,14 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                             })}
                     </Tabs.List>
                     <Tabs.Actions>
-                        <Button size="icon" variant="ghost" icon={<PlusCircle size={14} />} onClick={addFile} />
+                        <Button
+                            data-testid="new-tab-button"
+                            aria-label="New tab"
+                            size="icon"
+                            variant="ghost"
+                            icon={<PlusCircle size={14} />}
+                            onClick={addFile}
+                        />
                     </Tabs.Actions>
                 </Tabs.Header>
                 <Tabs.Content>
