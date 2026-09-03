@@ -2,7 +2,10 @@ import {
     TAG_INDEPENDENT_PANEL_TYPES,
     TAG_SELECTION_REQUIRED_MESSAGE,
     getFirstMissingTagSelectionBlockId,
+    getFirstMissingTimeFieldBlockId,
     getTagSelectionValidationMessage,
+    getTimeFieldValidationMessage,
+    TIME_FIELD_REQUIRED_MESSAGE,
 } from './validation';
 
 const createTagBlock = (overrides: Record<string, any> = {}) => ({
@@ -86,5 +89,64 @@ describe('getFirstMissingTagSelectionBlockId', () => {
 
     test('TAG_INDEPENDENT_PANEL_TYPES matches the ChartTypeList keys used for exclusion', () => {
         expect(TAG_INDEPENDENT_PANEL_TYPES).toEqual(['Video', 'Tql chart']);
+    });
+});
+
+describe('getFirstMissingTimeFieldBlockId', () => {
+    const block = (over: Record<string, any> = {}) => ({
+        id: 'b1',
+        type: 'transaction',
+        table: 'MACHBASEDB.SYS.ORDERS',
+        time: '',
+        useCustom: true,
+        customFullTyping: { use: false, text: '' },
+        tableInfo: [
+            ['ORDER_ID', 8, 4, 0, 0],
+            ['ITEM', 5, 40, 1, 0],
+            ['QTY', 8, 4, 2, 0],
+        ],
+        ...over,
+    });
+    const panel = (blocks: any[], type = 'Line') => ({ type, blockList: blocks });
+
+    // DEMO_TRANSACTION is exactly this: ORDER_ID / ITEM / QTY, no DATETIME column anywhere.
+    test('a block whose table has no time column is caught', () => {
+        expect(getFirstMissingTimeFieldBlockId(panel([block()]))).toBe('b1');
+        expect(getTimeFieldValidationMessage(panel([block()]))).toBe(TIME_FIELD_REQUIRED_MESSAGE);
+    });
+
+    test('a block that resolved a time column is fine', () => {
+        expect(getFirstMissingTimeFieldBlockId(panel([block({ time: 'TS' })]))).toBeUndefined();
+        expect(getTimeFieldValidationMessage(panel([block({ time: 'TS' })]))).toBeUndefined();
+    });
+
+    test('it names the first offending block, not just any', () => {
+        expect(getFirstMissingTimeFieldBlockId(panel([block({ id: 'ok', time: 'TS' }), block({ id: 'bad' })]))).toBe('bad');
+    });
+
+    // Columns not loaded yet, or a table typed as a `{{variable}}` — the absence proves nothing.
+    test('a block with no loaded columns is not judged', () => {
+        expect(getFirstMissingTimeFieldBlockId(panel([block({ tableInfo: [] })]))).toBeUndefined();
+        expect(getFirstMissingTimeFieldBlockId(panel([block({ tableInfo: undefined })]))).toBeUndefined();
+    });
+
+    test('a block writing its own SQL owns the time predicate itself', () => {
+        expect(getFirstMissingTimeFieldBlockId(panel([block({ customFullTyping: { use: true, text: 'SELECT 1' } })]))).toBeUndefined();
+    });
+
+    // A V$<TABLE>_STAT read is already aggregated and its query carries no time predicate.
+    test('a stat-view block needs no time field', () => {
+        expect(getFirstMissingTimeFieldBlockId(panel([block({ table: 'MACHBASEDB.SYS.V$DEMO_TAG_STAT' })]))).toBeUndefined();
+    });
+
+    test('panels that do not use blocks are skipped', () => {
+        expect(getFirstMissingTimeFieldBlockId(panel([block()], 'Tql chart'))).toBeUndefined();
+        expect(getFirstMissingTimeFieldBlockId(panel([block()], 'Video'))).toBeUndefined();
+    });
+
+    test('a malformed panel is not an error', () => {
+        expect(getFirstMissingTimeFieldBlockId(undefined)).toBeUndefined();
+        expect(getFirstMissingTimeFieldBlockId({})).toBeUndefined();
+        expect(getTimeFieldValidationMessage(undefined)).toBeUndefined();
     });
 });

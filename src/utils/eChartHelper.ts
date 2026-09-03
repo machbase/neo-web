@@ -374,6 +374,42 @@ export const DefaultViewTableOption = {
     isVisible: true,
 };
 
+/**
+ * v8.7 TYPE 8. Shaped like the view option rather than the log one: a transaction table has no
+ * `_ARRIVAL_TIME`, so it takes no DURATION clause (measured: `MACHCLI-ERR-2281`) and its time
+ * field is whichever DATETIME column the table happens to carry, filled in by
+ * `repairDashboardBlockForTableColumns` once the columns are known.
+ *
+ * `useCustom: true` because the type has no tag column to collapse onto — see `TAGLESS_TABLE_TYPES`.
+ */
+export const DefaultTransactionTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'transaction',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: true,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    jsonKey: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
+    isVisible: true,
+};
+
 export const DefaultLogTableOption = {
     id: generateUUID(),
     table: undefined as string | undefined,

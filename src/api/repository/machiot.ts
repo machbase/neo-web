@@ -7,7 +7,7 @@ import { getRollupMatch, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
 import { toSqlValueExpressionForAggregator, jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
-import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createTableScanTimeMinMaxQuery, isTableScanTimeMinMaxTarget } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '@/utils/dbUtils';
 import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE, isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
@@ -448,8 +448,9 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
         let sQuery: string | undefined = undefined;
         // Query log table
         if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
-        // Query view table
-        if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
+        // Query view / transaction table. Neither has a V$<TABLE>_STAT to read an extent from,
+        // so both scan their own time column — see createTableScanTimeMinMaxQuery.
+        if (isTableScanTimeMinMaxTarget(aTargetInfo)) sQuery = createTableScanTimeMinMaxQuery(aTargetInfo);
         if (!sQuery) return;
         sData = await requestMinMaxQuery(sQuery);
     }

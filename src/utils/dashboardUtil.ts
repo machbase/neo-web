@@ -18,6 +18,7 @@ import {
     chartTypeConverter,
     DefaultVariableTableOption,
     DefaultViewTableOption,
+    DefaultTransactionTableOption,
 } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter, DB_STRING_TYPE } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
@@ -194,6 +195,7 @@ export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableTy
     let sDefaultTableOpt = undefined;
     if (aTableType === 'tag') sDefaultTableOpt = DefaultTagTableOption;
     else if (aTableType === 'view') sDefaultTableOpt = DefaultViewTableOption;
+    else if (aTableType === 'transaction') sDefaultTableOpt = DefaultTransactionTableOption;
     else if (aTableType === 'log') sDefaultTableOpt = DefaultLogTableOption;
     else sDefaultTableOpt = DefaultVariableTableOption;
 

@@ -15,7 +15,9 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
-import { TableTypeOrderList, COLUMN_HIDDEN_REGEX } from '@/components/side/DBExplorer/utils';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
+import { isCollapsibleTableType, isTaglessTableType, visibleColumnsForTableType } from '@/utils/dashboardTableKind';
+import { TIME_FIELD_MISSING_MESSAGE } from './validation';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -43,6 +45,7 @@ import { MdOutlineOpenInNew } from 'react-icons/md';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { displayJsonPathLabel, extractJsonPathsFromSamples, isJsonTypeColumn, jsonPathInputToStoredPath, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
+import fieldStyles from './fields.module.scss';
 import { isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
 import { repairDashboardBlockForTableColumns } from '@/utils/dashboardBlockColumns';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
@@ -129,12 +132,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     const sCustomQueryRef = useRef<any>(null);
     const sTagInputRef = useRef<HTMLInputElement | null>(null);
     const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
-    const sIsViewTable = pBlockInfo?.type === 'view';
+    // view and transaction have no tag column, so the Tag field and its picker are hidden — see
+    // TAGLESS_TABLE_TYPES.
+    const sIsTaglessTable = isTaglessTableType(pBlockInfo?.type);
     const sHasMissingTag = !!pShouldFocusTag && (!pBlockInfo?.tag || pBlockInfo.tag.trim() === '');
 
     const sFilteredColumnList = useMemo(() => {
-        if (sSelectedTableType === 'tag') return sColumnList.filter((aItem: any) => !COLUMN_HIDDEN_REGEX.test(aItem[0]));
-        return sColumnList;
+        return visibleColumnsForTableType(sSelectedTableType, sColumnList);
     }, [sColumnList, sSelectedTableType]);
     const sValueFieldColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => !isBaseTimeColumn(aItem) && (isNumberTypeColumn(aItem[1]) || isJsonTypeColumn(aItem[1])));
@@ -142,6 +146,18 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     const sTimeFieldColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isTimeFieldColumn(aItem));
     }, [sFilteredColumnList]);
+    /**
+     * The table's columns are loaded and none of them can serve as a time axis — which the v8.7
+     * view and transaction types made reachable, since neither is guaranteed a DATETIME column.
+     *
+     * `sColumnList` being non-empty is what separates this from a load still in flight. A stat view
+     * has no time predicate to begin with, and a block writing its own SQL owns the question.
+     */
+    const sHasNoTimeField = useMemo(() => {
+        if (sColumnList.length === 0 || sSelectedTableType === 'vir_tag' || pBlockInfo.customFullTyping?.use) return false;
+        return sTimeFieldColumnList.length === 0;
+    }, [sColumnList, sTimeFieldColumnList, sSelectedTableType, pBlockInfo.customFullTyping?.use]);
+
     const sJsonColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
     }, [sFilteredColumnList]);
@@ -350,7 +366,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             : await getTableInfo(sTable?.[6], sTable?.[2]);
         if (sData && sData?.data && sData?.data?.rows && sData?.data?.rows.length > 0) {
             const sTableType = getTableType(sTable[4]);
-            const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
+            const sVisibleRows = visibleColumnsForTableType(sTableType, sData.data.rows);
             const sRepairedBlock = {
                 ...repairDashboardBlockForTableColumns(pBlockInfo, sVisibleRows, sTableType),
                 tableInfo: sData.data.rows,
@@ -694,7 +710,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             return TableTypeOrderList.indexOf(aType) - TableTypeOrderList.indexOf(bType);
         });
 
-        const sTableList = sSortedTableList.map((aItem: any) => tableSelectOptionOf(aItem[3]));
+        const sTableList = sSortedTableList.map((aItem: any) => tableSelectOptionOf(aItem[3], getTableType(aItem[4])));
 
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
             // Every tag table whose database actually has a `V$<TABLE>_STAT` view — which is
@@ -708,7 +724,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             // option list below reads. It must be computed before the splice, since the splice
             // shifts TABLE_NAME out of index 3.
             sTagTableList.forEach((aTagTable: any) => aTagTable.splice(3, 0, statViewNameOf(aTagTable)));
-            const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => tableSelectOptionOf(bTagTable[3])));
+            // The stat views are tag tables' own views, so they carry the tag chip.
+            const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => tableSelectOptionOf(bTagTable[3], 'tag')));
             return sResult;
         } else {
             // Time_value data chart reset
@@ -886,15 +903,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                             <Button
                                 size="side"
                                 variant="ghost"
-                                disabled={
-                                    sSelectedTableType === 'log' ||
-                                    sSelectedTableType === 'view' ||
-                                    sSelectedTableType === 'vir_tag' ||
-                                    pPanelOption.type === 'Geomap' ||
-                                    pBlockInfo.customFullTyping.use
-                                }
+                                disabled={!isCollapsibleTableType(sSelectedTableType) || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
                                 icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
-                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'view' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
+                                onClick={isCollapsibleTableType(sSelectedTableType) ? () => HandleFold() : () => {}}
                                 isToolTip
                                 toolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             />
@@ -984,6 +995,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         selectValue={pBlockInfo.time}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
+                                        error={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
                                         size="md"
                                         style={WIDE_FIELD_STYLE}
                                     />
@@ -1011,7 +1023,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                         </div>
                     )}
                     {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use ? (
-                        <div style={FIELD_STACK_STYLE}>
+                        <div className={fieldStyles['field-stack']} style={FIELD_STACK_STYLE}>
                             <Page.DpRow style={FIELD_ROW_STYLE}>
                                 <TableInputSelect
                                     label={
@@ -1039,6 +1051,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         selectValue={pBlockInfo.time}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
+                                        error={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
                                         size="md"
                                         style={WIDE_FIELD_STYLE}
                                     />
@@ -1046,7 +1059,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                             </Page.DpRow>
                             {sSelectedTableType !== 'vir_tag' ? (
                                 <Page.DpRow style={FIELD_ROW_STYLE}>
-                                    <div style={FIELD_ALIGN_SPACER_STYLE} />
+                                    <div className={fieldStyles['align-spacer']} style={FIELD_ALIGN_SPACER_STYLE} />
                                     <InputSelect
                                         label="Value field"
                                         labelPosition="left"
@@ -1085,7 +1098,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 </Page.DpRow>
                             ) : null}
                             <Page.DpRow style={FIELD_ROW_STYLE}>
-                                {!sIsViewTable &&
+                                {!sIsTaglessTable &&
                                     (!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                         <DSInput
                                             ref={sTagInputRef}
@@ -1185,7 +1198,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                               return (
                                   <Filter
                                       key={aItem.id}
-                                      pColumnList={sColumnList}
+                                      pColumnList={sFilteredColumnList}
                                       pBlockInfo={pBlockInfo}
                                       pFilterInfo={aItem}
                                       pChangeValueOption={changeValueOption}
@@ -1200,7 +1213,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 {/* DURATION */}
                 {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() ? <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} /> : <></>}
             </Page>
-            {sIsTagDialogOpen && !sIsViewTable && (
+            {sIsTagDialogOpen && !sIsTaglessTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleTagSelect}
@@ -1210,7 +1223,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                     pInitialTag={pBlockInfo.tag}
                 />
             )}
-            {sFilterTagDialogInfo.isOpen && !sIsViewTable && (
+            {sFilterTagDialogInfo.isOpen && !sIsTaglessTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleFilterTagSelect}

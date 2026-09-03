@@ -9,7 +9,7 @@ import { Toast } from '@/design-system/components';
 import { getRollupMatch, getUserName, isCurUserEqualAdmin } from '../../utils';
 import { ADMIN_ID } from '../../utils/constants';
 import { getInterval } from '../../utils/DashboardQueryParser';
-import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createTableScanTimeMinMaxQuery, isTableScanTimeMinMaxTarget } from '@/utils/dashboardTimeMinMax';
 import { jsonValueFieldToNumericSql, toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import { removeV$Table } from '../../utils/dbUtils';
 import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
@@ -195,8 +195,8 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
         let sQuery: string | undefined = undefined;
         // Query log table
         if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
-        // Query view table
-        if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
+        // Query view / transaction table — mirrors the editor's fetchTimeMinMax.
+        if (isTableScanTimeMinMaxTarget(aTargetInfo)) sQuery = createTableScanTimeMinMaxQuery(aTargetInfo);
         if (!sQuery) return;
         sData = await executeQuery(sQuery);
     }

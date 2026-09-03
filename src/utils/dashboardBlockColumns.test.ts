@@ -182,3 +182,80 @@ describe('dashboard block column helpers', () => {
         expect(rows).toEqual({ min: 1745910581000, max: 1745914181000 });
     });
 });
+
+describe('v8.7 transaction blocks', () => {
+    const TRANSACTION_COLUMNS = [
+        ['TS', 6, 8, 0, 0],
+        ['DEVICE', 5, 30, 1, 0],
+        ['VAL', 20, 8, 2, 0],
+    ];
+
+    // A transaction table has no NAME column and no `_<TABLE>_META`, so the collapsed layout has
+    // nothing to offer it — the block has to open expanded whatever the saved value said.
+    test('a transaction block is forced expanded even when the saved block was collapsed', () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            { type: 'tag', name: 'NAME', time: 'TIME', value: 'VALUE', useCustom: false, filter: [], values: [] },
+            TRANSACTION_COLUMNS,
+            'transaction'
+        );
+
+        expect(repaired.type).toBe('transaction');
+        expect(repaired.useCustom).toBe(true);
+        expect(repaired.time).toBe('TS');
+        expect(repaired.value).toBe('VAL');
+    });
+
+    // The tag filter names a NAME column the new table does not have, so it goes rather than
+    // riding along into a query that would fail.
+    test("switching a tag block to a transaction table drops the tag filter", () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            {
+                type: 'tag',
+                name: 'NAME',
+                time: 'TIME',
+                value: 'VALUE',
+                useCustom: false,
+                filter: [{ id: 'f1', column: 'NAME', operator: 'in', value: 'wave.sin', useFilter: true, useTyping: true, typingValue: "NAME = 'wave.sin'" }],
+                values: [],
+            },
+            TRANSACTION_COLUMNS,
+            'transaction'
+        );
+
+        expect(repaired.filter[0]).toMatchObject({ value: '', useFilter: false, useTyping: false, typingValue: '' });
+    });
+
+    // Re-opening a block on the table it already had must not wipe the filter the user set.
+    test('re-repairing a transaction block against its own table keeps the filter', () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            {
+                type: 'transaction',
+                name: 'DEVICE',
+                time: 'TS',
+                value: 'VAL',
+                useCustom: true,
+                filter: [{ id: 'f1', column: 'DEVICE', operator: '=', value: 'dev-a', useFilter: true }],
+                values: [{ id: 'v1', value: 'VAL', jsonKey: '', aggregator: 'avg', alias: '' }],
+            },
+            TRANSACTION_COLUMNS,
+            'transaction'
+        );
+
+        expect(repaired.filter[0]).toMatchObject({ column: 'DEVICE', value: 'dev-a', useFilter: true });
+    });
+
+    // The same rule for view, which is the other expand-only type.
+    test('a view block is forced expanded too', () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            { type: 'view', name: '', time: '', value: '', useCustom: false, filter: [], values: [] },
+            [
+                ['DEVICE', 5, 30, 0, 0],
+                ['TS', 6, 8, 1, 0],
+                ['SPEED', 20, 8, 2, 0],
+            ],
+            'view'
+        );
+
+        expect(repaired.useCustom).toBe(true);
+    });
+});

@@ -1,0 +1,33 @@
+/**
+ * The series editor's field grid.
+ *
+ * `container-type` is here so the alignment spacer below can ask how much room the row actually
+ * has. A media query cannot answer that: this stack sits between a collapsible file tree and a
+ * resizable options panel, so its width and the window's move independently.
+ *
+ * Safe to contain: the only fixed-position thing inside a field is the InputSelect menu, and that
+ * is rendered through a portal, so containment here never becomes its containing block.
+ */
+.field-stack {
+    display: flex;
+    flex-direction: column;
+    container-type: inline-size;
+}
+
+/**
+ * Holds a field's place so the one below lines up under it.
+ *
+ * It disappears once the row is too narrow to hold both, which is the point at which the indent
+ * stops meaning anything — the field it was aligning to has itself wrapped to the left edge. Left
+ * in, it wrapped onto a line of its own: 0px tall, but with the row's 4px `row-gap` on each side,
+ * so the gap above that one field measured 8px where every other gap in the block measured 4px.
+ */
+.align-spacer {
+    flex-shrink: 0;
+}
+
+@container (max-width: 883px) {
+    .align-spacer {
+        display: none;
+    }
+}

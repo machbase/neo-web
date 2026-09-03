@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { InputSelect } from '@/design-system/components';
+import { InputSelect, type InputSelectOptionBadge } from '@/design-system/components';
 import { splitQualifiedTableName } from '@/utils/qualifiedTableName';
+import { getTableTypeColor } from '@/components/side/DBExplorer/utils';
 import styles from './TableInputSelect.module.scss';
 
 /**
@@ -19,7 +20,22 @@ export interface TableSelectOption {
     label: string;
     /** `database · owner`. Always shown: the same table name can exist in several databases. */
     description: string;
+    /** Its table type, in DB Explorer's colour for that type. Absent for a name with no known type. */
+    badge?: InputSelectOptionBadge;
 }
+
+/**
+ * The type chip for a table row, in the colour DB Explorer paints that type in the tree — so a
+ * transaction table reads the same green here as it does there, and the two screens agree.
+ *
+ * Takes `getTableType` output ('tag' | 'log' | 'view' | 'transaction' | …). An unknown or absent
+ * type yields no chip rather than a grey one that says nothing.
+ */
+const tableTypeBadgeOf = (aTableType?: string): InputSelectOptionBadge | undefined => {
+    const sType = String(aTableType ?? '').trim();
+    if (!sType) return undefined;
+    return { label: sType.toUpperCase(), color: getTableTypeColor(sType) };
+};
 
 /**
  * Build an option from a qualified name.
@@ -28,9 +44,10 @@ export interface TableSelectOption {
  * Liquid fill panel lists: `qualifySiblingObject` decorates the last segment alone, so the
  * database and owner it is read under are still the leading segments.
  */
-export const tableSelectOptionOf = (aQualifiedName: string): TableSelectOption => ({
+export const tableSelectOptionOf = (aQualifiedName: string, aTableType?: string): TableSelectOption => ({
     value: String(aQualifiedName ?? ''),
     ...splitQualifiedTableName(aQualifiedName),
+    badge: tableTypeBadgeOf(aTableType),
 });
 
 interface TableInputSelectProps {
@@ -87,6 +104,11 @@ export const TableInputSelect = ({ label, options, value, onInputChange, onSelec
             selectValue={value}
             onSelectChange={onSelectChange}
             menuWidth="auto"
+            // The list runs to every table on the server across every database, which is well past
+            // what a 300px menu shows at once. Typing the field itself cannot narrow it — that text
+            // is the stored value — so the filter lives in the menu.
+            searchable
+            searchPlaceholder="Search tables..."
             style={style}
         />
     );

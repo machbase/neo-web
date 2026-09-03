@@ -20,6 +20,7 @@ import {
 } from './rollupQueryBuilder';
 import { parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from './dashboardJsonValue';
 import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from './timeFieldColumns';
+import { isTaglessTableType } from './dashboardTableKind';
 import { getBaseJsonRollupValue } from './rollupColumnCandidates';
 
 interface BlockTimeType {
@@ -218,7 +219,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             isVisible: bBlock.isVisible,
             name: bBlock.customFullTyping.use
                 ? 'custom'
-                : bBlock.type === 'view' && !bBlock.useCustom
+                : isTaglessTableType(bBlock.type) && !bBlock.useCustom
                   ? GetCollapsedSeriesName(bBlock)
                 : getChartSeriesName({
                       alias: bBlock?.useCustom ? bBlock?.values[0]?.alias : bBlock?.alias,
@@ -266,7 +267,7 @@ const GetRollupMatch = (aRollupList: any, aTable: string, aInterval: number, aVa
 
 const GetCollapsedSeriesName = (aTable: any) => {
     if (aTable.alias !== '') return aTable.alias;
-    const sName = aTable.type === 'view' ? aTable.value : aTable.tag;
+    const sName = isTaglessTableType(aTable.type) ? aTable.value : aTable.tag;
     return `${sName}${aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? '(' + aTable.aggregator + ')' : ''}`;
 };
 
@@ -290,7 +291,8 @@ const GetValues = (aTable: any) => {
  * @return (filter {column: name, operator: in, name: "tag"})
  */
 const GetFilter = (aTableInfo: any) => {
-    if (aTableInfo.type === 'view') return [];
+    // view and transaction have no NAME column to collapse a tag filter onto.
+    if (isTaglessTableType(aTableInfo.type)) return [];
     if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: aTableInfo.name, operator: 'in', value: aTableInfo.tag }];
     else return [];
 };

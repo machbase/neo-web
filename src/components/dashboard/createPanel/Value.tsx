@@ -5,6 +5,7 @@ import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/com
 import { useEffect, useState } from 'react';
 import { displayJsonPathLabel, isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
+import fieldStyles from './fields.module.scss';
 
 const Value = ({
     pValue,
@@ -38,10 +39,10 @@ const Value = ({
     };
 
     return (
-        <div style={FIELD_STACK_STYLE}>
+        <div className={fieldStyles['field-stack']} style={FIELD_STACK_STYLE}>
             {!pHideValueFieldRow && (
                 <Page.DpRow style={FIELD_ROW_STYLE}>
-                    <div style={FIELD_ALIGN_SPACER_STYLE} />
+                    <div className={fieldStyles['align-spacer']} style={FIELD_ALIGN_SPACER_STYLE} />
                     <InputSelect
                         label={
                             <>

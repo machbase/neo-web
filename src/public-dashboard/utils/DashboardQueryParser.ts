@@ -20,6 +20,7 @@ import {
 } from '../../utils/rollupQueryBuilder';
 import { parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from '../../utils/dashboardJsonValue';
 import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from '../../utils/timeFieldColumns';
+import { isTaglessTableType } from '../../utils/dashboardTableKind';
 import { getBaseJsonRollupValue } from '../../utils/rollupColumnCandidates';
 
 interface BlockTimeType {
@@ -188,6 +189,8 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             isVisible: bBlock.isVisible,
             name: bBlock.customFullTyping.use
                 ? 'custom'
+                : isTaglessTableType(bBlock.type) && !bBlock.useCustom
+                  ? GetCollapsedSeriesName(bBlock)
                 : getChartSeriesName({
                       alias: bBlock?.useCustom ? bBlock?.values[0]?.alias : bBlock?.alias,
                       table: bBlock?.table,
@@ -235,14 +238,18 @@ const GetRollupMatch = (aRollupList: any, aTable: string, aInterval: number, aVa
 /** Create value list for collapsed block
  * @return ({ value: value, alias: '', aggregator: "aggregator"})
  */
+const GetCollapsedSeriesName = (aTable: any) => {
+    if (aTable.alias !== '') return aTable.alias;
+    const sName = isTaglessTableType(aTable.type) ? aTable.value : aTable.tag;
+    return `${sName}${aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? '(' + aTable.aggregator + ')' : ''}`;
+};
+
 const GetValues = (aTable: any) => {
     const sParsedJsonValue = parseJsonValueField(aTable.value);
     return [
         {
             id: aTable.id,
-            alias: `${
-                aTable.alias !== '' ? aTable.alias : aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? aTable.tag + '(' + aTable.aggregator + ')' : aTable.tag
-            }`,
+            alias: GetCollapsedSeriesName(aTable),
             value: sParsedJsonValue?.column ?? aTable.value,
             jsonKey: aTable.jsonKey || sParsedJsonValue?.path || '',
             diff: aTable.diff,
@@ -254,6 +261,8 @@ const GetValues = (aTable: any) => {
  * @return (filter {column: name, operator: in, name: "tag"})
  */
 const GetFilter = (aTableInfo: any) => {
+    // view and transaction have no NAME column to collapse a tag filter onto.
+    if (isTaglessTableType(aTableInfo.type)) return [];
     if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: aTableInfo.name, operator: 'in', value: aTableInfo.tag }];
     else return [];
 };
@@ -353,7 +362,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
                             if (pValue.includes(',')) return pValue.split(',');
                             else return pValue;
                         });
-                        return `${aFilter.column} ${aFilter.operator} ('${sParseValueList.flat().join("','")}')`;
+                        return `${aFilter.column} ${aFilter.operator} (${sUseQuote}${sParseValueList.flat().join(`${sUseQuote},${sUseQuote}`)}${sUseQuote})`;
                     } else
                         return aFilter.valueList
                             .map((aValue: any) => {
@@ -363,7 +372,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
                 }
             }
             // Collapse mode
-            else return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
+            else return `${aFilter.column} ${aFilter.operator} (${sUseQuote}${aFilter.valueList.join(`${sUseQuote},${sUseQuote}`)}${sUseQuote})`;
         })
         .filter((bFilter: any) => bFilter.trim() !== '');
     return sResult.join(' AND ');

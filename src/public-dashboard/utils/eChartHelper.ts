@@ -300,6 +300,62 @@ export const DefaultTagTableOption = {
     isVisible: true,
 };
 
+export const DefaultViewTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'view',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: true,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    jsonKey: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
+    isVisible: true,
+};
+
+export const DefaultTransactionTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'transaction',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: true,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    jsonKey: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
+    isVisible: true,
+};
+
 export const DefaultLogTableOption = {
     id: generateUUID(),
     table: undefined as string | undefined,

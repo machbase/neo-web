@@ -17,6 +17,8 @@ import {
     DefaultLogTableOption,
     chartTypeConverter,
     DefaultVariableTableOption,
+    DefaultViewTableOption,
+    DefaultTransactionTableOption,
 } from './eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from './constants';
 import { ChartType } from '../type/eChart';
@@ -146,9 +148,14 @@ export const refreshTimeList = ['Off', '3 seconds', '5 seconds', '10 seconds', '
 export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableType: string, aTag: string, aChartType?: string) => {
     let sDefaultTableOpt = undefined;
     if (aTableType === 'tag') sDefaultTableOpt = DefaultTagTableOption;
+    else if (aTableType === 'view') sDefaultTableOpt = DefaultViewTableOption;
+    else if (aTableType === 'transaction') sDefaultTableOpt = DefaultTransactionTableOption;
     else if (aTableType === 'log') sDefaultTableOpt = DefaultLogTableOption;
     else sDefaultTableOpt = DefaultVariableTableOption;
 
+    // Copy before mutating. Without this the Geomap line below writes `useCustom` straight onto the
+    // module-level default object, so every later block on the page inherits it.
+    sDefaultTableOpt = JSON.parse(JSON.stringify(sDefaultTableOpt));
     if (aChartType === 'Geomap') sDefaultTableOpt.useCustom = true;
 
     const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];

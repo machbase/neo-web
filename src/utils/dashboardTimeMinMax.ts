@@ -1,7 +1,21 @@
 import { isNumericBaseTimeBlock } from './timeFieldColumns';
 import { isMountedTableName } from './qualifiedTableName';
+import { isTaglessTableType } from './dashboardTableKind';
 
-export const isViewTimeMinMaxTarget = (aBlock: any) => Boolean(aBlock?.type === 'view' && aBlock?.time && aBlock.time !== '');
+/**
+ * Blocks whose time extent has to be read by scanning the table itself.
+ *
+ * A tag block asks `V$<TABLE>_STAT` for its extent, which is a single indexed row. view and
+ * transaction have no such view — measured, `V$DEMO_VIEW_STAT` does not exist — so the extent
+ * comes from `min()/max()` over the block's own time column instead. That is what
+ * `createTableScanTimeMinMaxQuery` builds.
+ *
+ * The `time` guard is what makes this safe: a block with no resolved time column would otherwise
+ * produce `select min(), max()`. Such a block answers `false` here and falls back to the board
+ * range, which is the existing behaviour for a view whose source tag table had a distance base —
+ * a known gap, tracked separately.
+ */
+export const isTableScanTimeMinMaxTarget = (aBlock: any) => Boolean(isTaglessTableType(aBlock?.type) && aBlock?.time && aBlock.time !== '');
 
 /**
  * Pick the panel that seeds the board-level time min/max. Distance (numeric-base) panels self-resolve
@@ -18,18 +32,18 @@ export const pickBoardTimeMinMaxPanel = (aPanels: any[] = []): any => {
 
 export const shouldFetchBlockTimeMinMax = (aBlock: any, aCustomTag?: string) => {
     const sHasTag = aBlock?.tag && aBlock.tag !== '';
-    return Boolean(isViewTimeMinMaxTarget(aBlock) || sHasTag || (aBlock?.useCustom && aCustomTag));
+    return Boolean(isTableScanTimeMinMaxTarget(aBlock) || sHasTag || (aBlock?.useCustom && aCustomTag));
 };
 
 export const getTimeMinMaxFetchTarget = (aBlock: any, aCustomTag?: string) => {
-    if (isViewTimeMinMaxTarget(aBlock)) return aBlock;
+    if (isTableScanTimeMinMaxTarget(aBlock)) return aBlock;
     return aBlock?.useCustom ? { ...aBlock, tag: aCustomTag } : aBlock;
 };
 
 interface BlockTimeMinMaxDeps {
     /** Settles the catalogue that `isMountedTableName` reads. */
     ensureCurrentDatabase: () => Promise<unknown>;
-    /** Tag/log/view min-max for a block. */
+    /** Tag/log/view/transaction min-max for a block. */
     fetchTimeMinMax: (aTarget: any) => Promise<any>;
     /** The same, for a table in a mounted database (`db.user.table`). */
     fetchMountTimeMinMax: (aBlock: any) => Promise<any>;
@@ -74,8 +88,8 @@ const combineTableUser = (aTargetInfo: any) => {
     return aTargetInfo.table.includes('.') ? aTargetInfo.table : `${aTargetInfo.userName}.${aTargetInfo.table}`;
 };
 
-export const createViewTimeMinMaxQuery = (aTargetInfo: any) => {
-    if (!isViewTimeMinMaxTarget(aTargetInfo)) return undefined;
+export const createTableScanTimeMinMaxQuery = (aTargetInfo: any) => {
+    if (!isTableScanTimeMinMaxTarget(aTargetInfo)) return undefined;
     const sTime = aTargetInfo.time;
     return `select min(${sTime}) as min_time, max(${sTime}) as max_time from ${combineTableUser(aTargetInfo)}`;
 };
