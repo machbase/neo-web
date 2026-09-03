@@ -112,7 +112,7 @@ describe('PanelSeriesEditor', () => {
         );
     });
 
-    it('selects database and table while displaying the table owner', async () => {
+    it('selects the first user and table when the database changes', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
             'MACHBASEDB.SYS.ATABLE',
             'FACTORY_A.USER_A.ATABLE',
@@ -120,7 +120,11 @@ describe('PanelSeriesEditor', () => {
         ]);
         const fetchColumns = jest
             .spyOn(tableMetadataApi, 'fetchTableColumns')
-            .mockResolvedValue([]);
+            .mockResolvedValue([
+                { name: 'NAME', type: 5, flag: 0 },
+                { name: 'TIME', type: 6, flag: 0x01000000 },
+                { name: 'VALUE', type: 20, flag: 0 },
+            ]);
 
         render(
             <PanelSeriesEditor
@@ -141,13 +145,15 @@ describe('PanelSeriesEditor', () => {
         const database = within(sourceLocation).getByLabelText('Database');
         const user = within(sourceLocation).getByLabelText('User');
         const table = within(sourceLocation).getByLabelText('Table');
+        const time = within(sourceFields).getByLabelText('Time');
+        const value = within(sourceFields).getByLabelText('Value');
 
-        expect(user).toHaveAttribute('readonly');
-        expect(within(sourceFields).getByLabelText('Time')).toBeInTheDocument();
-        expect(within(sourceFields).getByLabelText('Value')).toBeInTheDocument();
+        expect(user).toHaveRole('combobox');
         await waitFor(() => expect(database).toHaveValue('MACHBASEDB'));
         await waitFor(() => expect(table).toHaveValue('ATABLE'));
         expect(user).toHaveValue('SYS');
+        expect(time).toHaveValue('TIME (DateTime)');
+        expect(value).toHaveValue('VALUE (No Rollup)');
 
         fireEvent.focus(database);
         fireEvent.change(database, { target: { value: 'FACTORY_A' } });
@@ -156,27 +162,42 @@ describe('PanelSeriesEditor', () => {
                 'tag-analyzer-database-option-FACTORY_A',
             ),
         );
-        await waitFor(() => expect(table).toHaveValue(''));
-        expect(user).toHaveValue('');
-        expect(user).toHaveAttribute('placeholder', 'Select a table');
+        await waitFor(() => expect(user).toHaveValue('USER_A'));
+        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        expect(fetchColumns).toHaveBeenLastCalledWith(
+            'FACTORY_A.USER_A.ATABLE',
+        );
+        expect(time).toHaveValue('TIME (DateTime)');
+        expect(value).toHaveValue('VALUE (No Rollup)');
+
+        fireEvent.focus(user);
+        expect(
+            await screen.findByTestId('tag-analyzer-user-option-USER_A'),
+        ).toBeInTheDocument();
+        fireEvent.click(
+            screen.getByTestId('tag-analyzer-user-option-USER_B'),
+        );
+
+        await waitFor(() => expect(user).toHaveValue('USER_B'));
+        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        expect(table).toBeEnabled();
+        expect(fetchColumns).toHaveBeenLastCalledWith(
+            'FACTORY_A.USER_B.ATABLE',
+        );
+        expect(time).toHaveValue('TIME (DateTime)');
+        expect(value).toHaveValue('VALUE (No Rollup)');
 
         fireEvent.focus(table);
         expect(
             await screen.findByTestId(
-                'tag-analyzer-table-option-FACTORY_A.USER_A.ATABLE',
-            ),
-        ).toHaveTextContent('USER_A.ATABLE');
-        fireEvent.click(
-            screen.getByTestId(
                 'tag-analyzer-table-option-FACTORY_A.USER_B.ATABLE',
             ),
-        );
-
-        await waitFor(() => expect(user).toHaveValue('USER_B'));
-        expect(table).toHaveValue('USER_B.ATABLE');
-        expect(fetchColumns).toHaveBeenLastCalledWith(
-            'FACTORY_A.USER_B.ATABLE',
-        );
+        ).toHaveTextContent('ATABLE');
+        expect(
+            screen.queryByTestId(
+                'tag-analyzer-table-option-FACTORY_A.USER_A.ATABLE',
+            ),
+        ).not.toBeInTheDocument();
     });
 
     it('offers tables from every database, mounted backups included', async () => {
@@ -214,17 +235,15 @@ describe('PanelSeriesEditor', () => {
                 'tag-analyzer-database-option-EEEEE',
             ),
         );
-        await waitFor(() => expect(table).toHaveValue(''));
+        await waitFor(() => expect(table).toHaveValue('ATABLE'));
         expect(user).toHaveValue('SYS');
 
         fireEvent.focus(table);
-        fireEvent.click(
+        expect(
             await screen.findByTestId(
                 'tag-analyzer-table-option-EEEEE.SYS.ATABLE',
             ),
-        );
-
-        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        ).toBeInTheDocument();
         expect(database).toHaveValue('EEEEE');
         expect(user).toHaveValue('SYS');
     });
@@ -281,6 +300,10 @@ describe('PanelSeriesEditor', () => {
             />,
         );
 
+        await waitFor(() =>
+            expect(screen.getByLabelText('Table')).toHaveValue('TAG'),
+        );
+        expect(screen.getByLabelText('User')).toBeDisabled();
         fireEvent.click(
             await screen.findByTestId('tag-analyzer-series-option-TAG_A'),
         );
@@ -344,19 +367,21 @@ describe('PanelSeriesEditor', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('keeps tag results when the current table is selected again', async () => {
+    it('reloads columns and tags when the current table is selected again', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
             'MACHBASEDB.SYS.TAG',
         ]);
-        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([
-            { name: 'NAME', type: 5, flag: 0 },
-            { name: 'TIME', type: 6, flag: 0x01000000 },
-            { name: 'VALUE', type: 20, flag: 0 },
-        ]);
-        jest.spyOn(tableMetadataApi, 'fetchTags').mockResolvedValue({
-            tags: ['TAG_A'],
-            total: 1,
-        });
+        const fetchColumns = jest
+            .spyOn(tableMetadataApi, 'fetchTableColumns')
+            .mockResolvedValue([
+                { name: 'NAME', type: 5, flag: 0 },
+                { name: 'TIME', type: 6, flag: 0x01000000 },
+                { name: 'VALUE', type: 20, flag: 0 },
+            ]);
+        const fetchTags = jest
+            .spyOn(tableMetadataApi, 'fetchTags')
+            .mockResolvedValueOnce({ tags: ['TAG_OLD'], total: 1 })
+            .mockResolvedValueOnce({ tags: ['TAG_NEW'], total: 1 });
 
         render(
             <PanelSeriesEditor
@@ -369,8 +394,10 @@ describe('PanelSeriesEditor', () => {
         );
 
         expect(
-            await screen.findByTestId('tag-analyzer-series-option-TAG_A'),
+            await screen.findByTestId('tag-analyzer-series-option-TAG_OLD'),
         ).toBeInTheDocument();
+        expect(fetchColumns).toHaveBeenCalledTimes(1);
+        expect(fetchTags).toHaveBeenCalledTimes(1);
 
         fireEvent.focus(screen.getByLabelText('Table'));
         fireEvent.click(
@@ -380,7 +407,12 @@ describe('PanelSeriesEditor', () => {
         );
 
         expect(
-            screen.getByTestId('tag-analyzer-series-option-TAG_A'),
+            screen.queryByTestId('tag-analyzer-series-option-TAG_OLD'),
+        ).not.toBeInTheDocument();
+        expect(
+            await screen.findByTestId('tag-analyzer-series-option-TAG_NEW'),
         ).toBeInTheDocument();
+        expect(fetchColumns).toHaveBeenCalledTimes(2);
+        expect(fetchTags).toHaveBeenCalledTimes(2);
     });
 });
