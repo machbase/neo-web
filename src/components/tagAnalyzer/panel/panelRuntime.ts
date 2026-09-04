@@ -3,14 +3,18 @@ import {
     useState,
 } from 'react';
 import { resolveDistanceRange } from '@/utils/distanceRange';
-import { seriesDataApi } from '../api/seriesDataApi';
+import {
+    seriesDataApi,
+    SINGLE_POINT_NUMERIC_WIDTH,
+    SINGLE_POINT_TIME_WIDTH_MS,
+} from '../api/seriesDataApi';
 import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../hooks/useLatestAsyncRequest';
 import { useStableCallback } from '../hooks/useStableCallback';
 import { isFiniteNumber } from '../objectGuards';
-import { isSameRange } from '../range/rangeArithmetic';
+import { getRangeWidth, isSameRange } from '../range/rangeArithmetic';
 import { resolveRangeInput } from '../range/rangeInput';
 import {
     isRangeExpressionEmpty,
@@ -417,6 +421,7 @@ function applyRangeBroadcasts(
                 const boardState = isClearing
                     ? configuredMainState ?? createDefaultResolvedRangeState(
                           currentRange.fullRange,
+                          axisKind,
                       )
                     : configuredMainState
                       ? resolveNavigatorRangeAroundMain(
@@ -792,7 +797,7 @@ export function resolveNavigatorRangeState(
     return range
         ? createResolvedRangeState(
               resolveRangeChange(
-                  current?.range ?? createDefaultRangeState(fullRange),
+                  current?.range ?? createDefaultRangeState(fullRange, axisKind),
                   { type: 'navigator', range },
               ),
               fullRange,
@@ -936,7 +941,7 @@ function resolveReloadedRangeState(
         ((hasConfiguredNavigator || request.intent === 'board')
             ? currentWithFullRange
             : undefined) ??
-        createDefaultResolvedRangeState(fullRange);
+        createDefaultResolvedRangeState(fullRange, axisKind);
     const navigatorFixedRange = configuredMainState ? 'main' : 'navigator';
     const resolveNavigator = (input: RangeExpressionInput) =>
         configuredMainState
@@ -990,22 +995,30 @@ function resolveReloadedRangeState(
 
 function createDefaultResolvedRangeState(
     fullRange: AxisRange,
+    axisKind: AxisKind,
 ): ResolvedRangeState {
     return {
-        range: createDefaultRangeState(fullRange),
+        range: createDefaultRangeState(fullRange, axisKind),
         fullRange: { ...fullRange },
         navigatorRangeInput: { ...EMPTY_RANGE_INPUT },
     };
 }
 
-function createDefaultRangeState(fullRange: AxisRange): RangeState {
-    return resolveButtonPress(
-        {
-            mainRange: fullRange,
-            navigatorRange: fullRange,
-        },
-        'zoom-in-large',
-    );
+function createDefaultRangeState(
+    fullRange: AxisRange,
+    axisKind: AxisKind,
+): RangeState {
+    const fullRangeState = {
+        mainRange: fullRange,
+        navigatorRange: fullRange,
+    };
+    const minimumWidth = axisKind === 'time'
+        ? SINGLE_POINT_TIME_WIDTH_MS
+        : SINGLE_POINT_NUMERIC_WIDTH;
+
+    return getRangeWidth(fullRange) <= minimumWidth
+        ? fullRangeState
+        : resolveButtonPress(fullRangeState, 'zoom-in-large');
 }
 
 function createResolvedRangeState(
