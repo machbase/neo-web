@@ -136,7 +136,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                             <Page.Body>
                                 <Page.ContentBlock>
                                     <UsageBlock
-                                        pWhere="MQTT TLS · gRPC mutual auth"
+                                        pWhere="MQTT TLS client auth"
                                         pCode={`mosquitto_pub --cafile server.pem \\\n  --cert ${pCode.name}_cert.pem --key ${pCode.name}_key.pem \\\n  -h 127.0.0.1 -p 5653 -t db/append/EXAMPLE`}
                                     />
                                 </Page.ContentBlock>

@@ -142,7 +142,7 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
                                 <PiCertificateLight size={20} className={styles.glyph} />
                                 <span className={styles.title}>New certificate</span>
                             </div>
-                            <span className={styles.subline}>X.509 key pair for MQTT TLS and gRPC mutual auth</span>
+                            <span className={styles.subline}>X.509 key pair for MQTT TLS client auth</span>
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
