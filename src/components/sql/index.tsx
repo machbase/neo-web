@@ -20,9 +20,9 @@ import { Loader } from '../loader';
 import { SqlSplitHelper, SplitItemType } from '@/utils/TQL/SqlSplitHelper';
 import { RiTimeZoneLine } from 'react-icons/ri';
 import { TimeZoneModal } from '../modal/TimeZoneModal';
-import { isKnownDatabase, TargetDatabaseChip, useTargetDatabases } from '@/components/database/targetDatabase';
+import { isKnownDatabase, TargetDatabaseChip, useTabTargetDatabase } from '@/components/database/targetDatabase';
 import { applyTargetDatabase } from '@/utils/sqlTargetDatabase';
-import { readTargetDatabaseForPath, touchRecentDatabase, writeTargetDatabaseForPath } from '@/utils/targetDatabaseStore';
+import { touchRecentDatabase } from '@/utils/targetDatabaseStore';
 
 /**
  * `4.100208ms` from the TQL sink, as `4.1 ms` for the result footer. An unfamiliar shape is passed
@@ -68,9 +68,14 @@ const Sql = ({
     // `-- env:` directives the splitter could not apply. Non-blocking: shown next to the result, never instead of it.
     const [sEnvWarnLog, setEnvWarnLog] = useState<string | null>(null);
     // The toolbar's target database. Never written into the worksheet — only into `env.use` at TQL assembly time.
-    const [sTargetDb, setTargetDb] = useState<string | null>(() => readTargetDatabaseForPath(pInfo.path));
+    const {
+        targetDatabase: sTargetDb,
+        setTargetDatabase: setTargetDb,
+        databases: sDatabaseList,
+        sessionDatabase: sSessionDb,
+        reload: reloadDatabases,
+    } = useTabTargetDatabase();
     const [sElapse, setElapse] = useState<string>('');
-    const { databases: sDatabaseList, sessionDatabase: sSessionDb, reload: reloadDatabases } = useTargetDatabases();
     const [sTextField, setTextField] = useState<string>('');
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
     const [sShowRowNumber, setShowRowNumber] = useState<boolean>(true);
@@ -144,7 +149,6 @@ const Sql = ({
      */
     const handleChangeTargetDb = (aDatabase: string | null) => {
         setTargetDb(aDatabase);
-        writeTargetDatabaseForPath(pInfo.path, aDatabase);
         if (aDatabase) touchRecentDatabase(aDatabase);
         if (sDbNotFound) {
             setDbNotFound(false);
@@ -328,14 +332,6 @@ const Sql = ({
         setTimeZone(time.timeZone);
         setIsTimeZoneModal(false);
     };
-
-    /**
-     * A worksheet saved for the first time only gets its path now, and the chip was picked before
-     * there was anything to key it to — carry the value over so reopening the file restores it.
-     */
-    useEffect(() => {
-        if (pInfo.path) writeTargetDatabaseForPath(pInfo.path, sTargetDb);
-    }, [pInfo.path]);
 
     useEffect(() => {
         if (sMoreResult) {

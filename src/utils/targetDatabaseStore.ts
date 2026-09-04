@@ -1,16 +1,14 @@
 /**
- * What the SQL editor remembers about the database chip, between opens.
+ * Recent database usage for display in the SQL/worksheet database menu.
  *
- * Two separate things, both in `localStorage` and neither in the `.sql` file:
- *   - the chip's value per saved file, so reopening a worksheet restores what it targeted;
- *   - when each database was last picked, which is what orders the "recently used" group.
+ * Only usage timestamps are kept. A tab's execution target is never saved or restored.
+ * Older per-file selections in localStorage are deliberately ignored.
  *
  * Nothing here is authoritative. A cleared browser, a private window or a storage quota error
  * degrades to "no memory", which is the same as a first visit — so every read is guarded and every
  * write is best-effort.
  */
 
-const TARGET_BY_PATH_KEY = 'neo-web.sql.target-db.by-path';
 const RECENTS_KEY = 'neo-web.sql.target-db.recents';
 
 /** Keep the recents list short enough that the group stays scannable, and the entry small. */
@@ -33,23 +31,6 @@ const writeMap = (aKey: string, aValue: Record<string, unknown>) => {
     } catch {
         // Storage is full or blocked. The chip still works for this session.
     }
-};
-
-/** The chip's value for a saved file, or null for an unsaved tab (there is no key to store it under). */
-export const readTargetDatabaseForPath = (aPath: string | undefined | null): string | null => {
-    const sPath = String(aPath ?? '').trim();
-    if (!sPath) return null;
-    const sValue = readMap<string>(TARGET_BY_PATH_KEY)[sPath];
-    return typeof sValue === 'string' && sValue ? sValue : null;
-};
-
-export const writeTargetDatabaseForPath = (aPath: string | undefined | null, aDatabase: string | null) => {
-    const sPath = String(aPath ?? '').trim();
-    if (!sPath) return;
-    const sMap = readMap<string>(TARGET_BY_PATH_KEY);
-    if (aDatabase) sMap[sPath] = aDatabase;
-    else delete sMap[sPath];
-    writeMap(TARGET_BY_PATH_KEY, sMap);
 };
 
 /** `{ FACTORY_A: 1756704000000 }` — when each database was last picked. */
