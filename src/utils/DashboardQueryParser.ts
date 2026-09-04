@@ -679,8 +679,13 @@ const QueryParser = (
         };
     });
     let sV_V_X_AXIS: undefined | string = undefined;
-    if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
-        const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
+    // An Adv scatter names one of its own series as the x-axis, by index. Nothing renumbers that index
+    // when the blocks change, so it can point past the end of the list - deleting the block it named is
+    // enough - and a panel that never had xAxisOptions filled in has no index at all. Fall back to the
+    // first series so the panel still draws; only bail out if there is no series to fall back to.
+    const sBaseXAxisIdx = aXaxis?.[0]?.useBlockList?.[0] ?? 0;
+    const sBaseXAxis = sResultQuery[sBaseXAxisIdx] ?? sResultQuery[0];
+    if (aChartType === E_CHART_TYPE.ADV_SCATTER && sBaseXAxis) {
         // The x-axis rows are matched against the series rows by their first column, so this fetch
         // has to be on the same scale as the series queries below.
         const sBaseXAxisJsonOpt = [DSH_JSON_MS_TIMEFORMAT, !aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : ''].filter(Boolean).join(', ');
