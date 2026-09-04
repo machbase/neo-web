@@ -42,19 +42,32 @@ const isNumericValue = (value: any): boolean => {
 // stay left-aligned even when their value would parse as a number.
 // Accepts either the textual type name (case-insensitive, size suffix tolerated)
 // or the numeric type code from TABLE_COLUMN_TYPE.
+// The `types` a query response carries are the API's own names (`int32`, `int64`,
+// `decimal`), not the M$SYS_COLUMNS spellings, so both sets have to be here or a
+// LONG column left-aligns while the DOUBLE beside it right-aligns.
+// `*_array` names are deliberately absent: an array prints as JSON text and reads
+// left-aligned like any other list. DECIMAL is a fixed-point number that arrives
+// as a string to keep its precision — it still belongs in a numeric column.
 const NUMERIC_TYPE_NAMES = new Set([
     'short',
     'int',
+    'int16',
+    'int32',
+    'int64',
     'integer',
     'long',
     'float',
     'double',
+    'decimal',
     'ushort',
+    'uint16',
+    'uint32',
+    'uint64',
     'uinteger',
     'ulong',
     'number',
 ]);
-const NUMERIC_TYPE_CODES = new Set([4, 8, 12, 16, 20, 104, 108, 112]);
+const NUMERIC_TYPE_CODES = new Set([4, 8, 12, 16, 20, 104, 108, 112, 132]);
 const isNumericType = (t: unknown): boolean => {
     if (typeof t === 'number') return NUMERIC_TYPE_CODES.has(t);
     if (typeof t === 'string') {
@@ -80,13 +93,32 @@ const isNullish = (value: any): boolean => value === null || value === undefined
 // indistinguishable from an empty string otherwise, which is the whole problem.
 const NULL_TEXT = 'NULL';
 
+// An array column (`double[4]`, `int[4]`, …) arrives as a JS array, and TQL can put
+// a whole object in a cell. Both have to become text somewhere, and it has to be
+// the same text the copy button and "Show full contents" work from.
+//
+// Compact JSON, not `toString()`: `[10, 20, 30, null]` stringifies to
+// "10,20,30," under `toString`, which silently drops the NULL element. JSON also
+// makes the cell text parse back, so the context menu's JSON view lights up for
+// free.
+const formatCellValue = (cellData: any): string => {
+    if (typeof cellData === 'object') {
+        try {
+            return JSON.stringify(cellData);
+        } catch {
+            return String(cellData);
+        }
+    }
+    return cellData.toString();
+};
+
 // The dimmed style is what tells an actual NULL apart from a VARCHAR whose value
 // is literally the text "NULL".
 const renderCellText = (cellData: any) =>
-    isNullish(cellData) ? <span className={styles['null-cell']}>{NULL_TEXT}</span> : <span>{cellData.toString()}</span>;
+    isNullish(cellData) ? <span className={styles['null-cell']}>{NULL_TEXT}</span> : <span>{formatCellValue(cellData)}</span>;
 
 // Nothing to put on the clipboard for a NULL or an empty cell.
-const hasCopyableValue = (cellData: any) => !isNullish(cellData) && cellData.toString().trim() !== '';
+const hasCopyableValue = (cellData: any) => !isNullish(cellData) && formatCellValue(cellData).trim() !== '';
 
 const CommonTable = (props: CommonTableProps) => {
     const {
@@ -204,7 +236,7 @@ const CommonTable = (props: CommonTableProps) => {
     // line with every other row of a right-aligned numeric column.
     const renderCellCopy = (cellData: any, columnIndex: number) => {
         if (!shouldShowCellCopy(columnIndex)) return null;
-        if (hasCopyableValue(cellData)) return <CopyCell value={cellData} />;
+        if (hasCopyableValue(cellData)) return <CopyCell value={formatCellValue(cellData)} />;
         if (isNullish(cellData)) return <span className={styles['copy-cell-spacer']} aria-hidden="true" />;
         return null;
     };
@@ -318,11 +350,13 @@ const CommonTable = (props: CommonTableProps) => {
                                         <span className={styles['row-num']}>{rowIdx + 1}</span>
                                     </td>
                                     {rowList.map((cellData: any, cellIdx: number) => {
-                                        if (isObject(cellData)) return null;
                                         const numeric = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
+                                        // An array or object cell has no text form a single-line input could
+                                        // round-trip — editing it would save the flattened string back.
+                                        const editableCell = !isObject(cellData);
                                         return (
                                             <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined}>
-                                                {data?.columns?.[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx ? (
+                                                {data?.columns?.[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx && editableCell ? (
                                                     <Page.Input
                                                         pAutoFocus={cellIdx === 1}
                                                         pValue={modInfo?.modAfterInfo?.row?.[cellIdx] ?? ''}
@@ -554,7 +588,6 @@ const CommonTable = (props: CommonTableProps) => {
                                 </td>
                             )}
                             {rowList.map((cellData: any, rIdx: number) => {
-                                if (isObject(cellData)) return null;
                                 const renderer = getCellRenderer(data?.columns?.[rIdx]);
                                 const numeric = shouldAlignNumeric(data?.types?.[rIdx], cellData);
                                 return (
@@ -707,7 +740,6 @@ const CommonTable = (props: CommonTableProps) => {
                                       )}
                                       {/* Data cells */}
                                       {rowList.map((cellData: any, cellIdx: number) => {
-                                          if (isObject(cellData)) return null;
                                           const renderer = getCellRenderer(data?.columns?.[cellIdx]);
 
                                           const wrapStyle = textWrap ? { overflow: 'visible' as const, whiteSpace: 'pre-wrap' as const } : undefined;
