@@ -33,8 +33,15 @@ export const isNonDateTimeBaseTimeColumn = (aColumns: any[] = [], aColumnName: s
  * Whether a dashboard block's base axis is distance (non-datetime BASETIME) rather than time.
  * Checks the live tableInfo first, then falls back to the block's persisted timeType/timeBaseTime
  * (stored by repairDashboardBlockForTableColumns) so the kind resolves even without tableInfo on reload.
+ *
+ * A typed block declares its own base column in the SQL, so the table picked in selecting mode says
+ * nothing about it — but switching to typing leaves those fields behind on the block, and reading
+ * them made a typed query inherit a distance axis it never asked for (labelled with the leftover
+ * base column, e.g. 'ODOMETER_M'). Until the panel can name its own axis kind, typing is time.
+ * `customFullTyping` is the panel block, `useFullTyping` the parsed query block.
  */
 export const isNumericBaseTimeBlock = (aBlock: any): boolean => {
+    if (aBlock?.customFullTyping?.use || aBlock?.useFullTyping) return false;
     return (
         isNonDateTimeBaseTimeColumn(aBlock?.tableInfo, aBlock?.time) ||
         (Boolean(aBlock?.timeBaseTime) && Number(aBlock?.timeType) !== DATETIME_COLUMN_TYPE)

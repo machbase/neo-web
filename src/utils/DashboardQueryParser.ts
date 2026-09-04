@@ -5,7 +5,7 @@ import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import TQL from './TqlGenerator';
-import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
+import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE, DSH_JSON_MS_TIMEFORMAT } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
 import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
@@ -604,7 +604,15 @@ const QueryParser = (
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
             sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible, type: E_BLOCK_TYPE.STD });
-            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, time: aTime, dataType: aResDataType, sql: aQuery.text, useQuery: aQuery.isVisible };
+            return {
+                query: `SQL("${aQuery.text}")\n${TQL.SINK._JSON(DSH_JSON_MS_TIMEFORMAT)}`,
+                alias: '',
+                idx: aIdx,
+                time: aTime,
+                dataType: aResDataType,
+                sql: aQuery.text,
+                useQuery: aQuery.isVisible,
+            };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean =
@@ -673,17 +681,23 @@ const QueryParser = (
     let sV_V_X_AXIS: undefined | string = undefined;
     if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
         const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
-        sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(
-            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(!aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : '')),
-            { isSave: aIsSave }
-        );
+        // The x-axis rows are matched against the series rows by their first column, so this fetch
+        // has to be on the same scale as the series queries below.
+        const sBaseXAxisJsonOpt = [DSH_JSON_MS_TIMEFORMAT, !aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : ''].filter(Boolean).join(', ');
+        sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(sBaseXAxisJsonOpt)), { isSave: aIsSave });
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
             main: DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.MAIN,
             init: `${DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.INIT}${sV_V_X_AXIS}`,
         });
         if (aQueryBlock.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sV_V_X_AXIS });
         sResultQuery = sResultQuery.map((item: any) => {
-            return { ...item, query: `SQL("${item.sql}")${item.tql !== '' ? '\n' + item.tql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON()}` };
+            // A typed block returns no `tql` field at all, and `undefined !== ''` spliced the literal
+            // string "undefined" into the pipeline between the SQL and the script.
+            const sItemTql = item.tql ?? '';
+            return {
+                ...item,
+                query: `SQL("${item.sql}")${sItemTql !== '' ? '\n' + sItemTql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON(DSH_JSON_MS_TIMEFORMAT)}`,
+            };
         });
     }
     if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {
