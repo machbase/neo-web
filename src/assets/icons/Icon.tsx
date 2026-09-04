@@ -125,7 +125,7 @@ export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';
 
 export { GoArrowBoth, GoPencil, GoTerminal, GoDotFill, GoCommandPalette, GoDatabase, GoGrabber, GoPlus } from 'react-icons/go';
 
-export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset } from 'react-icons/lu';
+export { LuFlipVertical, LuMonitorSpeaker, LuTimerReset, LuDatabaseBackup } from 'react-icons/lu';
 
 export { FaCircle as SaveCricle, FaLaptop, FaDesktop, FaRegCalendarAlt as Calendar, FaFolderPlus, FaUser, FaHtml5, FaCss3 } from 'react-icons/fa';
 

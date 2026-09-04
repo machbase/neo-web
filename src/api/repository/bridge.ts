@@ -2,16 +2,19 @@
 //
 // Migrated (RPC exists): getBridge→bridge.list, genBridge→bridge.add, delBridge→bridge.delete,
 //   commandBridge→bridge.test / bridge.exec / (bridge.query + bridge.result.fetch/close cursor),
-//   getSubr→schedule.list (filtered to type=subscriber), genSubr→schedule.subscriber.add,
-//   delSubr→schedule.delete, commandSubr→schedule.start / schedule.stop.
-// Kept on REST: getSubrItem (no single-item read RPC `schedule.get` exists).
+//   getSubr→subscriber.list, genSubr→subscriber.add, delSubr→subscriber.delete(id),
+//   commandSubr→subscriber.start / subscriber.stop (id), getSubrItem→subscriber.get(id).
+// neo-server PR #474 split `schedule.*` into `timer.*` / `subscriber.*` and REMOVED the old
+// namespace in the same commit, so nothing here may fall back to `schedule.*`. Subscribers are
+// now addressed by numeric `id` instead of name — a name string answers `-32602`.
 // The external signatures and return envelopes ({ data, success, reason, elapse }) are kept as-is so
 // the bridge components render unchanged; only the internals are swapped to RPC + adapters.
-import request from '@/api/core';
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 
 export type BridgeType = 'SQLite' | 'PostgreSQL' | 'MySQL' | 'MSSQL' | 'MQTT' | 'NATS';
 interface SubrItemType {
+    /** Server-assigned identity. Every mutating RPC addresses the subscriber by this, never by name. */
+    id: number;
     name: string;
     autoStart: boolean;
     state: string;
@@ -21,9 +24,14 @@ interface SubrItemType {
     type?: string;
     QoS?: string;
     queue?: string;
+    stream?: string;
 }
 interface SUBR_RES_TYPE extends RES_COMM {
     data: SubrItemType[];
+}
+export interface SUBR_ITEM_RES_TYPE extends RES_COMM {
+    data: SubrItemType;
+    statusText?: string;
 }
 interface RES_COMM {
     elapse: string;
@@ -232,61 +240,82 @@ export const commandBridge = async (aState: CommandBridgeStateType, aBridgeName:
 /** Subscriber */
 
 /**
- * Get subr list — `schedule.list` (params: []) filtered to type=subscriber.
- * RPC result is the full `Schedule[]`; map subscriber entries into the existing SubrItemType shape.
- * NOTE: the Schedule struct has no `queue` field, so `queue` cannot be populated from this RPC.
+ * Map one `subscriber.*` RPC row (backend `subscriber.Info`) into SubrItemType.
+ *
+ * Every field of that struct is tagged `omitempty`, so `autoStart:false` / `qos:0` and empty
+ * strings arrive as MISSING keys — default them here.
+ *
+ * Two shape changes came with the `subscriber.*` split:
+ * - the QoS json key went from `QoS` to `qos` (both are accepted below),
+ * - `queue` / `stream` are finally part of the response. They used to be write-only: the old
+ *   `scheduler.Schedule` had no slot for them, so a NATS queue group could never be read back.
+ * `subscriber.Info` also dropped the `type` discriminator, so fill it in as a constant.
+ */
+const toSubrItem = (s: any): SubrItemType => {
+    const qos = s?.QoS ?? s?.qos;
+    return {
+        id: Number(s?.id ?? 0),
+        name: s?.name ?? s?.Name ?? '',
+        autoStart: Boolean(s?.autoStart ?? s?.AutoStart),
+        state: s?.state ?? s?.State ?? '',
+        task: s?.task ?? s?.Task ?? '',
+        bridge: s?.bridge ?? s?.Bridge ?? '',
+        topic: s?.topic ?? s?.Topic ?? '',
+        type: s?.type ?? s?.Type ?? 'SUBSCRIBER',
+        QoS: qos === undefined || qos === null ? undefined : String(qos),
+        queue: s?.queue ?? s?.Queue ?? undefined,
+        stream: s?.stream ?? s?.Stream ?? undefined,
+    };
+};
+
+/**
+ * Get subr list — `subscriber.list` (params: []).
+ * The namespace is subscriber-only, so there is no `type` filtering to do any more.
+ * NOTE: the backend scopes the list to the logged-in user's own definitions (no SYS bypass).
  */
 export const getSubr = async (): Promise<SUBR_RES_TYPE> => {
     try {
-        const res = await rpcCall<any[]>(RpcMethod.schedule.list, []);
+        const res = await rpcCall<any[]>(RpcMethod.subscriber.list, []);
         const err = rpcErrMessage(res);
         if (err) return { success: false, reason: err, elapse: '', data: [] };
         const rows = (res?.result ?? []) as any[];
-        const data: SubrItemType[] = rows
-            .filter((s) => String(s?.type ?? s?.Type ?? '').toLowerCase() === 'subscriber')
-            .map((s) => {
-                const qos = s?.QoS ?? s?.qos;
-                return {
-                    name: s?.name ?? s?.Name ?? '',
-                    autoStart: Boolean(s?.autoStart ?? s?.AutoStart),
-                    state: s?.state ?? s?.State ?? '',
-                    task: s?.task ?? s?.Task ?? '',
-                    bridge: s?.bridge ?? s?.Bridge ?? '',
-                    topic: s?.topic ?? s?.Topic ?? '',
-                    type: s?.type ?? s?.Type ?? '',
-                    QoS: qos === undefined || qos === null ? undefined : String(qos),
-                    queue: s?.queue ?? s?.Queue ?? undefined,
-                };
-            });
-        return { success: true, reason: 'success', elapse: '', data };
+        return { success: true, reason: 'success', elapse: '', data: rows.map(toSubrItem) };
     } catch (e) {
         return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '', data: [] };
     }
 };
 /**
- * Get subr item — stays on REST (no single-item read RPC `schedule.get` exists).
+ * Get subr item — `subscriber.get(id)` (params: [id]).
+ * The id comes from `subscriber.list` / `subscriber.add`; a name string is rejected by the backend.
  * @returns subr info
  */
-export const getSubrItem = (aSubrName: string): Promise<SubrItemType> => {
-    return request({
-        method: 'GET',
-        url: `/api/subscribers/${aSubrName}`,
-    });
+export const getSubrItem = async (aSubrId: number): Promise<SUBR_ITEM_RES_TYPE> => {
+    try {
+        const res = await rpcCall<any>(RpcMethod.subscriber.get, [aSubrId]);
+        const err = rpcErrMessage(res);
+        if (err) return errEnvelope(err);
+        return { success: true, reason: 'success', elapse: '', data: toSubrItem(res?.result) };
+    } catch (e) {
+        return errEnvelope(e instanceof Error ? e.message : String(e));
+    }
 };
 
 /**
- * Gen subr — `schedule.subscriber.add(req)` (params: [{name, bridge, command, autoStart, mqtt?, nats?}]).
- * The backend switched from positional args to a single structured payload (neo-server #437):
- * MQTT bridges nest `mqtt: {topic, qos}`, NATS bridges nest `nats: {subject, queueName?}` — the NATS
- * queue group finally has a real slot (it used to be a silently-ignored trailing arg).
- * (`nats.streamName`/JetStream is not sent — the create form never collects it.)
+ * Gen subr — `subscriber.add(req)` (params: [{name, bridge, command, autoStart, mqtt?|nats?}]).
  *
- * The protocol branch follows the form's `bridge_type`; when absent (legacy caller), a payload with a
- * `queue` value falls back to NATS — only the NATS form collects queue — otherwise MQTT.
+ * The nested option blocks survived the `schedule.*` split unchanged in shape, but the NATS keys
+ * were renamed: `queueName`→`queue`, `streamName`→`stream`. Sending the old `queueName` still
+ * CREATES the subscriber and silently drops the queue group — the one failure in this migration
+ * that produces no error — so the names below must stay in sync with the backend struct.
  *
- * @aData create payload from the form: { name, bridge, topic, task, autoStart, bridge_type?, QoS?, queue? }.
+ * `mqtt` and `nats` are mutually exclusive; sending both is rejected. The protocol branch follows
+ * the form's `bridge_type`; when absent (legacy caller), a payload with a `queue` value falls back
+ * to NATS — only the NATS form collects queue — otherwise MQTT.
+ *
+ * @aData create payload from the form: { name, bridge, topic, task, autoStart, bridge_type?, QoS?, queue?, stream? }.
+ * @returns envelope carrying the created `id` on success.
  */
-export const genSubr = async (aData: any): Promise<RES_COMM> => {
+export const genSubr = async (aData: any): Promise<RES_COMM & { id?: number }> => {
     try {
         const req: any = {
             name: aData?.name,
@@ -296,26 +325,30 @@ export const genSubr = async (aData: any): Promise<RES_COMM> => {
         };
         const isNats = aData?.bridge_type ? String(aData.bridge_type).toLowerCase() === 'nats' : Boolean(aData?.queue);
         if (isNats) {
-            req.nats = { subject: aData?.topic, ...(aData?.queue ? { queueName: aData.queue } : {}) };
+            req.nats = {
+                subject: aData?.topic,
+                ...(aData?.queue ? { queue: aData.queue } : {}),
+                ...(aData?.stream ? { stream: aData.stream } : {}),
+            };
         } else {
             req.mqtt = { topic: aData?.topic, qos: Number(aData?.QoS ?? 0) };
         }
-        const res = await rpcCall(RpcMethod.schedule.subscriber.add, [req]);
+        const res = await rpcCall<number>(RpcMethod.subscriber.add, [req]);
         const err = rpcErrMessage(res);
-        return err ? errEnvelope(err) : { success: true, reason: 'success', elapse: '' };
+        return err ? errEnvelope(err) : { success: true, reason: 'success', elapse: '', id: Number(res?.result ?? 0) };
     } catch (e) {
         return errEnvelope(e instanceof Error ? e.message : String(e));
     }
 };
 
 /**
- * Delete subr — `schedule.delete(name)` (params: [name]).
- * @TargetName string
+ * Delete subr — `subscriber.delete(id)` (params: [id]).
+ * @aSubrId numeric id from `subscriber.list` / `subscriber.add`
  * @return status
  */
-export const delSubr = async (aTargetName: string): Promise<RES_COMM> => {
+export const delSubr = async (aSubrId: number): Promise<RES_COMM> => {
     try {
-        const res = await rpcCall(RpcMethod.schedule.delete, [aTargetName]);
+        const res = await rpcCall(RpcMethod.subscriber.delete, [aSubrId]);
         const err = rpcErrMessage(res);
         return err ? errEnvelope(err) : { success: true, reason: 'success', elapse: '' };
     } catch (e) {
@@ -324,15 +357,15 @@ export const delSubr = async (aTargetName: string): Promise<RES_COMM> => {
 };
 
 /**
- * Command Subr — `schedule.stop` when state=stop, otherwise `schedule.start` (params: [name]).
+ * Command Subr — `subscriber.stop` when state=stop, otherwise `subscriber.start` (params: [id]).
  * @param aState
- * @param aSubrName
+ * @param aSubrId numeric id from `subscriber.list` / `subscriber.add`
  * @returns
  */
-export const commandSubr = async (aState: CommandSubrStateType, aSubrName: string): Promise<RES_COMM> => {
-    const method = aState === 'stop' ? RpcMethod.schedule.stop : RpcMethod.schedule.start;
+export const commandSubr = async (aState: CommandSubrStateType, aSubrId: number): Promise<RES_COMM> => {
+    const method = aState === 'stop' ? RpcMethod.subscriber.stop : RpcMethod.subscriber.start;
     try {
-        const res = await rpcCall(method, [aSubrName]);
+        const res = await rpcCall(method, [aSubrId]);
         const err = rpcErrMessage(res);
         return err ? errEnvelope(err) : { success: true, reason: 'success', elapse: '' };
     } catch (e) {

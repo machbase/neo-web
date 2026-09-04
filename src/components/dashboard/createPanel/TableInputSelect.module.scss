@@ -1,0 +1,37 @@
+@use '@/design-system/tokens' as t;
+
+/**
+ * `Table` and the database · owner it resolves in, stacked in the label column.
+ *
+ * The qualifying line sits here rather than inside the field so the field stays one line tall.
+ * Inside the box it made the field 40px against the 30px of every other field in the block, and
+ * the slack from centring it turned the 4px gap below into 9px.
+ */
+.label-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/**
+ * 18px + 12px is the field's own 30px, so stacking two lines here leaves the row exactly as tall
+ * as every other field row in the block. The line box is set rather than inherited because the
+ * refresh button next to the word sits on the text baseline and would otherwise add its descender
+ * space on top of its 18px.
+ */
+.label-main {
+    display: flex;
+    align-items: center;
+    line-height: 18px;
+}
+
+.label-description {
+    // Held to the label column's width so a long database name cannot widen the column and pull
+    // the Table field out of line with the fields below it.
+    max-width: 120px;
+    font-size: t.$font-size-xs;
+    font-weight: 400;
+    line-height: 12px;
+    color: t.$text-tertiary;
+    @include t.text-ellipsis;
+}

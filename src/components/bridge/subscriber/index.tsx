@@ -14,6 +14,8 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
     const sActiveSubr = useRecoilValue<any>(gActiveSubr);
     const setStateSubr = useSetRecoilState(gStateSubr);
     const [sPayload, setPayload] = useState<any>(pCode);
+    // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
+    const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sState, setState] = useState<any>('');
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
@@ -21,7 +23,7 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
 
     /** delete item */
     const deleteItem = async () => {
-        const sRes: any = await delSubr(pCode.subr.name);
+        const sRes: any = await delSubr(pCode.subr.id);
         if (sRes.success) {
             setDelSubr(pCode);
             setResErrMessage(undefined);
@@ -36,8 +38,8 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
         let sSetState: any = undefined;
         if (sState === 'STARTING' || sState === 'RUNNING') sSetState = 'STOP';
         else sSetState = 'STARTING';
-        const sResCommand: any = await commandSubr(sSetState === 'STOP' ? 'stop' : 'start', pCode.subr.name);
-        const sResSubrInfo: any = await getSubrItem(pCode.subr.name);
+        const sResCommand: any = await commandSubr(sSetState === 'STOP' ? 'stop' : 'start', pCode.subr.id);
+        const sResSubrInfo = await getSubrItem(pCode.subr.id);
         if (sResCommand.success) {
             setCommandResMessage(undefined);
         } else setCommandResMessage(sResCommand?.data ? (sResCommand as any).data.reason : (sResCommand.statusText as string));
@@ -50,7 +52,7 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
     useEffect(() => {
         setPayload(pCode);
         setState(pCode?.subr?.state ?? '');
-        if (sPayload?.subr?.name !== pCode?.subr?.name) {
+        if (sPayload?.subr?.id !== pCode?.subr?.id) {
             setResErrMessage(undefined);
             setCommandResMessage(undefined);
         }
@@ -61,7 +63,7 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
             {/* Show info */}
             {sPayload.subr && sActiveSubr && (
                 <Page>
-                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
+                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
                             <Page.Body>
@@ -119,11 +121,18 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                     </Page.ContentBlock>
                                 )}
 
-                                {/* Queue */}
+                                {/* Queue — readable since the subscriber.* split; it used to be write-only */}
                                 {sPayload?.subr?.queue && (
                                     <Page.ContentBlock>
                                         <Page.ContentTitle>Queue</Page.ContentTitle>
                                         <Page.ContentDesc>{sPayload.subr.queue}</Page.ContentDesc>
+                                    </Page.ContentBlock>
+                                )}
+                                {/* Stream (NATS JetStream) */}
+                                {sPayload?.subr?.stream && (
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>Stream</Page.ContentTitle>
+                                        <Page.ContentDesc>{sPayload.subr.stream}</Page.ContentDesc>
                                     </Page.ContentBlock>
                                 )}
                                 {/* TASK */}

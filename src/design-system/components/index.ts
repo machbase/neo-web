@@ -15,7 +15,7 @@ export { Input } from './Input';
 export type { InputProps, InputSize, InputVariant, InputLabelPosition } from './Input';
 
 export { InputSelect } from './InputSelect';
-export type { InputSelectProps, InputSelectSize, InputSelectVariant, InputSelectLabelPosition, InputSelectOption } from './InputSelect';
+export type { InputSelectProps, InputSelectSize, InputSelectVariant, InputSelectLabelPosition, InputSelectOption, InputSelectOptionBadge } from './InputSelect';
 
 export { Textarea } from './Textarea';
 export type { TextareaProps, TextareaSize, TextareaVariant, TextareaLabelPosition } from './Textarea';

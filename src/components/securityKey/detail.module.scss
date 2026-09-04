@@ -1,0 +1,246 @@
+@use '@/design-system/tokens' as t;
+
+// header: identity on the left, actions on the right
+.head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: t.$spacing-16;
+    flex-wrap: wrap;
+}
+
+.headMain {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-4;
+    min-width: 0;
+}
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    min-width: 0;
+}
+
+.glyph {
+    color: t.$text-secondary;
+    flex-shrink: 0;
+}
+
+.title {
+    font-size: 19px;
+    font-weight: 600;
+    color: t.$text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// state pill — only rendered when the credential needs attention
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.badgeDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+.badge--soon {
+    color: t.$warning-main;
+    background-color: rgba(255, 152, 0, 0.14);
+}
+
+.badge--expired {
+    color: t.$error-main;
+    background-color: rgba(255, 83, 83, 0.14);
+}
+
+.subline {
+    color: t.$text-tertiary;
+    font-size: 12px;
+    font-family: 'D2Coding', 'Consolas', monospace;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    flex-shrink: 0;
+}
+
+// validity: how much of the lifetime is spent, and how much is left
+.validityHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: t.$spacing-12;
+    flex-wrap: wrap;
+    margin-bottom: t.$spacing-8;
+}
+
+.validityLabel {
+    display: flex;
+    align-items: baseline;
+    gap: t.$spacing-8;
+}
+
+.validityTitle {
+    color: t.$text-secondary;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.validityLeft {
+    color: t.$text-tertiary;
+    font-size: 12px;
+}
+
+.validityRange {
+    color: t.$text-muted;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    font-family: 'D2Coding', 'Consolas', monospace;
+}
+
+.bar {
+    position: relative;
+    height: 6px;
+    border-radius: 3px;
+    background-color: t.$bg-elevated;
+    overflow: hidden;
+}
+
+.barFill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 3px;
+    background-color: t.$text-muted;
+    transition: width 0.25s ease;
+}
+
+.barFill--soon {
+    background-color: t.$warning-main;
+}
+
+.barFill--expired {
+    background-color: t.$error-main;
+}
+
+// facts as label/value rows. A card grid went ragged the moment the field count stopped dividing
+// evenly (the token has five), leaving an orphan cell and broken borders; rows hold at any count
+// and at any pane width. Labels are the API field names verbatim — no uppercasing, which turned
+// `createdAt` into the unreadable `CREATEDAT`.
+.facts {
+    border: 1px solid t.$border-color-default;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.factRow {
+    display: grid;
+    grid-template-columns: minmax(84px, 116px) 1fr;
+    gap: t.$spacing-16;
+    align-items: baseline;
+    padding: t.$spacing-8 t.$spacing-16;
+    border-bottom: 1px solid t.$border-color-default;
+}
+
+.factRow:last-child {
+    border-bottom: 0;
+}
+
+.factLabel {
+    color: t.$text-muted;
+    font-size: 12px;
+    font-family: 'D2Coding', 'Consolas', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.factValue {
+    color: t.$text-secondary;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    word-break: break-all;
+    min-width: 0;
+}
+
+.factValue--soon {
+    color: t.$warning-main;
+}
+
+.factValue--expired {
+    color: t.$error-main;
+}
+
+.factValueRow {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    min-width: 0;
+}
+
+.mono {
+    font-family: 'D2Coding', 'Consolas', monospace;
+}
+
+// usage
+.usageHead {
+    display: flex;
+    align-items: baseline;
+    gap: t.$spacing-8;
+    margin-bottom: t.$spacing-8;
+}
+
+.usageTitle {
+    color: t.$text-secondary;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.usageWhere {
+    color: t.$text-tertiary;
+    font-size: 12px;
+}
+
+.code {
+    background-color: t.$bg-elevated;
+    border-radius: 4px;
+    padding: t.$spacing-12;
+    color: t.$text-tertiary;
+    font-family: 'D2Coding', 'Consolas', monospace;
+    font-size: 11.5px;
+    line-height: 1.65;
+    overflow-x: auto;
+    white-space: pre;
+}
+
+// note pinned under a create form — the response is unrecoverable, say so before issuing
+.formNote {
+    display: flex;
+    align-items: flex-start;
+    gap: t.$spacing-6;
+    color: t.$text-muted;
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+// required marker next to a base-form field title
+.req {
+    color: t.$error-main;
+    margin-left: 4px;
+}

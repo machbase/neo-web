@@ -11,18 +11,19 @@ import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { getPanelTimeMinMaxTarget, getTimeMinMaxFetchTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getPanelTimeMinMaxTarget, isTableScanTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { isDashboardSelectableTable } from '@/utils/dashboardTableKind';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 import { handlePanelEdit } from '@/hooks/useVideoSync';
-import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage } from './validation';
+import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage, getTimeFieldValidationMessage, getValueFieldValidationMessage } from './validation';
 import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import RangeChips from '../RangeChips';
 
@@ -78,6 +79,12 @@ const CreatePanel = ({
             return;
         }
         if (!validateTagSelection(sPanelOption)) {
+            return;
+        }
+        if (!validateTimeField(sPanelOption)) {
+            return;
+        }
+        if (!validateValueField(sPanelOption)) {
             return;
         }
 
@@ -172,6 +179,12 @@ const CreatePanel = ({
             return;
         }
         if (!validateTagSelection(sPanelOption)) {
+            return;
+        }
+        if (!validateTimeField(sPanelOption)) {
+            return;
+        }
+        if (!validateValueField(sPanelOption)) {
             return;
         }
 
@@ -274,6 +287,28 @@ const CreatePanel = ({
         return false;
     };
 
+    /**
+     * A block with no time column cannot produce a query the engine will accept, so it is stopped
+     * here rather than saved and left to fail server-side with a syntax error.
+     */
+    const validateTimeField = (aPanelInfo: any) => {
+        const sMessage = getTimeFieldValidationMessage(aPanelInfo);
+        if (!sMessage) return true;
+        Toast.error(sMessage);
+        return false;
+    };
+
+    /**
+     * The same refusal for the Value field: a block whose table offers nothing to plot builds a
+     * query with an empty select item, so it is stopped here rather than saved and left to fail.
+     */
+    const validateValueField = (aPanelInfo: any) => {
+        const sMessage = getValueFieldValidationMessage(aPanelInfo);
+        if (!sMessage) return true;
+        Toast.error(sMessage);
+        return false;
+    };
+
     useEffect(() => {
         if (!sMissingTagBlockId) return;
         if (getFirstMissingTagSelectionBlockId(sPanelOption) !== sMissingTagBlockId) {
@@ -287,6 +322,12 @@ const CreatePanel = ({
             return;
         }
         if (!validateTagSelection(sPanelOption)) {
+            return;
+        }
+        if (!validateTimeField(sPanelOption)) {
+            return;
+        }
+        if (!validateValueField(sPanelOption)) {
             return;
         }
 
@@ -394,14 +435,9 @@ const CreatePanel = ({
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag) || sIsCreateModeFirstPanel) {
-            const sIsViewTimeMinMax = isViewTimeMinMaxTarget(sTargetTag);
-            if (sTargetTag?.customTable || (!sIsViewTimeMinMax && (sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag))) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
-            let sSvrResult: any = undefined;
-            if ((sTargetTag.table ?? '').split('.').length > 2) {
-                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
-            } else {
-                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
-            }
+            const sIsTableScanTimeMinMax = isTableScanTimeMinMaxTarget(sTargetTag);
+            if (sTargetTag?.customTable || (!sIsTableScanTimeMinMax && (sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag))) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
+            const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);
             if (sSvrResult?.[0]?.[0] == null) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             const sSvrMinMax = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
             if (!sSvrMinMax) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
@@ -415,10 +451,9 @@ const CreatePanel = ({
     const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
         if (sResult && sResult?.success) {
-            const newTable = sResult.data.rows.filter((aItem: any) => {
-                const sTableType = getTableType(aItem[4]);
-                return sTableType === 'log' || sTableType === 'tag' || sTableType === 'view';
-            });
+            // Rows are still unqualified here — parseDashboardTables rewrites TABLE_NAME below —
+            // so index 3 is the bare object name the internal-table check wants.
+            const newTable = sResult.data.rows.filter((aItem: any) => isDashboardSelectableTable(getTableType(aItem[4]), aItem[3]));
             const sParesdTable = parseDashboardTables({ columns: sResult.data.columns, rows: newTable });
             setTableList(sParesdTable);
             if (aStatus) {

@@ -1,4 +1,11 @@
-import { getPanelTimeMinMaxTarget, hasResolvedTimeRange, pickBoardTimeMinMaxPanel } from './dashboardTimeMinMax';
+import {
+    createTableScanTimeMinMaxQuery,
+    getPanelTimeMinMaxTarget,
+    hasResolvedTimeRange,
+    isTableScanTimeMinMaxTarget,
+    pickBoardTimeMinMaxPanel,
+    shouldFetchBlockTimeMinMax,
+} from './dashboardTimeMinMax';
 
 const timePanel = (id: string) => ({ id, type: 'Line', blockList: [{ timeBaseTime: true, timeType: 6 }] });
 const distancePanel = (id: string) => ({ id, type: 'Line', blockList: [{ timeBaseTime: true, timeType: 20 }] });
@@ -68,5 +75,45 @@ describe('dashboard time min max helpers', () => {
         ];
 
         expect(getPanelTimeMinMaxTarget(undefined, fallbackPanels, 'edited')).toBe(fallbackPanels[1]);
+    });
+});
+
+describe('table-scan time extent (view and transaction)', () => {
+    const block = (over: Record<string, any> = {}) => ({ type: 'view', time: 'TS', table: 'FACTORY_A.SYS.DEMO_VIEW', userName: 'SYS', tag: '', useCustom: true, ...over });
+
+    // Neither type has a V$<TABLE>_STAT to read an extent from, so both scan their own time column.
+    test('both expand-only types are scan targets', () => {
+        expect(isTableScanTimeMinMaxTarget(block())).toBe(true);
+        expect(isTableScanTimeMinMaxTarget(block({ type: 'transaction', table: 'MACHBASEDB.SYS.ORDERS' }))).toBe(true);
+    });
+
+    test('tag and log are not — they keep their own paths', () => {
+        expect(isTableScanTimeMinMaxTarget(block({ type: 'tag', time: 'TIME' }))).toBe(false);
+        expect(isTableScanTimeMinMaxTarget(block({ type: 'log', time: '_ARRIVAL_TIME' }))).toBe(false);
+    });
+
+    // A view over a distance-based tag table loses the BASETIME flag and so resolves no time
+    // column at all. Answering false here is what keeps `select min(), max()` from being built;
+    // the panel falls back to the board range instead. Distance support for views is a known gap.
+    test('a block with no resolved time column is not a scan target', () => {
+        expect(isTableScanTimeMinMaxTarget(block({ time: '' }))).toBe(false);
+        expect(isTableScanTimeMinMaxTarget(block({ time: undefined }))).toBe(false);
+        expect(createTableScanTimeMinMaxQuery(block({ time: '' }))).toBeUndefined();
+    });
+
+    test('a transaction block asks for its extent without needing a tag', () => {
+        expect(shouldFetchBlockTimeMinMax(block({ type: 'transaction', tag: '' }))).toBe(true);
+    });
+
+    test('the query scans the block time column on the qualified table', () => {
+        expect(createTableScanTimeMinMaxQuery(block({ type: 'transaction', time: 'TS', table: 'MACHBASEDB.SYS.ORDERS' }))).toBe(
+            'select min(TS) as min_time, max(TS) as max_time from MACHBASEDB.SYS.ORDERS'
+        );
+    });
+
+    test('an unqualified table name is prefixed with the block owner', () => {
+        expect(createTableScanTimeMinMaxQuery(block({ type: 'transaction', table: 'ORDERS', userName: 'SYS' }))).toBe(
+            'select min(TS) as min_time, max(TS) as max_time from SYS.ORDERS'
+        );
     });
 });

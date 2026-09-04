@@ -11,8 +11,8 @@ import { getId, isMobile } from '@/utils';
 import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
-import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
+import { pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { VariableHeader } from '@/components/dashboard/variable/header';
@@ -84,12 +84,7 @@ const DashboardView = () => {
         })[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             if (sTargetTag.customTable) return defaultMinMax();
-            let sSvrResult: any = undefined;
-            if (sTargetTag.table.split('.').length > 2) {
-                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
-            } else {
-                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
-            }
+            const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);
             if (sSvrResult?.[0]?.[0] == null) return defaultMinMax();
             const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
             if (!sResult) return defaultMinMax();

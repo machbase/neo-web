@@ -1,4 +1,5 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
+import { getCurrentDatabaseId, isSameDatabaseId } from '@/utils/currentDatabaseState';
 import { fetchDashboardJsonColumnSamples, getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { generateUUID } from '@/utils';
@@ -14,7 +15,9 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
-import { TableTypeOrderList, COLUMN_HIDDEN_REGEX } from '@/components/side/DBExplorer/utils';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
+import { isCollapsibleTableType, isTaglessTableType, visibleColumnsForTableType } from '@/utils/dashboardTableKind';
+import { TIME_FIELD_MISSING_MESSAGE, VALUE_FIELD_MISSING_MESSAGE } from './validation';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -27,9 +30,10 @@ import { Toast } from '@/design-system/components';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import TagSelectDialog from '@/components/inputs/TagSelectDialog';
 import { Duration } from './Duration';
+import { TableInputSelect, tableSelectOptionOf, type TableSelectOption } from './TableInputSelect';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
-import { buildFullTypingQuery } from '@/utils/fullTypingDateBin';
+import { deactivateFullTyping, enterFullTyping, exitFullTyping, fullTypingAfterTableChange, updateFullTypingText } from '@/utils/fullTypingDateBin';
 import { FullQueryHelper } from './Block/FullQueryHelper';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { TransformBlockType } from './Transform/type';
@@ -41,10 +45,71 @@ import { MdOutlineOpenInNew } from 'react-icons/md';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { displayJsonPathLabel, extractJsonPathsFromSamples, isJsonTypeColumn, jsonPathInputToStoredPath, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
+import fieldStyles from './fields.module.scss';
 import { isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
 import { repairDashboardBlockForTableColumns } from '@/utils/dashboardBlockColumns';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { MIXED_X_AXIS_KIND_WARNING } from '@/components/tagAnalyzer/seriesModel';
+import { isMountedTableName, matchesQualifiedName, qualifySiblingObject } from '@/utils/qualifiedTableName';
+import { isMountedDatabase } from '@/utils/currentDatabaseState';
+
+/**
+ * The `V$<TABLE>_STAT` view that belongs to a table-list row.
+ *
+ * Rows arrive from `parseDashboardTables`, which since v8.7 always qualifies a name to
+ * `database.owner.table`. The decoration therefore has to land on the last segment alone:
+ * treating the name as `owner.table` and prefixing the whole thing built
+ * `MACHBASEDB.V$SYS_STAT`, which the engine reads as a user named MACHBASEDB and rejects with
+ * `ERR-2080, User (MACHBASEDB) does not exist`. Row indices follow E_TABLE_INFO — 1 is
+ * USER_NAME, 3 is TABLE_NAME. The owner argument only matters for a row whose name carries no
+ * owner of its own, which is not a shape the current query produces; it is passed so the
+ * helper stays correct if one ever does.
+ */
+const statViewNameOf = (aRow: any[]): string =>
+    qualifySiblingObject(String(aRow?.[1] ?? ''), String(aRow?.[3] ?? ''), (aName) => `V$${aName}_STAT`);
+
+/**
+ * The table-list row a block's stored table name refers to.
+ *
+ * Two names lead to one row: the table itself, and its `V$<TABLE>_STAT` view, which a Gauge /
+ * Pie / Liquid fill panel stores in the very same field.
+ *
+ * An exact hit wins outright — that is what a config written on v8.7 holds. Failing that the
+ * name is under-qualified, which a config written earlier always is, and the short name is now
+ * genuinely ambiguous: `ATABLE` exists in three databases on a test server, and `SYS.ATABLE`
+ * and `KEV.ATABLE` sit side by side within one. So the missing parts are supplied from what
+ * the config does carry — its `userName`, and the database the session is in, which is what
+ * the short name meant when it was written and what the engine still resolves it to.
+ *
+ * When that still leaves more than one candidate the answer is nothing rather than a guess:
+ * `find` would otherwise return whichever row the engine happened to list first — measured,
+ * `ATABLE` comes back MACHBASEDB-first and `DEMO_TAG` FACTORY_A-first from the same statement —
+ * and binding a panel's columns and TABLE_ID to a different table than its data query reads is
+ * worse than showing no columns. Table ids are not unique across databases either: `ATABLE` is
+ * id 130 in both MACHBASEDB and a mount of it, so a wrong bind does not look wrong.
+ *
+ * A mounted row is never a candidate at all. Only an under-qualified name reaches this point,
+ * and such a name was written when mounted tables were already stored in full, so it never
+ * meant the mount — while binding to one reads columns that look plausible and belong to
+ * another table.
+ */
+const findTableRow = (aTableList: any, aName: string, aUserName?: string): any => {
+    if (!aName || !Array.isArray(aTableList)) return undefined;
+    const sExact = aTableList.find((aRow: any) => aRow?.[3] === aName || statViewNameOf(aRow) === aName);
+    if (sExact) return sExact;
+
+    const sCandidates = aTableList
+        .filter((aRow: any) => matchesQualifiedName(aRow?.[3], aName) || matchesQualifiedName(statViewNameOf(aRow), aName))
+        .filter((aRow: any) => !isMountedDatabase(aRow?.[6]));
+    if (sCandidates.length < 2) return sCandidates[0];
+
+    const sOwner = String(aUserName ?? '').toUpperCase();
+    const sOwned = sOwner ? sCandidates.filter((aRow: any) => String(aRow?.[1] ?? '').toUpperCase() === sOwner) : [];
+    const sPool = sOwned.length ? sOwned : sCandidates;
+
+    const sHere = sPool.filter((aRow: any) => isSameDatabaseId(aRow?.[6], getCurrentDatabaseId()));
+    return sHere.length === 1 ? sHere[0] : undefined;
+};
 
 export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount, pShouldFocusTag }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -67,12 +132,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     const sCustomQueryRef = useRef<any>(null);
     const sTagInputRef = useRef<HTMLInputElement | null>(null);
     const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
-    const sIsViewTable = pBlockInfo?.type === 'view';
+    // view and transaction have no tag column, so the Tag field and its picker are hidden — see
+    // TAGLESS_TABLE_TYPES.
+    const sIsTaglessTable = isTaglessTableType(pBlockInfo?.type);
     const sHasMissingTag = !!pShouldFocusTag && (!pBlockInfo?.tag || pBlockInfo.tag.trim() === '');
 
     const sFilteredColumnList = useMemo(() => {
-        if (sSelectedTableType === 'tag') return sColumnList.filter((aItem: any) => !COLUMN_HIDDEN_REGEX.test(aItem[0]));
-        return sColumnList;
+        return visibleColumnsForTableType(sSelectedTableType, sColumnList);
     }, [sColumnList, sSelectedTableType]);
     const sValueFieldColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => !isBaseTimeColumn(aItem) && (isNumberTypeColumn(aItem[1]) || isJsonTypeColumn(aItem[1])));
@@ -80,6 +146,29 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     const sTimeFieldColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isTimeFieldColumn(aItem));
     }, [sFilteredColumnList]);
+    /**
+     * The table's columns are loaded and none of them can serve as a time axis — which the v8.7
+     * view and transaction types made reachable, since neither is guaranteed a DATETIME column.
+     *
+     * `sColumnList` being non-empty is what separates this from a load still in flight. A stat view
+     * has no time predicate to begin with, and a block writing its own SQL owns the question.
+     */
+    const sHasNoTimeField = useMemo(() => {
+        if (sColumnList.length === 0 || sSelectedTableType === 'vir_tag' || pBlockInfo.customFullTyping?.use) return false;
+        return sTimeFieldColumnList.length === 0;
+    }, [sColumnList, sTimeFieldColumnList, sSelectedTableType, pBlockInfo.customFullTyping?.use]);
+    /**
+     * The same fact about the Value field: the columns are loaded and none of them can be plotted.
+     *
+     * Kept separate from `sHasNoTimeField` because a table can fail either test on its own — a
+     * VARCHAR-only view has a DATETIME column and nothing to plot, and the Time field beside it
+     * was the only one that said so.
+     */
+    const sHasNoValueField = useMemo(() => {
+        if (sColumnList.length === 0 || pBlockInfo.customFullTyping?.use) return false;
+        return sValueFieldColumnList.length === 0;
+    }, [sColumnList, sValueFieldColumnList, pBlockInfo.customFullTyping?.use]);
+
     const sJsonColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
     }, [sFilteredColumnList]);
@@ -123,7 +212,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                     return {
                         ...aPrev,
                         blockList: aPrev.blockList.map((block: any) => {
-                            if (block.id === pBlockInfo.id) return { ...block, table: aData.target.value, userName: '', tableInfo: [], customTable: true };
+                            if (block.id === pBlockInfo.id)
+                                return {
+                                    ...block,
+                                    table: aData.target.value,
+                                    userName: '',
+                                    tableInfo: [],
+                                    customTable: true,
+                                    customFullTyping: fullTypingAfterTableChange(block),
+                                };
                             else return block;
                         }),
                     };
@@ -155,7 +252,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             }
 
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
-                return aTable.id === pBlockInfo.id ? { ...sDefaultBlockOption[0], id: generateUUID(), color: aTable.color } : aTable;
+                return aTable.id === pBlockInfo.id
+                    ? {
+                          ...sDefaultBlockOption[0],
+                          id: generateUUID(),
+                          color: aTable.color,
+                          customFullTyping: fullTypingAfterTableChange(aTable),
+                      }
+                    : aTable;
             });
 
             pSetPanelOption((aPrev: any) => {
@@ -253,17 +357,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
                     if (aItem.id === pBlockInfo.id) {
-                        const sTmpItem = {
-                            ...aItem,
-                            customFullTyping: {
-                                ...aItem.customFullTyping,
-                                [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
-                            },
-                        };
-                        if (aKey === 'use' && aData?.target?.value === true) {
-                            sTmpItem.customFullTyping.text = buildFullTypingQuery(pBlockInfo);
-                        }
+                        const sValue = Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value;
+                        const sTmpItem = { ...aItem };
+                        if (aKey === 'use') sTmpItem.customFullTyping = sValue ? enterFullTyping(aItem) : exitFullTyping(aItem);
                         if (aKey === 'text') {
+                            sTmpItem.customFullTyping = updateFullTypingText(aItem, sValue);
                             if (aData?.target?.value?.trim() === '') setIsValidCustomQuery(true);
                             else setIsValidCustomQuery(() => false);
                         }
@@ -274,19 +372,21 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         });
     };
     const getColumnList = async (aTable: string) => {
-        const sTable = pTableList.find(
-            (aItem: any) =>
-                aItem[3] === aTable ||
-                `V$${aItem[3]}_STAT` === aTable ||
-                (aItem[3].split('.').length === 2 && `${aItem[1]}.V$${aItem[3].split('.').at(-1)}_STAT` === pBlockInfo.table)
-        );
+        const sTable = findTableRow(pTableList, aTable, pBlockInfo.userName);
+        // The reads below index into the row unguarded. Clearing matches the failure path at
+        // the end of this function, so a table that cannot be resolved does not leave the
+        // previous one's columns on screen.
+        if (!sTable) {
+            setColumnList([]);
+            return;
+        }
         const sIsVirtualTable = aTable.includes('V$');
         const sData = sIsVirtualTable
             ? await getVirtualTableInfo(sTable?.[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
             : await getTableInfo(sTable?.[6], sTable?.[2]);
         if (sData && sData?.data && sData?.data?.rows && sData?.data?.rows.length > 0) {
             const sTableType = getTableType(sTable[4]);
-            const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
+            const sVisibleRows = visibleColumnsForTableType(sTableType, sData.data.rows);
             const sRepairedBlock = {
                 ...repairDashboardBlockForTableColumns(pBlockInfo, sVisibleRows, sTableType),
                 tableInfo: sData.data.rows,
@@ -623,28 +723,29 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         }
     }, [pPanelOption.type, pBlockInfo.aggregator, pBlockInfo.values, pBlockInfo.useCustom]);
 
-    const getTableList = useMemo((): string[] => {
+    const getTableList = useMemo((): TableSelectOption[] => {
         const sSortedTableList = [...pTableList].sort((aTable: any, bTable: any) => {
             const aType = getTableType(aTable[4]);
             const bType = getTableType(bTable[4]);
             return TableTypeOrderList.indexOf(aType) - TableTypeOrderList.indexOf(bType);
         });
 
-        const sTableList = sSortedTableList.map((aItem: any) => aItem[3]);
+        const sTableList = sSortedTableList.map((aItem: any) => tableSelectOptionOf(aItem[3], getTableType(aItem[4])));
 
         if (pPanelOption.type === 'Gauge' || pPanelOption.type === 'Pie' || pPanelOption.type === 'Liquid fill') {
-            // sTagTableList has only MACHBASEDB
-            const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter((aTable: any) => getTableType(aTable[4]) === 'tag' && aTable[6] === -1);
-            sTagTableList.filter((aTagTable: any) => {
-                // check user
-                if (aTagTable[3].includes('.')) {
-                    const sSplitInfo = aTagTable[3].split('.');
-                    const sTable = sSplitInfo[1];
-                    const sUser = sSplitInfo[0];
-                    return aTagTable.splice(3, 0, `${sUser}.V$${sTable}_STAT`);
-                } else return aTagTable.splice(3, 0, `V$${aTagTable[3]}_STAT`);
-            });
-            const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => bTagTable[3]));
+            // Every tag table whose database actually has a `V$<TABLE>_STAT` view — which is
+            // every database except a mounted backup. Restricting this to the session's own
+            // database also excluded a second *active* one, whose view exists and reads fine
+            // (measured: FACTORY_A.SYS.V$DEMO_TAG_STAT answers 2 rows from a MACHBASEDB session).
+            const sTagTableList = JSON.parse(JSON.stringify(pTableList)).filter(
+                (aTable: any) => getTableType(aTable[4]) === 'tag' && !isMountedTableName(String(aTable[3] ?? ''))
+            );
+            // The stat view name replaces TABLE_NAME in the copied row, which is what the
+            // option list below reads. It must be computed before the splice, since the splice
+            // shifts TABLE_NAME out of index 3.
+            sTagTableList.forEach((aTagTable: any) => aTagTable.splice(3, 0, statViewNameOf(aTagTable)));
+            // The stat views are tag tables' own views, so they carry the tag chip.
+            const sResult = sTableList.concat(sTagTableList.map((bTagTable: any) => tableSelectOptionOf(bTagTable[3], 'tag')));
             return sResult;
         } else {
             // Time_value data chart reset
@@ -652,15 +753,21 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             const sTargetChart = pPanelOption.blockList?.[0]?.table?.includes('V$');
             if (sTargetChart && sChartDataType) {
                 pSetPanelOption((aPrev: any) => {
+                    const sDefaultBlockList = createDefaultTagTableOption(pTableList[0][1], pTableList[0], getTableType(pTableList[0][4]), '');
                     return {
                         ...aPrev,
-                        blockList: createDefaultTagTableOption(pTableList[0][1], pTableList[0], getTableType(pTableList[0][4]), ''),
+                        blockList: sDefaultBlockList.map((aBlock: any, aIdx: number) => ({
+                            ...aBlock,
+                            customFullTyping: deactivateFullTyping(aPrev.blockList?.[aIdx] ?? aBlock),
+                        })),
                     };
                 });
             }
             return sTableList;
         }
-    }, [pPanelOption.type]);
+        // pTableList belongs in here: the refresh button beside the Table label calls pGetTables(),
+        // and without the dependency the option list kept whatever it held when the panel opened.
+    }, [pPanelOption.type, pTableList]);
     /** return use duration */
     const getUseDuration = () => {
         if (pBlockInfo.type.toUpperCase() === 'LOG' && pBlockInfo.time.toUpperCase() !== '_ARRIVAL_TIME') return true;
@@ -668,12 +775,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     };
     /** init */
     const init = async () => {
-        const sTable = pTableList.find(
-            (aItem: any) =>
-                aItem[3] === pBlockInfo.table ||
-                `V$${aItem[3]}_STAT` === pBlockInfo.table ||
-                (aItem[3].split('.').length === 2 && `${aItem[1]}.V$${aItem[3].split('.').at(-1)}_STAT` === pBlockInfo.table)
-        );
+        const sTable = findTableRow(pTableList, pBlockInfo.table, pBlockInfo.userName);
         if (!sTable) return;
         const sIsVirtualTable = pBlockInfo.table.includes('V$');
         const sTableType = getTableType(sTable[4]);
@@ -682,6 +784,21 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         getColumnList(pBlockInfo.table);
         setOption(sTableType, pBlockInfo.tag);
     };
+    /**
+     * `init()` has to wait for `pTableList`, which is why this is not a mount-only effect.
+     *
+     * CreatePanel renders the block list as soon as the panel has an id and fetches its table list
+     * afterwards, so a block always mounts with `pTableList` still empty. `init()` then fails to
+     * resolve its own table and returns without setting either the table type or the column list —
+     * and nothing ran it again. A panel reopened from a saved board therefore sat with
+     * `sSelectedTableType` at `''` and no columns: the Time and Value pickers had nothing to
+     * offer, and neither could say why, since both messages treat an empty column list as a load
+     * still in flight.
+     *
+     * Re-running while the type is unresolved fixes that. The guard is what keeps a later refresh
+     * of `pTableList` from overwriting `vir_tag` / `variable_tag`, which are UI states no table row
+     * can reproduce, and it also stops the retry once a table genuinely cannot be found.
+     */
     useEffect(() => {
         init();
     }, []);
@@ -693,6 +810,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     }, [pBlockInfo.filter, sFilterTagDialogInfo.filterId, sFilterTagDialogInfo.isOpen]);
 
     const handleExitCustomField = async () => {
+        if (!pBlockInfo?.customFullTyping.use) return setIsValidCustomQuery(true);
         if (sIsValidCustomQuery) return;
         const sQuery = replaceVariablesInTql(pBlockInfo?.customFullTyping.text, pVariables, {
             interval: { IntervalType: 'min', IntervalValue: 20 },
@@ -710,7 +828,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
     };
 
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
-    useDebounce([pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
+    useDebounce([pBlockInfo?.customFullTyping.use, pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
 
     useEffect(() => {
         if (!pShouldFocusTag) return;
@@ -735,9 +853,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 size="side"
                                 variant="ghost"
                                 active={pBlockInfo.customFullTyping.use}
-                                disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar') || pBlockInfo.customFullTyping?.text?.trim() !== ''}
+                                disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar')}
                                 icon={<GoPencil size={14} />}
                                 onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
+                                aria-label={pBlockInfo.customFullTyping.use ? 'Switch to selecting' : 'Switch to typing'}
                                 isToolTip
                                 toolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
                             />
@@ -825,15 +944,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                             <Button
                                 size="side"
                                 variant="ghost"
-                                disabled={
-                                    sSelectedTableType === 'log' ||
-                                    sSelectedTableType === 'view' ||
-                                    sSelectedTableType === 'vir_tag' ||
-                                    pPanelOption.type === 'Geomap' ||
-                                    pBlockInfo.customFullTyping.use
-                                }
+                                disabled={!isCollapsibleTableType(sSelectedTableType) || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
                                 icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
-                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'view' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
+                                onClick={isCollapsibleTableType(sSelectedTableType) ? () => HandleFold() : () => {}}
                                 isToolTip
                                 toolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             />
@@ -852,7 +965,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             {/* TABLE */}
                             <Page.DpRow style={FIELD_ROW_STYLE}>
-                                <InputSelect
+                                <TableInputSelect
                                     label={
                                         <>
                                             Table
@@ -866,15 +979,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                             />
                                         </>
                                     }
-                                    labelPosition="left"
-                                    labelAlign="right"
-                                    type="text"
-                                    options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
+                                    options={getTableList}
                                     value={pBlockInfo.table}
-                                    onChange={(aEvent: any) => changedOption('table', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                    selectValue={pBlockInfo.table}
-                                    onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
-                                    size="md"
+                                    onInputChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customInput' } })}
+                                    onSelectChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customSelect' } })}
                                     style={FIELD_STYLE}
                                 />
                                 {sIsVirtualStatTable && sPrimaryValue ? (
@@ -893,6 +1001,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                             selectValue={getValueFieldFromValue(sPrimaryValue.value)}
                                             onSelectChange={(value: string) => changeValueOption('value', { target: { value } }, sPrimaryValue.id, 'values')}
                                             disabled={!sValueFieldColumnList[0]}
+                                            placeholder={sHasNoValueField ? VALUE_FIELD_MISSING_MESSAGE : undefined}
+                                            variant={sHasNoValueField ? 'error' : 'default'}
                                             size="md"
                                             style={sPrimaryJsonColumn ? FIELD_STYLE : WIDE_FIELD_STYLE}
                                         />
@@ -928,6 +1038,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         selectValue={pBlockInfo.time}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
+                                        placeholder={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
+                                        variant={sHasNoTimeField ? 'error' : 'default'}
                                         size="md"
                                         style={WIDE_FIELD_STYLE}
                                     />
@@ -939,7 +1051,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                         <div ref={sCustomQueryRef} style={{ position: 'relative' }}>
                             <Textarea
                                 placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
-                                defaultValue={pBlockInfo.customFullTyping.text}
+                                value={pBlockInfo.customFullTyping.text}
                                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
                                 onFocus={(e) => e.target.setSelectionRange(0, pBlockInfo?.customFullTyping?.text?.length)}
                                 autoFocus
@@ -955,24 +1067,19 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                         </div>
                     )}
                     {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use ? (
-                        <div style={FIELD_STACK_STYLE}>
+                        <div className={fieldStyles['field-stack']} style={FIELD_STACK_STYLE}>
                             <Page.DpRow style={FIELD_ROW_STYLE}>
-                                <InputSelect
+                                <TableInputSelect
                                     label={
                                         <>
                                             Table
                                             <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} style={{ marginLeft: '4px' }} />
                                         </>
                                     }
-                                    labelPosition="left"
-                                    labelAlign="right"
-                                    type="text"
-                                    options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
+                                    options={getTableList}
                                     value={pBlockInfo.table}
-                                    onChange={(aEvent: any) => changedOption('table', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                    selectValue={pBlockInfo.table}
-                                    onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
-                                    size="md"
+                                    onInputChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customInput' } })}
+                                    onSelectChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customSelect' } })}
                                     style={FIELD_STYLE}
                                 />
 
@@ -988,6 +1095,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         selectValue={pBlockInfo.time}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
+                                        placeholder={sHasNoTimeField ? TIME_FIELD_MISSING_MESSAGE : undefined}
+                                        variant={sHasNoTimeField ? 'error' : 'default'}
                                         size="md"
                                         style={WIDE_FIELD_STYLE}
                                     />
@@ -995,7 +1104,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                             </Page.DpRow>
                             {sSelectedTableType !== 'vir_tag' ? (
                                 <Page.DpRow style={FIELD_ROW_STYLE}>
-                                    <div style={FIELD_ALIGN_SPACER_STYLE} />
+                                    <div className={fieldStyles['align-spacer']} style={FIELD_ALIGN_SPACER_STYLE} />
                                     <InputSelect
                                         label="Value field"
                                         labelPosition="left"
@@ -1009,6 +1118,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         onChange={(aEvent: any) => changedOption('value', { target: { value: aEvent.target.value, name: 'customInput' } })}
                                         selectValue={getValueFieldFromValue(pBlockInfo.value)}
                                         onSelectChange={(value: string) => changedOption('value', { target: { value, name: 'customSelect' } })}
+                                        placeholder={sHasNoValueField ? VALUE_FIELD_MISSING_MESSAGE : undefined}
+                                        variant={sHasNoValueField ? 'error' : 'default'}
                                         size="md"
                                         style={getJsonColumnFromValue(pBlockInfo.value) ? FIELD_STYLE : WIDE_FIELD_STYLE}
                                     />
@@ -1034,7 +1145,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 </Page.DpRow>
                             ) : null}
                             <Page.DpRow style={FIELD_ROW_STYLE}>
-                                {!sIsViewTable &&
+                                {!sIsTaglessTable &&
                                     (!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                         <DSInput
                                             ref={sTagInputRef}
@@ -1123,6 +1234,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                       pChangeJsonKeyOption={changeJsonKeyOption}
                                       pPanelOption={pPanelOption}
                                       pAggList={getAggregatorList}
+                                      pHasNoValueField={sHasNoValueField}
                                       pHideValueFieldRow={sIsVirtualStatTable && aIdx === 0}
                                   />
                               );
@@ -1134,7 +1246,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                               return (
                                   <Filter
                                       key={aItem.id}
-                                      pColumnList={sColumnList}
+                                      pColumnList={sFilteredColumnList}
                                       pBlockInfo={pBlockInfo}
                                       pFilterInfo={aItem}
                                       pChangeValueOption={changeValueOption}
@@ -1149,7 +1261,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 {/* DURATION */}
                 {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() ? <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} /> : <></>}
             </Page>
-            {sIsTagDialogOpen && !sIsViewTable && (
+            {sIsTagDialogOpen && !sIsTaglessTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleTagSelect}
@@ -1159,7 +1271,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                     pInitialTag={pBlockInfo.tag}
                 />
             )}
-            {sFilterTagDialogInfo.isOpen && !sIsViewTable && (
+            {sFilterTagDialogInfo.isOpen && !sIsTaglessTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleFilterTagSelect}

@@ -1,25 +1,24 @@
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { convertDashboardMinMaxRows } from './dashboardBlockColumns';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from './dashboardTimeMinMax';
+import { shouldFetchBlockTimeMinMax } from './dashboardTimeMinMax';
 
-interface BaseMinMaxFetchers {
-    /** Tag/log/view min-max for a block. */
-    fetchTimeMinMax: (aTarget: any) => Promise<any>;
-    /** The same, for a mounted database (`db.user.table`). */
-    fetchMountTimeMinMax: (aBlock: any) => Promise<any>;
-}
+/** Reads a block's raw time extent, mounted or not. See `createBlockTimeMinMaxFetcher`. */
+type BlockTimeMinMaxFetcher = (aBlock: any, aCustomTag?: string) => Promise<any>;
 
 /**
- * Builds the "full data extent of a block's base column" reader over a given pair of transports.
+ * Builds the "full data extent of a block's base column" reader over a given transport.
  *
- * The *logic* is one thing — which query shape a block needs, when it is worth asking at all, how the
- * rows convert — but the transport is not: the editor talks to `/web/api/query` with the session's
- * bearer token, while the public dashboard is unauthenticated and goes to `/db/query`. A public board
- * that borrowed the editor's fetcher got a 401 and no extent, which on a distance axis means the
- * `first`/`last` edges cannot be resolved and the panel silently falls back to the whole range.
+ * The *logic* is one thing — when it is worth asking at all, how the rows convert — but the
+ * transport is not: the editor talks to `/web/api/query` with the session's bearer token, while
+ * the public dashboard is unauthenticated and goes to `/db/query`. A public board that borrowed
+ * the editor's fetcher got a 401 and no extent, which on a distance axis means the `first`/`last`
+ * edges cannot be resolved and the panel silently falls back to the whole range.
+ *
+ * Choosing between the ordinary and the mounted query — and awaiting the catalogue that decision
+ * needs — is the injected fetcher's job, so this function no longer has to know about either.
  */
 export const createBlockBaseMinMaxFetcher =
-    ({ fetchTimeMinMax: aFetchTimeMinMax, fetchMountTimeMinMax: aFetchMountTimeMinMax }: BaseMinMaxFetchers) =>
+    (aFetchBlockTimeMinMax: BlockTimeMinMaxFetcher) =>
     async (aBlock: any): Promise<{ min: number; max: number } | undefined> => {
         if (!aBlock?.table) return undefined;
 
@@ -31,12 +30,7 @@ export const createBlockBaseMinMaxFetcher =
 
         if (!shouldFetchBlockTimeMinMax(aBlock, sCustomTag)) return undefined;
 
-        let sSvrResult: any;
-        if (String(aBlock.table).split('.').length > 2) {
-            sSvrResult = await aFetchMountTimeMinMax(aBlock);
-        } else {
-            sSvrResult = await aFetchTimeMinMax(getTimeMinMaxFetchTarget(aBlock, sCustomTag));
-        }
+        const sSvrResult = await aFetchBlockTimeMinMax(aBlock, sCustomTag);
         if (sSvrResult?.[0]?.[0] == null) return undefined;
 
         const sResult = convertDashboardMinMaxRows(sSvrResult, aBlock);
@@ -55,4 +49,4 @@ export const createBlockBaseMinMaxFetcher =
  * The editor's transport. The public dashboard has its own — see
  * `src/public-dashboard/utils/dashboardBaseMinMax.ts`.
  */
-export const fetchBlockBaseMinMax = createBlockBaseMinMaxFetcher({ fetchTimeMinMax, fetchMountTimeMinMax });
+export const fetchBlockBaseMinMax = createBlockBaseMinMaxFetcher(fetchBlockTimeMinMax);

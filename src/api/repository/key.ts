@@ -1,21 +1,30 @@
 // security key repository — migrated to the machbase-neo UI-API (JSON-RPC) (#1334).
 //
 // list/delete/generate are all on RPC now (`key.list`/`key.delete`/`key.generate`).
-// `key.generate(id, typ, notBefore, notAfter, store)` (params order: [id, typ, notBefore, notAfter, store]).
+// `key.generate(name, typ, notBefore, notAfter, store)` (params order: [name, typ, notBefore, notAfter, store]).
 //   - typ: 'ecdsa' | 'rsa'
 //   - notBefore / notAfter: unix seconds from the create form's Valid After / Valid Before date pickers; 0 = now / now+10y (server default).
 //   - store: when true the key is persisted server-side (appears in key.list).
-// Result: always { id, certificate, key, token } (key == privateKey). When store=true the result ALSO
-// includes `serverKey` (server certificate PEM) and `zip` (base64 string; Go []byte → JSON std base64).
-// The zip bundles server.pem, {id}_cert.pem, {id}_key.pem, {id}_token.txt. When store=false there is no
-// serverKey in the result, so genKey falls back to `server.certificate.get` to keep the mTLS serverKey
-// display, and zip is empty (no zip download for unstored keys).
+// Result: { id, name, certificate, key } (key == privateKey). `token` was REMOVED by server PR #469 —
+// API tokens are now their own credential under `token.*` (see token.ts), so nothing here carries one.
+// When store=true the result ALSO includes `serverKey` (server certificate PEM) and `zip` (base64 string;
+// Go []byte → JSON std base64), and `id` is the stored key's management id. The zip bundles server.pem,
+// {name}_cert.pem and {name}_key.pem — there is no token file. When store=false the server returns id 0
+// with no serverKey and no zip, so genKey falls back to `server.certificate.get` to keep the mTLS
+// serverKey display.
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 import { rpcServerCertificateGet } from './server';
 
 export interface KeyItemType {
-    id: string;
+    /** management id (auto-increment). This is what `key.delete` takes. */
+    id: number;
     idx: number;
+    /**
+     * certificate CommonName — the value that used to live in `id`.
+     * NOT unique (a name may be reused across owners or reissued certs), so always
+     * identify a key by `id` and only ever *display* `name`.
+     */
+    name: string;
     notAfter: number;
     notBefore: number;
 }
@@ -26,17 +35,18 @@ interface KeyListResType {
     success: boolean;
 }
 export interface GenKeyResType {
-    [key: string]: string | boolean | undefined;
+    [key: string]: string | number | boolean | undefined;
     success: boolean;
     elapse: string;
     reason: string;
-    // TOKEN_INFO
+    /** management id of the stored key. 0 when store=false (nothing was persisted). */
+    id: number;
+    /** CommonName as the server normalized it (lowercased) — use this, not the raw form input. */
+    name: string;
     certificate: string;
     privateKey: string;
     serverKey: string;
-    token: string;
     zip: string;
-    name?: string | undefined;
 }
 export interface CreatePayloadType {
     [key: string]: string | number | boolean;
@@ -57,7 +67,9 @@ const rpcErrMessage = (res: JsonRpcResponse<unknown>): string | null =>
 
 /**
  * Get security key list — `key.list`.
- * The RPC result is `KeyInfo[]` ({id, notBefore, notAfter}). idx is not in the RPC, so fill it from the array index.
+ * The RPC result is `KeyInfo[]` ({idx, id, name, notBefore, notAfter}). `id` is the numeric
+ * management id and `name` is the CommonName that used to be sent as `id`; `idx` falls back to
+ * the array index when the server omits it.
  */
 export const getKeyList = async (): Promise<KeyListResType> => {
     try {
@@ -66,10 +78,11 @@ export const getKeyList = async (): Promise<KeyListResType> => {
         if (err) return { success: false, reason: err, elapse: '', data: [] };
         const rows = (res?.result ?? []) as any[];
         const data: KeyItemType[] = rows.map((it, i) => ({
-            id: it?.id ?? it?.Id ?? '',
-            idx: i,
-            notBefore: Number(it?.notBefore ?? it?.NotBefore ?? 0),
-            notAfter: Number(it?.notAfter ?? it?.NotAfter ?? 0),
+            id: Number(it?.id ?? 0),
+            idx: Number(it?.idx ?? i),
+            name: String(it?.name ?? ''),
+            notBefore: Number(it?.notBefore ?? 0),
+            notAfter: Number(it?.notAfter ?? 0),
         }));
         return { success: true, reason: 'success', elapse: '', data };
     } catch (e) {
@@ -78,10 +91,10 @@ export const getKeyList = async (): Promise<KeyListResType> => {
 };
 
 /**
- * Gen security key — `key.generate(id, typ, notBefore, notAfter, store)`
- * (params order: [id, typ, notBefore, notAfter, store]).
+ * Gen security key — `key.generate(name, typ, notBefore, notAfter, store)`
+ * (params order: [name, typ, notBefore, notAfter, store]).
  * notBefore/notAfter are unix seconds (0 = server default: now / now+10y). The RPC returns
- * { id, certificate, key, token } (key == privateKey), plus `serverKey` and `zip` (base64) WHEN store=true.
+ * { id, name, certificate, key } (key == privateKey), plus `serverKey` and `zip` (base64) WHEN store=true.
  * When store=false the result has no serverKey, so the server certificate is fetched separately via
  * `server.certificate.get` (best-effort) to keep the mTLS serverKey display, and zip is empty.
  * @aData { name, type ('rsa'|'ecdsa'), notBefore, notAfter, store }
@@ -92,20 +105,21 @@ export const genKey = async (aData: CreatePayloadType): Promise<GenKeyResType> =
         reason: msg,
         elapse: '',
         statusText: msg,
+        id: 0,
+        name: '',
         certificate: '',
         privateKey: '',
         serverKey: '',
-        token: '',
         zip: '',
     });
     try {
-        const res = await rpcCall<{ id?: string; certificate?: string; key?: string; token?: string; serverKey?: string; zip?: string }>(
+        const res = await rpcCall<{ id?: number; name?: string; certificate?: string; key?: string; serverKey?: string; zip?: string }>(
             RpcMethod.key.generate,
             [aData.name, String(aData.type).toLowerCase(), Number(aData.notBefore) || 0, Number(aData.notAfter) || 0, Boolean(aData.store)]
         );
         const err = rpcErrMessage(res);
         if (err) return fail(err);
-        const r = (res?.result ?? {}) as { id?: string; certificate?: string; key?: string; token?: string; serverKey?: string; zip?: string };
+        const r = (res?.result ?? {}) as { id?: number; name?: string; certificate?: string; key?: string; serverKey?: string; zip?: string };
         // store=true → serverKey & zip are in the result. store=false → fetch the server certificate
         // separately for mTLS trust (no zip without store).
         let serverKey = r.serverKey ?? '';
@@ -121,10 +135,11 @@ export const genKey = async (aData: CreatePayloadType): Promise<GenKeyResType> =
             success: true,
             reason: 'success',
             elapse: '',
+            id: Number(r.id ?? 0),
+            name: String(r.name ?? ''),
             certificate: r.certificate ?? '',
             privateKey: r.key ?? '',
             serverKey,
-            token: r.token ?? '',
             zip: r.zip ?? '',
         };
     } catch (e) {
@@ -133,11 +148,12 @@ export const genKey = async (aData: CreatePayloadType): Promise<GenKeyResType> =
 };
 
 /**
- * Delete security key — `key.delete(id)`.
+ * Delete security key — `key.delete(id)`. `id` is the numeric management id from `key.list`,
+ * not the key name; the server rejects a string with JSON-RPC -32602.
  */
-export const delKey = async (aTargetKeyName: string): Promise<DelKeyResType> => {
+export const delKey = async (aKeyId: number): Promise<DelKeyResType> => {
     try {
-        const res = await rpcCall(RpcMethod.key.delete, [aTargetKeyName]);
+        const res = await rpcCall(RpcMethod.key.delete, [aKeyId]);
         const err = rpcErrMessage(res);
         return err ? { success: false, reason: err, elapse: '' } : { success: true, reason: 'success', elapse: '' };
     } catch (e) {

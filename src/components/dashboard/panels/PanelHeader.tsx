@@ -14,10 +14,10 @@ import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { VariableParserForTql } from '@/utils/DashboardQueryParser';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
@@ -27,6 +27,7 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
 import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/integration';
+import { qualifyTableName } from '@/utils/qualifiedTableName';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
@@ -100,7 +101,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             .filter((aTag: any) => aTag.type === 'tag' && !aTag.useCustom && aTag.isVisible && !aTag.customFullTyping.use)
             .map((aPanel: any) => ({
                 sourceTagName: aPanel.tag,
-                table: aPanel.table,
+                // The block keeps `table` and `userName` apart and joins them at query time
+                // (`getBlockTableName`); handing the raw field over skipped that, so a board saved
+                // before v8.7 arrived in the Tag Analyzer as a bare `SENSOR` and resolved against
+                // whichever database the session happened to be in.
+                table: qualifyTableName(aPanel.userName, aPanel.table),
                 alias: aPanel.alias ?? '',
                 sourceColumns: createTagAnalyzerColumnInfoFromDashboardBlock(aPanel),
             }));
@@ -152,9 +157,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         })?.[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, customName)) {
             if (sTargetTag.customTable) return defaultMinMax();
-            let rows: any = undefined;
-            if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
-            else rows = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, customName));
+            const rows = await fetchBlockTimeMinMax(sTargetTag, customName);
             const res = convertDashboardMinMaxRows(rows, sTargetTag);
             if (!res) return defaultMinMax();
             if (!Number.isFinite(res.min) || !Number.isFinite(res.max)) return defaultMinMax();

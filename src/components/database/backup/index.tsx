@@ -1,29 +1,60 @@
-import { Page, CommonTable } from '@/design-system/components';
+import { Alert, Page, CommonTable } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { backupStatus, databaseBackup, getAllowBackupTable, getBackupDBList } from '@/api/repository/api';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical } from 'react-icons/lu';
-import { backupSyntax, backupTable, exampleBackup, explainEtc1, explainEtc2, explainEtc3, explainEtc4, explainPathAndTime, explainRestoreCmd, explainTagRestore } from './contents';
+import {
+    backupSyntax,
+    backupTable,
+    exampleBackup,
+    explainEntireInstanceBackup,
+    explainEtc1,
+    explainEtc2,
+    explainEtc3,
+    explainEtc4,
+    explainPathAndTime,
+    explainRestoreCmd,
+    explainTagRestore,
+} from './contents';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import moment from 'moment';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { useSchedule } from '@/hooks/useSchedule';
+import { useTargetDatabases } from '@/components/database/targetDatabase';
+import { buildBackupRequest, createBackupCode, ENTIRE_INSTANCE, normalizeBackupStatus } from './backupPayload';
+
+/** The row that stands for "do not name a database", and the placeholder before a row is picked. */
+const DATABASE_OPTION_ALL = 'All databases (entire instance)';
+const DATABASE_OPTION_NONE = 'Select a database';
 
 export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     const [sPayload, setPayload] = useState<any>(pCode);
     const [sPageMode, setPageMode] = useState<'VIEW' | 'CREATE'>('CREATE');
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['50', '50']);
-    const [sTableList, setTableList] = useState<any[]>([]);
+    const [sTableList, setTableList] = useState<{ database: string | null; rows: any[] }>({ database: undefined as any, rows: [] });
     const [sCreateRes, setCreateRes] = useState<any>(undefined);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setBackupList = useSetRecoilState<any[]>(gBackupList);
     const [sTimestampErr, setTimestampErr] = useState<any>({ from: undefined, to: undefined });
     const sSelectedTab = useRecoilValue<any>(gSelectedTab);
     const [sLastCheckTime, setLastCheckTime] = useState<any>(undefined);
+    const { databases: sDatabaseList, reload: reloadDatabases } = useTargetDatabases();
+
+    /**
+     * What may be backed up. Mounted rows are attached backups — read-only copies rather than
+     * places data lives — so they are never offered as a target.
+     */
+    const sBackupTargets = useMemo(() => sDatabaseList.filter((aDb) => !aDb.mounted), [sDatabaseList]);
+    /**
+     * Was a choice offered? Only then does one have to be made. Empty on every pre-v8.7 server,
+     * where there is no catalogue and the request goes out in its original shape.
+     */
+    const sHasDatabaseChoice = sBackupTargets.length > 0;
+    const sBuildOptions = useMemo(() => ({ requireDatabase: sHasDatabaseChoice }), [sHasDatabaseChoice]);
 
     const setDurationTypeSelect = (aSelectedItem: 'full' | 'incremental' | 'time range') => {
         setPayload((prev: any) => {
@@ -32,7 +63,17 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     };
     const setTypeSelect = (aSelectedItem: 'database' | 'table') => {
         setPayload((prev: any) => {
+            // The database is the step above this one, so choosing a type must not clear it.
+            // Nothing here needs to: `buildBackupRequest` never puts a `database` on a table
+            // request, so the field the server would reject cannot be sent whatever is held.
             return { ...prev, type: aSelectedItem };
+        });
+    };
+    const setTargetDatabase = (aSelectedItem: string) => {
+        setPayload((prev: any) => {
+            // The table list belongs to a database, so a table picked from the previous one is not
+            // a choice any more — it would name a table this backup is not pointed at.
+            return { ...prev, database: aSelectedItem, tableName: '' };
         });
     };
     const setDurationAfter = (aEvent: React.FormEvent<HTMLInputElement>) => {
@@ -44,12 +85,6 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         setPayload((prev: any) => {
             return { ...prev, path: (aEvent.target as HTMLInputElement).value };
         });
-    };
-    /** convert timestamp format */
-    const convertTimestamp = (aTime: string) => {
-        const sUnixTimestamp = moment(aTime).unix();
-        if (!isNaN(sUnixTimestamp)) return sUnixTimestamp;
-        else return aTime;
     };
     const handleTime = (aKey: string, aTime: string) => {
         const sMomentValid = ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH', 'YYYY-MM-DD', 'YYYY-MM', 'YYYY'];
@@ -72,43 +107,18 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
             return { ...prev, tableName: aSelectedItem };
         });
     };
+    /** Cached per database, since that is what the list is of. */
     const getTableNameList = async () => {
-        if (sTableList.length > 0) return;
-        const sResTableList = await getAllowBackupTable();
-        if (sResTableList && sResTableList?.data && sResTableList?.data?.rows) setTableList(sResTableList.data.rows);
-        else setTableList([]);
+        const sDatabase = sPayload?.database ?? null;
+        if (sTableList.database === sDatabase) return;
+        const sResTableList = await getAllowBackupTable(sDatabase);
+        const sRows = sResTableList?.data?.rows;
+        setTableList({ database: sDatabase, rows: Array.isArray(sRows) ? sRows : [] });
     };
     const handleBackup = async () => {
         const sResBackupStatus: any = await backupStatus();
         updateLastCheckTime();
-        let sStatusCode: any = undefined;
-        if (sResBackupStatus && sResBackupStatus?.success) {
-            // Set default
-            if (!sResBackupStatus.data?.type)
-                sStatusCode = {
-                    type: 'database',
-                    duration: {
-                        type: 'full',
-                        after: '',
-                        from: '',
-                        to: '',
-                    },
-                    path: '',
-                    tableName: '',
-                };
-            else sStatusCode = sResBackupStatus.data;
-        } else
-            sStatusCode = {
-                type: 'database',
-                duration: {
-                    type: 'full',
-                    after: '',
-                    from: '',
-                    to: '',
-                },
-                path: '',
-                tableName: '',
-            };
+        const sStatusCode = normalizeBackupStatus(sResBackupStatus?.success ? sResBackupStatus?.data : undefined);
 
         if (!sResBackupStatus || !sResBackupStatus?.success) {
             setCreateRes(sResBackupStatus?.data?.reason ?? sResBackupStatus?.statusText);
@@ -143,34 +153,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     };
     const handleStatusRefresh = async () => {
         const sResBackupStatus: any = await backupStatus();
-        let sStatusCode: any = undefined;
-        if (sResBackupStatus && sResBackupStatus?.success) {
-            // Set default
-            if (!sResBackupStatus.data?.type)
-                sStatusCode = {
-                    type: 'database',
-                    duration: {
-                        type: 'full',
-                        after: '',
-                        from: '',
-                        to: '',
-                    },
-                    path: '',
-                    tableName: '',
-                };
-            else sStatusCode = sResBackupStatus.data;
-        } else
-            sStatusCode = {
-                type: 'database',
-                duration: {
-                    type: 'full',
-                    after: '',
-                    from: '',
-                    to: '',
-                },
-                path: '',
-                tableName: '',
-            };
+        const sStatusCode = normalizeBackupStatus(sResBackupStatus?.success ? sResBackupStatus?.data : undefined);
         updateLastCheckTime();
         if (sStatusCode.path === '') updateBakcupList();
 
@@ -190,18 +173,13 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         });
     };
     const createBackup = async () => {
-        const sVaildPayload = JSON.parse(JSON.stringify(sPayload));
-        if (sVaildPayload?.type === '' || sVaildPayload?.path === '') return; // Common
-        if (sVaildPayload?.type === 'table' && sVaildPayload?.tableName === '') return; // Table name
-        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === '') return; // FULL BACKUP
-        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === 'incremental' && sVaildPayload?.duration?.after === '') return; // INCREMENTAL BACKUP
+        // The time pickers report their own error under the field; the rest of the form reports
+        // through the block below the Backup button.
         if (sTimestampErr.from || sTimestampErr.to) return;
-        if (sVaildPayload?.duration && sVaildPayload?.duration?.type === 'time range') {
-            sVaildPayload.duration.from = convertTimestamp(sVaildPayload.duration.from) + '';
-            sVaildPayload.duration.to = convertTimestamp(sVaildPayload.duration.to) + '';
-            sVaildPayload.duration.type = 'time';
-        }
-        const sResBackup: any = await databaseBackup(sVaildPayload);
+        const sBuilt = buildBackupRequest(sPayload, sBuildOptions);
+        if ('error' in sBuilt) return setCreateRes(sBuilt.error);
+        setCreateRes(undefined);
+        const sResBackup: any = await databaseBackup(sBuilt.request);
         if (sResBackup && sResBackup?.success) {
             await handleBackup();
         } else setCreateRes(sResBackup?.data?.reason ?? sResBackup?.statusText);
@@ -215,7 +193,10 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         setTimestampErr({ from: undefined, to: undefined });
         if (pCode?.code?.path !== '') setPageMode('VIEW');
         else setPageMode('CREATE');
-        setPayload(pCode.code);
+        // A board saved before per-database backup existed carries no `database`. Absent is
+        // "not chosen", which is what a fresh form means — not "all databases", which is a choice.
+        const sCode = { ...createBackupCode(), ...(pCode?.code ?? {}) };
+        setPayload({ ...sCode, database: sCode.database ?? null });
     }, [pCode]);
     useEffect(() => {
         if (pCode.id === sSelectedTab && sPageMode === 'VIEW') handleStatusRefresh();
@@ -245,52 +226,75 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                         </Page.DpRowBetween>
                                     </Page.ContentBlock>
                                 )}
-                                {/* Backup type */}
-                                <Page.ContentBlock>
-                                    <Page.ContentTitle>backup type</Page.ContentTitle>
-                                    {sPageMode === 'CREATE' && (
-                                        <>
-                                            <Page.Selector
-                                                pList={[
-                                                    { name: 'database', data: 'database' },
-                                                    { name: 'table', data: 'table' },
-                                                ]}
-                                                pSelectedItem={sPayload?.type}
-                                                pCallback={(aSelectedItem: any) => {
-                                                    setTypeSelect(aSelectedItem);
-                                                }}
-                                            />
-                                        </>
-                                    )}
-                                    {sPageMode === 'VIEW' && <Page.ContentDesc>{sPayload.type.toUpperCase()}</Page.ContentDesc>}
-                                    {/* Table name & CREATE */}
-                                    {sPayload?.type === 'table' && sPageMode === 'CREATE' && (
-                                        <Page.ContentBlock>
-                                            <Page.ContentText pContent="Table name" />
-                                            {sPageMode === 'CREATE' && (
-                                                <div onClick={getTableNameList}>
+                                {/* 1. Target database — the choice everything below is scoped by, so it leads.
+                                    Offered wherever the server answered V$DATABASES; in VIEW, shown only when the
+                                    running backup actually named a database. */}
+                                {(sPageMode === 'CREATE' ? sHasDatabaseChoice : !!sPayload?.database) && (
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>target database</Page.ContentTitle>
+                                        {sPageMode === 'CREATE' && (
+                                            <>
+                                                <div onClick={reloadDatabases}>
                                                     <Page.Selector
-                                                        pWidth="365px"
-                                                        pList={
-                                                            sTableList.map((aItem: any) => {
-                                                                return { name: aItem[3], data: aItem[3] };
-                                                            }) ?? []
-                                                        }
-                                                        pSelectedItem={sPayload?.tableName || ''}
+                                                        capitalize={false}
+                                                        pList={[
+                                                            { name: DATABASE_OPTION_ALL, data: ENTIRE_INSTANCE },
+                                                            ...sBackupTargets.map((aDb) => ({ name: aDb.name, data: aDb.name })),
+                                                        ]}
+                                                        pSelectedItem={sPayload?.database === null ? DATABASE_OPTION_NONE : sPayload.database || DATABASE_OPTION_ALL}
                                                         pCallback={(aSelectedItem: any) => {
-                                                            setTableName(aSelectedItem);
+                                                            setTargetDatabase(aSelectedItem);
                                                         }}
                                                     />
                                                 </div>
-                                            )}
-                                        </Page.ContentBlock>
+                                                {sPayload?.database === ENTIRE_INSTANCE && (
+                                                    <>
+                                                        <Page.Space />
+                                                        <Alert variant="warning" message={explainEntireInstanceBackup} />
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                        {sPageMode === 'VIEW' && <Page.ContentDesc>{sPayload.database}</Page.ContentDesc>}
+                                    </Page.ContentBlock>
+                                )}
+                                {/* 2. Backup type */}
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>backup type</Page.ContentTitle>
+                                    {sPageMode === 'CREATE' && (
+                                        <Page.Selector
+                                            pList={[
+                                                { name: 'database', data: 'database' },
+                                                { name: 'table', data: 'table' },
+                                            ]}
+                                            pSelectedItem={sPayload?.type}
+                                            pCallback={(aSelectedItem: any) => {
+                                                setTypeSelect(aSelectedItem);
+                                            }}
+                                        />
                                     )}
+                                    {sPageMode === 'VIEW' && <Page.ContentDesc>{sPayload.type.toUpperCase()}</Page.ContentDesc>}
                                 </Page.ContentBlock>
-                                {/* Table name & VIEW*/}
-                                {sPayload?.type === 'table' && sPageMode === 'VIEW' && (
+                                {/* 3. Table name — a step of its own, below the two choices that decide whether it
+                                    can be taken at all. A table the chosen database cannot reach says so instead of
+                                    offering a picker that would list the wrong database's tables. */}
+                                {sPayload?.type === 'table' && (
                                     <Page.ContentBlock>
-                                        <Page.ContentTitle>Table name</Page.ContentTitle>
-                                        <Page.ContentDesc>{sPayload.tableName.toUpperCase()}</Page.ContentDesc>
+                                        <Page.ContentTitle>table name</Page.ContentTitle>
+                                        {sPageMode === 'CREATE' && (
+                                            <div onClick={getTableNameList}>
+                                                <Page.Selector
+                                                    pList={sTableList.rows.map((aItem: any) => {
+                                                        return { name: aItem[3], data: aItem[3] };
+                                                    })}
+                                                    pSelectedItem={sPayload?.tableName || ''}
+                                                    pCallback={(aSelectedItem: any) => {
+                                                        setTableName(aSelectedItem);
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                        {sPageMode === 'VIEW' && <Page.ContentDesc>{sPayload.tableName.toUpperCase()}</Page.ContentDesc>}
                                     </Page.ContentBlock>
                                 )}
                                 {/* Backup duration type  */}
@@ -318,7 +322,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                             <Page.Space />
                                             <Page.ContentText pContent="Previous backup directory"></Page.ContentText>
                                             <Page.ContentDesc>Path of full or previous incremental backup.</Page.ContentDesc>
-                                            <Page.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => setDurationAfter(event)} pWidth="365px" />
+                                            <Page.Input pAutoFocus pCallback={(event: React.FormEvent<HTMLInputElement>) => setDurationAfter(event)} />
                                             <Page.ContentDesc>Applies to Log/Tag tables; Lookup tables are always fully backed up.</Page.ContentDesc>
                                         </>
                                     )}

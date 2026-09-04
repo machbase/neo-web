@@ -1,4 +1,6 @@
 import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from './constants';
+import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
+import { qualifyThreePart } from '@/utils/qualifiedTableName';
 import { buildRollupTimeExpression } from '../../utils/rollupQueryBuilder';
 import { findRollupColumnMatch, getRollupColumnNameCandidates } from '../../utils/rollupColumnCandidates';
 
@@ -56,7 +58,14 @@ export const getRollupMatch = (aRollups: any, aTableName: string, aInterval: num
     const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID.toUpperCase();
-    let sDBNM: string = 'MACHBASEDB';
+    // A name that carries its database supplies the prefix itself; a shorter one — which is
+    // what a dashboard saved before v8.7 holds — means the database this session is in. The
+    // literal 'MACHBASEDB' this replaced was the same thing only while a server held one
+    // database: on a server whose current database is FACTORY_A it looked up
+    // `MACHBASEDB.SENSOR`, a key the rollup map does not contain, and the panel scanned raw
+    // data instead of reading the rollup. Pre-v8.7 and before the probe settles this still
+    // answers MACHBASEDB, so those servers are unaffected.
+    let sDBNM: string = getCurrentDatabaseName();
     if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
     let sTableName: string = sSplitTableName.at(-1) as string;
     if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
@@ -66,7 +75,15 @@ export const getRollupMatch = (aRollups: any, aTableName: string, aInterval: num
         return undefined;
     }
 
-    if (sRollupVersion === 'RECENT') sTableName = sDBNM + '.' + sTableName;
+    // Anything but `'OLD'` — an absent version included. `getRollupTableList` builds the map's
+    // keys on exactly that condition, so asking `=== 'RECENT'` here split the two apart whenever
+    // the version had not been probed: the map held `MACHBASEDB.SENSOR` while the lookup asked
+    // for `SENSOR`, and every rollup silently missed.
+    //
+    // Absent is a normal state, not a corner: opening a shared `/view/...` link clears the flag
+    // with the tokens (Routes.tsx) and the post-login redirect returns straight to `/view/...`
+    // (Login.tsx), never mounting the one component that probes.
+    if (sRollupVersion !== 'OLD') sTableName = sDBNM + '.' + sTableName;
     const sUserNameCandidates = Array.from(new Set([sUserName, sUserName.toUpperCase()]));
     const sTableNameCandidates = Array.from(new Set([sTableName, sTableName.toUpperCase()]));
     const sTableRollups = sUserNameCandidates
@@ -151,30 +168,20 @@ export const parseTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
 
 export const parseDashboardTables = (aTableInfo: { columns: any[]; rows: any[] }) => {
     if (!aTableInfo.rows) return [];
-    const sMount = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DBID');
     const sDbIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'DB_NAME');
     const sUserIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'USER_NAME');
     const sTableIdx = aTableInfo.columns.findIndex((aItem: any) => aItem === 'TABLE_NAME');
 
-    let sParseTables: any = aTableInfo.rows;
-    if (!isCurUserEqualAdmin()) {
-        sParseTables = aTableInfo.rows.filter((aItem: any) => aItem[sDbIdx].toUpperCase() === DEFAULT_DB_NAME.toUpperCase());
-    }
+    // Same rule as the main tree's copy: always three parts. Shortening a name for the current
+    // database was safe only while a server held one; on v8.7 a bare or `owner.table` name
+    // resolves against whichever database the session is in, so a name built for FACTORY_A's
+    // table silently reads MACHBASEDB's same-named one. The row is rewritten in place because
+    // callers read TABLE_NAME back out of it.
+    const sParseTables: any = aTableInfo.rows;
 
     return sParseTables.map((aItem: any) => {
-        // MACHBASE_DB
-        if (aItem[sMount] === -1) {
-            if (isCurUserEqualAdmin() && compareString(aItem[sUserIdx], ADMIN_ID)) return aItem;
-            else {
-                aItem[sTableIdx] = aItem[sUserIdx] + '.' + aItem[sTableIdx];
-                return aItem;
-            }
-        }
-        // MOUNTED DB
-        else {
-            aItem[sTableIdx] = aItem[sDbIdx] + '.' + aItem[sUserIdx] + '.' + aItem[sTableIdx];
-            return aItem;
-        }
+        aItem[sTableIdx] = qualifyThreePart(aItem[sDbIdx], aItem[sUserIdx], aItem[sTableIdx]);
+        return aItem;
     });
 };
 
@@ -272,95 +279,6 @@ export const parseCodeBlocks = (aMarkdownContents: string) => {
                 .replace(/```/g, '')
                 .trim();
         });
-};
-
-type TableTagInfo = {
-    key: string;
-    alias: string;
-    calculationMode: string;
-    table: string;
-    tagName: string;
-    weight: number;
-    colName: {
-        name: string;
-        time: string;
-        value: string;
-    };
-};
-export const createTableTagMap = (tableTagInfo: TableTagInfo[]) => {
-    const sMap: any = {};
-
-    tableTagInfo.forEach((aInfo: any) => {
-        const tableKey = aInfo.table;
-        const tagName = aInfo.tagName;
-        const colInfo = aInfo.colName;
-
-        if (sMap[tableKey]) {
-            sMap[tableKey].tags.push(tagName);
-        } else {
-            sMap[tableKey] = { tags: [tagName], cols: colInfo };
-        }
-    });
-
-    const sResult = Object.keys(sMap).map((table: string) => {
-        return {
-            table,
-            tags: sMap[table].tags,
-            cols: sMap[table].cols,
-        };
-    });
-
-    return sResult;
-};
-
-type TableTagMap = {
-    table: string;
-    tags: string[];
-};
-export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: string) => {
-    let query = '';
-    tableTagMap.forEach((aInfo: any, aIndex: number) => {
-        if (aIndex !== 0) query += ` UNION ALL `;
-
-        let tableName = '';
-        let tags = '';
-        let userName = currentUserName;
-        const timeColumn = aInfo.cols?.time || 'TIME';
-        const nameColumn = aInfo.cols?.name || 'NAME';
-        const tableInfo = aInfo.table.split('.');
-        aInfo.tags.forEach((tag: string, aIndex: number) => {
-            if (aIndex === aInfo.tags.length - 1) {
-                tags += `'${tag}'`;
-            } else {
-                tags += `'${tag}',`;
-            }
-        });
-
-        // MOUNTED DB
-        if (tableInfo.length === 3) {
-            tableName = aInfo.table;
-            query += `select min(${timeColumn}) as min_tm, max(${timeColumn}) as max_tm from ${tableName} where ${nameColumn} in (${tags})`;
-        }
-        // MACHBASE DB
-        else {
-            // USER
-            if (tableInfo.length === 2) {
-                tableName = tableInfo[1];
-                userName = tableInfo[0];
-            }
-            // ADMIN
-            else {
-                tableName = aInfo.table;
-                userName = ADMIN_ID.toUpperCase();
-            }
-            if (timeColumn.toUpperCase() === 'TIME') {
-                query += `select min(min_time) as min_tm, max(max_time) as max_tm from ${userName}.v$${tableName}_stat where NAME in (${tags})`;
-            } else {
-                query += `select min(${timeColumn}) as min_tm, max(${timeColumn}) as max_tm from ${userName}.${tableName} where ${nameColumn} in (${tags})`;
-            }
-        }
-    });
-    return query;
 };
 
 export const generateRandomString = () => {

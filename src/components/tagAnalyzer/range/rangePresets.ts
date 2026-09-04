@@ -40,7 +40,7 @@ function createNumericRangePresets(
     const label = anchor === 'first' ? 'First' : 'Last';
 
     return NUMERIC_RANGE_SIZES.map(([size, sizeLabel]) => {
-        const offset = `${anchor}-${size}`;
+        const offset = `${anchor}${anchor === 'first' ? '+' : '-'}${size}`;
 
         return {
             key: offset,

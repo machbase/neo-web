@@ -1,13 +1,20 @@
 import request from '../core';
+import { qualifyTableName, qualifySiblingObject } from '@/utils/qualifiedTableName';
+// This tree's own resolver, not the editor's: the editor's rides `/web/api/query`, which answers
+// 401 for an unauthenticated board and would leave every lookup below on the pre-v8.7 fallback.
+import { ensureCurrentDatabase } from './currentDatabase';
+import { executeQuery } from './publicQuery';
+import { getCurrentDatabaseId, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { Toast } from '@/design-system/components';
-import { createMinMaxQuery, createTableTagMap, getRollupMatch, getUserName, isCurUserEqualAdmin } from '../../utils';
+import { getRollupMatch, getUserName, isCurUserEqualAdmin } from '../../utils';
 import { ADMIN_ID } from '../../utils/constants';
 import { getInterval } from '../../utils/DashboardQueryParser';
-import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { createBlockTimeMinMaxFetcher, createLogTimeMinMaxQuery, createTableScanTimeMinMaxQuery, isTableScanTimeMinMaxTarget } from '@/utils/dashboardTimeMinMax';
 import { jsonValueFieldToNumericSql, toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import { removeV$Table } from '../../utils/dbUtils';
 import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
-import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
+import { DATETIME_COLUMN_TYPE, isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
+import { buildTagStatExtentSelect, isMissingStatColumnError, otherTagStatBaseKind, type TagStatBaseKind } from '@/utils/tagStatColumns';
 import { TagzCsvParser } from '../../utils/tqlCsvParser';
 import moment from 'moment';
 import {
@@ -19,38 +26,10 @@ import {
 } from '../../../utils/rollupQueryBuilder';
 import { getBaseJsonRollupValue, ROLLUP_EXT_TYPE_BY_COLUMN } from '@/utils/rollupColumnCandidates';
 
-const getTableName = (targetTxt: string) => {
-    if (targetTxt.includes('.')) return targetTxt.split('.').at(-1);
-    else return targetTxt;
-};
 
-export const executeQuery = async (query: string) => {
-    try {
-        const response = await fetch(`/db/query?q=${encodeURIComponent(query)}`, {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-            },
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            return result;
-        } else {
-            return {
-                data: { reason: `Query failed: ${response.statusText}` },
-                status: response.status,
-                success: false,
-            };
-        }
-    } catch (error) {
-        return {
-            data: { reason: `Network error: ${error}` },
-            status: 500,
-            success: false,
-        };
-    }
-};
+// Moved to `./publicQuery` so the database resolver can be built on it without the two files
+// importing each other. Re-exported because DashboardView imports it from here.
+export { executeQuery };
 
 const getTqlChart = async (aData: string, _aType?: 'dsh') => {
     try {
@@ -161,32 +140,70 @@ export const fetchRollupVersion = async () => {
     };
 };
 
+const isFailedMinMaxResponse = (aData: any) => (aData?.status ?? 0) >= 400 || aData?.success === false;
+const minMaxFailureReason = (aData: any) => (typeof aData?.data === 'object' ? aData?.data?.reason ?? '' : aData?.data ?? '');
+const hasMinMaxRow = (aData: any) => Boolean(aData?.data?.rows?.length) && aData.data.rows[0]?.[0] != null;
+
+/**
+ * A tag block's base extent, from the stat view when that view can answer and from the column when
+ * it cannot. The editor's twin — `src/api/repository/machiot.ts` — carries the full reasoning; keep
+ * the two in step.
+ */
+const fetchTagTimeMinMaxResponse = async (aTargetInfo: any) => {
+    const sIsVirtualTable = aTargetInfo.table.includes('V$');
+    const sTime = aTargetInfo.time || 'TIME';
+    const sName = aTargetInfo.name || 'NAME';
+    const sBaseKind: TagStatBaseKind = isNumericBaseTimeBlock(aTargetInfo) ? 'distance' : 'time';
+
+    // The block names either the stat view (a Gauge / Pie panel stores that) or the
+    // source table, and either way the name keeps the database it came with. Reducing
+    // it to the bare table and re-attaching only the owner built `SYS.V$ATABLE_STAT`,
+    // which resolves in whichever database the session is in — so a panel on FACTORY_A
+    // read MACHBASEDB's empty copy of the view, got no extent, and fell back to a
+    // `now - 1h` window. The data query is correctly qualified, so the panel asked the
+    // right table for the wrong hour and drew a blank chart with no error. Measured:
+    // FACTORY_A.SYS.V$ATABLE_STAT answers a real range where SYS.V$ATABLE_STAT is empty.
+    const sStatView = sIsVirtualTable
+        ? qualifyTableName(aTargetInfo.userName, aTargetInfo.table)
+        : qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => `V$${n}_STAT`);
+    // Undoing the decoration on the last segment alone, for the same reason.
+    const sSourceTable = sIsVirtualTable
+        ? qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => removeV$Table(n))
+        : qualifyTableName(aTargetInfo.userName, aTargetInfo.table);
+    const sScanQuery = `select min(${sTime}), max(${sTime}) from ${sSourceTable} where ${sName} in ('${aTargetInfo.tag}')`;
+
+    const sCanUseStatView = sBaseKind === 'distance' || sTime.toUpperCase() === 'TIME';
+    if (!sCanUseStatView) return executeQuery(sScanQuery);
+
+    const sStatQuery = (aBaseKind: TagStatBaseKind) => `select ${buildTagStatExtentSelect(aBaseKind, 'mn', 'mx')} from ${sStatView} where name in ('${aTargetInfo.tag}')`;
+    const sStatData = await executeQuery(sStatQuery(sBaseKind));
+    if (!isFailedMinMaxResponse(sStatData)) return sStatData;
+
+    if (isMissingStatColumnError(minMaxFailureReason(sStatData))) {
+        const sRetryData = await executeQuery(sStatQuery(otherTagStatBaseKind(sBaseKind)));
+        if (!isFailedMinMaxResponse(sRetryData)) return sRetryData;
+    }
+
+    return executeQuery(sScanQuery);
+};
+
 export const fetchTimeMinMax = async (aTargetInfo: any) => {
-    let sQuery: string | undefined = undefined;
-    // Query tag table
+    let sData: any;
     if (aTargetInfo.type === 'tag') {
-        const sIsVirtualTable = aTargetInfo.table.includes('V$');
-        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
-        const sTime = aTargetInfo.time || 'TIME';
-        const sName = aTargetInfo.name || 'NAME';
-        if (sTime.toUpperCase() === 'TIME') {
-            sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
-        } else {
-            sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.userName}.${sTableName} where ${sName} in ('${aTargetInfo.tag}')`;
-        }
-    }
-    // Query log table
-    if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
-    // Query view table
-    if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
-    if (!sQuery) return;
-
-    const sData = await executeQuery(sQuery);
-
-    if (sData.status >= 400) {
+        sData = await fetchTagTimeMinMaxResponse(aTargetInfo);
+    } else {
+        let sQuery: string | undefined = undefined;
+        // Query log table
+        if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
+        // Query view / transaction table — mirrors the editor's fetchTimeMinMax.
+        if (isTableScanTimeMinMaxTarget(aTargetInfo)) sQuery = createTableScanTimeMinMaxQuery(aTargetInfo);
+        if (!sQuery) return;
+        sData = await executeQuery(sQuery);
     }
 
-    if (!sData?.data || !sData.data?.rows || sData.data.rows.length === 0) {
+    // An aggregate always answers a row, so a tag with no data arrives as `[[null, null]]` where an
+    // unaggregated read answered no rows at all. Both say the same thing — no extent.
+    if (!hasMinMaxRow(sData)) {
         const sNowTime = moment().unix() * 1000000;
         const sNowTimeMinMax = [moment(sNowTime).subtract(1, 'h').unix() * 1000000, sNowTime];
         return [sNowTimeMinMax];
@@ -228,14 +245,20 @@ const fetchTableName = async (aTable: string) => {
     let sTableName = aTable;
     let sUserName = ADMIN_ID.toUpperCase();
     const sTableInfos = aTable.split('.');
+    // A name with no database part means the database this session is in — which is -1 only on
+    // pre-v8.7 servers. A three-part name names a logical database on v8.7 (V$DATABASES) and a
+    // mounted backup on older ones, which is the only multi-database concept they had.
+    await ensureCurrentDatabase();
     if (aTable.indexOf('.') === -1 || sTableInfos.length < 3) {
-        DBName = String(-1);
+        DBName = String(getCurrentDatabaseId());
         if (sTableInfos.length === 2) {
             sUserName = sTableInfos[0];
             sTableName = sTableInfos[sTableInfos.length - 1];
         }
     } else {
-        DBName = `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${sTableInfos[0]}')`;
+        DBName = hasLogicalDatabases()
+            ? `(select DATABASE_ID from V$DATABASES WHERE NAME = '${sTableInfos[0]}')`
+            : `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${sTableInfos[0]}')`;
         sTableName = sTableInfos[sTableInfos.length - 1];
         sUserName = sTableInfos[1];
     }
@@ -473,48 +496,6 @@ const fetchRawData = async (params: any) => {
     return sConvertData;
 };
 
-const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
-    const convert = createTableTagMap(tableTagInfo);
-    const query = createMinMaxQuery(convert, userName);
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(`select MIN(min_tm), MAX(max_tm) from (${query})`),
-    });
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Toast.error(sData.data.reason);
-        } else {
-            Toast.error(sData.data);
-        }
-    }
-    return sData;
-};
-
-export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], aTagSet?: any) => {
-    const sTime = aTagSet ? aTagSet.colName.time : 'TIME';
-    const sSplitTable = aTable.split('.');
-    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN ('${aTagList.join(
-        "','"
-    )}')`;
-
-    if (aTable.split('.').length > 2) {
-        query = `select min(${sTime}), max(${sTime}) from ${aTable}`;
-    }
-
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(query),
-    });
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Toast.error(sData.data.reason);
-        } else {
-            Toast.error(sData.data);
-        }
-    }
-    return sData.data.rows;
-};
-
 const fetchRollupData = async (params: any) => {
     const { Table } = params;
 
@@ -595,7 +576,22 @@ const fetchOnRollupTable = async (table: string) => {
 };
 const getRollupTableList = async () => {
     const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
-    let sUrl = `select t1.user_name as user_name, 
+    // v8.7 gave v$rollup a DATABASE_NAME column. The old shape reached into
+    // V$STORAGE_MOUNT_DATABASES, which names only mounted backups — on v8.7 that join matches
+    // nothing for an ordinary table and every root_table came back NULL.
+    await ensureCurrentDatabase();
+    let sUrl = hasLogicalDatabases()
+        ? `select t1.user_name as user_name, 
+    t1.database_name || '.' || t1.root_table as root_table, 
+    t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 
+  from (
+    select v.database_name, u.name as user_name, root_table, interval_time, column_name, ext_type 
+    from v$rollup as v, m$sys_users as u 
+    where v.user_id = u.user_id 
+    group by v.database_name, root_table, interval_time, user_name, column_name, ext_type 
+  ) as t1 
+  order by user_name, root_table asc, interval_time desc`
+        : `select t1.user_name as user_name, 
     case when t1.database_id = -1 then 'MACHBASEDB' else t2.MOUNTDB end || '.' || t1.root_table as root_table, 
     t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 
   from (
@@ -700,6 +696,15 @@ export const getTagTotal = async (aTable: string, aFilter: string, aColName: str
     return sData;
 };
 
+/**
+ * The block time-extent reader for this tree, bound to its transports.
+ *
+ * Call this instead of branching on `isMountedTableName` at the call site — the branch needs the
+ * database catalogue to have been fetched first, and this is where that await lives. See
+ * `createBlockTimeMinMaxFetcher`.
+ */
+export const fetchBlockTimeMinMax = createBlockTimeMinMaxFetcher({ ensureCurrentDatabase, fetchTimeMinMax, fetchMountTimeMinMax });
+
 export {
     fetchCalculationData,
     fetchRawData,
@@ -709,7 +714,6 @@ export {
     fetchTags,
     fetchRollUp,
     fetchOnRollupTable,
-    fetchOnMinMaxTable,
     fetchData,
     postTerminalSize,
     getChartData,

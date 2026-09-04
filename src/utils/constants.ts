@@ -416,6 +416,7 @@ export const IMAGE_EXTENSION_LIST = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp',
 export const FILE_EXTENSION_LIST = ['new', 'term', 'sql', 'tql', 'taz', 'dsh', 'wrk', 'json', 'csv', 'md', 'txt', 'html', 'css', 'js'];
 export const SIDE_EXTENSION_LIST = [
     'key',
+    'token',
     'timer',
     'shell-manage',
     'bridge',
@@ -435,8 +436,6 @@ export const EXTENSION_SET = new Set([...IMAGE_EXTENSION_LIST, ...FILE_EXTENSION
 export const ADMIN_ID = 'sys';
 export const DEFAULT_DB_NAME = 'machbasedb';
 
-export const MIN_MAX_BASE_QUERY = `select min(min_time) as min_tm, max(max_time) as max_tm from [userName].v$[table]_stat where name in ([tags])`;
-export const MIN_MAX_MOUNT_QUERY = `select min(TIME) as min_tm, max(TIME) as max_tm from [table] where name = '[tag]'`;
 
 export const TABLE_COLUMN_TYPE = [
     { key: 4, value: 'SHORT' },

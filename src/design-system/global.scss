@@ -39,3 +39,12 @@ select {
 .monaco-editor * {
     font-family: 'D2Coding', monospace !important;
 }
+
+// MUI date picker: highlight today with the primary color.
+// MUI's default ring uses `palette.text.secondary` from the light theme,
+// which is nearly invisible on our dark calendar surface.
+// Keep the 1px width — PickersDay is a content-box button, so a thicker
+// border would resize the day cell and break the calendar grid.
+.MuiPickersDay-root.MuiPickersDay-today:not(.Mui-selected) {
+    border: 1px solid t.$primary-base;
+}

@@ -1,32 +1,26 @@
 import {
     Button,
-    Input,
+    DatePicker,
+    Page,
     QuickTimeRange,
 } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
+import DistanceRangeTab, {
+    DistanceQuickWindows,
+} from '@/components/modal/DistanceRangeTab';
 import { useLayoutEffect } from 'react';
 import type { PanelInfo } from '../../panelModel';
-import { formatAbsoluteTime } from '../../../persistence/serializeRange';
 import {
     isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
     type RangeExpressionInput,
 } from '../../../range/rangeModel';
-import {
-    NUMERIC_RANGE_PRESETS,
-    TIME_RANGE_PRESETS,
-} from '../../../range/rangePresets';
+import { TIME_RANGE_PRESETS } from '../../../range/rangePresets';
 import { resolveRangeInput } from '../../../range/rangeInput';
-import { Section } from './TabControls';
 
 import styles from '../PanelEditorTab.module.scss';
 
-const RANGE_ENDPOINTS = [
-    ['start', 'From'],
-    ['end', 'To'],
-] as const;
-const NUMERIC_RANGE_INPUT_PLACEHOLDER = '20, first, first-10, last-10';
 const EditorTimeTab = ({
     pTimeConfig,
     pAxisKind,
@@ -72,14 +66,6 @@ const EditorTimeTab = ({
     if (!pAxisKind) {
         return <span className={styles.fieldError}>{pDataValidationMessage}</span>;
     }
-    const sTimePlaceholders =
-        isRangeExpressionEmpty(sRangeInput)
-            ? {
-                  start: formatAbsoluteTime(pMainRange.start),
-                  end: formatAbsoluteTime(pMainRange.end),
-              }
-            : undefined;
-
     function applyRangeInput(rangeInput: RangeExpressionInput): void {
         pOnChangeTimeConfig({ ...pTimeConfig, rangeInput });
     }
@@ -91,73 +77,125 @@ const EditorTimeTab = ({
         applyRangeInput({ ...sRangeInput, [field]: value });
     }
 
+    function setDistanceRangeValue(
+        start: number | string,
+        end: number | string,
+    ): void {
+        applyRangeInput({ start: String(start), end: String(end) });
+    }
+
+    const sRangeIsEmpty = isRangeExpressionEmpty(sRangeInput);
+    // An empty custom range means the whole data extent. The highlighted main-chart window is only
+    // the current viewport and must not become the editor's apparent default range.
+    const sDistanceFrom = sRangeInput.start.trim() || pDataRange.start;
+    const sDistanceTo = sRangeInput.end.trim() || pDataRange.end;
+
     return (
-        <div className={styles.timeLayout}>
-            <Section
-                title="Range"
-                className={styles.timeConfiguredSection}
-                headerAddon={
-                    <span className={styles.sectionTag}>
-                        {sIsNumericXAxis ? 'Numeric' : 'Time'}
-                    </span>
-                }
-            >
-                <div className={styles.timeRangeInputs}>
-                    {RANGE_ENDPOINTS.map(([field, label]) => (
-                        <Input
-                            key={field}
-                            fullWidth
-                            label={label}
-                            labelPosition="left"
-                            value={sRangeInput[field]}
-                            placeholder={sIsNumericXAxis
-                                ? NUMERIC_RANGE_INPUT_PLACEHOLDER
-                                : sTimePlaceholders?.[field]}
-                            onChange={(event) =>
-                                setRangeValue(field, event.target.value)
+        <>
+            <Page.ContentBlock pHoverNone style={{ padding: 0, margin: 0 }}>
+                <Page.ContentTitle>
+                    {sIsNumericXAxis
+                        ? 'Custom distance range'
+                        : 'Custom time range'}
+                </Page.ContentTitle>
+            </Page.ContentBlock>
+            <Page.DpRow style={{ alignItems: 'start', padding: 0 }}>
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    {sIsNumericXAxis ? (
+                        <DistanceRangeTab
+                            pBounds={{
+                                min: pDataRange.start,
+                                max: pDataRange.end,
+                            }}
+                            pFrom={sDistanceFrom}
+                            pTo={sDistanceTo}
+                            pOnChange={setDistanceRangeValue}
+                            pOnResetToFull={() =>
+                                applyRangeInput({ start: '', end: '' })
                             }
+                            pResetLabel="Clear"
+                            pResetDisabled={sRangeIsEmpty}
+                            pBadge={sRangeIsEmpty ? 'Data' : 'Panel'}
+                            pMuted={sRangeIsEmpty}
+                            pHideQuickWindows
                         />
-                    ))}
-                </div>
-                {!sIsValid && (
-                    <span className={styles.fieldError}>
-                        {sIsNumericXAxis
-                            ? 'Enter both value boundaries in a valid order.'
-                            : 'Enter both range boundaries in a valid order.'}
-                    </span>
-                )}
-                <div className={styles.controlRow}>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={<VscTrash size={16} />}
-                        disabled={
-                            sRangeInput.start === '' &&
-                            sRangeInput.end === ''
-                        }
-                        onClick={() => applyRangeInput({ start: '', end: '' })}
-                    >
-                        Clear
-                    </Button>
-                </div>
-            </Section>
-            <Section
-                title="Quick ranges"
-                className={styles.timeQuickSection}
-            >
-                <QuickTimeRange
-                    className={styles.timeQuickRange}
-                    options={sIsNumericXAxis
-                        ? NUMERIC_RANGE_PRESETS
-                        : TIME_RANGE_PRESETS}
-                    onSelect={(option) => {
-                        const [start = '', end = ''] = option.value;
-                        applyRangeInput({ start, end });
-                    }}
-                    title=""
-                />
-            </Section>
-        </div>
+                    ) : (
+                        <>
+                            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                                <DatePicker
+                                    pLabel="From"
+                                    pTopPixel={32}
+                                    pTimeValue={sRangeInput.start}
+                                    onChange={(event: any) =>
+                                        setRangeValue(
+                                            'start',
+                                            event.target.value,
+                                        )
+                                    }
+                                    pSetApply={(value: string) =>
+                                        setRangeValue('start', value)
+                                    }
+                                />
+                            </Page.ContentBlock>
+                            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                                <DatePicker
+                                    pLabel="To"
+                                    pTopPixel={32}
+                                    pTimeValue={sRangeInput.end}
+                                    onChange={(event: any) =>
+                                        setRangeValue('end', event.target.value)
+                                    }
+                                    pSetApply={(value: string) =>
+                                        setRangeValue('end', value)
+                                    }
+                                />
+                            </Page.ContentBlock>
+                            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                                <Page.DpRow style={{ justifyContent: 'end' }}>
+                                    <Button
+                                        variant="ghost"
+                                        disabled={sRangeIsEmpty}
+                                        onClick={() =>
+                                            applyRangeInput({ start: '', end: '' })
+                                        }
+                                    >
+                                        <VscTrash size={16} />
+                                        <span>Clear</span>
+                                    </Button>
+                                </Page.DpRow>
+                            </Page.ContentBlock>
+                        </>
+                    )}
+                    {!sIsValid && (
+                        <span className={styles.fieldError}>
+                            {sIsNumericXAxis
+                                ? 'Enter both value boundaries in a valid order.'
+                                : 'Enter both range boundaries in a valid order.'}
+                        </span>
+                    )}
+                </Page.ContentBlock>
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    {sIsNumericXAxis ? (
+                        <DistanceQuickWindows
+                            pBounds={{
+                                min: pDataRange.start,
+                                max: pDataRange.end,
+                            }}
+                            pOnSelect={setDistanceRangeValue}
+                        />
+                    ) : (
+                        <QuickTimeRange
+                            options={TIME_RANGE_PRESETS}
+                            onSelect={(option) => {
+                                const [start = '', end = ''] = option.value;
+                                applyRangeInput({ start, end });
+                            }}
+                            title=""
+                        />
+                    )}
+                </Page.ContentBlock>
+            </Page.DpRow>
+        </>
     );
 };
 

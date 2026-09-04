@@ -1,114 +1,174 @@
 import { KeyItemType, delKey, getKeyList } from '@/api/repository/key';
-import { Page } from '@/design-system/components';
+import { Page, SplitPane, Pane, Alert } from '@/design-system/components';
 import { CreateKey } from '@/components/securityKey/createKey';
 import { useRecoilState } from 'recoil';
 import { gActiveKey, gBoardList, gKeyList } from '@/recoil/recoil';
-import { changeUtcToText } from '@/utils/helpers/date';
-import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useState } from 'react';
 import { ConfirmModal } from '../modal/ConfirmModal';
+import { PiCertificateLight } from 'react-icons/pi';
+import { StatusBadge, ValidityBar, FactRow, UsageBlock, expiryState, asDate, humanizeSpan, detailStyles as styles } from './detailParts';
 
-export const SecurityKey = ({ pCode }: { pCode: KeyItemType }) => {
-    const [sSecurityKeyList, setSecurityKeyList] = useRecoilState<KeyItemType[] | undefined>(gKeyList);
+// Certificate board. `gActiveKey` holds the numeric management id of the selected certificate;
+// an empty value means the create form. Names are NOT unique, so every lookup and the delete
+// confirmation are keyed on `id`.
+
+export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: string } }) => {
+    const [sCertList, setCertList] = useRecoilState<KeyItemType[] | undefined>(gKeyList);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const [sActiveKeyName, setActiveKeyName] = useRecoilState<any>(gActiveKey);
+    const [sActiveKey, setActiveKey] = useRecoilState<any>(gActiveKey);
+    // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
+    const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
+    const [sDeleteError, setDeleteError] = useState<string | undefined>(undefined);
 
-    /** delete key */
+    const sTarget = sBoardList.find((aBoard: any) => aBoard.type === 'key');
+
+    /** delete certificate — `key.delete(id)` takes the numeric management id */
     const deleteKey = async () => {
         const sRes = await delKey(pCode.id);
-        if (sRes.success) {
-            const sKeyList = await getKeyList();
-            if (sKeyList.success) setSecurityKeyList(sKeyList.data);
-            else setSecurityKeyList(undefined);
+        if (!sRes.success) {
+            setDeleteError(sRes.reason);
+            setIsDeleteModal(false);
+            return;
+        }
+        setDeleteError(undefined);
+        const sList = await getKeyList();
+        setCertList(sList.success ? sList.data : undefined);
 
-            const sTempKeyList = sSecurityKeyList?.filter((aKeyInfo) => aKeyInfo.id !== pCode.id);
-            if (sTempKeyList && sTempKeyList.length > 0) {
-                setActiveKeyName(sTempKeyList[0].id);
-                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'key');
-                setBoardList((aBoardList: any) => {
-                    return aBoardList.map((aBoard: any) => {
-                        if (aBoard.id === aTarget.id) {
-                            return {
-                                ...aTarget,
-                                name: `KEY: ${sTempKeyList[0].id}`,
-                                code: sTempKeyList[0],
-                                savedCode: sTempKeyList[0],
-                            };
-                        }
-                        return aBoard;
-                    });
-                });
-            } else {
-                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'key');
-                setActiveKeyName('');
-                setBoardList((aBoardList: any) => {
-                    return aBoardList.map((aBoard: any) => {
-                        if (aBoard.id === aTarget.id) {
-                            return {
-                                ...aTarget,
-                                name: `KEY: create`,
-                                code: undefined,
-                                savedCode: undefined,
-                            };
-                        }
-                        return aBoard;
-                    });
-                });
-            }
+        const sRemain = (sCertList ?? []).filter((aCert) => aCert.id !== pCode.id);
+        if (sRemain.length > 0) {
+            setActiveKey(sRemain[0].id);
+            setBoardList((aBoardList: any) =>
+                aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: `CERT: ${sRemain[0].name}`, code: sRemain[0], savedCode: sRemain[0] } : aBoard))
+            );
+        } else {
+            setActiveKey('');
+            setBoardList((aBoardList: any) =>
+                aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: 'CERT: create', code: undefined, savedCode: undefined } : aBoard))
+            );
         }
         setIsDeleteModal(false);
     };
+    /*
+     * Reissue — hidden for now, kept because the flow is the only way to renew: a certificate cannot
+     * be renewed in place, so it means generating a new key pair under the same client id, deploying
+     * it, then deleting this one. Restoring it is this block plus the button below.
+     *
+     * const handleReissue = () => {
+     *     setActiveKey('');
+     *     setBoardList((aBoardList: any) =>
+     *         aBoardList.map((aBoard: any) => (aBoard.id === sTarget?.id ? { ...sTarget, name: 'CERT: create', code: { reissueName: pCode.name }, savedCode: false } : aBoard))
+     *     );
+     * };
+     */
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsDeleteModal(true);
     };
-    /** return local time */
-    const getTime = (aTime: number): string => {
-        const sUtcText = changeUtcToText(aTime);
-        return sUtcText;
-    };
-    const Resizer = () => {
-        return <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
-    };
+    const Resizer = () => <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
+
+    const sHasSelection = sActiveKey !== '' && sActiveKey !== undefined && sActiveKey !== null && !!pCode?.name;
+    const sState = sHasSelection ? expiryState(pCode.notAfter) : 'ok';
 
     return (
         <>
-            {/* Show info */}
-            {sActiveKeyName && sActiveKeyName !== '' && (
+            {sHasSelection && (
                 <Page>
-                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
+                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
                             <Page.Body>
                                 <Page.ContentBlock>
-                                    <Page.ContentTitle>Client id</Page.ContentTitle>
-                                    <Page.ContentDesc>{pCode.id}</Page.ContentDesc>
+                                    <div className={styles.head}>
+                                        <div className={styles.headMain}>
+                                            <div className={styles.titleRow}>
+                                                <PiCertificateLight size={20} className={styles.glyph} />
+                                                <span className={styles.title}>{pCode.name}</span>
+                                                <StatusBadge pState={sState} pNotAfter={pCode.notAfter} />
+                                            </div>
+                                            <span className={styles.subline}>{`X.509 client certificate · id ${pCode.id} · CN ${pCode.name}`}</span>
+                                        </div>
+                                        <div className={styles.actions}>
+                                            {/* <Page.TextButton pText="Reissue" pWidth="80px" pType="CREATE" mr="0px" mb="0px" pCallback={handleReissue} /> */}
+                                            <Page.TextButton pText="Delete" pWidth="70px" pType="DELETE" mr="0px" mb="0px" pCallback={handleDelete} />
+                                        </div>
+                                    </div>
                                 </Page.ContentBlock>
+
+                                {sState !== 'ok' && (
+                                    <Page.ContentBlock>
+                                        <Alert
+                                            variant={sState === 'expired' ? 'error' : 'warning'}
+                                            message={
+                                                sState === 'expired'
+                                                    ? 'This certificate has expired. Clients presenting it can no longer authenticate — issue a replacement and deploy it.'
+                                                    : `Expires in ${humanizeSpan(pCode.notAfter - Date.now() / 1000)}. Issue a replacement, deploy it to the client, then delete this one.`
+                                            }
+                                        />
+                                    </Page.ContentBlock>
+                                )}
+
                                 <Page.ContentBlock>
-                                    <Page.ContentTitle>Valid After</Page.ContentTitle>
-                                    <Page.ContentDesc>{getTime(pCode.notBefore)}</Page.ContentDesc>
+                                    <ValidityBar pFrom={pCode.notBefore} pTo={pCode.notAfter} pState={sState} />
                                 </Page.ContentBlock>
+
                                 <Page.ContentBlock>
-                                    <Page.ContentTitle>Valid Before</Page.ContentTitle>
-                                    <Page.ContentDesc>{getTime(pCode.notAfter)}</Page.ContentDesc>
+                                    <div className={styles.facts}>
+                                        <FactRow pLabel="id" pValue={String(pCode.id)} />
+                                        <FactRow pLabel="notBefore" pValue={asDate(pCode.notBefore)} />
+                                        <FactRow pLabel="notAfter" pValue={asDate(pCode.notAfter)} pTone={sState} />
+                                        {/*
+                                          * The certificate's SAN URI (`urn:machbase:neo:client:<name>`) is deliberately NOT shown here.
+                                          * `key.list` does not return it — it would have to be reassembled client-side from the server's
+                                          * formatting rule, so it would sit in this table looking like API data while actually being a guess
+                                          * that goes stale the moment the server changes the format. It also carries nothing the name above
+                                          * does not already say.
+                                          */}
+                                    </div>
                                 </Page.ContentBlock>
-                                <Page.ContentBlock>
-                                    <Page.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
-                                </Page.ContentBlock>
+
+                                {sDeleteError && (
+                                    <Page.ContentBlock>
+                                        <Alert variant="error" message={sDeleteError} />
+                                    </Page.ContentBlock>
+                                )}
                             </Page.Body>
                         </Pane>
-                        <Pane minSize={400}>
+                        <Pane minSize={360}>
                             <Page.Header />
+                            <Page.Body>
+                                <Page.ContentBlock>
+                                    <UsageBlock
+                                        pWhere="MQTT TLS · gRPC mutual auth"
+                                        pCode={`mosquitto_pub --cafile server.pem \\\n  --cert ${pCode.name}_cert.pem --key ${pCode.name}_key.pem \\\n  -h 127.0.0.1 -p 5653 -t db/append/EXAMPLE`}
+                                    />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentDesc>
+                                        The certificate body and private key exist only in the issue response and cannot be retrieved here. If lost, reissue.
+                                    </Page.ContentDesc>
+                                </Page.ContentBlock>
+                            </Page.Body>
                         </Pane>
                     </SplitPane>
                 </Page>
             )}
-            {/* Show create */}
-            {!sActiveKeyName && <CreateKey />}
+            {!sHasSelection && <CreateKey pInitialName={pCode?.reissueName} />}
             {sIsDeleteModal && (
-                <ConfirmModal pIsDarkMode setIsOpen={setIsDeleteModal} pCallback={deleteKey} pContents={<div className="body-content">{`Do you want to delete this key?`}</div>} />
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsDeleteModal}
+                    pCallback={deleteKey}
+                    pContents={
+                        <div className="body-content">
+                            {/* names are not unique — show the id that actually identifies the row */}
+                            <span>{pCode.name}</span>
+                            <span>(id {pCode.id})</span>
+                            <span>{`Do you want to delete this certificate?`}</span>
+                        </div>
+                    }
+                />
             )}
         </>
     );

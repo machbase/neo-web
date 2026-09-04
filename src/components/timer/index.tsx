@@ -14,6 +14,8 @@ import { isTimerRunningState, useTimerStateAction } from './useTimerStateAction'
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
+    const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sTimerList, setResTimerList] = useRecoilState<TimerItemType[] | undefined>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
     const [sCommandRes, setCommandRes] = useState<string | undefined>(undefined);
@@ -26,15 +28,15 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
     /** delete timer */
     const deleteTimer = async () => {
-        const sRes = await delTimer(pCode.name);
+        const sRes = await delTimer(pCode.id);
         if (sRes.success) {
             const sTimerList = await getTimer();
             if (sTimerList.success) setResTimerList(sTimerList.data);
             else setResTimerList([]);
 
-            const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.name !== pCode.name);
+            const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.id !== pCode.id);
             if (sTempTimerList && sTempTimerList.length > 0) {
-                setActiveTimer(sTempTimerList[0].name);
+                setActiveTimer(sTempTimerList[0].id);
                 const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
                 setBoardList((aBoardList: any) => {
                     return aBoardList.map((aBoard: any) => {
@@ -76,14 +78,16 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     };
     /** edit item */
     const editItem = async () => {
-        const sResult: any = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.name);
+        // `timer.update` REPLACES the definition — every editable field has to go in every time,
+        // or the omitted one is reset on the server (omitting autoStart turns it off).
+        const sResult = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
 
         if (sResult.success) {
-            const sTimerInfo: any = await getTimerItem(sPayload.name);
+            const sTimerInfo = await getTimerItem(sPayload.id);
             const sTmpTimerList =
                 sTimerList &&
                 sTimerList.map((aTimerInfo: any) => {
-                    if (aTimerInfo.name === sPayload.name) {
+                    if (aTimerInfo.id === sPayload.id) {
                         return sTimerInfo.success ? sTimerInfo.data : aTimerInfo;
                     } else return aTimerInfo;
                 });
@@ -105,8 +109,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             setPayload(sTimerInfo.success ? sTimerInfo.data : sPayload);
             setResMessage(undefined);
         } else {
-            if (sResult?.data && sResult?.data.reason) setResMessage(sResult?.data.reason);
-            else setResMessage(sResult.statusText);
+            // every modTimer failure path fills `reason` (RPC error / transport error)
+            setResMessage(sResult.reason);
         }
     };
     const handleCommand = async () => {
@@ -153,6 +157,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         setResMessage(undefined);
         pCode &&
             setPayload({
+                id: pCode.id,
                 name: pCode.name || '',
                 type: pCode.type || 'TIMER',
                 state: pCode.state || 'STOP',
@@ -167,7 +172,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             {/* Show info */}
             {sActiveTimer && sPayload && (
                 <Page>
-                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
+                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
                             <Page.Body>

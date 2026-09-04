@@ -66,7 +66,15 @@ const DashboardCompatibility = (aData: any) => {
                 if (sIsVariableBlock) return aBlock;
                 // Check full query
                 const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
-                const sResult: any = sHasKeyFullQuery ? aBlock : { ...aBlock, customFullTyping: { use: false, text: '' } };
+                const sResult: any = sHasKeyFullQuery
+                    ? {
+                          ...aBlock,
+                          customFullTyping: {
+                              ...aBlock.customFullTyping,
+                              dirty: aBlock.customFullTyping.dirty ?? aBlock.customFullTyping.text?.trim() !== '',
+                          },
+                      }
+                    : { ...aBlock, customFullTyping: { use: false, text: '', dirty: false } };
                 let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
                 if (sResDataType === 'TIME_VALUE') {

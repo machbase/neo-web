@@ -1,4 +1,5 @@
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
+import { getCurrentDatabaseId, normalizeDatabaseId } from '@/utils/currentDatabaseState';
 import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import {
     buildDistanceQuickWindow as buildDataViewerDistanceQuickWindow,
@@ -182,7 +183,9 @@ export function isDataViewerRangeReversed(from: unknown, to: unknown, baseKind: 
         const end = parseDataViewerDistanceValue(to);
         return start !== null && end !== null && start > end;
     }
-    return new Date(String(from)).getTime() > new Date(String(to)).getTime();
+    const start = toEpochMs(from);
+    const end = toEpochMs(to);
+    return Number.isFinite(start) && Number.isFinite(end) && start > end;
 }
 
 export const TIME_FORMATS = [
@@ -513,15 +516,15 @@ function getRawRowValueValue(row: unknown) {
 }
 
 export type DataViewerRawPageBounds = {
-    pageStart: { time: string; name: string };
-    pageEnd: { time: string; name: string };
-    pageBounds: { from: string; to: string };
+    pageStart: { time: string | number; name: string };
+    pageEnd: { time: string | number; name: string };
+    pageBounds: { from: string | number; to: string | number };
 };
 
 export type DataViewerRawPageRequest =
-    | { page: number; from: string; to: string; boundedRange: true; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
+    | { page: number; from: string | number; to: string | number; boundedRange: true; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
     | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
-    | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide: 'next' | 'prev'; cursorTime: string; cursorName: string; cursorOffset: number };
+    | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide: 'next' | 'prev'; cursorTime: string | number; cursorName: string; cursorOffset: number };
 
 /**
  * The keyset cursor anchors for the page currently on screen, plus the span it covers.
@@ -541,19 +544,21 @@ export function buildDataViewerRawPageBounds(rows: unknown[] = [], baseKind: Dat
         const epochMs = toEpochMs(value);
         return Number.isFinite(epochMs) ? epochMs : null;
     };
-    const toBoundText = (sortKey: number) => (distance ? formatDataViewerDistance(sortKey) : new Date(sortKey).toISOString());
+    // Time bounds stay epoch milliseconds all the way into the API so paging and tag-change
+    // queries use FROM_TIMESTAMP too. Distance keeps its existing decimal-string representation.
+    const toBoundValue = (sortKey: number): string | number => (distance ? formatDataViewerDistance(sortKey) : sortKey);
 
     const normalized = rows
         .map((row) => {
             const sortKey = toSortKey(getRawRowTimeValue(row));
             if (sortKey === null) return null;
             return {
-                time: toBoundText(sortKey),
+                time: toBoundValue(sortKey),
                 name: String(getRawRowNameValue(row) ?? ''),
                 sortKey,
             };
         })
-        .filter((row): row is { time: string; name: string; sortKey: number } => Boolean(row));
+        .filter((row): row is { time: string | number; name: string; sortKey: number } => Boolean(row));
 
     if (normalized.length === 0) return null;
 
@@ -574,8 +579,8 @@ export function buildDataViewerRawPageBounds(rows: unknown[] = [], baseKind: Dat
             name: normalized[normalized.length - 1].name,
         },
         pageBounds: {
-            from: toBoundText(min),
-            to: toBoundText(max),
+            from: toBoundValue(min),
+            to: toBoundValue(max),
         },
     };
 }
@@ -616,7 +621,7 @@ export function buildDataViewerRawPageRequest({
 
     const movingForward = page > previousPage;
     const boundary = movingForward ? currentBounds.pageEnd : currentBounds.pageStart;
-    if (!boundary?.time) return { page };
+    if (boundary?.time === null || boundary?.time === undefined || (typeof boundary.time === 'string' && boundary.time.trim() === '')) return { page };
 
     return {
         page,
@@ -642,44 +647,62 @@ export function hasDataViewerRawNextPage({
 }
 
 export function formatTimeRangeLabel(from: unknown, to: unknown) {
-    if (!from && !to) return 'Time range not set';
+    if ((from === '' || from == null) && (to === '' || to == null)) return 'Time range not set';
     return `${formatTimeRangeBoundaryLabel(from, 'Start')} ~ ${formatTimeRangeBoundaryLabel(to, 'End')}`;
 }
 
-export function formatDataViewerTimeRangeInput(value: unknown) {
+export function toDataViewerTimeRangeModalValue(value: unknown) {
     const text = String(value ?? '').trim();
     if (!text) return '';
     if (text.includes('now') || text.includes('last')) return text;
-    return formatDataViewerTime(value, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL');
+    const timestamp = toEpochMs(value);
+    return Number.isFinite(timestamp) ? timestamp : text;
+}
+
+/** Preserve an absolute edge's hidden milliseconds when that edge was applied unchanged. */
+export function preserveDataViewerTimeRangeModalEdge(original: unknown, saved: unknown, displayTimeZone = 'LOCAL') {
+    const modalValue = toDataViewerTimeRangeModalValue(original);
+    if (typeof modalValue !== 'number' || !Number.isFinite(modalValue)) return saved;
+
+    const displayedText = formatDataViewerTime(modalValue, 'YYYY-MM-DD HH24:MI:SS', displayTimeZone);
+    if (typeof saved === 'number') {
+        if (!Number.isFinite(saved)) return saved;
+        // TimeRangeModal formats the original instant to a second-resolution local string, then
+        // parses that string back to an epoch value. During a DST fall-back hour that parse may
+        // choose the first occurrence even when the original was the second one. Compare what the
+        // two instants display as, so an untouched edge keeps its exact occurrence and milliseconds.
+        const savedDisplayText = formatDataViewerTime(saved, 'YYYY-MM-DD HH24:MI:SS', displayTimeZone);
+        return savedDisplayText === displayedText ? modalValue : saved;
+    }
+
+    // TimeRangeModal renders an absolute number as a local, second-resolution string and returns
+    // that string on Apply. Compare against that exact display representation instead of parsing it
+    // back. Besides avoiding a timezone round trip, this preserves the correct original instant in
+    // a DST fall-back hour where two different timestamps have the same local clock text.
+    const savedText = String(saved ?? '').trim();
+    return savedText === displayedText ? modalValue : saved;
 }
 
 function formatTimeRangeBoundaryLabel(value: unknown, fallback: string) {
-    const text = String(value || '').trim();
+    const text = String(value ?? '').trim();
     if (!text) return fallback;
     if (text.includes('now') || text.includes('last')) return text;
     return formatDataViewerTime(text, 'YYYY-MM-DD HH24:MI:SS', 'LOCAL');
 }
 
-function formatDateTimeWithMilliseconds(date: Date) {
-    const pad = (part: number, size = 2) => String(part).padStart(size, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`;
-}
-
-function ceilDateToNextMillisecond(date: Date) {
-    return new Date(date.getTime() + 1);
-}
-
 export function resolveTimeRangeInput(value: unknown, baseDate = new Date(), boundary: 'from' | 'to' = 'from') {
-    const formatResolvedDate = (date: Date) => formatDateTimeWithMilliseconds(boundary === 'to' ? ceilDateToNextMillisecond(date) : date);
+    const resolveRelativeDate = (date: Date) => date.getTime() + (boundary === 'to' ? 1 : 0);
 
     if (typeof value === 'number') {
         if (!Number.isFinite(value)) return null;
-        return formatResolvedDate(new Date(value));
+        // A numeric value is already an exact absolute edge. Re-resolving it must not move To by
+        // another millisecond on every pass.
+        return value;
     }
 
     const text = String(value ?? '').trim();
     if (!text) return '';
-    if (text === 'now' || text === 'last') return formatResolvedDate(baseDate);
+    if (text === 'now' || text === 'last') return resolveRelativeDate(baseDate);
 
     const relative = text.match(/^(now|last)-(\d+)(s|m|h|d|M|y)$/);
     if (relative) {
@@ -692,12 +715,12 @@ export function resolveTimeRangeInput(value: unknown, baseDate = new Date(), bou
         if (unit === 'd') date.setDate(date.getDate() - amount);
         if (unit === 'M') date.setMonth(date.getMonth() - amount);
         if (unit === 'y') date.setFullYear(date.getFullYear() - amount);
-        return formatResolvedDate(date);
+        return resolveRelativeDate(date);
     }
 
     const parsed = new Date(text.replace(' ', 'T'));
     if (Number.isNaN(parsed.getTime())) return null;
-    return text;
+    return parsed.getTime();
 }
 
 function toEpochMs(value: unknown) {
@@ -1040,9 +1063,12 @@ export function buildDataViewerTagAnalyzerTableName({
     const table = String(tableName ?? '').trim();
     const user = String(userName ?? '').trim();
     const db = String(dbName ?? '').trim();
-    const rawDatabaseId = String(databaseId ?? '').trim();
-    const numericDatabaseId = Number(rawDatabaseId);
-    const isMountedDatabase = rawDatabaseId !== '' && Number.isFinite(numericDatabaseId) && numericDatabaseId !== -1;
+    const rawDatabaseId = normalizeDatabaseId(databaseId);
+    // A database other than the one this session is in — a mounted backup, or simply another
+    // logical database on v8.7. Either way the name has to carry all three parts. The ids are
+    // compared as text: a mounted database's id overflows a JS number (see `DatabaseId`), so
+    // the numeric comparison this replaced could not tell two mounts apart.
+    const isMountedDatabase = rawDatabaseId !== '' && rawDatabaseId !== getCurrentDatabaseId();
 
     if (isMountedDatabase) return [db, user, table].filter(Boolean).join('.');
 

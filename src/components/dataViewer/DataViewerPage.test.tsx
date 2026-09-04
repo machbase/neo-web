@@ -46,16 +46,56 @@ jest.mock('./dataViewerApi', () => ({
 // keeps these tests on the page's own apply path (and off the design-system date pickers).
 jest.mock('@/components/modal/TimeRangeModal', () => {
     const React = jest.requireActual<typeof import('react')>('react');
+    const moment = jest.requireActual<typeof import('moment')>('moment');
+    const Actual = jest.requireActual<{ default: any }>('@/components/modal/TimeRangeModal').default;
+    const modalCallbackValue = (value: unknown) => {
+        if (typeof value !== 'number') return value;
+        const displayed = moment.unix(value / 1000).format('YYYY-MM-DD HH:mm:ss');
+        return moment(displayed).unix() * 1000;
+    };
+    // An edge the user actually retyped: the modal's own second-resolution text, an hour earlier
+    // than what it opened with. Derived from the current edge rather than written out as a literal
+    // — a fixed wall-clock string is only inside the window in the zone it was written in, and CI
+    // runs in UTC while this was authored in KST. There the literal landed *after* the window's To,
+    // the page refused the reversed range, and no query went out at all.
+    const shiftedBackAnHour = (value: unknown) =>
+        typeof value === 'number' ? moment.unix(value / 1000).subtract(1, 'hour').format('YYYY-MM-DD HH:mm:ss') : value;
     return {
         __esModule: true,
-        default: ({ pSaveCallback }: { pSaveCallback?: (from: unknown, to: unknown) => void }) =>
-            React.createElement(
-                'div',
-                null,
-                React.createElement('button', { type: 'button', onClick: () => pSaveCallback?.('2026-06-01 09:00:00', '') }, 'apply-without-to'),
-                React.createElement('button', { type: 'button', onClick: () => pSaveCallback?.('', '2026-06-01 10:00:00') }, 'apply-without-from'),
-                React.createElement('button', { type: 'button', onClick: () => pSaveCallback?.('2026-06-01 09:00:00', '2026-06-01 10:00:00') }, 'apply-both')
-            ),
+        // Time: a stub, because what these tests check is the *page's* refusal of an open-ended side,
+        // not the modal's editing. Distance: the real thing, because the distance editor *is* the
+        // shared modal now — the slider, the ticks and the quick windows below are its behaviour,
+        // reached through the page exactly as a user reaches them.
+        default: (props: any) =>
+            props?.pLockTab === 'distance'
+                ? React.createElement(Actual, props)
+                : React.createElement(
+                      'div',
+                      null,
+                      React.createElement('span', { 'data-testid': 'negative-time-opt-in' }, String(props?.pAllowNegativeTime)),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('2026-06-01 09:00:00', '') }, 'apply-without-to'),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('', '2026-06-01 10:00:00') }, 'apply-without-from'),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('2026-06-01 09:00:00', '2026-06-01 10:00:00') }, 'apply-both'),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.(0, 1000) }, 'apply-epoch-zero'),
+                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.(1780290000789, 1780293600123) }, 'apply-millisecond-range'),
+                      React.createElement(
+                          'button',
+                          {
+                              type: 'button',
+                              onClick: () =>
+                                  props?.pSaveCallback?.(modalCallbackValue(props.pStartTime), modalCallbackValue(props.pEndTime)),
+                          },
+                          'apply-current-displayed'
+                      ),
+                      React.createElement(
+                          'button',
+                          {
+                              type: 'button',
+                              onClick: () => props?.pSaveCallback?.(shiftedBackAnHour(props.pStartTime), modalCallbackValue(props.pEndTime)),
+                          },
+                          'edit-from-only'
+                      )
+                  ),
     };
 });
 
@@ -170,8 +210,8 @@ const renderPage = (pCode: Record<string, string> = {}) =>
         </RecoilRoot>
     );
 
-const queryTagDataArgs = () => dataViewerApi.queryTagData.mock.calls.map((call) => call[0] as { from?: string; to?: string; page?: number });
-const windowOf = (args: { from?: string; to?: string }) => `${args.from} ~ ${args.to}`;
+const queryTagDataArgs = () => dataViewerApi.queryTagData.mock.calls.map((call) => call[0] as { from?: string | number; to?: string | number; page?: number });
+const windowOf = (args: { from?: string | number; to?: string | number }) => `${args.from} ~ ${args.to}`;
 // The toolbar label renders the frozen window itself. Page requests can carry their own bounds (a
 // tag change refreshes within the current page's rows), so the label is the only place the window
 // is observable without that interference.
@@ -330,11 +370,11 @@ describe('DataViewerPage frozen time window', () => {
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
         const [args] = queryTagDataArgs();
 
-        // Both edges are literal timestamps. A `last`/`now` placeholder reaching the query builder
-        // would be dropped from the WHERE clause and silently reopen the scan on that side.
-        expect(args.from).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
-        expect(args.to).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/);
-        expect(new Date(args.from!).getTime()).toBeLessThan(new Date(args.to!).getTime());
+        // Both edges are absolute epoch-millisecond timestamps. A local date literal here would be
+        // interpreted again by the SQL session and could move when browser and server zones differ.
+        expect(typeof args.from).toBe('number');
+        expect(typeof args.to).toBe('number');
+        expect(Number(args.from)).toBeLessThan(Number(args.to));
     });
 
     // The reason the frozen window exists. Re-resolving `last` per read makes the window chase the
@@ -402,13 +442,11 @@ describe('DataViewerPage frozen time window', () => {
         // EVERY request issued after the change, not just the last one: the bug showed up as an
         // intermediate query against the stale span, which a `.at(-1)` check would sail past once
         // the corrected query followed it.
-        const after = dataViewerApi.queryTagData.mock.calls.slice(before).map((call) => call[0] as { from?: string; to?: string; boundedRange?: boolean });
+        const after = dataViewerApi.queryTagData.mock.calls.slice(before).map((call) => call[0] as { from?: string | number; to?: string | number; boundedRange?: boolean });
         expect(after.length).toBeGreaterThan(0);
         for (const args of after) {
-            // Row bounds are ISO strings straight off the row timestamps; a resolved window is a
-            // local literal from resolveTimeRangeInput. The suffix tells them apart.
-            expect(args.from).not.toMatch(/Z$/);
-            expect(args.to).not.toMatch(/Z$/);
+            expect(typeof args.from).toBe('number');
+            expect(typeof args.to).toBe('number');
             expect(args.boundedRange).toBeFalsy();
             // And it really is the *new* window — the boundary advanced between the resolutions.
             expect(windowOf(args)).not.toBe(firstWindow);
@@ -521,7 +559,68 @@ describe('DataViewerPage frozen time window', () => {
         fireEvent.click(screen.getByLabelText('Set time range'));
         fireEvent.click(screen.getByText('apply-both'));
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
-        expect(queryTagDataArgs()[1]).toMatchObject({ from: '2026-06-01 09:00:00', to: '2026-06-01 10:00:00' });
+        expect(queryTagDataArgs()[1]).toMatchObject({
+            from: new Date('2026-06-01T09:00:00').getTime(),
+            to: new Date('2026-06-01T10:00:00').getTime(),
+        });
+    });
+
+    test('epoch zero is a valid time edge, not an empty range', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-epoch-zero'));
+
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+        expect(queryTagDataArgs().at(-1)).toMatchObject({ from: 0, to: 1000 });
+        expect(screen.queryByText('Time range requires both From and To.')).not.toBeInTheDocument();
+    });
+
+    test('opts the time editor into pre-1970 timestamps', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        expect(screen.getByTestId('negative-time-opt-in')).toHaveTextContent('true');
+    });
+
+    test('reapplying an unchanged modal preserves each absolute edge millisecond', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-millisecond-range'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-current-displayed'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(3));
+
+        expect(queryTagDataArgs().at(-1)).toMatchObject({ from: 1780290000789, to: 1780293600123 });
+    });
+
+    test('editing only From preserves the untouched To millisecond', async () => {
+        renderPage();
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('apply-millisecond-range'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+        const before = queryTagDataArgs().at(-1)!;
+
+        fireEvent.click(screen.getByLabelText('Set time range'));
+        fireEvent.click(screen.getByText('edit-from-only'));
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(3));
+
+        // From really was retyped — the button moves it an hour back — so the query that follows is
+        // not the previous window sent again. Asserted as a direction rather than an instant: the
+        // shift is a wall-clock one, and the exact epoch it lands on depends on the runner's zone.
+        const after = queryTagDataArgs().at(-1)!;
+        expect(Number(after.from)).toBeLessThan(Number(before.from));
+        // To was handed back as the modal's own second-resolution reading of an edge nobody touched,
+        // and comes through with its milliseconds intact.
+        expect(after.to).toBe(1780293600123);
     });
 });
 
@@ -557,7 +656,7 @@ describe('DataViewerPage base axis chip', () => {
         renderPage();
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(1));
         const before = queryTagDataArgs().at(-1)!;
-        const span = Date.parse(String(before.to)) - Date.parse(String(before.from));
+        const span = Number(before.to) - Number(before.from);
         expect(span).toBeGreaterThan(0);
 
         gotoPage(2);
@@ -568,8 +667,8 @@ describe('DataViewerPage base axis chip', () => {
 
         // The next window along: adjacent to the one it left, and exactly as wide.
         const forward = queryTagDataArgs().at(-1)!;
-        expect(Date.parse(String(forward.from))).toBe(Date.parse(String(before.to)));
-        expect(Date.parse(String(forward.to)) - Date.parse(String(forward.from))).toBe(span);
+        expect(Number(forward.from)).toBe(Number(before.to));
+        expect(Number(forward.to) - Number(forward.from)).toBe(span);
         // A window that moved has no page 2 to still be on.
         expect(forward.page).toBe(1);
         await waitFor(() => expect(screen.getByLabelText('Current result page')).toHaveValue('1'));
@@ -581,8 +680,8 @@ describe('DataViewerPage base axis chip', () => {
         fireEvent.click(screen.getByLabelText('TIME previous'));
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(4));
         const back = queryTagDataArgs().at(-1)!;
-        expect(Date.parse(String(back.from))).toBe(Date.parse(String(before.from)));
-        expect(Date.parse(String(back.to))).toBe(Date.parse(String(before.to)));
+        expect(Number(back.from)).toBe(Number(before.from));
+        expect(Number(back.to)).toBe(Number(before.to));
         expect(modalIsOpen()).toBe(false);
     });
 
@@ -650,7 +749,7 @@ describe('DataViewerPage base axis chip', () => {
         fireEvent.click(chip());
 
         expect(modalIsOpen()).toBe(false);
-        expect(screen.getByLabelText('Set distance range')).toBeInTheDocument();
+        expect(screen.getByText('Distance Range')).toBeInTheDocument();
         expect(screen.getByLabelText('Distance from')).toBeInTheDocument();
         expect(screen.getByLabelText('Distance to')).toBeInTheDocument();
     });
@@ -679,10 +778,13 @@ describe('DataViewerPage distance base range', () => {
     const chip = () => screen.getByLabelText('Set time range');
     const timeModalIsOpen = () => screen.queryByText('apply-both') !== null;
     const distanceRows = Array.from({ length: 5 }, (_, index) => ({ time: index * 10, name: TAG_NAME, value: 10 + index }));
+    // The distance editor is the dashboard's shared modal, pinned to this page's axis with
+    // `pLockTab`. Its title is what identifies it — there is one modal now, and which axis it is
+    // editing is the only thing that distinguishes the two cases.
     const openDistanceEditor = async () => {
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
         fireEvent.click(chip());
-        return screen.getByLabelText('Set distance range');
+        return screen.getByText('Distance Range');
     };
     const applyDistance = (from: string, to: string) => {
         fireEvent.change(screen.getByLabelText('Distance from'), { target: { value: from } });
@@ -713,8 +815,8 @@ describe('DataViewerPage distance base range', () => {
     });
 
     // `last` is anchored by a boundary read. There is no `last` on a distance axis, so that read must
-    // not happen — V$DISTANCE_SENSOR_STAT.MAX_TIME answers 4696837060785340416, the raw bit pattern
-    // of the double 999990, and a window built on it would land ~148 billion years out.
+    // not happen — V$DISTANCE_SENSOR_STAT has no MAX_TIME to answer with (ERR-2056), and the scan it
+    // would fall back to measures metres, not time.
     test('resolves the window without a boundary query', async () => {
         renderPage();
 
@@ -772,7 +874,7 @@ describe('DataViewerPage distance base range', () => {
 
         expect(screen.getByText('Distance range requires both From and To.')).toBeInTheDocument();
         // Still open, and no query went out on the strength of a half-set range.
-        expect(screen.getByLabelText('Set distance range')).toBeInTheDocument();
+        expect(screen.getByText('Distance Range')).toBeInTheDocument();
         expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(callsBefore);
         expect(windowOf(queryTagDataArgs()[0])).toBe(before);
     });
@@ -784,7 +886,7 @@ describe('DataViewerPage distance base range', () => {
 
         applyDistance('900', '100');
 
-        expect(screen.getByText('From should be smaller than To.')).toBeInTheDocument();
+        expect(screen.getByText('Distance range starts after it ends.')).toBeInTheDocument();
         expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(callsBefore);
     });
 
@@ -811,7 +913,7 @@ describe('DataViewerPage distance base range', () => {
         await waitFor(() => expect(resolvedWindowLabel()).toBe('2000 ~ 3000'));
         // The editor closed, the window moved, and the page numbering restarted — the old page 2
         // was numbered against a window that no longer exists.
-        expect(screen.queryByLabelText('Set distance range')).not.toBeInTheDocument();
+        expect(screen.queryByText('Distance Range')).not.toBeInTheDocument();
         expect(screen.getByLabelText('Current result page')).toHaveValue('1');
         expect(queryTagDataArgs().at(-1)).toMatchObject({ from: '2000', to: '3000', baseKind: 'distance' });
         expect(document.querySelector('.data-viewer-range-chip-value')?.textContent).toBe('2000 ~ 3000');
@@ -842,7 +944,7 @@ describe('DataViewerPage distance base range', () => {
 
         fireEvent.click(chip());
         expect(timeModalIsOpen()).toBe(true);
-        expect(screen.queryByLabelText('Set distance range')).not.toBeInTheDocument();
+        expect(screen.queryByText('Distance Range')).not.toBeInTheDocument();
     });
 });
 
@@ -863,9 +965,9 @@ describe('DataViewerPage distance range slider', () => {
     const toSlider = () => screen.getByLabelText<HTMLInputElement>('Distance to slider');
     const fromInput = () => screen.getByLabelText<HTMLInputElement>('Distance from');
     const toInput = () => screen.getByLabelText<HTMLInputElement>('Distance to');
-    const readout = () => document.querySelector('.data-viewer-distance-readout-value')?.textContent;
-    const spanReadout = () => document.querySelector('.data-viewer-distance-readout-span')?.textContent;
-    const tickLabels = () => Array.from(document.querySelectorAll('.data-viewer-distance-tick-label')).map((node) => node.textContent);
+    const readout = () => screen.queryByTestId('distance-readout-value')?.textContent;
+    const spanReadout = () => screen.queryByTestId('distance-readout-span')?.textContent;
+    const tickLabels = () => screen.queryAllByTestId('distance-tick-label').map((node) => node.textContent);
     // The editor opens synchronously, but the extent arrives from a query — so "the slider is on
     // screen" is the only safe signal that the dialog is in the state these tests are about.
     const openEditorWithSlider = async () => {
@@ -974,7 +1076,7 @@ describe('DataViewerPage distance range slider', () => {
     // event name either way, and clientX is what the handler reads.
     const TRACK_WIDTH = 400;
     const pressTrackAt = (ratio: number) => {
-        const track = screen.getByTestId('data-viewer-distance-slider');
+        const track = screen.getByTestId('distance-range-slider');
         jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
             left: 0,
             right: TRACK_WIDTH,
@@ -1034,7 +1136,7 @@ describe('DataViewerPage distance range slider', () => {
         fireEvent.change(toSlider(), { target: { value: '2000' } });
         const before = [fromInput().value, toInput().value];
 
-        jest.spyOn(screen.getByTestId('data-viewer-distance-slider'), 'getBoundingClientRect').mockReturnValue({
+        jest.spyOn(screen.getByTestId('distance-range-slider'), 'getBoundingClientRect').mockReturnValue({
             left: 0,
             right: TRACK_WIDTH,
             width: TRACK_WIDTH,
@@ -1061,8 +1163,8 @@ describe('DataViewerPage distance range slider', () => {
         expect(fromInput().value).toBe('900');
         fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
-        expect(screen.getByText('From should be smaller than To.')).toBeInTheDocument();
-        expect(screen.getByLabelText('Set distance range')).toBeInTheDocument();
+        expect(screen.getByText('Distance range starts after it ends.')).toBeInTheDocument();
+        expect(screen.getByText('Distance Range')).toBeInTheDocument();
     });
 
     test('round ticks span the extent and the real upper bound is spelled out at the end', async () => {
@@ -1073,7 +1175,7 @@ describe('DataViewerPage distance range slider', () => {
         // extent itself, which is neither round nor one of them. The labels are scaled the way the
         // axis is (`1K`, not `1000`); the bound stays exact, because at this scale it fits.
         expect(tickLabels()).toEqual(['0', '1K', '2K', '3K', '4K', '4,828']);
-        const positions = Array.from(document.querySelectorAll<HTMLElement>('.data-viewer-distance-tick')).map((node) => node.style.left);
+        const positions = screen.queryAllByTestId('distance-tick').map((node) => (node as HTMLElement).style.left);
         expect(positions.at(0)).toBe('0%');
         expect(positions.at(-1)).toBe('100%');
     });
@@ -1092,7 +1194,7 @@ describe('DataViewerPage distance range slider', () => {
         expect(labels.length).toBeLessThanOrEqual(4);
         // The bound is abbreviated here rather than printed in full — the exact value is on hover.
         expect(labels.at(-1)).not.toBe('25,150,885.5');
-        expect(document.querySelector('.data-viewer-distance-tick-max')?.getAttribute('title')).toBe('25,150,885.5');
+        expect(document.querySelector('[data-tick-max]')?.getAttribute('title')).toBe('25,150,885.5');
     });
 
     // ── thumb dragging ────────────────────────────────────────────────────────────────────────
@@ -1107,7 +1209,7 @@ describe('DataViewerPage distance range slider', () => {
     // stylesheet: an 8px thumb, hence a 4px inset at each end of a 400px rail.
     const THUMB_WIDTH = 8;
     const mockRail = () => {
-        const track = screen.getByTestId('data-viewer-distance-slider');
+        const track = screen.getByTestId('distance-range-slider');
         jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
             left: 0,
             right: TRACK_WIDTH,
@@ -1344,19 +1446,19 @@ describe('DataViewerPage distance range slider', () => {
         const { container } = renderPage();
         await openEditorWithSlider();
 
-        const quick = document.querySelector('.data-viewer-distance-quick')!;
+        const quick = screen.getByTestId('distance-quick');
         expect(quick).not.toBeNull();
-        expect(quick.querySelector('.data-viewer-distance-quick-label')?.textContent).toBe('Quick windows');
-        const rows = Array.from(quick.querySelectorAll('.data-viewer-distance-quick-row'));
+        expect(quick.querySelector('[data-testid="distance-quick-label"]')?.textContent).toBe('Quick windows');
+        const rows = Array.from(quick.querySelectorAll('[data-testid="distance-quick-row"]'));
         expect(rows.map((row) => Array.from(row.querySelectorAll('button')).map((button) => button.textContent))).toEqual([
             ['First 10%', 'First 25%', 'First 50%'],
             ['Last 50%', 'Last 25%', 'Full'],
         ]);
         // Between the From/To fields and the footer, which is where the section belongs.
-        const body = document.querySelector('.data-viewer-distance-body')!;
+        const body = screen.getByTestId('distance-body');
         const children = Array.from(body.children);
-        expect(children.indexOf(quick)).toBeGreaterThan(children.indexOf(document.querySelector('.data-viewer-distance-fields')!));
-        expect(document.querySelector('.modal-footer')!.compareDocumentPosition(quick) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+        expect(children.indexOf(quick)).toBeGreaterThan(children.indexOf(screen.getByTestId('distance-fields')));
+        expect(screen.getByTestId('modal-footer').compareDocumentPosition(quick) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
         expect(container).toBeTruthy();
     });
 
@@ -1373,7 +1475,7 @@ describe('DataViewerPage distance range slider', () => {
         });
 
         expect(screen.queryByLabelText('Distance from slider')).toBeNull();
-        expect(document.querySelector('.data-viewer-distance-quick')).toBeNull();
+        expect(screen.queryByTestId('distance-quick')).toBeNull();
         expect(screen.queryByRole('button', { name: 'Full' })).toBeNull();
         // The numeric editor is untouched — this hid a shortcut, not the dialog.
         expect(fromInput()).toBeInTheDocument();
@@ -1391,9 +1493,9 @@ describe('DataViewerPage distance range slider', () => {
             await Promise.resolve();
         });
 
-        expect(screen.getByLabelText('Set distance range')).toBeInTheDocument();
+        expect(screen.getByText('Distance Range')).toBeInTheDocument();
         expect(screen.queryByLabelText('Distance from slider')).toBeNull();
-        expect(document.querySelector('.data-viewer-distance-track')).toBeNull();
+        expect(screen.queryByTestId('distance-range-slider')).toBeNull();
 
         fireEvent.change(fromInput(), { target: { value: '2000' } });
         fireEvent.change(toInput(), { target: { value: '3000' } });
@@ -1426,25 +1528,25 @@ describe('DataViewerPage distance range slider', () => {
         fireEvent.change(fromSlider(), { target: { value: '2000' } });
         fireEvent.keyDown(document, { key: 'Escape' });
 
-        expect(screen.queryByLabelText('Set distance range')).toBeNull();
+        expect(screen.queryByText('Distance Range')).toBeNull();
         expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(callsBefore);
     });
 
     test('a click on the overlay closes the editor, a click inside it does not', async () => {
         renderPage();
         await openEditorWithSlider();
-        const overlay = () => document.querySelector('.data-viewer-time-overlay')!;
+        const overlay = () => screen.getByTestId('modal-overlay');
 
         // A real press inside the dialog: the browser would deliver the click to the dialog, not
         // the overlay, so nothing closes.
-        fireEvent.pointerDown(screen.getByLabelText('Set distance range'));
-        fireEvent.click(screen.getByLabelText('Set distance range'));
-        expect(screen.getByLabelText('Set distance range')).toBeInTheDocument();
+        fireEvent.pointerDown(screen.getByText('Distance Range'));
+        fireEvent.click(screen.getByText('Distance Range'));
+        expect(screen.getByText('Distance Range')).toBeInTheDocument();
 
         // A press that both starts and ends on the overlay is a genuine click-outside.
-        fireEvent.pointerDown(overlay());
+        fireEvent.mouseDown(overlay());
         fireEvent.click(overlay());
-        expect(screen.queryByLabelText('Set distance range')).toBeNull();
+        expect(screen.queryByText('Distance Range')).toBeNull();
     });
 
     test('a drag that starts inside and ends past the dialog does not close it', async () => {
@@ -1453,21 +1555,21 @@ describe('DataViewerPage distance range slider', () => {
         // that threw the editor away mid-gesture — exactly when the user was still adjusting.
         renderPage();
         await openEditorWithSlider();
-        const overlay = () => document.querySelector('.data-viewer-time-overlay')!;
+        const overlay = () => screen.getByTestId('modal-overlay');
 
         fireEvent.pointerDown(screen.getByLabelText('Distance from slider'));
-        fireEvent.pointerUp(overlay());
+        fireEvent.mouseUp(overlay());
         fireEvent.click(overlay());
 
-        expect(screen.getByLabelText('Set distance range')).toBeInTheDocument();
+        expect(screen.getByText('Distance Range')).toBeInTheDocument();
     });
 
     test('the header close button closes the editor', async () => {
         renderPage();
         await openEditorWithSlider();
 
-        fireEvent.click(screen.getByLabelText('Close distance range'));
-        expect(screen.queryByLabelText('Set distance range')).toBeNull();
+        fireEvent.click(screen.getByLabelText('Close modal'));
+        expect(screen.queryByText('Distance Range')).toBeNull();
     });
 
     test('Enter applies the range the slider is showing', async () => {
@@ -1476,7 +1578,7 @@ describe('DataViewerPage distance range slider', () => {
 
         fireEvent.change(fromSlider(), { target: { value: '1000' } });
         fireEvent.change(toSlider(), { target: { value: '2000' } });
-        fireEvent.keyDown(screen.getByLabelText('Set distance range'), { key: 'Enter' });
+        fireEvent.keyDown(screen.getByText('Distance Range'), { key: 'Enter' });
 
         await waitFor(() => expect(resolvedWindowLabel()).toBe('1000 ~ 2000'));
     });
@@ -1490,18 +1592,22 @@ describe('DataViewerPage distance range slider', () => {
         await openEditorWithSlider();
         setWindow(1000, 2000);
 
-        const readoutBox = document.querySelector('.data-viewer-distance-readout')!;
-        const [value, note] = Array.from(readoutBox.children);
-        expect(readoutBox.children).toHaveLength(2);
-        expect(value).toHaveClass('data-viewer-distance-readout-value');
-        expect(note).toHaveClass('data-viewer-distance-readout-span');
+        const value = screen.getByTestId('distance-readout-value');
+        const note = screen.getByTestId('distance-readout-span');
+        // The two live in one stack inside the readout box; the box's other child is the reset link,
+        // which sits beside the stack rather than in it.
+        const stack = value.parentElement!;
+        expect(note.parentElement).toBe(stack);
+        expect(Array.from(stack.children)).toEqual([value, note]);
+        expect(value).toHaveAttribute('data-testid', 'distance-readout-value');
+        expect(note).toHaveAttribute('data-testid', 'distance-readout-span');
         // Two *block* children of a block box, in this order: the stacking is a fact about the
         // markup, which a flex direction — flipped back without anything else noticing — is not.
         expect([value.tagName, note.tagName]).toEqual(['DIV', 'DIV']);
         expect(value.textContent).toBe('1,000–2,000');
         expect(note.textContent).toBe('1,000');
         // The span is a sibling of the value, not a tail of it: nothing inside the big readout line.
-        expect(value.querySelector('.data-viewer-distance-readout-span')).toBeNull();
+        expect(value.querySelector('[data-testid="distance-readout-span"]')).toBeNull();
     });
 
     // ── reaching the ends ─────────────────────────────────────────────────────────────────────

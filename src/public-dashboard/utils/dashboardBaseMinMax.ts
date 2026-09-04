@@ -1,4 +1,4 @@
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '../api/repository/machiot';
+import { fetchBlockTimeMinMax } from '../api/repository/machiot';
 import { createBlockBaseMinMaxFetcher } from '@/utils/dashboardBaseMinMax';
 
 /**
@@ -9,4 +9,4 @@ import { createBlockBaseMinMaxFetcher } from '@/utils/dashboardBaseMinMax';
  * `/db/query`, where the editor sends a bearer token to `/web/api/query`. Borrowing the editor's
  * fetcher here answered 401, which on a distance axis leaves `first`/`last` unresolvable.
  */
-export const fetchBlockBaseMinMax = createBlockBaseMinMaxFetcher({ fetchTimeMinMax, fetchMountTimeMinMax });
+export const fetchBlockBaseMinMax = createBlockBaseMinMaxFetcher(fetchBlockTimeMinMax);

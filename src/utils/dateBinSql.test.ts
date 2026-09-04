@@ -16,6 +16,13 @@ const expectNoLegacyBucketSql = (sql: string) => {
     expect(sql).not.toMatch(/DATE_BIN\([^)]*DATE_BIN\('day', 1,/);
 };
 
+/**
+ * Rollup metadata is keyed `database.root_table` — that is what `getRollupTableList` selects
+ * (`t1.database_name || '.' || t1.root_table`), and it prefixes on every version except the
+ * pre-DATABASE_ID `'OLD'` shape. The fixtures below therefore carry the database the lookup
+ * will ask for; a bare key only matched while the lookup asked the narrower `=== 'RECENT'`
+ * question, which left an unprobed session unable to find any rollup at all.
+ */
 const createBlock = (overrides: Record<string, any> = {}) => ({
     id: 'block-1',
     table: 'EXAMPLE',
@@ -190,7 +197,7 @@ describe('DATE_BIN SQL generation', () => {
     test('dashboard parser uses a single rollup query without raw tail union', () => {
         const rollupList = {
             SYS: {
-                EXAMPLE: {
+                'MACHBASEDB.EXAMPLE': {
                     VALUE: [420000],
                     EXT_TYPE: [0],
                 },
@@ -207,7 +214,7 @@ describe('DATE_BIN SQL generation', () => {
     test('dashboard parser checks every JSON rollup candidate until the interval matches', () => {
         const rollupList = {
             SYS: {
-                SENSOR_JSON_RAW: {
+                'MACHBASEDB.SENSOR_JSON_RAW': {
                     PAYLOAD: [300000],
                     'PAYLOAD->$metrics.temperature': [420000],
                     EXT_TYPE: [0],
@@ -240,7 +247,7 @@ describe('DATE_BIN SQL generation', () => {
     test('dashboard parser extracts JSON key outside a base JSON rollup', () => {
         const rollupList = {
             SYS: {
-                SENSOR_JSON_RAW: {
+                'MACHBASEDB.SENSOR_JSON_RAW': {
                     PAYLOAD: [420000],
                     EXT_TYPE: [0],
                 },
@@ -275,7 +282,7 @@ describe('DATE_BIN SQL generation', () => {
     test('dashboard parser prefers a JSON path rollup when both base and path rollups match', () => {
         const rollupList = {
             SYS: {
-                SENSOR_JSON_RAW: {
+                'MACHBASEDB.SENSOR_JSON_RAW': {
                     PAYLOAD: [420000],
                     'PAYLOAD->$metrics.temperature': [420000],
                     EXT_TYPE: [0, 0],
@@ -307,7 +314,7 @@ describe('DATE_BIN SQL generation', () => {
     test('dashboard parser skips JSON path rollup for an explicit dotted JSON key', () => {
         const rollupList = {
             SYS: {
-                SENSOR_JSON_RAW: {
+                'MACHBASEDB.SENSOR_JSON_RAW': {
                     PAYLOAD: [420000],
                     'PAYLOAD->$metrics.temperature': [420000],
                     EXT_TYPE: [0, 0],
@@ -341,7 +348,7 @@ describe('DATE_BIN SQL generation', () => {
     test('dashboard parser does not extract JSON key from count base JSON rollup', () => {
         const rollupList = {
             SYS: {
-                SENSOR_JSON_RAW: {
+                'MACHBASEDB.SENSOR_JSON_RAW': {
                     PAYLOAD: [420000],
                     EXT_TYPE: [0],
                 },
@@ -374,7 +381,7 @@ describe('DATE_BIN SQL generation', () => {
     test('rollup ext type is read from the matched column interval', () => {
         const rollupList = {
             SYS: {
-                EXAMPLE: {
+                'MACHBASEDB.EXAMPLE': {
                     OTHER: [420000],
                     VALUE: [420000],
                     EXT_TYPE: [0, 0],
@@ -396,7 +403,7 @@ describe('DATE_BIN SQL generation', () => {
         });
         const rollupList = {
             SYS: {
-                EXAMPLE: {
+                'MACHBASEDB.EXAMPLE': {
                     VALUE: [420000],
                     EXT_TYPE: [0],
                 },
@@ -446,7 +453,7 @@ describe('DATE_BIN SQL generation', () => {
     test('public dashboard parser uses a single rollup query without raw tail union', () => {
         const rollupList = {
             SYS: {
-                EXAMPLE: {
+                'MACHBASEDB.EXAMPLE': {
                     VALUE: [420000],
                     EXT_TYPE: [0],
                 },
@@ -484,7 +491,7 @@ describe('DATE_BIN SQL generation', () => {
     test('public dashboard parser checks every JSON rollup candidate until the interval matches', () => {
         const rollupList = {
             SYS: {
-                SENSOR_JSON_RAW: {
+                'MACHBASEDB.SENSOR_JSON_RAW': {
                     PAYLOAD: [300000],
                     'PAYLOAD->$metrics.temperature': [420000],
                     EXT_TYPE: [0],
@@ -516,7 +523,7 @@ describe('DATE_BIN SQL generation', () => {
     test('public dashboard parser extracts JSON key outside a base JSON rollup', () => {
         const rollupList = {
             SYS: {
-                SENSOR_JSON_RAW: {
+                'MACHBASEDB.SENSOR_JSON_RAW': {
                     PAYLOAD: [420000],
                     EXT_TYPE: [0],
                 },

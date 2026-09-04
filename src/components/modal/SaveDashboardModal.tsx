@@ -21,8 +21,8 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { Button, Modal, Input, FileListHeader, Dropdown } from '@/design-system/components';
 
 export interface SaveDashboardModalProps {
@@ -65,9 +65,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         })?.[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, customName)) {
             if (sTargetTag.customTable) return defaultMinMax();
-            let rows: any = undefined;
-            if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
-            else rows = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, customName));
+            const rows = await fetchBlockTimeMinMax(sTargetTag, customName);
             const res = convertDashboardMinMaxRows(rows, sTargetTag);
             if (!res) return defaultMinMax();
             if (!Number.isFinite(res.min) || !Number.isFinite(res.max)) return defaultMinMax();

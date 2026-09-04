@@ -3,6 +3,8 @@ import {
     toSqlValueExpressionForAggregator,
 } from '@/utils/dashboardJsonValue';
 import { ADMIN_ID } from '@/utils/constants';
+import { isStatViewReadable, qualifySiblingObject, qualifyTableName } from '@/utils/qualifiedTableName';
+import { buildTagStatExtentSelect } from '@/utils/tagStatColumns';
 import {
     buildDateBinTimeExpression,
     buildRollupTimeExpression,
@@ -300,34 +302,65 @@ export type SeriesFullRangeSqlQueries =
     | [rangeSql: string]
     | [startSql: string, endSql: string];
 
+/**
+ * Can this series' extent come from `V$<TABLE>_STAT` rather than a scan?
+ *
+ * Two independent conditions, and both were once written as something narrower:
+ *
+ *  - **The database.** The test used to be `isMountedTableName`, because a mounted backup was the
+ *    only database known to lack the view. Measured on a v8.7 server from a MACHBASEDB session, a
+ *    three-part name does not reach the view in *any* other database: an ordinary active
+ *    `FACTORY_A.SYS.V$DEMO_TAG_STAT` answers `MACHCLI-ERR-3031, Protocol error` even though
+ *    `V$TABLES` lists the view in FACTORY_A, and the mounted one answers `ERR-2025`. So the
+ *    question is whether the table is in the session's own database — `isStatViewReadable` — and
+ *    the mounted case falls out of it. Getting this wrong is not a slow query but a thrown error:
+ *    the panel never resolves a range and does not open.
+ *
+ *  - **The time column.** The view describes the table's BASETIME column, so a datetime base that
+ *    the table calls something other than `TIME` cannot be read through it. A numeric (distance)
+ *    base is exempt: the view publishes MIN_DISTANCE / MAX_DISTANCE for it whatever the column is
+ *    named, since a table has exactly one BASE DISTANCE column to describe.
+ *
+ * Worth keeping the fast path for where it does apply — measured on a 54k-row tag table, the view
+ * answers in 0.9 ms against 10.2 ms for the scan, and the gap widens with row count.
+ */
+export function usesTagStatViewForFullRange(
+    tableName: string,
+    columns: ValidatedPanelSeriesSourceColumns,
+): boolean {
+    if (!isStatViewReadable(tableName)) return false;
+    return isNumericBaseTimeSourceColumns(columns) ||
+        columns.time.toUpperCase() === 'TIME';
+}
+
+/**
+ * The SQL for a series' full data extent.
+ *
+ * `forceSourceTable` gives the caller the scanning form of the same question, for the one case the
+ * statistics view can fail on a server that otherwise answers it: an engine older than the base
+ * distance stat columns rejects MIN_DISTANCE with `MACHCLI-ERR-2056`. See `fetchSingleSeriesRange`.
+ */
 export function buildSeriesFullRangeSql(
     tableName: SqlIdentifierPath,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
+    options: { forceSourceTable?: boolean } = {},
 ): SeriesFullRangeSqlQueries {
     const usesNumericTime: boolean = isNumericBaseTimeSourceColumns(columns);
-    const tableNameParts: string[] = tableName.split('.');
     const usesSourceTable: boolean =
-        usesNumericTime ||
-        tableNameParts.length > 2 ||
-        columns.time.toUpperCase() !== 'TIME';
+        Boolean(options.forceSourceTable) ||
+        !usesTagStatViewForFullRange(tableName, columns);
     let targetTableName: string;
     if (usesSourceTable) {
-        targetTableName = tableNameParts.length === 1
-            ? `${ADMIN_ID}.${tableName}`
-            : tableName;
+        targetTableName = qualifyTableName(ADMIN_ID, tableName);
     } else {
-        const sourceTableName: string =
-            tableNameParts.at(-1) ?? tableName;
-        const sourceTableMatch: RegExpMatchArray | null =
-            sourceTableName.match(/^V\$(.*)_STAT$/i);
-        const virtualStatUserName: string = tableNameParts.length === 1
-            ? ADMIN_ID.toUpperCase()
-            : tableNameParts[0];
-        const virtualStatSourceTableName: string = sourceTableMatch
-            ? sourceTableMatch[1]
-            : sourceTableName;
-        targetTableName = `${virtualStatUserName}.V$${virtualStatSourceTableName}_STAT`;
+        // Decorate the last segment only. Reading `parts[0]` as the owner gave the *database*
+        // on a three-part name — `FACTORY_A.V$ATABLE_STAT`, which the engine rejects with
+        // `ERR-2080, User (FACTORY_A) does not exist`.
+        targetTableName = qualifySiblingObject(ADMIN_ID.toUpperCase(), tableName, (aName) => {
+            const sMatch = aName.match(/^V\$(.*)_STAT$/i);
+            return `V$${sMatch ? sMatch[1] : aName}_STAT`;
+        });
     }
     const queryTableName: SqlIdentifierPath = parseSqlIdentifierPath(
         targetTableName,
@@ -336,9 +369,10 @@ export function buildSeriesFullRangeSql(
     const tagNameSql: string = buildSqlStringLiteral(tagName);
 
     if (!usesSourceTable) {
+        // Aggregated: the view answers one row per tag, and on a cluster one row per warehouse per
+        // tag, so the extent is the aggregate over whatever it returns — always a single row here.
         return [joinSqlLines([
-            'SELECT min_time AS min_tm,',
-            '       max_time AS max_tm',
+            `SELECT ${buildTagStatExtentSelect(usesNumericTime ? 'distance' : 'time', 'min_tm', 'max_tm')}`,
             `FROM ${queryTableName}`,
             `WHERE NAME IN (${tagNameSql})`,
         ])];

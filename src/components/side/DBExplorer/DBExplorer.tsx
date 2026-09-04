@@ -1,4 +1,5 @@
-import { backupStatus, getBackupDBList, getTableList } from '@/api/repository/api';
+import { backupStatus, getBackupDBList, getConnectableDatabases, getTableList } from '@/api/repository/api';
+import { getDatabases, isDatabaseWritable } from '@/utils/currentDatabaseState';
 import { MdRefresh } from '@/assets/icons/Icon';
 import { useEffect, useState } from 'react';
 import { BackupTableInfo, TableInfo } from './TableInfo';
@@ -8,8 +9,9 @@ import { DBMountModal } from './DBMountModal';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { normalizeBackupStatus } from '@/components/database/backup/backupPayload';
 import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_CONTEXT_MENU_INITIAL_VALUE } from './DBExplorerContextMenu';
-import { buildDropObjectQuery, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE } from './utils';
+import { buildDatabaseNodeList, buildDropObjectQuery, buildQualifiedTableName, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, parseTablePrivilege } from './utils';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
 import { Toast } from '@/design-system/components';
@@ -50,6 +52,11 @@ export const DBExplorer = () => {
                 return 'tag';
             case 7:
                 return 'view';
+            case 8:
+                // Without this, TYPE 8 falls through to 'exception', which
+                // DISABLED_TABLE_TYPES renders greyed out and unclickable — and on v8.7 a
+                // plain `CREATE TABLE` produces TYPE 8, so that would be most new tables.
+                return 'transaction';
             default:
                 return 'exception';
         }
@@ -57,11 +64,17 @@ export const DBExplorer = () => {
     /** Get database list (with mounted database)*/
     const getDatabaseList = async () => {
         setRefresh(sRefresh + 1);
-        const sData = await getTableList();
+        const [sData, sConnectable] = await Promise.all([getTableList(), getConnectableDatabases()]);
         if (sData && sData.data) {
-            const DB_NAME_LIST: string[] = Array.from(
-                new Set(isCurUserEqualAdmin() ? ['MACHBASEDB', ...sData.data.rows.map((aRow: any) => aRow[0])] : sData.data.rows.map((aRow: any) => aRow[0]))
-            );
+            // The catalogue leads, the table rows follow — a database with no tables this user
+            // can see still gets a node, which is the only way `CREATE DATABASE` is visible in
+            // the UI at all. `getDatabases()` is already populated: `getTableList` awaits the
+            // same resolver before building its SQL.
+            const DB_NAME_LIST: string[] = buildDatabaseNodeList({
+                catalogue: getDatabases(),
+                connectable: sConnectable,
+                tableRowDbNames: sData.data.rows.map((aRow: any) => aRow[0]),
+            });
             const USER_NAME_LIST: string[] = Array.from(
                 new Set(isCurUserEqualAdmin() ? ['SYS', ...sData.data.rows.map((aRow: any) => aRow[1])] : sData.data.rows.map((aRow: any) => aRow[1]))
             );
@@ -72,7 +85,7 @@ export const DBExplorer = () => {
                       return {
                           dbName: aName,
                           userList: USER_NAME_LIST.map((aUser: string) => {
-                              return { userName: aUser, total: 0, tableList: { log: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [], view: [], exception: [] } };
+                              return { userName: aUser, total: 0, tableList: { log: [], transaction: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [], view: [], exception: [] } };
                           }),
                           tableLen: 0,
                       };
@@ -118,34 +131,7 @@ export const DBExplorer = () => {
         e.stopPropagation();
 
         const sResBackupStatus: any = await backupStatus();
-        let sStatusCode: any = undefined;
-        if (sResBackupStatus && sResBackupStatus?.success) {
-            // Set default
-            if (!sResBackupStatus.data?.type)
-                sStatusCode = {
-                    type: 'database',
-                    duration: {
-                        type: 'full',
-                        after: '',
-                        from: '',
-                        to: '',
-                    },
-                    path: '',
-                    tableName: '',
-                };
-            else sStatusCode = sResBackupStatus.data;
-        } else
-            sStatusCode = {
-                type: 'database',
-                duration: {
-                    type: 'full',
-                    after: '',
-                    from: '',
-                    to: '',
-                },
-                path: '',
-                tableName: '',
-            };
+        const sStatusCode = normalizeBackupStatus(sResBackupStatus?.success ? sResBackupStatus?.data : undefined);
 
         if (sStatusCode.path === '') getBackupDatabaseList();
 
@@ -193,10 +179,20 @@ export const DBExplorer = () => {
         setIsDrop(true);
         const sQuery = buildDropObjectQuery({
             tableType: sDropTableInfo?.table?.[E_TABLE_INFO.TB_TYPE] as number,
+            dbName: sDropTableInfo?.table?.[E_TABLE_INFO.DB_NM] as string,
             userName: sDropTableInfo?.table?.[E_TABLE_INFO.USER_NM] as string,
             tableName: sDropTableInfo?.table?.[E_TABLE_INFO.TB_NM] as string,
             cascade: sCasCade,
         });
+        // Empty means the row did not name its database, and a shortened DROP would delete the
+        // current database's copy instead — see buildDropObjectQuery.
+        if (!sQuery) {
+            Toast.error('Cannot drop this object: its database is unknown. Refresh the tree and try again.');
+            setDropTableInfo({ label: '', table: [], cascade: false });
+            setIsDrop(false);
+            setIsDropModal(false);
+            return;
+        }
         const { svrState, svrReason } = await fetchQuery(sQuery);
         if (svrState) init();
         else Toast.error(svrReason);
@@ -207,23 +203,43 @@ export const DBExplorer = () => {
     };
     const handleDropTableModal = (aKey: E_DB_DDL | '', aOpt: typeof TABLE_CONTEXT_MENU_INITIAL_VALUE.options) => {
         if (aKey === E_DB_DDL.DELETE) {
-            const sLabel = aOpt.table[0] === 'MACHBASEDB' && aOpt.table[1] === aOpt.userNm ? aOpt.table[3] : `${aOpt.table[1]}.${aOpt.table[3]}`;
+            // The confirmation must name exactly what the query will drop, so it shows the same
+            // fully qualified name rather than a shortened one that could match another database.
+            const sLabel = buildQualifiedTableName({
+                dbName: String(aOpt.table[E_TABLE_INFO.DB_NM] ?? ''),
+                userName: String(aOpt.table[E_TABLE_INFO.USER_NM] ?? ''),
+                tableName: String(aOpt.table[E_TABLE_INFO.TB_NM] ?? ''),
+            });
+            // Refuse before the dialog, not after it. buildQualifiedTableName shortens rather
+            // than failing, so an unknown database would otherwise show a plausible two-part
+            // name, take the user's confirmation, and only then report that it cannot proceed.
+            if (String(sLabel).split('.').length < 3) {
+                Toast.error('Cannot drop this object: its database is unknown. Refresh the tree and try again.');
+                return;
+            }
             setDropTableInfo({ label: sLabel as string, table: aOpt.table, cascade: false });
             setIsDropModal(true);
         }
         setIsContextMenu(TABLE_CONTEXT_MENU_INITIAL_VALUE);
     };
-    const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTable: (string | number)[], aLoginUser: string, pPriv: string) => {
+    const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTable: (string | number)[], aLoginUser: string, pPriv: string | number) => {
         if (!getExperiment()) return;
-        if (aTable[E_TABLE_INFO.DB_ID] === -1) {
-            const userPermissions = pPriv && pPriv !== '' ? pPriv?.split('|')?.[0].trim() : 0;
+        // The menu offers DROP, so what matters is whether the database accepts DDL — not
+        // whether it happens to be the one we are connected to. The manual gates that on
+        // ACCESS_MODE: a READ ONLY database rejects "변경 DDL", and a mounted backup is always
+        // READ ONLY and carries only USAGE. Another *active* READ_WRITE database takes DDL
+        // through a three-part name, so excluding it would be a regression, not a safeguard.
+        if (isDatabaseWritable(aTable[E_TABLE_INFO.DB_ID])) {
+            // Same reason as TableInfo: PRIV is an int64 bitmask on v8.7, and hasTablePermission
+            // already takes a number.
+            const userPermissions = parseTablePrivilege(pPriv);
             if (
                 isCurUserEqualAdmin() ||
                 (aTable[E_TABLE_INFO.USER_NM] as string).toUpperCase() === aLoginUser.toUpperCase()
                 // || hasTablePermission(userPermissions as number, TABLE_PERMISSION.DELETE)
             ) {
                 e.preventDefault();
-                setIsContextMenu({ open: true, x: e.pageX, y: e.pageY, options: { table: aTable, userNm: aLoginUser, permissions: userPermissions as number } });
+                setIsContextMenu({ open: true, x: e.pageX, y: e.pageY, options: { table: aTable, userNm: aLoginUser, permissions: userPermissions } });
             }
         }
     };

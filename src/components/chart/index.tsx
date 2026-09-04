@@ -1,6 +1,7 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRef, useState, useEffect } from 'react';
 import { sqlBasicChartFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
+import { applyTargetDatabase } from '@/utils/sqlTargetDatabase';
 import { Play } from '@/assets/icons/Icon';
 import './index.scss';
 import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
@@ -11,12 +12,15 @@ const CHART = ({
     pChartAixsList,
     pDisplay,
     pSqlQueryTxt,
+    pTargetDb = null,
 }: {
     pQueryList: STATEMENT_TYPE[] | [];
     pChartAixsList: string[];
     pIsVertical?: boolean;
     pDisplay: string;
     pSqlQueryTxt: () => string;
+    /** The toolbar's current target database — the chart issues its own query, so it needs the live value. */
+    pTargetDb?: string | null;
     pSizes?: number[] | string[];
 }) => {
     const [sResult, setResult] = useState<any>(null);
@@ -41,8 +45,12 @@ const CHART = ({
                     yIndex: pChartAixsList.indexOf(sSelectedYAxis),
                     list: pChartAixsList,
                 },
-                // `pQueryList` holds the executed statement(s); its `-- env:` directive must reach the chart query too.
-                pQueryList[0]?.env
+                // The chart runs its own query rather than reusing the result the grid holds, so it
+                // takes the *current* target rather than the one frozen into the executed statement:
+                // change the chip while looking at a chart and the next draw follows it. Precedence
+                // is the same function the run path uses, so a `-- env: use=` in the statement still
+                // wins over the chip.
+                applyTargetDatabase([pQueryList[0]], pTargetDb)[0]?.env
             )
         );
         setResult(sTmpResult.data);
@@ -53,9 +61,11 @@ const CHART = ({
             }));
     };
 
+    // `chartRef.current` is only set while the tab is showing, so a chip change on another tab
+    // costs nothing — the chart redraws when it is next looked at.
     useEffect(() => {
         if (chartRef && chartRef.current && !!pSqlQueryTxt() && pQueryList.length > 0) getChartData();
-    }, [pDisplay]);
+    }, [pDisplay, pTargetDb]);
 
     useEffect(() => {
         if (pChartAixsList?.length > 0) {

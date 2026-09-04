@@ -15,8 +15,8 @@ import { fetchBlockBaseMinMax } from '../../utils/dashboardBaseMinMax';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
-import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
-import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { executeQuery, fetchBlockTimeMinMax } from '../../api/repository/machiot';
+import { pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
@@ -117,12 +117,7 @@ const DashboardView = () => {
         })[0]?.value;
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             if (sTargetTag.customTable) return defaultMinMax();
-            let sSvrResult: any = undefined;
-            if (sTargetTag.table.split('.').length > 2) {
-                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
-            } else {
-                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
-            }
+            const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);
             const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
             if (!sResult) return defaultMinMax();
             return sResult;

@@ -1,4 +1,5 @@
 import './TableInfo.scss';
+import { isMountedDatabaseName, normalizeDatabaseId } from '@/utils/currentDatabaseState';
 import { getTableInfo, getColumnIndexInfo, getRecordCount, unMountDB, mountDB, backupStatus } from '@/api/repository/api';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaDatabase, TfiLayoutColumn3Alt, FaUser } from '@/assets/icons/Icon';
@@ -11,8 +12,9 @@ import { Toast } from '@/design-system/components';
 import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { normalizeBackupStatus } from '@/components/database/backup/backupPayload';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, getTableTypeColor } from './utils';
+import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, describeTablePrivilege, getTableTypeColor } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Tooltip } from 'react-tooltip';
@@ -30,34 +32,7 @@ export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
         e.stopPropagation();
 
         const sResBackupStatus: any = await backupStatus();
-        let sStatusCode: any = undefined;
-        if (sResBackupStatus && sResBackupStatus?.success) {
-            // Set default
-            if (!sResBackupStatus.data?.type)
-                sStatusCode = {
-                    type: 'database',
-                    duration: {
-                        type: 'full',
-                        after: '',
-                        from: '',
-                        to: '',
-                    },
-                    path: '',
-                    tableName: '',
-                };
-            else sStatusCode = sResBackupStatus.data;
-        } else
-            sStatusCode = {
-                type: 'database',
-                duration: {
-                    type: 'full',
-                    after: '',
-                    from: '',
-                    to: '',
-                },
-                path: '',
-                tableName: '',
-            };
+        const sStatusCode = normalizeBackupStatus(sResBackupStatus?.success ? sResBackupStatus?.data : undefined);
 
         if (sStatusCode.path === '') pBackupRefresh();
 
@@ -341,7 +316,10 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
                         <Side.ItemText>{pValue.dbName}</Side.ItemText>
                     </Side.ItemContent>
                     <Side.ItemAction>
-                        {isCurUserEqualAdmin() && pValue.dbName !== 'MACHBASEDB' && (
+                        {/* Unmount applies to attached backups only. The old test — "not named MACHBASEDB" —
+                                becomes wrong the moment a server holds a second *active* database: FACTORY_A
+                                would be offered an unmount it cannot perform. KIND names the distinction. */}
+                            {isCurUserEqualAdmin() && isMountedDatabaseName(pValue.dbName) && (
                             <Button size="side" variant="ghost" isToolTip toolTipContent="Database unmount" icon={<TbDatabaseMinus size={13} />} onClick={handleUnmountModal} />
                         )}
                     </Side.ItemAction>
@@ -388,7 +366,7 @@ interface UserDivPropsType {
     pRefresh: number;
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
     pHandleOpenDataViewer: (e: React.MouseEvent, aTableInfo: (number | string)[]) => void;
-    pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
+    pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string | number) => void;
 }
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
@@ -455,20 +433,22 @@ interface TableDivPropsType {
     pTableIcon: React.ReactElement;
     pTableType: string;
     pTableFlag: number;
-    pPriv: string;
+    pPriv: string | number;
     pUserName: string;
     pTable: (string | number)[];
     pRefresh: number;
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
     pHandleOpenDataViewer: (e: React.MouseEvent, aTableInfo: (number | string)[]) => void;
-    pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
+    pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string | number) => void;
 }
 const DISABLED_TABLE_TYPES = ['exception'];
 
 const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
     const [sRecordCount, setRecordCount] = useState<number>(0);
-    const sPriv = props?.pPriv && props.pPriv !== '' ? props.pPriv?.split('|')?.[1].trim() : '';
+    // v8.7 sends PRIV as an int64 bitmask, so the old `split('|')[1]` threw here and took the
+    // whole explorer down with it. The label is derived from the mask instead.
+    const sPriv = describeTablePrivilege(props?.pPriv);
     const sIsDisabled = DISABLED_TABLE_TYPES.includes(props.pTableType);
     const sIsTagTable = CheckTableFlag(Number(props.pTable[E_TABLE_INFO.TB_TYPE])) === E_TABLE_TYPE.TAG;
 
@@ -481,7 +461,10 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const fetchRecordCount = async () => {
         const res: any = await getRecordCount(
             `${props.pTable[E_TABLE_INFO.TB_NM].toString()}`,
-            `${props.pTable[E_TABLE_INFO.DB_NM] !== 'MACHBASEDB' ? props.pTable[E_TABLE_INFO.DB_NM] + '.' : ''}${props.pTable[E_TABLE_INFO.USER_NM].toString()}`
+            // getRecordCount joins this to the table name with a dot, so it receives
+            // `database.owner` and the query ends up fully qualified. Dropping the database for
+            // MACHBASEDB was safe only while that was the sole database.
+            `${props.pTable[E_TABLE_INFO.DB_NM] ? props.pTable[E_TABLE_INFO.DB_NM] + '.' : ''}${props.pTable[E_TABLE_INFO.USER_NM].toString()}`
         );
         if (res.success && res.data?.rows?.[0]?.[0]) setRecordCount(res.data.rows[0][0]);
         else setRecordCount(0);
@@ -501,7 +484,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
         dbName: String(props.pTable[E_TABLE_INFO.DB_NM] ?? ''),
         userName: String(props.pTable[E_TABLE_INFO.USER_NM] ?? ''),
         tableName: String(props.pTable[E_TABLE_INFO.TB_NM] ?? ''),
-        databaseId: Number(props.pTable[E_TABLE_INFO.DB_ID] ?? -1),
+        databaseId: normalizeDatabaseId(props.pTable[E_TABLE_INFO.DB_ID] ?? -1),
         currentUserName: getUserName(),
     });
 

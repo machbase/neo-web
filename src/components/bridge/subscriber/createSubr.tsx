@@ -94,12 +94,14 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
             if (sResSubr?.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
             else setBridge(setBridgeTree(sResBridge.data, []));
             if (sGenRes.success && sResSubr?.success) {
-                // the backend lowercases the name on create — find the fresh item case-insensitively
-                // and open its detail with the server-side name (keeps the side tree highlight in sync)
-                const sNewSubr = sResSubr.data.find(
-                    (aSubr: any) =>
-                        aSubr?.name?.toLowerCase() === String(sParsedPayload.name).toLowerCase(),
-                );
+                // `subscriber.add` answers with the created id, so match on that; the server also
+                // normalizes the name's case, hence the case-insensitive fallback.
+                const sNewSubr =
+                    (sGenRes.id ? sResSubr.data.find((aSubr: any) => aSubr?.id === sGenRes.id) : undefined) ??
+                    sResSubr.data.find(
+                        (aSubr: any) =>
+                            aSubr?.name?.toLowerCase() === String(sParsedPayload.name).toLowerCase(),
+                    );
                 if (sNewSubr) {
                     const sBridgeItem =
                         sResBridge.data.find(
@@ -114,7 +116,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
     };
     /** switch this tab to the created item's detail page (same board shape the side tree's openSubrInfo builds) */
     const openCreatedSubrDetail = (aBridge: any, aSubr: any) => {
-        setActiveSubr(aSubr.name);
+        setActiveSubr(aSubr.id);
         setBoardList((aBoardList: any) => {
             return aBoardList.map((aBoard: any) => {
                 if (aBoard.type === 'subscriber') {

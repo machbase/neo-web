@@ -1,56 +1,103 @@
-import { buildDataViewerColumnConfigFromColumnRows, buildDisplayColumnInfo, buildDropObjectQuery, buildQualifiedTableName, E_COLUMN_FLAG, GettColumnFlag } from './utils';
+import {
+    buildDatabaseNodeList,
+    buildDataViewerColumnConfigFromColumnRows,
+    buildDisplayColumnInfo,
+    buildDropObjectQuery,
+    buildQualifiedTableName,
+    buildRetentionQuery,
+    describeTablePrivilege,
+    E_COLUMN_FLAG,
+    formatTableBaseExtent,
+    GettColumnFlag,
+    parseTablePrivilege,
+    resolveTableBaseColumn,
+} from './utils';
 
 const DATETIME_TYPE = 6;
 const DOUBLE_TYPE = 20;
 
 describe('buildQualifiedTableName', () => {
-    test('returns table name only when owner is the current user on the local DB', () => {
+    test('always qualifies with the database, even for the current user on the current DB', () => {
         expect(
             buildQualifiedTableName({
                 dbName: 'MACHBASEDB',
-                userName: 'SYS',
-                tableName: 'TAG',
-                databaseId: -1,
-                currentUserName: 'SYS',
-            })
-        ).toBe('TAG');
-    });
-
-    test('returns USER.TABLE when owner differs from current user on the local DB', () => {
-        expect(
-            buildQualifiedTableName({
-                dbName: 'MACHBASEDB',
-                userName: 'USER',
-                tableName: 'TAG',
-                databaseId: -1,
-                currentUserName: 'SYS',
-            })
-        ).toBe('USER.TAG');
-    });
-
-    test('returns DB.USER.TABLE when table is on a mounted database', () => {
-        expect(
-            buildQualifiedTableName({
-                dbName: 'MNTDB',
                 userName: 'SYS',
                 tableName: 'TAG',
                 databaseId: 1,
                 currentUserName: 'SYS',
             })
-        ).toBe('MNTDB.SYS.TAG');
+        ).toBe('MACHBASEDB.SYS.TAG');
     });
 
-    test('ignores case when comparing owner with current user', () => {
+    test('qualifies a table owned by someone else the same way', () => {
         expect(
             buildQualifiedTableName({
                 dbName: 'MACHBASEDB',
+                userName: 'USER',
+                tableName: 'TAG',
+                databaseId: 1,
+                currentUserName: 'SYS',
+            })
+        ).toBe('MACHBASEDB.USER.TAG');
+    });
+
+    test('keeps a table in a second database distinct from a same-named one in the first', () => {
+        expect(
+            buildQualifiedTableName({
+                dbName: 'FACTORY_A',
+                userName: 'SYS',
+                tableName: 'ATABLE',
+                databaseId: 2,
+                currentUserName: 'SYS',
+            })
+        ).toBe('FACTORY_A.SYS.ATABLE');
+    });
+
+    test('falls back to the parts it has rather than emitting an empty segment', () => {
+        expect(
+            buildQualifiedTableName({
+                dbName: '',
                 userName: 'SYS',
                 tableName: 'TAG',
                 databaseId: -1,
-                currentUserName: 'sys',
+                currentUserName: 'SYS',
             })
-        ).toBe('TAG');
+        ).toBe('SYS.TAG');
     });
+});
+
+describe('buildRetentionQuery', () => {
+    // Measured on engine dev-4158, MACHBASEDB (id 1) and FACTORY_A (id 2) each holding a
+    // `SYS.DEMO_TAG`: `V$RETENTION_JOB` carries `DATABASE_ID`/`DATABASE_NAME` and returns both
+    // jobs whatever the session is, so the statement — not the session — has to say which
+    // database is meant.
+    test('scopes the job view by DATABASE_ID when the server has logical databases', () => {
+        const sQuery = buildRetentionQuery({ tableName: 'DEMO_TAG', userName: 'SYS', databaseId: '2' });
+
+        expect(sQuery).toContain("table_name=upper('DEMO_TAG')");
+        expect(sQuery).toContain("user_name=upper('SYS')");
+        expect(sQuery).toContain('and DATABASE_ID=2');
+    });
+
+    test('accepts the id as a number as well as text', () => {
+        expect(buildRetentionQuery({ tableName: 'T', userName: 'SYS', databaseId: 1073741825 })).toContain(
+            'and DATABASE_ID=1073741825'
+        );
+    });
+
+    test('leaves the statement unscoped on a server without logical databases', () => {
+        // There the column does not exist, and the view is scoped to the session anyway.
+        expect(buildRetentionQuery({ tableName: 'T', userName: 'SYS' })).not.toContain('DATABASE_ID');
+    });
+
+    test.each([['-1'], [''], ['   '], ['2 or 1=1'], ['MACHBASEDB']])(
+        'drops the condition rather than interpolating %p',
+        (aId) => {
+            expect(buildRetentionQuery({ tableName: 'T', userName: 'SYS', databaseId: aId })).not.toContain(
+                'DATABASE_ID'
+            );
+        }
+    );
 });
 
 describe('buildDropObjectQuery', () => {
@@ -58,55 +105,77 @@ describe('buildDropObjectQuery', () => {
         expect(
             buildDropObjectQuery({
                 tableType: 7,
+                dbName: 'MACHBASEDB',
                 userName: 'USER',
                 tableName: 'V1',
                 cascade: true,
             })
-        ).toBe('DROP VIEW USER.V1');
+        ).toBe('DROP VIEW MACHBASEDB.USER.V1');
     });
 
     test('appends CASCADE for TAG objects (flag 6) when cascade is true', () => {
         expect(
             buildDropObjectQuery({
                 tableType: 6,
+                dbName: 'MACHBASEDB',
                 userName: 'USER',
                 tableName: 'T1',
                 cascade: true,
             })
-        ).toBe('DROP TABLE USER.T1 CASCADE');
+        ).toBe('DROP TABLE MACHBASEDB.USER.T1 CASCADE');
     });
 
     test('omits CASCADE for TAG objects (flag 6) when cascade is false', () => {
         expect(
             buildDropObjectQuery({
                 tableType: 6,
+                dbName: 'MACHBASEDB',
                 userName: 'USER',
                 tableName: 'T1',
                 cascade: false,
             })
-        ).toBe('DROP TABLE USER.T1');
+        ).toBe('DROP TABLE MACHBASEDB.USER.T1');
     });
 
     test('uses plain DROP TABLE for LOG objects (flag 0) since the call site never enables cascade for them', () => {
         expect(
             buildDropObjectQuery({
                 tableType: 0,
+                dbName: 'MACHBASEDB',
                 userName: 'USER',
                 tableName: 'NM',
                 cascade: false,
             })
-        ).toBe('DROP TABLE USER.NM');
+        ).toBe('DROP TABLE MACHBASEDB.USER.NM');
     });
 
-    test('uses plain DROP TABLE for LOOKUP objects (flag 4) since the call site never enables cascade for them', () => {
+    test('names the database the row belongs to, not the one the session is in', () => {
+        // Measured on v8.7: with ZZDROPTEST present in both databases, `DROP TABLE SYS.ZZDROPTEST`
+        // issued for the FACTORY_A row deleted the MACHBASEDB one. The two-part form resolves
+        // against the current database, so the database part is what keeps the drop honest.
         expect(
             buildDropObjectQuery({
-                tableType: 4,
+                tableType: 0,
+                dbName: 'FACTORY_A',
+                userName: 'SYS',
+                tableName: 'ZZDROPTEST',
+                cascade: false,
+            })
+        ).toBe('DROP TABLE FACTORY_A.SYS.ZZDROPTEST');
+    });
+
+    test('builds nothing when the database is unknown, rather than a two-part DROP', () => {
+        // `DROP TABLE USER.NM` resolves against whichever database the session is in, so it
+        // would delete that database's copy of a table the tree showed under another one.
+        expect(
+            buildDropObjectQuery({
+                tableType: 0,
+                dbName: '',
                 userName: 'USER',
                 tableName: 'NM',
                 cascade: false,
             })
-        ).toBe('DROP TABLE USER.NM');
+        ).toBe('');
     });
 });
 
@@ -211,5 +280,243 @@ describe('buildDataViewerColumnConfigFromColumnRows', () => {
             valueColumn: 'VALUE',
             metaTagColumn: 'NAME',
         });
+    });
+});
+
+describe('parseTablePrivilege / describeTablePrivilege', () => {
+    test('reads the v8.7 int64 bitmask straight through', () => {
+        // The crash this guards: PRIV became a number, and `.split('|')` on a number throws
+        // inside render, taking the whole explorer down rather than one badge.
+        expect(parseTablePrivilege(1)).toBe(1);
+        expect(parseTablePrivilege(575)).toBe(575);
+    });
+
+    test('still reads the older "<mask>|<label>" string form', () => {
+        expect(parseTablePrivilege('3|SELECT, INSERT')).toBe(3);
+        expect(parseTablePrivilege('3')).toBe(3);
+    });
+
+    test('answers 0 — no privileges — for anything it cannot read', () => {
+        expect(parseTablePrivilege('')).toBe(0);
+        expect(parseTablePrivilege(null)).toBe(0);
+        expect(parseTablePrivilege(undefined)).toBe(0);
+        expect(parseTablePrivilege('nonsense')).toBe(0);
+        expect(parseTablePrivilege(NaN)).toBe(0);
+    });
+
+    test('spells out the granted privileges from the mask', () => {
+        expect(describeTablePrivilege(1)).toBe('SELECT');
+        expect(describeTablePrivilege(3)).toBe('SELECT, INSERT');
+        expect(describeTablePrivilege(15)).toBe('SELECT, INSERT, DELETE, UPDATE');
+        expect(describeTablePrivilege(0)).toBe('');
+    });
+
+    test('a numeric PRIV never throws where the old parser did', () => {
+        expect(() => describeTablePrivilege(575)).not.toThrow();
+        expect(describeTablePrivilege(575)).toContain('SELECT');
+    });
+});
+
+describe('buildDropObjectQuery refuses a name it cannot fully qualify', () => {
+    /**
+     * A two-part name resolves against the current database, so `DROP TABLE SYS.ATABLE` issued
+     * for a FACTORY_A row deletes MACHBASEDB's copy — measured. buildQualifiedTableName
+     * shortens rather than emitting an empty segment, so an empty dbName used to degrade into
+     * exactly that statement, and the confirmation modal showed the same shortened label.
+     */
+    test('an empty database name yields no statement at all', () => {
+        expect(
+            buildDropObjectQuery({ tableType: 6, dbName: '', userName: 'SYS', tableName: 'ATABLE', cascade: false })
+        ).toBe('');
+    });
+
+    test('a missing owner is refused for the same reason', () => {
+        expect(
+            buildDropObjectQuery({ tableType: 6, dbName: 'FACTORY_A', userName: '', tableName: 'ATABLE', cascade: false })
+        ).toBe('');
+    });
+
+    test('a fully qualified row still drops, cascade and all', () => {
+        expect(
+            buildDropObjectQuery({ tableType: 6, dbName: 'FACTORY_A', userName: 'SYS', tableName: 'ATABLE', cascade: true })
+        ).toBe('DROP TABLE FACTORY_A.SYS.ATABLE CASCADE');
+    });
+
+    test('a view is refused on the same rule', () => {
+        expect(
+            buildDropObjectQuery({ tableType: 7, dbName: '', userName: 'SYS', tableName: 'AVIEW', cascade: false })
+        ).toBe('');
+    });
+});
+
+describe('buildDatabaseNodeList', () => {
+    // V$DATABASES as the live v8.7 server reports it, in DATABASE_ID order.
+    const CATALOGUE = [{ name: 'MACHBASEDB' }, { name: 'FACTORY_A' }, { name: 'MOUNT_DDD' }];
+
+    test('an administrator sees every database, including one holding no tables', () => {
+        // The whole point: `CREATE DATABASE FACTORY_B` used to leave no trace in the UI, because
+        // the node list was derived from table rows and a new database has none.
+        expect(
+            buildDatabaseNodeList({
+                catalogue: [...CATALOGUE, { name: 'FACTORY_B' }],
+                connectable: undefined,
+                tableRowDbNames: ['MACHBASEDB', 'MACHBASEDB'],
+            })
+        ).toEqual(['MACHBASEDB', 'FACTORY_A', 'MOUNT_DDD', 'FACTORY_B']);
+    });
+
+    test('a non-admin sees the databases they may connect to, tables or not', () => {
+        // KEV with CONNECT on FACTORY_A but no table grants there: the database is still theirs
+        // to open, so it gets a node even though the table query returned nothing for it.
+        expect(
+            buildDatabaseNodeList({
+                catalogue: CATALOGUE,
+                connectable: ['MACHBASEDB', 'FACTORY_A'],
+                tableRowDbNames: ['MACHBASEDB'],
+            })
+        ).toEqual(['MACHBASEDB', 'FACTORY_A']);
+    });
+
+    test('a database the user cannot connect to is hidden', () => {
+        expect(
+            buildDatabaseNodeList({
+                catalogue: CATALOGUE,
+                connectable: ['MACHBASEDB'],
+                tableRowDbNames: ['MACHBASEDB'],
+            })
+        ).toEqual(['MACHBASEDB']);
+    });
+
+    test('...unless its tables are in the list, which must never be orphaned', () => {
+        // Reachable for a non-admin whose CONNECT was revoked while they still own tables there.
+        // Dropping the node would drop their tables out of the tree; showing it is the lesser ill.
+        expect(
+            buildDatabaseNodeList({
+                catalogue: CATALOGUE,
+                connectable: ['MACHBASEDB'],
+                tableRowDbNames: ['MACHBASEDB', 'FACTORY_A'],
+            })
+        ).toEqual(['MACHBASEDB', 'FACTORY_A']);
+    });
+
+    test('a database absent from the catalogue is appended rather than dropped', () => {
+        expect(
+            buildDatabaseNodeList({
+                catalogue: [{ name: 'MACHBASEDB' }],
+                connectable: undefined,
+                tableRowDbNames: ['MACHBASEDB', 'LATE_ARRIVAL'],
+            })
+        ).toEqual(['MACHBASEDB', 'LATE_ARRIVAL']);
+    });
+
+    test('an empty catalogue falls back to the pre-v8.7 behaviour', () => {
+        // No V$DATABASES on the server, or it would not answer. The old table-derived list is
+        // the best available one, and it is what this code did before.
+        expect(
+            buildDatabaseNodeList({
+                catalogue: [],
+                connectable: undefined,
+                tableRowDbNames: ['MACHBASEDB', 'MACHBASEDB', 'MNTDB'],
+            })
+        ).toEqual(['MACHBASEDB', 'MNTDB']);
+    });
+
+    test('names are matched without regard to case, and the catalogue spelling wins', () => {
+        expect(
+            buildDatabaseNodeList({
+                catalogue: CATALOGUE,
+                connectable: ['factory_a'],
+                tableRowDbNames: ['machbasedb'],
+            })
+        ).toEqual(['MACHBASEDB', 'FACTORY_A']);
+    });
+});
+
+describe('buildDatabaseNodeList ordering', () => {
+    test('the catalogue order is preserved, so mounted backups stay at the bottom', () => {
+        // The resolver asks for `order by KIND, DATABASE_ID`, which puts ACTIVE above MOUNTED.
+        // Re-sorting here would undo that, so the only job is not to disturb it — note the
+        // table rows lead with the mounted database and must not drag it up the list.
+        expect(
+            buildDatabaseNodeList({
+                catalogue: [{ name: 'MACHBASEDB' }, { name: 'FACTORY_A' }, { name: 'FACTORY_B' }, { name: 'MOUNT_DDD' }],
+                connectable: undefined,
+                tableRowDbNames: ['MOUNT_DDD', 'FACTORY_A'],
+            })
+        ).toEqual(['MACHBASEDB', 'FACTORY_A', 'FACTORY_B', 'MOUNT_DDD']);
+    });
+});
+
+/**
+ * The table detail header's data range.
+ *
+ * A base distance is a plain number in the column's own unit. Dividing it by a million and
+ * formatting it as a date is what made DISTANCE_SENSOR — whose ODOMETER_M runs 0 .. 999990 —
+ * read `N/A ~ 1970-01-01 09:00:00`: the min was rejected by a `> 0` guard that is only true of
+ * timestamps, and 999990 ns is a millisecond past the epoch.
+ */
+describe('formatTableBaseExtent', () => {
+    test('renders a base distance as the number it is', () => {
+        expect(formatTableBaseExtent(999990, true)).toBe('999,990');
+        // 0 is the first metre of the odometer, not "no data" — the bug this replaced showed N/A.
+        expect(formatTableBaseExtent(0, true)).toBe('0');
+        expect(formatTableBaseExtent(12345.5, true)).toBe('12,345.5');
+    });
+
+    test('still renders a base time as a timestamp', () => {
+        expect(formatTableBaseExtent(1788134400000000000, false)).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+        // Epoch 0 is not a timestamp any table holds, so the time axis keeps refusing it.
+        expect(formatTableBaseExtent(0, false)).toBe('N/A');
+    });
+
+    test('refuses what is not a number, on either axis', () => {
+        [true, false].forEach((isDistance) => {
+            expect(formatTableBaseExtent(null, isDistance)).toBe('N/A');
+            expect(formatTableBaseExtent(undefined, isDistance)).toBe('N/A');
+            expect(formatTableBaseExtent('', isDistance)).toBe('N/A');
+            expect(formatTableBaseExtent('nope', isDistance)).toBe('N/A');
+        });
+    });
+});
+
+/** The header reads the axis off the DESC the Column table already shows. */
+describe('resolveTableBaseColumn', () => {
+    const columns = ['NAME', 'TYPE', 'LENGTH', 'BYTE', 'DESC'];
+
+    test('finds a base distance column and says so', () => {
+        const info = {
+            columns,
+            types: [],
+            rows: [
+                ['NAME', 'varchar', 32, 32, 'tag name'],
+                ['ODOMETER_M', 'double', 17, 8, 'base distance'],
+                ['VALUE', 'double', 17, 8, ''],
+            ],
+        } as any;
+        expect(resolveTableBaseColumn(info)).toEqual({ name: 'ODOMETER_M', isDistance: true });
+    });
+
+    test('finds a base time column and says it is not a distance', () => {
+        const info = {
+            columns,
+            types: [],
+            rows: [
+                ['NAME', 'varchar', 32, 32, 'tag name'],
+                ['TIME', 'datetime', 31, 8, 'base time'],
+                ['VALUE', 'double', 17, 8, 'summarized'],
+            ],
+        } as any;
+        expect(resolveTableBaseColumn(info)).toEqual({ name: 'TIME', isDistance: false });
+    });
+
+    // Index 1 is the base column of every tag table by construction, so an unreadable DESC still
+    // names the right column — it just cannot claim the axis.
+    test('falls back to the second column when there is no DESC to read', () => {
+        const info = { columns: ['NAME', 'TYPE'], types: [], rows: [['NAME', 'varchar'], ['ODOMETER_M', 'double']] } as any;
+        expect(resolveTableBaseColumn(info)).toEqual({ name: 'ODOMETER_M', isDistance: false });
+    });
+
+    test('survives a missing column list', () => {
+        expect(resolveTableBaseColumn(undefined)).toEqual({ name: '', isDistance: false });
     });
 });
