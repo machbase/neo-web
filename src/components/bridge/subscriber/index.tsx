@@ -1,4 +1,4 @@
-import { Alert, Page } from '@/design-system/components';
+import { Page, Toast } from '@/design-system/components';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gActiveSubr, gDelSubr, gStateSubr } from '@/recoil/recoil';
 import { SplitPane, Pane } from '@/design-system/components';
@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { ConfirmModal } from '../../modal/ConfirmModal';
 import { SUBR_AUTO_START_DESC } from './content';
 import { CreateSubr } from './createSubr';
+import { resMessage } from '@/utils/resMessage';
 
 export const Subscriber = ({ pCode }: { pCode: any }) => {
     const setDelSubr = useSetRecoilState(gDelSubr);
@@ -18,16 +19,16 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sState, setState] = useState<any>('');
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
-    const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
-    const [sCommandResMessage, setCommandResMessage] = useState<string | undefined>(undefined);
 
     /** delete item */
     const deleteItem = async () => {
         const sRes: any = await delSubr(pCode.subr.id);
         if (sRes.success) {
             setDelSubr(pCode);
-            setResErrMessage(undefined);
-        } else setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+            Toast.success(`Subscriber '${pCode.subr.name}' deleted`, { id: 'subr-delete' });
+        } else {
+            Toast.error(resMessage(sRes, `Failed to delete subscriber '${pCode.subr.name}'`), { id: 'subr-delete' });
+        }
         setIsDeleteModal(false);
     };
     const handleDelete = (e: React.MouseEvent) => {
@@ -40,9 +41,10 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
         else sSetState = 'STARTING';
         const sResCommand: any = await commandSubr(sSetState === 'STOP' ? 'stop' : 'start', pCode.subr.id);
         const sResSubrInfo = await getSubrItem(pCode.subr.id);
-        if (sResCommand.success) {
-            setCommandResMessage(undefined);
-        } else setCommandResMessage(sResCommand?.data ? (sResCommand as any).data.reason : (sResCommand.statusText as string));
+        // success needs no toast — the switch and its state badge already say it
+        if (!sResCommand.success) {
+            Toast.error(resMessage(sResCommand, `Failed to ${sSetState === 'STOP' ? 'stop' : 'start'} subscriber`), { id: 'subr-command' });
+        }
         setStateSubr({ target: pCode, state: sResSubrInfo?.success ? sResSubrInfo.data.state : 'UNKNWON' });
     };
     const Resizer = () => {
@@ -52,10 +54,6 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
     useEffect(() => {
         setPayload(pCode);
         setState(pCode?.subr?.state ?? '');
-        if (sPayload?.subr?.id !== pCode?.subr?.id) {
-            setResErrMessage(undefined);
-            setCommandResMessage(undefined);
-        }
     }, [pCode]);
 
     return (
@@ -79,13 +77,6 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                                     pBadge={sState}
                                                     pBadgeL={true}
                                                 />
-                                                {sCommandResMessage && (
-                                                    <Page.ContentDesc>
-                                                        <div style={{ marginTop: '-10px' }}>
-                                                            <Page.TextResErr pText={sCommandResMessage} />
-                                                        </div>
-                                                    </Page.ContentDesc>
-                                                )}
                                             </div>
                                         </div>
                                     </Page.SubTitle>
@@ -143,11 +134,6 @@ export const Subscriber = ({ pCode }: { pCode: any }) => {
                                 <Page.ContentBlock>
                                     <Page.TextButton pText="Delete" pWidth="80px" pType="DELETE" pCallback={handleDelete} mr="0px" />
                                 </Page.ContentBlock>
-                                {sResErrMessage && (
-                                    <Page.ContentBlock>
-                                        <Alert variant="error" message={sResErrMessage} />
-                                    </Page.ContentBlock>
-                                )}
                             </Page.Body>
                         </Pane>
                         <Pane>

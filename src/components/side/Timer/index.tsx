@@ -6,6 +6,7 @@ import { TimerItemType, getTimer } from '@/api/repository/timer';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gSelectedTab, gTimerList } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
+import { resMessage } from '@/utils/resMessage';
 import icons from '@/utils/icons';
 import { isTimerRunningState, useTimerStateAction } from '@/components/timer/useTimerStateAction';
 
@@ -20,8 +21,9 @@ export const TimerSide = () => {
 
     const getTimerList = async () => {
         const sResTimer = await getTimer();
+        // keep the current list on failure — blanking it reads as "every timer was deleted"
         if (sResTimer.success) setTimerList(sResTimer.data);
-        else setTimerList([]);
+        else Toast.error(resMessage(sResTimer, 'Failed to load timers'), { id: 'timer-list' });
     };
     const openInfo = (aTimerInfo: TimerItemType) => {
         const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
@@ -128,7 +130,7 @@ export const TimerSide = () => {
             const result = await toggleTimerState(aTimerInfo);
 
             if (!result.success) {
-                Toast.error(result.reason ?? 'Cannot connect to server');
+                Toast.error(resMessage(result, 'Cannot connect to server'), { id: 'timer-command' });
             }
         } finally {
             setPendingTimerMap((currentState) => ({ ...currentState, [aTimerInfo.id]: false }));

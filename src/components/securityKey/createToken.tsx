@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { ApiTokenItemType, GenApiTokenResType, genApiToken, getApiTokens } from '@/api/repository/token';
+import { resMessage } from '@/utils/resMessage';
 import { gBoardList, gTokenList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Page, Alert } from '@/design-system/components';
+import { SplitPane, Pane, Page, Alert, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import moment from 'moment';
 import { TokenIcon } from './icons';
@@ -63,9 +64,12 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
             setTokenList(sList.success ? sList.data : undefined);
             handleSavedCode(true);
             setResErrMessage(undefined);
+            // name only — the plaintext token stays in the panel below, never in a toast
+            Toast.success(`Token '${sRes.data.name || sName.trim()}' issued`, { id: 'token-create' });
         } else {
             setGenInfo(undefined);
-            setResErrMessage(sRes.reason);
+            // failure stays inline next to the name / expiry fields
+            setResErrMessage(resMessage(sRes, 'Failed to issue token'));
         }
     };
 
