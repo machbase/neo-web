@@ -728,9 +728,7 @@ function SourceSelector({
         ? sSelectedOwner
         : sSelectedSourceTable?.database === sActiveDatabase
           ? sSelectedSourceTable.owner
-          : sActiveDatabaseOwners.length === 1
-            ? sActiveDatabaseOwners[0]
-            : '';
+          : sActiveDatabaseOwners[0] ?? '';
     const sActiveOwnerTables = useMemo<SourceTableOption[]>(
         () =>
             sActiveDatabaseOwners.length === 0
@@ -842,11 +840,16 @@ function SourceSelector({
 
     const changeDatabase = useCallback(
         (value: string): void => {
+            const sFirstOwner = sSourceTables.find(
+                ({ database, owner }) => database === value && owner,
+            )?.owner;
             const sFirstTable = sSourceTables.find(
-                ({ database }) => database === value,
+                ({ database, owner }) =>
+                    database === value &&
+                    (sFirstOwner === undefined || owner === sFirstOwner),
             );
             setSelectedDatabase(value);
-            setSelectedOwner(sFirstTable?.owner ?? '');
+            setSelectedOwner(sFirstOwner ?? '');
             changeTable(sFirstTable?.qualifiedName ?? '');
         },
         [changeTable, sSourceTables],
@@ -892,11 +895,8 @@ function SourceSelector({
             return;
         }
         if (!selectedTable) {
-            // Keep the initial default. Explicit database and owner changes select their first
-            // table in the handlers above; a valid selection with no tables stays empty.
-            if (sDatabaseNames.includes(sSelectedDatabase)) return;
             changeTable(
-                sActiveDatabaseTables[0]?.qualifiedName ??
+                sActiveOwnerTables[0]?.qualifiedName ??
                     availableSourceTableNames[0],
             );
             return;
@@ -910,9 +910,7 @@ function SourceSelector({
         availableSourceTableNames,
         changeTable,
         onError,
-        sActiveDatabaseTables,
-        sDatabaseNames,
-        sSelectedDatabase,
+        sActiveOwnerTables,
         selectedTable,
     ]);
 

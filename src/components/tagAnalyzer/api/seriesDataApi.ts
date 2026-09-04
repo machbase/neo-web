@@ -588,12 +588,9 @@ function isSeriesRangeAnswer(error: unknown): boolean {
 /**
  * A series' full extent, with one retry against the source table.
  *
- * The retry used to fire on `MACHCLI-ERR-2056` alone — the one way the view was known to fail, on a
- * server older than the base distance stat columns. Measured on v8.7 there is a second way, and it
- * has a different code: a three-part name into another database answers `ERR-3031, Protocol error`
- * for an active database and `ERR-2025` for a mounted one. Enumerating codes is what let that
- * through, so the rule is inverted — anything that is not an *answer* retries once against the
- * source table, which is measured to work across databases.
+ * Different engines can reject or omit a statistics view with different error codes. Enumerating
+ * those codes is brittle, so anything that is not an *answer* retries once against the source
+ * table, which works across databases.
  *
  * This is not a second safety net over `usesTagStatViewForFullRange` — that one decides which query
  * to send, this one decides what to do when the sent query fails, and the retry it governs already

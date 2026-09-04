@@ -5,7 +5,7 @@ import { resetCurrentDatabase, setCurrentDatabase, setDatabases } from '@/utils/
 const timeColumns = validatePanelSeriesSourceColumns({ name: 'NAME', time: 'TIME', value: 'VALUE' });
 const distanceColumns = validatePanelSeriesSourceColumns({ name: 'NAME', time: 'ODOMETER_M', value: 'VALUE' });
 // The same column, declared BASE DISTANCE. `timeBaseTime` + a non-DATETIME `timeType` is what makes
-// a base *distance*, and it is what sends the range read to MIN_DISTANCE / MAX_DISTANCE instead.
+// the range numeric and keeps it on the source table.
 const baseDistanceColumns = validatePanelSeriesSourceColumns({ name: 'NAME', time: 'ODOMETER_M', value: 'VALUE', timeBaseTime: true, timeType: 20 } as any);
 
 const rangeSql = (aTable: string, aColumns = timeColumns) =>
@@ -82,26 +82,26 @@ describe('buildSeriesFullRangeSql reads the statistics view only in the session 
         expect(sSql).not.toContain('V$');
     });
 
-    // A BASE DISTANCE column *is* in the stat view — under MIN_DISTANCE / MAX_DISTANCE, which the
-    // view publishes in place of MIN_TIME / MAX_TIME. Its name is irrelevant: a table has exactly
-    // one base column and the view describes that one, whatever it is called.
-    test('a base distance column reads the statistics view under its distance columns', () => {
-        const sSql = rangeSql('MACHBASEDB.SYS.ATABLE', baseDistanceColumns);
-        expect(sSql).toContain('FROM MACHBASEDB.SYS.V$ATABLE_STAT');
-        expect(sSql).toContain('min(MIN_DISTANCE) as min_tm');
-        expect(sSql).toContain('max(MAX_DISTANCE) as max_tm');
-        expect(sSql).not.toContain('MIN_TIME');
-        expect(sSql).not.toContain('ORDER BY');
+    test('a base distance column never reads the statistics view', () => {
+        const sQueries = buildSeriesFullRangeSql(
+            parseSqlIdentifierPath('MACHBASEDB.SYS.ATABLE'),
+            'TAG_01',
+            baseDistanceColumns,
+        );
+        const sSql = sQueries.join('\n');
+        expect(sQueries).toHaveLength(2);
+        expect(sSql).toContain('FROM MACHBASEDB.SYS.ATABLE');
+        expect(sSql).not.toContain('V$');
+        expect(sSql).not.toContain('MIN_DISTANCE');
+        expect(sSql).toContain('ORDER BY ODOMETER_M ASC');
+        expect(sSql).toContain('ORDER BY ODOMETER_M DESC');
     });
 
-    // The scanning form of the same question, which the fetch layer falls back to when a server too
-    // old for those columns rejects the query. Two boundary reads, because a numeric base has no
-    // aggregate form here — the same shape this path has always produced.
-    test('forceSourceTable gives the scanning form of a base distance range', () => {
-        const sSql = buildSeriesFullRangeSql(parseSqlIdentifierPath('FACTORY_A.SYS.ATABLE'), 'TAG_01', baseDistanceColumns, { forceSourceTable: true }).join('\n');
-        expect(sSql).toContain('FROM FACTORY_A.SYS.ATABLE');
+    test('forceSourceTable bypasses the time statistics view after a failed request', () => {
+        const sSql = buildSeriesFullRangeSql(parseSqlIdentifierPath('MACHBASEDB.SYS.ATABLE'), 'TAG_01', timeColumns, { forceSourceTable: true }).join('\n');
+        expect(sSql).toContain('FROM MACHBASEDB.SYS.ATABLE');
         expect(sSql).not.toContain('V$');
-        expect(sSql).toContain('ORDER BY');
+        expect(sSql).toContain('MIN(TIME)');
     });
 
     test('a base distance column in another database is scanned like any other', () => {

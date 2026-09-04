@@ -4,7 +4,6 @@ import {
 } from 'react';
 import { resolveDistanceRange } from '@/utils/distanceRange';
 import { seriesDataApi } from '../api/seriesDataApi';
-import { parseRangeInputValue } from '../format/inputFormat';
 import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
@@ -256,6 +255,36 @@ function applyNavigatorRange(
         );
         return queueDataReload(cleared, panelInfo, 'refresh', now);
     }
+
+    const axisKind = getSeriesListAxisKind(panelInfo.query.tagSet);
+    const configuredMainState = state.rangeState && axisKind
+        ? resolveConfiguredRangeState(
+              axisKind,
+              state.rangeState.fullRange,
+              state.rangeState,
+              panelInfo.time.rangeInput,
+              now,
+          )
+        : undefined;
+    if (
+        configuredMainState &&
+        input &&
+        !isRangeExpressionEmpty(input) &&
+        isFiniteIncreasingRange(range)
+    ) {
+        const configuredNavigatorState = createResolvedRangeState(
+            {
+                mainRange: configuredMainState.range.mainRange,
+                navigatorRange: range,
+            },
+            configuredMainState.fullRange,
+            input,
+        );
+        return configuredNavigatorState
+            ? commitMachineRange(state, configuredNavigatorState, 'main')
+            : state;
+    }
+
     return applyDirectRangeChange(
         state,
         {
@@ -378,34 +407,54 @@ function applyRangeBroadcasts(
                     boardVersion,
                 });
             } else {
+                const configuredMainState = resolveConfiguredRangeState(
+                    axisKind,
+                    currentRange.fullRange,
+                    currentRange,
+                    panelInfo.time.rangeInput,
+                    now,
+                );
                 const boardState = isClearing
-                    ? resolveConfiguredRangeState(
-                          axisKind,
-                          currentRange.fullRange,
-                          currentRange,
-                          panelInfo.time.rangeInput,
-                          now,
-                      ) ?? createDefaultResolvedRangeState(
+                    ? configuredMainState ?? createDefaultResolvedRangeState(
                           currentRange.fullRange,
                       )
-                    : resolveNavigatorRangeState(
-                          axisKind,
-                          currentRange.fullRange,
-                          currentRange,
-                          boardRequest.input,
-                          now,
-                      );
-                next = boardState
-                    ? commitMachineRange(
-                          next,
-                          boardState,
-                          isClearing ? 'main' : 'navigator',
-                      )
-                    : queueRangeIssue(
-                          next,
-                          `board-range:${axisKind}:${boardVersion}`,
-                          INVALID_BOARD_RANGE_MESSAGE,
-                      );
+                    : configuredMainState
+                      ? resolveNavigatorRangeAroundMain(
+                            axisKind,
+                            currentRange.fullRange,
+                            configuredMainState,
+                            boardRequest.input,
+                            now,
+                        )
+                      : resolveNavigatorRangeState(
+                            axisKind,
+                            currentRange.fullRange,
+                            currentRange,
+                            boardRequest.input,
+                            now,
+                        );
+                if (boardState) {
+                    next = commitMachineRange(
+                        next,
+                        boardState,
+                        isClearing || configuredMainState
+                            ? 'main'
+                            : 'navigator',
+                    );
+                } else {
+                    const fallback = configuredMainState
+                        ? commitMachineRange(
+                              next,
+                              configuredMainState,
+                              'main',
+                          )
+                        : next;
+                    next = queueRangeIssue(
+                        fallback,
+                        `board-range:${axisKind}:${boardVersion}`,
+                        INVALID_BOARD_RANGE_MESSAGE,
+                    );
+                }
             }
         }
     }
@@ -561,11 +610,6 @@ export function usePanelRangeRuntime(
     const requestAxisKind = getSeriesListAxisKind(
         rangeReloadRequest.panelInfo.query.tagSet,
     );
-    const explicitNumericFullRange = requestAxisKind === 'numeric' &&
-        rangeReloadRequest.intent !== 'board' &&
-        isRangeExpressionEmpty(inputs.rangeRequests.board.numeric.input)
-        ? getExplicitNumericRange(rangeReloadRequest.panelInfo)
-        : undefined;
 
     useLatestAsyncRequest({
         enabled:
@@ -573,11 +617,9 @@ export function usePanelRangeRuntime(
             machine.chartAreaWidth !== undefined &&
             requestAxisKind !== undefined,
         requestKey: String(rangeReloadRequest.generation),
-        fetch: () => explicitNumericFullRange
-            ? Promise.resolve(explicitNumericFullRange)
-            : seriesDataApi.fetchSeriesFullRange(
-                  rangeReloadRequest.panelInfo.query.tagSet,
-              ),
+        fetch: () => seriesDataApi.fetchSeriesFullRange(
+            rangeReloadRequest.panelInfo.query.tagSet,
+        ),
         onSuccess: (fullRange) => {
             if (!requestAxisKind) return;
             setMachine((current) => applyFullRangeResult(
@@ -729,7 +771,7 @@ export function resolveConfiguredRangeState(
             navigatorRange: fullRange,
         },
         fullRange,
-        EMPTY_RANGE_INPUT,
+        current?.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
     );
 }
 
@@ -755,6 +797,32 @@ export function resolveNavigatorRangeState(
               ),
               fullRange,
               current?.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
+          )
+        : undefined;
+}
+
+function resolveNavigatorRangeAroundMain(
+    axisKind: AxisKind,
+    fullRange: AxisRange,
+    current: ResolvedRangeState,
+    input: RangeExpressionInput,
+    referenceTimeMs: number,
+): ResolvedRangeState | undefined {
+    const navigatorRange = resolveRuntimeRangeInput(
+        input,
+        axisKind,
+        fullRange,
+        current.range.navigatorRange,
+        referenceTimeMs,
+    );
+    return navigatorRange
+        ? createResolvedRangeState(
+              {
+                  mainRange: current.range.mainRange,
+                  navigatorRange,
+              },
+              fullRange,
+              current.navigatorRangeInput,
           )
         : undefined;
 }
@@ -820,21 +888,6 @@ function resolveReloadedRangeState(
     current: ResolvedRangeState | undefined,
     boardRequest: PanelBroadcastRequests['rangeRequests']['board'][AxisKind],
 ): ReloadResolution | undefined {
-    if (request.intent === 'board') {
-        return createReloadResolution(
-            request.boardRangeRequest
-                ? resolveNavigatorRangeState(
-                      axisKind,
-                      fullRange,
-                      current,
-                      request.boardRangeRequest.input,
-                      request.referenceTimeMs,
-                  )
-                : undefined,
-            'navigator',
-        );
-    }
-
     if (request.intent === 'full') {
         return createReloadResolution(createFullRangeState(fullRange));
     }
@@ -849,28 +902,6 @@ function resolveReloadedRangeState(
         );
     }
 
-    if (
-        request.intent === 'refresh' &&
-        current &&
-        !isRangeExpressionEmpty(current.navigatorRangeInput)
-    ) {
-        const refreshedState = resolveNavigatorRangeState(
-            axisKind,
-            fullRange,
-            current,
-            current.navigatorRangeInput,
-            request.referenceTimeMs,
-        );
-        return createReloadResolution(
-            refreshedState ?? createResolvedRangeState(
-                current.range,
-                fullRange,
-                current.navigatorRangeInput,
-            ),
-            refreshedState ? 'navigator' : 'main',
-        );
-    }
-
     const restoredState =
         request.intent === 'initialize' &&
         request.panelInfo.time.useLastViewedRange &&
@@ -881,39 +912,77 @@ function resolveReloadedRangeState(
                   EMPTY_RANGE_INPUT,
               )
             : undefined;
-    const configuredState = resolveConfiguredRangeState(
+    if (restoredState) return createReloadResolution(restoredState);
+
+    const configuredMainState = resolveConfiguredRangeState(
         axisKind,
         fullRange,
         current,
         request.panelInfo.time.rangeInput,
         request.referenceTimeMs,
     );
-    const fallbackState =
-        restoredState ??
-        configuredState ??
+    const configuredNavigatorInput = current?.navigatorRangeInput;
+    const hasConfiguredNavigator = configuredNavigatorInput !== undefined &&
+        !isRangeExpressionEmpty(configuredNavigatorInput);
+    const currentWithFullRange = current
+        ? createResolvedRangeState(
+              current.range,
+              fullRange,
+              current.navigatorRangeInput,
+          )
+        : undefined;
+    const baseState =
+        configuredMainState ??
+        ((hasConfiguredNavigator || request.intent === 'board')
+            ? currentWithFullRange
+            : undefined) ??
         createDefaultResolvedRangeState(fullRange);
-    if (
-        restoredState ||
-        configuredState ||
-        isRangeExpressionEmpty(boardRequest.input)
-    ) {
-        return createReloadResolution(fallbackState);
+    const navigatorFixedRange = configuredMainState ? 'main' : 'navigator';
+    const resolveNavigator = (input: RangeExpressionInput) =>
+        configuredMainState
+            ? resolveNavigatorRangeAroundMain(
+                  axisKind,
+                  fullRange,
+                  baseState,
+                  input,
+                  request.referenceTimeMs,
+              )
+            : resolveNavigatorRangeState(
+                  axisKind,
+                  fullRange,
+                  baseState,
+                  input,
+                  request.referenceTimeMs,
+              );
+
+    if (hasConfiguredNavigator) {
+        const configuredNavigatorState = resolveNavigator(
+            configuredNavigatorInput,
+        );
+        return createReloadResolution(
+            configuredNavigatorState ?? baseState,
+            configuredNavigatorState ? navigatorFixedRange : 'main',
+        );
     }
 
-    const boardState = resolveNavigatorRangeState(
-        axisKind,
-        fullRange,
-        fallbackState,
-        boardRequest.input,
-        request.referenceTimeMs,
-    );
+    const boardInput = request.intent === 'board'
+        ? request.boardRangeRequest?.input
+        : boardRequest.input;
+    if (!boardInput) return undefined;
+    if (isRangeExpressionEmpty(boardInput)) {
+        return createReloadResolution(baseState);
+    }
+
+    const boardState = resolveNavigator(boardInput);
     return boardState
-        ? createReloadResolution(boardState, 'navigator')
+        ? createReloadResolution(boardState, navigatorFixedRange)
         : {
-              state: fallbackState,
+              state: baseState,
               fixedRange: 'main',
               issue: {
-                  key: `board-range:${axisKind}:${boardRequest.applyVersion}`,
+                  key: request.intent === 'board'
+                      ? createRangeReloadErrorKey(request)
+                      : `board-range:${axisKind}:${boardRequest.applyVersion}`,
                   message: INVALID_BOARD_RANGE_MESSAGE,
               },
           };
@@ -1007,21 +1076,4 @@ function createRangeReloadErrorKey(request: RangeReloadRequest): string {
         return `board-range:numeric:${request.boardRangeRequest.boardVersion}`;
     }
     return `panel-range:${request.panelInfo.key}:${request.generation}`;
-}
-
-function getExplicitNumericRange(
-    panelInfo: PanelInfo,
-): AxisRange | undefined {
-    const start = parseRangeInputValue(
-        panelInfo.time.rangeInput.start,
-        'numeric',
-    );
-    const end = parseRangeInputValue(
-        panelInfo.time.rangeInput.end,
-        'numeric',
-    );
-
-    if (start === undefined || end === undefined) return undefined;
-    const range = { start, end };
-    return isFiniteIncreasingRange(range) ? range : undefined;
 }

@@ -463,7 +463,7 @@ describe('usePanelRangeRuntime', () => {
         expect(onBroadcastError).not.toHaveBeenCalled();
     });
 
-    it('keeps a configured initial range ahead of the persisted Board range', async () => {
+    it('keeps configured main authoritative over the persisted Board range', async () => {
         jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(
             FULL_RANGE,
         );
@@ -491,8 +491,44 @@ describe('usePanelRangeRuntime', () => {
             expect(onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
                 range: {
                     mainRange: { start: 20, end: 40 },
-                    navigatorRange: FULL_RANGE,
+                    navigatorRange: { start: 20, end: 80 },
                 },
+            }),
+        );
+    });
+
+    it('prioritizes configured main, configured navigator, then Board on refresh', async () => {
+        jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(
+            FULL_RANGE,
+        );
+        const panelInfo = createNumericPanelInfo();
+        panelInfo.time.rangeInput = { start: '40', end: '60' };
+        const currentState = createResolvedRangeState();
+        currentState.navigatorRangeInput = { start: '10', end: '30' };
+        const broadcasts = createBroadcastRequests();
+        broadcasts.rangeRequests.board.numeric = {
+            input: { start: '70', end: '90' },
+            applyVersion: 1,
+        };
+        const runtime = renderPanelRangeRuntime({
+            ...broadcasts,
+            panelInfo,
+            rangeState: currentState,
+        });
+
+        act(() => {
+            runtime.result.current.actions.setChartAreaWidth(400);
+            runtime.result.current.actions.refreshRange();
+        });
+
+        await waitFor(() =>
+            expect(runtime.onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
+                fullRange: FULL_RANGE,
+                range: {
+                    mainRange: { start: 40, end: 60 },
+                    navigatorRange: { start: 10, end: 60 },
+                },
+                navigatorRangeInput: { start: '10', end: '30' },
             }),
         );
     });
@@ -953,6 +989,28 @@ describe('usePanelRangeRuntime', () => {
         await waitFor(() => expect(fetchFullRange).toHaveBeenCalledTimes(1));
     });
 
+    it('expands a configured navigator around the configured main range', () => {
+        const panelInfo = createNumericPanelInfo();
+        panelInfo.time.rangeInput = { start: '40', end: '60' };
+        const runtime = renderPanelRangeRuntime({ panelInfo });
+
+        act(() =>
+            runtime.result.current.actions.setNavigatorRange(
+                { start: 10, end: 30 },
+                { start: '10', end: '30' },
+            ),
+        );
+
+        expect(runtime.onRangeStateChange).toHaveBeenLastCalledWith({
+            fullRange: FULL_RANGE,
+            range: {
+                mainRange: { start: 40, end: 60 },
+                navigatorRange: { start: 10, end: 60 },
+            },
+            navigatorRangeInput: { start: '10', end: '30' },
+        });
+    });
+
     it('accumulates local range actions before the parent echoes the range', () => {
         const onRangeStateChange = jest.fn();
         const { result } = renderHook(() =>
@@ -1193,11 +1251,40 @@ describe('usePanelRangeRuntime', () => {
         );
     });
 
-    it('uses a concrete numeric configuration without fetching full range', async () => {
-        const fetchFullRange = jest.spyOn(
-            seriesDataApi,
-            'fetchSeriesFullRange',
+    it('keeps configured main authoritative over a new numeric Board range', async () => {
+        const fetchFullRange = jest
+            .spyOn(seriesDataApi, 'fetchSeriesFullRange')
+            .mockResolvedValue(FULL_RANGE);
+        const panelInfo = createNumericPanelInfo();
+        panelInfo.time.rangeInput = { start: '40', end: '60' };
+        const runtime = renderPanelRangeRuntime({ panelInfo });
+
+        act(() => runtime.result.current.actions.setChartAreaWidth(400));
+        await waitFor(() => expect(fetchFullRange).toHaveBeenCalledTimes(1));
+
+        const broadcasts = createBroadcastRequests();
+        broadcasts.rangeRequests.board.numeric = {
+            input: { start: '70', end: '90' },
+            applyVersion: 1,
+        };
+        runtime.rerender({ ...runtime.props, ...broadcasts });
+
+        await waitFor(() => expect(fetchFullRange).toHaveBeenCalledTimes(2));
+        await waitFor(() =>
+            expect(runtime.onRangeStateChange.mock.lastCall?.[0]).toMatchObject({
+                fullRange: FULL_RANGE,
+                range: {
+                    mainRange: { start: 40, end: 60 },
+                    navigatorRange: { start: 40, end: 90 },
+                },
+            }),
         );
+    });
+
+    it('keeps the fetched full range with a concrete numeric main range', async () => {
+        const fetchFullRange = jest
+            .spyOn(seriesDataApi, 'fetchSeriesFullRange')
+            .mockResolvedValue(FULL_RANGE);
         const panelInfo = createNumericPanelInfo();
         panelInfo.time.rangeInput = { start: '10', end: '30' };
         const onRangeStateChange = jest.fn();
@@ -1217,10 +1304,14 @@ describe('usePanelRangeRuntime', () => {
         await waitFor(() =>
             expect(onRangeStateChange).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    fullRange: { start: 10, end: 30 },
+                    fullRange: FULL_RANGE,
+                    range: {
+                        mainRange: { start: 10, end: 30 },
+                        navigatorRange: FULL_RANGE,
+                    },
                 }),
             ),
         );
-        expect(fetchFullRange).not.toHaveBeenCalled();
+        expect(fetchFullRange).toHaveBeenCalledTimes(1);
     });
 });

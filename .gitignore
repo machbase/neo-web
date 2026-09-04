@@ -43,6 +43,7 @@ coverage/cobertura-coverage.xml
 /__mocks__/
 /playwright_test/
 /playwright.config.ts
+/playwright/.auth/
 /setupTests.ts
 /test_config/
 /test_runner/

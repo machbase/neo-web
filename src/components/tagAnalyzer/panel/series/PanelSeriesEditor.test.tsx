@@ -114,17 +114,26 @@ describe('PanelSeriesEditor', () => {
 
     it('selects the first user and table when the database changes', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
-            'MACHBASEDB.SYS.ATABLE',
-            'FACTORY_A.USER_A.ATABLE',
-            'FACTORY_A.USER_B.ATABLE',
+            'MACHBASEDB.SYS.SYS_FIRST',
+            'FACTORY_A.USER_A.A_FIRST',
+            'FACTORY_A.USER_A.A_SECOND',
+            'FACTORY_A.USER_B.B_FIRST',
+            'FACTORY_A.USER_B.B_SECOND',
         ]);
         const fetchColumns = jest
             .spyOn(tableMetadataApi, 'fetchTableColumns')
-            .mockResolvedValue([
-                { name: 'NAME', type: 5, flag: 0 },
-                { name: 'TIME', type: 6, flag: 0x01000000 },
-                { name: 'VALUE', type: 20, flag: 0 },
-            ]);
+            .mockImplementation(async (tableName) => {
+                const owner = tableName.split('.')[1];
+                return [
+                    { name: `NAME_${owner}`, type: 5, flag: 0 },
+                    {
+                        name: `TIME_${owner}`,
+                        type: 6,
+                        flag: 0x01000000,
+                    },
+                    { name: `VALUE_${owner}`, type: 20, flag: 0 },
+                ];
+            });
 
         render(
             <PanelSeriesEditor
@@ -150,10 +159,10 @@ describe('PanelSeriesEditor', () => {
 
         expect(user).toHaveRole('combobox');
         await waitFor(() => expect(database).toHaveValue('MACHBASEDB'));
-        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        await waitFor(() => expect(table).toHaveValue('SYS_FIRST'));
         expect(user).toHaveValue('SYS');
-        expect(time).toHaveValue('TIME (DateTime)');
-        expect(value).toHaveValue('VALUE (No Rollup)');
+        expect(time).toHaveValue('TIME_SYS (DateTime)');
+        expect(value).toHaveValue('VALUE_SYS (No Rollup)');
 
         fireEvent.focus(database);
         fireEvent.change(database, { target: { value: 'FACTORY_A' } });
@@ -163,12 +172,14 @@ describe('PanelSeriesEditor', () => {
             ),
         );
         await waitFor(() => expect(user).toHaveValue('USER_A'));
-        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        await waitFor(() => expect(table).toHaveValue('A_FIRST'));
         expect(fetchColumns).toHaveBeenLastCalledWith(
-            'FACTORY_A.USER_A.ATABLE',
+            'FACTORY_A.USER_A.A_FIRST',
         );
-        expect(time).toHaveValue('TIME (DateTime)');
-        expect(value).toHaveValue('VALUE (No Rollup)');
+        await waitFor(() => {
+            expect(time).toHaveValue('TIME_USER_A (DateTime)');
+            expect(value).toHaveValue('VALUE_USER_A (No Rollup)');
+        });
 
         fireEvent.focus(user);
         expect(
@@ -179,23 +190,43 @@ describe('PanelSeriesEditor', () => {
         );
 
         await waitFor(() => expect(user).toHaveValue('USER_B'));
-        await waitFor(() => expect(table).toHaveValue('ATABLE'));
+        await waitFor(() => expect(table).toHaveValue('B_FIRST'));
         expect(table).toBeEnabled();
         expect(fetchColumns).toHaveBeenLastCalledWith(
-            'FACTORY_A.USER_B.ATABLE',
+            'FACTORY_A.USER_B.B_FIRST',
         );
-        expect(time).toHaveValue('TIME (DateTime)');
-        expect(value).toHaveValue('VALUE (No Rollup)');
+        await waitFor(() => {
+            expect(time).toHaveValue('TIME_USER_B (DateTime)');
+            expect(value).toHaveValue('VALUE_USER_B (No Rollup)');
+        });
+
+        fireEvent.change(user, { target: { value: 'USER_A' } });
+        fireEvent.click(
+            await screen.findByTestId('tag-analyzer-user-option-USER_A'),
+        );
+        await waitFor(() => expect(table).toHaveValue('A_FIRST'));
+        expect(fetchColumns).toHaveBeenLastCalledWith(
+            'FACTORY_A.USER_A.A_FIRST',
+        );
+        await waitFor(() => {
+            expect(time).toHaveValue('TIME_USER_A (DateTime)');
+            expect(value).toHaveValue('VALUE_USER_A (No Rollup)');
+        });
 
         fireEvent.focus(table);
         expect(
             await screen.findByTestId(
-                'tag-analyzer-table-option-FACTORY_A.USER_B.ATABLE',
+                'tag-analyzer-table-option-FACTORY_A.USER_A.A_FIRST',
             ),
-        ).toHaveTextContent('ATABLE');
+        ).toHaveTextContent('A_FIRST');
+        expect(
+            screen.getByTestId(
+                'tag-analyzer-table-option-FACTORY_A.USER_A.A_SECOND',
+            ),
+        ).toHaveTextContent('A_SECOND');
         expect(
             screen.queryByTestId(
-                'tag-analyzer-table-option-FACTORY_A.USER_A.ATABLE',
+                'tag-analyzer-table-option-FACTORY_A.USER_B.B_FIRST',
             ),
         ).not.toBeInTheDocument();
     });
