@@ -53,6 +53,13 @@ jest.mock('@/components/modal/TimeRangeModal', () => {
         const displayed = moment.unix(value / 1000).format('YYYY-MM-DD HH:mm:ss');
         return moment(displayed).unix() * 1000;
     };
+    // An edge the user actually retyped: the modal's own second-resolution text, an hour earlier
+    // than what it opened with. Derived from the current edge rather than written out as a literal
+    // — a fixed wall-clock string is only inside the window in the zone it was written in, and CI
+    // runs in UTC while this was authored in KST. There the literal landed *after* the window's To,
+    // the page refused the reversed range, and no query went out at all.
+    const shiftedBackAnHour = (value: unknown) =>
+        typeof value === 'number' ? moment.unix(value / 1000).subtract(1, 'hour').format('YYYY-MM-DD HH:mm:ss') : value;
     return {
         __esModule: true,
         // Time: a stub, because what these tests check is the *page's* refusal of an open-ended side,
@@ -80,7 +87,14 @@ jest.mock('@/components/modal/TimeRangeModal', () => {
                           },
                           'apply-current-displayed'
                       ),
-                      React.createElement('button', { type: 'button', onClick: () => props?.pSaveCallback?.('2026-06-01 13:00:00', modalCallbackValue(props.pEndTime)) }, 'edit-from-only')
+                      React.createElement(
+                          'button',
+                          {
+                              type: 'button',
+                              onClick: () => props?.pSaveCallback?.(shiftedBackAnHour(props.pStartTime), modalCallbackValue(props.pEndTime)),
+                          },
+                          'edit-from-only'
+                      )
                   ),
     };
 });
@@ -593,12 +607,20 @@ describe('DataViewerPage frozen time window', () => {
         fireEvent.click(screen.getByLabelText('Set time range'));
         fireEvent.click(screen.getByText('apply-millisecond-range'));
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+        const before = queryTagDataArgs().at(-1)!;
 
         fireEvent.click(screen.getByLabelText('Set time range'));
         fireEvent.click(screen.getByText('edit-from-only'));
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(3));
 
-        expect(queryTagDataArgs().at(-1)?.to).toBe(1780293600123);
+        // From really was retyped — the button moves it an hour back — so the query that follows is
+        // not the previous window sent again. Asserted as a direction rather than an instant: the
+        // shift is a wall-clock one, and the exact epoch it lands on depends on the runner's zone.
+        const after = queryTagDataArgs().at(-1)!;
+        expect(Number(after.from)).toBeLessThan(Number(before.from));
+        // To was handed back as the modal's own second-resolution reading of an edge nobody touched,
+        // and comes through with its milliseconds intact.
+        expect(after.to).toBe(1780293600123);
     });
 });
 
