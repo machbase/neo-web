@@ -14,6 +14,10 @@ import {
     nameValueAggregatorList,
     nameValueVirtualAggList,
     tagAggregatorList,
+    // Plain chart-type predicates, not React hooks - aliased so rules-of-hooks does not read the
+    // `use` prefix as one and reject the call from inside the delete handler.
+    useXAxis as hasXAxis,
+    useYAxis as hasYAxis,
 } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { isCollapsibleTableType, isTaglessTableType, visibleColumnsForTableType } from '@/utils/dashboardTableKind';
@@ -35,7 +39,8 @@ import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
 import { deactivateFullTyping, enterFullTyping, exitFullTyping, fullTypingAfterTableChange, updateFullTypingText } from '@/utils/fullTypingDateBin';
 import { FullQueryHelper } from './Block/FullQueryHelper';
-import { E_CHART_TYPE } from '@/type/eChart';
+import { ChartType, E_CHART_TYPE } from '@/type/eChart';
+import { renumberBlockIndicesAfterDelete, renumberXAxisAfterDelete } from '@/utils/helpers/Dashboard/BlockHelper';
 import { TransformBlockType } from './Transform/type';
 import { VscEye, VscEyeClosed } from 'react-icons/vsc';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
@@ -547,8 +552,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 sMarker.splice(sDelIdx, 1);
                 sTmpPanelOpt.chartOptions = { ...sTmpPanelOpt.chartOptions, coorLat: sLat, coorLon: sLon, marker: sMarker };
             }
-            if ((aPrev.type === 'Line' || aPrev.type === 'Bar' || aPrev.type === 'Scatter') && aPrev.yAxisOptions.length > 1) {
-                sTmpPanelOpt.yAxisOptions[1].useBlockList = sTmpPanelOpt.yAxisOptions[1].useBlockList.filter((aItem: any) => aItem !== sDelIdx);
+            // Both axes address series by their index in blockList, so a deletion has to renumber them.
+            // This used to run for Line/Bar/Scatter only and only dropped the deleted index without
+            // shifting the rest down - which left Adv scatter's x-axis pointing at a block that no
+            // longer exists, and every dual-axis assignment after the deleted block off by one.
+            if (hasYAxis(chartTypeConverter(aPrev.type) as ChartType) && aPrev.yAxisOptions?.length > 1) {
+                sTmpPanelOpt.yAxisOptions[1].useBlockList = renumberBlockIndicesAfterDelete(sTmpPanelOpt.yAxisOptions[1].useBlockList, sDelIdx);
+            }
+            if (hasXAxis(chartTypeConverter(aPrev.type) as ChartType)) {
+                sTmpPanelOpt.xAxisOptions = renumberXAxisAfterDelete(sTmpPanelOpt.xAxisOptions, sDelIdx);
             }
             return sTmpPanelOpt;
         });

@@ -6,7 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+playwright.config.ts
 node_modules
 dist
 dist-ssr
@@ -43,6 +43,7 @@ coverage/cobertura-coverage.xml
 /__mocks__/
 /playwright_test/
 /playwright.config.ts
+/playwright/.auth/
 /setupTests.ts
 /test_config/
 /test_runner/

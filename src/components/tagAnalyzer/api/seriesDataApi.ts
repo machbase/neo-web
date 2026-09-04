@@ -473,6 +473,8 @@ const RANGE_REQUEST_FAILED_MESSAGE: string =
     'Series full-range request failed.';
 const MALFORMED_RANGE_MESSAGE: string =
     'Series full-range response contained malformed rows.';
+export const SINGLE_POINT_TIME_WIDTH_MS = 1_000;
+export const SINGLE_POINT_NUMERIC_WIDTH = 1;
 
 type SeriesFullRangeSource = {
     table: string;
@@ -571,29 +573,25 @@ async function fetchSeriesFullRange(
 /**
  * Is this the view answering the question, rather than failing to be asked?
  *
- * "Data does not exist" and a zero-width range are answers — the tag is empty, or it holds a single
- * instant — and re-asking them over a scan costs a full table read to arrive at the same place. A
- * malformed response is not worth a second round trip either. Everything else means the *view* was
- * unusable, whatever the engine called it, and the source table can still answer.
+ * "Data does not exist" is an answer — the tag is empty — and re-asking it over a scan costs a full
+ * table read to arrive at the same place. A malformed response is not worth a second round trip
+ * either. Everything else means the *view* was unusable, whatever the engine called it, and the
+ * source table can still answer.
  */
 function isSeriesRangeAnswer(error: unknown): boolean {
     const message: string = error instanceof Error
         ? error.message
         : String(error ?? '');
     return message === 'Data does not exist.' ||
-        message === 'Data range has zero width.' ||
         message === MALFORMED_RANGE_MESSAGE;
 }
 
 /**
  * A series' full extent, with one retry against the source table.
  *
- * The retry used to fire on `MACHCLI-ERR-2056` alone — the one way the view was known to fail, on a
- * server older than the base distance stat columns. Measured on v8.7 there is a second way, and it
- * has a different code: a three-part name into another database answers `ERR-3031, Protocol error`
- * for an active database and `ERR-2025` for a mounted one. Enumerating codes is what let that
- * through, so the rule is inverted — anything that is not an *answer* retries once against the
- * source table, which is measured to work across databases.
+ * Different engines can reject or omit a statistics view with different error codes. Enumerating
+ * those codes is brittle, so anything that is not an *answer* retries once against the source
+ * table, which works across databases.
  *
  * This is not a second safety net over `usesTagStatViewForFullRange` — that one decides which query
  * to send, this one decides what to do when the sent query fails, and the retry it governs already
@@ -641,11 +639,17 @@ async function resolveSeriesRange(
     if (start === undefined || end === undefined) {
         throw new Error(MALFORMED_RANGE_MESSAGE);
     }
-    if (start === end) {
-        throw new Error('Data range has zero width.');
-    }
     const first = start / divisor;
     const second = end / divisor;
+    if (first === second) {
+        const width = usesNumericTime
+            ? SINGLE_POINT_NUMERIC_WIDTH
+            : SINGLE_POINT_TIME_WIDTH_MS;
+        return {
+            start: first,
+            end: first + width,
+        };
+    }
     const fullRange = createNonEmptyAxisRange(first, second);
     if (!fullRange) throw noDataError;
 

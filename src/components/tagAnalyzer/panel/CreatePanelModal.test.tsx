@@ -47,6 +47,9 @@ describe('CreatePanelModal', () => {
             />,
         );
 
+        const applyButton = screen.getByRole('button', { name: 'Apply' });
+        expect(applyButton).toBeDisabled();
+
         fireEvent.change(screen.getByLabelText('Chart name'), {
             target: { value: 'Created panel' },
         });
@@ -54,7 +57,8 @@ describe('CreatePanelModal', () => {
         fireEvent.click(
             screen.getByRole('button', { name: 'Select test series' }),
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        expect(applyButton).toBeEnabled();
+        fireEvent.click(applyButton);
 
         expect(onCreatePanel).toHaveBeenCalledWith(
             expect.objectContaining({

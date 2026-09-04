@@ -1,11 +1,12 @@
 import { KeyItemType, delKey, getKeyList } from '@/api/repository/key';
-import { Page, SplitPane, Pane, Alert } from '@/design-system/components';
+import { Page, SplitPane, Pane, Alert, Toast } from '@/design-system/components';
 import { CreateKey } from '@/components/securityKey/createKey';
 import { useRecoilState } from 'recoil';
 import { gActiveKey, gBoardList, gKeyList } from '@/recoil/recoil';
 import { SashContent } from 'split-pane-react';
 import { useState } from 'react';
 import { ConfirmModal } from '../modal/ConfirmModal';
+import { resMessage } from '@/utils/resMessage';
 import { PiCertificateLight } from 'react-icons/pi';
 import { StatusBadge, ValidityBar, FactRow, UsageBlock, expiryState, asDate, humanizeSpan, detailStyles as styles } from './detailParts';
 
@@ -20,7 +21,6 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
     // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
-    const [sDeleteError, setDeleteError] = useState<string | undefined>(undefined);
 
     const sTarget = sBoardList.find((aBoard: any) => aBoard.type === 'key');
 
@@ -28,11 +28,13 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
     const deleteKey = async () => {
         const sRes = await delKey(pCode.id);
         if (!sRes.success) {
-            setDeleteError(sRes.reason);
+            // toast, not inline: the old Alert sat at the bottom of this pane, below the fold on a
+            // long certificate page, while the confirm modal had already closed
+            Toast.error(resMessage(sRes, `Failed to delete certificate '${pCode.name}'`), { id: 'cert-delete' });
             setIsDeleteModal(false);
             return;
         }
-        setDeleteError(undefined);
+        Toast.success(`Certificate '${pCode.name}' deleted`, { id: 'cert-delete' });
         const sList = await getKeyList();
         setCertList(sList.success ? sList.data : undefined);
 
@@ -127,12 +129,6 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                                           */}
                                     </div>
                                 </Page.ContentBlock>
-
-                                {sDeleteError && (
-                                    <Page.ContentBlock>
-                                        <Alert variant="error" message={sDeleteError} />
-                                    </Page.ContentBlock>
-                                )}
                             </Page.Body>
                         </Pane>
                         <Pane minSize={360}>
@@ -140,7 +136,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                             <Page.Body>
                                 <Page.ContentBlock>
                                     <UsageBlock
-                                        pWhere="MQTT TLS · gRPC mutual auth"
+                                        pWhere="MQTT TLS client auth"
                                         pCode={`mosquitto_pub --cafile server.pem \\\n  --cert ${pCode.name}_cert.pem --key ${pCode.name}_key.pem \\\n  -h 127.0.0.1 -p 5653 -t db/append/EXAMPLE`}
                                     />
                                 </Page.ContentBlock>

@@ -1,4 +1,4 @@
-import { Page } from '@/design-system/components';
+import { Page, Toast } from '@/design-system/components';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { getLogin as getShellList } from '@/api/repository/login';
 import {
@@ -15,6 +15,7 @@ import { addShell, copyShell, postShell, removeShell } from '@/api/repository/ap
 import icons from '@/utils/icons';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { SHELL_ICON_LIST } from './constants';
+import { resMessage } from '@/utils/resMessage';
 
 interface ShellAttrType {
     [key: number]: any;
@@ -84,9 +85,11 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
             }
 
             setResMessage(undefined);
+            Toast.success(`Shell '${sPayload.label}' deleted`, { id: 'shell-delete' });
         } else {
-            if (sRes?.data && sRes?.data.reason) setResMessage(sRes?.data.reason);
-            else setResMessage(sRes.statusText);
+            // toast, not inline: the delete happens from a confirm modal, and on success this board
+            // is torn down entirely — there is no reliable place left to render an inline error
+            Toast.error(resMessage(sRes, `Failed to delete shell '${sPayload.label}'`), { id: 'shell-delete' });
         }
         setIsDeleteModal(false);
     };
@@ -116,9 +119,10 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
             });
             shellList();
             setResMessage(undefined);
+            Toast.success(`Shell '${sPayload.label}' saved`, { id: 'shell-save' });
         } else {
-            if (sResult?.data && sResult?.data.reason) setResMessage(sResult?.data.reason);
-            else setResMessage(sResult.statusText);
+            // failure stays inline under the form — name/command are what have to change
+            setResMessage(resMessage(sResult, 'Failed to save shell'));
         }
     };
     /** Set key list */
@@ -132,7 +136,8 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
             setShellList(sTermTypeList);
             return sTermTypeList;
         } else {
-            setShellList(undefined);
+            // keep the current list rather than blanking the side tree on a transport failure
+            Toast.error(resMessage(sResShellList, 'Failed to load shells'), { id: 'shell-list' });
             return [];
         }
     };
@@ -166,8 +171,8 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
         }
         const sAddRes: any = await addShell(sPayload.label, sPayload.command);
         if (!sAddRes.success) {
-            if (sAddRes?.data && sAddRes?.data.reason) setResMessage(sAddRes?.data.reason);
-            else setResMessage(sAddRes.statusText);
+            // failure stays inline next to the form fields
+            setResMessage(resMessage(sAddRes, 'Failed to create shell'));
             return;
         }
         const sNewId = String(sAddRes.data ?? '');
@@ -177,6 +182,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
         );
         const sStyleChanged =
             sPayload.icon !== '' || (sPayload.theme && sPayload.theme !== 'default');
+        let sStyleFailed = false;
         if (sNewShell && sStyleChanged) {
             const sUpdateRes: any = await postShell({
                 ...sNewShell,
@@ -189,9 +195,16 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                     sTermList.find(
                         (aShell: any) => aShell?.id?.toLowerCase() === sNewId.toLowerCase(),
                     ) ?? sNewShell;
+            } else {
+                // keep going — the shell itself was created; the edit page opens with icon/theme
+                // unset and the user can re-apply them with Save. Warning rather than error, and it
+                // has to be said: silently dropping the icon looked like the form ignored the input.
+                Toast.warning(
+                    `Shell '${sPayload.label}' created, but its icon and theme were not saved: ${resMessage(sUpdateRes, 'shell.update failed')}`,
+                    { id: 'shell-create' }
+                );
+                sStyleFailed = true;
             }
-            // on style-update failure keep going — the shell itself was created; the edit page opens
-            // with icon/theme unset and the user can re-apply them with Save
         }
         const sTargetItem = sNewShell ?? {
             ...sPayload,
@@ -218,12 +231,16 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
         setSelectedTab(sTargetItem.id);
         setActiveShellName(sTargetItem.id);
         setResMessage(undefined);
+        // the style-failure warning above already reported the create; don't stack a second toast
+        if (!sStyleFailed) Toast.success(`Shell '${sTargetItem.label}' created`, { id: 'shell-create' });
     };
     /** Handle create shell */
     const handleCreateShell = async () => {
         const sTempTarget = pCode;
         const sCopyRes: any = await copyShell(sTempTarget.id);
 
+        // NOTE: shellRpcEnvelope leaves top-level `reason` unset on error, so the failure message
+        // below only exists under data.reason / statusText — resMessage covers both.
         if (sCopyRes.success) {
             const sTargetItem = sCopyRes.data;
             sTargetItem.id = sTargetItem.id.toUpperCase();
@@ -266,9 +283,12 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
             }
             setSelectedTab(sTargetItem.id);
             setActiveShellName(sTargetItem.id);
+            Toast.success(`Shell '${sTargetItem.label}' copied`, { id: 'shell-copy' });
             return;
         } else {
+            // was entirely silent: the copy button simply did nothing on failure
             setActiveShellName(undefined);
+            Toast.error(resMessage(sCopyRes, `Failed to copy shell '${sTempTarget.label}'`), { id: 'shell-copy' });
         }
     };
     const Resizer = () => {

@@ -1,11 +1,12 @@
 import { ApiTokenItemType, delApiToken, getApiTokens } from '@/api/repository/token';
-import { Page, SplitPane, Pane, Alert } from '@/design-system/components';
+import { Page, SplitPane, Pane, Alert, Toast } from '@/design-system/components';
 import { CreateToken } from '@/components/securityKey/createToken';
 import { useRecoilState } from 'recoil';
 import { gActiveToken, gBoardList, gTokenList } from '@/recoil/recoil';
 import { SashContent } from 'split-pane-react';
 import { useState } from 'react';
 import { ConfirmModal } from '../modal/ConfirmModal';
+import { resMessage } from '@/utils/resMessage';
 import { TokenIcon } from './icons';
 import { StatusBadge, ValidityBar, FactRow, UsageBlock, expiryState, asDateTime, humanizeSpan, detailStyles as styles } from './detailParts';
 
@@ -20,7 +21,6 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
     // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
-    const [sDeleteError, setDeleteError] = useState<string | undefined>(undefined);
 
     const sTarget = sBoardList.find((aBoard: any) => aBoard.type === 'token');
 
@@ -28,11 +28,12 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
     const deleteToken = async () => {
         const sRes = await delApiToken(pCode.id);
         if (!sRes.success) {
-            setDeleteError(sRes.reason);
+            // toast, not inline — same below-the-fold problem the certificate page had
+            Toast.error(resMessage(sRes, `Failed to delete token '${pCode.name}'`), { id: 'token-delete' });
             setIsDeleteModal(false);
             return;
         }
-        setDeleteError(undefined);
+        Toast.success(`Token '${pCode.name}' deleted`, { id: 'token-delete' });
         const sList = await getApiTokens();
         setTokenList(sList.success ? sList.data : undefined);
 
@@ -123,12 +124,6 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
                                         <FactRow pLabel="lastUsedAt" pValue={pCode.lastUsedAt ? asDateTime(pCode.lastUsedAt) : '— never used'} />
                                     </div>
                                 </Page.ContentBlock>
-
-                                {sDeleteError && (
-                                    <Page.ContentBlock>
-                                        <Alert variant="error" message={sDeleteError} />
-                                    </Page.ContentBlock>
-                                )}
                             </Page.Body>
                         </Pane>
                         <Pane minSize={360}>

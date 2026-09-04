@@ -9,22 +9,20 @@ import { FaStop } from 'react-icons/fa';
 import { Button, Page } from '@/design-system/components';
 import { RiTimeZoneLine } from 'react-icons/ri';
 import { TimeZoneModal } from '../modal/TimeZoneModal';
-import { TargetDatabaseChip, useTargetDatabases } from '@/components/database/targetDatabase';
-import { readTargetDatabaseForPath, touchRecentDatabase, writeTargetDatabaseForPath } from '@/utils/targetDatabaseStore';
+import { TargetDatabaseChip, useTabTargetDatabase } from '@/components/database/targetDatabase';
+import { touchRecentDatabase } from '@/utils/targetDatabaseStore';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
     pIsActiveTab: boolean;
     pId: string;
-    /** The saved file path, or '' for an unsaved worksheet. Keys the chip's restore. */
-    pPath?: string;
     pSheet: any;
     pHandleSaveModalOpen: () => void;
     setIsSaveModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const WorkSheet = (props: WorkSheetProps) => {
-    const { pIsActiveTab, pId, pPath, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
+    const { pIsActiveTab, pId, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
     const setSaveWorkSheet = useSetRecoilState(gSaveWorkSheets);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sWorkSheets, setWorkSheets] = useState<any>([]);
@@ -54,17 +52,16 @@ export const WorkSheet = (props: WorkSheetProps) => {
      * Never written into the `.wrk` file: the saved cell payload is a fixed whitelist, and this
      * value is not part of it.
      */
-    const [sTargetDb, setTargetDb] = useState<string | null>(() => readTargetDatabaseForPath(pPath));
-    const { databases: sDatabaseList, sessionDatabase: sSessionDb, reload: reloadDatabases } = useTargetDatabases();
-
-    /** Save As gives the worksheet its path only now; carry the already-picked value over to it. */
-    useEffect(() => {
-        if (pPath) writeTargetDatabaseForPath(pPath, sTargetDb);
-    }, [pPath]);
+    const {
+        targetDatabase: sTargetDb,
+        setTargetDatabase: setTargetDb,
+        databases: sDatabaseList,
+        sessionDatabase: sSessionDb,
+        reload: reloadDatabases,
+    } = useTabTargetDatabase();
 
     const handleChangeTargetDb = (aDatabase: string | null) => {
         setTargetDb(aDatabase);
-        writeTargetDatabaseForPath(pPath, aDatabase);
         if (aDatabase) touchRecentDatabase(aDatabase);
     };
     const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));

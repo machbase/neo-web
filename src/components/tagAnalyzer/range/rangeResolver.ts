@@ -149,13 +149,21 @@ export function resolveButtonPress(
                   : action === 'zoom-out-small'
                     ? 2
                     : 4;
+            const nextMainRange = createRangeFromCenterAndWidth(
+                getRangeCenter(range.mainRange),
+                getRangeWidth(range.mainRange) * widthRatio,
+            );
+            if (
+                !Number.isFinite(nextMainRange.start) ||
+                !Number.isFinite(nextMainRange.end) ||
+                nextMainRange.start >= nextMainRange.end
+            ) {
+                return range;
+            }
 
             return resolveRangeChange(range, {
                 type: 'main',
-                range: createRangeFromCenterAndWidth(
-                    getRangeCenter(range.mainRange),
-                    getRangeWidth(range.mainRange) * widthRatio,
-                ),
+                range: nextMainRange,
             });
         }
         case 'focus':

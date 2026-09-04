@@ -439,6 +439,20 @@ export const TABLE_COLUMN_TYPE = [
     { key: 104, value: 'USHORT' },
     { key: 108, value: 'UINTEGER' },
     { key: 112, value: 'ULONG' },
+    { key: 132, value: 'DECIMAL' },
+    // Array columns (`double[4]`, `int[4]`, …). The codes are what M$SYS_COLUMNS.TYPE
+    // reports for them; LENGTH beside the type already carries the element count, so
+    // the label stays unsized. Deliberately out of DB_NUMBER_TYPE: a list is not a
+    // value a chart axis can be built from.
+    { key: 137, value: 'SHORT[]' },
+    { key: 141, value: 'USHORT[]' },
+    { key: 145, value: 'INTEGER[]' },
+    { key: 149, value: 'UINTEGER[]' },
+    { key: 153, value: 'LONG[]' },
+    { key: 157, value: 'ULONG[]' },
+    { key: 161, value: 'FLOAT[]' },
+    { key: 165, value: 'DOUBLE[]' },
+    { key: 169, value: 'DECIMAL[]' },
 ];
 export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'USHORT', 'UINTEGER', 'ULONG'];
 

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { CreatePayloadType, GenKeyResType, KeyItemType, genKey, getKeyList } from '@/api/repository/key';
+import { resMessage } from '@/utils/resMessage';
 import { gBoardList, gKeyList } from '@/recoil/recoil';
 import { useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Page, Alert } from '@/design-system/components';
+import { SplitPane, Pane, Page, Alert, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import moment from 'moment';
 import { PiCertificateLight } from 'react-icons/pi';
@@ -91,9 +92,12 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
             setCertList(sList.success ? sList.data : undefined);
             handleSavedCode(true);
             setResErrMessage(undefined);
+            // name only — the private key / zip must never ride in a toast
+            Toast.success(`Certificate '${sRes.name ?? sName}' issued`, { id: 'cert-create' });
         } else {
             setGenKeyInfo(undefined);
-            setResErrMessage(sRes.reason);
+            // failure stays inline next to the name and validity fields it refers to
+            setResErrMessage(resMessage(sRes, 'Failed to issue certificate'));
         }
     };
     const handlePayload = (aTarget: string, aValue: string | boolean) => {
@@ -138,7 +142,7 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
                                 <PiCertificateLight size={20} className={styles.glyph} />
                                 <span className={styles.title}>New certificate</span>
                             </div>
-                            <span className={styles.subline}>X.509 key pair for MQTT TLS and gRPC mutual auth</span>
+                            <span className={styles.subline}>X.509 key pair for MQTT TLS client auth</span>
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>

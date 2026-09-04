@@ -460,7 +460,11 @@ const CreatePanel = ({
                 if (pType === 'create') {
                     const sToken = localStorage.getItem('accessToken');
                     if (sToken) {
-                        let sOption = DefaultChartOption;
+                        // DefaultChartOption hands out its commonOptions/xAxisOptions/yAxisOptions by
+                        // reference, so a spread would seed every new panel with the same singletons.
+                        // Saving one panel then carries them into Recoil, which deep-freezes state in dev
+                        // — and the next panel that writes a field on them throws. Clone at the source.
+                        let sOption = structuredClone(DefaultChartOption);
                         // no table
                         if (newTable.length === 0) {
                             sOption = {
@@ -483,7 +487,8 @@ const CreatePanel = ({
                             id: generateUUID(),
                             blockList: createDefaultTagTableOption(decodeJwt(sToken).sub, sSortedTable[0], sTableType, ''),
                         };
-                        sOption.chartOptions = getDefaultSeriesOption(sOption.type);
+                        // getDefaultSeriesOption also returns a shared constant — clone it for the same reason.
+                        sOption.chartOptions = structuredClone(getDefaultSeriesOption(sOption.type));
                         setPanelOption(sOption);
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                     }

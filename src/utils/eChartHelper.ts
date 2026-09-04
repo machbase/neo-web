@@ -3,7 +3,8 @@ import { ChartTheme, ChartType, E_CUSTOM_CHART_TYPE, CustomChartType } from '@/t
 import { ChartTypeList } from './constants';
 import { getDefaultColor } from './helpers/tags';
 
-// use create common chart option (createCommonOption)
+// The legend/tooltip/grid a panel starts with. Shared by every panel that has not overridden them, so
+// callers must clone it rather than hand it straight to panel state - see buildPanelOptionForType.
 export const DefaultCommonOption = {
     isLegend: true as boolean,
     legendTop: 'bottom' as 'top' | 'center' | 'top',
@@ -480,20 +481,6 @@ export const CheckPlgChart = (aChartType: ChartType) => {
     }
 };
 
-// structure of chart option
-export const StructureOfCommonOption = {
-    legend: {
-        show: true as boolean,
-    },
-    tooltip: {
-        show: true as boolean,
-        confine: true as boolean,
-        trigger: 'item' as 'item' | 'axis' | 'none',
-        formatter: null as unknown as (params: any, ticket: string, callback: (ticket: string, html: string) => any) => string | HTMLElement | HTMLElement[] | null,
-    },
-    dataZoom: false as any[] | boolean,
-};
-
 export const StructureOfLineSeriesOption = {
     areaStyle: null as any,
     smooth: false as boolean,
@@ -511,14 +498,6 @@ export const StructureOfLineSeriesOption = {
         },
         data: [] as any[],
     },
-};
-
-export const StructureOfLineVisualMapOption = {
-    type: 'piecewise' as 'continuous' | 'piecewise',
-    show: false as boolean,
-    dimension: 0 as string | number,
-    seriesIndex: 0 as number | number[],
-    pieces: [] as any,
 };
 
 export const StructureOfBarSeriesOption = {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Alert, Button } from '@/design-system/components';
+import { SplitPane, Pane, Alert, Button, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import {
     gActiveSubr,
@@ -14,6 +14,7 @@ import { Page, CommonTable } from '@/design-system/components';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { genSubr, getBridge, getSubr } from '@/api/repository/bridge';
+import { resMessage } from '@/utils/resMessage';
 import {
     SUBR_AUTO_START_DESC,
     SUBR_FORMAT_TABLE,
@@ -82,10 +83,10 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         const sGenRes: any = await genSubr(sParsedPayload);
         if (sGenRes.success) {
             setResErrMessage(undefined);
+            Toast.success(`Subscriber '${sParsedPayload.name}' created`, { id: 'subr-create' });
         } else {
-            setResErrMessage(
-                sGenRes?.data ? (sGenRes as any).data.reason : (sGenRes.statusText as string),
-            );
+            // failure stays inline next to the form fields that have to change
+            setResErrMessage(resMessage(sGenRes, 'Failed to create subscriber'));
         }
 
         const sResBridge = await getBridge();

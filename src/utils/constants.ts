@@ -455,6 +455,20 @@ export const TABLE_COLUMN_TYPE = [
     { key: 104, value: 'USHORT' },
     { key: 108, value: 'UINTEGER' },
     { key: 112, value: 'ULONG' },
+    { key: 132, value: 'DECIMAL' },
+    // Array columns (`double[4]`, `int[4]`, …). The codes are what M$SYS_COLUMNS.TYPE
+    // reports for them; LENGTH beside the type already carries the element count, so
+    // the label stays unsized. Deliberately out of DB_NUMBER_TYPE / DB_STRING_TYPE:
+    // a list is not a value a chart axis or a tag analyzer field can be built from.
+    { key: 137, value: 'SHORT[]' },
+    { key: 141, value: 'USHORT[]' },
+    { key: 145, value: 'INTEGER[]' },
+    { key: 149, value: 'UINTEGER[]' },
+    { key: 153, value: 'LONG[]' },
+    { key: 157, value: 'ULONG[]' },
+    { key: 161, value: 'FLOAT[]' },
+    { key: 165, value: 'DOUBLE[]' },
+    { key: 169, value: 'DECIMAL[]' },
 ];
 export const DB_NUMBER_TYPE = ['SHORT', 'INTEGER', 'LONG', 'FLOAT', 'DOUBLE', 'USHORT', 'UINTEGER', 'ULONG'];
 export const DB_STRING_TYPE = ['VARCHAR', 'DATETIME', 'IPV4', 'IPV6', 'TEXT', 'CLOB', 'JSON'];
@@ -516,64 +530,6 @@ export const ChartLegendTopList = ['top', 'center', 'bottom'];
 export const ChartLegendLeftList = ['left', 'center', 'right'];
 export const ChartLegendOrientList = ['horizontal', 'vertical'];
 export const ChartSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diamond', 'pin', 'arrow'];
-
-export const ChartAxisTooltipFormatter = (aOpt: any, aUnit?: string, aDecimals?: number, aXAxsisType?: 'TIME' | 'VALUE') => {
-    let sInjectionOutput =
-        `let d = new Date(0);` +
-        `d.setUTCSeconds(params[0].name / 1000);` +
-        `let output = params[0].name === '' ? params[0].axisValueLabel : d.toLocaleString('en-GB', { timezone: 'UTC' });` +
-        `output += '<br/>';`;
-    if (aXAxsisType === 'VALUE') {
-        const targetBlock = aOpt.blockList[aOpt.xAxisOptions[0].useBlockList[0]];
-        let name = targetBlock?.useCustom ? targetBlock?.values[0]?.alias : targetBlock?.alias;
-        if (!name || name === '') {
-            if (targetBlock?.useCustom) name = targetBlock?.values[0]?.value + '(' + targetBlock?.values[0]?.aggregator + ')';
-            else name = targetBlock?.tag + '(' + targetBlock?.aggregator + ')';
-        }
-        sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
-            '&ensp;' + JSON.stringify(name).replaceAll("'", '"') + '&ensp;'
-        } </td> <td><b>' + parseFloat(params[0].axisValue)${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
-            aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
-        } + '</b></td></tr></table></div>';`;
-    }
-    return (
-        `function (params) {` +
-        sInjectionOutput +
-        `output += '<table>';` +
-        `params.reverse().forEach(function (param) {` +
-        `output += '<tr><td>' + param.marker + '</td><td>' + param.seriesName + '&ensp;</td><td><b>' + (param.data[1] || param.data[1] === 0? param.data[1]${
-            aDecimals ? '.toFixed(' + aDecimals + ')' : ''
-        } : 'no-data') ${aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''} + '</b></td></tr>';` +
-        `});` +
-        `return output + '</table>';` +
-        `}`
-    );
-};
-export const ChartItemTooltipFormatter = (aOpt: any, aUnit?: string, aDecimals?: number, aXAxsisType?: 'TIME' | 'VALUE') => {
-    let sInjectionOutput = `let d = new Date(0);` + `d.setUTCSeconds(params.data[0] / 1000);` + `let output = d.toLocaleString('en-GB', { timezone: 'UTC' }); output += '<br/>';`;
-    if (aXAxsisType === 'VALUE') {
-        const targetBlock = aOpt.blockList[aOpt.xAxisOptions[0].useBlockList[0]];
-        let name = targetBlock?.useCustom ? targetBlock?.values[0]?.alias : targetBlock?.alias;
-        if (!name || name === '') {
-            if (targetBlock?.useCustom) name = targetBlock?.values[0]?.value + '(' + targetBlock?.values[0]?.aggregator + ')';
-            else name = targetBlock?.tag + '(' + targetBlock?.aggregator + ')';
-        }
-        sInjectionOutput = `let output = '<div><table><tr><td  style="color: ${targetBlock.color}"><b>X-axis</b>&ensp;:</td><td> ${
-            '&ensp;' + JSON.stringify(name).replaceAll("'", '"') + '&ensp;'
-        } </td> <td><b>' + params.data[0]${aDecimals ? '.toFixed(' + aDecimals + ')' : ''} ${
-            aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''
-        } + '</b></td></tr></table></div>';`;
-    }
-    return (
-        `function (params) {` +
-        sInjectionOutput +
-        `output += '<table>'; ` +
-        `output += '<tr><td>'+params.marker+'</td><td>' + params.seriesName + '&ensp;</td><td><b>' + (params.data[1] || params.data[1] === 0 ? params.data[1]${
-            aDecimals ? '.toFixed(' + aDecimals + ')' : ''
-        }: 'no-data') ${aUnit ? "+ ' " + aUnit.replaceAll("'", '"') + "'" : ''} +'&ensp;</b>` +
-        `</tr>'; return output + '</table>';}`
-    );
-};
 
 // react grid layout value
 export const GRID_LAYOUT_COLS = 36;

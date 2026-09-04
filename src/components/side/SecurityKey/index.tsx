@@ -5,9 +5,10 @@ import { MdRefresh } from 'react-icons/md';
 import { gActiveKey, gActiveToken, gBoardList, gKeyList, gSelectedTab, gTokenList } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { getId } from '@/utils';
+import { resMessage } from '@/utils/resMessage';
 import { GoPlus } from 'react-icons/go';
 import moment from 'moment';
-import { Button, Side } from '@/design-system/components';
+import { Button, Side, Toast } from '@/design-system/components';
 import { TokenIcon } from '@/components/securityKey/icons';
 import { PiCertificateLight } from 'react-icons/pi';
 import styles from './index.module.scss';
@@ -41,13 +42,18 @@ export const SecurityKeySide = () => {
     const certList = async (aEvent?: MouseEvent) => {
         if (aEvent) aEvent.stopPropagation();
         const sRes = await getKeyList();
-        setCertList(sRes.success ? sRes.data : undefined);
+        // keep the current list on failure — clearing it renders "No certificates issued", which
+        // claims something about the server that a failed call cannot know
+        if (sRes.success) setCertList(sRes.data);
+        else Toast.error(resMessage(sRes, 'Failed to load certificates'), { id: 'cert-list' });
     };
     /** Set token list — `token.list` only */
     const tokenList = async (aEvent?: MouseEvent) => {
         if (aEvent) aEvent.stopPropagation();
         const sRes = await getApiTokens();
-        setTokenList(sRes.success ? sRes.data : undefined);
+        // same as certList: a failed call must not render as "No tokens issued"
+        if (sRes.success) setTokenList(sRes.data);
+        else Toast.error(resMessage(sRes, 'Failed to load tokens'), { id: 'token-list' });
     };
 
     /**

@@ -316,10 +316,10 @@ export type SeriesFullRangeSqlQueries =
  *    the mounted case falls out of it. Getting this wrong is not a slow query but a thrown error:
  *    the panel never resolves a range and does not open.
  *
- *  - **The time column.** The view describes the table's BASETIME column, so a datetime base that
- *    the table calls something other than `TIME` cannot be read through it. A numeric (distance)
- *    base is exempt: the view publishes MIN_DISTANCE / MAX_DISTANCE for it whatever the column is
- *    named, since a table has exactly one BASE DISTANCE column to describe.
+ *  - **The time column.** The view describes the table's BASETIME column, so only the conventional
+ *    datetime `TIME` column can be read through it. Numeric BASE DISTANCE ranges always read the
+ *    source table: older engines do not expose MIN_DISTANCE / MAX_DISTANCE, and probing for those
+ *    columns produces an avoidable failed request before the fallback succeeds.
  *
  * Worth keeping the fast path for where it does apply — measured on a 54k-row tag table, the view
  * answers in 0.9 ms against 10.2 ms for the scan, and the gap widens with row count.
@@ -329,16 +329,15 @@ export function usesTagStatViewForFullRange(
     columns: ValidatedPanelSeriesSourceColumns,
 ): boolean {
     if (!isStatViewReadable(tableName)) return false;
-    return isNumericBaseTimeSourceColumns(columns) ||
+    return !isNumericBaseTimeSourceColumns(columns) &&
         columns.time.toUpperCase() === 'TIME';
 }
 
 /**
  * The SQL for a series' full data extent.
  *
- * `forceSourceTable` gives the caller the scanning form of the same question, for the one case the
- * statistics view can fail on a server that otherwise answers it: an engine older than the base
- * distance stat columns rejects MIN_DISTANCE with `MACHCLI-ERR-2056`. See `fetchSingleSeriesRange`.
+ * `forceSourceTable` gives the caller the scanning form of the same question when a statistics-view
+ * request fails. Numeric BASE DISTANCE ranges already use that form directly.
  */
 export function buildSeriesFullRangeSql(
     tableName: SqlIdentifierPath,
@@ -372,7 +371,7 @@ export function buildSeriesFullRangeSql(
         // Aggregated: the view answers one row per tag, and on a cluster one row per warehouse per
         // tag, so the extent is the aggregate over whatever it returns — always a single row here.
         return [joinSqlLines([
-            `SELECT ${buildTagStatExtentSelect(usesNumericTime ? 'distance' : 'time', 'min_tm', 'max_tm')}`,
+            `SELECT ${buildTagStatExtentSelect('time', 'min_tm', 'max_tm')}`,
             `FROM ${queryTableName}`,
             `WHERE NAME IN (${tagNameSql})`,
         ])];

@@ -1,4 +1,4 @@
-import { Button, Page, CommonTable } from '@/design-system/components';
+import { Button, Page, CommonTable, Toast } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
@@ -7,6 +7,7 @@ import { LuFlipVertical } from 'react-icons/lu';
 import { EXEC_SSH_KEY, GEN_SSH_KEY, INFO_SSH_KEY, USE_SSH_KEY } from './contents';
 import { SSHKEY_ITEM_TYPE, addSSHKey, delSSHKey, getSSHKeys } from '@/api/repository/sshKey';
 import { VscKey } from 'react-icons/vsc';
+import { resMessage } from '@/utils/resMessage';
 
 export const SSHKey = () => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
@@ -17,19 +18,19 @@ export const SSHKey = () => {
     const [sSSHKeyList, setSSHKeyList] = useState<SSHKEY_ITEM_TYPE[] | []>([]);
     const [sDeleteSSHKey, setDeleteSSHKey] = useState<SSHKEY_ITEM_TYPE | undefined>(undefined);
     const [sAddState, setAddState] = useState<string | undefined>(undefined);
-    const [sDeleteState, setDeleteState] = useState<string | undefined>(undefined);
     const [sAlias, setAlias] = useState<string>('');
 
     /** Get ssh key list */
     const getSSHKeyList = async () => {
         const sResSSHKeyList = await getSSHKeys();
+        // keep the current list on failure — blanking it reads as "every key was removed"
         if (sResSSHKeyList.success)
             setSSHKeyList(
                 sResSSHKeyList.data && sResSSHKeyList.data?.length > 0
                     ? sResSSHKeyList.data.sort((a, b) => a.comment.localeCompare(b.comment))
                     : [],
             );
-        else setSSHKeyList([]);
+        else Toast.error(resMessage(sResSSHKeyList, 'Failed to load SSH keys'), { id: 'sshkey-list' });
     };
     /** Gen ssh key */
     const genSSHKey = async () => {
@@ -43,15 +44,23 @@ export const SSHKey = () => {
             getSSHKeyList();
             setAddState(undefined);
             setAddSSHKeyState(false);
-        } else setAddState(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+            Toast.success(`SSH key '${sAlias}' added`, { id: 'sshkey-add' });
+        } else {
+            // failure stays inline: the pasted key or the alias is what has to change
+            setAddState(resMessage(sRes, 'Failed to add SSH key'));
+        }
     };
     /** Del ssh key */
     const deleteKey = async () => {
         const sRes: any = await delSSHKey(sDeleteSSHKey?.fingerprint as string);
         if (sRes.success) {
             getSSHKeyList();
-            setDeleteState(undefined);
-        } else setDeleteState(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+            // the alias lives in `comment`; a key registered without one still has a fingerprint
+            const sLabel = sDeleteSSHKey?.comment || sDeleteSSHKey?.fingerprint || '';
+            Toast.success(sLabel ? `SSH key '${sLabel}' deleted` : 'SSH key deleted', { id: 'sshkey-delete' });
+        } else {
+            Toast.error(resMessage(sRes, 'Failed to delete SSH key'), { id: 'sshkey-delete' });
+        }
         setIsDeleteModal(false);
     };
     /** Open confirm modal */
@@ -197,12 +206,6 @@ export const SSHKey = () => {
                                 <Page.ContentTitle>{INFO_SSH_KEY.info_title}</Page.ContentTitle>
                                 <Page.ContentDesc>{INFO_SSH_KEY.info_content}</Page.ContentDesc>
                                 <Page.Space pHeight="12px" />
-                                {/* DelState */}
-                                {sDeleteState && (
-                                    <Page.ContentDesc>
-                                        <Page.TextResErr pText={sDeleteState} />
-                                    </Page.ContentDesc>
-                                )}
                                 <div style={{ border: 'solid 1px #f1f1f125', borderRadius: '3px' }}>
                                     {sSSHKeyList &&
                                         sSSHKeyList.map((aSSHKey, aIdx) => {

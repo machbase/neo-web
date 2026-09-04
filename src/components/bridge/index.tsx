@@ -1,4 +1,4 @@
-import { Button, Page, CommonTable } from '@/design-system/components';
+import { Button, Page, CommonTable, Toast } from '@/design-system/components';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab } from '@/recoil/recoil';
 import { SplitPane, Pane } from '@/design-system/components';
@@ -11,6 +11,7 @@ import { ConfirmModal } from '../modal/ConfirmModal';
 import { getCommandState } from '@/utils/bridgeCommandHelper';
 import { SUBSCRIBER_TYPE, bridgeTypeHelper } from './content';
 import { generateUUID } from '@/utils';
+import { resMessage } from '@/utils/resMessage';
 
 export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -71,6 +72,11 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                 });
             }
             setBridgeList(sTempList);
+            Toast.success(`Bridge '${pCode.name}' deleted`, { id: 'bridge-delete' });
+        } else {
+            // the confirm modal closes either way, so a failure has to speak for itself — the list
+            // simply staying put reads as "nothing happened"
+            Toast.error(resMessage(sRes, `Failed to delete bridge '${pCode.name}'`), { id: 'bridge-delete' });
         }
         setIsDeleteModal(false);
     };
