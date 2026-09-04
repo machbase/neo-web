@@ -79,6 +79,20 @@ describe('isInternalDashboardTable', () => {
         expect(isInternalDashboardTable('MACHBASEDB.SYS._NEO_TIMER_DEF')).toBe(true);
         expect(isInternalDashboardTable('MACHBASEDB.SYS.SENSOR')).toBe(false);
     });
+
+    // `_NEO_STATZ` is the server's own runtime-statistics table — NAME / TIME / VALUE, filled with
+    // rows like `runtime:goroutines` — and is meant to be charted, unlike the rest of the family.
+    test('_NEO_STATZ is exempt, bare or qualified, in any case', () => {
+        expect(isInternalDashboardTable('_NEO_STATZ')).toBe(false);
+        expect(isInternalDashboardTable('_neo_statz')).toBe(false);
+        expect(isInternalDashboardTable('MACHBASEDB.SYS._NEO_STATZ')).toBe(false);
+    });
+
+    // The exemption is the exact name, not the `_NEO_STATZ` prefix — a future `_NEO_STATZ_DEF`
+    // would be bookkeeping like its siblings.
+    test('a name that merely starts with _NEO_STATZ stays internal', () => {
+        expect(isInternalDashboardTable('_NEO_STATZ_DEF')).toBe(true);
+    });
 });
 
 describe('isDashboardSelectableTable', () => {
@@ -88,6 +102,11 @@ describe('isDashboardSelectableTable', () => {
 
     test("neo's internal transaction tables do not", () => {
         expect(isDashboardSelectableTable('transaction', '_NEO_TIMER_DEF')).toBe(false);
+    });
+
+    // Measured: `MACHBASEDB.SYS._NEO_STATZ` is TYPE 8, so it reaches the dropdown as a transaction.
+    test('_NEO_STATZ does', () => {
+        expect(isDashboardSelectableTable('transaction', '_NEO_STATZ')).toBe(true);
     });
 
     test('a lookup table is still out, internal name or not', () => {

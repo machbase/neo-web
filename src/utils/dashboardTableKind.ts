@@ -31,6 +31,18 @@ export const TAGLESS_TABLE_TYPES = ['view', 'transaction'] as const;
 const INTERNAL_TABLE_NAME_REGEX = /^_NEO_/i;
 
 /**
+ * `_NEO_` tables that are still worth charting.
+ *
+ * The rest of the family holds neo's own bookkeeping (`_NEO_TIMER_DEF`, `_NEO_BRIDGE_DEF`, ...) and
+ * has no business in a panel. `_NEO_STATZ` is the exception: the server writes its runtime
+ * statistics there, and the table is shaped exactly like a tag table for that purpose — measured on
+ * `MACHBASEDB.SYS._NEO_STATZ`, `NAME VARCHAR(100)` / `TIME DATETIME` / `VALUE DOUBLE`, carrying rows
+ * such as `runtime:goroutines`. It is TYPE 8, so it reaches a panel as a tagless `transaction`
+ * block; the name filter was the only thing keeping it out of the dropdown.
+ */
+const INTERNAL_TABLE_NAME_EXCEPTIONS = ['_NEO_STATZ'];
+
+/**
  * A view's `_RID`, which `M$SYS_COLUMNS` reports but the engine refuses to select.
  *
  * Measured: `select _RID from FACTORY_A.SYS.DEMO_VIEW` answers `MACHCLI-ERR-2056, Column name
@@ -70,7 +82,11 @@ export const isCollapsibleTableType = (aTableType: unknown): boolean => !NON_COL
  */
 const bareTableName = (aTableName: unknown) => String(aTableName ?? '').split('.').at(-1) ?? '';
 
-export const isInternalDashboardTable = (aTableName: unknown): boolean => INTERNAL_TABLE_NAME_REGEX.test(bareTableName(aTableName));
+export const isInternalDashboardTable = (aTableName: unknown): boolean => {
+    const sName = bareTableName(aTableName);
+    if (INTERNAL_TABLE_NAME_EXCEPTIONS.includes(sName.toUpperCase())) return false;
+    return INTERNAL_TABLE_NAME_REGEX.test(sName);
+};
 
 /** Whether a table-list row belongs in a panel's Table dropdown. */
 export const isDashboardSelectableTable = (aTableType: unknown, aTableName: unknown): boolean =>
