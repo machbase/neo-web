@@ -8,19 +8,17 @@ import {
     DefaultGaugeChartOption,
     StructureOfBarSeriesOption,
     StructureOfBarPolarOption,
-    StructureOfCommonOption,
     StructureOfGaugeSeriesOption,
     StructureOfLineSeriesOption,
     StructureOfPieSeriesOption,
     StructureOfScatterSeriesOption,
-    StructureOfLineVisualMapOption,
     DefaultLogTableOption,
     chartTypeConverter,
     DefaultVariableTableOption,
     DefaultViewTableOption,
     DefaultTransactionTableOption,
 } from '@/utils/eChartHelper';
-import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter, DB_STRING_TYPE } from '@/utils/constants';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, DB_STRING_TYPE } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
 import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
@@ -208,116 +206,6 @@ export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableTy
 
     const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];
     return sOption;
-};
-
-export const createOption = (aOptionInfo: any, aTagList: any) => {
-    // set common chart option
-    let sOption = createCommonOption(aOptionInfo.commonOptions);
-
-    // set series option
-    if (aOptionInfo.type === 'line') {
-        const sIsVisualMap = aOptionInfo.chartOptions?.markLine.data.length > 0;
-        sOption = {
-            ...sOption,
-            series: setLineSeries(aOptionInfo, aTagList),
-            visualMap: sIsVisualMap ? createLineVisualMapOption(aOptionInfo.chartOptions, aTagList) : null,
-        };
-    }
-    if (aOptionInfo.type === 'bar') {
-        const sIsPolar = aOptionInfo.chartOptions.isPolar;
-        sOption = {
-            ...sOption,
-            ...(sIsPolar ? createBarPolarOption(aOptionInfo.chartOptions) : null),
-            series: setBarSeries(aOptionInfo, aTagList),
-        };
-    }
-    if (aOptionInfo.type === 'scatter') {
-        sOption = {
-            ...sOption,
-            series: setScatterSeries(aOptionInfo, aTagList),
-        };
-    }
-    if (aOptionInfo.type === 'gauge') {
-        sOption = {
-            ...sOption,
-            series: setGaugeSeries(aOptionInfo, aTagList),
-        };
-    }
-    if (aOptionInfo.type === 'pie') {
-        sOption = {
-            ...sOption,
-            series: setPieSeries(aOptionInfo),
-            dataset: {
-                source: 'column(0)',
-            },
-        };
-    }
-
-    // set xAxis, yAxis option
-    if (aOptionInfo.type === 'gauge' || aOptionInfo.type === 'pie' || (aOptionInfo.type === 'bar' && aOptionInfo.chartOptions.isPolar)) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { xAxis, yAxis, ...restOption } = sOption;
-        sOption = restOption;
-    } else {
-        sOption.xAxis = createXAxisOption(aOptionInfo);
-        sOption.yAxis = createYAxisOption(aOptionInfo);
-    }
-
-    return sOption;
-};
-
-export const createCommonOption = (aCommonOptions: any) => {
-    const sCommon = JSON.parse(JSON.stringify(StructureOfCommonOption));
-    sCommon.legend.show = aCommonOptions.isLegend;
-    sCommon.tooltip.show = aCommonOptions.isTooltip;
-    sCommon.tooltip.trigger = aCommonOptions.tooltipTrigger;
-    sCommon.dataZoom = aCommonOptions.isDataZoom ? [{ type: 'slider' }] : false;
-    if (aCommonOptions.isTooltip && aCommonOptions.tooltipTrigger === 'axis') {
-        sCommon.tooltip.formatter = ChartAxisTooltipFormatter;
-    }
-    return sCommon;
-};
-
-export const createXAxisOption = (aOptionInfo: any) => {
-    const sXAxisOption = [] as any;
-    aOptionInfo.xAxisOptions &&
-        aOptionInfo.xAxisOptions.map((aItem: any) => {
-            sXAxisOption.push(aItem);
-        });
-    if (aOptionInfo.chartOptions?.isStack) {
-        sXAxisOption[0] = {
-            ...sXAxisOption[0],
-            data: 'column(0)',
-        };
-    }
-
-    return sXAxisOption;
-};
-
-export const createYAxisOption = (aOptionInfo: any) => {
-    const sYAxisOption = [] as any;
-    aOptionInfo.yAxisOptions &&
-        aOptionInfo.yAxisOptions.map((aItem: any) => {
-            sYAxisOption.push(aItem);
-        });
-
-    return sYAxisOption;
-};
-
-export const createLineVisualMapOption = (aOptionInfo: any, aTagList: any) => {
-    const sSeriesIndexArray = Array.from(aTagList, (_, aIndex) => aIndex);
-    const sPieces = aOptionInfo.markLine.data.reduce((aAcc: any, aCurrent: any, aIndex: number, aArr: any) => {
-        if (aIndex % 2 === 0 && aIndex < aArr.length - 1) {
-            aAcc.push({ min: aCurrent.xAxis, max: aArr[aIndex + 1].xAxis, color: ChartSeriesColorList[0] });
-        }
-        return aAcc;
-    }, []);
-
-    const sVisualMapOption = JSON.parse(JSON.stringify(StructureOfLineVisualMapOption));
-    sVisualMapOption.seriesIndex = sSeriesIndexArray;
-    sVisualMapOption.pieces = sPieces;
-
-    return sVisualMapOption;
 };
 
 export const createLineSeriesOption = (aLineOption: any, aXAxis: any[], aYAxis: any[], aIndex: number) => {
