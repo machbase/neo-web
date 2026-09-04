@@ -237,6 +237,35 @@ describe('panel range resolution policy', () => {
         });
     });
 
+    it.each([
+        ['time', createPanelInfo(), { start: 1_000, end: 2_000 }],
+        ['numeric', createNumericPanelInfo(), { start: 42, end: 43 }],
+    ] as const)(
+        'keeps a minimal %s range fully visible on initialization',
+        async (_axisKind, panelInfo, fullRange) => {
+            jest.spyOn(seriesDataApi, 'fetchSeriesFullRange')
+                .mockResolvedValue(fullRange);
+            const onRangeStateChange = jest.fn();
+            const { result } = renderHook(() => usePanelRangeRuntime({
+                ...createBroadcastRequests(),
+                panelInfo,
+                rangeState: undefined,
+                isActive: true,
+                onRangeStateChange,
+                onBroadcastError: jest.fn(),
+            }));
+
+            act(() => result.current.actions.setChartAreaWidth(400));
+            await waitFor(() => expect(result.current.rangeState).toMatchObject({
+                range: {
+                    mainRange: fullRange,
+                    navigatorRange: fullRange,
+                },
+                fullRange,
+            }));
+        },
+    );
+
     it('keeps a requested navigator exact while fitting the main range', () => {
         const current = createResolvedRangeState(
             { start: 40, end: 60 },

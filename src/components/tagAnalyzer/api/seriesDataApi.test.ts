@@ -7,6 +7,9 @@ import {
 import { seriesDataApi, type SeriesRowsQuery } from './seriesDataApi';
 
 jest.mock('@/api/core', () => jest.fn());
+jest.mock('@/api/repository/currentDatabase', () => ({
+    ensureCurrentDatabase: jest.fn().mockResolvedValue(undefined),
+}));
 
 const mockedRequest = request as unknown as jest.Mock;
 const SERIES: PanelSeriesDefinition = {
@@ -24,6 +27,14 @@ const SERIES: PanelSeriesDefinition = {
         time: 'TIME',
         value: 'VALUE',
         timeBaseTime: false,
+    },
+};
+const NUMERIC_SERIES: PanelSeriesDefinition = {
+    ...SERIES,
+    sourceColumns: {
+        ...SERIES.sourceColumns,
+        time: 'ODOMETER_M',
+        timeBaseTime: true,
     },
 };
 const RANGE = { start: 0, end: 100 };
@@ -168,6 +179,44 @@ describe('seriesDataApi.fetchSeriesRows', () => {
         expect(result?.[0]).toMatchObject({
             data: rows,
             metadata: { kind: 'raw', isLimitReached: false },
+        });
+    });
+});
+
+describe('seriesDataApi.fetchSeriesFullRange', () => {
+    beforeEach(() => {
+        mockedRequest.mockReset();
+    });
+
+    it('adds one second after a single datetime point', async () => {
+        mockedRequest.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [[1_000_000_000, 1_000_000_000]],
+                columns: [],
+            },
+        });
+
+        await expect(seriesDataApi.fetchSeriesFullRange([SERIES])).resolves.toEqual({
+            start: 1_000,
+            end: 2_000,
+        });
+    });
+
+    it('adds one unit after a single numeric point', async () => {
+        mockedRequest.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [[0]],
+                columns: [],
+            },
+        });
+
+        await expect(
+            seriesDataApi.fetchSeriesFullRange([NUMERIC_SERIES]),
+        ).resolves.toEqual({
+            start: 0,
+            end: 1,
         });
     });
 });

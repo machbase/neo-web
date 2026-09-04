@@ -473,6 +473,8 @@ const RANGE_REQUEST_FAILED_MESSAGE: string =
     'Series full-range request failed.';
 const MALFORMED_RANGE_MESSAGE: string =
     'Series full-range response contained malformed rows.';
+export const SINGLE_POINT_TIME_WIDTH_MS = 1_000;
+export const SINGLE_POINT_NUMERIC_WIDTH = 1;
 
 type SeriesFullRangeSource = {
     table: string;
@@ -571,17 +573,16 @@ async function fetchSeriesFullRange(
 /**
  * Is this the view answering the question, rather than failing to be asked?
  *
- * "Data does not exist" and a zero-width range are answers — the tag is empty, or it holds a single
- * instant — and re-asking them over a scan costs a full table read to arrive at the same place. A
- * malformed response is not worth a second round trip either. Everything else means the *view* was
- * unusable, whatever the engine called it, and the source table can still answer.
+ * "Data does not exist" is an answer — the tag is empty — and re-asking it over a scan costs a full
+ * table read to arrive at the same place. A malformed response is not worth a second round trip
+ * either. Everything else means the *view* was unusable, whatever the engine called it, and the
+ * source table can still answer.
  */
 function isSeriesRangeAnswer(error: unknown): boolean {
     const message: string = error instanceof Error
         ? error.message
         : String(error ?? '');
     return message === 'Data does not exist.' ||
-        message === 'Data range has zero width.' ||
         message === MALFORMED_RANGE_MESSAGE;
 }
 
@@ -638,11 +639,17 @@ async function resolveSeriesRange(
     if (start === undefined || end === undefined) {
         throw new Error(MALFORMED_RANGE_MESSAGE);
     }
-    if (start === end) {
-        throw new Error('Data range has zero width.');
-    }
     const first = start / divisor;
     const second = end / divisor;
+    if (first === second) {
+        const width = usesNumericTime
+            ? SINGLE_POINT_NUMERIC_WIDTH
+            : SINGLE_POINT_TIME_WIDTH_MS;
+        return {
+            start: first,
+            end: first + width,
+        };
+    }
     const fullRange = createNonEmptyAxisRange(first, second);
     if (!fullRange) throw noDataError;
 
