@@ -1,3 +1,4 @@
+import { isNeoInternalTable } from '@/utils/internalTable';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { formatDistanceReadout } from '@/utils/distanceRange';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
@@ -657,4 +658,21 @@ export const buildDatabaseNodeList = ({
         sNames.push(aName);
     }
     return sNames;
+};
+
+/**
+ * Table-list rows a user is allowed to see in the tree.
+ *
+ * neo's own `_NEO_*` tables come back from `getTableList()` looking exactly like user tables —
+ * TYPE 8, FLAG 0 — so the tree's FLAG-based hidden-object filter never removed them. They are
+ * dropped here, before the rows are counted, because `tableLen` and each user's `total` are
+ * derived from this same array and `UserDiv` only renders when `total > 0`: filtering later would
+ * leave a user node claiming tables it no longer shows.
+ *
+ * Unlike the dashboard, this drops `_NEO_STATZ` too. A panel may chart it; the tree has no reason
+ * to list it beside tables the user created.
+ */
+export const filterVisibleTableRows = (aRows: unknown): any[] => {
+    if (!Array.isArray(aRows)) return [];
+    return aRows.filter((aRow: any) => !isNeoInternalTable(Array.isArray(aRow) ? aRow[E_TABLE_INFO.TB_NM] : undefined));
 };

@@ -1,3 +1,4 @@
+import { isNeoInternalTable } from '@/utils/internalTable';
 import { Alert, Page, CommonTable } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
@@ -113,7 +114,14 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
         if (sTableList.database === sDatabase) return;
         const sResTableList = await getAllowBackupTable(sDatabase);
         const sRows = sResTableList?.data?.rows;
-        setTableList({ database: sDatabase, rows: Array.isArray(sRows) ? sRows : [] });
+        // `getAllowBackupTable` selects on TYPE and FLAG, which cannot tell neo's own `_NEO_*`
+        // tables from a user's — they are TYPE 8 / FLAG 0 like any `CREATE TABLE`. Filtering here
+        // rather than in that SQL keeps one rule in one place: Machbase `LIKE` treats `_` as a
+        // single-character wildcard, so `NAME like '_NEO_%'` would not even say what it means.
+        setTableList({
+            database: sDatabase,
+            rows: Array.isArray(sRows) ? sRows.filter((aRow: any) => !isNeoInternalTable(aRow?.[3])) : [],
+        });
     };
     const handleBackup = async () => {
         const sResBackupStatus: any = await backupStatus();
