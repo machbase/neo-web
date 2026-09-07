@@ -150,3 +150,42 @@ describe('tableMetadataApi.fetchTableNames', () => {
         await expect(tableMetadataApi.fetchTableNames()).rejects.toThrow('Table list response contained malformed rows.');
     });
 });
+
+/**
+ * neo's own tables never belong in the picker.
+ *
+ * Measured, every `_NEO_*` table is TYPE 8, so the TAG-type filter already excludes them and the
+ * first case below would pass without the name rule. It is pinned anyway: the picker must not
+ * start listing neo's bookkeeping the day one of them is created as a tag table, or the day the
+ * type filter is relaxed — which is what the second case stands for.
+ */
+describe('tableMetadataApi.fetchTableNames excludes neo internal tables', () => {
+    beforeEach(() => {
+        mockedGetTableList.mockReset();
+        resetCurrentDatabase();
+        setDatabases([{ id: '1', name: 'MACHBASEDB', kind: 'ACTIVE', accessMode: 'READ_WRITE', isDefault: true }]);
+        setCurrentDatabase({ id: '1', name: 'MACHBASEDB' });
+    });
+
+    afterEach(() => resetCurrentDatabase());
+
+    test('the transaction-typed family never reaches the list', async () => {
+        respondWith([
+            row('MACHBASEDB', 'SYS', 'DEMO_TAG', 6, 0),
+            row('MACHBASEDB', 'SYS', '_NEO_TIMER_DEF', 8, 0),
+            row('MACHBASEDB', 'SYS', '_NEO_STATZ', 8, 0),
+        ]);
+
+        await expect(tableMetadataApi.fetchTableNames()).resolves.toEqual(['MACHBASEDB.SYS.DEMO_TAG']);
+    });
+
+    test('nor would one carrying the tag type', async () => {
+        respondWith([
+            row('MACHBASEDB', 'SYS', 'DEMO_TAG', 6, 0),
+            row('MACHBASEDB', 'SYS', '_NEO_STATZ', 6, 0),
+        ]);
+
+        await expect(tableMetadataApi.fetchTableNames()).resolves.toEqual(['MACHBASEDB.SYS.DEMO_TAG']);
+    });
+});
+

@@ -11,7 +11,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBackupList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { normalizeBackupStatus } from '@/components/database/backup/backupPayload';
 import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_CONTEXT_MENU_INITIAL_VALUE } from './DBExplorerContextMenu';
-import { buildDatabaseNodeList, buildDropObjectQuery, buildQualifiedTableName, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, parseTablePrivilege } from './utils';
+import { buildDatabaseNodeList, buildDropObjectQuery, buildQualifiedTableName, CheckTableFlag, filterVisibleTableRows, E_TABLE_INFO, E_TABLE_TYPE, parseTablePrivilege } from './utils';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
 import { Toast } from '@/design-system/components';
@@ -66,6 +66,10 @@ export const DBExplorer = () => {
         setRefresh(sRefresh + 1);
         const [sData, sConnectable] = await Promise.all([getTableList(), getConnectableDatabases()]);
         if (sData && sData.data) {
+            // neo's own `_NEO_*` tables leave the catalogue here and never reach the tree. Every
+            // read below works off this array — the database nodes, the user nodes and the per-user
+            // counts alike — so the filter has to happen once, before any of them.
+            const sRows: any[] = filterVisibleTableRows(sData.data.rows);
             // The catalogue leads, the table rows follow — a database with no tables this user
             // can see still gets a node, which is the only way `CREATE DATABASE` is visible in
             // the UI at all. `getDatabases()` is already populated: `getTableList` awaits the
@@ -73,10 +77,10 @@ export const DBExplorer = () => {
             const DB_NAME_LIST: string[] = buildDatabaseNodeList({
                 catalogue: getDatabases(),
                 connectable: sConnectable,
-                tableRowDbNames: sData.data.rows.map((aRow: any) => aRow[0]),
+                tableRowDbNames: sRows.map((aRow: any) => aRow[0]),
             });
             const USER_NAME_LIST: string[] = Array.from(
-                new Set(isCurUserEqualAdmin() ? ['SYS', ...sData.data.rows.map((aRow: any) => aRow[1])] : sData.data.rows.map((aRow: any) => aRow[1]))
+                new Set(isCurUserEqualAdmin() ? ['SYS', ...sRows.map((aRow: any) => aRow[1])] : sRows.map((aRow: any) => aRow[1]))
             );
             // DB > USER > TABLE > TYPE
             let DB_LIST: any = [];
@@ -91,7 +95,7 @@ export const DBExplorer = () => {
                       };
                   }))
                 : null;
-            sData.data.rows.map((bRow: any) => {
+            sRows.map((bRow: any) => {
                 DB_LIST.map((aDB: any, aIdx: number) => {
                     if (aDB.dbName === bRow[0]) {
                         DB_LIST[aIdx].tableLen++;

@@ -1,5 +1,6 @@
 import {
     buildDatabaseNodeList,
+    filterVisibleTableRows,
     buildDataViewerColumnConfigFromColumnRows,
     buildDisplayColumnInfo,
     buildDropObjectQuery,
@@ -518,5 +519,48 @@ describe('resolveTableBaseColumn', () => {
 
     test('survives a missing column list', () => {
         expect(resolveTableBaseColumn(undefined)).toEqual({ name: '', isDistance: false });
+    });
+});
+
+/**
+ * `getTableList()` row shape: DB_NAME, USER_NAME, TABLE_ID, TABLE_NAME, TABLE_TYPE, TABLE_FLAG,
+ * DBID, priv — the indexes `E_TABLE_INFO` names.
+ */
+const tableRow = (name: string, type = 8) => ['MACHBASEDB', 'SYS', 1, name, type, 0, '1', ''];
+
+describe('filterVisibleTableRows', () => {
+    // Measured on a v8.7 catalogue: the family is seven tables, all TYPE 8 / FLAG 0, which is why
+    // the tree's FLAG-based hidden-object filter never removed any of them.
+    test('drops every _NEO_ table and keeps the rest', () => {
+        const sRows = [
+            tableRow('_NEO_API_TOKEN'),
+            tableRow('DEMO_TAG', 6),
+            tableRow('_NEO_BRIDGE_DEF'),
+            tableRow('_NEO_SHELL_DEF'),
+            tableRow('_NEO_SUBSCRIBER_DEF'),
+            tableRow('_NEO_TIMER_DEF'),
+            tableRow('_NEO_X509_CERT'),
+            tableRow('MY_LOG', 0),
+        ];
+
+        expect(filterVisibleTableRows(sRows).map((aRow: any) => aRow[3])).toEqual(['DEMO_TAG', 'MY_LOG']);
+    });
+
+    // The dashboard exempts it so a panel can chart runtime statistics. The tree does not: it is
+    // not a table the user created, and it is not a backup target.
+    test('drops _NEO_STATZ too, unlike the dashboard', () => {
+        expect(filterVisibleTableRows([tableRow('_NEO_STATZ')])).toEqual([]);
+    });
+
+    // `_`-leading user objects are legal — `CREATE TABLE ZZCHK2 (_ZZC integer, ...)` succeeds — so
+    // the rule is anchored to `_NEO_` and must not widen to a bare underscore.
+    test('keeps a user table that merely starts with an underscore', () => {
+        expect(filterVisibleTableRows([tableRow('_MYTABLE', 6)]).map((aRow: any) => aRow[3])).toEqual(['_MYTABLE']);
+    });
+
+    test('a missing or malformed response is an empty list, not a throw', () => {
+        expect(filterVisibleTableRows(undefined)).toEqual([]);
+        expect(filterVisibleTableRows(null)).toEqual([]);
+        expect(filterVisibleTableRows([undefined, tableRow('DEMO_TAG', 6)]).length).toBe(2);
     });
 });

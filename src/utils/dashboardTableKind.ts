@@ -5,6 +5,7 @@
  * already holds the converted name. Kept free of imports from `dashboardUtil` so that module can
  * import this one without a cycle.
  */
+import { bareTableName, isNeoInternalTable } from './internalTable';
 
 /** Types a panel block can be built on. TYPE 7 (view) and 8 (transaction) arrived with v8.7. */
 export const DASHBOARD_TABLE_TYPES = ['tag', 'log', 'view', 'transaction'] as const;
@@ -27,8 +28,6 @@ export const DASHBOARD_TABLE_TYPES = ['tag', 'log', 'view', 'transaction'] as co
  * `_ARRIVAL_TIME` and DURATION paths, which must not follow these two.
  */
 export const TAGLESS_TABLE_TYPES = ['view', 'transaction'] as const;
-
-const INTERNAL_TABLE_NAME_REGEX = /^_NEO_/i;
 
 /**
  * `_NEO_` tables that are still worth charting.
@@ -76,16 +75,14 @@ const NON_COLLAPSIBLE_TABLE_TYPES = ['log', 'view', 'transaction', 'vir_tag'];
 export const isCollapsibleTableType = (aTableType: unknown): boolean => !NON_COLLAPSIBLE_TABLE_TYPES.includes(normalizeType(aTableType));
 
 /**
- * The bare object name of a table-list row. Rows reach the panel filter before
- * `parseDashboardTables` qualifies them, so this is normally already bare — the split is here so
- * a qualified `database.owner.table` is judged on its last segment either way.
+ * The dashboard's view of `isNeoInternalTable` — the shared rule, minus what a panel may still
+ * chart. The exception list stays here rather than in the shared predicate because it is a
+ * dashboard policy: the tree and the backup picker hide the whole family, this screen does not.
  */
-const bareTableName = (aTableName: unknown) => String(aTableName ?? '').split('.').at(-1) ?? '';
-
 export const isInternalDashboardTable = (aTableName: unknown): boolean => {
     const sName = bareTableName(aTableName);
     if (INTERNAL_TABLE_NAME_EXCEPTIONS.includes(sName.toUpperCase())) return false;
-    return INTERNAL_TABLE_NAME_REGEX.test(sName);
+    return isNeoInternalTable(sName);
 };
 
 /** Whether a table-list row belongs in a panel's Table dropdown. */

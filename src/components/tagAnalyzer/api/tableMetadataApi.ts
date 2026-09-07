@@ -1,3 +1,4 @@
+import { isNeoInternalTable } from '@/utils/internalTable';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { getTableList } from '@/api/repository/api';
 import {
@@ -170,6 +171,11 @@ async function fetchTableNamesUncached(): Promise<string[]> {
         if (!Array.isArray(row)) continue;
         if (Number(row[typeIndex]) !== TAG_TABLE_TYPE) continue;
         const name: string = String(row[nameIndex] ?? '').trim();
+        // Belt and braces. Today every `_NEO_*` table is TYPE 8, so the check above already
+        // excludes them and this line changes nothing — which is the point: the picker must not
+        // start listing neo's bookkeeping the day one of them is created as a tag table, or the
+        // day the type filter is relaxed.
+        if (isNeoInternalTable(name)) continue;
         if (name) names.push(name);
     }
 
