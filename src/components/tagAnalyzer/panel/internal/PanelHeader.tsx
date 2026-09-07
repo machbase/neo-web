@@ -23,6 +23,8 @@ import {
     type PanelActionState,
 } from './panelActions';
 import type { PanelIntervalInfo } from './panelData';
+import { Inline, Text } from '../../ui/Presentation';
+import controls from '../../ui/Controls.module.scss';
 
 export type PanelHeaderState = {
     title: string;
@@ -33,6 +35,183 @@ export type PanelHeaderState = {
     canExportCsv: boolean;
     isOverlapSelected: boolean;
 };
+
+export function PanelHeader({
+    state,
+    onAction,
+    onToggleOverlap,
+    onRenamePanelTitle,
+    onOpenMainRangeModal,
+}: PanelHeaderProps) {
+    const { getExperiment } = useExperiment();
+    const [titleDraft, setTitleDraft] = useState<string | undefined>();
+    const isRenamingTitle = titleDraft !== undefined;
+    const titleInputRef = useRef<HTMLInputElement | null>(null);
+    const titleRenameClosingRef = useRef(false);
+    const sFormattedRange = state.mainRange &&
+        formatAxisRange(state.mainRange, state.isNumericXAxis);
+    const sInterval = getHeaderInterval(state);
+    const sTimeText = sFormattedRange
+        ? `${sFormattedRange.start} ~ ${sFormattedRange.end}`
+        : '';
+    const sRangeLabel = sFormattedRange && state.isNumericXAxis
+        ? 'Set current visible main chart value range'
+        : 'Set current visible main chart range';
+    const sIntervalText = sInterval?.label ?? '';
+    const sTimeSummaryText =
+        sTimeText && sIntervalText
+            ? `${sTimeText} (${sInterval?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
+            : sTimeText;
+    const sActions = buildPanelActions(
+        state.actionState,
+        getExperiment() && state.canExportCsv,
+    );
+    const sDirectActions = sActions.filter((action) => !action.showInExtraMenu);
+    const sOverlapLabel = state.isOverlapSelected
+        ? 'Remove from overlap chart'
+        : 'Add to overlap chart';
+
+    useEffect(() => {
+        if (!isRenamingTitle) {
+            return;
+        }
+        titleInputRef.current?.focus();
+        titleInputRef.current?.select();
+    }, [isRenamingTitle]);
+
+    function openTitleRename(): void {
+        titleRenameClosingRef.current = false;
+        setTitleDraft(state.title);
+    }
+
+    /** Closes the rename input, applying `nextTitle` when it is a real change. */
+    function closeTitleRename(nextTitle: string | undefined): void {
+        if (titleRenameClosingRef.current) return;
+        titleRenameClosingRef.current = true;
+        setTitleDraft(undefined);
+        const sNextTitle = nextTitle?.trim();
+        if (sNextTitle && sNextTitle !== state.title) {
+            onRenamePanelTitle(sNextTitle);
+        }
+    }
+
+    function handleTitleRenameKeyDown(
+        event: KeyboardEvent<HTMLInputElement>,
+    ): void {
+        if (event.key !== 'Enter' && event.key !== 'Escape') return;
+        event.preventDefault();
+        closeTitleRename(event.key === 'Enter' ? titleDraft : undefined);
+    }
+
+    return (
+        <Inline wrap
+            className="panel-header"
+            data-testid="header"
+        >
+            <Inline className="panel-header__title-group">
+                <button
+                    data-testid="overlap-toggle"
+                    type="button"
+                    className={joinClassNames(
+                        'panel-header__overlap-box',
+                        state.isOverlapSelected && 'panel-header__overlap-box--active',
+                    )}
+                    title={sOverlapLabel}
+                    aria-label={sOverlapLabel}
+                    aria-pressed={state.isOverlapSelected}
+                    onClick={onToggleOverlap}
+                >
+                    {state.isOverlapSelected && <Check size={11} />}
+                </button>
+                {isRenamingTitle ? (
+                    <input
+                        data-testid="title-input"
+                        ref={titleInputRef}
+                        className={`${controls.input} panel-header__title-input`}
+                        value={titleDraft}
+                        aria-label="Chart title"
+                        onChange={(event) => setTitleDraft(event.target.value)}
+                        onBlur={() => closeTitleRename(titleDraft)}
+                        onKeyDown={handleTitleRenameKeyDown}
+                    />
+                ) : (
+                    <button
+                        data-testid="title-button"
+                        type="button"
+                        className={`${controls.textAction} panel-header__title-button`}
+                        title="Rename chart"
+                        onClick={openTitleRename}
+                    >
+                        <Text truncate tone="warning"
+                            className="panel-header__title"
+                            title={state.title}
+                        >
+                            {state.title}
+                        </Text>
+                    </button>
+                )}
+            </Inline>
+            <Inline gap={4} justify="center" className="panel-header__time" title={sTimeSummaryText}>
+                <button
+                    data-testid="main-range-button"
+                    type="button"
+                    className={controls.textAction}
+                    title={sRangeLabel}
+                    aria-label={sRangeLabel}
+                    disabled={!sFormattedRange}
+                    onClick={onOpenMainRangeModal}
+                >
+                    <Text>{sTimeText}</Text>
+                </button>
+                {sIntervalText && (
+                    <Text variant="caption" tone="secondary" className="panel-header__interval">
+                        {` (interval: ${sIntervalText})`}
+                    </Text>
+                )}
+            </Inline>
+            <Inline gap={4} className="panel-header__actions">
+                {sDirectActions.map((action) => (
+                    <span
+                        key={action.key}
+                        className={joinClassNames(
+                            'panel-header__action',
+                            action.showInMoreMenu && 'panel-header__action--overflow',
+                            action.className,
+                            action.active && 'panel-header__action--active',
+                        )}
+                    >
+                        <Button
+                            data-testid={`action-${action.key.toLowerCase().replaceAll('_', '-')}`}
+                            aria-label={action.label}
+                            aria-pressed={action.active}
+                            size="xsm"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={action.tooltip ?? action.label}
+                            active={action.active}
+                            disabled={action.disabled}
+                            icon={action.icon}
+                            onClick={() => onAction(action.key)}
+                            style={action.buttonStyle}
+                        />
+                    </span>
+                ))}
+                <PanelHeaderMenu
+                    variant="extra"
+                    actions={sActions.filter((action) => action.showInExtraMenu)}
+                    onAction={onAction}
+                />
+                <PanelHeaderMenu
+                    variant="more"
+                    actions={sDirectActions.filter((action) => action.showInMoreMenu)}
+                    onAction={onAction}
+                />
+            </Inline>
+        </Inline>
+    );
+}
+
+// -------------------- Local --------------------
 
 type PanelHeaderMenuVariant = 'extra' | 'more';
 
@@ -99,10 +278,11 @@ function PanelHeaderMenu({
                         {sIsExtra ? 'Extra' : undefined}
                     </Button>
                 </Menu.Trigger>
-                <Menu.Content align="right">
+                <Menu.Content align="right" data-testid={`tag-analyzer-panel-${variant}-menu`}>
                     {actions.map((action) => (
                         <Menu.Item
                             key={action.key}
+                            data-testid={`action-${action.key}`}
                             className={action.active
                                 ? HEADER_MENU_ACTIVE_ITEM_CLASS[variant]
                                 : undefined}
@@ -128,183 +308,3 @@ type PanelHeaderProps = {
     onRenamePanelTitle: (title: string) => void;
     onOpenMainRangeModal: () => void;
 };
-
-export function PanelHeader(props: PanelHeaderProps) {
-    const { getExperiment } = useExperiment();
-    const {
-        state,
-        onAction,
-        onToggleOverlap,
-        onRenamePanelTitle,
-        onOpenMainRangeModal,
-    } = props;
-    const [titleDraft, setTitleDraft] = useState<string | undefined>();
-    const isRenamingTitle = titleDraft !== undefined;
-    const titleInputRef = useRef<HTMLInputElement | null>(null);
-    const titleRenameClosingRef = useRef(false);
-    const sFormattedRange = state.mainRange &&
-        formatAxisRange(state.mainRange, state.isNumericXAxis);
-    const sInterval = getHeaderInterval(state);
-    const sTimeText = sFormattedRange
-        ? `${sFormattedRange.start} ~ ${sFormattedRange.end}`
-        : '';
-    const sRangeLabel = sFormattedRange && state.isNumericXAxis
-        ? 'Set current visible main chart value range'
-        : 'Set current visible main chart range';
-    const sIntervalText = sInterval?.label ?? '';
-    const sTimeSummaryText =
-        sTimeText && sIntervalText
-            ? `${sTimeText} (${sInterval?.kind === 'numeric' ? 'numeric interval' : 'interval'}: ${sIntervalText})`
-            : sTimeText;
-    const sActions = buildPanelActions(
-        state.actionState,
-        getExperiment() && state.canExportCsv,
-    );
-    const sExtraActions = sActions.filter((action) => action.showInExtraMenu);
-    const sDirectActions = sActions.filter((action) => !action.showInExtraMenu);
-    const sMoreActions = sDirectActions.filter((action) => action.showInMoreMenu);
-    const sOverlapLabel = state.isOverlapSelected
-        ? 'Remove from overlap chart'
-        : 'Add to overlap chart';
-
-    useEffect(() => {
-        if (!isRenamingTitle) {
-            return;
-        }
-        titleInputRef.current?.focus();
-        titleInputRef.current?.select();
-    }, [isRenamingTitle]);
-
-    function openTitleRename(): void {
-        titleRenameClosingRef.current = false;
-        setTitleDraft(state.title);
-    }
-
-    /** Closes the rename input, applying `nextTitle` when it is a real change. */
-    function closeTitleRename(nextTitle: string | undefined): void {
-        if (titleRenameClosingRef.current) return;
-        titleRenameClosingRef.current = true;
-        setTitleDraft(undefined);
-        const sNextTitle = nextTitle?.trim();
-        if (sNextTitle && sNextTitle !== state.title) {
-            onRenamePanelTitle(sNextTitle);
-        }
-    }
-
-    function handleTitleRenameKeyDown(
-        event: KeyboardEvent<HTMLInputElement>,
-    ): void {
-        if (event.key !== 'Enter' && event.key !== 'Escape') return;
-        event.preventDefault();
-        closeTitleRename(event.key === 'Enter' ? titleDraft : undefined);
-    }
-
-    return (
-        <div
-            className="panel-header"
-            data-testid="header"
-        >
-            <div className="panel-header__title-group">
-                <button
-                    data-testid="overlap-toggle"
-                    type="button"
-                    className={joinClassNames(
-                        'panel-header__overlap-box',
-                        state.isOverlapSelected && 'panel-header__overlap-box--active',
-                    )}
-                    title={sOverlapLabel}
-                    aria-label={sOverlapLabel}
-                    aria-pressed={state.isOverlapSelected}
-                    onClick={onToggleOverlap}
-                >
-                    {state.isOverlapSelected && <Check size={11} />}
-                </button>
-                {isRenamingTitle ? (
-                    <input
-                        data-testid="title-input"
-                        ref={titleInputRef}
-                        className="panel-header__title-input"
-                        value={titleDraft}
-                        aria-label="Chart title"
-                        onChange={(event) => setTitleDraft(event.target.value)}
-                        onBlur={() => closeTitleRename(titleDraft)}
-                        onKeyDown={handleTitleRenameKeyDown}
-                    />
-                ) : (
-                    <button
-                        data-testid="title-button"
-                        type="button"
-                        className="panel-header__title-button"
-                        title="Rename chart"
-                        onClick={openTitleRename}
-                    >
-                        <span
-                            className="panel-header__title"
-                            title={state.title}
-                        >
-                            {state.title}
-                        </span>
-                    </button>
-                )}
-            </div>
-            <div className="panel-header__time" title={sTimeSummaryText}>
-                <span className="panel-header__time-part">
-                    <button
-                        data-testid="main-range-button"
-                        type="button"
-                        className="panel-header__time-button panel-header__time-range-button"
-                        title={sRangeLabel}
-                        aria-label={sRangeLabel}
-                        disabled={!sFormattedRange}
-                        onClick={onOpenMainRangeModal}
-                    >
-                        {sTimeText}
-                    </button>
-                </span>
-                {sIntervalText && (
-                    <span className="panel-header__interval">
-                        {` (interval: ${sIntervalText})`}
-                    </span>
-                )}
-            </div>
-            <div className="panel-header__actions">
-                {sDirectActions.map((action) => (
-                    <span
-                        key={action.key}
-                        className={joinClassNames(
-                            'panel-header__action',
-                            action.showInMoreMenu && 'panel-header__action--overflow',
-                            action.className,
-                            action.active && 'panel-header__action--active',
-                        )}
-                    >
-                        <Button
-                            data-testid={`action-${action.key.toLowerCase().replaceAll('_', '-')}`}
-                            aria-label={action.label}
-                            aria-pressed={action.active}
-                            size="xsm"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent={action.tooltip ?? action.label}
-                            active={action.active}
-                            disabled={action.disabled}
-                            icon={action.icon}
-                            onClick={() => onAction(action.key)}
-                            style={action.buttonStyle}
-                        />
-                    </span>
-                ))}
-                <PanelHeaderMenu
-                    variant="extra"
-                    actions={sExtraActions}
-                    onAction={onAction}
-                />
-                <PanelHeaderMenu
-                    variant="more"
-                    actions={sMoreActions}
-                    onAction={onAction}
-                />
-            </div>
-        </div>
-    );
-}

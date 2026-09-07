@@ -26,10 +26,6 @@ import {
 } from '../../seriesModel';
 import type { PanelInfo } from '../panelModel';
 
-const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
-const MAIN_CALCULATED_ROW_LIMIT = 10_000;
-const NAVIGATOR_PREFETCH_RATIO = 0.5;
-
 export type PanelQueryResolution =
     | { kind: 'raw' }
     | { kind: 'time'; interval: IntervalOption }
@@ -43,48 +39,6 @@ export type PanelSeriesDataRequest = {
     fetchQuery: SeriesRowsQuery;
     resolution: PanelQueryResolution;
 };
-
-type ResolvePanelSeriesRequestParams = {
-    target: 'main' | 'navigator';
-    panelInfo: Pick<PanelInfo, 'query' | 'mode' | 'display'>;
-    rangeState: ResolvedRangeState;
-    visibleRange: AxisRange;
-    chartWidth: number;
-    rollupTables: RollupTableMap;
-    refreshVersion: number;
-};
-
-function resolveCalculatedInterval(
-    intervalType: TimeUnit | undefined,
-    range: AxisRange,
-    chartWidth: number,
-    pixelsPerTick: number,
-): IntervalOption {
-    const automaticInterval = calculateInterval(
-        range.start,
-        range.end,
-        chartWidth,
-        pixelsPerTick,
-    );
-    if (intervalType === undefined) return automaticInterval;
-
-    const configuredUnitMs = getIntervalMs(intervalType, 1);
-    const automaticIntervalMs = getIntervalMs(
-        automaticInterval.IntervalType,
-        automaticInterval.IntervalValue,
-    );
-    if (configuredUnitMs <= 0 || automaticIntervalMs <= 0) {
-        return automaticInterval;
-    }
-
-    return {
-        IntervalType: intervalType,
-        IntervalValue: Math.max(
-            1,
-            Math.ceil(automaticIntervalMs / configuredUnitMs),
-        ),
-    };
-}
 
 export function buildPanelSeriesQuery(
     target: 'main' | 'navigator',
@@ -120,13 +74,13 @@ export function buildPanelSeriesQuery(
         );
     }
 
-    const useRawQuery =
+    if (
         panelInfo.mode.isRaw &&
         (
             target === 'main' ||
             panelInfo.display.rawNavigatorSampling.enabled
-        );
-    if (useRawQuery) {
+        )
+    ) {
         const sampling = target === 'main'
             ? panelInfo.display.mainChartSampling
             : panelInfo.display.rawNavigatorSampling;
@@ -159,11 +113,9 @@ export function buildPanelSeriesQuery(
         };
     }
 
-    const configuredPixelsPerTick = target === 'main'
+    const pixelsPerTick = (target === 'main'
         ? panelInfo.display.pixelsPerTick.calculated
-        : panelInfo.display.pixelsPerTick.calculatedNavigator;
-    const pixelsPerTick =
-        configuredPixelsPerTick ?? DEFAULT_CALCULATED_PIXELS_PER_TICK;
+        : panelInfo.display.pixelsPerTick.calculatedNavigator) ?? DEFAULT_CALCULATED_PIXELS_PER_TICK;
     if (!Number.isFinite(pixelsPerTick) || pixelsPerTick <= 0) {
         throw new Error(
             'Calculated panel data requires a positive pixel density.',
@@ -171,25 +123,21 @@ export function buildPanelSeriesQuery(
     }
 
     const rowLimit = Math.max(1, Math.floor(chartWidth / pixelsPerTick));
-    const interval = resolveCalculatedInterval(
-        panelInfo.query.intervalType,
-        range,
-        chartWidth,
-        pixelsPerTick,
-    );
-    const numericBucketWidth =
-        axisKind === 'numeric'
-            ? resolveNumericIntervalValue(range.end - range.start, rowLimit)
-            : undefined;
-
     return {
         kind: 'calculated',
         seriesList,
         range,
-        interval,
+        interval: resolveCalculatedInterval(
+            panelInfo.query.intervalType,
+            range,
+            chartWidth,
+            pixelsPerTick,
+        ),
         rowLimit,
         rollupTables,
-        numericBucketWidth,
+        numericBucketWidth: axisKind === 'numeric'
+            ? resolveNumericIntervalValue(range.end - range.start, rowLimit)
+            : undefined,
     };
 }
 
@@ -279,45 +227,6 @@ export function resolvePanelSeriesRequest({
     };
 }
 
-function createPaddedRange(
-    visibleRange: AxisRange,
-    fullRange: AxisRange,
-    paddingRatio: number,
-): AxisRange {
-    return fitRangeWithinBounds(
-        createRangeFromCenterAndWidth(
-            getRangeCenter(visibleRange),
-            getRangeWidth(visibleRange) * (1 + 2 * paddingRatio),
-        ),
-        fullRange,
-    );
-}
-
-function resolveCalculatedMainFetchRange(
-    visibleRange: AxisRange,
-    fetchRange: AxisRange,
-    step: number,
-    rowLimit: number,
-): AxisRange {
-    if (!isRangeWithin(visibleRange, fetchRange)) {
-        return visibleRange;
-    }
-    const visibleWidth = getRangeWidth(visibleRange);
-    const width = Math.max(
-        visibleWidth,
-        Math.min(
-            getRangeWidth(fetchRange),
-            step > 0
-                ? step * (rowLimit - 1)
-                : visibleWidth,
-        ),
-    );
-    return fitRangeWithinBounds(
-        createRangeFromCenterAndWidth(getRangeCenter(visibleRange), width),
-        fetchRange,
-    );
-}
-
 export function createSeriesRowsQueryKeys(
     query: SeriesRowsQuery,
 ): { familyKey: string; exactKey: string } {
@@ -367,4 +276,91 @@ export function createSeriesRowsQueryKeys(
             resolutionOptions,
         ]),
     };
+}
+
+// -------------------- Local --------------------
+
+const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
+const MAIN_CALCULATED_ROW_LIMIT = 10_000;
+const NAVIGATOR_PREFETCH_RATIO = 0.5;
+
+type ResolvePanelSeriesRequestParams = {
+    target: 'main' | 'navigator';
+    panelInfo: Pick<PanelInfo, 'query' | 'mode' | 'display'>;
+    rangeState: ResolvedRangeState;
+    visibleRange: AxisRange;
+    chartWidth: number;
+    rollupTables: RollupTableMap;
+    refreshVersion: number;
+};
+
+function resolveCalculatedInterval(
+    intervalType: TimeUnit | undefined,
+    range: AxisRange,
+    chartWidth: number,
+    pixelsPerTick: number,
+): IntervalOption {
+    const automaticInterval = calculateInterval(
+        range.start,
+        range.end,
+        chartWidth,
+        pixelsPerTick,
+    );
+    if (intervalType === undefined) return automaticInterval;
+
+    const configuredUnitMs = getIntervalMs(intervalType, 1);
+    const automaticIntervalMs = getIntervalMs(
+        automaticInterval.IntervalType,
+        automaticInterval.IntervalValue,
+    );
+    if (configuredUnitMs <= 0 || automaticIntervalMs <= 0) {
+        return automaticInterval;
+    }
+
+    return {
+        IntervalType: intervalType,
+        IntervalValue: Math.max(
+            1,
+            Math.ceil(automaticIntervalMs / configuredUnitMs),
+        ),
+    };
+}
+
+function createPaddedRange(
+    visibleRange: AxisRange,
+    fullRange: AxisRange,
+    paddingRatio: number,
+): AxisRange {
+    return fitRangeWithinBounds(
+        createRangeFromCenterAndWidth(
+            getRangeCenter(visibleRange),
+            getRangeWidth(visibleRange) * (1 + 2 * paddingRatio),
+        ),
+        fullRange,
+    );
+}
+
+function resolveCalculatedMainFetchRange(
+    visibleRange: AxisRange,
+    fetchRange: AxisRange,
+    step: number,
+    rowLimit: number,
+): AxisRange {
+    if (!isRangeWithin(visibleRange, fetchRange)) {
+        return visibleRange;
+    }
+    const visibleWidth = getRangeWidth(visibleRange);
+    const width = Math.max(
+        visibleWidth,
+        Math.min(
+            getRangeWidth(fetchRange),
+            step > 0
+                ? step * (rowLimit - 1)
+                : visibleWidth,
+        ),
+    );
+    return fitRangeWithinBounds(
+        createRangeFromCenterAndWidth(getRangeCenter(visibleRange), width),
+        fetchRange,
+    );
 }

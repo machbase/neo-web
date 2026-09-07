@@ -501,7 +501,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                                         onRename={onRename}
                                     />
                                 </Side.List>
-                                <ContextMenu isOpen={sIsContextMenu} position={sMenuPosition} onClose={closeContextMenu}>
+                                <ContextMenu isOpen={sIsContextMenu} position={sMenuPosition} onClose={closeContextMenu} data-testid="file-context-menu">
                                     {(selectedContextFile as any)?.type === 1 && !(selectedContextFile as any)?.virtual ? (
                                         <>
                                             <ContextMenu.Item onClick={(aEvent: any) => handleFile(aEvent)}>
@@ -541,7 +541,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                                     ) : null}
                                     {!(selectedContextFile as any)?.readOnly &&
                                         ((selectedContextFile as any)?.type === 1 || EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id))) && (
-                                            <ContextMenu.Item onClick={deleteFile}>
+                                            <ContextMenu.Item onClick={deleteFile} data-testid="delete">
                                                 <Delete />
                                                 <span>Delete</span>
                                             </ContextMenu.Item>

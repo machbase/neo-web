@@ -53,6 +53,49 @@ import {
     type PersistedTimedMarkupInput,
 } from './tazFormat';
 
+export function parseLoadedTaz(boardInfo: unknown): BoardInfo {
+    const sBoardInfo = assertLoadedTazBoardData(boardInfo);
+    const sVersion = normalizePersistedTazVersion(sBoardInfo.version);
+    const sPanels = sBoardInfo.panels
+        .flatMap((panel) => repairLegacyPanelIfNeeded(panel, sVersion))
+        .map(normalizeTazPanelSeriesCompatibility);
+    const sBoardTimeRange = normalizePersistedBoardRange(
+        sBoardInfo.boardTimeRange ??
+            createTimeRangeInputFromStoredValues(
+                normalizeStoredTimeRangeValue(sBoardInfo.range_bgn),
+                normalizeStoredTimeRangeValue(sBoardInfo.range_end),
+            ),
+        'boardTimeRange',
+    );
+    const sBoardNumericRange = normalizePersistedBoardRange(
+        sBoardInfo.boardNumericRange,
+        'boardNumericRange',
+    );
+
+    return {
+        ...sBoardInfo,
+        version: sVersion,
+        id: normalizeLoadedString(sBoardInfo.id),
+        type: normalizeLoadedString(sBoardInfo.type, 'taz'),
+        name: normalizeLoadedString(sBoardInfo.name),
+        path: normalizeLoadedString(sBoardInfo.path),
+        code: sBoardInfo.code ?? '',
+        panels: ensureUniquePanelKeys(
+            sPanels.map((panelInfo) =>
+                parseLoadedPanelTazByVersion(panelInfo, sVersion),
+            ),
+        ),
+        savedCode:
+            typeof sBoardInfo.savedCode === 'string'
+                ? sBoardInfo.savedCode
+                : false,
+        boardTimeRange: sBoardTimeRange,
+        boardNumericRange: sBoardNumericRange,
+    };
+}
+
+// -------------------- Local --------------------
+
 type PersistedPanelAxisThresholdV200 = {
     enabled: boolean;
     value: number;
@@ -994,47 +1037,6 @@ type LoadedTazBoardData = Record<string, unknown> & {
     range_bgn?: unknown;
     range_end?: unknown;
 };
-
-export function parseLoadedTaz(boardInfo: unknown): BoardInfo {
-    const sBoardInfo = assertLoadedTazBoardData(boardInfo);
-    const sVersion = normalizePersistedTazVersion(sBoardInfo.version);
-    const sPanels = sBoardInfo.panels
-        .flatMap((panel) => repairLegacyPanelIfNeeded(panel, sVersion))
-        .map(normalizeTazPanelSeriesCompatibility);
-    const sBoardTimeRange = normalizePersistedBoardRange(
-        sBoardInfo.boardTimeRange ??
-            createTimeRangeInputFromStoredValues(
-                normalizeStoredTimeRangeValue(sBoardInfo.range_bgn),
-                normalizeStoredTimeRangeValue(sBoardInfo.range_end),
-            ),
-        'boardTimeRange',
-    );
-    const sBoardNumericRange = normalizePersistedBoardRange(
-        sBoardInfo.boardNumericRange,
-        'boardNumericRange',
-    );
-
-    return {
-        ...sBoardInfo,
-        version: sVersion,
-        id: normalizeLoadedString(sBoardInfo.id),
-        type: normalizeLoadedString(sBoardInfo.type, 'taz'),
-        name: normalizeLoadedString(sBoardInfo.name),
-        path: normalizeLoadedString(sBoardInfo.path),
-        code: sBoardInfo.code ?? '',
-        panels: ensureUniquePanelKeys(
-            sPanels.map((panelInfo) =>
-                parseLoadedPanelTazByVersion(panelInfo, sVersion),
-            ),
-        ),
-        savedCode:
-            typeof sBoardInfo.savedCode === 'string'
-                ? sBoardInfo.savedCode
-                : false,
-        boardTimeRange: sBoardTimeRange,
-        boardNumericRange: sBoardNumericRange,
-    };
-}
 
 function repairLegacyPanelIfNeeded(
     panel: unknown,

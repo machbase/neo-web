@@ -87,6 +87,7 @@ export const DistanceQuickWindows = ({ pBounds, pOnSelect }: { pBounds: { min: n
                     {aRow.map((aItem) => (
                         <button
                             key={aItem.label}
+                            data-testid={`${aItem.edge}-${aItem.ratio * 100}`}
                             type="button"
                             className={styles.quickButton}
                             onClick={() => {
@@ -407,6 +408,7 @@ const DistanceRangeTab = ({
                     <button
                         type="button"
                         className={`${styles.reset} ${pResetDisabled ? styles.resetDisabled : ''}`}
+                        data-testid="reset-button"
                         onClick={pOnResetToFull}
                         disabled={pResetDisabled}
                         title="Clear the saved range and follow the full data extent"
@@ -436,6 +438,7 @@ const DistanceRangeTab = ({
                             step="any"
                             value={sSliderFrom}
                             aria-label="Distance from slider"
+                            data-testid="from-slider"
                             onKeyDown={(aEvent) => handleThumbKeyDown('from', aEvent)}
                             onChange={(aEvent) => moveEdgeTo('from', Number(aEvent.target.value))}
                         />
@@ -448,6 +451,7 @@ const DistanceRangeTab = ({
                             step="any"
                             value={sSliderTo}
                             aria-label="Distance to slider"
+                            data-testid="to-slider"
                             onKeyDown={(aEvent) => handleThumbKeyDown('to', aEvent)}
                             onChange={(aEvent) => moveEdgeTo('to', Number(aEvent.target.value))}
                         />
@@ -484,13 +488,13 @@ const DistanceRangeTab = ({
                     <span className={styles.fieldLabel}>
                         From {pUnit && <span className={styles.unit}>{pUnit}</span>}
                     </span>
-                    <input value={sFromText} onChange={(aEvent) => handleFromText(aEvent.target.value)} inputMode="decimal" aria-label="Distance from" />
+                    <input data-testid="from-input" value={sFromText} onChange={(aEvent) => handleFromText(aEvent.target.value)} inputMode="decimal" aria-label="Distance from" />
                 </label>
                 <label className={styles.field}>
                     <span className={styles.fieldLabel}>
                         To {pUnit && <span className={styles.unit}>{pUnit}</span>}
                     </span>
-                    <input value={sToText} onChange={(aEvent) => handleToText(aEvent.target.value)} inputMode="decimal" aria-label="Distance to" />
+                    <input data-testid="to-input" value={sToText} onChange={(aEvent) => handleToText(aEvent.target.value)} inputMode="decimal" aria-label="Distance to" />
                 </label>
             </div>
 
@@ -499,7 +503,7 @@ const DistanceRangeTab = ({
                 places them itself (the panel editor's right-hand column) turns them off here. */}
             {sHasExtent && !pHideQuickWindows && <DistanceQuickWindows pBounds={{ min: sMin, max: sMax }} pOnSelect={setRange} />}
 
-            {sNotice && <div className={styles.notice}>{sNotice}</div>}
+            {sNotice && <div className={styles.notice} data-testid="validation-message">{sNotice}</div>}
         </div>
     );
 };

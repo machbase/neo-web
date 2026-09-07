@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     Button,
     Page,
@@ -17,17 +17,279 @@ import {
 } from '../../seriesModel';
 import { type AxisRange } from '../../range/rangeModel';
 
-type TabValidity = { isValid: boolean; message?: string };
+import { PANEL_EDITOR_TABS, validatePanelEditorDraft, type PanelEditorTab } from './editorValidation';
+import { Inline, Stack, Text } from '../../ui/Presentation';
 
-const PANEL_EDITOR_TABS = [
-    'General',
-    'Data',
-    'Data Setting',
-    'Axes',
-    'Display',
-    'Main Range',
-] as const;
-type PanelEditorTab = (typeof PANEL_EDITOR_TABS)[number];
+export default function PanelEditor({
+    pOnApplyEditorConfig,
+    pOnClose,
+    pPanelInfo,
+    pHasUnsavedBoardChanges,
+    pMainRange,
+    pDataRange,
+    pRollupTableList,
+}: {
+    pOnApplyEditorConfig: (editorConfig: PanelInfo) => void;
+    pOnClose: () => void;
+    pPanelInfo: PanelInfo;
+    pHasUnsavedBoardChanges: boolean;
+    pMainRange: AxisRange;
+    pDataRange: AxisRange;
+    pRollupTableList: RollupTableMap;
+}) {
+    const [sSelectedTab, setSelectedTab] = useState<PanelEditorTab>('General');
+    const [sEditorDraft, setEditorDraft] = useState(() =>
+        createEditorDraft(pPanelInfo),
+    );
+    const {
+        title: sTitleDraft,
+        mode: sModeDraft,
+        query: sQueryDraft,
+        display: sDisplayDraft,
+        time: sTimeDraft,
+    } = sEditorDraft;
+    const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(() =>
+        createEditorChangeKey(pPanelInfo),
+    );
+    const sEditorConfig = useMemo<PanelInfo>(
+        () => ({ ...pPanelInfo, ...sEditorDraft }),
+        [pPanelInfo, sEditorDraft],
+    );
+    const sEditorConfigKey = useMemo(
+        () => createEditorChangeKey(sEditorConfig),
+        [sEditorConfig],
+    );
+    const sAxisKind = getSeriesListAxisKind(
+        sEditorConfig.query.tagSet,
+    );
+    const sOriginalAxisKind = getSeriesListAxisKind(
+        pPanelInfo.query.tagSet,
+    );
+    const sTabMessages = validatePanelEditorDraft(sEditorConfig, {
+        lockedAxisKind: sOriginalAxisKind,
+        dataRange: pDataRange,
+        mainRange: pMainRange,
+        referenceTimeMs: Date.now(),
+    });
+    const sRangeInput = sEditorConfig.time.rangeInput;
+    const sInvalidTab = PANEL_EDITOR_TABS.find(
+        (tab) => sTabMessages[tab] !== undefined,
+    );
+    const sValidationMessage = sInvalidTab
+        ? sTabMessages[sInvalidTab]
+        : undefined;
+    const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
+    const sCanApplyEditorChanges = sHasEditorChanges && !sInvalidTab;
+    const applyEditorChanges = () => {
+        if (!sCanApplyEditorChanges) {
+            return;
+        }
+
+        const sConfiguredRangeIsUnchanged =
+            sRangeInput.start === pPanelInfo.time.rangeInput.start &&
+            sRangeInput.end === pPanelInfo.time.rangeInput.end;
+        pOnApplyEditorConfig({
+            ...sEditorConfig,
+            query: {
+                ...sEditorConfig.query,
+                tagSet: sEditorConfig.axes.rightY.enabled
+                    ? sEditorConfig.query.tagSet
+                    : sEditorConfig.query.tagSet.map((series) => ({
+                          ...series,
+                          useSecondaryAxis: false,
+                      })),
+            },
+            time: {
+                ...sEditorConfig.time,
+                rangeInput: sRangeInput,
+                lastViewedRange:
+                    sEditorConfig.time.useLastViewedRange &&
+                    sConfiguredRangeIsUnchanged
+                        ? sEditorConfig.time.lastViewedRange
+                        : undefined,
+            },
+        });
+        setAppliedEditorConfigKey(sEditorConfigKey);
+    };
+
+    function updateEditorDraft<K extends keyof PanelEditorDraft>(
+        field: K,
+    ): (value: PanelEditorDraft[K]) => void {
+        return (value) =>
+            setEditorDraft((draft) => ({ ...draft, [field]: value }));
+    }
+
+    function updateTagSet(tagSet: PanelInfo['query']['tagSet']): void {
+        setEditorDraft((draft) => ({
+            ...draft,
+            query: { ...draft.query, tagSet },
+        }));
+    }
+
+    return (
+        <div
+            data-testid="editor"
+            data-state="open"
+            className={styles.editor}
+        >
+            <Page className={styles.editorPage}>
+                <Inline gap={12} justify="between" wrap className={styles.header}>
+                    <Inline gap={12} className={styles.headerMain}>
+                        <Text as="h3" variant="title" tone="default" className={styles.headerTitle}>Edit panel</Text>
+                        <Inline className={styles.tabContainer}>
+                            <Page.TabList className={styles.tabList}>
+                                {PANEL_EDITOR_TABS.map((item) => {
+                                    const sTabIsInvalid =
+                                        sTabMessages[item] !== undefined;
+                                    return (
+                                        <Page.TabItem
+                                            key={item}
+                                            active={sSelectedTab === item}
+                                            className={
+                                                sTabIsInvalid
+                                                    ? styles.invalidTab
+                                                    : undefined
+                                            }
+                                            onClick={() => setSelectedTab(item)}
+                                        >
+                                            <button
+                                                type="button"
+                                                className={styles.tabButton}
+                                                data-testid={`editor-tab-${item.toLowerCase().replace(' ', '-')}`}
+                                                aria-pressed={
+                                                    sSelectedTab === item
+                                                }
+                                                aria-invalid={
+                                                    sTabIsInvalid
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-label={
+                                                    sTabIsInvalid
+                                                        ? `${item}, invalid settings`
+                                                        : item
+                                                }
+                                                title={
+                                                    sTabIsInvalid
+                                                        ? `${item}: ${sTabMessages[item]}`
+                                                        : undefined
+                                                }
+                                            >
+                                                {item}
+                                            </button>
+                                        </Page.TabItem>
+                                    );
+                                })}
+                            </Page.TabList>
+                        </Inline>
+                    </Inline>
+                    <Inline
+                        title={
+                            !sHasEditorChanges
+                                ? 'There are no changes to apply'
+                                : sValidationMessage
+                        }
+                        className={styles.actions}
+                    >
+                        <Text
+                            as="div"
+                            variant="caption"
+                            tone="warning"
+                            data-testid="editor-status"
+                            className={[
+                                styles.notAppliedMessage,
+                                !sHasEditorChanges &&
+                                    !pHasUnsavedBoardChanges &&
+                                    styles.notAppliedMessageHidden,
+                            ]
+                                .filter(Boolean)
+                                .join(' ')}
+                        >
+                            {sHasEditorChanges ? (
+                                'You have unapplied changes.'
+                            ) : (
+                                <>
+                                    Changes applied to this session.
+                                    <br />
+                                    Save to TAZ to keep changes.
+                                </>
+                            )}
+                        </Text>
+                        <Button
+                            data-testid="editor-close"
+                            variant="danger"
+                            size="sm"
+                            onClick={pOnClose}
+                        >
+                            Close
+                        </Button>
+                        <Button
+                            data-testid="editor-apply"
+                            variant="primary"
+                            size="sm"
+                            disabled={!sCanApplyEditorChanges}
+                            onClick={applyEditorChanges}
+                        >
+                            Apply
+                        </Button>
+                    </Inline>
+                </Inline>
+
+                <Stack className={styles.content}>
+                    <EditorGeneralTab
+                        pTitle={sTitleDraft}
+                        pModeConfig={sModeDraft}
+                        pDisplayConfig={sDisplayDraft}
+                        pTimeConfig={sTimeDraft}
+                        pOnChangeTitle={updateEditorDraft('title')}
+                        pOnChangeModeConfig={updateEditorDraft('mode')}
+                        pOnChangeDisplayConfig={updateEditorDraft('display')}
+                        pOnChangeTimeConfig={updateEditorDraft('time')}
+                        pIsActive={sSelectedTab === 'General'}
+                    />
+                    <EditorDataTab
+                        pQueryDraft={sQueryDraft}
+                        pRollupTableList={pRollupTableList}
+                        pLockedAxisKind={sOriginalAxisKind}
+                        pOnChangeQueryDraft={updateEditorDraft('query')}
+                        pIsActive={sSelectedTab === 'Data'}
+                    />
+                    <EditorDataSettingTab
+                        pDisplayConfig={sEditorConfig.display}
+                        pIsRawMode={sModeDraft.isRaw}
+                        pAxisKind={sAxisKind}
+                        pDataValidationMessage={sTabMessages.Data}
+                        pOnChangeDisplayConfig={updateEditorDraft('display')}
+                        pIsActive={sSelectedTab === 'Data Setting'}
+                    />
+                    <EditorAxesTab
+                        pAxesConfig={sEditorConfig.axes}
+                        pTagSet={sEditorConfig.query.tagSet}
+                        pOnChangeAxesConfig={updateEditorDraft('axes')}
+                        pOnChangeTagSet={updateTagSet}
+                        pIsActive={sSelectedTab === 'Axes'}
+                    />
+                    <EditorDisplayTab
+                        pDisplayConfig={sEditorConfig.display}
+                        pOnChangeDisplayConfig={updateEditorDraft('display')}
+                        pIsActive={sSelectedTab === 'Display'}
+                    />
+                    <EditorTimeTab
+                        pTimeConfig={sEditorConfig.time}
+                        pAxisKind={sAxisKind}
+                        pDataRange={pDataRange}
+                        pIsValid={sTabMessages['Main Range'] === undefined}
+                        pDataValidationMessage={sTabMessages.Data}
+                        pOnChangeTimeConfig={updateEditorDraft('time')}
+                        pIsActive={sSelectedTab === 'Main Range'}
+                    />
+                </Stack>
+            </Page>
+        </div>
+    );
+}
+
+// -------------------- Local --------------------
 
 type PanelEditorDraft = Pick<
     PanelInfo,
@@ -49,332 +311,3 @@ function createEditorChangeKey(config: PanelInfo): string {
         time: { ...time, lastViewedRange: undefined },
     });
 }
-
-const PanelEditor = ({
-    pOnApplyEditorConfig,
-    pOnClose,
-    pIsOpen,
-    pPanelInfo,
-    pHasUnsavedBoardChanges,
-    pMainRange,
-    pDataRange,
-    pRollupTableList,
-}: {
-    pOnApplyEditorConfig: (editorConfig: PanelInfo) => void;
-    pOnClose: () => void;
-    pIsOpen: boolean;
-    pPanelInfo: PanelInfo;
-    pHasUnsavedBoardChanges: boolean;
-    pMainRange: AxisRange;
-    pDataRange: AxisRange;
-    pRollupTableList: RollupTableMap;
-}) => {
-    const sInitialEditorConfigKey = useMemo(
-        () => createEditorChangeKey(pPanelInfo),
-        [pPanelInfo],
-    );
-    const [sSelectedTab, setSelectedTab] = useState<PanelEditorTab>('General');
-    const sRenderedTab = pIsOpen ? sSelectedTab : 'General';
-    const [sEditorDraft, setEditorDraft] = useState(() =>
-        createEditorDraft(pPanelInfo),
-    );
-    const [sTabValidity, setTabValidity] = useState<
-        Partial<Record<PanelEditorTab, TabValidity>>
-    >({});
-    const {
-        title: sTitleDraft,
-        mode: sModeDraft,
-        query: sQueryDraft,
-        display: sDisplayDraft,
-        time: sTimeDraft,
-    } = sEditorDraft;
-    const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(
-        sInitialEditorConfigKey,
-    );
-    const sAppliedEditorConfigKeyRef = useRef(sInitialEditorConfigKey);
-    const sEditorConfig = useMemo<PanelInfo>(
-        () => ({ ...pPanelInfo, ...sEditorDraft }),
-        [pPanelInfo, sEditorDraft],
-    );
-    const sEditorConfigRef = useRef(sEditorConfig);
-    sEditorConfigRef.current = sEditorConfig;
-    const sEditorConfigKey = useMemo(
-        () => createEditorChangeKey(sEditorConfig),
-        [sEditorConfig],
-    );
-    const sAxisKind = getSeriesListAxisKind(
-        sEditorConfig.query.tagSet,
-    );
-    const sOriginalAxisKind = getSeriesListAxisKind(
-        pPanelInfo.query.tagSet,
-    );
-    const sRangeInput = sEditorConfig.time.rangeInput;
-    const sRangeIsInvalid =
-        sTabValidity['Main Range']?.isValid === false;
-    const sRangeInputToApply = sRangeIsInvalid ? undefined : sRangeInput;
-    const sInvalidTab = PANEL_EDITOR_TABS.find(
-        (tab) => sTabValidity[tab]?.isValid === false,
-    );
-    const sValidationMessage = sInvalidTab
-        ? sTabValidity[sInvalidTab]?.message
-        : undefined;
-    const sIsEditorValid = PANEL_EDITOR_TABS.every(
-        (tab) => sTabValidity[tab]?.isValid === true,
-    );
-    const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
-    const sCanApplyEditorChanges = sHasEditorChanges && sIsEditorValid;
-    const applyEditorChanges = () => {
-        if (!sCanApplyEditorChanges || !sRangeInputToApply) {
-            return;
-        }
-
-        const sConfiguredRangeIsUnchanged =
-            sRangeInputToApply.start === pPanelInfo.time.rangeInput.start &&
-            sRangeInputToApply.end === pPanelInfo.time.rangeInput.end;
-        pOnApplyEditorConfig({
-            ...sEditorConfig,
-            query: {
-                ...sEditorConfig.query,
-                tagSet: sEditorConfig.axes.rightY.enabled
-                    ? sEditorConfig.query.tagSet
-                    : sEditorConfig.query.tagSet.map((series) => ({
-                          ...series,
-                          useSecondaryAxis: false,
-                      })),
-            },
-            time: {
-                ...sEditorConfig.time,
-                rangeInput: sRangeInputToApply,
-                lastViewedRange:
-                    sEditorConfig.time.useLastViewedRange &&
-                    sConfiguredRangeIsUnchanged
-                        ? sEditorConfig.time.lastViewedRange
-                        : undefined,
-            },
-        });
-        sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
-        setAppliedEditorConfigKey(sEditorConfigKey);
-    };
-
-    useEffect(() => {
-        const sPreviousAppliedEditorConfigKey =
-            sAppliedEditorConfigKeyRef.current;
-
-        sAppliedEditorConfigKeyRef.current = sInitialEditorConfigKey;
-        setAppliedEditorConfigKey(sInitialEditorConfigKey);
-
-        if (
-            !pIsOpen ||
-            createEditorChangeKey(sEditorConfigRef.current) ===
-                sPreviousAppliedEditorConfigKey
-        ) {
-            resetEditorDraft(pPanelInfo);
-        }
-        if (!pIsOpen) {
-            setSelectedTab('General');
-        }
-    }, [pIsOpen, pPanelInfo, sInitialEditorConfigKey]);
-
-    function resetEditorDraft(config: PanelInfo): void {
-        setEditorDraft(createEditorDraft(config));
-    }
-
-    function updateEditorDraft<K extends keyof PanelEditorDraft>(
-        field: K,
-    ): (value: PanelEditorDraft[K]) => void {
-        return (value) =>
-            setEditorDraft((draft) => ({ ...draft, [field]: value }));
-    }
-
-    function updateTagSet(tagSet: PanelInfo['query']['tagSet']): void {
-        setEditorDraft((draft) => ({
-            ...draft,
-            query: { ...draft.query, tagSet },
-        }));
-    }
-
-    const reportValidity = useCallback(
-        (tab: PanelEditorTab, isValid: boolean, message?: string) =>
-            setTabValidity((current) => {
-                const previous = current[tab];
-                return previous?.isValid === isValid &&
-                    previous.message === message
-                    ? current
-                    : { ...current, [tab]: { isValid, message } };
-            }),
-        [],
-    );
-
-    return (
-        <div
-            data-testid="editor"
-            data-state={pIsOpen ? 'open' : 'closed'}
-            aria-hidden={!pIsOpen}
-            {...(!pIsOpen && { inert: '' })}
-            className={styles.editor}
-        >
-            <Page className={styles.editorPage}>
-                <Page.Header>
-                    <div className={styles.header}>
-                        <div className={styles.headerMain}>
-                            <h3 className={styles.title}>Edit panel</h3>
-                            <Page.TabContainer style={{ margin: 0 }}>
-                                <Page.TabList className={styles.tabList}>
-                                    {PANEL_EDITOR_TABS.map((item) => {
-                                        const sTabIsInvalid =
-                                            sTabValidity[item]?.isValid === false;
-                                        return (
-                                            <Page.TabItem
-                                                key={item}
-                                                active={sSelectedTab === item}
-                                                className={
-                                                    sTabIsInvalid
-                                                        ? styles.invalidTab
-                                                        : undefined
-                                                }
-                                                onClick={() => setSelectedTab(item)}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className={styles.tabButton}
-                                                    data-testid={`editor-tab-${item.toLowerCase().replace(' ', '-')}`}
-                                                    aria-pressed={
-                                                        sSelectedTab === item
-                                                    }
-                                                    aria-invalid={
-                                                        sTabIsInvalid
-                                                            ? true
-                                                            : undefined
-                                                    }
-                                                    aria-label={
-                                                        sTabIsInvalid
-                                                            ? `${item}, invalid settings`
-                                                            : item
-                                                    }
-                                                    title={
-                                                        sTabIsInvalid
-                                                            ? `${item}: ${sTabValidity[item]?.message}`
-                                                            : undefined
-                                                    }
-                                                >
-                                                    {item}
-                                                </button>
-                                            </Page.TabItem>
-                                        );
-                                    })}
-                                </Page.TabList>
-                            </Page.TabContainer>
-                        </div>
-                        <div className={styles.actions}>
-                            <div
-                                title={
-                                    !sHasEditorChanges
-                                        ? 'There are no changes to apply'
-                                        : sValidationMessage
-                                }
-                                className={styles.buttonRow}
-                            >
-                                <span
-                                    data-testid="editor-status"
-                                    className={[
-                                        styles.notAppliedMessage,
-                                        !sHasEditorChanges &&
-                                            !pHasUnsavedBoardChanges &&
-                                            styles.notAppliedMessageHidden,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' ')}
-                                >
-                                    {sHasEditorChanges ? (
-                                        'You have unapplied changes.'
-                                    ) : (
-                                        <>
-                                            <span>Changes applied to this session.</span>
-                                            <span>Save to TAZ to keep changes.</span>
-                                        </>
-                                    )}
-                                </span>
-                                <Button
-                                    data-testid="editor-close"
-                                    variant="danger"
-                                    size="sm"
-                                    onClick={pOnClose}
-                                >
-                                    Close
-                                </Button>
-                                <Button
-                                    data-testid="editor-apply"
-                                    variant="primary"
-                                    size="sm"
-                                    disabled={!sCanApplyEditorChanges}
-                                    onClick={applyEditorChanges}
-                                >
-                                    Apply
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </Page.Header>
-
-                <div className={styles.content}>
-                    <EditorGeneralTab
-                        pTitle={sTitleDraft}
-                        pModeConfig={sModeDraft}
-                        pDisplayConfig={sDisplayDraft}
-                        pTimeConfig={sTimeDraft}
-                        pOnChangeTitle={updateEditorDraft('title')}
-                        pOnChangeModeConfig={updateEditorDraft('mode')}
-                        pOnChangeDisplayConfig={updateEditorDraft('display')}
-                        pOnChangeTimeConfig={updateEditorDraft('time')}
-                        pReportValidity={reportValidity}
-                        pIsActive={sRenderedTab === 'General'}
-                    />
-                    <EditorDataTab
-                        pQueryDraft={sQueryDraft}
-                        pRollupTableList={pRollupTableList}
-                        pLockedAxisKind={sOriginalAxisKind}
-                        pOnChangeQueryDraft={updateEditorDraft('query')}
-                        pReportValidity={reportValidity}
-                        pIsActive={sRenderedTab === 'Data'}
-                    />
-                    <EditorDataSettingTab
-                        pDisplayConfig={sEditorConfig.display}
-                        pIsRawMode={sModeDraft.isRaw}
-                        pAxisKind={sAxisKind}
-                        pDataValidationMessage={sTabValidity.Data?.message}
-                        pOnChangeDisplayConfig={updateEditorDraft('display')}
-                        pReportValidity={reportValidity}
-                        pIsActive={sRenderedTab === 'Data Setting'}
-                    />
-                    <EditorAxesTab
-                        pAxesConfig={sEditorConfig.axes}
-                        pTagSet={sEditorConfig.query.tagSet}
-                        pOnChangeAxesConfig={updateEditorDraft('axes')}
-                        pOnChangeTagSet={updateTagSet}
-                        pReportValidity={reportValidity}
-                        pIsActive={sRenderedTab === 'Axes'}
-                    />
-                    <EditorDisplayTab
-                        pDisplayConfig={sEditorConfig.display}
-                        pOnChangeDisplayConfig={updateEditorDraft('display')}
-                        pReportValidity={reportValidity}
-                        pIsActive={sRenderedTab === 'Display'}
-                    />
-                    <EditorTimeTab
-                        pTimeConfig={sEditorConfig.time}
-                        pAxisKind={sAxisKind}
-                        pDataRange={pDataRange}
-                        pMainRange={pMainRange}
-                        pDataValidationMessage={sTabValidity.Data?.message}
-                        pOnChangeTimeConfig={updateEditorDraft('time')}
-                        pReportValidity={reportValidity}
-                        pIsActive={sRenderedTab === 'Main Range'}
-                    />
-                </div>
-            </Page>
-        </div>
-    );
-};
-
-export default PanelEditor;
-

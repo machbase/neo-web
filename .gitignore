@@ -41,7 +41,7 @@ coverage/cobertura-coverage.xml
 *.test.*
 *.spec.*
 /__mocks__/
-/playwright_test/
+/tests/
 /playwright.config.ts
 /playwright/.auth/
 /setupTests.ts
@@ -57,8 +57,8 @@ src/components/tagAnalyzer/ARCHITECTURE.md
 !TESTING.md
 !test_runner/README.md
 !PLAYWRIGHT_LOCATOR_POLICY.md
-!playwright_test/tagAnalyzer/feature-format.md
-!playwright_test/tagAnalyzer/tag-analyzer-features.md
+!tests/e2e/tagAnalyzer/feature-format.md
+!tests/e2e/tagAnalyzer/tag-analyzer-features.md
 !src/components/tagAnalyzer/REACT_BEST_PRACTICES_AUDIT.md
 .notion-plan
 coverage/cobertura-coverage.xml

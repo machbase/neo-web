@@ -37,22 +37,22 @@ export const SavedToLocalModal = (props: SaveDashboardModalProps) => {
     }, []);
 
     return (
-        <Modal.Root isOpen={true} onClose={handleClose} style={{ height: 'auto' }}>
+        <Modal.Root isOpen={true} onClose={handleClose} data-testid="save-csv-dialog" style={{ height: 'auto' }}>
             <Modal.Header>
                 <Modal.Title>
                     <Save size={16} />
                     <span>Save to csv</span>
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="close" />
             </Modal.Header>
             <Modal.Body>
-                <Input label="File Name" labelPosition="left" autoFocus onChange={changeSaveFileName} value={sSaveFileName} fullWidth placeholder="Enter file name" />
+                <Input data-testid="file-name" label="File Name" labelPosition="left" autoFocus onChange={changeSaveFileName} value={sSaveFileName} fullWidth placeholder="Enter file name" />
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Confirm onClick={saveFile} disabled={!FileNameValidator(sSaveFileName) || sSaveFileName === ''}>
+                <Modal.Confirm data-testid="confirm" onClick={saveFile} disabled={!FileNameValidator(sSaveFileName) || sSaveFileName === ''}>
                     OK
                 </Modal.Confirm>
-                <Modal.Cancel>Cancel</Modal.Cancel>
+                <Modal.Cancel data-testid="cancel">Cancel</Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );

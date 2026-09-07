@@ -7,24 +7,6 @@ import {
     saveTazBoard,
 } from '../persistence/tazDocumentService';
 
-const SAVE_ERROR_MESSAGE = 'Failed to save TAZ file. Please try again.';
-const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
-const FILE_TREE_REFRESH_ERROR_MESSAGE =
-    'TAZ file saved, but file tree refresh failed.';
-
-type SaveDestination = {
-    directoryPath: string;
-    fileName: string;
-};
-
-type UseBoardSaveParams = {
-    board: BoardInfo;
-    isActive: boolean;
-    applySaveResult: (savedBoard: BoardInfo) => void;
-    onSavedBoard: (savedBoard: BoardInfo) => void;
-    onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
-};
-
 export function useBoardSave({
     board,
     isActive,
@@ -127,3 +109,23 @@ export function useBoardSave({
         closeSaveAs,
     };
 }
+
+// -------------------- Local --------------------
+
+const SAVE_ERROR_MESSAGE = 'Failed to save TAZ file. Please try again.';
+const SAVE_SUCCESS_MESSAGE = 'TAZ file saved successfully.';
+const FILE_TREE_REFRESH_ERROR_MESSAGE =
+    'TAZ file saved, but file tree refresh failed.';
+
+type SaveDestination = {
+    directoryPath: string;
+    fileName: string;
+};
+
+type UseBoardSaveParams = {
+    board: BoardInfo;
+    isActive: boolean;
+    applySaveResult: (savedBoard: BoardInfo) => void;
+    onSavedBoard: (savedBoard: BoardInfo) => void;
+    onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
+};

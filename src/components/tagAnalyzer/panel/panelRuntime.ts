@@ -31,17 +31,9 @@ import {
     type RangeButtonAction,
     type RangeChange,
 } from '../range/rangeResolver';
-import { getNavigatorTrackWidth } from '../chart/chartGeometry';
+import { getNavigatorTrackWidth } from '../chart/chartLayout';
 import { getSeriesListAxisKind } from '../seriesModel';
 import type { PanelInfo } from './panelModel';
-
-const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
-const PANEL_RANGE_REQUEST_FAILED_MESSAGE =
-    'Failed to resolve the panel data range.';
-const INVALID_BOARD_RANGE_MESSAGE =
-    'The board range is invalid for this panel.';
-const INVALID_GLOBAL_RANGE_MESSAGE =
-    'The global range is invalid for this panel.';
 
 export type PanelBroadcastRequests = {
     rangeRequests: {
@@ -62,8 +54,6 @@ export type PanelBroadcastRequests = {
     };
 };
 
-type SetGlobalRangeRequest = { axisKind: AxisKind; range: RangeState };
-
 export function resolveSetGlobalRangeRequest(
     panelInfo: Pick<PanelInfo, 'query' | 'mode'>,
     isChartReady: boolean,
@@ -83,6 +73,231 @@ export function resolveSetGlobalRangeRequest(
 
     return { axisKind, range };
 }
+
+export function usePanelRangeRuntime(
+    inputs: PanelRangeRuntimeInputs,
+) {
+    const [machine, setMachine] = useState(() =>
+        createRangeMachine(inputs),
+    );
+    const reportBroadcastError = useStableCallback(inputs.onBroadcastError);
+    const persistRangeState = useStableCallback(inputs.onRangeStateChange);
+    const rangeReloadRequest = machine.rangeReloadRequest;
+    const requestAxisKind = getSeriesListAxisKind(
+        rangeReloadRequest.panelInfo.query.tagSet,
+    );
+
+    useLatestAsyncRequest({
+        enabled:
+            inputs.isActive &&
+            machine.chartAreaWidth !== undefined &&
+            requestAxisKind !== undefined,
+        requestKey: String(rangeReloadRequest.generation),
+        fetch: () => seriesDataApi.fetchSeriesFullRange(
+            rangeReloadRequest.panelInfo.query.tagSet,
+        ),
+        onSuccess: (fullRange) => {
+            if (!requestAxisKind) return;
+            setMachine((current) => applyFullRangeResult(
+                current,
+                rangeReloadRequest,
+                fullRange,
+                inputs.panelInfo,
+                inputs.rangeRequests,
+                Date.now(),
+            ));
+        },
+        onError: (error) =>
+            reportBroadcastError(
+                createRangeReloadErrorKey(rangeReloadRequest),
+                getAsyncRequestErrorMessage(
+                    error,
+                    PANEL_RANGE_REQUEST_FAILED_MESSAGE,
+                ),
+            ),
+    });
+
+    useEffect(() => {
+        if (inputs.isActive) {
+            setMachine((current) => applyCommandBroadcasts(
+                applyRangeBroadcasts(
+                    current,
+                    inputs.panelInfo,
+                    inputs.rangeRequests,
+                    Date.now(),
+                ),
+                inputs.panelInfo,
+                inputs.commandVersions,
+                Date.now(),
+            ));
+        }
+    }, [
+        inputs.isActive,
+        inputs.panelInfo,
+        inputs.commandVersions,
+        inputs.rangeRequests,
+    ]);
+
+    useEffect(() => {
+        if (machine.rangeRevision > 0 && machine.rangeState) {
+            persistRangeState(machine.rangeState);
+        }
+    }, [machine.rangeRevision, machine.rangeState, persistRangeState]);
+
+    useEffect(() => {
+        if (machine.issues.length === 0) return;
+        for (const issue of machine.issues) {
+            reportBroadcastError(issue.key, issue.message);
+        }
+        const reportedCount = machine.issues.length;
+        setMachine((current) => ({
+            ...current,
+            issues: current.issues.slice(reportedCount),
+        }));
+    }, [machine.issues, reportBroadcastError]);
+
+    const updateActive = (
+        update: (current: RangeMachineState) => RangeMachineState,
+    ): void => {
+        if (inputs.isActive) setMachine(update);
+    };
+
+    return {
+        rangeState: machine.rangeState,
+        chartAreaWidth: machine.chartAreaWidth,
+        dataRefreshVersion: machine.dataRefreshVersion,
+        actions: {
+            setChartAreaWidth: (width: number | undefined) => setMachine((current) =>
+                resizeRangeMachine(current, width),
+            ),
+            applyRangeAction: (action: RangeButtonAction) => updateActive((current) =>
+                applyRangeButton(current, action),
+            ),
+            setMainRange: (range: AxisRange) => updateActive((current) =>
+                applyDirectRangeChange(current, { type: 'main', range }),
+            ),
+            applyRawLimitRange: (
+                sourceRange: RangeState,
+                constrainedRange: RangeState,
+            ) => updateActive((current) =>
+                applyRangeReplacement(
+                    current,
+                    sourceRange,
+                    constrainedRange,
+                ),
+            ),
+            setNavigatorRange: (
+                range: AxisRange,
+                input?: RangeExpressionInput,
+            ) => updateActive((current) =>
+                applyNavigatorRange(
+                    current,
+                    inputs.panelInfo,
+                    range,
+                    input,
+                    Date.now(),
+                ),
+            ),
+            refreshData: () => updateActive(refreshMachineData),
+            refreshRange: () => updateActive((current) => queueDataReload(
+                current,
+                inputs.panelInfo,
+                'refresh',
+                Date.now(),
+            )),
+            expandFullRange: () => updateActive((current) =>
+                expandMachineRange(current, inputs.panelInfo, Date.now()),
+            ),
+            reloadAfterEditorSave: (nextPanelInfo: PanelInfo) => setMachine((current) => {
+                const currentInput = inputs.panelInfo.time.rangeInput;
+                const nextInput = nextPanelInfo.time.rangeInput;
+                return queueDataReload(
+                    current,
+                    nextPanelInfo,
+                    currentInput.start !== nextInput.start ||
+                        currentInput.end !== nextInput.end
+                        ? 'configured'
+                        : 'preserveCurrent',
+                    Date.now(),
+                );
+            }),
+        },
+    };
+}
+
+export function resolveConfiguredRangeState(
+    axisKind: AxisKind,
+    fullRange: AxisRange,
+    current: ResolvedRangeState | undefined,
+    input: RangeExpressionInput,
+    referenceTimeMs: number,
+): ResolvedRangeState | undefined {
+    const configuredRange = resolveRuntimeRangeInput(
+        input,
+        axisKind,
+        fullRange,
+        current?.range.mainRange ?? fullRange,
+        referenceTimeMs,
+    );
+    if (!configuredRange) return undefined;
+
+    return createResolvedRangeState(
+        {
+            mainRange: configuredRange,
+            navigatorRange: fullRange,
+        },
+        fullRange,
+        current?.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
+    );
+}
+
+export function resolveNavigatorRangeState(
+    axisKind: AxisKind,
+    fullRange: AxisRange,
+    current: ResolvedRangeState | undefined,
+    input: RangeExpressionInput,
+    referenceTimeMs: number,
+): ResolvedRangeState | undefined {
+    const range = resolveRuntimeRangeInput(
+        input,
+        axisKind,
+        fullRange,
+        current?.range.navigatorRange ?? fullRange,
+        referenceTimeMs,
+    );
+    return range
+        ? createResolvedRangeState(
+              resolveRangeChange(
+                  current?.range ?? createDefaultRangeState(fullRange, axisKind),
+                  { type: 'navigator', range },
+              ),
+              fullRange,
+              current?.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
+          )
+        : undefined;
+}
+
+export function createFullRangeState(
+    fullRange: AxisRange,
+): ResolvedRangeState | undefined {
+    return createResolvedRangeState(
+        { mainRange: fullRange, navigatorRange: fullRange },
+        fullRange,
+        EMPTY_RANGE_INPUT,
+    );
+}
+
+// -------------------- Local --------------------
+
+const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
+const PANEL_RANGE_REQUEST_FAILED_MESSAGE =
+    'Failed to resolve the panel data range.';
+const INVALID_BOARD_RANGE_MESSAGE =
+    'The board range is invalid for this panel.';
+const INVALID_GLOBAL_RANGE_MESSAGE =
+    'The global range is invalid for this panel.';
+
+type SetGlobalRangeRequest = { axisKind: AxisKind; range: RangeState };
 
 type RangeReloadIntent =
     | 'initialize'
@@ -603,209 +818,6 @@ function applyFullRangeResult(
     );
 }
 
-export function usePanelRangeRuntime(
-    inputs: PanelRangeRuntimeInputs,
-) {
-    const [machine, setMachine] = useState(() =>
-        createRangeMachine(inputs),
-    );
-    const reportBroadcastError = useStableCallback(inputs.onBroadcastError);
-    const persistRangeState = useStableCallback(inputs.onRangeStateChange);
-    const rangeReloadRequest = machine.rangeReloadRequest;
-    const requestAxisKind = getSeriesListAxisKind(
-        rangeReloadRequest.panelInfo.query.tagSet,
-    );
-
-    useLatestAsyncRequest({
-        enabled:
-            inputs.isActive &&
-            machine.chartAreaWidth !== undefined &&
-            requestAxisKind !== undefined,
-        requestKey: String(rangeReloadRequest.generation),
-        fetch: () => seriesDataApi.fetchSeriesFullRange(
-            rangeReloadRequest.panelInfo.query.tagSet,
-        ),
-        onSuccess: (fullRange) => {
-            if (!requestAxisKind) return;
-            setMachine((current) => applyFullRangeResult(
-                current,
-                rangeReloadRequest,
-                fullRange,
-                inputs.panelInfo,
-                inputs.rangeRequests,
-                Date.now(),
-            ));
-        },
-        onError: (error) =>
-            reportBroadcastError(
-                createRangeReloadErrorKey(rangeReloadRequest),
-                getAsyncRequestErrorMessage(
-                    error,
-                    PANEL_RANGE_REQUEST_FAILED_MESSAGE,
-                ),
-            ),
-    });
-
-    useEffect(() => {
-        if (inputs.isActive) {
-            setMachine((current) => applyCommandBroadcasts(
-                applyRangeBroadcasts(
-                    current,
-                    inputs.panelInfo,
-                    inputs.rangeRequests,
-                    Date.now(),
-                ),
-                inputs.panelInfo,
-                inputs.commandVersions,
-                Date.now(),
-            ));
-        }
-    }, [
-        inputs.isActive,
-        inputs.panelInfo,
-        inputs.commandVersions,
-        inputs.rangeRequests,
-    ]);
-
-    useEffect(() => {
-        if (machine.rangeRevision > 0 && machine.rangeState) {
-            persistRangeState(machine.rangeState);
-        }
-    }, [machine.rangeRevision, machine.rangeState, persistRangeState]);
-
-    useEffect(() => {
-        if (machine.issues.length === 0) return;
-        for (const issue of machine.issues) {
-            reportBroadcastError(issue.key, issue.message);
-        }
-        const reportedCount = machine.issues.length;
-        setMachine((current) => ({
-            ...current,
-            issues: current.issues.slice(reportedCount),
-        }));
-    }, [machine.issues, reportBroadcastError]);
-
-    const updateActive = (
-        update: (current: RangeMachineState) => RangeMachineState,
-    ): void => {
-        if (inputs.isActive) setMachine(update);
-    };
-
-    return {
-        rangeState: machine.rangeState,
-        chartAreaWidth: machine.chartAreaWidth,
-        dataRefreshVersion: machine.dataRefreshVersion,
-        actions: {
-            setChartAreaWidth: (width: number | undefined) => setMachine((current) =>
-                resizeRangeMachine(current, width),
-            ),
-            applyRangeAction: (action: RangeButtonAction) => updateActive((current) =>
-                applyRangeButton(current, action),
-            ),
-            setMainRange: (range: AxisRange) => updateActive((current) =>
-                applyDirectRangeChange(current, { type: 'main', range }),
-            ),
-            applyRawLimitRange: (
-                sourceRange: RangeState,
-                constrainedRange: RangeState,
-            ) => updateActive((current) =>
-                applyRangeReplacement(
-                    current,
-                    sourceRange,
-                    constrainedRange,
-                ),
-            ),
-            setNavigatorRange: (
-                range: AxisRange,
-                input?: RangeExpressionInput,
-            ) => updateActive((current) =>
-                applyNavigatorRange(
-                    current,
-                    inputs.panelInfo,
-                    range,
-                    input,
-                    Date.now(),
-                ),
-            ),
-            refreshData: () => updateActive(refreshMachineData),
-            refreshRange: () => updateActive((current) => queueDataReload(
-                current,
-                inputs.panelInfo,
-                'refresh',
-                Date.now(),
-            )),
-            expandFullRange: () => updateActive((current) =>
-                expandMachineRange(current, inputs.panelInfo, Date.now()),
-            ),
-            reloadAfterEditorSave: (nextPanelInfo: PanelInfo) => setMachine((current) => {
-                const currentInput = inputs.panelInfo.time.rangeInput;
-                const nextInput = nextPanelInfo.time.rangeInput;
-                return queueDataReload(
-                    current,
-                    nextPanelInfo,
-                    currentInput.start !== nextInput.start ||
-                        currentInput.end !== nextInput.end
-                        ? 'configured'
-                        : 'preserveCurrent',
-                    Date.now(),
-                );
-            }),
-        },
-    };
-}
-
-export function resolveConfiguredRangeState(
-    axisKind: AxisKind,
-    fullRange: AxisRange,
-    current: ResolvedRangeState | undefined,
-    input: RangeExpressionInput,
-    referenceTimeMs: number,
-): ResolvedRangeState | undefined {
-    const configuredRange = resolveRuntimeRangeInput(
-        input,
-        axisKind,
-        fullRange,
-        current?.range.mainRange ?? fullRange,
-        referenceTimeMs,
-    );
-    if (!configuredRange) return undefined;
-
-    return createResolvedRangeState(
-        {
-            mainRange: configuredRange,
-            navigatorRange: fullRange,
-        },
-        fullRange,
-        current?.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
-    );
-}
-
-export function resolveNavigatorRangeState(
-    axisKind: AxisKind,
-    fullRange: AxisRange,
-    current: ResolvedRangeState | undefined,
-    input: RangeExpressionInput,
-    referenceTimeMs: number,
-): ResolvedRangeState | undefined {
-    const range = resolveRuntimeRangeInput(
-        input,
-        axisKind,
-        fullRange,
-        current?.range.navigatorRange ?? fullRange,
-        referenceTimeMs,
-    );
-    return range
-        ? createResolvedRangeState(
-              resolveRangeChange(
-                  current?.range ?? createDefaultRangeState(fullRange, axisKind),
-                  { type: 'navigator', range },
-              ),
-              fullRange,
-              current?.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
-          )
-        : undefined;
-}
-
 function resolveNavigatorRangeAroundMain(
     axisKind: AxisKind,
     fullRange: AxisRange,
@@ -865,16 +877,6 @@ function resolveRuntimeRangeInput(
     }
 
     return { start: resolved.from, end: resolved.to };
-}
-
-export function createFullRangeState(
-    fullRange: AxisRange,
-): ResolvedRangeState | undefined {
-    return createResolvedRangeState(
-        { mainRange: fullRange, navigatorRange: fullRange },
-        fullRange,
-        EMPTY_RANGE_INPUT,
-    );
 }
 
 function createReloadResolution(

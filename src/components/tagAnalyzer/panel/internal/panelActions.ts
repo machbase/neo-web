@@ -49,28 +49,18 @@ export type PanelActionDescriptor = {
     showInContextMenu?: boolean;
 };
 
-/** Keeps icon-only header buttons from resizing with their icon. */
-function fixedButtonSize(width: number): CSSProperties {
-    return { minWidth: width, maxWidth: width, minHeight: 22, maxHeight: 22 };
-}
-
 export function buildPanelActions(
-    actionState: PanelActionState,
+    { active, disabled }: PanelActionState,
     includeExportCsv = false,
 ): PanelActionDescriptor[] {
-    const isActive = (key: PanelActionKey): boolean =>
-        actionState.active.includes(key);
-    const isDisabled = (key: PanelActionKey): boolean =>
-        actionState.disabled.includes(key);
-
     return [
         {
             key: PanelActionKey.TOGGLE_RAW,
-            label: isActive(PanelActionKey.TOGGLE_RAW)
+            label: active.includes(PanelActionKey.TOGGLE_RAW)
                 ? 'Disable raw data mode'
                 : 'Enable raw data mode',
             icon: createElement('span', { className: 'panel-header__raw-label' }, 'RAW'),
-            active: isActive(PanelActionKey.TOGGLE_RAW),
+            active: active.includes(PanelActionKey.TOGGLE_RAW),
             className: 'panel-header__action--raw',
             buttonStyle: fixedButtonSize(34),
             showInContextMenu: true,
@@ -80,7 +70,7 @@ export function buildPanelActions(
             label: 'Highlight',
             tooltip: 'Drag on chart to create highlight',
             icon: createElement(PiHighlighterLight, { size: 16 }),
-            active: isActive(PanelActionKey.TOGGLE_HIGHLIGHT),
+            active: active.includes(PanelActionKey.TOGGLE_HIGHLIGHT),
             showInExtraMenu: true,
         },
         {
@@ -88,18 +78,18 @@ export function buildPanelActions(
             label: 'Annotation',
             tooltip: 'Click chart to create annotation',
             icon: createElement(VscNote, { size: 15 }),
-            active: isActive(PanelActionKey.TOGGLE_ANNOTATION),
+            active: active.includes(PanelActionKey.TOGGLE_ANNOTATION),
             showInExtraMenu: true,
         },
         {
             key: PanelActionKey.TOGGLE_DRAG_SELECT,
             label: 'Select data range',
-            contextLabel: isActive(PanelActionKey.TOGGLE_DRAG_SELECT)
+            contextLabel: active.includes(PanelActionKey.TOGGLE_DRAG_SELECT)
                 ? 'Disable range selection'
                 : 'Enable range selection',
             tooltip: 'Select data range for stats and FFT',
             icon: createElement(PiSelectionPlusBold, { size: 18 }),
-            active: isActive(PanelActionKey.TOGGLE_DRAG_SELECT),
+            active: active.includes(PanelActionKey.TOGGLE_DRAG_SELECT),
             buttonStyle: fixedButtonSize(24),
             showInContextMenu: true,
         },
@@ -107,7 +97,7 @@ export function buildPanelActions(
             key: PanelActionKey.SET_GLOBAL_RANGE,
             label: 'Set global range',
             icon: createElement(TbTimezone, { size: 15 }),
-            disabled: isDisabled(PanelActionKey.SET_GLOBAL_RANGE),
+            disabled: disabled.includes(PanelActionKey.SET_GLOBAL_RANGE),
             showInExtraMenu: true,
             showInContextMenu: true,
         },
@@ -134,14 +124,14 @@ export function buildPanelActions(
         },
         {
             key: PanelActionKey.TOGGLE_EDIT,
-            label: isActive(PanelActionKey.TOGGLE_EDIT)
+            label: active.includes(PanelActionKey.TOGGLE_EDIT)
                 ? 'Close editor'
                 : 'Open editor',
-            contextLabel: isActive(PanelActionKey.TOGGLE_EDIT)
+            contextLabel: active.includes(PanelActionKey.TOGGLE_EDIT)
                 ? 'Close editor'
                 : 'Edit panel',
             icon: createElement(GearFill, { size: 14 }),
-            active: isActive(PanelActionKey.TOGGLE_EDIT),
+            active: active.includes(PanelActionKey.TOGGLE_EDIT),
             showInContextMenu: true,
         },
         ...(includeExportCsv
@@ -162,4 +152,11 @@ export function buildPanelActions(
             showInContextMenu: true,
         },
     ];
+}
+
+// -------------------- Local --------------------
+
+/** Keeps icon-only header buttons from resizing with their icon. */
+function fixedButtonSize(width: number): CSSProperties {
+    return { minWidth: width, maxWidth: width, minHeight: 22, maxHeight: 22 };
 }

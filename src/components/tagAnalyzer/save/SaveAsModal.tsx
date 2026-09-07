@@ -22,9 +22,9 @@ import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import icons from '@/utils/icons';
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { tazFileApi, type FileListItem } from '../api/tazFileApi';
+import { Inline, Stack, Text } from '../ui/Presentation';
+import controls from '../ui/Controls.module.scss';
 import './SaveAsModal.scss';
-
-const SAVE_AS_OPEN_ERROR_MESSAGE = 'Failed to open Save As. Please try again.';
 
 export function SaveAsModal({
     initialDirectoryPath,
@@ -109,7 +109,7 @@ export function SaveAsModal({
     }
 
     function handleSelectFile(
-        event: MouseEvent<HTMLDivElement>,
+        event: MouseEvent<HTMLElement>,
         fileItem: FileListItem,
     ) {
         setSelectedFileName(fileItem.name);
@@ -177,7 +177,7 @@ export function SaveAsModal({
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
-            <div className="taz-save-as-modal__nav">
+            <Inline className="taz-save-as-modal__nav">
                 <Button
                     data-testid="tag-analyzer-save-as-back-button"
                     size="sm"
@@ -210,18 +210,19 @@ export function SaveAsModal({
                     value={sSelectedDir.join(' / ')}
                     readOnly
                 />
-            </div>
+            </Inline>
             <FileListHeader />
             <Modal.Body style={{ padding: 0 }}>
-                <div className="taz-save-as-modal__file-list">
+                <Stack gap={0} className="taz-save-as-modal__file-list">
                     {sFileList.map((fileItem) => (
-                        <div
+                        <Inline
                             key={fileItem.name}
                             data-testid={`tag-analyzer-save-as-item-${encodeURIComponent(fileItem.name)}`}
-                            className={`taz-save-as-modal__file-row${sSelectedFileName === fileItem.name ? ' taz-save-as-modal__file-row--selected' : ''}`}
+                            className={`${controls.control} ${controls.selectable}`}
+                            data-selected={sSelectedFileName === fileItem.name}
                             onClick={(event) => handleSelectFile(event, fileItem)}
                         >
-                            <div className="taz-save-as-modal__file-name">
+                            <Inline className="taz-save-as-modal__column">
                                 <Button
                                     forceOpacity
                                     disabled
@@ -233,20 +234,20 @@ export function SaveAsModal({
                                             : <TreeFolder />
                                         : icons(fileItem.type.replace('.', ''))}
                                 />
-                                <span>{fileItem.name}</span>
-                            </div>
-                            <span className="taz-save-as-modal__file-modified">
+                                <Text truncate>{fileItem.name}</Text>
+                            </Inline>
+                            <Text truncate tone="secondary" className="taz-save-as-modal__column">
                                 {elapsedTime(fileItem.lastModifiedUnixMillis)}
-                            </span>
-                            <span className="taz-save-as-modal__file-size">
+                            </Text>
+                            <Text truncate tone="secondary" className="taz-save-as-modal__column">
                                 {elapsedSize(fileItem.size)}
-                            </span>
-                        </div>
+                            </Text>
+                        </Inline>
                     ))}
-                </div>
+                </Stack>
             </Modal.Body>
             <Modal.Footer style={{ justifyContent: 'space-between' }}>
-                <div className="taz-save-as-modal__footer-input">
+                <Inline className="taz-save-as-modal__column">
                     <Input
                         data-testid="tag-analyzer-save-as-file-name-input"
                         label="File name"
@@ -254,7 +255,7 @@ export function SaveAsModal({
                         value={sSaveFileName}
                         onChange={(event) => setSaveFileName(event.target.value)}
                     />
-                </div>
+                </Inline>
                 <Button.Group>
                     <Modal.Cancel data-testid="tag-analyzer-save-as-cancel-button">
                         Cancel
@@ -275,6 +276,10 @@ export function SaveAsModal({
         </Modal.Root>
     );
 }
+
+// -------------------- Local --------------------
+
+const SAVE_AS_OPEN_ERROR_MESSAGE = 'Failed to open Save As. Please try again.';
 
 function buildDirectoryPath(directorySegments: string[]): string {
     return directorySegments.length === 0

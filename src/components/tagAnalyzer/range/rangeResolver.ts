@@ -9,13 +9,6 @@ import {
 } from './rangeArithmetic';
 import type { AxisRange, RangeState } from './rangeModel';
 
-const MAIN_RANGE_SHIFT_RATIO = 0.3;
-const NAVIGATOR_RANGE_SHIFT_RATIO = 0.1;
-const FOCUS_MAIN_RANGE_WIDTH_RATIO = 0.2;
-const INITIAL_MAIN_RANGE_WIDTH_RATIO = 0.25;
-const MINIMUM_SELECTION_WIDTH_PX = 36;
-const TARGET_SELECTION_WIDTH_PX = 40;
-
 export type RangeButtonAction =
     | 'zoom-in-small'
     | 'zoom-in-large'
@@ -219,3 +212,12 @@ export function resolveRangeChange(
         }
     }
 }
+
+// -------------------- Local --------------------
+
+const MAIN_RANGE_SHIFT_RATIO = 0.3;
+const NAVIGATOR_RANGE_SHIFT_RATIO = 0.1;
+const FOCUS_MAIN_RANGE_WIDTH_RATIO = 0.2;
+const INITIAL_MAIN_RANGE_WIDTH_RATIO = 0.25;
+const MINIMUM_SELECTION_WIDTH_PX = 36;
+const TARGET_SELECTION_WIDTH_PX = 40;

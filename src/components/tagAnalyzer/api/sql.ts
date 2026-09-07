@@ -24,17 +24,6 @@ export function indentSql(sql: string): string {
         .join('\n');
 }
 
-function millisecondsToNanosecondsSql(ms: number): string {
-    const wholeMilliseconds: number = Math.trunc(ms);
-    const fractionalNanoseconds: number = Math.round(
-        (ms - wholeMilliseconds) * NANOSECONDS_PER_MILLISECOND,
-    );
-    return String(
-        BigInt(wholeMilliseconds) * BigInt(NANOSECONDS_PER_MILLISECOND) +
-        BigInt(fractionalNanoseconds),
-    );
-}
-
 export function toQueryTimeLiteralSql(
     value: number,
     usesNumericTime: boolean,
@@ -59,4 +48,17 @@ export function toQueryResultMillisecondsSql(
     dateTimeExpressionSql: string,
 ): string {
     return `TO_TIMESTAMP(${dateTimeExpressionSql}) / ${NANOSECONDS_PER_MILLISECOND}.0`;
+}
+
+// -------------------- Local --------------------
+
+function millisecondsToNanosecondsSql(ms: number): string {
+    const wholeMilliseconds: number = Math.trunc(ms);
+    const fractionalNanoseconds: number = Math.round(
+        (ms - wholeMilliseconds) * NANOSECONDS_PER_MILLISECOND,
+    );
+    return String(
+        BigInt(wholeMilliseconds) * BigInt(NANOSECONDS_PER_MILLISECOND) +
+        BigInt(fractionalNanoseconds),
+    );
 }

@@ -17,17 +17,6 @@ import {
 import { useStableCallback } from '../hooks/useStableCallback';
 import type { OverlapPanelInput } from '../overlap/overlapModel';
 
-const OVERLAP_AXIS_MISMATCH_MESSAGE =
-    'Overlap can only compare panels with the same x-axis type.';
-const OVERLAP_AXIS_REQUIRED_MESSAGE =
-    'Overlap requires a panel with one x-axis type.';
-
-type OpenOverlapSession = {
-    panels: OverlapPanelInput[];
-    isNumericXAxis: boolean;
-    includeZeroInYAxisRange: boolean;
-};
-
 export function useBoardOverlapSelection(
     panels: readonly PanelInfo[],
     panelRanges: Readonly<
@@ -108,6 +97,19 @@ export function useBoardOverlapSelection(
         openOverlapChart,
     };
 }
+
+// -------------------- Local --------------------
+
+const OVERLAP_AXIS_MISMATCH_MESSAGE =
+    'Overlap can only compare panels with the same x-axis type.';
+const OVERLAP_AXIS_REQUIRED_MESSAGE =
+    'Overlap requires a panel with one x-axis type.';
+
+type OpenOverlapSession = {
+    panels: OverlapPanelInput[];
+    isNumericXAxis: boolean;
+    includeZeroInYAxisRange: boolean;
+};
 
 function getOverlapSelectionError(
     panel: PanelInfo,

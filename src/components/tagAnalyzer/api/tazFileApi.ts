@@ -10,6 +10,10 @@ export type FileListItem = {
     size: number;
 };
 
+export const tazFileApi = { fetchTazFileList, saveTazFile };
+
+// -------------------- Local --------------------
+
 type SaveTazFileParams = {
     payload: unknown;
     directoryPath: string;
@@ -50,5 +54,3 @@ async function saveTazFile({
     return responseEnvelope.success === true ||
         responseEnvelope.data?.success === true;
 }
-
-export const tazFileApi = { fetchTazFileList, saveTazFile };

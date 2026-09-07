@@ -8,28 +8,20 @@ import {
     type PanelActionState,
 } from './panelActions';
 
-type PanelContextMenuProps = {
-    actionState: PanelActionState;
-    position: ContextMenuPosition;
-    onClose: () => void;
-    onAction: (actionKey: PanelActionKey) => void;
-};
-
 export function PanelContextMenu({
     actionState,
     position,
     onClose,
     onAction,
 }: PanelContextMenuProps) {
-    const sActions = buildPanelActions(actionState);
-
     return (
-        <ContextMenu isOpen position={position} onClose={onClose}>
-            {sActions
+        <ContextMenu isOpen position={position} onClose={onClose} data-testid="tag-analyzer-panel-context-menu">
+            {buildPanelActions(actionState)
                 .filter((action) => action.showInContextMenu)
                 .map((sAction) => (
                     <ContextMenu.Item
                         key={sAction.key}
+                        data-testid={`action-${sAction.key}`}
                         onClick={() => {
                             onClose();
                             onAction(sAction.key);
@@ -42,3 +34,12 @@ export function PanelContextMenu({
         </ContextMenu>
     );
 }
+
+// -------------------- Local --------------------
+
+type PanelContextMenuProps = {
+    actionState: PanelActionState;
+    position: ContextMenuPosition;
+    onClose: () => void;
+    onAction: (actionKey: PanelActionKey) => void;
+};

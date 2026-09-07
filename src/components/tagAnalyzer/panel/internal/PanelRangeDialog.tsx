@@ -12,32 +12,6 @@ import {
     type ResolvedRangeState,
 } from '../../range/rangeModel';
 
-type PanelRangeTarget = 'main' | 'navigator';
-
-type RetainedMainRangeInput = {
-    rangeInput: RangeExpressionInput;
-    concreteRange: AxisRange;
-};
-
-type PanelRangeDialogState = {
-    target: PanelRangeTarget;
-    kind: AxisKind;
-    initialRangeInput: RangeExpressionInput;
-    currentRange: AxisRange;
-    fullRange: AxisRange;
-};
-
-type UsePanelRangeDialogParams = {
-    rangeState: ResolvedRangeState | undefined;
-    renderRange: RangeState | undefined;
-    isNumericXAxis: boolean | undefined;
-    onMainRangeChange: (range: AxisRange) => void;
-    onNavigatorRangeChange: (
-        range: AxisRange,
-        rangeInput: RangeExpressionInput,
-    ) => void;
-};
-
 // eslint-disable-next-line react-refresh/only-export-components -- The hook and renderer form one range-dialog boundary.
 export function usePanelRangeDialog({
     rangeState,
@@ -133,6 +107,34 @@ export function PanelRangeDialog({
         />
     );
 }
+
+// -------------------- Local --------------------
+
+type PanelRangeTarget = 'main' | 'navigator';
+
+type RetainedMainRangeInput = {
+    rangeInput: RangeExpressionInput;
+    concreteRange: AxisRange;
+};
+
+type PanelRangeDialogState = {
+    target: PanelRangeTarget;
+    kind: AxisKind;
+    initialRangeInput: RangeExpressionInput;
+    currentRange: AxisRange;
+    fullRange: AxisRange;
+};
+
+type UsePanelRangeDialogParams = {
+    rangeState: ResolvedRangeState | undefined;
+    renderRange: RangeState | undefined;
+    isNumericXAxis: boolean | undefined;
+    onMainRangeChange: (range: AxisRange) => void;
+    onNavigatorRangeChange: (
+        range: AxisRange,
+        rangeInput: RangeExpressionInput,
+    ) => void;
+};
 
 /**
  * Prefers the expression the user last typed — the navigator's stored input, or

@@ -1,0 +1,80 @@
+@use './theme';
+@use '../TextStyle' as text;
+
+.control {
+    box-sizing: border-box;
+    height: 32px;
+    padding: 4px 8px;
+}
+
+.input {
+    composes: control;
+    @include text.role(body);
+    font-family: inherit;
+    min-width: 0;
+    border: 1px solid theme.$border-color;
+    border-radius: theme.$radius;
+    background: theme.$surface-bg;
+    color: theme.$text-primary;
+
+    &[type='color'] { width: 100%; padding: 2px 4px; }
+    &:focus-visible { outline: 2px solid theme.$accent; outline-offset: 1px; }
+    &[aria-invalid='true'] { border-color: theme.$danger; outline-color: theme.$danger; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; background: theme.$surface-inset; }
+}
+
+.textAction {
+    min-width: 0;
+    padding: 2px 4px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: text;
+    white-space: nowrap;
+
+    &:hover:not(:disabled), &:focus-visible {
+        color: theme.$warning;
+        background: rgba(theme.$warning, 0.12);
+    }
+    &:focus-visible { outline: 1px solid theme.$warning; }
+    &:disabled { cursor: default; }
+}
+
+.selectable, .selectableList button {
+    border: 1px solid theme.$border-color;
+    border-radius: theme.$radius;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover, &:focus-visible {
+        border-color: theme.$border-hover;
+        background: theme.$surface-hover;
+    }
+    &:focus-visible { outline: 2px solid theme.$accent; outline-offset: 1px; }
+    &[aria-pressed='true'], &[data-selected='true'] {
+        border-color: theme.$accent;
+        background: rgba(theme.$accent, 0.12);
+    }
+}
+
+.chip {
+    @include text.role(body);
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid theme.$border-color;
+    border-radius: theme.$radius;
+    background: theme.$surface-inset;
+    color: theme.$text-secondary;
+}
+
+.twoColumns, .threeColumns {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+.twoColumns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.threeColumns { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -1,12 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
-import { PanelOverlayMode } from '../../chart/chartRuntime';
+import { PanelOverlayMode } from '../../chart/chartInteraction';
 import type { FFTSelectionPayload } from '../../tools/analysisModel';
 import { usePanelInteraction } from './panelInteraction';
 
 const SERIES_LIST = [{ key: 'temperature' }];
 
 describe('usePanelInteraction', () => {
-    it('toggles overlay tools while retaining the current cursor state', () => {
+    it('toggles overlay tools', () => {
         const { result } = renderHook(() =>
             usePanelInteraction(SERIES_LIST),
         );
@@ -15,26 +15,11 @@ describe('usePanelInteraction', () => {
             result.current.actions.toggleOverlay(
                 PanelOverlayMode.HIGHLIGHT,
             );
-            result.current.actions.setHoveredSeries('temperature');
-            result.current.actions.showCursorHint({
-                x: 10,
-                y: 20,
-                isValidTarget: true,
-                hoveredMainSeriesName: 'temperature',
-                overlayMode: PanelOverlayMode.HIGHLIGHT,
-            });
         });
 
         expect(result.current.state.overlayMode).toBe(
             PanelOverlayMode.HIGHLIGHT,
         );
-        expect(result.current.state.overlayCursorHint).toEqual({
-            x: 10,
-            y: 20,
-            isValidTarget: true,
-            hoveredMainSeriesName: 'temperature',
-            overlayMode: PanelOverlayMode.HIGHLIGHT,
-        });
 
         act(() => {
             result.current.actions.toggleOverlay(
@@ -45,13 +30,6 @@ describe('usePanelInteraction', () => {
         expect(result.current.state.overlayMode).toBe(
             PanelOverlayMode.NO_OVERLAY,
         );
-        expect(result.current.state.overlayCursorHint).toEqual({
-            x: 10,
-            y: 20,
-            isValidTarget: true,
-            hoveredMainSeriesName: 'temperature',
-            overlayMode: PanelOverlayMode.HIGHLIGHT,
-        });
     });
 
     it('ignores stale dismissal for a newer surface of the same kind', () => {
@@ -169,30 +147,6 @@ describe('usePanelInteraction', () => {
             );
         });
         expect(result.current.state.selectionSummary).toBeUndefined();
-    });
-
-    it('updates and clears the cursor hint with its hovered series', () => {
-        const { result } = renderHook(() =>
-            usePanelInteraction(SERIES_LIST),
-        );
-
-        act(() => {
-            result.current.actions.showCursorHint({
-                x: 10,
-                y: 20,
-                isValidTarget: true,
-                hoveredMainSeriesName: undefined,
-                overlayMode: PanelOverlayMode.ANNOTATION,
-            });
-            result.current.actions.setHoveredSeries('temperature');
-        });
-        expect(result.current.state.overlayCursorHint).toMatchObject({
-            hoveredMainSeriesName: 'temperature',
-        });
-
-        act(() => result.current.actions.clearCursorHint());
-        expect(result.current.state.overlayCursorHint).toBeUndefined();
-        expect(result.current.state.hoveredMainSeriesName).toBeUndefined();
     });
 
     it('disarms highlight mode when an empty selection cannot create a draft', () => {

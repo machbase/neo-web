@@ -6,7 +6,6 @@ import {
     Input,
     Modal,
     Page,
-    QuickTimeRange,
     TextHighlight,
 } from '@/design-system/components';
 import { resolveRangeInput } from './rangeInput';
@@ -16,36 +15,11 @@ import {
     type AxisRange,
     type RangeExpressionInput,
 } from './rangeModel';
-import {
-    NUMERIC_RANGE_PRESETS,
-    TIME_RANGE_PRESETS,
-} from './rangePresets';
+import { TIME_RANGE_PRESETS } from './rangePresets';
+import { Text } from '../ui/Presentation';
+import { QuickTimeRange } from '../ui/QuickTimeRange';
 import styles from './RangeModal.module.scss';
 
-type RangeModalProps = {
-    title?: string;
-    kind: AxisKind;
-    initialRangeInput: RangeExpressionInput;
-    currentRange: AxisRange;
-    fullRange: AxisRange;
-    onAxisKindChange?: (axisKind: AxisKind) => void;
-    onApply: (
-        rangeInput: RangeExpressionInput,
-        concreteRange: AxisRange,
-    ) => void;
-    onClose: () => void;
-};
-
-const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
-const INVALID_RANGE_INPUT_MESSAGE: Record<AxisKind, string> = {
-    time: 'Invalid input - enter both From and To using now-1h, last-1d, first/last, or date/time values, with From before To.',
-    numeric: 'Invalid input - enter both From and To using numbers or first/last expressions, with From less than To.',
-};
-const RANGE_KINDS: readonly AxisKind[] = ['time', 'numeric'];
-const RANGE_ENDPOINTS = [
-    ['start', 'From'],
-    ['end', 'To'],
-] as const;
 export function RangeModal({
     title = 'Range',
     kind,
@@ -97,18 +71,18 @@ export function RangeModal({
         }
 
         if (rangeInput.start.trim() === '' || rangeInput.end.trim() === '') {
-            setValidationMessage(INVALID_RANGE_INPUT_MESSAGE[kind]);
+            setValidationMessage(INVALID_RANGE_INPUT_MESSAGE);
             return;
         }
 
         const concreteRange = resolveRangeInput(
             rangeInput,
-            kind,
+            'time',
             fullRange,
             currentRange,
         );
         if (!concreteRange) {
-            setValidationMessage(INVALID_RANGE_INPUT_MESSAGE[kind]);
+            setValidationMessage(INVALID_RANGE_INPUT_MESSAGE);
             return;
         }
 
@@ -124,13 +98,13 @@ export function RangeModal({
             data-testid="tag-analyzer-range-dialog"
         >
             <Modal.Header>
-                <Modal.Title className={styles.modalTitle}>
-                    <Calendar />
-                    <span data-testid="tag-analyzer-range-title">
+                <Modal.Title>
+                    <Calendar size={16} />
+                    <Text variant="title" data-testid="tag-analyzer-range-title">
                         {title}
-                    </span>
+                    </Text>
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="close-button" />
             </Modal.Header>
             <Modal.Body>
                 {onAxisKindChange && (
@@ -175,11 +149,7 @@ export function RangeModal({
                                 ? validationMessageId
                                 : undefined
                         }
-                        placeholder={
-                            kind === 'time'
-                                ? 'now-1h, last-1d, or date/time'
-                                : '20, first, first-10, last-10'
-                        }
+                        placeholder="now-1h, last-1d, or date/time"
                         onChange={(event) =>
                             setRangeValue(field, event.target.value)
                         }
@@ -187,12 +157,7 @@ export function RangeModal({
                 ))}
                 <Page.Space />
                 <QuickTimeRange
-                    className={styles.quickRanges}
-                    options={
-                        kind === 'time'
-                            ? TIME_RANGE_PRESETS
-                            : NUMERIC_RANGE_PRESETS
-                    }
+                    options={TIME_RANGE_PRESETS}
                     onSelect={(option) => {
                         const [start = '', end = ''] = option.value;
                         setValidationMessage(undefined);
@@ -203,21 +168,23 @@ export function RangeModal({
                 {validationMessage && (
                     <>
                         <Page.Space />
-                        <div
+                        <Text
+                            as="div"
+                            variant="caption"
                             id={validationMessageId}
-                            className={styles.validation}
                             role="alert"
                             data-testid="tag-analyzer-range-validation-message"
                         >
                             <TextHighlight variant="error">
                                 {validationMessage}
                             </TextHighlight>
-                        </div>
+                        </Text>
                     </>
                 )}
             </Modal.Body>
             <Modal.Footer style={{ justifyContent: 'space-between' }}>
                 <Button
+                    data-testid="reset-button"
                     variant="ghost"
                     size="sm"
                     icon={<VscTrash size={16} />}
@@ -245,3 +212,27 @@ export function RangeModal({
         </Modal.Root>
     );
 }
+
+// -------------------- Local --------------------
+
+type RangeModalProps = {
+    title?: string;
+    kind: AxisKind;
+    initialRangeInput: RangeExpressionInput;
+    currentRange: AxisRange;
+    fullRange: AxisRange;
+    onAxisKindChange?: (axisKind: AxisKind) => void;
+    onApply: (
+        rangeInput: RangeExpressionInput,
+        concreteRange: AxisRange,
+    ) => void;
+    onClose: () => void;
+};
+
+const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
+const INVALID_RANGE_INPUT_MESSAGE = 'Invalid input - enter both From and To using now-1h, last-1d, first/last, or date/time values, with From before To.';
+const RANGE_KINDS: readonly AxisKind[] = ['time', 'numeric'];
+const RANGE_ENDPOINTS = [
+    ['start', 'From'],
+    ['end', 'To'],
+] as const;

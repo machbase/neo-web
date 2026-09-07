@@ -5,10 +5,6 @@ import { gFileTree } from '@/recoil/fileTree';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import type { BoardInfo } from '../board/boardModel';
 
-type FileTreeState = typeof gFileTree extends RecoilState<infer Value>
-    ? Value
-    : never;
-
 export function useTagAnalyzerAppState() {
     const selectedTab = useRecoilValue(gSelectedTab);
     const fileTree = useRecoilValue(gFileTree);
@@ -46,6 +42,12 @@ export function useTagAnalyzerAppState() {
         updateSavedBoard,
     };
 }
+
+// -------------------- Local --------------------
+
+type FileTreeState = typeof gFileTree extends RecoilState<infer Value>
+    ? Value
+    : never;
 
 async function refreshTazFileTreeAfterSave(
     fileTree: FileTreeState,

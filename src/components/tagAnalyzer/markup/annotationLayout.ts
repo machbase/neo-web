@@ -6,13 +6,42 @@ import {
 } from '../range/rangeArithmetic';
 import type { AxisRange } from '../range/rangeModel';
 import { getPanelSeriesDisplayColor, type PanelSeriesDefinition } from '../seriesModel';
-import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap, getChartSeriesEChartsName } from '../chart/chartData';
+import { type ChartRow, type ChartSeriesData, type ChartSeriesVisibilityMap } from '../chart/chartData';
 
-function getAnnotationAnchorTime(timeRange: AxisRange): number {
-    return timeRange.end > timeRange.start
-        ? getRangeCenter(timeRange)
-        : timeRange.start;
+export type RenderableSeriesAnnotation = {
+    seriesIndex: number;
+    annotationIndex: number;
+    yAxisIndex: number;
+    color: string;
+    fillColor: string;
+    textColor: string;
+    text: string;
+    clip: boolean;
+    anchorTime: number;
+    anchorValue: number;
+    labelY: number;
+    symbolSize: [number, number];
+};
+
+export type AnnotationRenderContext = {
+    annotations: PanelAnnotation[];
+    seriesDefinitions: PanelSeriesDefinition[];
+    chartData: ChartSeriesData[];
+    yAxisOptions: YAXisComponentOption[];
+    visibleRange: AxisRange;
+    visibleSeries?: ChartSeriesVisibilityMap;
+};
+
+export function buildRenderableSeriesAnnotations(
+    context: AnnotationRenderContext,
+): RenderableSeriesAnnotation[] {
+    return keepAnnotationLabelsInsideAxis(
+        buildAnnotationAnchors(context),
+        context.yAxisOptions,
+    );
 }
+
+// -------------------- Local --------------------
 
 function findNearestChartRow(
     chartRows: ChartRow[],
@@ -62,39 +91,6 @@ const ANNOTATION_LABEL_HORIZONTAL_PADDING = 18;
 const ANNOTATION_LABEL_WIDTH_PER_CHARACTER = 7;
 const ANNOTATION_LABEL_AXIS_PADDING_RATIO = 0.08;
 
-export type RenderableSeriesAnnotation = {
-    seriesIndex: number;
-    annotationIndex: number;
-    yAxisIndex: number;
-    color: string;
-    fillColor: string;
-    textColor: string;
-    text: string;
-    clip: boolean;
-    anchorTime: number;
-    anchorValue: number;
-    labelY: number;
-    symbolSize: [number, number];
-};
-
-export type AnnotationRenderContext = {
-    annotations: PanelAnnotation[];
-    seriesDefinitions: PanelSeriesDefinition[];
-    chartData: ChartSeriesData[];
-    yAxisOptions: YAXisComponentOption[];
-    visibleRange: AxisRange;
-    visibleSeries?: ChartSeriesVisibilityMap;
-};
-
-export function buildRenderableSeriesAnnotations(
-    context: AnnotationRenderContext,
-): RenderableSeriesAnnotation[] {
-    return keepAnnotationLabelsInsideAxis(
-        buildAnnotationAnchors(context),
-        context.yAxisOptions,
-    );
-}
-
 function buildAnnotationAnchors({
     annotations,
     seriesDefinitions,
@@ -117,18 +113,15 @@ function buildAnnotationAnchors({
 
         if (
             chartSeries &&
-            visibleSeries[getChartSeriesEChartsName(chartSeries)] === false
+            visibleSeries[chartSeries.echartsName] === false
         ) {
             return [];
         }
 
-        const seriesColor = getPanelSeriesDisplayColor(seriesInfo, seriesIndex);
         const yAxisIndex = chartSeries?.yAxis ?? (seriesInfo.useSecondaryAxis ? 1 : 0);
-        const fallbackAnchorValue = getFallbackAnnotationAnchorValue(
-            yAxisOptions[yAxisIndex],
-        );
-
-        const annotationAnchorTime = getAnnotationAnchorTime(annotation.timeRange);
+        const annotationAnchorTime = annotation.timeRange.end > annotation.timeRange.start
+            ? getRangeCenter(annotation.timeRange)
+            : annotation.timeRange.start;
 
         if (!Number.isFinite(annotationAnchorTime)) {
             throw new Error(
@@ -150,7 +143,7 @@ function buildAnnotationAnchors({
             annotationAnchorTime,
         );
         const annotationText = annotation.text.trim() || DEFAULT_SERIES_ANNOTATION_LABEL;
-        const anchorValue = anchorRow?.[1] ?? fallbackAnchorValue;
+        const anchorValue = anchorRow?.[1] ?? getFallbackAnnotationAnchorValue(yAxisOptions[yAxisIndex]);
         const labelWidth = Math.max(
             ANNOTATION_LABEL_MIN_WIDTH,
             Math.min(
@@ -165,7 +158,7 @@ function buildAnnotationAnchors({
                 seriesIndex,
                 annotationIndex,
                 yAxisIndex,
-                color: seriesColor,
+                color: getPanelSeriesDisplayColor(seriesInfo, seriesIndex),
                 fillColor: annotation.fillColor,
                 textColor: annotation.textColor,
                 text: annotationText,
