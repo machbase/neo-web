@@ -44,7 +44,43 @@ import {
     type RollupMode,
 } from './seriesSql';
 
-type SeriesDataRow = [timestamp: number, value: number | null];
+export type PanelDataFetchResult = PanelSeriesFetchResult[];
+export type SeriesDataRow = [axisValue: number, value: number | null];
+
+export const SINGLE_POINT_TIME_WIDTH_MS = 1_000;
+export const SINGLE_POINT_NUMERIC_WIDTH = 1;
+
+export type SeriesRowsQuery =
+    | {
+          kind: 'raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'sampled-raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          sampleCount: number;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'calculated';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          interval: IntervalOption;
+          rowLimit: number;
+          rollupTables: RollupTableMap;
+          numericBucketWidth?: number;
+      };
+
+export const seriesDataApi = {
+    rawRowLimit: RAW_SERIES_ROW_LIMIT,
+    fetchSeriesFullRange,
+    fetchSeriesRows,
+};
+
+// -------------------- Local --------------------
 
 const MALFORMED_CHART_DATA_MESSAGE: string =
     'Chart data response contained malformed rows.';
@@ -130,8 +166,6 @@ type PanelSeriesFetchResult = {
         message: string;
     };
 };
-
-export type PanelDataFetchResult = PanelSeriesFetchResult[];
 
 const DATA_DOES_NOT_EXIST_PREFIX: string = 'Data does not exist';
 
@@ -258,19 +292,22 @@ async function fetchCalculatedSeriesData(
                   rollupTables,
               )
             : undefined;
-    const rows: SeriesDataRow[] = await fetchChartRows(
-        buildCalculatedSeriesSql(
-            tableName,
-            series.sourceTagName,
-            columns,
-            timeRange,
-            series.calculationMode,
-            interval,
-            rowLimit,
-            rollupMode,
-            options?.numericBucketWidth,
+    const rows: SeriesDataRow[] = keepLeadingCalculatedBucketInRange(
+        await fetchChartRows(
+            buildCalculatedSeriesSql(
+                tableName,
+                series.sourceTagName,
+                columns,
+                timeRange,
+                series.calculationMode,
+                interval,
+                rowLimit,
+                rollupMode,
+                options?.numericBucketWidth,
+            ),
+            options?.signal,
         ),
-        options?.signal,
+        timeRange.start,
     );
     const usesRollup: boolean = rollupMode !== undefined;
     const usesBoundedNumericBuckets: boolean =
@@ -301,6 +338,16 @@ async function fetchCalculatedSeriesData(
             usesRollup,
         },
     };
+}
+
+function keepLeadingCalculatedBucketInRange(
+    rows: SeriesDataRow[],
+    rangeStart: number,
+): SeriesDataRow[] {
+    const firstRow: SeriesDataRow | undefined = rows[0];
+    if (firstRow === undefined || firstRow[0] >= rangeStart) return rows;
+
+    return [[rangeStart, firstRow[1]], ...rows.slice(1)];
 }
 
 async function fetchCalculatedSeriesEdgeRows(
@@ -473,8 +520,6 @@ const RANGE_REQUEST_FAILED_MESSAGE: string =
     'Series full-range request failed.';
 const MALFORMED_RANGE_MESSAGE: string =
     'Series full-range response contained malformed rows.';
-export const SINGLE_POINT_TIME_WIDTH_MS = 1_000;
-export const SINGLE_POINT_NUMERIC_WIDTH = 1;
 
 type SeriesFullRangeSource = {
     table: string;
@@ -686,30 +731,6 @@ function getSeriesFullRangeErrorMessage(
     )}`;
 }
 
-export type SeriesRowsQuery =
-    | {
-          kind: 'raw';
-          seriesList: PanelSeriesDefinition[];
-          range: AxisRange;
-          useOrderBy: boolean;
-      }
-    | {
-          kind: 'sampled-raw';
-          seriesList: PanelSeriesDefinition[];
-          range: AxisRange;
-          sampleCount: number;
-          useOrderBy: boolean;
-      }
-    | {
-          kind: 'calculated';
-          seriesList: PanelSeriesDefinition[];
-          range: AxisRange;
-          interval: IntervalOption;
-          rowLimit: number;
-          rollupTables: RollupTableMap;
-          numericBucketWidth?: number;
-      };
-
 function fetchSeriesRows(
     query: SeriesRowsQuery,
     { signal }: { signal?: AbortSignal } = {},
@@ -739,9 +760,3 @@ function fetchSeriesRows(
         signal,
     );
 }
-
-export const seriesDataApi = {
-    rawRowLimit: RAW_SERIES_ROW_LIMIT,
-    fetchSeriesFullRange,
-    fetchSeriesRows,
-};

@@ -14,8 +14,6 @@ export type IntervalOption = {
     IntervalValue: number;
 };
 
-const NUMERIC_INTERVAL_STEPS = [1, 2, 5, 10] as const;
-
 export function resolveNumericIntervalValue(
     rangeWidth: number,
     targetCount: number,
@@ -51,6 +49,58 @@ export function roundNumericAxisBounds(
     );
 }
 
+export function getTimeUnitMilliseconds(
+    type: TimeUnit,
+    value: number,
+): number {
+    return value * TIME_UNIT_MILLISECONDS[type];
+}
+
+export function calculateInterval(
+    startTime: number,
+    endTime: number,
+    width: number,
+    pixelsPerTick: number,
+): IntervalOption {
+    const sDiff = endTime - startTime;
+    const sTargetSeconds = sDiff / 1000 / (width / pixelsPerTick);
+
+    if (!(sTargetSeconds > 1)) {
+        return {
+            IntervalType: TimeUnit.Second,
+            IntervalValue: 1,
+        };
+    }
+
+    const sFixedStep = TIME_INTERVAL_STEPS.find(
+        ([durationSeconds]) => sTargetSeconds <= durationSeconds,
+    );
+    if (sFixedStep !== undefined) {
+        return {
+            IntervalType: sFixedStep[1],
+            IntervalValue: sFixedStep[2],
+        };
+    }
+
+    return {
+        IntervalType: TimeUnit.Day,
+        IntervalValue: getNiceNumericStep(
+            sTargetSeconds / SECONDS_PER_DAY,
+        ),
+    };
+}
+
+export function getIntervalMs(type: TimeUnit, value: number): number {
+    if (!FETCH_INTERVAL_UNITS.has(type)) {
+        return 0;
+    }
+
+    return getTimeUnitMilliseconds(type, value);
+}
+
+// -------------------- Local --------------------
+
+const NUMERIC_INTERVAL_STEPS = [1, 2, 5, 10] as const;
 
 function getNiceNumericStep(value: number): number {
     const sMagnitude = 10 ** Math.floor(Math.log10(value));
@@ -71,13 +121,6 @@ const TIME_UNIT_MILLISECONDS: Record<TimeUnit, number> = {
     [TimeUnit.Month]: 2_592_000_000,
     [TimeUnit.Year]: 31_536_000_000,
 };
-
-export function getTimeUnitMilliseconds(
-    type: TimeUnit,
-    value: number,
-): number {
-    return value * TIME_UNIT_MILLISECONDS[type];
-}
 
 type CalculatedIntervalUnit =
     | TimeUnit.Second
@@ -121,45 +164,3 @@ const FETCH_INTERVAL_UNITS = new Set<TimeUnit>([
     TimeUnit.Hour,
     TimeUnit.Day,
 ]);
-
-export function calculateInterval(
-    startTime: number,
-    endTime: number,
-    width: number,
-    pixelsPerTick: number,
-): IntervalOption {
-    const sDiff = endTime - startTime;
-    const sTargetSeconds = sDiff / 1000 / (width / pixelsPerTick);
-
-    if (!(sTargetSeconds > 1)) {
-        return {
-            IntervalType: TimeUnit.Second,
-            IntervalValue: 1,
-        };
-    }
-
-    const sFixedStep = TIME_INTERVAL_STEPS.find(
-        ([durationSeconds]) => sTargetSeconds <= durationSeconds,
-    );
-    if (sFixedStep !== undefined) {
-        return {
-            IntervalType: sFixedStep[1],
-            IntervalValue: sFixedStep[2],
-        };
-    }
-
-    return {
-        IntervalType: TimeUnit.Day,
-        IntervalValue: getNiceNumericStep(
-            sTargetSeconds / SECONDS_PER_DAY,
-        ),
-    };
-}
-
-export function getIntervalMs(type: TimeUnit, value: number): number {
-    if (!FETCH_INTERVAL_UNITS.has(type)) {
-        return 0;
-    }
-
-    return getTimeUnitMilliseconds(type, value);
-}

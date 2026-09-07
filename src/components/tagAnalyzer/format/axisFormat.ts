@@ -9,11 +9,6 @@ export type FormattedAxisRange = {
     end: string;
 };
 
-const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
-const SECOND_LABEL_SPAN = 60 * 60 * 1000;
-const MINUTE_LABEL_SPAN = 24 * 60 * 60 * 1000;
-const DAY_TIME_LABEL_SPAN = 30 * 24 * 60 * 60 * 1000;
-
 export function formatAxisRange(
     range: AxisRange,
     isNumericAxis: boolean,
@@ -77,3 +72,10 @@ export function formatAxisSpan(
         .filter(Boolean)
         .join(' ');
 }
+
+// -------------------- Local --------------------
+
+const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+const SECOND_LABEL_SPAN = 60 * 60 * 1000;
+const MINUTE_LABEL_SPAN = 24 * 60 * 60 * 1000;
+const DAY_TIME_LABEL_SPAN = 30 * 24 * 60 * 60 * 1000;

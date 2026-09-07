@@ -1,7 +1,7 @@
 import type { MutableRefObject } from 'react';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
-import type { PanelChartHandle } from '../../chart/PanelChart';
+import type { PanelChartHandle } from '../../chart/chartInteraction';
 import {
     filterChartDataByRange,
     type ChartSeriesData,
@@ -12,20 +12,6 @@ import type { PanelInfo } from '../panelModel';
 import { PanelContextMenu } from './PanelContextMenu';
 import type { PanelActionKey, PanelActionState } from './panelActions';
 import type { PanelSurface } from './panelInteraction';
-
-type PanelSurfaceLayerProps = {
-    surface: PanelSurface | undefined;
-    panelInfo: PanelInfo;
-    actionState: PanelActionState;
-    isNumericXAxis: boolean;
-    mainChartData: ChartSeriesData[];
-    renderMainRange: AxisRange | undefined;
-    panelChartApiRef: MutableRefObject<PanelChartHandle | null>;
-    onPanelAction: (actionKey: PanelActionKey) => void;
-    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onDeletePanel: () => void;
-    onDismiss: (surfaceId: number) => void;
-};
 
 export function PanelSurfaceLayer({
     surface,
@@ -90,6 +76,7 @@ export function PanelSurfaceLayer({
         case 'deleteConfirm':
             return (
                 <ConfirmModal
+                    data-testid="tag-analyzer-delete-panel-dialog"
                     pIsDarkMode
                     setIsOpen={dismissOnClose}
                     pCallback={onDeletePanel}
@@ -114,3 +101,19 @@ export function PanelSurfaceLayer({
             ) : null;
     }
 }
+
+// -------------------- Local --------------------
+
+type PanelSurfaceLayerProps = {
+    surface: PanelSurface | undefined;
+    panelInfo: PanelInfo;
+    actionState: PanelActionState;
+    isNumericXAxis: boolean;
+    mainChartData: ChartSeriesData[];
+    renderMainRange: AxisRange | undefined;
+    panelChartApiRef: MutableRefObject<PanelChartHandle | null>;
+    onPanelAction: (actionKey: PanelActionKey) => void;
+    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
+    onDeletePanel: () => void;
+    onDismiss: (surfaceId: number) => void;
+};

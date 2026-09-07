@@ -22,6 +22,10 @@ export type FftChartData = {
     chartID: string;
 };
 
+export const fftApi = { fetchFftChartData };
+
+// -------------------- Local --------------------
+
 const FFT_CHART_REQUEST_FAILED_MESSAGE: string = 'Failed to fetch FFT chart.';
 
 const FFT_2D_QUERY_TEMPLATE: string = `MAPKEY('fft')
@@ -97,8 +101,6 @@ async function fetchFftChartData(
         ),
     );
 }
-
-export const fftApi = { fetchFftChartData };
 
 function buildFftFrequencyArguments(minHz: number, maxHz: number): string {
     return minHz === 0 && maxHz === 0 ? '' : `minHz(${minHz}), maxHz(${maxHz})`;

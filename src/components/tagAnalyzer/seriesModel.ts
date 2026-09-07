@@ -5,9 +5,7 @@ import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { isFiniteNumber, isPlainObject } from './objectGuards';
 import type { AxisKind } from './range/rangeModel';
 
-const SQL_IDENTIFIER_SEGMENT_PATTERN: RegExp = /^[A-Za-z_][A-Za-z0-9_$]*$/;
-
-declare const SQL_IDENTIFIER_PATH_BRAND: unique symbol;
+export const X_AXIS_KIND_CHANGE_WARNING = 'The panel x-axis type cannot be changed.';
 
 export type SqlIdentifierPath = string & {
     readonly [SQL_IDENTIFIER_PATH_BRAND]: true;
@@ -127,9 +125,7 @@ export enum PanelSeriesCalculationMode {
     Last = 'LAST',
 }
 
-const PANEL_SERIES_CALCULATION_MODES = Object.values(PanelSeriesCalculationMode);
-
-export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = PANEL_SERIES_CALCULATION_MODES.map(
+export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = Object.values(PanelSeriesCalculationMode).map(
     (value) => ({
         label: value,
         value,
@@ -159,67 +155,6 @@ export function assertValidPanelSeriesIdentifiers(
     validatePanelSeriesSourceColumns(series.sourceColumns);
 }
 
-function normalizePanelSeriesDefinition(
-    value: unknown,
-): PanelSeriesDefinition | undefined {
-    if (!isPlainObject(value) || !isPlainObject(value.sourceColumns)) {
-        return undefined;
-    }
-
-    const sColumns = value.sourceColumns;
-    const sCalculationMode = normalizePanelSeriesCalculationMode(
-        value.calculationMode,
-    );
-    if (
-        typeof value.key !== 'string' ||
-        typeof value.table !== 'string' ||
-        typeof value.sourceTagName !== 'string' ||
-        !sCalculationMode ||
-        typeof sColumns.name !== 'string' ||
-        typeof sColumns.time !== 'string' ||
-        typeof sColumns.value !== 'string'
-    ) {
-        return undefined;
-    }
-
-    const sSeries: PanelSeriesDefinition = {
-        key: value.key,
-        table: value.table,
-        sourceTagName: value.sourceTagName,
-        alias: typeof value.alias === 'string' ? value.alias : '',
-        calculationMode: sCalculationMode,
-        color: typeof value.color === 'string' ? value.color : undefined,
-        useSecondaryAxis: value.useSecondaryAxis === true,
-        id: typeof value.id === 'string' ? value.id : undefined,
-        useRollupTable: value.useRollupTable === true,
-        sourceColumns: {
-            name: sColumns.name,
-            time: sColumns.time,
-            value: sColumns.value,
-            jsonKey:
-                typeof sColumns.jsonKey === 'string'
-                    ? sColumns.jsonKey
-                    : undefined,
-            timeType: isFiniteNumber(sColumns.timeType)
-                ? sColumns.timeType
-                : undefined,
-            timeBaseTime:
-                typeof sColumns.timeBaseTime === 'boolean'
-                    ? sColumns.timeBaseTime
-                    : undefined,
-        },
-    };
-
-    try {
-        assertValidPanelSeriesIdentifiers(sSeries);
-    } catch {
-        return undefined;
-    }
-
-    sSeries.alias = getPanelSeriesDisplayName(sSeries);
-    return sSeries;
-}
-
 export function normalizePanelSeriesCalculationMode(
     value: unknown,
 ): PanelSeriesCalculationMode | undefined {
@@ -243,37 +178,6 @@ export function normalizePanelSeriesDefinitions(
     return sSeriesList;
 }
 
-type SeriesWithSourceColumns = {
-    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
-};
-
-type SeriesNamingInfo = Pick<
-    PanelSeriesDefinition,
-    'table' | 'sourceTagName'
-> & {
-    alias?: string;
-    calculationMode?: PanelSeriesCalculationMode;
-    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
-};
-
-function getPanelSeriesModeLabel(
-    series: Pick<SeriesNamingInfo, 'calculationMode'>,
-    useRawLabel = false,
-): string {
-    return useRawLabel
-        ? 'raw'
-        : series.calculationMode ?? PanelSeriesCalculationMode.Average;
-}
-
-function getPanelSeriesValueLabel(
-    series: Pick<SeriesNamingInfo, 'sourceColumns'>,
-): string {
-    const sValue = String(series.sourceColumns?.value ?? '').trim();
-    const sJsonKey = series.sourceColumns?.jsonKey?.trim();
-
-    return sJsonKey ? `${sValue} -> ${sJsonKey}` : sValue;
-}
-
 export function getPanelSeriesEChartsName(
     series: SeriesNamingInfo,
     useRawLabel = false,
@@ -290,34 +194,8 @@ export function getPanelSeriesEChartsName(
     return sBaseName ? `${sBaseName} (${sMode})` : sMode;
 }
 
-function getDefaultPanelSeriesAlias(series: SeriesNamingInfo): string {
-    const sBaseName = [
-        series.sourceTagName,
-        getPanelSeriesValueLabel(series),
-    ]
-        .map((part) => String(part ?? '').trim())
-        .filter((part) => part.length > 0)
-        .join(' / ');
-    const sTableName = String(series.table ?? '').trim();
-
-    if (sBaseName && sTableName) {
-        return `${sBaseName} (${sTableName})`;
-    }
-
-    return sBaseName || sTableName || getPanelSeriesModeLabel(series);
-}
-
 export function getPanelSeriesDisplayName(series: SeriesNamingInfo): string {
     return series.alias?.trim() || getDefaultPanelSeriesAlias(series);
-}
-
-function withDefaultPanelSeriesAlias(
-    series: PanelSeriesDefinition,
-): PanelSeriesDefinition {
-    return {
-        ...series,
-        alias: getDefaultPanelSeriesAlias(series),
-    };
 }
 
 export function updatePanelSeriesCalculationMode(
@@ -397,21 +275,6 @@ export function shouldUseNumericPanelRangeInput(
     return getSeriesListAxisKind(seriesList) === 'numeric';
 }
 
-const TAG_ANALYZER_LINE_COLORS = [
-    '#367FEB',
-    '#EB5757',
-    '#6FCF97',
-    '#FFD95F',
-    '#9C8FFF',
-    '#F5AA64',
-    '#BB6BD9',
-    '#B4B4B4',
-    '#2D9CDB',
-    '#C3A080',
-    '#C9C9C9',
-    '#6B6B6B',
-];
-
 export function getPanelSeriesDisplayColor(
     series: { color?: string },
     seriesIndex: number,
@@ -428,14 +291,6 @@ export type PanelSeriesRollupInfo = {
     minimumInterval: number;
     maximumInterval: number;
 };
-
-const ROLLUP_INTERVAL_UNITS = [
-    [31_536_000_000, 'y'],
-    [86_400_000, 'd'],
-    [3_600_000, 'h'],
-    [60_000, 'min'],
-    [1_000, 's'],
-] as const;
 
 export function createPanelSeriesDefinition({
     key,
@@ -556,6 +411,155 @@ export function formatRollupRangeLabel(rollupInfo: PanelSeriesRollupInfo): strin
         ? sMinimumLabel
         : `${sMinimumLabel} - ${sMaximumLabel}`;
 }
+
+// -------------------- Local --------------------
+
+const SQL_IDENTIFIER_SEGMENT_PATTERN: RegExp = /^[A-Za-z_][A-Za-z0-9_$]*$/;
+
+declare const SQL_IDENTIFIER_PATH_BRAND: unique symbol;
+
+const PANEL_SERIES_CALCULATION_MODES = Object.values(PanelSeriesCalculationMode);
+
+function normalizePanelSeriesDefinition(
+    value: unknown,
+): PanelSeriesDefinition | undefined {
+    if (!isPlainObject(value) || !isPlainObject(value.sourceColumns)) {
+        return undefined;
+    }
+
+    const sColumns = value.sourceColumns;
+    const sCalculationMode = normalizePanelSeriesCalculationMode(
+        value.calculationMode,
+    );
+    if (
+        typeof value.key !== 'string' ||
+        typeof value.table !== 'string' ||
+        typeof value.sourceTagName !== 'string' ||
+        !sCalculationMode ||
+        typeof sColumns.name !== 'string' ||
+        typeof sColumns.time !== 'string' ||
+        typeof sColumns.value !== 'string'
+    ) {
+        return undefined;
+    }
+
+    const sSeries: PanelSeriesDefinition = {
+        key: value.key,
+        table: value.table,
+        sourceTagName: value.sourceTagName,
+        alias: typeof value.alias === 'string' ? value.alias : '',
+        calculationMode: sCalculationMode,
+        color: typeof value.color === 'string' ? value.color : undefined,
+        useSecondaryAxis: value.useSecondaryAxis === true,
+        id: typeof value.id === 'string' ? value.id : undefined,
+        useRollupTable: value.useRollupTable === true,
+        sourceColumns: {
+            name: sColumns.name,
+            time: sColumns.time,
+            value: sColumns.value,
+            jsonKey:
+                typeof sColumns.jsonKey === 'string'
+                    ? sColumns.jsonKey
+                    : undefined,
+            timeType: isFiniteNumber(sColumns.timeType)
+                ? sColumns.timeType
+                : undefined,
+            timeBaseTime:
+                typeof sColumns.timeBaseTime === 'boolean'
+                    ? sColumns.timeBaseTime
+                    : undefined,
+        },
+    };
+
+    try {
+        assertValidPanelSeriesIdentifiers(sSeries);
+    } catch {
+        return undefined;
+    }
+
+    sSeries.alias = getPanelSeriesDisplayName(sSeries);
+    return sSeries;
+}
+
+type SeriesWithSourceColumns = {
+    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
+};
+
+type SeriesNamingInfo = Pick<
+    PanelSeriesDefinition,
+    'table' | 'sourceTagName'
+> & {
+    alias?: string;
+    calculationMode?: PanelSeriesCalculationMode;
+    sourceColumns: Partial<PanelSeriesSourceColumns> | undefined;
+};
+
+function getPanelSeriesModeLabel(
+    series: Pick<SeriesNamingInfo, 'calculationMode'>,
+    useRawLabel = false,
+): string {
+    return useRawLabel
+        ? 'raw'
+        : series.calculationMode ?? PanelSeriesCalculationMode.Average;
+}
+
+function getPanelSeriesValueLabel(
+    series: Pick<SeriesNamingInfo, 'sourceColumns'>,
+): string {
+    const sValue = String(series.sourceColumns?.value ?? '').trim();
+    const sJsonKey = series.sourceColumns?.jsonKey?.trim();
+
+    return sJsonKey ? `${sValue} -> ${sJsonKey}` : sValue;
+}
+
+function getDefaultPanelSeriesAlias(series: SeriesNamingInfo): string {
+    const sBaseName = [
+        series.sourceTagName,
+        getPanelSeriesValueLabel(series),
+    ]
+        .map((part) => String(part ?? '').trim())
+        .filter((part) => part.length > 0)
+        .join(' / ');
+    const sTableName = String(series.table ?? '').trim();
+
+    if (sBaseName && sTableName) {
+        return `${sBaseName} (${sTableName})`;
+    }
+
+    return sBaseName || sTableName || getPanelSeriesModeLabel(series);
+}
+
+function withDefaultPanelSeriesAlias(
+    series: PanelSeriesDefinition,
+): PanelSeriesDefinition {
+    return {
+        ...series,
+        alias: getDefaultPanelSeriesAlias(series),
+    };
+}
+
+const TAG_ANALYZER_LINE_COLORS = [
+    '#367FEB',
+    '#EB5757',
+    '#6FCF97',
+    '#FFD95F',
+    '#9C8FFF',
+    '#F5AA64',
+    '#BB6BD9',
+    '#B4B4B4',
+    '#2D9CDB',
+    '#C3A080',
+    '#C9C9C9',
+    '#6B6B6B',
+];
+
+const ROLLUP_INTERVAL_UNITS = [
+    [31_536_000_000, 'y'],
+    [86_400_000, 'd'],
+    [3_600_000, 'h'],
+    [60_000, 'min'],
+    [1_000, 's'],
+] as const;
 
 function formatRollupInterval(intervalMs: number): string {
     const sUnit = ROLLUP_INTERVAL_UNITS.find(

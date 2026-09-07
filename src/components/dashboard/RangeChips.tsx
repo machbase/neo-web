@@ -36,7 +36,7 @@ const Chip = ({ axis, mode, value, title, onShift, onEdit }: ChipProps) => {
     // Unset axis → empty slot (dashed), prompts to set; no chevrons/value.
     if (mode === 'unset') {
         return (
-            <button type="button" className={`${styles.chip} ${styles.chipUnset}`} onClick={onEdit} aria-label={`Set ${axis} range`}>
+            <button type="button" data-testid={axis === 'TIME' ? 'time-edit' : 'distance-edit'} className={`${styles.chip} ${styles.chipUnset}`} onClick={onEdit} aria-label={`Set ${axis} range`}>
                 <span className={`${styles.label} ${styles.labelUnset}`}>{axis}</span>
                 <VscAdd size={12} className={styles.icon} />
             </button>
@@ -46,6 +46,7 @@ const Chip = ({ axis, mode, value, title, onShift, onEdit }: ChipProps) => {
     // Whole chip opens the range editor; chevrons stop propagation and shift only.
     return (
         <div
+            data-testid={axis === 'TIME' ? 'time-edit' : 'distance-edit'}
             className={styles.chip}
             role="button"
             tabIndex={0}
@@ -63,6 +64,7 @@ const Chip = ({ axis, mode, value, title, onShift, onEdit }: ChipProps) => {
                 type="button"
                 className={styles.chevron}
                 aria-label={`${axis} previous`}
+                data-testid="shift-backward"
                 onClick={(aEvent) => {
                     aEvent.stopPropagation();
                     onShift('l');
@@ -78,6 +80,7 @@ const Chip = ({ axis, mode, value, title, onShift, onEdit }: ChipProps) => {
                 type="button"
                 className={styles.chevron}
                 aria-label={`${axis} next`}
+                data-testid="shift-forward"
                 onClick={(aEvent) => {
                     aEvent.stopPropagation();
                     onShift('r');
@@ -137,21 +140,21 @@ const RangeChips = ({ pBoardInfo, pOnShiftTime, pOnShiftDist, pOnEditTime, pOnEd
     // Panel editor: render only the forced axis.
     if (pOnlyAxis === 'TIME') {
         return (
-            <div className={styles.wrap}>
+            <div className={styles.wrap} data-testid="range-chips">
                 <Chip axis="TIME" mode={sTimeMode} value={sTimeValue} onShift={pOnShiftTime} onEdit={pOnEditTime} />
             </div>
         );
     }
     if (pOnlyAxis === 'DIST') {
         return (
-            <div className={styles.wrap}>
+            <div className={styles.wrap} data-testid="range-chips">
                 <Chip axis="DIST" mode={sDistMode} value={sDistValue} title={sDistExact} onShift={pOnShiftDist} onEdit={pOnEditDist} />
             </div>
         );
     }
 
     return (
-        <div className={styles.wrap}>
+        <div className={styles.wrap} data-testid="range-chips">
             <Chip axis="TIME" mode={sTimeMode} value={sTimeValue} onShift={pOnShiftTime} onEdit={pOnEditTime} />
             <Chip axis="DIST" mode={sDistMode} value={sDistValue} onShift={pOnShiftDist} onEdit={pOnEditDist} />
         </div>

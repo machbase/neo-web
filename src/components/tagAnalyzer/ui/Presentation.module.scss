@@ -1,0 +1,82 @@
+@use '../TextStyle' as text;
+@use '@/design-system/tokens' as t;
+@use './theme';
+
+.surface {
+    box-sizing: border-box;
+    min-width: 0;
+    padding: t.$spacing-12;
+    border: 1px solid transparent;
+    border-radius: theme.$radius;
+
+    &[data-variant='outlined'] { border-color: theme.$border-color; }
+    &[data-variant='inset'] {
+        border-color: theme.$border-color;
+        background: theme.$surface-inset;
+    }
+    &[data-density='compact'] { padding: t.$spacing-8; }
+}
+
+.text {
+    margin: 0;
+
+    @each $variant, $style in text.$text-styles {
+        &:where([data-variant='#{$variant}']) {
+            @include text.role($variant);
+        }
+    }
+
+    &:where([data-tone='default']) { color: theme.$text-primary; }
+    &:where([data-tone='secondary']) { color: theme.$text-secondary; }
+    &:where([data-tone='muted']) { color: theme.$text-muted; }
+    &:where([data-tone='subtle']) { color: theme.$text-subtle; }
+    &:where([data-tone='danger']) { color: theme.$danger; }
+    &:where([data-tone='warning']) { color: theme.$warning; }
+    &:where([data-weight='normal']) { font-weight: 400; }
+    &:where([data-weight='medium']) { font-weight: 500; }
+    &:where([data-weight='semibold']) { font-weight: 600; }
+    &:where([data-truncate]) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.stack, .inline {
+    display: flex;
+    min-width: 0;
+    gap: var(--layout-gap);
+
+    &:where([data-align='start']) { align-items: flex-start; }
+    &:where([data-align='center']) { align-items: center; }
+    &:where([data-align='end']) { align-items: flex-end; }
+    &:where([data-align='stretch']) { align-items: stretch; }
+    &:where([data-align='baseline']) { align-items: baseline; }
+}
+
+.stack { flex-direction: column; }
+.inline {
+    &:where([data-justify='start']) { justify-content: flex-start; }
+    &:where([data-justify='center']) { justify-content: center; }
+    &:where([data-justify='end']) { justify-content: flex-end; }
+    &:where([data-justify='between']) { justify-content: space-between; }
+    &:where([data-wrap]) { flex-wrap: wrap; }
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-12;
+    &[data-density='compact'] {
+        gap: t.$spacing-8;
+    }
+}
+
+.sectionHeader {
+    align-self: flex-start;
+    width: 100%;
+    min-height: 24px;
+    padding-bottom: t.$spacing-8;
+    border-bottom: 1px solid theme.$border-color;
+}

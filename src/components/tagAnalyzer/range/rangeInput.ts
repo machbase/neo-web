@@ -12,24 +12,6 @@ import {
     type RangeExpressionInput,
 } from './rangeModel';
 
-const TIME_EXPRESSION_PATTERN =
-    /^([A-Za-z]+)(?:([+-])(\d+)(ms|s|m|h|d|w|M|y))?$/;
-const TIME_UNIT_BY_SHORT_CODE = {
-    ms: 'millisecond',
-    s: 'second',
-    m: 'minute',
-    h: 'hour',
-    d: 'day',
-    w: 'week',
-    M: 'month',
-    y: 'year',
-} as const;
-
-type ResolvedEndpoint = {
-    value: number;
-    anchored: boolean;
-};
-
 export function resolveRangeInput(
     input: RangeExpressionInput,
     axisKind: AxisKind,
@@ -72,6 +54,26 @@ export function resolveRangeInput(
         ? fitRangeWithinBounds(range, fullRange)
         : range;
 }
+
+// -------------------- Local --------------------
+
+const TIME_EXPRESSION_PATTERN =
+    /^([A-Za-z]+)(?:([+-])(\d+)(ms|s|m|h|d|w|M|y))?$/;
+const TIME_UNIT_BY_SHORT_CODE = {
+    ms: 'millisecond',
+    s: 'second',
+    m: 'minute',
+    h: 'hour',
+    d: 'day',
+    w: 'week',
+    M: 'month',
+    y: 'year',
+} as const;
+
+type ResolvedEndpoint = {
+    value: number;
+    anchored: boolean;
+};
 
 function resolveEndpoint(
     value: string,

@@ -15,33 +15,16 @@ import {
     TimeUnit,
 } from '../range/intervalResolver';
 import type { AxisRange } from '../range/rangeModel';
+import { shiftRange } from '../range/rangeArithmetic';
 import {
     buildOverlapChartOption,
     formatOverlapElapsedDurationLabel,
-    getOverlapChartSeriesGroupRange,
-    joinOverlapChartSeriesGroups,
     type OverlapChartSeriesGroup,
     type OverlapPanelInput,
 } from './overlapModel';
 import { useOverlapData } from './useOverlapData';
-
-const OVERLAP_SHIFT_UNIT_OPTIONS = [
-    { label: 'ms', value: TimeUnit.Millisecond },
-    { label: 'sec', value: TimeUnit.Second },
-    { label: 'min', value: TimeUnit.Minute },
-    { label: 'hour', value: TimeUnit.Hour },
-    { label: 'day', value: TimeUnit.Day },
-];
-const OVERLAP_SHIFT_ERROR_MESSAGE = 'Shift amount must be 0 or greater.';
-
-type ShiftDirection = -1 | 1;
-
-type OverlapModalProps = {
-    initialPanels: OverlapPanelInput[];
-    isNumericXAxis: boolean;
-    includeZeroInYAxisRange: boolean;
-    onClose: () => void;
-};
+import { Inline, Stack, Surface, Text } from '../ui/Presentation';
+import controls from '../ui/Controls.module.scss';
 
 export default function OverlapModal({
     initialPanels,
@@ -50,19 +33,15 @@ export default function OverlapModal({
     onClose,
 }: OverlapModalProps): JSX.Element {
     const {
-        seriesGroups: sSeriesGroups,
-        isLoading: sIsLoadingOverlapData,
-        loadError: sOverlapLoadError,
+        seriesGroups,
+        isLoading,
+        loadError,
         refreshOverlapData,
         shiftPanelRange,
     } = useOverlapData(initialPanels);
 
-    const sSeriesData = joinOverlapChartSeriesGroups(sSeriesGroups);
-    const sCanRenderChart = sSeriesData.some(({ data }) =>
-        data.some(([, value]) => value !== null),
-    );
-    const sChartOption = buildOverlapChartOption(
-        sSeriesData,
+    const option = buildOverlapChartOption(
+        seriesGroups,
         includeZeroInYAxisRange,
         isNumericXAxis,
     );
@@ -89,7 +68,7 @@ export default function OverlapModal({
                         variant="secondary"
                         size="xsm"
                         icon={<Refresh size={12} />}
-                        disabled={sIsLoadingOverlapData}
+                        disabled={isLoading}
                         onClick={refreshOverlapData}
                         isToolTip
                         toolTipContent="Refresh data"
@@ -99,18 +78,18 @@ export default function OverlapModal({
                         data-testid="tag-analyzer-overlap-chart"
                         role="region"
                         aria-label="Overlap chart"
-                        aria-busy={sIsLoadingOverlapData}
+                        aria-busy={isLoading}
                     >
-                        {sIsLoadingOverlapData ? (
+                        {isLoading ? (
                             <Page.ContentText pContent="Loading overlap data..." />
-                        ) : sOverlapLoadError ? (
-                            <Page.ContentText pContent={sOverlapLoadError} />
-                        ) : !sCanRenderChart ? (
+                        ) : loadError ? (
+                            <Page.ContentText pContent={loadError} />
+                        ) : !option ? (
                             <Page.ContentText pContent="No overlap data." />
                         ) : (
                             <ReactECharts
                                 data-testid="viewport-surface"
-                                option={sChartOption}
+                                option={option}
                                 notMerge
                                 lazyUpdate
                                 style={{ width: '100%', height: 300 }}
@@ -118,8 +97,8 @@ export default function OverlapModal({
                             />
                         )}
                     </div>
-                    <div className="overlap-modal__shift-list">
-                        {sSeriesGroups.map((seriesGroup) => (
+                    <Stack gap={8} className="overlap-modal__shift-list">
+                        {seriesGroups.map((seriesGroup) => (
                             <OverlapPanelRow
                                 key={seriesGroup.panelKey}
                                 seriesGroup={seriesGroup}
@@ -127,15 +106,33 @@ export default function OverlapModal({
                                 onShiftRange={shiftPanelRange}
                             />
                         ))}
-                    </div>
+                    </Stack>
                 </Page.ContentBlock>
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Cancel>Close</Modal.Cancel>
+                <Modal.Cancel data-testid="close-button">Close</Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );
 }
+
+// -------------------- Local --------------------
+
+const OVERLAP_SHIFT_UNIT_OPTIONS = [
+    { label: 'ms', value: TimeUnit.Millisecond, testId: 'tag-analyzer-overlap-shift-unit-millisecond' },
+    { label: 'sec', value: TimeUnit.Second, testId: 'tag-analyzer-overlap-shift-unit-sec' },
+    { label: 'min', value: TimeUnit.Minute, testId: 'tag-analyzer-overlap-shift-unit-min' },
+    { label: 'hour', value: TimeUnit.Hour, testId: 'tag-analyzer-overlap-shift-unit-hour' },
+    { label: 'day', value: TimeUnit.Day, testId: 'tag-analyzer-overlap-shift-unit-day' },
+];
+const OVERLAP_SHIFT_ERROR_MESSAGE = 'Shift amount must be 0 or greater.';
+
+type OverlapModalProps = {
+    initialPanels: OverlapPanelInput[];
+    isNumericXAxis: boolean;
+    includeZeroInYAxisRange: boolean;
+    onClose: () => void;
+};
 
 function OverlapPanelRow({
     seriesGroup,
@@ -146,22 +143,20 @@ function OverlapPanelRow({
     isNumericXAxis: boolean;
     onShiftRange: (panelKey: string, delta: number) => void;
 }): JSX.Element {
-    const [sShiftAmount, setShiftAmount] = useState('1');
-    const [sShiftUnit, setShiftUnit] = useState(TimeUnit.Second);
-    const alteredRange = getOverlapChartSeriesGroupRange(seriesGroup);
+    const [shiftAmount, setShiftAmount] = useState('1');
+    const [shiftUnit, setShiftUnit] = useState(TimeUnit.Second);
 
-    function shiftPanelRange(direction: ShiftDirection): void {
-        const amount = Number(sShiftAmount);
-        const offset = isNumericXAxis
+    function shiftPanelRange(direction: -1 | 1): void {
+        const amount = Number(shiftAmount);
+        const delta = (isNumericXAxis
             ? amount
-            : getTimeUnitMilliseconds(sShiftUnit, amount);
-        if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(offset)) {
+            : getTimeUnitMilliseconds(shiftUnit, amount)) * direction;
+        if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(delta)) {
             Toast.error(OVERLAP_SHIFT_ERROR_MESSAGE, undefined);
             return;
         }
-        if (offset === 0) return;
+        if (delta === 0) return;
 
-        const delta = offset * direction;
         if (!Number.isFinite(seriesGroup.shiftValue + delta)) {
             Toast.error(OVERLAP_SHIFT_ERROR_MESSAGE, undefined);
             return;
@@ -170,17 +165,16 @@ function OverlapPanelRow({
     }
 
     return (
-        <div
+        <Surface variant="inset" density="compact"
             className="overlap-modal__shift-row"
             data-testid={`tag-analyzer-overlap-panel-${encodeURIComponent(seriesGroup.panelKey)}`}
         >
             <div className="overlap-modal__shift-text">
-                <strong className="overlap-modal__shift-title">
+                <Text variant="caption" tone="default" weight="semibold" truncate>
                     {seriesGroup.name}
-                </strong>
-                <span className="overlap-modal__shift-label">Original</span>
-                <span
-                    className="overlap-modal__shift-value"
+                </Text>
+                <Text variant="caption" tone="secondary">Original</Text>
+                <Text variant="caption" tone="secondary" truncate
                     data-testid="original-range"
                 >
                     {formatOverlapRange(
@@ -188,16 +182,19 @@ function OverlapPanelRow({
                         isNumericXAxis,
                         false,
                     )}
-                </span>
-                <span className="overlap-modal__shift-label">Altered</span>
-                <span
-                    className="overlap-modal__shift-value"
+                </Text>
+                <Text variant="caption" tone="secondary">Altered</Text>
+                <Text variant="caption" tone="secondary" truncate
                     data-testid="altered-range"
                 >
-                    {formatOverlapRange(alteredRange, isNumericXAxis, true)}
-                </span>
+                    {formatOverlapRange(
+                        shiftRange(seriesGroup.alignedRange, seriesGroup.shiftValue),
+                        isNumericXAxis,
+                        true,
+                    )}
+                </Text>
             </div>
-            <div className="overlap-modal__shift-controls">
+            <Inline gap={4}>
                 <Button
                     data-testid="shift-left"
                     variant="secondary"
@@ -215,20 +212,18 @@ function OverlapPanelRow({
                     min={0}
                     step="any"
                     size="sm"
-                    value={sShiftAmount}
+                    value={shiftAmount}
                     onChange={(event) => setShiftAmount(event.target.value)}
                     style={{ width: 88 }}
                 />
                 {!isNumericXAxis && (
                     <Dropdown.Root
                         options={OVERLAP_SHIFT_UNIT_OPTIONS}
-                        value={sShiftUnit}
+                        value={shiftUnit}
                         onChange={(unit) => setShiftUnit(unit as TimeUnit)}
                         style={{ width: 72 }}
                     >
-                        <Dropdown.Trigger
-                            style={{ height: 28, minHeight: 28, fontSize: 12 }}
-                        />
+                        <Dropdown.Trigger data-testid="shift-unit" className={controls.control} />
                         <Dropdown.Menu>
                             <Dropdown.List />
                         </Dropdown.Menu>
@@ -244,8 +239,8 @@ function OverlapPanelRow({
                     toolTipContent="Shift altered range right"
                     aria-label={`Shift altered range right for ${seriesGroup.name}`}
                 />
-            </div>
-        </div>
+            </Inline>
+        </Surface>
     );
 }
 
@@ -260,6 +255,6 @@ function formatOverlapRange(
         )} ~ ${formatOverlapElapsedDurationLabel(range.end)}`;
     }
 
-    const sFormattedRange = formatAxisRange(range, isNumericXAxis);
-    return `${sFormattedRange.start} ~ ${sFormattedRange.end}`;
+    const { start, end } = formatAxisRange(range, isNumericXAxis);
+    return `${start} ~ ${end}`;
 }

@@ -33,32 +33,6 @@ export type BoardInfo = {
     loadWarning?: string;
 };
 
-type TagAnalyzerDefaultBoardOptions = {
-    tag: string;
-    timeRange: AxisRange;
-    table: string;
-    sourceColumns: PanelSeriesSourceColumns;
-};
-
-type TazBoardCreationOptions = {
-    id: string;
-    name: string;
-    path: string;
-    chartTitle: string;
-    chartType?: PanelEChartType;
-    seriesList: PanelSeriesDefinition[];
-};
-
-type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
-    timeRange: RangeExpressionInput;
-};
-
-type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
-    boardTimeRange: RangeExpressionInput;
-    boardNumericRange: RangeExpressionInput;
-    mainRange: RangeExpressionInput;
-};
-
 export function createDefaultTazBoard(
     options: TagAnalyzerDefaultBoardOptions,
 ): BoardInfo {
@@ -106,6 +80,34 @@ export function createTazBoardFromTimeRange(
         mainRange: { ...timeRange },
     });
 }
+
+// -------------------- Local --------------------
+
+type TagAnalyzerDefaultBoardOptions = {
+    tag: string;
+    timeRange: AxisRange;
+    table: string;
+    sourceColumns: PanelSeriesSourceColumns;
+};
+
+type TazBoardCreationOptions = {
+    id: string;
+    name: string;
+    path: string;
+    chartTitle: string;
+    chartType?: PanelEChartType;
+    seriesList: PanelSeriesDefinition[];
+};
+
+type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
+    timeRange: RangeExpressionInput;
+};
+
+type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
+    boardTimeRange: RangeExpressionInput;
+    boardNumericRange: RangeExpressionInput;
+    mainRange: RangeExpressionInput;
+};
 
 function createTazBoardFromSeries(
     options: CreateTazBoardFromSeriesOptions,

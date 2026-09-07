@@ -9,34 +9,8 @@ import {
 import { createPortal } from 'react-dom';
 import { MdDragIndicator } from 'react-icons/md';
 import type { ContextMenuPosition } from '@/design-system/components';
+import { Inline, Stack, Surface, Text } from '../ui/Presentation';
 import styles from './PanelPopover.module.scss';
-
-type PanelPopoverSize = 'compact' | 'wide';
-
-const PANEL_POPOVER_MIN_WIDTH: Record<PanelPopoverSize, number> = {
-    compact: 280,
-    wide: 360,
-};
-const VIEWPORT_MARGIN = 10;
-
-function clampPopoverPosition(
-    position: ContextMenuPosition,
-    popoverSize: Pick<DOMRect, 'width' | 'height'>,
-): ContextMenuPosition {
-    const maxX = Math.max(
-        VIEWPORT_MARGIN,
-        window.innerWidth - popoverSize.width - VIEWPORT_MARGIN,
-    );
-    const maxY = Math.max(
-        VIEWPORT_MARGIN,
-        window.innerHeight - popoverSize.height - VIEWPORT_MARGIN,
-    );
-
-    return {
-        x: Math.min(Math.max(VIEWPORT_MARGIN, position.x), maxX),
-        y: Math.min(Math.max(VIEWPORT_MARGIN, position.y), maxY),
-    };
-}
 
 export default function PanelPopover({
     title,
@@ -78,6 +52,16 @@ export default function PanelPopover({
                 popoverElement.getBoundingClientRect(),
             ),
         );
+
+        const handleViewportResize = (): void => {
+            setAdjustedPosition((currentPosition) => clampPopoverPosition(
+                currentPosition,
+                popoverElement.getBoundingClientRect(),
+            ));
+        };
+
+        window.addEventListener('resize', handleViewportResize);
+        return () => window.removeEventListener('resize', handleViewportResize);
     }, [position]);
 
     function handlePopoverDragStart(event: ReactPointerEvent<HTMLButtonElement>): void {
@@ -91,7 +75,6 @@ export default function PanelPopover({
         }
 
         const sStartPointer = { x: event.clientX, y: event.clientY };
-        const sStartPosition = adjustedPosition;
         const popoverSize = popoverElement.getBoundingClientRect();
         dragCleanupRef.current?.();
 
@@ -100,11 +83,10 @@ export default function PanelPopover({
                 return;
             }
 
-            const nextPosition = {
-                x: sStartPosition.x + pointerEvent.clientX - sStartPointer.x,
-                y: sStartPosition.y + pointerEvent.clientY - sStartPointer.y,
-            };
-            setAdjustedPosition(clampPopoverPosition(nextPosition, popoverSize));
+            setAdjustedPosition(clampPopoverPosition({
+                x: adjustedPosition.x + pointerEvent.clientX - sStartPointer.x,
+                y: adjustedPosition.y + pointerEvent.clientY - sStartPointer.y,
+            }, popoverSize));
         }
 
         function handlePopoverPointerUp(): void {
@@ -183,26 +165,46 @@ export default function PanelPopover({
             >
                 <MdDragIndicator size={18} />
             </button>
-            <div
-                className={styles['frame']}
-                style={{
-                    minWidth: PANEL_POPOVER_MIN_WIDTH[size],
-                }}
-            >
-                <div className={styles['header']}>
-                    <div className={styles['title']}>{title}</div>
+            <Surface variant="outlined" className={styles.frame} data-size={size}>
+                <Inline gap={8} className={styles.header}>
+                    <Text as="div" variant="section" tone="secondary" className={styles.title}>{title}</Text>
                     {headerAction !== undefined && (
-                        <div className={styles['headerAction']}>
+                        <Inline className={styles.headerAction}>
                             {headerAction}
-                        </div>
+                        </Inline>
                     )}
-                </div>
-                <div className={styles['body']}>{children}</div>
+                </Inline>
+                <Stack>{children}</Stack>
                 {actions !== undefined && (
-                    <div className={styles['actions']}>{actions}</div>
+                    <Inline justify="end" gap={8} className={styles.actions}>{actions}</Inline>
                 )}
-            </div>
+            </Surface>
         </div>,
         document.body,
     );
+}
+
+// -------------------- Local --------------------
+
+type PanelPopoverSize = 'compact' | 'wide';
+
+const VIEWPORT_MARGIN = 10;
+
+function clampPopoverPosition(
+    position: ContextMenuPosition,
+    popoverSize: Pick<DOMRect, 'width' | 'height'>,
+): ContextMenuPosition {
+    const maxX = Math.max(
+        VIEWPORT_MARGIN,
+        window.innerWidth - popoverSize.width - VIEWPORT_MARGIN,
+    );
+    const maxY = Math.max(
+        VIEWPORT_MARGIN,
+        window.innerHeight - popoverSize.height - VIEWPORT_MARGIN,
+    );
+
+    return {
+        x: Math.min(Math.max(VIEWPORT_MARGIN, position.x), maxX),
+        y: Math.min(Math.max(VIEWPORT_MARGIN, position.y), maxY),
+    };
 }

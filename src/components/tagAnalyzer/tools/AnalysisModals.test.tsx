@@ -51,9 +51,9 @@ const DENSE_SELECTION: FFTSelectionPayload = {
 function chartData(data: ChartSeriesData['data']): ChartSeriesData {
     return {
         name: 'temperature',
+        echartsName: 'temperature',
         data,
         yAxis: 0,
-        marker: undefined,
         color: undefined,
     };
 }

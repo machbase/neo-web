@@ -7,8 +7,6 @@ import type { RollupTableMap } from './seriesModel';
 import { useTagAnalyzerAppState } from './integration';
 import { useLatestAsyncRequest } from './hooks/useLatestAsyncRequest';
 
-const EMPTY_ROLLUP_TABLE_LIST: RollupTableMap = {};
-
 export default function TagAnalyzer({ info }: { info: BoardInfo }) {
     const {
         selectedTab: sSelectedTab,
@@ -50,3 +48,7 @@ export default function TagAnalyzer({ info }: { info: BoardInfo }) {
         </div>
     );
 }
+
+// -------------------- Local --------------------
+
+const EMPTY_ROLLUP_TABLE_LIST: RollupTableMap = {};

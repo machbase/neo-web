@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Toast } from '@/design-system/components';
 import {
     filterChartDataByRange,
@@ -16,23 +16,14 @@ import {
     type OverlapPanelInput,
 } from './overlapModel';
 
-const OVERLAP_CHART_FETCH_WIDTH_PX = 1000;
-const OVERLAP_LOAD_ERROR_MESSAGE = 'Failed to load overlap data.';
-
-type OverlapLoadState = {
-    seriesGroups: OverlapChartSeriesGroup[];
-    isLoading: boolean;
-    loadError: string | undefined;
-};
-
 export function useOverlapData(initialPanelsInfo: OverlapPanelInput[]) {
-    const [loadState, setLoadState] = useState<OverlapLoadState>({
+    const [loadState, setLoadState] = useState<OverlapLoadState>(() => ({
         seriesGroups: initialPanelsInfo.map((panel) =>
             createOverlapChartSeriesGroup(panel, []),
         ),
         isLoading: true,
         loadError: undefined,
-    });
+    }));
     const [refreshGeneration, setRefreshGeneration] = useState(0);
 
     useLatestAsyncRequest({
@@ -54,14 +45,19 @@ export function useOverlapData(initialPanelsInfo: OverlapPanelInput[]) {
             new Set(results.flatMap(({ errors }) => errors)).forEach(
                 (message) => Toast.error(message, undefined),
             );
-            setLoadState((current) => ({
-                seriesGroups: preservePanelShifts(
-                    results.map(({ seriesGroup }) => seriesGroup),
-                    current.seriesGroups,
-                ),
-                isLoading: false,
-                loadError: undefined,
-            }));
+            setLoadState((current) => {
+                const shifts = new Map(current.seriesGroups.map((group) => [
+                    group.panelKey, group.shiftValue,
+                ]));
+                return {
+                    seriesGroups: results.map(({ seriesGroup }) => ({
+                        ...seriesGroup,
+                        shiftValue: shifts.get(seriesGroup.panelKey) ?? 0,
+                    })),
+                    isLoading: false,
+                    loadError: undefined,
+                };
+            });
         },
         onError: (error) => {
             const message = getAsyncRequestErrorMessage(
@@ -77,42 +73,49 @@ export function useOverlapData(initialPanelsInfo: OverlapPanelInput[]) {
         },
     });
 
-    const refreshOverlapData = useCallback((): void => {
-        setRefreshGeneration((current) => current + 1);
-    }, []);
+    function shiftPanelRange(panelKey: string, delta: number): void {
+        if (!Number.isFinite(delta) || delta === 0) return;
 
-    const shiftPanelRange = useCallback(
-        (panelKey: string, delta: number): void => {
-            if (!Number.isFinite(delta) || delta === 0) return;
+        setLoadState((current) => ({
+            ...current,
+            seriesGroups: current.seriesGroups.map((group) => {
+                if (group.panelKey !== panelKey) return group;
 
-            setLoadState((current) => ({
-                ...current,
-                seriesGroups: current.seriesGroups.map((group) => {
-                    if (group.panelKey !== panelKey) return group;
+                const shiftValue = group.shiftValue + delta;
+                return Number.isFinite(shiftValue)
+                    ? { ...group, shiftValue }
+                    : group;
+            }),
+        }));
+    }
 
-                    const shiftValue = group.shiftValue + delta;
-                    return Number.isFinite(shiftValue)
-                        ? { ...group, shiftValue }
-                        : group;
-                }),
-            }));
-        },
-        [],
-    );
-
-    return { ...loadState, refreshOverlapData, shiftPanelRange };
+    return {
+        ...loadState,
+        shiftPanelRange,
+        refreshOverlapData: () => setRefreshGeneration((current) => current + 1),
+    };
 }
 
+// -------------------- Local --------------------
+
+const OVERLAP_CHART_FETCH_WIDTH_PX = 1000;
+const OVERLAP_LOAD_ERROR_MESSAGE = 'Failed to load overlap data.';
+
+type OverlapLoadState = {
+    seriesGroups: OverlapChartSeriesGroup[];
+    isLoading: boolean;
+    loadError: string | undefined;
+};
+
 async function fetchOverlapPanelData(
-    overlapPanel: OverlapPanelInput,
+    { panelInfo, visibleRange }: OverlapPanelInput,
     signal: AbortSignal,
 ) {
-    const panelInfo = overlapPanel.panelInfo;
     const fetchResult = await seriesDataApi.fetchSeriesRows(
         buildPanelSeriesQuery(
             'main',
             panelInfo,
-            overlapPanel.visibleRange,
+            visibleRange,
             OVERLAP_CHART_FETCH_WIDTH_PX,
             {},
         ),
@@ -128,11 +131,11 @@ async function fetchOverlapPanelData(
 
     return {
         seriesGroup: createOverlapChartSeriesGroup(
-            overlapPanel,
+            { panelInfo, visibleRange },
             panelInfo.mode.isRaw
                 ? filterChartDataByRange(
                       seriesData,
-                      overlapPanel.visibleRange,
+                      visibleRange,
                   )
                 : seriesData,
         ),
@@ -143,19 +146,3 @@ async function fetchOverlapPanelData(
     };
 }
 
-function preservePanelShifts(
-    nextGroups: OverlapChartSeriesGroup[],
-    currentGroups: OverlapChartSeriesGroup[],
-): OverlapChartSeriesGroup[] {
-    const shiftByPanelKey = new Map(
-        currentGroups.map((group) => [
-            group.panelKey,
-            group.shiftValue,
-        ]),
-    );
-
-    return nextGroups.map((group) => ({
-        ...group,
-        shiftValue: shiftByPanelKey.get(group.panelKey) ?? 0,
-    }));
-}

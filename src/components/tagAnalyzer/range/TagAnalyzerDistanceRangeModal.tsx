@@ -5,19 +5,6 @@ import { Button, Modal, Toast } from '@/design-system/components';
 import { resolveDistanceRange } from '@/utils/distanceRange';
 import type { AxisRange, RangeExpressionInput } from './rangeModel';
 
-type Props = {
-    title: string;
-    initialRangeInput: RangeExpressionInput;
-    currentRange: AxisRange;
-    fullRange: AxisRange;
-    onSwitchToTime?: () => void;
-    onApply: (rangeInput: RangeExpressionInput, concreteRange: AxisRange) => void;
-    onClose: () => void;
-};
-
-const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
-const INVALID_RANGE_MESSAGE = 'Invalid input - enter both From and To using numbers or first/last expressions, with From less than To.';
-
 export function TagAnalyzerDistanceRangeModal({
     title,
     initialRangeInput,
@@ -61,7 +48,7 @@ export function TagAnalyzerDistanceRangeModal({
     };
 
     return (
-        <Modal.Root isOpen onClose={onClose} onKeyDown={(event) => {
+        <Modal.Root data-testid="tag-analyzer-distance-range-dialog" isOpen onClose={onClose} onKeyDown={(event) => {
             if (event.key !== 'Enter' || (event.target as HTMLElement)?.tagName === 'BUTTON') return;
             event.preventDefault();
             apply();
@@ -71,13 +58,13 @@ export function TagAnalyzerDistanceRangeModal({
                     <MaterialIcon name="straighten" size={16} />
                     {title}
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="close-button" />
             </Modal.Header>
             <Modal.Body>
                 {onSwitchToTime && (
                     <Button.Group>
-                        <Button size="sm" variant="ghost" onClick={onSwitchToTime}>Time</Button>
-                        <Button size="sm" variant="secondary" aria-pressed="true">Distance</Button>
+                        <Button data-testid="kind-time" size="sm" variant="ghost" onClick={onSwitchToTime}>Time</Button>
+                        <Button data-testid="kind-distance" size="sm" variant="secondary" aria-pressed="true">Distance</Button>
                     </Button.Group>
                 )}
                 <DistanceRangeTab
@@ -94,9 +81,24 @@ export function TagAnalyzerDistanceRangeModal({
                 />
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Confirm onClick={apply}>Apply</Modal.Confirm>
-                <Modal.Cancel>Cancel</Modal.Cancel>
+                <Modal.Confirm data-testid="apply-button" onClick={apply}>Apply</Modal.Confirm>
+                <Modal.Cancel data-testid="cancel-button">Cancel</Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );
 }
+
+// -------------------- Local --------------------
+
+type Props = {
+    title: string;
+    initialRangeInput: RangeExpressionInput;
+    currentRange: AxisRange;
+    fullRange: AxisRange;
+    onSwitchToTime?: () => void;
+    onApply: (rangeInput: RangeExpressionInput, concreteRange: AxisRange) => void;
+    onClose: () => void;
+};
+
+const EMPTY_RANGE_INPUT: RangeExpressionInput = { start: '', end: '' };
+const INVALID_RANGE_MESSAGE = 'Invalid input - enter both From and To using numbers or first/last expressions, with From less than To.';

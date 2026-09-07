@@ -115,8 +115,6 @@ export type PanelInfo = {
 
 export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 
-const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
-const DEFAULT_SAMPLING_VALUE = 0.01;
 export const PANEL_DISPLAY_PRESETS = {
     Line: { showPoint: true, pointRadius: 0, fill: 0, stroke: 1 },
     Zone: { showPoint: false, pointRadius: 0, fill: 0.15, stroke: 1 },
@@ -176,24 +174,6 @@ export function createNewPanelInfo(
     };
 }
 
-function createYAxis(zeroBase: boolean): PanelYAxis {
-    return {
-        zeroBase,
-        showTickline: true,
-        valueRange: { ...AUTO_VALUE_RANGE },
-        rawValueRange: { ...AUTO_VALUE_RANGE },
-        upperControlLimit: { enabled: false, value: 0 },
-        lowerControlLimit: { enabled: false, value: 0 },
-    };
-}
-
-let runtimePanelKeyCounter = 0;
-
-function createPanelIndexKey(): string {
-    runtimePanelKeyCounter += 1;
-    return globalThis.crypto?.randomUUID?.() ?? `panel-${runtimePanelKeyCounter}`;
-}
-
 export function ensureUniquePanelKeys(panels: PanelInfo[]): PanelInfo[] {
     const usedPanelKeys = new Set<string>();
     const nextPanels = panels.map((panel) => {
@@ -211,4 +191,27 @@ export function ensureUniquePanelKeys(panels: PanelInfo[]): PanelInfo[] {
     return nextPanels.some((panel, index) => panel !== panels[index])
         ? nextPanels
         : panels;
+}
+
+// -------------------- Local --------------------
+
+const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
+const DEFAULT_SAMPLING_VALUE = 0.01;
+
+function createYAxis(zeroBase: boolean): PanelYAxis {
+    return {
+        zeroBase,
+        showTickline: true,
+        valueRange: { ...AUTO_VALUE_RANGE },
+        rawValueRange: { ...AUTO_VALUE_RANGE },
+        upperControlLimit: { enabled: false, value: 0 },
+        lowerControlLimit: { enabled: false, value: 0 },
+    };
+}
+
+let runtimePanelKeyCounter = 0;
+
+function createPanelIndexKey(): string {
+    runtimePanelKeyCounter += 1;
+    return globalThis.crypto?.randomUUID?.() ?? `panel-${runtimePanelKeyCounter}`;
 }

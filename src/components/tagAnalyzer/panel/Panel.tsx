@@ -1,10 +1,7 @@
 import { memo, useEffect, useRef, useState, type MouseEvent } from 'react';
-import PanelChart, {
-    ANNOTATION_INVALID_TARGET_MESSAGE,
-    PanelOverlayCursorHint,
-    type PanelChartHandle,
-    useChartAreaWidthObserver,
-} from '../chart/PanelChart';
+import PanelChart from '../chart/PanelChart';
+import { PanelOverlayMode, type PanelChartHandle } from '../chart/chartInteraction';
+import { useChartAreaWidthObserver } from '../chart/useChartAreaWidthObserver';
 import { Toast } from '@/design-system/components';
 import { PanelFooter } from './internal/PanelFooter';
 import { PanelHeader } from './internal/PanelHeader';
@@ -14,6 +11,10 @@ import {
     usePanelRangeDialog,
 } from './internal/PanelRangeDialog';
 import { PanelSurfaceLayer } from './internal/PanelSurfaceLayer';
+import {
+    ANNOTATION_INVALID_TARGET_MESSAGE,
+    PanelCursorHint,
+} from './internal/PanelCursorHint';
 import PanelEditor from './editor/PanelEditor';
 import { SelectionSummaryPopover } from '../tools/AnalysisModals';
 import { buildSelectionSummaryPayload } from '../tools/analysisModel';
@@ -39,26 +40,7 @@ import {
     type PanelDataIssue,
 } from './internal/panelData';
 import { usePanelInteraction } from './internal/panelInteraction';
-import { PanelOverlayMode } from '../chart/chartRuntime';
 import './Panel.scss';
-
-type PanelProps = {
-    panelInfo: PanelInfo;
-    rangeState: ResolvedRangeState | undefined;
-    broadcastRequests: PanelBroadcastRequests;
-    isActive: boolean;
-    hasUnsavedBoardChanges: boolean;
-    rollupTableList: RollupTableMap;
-    onPanelRangeStateChange: (
-        panelKey: string,
-        rangeState: ResolvedRangeState,
-    ) => void;
-    onBroadcastError: (broadcastKey: string, message: string) => void;
-    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onSetGlobalRange: (axisKind: AxisKind, globalRange: RangeState) => void;
-    onDeletePanel: (panelKey: string) => void;
-    onToggleOverlap: (panelKey: string) => void;
-};
 
 export default memo(function Panel({
     panelInfo,
@@ -77,7 +59,9 @@ export default memo(function Panel({
     const isRaw = panelInfo.mode.isRaw;
     const isOverlapSelected = panelInfo.isOverlapSelected;
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
+    const panelRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
+    const hoveredMainSeriesNameRef = useRef<string | undefined>();
     const [isEditorOpen, setEditorOpen] = useState(false);
 
     const rangeRuntime = usePanelRangeRuntime({
@@ -108,8 +92,6 @@ export default memo(function Panel({
         activeSurface,
         draftHighlight,
         selectionSummary,
-        overlayCursorHint,
-        hoveredMainSeriesName,
     } = interaction.state;
     const {
         toggleOverlay,
@@ -123,14 +105,11 @@ export default memo(function Panel({
         dismissSurface,
         openSelection,
         closeSelection,
-        showCursorHint,
-        setHoveredSeries,
-        clearCursorHint,
     } = interaction.actions;
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
 
     const axisKind = getSeriesListAxisKind(panelInfo.query.tagSet);
-    const panelData = usePanelData({
+    const { main, navigator, rawLimitRange, issue } = usePanelData({
         panelInfo,
         isActive,
         rangeState,
@@ -138,26 +117,17 @@ export default memo(function Panel({
         rollupTables: rollupTableList,
         dataRefreshVersion,
     });
-    const {
-        main,
-        navigator,
-        rawLimitRange,
-        issue,
-    } = panelData;
     useEffect(() => {
         if (rangeState && rawLimitRange) {
             onRawLimitRange(rangeState.range, rawLimitRange);
         }
     }, [onRawLimitRange, rangeState, rawLimitRange]);
     const mainChartData = main.series;
-    const navigatorChartData = navigator.series;
     const renderRange = rawLimitRange ?? rangeState?.range;
-    const displayNotice = getPanelDataIssueMessage(issue);
     const hasMixedXAxisKinds =
         axisKind === undefined && panelInfo.query.tagSet.length > 0;
     const isNumericXAxis = axisKind === 'numeric';
     const renderMainRange = renderRange?.mainRange;
-    const renderNavigatorRange = renderRange?.navigatorRange;
     const rangeDialog = usePanelRangeDialog({
         rangeState,
         renderRange,
@@ -165,12 +135,6 @@ export default memo(function Panel({
         onMainRangeChange,
         onNavigatorRangeChange,
     });
-    const rangeActions = {
-        setMainRange: onMainRangeChange,
-        shiftMainRangeLeft: () => onRangeButtonAction('shift-main-left'),
-        shiftMainRangeRight: () => onRangeButtonAction('shift-main-right'),
-    };
-
     function applyEditedPanelConfig(editorConfig: PanelInfo): void {
         onApplyPanelInfo(editorConfig);
         onReloadAfterEditorSave(editorConfig);
@@ -185,7 +149,6 @@ export default memo(function Panel({
         return sChartRect;
     }
 
-    const isOverlayModeActive = overlayMode !== PanelOverlayMode.NO_OVERLAY;
     const setGlobalRangeRequest = resolveSetGlobalRangeRequest(
         panelInfo,
         main.status === 'ready',
@@ -297,36 +260,10 @@ export default memo(function Panel({
         );
     }
 
-    const chartMarkupHandlers = {
-        onOpenCreateAnnotation: beginAnnotationCreate,
-        onActivateHighlightEditor: beginHighlightEdit,
-        onActivateAnnotationEditor: beginAnnotationEdit,
-    };
-
     function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
         event.stopPropagation();
         showContextMenu({ x: event.clientX, y: event.clientY });
-    }
-
-    function isPointInsideMainChart(clientX: number, clientY: number): boolean {
-        return panelChartApiRef.current?.isPointInsideMainGrid(clientX, clientY) === true;
-    }
-
-    function handlePanelMouseMove(event: MouseEvent<HTMLDivElement>): void {
-        if (!isOverlayModeActive) {
-            return;
-        }
-
-        const sPanelRect = event.currentTarget.getBoundingClientRect();
-
-        showCursorHint({
-            x: event.clientX - sPanelRect.left,
-            y: event.clientY - sPanelRect.top,
-            isValidTarget: isPointInsideMainChart(event.clientX, event.clientY),
-            hoveredMainSeriesName,
-            overlayMode,
-        });
     }
 
     function handlePanelClickCapture(event: MouseEvent<HTMLDivElement>): void {
@@ -338,30 +275,33 @@ export default memo(function Panel({
             return;
         }
 
-        if (isPointInsideMainChart(event.clientX, event.clientY)) {
+        if (panelChartApiRef.current?.isPointInsideMainGrid(event.clientX, event.clientY) === true) {
             return;
         }
 
         Toast.error(ANNOTATION_INVALID_TARGET_MESSAGE, undefined);
     }
 
-    const sPanelTestIdKey = encodeURIComponent(panelInfo.key);
-
     return (
         <div
-            data-testid={`panel-${sPanelTestIdKey}`}
+            ref={panelRef}
+            data-testid={`panel-${encodeURIComponent(panelInfo.key)}`}
             className="panel-form"
             role="region"
             aria-label={`${panelInfo.title} panel`}
             style={{ border: `0.5px solid ${isOverlapSelected ? '#FDB532' : '#454545'}` }}
             onContextMenu={handlePanelContextMenu}
-            onMouseMove={handlePanelMouseMove}
-            onMouseLeave={clearCursorHint}
+            onMouseLeave={() => {
+                hoveredMainSeriesNameRef.current = undefined;
+            }}
             onClickCapture={handlePanelClickCapture}
         >
-            {isOverlayModeActive && (
-                <PanelOverlayCursorHint hint={overlayCursorHint} />
-            )}
+            <PanelCursorHint
+                panelRef={panelRef}
+                panelChartApiRef={panelChartApiRef}
+                overlayMode={overlayMode}
+                hoveredMainSeriesNameRef={hoveredMainSeriesNameRef}
+            />
             <PanelHeader
                 state={panelHeaderState}
                 onAction={handlePanelAction}
@@ -388,30 +328,39 @@ export default memo(function Panel({
                     overlayMode={overlayMode}
                     data={{
                         chartData: mainChartData,
-                        navigatorChartData,
+                        navigatorChartData: navigator.series,
                     }}
                     rangeState={renderRange}
                     isLoading={main.status === 'loading'}
-                    displayNotice={displayNotice}
+                    displayNotice={getPanelDataIssueMessage(issue)}
                     handlers={{
-                        rangeActions,
-                        markupHandlers: chartMarkupHandlers,
-                        onHoveredMainSeriesChange: setHoveredSeries,
+                        rangeActions: {
+                            setMainRange: onMainRangeChange,
+                            shiftMainRangeLeft: () => onRangeButtonAction('shift-main-left'),
+                            shiftMainRangeRight: () => onRangeButtonAction('shift-main-right'),
+                        },
+                        markupHandlers: {
+                            onOpenCreateAnnotation: beginAnnotationCreate,
+                            onActivateHighlightEditor: beginHighlightEdit,
+                            onActivateAnnotationEditor: beginAnnotationEdit,
+                        },
+                        onHoveredMainSeriesChange: (seriesName) => {
+                            hoveredMainSeriesNameRef.current = seriesName;
+                        },
                         onSelection: handleSelection,
                     }}
                 />
                 <PanelFooter
                     pShowLegend={panelInfo.display.showLegend}
-                    pNavigatorRange={renderNavigatorRange}
+                    pNavigatorRange={renderRange?.navigatorRange}
                     pIsLoading={navigator.status === 'loading'}
                     pOnRangeButtonPress={onRangeButtonAction}
                     pIsNumericXAxis={isNumericXAxis}
                     pOnOpenNavigatorRangeModal={rangeDialog.openNavigator}
                 />
             </div>
-            {renderRange && (
+            {isEditorOpen && renderRange && (
                 <PanelEditor
-                    pIsOpen={isEditorOpen}
                     pOnApplyEditorConfig={applyEditedPanelConfig}
                     pOnClose={() => setEditorOpen(false)}
                     pPanelInfo={panelInfo}
@@ -447,6 +396,26 @@ export default memo(function Panel({
         </div>
     );
 });
+
+// -------------------- Local --------------------
+
+type PanelProps = {
+    panelInfo: PanelInfo;
+    rangeState: ResolvedRangeState | undefined;
+    broadcastRequests: PanelBroadcastRequests;
+    isActive: boolean;
+    hasUnsavedBoardChanges: boolean;
+    rollupTableList: RollupTableMap;
+    onPanelRangeStateChange: (
+        panelKey: string,
+        rangeState: ResolvedRangeState,
+    ) => void;
+    onBroadcastError: (broadcastKey: string, message: string) => void;
+    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
+    onSetGlobalRange: (axisKind: AxisKind, globalRange: RangeState) => void;
+    onDeletePanel: (panelKey: string) => void;
+    onToggleOverlap: (panelKey: string) => void;
+};
 
 function getPanelDataIssueMessage(
     issue: PanelDataIssue | undefined,

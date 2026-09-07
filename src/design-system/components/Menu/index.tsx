@@ -84,12 +84,13 @@ const MenuTrigger = ({ children, className }: MenuTriggerProps) => {
 
 // Content Component (Portal-rendered menu)
 interface MenuContentProps {
+    'data-testid'?: string;
     children: ReactNode;
     className?: string;
     align?: 'left' | 'right';
 }
 
-const MenuContent = ({ children, className, align = 'left' }: MenuContentProps) => {
+const MenuContent = ({ children, className, align = 'left', 'data-testid': testId }: MenuContentProps) => {
     const { isOpen, setIsOpen, triggerRef, containerRef } = useMenuContext();
     const menuRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -154,7 +155,7 @@ const MenuContent = ({ children, className, align = 'left' }: MenuContentProps) 
     if (!isOpen) return null;
 
     return createPortal(
-        <div ref={menuRef} className={`${styles['menu__content']} ${className ?? ''}`} style={{ position: 'absolute', top: `${position.top}px`, left: `${position.left}px` }}>
+        <div ref={menuRef} data-testid={testId} className={`${styles['menu__content']} ${className ?? ''}`} style={{ position: 'absolute', top: `${position.top}px`, left: `${position.left}px` }}>
             {children}
         </div>,
         document.body
@@ -163,6 +164,7 @@ const MenuContent = ({ children, className, align = 'left' }: MenuContentProps) 
 
 // Item Component
 interface MenuItemProps {
+    'data-testid'?: string;
     children: ReactNode;
     onClick?: () => void;
     icon?: ReactNode;
@@ -171,7 +173,7 @@ interface MenuItemProps {
     className?: string;
 }
 
-const MenuItem = ({ children, onClick, icon, disabled = false, className, rightIcon }: MenuItemProps) => {
+const MenuItem = ({ children, onClick, icon, disabled = false, className, rightIcon, 'data-testid': testId }: MenuItemProps) => {
     const { setIsOpen } = useMenuContext();
 
     const handleClick = () => {
@@ -183,7 +185,7 @@ const MenuItem = ({ children, onClick, icon, disabled = false, className, rightI
     const itemClasses = [styles['menu__item'], disabled && styles['menu__item--disabled'], className].filter(Boolean).join(' ');
 
     return (
-        <button type="button" className={itemClasses} onClick={handleClick} disabled={disabled}>
+        <button type="button" data-testid={testId} className={itemClasses} onClick={handleClick} disabled={disabled}>
             {icon && <span className={styles['menu__item-icon']}>{icon}</span>}
             <span className={styles['menu__item-label']}>{children}</span>
             {rightIcon && <span className={styles['menu__item-icon']}>{rightIcon}</span>}

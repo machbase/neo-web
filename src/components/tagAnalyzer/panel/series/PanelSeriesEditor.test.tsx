@@ -161,8 +161,10 @@ describe('PanelSeriesEditor', () => {
         await waitFor(() => expect(database).toHaveValue('MACHBASEDB'));
         await waitFor(() => expect(table).toHaveValue('SYS_FIRST'));
         expect(user).toHaveValue('SYS');
-        expect(time).toHaveValue('TIME_SYS (DateTime)');
-        expect(value).toHaveValue('VALUE_SYS (No Rollup)');
+        await waitFor(() => {
+            expect(time).toHaveValue('TIME_SYS (DateTime)');
+            expect(value).toHaveValue('VALUE_SYS (No Rollup)');
+        });
 
         fireEvent.focus(database);
         fireEvent.change(database, { target: { value: 'FACTORY_A' } });

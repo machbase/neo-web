@@ -191,66 +191,6 @@ export function buildCalculatedSeriesBoundaryBucketSql(
     ]);
 }
 
-type RawSeriesSqlContext = {
-    usesNumericTime: boolean;
-    selectBodySql: string;
-    hintTableName: string;
-    forwardOrderBySql: string;
-    beforeQuerySql: string;
-    afterQuerySql: string;
-};
-
-function createRawSeriesSqlContext(
-    tableName: SqlIdentifierPath,
-    tagName: string,
-    columns: ValidatedPanelSeriesSourceColumns,
-    timeRange: AxisRange,
-    useOrderBy: boolean,
-): RawSeriesSqlContext {
-    const usesNumericTime: boolean =
-        isNumericBaseTimeSourceColumns(columns);
-    const outputTimeSql: string = usesNumericTime
-        ? columns.time
-        : toQueryResultMillisecondsSql(columns.time);
-    const outputValueSql: string = jsonValueFieldToNumericSql(
-        columns.value,
-        columns.jsonKey,
-    );
-    const hintTableName: string = tableName.slice(tableName.lastIndexOf('.') + 1);
-    const selectBodySql: string = joinSqlLines([
-        `${outputTimeSql} AS mTime,`,
-        `    ${outputValueSql} AS mValue`,
-        `FROM ${tableName}`,
-        `WHERE ${columns.name} = ${buildSqlStringLiteral(tagName)}`,
-    ]);
-    const startTimeSql: string = toQueryTimeLiteralSql(
-        timeRange.start,
-        usesNumericTime,
-    );
-    const endTimeSql: string = toQueryTimeLiteralSql(
-        timeRange.end,
-        usesNumericTime,
-    );
-    const forwardOrderBySql: string = useOrderBy ? 'ORDER BY mTime ASC' : '';
-
-    return {
-        usesNumericTime,
-        selectBodySql,
-        hintTableName,
-        forwardOrderBySql,
-        beforeQuerySql: joinSqlLines([
-            `SELECT /*+ SCAN_BACKWARD(${hintTableName}) */ ${selectBodySql}`,
-            `  AND ${columns.time} < ${startTimeSql}`,
-            'LIMIT 1',
-        ]),
-        afterQuerySql: joinSqlLines([
-            `SELECT /*+ SCAN_FORWARD(${hintTableName}) */ ${selectBodySql}`,
-            `  AND ${columns.time} > ${endTimeSql}`,
-            'LIMIT 1',
-        ]),
-    };
-}
-
 export function buildRawSeriesSql(
     tableName: SqlIdentifierPath,
     tagName: string,
@@ -405,6 +345,68 @@ export function buildSeriesFullRangeSql(
         `WHERE ${tagColumn} = ${tagNameSql}`,
         `  AND ${timeColumn} IS NOT NULL`,
     ])];
+}
+
+// -------------------- Local --------------------
+
+type RawSeriesSqlContext = {
+    usesNumericTime: boolean;
+    selectBodySql: string;
+    hintTableName: string;
+    forwardOrderBySql: string;
+    beforeQuerySql: string;
+    afterQuerySql: string;
+};
+
+function createRawSeriesSqlContext(
+    tableName: SqlIdentifierPath,
+    tagName: string,
+    columns: ValidatedPanelSeriesSourceColumns,
+    timeRange: AxisRange,
+    useOrderBy: boolean,
+): RawSeriesSqlContext {
+    const usesNumericTime: boolean =
+        isNumericBaseTimeSourceColumns(columns);
+    const outputTimeSql: string = usesNumericTime
+        ? columns.time
+        : toQueryResultMillisecondsSql(columns.time);
+    const outputValueSql: string = jsonValueFieldToNumericSql(
+        columns.value,
+        columns.jsonKey,
+    );
+    const hintTableName: string = tableName.slice(tableName.lastIndexOf('.') + 1);
+    const selectBodySql: string = joinSqlLines([
+        `${outputTimeSql} AS mTime,`,
+        `    ${outputValueSql} AS mValue`,
+        `FROM ${tableName}`,
+        `WHERE ${columns.name} = ${buildSqlStringLiteral(tagName)}`,
+    ]);
+    const startTimeSql: string = toQueryTimeLiteralSql(
+        timeRange.start,
+        usesNumericTime,
+    );
+    const endTimeSql: string = toQueryTimeLiteralSql(
+        timeRange.end,
+        usesNumericTime,
+    );
+    const forwardOrderBySql: string = useOrderBy ? 'ORDER BY mTime ASC' : '';
+
+    return {
+        usesNumericTime,
+        selectBodySql,
+        hintTableName,
+        forwardOrderBySql,
+        beforeQuerySql: joinSqlLines([
+            `SELECT /*+ SCAN_BACKWARD(${hintTableName}) */ ${selectBodySql}`,
+            `  AND ${columns.time} < ${startTimeSql}`,
+            'LIMIT 1',
+        ]),
+        afterQuerySql: joinSqlLines([
+            `SELECT /*+ SCAN_FORWARD(${hintTableName}) */ ${selectBodySql}`,
+            `  AND ${columns.time} > ${endTimeSql}`,
+            'LIMIT 1',
+        ]),
+    };
 }
 
 function buildSeriesBoundarySql(

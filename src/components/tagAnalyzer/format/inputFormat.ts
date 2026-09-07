@@ -2,9 +2,6 @@ import moment from 'moment';
 import type { AxisKind } from '../range/rangeModel';
 
 export const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss.SSS';
-const LOCAL_DATE_TIME_PATTERN =
-    /^(\d{4})(?:-(\d{0,2})(?:-(\d{0,2})(?:[ T](\d{0,2})(?::(\d{0,2})(?::(\d{0,2})(?:\.(\d{0,3}))?)?)?)?)?)?$/;
-const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
 
 export function formatRangeInputValue(
     value: number,
@@ -94,3 +91,9 @@ export function parseRangeInputValue(
     const timestamp = moment(text, moment.ISO_8601, true);
     return timestamp.isValid() ? timestamp.valueOf() : undefined;
 }
+
+// -------------------- Local --------------------
+
+const LOCAL_DATE_TIME_PATTERN =
+    /^(\d{4})(?:-(\d{0,2})(?:-(\d{0,2})(?:[ T](\d{0,2})(?::(\d{0,2})(?::(\d{0,2})(?:\.(\d{0,3}))?)?)?)?)?)?$/;
+const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;

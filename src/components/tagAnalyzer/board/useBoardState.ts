@@ -11,11 +11,6 @@ import {
     type ResolvedRangeState,
 } from '../range/rangeModel';
 
-type BoardRuntimeState = {
-    info: BoardInfo;
-    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
-};
-
 export function useBoardState(boardInfo: BoardInfo) {
     const [state, setState] = useState<BoardRuntimeState>(() =>
         createBoardRuntimeState(boardInfo),
@@ -119,6 +114,13 @@ export function useBoardState(boardInfo: BoardInfo) {
         commands,
     };
 }
+
+// -------------------- Local --------------------
+
+type BoardRuntimeState = {
+    info: BoardInfo;
+    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
+};
 
 function createBoardRuntimeState(
     boardInfo: BoardInfo,

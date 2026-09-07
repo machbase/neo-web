@@ -1,14 +1,11 @@
 import {
     Button,
     DatePicker,
-    Page,
-    QuickTimeRange,
 } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import DistanceRangeTab, {
     DistanceQuickWindows,
 } from '@/components/modal/DistanceRangeTab';
-import { useLayoutEffect } from 'react';
 import type { PanelInfo } from '../../panelModel';
 import {
     isRangeExpressionEmpty,
@@ -17,54 +14,33 @@ import {
     type RangeExpressionInput,
 } from '../../../range/rangeModel';
 import { TIME_RANGE_PRESETS } from '../../../range/rangePresets';
-import { resolveRangeInput } from '../../../range/rangeInput';
+import { Inline, Section, Stack, Text } from '../../../ui/Presentation';
+import { QuickTimeRange } from '../../../ui/QuickTimeRange';
 
 import styles from '../PanelEditorTab.module.scss';
 
-const EditorTimeTab = ({
+export default function EditorTimeTab({
     pTimeConfig,
     pAxisKind,
     pDataRange,
-    pMainRange,
+    pIsValid,
     pDataValidationMessage,
     pOnChangeTimeConfig,
-    pReportValidity,
     pIsActive,
 }: {
     pTimeConfig: PanelInfo['time'];
     pAxisKind: AxisKind | undefined;
     pDataRange: AxisRange;
-    pMainRange: AxisRange;
+    pIsValid: boolean;
     pDataValidationMessage?: string;
     pOnChangeTimeConfig: (config: PanelInfo['time']) => void;
-    pReportValidity: (
-        tab: 'Main Range',
-        isValid: boolean,
-        message?: string,
-    ) => void;
     pIsActive: boolean;
-}) => {
+}) {
     const sIsNumericXAxis = pAxisKind === 'numeric';
     const sRangeInput = pTimeConfig.rangeInput;
-    const sIsValid =
-        !pAxisKind ||
-        isRangeExpressionEmpty(sRangeInput) ||
-        resolveRangeInput(
-            sRangeInput,
-            pAxisKind,
-            pDataRange,
-            pMainRange,
-        ) !== undefined;
-    useLayoutEffect(() => {
-        pReportValidity(
-            'Main Range',
-            sIsValid,
-            sIsValid ? undefined : 'Enter a valid range.',
-        );
-    }, [pReportValidity, sIsValid]);
     if (!pIsActive) return null;
     if (!pAxisKind) {
-        return <span className={styles.fieldError}>{pDataValidationMessage}</span>;
+        return <Text variant="caption" tone="danger">{pDataValidationMessage}</Text>;
     }
     function applyRangeInput(rangeInput: RangeExpressionInput): void {
         pOnChangeTimeConfig({ ...pTimeConfig, rangeInput });
@@ -87,28 +63,19 @@ const EditorTimeTab = ({
     const sRangeIsEmpty = isRangeExpressionEmpty(sRangeInput);
     // An empty custom range means the whole data extent. The highlighted main-chart window is only
     // the current viewport and must not become the editor's apparent default range.
-    const sDistanceFrom = sRangeInput.start.trim() || pDataRange.start;
-    const sDistanceTo = sRangeInput.end.trim() || pDataRange.end;
 
     return (
-        <>
-            <Page.ContentBlock pHoverNone style={{ padding: 0, margin: 0 }}>
-                <Page.ContentTitle>
-                    {sIsNumericXAxis
-                        ? 'Custom distance range'
-                        : 'Custom time range'}
-                </Page.ContentTitle>
-            </Page.ContentBlock>
-            <Page.DpRow style={{ alignItems: 'start', padding: 0 }}>
-                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+        <Section title={sIsNumericXAxis ? 'Custom distance range' : 'Custom time range'}>
+            <Inline gap={12} align="start" wrap>
+                <Stack gap={8} className={styles.timeConfiguredSection}>
                     {sIsNumericXAxis ? (
                         <DistanceRangeTab
                             pBounds={{
                                 min: pDataRange.start,
                                 max: pDataRange.end,
                             }}
-                            pFrom={sDistanceFrom}
-                            pTo={sDistanceTo}
+                            pFrom={sRangeInput.start.trim() || pDataRange.start}
+                            pTo={sRangeInput.end.trim() || pDataRange.end}
                             pOnChange={setDistanceRangeValue}
                             pOnResetToFull={() =>
                                 applyRangeInput({ start: '', end: '' })
@@ -121,60 +88,45 @@ const EditorTimeTab = ({
                         />
                     ) : (
                         <>
-                            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                            {(['start', 'end'] as const).map((field) => (
                                 <DatePicker
-                                    pLabel="From"
+                                    key={field}
+                                    pTestId={`range-${field}`}
+                                    pLabel={field === 'start' ? 'From' : 'To'}
                                     pTopPixel={32}
-                                    pTimeValue={sRangeInput.start}
+                                    pTimeValue={sRangeInput[field]}
                                     onChange={(event: any) =>
-                                        setRangeValue(
-                                            'start',
-                                            event.target.value,
-                                        )
+                                        setRangeValue(field, event.target.value)
                                     }
                                     pSetApply={(value: string) =>
-                                        setRangeValue('start', value)
+                                        setRangeValue(field, value)
                                     }
                                 />
-                            </Page.ContentBlock>
-                            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                                <DatePicker
-                                    pLabel="To"
-                                    pTopPixel={32}
-                                    pTimeValue={sRangeInput.end}
-                                    onChange={(event: any) =>
-                                        setRangeValue('end', event.target.value)
+                            ))}
+                            <Inline justify="end">
+                                <Button
+                                    data-testid="range-clear"
+                                    variant="ghost"
+                                    disabled={sRangeIsEmpty}
+                                    onClick={() =>
+                                        applyRangeInput({ start: '', end: '' })
                                     }
-                                    pSetApply={(value: string) =>
-                                        setRangeValue('end', value)
-                                    }
-                                />
-                            </Page.ContentBlock>
-                            <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                                <Page.DpRow style={{ justifyContent: 'end' }}>
-                                    <Button
-                                        variant="ghost"
-                                        disabled={sRangeIsEmpty}
-                                        onClick={() =>
-                                            applyRangeInput({ start: '', end: '' })
-                                        }
-                                    >
-                                        <VscTrash size={16} />
-                                        <span>Clear</span>
-                                    </Button>
-                                </Page.DpRow>
-                            </Page.ContentBlock>
+                                >
+                                    <VscTrash size={16} />
+                                    <span>Clear</span>
+                                </Button>
+                            </Inline>
                         </>
                     )}
-                    {!sIsValid && (
-                        <span className={styles.fieldError}>
+                    {!pIsValid && (
+                        <Text variant="caption" tone="danger">
                             {sIsNumericXAxis
                                 ? 'Enter both value boundaries in a valid order.'
                                 : 'Enter both range boundaries in a valid order.'}
-                        </span>
+                        </Text>
                     )}
-                </Page.ContentBlock>
-                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                </Stack>
+                <div className={styles.timeQuickSection}>
                     {sIsNumericXAxis ? (
                         <DistanceQuickWindows
                             pBounds={{
@@ -185,6 +137,7 @@ const EditorTimeTab = ({
                         />
                     ) : (
                         <QuickTimeRange
+                            layout="responsive"
                             options={TIME_RANGE_PRESETS}
                             onSelect={(option) => {
                                 const [start = '', end = ''] = option.value;
@@ -193,10 +146,8 @@ const EditorTimeTab = ({
                             title=""
                         />
                     )}
-                </Page.ContentBlock>
-            </Page.DpRow>
-        </>
+                </div>
+            </Inline>
+        </Section>
     );
-};
-
-export default EditorTimeTab;
+}

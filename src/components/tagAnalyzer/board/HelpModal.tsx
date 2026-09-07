@@ -24,10 +24,63 @@ import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { Modal } from '@/design-system/components';
 import type { ReactNode } from 'react';
+import { Inline, Stack, Text } from '../ui/Presentation';
 import './Board.scss';
 
+export function HelpModal({
+    onClose,
+}: {
+    onClose: () => void;
+}) {
+    return (
+        <Modal.Root
+            isOpen
+            onClose={onClose}
+            closeOnEscape
+            closeOnOutsideClick
+            data-testid="tag-analyzer-help-dialog"
+        >
+            <Modal.Header>
+                <Modal.Title>Help</Modal.Title>
+                <Modal.Close data-testid="tag-analyzer-help-close-button" />
+            </Modal.Header>
+            <Modal.Body>
+                <Stack gap={16} className="taz-help-modal">
+                    {HELP_SECTIONS.map((section) => (
+                        <Stack as="section" key={section.id} gap={8}>
+                            <Text as="h3" variant="title" tone="warning"
+                                data-testid={`tag-analyzer-help-${section.id}-heading`}
+                            >
+                                <Inline as="span">
+                                    <Inline as="span" justify="center" className="taz-help-modal__icon">{section.icon}</Inline>
+                                    {section.title}
+                                </Inline>
+                            </Text>
+                            <div className="taz-help-modal__item-grid">
+                                {section.items.map((item) => (
+                                    <div key={item.title} className="taz-help-modal__item">
+                                        <Inline as="span" justify="center" className="taz-help-modal__icon">
+                                            {item.icon}
+                                        </Inline>
+                                        <Stack as="span" gap={0}>
+                                            <Text variant="label" tone="secondary" weight="semibold">{item.title}</Text>
+                                            <Text tone="secondary">{item.description}</Text>
+                                        </Stack>
+                                    </div>
+                                ))}
+                            </div>
+                        </Stack>
+                    ))}
+                </Stack>
+            </Modal.Body>
+        </Modal.Root>
+    );
+}
+
+// -------------------- Local --------------------
+
 function iconPair(first: ReactNode, second: ReactNode) {
-    return <span className="taz-help-modal__icon-pair">{first}{second}</span>;
+    return <Inline as="span" gap={4}>{first}{second}</Inline>;
 }
 
 const HELP_SECTIONS = [
@@ -82,7 +135,7 @@ const HELP_SECTIONS = [
             {
                 title: 'Panel title',
                 description: 'Click the title text to rename the panel.',
-                icon: <span className="taz-help-modal__glyph taz-help-modal__glyph--text">T</span>,
+                icon: <Text variant="label" weight="semibold">T</Text>,
             },
             {
                 title: 'Visible range',
@@ -139,7 +192,7 @@ const HELP_SECTIONS = [
             {
                 title: 'RAW',
                 description: 'Switches between calculated interval data and raw rows.',
-                icon: <span className="taz-help-modal__glyph taz-help-modal__glyph--raw">RAW</span>,
+                icon: <Text variant="caption" weight="semibold">RAW</Text>,
             },
         ],
     },
@@ -180,56 +233,3 @@ const HELP_SECTIONS = [
         ],
     },
 ];
-
-export function HelpModal({
-    onClose,
-}: {
-    onClose: () => void;
-}) {
-    return (
-        <Modal.Root
-            isOpen
-            onClose={onClose}
-            closeOnEscape
-            closeOnOutsideClick
-            data-testid="tag-analyzer-help-dialog"
-        >
-            <Modal.Header>
-                <Modal.Title>Help</Modal.Title>
-                <Modal.Close data-testid="tag-analyzer-help-close-button" />
-            </Modal.Header>
-            <Modal.Body>
-                <div className="taz-help-modal">
-                    {HELP_SECTIONS.map((section) => (
-                        <section key={section.id} className="taz-help-modal__section">
-                            <h3
-                                className="taz-help-modal__section-title"
-                                data-testid={`tag-analyzer-help-${section.id}-heading`}
-                            >
-                                <span className="taz-help-modal__icon">{section.icon}</span>
-                                {section.title}
-                            </h3>
-                            <div className="taz-help-modal__item-grid">
-                                {section.items.map((item) => (
-                                    <div key={item.title} className="taz-help-modal__item">
-                                        <span className="taz-help-modal__icon">
-                                            {item.icon}
-                                        </span>
-                                        <span className="taz-help-modal__text">
-                                            <span className="taz-help-modal__title">
-                                                {item.title}
-                                            </span>
-                                            <span className="taz-help-modal__description">
-                                                {item.description}
-                                            </span>
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    ))}
-                </div>
-            </Modal.Body>
-        </Modal.Root>
-    );
-}

@@ -10,6 +10,62 @@ import {
 import { parseLoadedTaz } from './tazMigrations';
 import { isRangeExpressionEmpty } from '../range/rangeModel';
 
+export function isTazBoardSaved(boardInfo: BoardInfo): boolean {
+    if (typeof boardInfo.savedCode !== 'string') return false;
+
+    try {
+        const sSavedState: unknown = JSON.parse(boardInfo.savedCode);
+        return isTazBoardSnapshotSaved(boardInfo, sSavedState);
+    } catch {
+        return false;
+    }
+}
+
+export function loadTazBoard(
+    parsedTaz: unknown,
+    id: string,
+    name: string,
+    path: string,
+): BoardInfo {
+    const sLoadedBoardInfo = parseLoadedTaz(parsedTaz);
+    return createTazBoardSnapshot({
+        ...sLoadedBoardInfo,
+        id,
+        name,
+        path,
+        type: 'taz',
+        code: '',
+        loadWarning: getOutdatedTazFormatWarning(
+            sLoadedBoardInfo.version,
+            sLoadedBoardInfo.panels.length,
+        ),
+    });
+}
+
+export async function saveTazBoard(
+    boardInfo: BoardInfo,
+): Promise<BoardInfo | undefined> {
+    try {
+        const sSavedBoard = createTazBoardSnapshot({
+            ...boardInfo,
+            version: TAZ_FORMAT_VERSION,
+            code: '',
+            loadWarning: undefined,
+        });
+        const sDidSave = await tazFileApi.saveTazFile({
+            payload: encodeTazBoard(sSavedBoard),
+            directoryPath: boardInfo.path,
+            fileName: boardInfo.name,
+        });
+
+        return sDidSave ? sSavedBoard : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+// -------------------- Local --------------------
+
 type TazBoardSnapshotState = Pick<
     ReturnType<typeof encodeTazBoard>,
     'boardTimeRange' | 'boardNumericRange' | 'panels'
@@ -24,17 +80,6 @@ function createTazBoardSnapshot(boardInfo: BoardInfo): BoardInfo {
         ...boardInfo,
         savedCode: JSON.stringify(sSnapshotState),
     };
-}
-
-export function isTazBoardSaved(boardInfo: BoardInfo): boolean {
-    if (typeof boardInfo.savedCode !== 'string') return false;
-
-    try {
-        const sSavedState: unknown = JSON.parse(boardInfo.savedCode);
-        return isTazBoardSnapshotSaved(boardInfo, sSavedState);
-    } catch {
-        return false;
-    }
 }
 
 function isTazBoardSnapshotSaved(
@@ -107,47 +152,4 @@ function normalizeLegacyPanelSnapshot(panels: readonly unknown[]): unknown[] {
     return panels.map((panel) => isPlainObject(panel)
         ? { ...panel, isOverlapSelected: false }
         : panel);
-}
-
-export function loadTazBoard(
-    parsedTaz: unknown,
-    id: string,
-    name: string,
-    path: string,
-): BoardInfo {
-    const sLoadedBoardInfo = parseLoadedTaz(parsedTaz);
-    return createTazBoardSnapshot({
-        ...sLoadedBoardInfo,
-        id,
-        name,
-        path,
-        type: 'taz',
-        code: '',
-        loadWarning: getOutdatedTazFormatWarning(
-            sLoadedBoardInfo.version,
-            sLoadedBoardInfo.panels.length,
-        ),
-    });
-}
-
-export async function saveTazBoard(
-    boardInfo: BoardInfo,
-): Promise<BoardInfo | undefined> {
-    try {
-        const sSavedBoard = createTazBoardSnapshot({
-            ...boardInfo,
-            version: TAZ_FORMAT_VERSION,
-            code: '',
-            loadWarning: undefined,
-        });
-        const sDidSave = await tazFileApi.saveTazFile({
-            payload: encodeTazBoard(sSavedBoard),
-            directoryPath: boardInfo.path,
-            fileName: boardInfo.name,
-        });
-
-        return sDidSave ? sSavedBoard : undefined;
-    } catch {
-        return undefined;
-    }
 }

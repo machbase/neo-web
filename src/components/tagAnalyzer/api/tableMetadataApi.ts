@@ -28,11 +28,28 @@ import {
     joinSqlLines,
 } from './sql';
 
+export type TableColumn = {
+    name: string;
+    type: number;
+    flag: number;
+};
+
+export const tableMetadataApi = {
+    fetchRollupMetadata,
+    fetchTableNames,
+    fetchTableColumns,
+    fetchTags,
+    fetchJsonColumnPaths,
+};
+
+// -------------------- Local --------------------
+
 const ROLLUP_METADATA_REQUEST_FAILED_MESSAGE = 'Rollup metadata request failed.';
 const MALFORMED_ROLLUP_METADATA_MESSAGE =
     'Rollup metadata response contained malformed rows.';
 const ROLLUP_VERSION_STORAGE_KEY = 'V$ROLLUP_VER';
 const TABLE_LIST_REQUEST_FAILED_MESSAGE = 'Failed to fetch table names.';
+
 /** `M$SYS_TABLES.TYPE` for a tag table. Verified against a v8.7 catalogue. */
 const TAG_TABLE_TYPE = 6;
 const MALFORMED_TABLE_LIST_MESSAGE =
@@ -48,12 +65,6 @@ const JSON_PATH_REQUEST_FAILED_MESSAGE =
     'Failed to fetch JSON column paths.';
 const MALFORMED_JSON_PATH_MESSAGE =
     'JSON column response contained malformed rows.';
-
-export type TableColumn = {
-    name: string;
-    type: number;
-    flag: number;
-};
 
 type RollupMetadataRow = [
     userName: string,
@@ -300,14 +311,6 @@ async function fetchJsonColumnPaths(
         ),
     );
 }
-
-export const tableMetadataApi = {
-    fetchRollupMetadata,
-    fetchTableNames,
-    fetchTableColumns,
-    fetchTags,
-    fetchJsonColumnPaths,
-};
 
 function getConfiguredRollupVersion(): string | null {
     return typeof localStorage === 'undefined'

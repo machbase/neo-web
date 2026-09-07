@@ -18,21 +18,6 @@ export type ParsedNumericExpression =
     | { anchor: 'data_start'; offset: number }
     | { anchor: 'data_end'; offset: number };
 
-const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
-const RELATIVE_TIME_PATTERN =
-    /^([A-Za-z]+)(?:([+-])(\d+)(ms|s|m|h|d|w|M|y))?$/;
-const NUMERIC_EXPRESSION_PATTERN =
-    /^(first|last)(?:-((?:\d+\.?\d*)|(?:\.\d+)))?$/i;
-const TIME_UNIT_BY_PERSISTED_VALUE = new Map<string, TimeUnit>(
-    Object.values(TimeUnit).flatMap((unit) => [
-        [unit, unit] as const,
-        [formatTimeUnitShortCode(unit), unit] as const,
-    ]).concat([
-        ['second', TimeUnit.Second],
-        ['minute', TimeUnit.Minute],
-    ]),
-);
-
 export function decodePersistedTimeUnit(value: unknown): TimeUnit | undefined {
     return typeof value === 'string'
         ? TIME_UNIT_BY_PERSISTED_VALUE.get(value)
@@ -153,3 +138,20 @@ export function isValidTimeExpression(value: string): boolean {
         (anchor !== 'first' && operator === '+')
     );
 }
+
+// -------------------- Local --------------------
+
+const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+const RELATIVE_TIME_PATTERN =
+    /^([A-Za-z]+)(?:([+-])(\d+)(ms|s|m|h|d|w|M|y))?$/;
+const NUMERIC_EXPRESSION_PATTERN =
+    /^(first|last)(?:-((?:\d+\.?\d*)|(?:\.\d+)))?$/i;
+const TIME_UNIT_BY_PERSISTED_VALUE = new Map<string, TimeUnit>(
+    Object.values(TimeUnit).flatMap((unit) => [
+        [unit, unit] as const,
+        [formatTimeUnitShortCode(unit), unit] as const,
+    ]).concat([
+        ['second', TimeUnit.Second],
+        ['minute', TimeUnit.Minute],
+    ]),
+);

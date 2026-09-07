@@ -176,13 +176,11 @@ const VALID_TAB_CASES: Array<{
 function createEditor(
     panelInfo: PanelInfo,
     onApplyEditorConfig = jest.fn(),
-    isOpen = true,
 ) {
     return (
         <PanelEditor
             pOnApplyEditorConfig={onApplyEditorConfig}
             pOnClose={jest.fn()}
-            pIsOpen={isOpen}
             pPanelInfo={panelInfo}
             pHasUnsavedBoardChanges={false}
             pMainRange={{ start: 0, end: 10 }}
@@ -238,7 +236,8 @@ describe('PanelEditor validation', () => {
         expect(titleInput).not.toBeInTheDocument();
         expect(screen.getByLabelText('Show X-axis tick marks')).toBeVisible();
 
-        view.rerender(createEditor(panelInfo, jest.fn(), false));
+        view.rerender(<></>);
+        view.rerender(createEditor(panelInfo));
 
         expect(screen.getByTestId('editor-title-input')).toBeInTheDocument();
         expect(
@@ -378,7 +377,7 @@ describe('PanelEditor validation', () => {
         const onApply = jest.fn();
         const view = renderEditor(validPanel, onApply);
 
-        view.rerender(createEditor(invalidPanel, onApply, false));
+        view.rerender(<></>);
         view.rerender(createEditor(invalidPanel, onApply));
         changeTitle('Invalid panel');
 
@@ -388,7 +387,7 @@ describe('PanelEditor validation', () => {
         );
         expect(screen.getByTestId('editor-apply')).toBeDisabled();
 
-        view.rerender(createEditor(validPanel, onApply, false));
+        view.rerender(<></>);
         view.rerender(createEditor(validPanel, onApply));
         changeTitle('Valid panel');
 

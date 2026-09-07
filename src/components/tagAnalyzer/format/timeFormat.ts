@@ -4,6 +4,20 @@ import {
     type IntervalOption,
 } from '../range/intervalResolver';
 
+export function formatTimeUnitShortCode(unit: TimeUnit): string {
+    return TIME_UNIT_SHORT_CODES[unit];
+}
+
+export function formatTimeInterval(interval: IntervalOption): string {
+    return `${interval.IntervalValue}${interval.IntervalType}`;
+}
+
+export function formatAbsoluteTime(timestamp: number): string {
+    return moment(timestamp).format(DATE_TIME_FORMAT);
+}
+
+// -------------------- Local --------------------
+
 const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 const TIME_UNIT_SHORT_CODES: Record<TimeUnit, string> = {
@@ -16,15 +30,3 @@ const TIME_UNIT_SHORT_CODES: Record<TimeUnit, string> = {
     [TimeUnit.Month]: 'M',
     [TimeUnit.Year]: 'y',
 };
-
-export function formatTimeUnitShortCode(unit: TimeUnit): string {
-    return TIME_UNIT_SHORT_CODES[unit];
-}
-
-export function formatTimeInterval(interval: IntervalOption): string {
-    return `${interval.IntervalValue}${interval.IntervalType}`;
-}
-
-export function formatAbsoluteTime(timestamp: number): string {
-    return moment(timestamp).format(DATE_TIME_FORMAT);
-}

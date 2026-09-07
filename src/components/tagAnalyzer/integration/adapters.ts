@@ -26,22 +26,6 @@ import {
 } from '../persistence/serializeRange';
 import type { RangeExpressionInput } from '../range/rangeModel';
 
-type DashboardTagAnalyzerSeries = {
-    sourceTagName: string;
-    table: string;
-    alias?: string;
-    sourceColumns: PanelSeriesSourceColumns;
-};
-
-type DashboardTagAnalyzerBoardOptions = {
-    name: string;
-    seriesList: DashboardTagAnalyzerSeries[];
-    timeRange?: {
-        start?: unknown;
-        end?: unknown;
-    } | null;
-};
-
 export function createTagAnalyzerBoardFromDashboard({
     name,
     seriesList,
@@ -71,12 +55,6 @@ export function createTagAnalyzerBoardFromDashboard({
     });
 }
 
-type DatabaseTagAnalyzerBoardOptions = {
-    tag: string;
-    table: string;
-    sourceColumns: PanelSeriesSourceColumns;
-};
-
 export async function createTagAnalyzerBoardFromDatabaseSeries({
     tag,
     table,
@@ -98,6 +76,78 @@ export async function createTagAnalyzerBoardFromDatabaseSeries({
     });
 }
 
+export const TAG_ANALYZER_BRIDGE_APP_NAME = 'neo-pkg-opcua-client';
+
+export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<BridgeResult, { status: 'ignored' }> => {
+    const sPayload = normalizePayload(aPayload);
+    if (!sPayload.ok) return { status: 'error', reason: sPayload.reason };
+    const { title, range, tags, isNumericBase } = sPayload.value;
+    // Which axis holds the window, and how its ends are written. `formatNumericValue` for a numeric
+    // base and `formatAbsoluteTime` for a datetime one — the same pairing
+    // `createDefaultTazBoard` makes, because a board opened through this bridge and a board opened
+    // from the setup dialog have to be the same board.
+    const sRangeInput: RangeExpressionInput = resolveBridgeRangeInput(range, isNumericBase);
+
+    return {
+        status: 'ok',
+        board: {
+            id: getId(),
+            path: '/',
+            type: 'taz',
+            name: `${title}.taz`,
+            panels: [createNewPanelInfo(tags, title, 'Line')],
+            sheet: [],
+            code: '',
+            savedCode: false,
+            range_bgn: sRangeInput.start,
+            range_end: sRangeInput.end,
+            // Exactly one of these carries the window; the idle axis is blank rather than stale, so
+            // a later axis switch cannot resurrect a window that was never valid for it.
+            boardTimeRange: isNumericBase ? EMPTY_BRIDGE_RANGE : sRangeInput,
+            boardNumericRange: isNumericBase ? sRangeInput : EMPTY_BRIDGE_RANGE,
+            shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
+            dashboard: {
+                timeRange: {
+                    start: 'now-3h',
+                    end: 'now',
+                    refresh: 'Off',
+                },
+                panels: [],
+            },
+        },
+    };
+};
+
+export const createTagAnalyzerBoardFromTagSet = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): BridgeResult => {
+    if (!isOpenTagAnalyzerMessage(aData, aAppName)) return { status: 'ignored' };
+
+    return createTagAnalyzerBoardFromPayload(aData.payload);
+};
+
+// -------------------- Local --------------------
+
+type DashboardTagAnalyzerSeries = {
+    sourceTagName: string;
+    table: string;
+    alias?: string;
+    sourceColumns: PanelSeriesSourceColumns;
+};
+
+type DashboardTagAnalyzerBoardOptions = {
+    name: string;
+    seriesList: DashboardTagAnalyzerSeries[];
+    timeRange?: {
+        start?: unknown;
+        end?: unknown;
+    } | null;
+};
+
+type DatabaseTagAnalyzerBoardOptions = {
+    tag: string;
+    table: string;
+    sourceColumns: PanelSeriesSourceColumns;
+};
+
 function normalizeTagAnalyzerRangeValue(value: unknown): string {
     return value === undefined || value === null ? '' : String(value);
 }
@@ -107,7 +157,7 @@ const OPEN_TAG_ANALYZER_MESSAGE_TYPE = 'neo.openTagAnalyzer';
 const OPEN_TAG_ANALYZER_MESSAGE_VERSION = 1;
 
 const MAX_TEXT_LENGTH = 256;
-export const TAG_ANALYZER_BRIDGE_APP_NAME = 'neo-pkg-opcua-client';
+
 type TagAnalyzerBridgeMessage = {
     source: typeof NEO_PACKAGE_MESSAGE_SOURCE;
     type: typeof OPEN_TAG_ANALYZER_MESSAGE_TYPE;
@@ -352,50 +402,4 @@ const isOpenTagAnalyzerMessage = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE
         aData.version === OPEN_TAG_ANALYZER_MESSAGE_VERSION &&
         aData.appName === aAppName
     );
-};
-
-export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<BridgeResult, { status: 'ignored' }> => {
-    const sPayload = normalizePayload(aPayload);
-    if (!sPayload.ok) return { status: 'error', reason: sPayload.reason };
-    const { title, range, tags, isNumericBase } = sPayload.value;
-    // Which axis holds the window, and how its ends are written. `formatNumericValue` for a numeric
-    // base and `formatAbsoluteTime` for a datetime one — the same pairing
-    // `createDefaultTazBoard` makes, because a board opened through this bridge and a board opened
-    // from the setup dialog have to be the same board.
-    const sRangeInput: RangeExpressionInput = resolveBridgeRangeInput(range, isNumericBase);
-
-    return {
-        status: 'ok',
-        board: {
-            id: getId(),
-            path: '/',
-            type: 'taz',
-            name: `${title}.taz`,
-            panels: [createNewPanelInfo(tags, title, 'Line')],
-            sheet: [],
-            code: '',
-            savedCode: false,
-            range_bgn: sRangeInput.start,
-            range_end: sRangeInput.end,
-            // Exactly one of these carries the window; the idle axis is blank rather than stale, so
-            // a later axis switch cannot resurrect a window that was never valid for it.
-            boardTimeRange: isNumericBase ? EMPTY_BRIDGE_RANGE : sRangeInput,
-            boardNumericRange: isNumericBase ? sRangeInput : EMPTY_BRIDGE_RANGE,
-            shell: { icon: 'chart-line', theme: '', id: 'TAZ' },
-            dashboard: {
-                timeRange: {
-                    start: 'now-3h',
-                    end: 'now',
-                    refresh: 'Off',
-                },
-                panels: [],
-            },
-        },
-    };
-};
-
-export const createTagAnalyzerBoardFromTagSet = (aData: unknown, aAppName = TAG_ANALYZER_BRIDGE_APP_NAME): BridgeResult => {
-    if (!isOpenTagAnalyzerMessage(aData, aAppName)) return { status: 'ignored' };
-
-    return createTagAnalyzerBoardFromPayload(aData.payload);
 };

@@ -1,15 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
-type LatestAsyncRequest<Result> = {
-    enabled: boolean;
-    requestKey: string;
-    delay?: number;
-    fetch: (signal: AbortSignal) => Promise<Result>;
-    onStart?: () => void;
-    onSuccess: (result: Result) => void;
-    onError: (error: unknown) => void;
-};
-
 export function useLatestAsyncRequest<Result>(
     request: LatestAsyncRequest<Result>,
 ): void {
@@ -87,3 +77,15 @@ export function getAsyncRequestErrorMessage(
 ): string {
     return error instanceof Error && error.message ? error.message : fallback;
 }
+
+// -------------------- Local --------------------
+
+type LatestAsyncRequest<Result> = {
+    enabled: boolean;
+    requestKey: string;
+    delay?: number;
+    fetch: (signal: AbortSignal) => Promise<Result>;
+    onStart?: () => void;
+    onSuccess: (result: Result) => void;
+    onError: (error: unknown) => void;
+};
