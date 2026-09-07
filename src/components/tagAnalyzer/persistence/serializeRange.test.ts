@@ -1,4 +1,9 @@
-import { decodeAxisRange, encodeAxisRange } from './serializeRange';
+import {
+    decodeAxisRange,
+    encodeAxisRange,
+    formatNumericExpression,
+    parseNumericExpression,
+} from './serializeRange';
 
 describe('decodeAxisRange', () => {
     it('orders persisted endpoints', () => {
@@ -22,4 +27,27 @@ describe('decodeAxisRange', () => {
     ])('rejects an invalid persisted range', (value) => {
         expect(decodeAxisRange(value)).toBeUndefined();
     });
+});
+
+describe('numeric range expressions', () => {
+    it.each([
+        ['first+10', { anchor: 'data_start', offset: 10 }, 'first+10'],
+        ['first-10', { anchor: 'data_start', offset: -10 }, 'first-10'],
+        ['last-10', { anchor: 'data_end', offset: -10 }, 'last-10'],
+        ['last+10', { anchor: 'data_end', offset: 10 }, 'last+10'],
+        ['FIRST + 1e1', { anchor: 'data_start', offset: 10 }, 'first+10'],
+    ] as const)(
+        'normalizes %s to the runtime distance grammar',
+        (value, parsed, formatted) => {
+            expect(parseNumericExpression(value)).toEqual(parsed);
+            expect(formatNumericExpression(parsed)).toBe(formatted);
+        },
+    );
+
+    it.each(['first+', 'first+Infinity', 'last-abc', '0x10'])(
+        'rejects invalid distance input %s',
+        (value) => {
+            expect(parseNumericExpression(value)).toBeUndefined();
+        },
+    );
 });

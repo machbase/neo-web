@@ -1,8 +1,37 @@
 import { createNewPanelInfo } from '../panel/panelModel';
-import { encodeTazBoard, TazVersion } from './tazFormat';
+import {
+    PanelSeriesCalculationMode,
+    type PanelSeriesDefinition,
+} from '../seriesModel';
+import {
+    encodeTazBoard,
+    normalizePersistedPanelRangeInput,
+    TazVersion,
+} from './tazFormat';
 import { parseLoadedTaz } from './tazMigrations';
 
-function encodePanel(panel = createNewPanelInfo([], 'Panel', 'Line')) {
+const NUMERIC_SERIES: PanelSeriesDefinition = {
+    key: 'numeric-series',
+    table: 'TAG',
+    sourceTagName: 'TAG_A',
+    alias: 'Tag A',
+    calculationMode: PanelSeriesCalculationMode.Average,
+    useSecondaryAxis: false,
+    id: undefined,
+    useRollupTable: false,
+    sourceColumns: {
+        name: 'NAME',
+        time: 'ODOMETER',
+        value: 'VALUE',
+        timeType: 4,
+        timeBaseTime: true,
+    },
+};
+
+function encodePanel(
+    panel = createNewPanelInfo([], 'Panel', 'Line'),
+    boardNumericRange = { start: '', end: '' },
+) {
     return encodeTazBoard({
         id: 'board',
         type: 'taz',
@@ -11,7 +40,7 @@ function encodePanel(panel = createNewPanelInfo([], 'Panel', 'Line')) {
         code: '',
         savedCode: false,
         boardTimeRange: { start: 'now-1h', end: 'now' },
-        boardNumericRange: { start: '', end: '' },
+        boardNumericRange,
         panels: [panel],
     });
 }
@@ -70,6 +99,50 @@ function createV204Board(sampleCount: number) {
 }
 
 describe('TagAnalyzer persistence version dispatch', () => {
+    it('keeps a string distance expression exactly as it was entered', () => {
+        expect(normalizePersistedPanelRangeInput({
+            start: 'first-10',
+            end: 'last+10',
+        }, true)).toEqual({
+            start: 'first-10',
+            end: 'last+10',
+        });
+    });
+
+    it('converts legacy structured offsets to the current string form', () => {
+        expect(normalizePersistedPanelRangeInput({
+            start: { kind: 'numeric_data_start', value: 10 },
+            end: { kind: 'numeric_data_end', value: 10 },
+        }, true)).toEqual({
+            start: 'first+10',
+            end: 'last-10',
+        });
+    });
+
+    it.each([
+        ['first+10', 'last-10'],
+        ['first-10', 'last'],
+        ['first', 'last+10'],
+        ['first+1e1', 'last-1e1'],
+    ])(
+        'round-trips numeric expressions %s to %s without changing them',
+        (start, end) => {
+            const panel = createNewPanelInfo(
+                [NUMERIC_SERIES],
+                'Numeric panel',
+                'Line',
+            );
+            panel.time.rangeInput = { start, end };
+
+            const encoded = encodePanel(panel, { start, end });
+            const decoded = parseLoadedTaz(encoded);
+
+            expect(encoded.panels[0].timeRange).toMatchObject({ start, end });
+            expect(decoded.panels[0].time.rangeInput).toEqual({ start, end });
+            expect(decoded.boardNumericRange).toEqual({ start, end });
+        },
+    );
+
     it('round-trips a current panel through the current parser', () => {
         const panel = createNewPanelInfo([], 'Panel', 'Line');
         panel.time.useLastViewedRange = true;
