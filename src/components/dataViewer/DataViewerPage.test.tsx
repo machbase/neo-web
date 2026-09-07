@@ -2148,13 +2148,25 @@ describe('DataViewerPage chart axis across a tag change', () => {
 
     // Toggling a tag re-resolves the window; `resolvedWindowLabel` is where that lands, and the
     // advancing boundary stub guarantees the new window is a different one.
+    //
+    // Waiting only for that label to *differ* is not enough, and the difference is what made this
+    // flaky under a loaded CI runner. The caption is dropped the instant the toggle invalidates the
+    // window — one synchronous commit after the click, before any of the round trip has happened —
+    // so "different from before" is already true of the blank frame. The wait ended there and the
+    // assertions counted an axis that had not moved yet. So wait for the settled state instead: a
+    // real window back on screen, the stack's loading overlay gone (its rows have landed), and a
+    // panel actually redrawn since the click. What that redraw *is* stays unasserted here — the
+    // tests below are the ones that judge it.
     const toggleTag = async (name: string) => {
         const before = resolvedWindowLabel();
+        const drawnBefore = axisTransitions().length;
         fireEvent.click(screen.getByLabelText(`${name} select`));
-        await waitFor(() => expect(resolvedWindowLabel()).not.toBe(before));
-        await act(async () => {
-            await Promise.resolve();
-            await Promise.resolve();
+        await waitFor(() => {
+            const label = resolvedWindowLabel();
+            expect(label).toBeTruthy();
+            expect(label).not.toBe(before);
+            expect(document.querySelector('.data-viewer-chart-loading-overlay')).toBeNull();
+            expect(axisTransitions().length).toBeGreaterThan(drawnBefore);
         });
     };
 
