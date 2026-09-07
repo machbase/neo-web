@@ -390,7 +390,7 @@ function normalizePanelExpressionString(
     if (isNumericAxis) {
         const sParsed = parseNumericExpression(sValue);
         if (sParsed) {
-            return formatNumericExpression(sParsed);
+            return sValue;
         }
 
         // A numeric panel could legacy-store an absolute datetime string.
@@ -430,7 +430,9 @@ function normalizeLegacyStructuredRangeValue(
                 anchor: sKind === 'numeric_data_start'
                     ? 'data_start'
                     : 'data_end',
-                offset: Math.abs(sValue),
+                offset: sKind === 'numeric_data_start'
+                    ? Math.abs(sValue)
+                    : -Math.abs(sValue),
             });
         default:
             return normalizeLegacyBoardStyleRangeValue(rangeValue, isNumericAxis);
