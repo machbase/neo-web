@@ -5,10 +5,11 @@ import { MdRefresh } from 'react-icons/md';
 import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { generateUUID } from '@/utils';
+import { resMessage } from '@/utils/resMessage';
 import { SHELL_ICON_LIST } from '@/components/ShellManage/constants';
 import { GoPlus } from 'react-icons/go';
 import icons from '@/utils/icons';
-import { Button, Side } from '@/design-system/components';
+import { Button, Side, Toast } from '@/design-system/components';
 
 export const ShellSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -22,10 +23,11 @@ export const ShellSide = () => {
     const shellList = async (aEvent?: MouseEvent) => {
         if (aEvent) aEvent.stopPropagation();
         const sResShellList: any = await getShellList();
+        // keep the current list on failure — blanking it reads as "every shell was deleted"
         if (sResShellList.success) {
             const sTermTypeList = sResShellList.shells.filter((aShell: any) => aShell.type === 'term');
             setShellList(sTermTypeList);
-        } else setShellList(undefined);
+        } else Toast.error(resMessage(sResShellList, 'Failed to load shells'), { id: 'shell-list' });
     };
     /** Update global tab list & board list */
     const openShell = async (aValue: any) => {

@@ -1,4 +1,4 @@
-import { getId, convertToNewRollupSyntax } from '.';
+import { getId } from '.';
 import {
     DefaultBarChartOption,
     DefaultLineChartOption,
@@ -8,23 +8,21 @@ import {
     DefaultGaugeChartOption,
     StructureOfBarSeriesOption,
     StructureOfBarPolarOption,
-    StructureOfCommonOption,
     StructureOfGaugeSeriesOption,
     StructureOfLineSeriesOption,
     StructureOfPieSeriesOption,
     StructureOfScatterSeriesOption,
-    StructureOfLineVisualMapOption,
     DefaultLogTableOption,
     chartTypeConverter,
     DefaultVariableTableOption,
     DefaultViewTableOption,
+    DefaultTransactionTableOption,
 } from '@/utils/eChartHelper';
-import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter, DB_STRING_TYPE } from '@/utils/constants';
+import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, DB_STRING_TYPE } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
 import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
 import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
-import { isJsonTypeColumn, parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from './dashboardJsonValue';
 
 /**
  * Safely check if a time value is a special time string (now or last)
@@ -45,23 +43,16 @@ export const formatTimeValue = (timeValue: string | number | undefined | null, f
     if (!timeValue && timeValue !== 0) return '';
     if (isSpecialTimeValue(timeValue)) return timeValue as string;
     if (typeof timeValue === 'number') return moment(timeValue).format(format);
+    const numericTimeValue = Number(timeValue);
+    if (timeValue.trim() !== '' && Number.isFinite(numericTimeValue)) {
+        return moment(numericTimeValue).format(format);
+    }
     // Try to parse as date string
     try {
         return moment(timeValue).format(format);
     } catch (e) {
         return String(timeValue);
     }
-};
-
-const hasJsonValueColumn = (aInfo: any) => {
-    const sValueList = aInfo.useCustom ? aInfo.values ?? [] : [{ value: aInfo.value, jsonKey: aInfo.jsonKey }];
-    return sValueList.some((aValue: any) => {
-        const sParsedValue = parseJsonValueField(aValue?.value);
-        if (aValue?.jsonKey || sParsedValue?.path) return true;
-        const sValueColumn = sParsedValue?.column ?? aValue?.value;
-        const sColumnInfo = aInfo.tableInfo?.find((aColumn: any) => aColumn[0] === sValueColumn);
-        return isJsonTypeColumn(sColumnInfo?.[1]);
-    });
 };
 
 export enum E_VISUAL_LOAD_ID {
@@ -164,202 +155,6 @@ export const setUnitTime = (aTime: any) => {
     }
 };
 
-export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
-    const sUseJsonValue = hasJsonValueColumn(aInfo);
-    if (aInfo.useRollup && !sUseJsonValue && aTime.IntervalType === 'day' && aInfo.type === 'tag' && aInfo.useCustom && aInfo.aggregator !== 'none') {
-        let sTime = '';
-        let sValue = '';
-        let sSubQuery = '';
-        let sFilter = '';
-        const sWhereTime = `${aInfo.time} between ${aStart}000000 and ${aEnd}000000`;
-
-        let sRollupValue = 1;
-        if (aTime.IntervalType === 'sec') {
-            sRollupValue = 1;
-        } else if (aTime.IntervalType === 'min') {
-            sRollupValue = 60;
-        } else if (aTime.IntervalType === 'hour') {
-            sRollupValue = 3600;
-        }
-        const sTimeValue = sRollupValue * 1000000000;
-        sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
-
-        const sList = aInfo.values.map((aItem: any) => {
-            let sAlias;
-            let sInfoValue;
-            const sSqlItemValue = toSqlValueExpression(aItem.value, aItem.jsonKey);
-            if (aItem.aggregator === 'avg') {
-                sInfoValue = `sum(SVAL)/ sum(CVAL)`;
-            } else if (aInfo.aggregator === 'sum' || aInfo.aggregator === 'count' || aInfo.aggregator === 'sumsq') {
-                sInfoValue = `${aInfo.aggregator}(SVAL)`;
-            } else if (aInfo.aggregator === 'min' || aInfo.aggregator === 'max') {
-                sInfoValue = `${aInfo.aggregator}(SVAL)`;
-            }
-
-            if (!aItem.alias) {
-                sAlias = `${aItem.aggregator}(${aItem.value})`;
-            } else {
-                sAlias = aItem.alias;
-            }
-            if (aItem.aggregator === 'none') return `${sSqlItemValue} as "${sAlias}"`;
-            return `${sInfoValue} as "${sAlias}"`;
-        });
-        sValue = sList.join(', ');
-
-        let sSubQTime = '';
-        let sSubQValue = '';
-
-        // Use new ROLLUP syntax: ROLLUP('HOUR', 1, time_column)
-        sSubQTime = `${convertToNewRollupSyntax(aInfo.time, 'hour', 1)} as TIME`;
-
-        if (aInfo.aggregator === 'avg') {
-            const sSqlInfoValue = toSqlValueExpressionForAggregator(aInfo.value, aInfo.aggregator, aInfo.jsonKey);
-            sSubQValue = `sum(${sSqlInfoValue}) as SVAL, count(${sSqlInfoValue}) as CVAL`;
-        } else {
-            sSubQValue = `${aInfo.aggregator}(${toSqlValueExpressionForAggregator(aInfo.value, aInfo.aggregator, aInfo.jsonKey)}) as CVAL`;
-        }
-
-        const sFilterList = aInfo.filter.map((aItem: any) => {
-            let sValue = '';
-            if (aItem.useFilter) {
-                const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
-                    return bItem[0] === aItem.column;
-                });
-
-                if (sTableInfo && isNumberTypeColumn(sTableInfo[1])) {
-                    sValue = `${aItem.value}`;
-                } else {
-                    if (aItem.operator === 'in') {
-                        sValue = aItem.value
-                            .split(',')
-                            .map((val: string) => {
-                                const trimVal = val.trim();
-                                return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
-                            })
-                            .join(',');
-                        sValue = `(${sValue})`;
-                    } else {
-                        sValue = `'${aItem.value}'`;
-                    }
-                }
-                return `${aItem.column} ${aItem.operator} ${sValue}`;
-            } else {
-                return '';
-            }
-        });
-        sFilter = sFilterList.join(' AND ');
-
-        sSubQuery = `SELECT ${sSubQTime}, ${sSubQValue} FROM ${aInfo.userName}.${aInfo.table} WHERE ${sWhereTime} AND ${sFilter} GROUP BY TIME`;
-
-        const sQuery = `SELECT ${sTime}, ${sValue} FROM (${sSubQuery}) GROUP BY TIME ORDER BY TIME`;
-
-        return sQuery;
-    } else {
-        let sTime = '';
-        let sValue = '';
-        const sTableName = `${aInfo.userName}.${aInfo.table}`;
-        let sWhereTime = '';
-        let sFilter = '';
-        let useGroupBy = true;
-
-        let sRollupValue = 1;
-        if (aTime.IntervalType === 'sec') {
-            sRollupValue = 1;
-        } else if (aTime.IntervalType === 'min') {
-            sRollupValue = 60;
-        } else if (aTime.IntervalType === 'hour') {
-            sRollupValue = 3600;
-        }
-        const sTimeValue = sRollupValue * 1000000000;
-        sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
-
-        if (aInfo.type === 'tag') {
-            if (aInfo.useCustom) {
-                let sAlias;
-                const sSqlValue =
-                    aInfo.values[0].aggregator === 'none'
-                        ? toSqlValueExpression(aInfo.values[0].value, aInfo.values[0].jsonKey)
-                        : toSqlValueExpressionForAggregator(aInfo.values[0].value, aInfo.values[0].aggregator, aInfo.values[0].jsonKey);
-                if (!aInfo.values[0].alias) {
-                    sAlias = `${aInfo.values[0].aggregator}(${aInfo.values[0].value})`;
-                } else {
-                    sAlias = aInfo.values[0].alias;
-                }
-                sValue =
-                    aInfo.values[0].aggregator === 'none' ? `${sSqlValue} as "${sAlias}"` : `${aInfo.values[0].aggregator}(${sSqlValue}) as "${sAlias}"`;
-                if (aInfo.values[0].aggregator === 'none') useGroupBy = false;
-            } else {
-                const sSqlValue = aInfo.aggregator === 'none' ? toSqlValueExpression(aInfo.value, aInfo.jsonKey) : toSqlValueExpressionForAggregator(aInfo.value, aInfo.aggregator, aInfo.jsonKey);
-                sValue =
-                    aInfo.aggregator === 'none'
-                        ? `${sSqlValue} as "${aInfo.aggregator}(${aInfo.value})"`
-                        : `${aInfo.aggregator}(${sSqlValue}) as "${aInfo.aggregator}(${aInfo.value})"`;
-            }
-            if (aInfo.aggregator === 'none') {
-                useGroupBy = false;
-                sValue = `${toSqlValueExpression(aInfo.value, aInfo.jsonKey)} as "${'raw'}(${aInfo.value})"`;
-            }
-        } else {
-            const sList = aInfo.values.map((aItem: any) => {
-                let sAlias;
-                const sSqlItemValue =
-                    aItem.aggregator === 'none' ? toSqlValueExpression(aItem.value, aItem.jsonKey) : toSqlValueExpressionForAggregator(aItem.value, aItem.aggregator, aItem.jsonKey);
-                if (!aItem.alias) {
-                    sAlias = `${aItem.aggregator}(${aItem.value})`;
-                } else {
-                    sAlias = aItem.alias;
-                }
-                if (aItem.aggregator === 'none') {
-                    useGroupBy = false;
-
-                    return `${sSqlItemValue} as "${sAlias}"`;
-                }
-                return `${aItem.aggregator}(${sSqlItemValue}) as "${sAlias}"`;
-            });
-            sValue = sList.join(', ');
-        }
-
-        sWhereTime = `${aInfo.time} between ${aStart}000000 and ${aEnd}000000`;
-
-        const sFilterList = aInfo.filter.map((aItem: any) => {
-            let sValue = '';
-            if (aItem.useFilter) {
-                const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
-                    return bItem[0] === aItem.column;
-                });
-                if (sTableInfo && isNumberTypeColumn(sTableInfo[1])) {
-                    sValue = `${aItem.value}`;
-                } else {
-                    if (aItem.operator === 'in') {
-                        sValue = aItem.value
-                            .split(',')
-                            .map((val: string) => {
-                                const trimVal = val.trim();
-                                return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
-                            })
-                            .join(',');
-                        sValue = `(${sValue})`;
-                    } else {
-                        sValue = `'${aItem.value}'`;
-                    }
-                }
-                return `${aItem.column} ${aItem.operator} ${sValue}`;
-            } else {
-                return '';
-            }
-        });
-        sFilter = sFilterList.join(' AND ');
-        const sGroupByQuery = useGroupBy ? 'GROUP BY NAME, TIME' : '';
-        const sOrderByQuery = 'ORDER BY NAME, TIME';
-
-        const sQuery = `SELECT NAME, ${sTime}, ${sValue} FROM ${sTableName} WHERE ${sWhereTime} ${aInfo.useCustom ? '' : `AND NAME = ` + `'` + aInfo.tag + `'`} ${
-            aInfo.useCustom ? (sFilter ? 'AND ' + sFilter : '') : ``
-        } ${sGroupByQuery} ${sOrderByQuery}`;
-
-        return sQuery;
-    }
-};
-
 export const tagTableValue = () => {
     return {
         id: getId(),
@@ -402,6 +197,7 @@ export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableTy
     let sDefaultTableOpt = undefined;
     if (aTableType === 'tag') sDefaultTableOpt = DefaultTagTableOption;
     else if (aTableType === 'view') sDefaultTableOpt = DefaultViewTableOption;
+    else if (aTableType === 'transaction') sDefaultTableOpt = DefaultTransactionTableOption;
     else if (aTableType === 'log') sDefaultTableOpt = DefaultLogTableOption;
     else sDefaultTableOpt = DefaultVariableTableOption;
 
@@ -410,116 +206,6 @@ export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableTy
 
     const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];
     return sOption;
-};
-
-export const createOption = (aOptionInfo: any, aTagList: any) => {
-    // set common chart option
-    let sOption = createCommonOption(aOptionInfo.commonOptions);
-
-    // set series option
-    if (aOptionInfo.type === 'line') {
-        const sIsVisualMap = aOptionInfo.chartOptions?.markLine.data.length > 0;
-        sOption = {
-            ...sOption,
-            series: setLineSeries(aOptionInfo, aTagList),
-            visualMap: sIsVisualMap ? createLineVisualMapOption(aOptionInfo.chartOptions, aTagList) : null,
-        };
-    }
-    if (aOptionInfo.type === 'bar') {
-        const sIsPolar = aOptionInfo.chartOptions.isPolar;
-        sOption = {
-            ...sOption,
-            ...(sIsPolar ? createBarPolarOption(aOptionInfo.chartOptions) : null),
-            series: setBarSeries(aOptionInfo, aTagList),
-        };
-    }
-    if (aOptionInfo.type === 'scatter') {
-        sOption = {
-            ...sOption,
-            series: setScatterSeries(aOptionInfo, aTagList),
-        };
-    }
-    if (aOptionInfo.type === 'gauge') {
-        sOption = {
-            ...sOption,
-            series: setGaugeSeries(aOptionInfo, aTagList),
-        };
-    }
-    if (aOptionInfo.type === 'pie') {
-        sOption = {
-            ...sOption,
-            series: setPieSeries(aOptionInfo),
-            dataset: {
-                source: 'column(0)',
-            },
-        };
-    }
-
-    // set xAxis, yAxis option
-    if (aOptionInfo.type === 'gauge' || aOptionInfo.type === 'pie' || (aOptionInfo.type === 'bar' && aOptionInfo.chartOptions.isPolar)) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { xAxis, yAxis, ...restOption } = sOption;
-        sOption = restOption;
-    } else {
-        sOption.xAxis = createXAxisOption(aOptionInfo);
-        sOption.yAxis = createYAxisOption(aOptionInfo);
-    }
-
-    return sOption;
-};
-
-export const createCommonOption = (aCommonOptions: any) => {
-    const sCommon = JSON.parse(JSON.stringify(StructureOfCommonOption));
-    sCommon.legend.show = aCommonOptions.isLegend;
-    sCommon.tooltip.show = aCommonOptions.isTooltip;
-    sCommon.tooltip.trigger = aCommonOptions.tooltipTrigger;
-    sCommon.dataZoom = aCommonOptions.isDataZoom ? [{ type: 'slider' }] : false;
-    if (aCommonOptions.isTooltip && aCommonOptions.tooltipTrigger === 'axis') {
-        sCommon.tooltip.formatter = ChartAxisTooltipFormatter;
-    }
-    return sCommon;
-};
-
-export const createXAxisOption = (aOptionInfo: any) => {
-    const sXAxisOption = [] as any;
-    aOptionInfo.xAxisOptions &&
-        aOptionInfo.xAxisOptions.map((aItem: any) => {
-            sXAxisOption.push(aItem);
-        });
-    if (aOptionInfo.chartOptions?.isStack) {
-        sXAxisOption[0] = {
-            ...sXAxisOption[0],
-            data: 'column(0)',
-        };
-    }
-
-    return sXAxisOption;
-};
-
-export const createYAxisOption = (aOptionInfo: any) => {
-    const sYAxisOption = [] as any;
-    aOptionInfo.yAxisOptions &&
-        aOptionInfo.yAxisOptions.map((aItem: any) => {
-            sYAxisOption.push(aItem);
-        });
-
-    return sYAxisOption;
-};
-
-export const createLineVisualMapOption = (aOptionInfo: any, aTagList: any) => {
-    const sSeriesIndexArray = Array.from(aTagList, (_, aIndex) => aIndex);
-    const sPieces = aOptionInfo.markLine.data.reduce((aAcc: any, aCurrent: any, aIndex: number, aArr: any) => {
-        if (aIndex % 2 === 0 && aIndex < aArr.length - 1) {
-            aAcc.push({ min: aCurrent.xAxis, max: aArr[aIndex + 1].xAxis, color: ChartSeriesColorList[0] });
-        }
-        return aAcc;
-    }, []);
-
-    const sVisualMapOption = JSON.parse(JSON.stringify(StructureOfLineVisualMapOption));
-    sVisualMapOption.seriesIndex = sSeriesIndexArray;
-    sVisualMapOption.pieces = sPieces;
-
-    return sVisualMapOption;
 };
 
 export const createLineSeriesOption = (aLineOption: any, aXAxis: any[], aYAxis: any[], aIndex: number) => {
@@ -852,6 +538,8 @@ export const getTableType = (aTypeNumber: number) => {
             return 'tag';
         case 7:
             return 'view';
+        case 8:
+            return 'transaction';
         default:
             return '';
     }
@@ -877,56 +565,6 @@ export const isStringTypeColumn = (aType: number) => {
     const colType = TABLE_COLUMN_TYPE.find((item) => item.key === aType);
     if (colType && DB_STRING_TYPE.some((item) => item === colType.value)) return true;
     else return false;
-};
-
-export const createGaugeQuery = (aInfo: any, aStart: number, aEnd: number) => {
-    const selectQuery = 'SELECT trunc(' + aInfo.aggregator + '(VALUE), 2)';
-    const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
-    const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
-    const andNameQuery = `AND NAME = '${aInfo.tag}'`;
-
-    return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery;
-};
-
-export const createPieQuery = (aInfo: any, aStart: number, aEnd: number) => {
-    const selectQuery = 'SELECT NAME, ' + aInfo.aggregator + '(VALUE)';
-    const fromQuery = 'FROM ' + aInfo.userName + '.' + aInfo.table;
-    const whereTimeQuery = 'WHERE TIME between ' + aStart + '000000' + ' and ' + aEnd + '000000';
-    let andNameQuery = `AND NAME = '${aInfo.tag}'`;
-    const groupByQuery = 'GROUP BY NAME';
-
-    if (aInfo.useCustom) {
-        const sFilterList = aInfo.filter.map((aItem: any) => {
-            let sValue = '';
-            if (aItem.useFilter) {
-                const sTableInfo = aInfo.tableInfo.find((bItem: any) => {
-                    return bItem[0] === aItem.column;
-                });
-                if (sTableInfo && isNumberTypeColumn(sTableInfo[1])) {
-                    sValue = `${aItem.value}`;
-                } else {
-                    if (aItem.operator === 'in') {
-                        sValue = aItem.value
-                            .split(',')
-                            .map((val: string) => {
-                                const trimVal = val.trim();
-                                return trimVal.startsWith("'") ? trimVal : "'" + trimVal + "'";
-                            })
-                            .join(',');
-                        sValue = `(${sValue})`;
-                    } else {
-                        sValue = `'${aItem.value}'`;
-                    }
-                }
-                return `${aItem.column} ${aItem.operator} ${sValue}`;
-            } else {
-                return '';
-            }
-        });
-        andNameQuery = ' AND ' + sFilterList.join(' AND ');
-    }
-
-    return selectQuery + ' ' + fromQuery + ' ' + whereTimeQuery + ' ' + andNameQuery + ' ' + groupByQuery;
 };
 
 export const useXAxis = (aType: ChartType) => {

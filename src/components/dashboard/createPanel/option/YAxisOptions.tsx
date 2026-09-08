@@ -81,12 +81,18 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
     };
     const getBlockList = useMemo((): any[] => {
         const sBaseXAxis = pPanelOption?.xAxisOptions?.[0]?.useBlockList?.[0] ?? 0;
-        const sTmpBlockList = JSON.parse(JSON.stringify(pPanelOption?.blockList));
         const sTmpTrxBlockList = JSON.parse(JSON.stringify(pPanelOption?.transformBlockList ?? []));
-        if (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER) sTmpBlockList.splice(sBaseXAxis, 1);
+        // `idx` is what handleUseSecondYAxis writes into useBlockList, so it has to stay the block's
+        // position in the panel's own blockList. Hiding the Adv scatter x-axis row by splicing the copy
+        // and then numbering the survivors renumbered everything after it, sending each dual-axis
+        // assignment to the neighbouring series. Carry the original index through the filter instead.
+        const sIsAdvScatter = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER;
+        const sTmpBlockList = JSON.parse(JSON.stringify(pPanelOption?.blockList ?? []))
+            .map((block: any, idx: number) => ({ block, idx }))
+            .filter((aEntry: any) => !(sIsAdvScatter && aEntry.idx === sBaseXAxis));
 
         const sBlockResult =
-            sTmpBlockList.map((block: any, idx: number) => {
+            sTmpBlockList.map(({ block, idx }: any) => {
                 return {
                     name: block.customFullTyping.use
                         ? 'custom'

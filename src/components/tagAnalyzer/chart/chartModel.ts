@@ -986,28 +986,32 @@ export function buildChartEvent({
                 return;
             }
 
-            chartInstanceRef.current?.dispatchAction({
-                type: 'brush',
-                areas: [],
+            // ECharts processes its raw mouseup after brushEnd. Keep the active
+            // target's model/view alive until that event dispatch completes.
+            requestAnimationFrame(() => {
+                chartInstanceRef.current?.dispatchAction({
+                    type: 'brush',
+                    areas: [],
+                });
+
+                if (sRange.end <= sRange.start) {
+                    return;
+                }
+
+                if (isSelectionMode) {
+                    onSelection(sRange);
+                    return;
+                }
+
+                if (
+                    !isDragZoomEnabled ||
+                    isSameRange(sRange, mainRange)
+                ) {
+                    return;
+                }
+
+                rangeActions.setMainRange(sRange);
             });
-
-            if (sRange.end <= sRange.start) {
-                return;
-            }
-
-            if (isSelectionMode) {
-                onSelection(sRange);
-                return;
-            }
-
-            if (
-                !isDragZoomEnabled ||
-                isSameRange(sRange, mainRange)
-            ) {
-                return;
-            }
-
-            rangeActions.setMainRange(sRange);
         },
         legendselectchanged: (params) => {
             visibleSeriesRef.current = params.selected ?? {};

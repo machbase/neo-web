@@ -92,7 +92,14 @@ export const useModal = ({ isOpen, onClose, closeOnEscape = true, closeOnOutside
         };
 
         document.addEventListener('mousedown', handleMouseDown);
-        return () => document.removeEventListener('mousedown', handleMouseDown);
+        // A drag on a range input (the distance slider) starts as a *pointer* press; on touch and
+        // pen there is no mouse event at all. Without this, releasing such a drag past the dialog
+        // delivers the click to the overlay and throws the dialog away mid-gesture.
+        document.addEventListener('pointerdown', handleMouseDown as EventListener);
+        return () => {
+            document.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('pointerdown', handleMouseDown as EventListener);
+        };
     }, [isOpen, closeOnOutsideClick]);
 
     const close = useCallback(() => {

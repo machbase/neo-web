@@ -2,6 +2,7 @@ import { generateUUID } from '../utils';
 import { ChartTheme, ChartType, E_CUSTOM_CHART_TYPE, CustomChartType } from '../type/eChart';
 import { ChartTypeList } from './constants';
 import { getDefaultColor } from './helpers/tags';
+import { DEFAULT_FILTER_OPERATOR } from '@/utils/dashboardFilterOperators';
 
 // use create common chart option (createCommonOption)
 export const DefaultCommonOption = {
@@ -250,7 +251,7 @@ export const DefaultVariableTableOption = {
     userName: '' as string | undefined,
     color: getDefaultColor(),
     type: '',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -268,6 +269,7 @@ export const DefaultVariableTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -278,7 +280,7 @@ export const DefaultTagTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'tag',
-    filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: 'NAME', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: 'NAME',
@@ -296,6 +298,65 @@ export const DefaultTagTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
+    },
+    isVisible: true,
+};
+
+export const DefaultViewTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'view',
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: true,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    jsonKey: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+        dirty: false,
+    },
+    isVisible: true,
+};
+
+export const DefaultTransactionTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'transaction',
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: true,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    jsonKey: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -306,7 +367,7 @@ export const DefaultLogTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'log',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -324,6 +385,7 @@ export const DefaultLogTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };

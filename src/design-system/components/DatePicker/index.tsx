@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -196,7 +197,7 @@ export const DatePicker = ({
                     />
                 }
             />
-            {isOpen && position && inputRef.current && (
+            {isOpen && position && inputRef.current && createPortal(
                 <div
                     ref={modalRef}
                     className={styles['date-picker__modal']}
@@ -236,7 +237,8 @@ export const DatePicker = ({
                             </Button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

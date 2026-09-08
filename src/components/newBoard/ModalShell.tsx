@@ -5,6 +5,7 @@ import './ModalShell.scss';
 import icons from '@/utils/icons';
 import { Close } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
+import { resMessage } from '@/utils/resMessage';
 import { TextButton } from '@/components/buttons/TextButton';
 import { Input } from '@/components/inputs/Input';
 import { Select } from '@/components/inputs/Select';
@@ -49,12 +50,15 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
             theme: sTheme,
         };
         const sResult: any = await postShell(sData);
-        if (sResult.reason) {
-            Toast.success('Success');
+        // judge on `success`, not on a truthy `reason`: shellRpcEnvelope only happens to omit
+        // top-level `reason` on error, so the old check would report success the moment that
+        // envelope was made consistent with the other repositories
+        if (sResult.success) {
+            Toast.success(`Shell '${sName}' saved`, { id: 'shell-save' });
             pGetInfo();
             pSetIsModal(false);
         } else {
-            Toast.error('Failed');
+            Toast.error(resMessage(sResult, 'Failed to save shell'), { id: 'shell-save' });
         }
     };
 

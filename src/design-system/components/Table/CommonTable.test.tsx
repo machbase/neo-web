@@ -342,3 +342,157 @@ describe('CommonTable NULL cells', () => {
         expect(screen.getByText('NULL')).not.toBeNull();
     });
 });
+
+// A `double[4]` / `int[4]` column arrives as a JS array, and TQL can put a whole
+// object in a cell. Both used to be dropped by an `isObject` guard that returned
+// `null` instead of a <td> — so the row ended up with fewer cells than the header
+// and every column after the array shifted one place left, printing its value
+// under the wrong heading. The invariant these tests hold is cell *count*.
+// react-virtuoso windows on measured viewport height, which is always 0 in jsdom.
+// Standing in for it here is what lets the virtualized branch's own row markup be
+// asserted; every other suite in this file stays under the 50-row threshold.
+jest.mock('react-virtuoso', () => ({
+    TableVirtuoso: ({ data, fixedHeaderContent, itemContent, components }: any) => {
+        const Table = components?.Table ?? 'table';
+        const Head = components?.TableHead ?? 'thead';
+        const Body = components?.TableBody ?? 'tbody';
+        const Row = components?.TableRow ?? 'tr';
+        return (
+            <Table>
+                <Head>{fixedHeaderContent?.()}</Head>
+                <Body>
+                    {(data ?? []).map((item: any, idx: number) => (
+                        <Row key={idx} item={item}>
+                            {itemContent(idx, item)}
+                        </Row>
+                    ))}
+                </Body>
+            </Table>
+        );
+    },
+}));
+
+describe('CommonTable array and object cells', () => {
+    const ISSUE_PAYLOAD = {
+        columns: ['ID', 'AMT', 'DD', 'II'],
+        types: ['int64', 'decimal', 'double_array', 'int32_array'],
+        rows: [[1, '123.46', [1, 2, 3, 4], [10, 20, 30, null]]],
+    };
+
+    test('renders one cell per column when a row carries array values', () => {
+        const { container } = render(<CommonTable {...({ data: ISSUE_PAYLOAD } as any)} />);
+
+        expect(container.querySelectorAll('tbody tr td')).toHaveLength(ISSUE_PAYLOAD.columns.length);
+    });
+
+    // `[10, 20, 30, null]).toString()` is "10,20,30," — the NULL element vanishes and
+    // the array silently reads as three values. JSON keeps every element.
+    test('prints an array as compact JSON so a NULL element stays visible', () => {
+        const { container } = render(<CommonTable {...({ data: ISSUE_PAYLOAD } as any)} />);
+
+        const cells = container.querySelectorAll('tbody tr td');
+        expect(cells[2].textContent).toBe('[1,2,3,4]');
+        expect(cells[3].textContent).toBe('[10,20,30,null]');
+    });
+
+    test('keeps trailing columns under their own heading when the array sits mid-row', () => {
+        const { container } = render(
+            <CommonTable
+                {...({
+                    data: { columns: ['ID', 'DD', 'NAME'], types: ['int64', 'double_array', 'string'], rows: [[1, [1, 2], 'tail']] },
+                } as any)}
+            />
+        );
+
+        const cells = container.querySelectorAll('tbody tr td');
+        expect(cells).toHaveLength(3);
+        expect(cells[2].textContent).toBe('tail');
+    });
+
+    // A column that is NULL for the whole row comes back as `null`, not as `[]`.
+    test('still prints NULL for an array column with no value', () => {
+        const { container } = render(
+            <CommonTable {...({ data: { ...ISSUE_PAYLOAD, rows: [[2, '9.50', null, null]] } } as any)} />
+        );
+
+        const cells = container.querySelectorAll('tbody tr td');
+        expect(cells).toHaveLength(4);
+        expect(cells[2].textContent).toBe('NULL');
+    });
+
+    // TQL puts nested values in cells and passes no `types`, so the fix has to key
+    // off the value's shape rather than a declared column type.
+    test('renders an object cell instead of dropping it, with no declared types', () => {
+        const { container } = render(<CommonTable {...({ data: { columns: ['A', 'B'], rows: [['x', { a: 1 }]] } } as any)} />);
+
+        const cells = container.querySelectorAll('tbody tr td');
+        expect(cells).toHaveLength(2);
+        expect(cells[1].textContent).toBe('{"a":1}');
+    });
+
+    test('copies the JSON form of an array, not the comma-flattened one', () => {
+        render(<CommonTable {...({ data: ISSUE_PAYLOAD, showCopyButton: true } as any)} />);
+
+        const cells = screen.getByText('[10,20,30,null]').closest('tr')?.querySelectorAll('td') as NodeListOf<HTMLTableCellElement>;
+        fireEvent.click(within(cells[3]).getByRole('button'));
+        expect(ClipboardCopy).toHaveBeenLastCalledWith('[10,20,30,null]');
+    });
+
+    test('right-aligns int64 and decimal columns but not array columns', () => {
+        const { container } = render(<CommonTable {...({ data: ISSUE_PAYLOAD } as any)} />);
+
+        const cells = container.querySelectorAll('tbody tr td');
+        expect(cells[0].className).toMatch(/numeric-cell/);
+        expect(cells[1].className).toMatch(/numeric-cell/);
+        expect(cells[2].className).not.toMatch(/numeric-cell/);
+        expect(cells[3].className).not.toMatch(/numeric-cell/);
+    });
+
+    // The virtualized body and the scroll/editable body are separate render
+    // branches that each carried their own copy of the guard.
+    // react-virtuoso measures the viewport, which jsdom reports as zero height, so it
+    // renders no rows here. The mock at the top of this block stands in for the
+    // windowing only — the row markup under test is still CommonTable's own.
+    test('holds the cell count in the virtualized body', () => {
+        const { container } = render(
+            <CommonTable
+                {...({
+                    data: { ...ISSUE_PAYLOAD, rows: Array.from({ length: 60 }, (_, i) => [i, '1.00', [1, 2], [3, null]]) },
+                    virtualize: true,
+                } as any)}
+            />
+        );
+
+        const cells = container.querySelectorAll('tbody tr')[0].querySelectorAll('td');
+        expect(cells).toHaveLength(4);
+        expect(cells[2].textContent).toBe('[1,2]');
+        expect(cells[3].textContent).toBe('[3,null]');
+    });
+
+    test('holds the cell count in the scroll/editable body', () => {
+        const { container } = render(<CommonTable {...({ data: ISSUE_PAYLOAD, editable: true, onSave: jest.fn() } as any)} />);
+
+        // The scroll body brackets the data cells with a row-number cell and an
+        // edit-action cell, so the payload's four columns sit at index 1..4.
+        const cells = container.querySelectorAll('tbody tr td');
+        expect([...cells].slice(1, 1 + ISSUE_PAYLOAD.columns.length).map((cell) => cell.textContent)).toEqual([
+            '1',
+            '123.46',
+            '[1,2,3,4]',
+            '[10,20,30,null]',
+        ]);
+    });
+
+    // An array has no text form a single-line input could round-trip, so opening a
+    // row for edit must leave those cells as text rather than flattening them.
+    test('does not open an array cell for inline editing', () => {
+        const { container } = render(<CommonTable {...({ data: ISSUE_PAYLOAD, editable: true, onSave: jest.fn() } as any)} />);
+
+        fireEvent.doubleClick(container.querySelectorAll('tbody tr')[0]);
+        // Index 0 is the row-number cell; DD is the third data column.
+        const cells = container.querySelectorAll('tbody tr td');
+        expect(cells[3].querySelector('input')).toBeNull();
+        expect(cells[3].textContent).toBe('[1,2,3,4]');
+        expect(cells[2].querySelector('input')).not.toBeNull();
+    });
+});

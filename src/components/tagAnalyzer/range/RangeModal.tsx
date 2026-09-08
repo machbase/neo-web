@@ -1,5 +1,6 @@
 import { useId, useState, type ReactElement } from 'react';
 import { Calendar, VscTrash } from '@/assets/icons/Icon';
+import { TagAnalyzerDistanceRangeModal } from './TagAnalyzerDistanceRangeModal';
 import {
     Button,
     Input,
@@ -60,6 +61,25 @@ export function RangeModal({
     }));
     const [validationMessage, setValidationMessage] = useState<string>();
     const validationMessageId = useId();
+
+    // A numeric Tag Analyzer axis is a BASE DISTANCE axis. Reuse the same modal, slider,
+    // anchored-edge parsing and quick windows as Dashboard and Data Viewer instead of maintaining
+    // a second numeric range editor here.
+    if (kind === 'numeric') {
+        return (
+            <TagAnalyzerDistanceRangeModal
+                title={title === 'Range' ? 'Distance Range' : title}
+                initialRangeInput={initialRangeInput}
+                currentRange={currentRange}
+                fullRange={fullRange}
+                onSwitchToTime={onAxisKindChange
+                    ? () => onAxisKindChange('time')
+                    : undefined}
+                onApply={onApply}
+                onClose={onClose}
+            />
+        );
+    }
 
     function setRangeValue(
         field: keyof RangeExpressionInput,

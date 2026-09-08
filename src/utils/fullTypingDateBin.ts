@@ -25,6 +25,20 @@ export const MAIN_FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR = `SELECT TIME, AVG(
 export const PUBLIC_FULL_TYPING_QUERY_PLACEHOLDER = MAIN_FULL_TYPING_QUERY_PLACEHOLDER;
 export const PUBLIC_FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR = MAIN_FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR;
 
+export type FullTypingOption = {
+    use: boolean;
+    text: string;
+    dirty: boolean;
+};
+
+export const normalizeFullTypingOption = (option: Partial<FullTypingOption> | undefined): FullTypingOption => ({
+    use: option?.use ?? false,
+    text: option?.text ?? '',
+    // Older dashboards did not record whether the generated query was edited. Treat their saved
+    // text as user-owned so opening and switching modes can never overwrite it.
+    dirty: option?.dirty ?? (option?.text?.trim() !== ''),
+});
+
 export const buildFullTypingQuery = (blockInfo: any) => {
     const tableName = blockInfo?.customTable || `${blockInfo.table}`.match(/\{\{.*\}\}/) ? blockInfo.table : blockInfo.table.split('.').length === 1 ? `${ADMIN_ID}.${blockInfo.table}` : blockInfo.table;
     const nameColumn = blockInfo?.name ?? '';
@@ -96,4 +110,42 @@ export const buildFullTypingQuery = (blockInfo: any) => {
     }
 
     return `SELECT TIME, ${outerValueExpression} FROM (SELECT ${subQueryColumns.join(', ')} FROM ${tableName} WHERE ${whereExpression}) GROUP BY TIME ORDER BY TIME`;
+};
+
+export const enterFullTyping = (blockInfo: any): FullTypingOption => {
+    const current = normalizeFullTypingOption(blockInfo?.customFullTyping);
+    return {
+        ...current,
+        use: true,
+        text: current.dirty ? current.text : buildFullTypingQuery(blockInfo),
+    };
+};
+
+export const exitFullTyping = (blockInfo: any): FullTypingOption => {
+    const current = normalizeFullTypingOption(blockInfo?.customFullTyping);
+    if (current.text.trim() === '') {
+        return {
+            use: false,
+            text: buildFullTypingQuery(blockInfo),
+            dirty: false,
+        };
+    }
+    return { ...current, use: false };
+};
+
+export const updateFullTypingText = (blockInfo: any, text: string): FullTypingOption => ({
+    ...normalizeFullTypingOption(blockInfo?.customFullTyping),
+    text,
+    dirty: true,
+});
+
+export const deactivateFullTyping = (blockInfo: any): FullTypingOption => ({
+    ...normalizeFullTypingOption(blockInfo?.customFullTyping),
+    use: false,
+});
+
+export const fullTypingAfterTableChange = (blockInfo: any): FullTypingOption => {
+    const current = normalizeFullTypingOption(blockInfo?.customFullTyping);
+    if (current.dirty) return { ...current, use: false };
+    return { use: false, text: '', dirty: false };
 };

@@ -5,6 +5,8 @@ import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/com
 import { useEffect, useState } from 'react';
 import { displayJsonPathLabel, isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
+import { VALUE_FIELD_MISSING_MESSAGE } from './validation';
+import fieldStyles from './fields.module.scss';
 
 const Value = ({
     pValue,
@@ -18,6 +20,12 @@ const Value = ({
     pRemoveValue,
     pJsonPathOptions,
     pChangeJsonKeyOption,
+    /**
+     * Whether the table has no column this field could plot. Decided by Block, not here: an empty
+     * `pColumnList` alone cannot tell a table with nothing to plot from one whose columns are
+     * still loading, and only the first of those has anything to say.
+     */
+    pHasNoValueField = false,
     pHideValueFieldRow = false,
 }: any) => {
     const sJsonColumnList = pColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
@@ -38,10 +46,10 @@ const Value = ({
     };
 
     return (
-        <div style={FIELD_STACK_STYLE}>
+        <div className={fieldStyles['field-stack']} style={FIELD_STACK_STYLE}>
             {!pHideValueFieldRow && (
                 <Page.DpRow style={FIELD_ROW_STYLE}>
-                    <div style={FIELD_ALIGN_SPACER_STYLE} />
+                    <div className={fieldStyles['align-spacer']} style={FIELD_ALIGN_SPACER_STYLE} />
                     <InputSelect
                         label={
                             <>
@@ -69,6 +77,8 @@ const Value = ({
                         selectValue={sValueField}
                         onSelectChange={(value: string) => pChangeValueOption('value', { target: { value } }, pValue.id, 'values')}
                         disabled={!pColumnList[0]}
+                        placeholder={pHasNoValueField ? VALUE_FIELD_MISSING_MESSAGE : undefined}
+                        variant={pHasNoValueField ? 'error' : 'default'}
                         size="md"
                         style={sJsonColumn ? FIELD_STYLE : WIDE_FIELD_STYLE}
                     />

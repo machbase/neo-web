@@ -25,13 +25,13 @@ export const useTimerStateAction = () => {
     const toggleTimerState = useCallback(
         async (timer: TimerItemType): Promise<ToggleTimerStateResult> => {
             const nextCommand = isTimerRunningState(timer.state) ? 'stop' : 'start';
-            const commandResponse = await sendTimerCommand(nextCommand, timer.name);
+            const commandResponse = await sendTimerCommand(nextCommand, timer.id);
 
             if (!commandResponse?.success) {
                 return { success: false, reason: getReason(commandResponse) };
             }
 
-            const timerInfoResponse: any = await getTimerItem(timer.name);
+            const timerInfoResponse = await getTimerItem(timer.id);
             if (!timerInfoResponse?.success) {
                 return { success: false, reason: getReason(timerInfoResponse) };
             }
@@ -41,7 +41,7 @@ export const useTimerStateAction = () => {
             setTimerList((currentTimerList) => {
                 if (!currentTimerList) return currentTimerList;
                 return currentTimerList.map((currentTimer) => {
-                    if (currentTimer.name === timer.name) {
+                    if (currentTimer.id === timer.id) {
                         return updatedTimer;
                     }
                     return currentTimer;
@@ -54,8 +54,8 @@ export const useTimerStateAction = () => {
                         return board;
                     }
 
-                    const boardTimerName = board.code?.name ?? board.savedCode?.name;
-                    if (boardTimerName !== timer.name) {
+                    const boardTimerId = board.code?.id ?? board.savedCode?.id;
+                    if (boardTimerId !== timer.id) {
                         return board;
                     }
 

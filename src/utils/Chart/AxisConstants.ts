@@ -111,10 +111,10 @@ export const UNITS: UnitType[] = [
         id: 'data',
         label: 'Data',
         items: [
-            { id: 'bytes_IEC', label: 'bytes (IEC)', suffix: 'B/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.IEC },
-            { id: 'bytes_SI', label: 'bytes (SI)', suffix: 'B/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
-            { id: 'bits_IEC', label: 'bits (IEC)', suffix: 'b/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.IEC },
-            { id: 'bits_SI', label: 'bits (SI)', suffix: 'b/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
+            { id: 'bytes_IEC', label: 'bytes (IEC)', suffix: 'B', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.IEC },
+            { id: 'bytes_SI', label: 'bytes (SI)', suffix: 'B', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
+            { id: 'bits_IEC', label: 'bits (IEC)', suffix: 'bit', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.IEC },
+            { id: 'bits_SI', label: 'bits (SI)', suffix: 'bit', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
         ],
     },
     {
@@ -124,8 +124,8 @@ export const UNITS: UnitType[] = [
             { id: 'packets_sec', label: 'packets/sec', suffix: 'p/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
             { id: 'bytes_sec_IEC', label: 'bytes/sec (IEC)', suffix: 'B/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.IEC },
             { id: 'bytes_sec_SI', label: 'bytes/sec (SI)', suffix: 'B/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
-            { id: 'bits_sec_IEC', label: 'bits/sec (IEC)', suffix: 'b/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.IEC },
-            { id: 'bits_sec_SI', label: 'bits/sec (SI)', suffix: 'b/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
+            { id: 'bits_sec_IEC', label: 'bits/sec (IEC)', suffix: 'bit/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.IEC },
+            { id: 'bits_sec_SI', label: 'bits/sec (SI)', suffix: 'bit/s', sourceScale: 1, outFormat: E_UNIT_OUT_FORMAT.SI },
         ],
     },
 ];

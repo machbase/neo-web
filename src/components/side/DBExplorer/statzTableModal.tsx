@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { E_TABLE_INFO, FetchCommonType } from './utils';
 import { Modal, Page, Pagination, CommonTable } from '@/design-system/components';
 import { useSchedule } from '@/hooks/useSchedule';
+import { formatStatzResult } from './statzTableRows';
 import moment from 'moment';
 
 interface VirtualTableProps {
@@ -16,10 +17,6 @@ interface VirtualTableProps {
 }
 
 const FETCH_LIMIT = 10;
-const TIME_24 = 'YYYY-MM-DD HH24:MI:SS';
-const ToCharTime = (aColumn: string) => `TO_CHAR(${aColumn}, '${TIME_24}') as '${aColumn}'`;
-// const ToCharValue = (aColumn: string) => `TO_CHAR(${aColumn} ,'N0') as '${aColumn}'`;
-const ToCharValue = (aColumn: string) => `${aColumn}`;
 
 export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps) => {
     const [sStatzList, setStatzInfo] = useState<FetchCommonType>();
@@ -31,13 +28,15 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
         let sCurPage = sPage ? sPage : 1;
         if (sCurPage > getMaxPageNum) sCurPage = getMaxPageNum;
         if (sCurPage < 1) sCurPage = 1;
-        const sQuery = `SELECT NAME, ${ToCharValue('ROW_COUNT')}, ${ToCharTime('MIN_TIME')}, ${ToCharTime('MAX_TIME')}, MIN_VALUE, ${ToCharTime(
-            'MIN_VALUE_TIME'
-        )}, MAX_VALUE, ${ToCharTime('MAX_VALUE_TIME')}, ${ToCharTime('RECENT_ROW_TIME')} FROM ${pModalInfo.table[E_TABLE_INFO.DB_NM]}.${pModalInfo.table[E_TABLE_INFO.USER_NM]}.V$${
+        // `SELECT *` rather than the nine column names this used to spell out: the view's axis
+        // columns are MIN_TIME/MAX_TIME/... on a time base and MIN_DISTANCE/MAX_DISTANCE/... on a
+        // distance one, so naming either set makes the panel fail outright on the other. The
+        // datetime formatting `TO_CHAR` was doing moved to `formatStatzResult`.
+        const sQuery = `SELECT * FROM ${pModalInfo.table[E_TABLE_INFO.DB_NM]}.${pModalInfo.table[E_TABLE_INFO.USER_NM]}.V$${
             pModalInfo.table[E_TABLE_INFO.TB_NM]
         }_STAT${pModalInfo?.filter ? " WHERE NAME LIKE '%" + pModalInfo.filter + "%'" : ''} LIMIT ${(sCurPage - 1) * FETCH_LIMIT}, ${FETCH_LIMIT}`;
         const { svrState, svrData } = await fetchQuery(sQuery);
-        if (svrState) setStatzInfo(svrData);
+        if (svrState) setStatzInfo(formatStatzResult(svrData));
         else setStatzInfo(undefined);
         setLastUpdated(new Date());
     };

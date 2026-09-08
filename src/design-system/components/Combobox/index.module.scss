@@ -277,9 +277,24 @@
         }
     }
 
+    // Two-line option: the label with the parts that qualify it beneath
+    &__option-text {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+    }
+
     // Option label
     &__option-label {
         flex: 1;
+        @include t.text-ellipsis;
+    }
+
+    &__option-description {
+        font-size: t.$font-size-xs;
+        line-height: 1.3;
+        color: t.$text-tertiary;
         @include t.text-ellipsis;
     }
 

@@ -1,3 +1,6 @@
+import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
+import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
+import { qualifyThreePart } from '@/utils/qualifiedTableName';
 import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { parseFiniteNumber } from '../objectGuards';
@@ -35,6 +38,7 @@ import {
     buildCalculatedSeriesSql,
     buildRawSeriesSql,
     buildSeriesFullRangeSql,
+    usesTagStatViewForFullRange,
     RAW_SERIES_ROW_LIMIT,
     type SeriesFullRangeSqlQueries,
     type RollupMode,
@@ -440,18 +444,37 @@ function resolveCalculatedRollupMode(
     return undefined;
 }
 
+/**
+ * A bare table name, given the owner *and database* a bare name would have resolved against.
+ *
+ * The owner half is old; the database half is not. `SYS.SENSOR` means "SENSOR in whichever database
+ * this session is in", which was unambiguous until v8.7 allowed several — after which the same
+ * two-part name reads a different table depending on the session, without an error to say so.
+ * Everything upstream now carries three parts (`fetchTableNames`, `resolveStoredTableName`), so this
+ * is a backstop for a name that slipped through rather than the normal path; it should still say
+ * what it means rather than lean on the session a second time.
+ *
+ * An already-qualified name is returned untouched — prefixing it would give
+ * `MACHBASEDB.SYS.FACTORY_A.SYS.SENSOR`, which resolves to nothing.
+ */
 function addAdminSchemaIfNeeded(
     tableName: string,
 ): string {
     return tableName.includes('.')
         ? tableName
-        : `${ADMIN_ID.toUpperCase()}.${tableName}`;
+        : qualifyThreePart(
+              getCurrentDatabaseName(),
+              ADMIN_ID.toUpperCase(),
+              tableName,
+          );
 }
 
 const RANGE_REQUEST_FAILED_MESSAGE: string =
     'Series full-range request failed.';
 const MALFORMED_RANGE_MESSAGE: string =
     'Series full-range response contained malformed rows.';
+export const SINGLE_POINT_TIME_WIDTH_MS = 1_000;
+export const SINGLE_POINT_NUMERIC_WIDTH = 1;
 
 type SeriesFullRangeSource = {
     table: string;
@@ -466,6 +489,11 @@ async function fetchSeriesFullRange(
     if (seriesList.length === 0) {
         throw new Error('Cannot resolve a full range without any series.');
     }
+    // `buildSeriesFullRangeSql` reads the catalogue synchronously to decide whether a table can
+    // be read through its statistics view, and the catalogue is filled by an async probe. This
+    // runs from a mount effect, so without the await the first request of a page load asks an
+    // empty list — and a mounted table then gets a `V$<TABLE>_STAT` query that does not exist.
+    await ensureCurrentDatabase();
     if (hasMixedXAxisValueKinds(seriesList)) {
         throw new Error(
             'Numeric basetime and datetime series cannot be mixed in one panel.',
@@ -511,6 +539,16 @@ async function fetchSeriesFullRange(
                     fetchSingleSeriesRange(
                         usesNumericTime,
                         sqlQueries,
+                        // Only the view has something to fall back *from*. Where the scan was
+                        // already chosen, a retry would repeat the same read verbatim.
+                        usesTagStatViewForFullRange(tableName, columns)
+                            ? () => buildSeriesFullRangeSql(
+                                  tableName,
+                                  series.sourceTagName,
+                                  columns,
+                                  { forceSourceTable: true },
+                              )
+                            : undefined,
                     ).catch((error: unknown) =>
                         reportSeriesError(series, error)),
                 );
@@ -532,7 +570,50 @@ async function fetchSeriesFullRange(
     return ranges.reduce(getEnclosingRange);
 }
 
+/**
+ * Is this the view answering the question, rather than failing to be asked?
+ *
+ * "Data does not exist" is an answer — the tag is empty — and re-asking it over a scan costs a full
+ * table read to arrive at the same place. A malformed response is not worth a second round trip
+ * either. Everything else means the *view* was unusable, whatever the engine called it, and the
+ * source table can still answer.
+ */
+function isSeriesRangeAnswer(error: unknown): boolean {
+    const message: string = error instanceof Error
+        ? error.message
+        : String(error ?? '');
+    return message === 'Data does not exist.' ||
+        message === MALFORMED_RANGE_MESSAGE;
+}
+
+/**
+ * A series' full extent, with one retry against the source table.
+ *
+ * Different engines can reject or omit a statistics view with different error codes. Enumerating
+ * those codes is brittle, so anything that is not an *answer* retries once against the source
+ * table, which works across databases.
+ *
+ * This is not a second safety net over `usesTagStatViewForFullRange` — that one decides which query
+ * to send, this one decides what to do when the sent query fails, and the retry it governs already
+ * existed. What changed is only how it recognises a failure: by what an answer looks like, which is
+ * a closed set this module owns, rather than by a list of engine error codes, which is not.
+ */
 async function fetchSingleSeriesRange(
+    usesNumericTime: boolean,
+    sqlQueries: SeriesFullRangeSqlQueries,
+    buildSourceTableQueries?: () => SeriesFullRangeSqlQueries,
+): Promise<AxisRange> {
+    try {
+        return await resolveSeriesRange(usesNumericTime, sqlQueries);
+    } catch (error: unknown) {
+        if (!buildSourceTableQueries || isSeriesRangeAnswer(error)) {
+            throw error;
+        }
+        return resolveSeriesRange(usesNumericTime, buildSourceTableQueries());
+    }
+}
+
+async function resolveSeriesRange(
     usesNumericTime: boolean,
     sqlQueries: SeriesFullRangeSqlQueries,
 ): Promise<AxisRange> {
@@ -558,11 +639,17 @@ async function fetchSingleSeriesRange(
     if (start === undefined || end === undefined) {
         throw new Error(MALFORMED_RANGE_MESSAGE);
     }
-    if (start === end) {
-        throw new Error('Data range has zero width.');
-    }
     const first = start / divisor;
     const second = end / divisor;
+    if (first === second) {
+        const width = usesNumericTime
+            ? SINGLE_POINT_NUMERIC_WIDTH
+            : SINGLE_POINT_TIME_WIDTH_MS;
+        return {
+            start: first,
+            end: first + width,
+        };
+    }
     const fullRange = createNonEmptyAxisRange(first, second);
     if (!fullRange) throw noDataError;
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Alert, Button } from '@/design-system/components';
+import { SplitPane, Pane, Alert, Button, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import {
     gActiveSubr,
@@ -14,6 +14,7 @@ import { Page, CommonTable } from '@/design-system/components';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { genSubr, getBridge, getSubr } from '@/api/repository/bridge';
+import { resMessage } from '@/utils/resMessage';
 import {
     SUBR_AUTO_START_DESC,
     SUBR_FORMAT_TABLE,
@@ -82,10 +83,10 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
         const sGenRes: any = await genSubr(sParsedPayload);
         if (sGenRes.success) {
             setResErrMessage(undefined);
+            Toast.success(`Subscriber '${sParsedPayload.name}' created`, { id: 'subr-create' });
         } else {
-            setResErrMessage(
-                sGenRes?.data ? (sGenRes as any).data.reason : (sGenRes.statusText as string),
-            );
+            // failure stays inline next to the form fields that have to change
+            setResErrMessage(resMessage(sGenRes, 'Failed to create subscriber'));
         }
 
         const sResBridge = await getBridge();
@@ -94,12 +95,14 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
             if (sResSubr?.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
             else setBridge(setBridgeTree(sResBridge.data, []));
             if (sGenRes.success && sResSubr?.success) {
-                // the backend lowercases the name on create — find the fresh item case-insensitively
-                // and open its detail with the server-side name (keeps the side tree highlight in sync)
-                const sNewSubr = sResSubr.data.find(
-                    (aSubr: any) =>
-                        aSubr?.name?.toLowerCase() === String(sParsedPayload.name).toLowerCase(),
-                );
+                // `subscriber.add` answers with the created id, so match on that; the server also
+                // normalizes the name's case, hence the case-insensitive fallback.
+                const sNewSubr =
+                    (sGenRes.id ? sResSubr.data.find((aSubr: any) => aSubr?.id === sGenRes.id) : undefined) ??
+                    sResSubr.data.find(
+                        (aSubr: any) =>
+                            aSubr?.name?.toLowerCase() === String(sParsedPayload.name).toLowerCase(),
+                    );
                 if (sNewSubr) {
                     const sBridgeItem =
                         sResBridge.data.find(
@@ -114,7 +117,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
     };
     /** switch this tab to the created item's detail page (same board shape the side tree's openSubrInfo builds) */
     const openCreatedSubrDetail = (aBridge: any, aSubr: any) => {
-        setActiveSubr(aSubr.name);
+        setActiveSubr(aSubr.id);
         setBoardList((aBoardList: any) => {
             return aBoardList.map((aBoard: any) => {
                 if (aBoard.type === 'subscriber') {

@@ -7,9 +7,30 @@ import { useExperiment } from '@/hooks/useExperiment';
 import { getVersionByKey } from './version/utils';
 import { validateAndRepairDashboardPanel, BLOCK_CHART_TYPES, AXIS_CHART_TYPES } from './panelValidator';
 import { getDefaultTimeFieldColumn } from './timeFieldColumns';
+import { findUnitById } from './Chart/AxisConstants';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
+
+// A unit is persisted into a saved dashboard as the whole UnitItem snapshot (`{ id, label, suffix,
+// sourceScale, outFormat }`), not as its id, so a panel keeps whatever UNITS carried on the day it
+// was saved. When a unit definition is corrected — the Data group's suffix was 'B/s' where it should
+// have been 'B', so `bytes (SI)` axis labels read '6.5 GB/s' — the fix reaches new panels only, and
+// every already-saved dashboard keeps rendering the old label forever. So re-read each persisted
+// snapshot from UNITS by id on load. `outFormat` is what identifies a snapshot: no other persisted
+// dashboard object carries it.
+const IsUnitSnapshot = (aValue: any): boolean =>
+    !!aValue && typeof aValue === 'object' && !Array.isArray(aValue) && typeof aValue.id === 'string' && CheckObjectKey(aValue, 'outFormat');
+
+export const RefreshUnitSnapshots = (aValue: any): any => {
+    if (Array.isArray(aValue)) return aValue.map(RefreshUnitSnapshots);
+    if (!aValue || typeof aValue !== 'object') return aValue;
+    // An id no longer in UNITS is left as it is — a snapshot we cannot resolve still formats.
+    if (IsUnitSnapshot(aValue)) return findUnitById(aValue.id) ?? aValue;
+    const sResult: any = {};
+    for (const sKey of Object.keys(aValue)) sResult[sKey] = RefreshUnitSnapshots(aValue[sKey]);
+    return sResult;
+};
 
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
@@ -47,7 +68,10 @@ const DashboardCompatibility = (aData: any) => {
         // Phase 2: Semantic compatibility patches (type-aware)
         const sPanelList = sDashboardInfo.dashboard.panels;
 
-        const sVaildPanelList = sPanelList.map((aPanel: any) => {
+        const sVaildPanelList = sPanelList.map((aRawPanel: any) => {
+            // Re-read every persisted unit snapshot from UNITS before anything reads a suffix off it.
+            const aPanel = RefreshUnitSnapshots(aRawPanel);
+
             // Version stamp (all types)
             aPanel.version = getVersionByKey(aPanel);
 
@@ -94,7 +118,15 @@ const DashboardCompatibility = (aData: any) => {
                     if (sIsVariableBlock) return aBlock;
                     // Check full query
                     const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
-                    const sResult: any = sHasKeyFullQuery ? aBlock : { ...aBlock, customFullTyping: { use: false, text: '' } };
+                    const sResult: any = sHasKeyFullQuery
+                        ? {
+                              ...aBlock,
+                              customFullTyping: {
+                                  ...aBlock.customFullTyping,
+                                  dirty: aBlock.customFullTyping.dirty ?? aBlock.customFullTyping.text?.trim() !== '',
+                              },
+                          }
+                        : { ...aBlock, customFullTyping: { use: false, text: '', dirty: false } };
                     let DEFAULT_AGGREGATOR: string = 'count';
                     let sAggList: string[] = [];
                     if (sResDataType === 'TIME_VALUE') {

@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import useEsc from '@/hooks/useEsc';
 import { useSearchParams } from 'react-router-dom';
 import * as echarts from 'echarts';
 import { TableVirtuoso, type TableComponents } from 'react-virtuoso';
@@ -53,7 +51,6 @@ import {
     buildDataViewerSplitGroups,
     buildDataViewerShiftBaseRangeUpdate,
     buildDataViewerShiftMainRangeUpdate,
-    buildDataViewerDistanceSliderClickRange,
     buildDataViewerDragRangeUpdate,
     buildDataViewerTagSelectionUpdate,
     buildDataViewerWheelZoomRange,
@@ -63,7 +60,8 @@ import {
     buildRawRowNameColors,
     buildSeriesColorMap,
     extractDataViewerDataZoomRange,
-    formatDataViewerTimeRangeInput,
+    toDataViewerTimeRangeModalValue,
+    preserveDataViewerTimeRangeModalEdge,
     formatDataViewerNavigatorRangeLabels,
     filterDataViewerTags,
     filterVisibleAssetRows,
@@ -87,39 +85,27 @@ import {
     resolveDataViewerBaseColumnType,
     resolveDataViewerBaseKind,
     resolveTimeRangeInput,
-    snapDataViewerDistanceEdge,
     toDataViewerDate,
 } from './dataViewerModel';
 import type { DataViewerBaseKind } from './dataViewerModel';
-import {
-    buildDistanceQuickWindowExpression,
-    buildDistanceTickValues,
-    clampDistance,
-    formatDistanceReadout,
-    formatDistanceAxisLabel,
-    isDistanceAnchorEdge,
-    resolveDistanceEdge,
-    thinDistanceTicks,
-    DISTANCE_QUICK_WINDOWS,
-    DISTANCE_THUMB_GRAB_PX,
-    DISTANCE_THUMB_WIDTH,
-} from '@/utils/distanceRange';
+import { isDistanceAnchorEdge, resolveDistanceEdge } from '@/utils/distanceRange';
 import './DataViewerPage.scss';
 
 type ResultRow = Record<string, unknown>;
 type DataViewerTimeRange = { from?: string | number; to?: string | number; start?: string | number; end?: string | number; startTime?: number; endTime?: number };
 type RawPageRequest = {
     page: number;
-    from?: string;
-    to?: string;
+    from?: string | number;
+    to?: string | number;
     boundedRange?: boolean;
     cursorSide?: 'next' | 'prev';
-    cursorTime?: string;
+    cursorTime?: string | number;
     cursorName?: string;
     cursorOffset?: number;
 };
 
 const getParam = (params: URLSearchParams, key: string) => params.get(key)?.trim() ?? '';
+const isMissingRangeEdge = (value: unknown) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
 
 // Every read is bounded on both edges, so the range the user types is only ever an *expression*:
 // `last-1h ~ last` means "one hour back from this tag's newest sample". Resolving it per query would
@@ -127,7 +113,7 @@ const getParam = (params: URLSearchParams, key: string) => params.get(key)?.trim
 // FrozenWindow and every subsequent read — including paging — reuses that literal timestamp pair.
 // `key` records the inputs the window was resolved from; when it stops matching the current inputs
 // the window is stale and no query goes out until the resolver has produced a fresh one.
-type FrozenWindow = { from: string; to: string; key: string };
+type FrozenWindow = { from: string | number; to: string | number; key: string };
 
 // Both edges are mandatory: an open edge is exactly the unbounded scan the frozen window exists to
 // prevent. The shared TimeRangeModal still allows an empty side (dashboards rely on it), so the
@@ -292,501 +278,52 @@ function ResultPagination({
     );
 }
 
-function TimeRangeModal({
+// ─── range editor ─────────────────────────────────────────────────────────────────────────────
+// One editor for both axes, and it is the dashboard's — `components/modal/TimeRangeModal`, pinned
+// to this page's axis with `pLockTab`. The time half already went through it; the distance half
+// used to be a second implementation living here, ~460 lines of slider, ticks and quick windows
+// that computed every value from `@/utils/distanceRange` exactly as the shared tab does. The only
+// thing keeping them apart was where the extent came from: the shared modal read it off a dashboard
+// block, which this page does not have. `pBounds` closes that gap, so the duplicate is gone and a
+// drag now lands on the same number in both screens by construction rather than by agreement.
+function RangeEditorModal({
     range,
-    onApply,
-    onClose,
-}: {
-    range: DataViewerTimeRange;
-    onApply: (range: DataViewerTimeRange) => void;
-    onClose: () => void;
-}) {
-    return (
-        <NeoTimeRangeModal
-            pSetTimeRangeModal={(open) => {
-                if (!open) onClose();
-            }}
-            pStartTime={formatDataViewerTimeRangeInput(range.from)}
-            pEndTime={formatDataViewerTimeRangeInput(range.to)}
-            pSetTime={() => undefined}
-            pSaveCallback={(from, to) => onApply({ from: from ?? '', to: to ?? '' })}
-        />
-    );
-}
-
-// ─── distance-base seam (editor) ──────────────────────────────────────────────────────────────
-// The distance half of the range editor: a bounded dual-thumb slider over the base column's real
-// extent, a readout, a tick scale, and the From/To numeric inputs — with the same
-// both-edges-required / from-before-to rules the time path enforces.
-//
-// The dashboard draws the same editor in `components/modal/DistanceRangeTab` — as a *tab body*
-// inside the shared Modal's shell, styled with CSS modules, where this one owns its own dialog and
-// takes its styling from the `.neo-data-viewer` tokens. The two are deliberately not one component
-// for that reason, but they are one *editor*: every value a gesture can produce — tick values and
-// labels, the readout format, the thumb metrics, the snap, the track click, the quick windows —
-// comes from `@/utils/distanceRange` and nowhere else, so a drag lands on the same number in both.
-//
-// No date picker and no quick-range list: `last-1h` has no distance analogue, so the only thing
-// there is to type is a number.
-
-function DistanceRangeModal({
-    range,
+    baseKind,
     bounds,
     onApply,
     onClose,
 }: {
     range: DataViewerTimeRange;
-    /** The base column's real extent, or `null` when it could not be read. `pBounds` on the shared tab. */
+    baseKind: DataViewerBaseKind;
+    /** The base column's real extent, or `null` when it could not be read — the slider then hides. */
     bounds?: { min: number; max: number } | null;
     onApply: (range: DataViewerTimeRange) => void;
     onClose: () => void;
 }) {
-    const [from, setFrom] = useState(() => formatDataViewerDistance(range.from));
-    const [to, setTo] = useState(() => formatDataViewerDistance(range.to));
-    // Local, not the page's `error`: the modal covers the page's error box, so a rejection reported
-    // there would be invisible until the user closed the very dialog that produced it.
-    const [notice, setNotice] = useState('');
-
-    const hasExtent = Boolean(bounds && Number.isFinite(bounds.min) && Number.isFinite(bounds.max) && bounds.max > bounds.min);
-    // The text is the source of truth, because the text is what Apply validates. The slider is a
-    // second view of the same two strings, so "1e3" or "" or "abc" stay exactly as typed and are
-    // still rejected by the same three rules below.
-    //
-    // An edge may also be anchored to the data — `last`, `last-5000`, `first`, `first+5000`, the
-    // distance answer to `last-1h ~ last`. Those are resolved against the extent for everything on
-    // screen, and kept as expressions in what Apply hands back, so the window follows the data
-    // instead of freezing at the coordinates it happens to sit on today.
-    const resolveEdge = (value: string) => resolveDistanceEdge(value, hasExtent ? { min: bounds!.min, max: bounds!.max } : null);
-    const fromValue = resolveEdge(from);
-    const toValue = resolveEdge(to);
-    const sliderMin = hasExtent ? bounds!.min : 0;
-    const sliderMax = hasExtent ? bounds!.max : 0;
-    const sliderSpan = sliderMax - sliderMin || 1;
-    // An unparseable edge still has to put the thumb *somewhere*; the corresponding bound is the
-    // only honest place for it, and the readout says `-` so nothing claims that guess is the value.
-    const sliderFrom = hasExtent ? clampDistance(fromValue ?? sliderMin, sliderMin, sliderMax) : 0;
-    const sliderTo = hasExtent ? clampDistance(toValue ?? sliderMax, sliderMin, sliderMax) : 0;
-    const span = fromValue === null || toValue === null ? null : toValue - fromValue;
-    // ~1/1000 of the extent, so a full drag is a smooth sweep rather than 4,828 discrete stops, and
-    // never below the smallest value the axis can actually distinguish.
-    const sliderStep = useMemo(() => {
-        const raw = sliderSpan / 1000;
-        if (!Number.isFinite(raw) || raw <= 0) return 1;
-        return raw >= 1 ? Math.max(1, Math.round(raw)) : raw;
-    }, [sliderSpan]);
-    const tickValues = useMemo(() => (hasExtent ? buildDistanceTickValues(sliderMin, sliderMax) : []), [hasExtent, sliderMax, sliderMin]);
-    // Labels sized to the tick step, and thinned when that makes them long. An odometer window of a
-    // few hundred metres around 25,150,000 otherwise prints five ticks that all read the same and a
-    // max label long enough to sit on its neighbour — one decimal cannot separate ticks 200 apart at
-    // that magnitude. Same rule as the dashboard's editor.
-    const tickStep = tickValues.length > 1 ? tickValues[1] - tickValues[0] : sliderSpan / 4;
-    const tickLabel = (value: number) => formatDistanceAxisLabel(value, tickStep);
-    // The upper bound is the one number here worth spelling out exactly; it only falls back to the
-    // short form when spelling it out would run into the tick beside it. Exact value on hover.
-    const exactMaxLabel = formatDistanceReadout(sliderMax);
-    const maxTickLabel = exactMaxLabel.length > 9 ? tickLabel(sliderMax) : exactMaxLabel;
-    const drawnTicks = useMemo(() => {
-        const longest = tickValues.reduce((max, value) => Math.max(max, tickLabel(value).length), maxTickLabel.length);
-        const edgeCut = longest > 10 ? 0.6 : longest > 6 ? 0.72 : 0.92;
-        return thinDistanceTicks(
-            tickValues.filter((value) => (value - sliderMin) / sliderSpan <= edgeCut),
-            tickLabel
-        );
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tickValues, sliderMin, sliderMax, sliderSpan, tickStep, maxTickLabel]);
-
-    // Every value the slider produces — a pixel on the rail, an arrow key — goes through here, so a
-    // continuous ratio can never reach the From box as `401578.346465`, and either bound is exactly
-    // reachable however badly the step divides the extent (see `snapDataViewerDistanceEdge`).
-    const snapEdge = (value: number) => snapDataViewerDistanceEdge({ value, min: sliderMin, max: sliderMax, step: sliderStep });
-
-    // ── crossing ──────────────────────────────────────────────────────────────────────────────
-    // The thumbs cross, and crossing is a *swap*: pull From past To and the two exchange roles, so
-    // the thumb under the cursor keeps following it instead of stopping dead against its neighbour.
-    // Nothing downstream ever sees a backwards range, because the pair is written as the min and max
-    // of one moved value and one anchored one rather than as "the From edge" — `from ≤ to` is a
-    // property of the two numbers, not of which thumb was grabbed.
-    //
-    // It is also what makes a collapsed pair reachable in both directions with no tie-break at all:
-    // when the two coincide the anchor is the same number whichever thumb was named, so a pull to
-    // the left lands on From and a pull to the right lands on To, by arithmetic rather than by rule.
-    //
-    // The typed inputs are still deliberately untouched by any of this: silently rewriting `900` to
-    // `100` while someone is halfway through replacing both edges is worse than telling them, on
-    // Apply, that the range came out backwards.
-    const commitEdges = (moved: number, anchored: number) => {
-        setFrom(String(Math.min(moved, anchored)));
-        setTo(String(Math.max(moved, anchored)));
-    };
-
-    const fromThumbRef = useRef<HTMLInputElement | null>(null);
-    const toThumbRef = useRef<HTMLInputElement | null>(null);
-
-    // One edge moved from the keyboard — which is also where a native `change` on these inputs comes
-    // from, the pointer being handled below. The other edge anchors; if the move crossed it, focus
-    // follows the value across, so the arrows go on driving the number they were driving instead of
-    // silently switching to the other one.
-    const moveEdgeTo = (edge: 'from' | 'to', value: number) => {
-        const anchored = edge === 'from' ? sliderTo : sliderFrom;
-        const moved = snapEdge(value);
-        commitEdges(moved, anchored);
-        if (edge === 'from' && moved > anchored) toThumbRef.current?.focus();
-        if (edge === 'to' && moved < anchored) fromThumbRef.current?.focus();
-    };
-
-    // `step="any"` on the inputs is what lets a thumb be *drawn* at a bound the step grid misses: at
-    // a step of 1,000 on a 0 .. 999,990 extent the browser's own value sanitisation snaps 999,990
-    // back to 999,000, and the thumb sits a visible distance short of the end of its own rail while
-    // the readout claims the maximum. The cost of `any` is that the arrows would then move in some
-    // UA-chosen fraction of the extent, so they are handled here: one step, or straight to a bound.
-    const handleThumbKeyDown = (edge: 'from' | 'to', event: React.KeyboardEvent<HTMLInputElement>) => {
-        const current = edge === 'from' ? sliderFrom : sliderTo;
-        const leap = sliderStep * 10;
-        const next =
-            event.key === 'ArrowRight' || event.key === 'ArrowUp'
-                ? current + sliderStep
-                : event.key === 'ArrowLeft' || event.key === 'ArrowDown'
-                  ? current - sliderStep
-                  : event.key === 'PageUp'
-                    ? current + leap
-                    : event.key === 'PageDown'
-                      ? current - leap
-                      : event.key === 'Home'
-                        ? sliderMin
-                        : event.key === 'End'
-                          ? sliderMax
-                          : null;
-        if (next === null) return;
-        event.preventDefault();
-        moveEdgeTo(edge, next);
-    };
-
-    // ── thumb dragging ────────────────────────────────────────────────────────────────────────
-    // The drag is run here rather than left to the two native range inputs, because two stacked
-    // inputs cannot express "whichever thumb you meant". Their thumbs are the only part of them that
-    // takes a pointer, so the one painted later — To — wins every press where the two coincide, and
-    // the other is unreachable underneath it. Measured in Chromium: from a collapsed pair anywhere on
-    // the rail, From could never be picked up again, and a pair collapsed at the maximum could not be
-    // moved at all in either direction. The slider was simply stuck.
-    //
-    // So the container owns the gesture: it names the nearer thumb, anchors the other, and from then
-    // on the gesture is just "this value, that anchor" — which is why crossing needs no case of its
-    // own here. `preventDefault` on the press is what stops the native drag underneath from running
-    // the same gesture a second time.
-    const sliderRef = useRef<HTMLDivElement | null>(null);
-    // Everything the gesture needs, captured at the press. Only one edge moves during a drag, so the
-    // other one is a constant for its duration and no state has to be re-read mid-gesture.
-    const thumbDragRef = useRef<{ anchored: number } | null>(null);
-
-    // Value → x, on the rail the thumb centre can actually reach.
-    const valueToClientX = (value: number, rect: DOMRect) => {
-        const inset = DISTANCE_THUMB_WIDTH / 2;
-        const usable = rect.width - DISTANCE_THUMB_WIDTH;
-        if (!(usable > 0)) return rect.left + rect.width / 2;
-        return rect.left + inset + ((value - sliderMin) / sliderSpan) * usable;
-    };
-    // ...and back, snapped to the same step the keyboard moves in so the two agree.
-    const clientXToValue = (clientX: number, rect: DOMRect) => {
-        const inset = DISTANCE_THUMB_WIDTH / 2;
-        const usable = rect.width - DISTANCE_THUMB_WIDTH;
-        const ratio = usable > 0 ? (clientX - rect.left - inset) / usable : 0;
-        return snapEdge(sliderMin + Math.min(Math.max(ratio, 0), 1) * sliderSpan);
-    };
-
-    useEffect(() => {
-        const handleMove = (event: PointerEvent) => {
-            const drag = thumbDragRef.current;
-            const rect = sliderRef.current?.getBoundingClientRect();
-            if (!drag || !rect || !(rect.width > 0)) return;
-            event.preventDefault();
-            commitEdges(clientXToValue(event.clientX, rect), drag.anchored);
-        };
-        const handleUp = () => {
-            thumbDragRef.current = null;
-        };
-        window.addEventListener('pointermove', handleMove);
-        window.addEventListener('pointerup', handleUp);
-        window.addEventListener('pointercancel', handleUp);
-        return () => {
-            window.removeEventListener('pointermove', handleMove);
-            window.removeEventListener('pointerup', handleUp);
-            window.removeEventListener('pointercancel', handleUp);
-        };
-    });
-
-    // A click on the bare track moves the whole window to the clicked point, keeping its width.
-    // Without it the only way to reach 40,000 m from a window at 0 is to drag both thumbs the length
-    // of the rail, one after the other, and get the width right by hand on the way.
-    //
-    // `pointerdown`, not `click`: a press on the track that turns into a drag would otherwise both
-    // jump the window here *and* leave a click behind at the end of the gesture.
-    const handleTrackPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-        if (!hasExtent) return;
-        const rect = event.currentTarget.getBoundingClientRect();
-        if (!(rect.width > 0)) return;
-
-        const fromX = valueToClientX(sliderFrom, rect);
-        const toX = valueToClientX(sliderTo, rect);
-        const distanceToFrom = Math.abs(event.clientX - fromX);
-        const distanceToTo = Math.abs(event.clientX - toX);
-        // A press that landed on one of the inputs came off its thumb — in a browser that is the
-        // only part of them a pointer can reach — so it names its own edge and needs no guessing.
-        const targetEdge =
-            event.target instanceof HTMLInputElement
-                ? event.target.classList.contains('data-viewer-distance-thumb-from')
-                    ? 'from'
-                    : event.target.classList.contains('data-viewer-distance-thumb-to')
-                      ? 'to'
-                      : undefined
-                : undefined;
-        const nearest = Math.min(distanceToFrom, distanceToTo) <= DISTANCE_THUMB_GRAB_PX ? (distanceToFrom <= distanceToTo ? 'from' : 'to') : undefined;
-        // A press where the two coincide needs no tie-break of its own: whichever edge is named, the
-        // *other* one is the same number, and the swap in `commitEdges` sorts the pair out from there
-        // whichever way the gesture then goes.
-        const edge = targetEdge ?? nearest;
-
-        if (edge) {
-            event.preventDefault();
-            thumbDragRef.current = { anchored: edge === 'from' ? sliderTo : sliderFrom };
-            return;
-        }
-
-        // Not a thumb, so nothing is being dragged — including anything a previous gesture left
-        // behind if its pointerup landed somewhere that never reached us.
-        thumbDragRef.current = null;
-        const next = buildDataViewerDistanceSliderClickRange({
-            ratio: (event.clientX - rect.left) / rect.width,
-            from: sliderFrom,
-            to: sliderTo,
-            min: sliderMin,
-            max: sliderMax,
-        });
-        if (!next) return;
-        // Both edges, as text, through the same two states the thumbs and the inputs write — so the
-        // readout, the fill and the From/To boxes all follow from this one move.
-        setFrom(String(next.from));
-        setTo(String(next.to));
-    };
-
-    // Whole-extent shortcuts. Only drawn when there *is* an extent: without one there is no "50% of"
-    // anything, which is the same reason the slider itself is not drawn (see `hasExtent`).
-    // Anchored, not frozen: `Last 25%` is the most recent quarter of the data as it stands now *and*
-    // as it grows, which is what makes it the distance answer to `Last 1 hour`.
-    const applyQuickWindow = (edge: 'first' | 'last', ratio: number) => {
-        const next = buildDistanceQuickWindowExpression({ min: sliderMin, max: sliderMax, edge, ratio });
-        if (!next) return;
-        setFrom(next.from);
-        setTo(next.to);
-    };
-
-    const apply = () => {
-        // Both edges mandatory, checked before parsing so an empty side is reported as missing
-        // rather than as "not a number" — the two are different mistakes.
-        if (!from.trim() || !to.trim()) {
-            setNotice(DISTANCE_RANGE_REQUIRED_MESSAGE);
-            return;
-        }
-        if (fromValue === null || toValue === null) {
-            setNotice(DISTANCE_RANGE_INVALID_MESSAGE);
-            return;
-        }
-        if (fromValue > toValue) {
-            setNotice(DISTANCE_RANGE_ORDER_MESSAGE);
-            return;
-        }
-        // A coordinate is handed back as its number, so everything downstream — the frozen window
-        // key, the SQL literal, the chip label — reads one canonical form. An anchored edge is handed
-        // back as its expression, because resolving it here is exactly what it exists to avoid.
-        onApply({
-            from: isDistanceAnchorEdge(from) ? from.trim() : fromValue,
-            to: isDistanceAnchorEdge(to) ? to.trim() : toValue,
-        });
-    };
-
-    // Escape has to be listened for on the document, not on the dialog: a `onKeyDown` there only
-    // fires while focus is inside it, and one click on the overlay is enough to lose that.
-    // `useEsc` is the same hook the shared Modal uses, so the behaviour matches every other dialog.
-    // Tracks where the current press began; see the overlay's onPointerDown below.
-    const pressStartedOnOverlay = useRef(false);
-
-    useEsc(onClose);
-
-    // Portalled to <body>. Rendered in place, the overlay is `position: fixed` but still painted
-    // inside whatever stacking context its ancestors establish, so the app shell's splitter and the
-    // tag list painted over it. The wrapper keeps the `neo-data-viewer` class because every rule and
-    // design token below is scoped to it; `display: contents` keeps that wrapper out of layout so it
-    // does not become a stray full-height flex box on <body>.
-    return createPortal(
-        <div className="neo-data-viewer neo-data-viewer-portal">
-            <div
-                className="modal-overlay data-viewer-time-overlay"
-                role="presentation"
-                // `click` fires on the nearest common ancestor of press and release, so a slider drag
-                // that starts on a thumb and finishes past the dialog's edge lands on the overlay and
-                // used to close it mid-gesture. Only a press that *began* on the overlay counts as a
-                // click-outside — the same guard the shared Modal uses (`sIsStartInner`).
-                onPointerDown={(event) => {
-                    pressStartedOnOverlay.current = event.target === event.currentTarget;
-                }}
-                onClick={(event) => {
-                    if (event.target === event.currentTarget && pressStartedOnOverlay.current) onClose();
-                }}
-            >
-                <div
-                    className="modal data-viewer-time-modal data-viewer-distance-modal"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Set distance range"
-                    onKeyDown={(event) => {
-                        if (event.key === 'Enter') apply();
-                    }}
-                >
-                    <div className="modal-header data-viewer-distance-header">
-                        <div className="modal-header-title">
-                            <MaterialIcon name="straighten" className="icon-sm" />
-                            <span>Distance</span>
-                        </div>
-                        <button type="button" className="btn-icon-sm data-viewer-distance-close" onClick={onClose} aria-label="Close distance range">
-                            <MaterialIcon name="close" className="icon-sm" />
-                        </button>
-                    </div>
-                    <div className="modal-body data-viewer-time-body data-viewer-distance-body">
-                        {/* Two lines, not two columns: the range is the headline and the span is a
-                            note about it, so the span goes *under* the range rather than beside it —
-                            where, at the right-hand end of a 420px dialog, it read as a second
-                            unrelated number. Block children of a block box, so the stacking is a
-                            property of the markup and not of a flex direction that could be flipped
-                            back without anything noticing. */}
-                        <div className="data-viewer-distance-readout">
-                            <div className="data-viewer-distance-readout-value">
-                                {formatDistanceReadout(fromValue)}
-                                <span className="data-viewer-distance-readout-dash">–</span>
-                                {formatDistanceReadout(toValue)}
-                            </div>
-                            <div className="data-viewer-distance-readout-span">{formatDistanceReadout(span)}</div>
-                        </div>
-
-                        {/* No extent ⇒ no slider. A bounds read that failed must not cost the user the
-                            editor, so the numeric inputs below carry on alone. */}
-                        {hasExtent ? (
-                            <>
-                                <div ref={sliderRef} className="data-viewer-distance-slider" onPointerDown={handleTrackPointerDown} data-testid="data-viewer-distance-slider">
-                                    <div className="data-viewer-distance-track" />
-                                    <div
-                                        className="data-viewer-distance-fill"
-                                        style={{
-                                            left: `${((sliderFrom - sliderMin) / sliderSpan) * 100}%`,
-                                            width: `${Math.max(0, ((sliderTo - sliderFrom) / sliderSpan) * 100)}%`,
-                                        }}
-                                    />
-                                    {/* Two native range inputs stacked on one track. They draw the thumbs and carry
-                                        the keyboard's focus, but neither the pointer nor the keys are theirs to
-                                        interpret — see `handleTrackPointerDown` for why a stacked pair cannot decide
-                                        between itself, and `handleThumbKeyDown` for why `step` here is `any`: a step
-                                        that does not divide the extent makes the browser sanitise a value *at* the
-                                        maximum back down to the last aligned one, and the thumb then stops short of
-                                        the end of its own rail. */}
-                                    <input
-                                        ref={fromThumbRef}
-                                        type="range"
-                                        className="data-viewer-distance-thumb data-viewer-distance-thumb-from"
-                                        min={sliderMin}
-                                        max={sliderMax}
-                                        step="any"
-                                        value={sliderFrom}
-                                        aria-label="Distance from slider"
-                                        onKeyDown={(event) => handleThumbKeyDown('from', event)}
-                                        onChange={(event) => moveEdgeTo('from', Number(event.target.value))}
-                                    />
-                                    <input
-                                        ref={toThumbRef}
-                                        type="range"
-                                        className="data-viewer-distance-thumb data-viewer-distance-thumb-to"
-                                        min={sliderMin}
-                                        max={sliderMax}
-                                        step="any"
-                                        value={sliderTo}
-                                        aria-label="Distance to slider"
-                                        onKeyDown={(event) => handleThumbKeyDown('to', event)}
-                                        onChange={(event) => moveEdgeTo('to', Number(event.target.value))}
-                                    />
-                                </div>
-                                <div className="data-viewer-distance-ticks">
-                                    {/* The upper bound is drawn at the right edge, so ticks that would
-                                        land on it are cut above rather than printed over it. */}
-                                    {drawnTicks.map((value) => {
-                                        const percent = ((value - sliderMin) / sliderSpan) * 100;
-                                        return (
-                                            <span
-                                                key={value}
-                                                className={`data-viewer-distance-tick${percent < 2 ? ' data-viewer-distance-tick-min' : ''}`}
-                                                style={{ left: `${percent}%` }}
-                                            >
-                                                <span className="data-viewer-distance-tick-mark" />
-                                                <span className="data-viewer-distance-tick-label">{tickLabel(value)}</span>
-                                            </span>
-                                        );
-                                    })}
-                                    <span className="data-viewer-distance-tick data-viewer-distance-tick-max" style={{ left: '100%' }} title={exactMaxLabel}>
-                                        <span className="data-viewer-distance-tick-mark" />
-                                        <span className="data-viewer-distance-tick-label">{maxTickLabel}</span>
-                                    </span>
-                                </div>
-                            </>
-                        ) : null}
-
-                        <div className="data-viewer-distance-fields">
-                            <label className="data-viewer-distance-field">
-                                <span className="data-viewer-distance-field-label">From</span>
-                                <input value={from} onChange={(event) => setFrom(event.target.value)} inputMode="decimal" aria-label="Distance from" autoFocus />
-                            </label>
-                            <label className="data-viewer-distance-field">
-                                <span className="data-viewer-distance-field-label">To</span>
-                                <input value={to} onChange={(event) => setTo(event.target.value)} inputMode="decimal" aria-label="Distance to" />
-                            </label>
-                        </div>
-
-                        {/* Quick windows. Every one of them is a fraction of the *extent*, so they
-                            exist only when the extent does — the same condition that draws the
-                            slider. Without bounds there is nothing for "First 25%" to be a quarter
-                            of, and a row of buttons that silently did nothing would be worse than a
-                            row that is not there. */}
-                        {hasExtent ? (
-                            <div className="data-viewer-distance-quick">
-                                <span className="data-viewer-distance-quick-label">Quick windows</span>
-                                {DISTANCE_QUICK_WINDOWS.map((row, index) => (
-                                    <div key={index} className="data-viewer-distance-quick-row">
-                                        {row.map((item) => (
-                                            <button
-                                                key={item.label}
-                                                type="button"
-                                                className="btn btn-secondary data-viewer-distance-quick-button"
-                                                onClick={() => applyQuickWindow(item.edge, item.ratio)}
-                                            >
-                                                {item.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : null}
-                        {notice ? <div className="error-box data-viewer-distance-notice">{notice}</div> : null}
-                    </div>
-                    <div className="modal-footer">
-                        <button type="button" className="btn btn-secondary" onClick={onClose}>
-                            Cancel
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={apply}>
-                            Apply
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>,
-        document.body
+    const distance = baseKind === 'distance';
+    return (
+        <NeoTimeRangeModal
+            pSetTimeRangeModal={(open) => {
+                if (!open) onClose();
+            }}
+            // A distance edge is a number or an anchor expression and is handed over as written; a
+            // time edge goes through the page's own input formatting first.
+            pStartTime={distance ? (range.from as string | number) : toDataViewerTimeRangeModalValue(range.from)}
+            pEndTime={distance ? (range.to as string | number) : toDataViewerTimeRangeModalValue(range.to)}
+            pSetTime={() => undefined}
+            pAllowNegativeTime={!distance}
+            pSaveCallback={(from, to) =>
+                onApply({
+                    from: distance ? from ?? '' : preserveDataViewerTimeRangeModalEdge(range.from, from ?? ''),
+                    to: distance ? to ?? '' : preserveDataViewerTimeRangeModalEdge(range.to, to ?? ''),
+                })
+            }
+            pLockTab={distance ? 'distance' : 'time'}
+            pBounds={distance ? bounds : undefined}
+        />
     );
 }
-// ─── end distance-base seam (editor) ──────────────────────────────────────────────────────────
+
 
 function FormatTimezoneModal({
     timeFormat,
@@ -1811,10 +1348,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
 
     const resolveRangeForTagNames = useCallback(async (targetRange: DataViewerTimeRange, tagNames: string[]) => {
         // A distance axis has no clock, so no *time* boundary query is issued — `queryTagBoundaryTime`
-        // would come back with the stat view's reinterpreted bit pattern or a scan of a column that
-        // measures metres — and no date parsing happens, so `toDataViewerDate` never gets the chance
-        // to turn 999990 into 1970-01-01. The edges are the numbers themselves; `null` means the
-        // value was not one.
+        // would ask a stat view that has no MIN_TIME column to answer with, then fall back to scanning
+        // a column that measures metres — and no date parsing happens, so `toDataViewerDate` never
+        // gets the chance to turn 999990 into 1970-01-01. The edges are the numbers themselves;
+        // `null` means the value was not one.
         //
         // It does have an *extent*, though, and that is what `first`/`last` are anchored to. Those
         // edges are resolved here, against the same base-column bounds the slider is drawn from, and
@@ -1892,7 +1429,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     setError(distance ? DISTANCE_RANGE_INVALID_MESSAGE : missingBoundary ? TAG_HAS_NO_DATA_MESSAGE : TIME_RANGE_INVALID_MESSAGE);
                     return;
                 }
-                if (!from || !to) {
+                if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
                     setFrozenWindow(null);
                     setError(distance ? DISTANCE_RANGE_REQUIRED_MESSAGE : TIME_RANGE_REQUIRED_MESSAGE);
                     return;
@@ -1930,9 +1467,8 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     //
     // Note which column this asks about: `baseColumn`, the BASETIME column the schema read resolved,
     // not `timeColumn`. On a distance table those differ. `baseKind` goes with it because it is what
-    // opens the tag stat view's fast path — MIN_TIME/MAX_TIME hold that column's extent, but as raw
-    // bytes labelled a time, and only a distance base has any business reinterpreting them. See
-    // `queryTagBaseColumnBounds`.
+    // opens the tag stat view's fast path — MIN_DISTANCE/MAX_DISTANCE hold that column's extent, and
+    // those columns exist only on a distance base. See `queryTagBaseColumnBounds`.
     useEffect(() => {
         if (!rangeEditor || baseKind !== 'distance' || !canQuery) {
             setDistanceBounds(null);
@@ -1969,7 +1505,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // `error` is left alone so the resolver's message survives.
         const from = activeWindow?.from;
         const to = activeWindow?.to;
-        if (!from || !to) {
+        if (!activeWindow || isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
             setRows([]);
             setRowsWindowKey(null);
             setRawPageBounds(null);
@@ -2181,7 +1717,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // showing. Re-resolving here would count a different window than the one paged through.
         const from = activeWindow?.from;
         const to = activeWindow?.to;
-        if (!from || !to) return;
+        if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) return;
         const requestId = endPageRequestRef.current + 1;
         endPageRequestRef.current = requestId;
         setEndLoading(true);
@@ -2332,7 +1868,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             setChartError(baseKind === 'distance' ? DISTANCE_RANGE_INVALID_MESSAGE : TIME_RANGE_INVALID_MESSAGE);
                             return;
                         }
-                        if (!from || !to) {
+                        if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
                             setChartError(requiredMessage);
                             return;
                         }
@@ -3189,11 +2725,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 the same extent from the same query. Nothing else in the page moves.
                 ─────────────────────────────────────────────────────────────────────────────── */}
             {rangeEditor ? (
-                baseKind === 'distance' ? (
-                    <DistanceRangeModal range={rangeEditorRange} bounds={distanceBounds} onClose={() => setRangeEditor(null)} onApply={handleRangeApply} />
-                ) : (
-                    <TimeRangeModal range={rangeEditorRange} onClose={() => setRangeEditor(null)} onApply={handleRangeApply} />
-                )
+                <RangeEditorModal
+                    range={rangeEditorRange}
+                    baseKind={baseKind}
+                    bounds={distanceBounds}
+                    onClose={() => setRangeEditor(null)}
+                    onApply={handleRangeApply}
+                />
             ) : null}
             {formatOpen ? (
                 <FormatTimezoneModal

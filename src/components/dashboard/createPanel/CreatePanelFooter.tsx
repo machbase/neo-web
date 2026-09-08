@@ -16,6 +16,7 @@ import { DistanceRangeBlock } from './DistanceRangeBlock';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { createDefaultTagTableOption, getTableType } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
+import { normalizeFullTypingOption } from '@/utils/fullTypingDateBin';
 
 type FOOTER_MENU_TYPE = 'Series' | 'Transform' | 'Time';
 
@@ -57,6 +58,10 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                             isValidMath: true,
                             alias: '',
                             tag: '',
+                            // Selecting keeps its existing copy-and-clear rules below. The full
+                            // typing mode is an independent draft, so copy its mode, SQL, and dirty
+                            // state exactly as they are.
+                            customFullTyping: normalizeFullTypingOption(sLastBlock.customFullTyping),
                             values: sLastBlock.values.map((val: any) => {
                                 return { ...val, aggregator: aPrev.type === 'Text' ? 'value' : sLastBlock.aggregator, id: generateUUID(), alias: '' };
                             }),

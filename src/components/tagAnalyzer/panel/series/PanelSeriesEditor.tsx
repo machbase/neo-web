@@ -21,8 +21,8 @@ import {
     Pagination,
     type ComboboxOption,
 } from '@/design-system/components';
-import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
+import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
 import {
     displayJsonPathLabel,
     isJsonTypeColumn,
@@ -35,6 +35,7 @@ import {
     isTagAnalyzerJsonValue,
 } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
+import { resolveStoredTableName } from '@/utils/qualifiedTableName';
 import {
     tableMetadataApi,
     type TableColumn,
@@ -99,6 +100,8 @@ export function PanelSeriesEditor({
     const [sTagInputValue, setTagInputValue] = useState('');
     const [sAppliedTagSearchText, setAppliedTagSearchText] = useState('');
     const [sTagRequest, setTagRequest] = useState<{
+        table: string;
+        tagColumn: string;
         searchText: string;
         page: number;
         generation: number;
@@ -154,15 +157,38 @@ export function PanelSeriesEditor({
         sourceColumns: PanelSeriesSourceColumns | undefined,
         tableColumns: TableColumn[],
     ): void => {
-        setTagRequest(undefined);
-        setAvailableTags([]);
-        setTagTotal(0);
+        const sTagSourceChanged =
+            table !== sSelectedTable ||
+            sourceColumns?.name !== sSourceColumns?.name;
+
         setFooterMessage(undefined);
         setSelectedTableState(table);
         setSourceColumns(sourceColumns);
         setTableColumns(tableColumns);
+
+        if (!sTagSourceChanged) return;
+
+        setAvailableTags([]);
+        setTagTotal(0);
         setTagPageState(1);
-    }, [setFooterMessage]);
+        if (!table || !sourceColumns?.name) {
+            setTagRequest(undefined);
+            return;
+        }
+
+        setTagRequest((current) => ({
+            table,
+            tagColumn: sourceColumns.name,
+            searchText: sAppliedTagSearchText,
+            page: 1,
+            generation: (current?.generation ?? 0) + 1,
+        }));
+    }, [
+        sAppliedTagSearchText,
+        sSelectedTable,
+        sSourceColumns?.name,
+        setFooterMessage,
+    ]);
 
     function loadTagList(
         searchText = sAppliedTagSearchText,
@@ -175,6 +201,8 @@ export function PanelSeriesEditor({
             return;
         }
         setTagRequest((current) => ({
+            table: sSelectedTable,
+            tagColumn: sSourceColumns.name,
             searchText,
             page,
             generation: (current?.generation ?? 0) + 1,
@@ -185,14 +213,14 @@ export function PanelSeriesEditor({
         enabled: sTagRequest !== undefined,
         requestKey: JSON.stringify(sTagRequest),
         fetch: async () => {
-            if (!sTagRequest || !sSourceColumns?.name) {
+            if (!sTagRequest) {
                 throw new Error('Tag search source is unavailable.');
             }
             return {
                 request: sTagRequest,
                 result: await tableMetadataApi.fetchTags(
-                    sSelectedTable,
-                    sSourceColumns.name,
+                    sTagRequest.table,
+                    sTagRequest.tagColumn,
                     sTagRequest.searchText,
                     sTagRequest.page,
                     TAG_PAGE_SIZE,
@@ -307,15 +335,6 @@ export function PanelSeriesEditor({
             ),
         );
     }
-
-    useDebounce(
-        [sSelectedTable, sSourceColumns],
-        () => {
-            loadTagList();
-        },
-        200,
-        undefined,
-    );
 
     return (
         <>
@@ -612,9 +631,16 @@ function getSelectedSeriesTooltip(
     ].join('\n');
 }
 
-type TableColumnsCacheEntry = {
-    sourceColumns: PanelSeriesSourceColumns | undefined;
-    tableColumns: TableColumn[];
+type SourceColumnRequest = {
+    table: string;
+    generation: number;
+};
+
+type SourceTableOption = {
+    database: string;
+    owner: string;
+    table: string;
+    qualifiedName: string;
 };
 
 const EMPTY_JSON_PATH_OPTIONS: string[] = [];
@@ -642,18 +668,89 @@ function SourceSelector({
     ) => void;
     onError: (message: string) => void;
 }) {
-    const sColumnResultsByTableRef =
-        useRef<Record<string, TableColumnsCacheEntry>>({});
     const sJsonKeyByColumnRef = useRef<Record<string, string>>({});
-    const [sColumnRequestTable, setColumnRequestTable] = useState('');
+    const [sColumnRequest, setColumnRequest] =
+        useState<SourceColumnRequest>();
+    const [sSelectedDatabase, setSelectedDatabase] = useState('');
+    const [sSelectedOwner, setSelectedOwner] = useState('');
 
+    const sSourceTables = useMemo<SourceTableOption[]>(
+        () => availableSourceTableNames.map(parseSourceTableOption),
+        [availableSourceTableNames],
+    );
+    const sDatabaseNames = useMemo<string[]>(
+        () => [...new Set(sSourceTables.map(({ database }) => database))],
+        [sSourceTables],
+    );
+    const sDatabaseOptions = useMemo<ComboboxOption[]>(
+        () =>
+            sDatabaseNames.map((database) => ({
+                value: database,
+                label: database,
+                testId: `tag-analyzer-database-option-${encodeTestIdSegment(database)}`,
+            })),
+        [sDatabaseNames],
+    );
+    const sSelectedSourceTable = sSourceTables.find(
+        ({ qualifiedName }) => qualifiedName === selectedTable,
+    );
+    const sSelectedTableDatabase = sSelectedSourceTable?.database;
+    const sActiveDatabase = sDatabaseNames.includes(sSelectedDatabase)
+        ? sSelectedDatabase
+        : sSelectedTableDatabase ?? sDatabaseNames[0] ?? '';
+    const sActiveDatabaseTables = useMemo<SourceTableOption[]>(
+        () =>
+            sSourceTables.filter(
+                ({ database }) => database === sActiveDatabase,
+            ),
+        [sActiveDatabase, sSourceTables],
+    );
+    const sActiveDatabaseOwners = useMemo<string[]>(
+        () => [
+            ...new Set(
+                sActiveDatabaseTables
+                    .map(({ owner }) => owner)
+                    .filter(Boolean),
+            ),
+        ],
+        [sActiveDatabaseTables],
+    );
+    const sOwnerOptions = useMemo<ComboboxOption[]>(
+        () =>
+            sActiveDatabaseOwners.map((owner) => ({
+                value: owner,
+                label: owner,
+                testId: `tag-analyzer-user-option-${encodeTestIdSegment(owner)}`,
+            })),
+        [sActiveDatabaseOwners],
+    );
+    const sActiveOwner = sActiveDatabaseOwners.includes(sSelectedOwner)
+        ? sSelectedOwner
+        : sSelectedSourceTable?.database === sActiveDatabase
+          ? sSelectedSourceTable.owner
+          : sActiveDatabaseOwners[0] ?? '';
+    const sActiveOwnerTables = useMemo<SourceTableOption[]>(
+        () =>
+            sActiveDatabaseOwners.length === 0
+                ? sActiveDatabaseTables
+                : sActiveDatabaseTables.filter(
+                      ({ owner }) => owner === sActiveOwner,
+                  ),
+        [
+            sActiveDatabaseOwners.length,
+            sActiveDatabaseTables,
+            sActiveOwner,
+        ],
+    );
     const sTableOptions = useMemo<ComboboxOption[]>(
         () =>
-            availableSourceTableNames.map((table) => ({
-                value: table,
+            sActiveOwnerTables.map(({ table, qualifiedName }) => ({
+                value: qualifiedName,
                 label: table,
+                tooltip: qualifiedName,
+                testId: `tag-analyzer-table-option-${encodeTestIdSegment(qualifiedName)}`,
             })),
-        [availableSourceTableNames],
+        [sActiveOwnerTables],
     );
     const sTimeColumnOptions = useMemo<ComboboxOption[]>(
         () =>
@@ -686,15 +783,19 @@ function SourceSelector({
     );
 
     useLatestAsyncRequest({
-        enabled: sColumnRequestTable !== '',
-        requestKey: sColumnRequestTable,
+        enabled: sColumnRequest !== undefined,
+        requestKey: JSON.stringify(sColumnRequest),
         fetch: async () => {
+            if (!sColumnRequest) {
+                throw new Error('Source table is unavailable.');
+            }
+            const table = sColumnRequest.table;
             const tableColumns = await tableMetadataApi.fetchTableColumns(
-                sColumnRequestTable,
+                table,
             );
             const columnInfo = createTagAnalyzerColumnInfo(tableColumns);
             return {
-                table: sColumnRequestTable,
+                table,
                 sourceColumns: {
                     name:
                         columnInfo.name ||
@@ -715,53 +816,103 @@ function SourceSelector({
             sourceColumns: nextSourceColumns,
             tableColumns: nextTableColumns,
         }) => {
-            sColumnResultsByTableRef.current[table] = {
-                sourceColumns: nextSourceColumns,
-                tableColumns: nextTableColumns,
-            };
             onSourceChange(table, nextSourceColumns, nextTableColumns);
         },
         onError: (error) => onError(getErrorMessageFromValue(error)),
     });
 
-    const loadColumns = useCallback(
-        (table: string): void => {
-            const sCachedResult = sColumnResultsByTableRef.current[table];
-            if (sCachedResult) {
-                onSourceChange(
-                    table,
-                    sCachedResult.sourceColumns,
-                    sCachedResult.tableColumns,
-                );
-                return;
-            }
-            setColumnRequestTable(table);
-        },
-        [onSourceChange],
-    );
-
     const changeTable = useCallback(
         (value: string): void => {
             onSourceChange(value, undefined, []);
 
-            if (value) {
-                loadColumns(value);
+            if (!value) {
+                setColumnRequest(undefined);
+                return;
             }
+
+            setColumnRequest((current) => ({
+                table: value,
+                generation: (current?.generation ?? 0) + 1,
+            }));
         },
-        [loadColumns, onSourceChange],
+        [onSourceChange],
     );
 
-    useEffect(() => {
-        const sFallbackTable = availableSourceTableNames[0] ?? '';
-        const sShouldPickFallback =
-            !selectedTable ||
-            (availableSourceTableNames.length > 0 &&
-                !availableSourceTableNames.includes(selectedTable));
+    const changeDatabase = useCallback(
+        (value: string): void => {
+            const sFirstOwner = sSourceTables.find(
+                ({ database, owner }) => database === value && owner,
+            )?.owner;
+            const sFirstTable = sSourceTables.find(
+                ({ database, owner }) =>
+                    database === value &&
+                    (sFirstOwner === undefined || owner === sFirstOwner),
+            );
+            setSelectedDatabase(value);
+            setSelectedOwner(sFirstOwner ?? '');
+            changeTable(sFirstTable?.qualifiedName ?? '');
+        },
+        [changeTable, sSourceTables],
+    );
 
-        if (sShouldPickFallback && sFallbackTable !== selectedTable) {
-            changeTable(sFallbackTable);
+    const changeOwner = useCallback(
+        (value: string): void => {
+            const sFirstTable = sActiveDatabaseTables.find(
+                ({ owner }) => owner === value,
+            );
+            setSelectedDatabase(sActiveDatabase);
+            setSelectedOwner(value);
+            changeTable(sFirstTable?.qualifiedName ?? '');
+        },
+        [changeTable, sActiveDatabase, sActiveDatabaseTables],
+    );
+
+    /**
+     * Reconcile the series' stored table with the list the server just returned.
+     *
+     * This used to be a string comparison against the list, and anything that failed it was
+     * replaced by `availableSourceTableNames[0]`. The three names a board can hold —
+     * `SENSOR` from before v8.7, `SYS.SENSOR`, and the `FACTORY_A.SYS.SENSOR` the explorer hands
+     * over — do not compare equal to each other, so opening a saved board silently repointed its
+     * series at an unrelated table and charted it under the board's own title.
+     *
+     * `resolveStoredTableName` applies the tail rule the engine itself accepts, so the short forms
+     * are *promoted* to the qualified name rather than discarded. Only a genuinely new series
+     * (no table at all) still takes the first entry; a name that resolves to nothing, or to several
+     * tables in different databases, keeps what the board said and says so in the footer. There is
+     * no name that means what the board intended, and picking one anyway is the bug being removed.
+     */
+    useEffect(() => {
+        if (availableSourceTableNames.length === 0) return;
+
+        const sResolved = resolveStoredTableName(
+            selectedTable,
+            availableSourceTableNames,
+        );
+        if (sResolved.status === 'exact') return;
+        if (sResolved.status === 'promoted') {
+            if (sResolved.name !== selectedTable) changeTable(sResolved.name);
+            return;
         }
-    }, [availableSourceTableNames, changeTable, selectedTable]);
+        if (!selectedTable) {
+            changeTable(
+                sActiveOwnerTables[0]?.qualifiedName ??
+                    availableSourceTableNames[0],
+            );
+            return;
+        }
+        onError(
+            sResolved.status === 'ambiguous'
+                ? `${selectedTable} matches ${sResolved.candidates.length} tables (${sResolved.candidates.join(', ')}). Pick one so the series names its database.`
+                : `${selectedTable} is not in this server's tag table list. The series still points at it.`,
+        );
+    }, [
+        availableSourceTableNames,
+        changeTable,
+        onError,
+        sActiveOwnerTables,
+        selectedTable,
+    ]);
 
     function patchColumnSelection(
         patch: Partial<PanelSeriesSourceColumns>,
@@ -770,12 +921,6 @@ function SourceSelector({
             ...sourceColumns,
             ...patch,
         });
-        if (selectedTable) {
-            sColumnResultsByTableRef.current[selectedTable] = {
-                sourceColumns: nextColumns,
-                tableColumns,
-            };
-        }
         onSourceChange(selectedTable, nextColumns, tableColumns);
     }
 
@@ -807,37 +952,74 @@ function SourceSelector({
 
     return (
         <>
-            <div className={styles.fieldGrid}>
-                <SourceComboboxField
-                    label="Table"
-                    options={sTableOptions}
-                    value={selectedTable}
-                    onChange={changeTable}
-                    disabled={isTableNameLoading}
-                />
-                <SourceComboboxField
-                    label="Time"
-                    options={sTimeColumnOptions}
-                    value={sourceColumns?.time ?? ''}
-                    onChange={(value) =>
-                        patchColumnSelection({ time: value })
-                    }
-                    disabled={isTableNameLoading || !selectedTable}
-                />
-                <SourceComboboxField
-                    label="Value"
-                    options={sValueColumnOptions}
-                    value={sourceColumns?.value ?? ''}
-                    onChange={changeValueColumn}
-                    disabled={isTableNameLoading || !selectedTable}
+            <div className={styles.fieldGroups}>
+                <div
+                    className={styles.sourceFieldGrid}
+                    role="group"
+                    aria-label="Source location"
                 >
-                    <ValueRollupStatus
-                        rollupTableList={rollupTableList}
-                        selectedTable={selectedTable}
-                        valueColumn={sourceColumns?.value ?? ''}
-                        jsonKey={sourceColumns?.jsonKey}
+                    <SourceComboboxField
+                        label="Database"
+                        options={sDatabaseOptions}
+                        value={sActiveDatabase}
+                        onChange={changeDatabase}
+                        disabled={isTableNameLoading}
                     />
-                </SourceComboboxField>
+                    <SourceComboboxField
+                        label="User"
+                        options={sOwnerOptions}
+                        value={sActiveOwner}
+                        onChange={changeOwner}
+                        placeholder="Select a user"
+                        disabled={
+                            isTableNameLoading ||
+                            !sActiveDatabase ||
+                            sOwnerOptions.length === 0
+                        }
+                    />
+                    <SourceComboboxField
+                        label="Table"
+                        options={sTableOptions}
+                        value={selectedTable}
+                        onChange={changeTable}
+                        disabled={
+                            isTableNameLoading ||
+                            !sActiveDatabase ||
+                            (sActiveDatabaseOwners.length > 0 &&
+                                !sActiveOwner)
+                        }
+                        dropdownWidth="auto"
+                    />
+                </div>
+                <div
+                    className={styles.columnFieldGrid}
+                    role="group"
+                    aria-label="Source fields"
+                >
+                    <SourceComboboxField
+                        label="Time"
+                        options={sTimeColumnOptions}
+                        value={sourceColumns?.time ?? ''}
+                        onChange={(value) =>
+                            patchColumnSelection({ time: value })
+                        }
+                        disabled={isTableNameLoading || !selectedTable}
+                    />
+                    <SourceComboboxField
+                        label="Value"
+                        options={sValueColumnOptions}
+                        value={sourceColumns?.value ?? ''}
+                        onChange={changeValueColumn}
+                        disabled={isTableNameLoading || !selectedTable}
+                    >
+                        <ValueRollupStatus
+                            rollupTableList={rollupTableList}
+                            selectedTable={selectedTable}
+                            valueColumn={sourceColumns?.value ?? ''}
+                            jsonKey={sourceColumns?.jsonKey}
+                        />
+                    </SourceComboboxField>
+                </div>
             </div>
 
             {sIsJsonValue ? (
@@ -852,6 +1034,19 @@ function SourceSelector({
             ) : null}
         </>
     );
+}
+
+function parseSourceTableOption(qualifiedName: string): SourceTableOption {
+    const sParts = qualifiedName.split('.');
+    const sTable = sParts.at(-1) ?? qualifiedName;
+
+    return {
+        database:
+            sParts.length >= 3 ? sParts[0] : getCurrentDatabaseName(),
+        owner: sParts.length >= 2 ? sParts.at(-2) ?? '' : '',
+        table: sTable,
+        qualifiedName,
+    };
 }
 
 function ValueRollupStatus({
@@ -1046,6 +1241,8 @@ function SourceComboboxField({
     value,
     onChange,
     disabled,
+    placeholder,
+    dropdownWidth,
     children,
 }: {
     label: string;
@@ -1053,6 +1250,8 @@ function SourceComboboxField({
     value: string;
     onChange: (value: string) => void;
     disabled?: boolean;
+    placeholder?: string;
+    dropdownWidth?: 'trigger' | 'auto';
     children?: ReactNode;
 }) {
     const sInputId = useId();
@@ -1067,12 +1266,13 @@ function SourceComboboxField({
                 value={value}
                 onChange={onChange}
                 disabled={disabled}
+                placeholder={placeholder}
                 fullWidth
                 size="md"
             >
                 <Combobox.Input id={sInputId} />
                 <Combobox.Trigger icon={<ArrowDown size={14} />} />
-                <Combobox.Dropdown>
+                <Combobox.Dropdown width={dropdownWidth}>
                     <Combobox.List />
                 </Combobox.Dropdown>
             </Combobox.Root>

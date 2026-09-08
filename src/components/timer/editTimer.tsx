@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Page, Alert, Checkbox, Button, CommonTable } from '@/design-system/components';
+import { SplitPane, Pane, Page, Alert, Checkbox, Button, CommonTable, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { CreatePayloadType, TimerItemType, genTimer, getTimer } from '@/api/repository/timer';
 import { gBoardList, gTimerList } from '@/recoil/recoil';
@@ -8,6 +8,7 @@ import { LuFlipVertical } from 'react-icons/lu';
 import { AUTO_START_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
+import { resMessage } from '@/utils/resMessage';
 
 export const EditTimer = () => {
     const setTimerList = useSetRecoilState<TimerItemType[]>(gTimerList);
@@ -26,11 +27,15 @@ export const EditTimer = () => {
 
     /** create timer */
     const createTimer = async () => {
+        // `timer.add` now rejects a duplicate name and a command whose tql file is missing — both
+        // arrive as plain `reason` text, and nothing is stored when they do.
         const sRes = await genTimer(sCreatePayload, sCreateName);
         if (sRes?.success) {
             setResErrMessage(undefined);
+            Toast.success(`Timer '${sCreateName}' created`, { id: 'timer-create' });
         } else {
-            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+            // failure stays inline: duplicate name / missing tql file both need a form edit
+            setResErrMessage(resMessage(sRes, 'Failed to create timer'));
         }
 
         const sResTimerList: any = await getTimer();
@@ -42,8 +47,10 @@ export const EditTimer = () => {
                         return {
                             ...aTarget,
                             name: `TIMER: create`,
-                            code: { ...sCreatePayload, name: sCreateName },
-                            savedCode: { ...sCreatePayload, name: sCreateName },
+                            // `timer.add` answers with the created id — carry it so anything that
+                            // later addresses this timer has an id rather than only a name.
+                            code: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
+                            savedCode: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
                         };
                     }
                     return aBoard;

@@ -6,6 +6,7 @@ import { TimerItemType, getTimer } from '@/api/repository/timer';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gSelectedTab, gTimerList } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
+import { resMessage } from '@/utils/resMessage';
 import icons from '@/utils/icons';
 import { isTimerRunningState, useTimerStateAction } from '@/components/timer/useTimerStateAction';
 
@@ -15,20 +16,21 @@ export const TimerSide = () => {
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
     const [sTimerList, setTimerList] = useRecoilState<TimerItemType[]>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
-    const [sPendingTimerMap, setPendingTimerMap] = useState<Record<string, boolean>>({});
+    const [sPendingTimerMap, setPendingTimerMap] = useState<Record<number, boolean>>({});
     const { toggleTimerState } = useTimerStateAction();
 
     const getTimerList = async () => {
         const sResTimer = await getTimer();
+        // keep the current list on failure — blanking it reads as "every timer was deleted"
         if (sResTimer.success) setTimerList(sResTimer.data);
-        else setTimerList([]);
+        else Toast.error(resMessage(sResTimer, 'Failed to load timers'), { id: 'timer-list' });
     };
     const openInfo = (aTimerInfo: TimerItemType) => {
         const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
             return prev || cur.type === 'timer';
         }, false);
 
-        setActiveTimer(aTimerInfo.name);
+        setActiveTimer(aTimerInfo.id);
 
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
@@ -120,18 +122,18 @@ export const TimerSide = () => {
     const handleToggleTimer = async (e: React.MouseEvent, aTimerInfo: TimerItemType) => {
         e.stopPropagation();
 
-        if (sPendingTimerMap[aTimerInfo.name]) return;
+        if (sPendingTimerMap[aTimerInfo.id]) return;
 
-        setPendingTimerMap((currentState) => ({ ...currentState, [aTimerInfo.name]: true }));
+        setPendingTimerMap((currentState) => ({ ...currentState, [aTimerInfo.id]: true }));
 
         try {
             const result = await toggleTimerState(aTimerInfo);
 
             if (!result.success) {
-                Toast.error(result.reason ?? 'Cannot connect to server');
+                Toast.error(resMessage(result, 'Cannot connect to server'), { id: 'timer-command' });
             }
         } finally {
-            setPendingTimerMap((currentState) => ({ ...currentState, [aTimerInfo.name]: false }));
+            setPendingTimerMap((currentState) => ({ ...currentState, [aTimerInfo.id]: false }));
         }
     };
 
@@ -155,10 +157,10 @@ export const TimerSide = () => {
                     <Side.List>
                         {sTimerList &&
                             sTimerList.length !== 0 &&
-                            sTimerList.map((aItem, aIdx: number) => {
-                                const isActive = sActiveTimer === aItem.name;
+                            sTimerList.map((aItem) => {
+                                const isActive = sActiveTimer === aItem.id;
                                 return (
-                                    <Side.Item key={aIdx} onClick={() => openInfo(aItem)} active={isActive}>
+                                    <Side.Item key={aItem.id} onClick={() => openInfo(aItem)} active={isActive}>
                                         <Side.ItemContent>
                                             <Side.ItemIcon>{icons('timer')}</Side.ItemIcon>
                                             <Side.ItemText>{aItem.name}</Side.ItemText>
@@ -166,7 +168,7 @@ export const TimerSide = () => {
                                         <Side.ItemAction>
                                             <Page.Switch
                                                 pState={isTimerRunningState(aItem.state)}
-                                                pReadOnly={!!sPendingTimerMap[aItem.name]}
+                                                pReadOnly={!!sPendingTimerMap[aItem.id]}
                                                 pCallback={(e) => handleToggleTimer(e, aItem)}
                                             />
                                         </Side.ItemAction>

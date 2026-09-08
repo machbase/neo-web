@@ -8,6 +8,12 @@ export interface ToastOptions {
     duration?: number;
     position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
     testId?: string;
+    /**
+     * Dedup key. react-hot-toast replaces the visible toast that carries the same id instead of
+     * stacking a second one, so a double-clicked Save or a retried delete shows one toast, not two.
+     * Give every repeatable action a stable id (e.g. 'timer-delete').
+     */
+    id?: string;
 }
 
 /**
@@ -19,7 +25,7 @@ export interface ToastOptions {
 
 const showToast = (message: string, variant: ToastVariant = 'info', options?: ToastOptions) => {
     if (!message || !message.trim()) return;
-    const { duration = 3000, position = 'top-right', testId } = options || {};
+    const { duration = 3000, position = 'top-right', testId, id } = options || {};
 
     const icons = {
         success: <VscCheck size={16} />,
@@ -48,6 +54,9 @@ const showToast = (message: string, variant: ToastVariant = 'info', options?: To
             className: styles['toast__container'],
             duration,
             position,
+            // react-hot-toast resolves this as `opts.id || generatedId`, so leaving it undefined
+            // keeps the default one-toast-per-call behaviour
+            id,
         }
     );
 };

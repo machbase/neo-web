@@ -16,12 +16,13 @@ import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import moment from 'moment';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
-import { fetchMountTimeMinMax, fetchTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
+import { fetchBlockTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
+import { resolvePanelMinSize } from '@/utils/dashboardPanelMinSize';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { pickBlockNameFilterValue, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { Variable } from './variable';
@@ -221,20 +222,11 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sTargetPanel = pickBoardTimeMinMaxPanel(pInfo.dashboard.panels);
         const sTargetTag = sTargetPanel?.blockList?.[0] ?? { tag: '', filter: [] };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag =
-            sIsTagName &&
-            sTargetTag.filter?.filter((aFilter: any) => {
-                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-            })[0]?.value;
+        const sCustomTag = sIsTagName && pickBlockNameFilterValue(sTargetTag);
 
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             if (sTargetTag.customTable) return getNowMinMax();
-            let sSvrResult: any = undefined;
-            if (sTargetTag.table.split('.').length > 2) {
-                sSvrResult = await fetchMountTimeMinMax(sTargetTag);
-            } else {
-                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
-            }
+            const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);
             // const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             if (sSvrResult?.[0]?.[0] == null) return getNowMinMax();
             const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
@@ -379,7 +371,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     pInfo.dashboard.panels &&
                                     pInfo.dashboard.panels.map((aItem: any) => {
                                         return (
-                                            <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
+                                            // `minW`/`minH` keep a panel from being dragged down to a size that has no room
+                                            // left to grab it by — see `resolvePanelMinSize` for why the floor is capped at
+                                            // the panel's own saved size.
+                                            <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h, ...resolvePanelMinSize(aItem) }}>
                                                 <Panel
                                                     pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
                                                     pDragStat={pDragStat}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
+import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import Modal from './Modal';
 import './SaveDashboardModal.scss';
 import { gRollupTableList } from '@/recoil/recoil';
@@ -12,7 +12,7 @@ import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
@@ -44,14 +44,10 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
 
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetTag = pPanelInfo?.blockList?.[0] ?? { tag: '' };
-        const customName = sTargetTag.filter?.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })?.[0]?.value;
+        const customName = pickBlockNameFilterValue(sTargetTag);
         if (shouldFetchBlockTimeMinMax(sTargetTag, customName)) {
             if (sTargetTag.customTable) return defaultMinMax();
-            let rows: any = undefined;
-            if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
-            else rows = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, customName));
+            const rows = await fetchBlockTimeMinMax(sTargetTag, customName);
             const res = convertDashboardMinMaxRows(rows, sTargetTag);
             if (!res) return defaultMinMax();
             if (!Number.isFinite(res.min) || !Number.isFinite(res.max)) return defaultMinMax();

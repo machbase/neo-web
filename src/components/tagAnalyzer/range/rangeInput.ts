@@ -1,4 +1,8 @@
 import moment from 'moment';
+import {
+    isDistanceAnchorEdge,
+    resolveDistanceEdge,
+} from '@/utils/distanceRange';
 import { parseRangeInputValue } from '../format/inputFormat';
 import { fitRangeWithinBounds } from './rangeArithmetic';
 import {
@@ -10,8 +14,6 @@ import {
 
 const TIME_EXPRESSION_PATTERN =
     /^([A-Za-z]+)(?:([+-])(\d+)(ms|s|m|h|d|w|M|y))?$/;
-const NUMERIC_EXPRESSION_PATTERN =
-    /^(first|last)(?:-((?:\d+\.?\d*)|(?:\.\d+)))?$/i;
 const TIME_UNIT_BY_SHORT_CODE = {
     ms: 'millisecond',
     s: 'second',
@@ -92,22 +94,13 @@ function resolveNumericEndpoint(
     value: string,
     fullRange: AxisRange,
 ): ResolvedEndpoint | undefined {
-    const match = value.match(NUMERIC_EXPRESSION_PATTERN);
-    if (!match) {
-        const parsedValue = parseRangeInputValue(value, 'numeric');
-        return parsedValue === undefined
-            ? undefined
-            : { value: parsedValue, anchored: false };
-    }
-
-    const amount = match[2] ? Number(match[2]) : 0;
-    const isFirst = match[1].toLowerCase() === 'first';
-    return {
-        value: isFirst
-            ? fullRange.start + amount
-            : fullRange.end - amount,
-        anchored: true,
-    };
+    const resolvedValue = resolveDistanceEdge(value, {
+        min: fullRange.start,
+        max: fullRange.end,
+    });
+    return resolvedValue === null
+        ? undefined
+        : { value: resolvedValue, anchored: isDistanceAnchorEdge(value) };
 }
 
 function resolveTimeEndpoint(

@@ -2,6 +2,15 @@ import TQL from '.';
 
 export const DSH_CACHE_TIME = '2s';
 
+/**
+ * Dashboard charts plot the base column as milliseconds (the Full query helper states it as
+ * "TIME(milli sec)"). Selecting mode already emits a number — `TO_TIMESTAMP(col) / 1000000` — but a
+ * typed query hands its columns over as they are, and a DATETIME one leaves through the JSON sink at
+ * the server default of nanoseconds. Asking the sink for ms converts DATETIME columns only, so a
+ * typed query that already produces a number is unaffected.
+ */
+export const DSH_JSON_MS_TIMEFORMAT = "timeformat('ms')";
+
 enum E_REPLACE {
     ITEM = '{{REPLACE_ITEM}}',
 }

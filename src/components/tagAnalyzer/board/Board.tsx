@@ -8,7 +8,6 @@ import {
 } from 'react';
 import { MdHelpOutline as Help } from 'react-icons/md';
 import {
-    Calendar,
     GoArrowBoth,
     PlusCircle,
     Save,
@@ -18,8 +17,9 @@ import {
     LuTimerReset,
 } from '@/assets/icons/Icon';
 import { Button, Page, Toast } from '@/design-system/components';
+import RangeChips from '@/components/dashboard/RangeChips';
+import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import Panel from '../panel/Panel';
-import { RangeModal } from '../range/RangeModal';
 import { HelpModal } from './HelpModal';
 import OverlapModal from '../overlap/OverlapModal';
 import { CreatePanelModal } from '../panel/CreatePanelModal';
@@ -111,25 +111,24 @@ export default function Board({
         setPanelOverlapSelected,
     );
     const { closeOverlapChart } = overlap;
-    const sIsNumericBoardRange = sBoardRangeKind === 'numeric';
-    const sBoardRangeInput =
-        sIsNumericBoardRange
-            ? sBoardInfo.boardNumericRange
-            : sBoardInfo.boardTimeRange;
-    const sBoardRangeReference =
-        getBoardRangeReference(
-            sPanels,
-            sPanelRanges,
-            sBoardRangeKind,
-        ) ?? createBoardRangeEditorReference(
-            sBoardRangeKind,
-            sBoardRangeModalOpenedAt ?? Date.now(),
-        );
-    const sBoardRangeButtonLabel =
-        sBoardRangeInput.start.trim() === '' ||
-        sBoardRangeInput.end.trim() === ''
-            ? 'Board range'
-            : `${sIsNumericBoardRange ? 'Numeric' : 'Time'}: ${sBoardRangeInput.start}~${sBoardRangeInput.end}`;
+    const sTimeRangeReference = getBoardRangeReference(
+        sPanels,
+        sPanelRanges,
+        'time',
+    ) ?? createBoardRangeEditorReference('time', sBoardRangeModalOpenedAt ?? Date.now());
+    const sNumericPanelRangeReference = getBoardRangeReference(
+        sPanels,
+        sPanelRanges,
+        'numeric',
+    );
+    const sNumericRangeReference = sNumericPanelRangeReference ??
+        createBoardRangeEditorReference('numeric', sBoardRangeModalOpenedAt ?? Date.now());
+    const sRangeChipsBoardInfo = {
+        dashboard: {
+            timeRange: sBoardInfo.boardTimeRange,
+            distanceRange: sBoardInfo.boardNumericRange,
+        },
+    };
     const sPanelBroadcastRequests = useMemo<PanelBroadcastRequests>(
         () => ({
             rangeRequests: {
@@ -204,6 +203,18 @@ export default function Board({
         );
     }
 
+    function shiftBoardRange(rangeKind: AxisKind, direction: 'l' | 'r'): void {
+        const reference = rangeKind === 'time'
+            ? sTimeRangeReference
+            : sNumericRangeReference;
+        const width = reference.currentRange.end - reference.currentRange.start;
+        const offset = width * (direction === 'l' ? -1 : 1);
+        applyBoardRange(rangeKind, {
+            start: String(reference.currentRange.start + offset),
+            end: String(reference.currentRange.end + offset),
+        });
+    }
+
     const handleSetGlobalRange = useCallback((
         axisKind: AxisKind,
         globalRange: RangeState,
@@ -218,18 +229,24 @@ export default function Board({
     const sHeaderActions = [
         {
             key: 'refresh-data',
+            'data-testid': 'refresh-data-button',
+            'aria-label': 'Refresh all panel data',
             toolTipContent: 'Refresh data',
             icon: <Refresh size={15} />,
             onClick: () => incrementBroadcastVersion('refreshData'),
         },
         {
             key: 'refresh-range',
+            'data-testid': 'refresh-range-button',
+            'aria-label': 'Refresh all panel ranges',
             toolTipContent: 'Refresh ranges',
             icon: <LuTimerReset size={16} />,
             onClick: () => incrementBroadcastVersion('refreshRange'),
         },
         {
             key: 'expand-full-range',
+            'data-testid': 'expand-full-range-button',
+            'aria-label': 'Expand all panels to full data range',
             toolTipContent: 'Expand all panels to full data range',
             icon: <GoArrowBoth size={15} />,
             onClick: () =>
@@ -237,6 +254,8 @@ export default function Board({
         },
         {
             key: 'save',
+            'data-testid': 'save-button',
+            'aria-label': 'Save Tag Analyzer board',
             className: boardSave.hasUnsavedChanges
                 ? 'tag-analyzer-board-header__save-button--unsaved'
                 : undefined,
@@ -287,17 +306,19 @@ export default function Board({
                         </span>
                     )}
                     <Button.Group className="tag-analyzer-board-header__actions">
-                        <Button
-                            data-testid="range-button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() =>
-                                setBoardRangeModalOpenedAt(Date.now())
-                            }
-                        >
-                            <Calendar style={{ paddingRight: '8px' }} />
-                            {sBoardRangeButtonLabel}
-                        </Button>
+                        <RangeChips
+                            pBoardInfo={sRangeChipsBoardInfo}
+                            pOnShiftTime={(direction) => shiftBoardRange('time', direction)}
+                            pOnShiftDist={(direction) => shiftBoardRange('numeric', direction)}
+                            pOnEditTime={() => {
+                                setBoardRangeKind('time');
+                                setBoardRangeModalOpenedAt(Date.now());
+                            }}
+                            pOnEditDist={() => {
+                                setBoardRangeKind('numeric');
+                                setBoardRangeModalOpenedAt(Date.now());
+                            }}
+                        />
                         {sHeaderActions.map(({ key, ...buttonProps }) => (
                             <Button
                                 key={key}
@@ -356,18 +377,24 @@ export default function Board({
                 />
             )}
             {sBoardRangeModalOpenedAt !== undefined && (
-                <RangeModal
+                <TimeRangeModal
                     key={sBoardRangeKind}
-                    title="Board Range"
-                    kind={sBoardRangeKind}
-                    initialRangeInput={sBoardRangeInput}
-                    currentRange={sBoardRangeReference.currentRange}
-                    fullRange={sBoardRangeReference.fullRange}
-                    onAxisKindChange={setBoardRangeKind}
-                    onApply={(rangeInput: RangeExpressionInput) =>
-                        applyBoardRange(sBoardRangeKind, rangeInput)
-                    }
-                    onClose={() => setBoardRangeModalOpenedAt(undefined)}
+                    pUseRecoil={false}
+                    pLockTab={sBoardRangeKind === 'numeric' ? 'distance' : 'time'}
+                    pStartTime={sBoardRangeKind === 'numeric'
+                        ? sBoardInfo.boardNumericRange.start || sNumericPanelRangeReference?.currentRange.start || 0
+                        : getTimeModalEdge(sBoardInfo.boardTimeRange.start, sTimeRangeReference.currentRange.start, 'now-1h')}
+                    pEndTime={sBoardRangeKind === 'numeric'
+                        ? sBoardInfo.boardNumericRange.end || sNumericPanelRangeReference?.currentRange.end || 0
+                        : getTimeModalEdge(sBoardInfo.boardTimeRange.end, sTimeRangeReference.currentRange.end, 'now')}
+                    pBounds={sBoardRangeKind === 'numeric' && sNumericPanelRangeReference
+                        ? { min: sNumericPanelRangeReference.fullRange.start, max: sNumericPanelRangeReference.fullRange.end }
+                        : null}
+                    pSetTime={() => undefined}
+                    pSetTimeRangeModal={(open) => {
+                        if (!open) setBoardRangeModalOpenedAt(undefined);
+                    }}
+                    pSaveCallback={(start, end) => applyBoardRange(sBoardRangeKind, { start: String(start), end: String(end) })}
                 />
             )}
             {isActiveTab && boardSave.isSaveAsOpen && (
@@ -407,6 +434,19 @@ function getInitialBoardRangeKind(info: BoardInfo): AxisKind {
         !sPanelAxisKinds.includes('time')
         ? 'numeric'
         : 'time';
+}
+
+function getTimeModalEdge(
+    value: string,
+    fallback: number,
+    emptyFallback: string,
+): string | number {
+    const trimmed = value.trim();
+    if (trimmed === '') return emptyFallback;
+    if (trimmed.includes('now') || trimmed.includes('last')) return trimmed;
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) return numeric;
+    return trimmed.includes('first') ? fallback : trimmed;
 }
 
 function getBoardRangeReference(

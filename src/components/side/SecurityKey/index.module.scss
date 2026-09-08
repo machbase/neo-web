@@ -1,0 +1,55 @@
+@use '@/design-system/tokens' as t;
+
+// count chip next to a section title — encodes how many credentials of that kind exist
+.count {
+    margin-left: t.$spacing-6;
+    color: t.$text-muted;
+    font-variant-numeric: tabular-nums;
+}
+
+// right-aligned metadata on a list row: expiry for certificates, hint for tokens.
+// `.sideItem` ships with padding-left only, so without this the text sits flush against the
+// panel edge. 11px matches the section header's padding-right, putting the meta on the same
+// right rail as the refresh/+ controls above it.
+.meta {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding-left: t.$spacing-8;
+    padding-right: 11px;
+    color: t.$text-muted;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.meta--soon {
+    color: t.$warning-main;
+}
+
+.meta--expired {
+    color: t.$error-main;
+}
+
+// masked token value — monospace so the **** mask lines up between rows.
+// The hint is ~17 fixed characters and would otherwise crowd the name down to two letters at the
+// default panel width. The name is what the list is read by, so cap the hint and let it truncate:
+// `nt_9_dUGB…` still identifies the token (id + secret prefix); the trailing mask is confirmation only.
+.hint {
+    font-family: 'D2Coding', 'Consolas', monospace;
+    letter-spacing: -0.02em;
+    max-width: 50%;
+}
+
+.hintText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.empty {
+    padding: t.$spacing-12 t.$spacing-16;
+    color: t.$text-muted;
+    font-size: 12px;
+}

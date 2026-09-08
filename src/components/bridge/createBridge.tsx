@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Page, Alert, Button } from '@/design-system/components';
+import { SplitPane, Pane, Page, Alert, Button, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { gBoardList, gBridgeList } from '@/recoil/recoil';
 import { LuFlipVertical } from 'react-icons/lu';
 import { BridgeItemType, CreatePayloadType, genBridge } from '@/api/repository/bridge';
 import { SELECTE_TYPE } from './content';
+import { resMessage } from '@/utils/resMessage';
 
 export const CreateBridge = () => {
     const [sBridgeList, setBridgeList] = useRecoilState<BridgeItemType[]>(gBridgeList);
@@ -29,8 +30,11 @@ export const CreateBridge = () => {
             setBridgeList([...sBridgeList, { ...sCreatePayload, type: sCreatePayload.type.toLowerCase() }] as any);
             handleSavedCode(true);
             setResErrMessage(undefined);
+            Toast.success(`Bridge '${sCreatePayload.name}' created`, { id: 'bridge-create' });
         } else {
-            setResErrMessage(sRes?.data ? (sRes as any).data.reason : (sRes.statusText as string));
+            // failure stays inline: the fix is in the form right next to it, and a 3s toast would be
+            // gone before the user finished reading the reason
+            setResErrMessage(resMessage(sRes, 'Failed to create bridge'));
         }
     };
     /** handle info */

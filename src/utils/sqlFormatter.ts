@@ -8,6 +8,8 @@ export interface STATEMENT_TYPE {
     env: {
         bridge?: string;
         use?: string;
+        /** `-- env: named.<key>=<value>` pairs, bound as query parameters. Values are text. */
+        named?: Record<string, string>;
         error?: string;
     };
     isComment: boolean;
@@ -32,6 +34,35 @@ export const envDirectiveWarning = (aStatements?: readonly { env?: { error?: str
     return sReasons.length === 0 ? null : `env directive ignored: ${sReasons.join(', ')}`;
 };
 
+/**
+ * A TQL string literal, single-quoted with backslash escapes.
+ *
+ * That combination is not a style choice, it is the only one that works. Measured against the
+ * engine: doubling the quote SQL-style (`'a''b'`) is rejected outright — *cannot transition
+ * token types from STRING to STRING* — and a double-quoted literal escaping its own quote
+ * (`"a\""`) is worse than rejected, it binds NULL with no error at all. `'a\'b'` is the form
+ * that round-trips, and it matches how `bridge()` and `use()` are already written.
+ */
+const tqlSingleQuoted = (aValue: string) => `'${String(aValue ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+
+/**
+ * `named()` arguments, which unlike `bridge()` and `use()` follow the statement rather than
+ * precede it — `SQL(use('db'), \`… :tag …\`, named('tag', 'x'))`.
+ *
+ * Values are always quoted, even numeric ones. The splitter reports every value as text and the
+ * engine accepts text where a number is wanted: measured, `limit :one` bound to `'1'` returns
+ * the same single row as `1`. So there is nothing to infer, and inferring would only risk
+ * turning a tag named `007` into the number 7.
+ *
+ * A key lands in argument position rather than inside a literal, so anything that is not a
+ * plain identifier is dropped rather than quoted — the same rule `use()` follows.
+ */
+const namedArguments = (aNamed?: Record<string, string>) =>
+    Object.entries(aNamed ?? {})
+        .filter(([aKey, aValue]) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(aKey) && aValue !== undefined && aValue !== null)
+        .map(([aKey, aValue]) => `, named('${aKey}', ${tqlSingleQuoted(aValue)})`)
+        .join('');
+
 // ns/us timestamps exceed Number.MAX_SAFE_INTEGER; '.str' makes the backend emit them as strings to preserve precision through JSON.parse.
 const toJsonSinkTimeFormat = (aFormat: string) => (aFormat === 'ns' || aFormat === 'us' ? `${aFormat}.str` : aFormat);
 
@@ -40,9 +71,9 @@ const toJsonSinkTimeFormat = (aFormat: string) => (aFormat === 'ns' || aFormat =
  * @argument aLimit     number;
  * @argument aFormat    string;
  * @argument aTimezone  string;
- * @argument env        { bridge?: string; use?: string }; // `-- env:` directive parsed by the splitter
+ * @argument env        { bridge?, use?, named? }; // `-- env:` directive parsed by the splitter
  */
-export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = SQL_BASE_LIMIT, env?: { bridge?: string; use?: string }) => {
+export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = SQL_BASE_LIMIT, env?: { bridge?: string; use?: string; named?: Record<string, string> }) => {
     const bridgeText = env?.bridge ? `bridge('${env.bridge}'),` : '';
     const useText = env?.use ? `use('${env.use}'),` : '';
     return (
@@ -51,7 +82,9 @@ export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string,
         useText +
         '`' +
         aSql +
-        '`)\n' +
+        '`' +
+        namedArguments(env?.named) +
+        ')\n' +
         'DROP(' +
         (aLimit * SQL_BASE_LIMIT - SQL_BASE_LIMIT) +
         `)\nTAKE(${aTake})\nJSON(timeformat('` +
@@ -62,10 +95,22 @@ export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string,
     );
 };
 
-export const sqlSheetFormatter = ({ aSql, aBrief, bridge, use, aTimeFormat, aTimeZone }: { aSql: string; aBrief: boolean; bridge?: string; use?: string; aTimeFormat: string; aTimeZone: string }) => {
-    const bridgeText = bridge ? `bridge('${bridge}'),` : '';
-    const useText = use ? `use('${use}'),` : '';
-    return 'SQL(' + bridgeText + useText + '`' + aSql + '`)\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}), timeformat('${aTimeFormat}'), tz('${aTimeZone}'))`;
+export const sqlSheetFormatter = ({
+    aSql,
+    aBrief,
+    env,
+    aTimeFormat,
+    aTimeZone,
+}: {
+    aSql: string;
+    aBrief: boolean;
+    env?: { bridge?: string; use?: string; named?: Record<string, string> };
+    aTimeFormat: string;
+    aTimeZone: string;
+}) => {
+    const bridgeText = env?.bridge ? `bridge('${env.bridge}'),` : '';
+    const useText = env?.use ? `use('${env.use}'),` : '';
+    return 'SQL(' + bridgeText + useText + '`' + aSql + '`' + namedArguments(env?.named) + ')\n' + `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}), timeformat('${aTimeFormat}'), tz('${aTimeZone}'))`;
 };
 
 /** sqlCsvDownloadUrl
@@ -77,7 +122,7 @@ export const sqlSheetFormatter = ({ aSql, aBrief, bridge, use, aTimeFormat, aTim
  * @argument aTimeFormat  string;
  * @argument aTimeZone    string;
  * @argument aToken       string | null;
- * @argument env          { bridge?: string; use?: string }; // `-- env:` directive parsed by the splitter
+ * @argument env          { bridge?, use?, named? }; // `-- env:` directive parsed by the splitter
  */
 export const sqlCsvDownloadUrl = ({
     aUrl,
@@ -92,10 +137,17 @@ export const sqlCsvDownloadUrl = ({
     aTimeFormat: string;
     aTimeZone: string;
     aToken: string | null;
-    env?: { bridge?: string; use?: string };
+    env?: { bridge?: string; use?: string; named?: Record<string, string> };
 }) => {
     const bridgeText = env?.bridge ? encodeURI(`bridge("`) + fixedEncodeURIComponent(env.bridge) + encodeURI(`"),`) : '';
     const useText = env?.use ? encodeURI(`use("`) + fixedEncodeURIComponent(env.use) + encodeURI(`"),`) : '';
+    // Single quotes here too. This path writes its other literals with double quotes, but a
+    // double-quoted value cannot escape a quote of its own without binding NULL, so the named
+    // arguments keep the form that round-trips.
+    const sNamedText = Object.entries(env?.named ?? {})
+        .filter(([aKey, aValue]) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(aKey) && aValue !== undefined && aValue !== null)
+        .map(([aKey, aValue]) => encodeURI(`, named('${aKey}', '`) + fixedEncodeURIComponent(String(aValue).replace(/\\/g, '\\\\').replace(/'/g, "\\'")) + encodeURI(`')`))
+        .join('');
     const sEncodedText = fixedEncodeURIComponent(aSql);
     return (
         encodeURI(`${aUrl}?$=SQL(`) +
@@ -103,7 +155,9 @@ export const sqlCsvDownloadUrl = ({
         useText +
         encodeURI(`\u0060`) +
         sEncodedText +
-        encodeURI(`\u0060)\u000ACSV(timeformat("${aTimeFormat}"), tz("${aTimeZone}"), httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${aToken}`)
+        encodeURI(`\u0060`) +
+        sNamedText +
+        encodeURI(`)\u000ACSV(timeformat("${aTimeFormat}"), tz("${aTimeZone}"), httpHeader("Content-Disposition", "attachment"), heading(true))\u0026$token=${aToken}`)
     );
 };
 
@@ -117,9 +171,9 @@ const Tooltip = `"tooltip": {"show": true,"trigger": "axis","axisPointer": {"typ
 /** sqlBasicChartFormatter
  * @argument aSql   string;
  * @argument aAxis  { x, y, xIndex, yIndex, list };
- * @argument env    { bridge?: string; use?: string }; // `-- env:` directive parsed by the splitter
+ * @argument env    { bridge?, use?, named? }; // `-- env:` directive parsed by the splitter
  */
-export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: string; xIndex: number; yIndex: number; list: string[] }, env?: { bridge?: string; use?: string }) => {
+export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: string; xIndex: number; yIndex: number; list: string[] }, env?: { bridge?: string; use?: string; named?: Record<string, string> }) => {
     const sSeries = aAxis?.list
         .map((colName: string, aIdx: number) => {
             if (colName !== aAxis?.x) return `{"name": "${colName}", "type": "line", "data": column(${aIdx})}`;
@@ -135,7 +189,9 @@ export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: str
         useText +
         '`' +
         aSql +
-        '`)\n' +
+        '`' +
+        namedArguments(env?.named) +
+        ')\n' +
         'TAKE(5000)\n' +
         `CHART(
             theme("dark"),

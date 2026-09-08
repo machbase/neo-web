@@ -1,5 +1,9 @@
 import moment from 'moment';
 import {
+    parseDistanceAnchor,
+    parseDistanceValue,
+} from '@/utils/distanceRange';
+import {
     formatAbsoluteTime,
     formatTimeUnitShortCode,
 } from '../format/timeFormat';
@@ -21,8 +25,6 @@ export type ParsedNumericExpression =
 const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 const RELATIVE_TIME_PATTERN =
     /^([A-Za-z]+)(?:([+-])(\d+)(ms|s|m|h|d|w|M|y))?$/;
-const NUMERIC_EXPRESSION_PATTERN =
-    /^(first|last)(?:-((?:\d+\.?\d*)|(?:\.\d+)))?$/i;
 const TIME_UNIT_BY_PERSISTED_VALUE = new Map<string, TimeUnit>(
     Object.values(TimeUnit).flatMap((unit) => [
         [unit, unit] as const,
@@ -63,18 +65,15 @@ export function parseNumericExpression(
     const text = value.trim();
     if (text === '') return undefined;
 
-    const match = text.match(NUMERIC_EXPRESSION_PATTERN);
-    if (match) {
-        const amount = match[2] ? Number(match[2]) : 0;
-        if (!Number.isFinite(amount) || amount < 0) return undefined;
-
-        return match[1].toLowerCase() === 'first'
-            ? { anchor: 'data_start', offset: amount }
-            : { anchor: 'data_end', offset: amount };
+    const anchor = parseDistanceAnchor(text);
+    if (anchor) {
+        return anchor.anchor === 'first'
+            ? { anchor: 'data_start', offset: anchor.offset }
+            : { anchor: 'data_end', offset: anchor.offset };
     }
 
-    const numericValue = Number(text);
-    return Number.isFinite(numericValue)
+    const numericValue = parseDistanceValue(text);
+    return numericValue !== null
         ? { anchor: 'value', value: numericValue }
         : undefined;
 }
@@ -88,12 +87,16 @@ export function formatNumericExpression(
         case 'data_start':
             return expression.offset === 0
                 ? 'first'
-                : `first-${formatNumericValue(expression.offset)}`;
+                : `first${formatNumericOffset(expression.offset)}`;
         case 'data_end':
             return expression.offset === 0
                 ? 'last'
-                : `last-${formatNumericValue(expression.offset)}`;
+                : `last${formatNumericOffset(expression.offset)}`;
     }
+}
+
+function formatNumericOffset(offset: number): string {
+    return `${offset < 0 ? '-' : '+'}${formatNumericValue(Math.abs(offset))}`;
 }
 
 export function formatNumericValue(value: number): string {

@@ -5,9 +5,10 @@ import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import TQL from './TqlGenerator';
-import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
+import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE, DSH_JSON_MS_TIMEFORMAT } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
+import { normalizeFilterOperator } from './dashboardFilterOperators';
 import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
@@ -20,6 +21,7 @@ import {
 } from './rollupQueryBuilder';
 import { parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from './dashboardJsonValue';
 import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from './timeFieldColumns';
+import { isTaglessTableType } from './dashboardTableKind';
 import { getBaseJsonRollupValue } from './rollupColumnCandidates';
 
 interface BlockTimeType {
@@ -218,7 +220,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             isVisible: bBlock.isVisible,
             name: bBlock.customFullTyping.use
                 ? 'custom'
-                : bBlock.type === 'view' && !bBlock.useCustom
+                : isTaglessTableType(bBlock.type) && !bBlock.useCustom
                   ? GetCollapsedSeriesName(bBlock)
                 : getChartSeriesName({
                       alias: bBlock?.useCustom ? bBlock?.values[0]?.alias : bBlock?.alias,
@@ -266,7 +268,7 @@ const GetRollupMatch = (aRollupList: any, aTable: string, aInterval: number, aVa
 
 const GetCollapsedSeriesName = (aTable: any) => {
     if (aTable.alias !== '') return aTable.alias;
-    const sName = aTable.type === 'view' ? aTable.value : aTable.tag;
+    const sName = isTaglessTableType(aTable.type) ? aTable.value : aTable.tag;
     return `${sName}${aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? '(' + aTable.aggregator + ')' : ''}`;
 };
 
@@ -290,7 +292,8 @@ const GetValues = (aTable: any) => {
  * @return (filter {column: name, operator: in, name: "tag"})
  */
 const GetFilter = (aTableInfo: any) => {
-    if (aTableInfo.type === 'view') return [];
+    // view and transaction have no NAME column to collapse a tag filter onto.
+    if (isTaglessTableType(aTableInfo.type)) return [];
     if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: aTableInfo.name, operator: 'in', value: aTableInfo.tag }];
     else return [];
 };
@@ -373,7 +376,11 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
         }
     });
     const sParsedFilterList = Object.keys(sParsedFilter).map((aKey: string) => {
-        return sParsedFilter[aKey];
+        // A board saved before the block defaults carried an operator can hold `''` here, which used
+        // to emit `NAME  'x'` - not valid SQL, and the panel answered with an engine error rather
+        // than data. The editor heals such a filter when the panel is opened; the public view never
+        // opens one, so the normalizer has to sit on the query path too.
+        return { ...sParsedFilter[aKey], operator: normalizeFilterOperator(sParsedFilter[aKey]?.operator) };
     });
     const sResult = sParsedFilterList
         .map((aFilter: any) => {
@@ -602,7 +609,15 @@ const QueryParser = (
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
             sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible, type: E_BLOCK_TYPE.STD });
-            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, time: aTime, dataType: aResDataType, sql: aQuery.text, useQuery: aQuery.isVisible };
+            return {
+                query: `SQL("${aQuery.text}")\n${TQL.SINK._JSON(DSH_JSON_MS_TIMEFORMAT)}`,
+                alias: '',
+                idx: aIdx,
+                time: aTime,
+                dataType: aResDataType,
+                sql: aQuery.text,
+                useQuery: aQuery.isVisible,
+            };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean =
@@ -669,19 +684,30 @@ const QueryParser = (
         };
     });
     let sV_V_X_AXIS: undefined | string = undefined;
-    if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
-        const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
-        sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(
-            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(!aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : '')),
-            { isSave: aIsSave }
-        );
+    // An Adv scatter names one of its own series as the x-axis, by index. Nothing renumbers that index
+    // when the blocks change, so it can point past the end of the list - deleting the block it named is
+    // enough - and a panel that never had xAxisOptions filled in has no index at all. Fall back to the
+    // first series so the panel still draws; only bail out if there is no series to fall back to.
+    const sBaseXAxisIdx = aXaxis?.[0]?.useBlockList?.[0] ?? 0;
+    const sBaseXAxis = sResultQuery[sBaseXAxisIdx] ?? sResultQuery[0];
+    if (aChartType === E_CHART_TYPE.ADV_SCATTER && sBaseXAxis) {
+        // The x-axis rows are matched against the series rows by their first column, so this fetch
+        // has to be on the same scale as the series queries below.
+        const sBaseXAxisJsonOpt = [DSH_JSON_MS_TIMEFORMAT, !aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : ''].filter(Boolean).join(', ');
+        sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(sBaseXAxisJsonOpt)), { isSave: aIsSave });
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
             main: DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.MAIN,
             init: `${DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.INIT}${sV_V_X_AXIS}`,
         });
         if (aQueryBlock.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sV_V_X_AXIS });
         sResultQuery = sResultQuery.map((item: any) => {
-            return { ...item, query: `SQL("${item.sql}")${item.tql !== '' ? '\n' + item.tql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON()}` };
+            // A typed block returns no `tql` field at all, and `undefined !== ''` spliced the literal
+            // string "undefined" into the pipeline between the SQL and the script.
+            const sItemTql = item.tql ?? '';
+            return {
+                ...item,
+                query: `SQL("${item.sql}")${sItemTql !== '' ? '\n' + sItemTql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON(DSH_JSON_MS_TIMEFORMAT)}`,
+            };
         });
     }
     if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {

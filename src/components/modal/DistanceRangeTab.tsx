@@ -80,10 +80,10 @@ export const DistanceQuickWindows = ({ pBounds, pOnSelect }: { pBounds: { min: n
     // reason the slider itself is not drawn.
     if (!sHasExtent) return null;
     return (
-        <div className={styles.quick}>
-            <span className={styles.quickLabel}>Quick windows</span>
+        <div className={styles.quick} data-testid="distance-quick">
+            <span className={styles.quickLabel} data-testid="distance-quick-label">Quick windows</span>
             {DISTANCE_QUICK_WINDOWS.map((aRow, aIndex) => (
-                <div key={aIndex} className={styles.quickRow}>
+                <div key={aIndex} className={styles.quickRow} data-testid="distance-quick-row">
                     {aRow.map((aItem) => (
                         <button
                             key={aItem.label}
@@ -384,21 +384,21 @@ const DistanceRangeTab = ({
     }, [sNotice]);
 
     return (
-        <div className={styles.wrapper}>
+        <div className={styles.wrapper} data-testid="distance-body">
             {/* Two lines: the two edges are the headline, the width of the window is the note under
                 it. The note carries no label — at this size, directly under a `from – to`, a lone
                 number can only be the distance between them. The reset link keeps the right edge —
                 it is the one control here that leaves the tab's own state. */}
-            <div className={styles.readout}>
+            <div className={styles.readout} data-testid="distance-readout">
                 <div>
-                    <div className={`${styles.readoutValue} ${pMuted ? styles.readoutMuted : ''}`}>
+                    <div className={`${styles.readoutValue} ${pMuted ? styles.readoutMuted : ''}`} data-testid="distance-readout-value">
                         {formatDistanceReadout(sFromValue)}
                         <span className={styles.dash}>–</span>
                         {formatDistanceReadout(sToValue)}
                         {pUnit && <span className={styles.unit}>{pUnit}</span>}
                         {pBadge && <span className={`${styles.badge} ${pMuted ? styles.badgeInherited : ''}`}>{pBadge}</span>}
                     </div>
-                    <div className={styles.readoutSpan}>
+                    <div className={styles.readoutSpan} data-testid="distance-readout-span">
                         {formatDistanceReadout(sSpan)}
                         {pUnit && ` ${pUnit}`}
                     </div>
@@ -461,25 +461,25 @@ const DistanceRangeTab = ({
                             // The label is centred on its tick, which puts half of the first one off the
                             // left edge of the rail — invisible as soon as it is wider than `0`.
                             return (
-                                <span key={aValue} className={`${styles.tick} ${sPercent < 2 ? styles.tickMin : ''}`} style={{ left: `${sPercent}%` }}>
+                                <span key={aValue} className={`${styles.tick} ${sPercent < 2 ? styles.tickMin : ''}`} style={{ left: `${sPercent}%` }} data-testid="distance-tick">
                                     <span className={styles.tickMark} />
-                                    <span className={styles.tickLabel}>{sTickLabel(aValue)}</span>
+                                    <span className={styles.tickLabel} data-testid="distance-tick-label">{sTickLabel(aValue)}</span>
                                 </span>
                             );
                         })}
-                        <span className={`${styles.tick} ${styles.tickMax}`} style={{ left: '100%' }} title={formatDistanceReadout(sMax)}>
+                        <span className={`${styles.tick} ${styles.tickMax}`} style={{ left: '100%' }} title={formatDistanceReadout(sMax)} data-testid="distance-tick" data-tick-max="true">
                             <span className={styles.tickMark} />
                             {/* The real upper bound, spelled out — it is the one number on this scale
                                 that is worth exactly. Only when spelling it out would run into the tick
                                 beside it (`25,150,885.5`) does it fall back to the short form, with the
                                 exact value on hover. */}
-                            <span className={styles.tickLabel}>{sMaxLabel}</span>
+                            <span className={styles.tickLabel} data-testid="distance-tick-label">{sMaxLabel}</span>
                         </span>
                     </div>
                 </>
             )}
 
-            <div className={styles.fields}>
+            <div className={styles.fields} data-testid="distance-fields">
                 <label className={styles.field}>
                     <span className={styles.fieldLabel}>
                         From {pUnit && <span className={styles.unit}>{pUnit}</span>}

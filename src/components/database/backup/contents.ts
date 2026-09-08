@@ -35,4 +35,6 @@ export const explainEtc3 =
 export const explainEtc4 =
     'The "default backup folder" can be set using the "--backup-dir" option when running Machbase Neo. If the "--backup-dir" option is not specified, it will default to "{neo installation folder}/backups".';
 export const explainTagRestore = 'Time-range backups of tag tables cannot be restored.';
+export const explainEntireInstanceBackup =
+    'Backs up the whole instance as a single restore baseline, restored with "machbase-neo restore --data <home> <backup_dir>". This image is not intended to be mounted as an individual database — pick a database above if you need a mountable one.';
 export const explainRestoreCmd = 'Restore: machbase-neo restore --data <home> <backup_dir>';

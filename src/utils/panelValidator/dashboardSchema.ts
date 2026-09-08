@@ -2,6 +2,7 @@ import { generateUUID } from '@/utils';
 import { DefaultCommonOption, DefaultXAxisOption, DefaultYAxisOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { ChartType } from '@/type/eChart';
 import { RequiredKeyDef } from './types';
+import { getDefaultTimeFieldColumn } from '@/utils/timeFieldColumns';
 
 // Display name normalization (old/internal → canonical display name)
 export const TYPE_ALIASES: Record<string, string> = {
@@ -178,7 +179,16 @@ export function validateBlockItem(block: any): string[] {
         repaired.push('type');
     }
     if (block.time === undefined) {
-        block.time = block.type === 'log' ? '_ARRIVAL_TIME' : 'TIME';
+        // `TIME` only names a real column on a tag table. A view or transaction block that reaches
+        // here — a board saved before either type was supported, or one hand-edited — would be given
+        // a column its table does not have, and the panel answers MACHCLI-ERR-2056 rather than
+        // drawing. The block's own tableInfo is the authority when it carries one; `TIME` stays as
+        // the last resort so tag blocks keep their existing behaviour.
+        // `tableInfo` is not one of the keys this function guarantees, and a hand-edited or
+        // half-written block can carry `null` — which the `= []` default parameter does not catch.
+        const sColumns = Array.isArray(block.tableInfo) ? block.tableInfo : [];
+        const sDefaultTime = block.type === 'log' ? '_ARRIVAL_TIME' : getDefaultTimeFieldColumn(sColumns);
+        block.time = sDefaultTime || 'TIME';
         repaired.push('time');
     }
     if (block.aggregator === undefined) {
@@ -198,8 +208,11 @@ export function validateBlockItem(block: any): string[] {
         repaired.push('useCustom');
     }
     if (block.customFullTyping === undefined) {
-        block.customFullTyping = { use: false, text: '' };
+        block.customFullTyping = { use: false, text: '', dirty: false };
         repaired.push('customFullTyping');
+    } else if (block.customFullTyping.dirty === undefined) {
+        block.customFullTyping.dirty = typeof block.customFullTyping.text === 'string' && block.customFullTyping.text.trim() !== '';
+        repaired.push('customFullTyping.dirty');
     }
     if (block.isValidMath === undefined) block.isValidMath = true;
     if (block.isVisible === undefined) block.isVisible = true;

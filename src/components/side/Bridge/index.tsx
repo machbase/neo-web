@@ -1,10 +1,11 @@
 import { MdRefresh } from 'react-icons/md';
-import { Button, Side } from '@/design-system/components';
+import { Button, Side, Toast } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab, setBridgeTree } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
+import { resMessage } from '@/utils/resMessage';
 import { BridgeItemType, getBridge, getSubr } from '@/api/repository/bridge';
 import icons from '@/utils/icons';
 import { SUBSCRIBER_TYPE } from '../../bridge/content';
@@ -25,7 +26,11 @@ export const BridgeSide = () => {
             const sResSubr = await getSubr();
             if (sResSubr?.success) setBridge(setBridgeTree(sResBridge.data, sResSubr.data));
             else setBridge(setBridgeTree(sResBridge.data, []));
-        } else setBridge([]);
+        } else {
+            // keep whatever the tree already shows: blanking it on a transport failure looks
+            // exactly like "every bridge was deleted"
+            Toast.error(resMessage(sResBridge, 'Failed to load bridges'), { id: 'bridge-list' });
+        }
     };
     const checkExistTab = (aType: string) => {
         const sResut = sBoardList.reduce((prev: boolean, cur: any) => {
@@ -36,7 +41,7 @@ export const BridgeSide = () => {
     // OPEN SUBSCRIBER
     const openSubrInfo = (aItem: any, aInfo: any) => {
         const sExistKeyTab = checkExistTab(SUBR_TYPE);
-        setActiveSubrName(aInfo.name);
+        setActiveSubrName(aInfo.id);
 
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === SUBR_TYPE);
@@ -200,7 +205,7 @@ export const BridgeSide = () => {
                                         {aItem?.childs &&
                                             aItem.childs.map((aChild, bIdx) => {
                                                 return (
-                                                    <Side.Item key={bIdx} onClick={() => openSubrInfo(aItem, aChild)} active={sActiveSubrName === aChild.name}>
+                                                    <Side.Item key={aChild.id} onClick={() => openSubrInfo(aItem, aChild)} active={sActiveSubrName === aChild.id}>
                                                         <Side.ItemContent>
                                                             <Side.ItemIcon>{aItem?.childs?.length == bIdx + 1 ? '└' : '├'}</Side.ItemIcon>
                                                             <Side.ItemIcon>{icons('bridge-child')}</Side.ItemIcon>

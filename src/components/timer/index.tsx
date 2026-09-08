@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Page } from '@/design-system/components';
+import { Alert, Button, Checkbox, Page, Toast } from '@/design-system/components';
 import { useRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { SplitPane, Pane } from '@/design-system/components';
@@ -11,12 +11,14 @@ import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { isTimerRunningState, useTimerStateAction } from './useTimerStateAction';
+import { resMessage } from '@/utils/resMessage';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    // sizes must be state: a frozen literal with a no-op onChange leaves the sash unable to move
+    const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sTimerList, setResTimerList] = useRecoilState<TimerItemType[] | undefined>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
-    const [sCommandRes, setCommandRes] = useState<string | undefined>(undefined);
     const [sResMessage, setResMessage] = useState<string | undefined>(undefined);
     const [sPayload, setPayload] = useState<any>(undefined);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
@@ -26,15 +28,15 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
     /** delete timer */
     const deleteTimer = async () => {
-        const sRes = await delTimer(pCode.name);
+        const sRes = await delTimer(pCode.id);
         if (sRes.success) {
             const sTimerList = await getTimer();
             if (sTimerList.success) setResTimerList(sTimerList.data);
             else setResTimerList([]);
 
-            const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.name !== pCode.name);
+            const sTempTimerList = sTimerList.data.filter((aKeyInfo: any) => aKeyInfo.id !== pCode.id);
             if (sTempTimerList && sTempTimerList.length > 0) {
-                setActiveTimer(sTempTimerList[0].name);
+                setActiveTimer(sTempTimerList[0].id);
                 const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
                 setBoardList((aBoardList: any) => {
                     return aBoardList.map((aBoard: any) => {
@@ -66,6 +68,11 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                     });
                 });
             }
+            Toast.success(`Timer '${pCode.name}' deleted`, { id: 'timer-delete' });
+        } else {
+            // the confirm modal closes either way — without this the failure is indistinguishable
+            // from a no-op
+            Toast.error(resMessage(sRes, `Failed to delete timer '${pCode.name}'`), { id: 'timer-delete' });
         }
 
         setIsDeleteModal(false);
@@ -76,14 +83,16 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     };
     /** edit item */
     const editItem = async () => {
-        const sResult: any = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.name);
+        // `timer.update` REPLACES the definition — every editable field has to go in every time,
+        // or the omitted one is reset on the server (omitting autoStart turns it off).
+        const sResult = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
 
         if (sResult.success) {
-            const sTimerInfo: any = await getTimerItem(sPayload.name);
+            const sTimerInfo = await getTimerItem(sPayload.id);
             const sTmpTimerList =
                 sTimerList &&
                 sTimerList.map((aTimerInfo: any) => {
-                    if (aTimerInfo.name === sPayload.name) {
+                    if (aTimerInfo.id === sPayload.id) {
                         return sTimerInfo.success ? sTimerInfo.data : aTimerInfo;
                     } else return aTimerInfo;
                 });
@@ -104,9 +113,11 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             setResTimerList(sTmpTimerList);
             setPayload(sTimerInfo.success ? sTimerInfo.data : sPayload);
             setResMessage(undefined);
+            Toast.success(`Timer '${sPayload.name}' saved`, { id: 'timer-save' });
         } else {
-            if (sResult?.data && sResult?.data.reason) setResMessage(sResult?.data.reason);
-            else setResMessage(sResult.statusText);
+            // failure stays inline under the Save button — the schedule/path that has to change is
+            // right there
+            setResMessage(resMessage(sResult, 'Failed to save timer'));
         }
     };
     const handleCommand = async () => {
@@ -116,15 +127,16 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
         const sResCommand = await toggleTimerState(sPayload);
 
+        // success needs no toast — the switch and its state badge already say it
         if (sResCommand.success) {
-            setCommandRes(undefined);
             if (sResCommand.updatedTimer) {
                 setPayload((currentPayload: any) =>
                     currentPayload ? { ...currentPayload, state: sResCommand.updatedTimer?.state } : sResCommand.updatedTimer
                 );
             }
         } else {
-            setCommandRes(sResCommand.reason ?? 'Cannot connect to server');
+            // same toast the side panel's toggle raises, so the two entry points behave alike
+            Toast.error(resMessage(sResCommand, 'Cannot connect to server'), { id: 'timer-command' });
         }
 
         setIsCommandLoading(false);
@@ -149,10 +161,10 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     };
 
     useEffect(() => {
-        setCommandRes(undefined);
         setResMessage(undefined);
         pCode &&
             setPayload({
+                id: pCode.id,
                 name: pCode.name || '',
                 type: pCode.type || 'TIMER',
                 state: pCode.state || 'STOP',
@@ -167,7 +179,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             {/* Show info */}
             {sActiveTimer && sPayload && (
                 <Page>
-                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={['50', '50']} onChange={() => {}}>
+                    <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
                             <Page.Body>
@@ -183,13 +195,6 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                                     pBadgeL={true}
                                                     pReadOnly={sIsCommandLoading}
                                                 />
-                                                {sCommandRes && (
-                                                    <Page.ContentDesc>
-                                                        <div style={{ marginTop: '-10px' }}>
-                                                            <Page.TextResErr pText={sCommandRes} />
-                                                        </div>
-                                                    </Page.ContentDesc>
-                                                )}
                                             </div>
                                         </div>
                                     </Page.SubTitle>

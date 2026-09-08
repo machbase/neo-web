@@ -6,8 +6,10 @@ import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '../components/variable';
 import { ChartType, E_CHART_TYPE } from '../type/eChart';
 import TQL from './TqlGenerator';
 import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from './TqlGenerator/constants';
+import { DSH_JSON_MS_TIMEFORMAT } from '../../utils/TqlGenerator/constants';
 import { TransformBlockType } from '../type/transform';
 import { getChartSeriesName } from './dashboardUtil';
+import { normalizeFilterOperator } from '@/utils/dashboardFilterOperators';
 import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
@@ -20,6 +22,7 @@ import {
 } from '../../utils/rollupQueryBuilder';
 import { parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from '../../utils/dashboardJsonValue';
 import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from '../../utils/timeFieldColumns';
+import { isTaglessTableType } from '../../utils/dashboardTableKind';
 import { getBaseJsonRollupValue } from '../../utils/rollupColumnCandidates';
 
 interface BlockTimeType {
@@ -188,6 +191,8 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             isVisible: bBlock.isVisible,
             name: bBlock.customFullTyping.use
                 ? 'custom'
+                : isTaglessTableType(bBlock.type) && !bBlock.useCustom
+                  ? GetCollapsedSeriesName(bBlock)
                 : getChartSeriesName({
                       alias: bBlock?.useCustom ? bBlock?.values[0]?.alias : bBlock?.alias,
                       table: bBlock?.table,
@@ -235,14 +240,18 @@ const GetRollupMatch = (aRollupList: any, aTable: string, aInterval: number, aVa
 /** Create value list for collapsed block
  * @return ({ value: value, alias: '', aggregator: "aggregator"})
  */
+const GetCollapsedSeriesName = (aTable: any) => {
+    if (aTable.alias !== '') return aTable.alias;
+    const sName = isTaglessTableType(aTable.type) ? aTable.value : aTable.tag;
+    return `${sName}${aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? '(' + aTable.aggregator + ')' : ''}`;
+};
+
 const GetValues = (aTable: any) => {
     const sParsedJsonValue = parseJsonValueField(aTable.value);
     return [
         {
             id: aTable.id,
-            alias: `${
-                aTable.alias !== '' ? aTable.alias : aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? aTable.tag + '(' + aTable.aggregator + ')' : aTable.tag
-            }`,
+            alias: GetCollapsedSeriesName(aTable),
             value: sParsedJsonValue?.column ?? aTable.value,
             jsonKey: aTable.jsonKey || sParsedJsonValue?.path || '',
             diff: aTable.diff,
@@ -254,6 +263,8 @@ const GetValues = (aTable: any) => {
  * @return (filter {column: name, operator: in, name: "tag"})
  */
 const GetFilter = (aTableInfo: any) => {
+    // view and transaction have no NAME column to collapse a tag filter onto.
+    if (isTaglessTableType(aTableInfo.type)) return [];
     if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: aTableInfo.name, operator: 'in', value: aTableInfo.tag }];
     else return [];
 };
@@ -336,7 +347,11 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
         }
     });
     const sParsedFilterList = Object.keys(sParsedFilter).map((aKey: string) => {
-        return sParsedFilter[aKey];
+        // A board saved before the block defaults carried an operator can hold `''` here, which used
+        // to emit `NAME  'x'` - not valid SQL, and the panel answered with an engine error rather
+        // than data. The editor heals such a filter when the panel is opened; the public view never
+        // opens one, so the normalizer has to sit on the query path too.
+        return { ...sParsedFilter[aKey], operator: normalizeFilterOperator(sParsedFilter[aKey]?.operator) };
     });
     const sResult = sParsedFilterList
         .map((aFilter: any) => {
@@ -353,7 +368,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
                             if (pValue.includes(',')) return pValue.split(',');
                             else return pValue;
                         });
-                        return `${aFilter.column} ${aFilter.operator} ('${sParseValueList.flat().join("','")}')`;
+                        return `${aFilter.column} ${aFilter.operator} (${sUseQuote}${sParseValueList.flat().join(`${sUseQuote},${sUseQuote}`)}${sUseQuote})`;
                     } else
                         return aFilter.valueList
                             .map((aValue: any) => {
@@ -363,7 +378,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
                 }
             }
             // Collapse mode
-            else return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
+            else return `${aFilter.column} ${aFilter.operator} (${sUseQuote}${aFilter.valueList.join(`${sUseQuote},${sUseQuote}`)}${sUseQuote})`;
         })
         .filter((bFilter: any) => bFilter.trim() !== '');
     return sResult.join(' AND ');
@@ -562,7 +577,14 @@ const QueryParser = (
     let sResultQuery = aQueryBlock.map((aQuery: any, aIdx: number) => {
         if (aQuery.useFullTyping) {
             sAliasList.push({ name: 'series(' + aIdx.toString() + ')', color: aQuery.color, useQuery: aQuery.isVisible, type: E_BLOCK_TYPE.STD });
-            return { query: `SQL("${aQuery.text}")\nJSON()`, alias: '', idx: aIdx, dataType: aResDataType, sql: aQuery.text, useQuery: aQuery.isVisible };
+            return {
+                query: `SQL("${aQuery.text}")\n${TQL.SINK._JSON(DSH_JSON_MS_TIMEFORMAT)}`,
+                alias: '',
+                idx: aIdx,
+                dataType: aResDataType,
+                sql: aQuery.text,
+                useQuery: aQuery.isVisible,
+            };
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
@@ -626,17 +648,23 @@ const QueryParser = (
     let sV_V_X_AXIS: undefined | string = undefined;
     if (aChartType === E_CHART_TYPE.ADV_SCATTER) {
         const sBaseXAxis = sResultQuery[aXaxis[0]?.useBlockList[0]];
-        sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(
-            JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(!aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : '')),
-            { isSave: aIsSave }
-        );
+        // The x-axis rows are matched against the series rows by their first column, so this fetch
+        // has to be on the same scale as the series queries below.
+        const sBaseXAxisJsonOpt = [DSH_JSON_MS_TIMEFORMAT, !aIsSave ? TQL.SINK._JSON.Cache(aUniqueId ?? 'UNIQUE_ID', DSH_CACHE_TIME) : ''].filter(Boolean).join(', ');
+        sV_V_X_AXIS = TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + sBaseXAxis.sql + '")\n' + TQL.SINK._JSON(sBaseXAxisJsonOpt)), { isSave: aIsSave });
         const sInjectionScript = TQL.MAP.SCRIPT('JS', {
             main: DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.MAIN,
             init: `${DSH_CHART_VALUE_VALUE_SCRIPT_MODULE.INIT}${sV_V_X_AXIS}`,
         });
         if (aQueryBlock.length > 1) sInjectionSrc += '\n' + TQL.MAP.SCRIPT('JS', { main: sV_V_X_AXIS });
         sResultQuery = sResultQuery.map((item: any) => {
-            return { ...item, query: `SQL("${item.sql}")${item.tql !== '' ? '\n' + item.tql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON()}` };
+            // A typed block returns no `tql` field at all, and `undefined !== ''` spliced the literal
+            // string "undefined" into the pipeline between the SQL and the script.
+            const sItemTql = item.tql ?? '';
+            return {
+                ...item,
+                query: `SQL("${item.sql}")${sItemTql !== '' ? '\n' + sItemTql : ''}\n${sInjectionScript}\n${TQL.SINK._JSON(DSH_JSON_MS_TIMEFORMAT)}`,
+            };
         });
     }
     if (aTransformBlockList && aTransformBlockList.length > 0 && CheckAllowedTransformChartType(aChartType)) {

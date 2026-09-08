@@ -12,6 +12,11 @@ const expectNoLegacyBucketSql = (sql: string) => {
     expect(sql).not.toMatch(/DATE_BIN\([^)]*DATE_BIN\('day', 1,/);
 };
 
+/**
+ * Rollup metadata is keyed `database.root_table` (see `getRollupTableList`), so the fixture
+ * carries the database the lookup builds. A bare key matched only while the lookup asked the
+ * narrower `=== 'RECENT'` question.
+ */
 describe('fetchCalculationData DATE_BIN SQL', () => {
     beforeEach(() => {
         mockedRequest.mockReset();
@@ -86,7 +91,7 @@ describe('fetchCalculationData DATE_BIN SQL', () => {
             Rollup: true,
             RollupList: {
                 SYS: {
-                    EXAMPLE: {
+                    'MACHBASEDB.EXAMPLE': {
                         VALUE: [420000],
                         EXT_TYPE: [0],
                     },
@@ -119,7 +124,7 @@ describe('fetchCalculationData DATE_BIN SQL', () => {
             Rollup: true,
             RollupList: {
                 SYS: {
-                    SENSOR_JSON_RAW: {
+                    'MACHBASEDB.SENSOR_JSON_RAW': {
                         PAYLOAD: [420000],
                         EXT_TYPE: [0],
                     },

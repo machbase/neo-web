@@ -1,4 +1,6 @@
 import { Page, Toast, CommonTable } from '@/design-system/components';
+import { isDatabaseWritable, normalizeDatabaseId } from '@/utils/currentDatabaseState';
+import { isMountedTableName } from '@/utils/qualifiedTableName';
 import { createTagAnalyzerBoardFromDatabaseSeries } from '@/components/tagAnalyzer/integration';
 import { canOpenTagAnalyzerFromMetaColumns, createTagAnalyzerColumnsFromDbExplorer, getTagNameFromMetaRow } from './TagAnalyzerUtil';
 import { buildQualifiedTableName, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, STR_NUM_ARR_TYPE } from './utils';
@@ -94,12 +96,28 @@ export const MetaTablePage = ({
             dbName: String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
             userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
             tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
-            databaseId: Number(mTableInfo[E_TABLE_INFO.DB_ID] ?? -1),
+            databaseId: normalizeDatabaseId(mTableInfo[E_TABLE_INFO.DB_ID] ?? -1),
             currentUserName: getUserName(),
         });
     }, [mTableInfo]);
     const sCanOpenTagAnalyzer = useMemo(() => canOpenTagAnalyzerFromMetaColumns(pMColInfo?.rows), [pMColInfo]);
-    const mCanEditHierarchy = useMemo(() => CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG, [mTableInfo]);
+    /**
+     * May this table's metadata be written?
+     *
+     * Editing metadata issues INSERT/UPDATE/DELETE ... METADATA, so the question is whether the
+     * database accepts writes — not whether it is the one this session is connected to. Another
+     * *active* READ_WRITE database does accept them: `ModMeta` already names the table in full
+     * (`database.owner.table`), and the engine parses all three statements in that form
+     * (measured: a missing table answers ERR-2025, not the ERR-2010 a rejected name would give).
+     *
+     * A mounted backup carries only USAGE and a READ ONLY database rejects write DML outright,
+     * which `isDatabaseWritable` reads off `V$DATABASES.KIND` / `ACCESS_MODE`.
+     */
+    const mCanEditMeta = useMemo(() => isDatabaseWritable(mTableInfo[E_TABLE_INFO.DB_ID]), [mTableInfo]);
+    const mCanEditHierarchy = useMemo(
+        () => CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG && mCanEditMeta,
+        [mTableInfo, mCanEditMeta]
+    );
 
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
@@ -373,10 +391,22 @@ export const MetaTablePage = ({
         if (!allowedV$()) return;
         setVirtualModal({ state: true, filter: aFilter, table: pMTableInfo, recordCnt: aFlag ? sMetaTableCnt : 1 });
     };
-    const allowedV$ = (): boolean => {
-        if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) return true;
-        else return false;
-    };
+    /**
+     * May the `V$<TABLE>_STAT` view behind the Info panel be read?
+     *
+     * The question is whether the database *has* the view, and only a mounted backup does not —
+     * measured: `FACTORY_A.SYS.V$DEMO_TAG_STAT` answers 2 rows from a session connected to
+     * MACHBASEDB, while `MOUNT_DDD.SYS.V$ATABLE_STAT` answers `ERR-2025 Table ... does not
+     * exist`. The modal already names the view in full, so a second *active* database is
+     * perfectly readable; testing "is this the database I am connected to" hid the Info button
+     * from it for no reason, the same way that test once hid the DROP menu.
+     *
+     * `isMountedTableName` keys on the catalogue and falls back to the name when there is no
+     * catalogue to ask, which is what a pre-v8.7 server — where mounts predate `V$DATABASES` —
+     * needs. Keep this away from the edit controls, which ask a different question
+     * (`mCanEditMeta`).
+     */
+    const allowedV$ = (): boolean => !isMountedTableName(mLogicalTableName);
 
     useDebounce([sFilter], debouncedFilterSearch, 1000, sSearchIIFE?.current ?? false);
 
@@ -436,18 +466,23 @@ export const MetaTablePage = ({
                                             <Page.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</Page.ContentDesc>
                                             {sModUpdateInfo.isOpen ? (
                                                 <div />
-                                            ) : allowedV$() ? (
+                                            ) : (
+                                                // Two different questions, so two different gates: the Info panel reads a
+                                                // V$ view that exists only for the connected database, while Insert writes
+                                                // metadata and only needs the database to accept writes.
                                                 <Page.DpRow>
-                                                    <Page.TextButton
-                                                        pText="Info"
-                                                        mr="8px"
-                                                        pType="STATUS"
-                                                        pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
-                                                        pCallback={() => handleVirtualModal(sFilter, true)}
-                                                    />
-                                                    <Page.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} />
+                                                    {allowedV$() ? (
+                                                        <Page.TextButton
+                                                            pText="Info"
+                                                            mr={mCanEditMeta ? '8px' : '0'}
+                                                            pType="STATUS"
+                                                            pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
+                                                            pCallback={() => handleVirtualModal(sFilter, true)}
+                                                        />
+                                                    ) : null}
+                                                    {mCanEditMeta ? <Page.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} /> : null}
                                                 </Page.DpRow>
-                                            ) : null}
+                                            )}
                                         </Page.DpRowBetween>
                                         <Page.Input
                                             pPlaceholder={'Search'}
@@ -462,12 +497,15 @@ export const MetaTablePage = ({
                                 {!sModUpdateInfo.isOpen && sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
                                     <CommonTable
                                         data={mMetaTableInfo!}
-                                        editable={allowedV$()}
+                                        // Inline edit, row delete and the V$ column all hang off `editable`, so this
+                                        // is the write gate. The V$ column additionally needs `v$Callback` below,
+                                        // which stays on the identity test.
+                                        editable={mCanEditMeta}
                                         showRowNumber
                                         showCopyButton
                                         onRowAction={handleMoveTaz}
                                         hideRowAction={!sCanOpenTagAnalyzer}
-                                        onRowDelete={handleDeleteMeta}
+                                        onRowDelete={mCanEditMeta ? handleDeleteMeta : undefined}
                                         infiniteScroll={{ onLoadMore: handleEndOfContent, hasMore: sHasMoreData }}
                                         onSave={handleUpdateMeta}
                                         scrollX={false}

@@ -13,7 +13,7 @@ const SCALE_CONFIG = {
     },
     SI: {
         scaleFactor: 1000,
-        baseUnits: `['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']`,
+        baseUnits: `['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y']`,
     },
 };
 

@@ -400,6 +400,80 @@ describe('PanelEditor validation', () => {
 });
 
 describe('PanelEditor apply', () => {
+    it('uses the dashboard time-range controls for a time-based panel', () => {
+        renderEditor(createNewPanelInfo([TIME_SERIES], 'Panel', 'Line'));
+
+        fireEvent.click(screen.getByText('Main Range'));
+
+        expect(screen.getByText('Custom time range')).toBeInTheDocument();
+        expect(screen.getByLabelText('From')).toBeInTheDocument();
+        expect(screen.getByLabelText('To')).toBeInTheDocument();
+        expect(screen.queryByTestId('distance-body')).not.toBeInTheDocument();
+    });
+
+    it('uses the dashboard distance-range controls for a numeric panel', () => {
+        const onApplyEditorConfig = jest.fn();
+        renderEditor(
+            createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line'),
+            onApplyEditorConfig,
+        );
+
+        fireEvent.click(screen.getByText('Main Range'));
+
+        expect(screen.getByText('Custom distance range')).toBeInTheDocument();
+        expect(screen.getByTestId('distance-body')).toBeInTheDocument();
+        expect(screen.getByTestId('distance-range-slider')).toBeInTheDocument();
+        expect(screen.getByTestId('distance-quick')).toBeInTheDocument();
+        expect(screen.getByLabelText('Distance from')).toHaveValue('0');
+        expect(screen.getByLabelText('Distance to')).toHaveValue('100');
+
+        fireEvent.change(screen.getByLabelText('Distance from'), {
+            target: { value: '2' },
+        });
+        fireEvent.change(screen.getByLabelText('Distance to'), {
+            target: { value: '8' },
+        });
+        fireEvent.click(screen.getByTestId('editor-apply'));
+
+        expect(onApplyEditorConfig).toHaveBeenCalledWith(
+            expect.objectContaining({
+                time: expect.objectContaining({
+                    rangeInput: { start: '2', end: '8' },
+                }),
+            }),
+        );
+    });
+
+    it('accepts the shared first+offset distance expression', () => {
+        const onApplyEditorConfig = jest.fn();
+        renderEditor(
+            createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line'),
+            onApplyEditorConfig,
+        );
+
+        fireEvent.click(screen.getByText('Main Range'));
+        fireEvent.change(screen.getByLabelText('Distance from'), {
+            target: { value: 'first' },
+        });
+        fireEvent.change(screen.getByLabelText('Distance to'), {
+            target: { value: 'first+100' },
+        });
+
+        expect(
+            screen.queryByText('Enter both value boundaries in a valid order.'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByTestId('editor-apply')).toBeEnabled();
+
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(onApplyEditorConfig).toHaveBeenCalledWith(
+            expect.objectContaining({
+                time: expect.objectContaining({
+                    rangeInput: { start: 'first', end: 'first+100' },
+                }),
+            }),
+        );
+    });
+
     it('normalizes the disabled secondary axis and keeps an unchanged saved range', () => {
         const panelInfo = createNewPanelInfo(
             [{ ...TIME_SERIES, useSecondaryAxis: true }],

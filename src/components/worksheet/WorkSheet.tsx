@@ -9,6 +9,8 @@ import { FaStop } from 'react-icons/fa';
 import { Button, Page } from '@/design-system/components';
 import { RiTimeZoneLine } from 'react-icons/ri';
 import { TimeZoneModal } from '../modal/TimeZoneModal';
+import { TargetDatabaseChip, useTabTargetDatabase } from '@/components/database/targetDatabase';
+import { touchRecentDatabase } from '@/utils/targetDatabaseStore';
 
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 interface WorkSheetProps {
@@ -44,6 +46,24 @@ export const WorkSheet = (props: WorkSheetProps) => {
     const [sTimeRange, setTimeRange] = useState('2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState('LOCAL');
     const [sIsTimeZoneModal, setIsTimeZoneModal] = useState<boolean>(false);
+    /**
+     * One target database for the whole worksheet, applied from the header to every SQL cell —
+     * the same shape as the time format and zone beside it, and it travels the same prop path.
+     * Never written into the `.wrk` file: the saved cell payload is a fixed whitelist, and this
+     * value is not part of it.
+     */
+    const {
+        targetDatabase: sTargetDb,
+        setTargetDatabase: setTargetDb,
+        databases: sDatabaseList,
+        sessionDatabase: sSessionDb,
+        reload: reloadDatabases,
+    } = useTabTargetDatabase();
+
+    const handleChangeTargetDb = (aDatabase: string | null) => {
+        setTargetDb(aDatabase);
+        if (aDatabase) touchRecentDatabase(aDatabase);
+    };
     const [sStopState, setStopState] = useState<boolean[]>(Array.from({ length: sWorkSheets?.length ?? 1 }, () => false));
     const [sCurrentScrollTop, setCurrentScrollTop] = useState<number>(0);
     const worksheetBodyRef = useRef<HTMLDivElement>(null);
@@ -258,18 +278,33 @@ export const WorkSheet = (props: WorkSheetProps) => {
                         icon={checkSectionState() ? <FaStop /> : <IoPlayForwardSharp />}
                         onClick={checkSectionState() ? handleInterrupt : handleAllRun}
                     />
-                    <Button.Group>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent="Time format / Time zone"
-                            icon={<RiTimeZoneLine size={18} />}
-                            onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
-                        />
-                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
-                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
-                    </Button.Group>
+                    <div className="editor-header-actions">
+                        <Button.Group>
+                            {/* Only where there is a choice to make — an empty catalogue is every pre-v8.7 server. */}
+                            {sDatabaseList.length > 1 ? (
+                                <TargetDatabaseChip
+                                    sessionDatabase={sSessionDb}
+                                    databases={sDatabaseList}
+                                    value={sTargetDb}
+                                    onChange={handleChangeTargetDb}
+                                    onOpen={reloadDatabases}
+                                />
+                            ) : null}
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent="Time format / Time zone"
+                                icon={<RiTimeZoneLine size={18} />}
+                                onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                            />
+                        </Button.Group>
+                        <span className="editor-header-divider" />
+                        <Button.Group>
+                            <Button size="sm" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
+                            <Button size="sm" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
+                        </Button.Group>
+                    </div>
                 </Page.Header>
                 <Page.Body ref={worksheetBodyRef} scrollButtons style={{ padding: '12px 24px 12px 16px' }}>
                     <Page.ContentBlock pHoverNone style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -280,6 +315,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                                     <WorkSheetEditor
                                         pTimeRange={sTimeRange}
                                         pTimeZone={sTimeZone}
+                                        pTargetDb={sTargetDb}
                                         pIsActiveTab={pIsActiveTab}
                                         key={'sheet-' + aSheetItem.id}
                                         pData={aSheetItem}

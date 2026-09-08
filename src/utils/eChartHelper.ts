@@ -2,8 +2,10 @@ import { generateUUID } from '@/utils';
 import { ChartTheme, ChartType, E_CUSTOM_CHART_TYPE, CustomChartType } from '@/type/eChart';
 import { ChartTypeList } from './constants';
 import { getDefaultColor } from './helpers/tags';
+import { DEFAULT_FILTER_OPERATOR } from '@/utils/dashboardFilterOperators';
 
-// use create common chart option (createCommonOption)
+// The legend/tooltip/grid a panel starts with. Shared by every panel that has not overridden them, so
+// callers must clone it rather than hand it straight to panel state - see buildPanelOptionForType.
 export const DefaultCommonOption = {
     isLegend: true as boolean,
     legendTop: 'bottom' as 'top' | 'center' | 'top',
@@ -296,7 +298,7 @@ export const DefaultVariableTableOption = {
     userName: '' as string | undefined,
     color: getDefaultColor(),
     type: '',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -314,6 +316,7 @@ export const DefaultVariableTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -324,7 +327,7 @@ export const DefaultTagTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'tag',
-    filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: 'NAME', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: 'NAME',
@@ -342,6 +345,7 @@ export const DefaultTagTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -352,7 +356,7 @@ export const DefaultViewTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'view',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -370,6 +374,44 @@ export const DefaultViewTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
+    },
+    isVisible: true,
+};
+
+/**
+ * v8.7 TYPE 8. Shaped like the view option rather than the log one: a transaction table has no
+ * `_ARRIVAL_TIME`, so it takes no DURATION clause (measured: `MACHCLI-ERR-2281`) and its time
+ * field is whichever DATETIME column the table happens to carry, filled in by
+ * `repairDashboardBlockForTableColumns` once the columns are known.
+ *
+ * `useCustom: true` because the type has no tag column to collapse onto — see `TAGLESS_TABLE_TYPES`.
+ */
+export const DefaultTransactionTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'transaction',
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: true,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    jsonKey: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -380,7 +422,7 @@ export const DefaultLogTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'log',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -398,6 +440,7 @@ export const DefaultLogTableOption = {
     customFullTyping: {
         use: false,
         text: '',
+        dirty: false,
     },
     isVisible: true,
 };
@@ -439,20 +482,6 @@ export const CheckPlgChart = (aChartType: ChartType) => {
     }
 };
 
-// structure of chart option
-export const StructureOfCommonOption = {
-    legend: {
-        show: true as boolean,
-    },
-    tooltip: {
-        show: true as boolean,
-        confine: true as boolean,
-        trigger: 'item' as 'item' | 'axis' | 'none',
-        formatter: null as unknown as (params: any, ticket: string, callback: (ticket: string, html: string) => any) => string | HTMLElement | HTMLElement[] | null,
-    },
-    dataZoom: false as any[] | boolean,
-};
-
 export const StructureOfLineSeriesOption = {
     areaStyle: null as any,
     smooth: false as boolean,
@@ -470,14 +499,6 @@ export const StructureOfLineSeriesOption = {
         },
         data: [] as any[],
     },
-};
-
-export const StructureOfLineVisualMapOption = {
-    type: 'piecewise' as 'continuous' | 'piecewise',
-    show: false as boolean,
-    dimension: 0 as string | number,
-    seriesIndex: 0 as number | number[],
-    pieces: [] as any,
 };
 
 export const StructureOfBarSeriesOption = {

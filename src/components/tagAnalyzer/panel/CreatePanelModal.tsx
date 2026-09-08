@@ -152,6 +152,7 @@ export function CreatePanelModal({
                 <Modal.Confirm
                     data-testid="tag-analyzer-create-panel-apply-button"
                     onClick={applyPanel}
+                    disabled={sSelectedTags.length === 0}
                 >
                     Apply
                 </Modal.Confirm>

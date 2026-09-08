@@ -34,10 +34,24 @@ $label-gap: 6px;
     text-align: right;
 }
 
-.fieldGrid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+.fieldGroups {
+    display: flex;
+    flex-direction: column;
     gap: $section-gap;
+}
+
+.sourceFieldGrid,
+.columnFieldGrid {
+    display: grid;
+    gap: $section-gap;
+}
+
+.sourceFieldGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.columnFieldGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .fieldGridFull {

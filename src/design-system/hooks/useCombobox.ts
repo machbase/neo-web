@@ -3,7 +3,18 @@ import { useState, useRef, useCallback, useMemo, KeyboardEvent, ChangeEvent } fr
 export interface ComboboxOption {
     value: string;
     label: string;
+    /**
+     * Secondary line under the label — where a label alone is ambiguous.
+     *
+     * A table list is the case this exists for: `database.owner.table` in one line is wider than
+     * any field it fits in, so the option carries the bare name as its label and the qualifying
+     * parts here. Search matches it too, so typing a database name still narrows the list.
+     */
+    description?: string;
+    /** Tooltip content. Defaults to `label`, which is not enough once a description carries half the identity. */
+    tooltip?: string;
     disabled?: boolean;
+    testId?: string;
 }
 
 export interface UseComboboxProps {
@@ -117,7 +128,9 @@ export const useCombobox = ({
         }
 
         const query = searchQuery.toLowerCase();
-        return options.filter((option) => option.label.toLowerCase().includes(query));
+        // The description is searched as well as the label. Splitting `MACHBASEDB.SYS.ATABLE`
+        // into the two would otherwise have made the database and owner untypeable.
+        return options.filter((option) => `${option.label} ${option.description ?? ''}`.toLowerCase().includes(query));
     }, [options, searchQuery, searchable]);
 
     // Get selected option

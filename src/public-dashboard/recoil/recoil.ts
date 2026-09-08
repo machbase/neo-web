@@ -70,7 +70,7 @@ export const gExtensionList = atom<any>({
         {
             id: 'KEY',
             type: 'KEY',
-            label: 'KEY',
+            label: 'SECURITY',
         },
         {
             id: 'APPSTORE',

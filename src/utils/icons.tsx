@@ -1,5 +1,7 @@
 import './icons.scss';
 import MaterialIcon from '@/components/common/MaterialIcon';
+import { TokenIcon } from '@/components/securityKey/icons';
+import { PiCertificateLight } from 'react-icons/pi';
 import {
     VscGraphScatter,
     VscGraphLine,
@@ -20,7 +22,6 @@ import {
     FaHtml5,
     FaCss3,
     IoLogoJavascript,
-    VscKey,
     TfiLayoutColumn3Alt,
 } from '@/assets/icons/Icon';
 import {
@@ -146,7 +147,11 @@ const icons = (aType: string, aIsHome?: boolean) => {
                 </span>
             );
         case 'key':
-            return <VscKey />;
+            // certificate, not a key glyph — `token` is the other half of this section and both
+            // would otherwise read as "a key"
+            return <PiCertificateLight size={16} />;
+        case 'token':
+            return <TokenIcon size={16} />;
         case 'timer':
             return <RxLapTimer />;
         case 'bridge':

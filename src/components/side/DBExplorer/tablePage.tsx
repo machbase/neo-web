@@ -1,4 +1,6 @@
 import moment from 'moment';
+import { getCurrentDatabaseId, hasLogicalDatabases, isDatabaseWritable, isSameDatabaseId, normalizeDatabaseId } from '@/utils/currentDatabaseState';
+import { isMountedTableName } from '@/utils/qualifiedTableName';
 import { LuFlipVertical } from 'react-icons/lu';
 import { Button, Page, CommonTable, Tabs } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
@@ -12,14 +14,17 @@ import { MetaTablePage } from './metaTablePage';
 import {
     buildDataViewerColumnConfigFromColumnRows,
     buildQualifiedTableName,
+    buildRetentionQuery,
     CheckIndexFlag,
     CheckTableFlag,
     E_TABLE_INFO,
     E_TABLE_TYPE,
     E_TABLE_TYPE_COLOR,
     FetchCommonType,
+    formatTableBaseExtent,
     normalizeLogicalLengthInfo,
     resolveDisplayColumnInfo,
+    resolveTableBaseColumn,
 } from './utils';
 import { Tooltip } from 'react-tooltip';
 import { BiInfoCircle } from 'react-icons/bi';
@@ -58,12 +63,14 @@ const buildLogicalLengthQueries = ({
     dbName?: string;
     userName?: string;
     tableName: string;
-    databaseId?: number;
+    databaseId?: string | number;
     currentUserName?: string;
 }) => {
     const normalizedUserName = userName?.toUpperCase();
     const normalizedCurrentUserName = currentUserName?.toUpperCase();
-    const isLocalDatabase = databaseId === -1;
+    // "Local" means the database this session is in, not the pre-v8.7 sentinel. On v8.7 the
+    // current database has a real id, so comparing against -1 made every table look mounted.
+    const isLocalDatabase = isSameDatabaseId(databaseId, getCurrentDatabaseId());
     const isCurrentUserTable =
         !!normalizedUserName && normalizedUserName === normalizedCurrentUserName;
 
@@ -291,7 +298,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             dbName: String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
             userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
             tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
-            databaseId: Number(mTableInfo[E_TABLE_INFO.DB_ID] ?? -1),
+            databaseId: normalizeDatabaseId(mTableInfo[E_TABLE_INFO.DB_ID] ?? -1),
             currentUserName: getUserName(),
         });
     }, [mTableInfo]);
@@ -358,6 +365,10 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         });
     }, [sRawColumnInfo, sLogicalLengthCandidates, sIsHiddenCol]);
     const mColList = mMainColumnSection?.columnInfo;
+    // Which column the rows are ordered by, and whether it measures distance. Both the extent query
+    // and the header readout below key on it: a base distance is a plain number in its own unit, not
+    // a nanosecond timestamp.
+    const mBaseColumn = useMemo(() => resolveTableBaseColumn(mColList), [mColList]);
     // Memoization meta column list
     const mMetaColumnSection = useMemo(() => {
         if (!sRawColumnInfo) return undefined;
@@ -386,7 +397,20 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     const FetchRecordCount = async () => {
         let sSubCol = '';
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG)
-            sSubCol = `, MIN(${mColList?.rows?.[1]?.[0]}) as MIN, MAX(${mColList?.rows?.[1]?.[0]}) as MAX`;
+            // Unfiltered, so this stays a metadata read rather than a scan — measured 0.185 ms over
+            // DISTANCE_SENSOR's million rows, against 0.173 ms for the same extent through
+            // `V$<TABLE>_STAT`. The stat view is what the *tag-filtered* readers need (a
+            // `WHERE NAME IN (...)` is what turns this into a scan); here it would only add a
+            // second query, and its ROW_COUNT lags `COUNT(*)` — measured 52,803 against 54,372 on
+            // TEST — so the record count has to come from the table either way.
+            sSubCol = `, MIN(${mBaseColumn.name}) as MIN, MAX(${mBaseColumn.name}) as MAX`;
+        // v8.7 renamed V$STORAGE_DC_TABLE_INDEXES.DATABASE_ID to TABLESPACE_ID, so joining on
+        // the old column no longer compiles (ERR-2056). Scoping by TABLE_ID instead is not a
+        // workaround but the narrower statement: this panel shows the indexes of one table, and
+        // `sub` is already restricted to that table. Substituting TABLESPACE_ID would compile
+        // and return nothing — it compares a logical database id against a physical tablespace
+        // id, which is 0 for every database. TABLE_ID exists on both engines, so one query text
+        // serves v8.5 and v8.7 alike.
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG)
             sSubCol = ', MIN(_ARRIVAL_TIME) as MIN, MAX(_ARRIVAL_TIME) as MAX';
         const sQuery = `SELECT COUNT(*) as CNT ${sSubCol} FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
@@ -489,18 +513,36 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         let sQuery = `select i.name as 'NAME', i.type as TYPE, c.name as 'COLUMN', '' as 'DESC' from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${
             mTableInfo[E_TABLE_INFO.DB_ID]
         } and c.table_id=${mTableInfo[E_TABLE_INFO.TB_ID]}`;
+        // Only a mounted backup has to be kept out of the tag statistics views. Unlike the
+        // LOG branch above they carry no TABLESPACE_ID, and a mount contributes no rows to them
+        // at all — measured, a tag table backed up and mounted beside its source leaves
+        // V$STORAGE_TAG_INDEX with exactly one row per id, the source's. Since a mount reuses
+        // the ids of the database it was taken from, asking by id would answer with the
+        // source's numbers rather than nothing.
+        //
+        // A second *active* database is safe, though: table ids come from one allocator shared
+        // across databases — measured, three tables created alternately in two databases got
+        // 683, 684, 685 — so ids never collide between them, and their rows are present.
+        // Testing "is this the database I am connected to" excluded them for no reason.
         if (
             CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG &&
-            mTableInfo[E_TABLE_INFO.DB_ID] === -1
+            !isMountedTableName(mQualifiedTableName)
         )
             sQuery = `SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', SUM(vi.TABLE_END_RID - vi.DISK_INDEX_END_RID) AS DISK_GAP FROM (SELECT * from V$STORAGE_TAG_INDEX where index_id <> 4294967295) as vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id WHERE c.table_id=${
                 mTableInfo[E_TABLE_INFO.TB_ID]
             } and c.DATABASE_ID = ${mTableInfo[E_TABLE_INFO.DB_ID]} ) as sub ON vi.INDEX_ID = sub.index_id group by sub.name, sub.TYPE, sub.COLUMN_NAME`;
+        // The join carries TABLESPACE_ID as well as TABLE_ID, because a table id is not unique
+        // across databases: a mounted backup keeps the ids of the database it was taken from.
+        // Measured — a LOG table backed up and mounted alongside its source gives V$STORAGE_DC_
+        // TABLE_INDEXES two rows for the same TABLE_ID (tablespace 0 and 667), and the join on
+        // id alone returned both of them to *each* side, mixing two databases' RID counters into
+        // one panel. Tablespace tells them apart: `M$SYS_TABLES` reports 0 for an active
+        // database and the mount's own tablespace for a mounted one, and the storage view agrees.
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG)
             sQuery = `
-SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.END_RID) AS DISK_GAP FROM V$STORAGE_DC_TABLE_INDEXES vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id, CASE WHEN c.database_id = -1 THEN 0 ELSE c.database_id END AS database_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id AND c.database_id = i.database_id WHERE c.table_id=${
+SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.END_RID) AS DISK_GAP FROM V$STORAGE_DC_TABLE_INDEXES vi INNER JOIN (SELECT i.name AS NAME, i.type AS TYPE, c.name AS COLUMN_NAME, i.id AS index_id, c.table_id, c.tablespace_id, CASE WHEN c.database_id = -1 THEN 0 ELSE c.database_id END AS database_id FROM m$sys_index_columns c INNER JOIN m$sys_indexes i ON c.table_id = i.table_id AND c.index_id = i.id AND c.database_id = i.database_id WHERE c.table_id=${
                 mTableInfo[E_TABLE_INFO.TB_ID]
-            } and c.DATABASE_ID = ${mTableInfo[E_TABLE_INFO.DB_ID]} ) sub ON vi.id = sub.index_id AND vi.DATABASE_ID = sub.DATABASE_ID`;
+            } and c.DATABASE_ID = ${mTableInfo[E_TABLE_INFO.DB_ID]} ) sub ON vi.id = sub.index_id AND vi.TABLE_ID = sub.table_id AND vi.TABLESPACE_ID = sub.tablespace_id`;
 
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) {
@@ -526,7 +568,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 )
                     return row;
                 else {
-                    if (mTableInfo[E_TABLE_INFO.DB_ID] === -1)
+                    if (!isMountedTableName(mQualifiedTableName))
                         return (row[svrData.columns.indexOf('DISK_GAP')] =
                             row[svrData.columns.indexOf('DISK_GAP')].toLocaleString() ?? '0');
                     else return (row[svrData.columns.indexOf('DISK_GAP')] = '-');
@@ -630,10 +672,17 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         } else setRollupInfo(undefined);
     };
     const FetchRetention = async () => {
-        const sQuery = `select j.POLICY_NAME as 'POLICY', r.'DURATION' as "DURATION", r.'INTERVAL' as "INTERVAL", j.STATE, j.LAST_DELETED_TIME from M$retention r, V$retention_job j where r.policy_name=j.policy_name and table_name=upper('${
-            mTableInfo[E_TABLE_INFO.TB_NM]
-        }') and user_name=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}')`;
-        const { svrState, svrData } = await fetchQuery(sQuery);
+        const sQuery = buildRetentionQuery({
+            tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
+            userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
+            // Pre-v8.7 the view has no `DATABASE_ID` to filter on and is scoped to the session
+            // anyway; there the table shown is always the session's, so an unscoped statement
+            // is the right one. See `buildRetentionQuery` for what changed on v8.7.
+            databaseId: hasLogicalDatabases()
+                ? normalizeDatabaseId(mTableInfo[E_TABLE_INFO.DB_ID])
+                : undefined,
+        });
+        const { svrState, svrData } = await fetchTqlWithoutConsole(sQuery);
         if (svrState) {
             svrData.rows.map((row: (string | number)[]) => {
                 const durationValue = row[svrData.columns.indexOf('DURATION')];
@@ -736,8 +785,11 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         const originalRow = item.__originalRow || item;
         const originalColumns = item.__originalColumns || sRollupInfo?.columns;
         const enabledValue = originalRow[originalColumns?.indexOf('ENABLED') as number];
+        // Editing a rollup is a write, so the gate is whether the database accepts writes —
+        // not whether it is the one we are connected to. Another active READ_WRITE database
+        // is editable; a READ ONLY one or a mounted backup is not.
         const sReadOnly =
-            mTableInfo[E_TABLE_INFO.DB_ID] !== -1 ||
+            !isDatabaseWritable(mTableInfo[E_TABLE_INFO.DB_ID]) ||
             mTableInfo[E_TABLE_INFO.USER_NM]?.toUpperCase() !== getUserName()?.toUpperCase();
 
         if (enabledValue === 1)
@@ -772,8 +824,10 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 SetLastFetchTime();
                 FetchColumn();
                 FetchIndex();
-                // Cond retention (MACHBASEDB)
-                if (mTableInfo[E_TABLE_INFO.DB_ID] === -1) FetchRetention();
+                // On v8.7 the query carries its own `DATABASE_ID` condition, so any database
+                // can be read. An older server has no such column, and there the session's
+                // database is the only one whose retention the view can be trusted to describe.
+                if (hasLogicalDatabases() || isSameDatabaseId(mTableInfo[E_TABLE_INFO.DB_ID], getCurrentDatabaseId())) FetchRetention();
                 else setRetentionInfo(undefined);
                 // Cond rollup (TAG)
                 if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG)
@@ -781,7 +835,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 else setRollupInfo(undefined);
                 // Cond index (MACHBASEDB) (TAG)
                 if (
-                    mTableInfo[E_TABLE_INFO.DB_ID] === -1 &&
+                    !isMountedTableName(mQualifiedTableName) &&
                     CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG
                 )
                     FetchIndexGapForTag();
@@ -894,19 +948,15 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                             <Page.Space />
                                             <div style={{ textWrap: 'nowrap' }}>
                                                 <Page.ContentDesc>
-                                                    {sRecordInfo?.min > 0
-                                                        ? moment(
-                                                              (sRecordInfo?.min as number) /
-                                                                  1000000,
-                                                          ).format('YYYY-MM-DD HH:mm:ss')
-                                                        : 'N/A'}
+                                                    {formatTableBaseExtent(
+                                                        sRecordInfo?.min,
+                                                        mBaseColumn.isDistance,
+                                                    )}
                                                     {' ~ '}
-                                                    {sRecordInfo?.max > 0
-                                                        ? moment(
-                                                              (sRecordInfo?.max as number) /
-                                                                  1000000,
-                                                          ).format('YYYY-MM-DD HH:mm:ss')
-                                                        : 'N/A'}
+                                                    {formatTableBaseExtent(
+                                                        sRecordInfo?.max,
+                                                        mBaseColumn.isDistance,
+                                                    )}
                                                 </Page.ContentDesc>
                                             </div>
                                         </Page.DpRowBetween>

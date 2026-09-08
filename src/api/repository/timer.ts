@@ -1,12 +1,19 @@
-// timer(schedule) repository — migrated to the machbase-neo UI-API (JSON-RPC) (#1334 phase 3, Wave A).
+// timer(schedule) repository — machbase-neo UI-API (JSON-RPC), `timer.*` namespace.
 //
-// Migrated (RPC exists): list→schedule.list (filtered to type=timer), gen→schedule.timer.add,
-//                        state(start/stop)→schedule.start/stop, delete→schedule.delete.
-// Kept on REST: getTimerItem (no single-item get RPC), modTimer (no schedule.update RPC yet, BE-6).
-import request from '@/api/core';
+// neo-server PR #474 split `schedule.*` into `timer.*` / `subscriber.*` and REMOVED the old
+// namespace in the same commit — every `schedule.*` call now answers `-32601 Method not found`,
+// so there is no compatibility window and nothing here may fall back.
+//
+// The identity of an entry changed from its NAME to a numeric `id`:
+//   list→timer.list, get→timer.get(id), add→timer.add(req) (returns the new id),
+//   update→timer.update({id, …}), start/stop→timer.start|stop(id), delete→timer.delete(id).
+// Passing a name string where an id is expected fails loudly with `-32602 unmarshal to int64`,
+// so a missed call site can never silently act on the wrong entry.
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 
 export interface TimerItemType {
+    /** Server-assigned identity. Every mutating RPC addresses the timer by this, never by name. */
+    id: number;
     name: string;
     schedule: string;
     state: string;
@@ -20,11 +27,20 @@ interface TimerListResType {
     reason: string;
     success: boolean;
 }
+export interface TimerItemResType {
+    data: TimerItemType;
+    elapse: string;
+    reason: string;
+    success: boolean;
+    statusText?: string;
+}
 export interface GenTimerResType {
-    [key: string]: string | boolean | undefined;
+    [key: string]: string | number | boolean | undefined;
     success: boolean;
     elapse: string;
     reason: string;
+    /** `timer.add` returns the created id — use it instead of re-reading the list by name. */
+    id?: number;
 }
 export interface CreatePayloadType {
     [key: string]: string | boolean;
@@ -48,71 +64,120 @@ const rpcErrMessage = (res: JsonRpcResponse<unknown>): string | null =>
     res?.error ? res.error.message || `JSON-RPC error ${res.error.code}` : null;
 
 /**
- * Get timer list — `schedule.list` (filter the full schedule list down to type=timer).
+ * Map one `timer.*` RPC row (backend `timer.Info`) into TimerItemType.
+ *
+ * Every field of that struct is tagged `omitempty`, so `autoStart:false` and empty
+ * `schedule`/`task` arrive as MISSING keys — always default here, never let
+ * `undefined` reach the edit form.
+ *
+ * `timer.Info` also dropped the `type` discriminator that `scheduler.Schedule` carried (the
+ * namespace itself is the type now), so fill it in as a constant: the timer screens still read
+ * `type` for display.
+ */
+const toTimerItem = (s: any): TimerItemType => ({
+    id: Number(s?.id ?? 0),
+    name: s?.name ?? '',
+    schedule: s?.schedule ?? '',
+    state: s?.state ?? '',
+    task: s?.task ?? '',
+    type: s?.type ?? 'TIMER',
+    autoStart: Boolean(s?.autoStart),
+});
+
+// Failure envelope the timer call sites expect. They read `.reason` first, but older branches still
+// fall back to `.data.reason` / `.statusText`, so fill all three.
+const errEnvelope = (msg: string): any => ({
+    success: false,
+    reason: msg,
+    elapse: '',
+    data: { reason: msg },
+    statusText: msg,
+});
+
+/**
+ * Get timer list — `timer.list` (params: []).
+ * The namespace is timer-only, so there is no `type` filtering to do any more.
+ * NOTE: the backend scopes the list to the logged-in user's own definitions (no SYS bypass),
+ * so this no longer returns every user's timers.
  */
 export const getTimer = async (): Promise<TimerListResType> => {
     try {
-        const res = await rpcCall<any[]>(RpcMethod.schedule.list, []);
+        const res = await rpcCall<any[]>(RpcMethod.timer.list, []);
         const err = rpcErrMessage(res);
         if (err) return { success: false, reason: err, elapse: '', data: [] };
         const rows = (res?.result ?? []) as any[];
-        const data: TimerItemType[] = rows
-            .filter((s) => String(s?.type ?? '').toLowerCase() === 'timer')
-            .map((s) => ({
-                name: s?.name ?? '',
-                schedule: s?.schedule ?? '',
-                state: s?.state ?? '',
-                task: s?.task ?? '',
-                type: s?.type ?? '',
-                autoStart: Boolean(s?.autoStart),
-            }));
-        return { success: true, reason: 'success', elapse: '', data };
+        return { success: true, reason: 'success', elapse: '', data: rows.map(toTimerItem) };
     } catch (e) {
         return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '', data: [] };
     }
 };
 
 /**
- * Get timer item — stays on REST (no single-item read RPC (schedule.get) exists).
+ * Get timer item — `timer.get(id)` (params: [id]).
+ * The id comes from `timer.list` / `timer.add`; a name string is rejected by the backend.
  */
-export const getTimerItem = (aTimerName: string): Promise<TimerItemType> => {
-    return request({
-        method: 'GET',
-        url: `/api/timers/${aTimerName}`,
-    });
-};
-
-/**
- * Gen timer — `schedule.timer.add(req)` (params: [{name, spec, command, autoStart}]).
- * The backend switched from positional args to a single structured payload (neo-server #437).
- */
-export const genTimer = async (aData: CreatePayloadType, aTimerId: string): Promise<GenTimerResType> => {
+export const getTimerItem = async (aTimerId: number): Promise<TimerItemResType> => {
     try {
-        const res = await rpcCall(RpcMethod.schedule.timer.add, [{ name: aTimerId, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart) }]);
+        const res = await rpcCall<any>(RpcMethod.timer.get, [aTimerId]);
         const err = rpcErrMessage(res);
-        return err ? { success: false, reason: err, elapse: '', statusText: err } : { success: true, reason: 'success', elapse: '' };
+        if (err) return errEnvelope(err);
+        return { success: true, reason: 'success', elapse: '', data: toTimerItem(res?.result) };
     } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        return { success: false, reason: msg, elapse: '', statusText: msg };
+        return errEnvelope(e instanceof Error ? e.message : String(e));
     }
 };
 
 /**
- * Edit timer — stays on REST (no `schedule.update` RPC yet, pending BE-6 enhancement).
+ * Gen timer — `timer.add(req)` (params: [{name, spec, command, autoStart}]).
+ *
+ * The request payload is unchanged from `schedule.timer.add`; only the method name and the return
+ * differ — the RPC now answers with the created id, which the caller should keep instead of
+ * looking the new timer up by name.
+ *
+ * Two backend behaviours changed here and surface as plain `reason` text:
+ * - a duplicate name is now an error (`schedule name '…' already exists`); it used to overwrite
+ *   the existing timer silently.
+ * - a `command` whose tql file does not exist fails BEFORE the definition is stored, so a failed
+ *   create leaves nothing behind.
  */
-export const modTimer = (aData: EditPayloadType, aTimerId: string): Promise<GenTimerResType> => {
-    return request({
-        method: 'PUT',
-        url: `/api/timers/${aTimerId}`,
-        data: aData,
-    });
+export const genTimer = async (aData: CreatePayloadType, aTimerName: string): Promise<GenTimerResType> => {
+    try {
+        const res = await rpcCall<number>(RpcMethod.timer.add, [
+            { name: aTimerName, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart) },
+        ]);
+        const err = rpcErrMessage(res);
+        if (err) return errEnvelope(err);
+        return { success: true, reason: 'success', elapse: '', id: Number(res?.result ?? 0) };
+    } catch (e) {
+        return errEnvelope(e instanceof Error ? e.message : String(e));
+    }
 };
 
 /**
- * Send command — `schedule.start` / `schedule.stop` (branch on the state value).
+ * Edit timer — `timer.update(req)` (params: [{id, spec, command, autoStart}]).
+ *
+ * The entry is addressed by id; `name` is not part of the request and cannot be changed.
+ *
+ * IMPORTANT: the backend REPLACES the definition rather than merging it — a field left out of the
+ * payload is reset (omitting `autoStart` turns it off). Always send the full set below.
  */
-export const sendTimerCommand = async (aCommand: string, aTimerId: string): Promise<any> => {
-    const method = /stop/i.test(aCommand) ? RpcMethod.schedule.stop : RpcMethod.schedule.start;
+export const modTimer = async (aData: EditPayloadType, aTimerId: number): Promise<GenTimerResType> => {
+    try {
+        const res = await rpcCall(RpcMethod.timer.update, [
+            { id: aTimerId, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart) },
+        ]);
+        const err = rpcErrMessage(res);
+        return err ? errEnvelope(err) : { success: true, reason: 'success', elapse: '' };
+    } catch (e) {
+        return errEnvelope(e instanceof Error ? e.message : String(e));
+    }
+};
+
+/**
+ * Send command — `timer.start` / `timer.stop` (params: [id]).
+ */
+export const sendTimerCommand = async (aCommand: string, aTimerId: number): Promise<any> => {
+    const method = /stop/i.test(aCommand) ? RpcMethod.timer.stop : RpcMethod.timer.start;
     try {
         const res = await rpcCall(method, [aTimerId]);
         const err = rpcErrMessage(res);
@@ -123,11 +188,11 @@ export const sendTimerCommand = async (aCommand: string, aTimerId: string): Prom
 };
 
 /**
- * Delete timer — `schedule.delete(name)`.
+ * Delete timer — `timer.delete(id)` (params: [id]).
  */
-export const delTimer = async (aTimerId: string): Promise<DelTimerResType> => {
+export const delTimer = async (aTimerId: number): Promise<DelTimerResType> => {
     try {
-        const res = await rpcCall(RpcMethod.schedule.delete, [aTimerId]);
+        const res = await rpcCall(RpcMethod.timer.delete, [aTimerId]);
         const err = rpcErrMessage(res);
         return err ? { success: false, reason: err, elapse: '' } : { success: true, reason: 'success', elapse: '' };
     } catch (e) {

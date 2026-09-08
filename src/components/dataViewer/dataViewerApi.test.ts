@@ -7,7 +7,6 @@ import {
     queryTagChartData,
     queryTagData,
     queryTagDataTotal,
-    reinterpretTagStatBaseValue,
 } from './dataViewerApi';
 import { isDataViewerJsonValueColumn, resolveDataViewerBaseColumn, resolveDataViewerBaseKind } from './dataViewerModel';
 
@@ -50,6 +49,52 @@ describe('data viewer API query builders', () => {
         expect(sql).toContain(`TIME >= TO_TIMESTAMP('${machbaseTime('2026-06-25T05:09:58.534Z')}')`);
         expect(sql).toContain(`TIME <= TO_TIMESTAMP('${machbaseTime('2026-06-25T05:19:58.534Z')}')`);
         expect(sql).not.toContain('2026-06-25T05:09:58.534Z');
+    });
+
+    test('resolved numeric time ranges are sent as absolute timestamps', async () => {
+        const from = Date.parse('2026-06-25T05:09:58.534Z');
+        const to = Date.parse('2026-06-25T05:19:58.534Z');
+
+        await queryTagChartData({
+            dbName: 'MACHBASEDB',
+            userName: 'SYS',
+            tableName: 'TAG',
+            names: ['sensor.a'],
+            from,
+            to,
+        });
+
+        const sql = String(mockedFetchQuery.mock.calls[0][0]);
+        expect(sql).toContain(`TIME >= FROM_TIMESTAMP(${BigInt(from) * BigInt(1000000)})`);
+        expect(sql).toContain(`TIME <= FROM_TIMESTAMP(${BigInt(to) * BigInt(1000000)})`);
+        expect(sql).not.toContain('TO_TIMESTAMP');
+        expect(sql).not.toContain('2026-06-25');
+    });
+
+    test('numeric raw bounds and paging cursor stay absolute timestamps', async () => {
+        const from = Date.parse('2026-06-25T05:09:58.534Z');
+        const to = Date.parse('2026-06-25T05:19:58.534Z');
+
+        await queryTagData({
+            dbName: 'MACHBASEDB',
+            userName: 'SYS',
+            tableName: 'TAG',
+            names: ['sensor.a'],
+            from,
+            to,
+            cursorSide: 'next',
+            cursorTime: from,
+            cursorName: 'sensor.a',
+            direction: 'oldest',
+            page: 2,
+        });
+
+        const sql = String(mockedFetchQuery.mock.calls[0][0]);
+        const fromLiteral = `FROM_TIMESTAMP(${BigInt(from) * BigInt(1000000)})`;
+        expect(sql).toContain(`TIME >= ${fromLiteral}`);
+        expect(sql).toContain(`TIME <= FROM_TIMESTAMP(${BigInt(to) * BigInt(1000000)})`);
+        expect(sql).toContain(`TIME > ${fromLiteral}`);
+        expect(sql).not.toContain('TO_TIMESTAMP');
     });
 
     test('raw data and total queries use the same Machbase timestamp format', async () => {
@@ -369,19 +414,12 @@ describe('data viewer API time bounds', () => {
             expect(result).toBe(42);
         });
 
-        // The stat view does not merely answer about the wrong column on a distance-base table — it
-        // answers with something that is not a quantity at all. Measured on the live server against
-        // MACHBASEDB.SYS.DISTANCE_SENSOR (base column ODOMETER_M, DOUBLE, BASETIME; ODOMETER_M runs
-        // 0 .. 999990):
-        //     select max(MAX_TIME) from MACHBASEDB.SYS.V$DISTANCE_SENSOR_STAT
-        //       -> 4696837060785340416
-        //     select ODOMETER_M from MACHBASEDB.SYS.DISTANCE_SENSOR order by ODOMETER_M desc limit 1
-        //       -> 999990
-        // 4696837060785340416 is the IEEE-754 bit pattern of the double 999990 reinterpreted as an
-        // integer: the view stores BASETIME's raw eight bytes and labels them a time. Read as a
-        // boundary it puts the window roughly 148 billion years out — and because the query *succeeds*
-        // there is nothing downstream that could notice. The `timeColumnExpr === 'TIME'` guard in
-        // queryTagBoundaryTime is the only thing standing between this table and that number.
+        // A distance-base table has no MIN_TIME / MAX_TIME to ask about: its stat view publishes
+        // MIN_DISTANCE / MAX_DISTANCE instead, and the time names answer `MACHCLI-ERR-2056, Column
+        // name (MAX_TIME) not found` (measured against MACHBASEDB.SYS.V$DISTANCE_SENSOR_STAT). Even
+        // a view that did answer would be answering about metres, and this function's result feeds
+        // `toDataViewerDate`. The `timeColumnExpr === 'TIME'` guard keeps the question from being
+        // asked at all; the column below is what returns 999990.
         test('never asks the stat view about a non-TIME base column', async () => {
             mockedFetchQuery.mockReset();
             mockedFetchQuery.mockResolvedValue(statRow(999990));
@@ -589,54 +627,21 @@ describe('data viewer API distance base', () => {
         expect(sql).toContain("(TIME < TO_TIMESTAMP('2026-06-25 05:00:00.000') or (TIME = TO_TIMESTAMP('2026-06-25 05:00:00.000') and NAME > 'sensor.a'))");
     });
 
-    // The distance range editor's slider bounds. Two paths: the tag stat view, whose MIN_TIME /
-    // MAX_TIME hold the BASETIME column's raw eight bytes and therefore need reinterpreting back
-    // into doubles, and an aggregate over the column itself. The measured pair these tests are built
-    // on comes from MACHBASEDB.SYS.DISTANCE_SENSOR (ODOMETER_M, DOUBLE, BASETIME, 0 .. 999990):
-    //   select min(MIN_TIME), max(MAX_TIME) from V$DISTANCE_SENSOR_STAT  ->  0, 4696837060785340416
-    //   select min(ODOMETER_M), max(ODOMETER_M) from DISTANCE_SENSOR     ->  0, 999990
-    // 4696837060785340416 is 0x412E846C00000000, the bit pattern of 999990. Read as a time it would
-    // put the slider's upper bound 148 billion years out.
+    // The distance range editor's slider bounds. Two paths: the tag stat view, whose MIN_DISTANCE /
+    // MAX_DISTANCE hold the base column's extent in its own unit, and an aggregate over the column
+    // itself. Both were measured against MACHBASEDB.SYS.DISTANCE_SENSOR (ODOMETER_M, DOUBLE, BASE
+    // DISTANCE, 0 .. 999990) and agree exactly:
+    //   select min(MIN_DISTANCE), max(MAX_DISTANCE) from V$DISTANCE_SENSOR_STAT  ->  0, 999990
+    //   select min(ODOMETER_M), max(ODOMETER_M) from DISTANCE_SENSOR             ->  0, 999990
+    // What separates them is cost — 259µs against 333ms for the same two tags.
     describe('base column bounds', () => {
         const boundsRow = (mn: unknown, mx: unknown) => ({
             svrState: true,
             svrData: { columns: ['MN', 'MX'], rows: [[mn, mx]] },
             svrReason: '',
         });
-        // The value the live server actually returns for this table's upper bound.
-        const DISTANCE_MAX_BITS = 4696837060785340416;
+        const failedQuery = { svrState: false, svrData: undefined, svrReason: 'MACHCLI-ERR-2056, Column name (MIN_DISTANCE) not found.' };
         const DISTANCE_MAX = 999990;
-
-        // The reinterpretation on its own, where each refusal can be pinned to its own reason rather
-        // than to "the extent came out degenerate anyway".
-        describe('reinterpretTagStatBaseValue', () => {
-            test('turns the measured pattern back into the measured distance', () => {
-                expect(reinterpretTagStatBaseValue(DISTANCE_MAX_BITS)).toBe(DISTANCE_MAX);
-                expect(reinterpretTagStatBaseValue('4696837060785340416')).toBe(DISTANCE_MAX);
-                expect(reinterpretTagStatBaseValue(4696837060785340416n)).toBe(DISTANCE_MAX);
-                // The lower bound of the same table. 0 bits is the double 0, so the two agree there
-                // by construction rather than by luck.
-                expect(reinterpretTagStatBaseValue(0)).toBe(0);
-            });
-
-            test('refuses every pattern it cannot vouch for', () => {
-                // Exponent field all ones: NaN and Infinity. Both arrive looking like ordinary
-                // integers, and both would become a slider bound if they were let through.
-                expect(reinterpretTagStatBaseValue(9221120237041090560)).toBeNull();
-                expect(reinterpretTagStatBaseValue(9218868437227405312)).toBeNull();
-                // Sign bit set. A negative distance would invert the ordering the aggregate relies
-                // on, so `min(MIN_TIME)` would stop being the smallest reading.
-                expect(reinterpretTagStatBaseValue(-DISTANCE_MAX_BITS)).toBeNull();
-                expect(reinterpretTagStatBaseValue(9223372036854775808n)).toBeNull();
-                expect(reinterpretTagStatBaseValue(-1)).toBeNull();
-                // Not a bit pattern at all.
-                expect(reinterpretTagStatBaseValue(1234.5)).toBeNull();
-                expect(reinterpretTagStatBaseValue('not-a-number')).toBeNull();
-                expect(reinterpretTagStatBaseValue(null)).toBeNull();
-                expect(reinterpretTagStatBaseValue(undefined)).toBeNull();
-                expect(reinterpretTagStatBaseValue({})).toBeNull();
-            });
-        });
 
         test('aggregates the real base column and never touches the stat view', async () => {
             mockedFetchQuery.mockResolvedValue(boundsRow(0, 999990));
@@ -652,11 +657,11 @@ describe('data viewer API distance base', () => {
             expect(sql).not.toContain('MAX_TIME');
         });
 
-        // The stat view is metadata: 265µs and no rows read, against 387µs of aggregate over a
-        // million. It only opens on a distance base, and only because that is the case where the
-        // bytes need reinterpreting at all.
-        test('a distance base reads the stat view and reinterprets the pattern back into metres', async () => {
-            mockedFetchQuery.mockResolvedValue(boundsRow(0, DISTANCE_MAX_BITS));
+        // The stat view is metadata: no rows read at all. It only opens on a distance base, because
+        // MIN_DISTANCE / MAX_DISTANCE are the columns a distance table's view has — a time table's
+        // has MIN_TIME / MAX_TIME and answers ERR-2056 for these names.
+        test('a distance base reads the extent straight off the stat view', async () => {
+            mockedFetchQuery.mockResolvedValue(boundsRow(0, DISTANCE_MAX));
 
             const bounds = await queryTagBaseColumnBounds({
                 ...table,
@@ -671,64 +676,49 @@ describe('data viewer API distance base', () => {
             // And the table itself was never read.
             expect(mockedFetchQuery).toHaveBeenCalledTimes(1);
             expect(String(mockedFetchQuery.mock.calls[0][0])).toBe(
-                "select min(MIN_TIME) as mn, max(MAX_TIME) as mx from MACHBASEDB.SYS.V$DISTANCE_SENSOR_STAT where NAME in ('SENSOR_01', 'SENSOR_02')"
+                "select min(MIN_DISTANCE) as mn, max(MAX_DISTANCE) as mx from MACHBASEDB.SYS.V$DISTANCE_SENSOR_STAT where NAME in ('SENSOR_01', 'SENSOR_02')"
             );
         });
 
-        // Every one of these is a payload past Number.MAX_SAFE_INTEGER whose bit pattern cannot be
-        // reinterpreted into a distance with any confidence. Falling through to the column is what
-        // keeps a wrong bound — which has no outward sign, it is just a number — off the slider.
-        test.each<[string, unknown]>([
-            // 0x7FF8000000000000: exponent all ones, reinterprets to NaN.
-            ['a NaN exponent field', 9221120237041090560],
-            // 0x7FF0000000000000: Infinity.
-            ['an Infinity exponent field', 9218868437227405312],
-            // Sign bit set, so the aggregate's ordering no longer tracks the values.
-            ['a signed pattern', -4696837060785340416],
-            ['a non-integer', 1234.5],
-            ['text that is not a pattern', 'not-a-number'],
-            // The one shape the endpoint could plausibly start sending. MIN_TIME / MAX_TIME are
-            // *labelled* datetime — `/web/api/query` answers `"types":["datetime","datetime"]` for
-            // this very query, while serialising the raw integers — so a formatting or timezone
-            // option applied to the response would turn the pattern into a rendered date. Measured
-            // against the live server today: `[0, 4696837060785340416]`, digits. If that ever
-            // becomes a date, the reinterpretation has nothing left to work with and the only
-            // correct move is the column scan. Both the ISO and the Machbase-shaped rendering, and
-            // 1970 because that is what these particular bytes render as when read as a time.
-            ['a rendered date', '1970-01-01 09:00:00.000'],
-            ['an ISO date', '1970-01-01T00:00:00.000Z'],
-            ['a Date object', new Date(0)],
-        ])('falls back to scanning the column when the stat view answers %s', async (_label, bad) => {
-            // Once with the bad payload as the upper bound, once as the lower — a guard applied to
-            // only one of the two would still hand the slider a bound nobody can see is wrong.
-            for (const row of [boundsRow(0, bad), boundsRow(bad, DISTANCE_MAX_BITS)]) {
-                mockedFetchQuery.mockReset();
-                mockedFetchQuery.mockResolvedValueOnce(row).mockResolvedValueOnce(boundsRow(0, DISTANCE_MAX));
+        // The aggregate is not decoration: the view answers a row per tag, and a row per warehouse
+        // per tag on a cluster, so a bare `MIN_DISTANCE, MAX_DISTANCE` would describe whichever row
+        // came back first.
+        test('the stat query aggregates rather than reading one row', async () => {
+            mockedFetchQuery.mockResolvedValue(boundsRow(0, DISTANCE_MAX));
 
-                const bounds = await queryTagBaseColumnBounds({ ...table, names: ['SENSOR_01'], baseColumn: 'ODOMETER_M', baseKind: 'distance' });
+            await queryTagBaseColumnBounds({ ...table, names: ['SENSOR_01', 'SENSOR_02'], baseColumn: 'ODOMETER_M', baseKind: 'distance' });
 
-                expect(bounds).toEqual({ min: 0, max: DISTANCE_MAX });
-                expect(mockedFetchQuery).toHaveBeenCalledTimes(2);
-                expect(String(mockedFetchQuery.mock.calls[0][0])).toContain('V$DISTANCE_SENSOR_STAT');
-                expect(String(mockedFetchQuery.mock.calls[1][0])).toBe(
-                    "select min(ODOMETER_M) as mn, max(ODOMETER_M) as mx from MACHBASEDB.SYS.DISTANCE_SENSOR where NAME = 'SENSOR_01'"
-                );
-            }
+            const sql = String(mockedFetchQuery.mock.calls[0][0]);
+            expect(sql).toContain('min(MIN_DISTANCE)');
+            expect(sql).toContain('max(MAX_DISTANCE)');
         });
 
-        // A digit string never crossed a double, so there is no rounding question to answer. Note
-        // that the literal here is deliberately not `String(DISTANCE_MAX_BITS)`: JS prints that
-        // double as `4696837060785340000` — the shortest decimal that round-trips, not the exact
-        // integer — and reinterpreting *those* digits answers 999989.9999999516. The number path
-        // does not have that problem, because `BigInt(number)` takes the double's exact value.
-        test('a stat payload delivered as digits is read exactly', async () => {
-            mockedFetchQuery.mockResolvedValue(boundsRow('0', '4696837060785340416'));
+        // The whole of the compatibility story with a server too old to publish the distance stat
+        // columns: it answers ERR-2056, and the column scan answers the same extent.
+        test('falls back to scanning the column when the stat view rejects the query', async () => {
+            mockedFetchQuery.mockReset();
+            mockedFetchQuery.mockResolvedValueOnce(failedQuery).mockResolvedValueOnce(boundsRow(0, DISTANCE_MAX));
 
-            await expect(queryTagBaseColumnBounds({ ...table, names: ['SENSOR_01'], baseColumn: 'ODOMETER_M', baseKind: 'distance' })).resolves.toEqual({
+            const bounds = await queryTagBaseColumnBounds({ ...table, names: ['SENSOR_01'], baseColumn: 'ODOMETER_M', baseKind: 'distance' });
+
+            expect(bounds).toEqual({ min: 0, max: DISTANCE_MAX });
+            expect(mockedFetchQuery).toHaveBeenCalledTimes(2);
+            expect(String(mockedFetchQuery.mock.calls[0][0])).toContain('V$DISTANCE_SENSOR_STAT');
+            expect(String(mockedFetchQuery.mock.calls[1][0])).toBe(
+                "select min(ODOMETER_M) as mn, max(ODOMETER_M) as mx from MACHBASEDB.SYS.DISTANCE_SENSOR where NAME = 'SENSOR_01'"
+            );
+        });
+
+        // A LONG or ULONG base is as legal as a DOUBLE one, and its stat columns come back as
+        // int64 / uint64 rather than double. There is nothing to convert — the number is already in
+        // the column's own unit.
+        test('reads an integer base distance as the number it is', async () => {
+            mockedFetchQuery.mockResolvedValue(boundsRow(0, 4200000));
+
+            await expect(queryTagBaseColumnBounds({ ...table, names: ['SENSOR_01'], baseColumn: 'ODO', baseKind: 'distance' })).resolves.toEqual({
                 min: 0,
-                max: DISTANCE_MAX,
+                max: 4200000,
             });
-            expect(mockedFetchQuery).toHaveBeenCalledTimes(1);
         });
 
         // The view keys its rows by NAME. A table tagged by any other column is one it has no row
@@ -742,9 +732,9 @@ describe('data viewer API distance base', () => {
             expect(String(mockedFetchQuery.mock.calls[0][0])).not.toContain('V$');
         });
 
-        // The reinterpretation is only correct because the bytes are a double. On a time base they
-        // are a real timestamp, and reading 1782000000000000000 as a bit pattern answers ~1e-300.
-        test('a time base never reinterprets anything', async () => {
+        // A time base has no MIN_DISTANCE to read, so the view is never asked: the column answers,
+        // and the nanosecond timestamps come back untouched.
+        test('a time base never reads the stat view', async () => {
             mockedFetchQuery.mockResolvedValue(boundsRow(1782000000000000000, 1782000000000001000));
 
             const bounds = await queryTagBaseColumnBounds({ ...table, names: ['SENSOR_01'], baseColumn: 'TIME', baseKind: 'time' });

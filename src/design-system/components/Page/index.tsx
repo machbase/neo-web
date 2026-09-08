@@ -492,7 +492,7 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
     );
 };
 
-const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: any }) => {
+const DatePicker = ({ pSetApply, pTime, pPlaceholder }: { pSetApply: (e: any) => void; pTime: any; pPlaceholder?: string }) => {
     const [sOpenDate, setOpenDate] = useState<boolean>(false);
     const sOptionRef = useRef(null);
 
@@ -515,6 +515,7 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
             <div className={styles['page-date-picker-input']}>
                 <Page.Input
                     pValue={pTime}
+                    pPlaceholder={pPlaceholder}
                     pCallback={(event: React.FormEvent<HTMLInputElement>) => {
                         pSetApply((event.target as HTMLInputElement).value);
                     }}

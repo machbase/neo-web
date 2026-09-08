@@ -1,4 +1,6 @@
 import { isNumberTypeColumn } from './dashboardUtil';
+import { isTaglessTableType } from './dashboardTableKind';
+import { normalizeFilterOperator } from './dashboardFilterOperators';
 import { isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from './dashboardJsonValue';
 import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isBaseTimeColumn, isNumericBaseTimeBlock, isTimeFieldColumn } from './timeFieldColumns';
 
@@ -51,7 +53,9 @@ export const repairDashboardBlockForTableColumns = (aBlock: any, aColumns: any[]
     // without the full tableInfo. Consumed by convertDashboardMinMaxRows and downstream range/axis logic.
     const sSelectedTimeColumn = findColumn(aColumns, sTime);
     const sValue = repairValue(aBlock?.value, aBlock?.jsonKey, aColumns, sDefaultValue);
-    const sShouldClearViewFilter = aTableType === 'view' && aBlock?.type !== 'view';
+    // Switching *into* an expand-only type drops the filter the previous type left behind: a tag
+    // block's filter names its NAME column, which the new table does not have.
+    const sShouldClearInheritedFilter = isTaglessTableType(aTableType) && aBlock?.type !== aTableType;
     const sValueList =
         aBlock?.values?.length > 0
             ? aBlock.values
@@ -69,7 +73,7 @@ export const repairDashboardBlockForTableColumns = (aBlock: any, aColumns: any[]
     return {
         ...aBlock,
         type: aTableType,
-        useCustom: aTableType === 'view' ? true : aBlock?.useCustom,
+        useCustom: isTaglessTableType(aTableType) ? true : aBlock?.useCustom,
         name: sName,
         time: sTime,
         timeType: sSelectedTimeColumn ? columnType(sSelectedTimeColumn) : DATETIME_COLUMN_TYPE,
@@ -87,10 +91,14 @@ export const repairDashboardBlockForTableColumns = (aBlock: any, aColumns: any[]
         }),
         filter: (aBlock?.filter?.length ? aBlock.filter : [{}]).map((aFilter: any) => {
             const sColumn = findColumn(aColumns, aFilter?.column) ? aFilter.column : sDefaultName;
-            const sShouldClear = sShouldClearViewFilter || sColumn !== aFilter?.column;
+            const sShouldClear = sShouldClearInheritedFilter || sColumn !== aFilter?.column;
             return {
                 ...aFilter,
                 column: sColumn,
+                // Heals the blank operator every `Default*TableOption` used to seed, and any board
+                // saved with one. It cannot change what a board charts: a filter reaches the WHERE
+                // clause only through `useFilter`, which the editor never sets without an operator.
+                operator: normalizeFilterOperator(aFilter?.operator),
                 value: sShouldClear ? '' : aFilter?.value,
                 useFilter: sShouldClear ? false : aFilter?.useFilter ?? false,
                 useTyping: sShouldClear ? false : aFilter?.useTyping ?? false,
