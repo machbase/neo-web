@@ -754,7 +754,10 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     };
     const FetchRollupState = async (aRollupName: string, aCommand: string) => {
         const sQuery = `EXEC ${aCommand}(${aRollupName})`;
-        const { svrState, svrReason } = await fetchTqlWithoutConsole(sQuery);
+        const { svrState, svrReason } = await fetchTqlWithoutConsole(
+            sQuery,
+            String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
+        );
         if (svrState) FetchRollup();
         else {
             setErrMsg({ key: 'ROLLUP', value: svrReason ?? '' });
