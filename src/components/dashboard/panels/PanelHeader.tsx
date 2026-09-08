@@ -28,6 +28,7 @@ import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
 import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/integration';
 import { qualifyTableName } from '@/utils/qualifiedTableName';
+import { insertPanelAfterSource } from '@/utils/dashboardPanelLayout';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
@@ -304,16 +305,17 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         }
     };
     const handleCopyPanel = (aPanelInfo: any) => {
+        // The copy keeps the source's x/y/w/h and goes right after it in the panel list, so the
+        // board's vertical compaction drops it into the slot directly below its source. Forcing
+        // (0, 0) here sent every copy to the left column instead - see insertPanelAfterSource.
         const sTmpPanel = JSON.parse(JSON.stringify(aPanelInfo));
         sTmpPanel.id = generateUUID();
-        sTmpPanel.x = 0;
-        sTmpPanel.y = 0;
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
         const sTabList = sBoardList.map((aItem) => {
             if (aItem.id === pBoardInfo.id) {
                 const sTmpDashboard = {
                     ...aItem.dashboard,
-                    panels: [...aItem.dashboard.panels, sTmpPanel],
+                    panels: insertPanelAfterSource(aItem.dashboard.panels, aPanelInfo.id, sTmpPanel),
                 };
                 sSaveTarget = {
                     ...aItem,
