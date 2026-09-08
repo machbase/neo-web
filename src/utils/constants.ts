@@ -535,6 +535,15 @@ export const ChartSymbolList = ['circle', 'rect', 'roundRect', 'triangle', 'diam
 export const GRID_LAYOUT_COLS = 36;
 export const GRID_LAYOUT_ROW_HEIGHT = 30;
 
+/**
+ * Smallest a panel can be dragged down to. RGL's own default is 1x1 — about 37x30 px here, less
+ * than the panel's 30 px drag strip plus its 20 px resize handle, which leaves nothing to grab.
+ * 3x3 is ~131x110 px: the strip and the handle stop overlapping and the chart keeps a usable band.
+ * Applied through `resolvePanelMinSize`, which never raises the floor above a panel's saved size.
+ */
+export const GRID_LAYOUT_MIN_W = 3;
+export const GRID_LAYOUT_MIN_H = 3;
+
 // tag color
 export const TagColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];
 

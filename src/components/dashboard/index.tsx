@@ -19,6 +19,7 @@ import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { fetchBlockTimeMinMax, getRollupTableList } from '@/api/repository/machiot';
 import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
+import { resolvePanelMinSize } from '@/utils/dashboardPanelMinSize';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { pickBlockNameFilterValue, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
@@ -370,7 +371,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     pInfo.dashboard.panels &&
                                     pInfo.dashboard.panels.map((aItem: any) => {
                                         return (
-                                            <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
+                                            // `minW`/`minH` keep a panel from being dragged down to a size that has no room
+                                            // left to grab it by — see `resolvePanelMinSize` for why the floor is capped at
+                                            // the panel's own saved size.
+                                            <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h, ...resolvePanelMinSize(aItem) }}>
                                                 <Panel
                                                     pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
                                                     pDragStat={pDragStat}
