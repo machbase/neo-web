@@ -1,4 +1,5 @@
-import { fetchQuery } from './database';
+import { hasLogicalDatabases } from '@/utils/currentDatabaseState';
+import { fetchQuery, fetchTqlWithoutConsole } from './database';
 
 export const HIERARCHY_RESERVED_NAME = '__machbase_hierarchy__';
 export const DEFAULT_HIERARCHY_JSON_COLUMN = 'ASSET';
@@ -191,6 +192,13 @@ export const buildCreateJsonPathIndexSql = (config: HierarchyQueryConfig, key: s
 
 export const buildDropJsonPathIndexSql = (config: HierarchyQueryConfig, key: string) =>
     `DROP INDEX ${buildHierarchyIndexName(config, key)}`;
+
+const getHierarchyDatabaseName = (tableName: string) => {
+    const parts = String(tableName ?? '')
+        .split('.')
+        .map((part) => part.trim());
+    return parts.length >= 3 ? parts[0] : '';
+};
 
 export const buildGetHierarchyChildrenSql = (
     config: HierarchyQueryConfig,
@@ -1074,7 +1082,10 @@ export const dropJsonPathIndex = async (
     key: string,
 ): Promise<HierarchyIndexResult> => {
     const sql = buildDropJsonPathIndexSql(config, key);
-    const { svrState, svrReason } = await fetchQuery(sql);
+    const databaseName = hasLogicalDatabases() ? getHierarchyDatabaseName(config.tableName) : '';
+    const { svrState, svrReason } = databaseName
+        ? await fetchTqlWithoutConsole(sql, databaseName)
+        : await fetchQuery(sql);
     if (svrState) return { success: true, sql, skipped: false };
     if (indexDoesNotExist(svrReason)) return { success: true, sql, skipped: true };
     return { success: false, sql, skipped: false, reason: svrReason };
