@@ -323,3 +323,52 @@ describe('Block refuses to guess which row an ambiguous legacy name means', () =
         expect(getTableInfo).toHaveBeenCalledWith('2', 291);
     });
 });
+
+describe('Block filter operator', () => {
+    beforeEach(() => {
+        jest.mocked(getTableInfo).mockResolvedValue({ data: { rows: TABLE_ROWS } } as any);
+        jest.mocked(getVirtualTableInfo).mockResolvedValue({ data: { rows: TABLE_ROWS } } as any);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    const getFilterRow = () => {
+        const row = screen.getByText('Filter').closest('.page-dp-row');
+        expect(row).not.toBeNull();
+        return row as HTMLElement;
+    };
+
+    // An expanded block never passed through the fold path that writes `in`, so its operator stayed
+    // at the `''` the defaults seeded and the select drew empty - see dashboardFilterOperators.
+    test('a blank stored operator still shows the default in the select', async () => {
+        renderBlock({ useCustom: true, filter: [{ id: 'filter-1', column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }] });
+
+        await waitFor(() => expect(getTableInfo).toHaveBeenCalled());
+        expect(within(getFilterRow()).getByDisplayValue('=')).toBeInTheDocument();
+    });
+
+    // The blank operator was not only a blank control: `useFilter` stayed false, so the filter the
+    // user typed was dropped from the WHERE clause with nothing said about it.
+    test('typing a value turns the filter on and writes the operator back', async () => {
+        const blockInfo = createBlockInfo({
+            useCustom: true,
+            filter: [{ id: 'filter-1', column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+        });
+        // The updater reads the event target, which React resets on the next render - so apply it the
+        // way the real state setter would, right when the component hands it over.
+        let panelState: any = { blockList: [blockInfo] };
+        const setPanelOption = jest.fn((aUpdater: any) => {
+            panelState = typeof aUpdater === 'function' ? aUpdater(panelState) : aUpdater;
+        });
+        renderBlock(blockInfo, TABLE_LIST, 'Line', setPanelOption);
+
+        await waitFor(() => expect(getTableInfo).toHaveBeenCalled());
+
+        const valueInput = getFilterRow().querySelectorAll('input')[2];
+        fireEvent.change(valueInput, { target: { value: 'wave.sin' } });
+
+        expect(panelState.blockList[0].filter[0]).toMatchObject({ column: 'NAME', operator: '=', value: 'wave.sin', useFilter: true });
+    });
+});

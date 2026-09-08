@@ -1,6 +1,6 @@
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { convertDashboardMinMaxRows } from './dashboardBlockColumns';
-import { shouldFetchBlockTimeMinMax } from './dashboardTimeMinMax';
+import { shouldFetchBlockTimeMinMax, pickBlockNameFilterValue } from './dashboardTimeMinMax';
 
 /** Reads a block's raw time extent, mounted or not. See `createBlockTimeMinMaxFetcher`. */
 type BlockTimeMinMaxFetcher = (aBlock: any, aCustomTag?: string) => Promise<any>;
@@ -22,11 +22,7 @@ export const createBlockBaseMinMaxFetcher =
     async (aBlock: any): Promise<{ min: number; max: number } | undefined> => {
         if (!aBlock?.table) return undefined;
 
-        const sCustomTag =
-            aBlock.tag &&
-            aBlock.filter?.filter((aFilter: any) => {
-                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-            })[0]?.value;
+        const sCustomTag = aBlock.tag && pickBlockNameFilterValue(aBlock);
 
         if (!shouldFetchBlockTimeMinMax(aBlock, sCustomTag)) return undefined;
 

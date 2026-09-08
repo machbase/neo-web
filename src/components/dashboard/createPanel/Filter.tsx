@@ -1,9 +1,13 @@
 import { Close, GoPencil, PlusCircle } from '@/assets/icons/Icon';
 import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/components';
+import { FILTER_OPERATORS, normalizeFilterOperator } from '@/utils/dashboardFilterOperators';
 
 const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
-    const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
     const sIsVarchar = pColumnList.find((aItem: any) => aItem[0] === pFilterInfo.column)?.[1] === 5;
+    // A board saved before the defaults carried an operator - and a block the column repair never
+    // reached - still holds `''` here. `??` let that through as a blank select; the normalizer shows
+    // the same operator the query would be built from, and Block writes it back on the next edit.
+    const sOperator = normalizeFilterOperator(pFilterInfo.operator);
 
     return (
         <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
@@ -63,10 +67,10 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
 
                     <InputSelect
                         type="text"
-                        options={sFliterList.map((opt: string) => ({ label: opt, value: opt }))}
-                        value={pFilterInfo.operator ?? sFliterList[0]}
+                        options={FILTER_OPERATORS.map((opt: string) => ({ label: opt, value: opt }))}
+                        value={sOperator}
                         onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
-                        selectValue={pFilterInfo.operator ?? sFliterList[0]}
+                        selectValue={sOperator}
                         onSelectChange={(value: string) => pChangeValueOption('operator', { target: { value } }, pFilterInfo.id, 'filter')}
                         size="md"
                         style={{ width: '128px' }}
@@ -78,9 +82,9 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
                         size="md"
                         style={{ width: '160px' }}
-                        {...((pFilterInfo.operator === 'in' || sIsVarchar) && {
-                            addonBefore: <span style={{ color: '#818181' }}>{`${pFilterInfo.operator === 'in' ? '(' : ''}${sIsVarchar ? "'" : ''}`}</span>,
-                            addonAfter: <span style={{ color: '#818181' }}>{`${sIsVarchar ? "'" : ''}${pFilterInfo.operator === 'in' ? ')' : ''}`}</span>,
+                        {...((sOperator === 'in' || sIsVarchar) && {
+                            addonBefore: <span style={{ color: '#818181' }}>{`${sOperator === 'in' ? '(' : ''}${sIsVarchar ? "'" : ''}`}</span>,
+                            addonAfter: <span style={{ color: '#818181' }}>{`${sIsVarchar ? "'" : ''}${sOperator === 'in' ? ')' : ''}`}</span>,
                         })}
                     />
                 </>

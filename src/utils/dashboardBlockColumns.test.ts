@@ -244,6 +244,49 @@ describe('v8.7 transaction blocks', () => {
         expect(repaired.filter[0]).toMatchObject({ column: 'DEVICE', value: 'dev-a', useFilter: true });
     });
 
+    // Every Default*TableOption used to seed `operator: ''`, and only the tag fold path ever wrote a
+    // real one - so a board saved from an expand-only table carries the blank into the select.
+    test('a blank filter operator is healed to the default', () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            {
+                type: 'transaction',
+                name: 'DEVICE',
+                time: 'TS',
+                value: 'VAL',
+                useCustom: true,
+                filter: [{ id: 'f1', column: 'DEVICE', operator: '', value: '', useFilter: false }],
+                values: [],
+            },
+            TRANSACTION_COLUMNS,
+            'transaction'
+        );
+
+        expect(repaired.filter[0].operator).toBe('=');
+        // Healing the operator must not switch the filter on - that is the user's edit to make.
+        expect(repaired.filter[0].useFilter).toBe(false);
+    });
+
+    test('an operator the user picked is left alone', () => {
+        const repaired = repairDashboardBlockForTableColumns(
+            {
+                type: 'transaction',
+                name: 'DEVICE',
+                time: 'TS',
+                value: 'VAL',
+                useCustom: true,
+                filter: [
+                    { id: 'f1', column: 'DEVICE', operator: 'like', value: 'dev-%', useFilter: true },
+                    { id: 'f2', column: 'VAL', operator: '>=', value: '3', useFilter: true },
+                ],
+                values: [],
+            },
+            TRANSACTION_COLUMNS,
+            'transaction'
+        );
+
+        expect(repaired.filter.map((aFilter: any) => aFilter.operator)).toEqual(['like', '>=']);
+    });
+
     // The same rule for view, which is the other expand-only type.
     test('a view block is forced expanded too', () => {
         const repaired = repairDashboardBlockForTableColumns(

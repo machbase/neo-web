@@ -15,7 +15,7 @@ import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { getPanelTimeMinMaxTarget, isTableScanTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getPanelTimeMinMaxTarget, isTableScanTimeMinMaxTarget, pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { isDashboardSelectableTable } from '@/utils/dashboardTableKind';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
@@ -429,11 +429,7 @@ const CreatePanel = ({
             pType === 'create' &&
             pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length === pBoardInfo?.dashboard?.panels?.length &&
             pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length <= 0;
-        const sCustomTag =
-            sIsTagName &&
-            sTargetTag.filter?.filter((aFilter: any) => {
-                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-            })[0]?.value;
+        const sCustomTag = sIsTagName && pickBlockNameFilterValue(sTargetTag);
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag) || sIsCreateModeFirstPanel) {
             const sIsTableScanTimeMinMax = isTableScanTimeMinMaxTarget(sTargetTag);
             if (sTargetTag?.customTable || (!sIsTableScanTimeMinMax && (sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag))) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();

@@ -16,7 +16,7 @@ import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchBlockTimeMinMax } from '../../api/repository/machiot';
-import { pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { pickBlockNameFilterValue, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
@@ -112,9 +112,7 @@ const DashboardView = () => {
         // stops handleRefresh before GenChartVariableId(), leaving Refresh silently dead.
         if (!sTargetPanel?.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
-        const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })[0]?.value;
+        const sCustomTag = pickBlockNameFilterValue(sTargetTag);
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             if (sTargetTag.customTable) return defaultMinMax();
             const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);

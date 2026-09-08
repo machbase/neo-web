@@ -1,5 +1,6 @@
 import {
     createTableScanTimeMinMaxQuery,
+    pickBlockNameFilterValue,
     getPanelTimeMinMaxTarget,
     hasResolvedTimeRange,
     isTableScanTimeMinMaxTarget,
@@ -115,5 +116,32 @@ describe('table-scan time extent (view and transaction)', () => {
         expect(createTableScanTimeMinMaxQuery(block({ type: 'transaction', table: 'ORDERS', userName: 'SYS' }))).toBe(
             'select min(TS) as min_time, max(TS) as max_time from SYS.ORDERS'
         );
+    });
+
+
+    // The probe reads the extent of one tag. Which tag comes from the block's own NAME filter -
+    // but only from a filter that is switched on, since an off filter is not in the chart's WHERE
+    // clause either, and a probe narrower than the data it labels is worse than no probe.
+    describe('pickBlockNameFilterValue', () => {
+        const nameFilter = (aOverrides: Record<string, any> = {}) => ({
+            filter: [{ id: 'f1', column: 'NAME', operator: 'in', value: 'wave.sin', useFilter: true, ...aOverrides }],
+        });
+
+        test('takes the value of an active NAME filter', () => {
+            expect(pickBlockNameFilterValue(nameFilter())).toBe('wave.sin');
+            expect(pickBlockNameFilterValue(nameFilter({ operator: '=' }))).toBe('wave.sin');
+        });
+
+        test('ignores a filter the panel is not applying', () => {
+            expect(pickBlockNameFilterValue(nameFilter({ useFilter: false }))).toBeUndefined();
+        });
+
+        test('ignores operators the extent query cannot express, and empty blocks', () => {
+            expect(pickBlockNameFilterValue(nameFilter({ operator: 'like' }))).toBeUndefined();
+            expect(pickBlockNameFilterValue(nameFilter({ value: '' }))).toBeUndefined();
+            expect(pickBlockNameFilterValue(nameFilter({ column: 'DEVICE' }))).toBeUndefined();
+            expect(pickBlockNameFilterValue({})).toBeUndefined();
+            expect(pickBlockNameFilterValue(undefined)).toBeUndefined();
+        });
     });
 });

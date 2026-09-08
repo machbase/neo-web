@@ -21,6 +21,7 @@ import {
 } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { isCollapsibleTableType, isTaglessTableType, visibleColumnsForTableType } from '@/utils/dashboardTableKind';
+import { DEFAULT_FILTER_OPERATOR, normalizeFilterOperator } from '@/utils/dashboardFilterOperators';
 import { TIME_FIELD_MISSING_MESSAGE, VALUE_FIELD_MISSING_MESSAGE } from './validation';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
@@ -463,26 +464,32 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                               ...aItem,
                               [aChangedKey]: aItem?.[aChangedKey].map((bItem: any) => {
                                   if (bItem.id === aId && aChangedKey === 'filter') {
+                                      // A block that never reaches `repairDashboardBlockForTableColumns` - a custom or
+                                      // `{{variable}}` table skips the column fetch entirely - can still hold the blank
+                                      // operator older defaults seeded. Reading it through the same normalizer the Filter
+                                      // row displays keeps the two in step: the row shows `=`, so `=` is what turns the
+                                      // filter on and what the WHERE clause is built from. Written back below, since a
+                                      // filter whose operator stayed `''` is one the query silently drops.
+                                      const sOperator = normalizeFilterOperator(bItem.operator);
                                       let sUseFilter: boolean = false;
                                       if (aKey === 'column' || aKey === 'value' || aKey === 'operator') {
                                           // column | operator | value
-                                          aKey === 'column' && bItem.value !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
-                                          aKey === 'value' && bItem.column !== '' && bItem.operator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                          aKey === 'column' && bItem.value !== '' && sOperator !== '' && aData.target.value !== '' && (sUseFilter = true);
+                                          aKey === 'value' && bItem.column !== '' && sOperator !== '' && aData.target.value !== '' && (sUseFilter = true);
                                           aKey === 'operator' && bItem.column !== '' && bItem.value !== '' && aData.target.value !== '' && (sUseFilter = true);
                                       } else sUseFilter = bItem.useFilter;
                                       if (aKey === 'useTyping' && aData.target.value && bItem.useFilter) {
-                                          if (pBlockInfo.customTable) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
-                                          if (pBlockInfo.tableInfo?.length < 1) return { ...bItem, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
+                                          if (pBlockInfo.customTable) return { ...bItem, operator: sOperator, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
+                                          if (pBlockInfo.tableInfo?.length < 1)
+                                              return { ...bItem, operator: sOperator, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
                                           const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
-                                          const sTypingValue =
-                                              bItem.operator === 'in'
-                                                  ? `${bItem.column} ${bItem.operator} (${sValue})`
-                                                  : `${bItem.column} ${bItem.operator} ${sValue}`;
-                                          return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
+                                          const sTypingValue = sOperator === 'in' ? `${bItem.column} ${sOperator} (${sValue})` : `${bItem.column} ${sOperator} ${sValue}`;
+                                          return { ...bItem, operator: sOperator, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }
-                                      return { ...bItem, useFilter: sUseFilter, [aKey]: aData.target.value };
+                                      // `[aKey]` last so an operator the user picked wins over the normalized one.
+                                      return { ...bItem, operator: sOperator, useFilter: sUseFilter, [aKey]: aData.target.value };
                                   } else if (aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
                                       const sDiffVal: boolean = aData?.target?.value?.toUpperCase().includes('diff'.toUpperCase());
                                       return { ...bItem, aggregator: aData.target.value, diff: sDiffVal ? aData.target.value : 'none' };
@@ -525,7 +532,16 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
                     return aItem.id === pBlockInfo.id
-                        ? { ...aItem, filter: [...aItem.filter, { id: generateUUID(), value: '', operator: '=', useFilter: false, useTyping: false, typingValue: '' }] }
+                        ? {
+                              ...aItem,
+                              filter: [
+                                  ...aItem.filter,
+                                  // `column` was missing here, so the new row's select mounted with
+                                  // `value={undefined}` and React warned about an uncontrolled input
+                                  // becoming controlled the moment a column was picked.
+                                  { id: generateUUID(), column: '', value: '', operator: DEFAULT_FILTER_OPERATOR, useFilter: false, useTyping: false, typingValue: '' },
+                              ],
+                          }
                         : aItem;
                 }),
             };

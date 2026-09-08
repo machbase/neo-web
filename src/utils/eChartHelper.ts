@@ -2,6 +2,7 @@ import { generateUUID } from '@/utils';
 import { ChartTheme, ChartType, E_CUSTOM_CHART_TYPE, CustomChartType } from '@/type/eChart';
 import { ChartTypeList } from './constants';
 import { getDefaultColor } from './helpers/tags';
+import { DEFAULT_FILTER_OPERATOR } from '@/utils/dashboardFilterOperators';
 
 // The legend/tooltip/grid a panel starts with. Shared by every panel that has not overridden them, so
 // callers must clone it rather than hand it straight to panel state - see buildPanelOptionForType.
@@ -297,7 +298,7 @@ export const DefaultVariableTableOption = {
     userName: '' as string | undefined,
     color: getDefaultColor(),
     type: '',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: 'VALUE', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -326,7 +327,7 @@ export const DefaultTagTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'tag',
-    filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: 'NAME', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: 'NAME',
@@ -355,7 +356,7 @@ export const DefaultViewTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'view',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -392,7 +393,7 @@ export const DefaultTransactionTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'transaction',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
@@ -421,7 +422,7 @@ export const DefaultLogTableOption = {
     userName: undefined as string | undefined,
     color: getDefaultColor(),
     type: 'log',
-    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    filter: [{ id: generateUUID(), column: '', operator: DEFAULT_FILTER_OPERATOR, value: '', useFilter: false, useTyping: false, typingValue: '' }],
     values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
