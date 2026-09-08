@@ -21,7 +21,7 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
-import { shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { Button, Modal, Input, FileListHeader, Dropdown } from '@/design-system/components';
 
@@ -60,9 +60,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetTag = pPanelInfo?.blockList?.[0] ?? { tag: '' };
-        const customName = sTargetTag.filter?.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })?.[0]?.value;
+        const customName = pickBlockNameFilterValue(sTargetTag);
         if (shouldFetchBlockTimeMinMax(sTargetTag, customName)) {
             if (sTargetTag.customTable) return defaultMinMax();
             const rows = await fetchBlockTimeMinMax(sTargetTag, customName);

@@ -30,6 +30,24 @@ export const pickBoardTimeMinMaxPanel = (aPanels: any[] = []): any => {
     return sCandidates.find((aPanel: any) => !isNumericBaseTimeBlock(aPanel.blockList?.[0])) ?? sCandidates[0];
 };
 
+/**
+ * The tag name an expanded block's own filter pins it to, which its time extent is then read for.
+ *
+ * Ten call sites carried this inline, and every one of them asked only what the filter *says* —
+ * column, operator, value — never whether it is switched on. `useFilter` is the difference between
+ * a filter the panel charts and one it drops, so an off filter narrowing the probe means the time
+ * range and the data come from two different questions. Harmless while an unfinished filter also
+ * had a blank operator (the old default), which this test happened to reject; not harmless once
+ * blank operators are normalized to `=`.
+ *
+ * NAME is hard-coded because that is the column the collapsed (per-tag) path uses, and the extent
+ * query it feeds — `V$<TABLE>_STAT` — is a per-tag row.
+ */
+export const pickBlockNameFilterValue = (aBlock: any): string | undefined =>
+    (aBlock?.filter ?? []).find(
+        (aFilter: any) => aFilter?.column === 'NAME' && aFilter?.useFilter && (aFilter?.operator === '=' || aFilter?.operator === 'in') && aFilter?.value && aFilter.value !== ''
+    )?.value;
+
 export const shouldFetchBlockTimeMinMax = (aBlock: any, aCustomTag?: string) => {
     const sHasTag = aBlock?.tag && aBlock.tag !== '';
     return Boolean(isTableScanTimeMinMaxTarget(aBlock) || sHasTag || (aBlock?.useCustom && aCustomTag));

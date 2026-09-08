@@ -17,7 +17,7 @@ import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
@@ -152,9 +152,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetTag = pPanelInfo?.blockList?.[0] ?? { tag: '' };
-        const customName = sTargetTag.filter?.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })?.[0]?.value;
+        const customName = pickBlockNameFilterValue(sTargetTag);
         if (shouldFetchBlockTimeMinMax(sTargetTag, customName)) {
             if (sTargetTag.customTable) return defaultMinMax();
             const rows = await fetchBlockTimeMinMax(sTargetTag, customName);

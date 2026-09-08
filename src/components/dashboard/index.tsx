@@ -21,7 +21,7 @@ import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { pickBlockNameFilterValue, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { Variable } from './variable';
@@ -221,11 +221,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sTargetPanel = pickBoardTimeMinMaxPanel(pInfo.dashboard.panels);
         const sTargetTag = sTargetPanel?.blockList?.[0] ?? { tag: '', filter: [] };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag =
-            sIsTagName &&
-            sTargetTag.filter?.filter((aFilter: any) => {
-                if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-            })[0]?.value;
+        const sCustomTag = sIsTagName && pickBlockNameFilterValue(sTargetTag);
 
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             if (sTargetTag.customTable) return getNowMinMax();

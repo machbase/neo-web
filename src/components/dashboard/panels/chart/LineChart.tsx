@@ -19,7 +19,7 @@ import { gRollupTableList } from '@/recoil/recoil';
 import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { hasResolvedTimeRange, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { hasResolvedTimeRange, pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
@@ -470,9 +470,7 @@ const LineChart = ({
         const sTargetPanel = pPanelInfo;
         if (!sTargetPanel.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
-        const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
-            if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
-        })[0]?.value;
+        const sCustomTag = pickBlockNameFilterValue(sTargetTag);
         if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             if (sTargetTag.customTable) return defaultMinMax();
             const sSvrResult = await fetchBlockTimeMinMax(sTargetTag, sCustomTag);

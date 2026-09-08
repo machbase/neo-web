@@ -8,6 +8,7 @@ import TQL from './TqlGenerator';
 import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE, DSH_JSON_MS_TIMEFORMAT } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
+import { normalizeFilterOperator } from './dashboardFilterOperators';
 import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
@@ -375,7 +376,11 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
         }
     });
     const sParsedFilterList = Object.keys(sParsedFilter).map((aKey: string) => {
-        return sParsedFilter[aKey];
+        // A board saved before the block defaults carried an operator can hold `''` here, which used
+        // to emit `NAME  'x'` - not valid SQL, and the panel answered with an engine error rather
+        // than data. The editor heals such a filter when the panel is opened; the public view never
+        // opens one, so the normalizer has to sit on the query path too.
+        return { ...sParsedFilter[aKey], operator: normalizeFilterOperator(sParsedFilter[aKey]?.operator) };
     });
     const sResult = sParsedFilterList
         .map((aFilter: any) => {
