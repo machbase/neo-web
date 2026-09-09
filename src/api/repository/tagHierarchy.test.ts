@@ -602,3 +602,38 @@ describe('tagHierarchy value-tree edits', () => {
         expect(valueAt(tree, [0, 0]).children).toHaveLength(1);
     });
 });
+
+describe('hierarchy key validation ignores case', () => {
+    test.each([
+        ['country', 'COUNTRY'],
+        ['COUNTRY', 'country'],
+        ['country', 'Country'],
+        ['country', 'country'],
+    ])('rejects duplicate schema keys %s and %s without changing the input', (first, second) => {
+        const input: HierarchyDocument = { schema: [first, second], tree: [] };
+        expect(validateHierarchyDocument(input)).toContainEqual({
+            level: 'blocking',
+            message: `Hierarchy key "${second}" is duplicated.`,
+            schemaIndex: 1,
+        });
+        expect(input.schema).toEqual([first, second]);
+    });
+
+    test.each([
+        ['country', 'COUNTRY'],
+        ['COUNTRY', 'country'],
+        ['country', 'Country'],
+    ])('rejects duplicate legacy template keys %s and %s', (first, second) => {
+        expect(validateHierarchyTemplate({ [first]: { [second]: {} } })).toContainEqual({
+            level: 'blocking',
+            message: `Hierarchy key "${second}" is duplicated.`,
+        });
+    });
+
+    test('allows distinct keys with mixed case and preserves them', () => {
+        const input: HierarchyDocument = { schema: ['Country', 'CITY'], tree: [] };
+        expect(validateHierarchyDocument(input)).toEqual([]);
+        expect(input.schema).toEqual(['Country', 'CITY']);
+        expect(validateHierarchyTemplate({ Country: { CITY: {} } })).toEqual([]);
+    });
+});
