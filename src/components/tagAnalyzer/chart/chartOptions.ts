@@ -21,7 +21,7 @@ import type { PanelHighlight } from '../markup/markupModel';
 import { buildChartMarkupSeries } from '../markup/chartMarkupOptions';
 import type { ChartRow, ChartSeriesData, ChartSeriesVisibilityMap } from './chartData';
 import {
-    getChartLayoutMetrics,
+    PANEL_CHART_LAYOUTS,
     PANEL_GRID_BOTTOM,
     PANEL_GRID_SIDE,
     PANEL_NAVIGATOR_GRID_SIDE,
@@ -665,7 +665,9 @@ function buildPanelChartFrameOptions(
     const { config, data, interaction, ranges, rendering } = chartRuntime;
     const { mainRange } = ranges;
     const { isNumericXAxis } = rendering;
-    const sLayout = getChartLayoutMetrics(config.display.showLegend);
+    const sLayout = PANEL_CHART_LAYOUTS[
+        config.display.showLegend ? 'withLegend' : 'withoutLegend'
+    ];
     const sSeriesDisplayNameByEChartsName = new Map(
         data.chartData.map((series) => [
             series.echartsName,

@@ -30,10 +30,13 @@ interface DistanceRangeTabProps {
     pTo: number | string;
     /** Emits a new [from, to] selection (caller clamps/persists). Anchored edges pass through as text. */
     pOnChange: (aFrom: number | string, aTo: number | string) => void;
+    /** Preserves incomplete text in an editor draft so its Apply action can validate it. */
+    pOnTextChange?: (aFrom: string, aTo: string) => void;
     /** Reset to the system default (full) range. */
     pOnResetToFull?: () => void;
     /** Wording for that reset control — the modal resets to the system default, the panel editor clears an override. */
     pResetLabel?: string;
+    pResetTitle?: string;
     /** Greyed out when there is nothing to reset (no override in effect). */
     pResetDisabled?: boolean;
     /**
@@ -126,8 +129,10 @@ const DistanceRangeTab = ({
     pFrom,
     pTo,
     pOnChange,
+    pOnTextChange,
     pOnResetToFull,
     pResetLabel = 'Reset to default',
+    pResetTitle = 'Clear the saved range and follow the full data extent',
     pResetDisabled = false,
     pBadge,
     pMuted = false,
@@ -361,11 +366,19 @@ const DistanceRangeTab = ({
     };
     const handleFromText = (aText: string) => {
         setFromText(aText);
+        if (pOnTextChange) {
+            pOnTextChange(aText, sToText);
+            return;
+        }
         if (parseDistanceValue(aText) === null && !isDistanceAnchorEdge(aText)) return;
         pOnChange(emittableEdge(aText, sSliderFrom), emittableEdge(sToText, sSliderTo));
     };
     const handleToText = (aText: string) => {
         setToText(aText);
+        if (pOnTextChange) {
+            pOnTextChange(sFromText, aText);
+            return;
+        }
         if (parseDistanceValue(aText) === null && !isDistanceAnchorEdge(aText)) return;
         pOnChange(emittableEdge(sFromText, sSliderFrom), emittableEdge(aText, sSliderTo));
     };
@@ -411,7 +424,7 @@ const DistanceRangeTab = ({
                         data-testid="reset-button"
                         onClick={pOnResetToFull}
                         disabled={pResetDisabled}
-                        title="Clear the saved range and follow the full data extent"
+                        title={pResetTitle}
                     >
                         <VscTrash size={12} />
                         {pResetLabel}

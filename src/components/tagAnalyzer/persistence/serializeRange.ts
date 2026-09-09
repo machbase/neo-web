@@ -50,8 +50,9 @@ export function parseNumericExpression(
 
     const match = text.match(NUMERIC_EXPRESSION_PATTERN);
     if (match) {
-        const amount = match[2] ? Number(match[2]) : 0;
+        const amount = match[3] ? Number(match[3]) : 0;
         if (!Number.isFinite(amount) || amount < 0) return undefined;
+        if (match[1].toLowerCase() === 'last' && match[2] === '+') return undefined;
 
         return match[1].toLowerCase() === 'first'
             ? { anchor: 'data_start', offset: amount }
@@ -73,7 +74,7 @@ export function formatNumericExpression(
         case 'data_start':
             return expression.offset === 0
                 ? 'first'
-                : `first-${formatNumericValue(expression.offset)}`;
+                : `first+${formatNumericValue(expression.offset)}`;
         case 'data_end':
             return expression.offset === 0
                 ? 'last'
@@ -145,7 +146,7 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 const RELATIVE_TIME_PATTERN =
     /^([A-Za-z]+)(?:([+-])(\d+)(ms|s|m|h|d|w|M|y))?$/;
 const NUMERIC_EXPRESSION_PATTERN =
-    /^(first|last)(?:-((?:\d+\.?\d*)|(?:\.\d+)))?$/i;
+    /^(first|last)(?:([+-])((?:\d+\.?\d*)|(?:\.\d+)))?$/i;
 const TIME_UNIT_BY_PERSISTED_VALUE = new Map<string, TimeUnit>(
     Object.values(TimeUnit).flatMap((unit) => [
         [unit, unit] as const,

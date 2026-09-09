@@ -3,7 +3,7 @@ import { Calendar, VscTrash } from '@/assets/icons/Icon';
 import { TagAnalyzerDistanceRangeModal } from './TagAnalyzerDistanceRangeModal';
 import {
     Button,
-    Input,
+    DatePicker,
     Modal,
     Page,
     TextHighlight,
@@ -27,6 +27,7 @@ export function RangeModal({
     currentRange,
     fullRange,
     onAxisKindChange,
+    allowPartialTimeInput = false,
     onApply,
     onClose,
 }: RangeModalProps): ReactElement {
@@ -70,7 +71,7 @@ export function RangeModal({
             return;
         }
 
-        if (rangeInput.start.trim() === '' || rangeInput.end.trim() === '') {
+        if (!allowPartialTimeInput && (rangeInput.start.trim() === '' || rangeInput.end.trim() === '')) {
             setValidationMessage(INVALID_RANGE_INPUT_MESSAGE);
             return;
         }
@@ -135,25 +136,28 @@ export function RangeModal({
                     </>
                 )}
                 {RANGE_ENDPOINTS.map(([field, label]) => (
-                    <Input
+                    <div
                         key={field}
-                        data-testid={`tag-analyzer-range-${field === 'start' ? 'from' : 'to'}-input`}
-                        fullWidth
-                        label={label}
-                        labelPosition="left"
-                        value={rangeInput[field]}
-                        variant={validationMessage ? 'error' : 'default'}
+                        className={styles.rangeField}
+                        role="group"
+                        aria-label={`${label} date and time`}
                         aria-invalid={validationMessage !== undefined}
                         aria-describedby={
                             validationMessage
                                 ? validationMessageId
                                 : undefined
                         }
-                        placeholder="now-1h, last-1d, or date/time"
-                        onChange={(event) =>
-                            setRangeValue(field, event.target.value)
-                        }
-                    />
+                    >
+                        <DatePicker
+                            pTestId={`tag-analyzer-range-${field === 'start' ? 'from' : 'to'}-input`}
+                            pLabel={label}
+                            labelPosition="left"
+                            pTimeValue={rangeInput[field]}
+                            pSetApply={(value) => setRangeValue(field, value)}
+                            placeholder="now-1h, last-1d, or date/time"
+                            onChange={(event) => setRangeValue(field, event.target.value)}
+                        />
+                    </div>
                 ))}
                 <Page.Space />
                 <QuickTimeRange
@@ -222,6 +226,7 @@ type RangeModalProps = {
     currentRange: AxisRange;
     fullRange: AxisRange;
     onAxisKindChange?: (axisKind: AxisKind) => void;
+    allowPartialTimeInput?: boolean;
     onApply: (
         rangeInput: RangeExpressionInput,
         concreteRange: AxisRange,

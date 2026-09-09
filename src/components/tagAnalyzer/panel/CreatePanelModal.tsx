@@ -45,6 +45,8 @@ export function CreatePanelModal({
     return (
         <SeriesDialog
             title="New Chart"
+            className={styles.modal}
+            bodyClassName={styles.body}
             onClose={onClose}
             onApply={applyPanel}
             message={sFooterMessage}
@@ -61,7 +63,7 @@ export function CreatePanelModal({
                 size="md"
             />
             <Field label="Chart type">
-                <Inline gap={12}>
+                <Inline gap={8} justify="between">
                     {PANEL_CHART_TYPES.map(({ type, Icon, label }) => {
                         const isActive = sSelectedChartType === type;
                         return (

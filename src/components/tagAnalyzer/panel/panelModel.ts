@@ -104,6 +104,7 @@ export type PanelInfo = {
     };
     time: {
         rangeInput: RangeExpressionInput;
+        navigatorRangeInput?: RangeExpressionInput;
         useLastViewedRange: boolean;
         lastViewedRange: RangeState | undefined;
     };
@@ -114,6 +115,13 @@ export type PanelInfo = {
 };
 
 export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
+
+export function areConfiguredPanelRangesEqual(left: PanelInfo['time'], right: PanelInfo['time']): boolean {
+    return (['rangeInput', 'navigatorRangeInput'] as const).every((key) =>
+        (left[key]?.start ?? '') === (right[key]?.start ?? '') &&
+        (left[key]?.end ?? '') === (right[key]?.end ?? ''),
+    );
+}
 
 export const PANEL_DISPLAY_PRESETS = {
     Line: { showPoint: true, pointRadius: 0, fill: 0, stroke: 1 },

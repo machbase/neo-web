@@ -73,6 +73,8 @@ describe('TagAnalyzer persistence version dispatch', () => {
     it('round-trips a current panel through the current parser', () => {
         const panel = createNewPanelInfo([], 'Panel', 'Line');
         panel.time.useLastViewedRange = true;
+        panel.time.rangeInput = { start: 'first+1h', end: 'last-1h' };
+        panel.time.navigatorRangeInput = { start: 'first', end: 'last' };
         panel.time.lastViewedRange = {
             mainRange: { start: 10, end: 20 },
             navigatorRange: { start: 0, end: 30 },
@@ -107,6 +109,8 @@ describe('TagAnalyzer persistence version dispatch', () => {
         });
 
         const decodedPanel = parseLoadedTaz(encoded).panels[0];
+        expect(decodedPanel.time.rangeInput).toEqual(panel.time.rangeInput);
+        expect(decodedPanel.time.navigatorRangeInput).toEqual(panel.time.navigatorRangeInput);
         expect(decodedPanel.time.lastViewedRange).toEqual(
             panel.time.lastViewedRange,
         );

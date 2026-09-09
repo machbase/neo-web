@@ -186,7 +186,7 @@ export default function EditorAxesTab({
                                 data-testid="copy-left-axis"
                                 type="button"
                                 variant="ghost"
-                                size="icon"
+                                size="xsm"
                                 isToolTip
                                 toolTipContent="Copy left Y-axis settings"
                                 aria-label="Copy left Y-axis settings"
@@ -239,6 +239,15 @@ export default function EditorAxesTab({
 
     return (
         <div className={styles.axesGrid}>
+            <Section
+                title="Y axes"
+                gap={8}
+            >
+                <div className={`${controls.twoColumns} ${styles.yAxesGroup}`}>
+                    {renderYAxis('Left Y axis', 'leftY')}
+                    {renderYAxis('Right Y axis', 'rightY')}
+                </div>
+            </Section>
             <Section title="X axis" gap={8} testId="axis-x">
                 <Checkbox
                     data-testid="showTickline"
@@ -249,15 +258,6 @@ export default function EditorAxesTab({
                     label="Show X-axis tick marks"
                     size="sm"
                 />
-            </Section>
-            <Section
-                title="Y axes"
-                gap={8}
-            >
-                <div className={`${controls.twoColumns} ${styles.yAxesGroup}`}>
-                    {renderYAxis('Left Y axis', 'leftY')}
-                    {renderYAxis('Right Y axis', 'rightY')}
-                </div>
             </Section>
         </div>
     );

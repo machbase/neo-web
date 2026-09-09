@@ -6,7 +6,7 @@ import type { PanelInfo } from '../panel/panelModel';
 import type { RangeState } from '../range/rangeModel';
 import { resolveRuntimePanelChartConfig } from './chartOptions';
 import { useChartInteraction, type ChartInteractionInputs } from './chartInteraction';
-import { getChartLayoutMetrics, PANEL_CHART_HEIGHT, PANEL_GRID_SIDE } from './chartLayout';
+import { PANEL_CHART_LAYOUTS, PANEL_CHART_HEIGHT, PANEL_GRID_SIDE } from './chartLayout';
 
 export default function PanelChart({
     panelInfo,
@@ -21,9 +21,9 @@ export default function PanelChart({
     );
     const { refs, handlers } = runtimeProps;
     const rangeReady = rangeState !== undefined;
-    const overlayLayout = getChartLayoutMetrics(
-        runtimeConfig.display.showLegend,
-    );
+    const overlayLayout = PANEL_CHART_LAYOUTS[
+        runtimeConfig.display.showLegend ? 'withLegend' : 'withoutLegend'
+    ];
 
     return (
         <div className="chart">

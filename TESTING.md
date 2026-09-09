@@ -13,6 +13,10 @@ Unit and component tests stay beside the implementation. A mocked API isolates a
 
 The [board-save client example](tests/integration/client/saveTazBoard.test.ts) calls the real `saveTazBoard`, serializer, repository, and Axios client. MSW supplies the HTTP response; the test checks the file endpoint, serialized panel title, and saved state. It needs no server, browser, or test-environment configuration.
 
+The [request-chain walkthrough](tests/integration/REQUEST_CHAINS.md) shows runnable
+request-race and FFT examples: how the real modules connect, how HTTP responses
+are controlled, what each assertion proves, and the commands to run them.
+
 The editor's field and validation checks run as component tests; layout, chart,
 database, and full-app persistence checks remain in E2E. See the
 [editor case mapping](tests/e2e/tagAnalyzer/editor/component-coverage.md) for the

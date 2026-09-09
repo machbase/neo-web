@@ -11,16 +11,11 @@ import {
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import { resolveStoredTableName } from '@/utils/qualifiedTableName';
 import { tableMetadataApi, type TableColumn } from '../../api/tableMetadataApi';
-import {
-    getPanelSeriesValueSummaryLabel,
-    type PanelSeriesSourceColumns,
-    type RollupTableMap,
-} from '../../seriesModel';
+import type { PanelSeriesSourceColumns } from '../../seriesModel';
 import { getErrorMessageFromValue } from '../../errorMessage';
 import { useLatestAsyncRequest } from '../../hooks/useLatestAsyncRequest';
 
 export function usePanelSeriesSource(
-    rollupTableList: RollupTableMap,
     onTagSourceChange: (table: string, tagColumn: string | undefined) => void,
     onError: (message: string | undefined) => void,
 ) {
@@ -64,23 +59,14 @@ export function usePanelSeriesSource(
         () => availableSourceTableNames.map(parseSourceTableOption),
         [availableSourceTableNames],
     );
-    const sDatabaseNames = useMemo<string[]>(
-        () => [...new Set(sSourceTables.map(({ database }) => database))],
+    const sDatabaseOptions = useMemo(
+        () => createSourceOptions(sSourceTables.map(({ database }) => database), 'database'),
         [sSourceTables],
-    );
-    const sDatabaseOptions = useMemo<ComboboxOption[]>(
-        () =>
-            sDatabaseNames.map((database) => ({
-                value: database,
-                label: database,
-                testId: `tag-analyzer-database-option-${encodeURIComponent(database)}`,
-            })),
-        [sDatabaseNames],
     );
     const sSelectedSourceTable = sSourceTables.find(
         ({ qualifiedName }) => qualifiedName === selectedTable,
     );
-    const sActiveDatabase = sSelectedSourceTable?.database ?? sDatabaseNames[0] ?? '';
+    const sActiveDatabase = sSelectedSourceTable?.database ?? sDatabaseOptions[0]?.value ?? '';
     const sActiveDatabaseTables = useMemo<SourceTableOption[]>(
         () =>
             sSourceTables.filter(
@@ -88,37 +74,22 @@ export function usePanelSeriesSource(
             ),
         [sActiveDatabase, sSourceTables],
     );
-    const sActiveDatabaseOwners = useMemo<string[]>(
-        () => [
-            ...new Set(
-                sActiveDatabaseTables
-                    .map(({ owner }) => owner)
-                    .filter(Boolean),
-            ),
-        ],
+    const sOwnerOptions = useMemo(
+        () => createSourceOptions(sActiveDatabaseTables.map(({ owner }) => owner).filter(Boolean), 'user'),
         [sActiveDatabaseTables],
-    );
-    const sOwnerOptions = useMemo<ComboboxOption[]>(
-        () =>
-            sActiveDatabaseOwners.map((owner) => ({
-                value: owner,
-                label: owner,
-                testId: `tag-analyzer-user-option-${encodeURIComponent(owner)}`,
-            })),
-        [sActiveDatabaseOwners],
     );
     const sActiveOwner = sSelectedSourceTable?.database === sActiveDatabase
         ? sSelectedSourceTable.owner
-        : sActiveDatabaseOwners[0] ?? '';
+        : sOwnerOptions[0]?.value ?? '';
     const sActiveOwnerTables = useMemo<SourceTableOption[]>(
         () =>
-            sActiveDatabaseOwners.length === 0
+            sOwnerOptions.length === 0
                 ? sActiveDatabaseTables
                 : sActiveDatabaseTables.filter(
                       ({ owner }) => owner === sActiveOwner,
                   ),
         [
-            sActiveDatabaseOwners.length,
+            sOwnerOptions.length,
             sActiveDatabaseTables,
             sActiveOwner,
         ],
@@ -145,20 +116,11 @@ export function usePanelSeriesSource(
     const sValueColumnOptions = useMemo<ComboboxOption[]>(
         () =>
             getTagAnalyzerValueColumns(tableColumns).map((item) => ({
-                label: isJsonTypeColumn(item[1])
-                    ? `${item[0]} (JSON)`
-                    : formatRollupOptionLabel(
-                          item[0],
-                          getPanelSeriesValueSummaryLabel(
-                              rollupTableList,
-                              selectedTable,
-                              item[0],
-                          ),
-                      ),
+                label: isJsonTypeColumn(item[1]) ? `${item[0]} (JSON)` : item[0],
                 value: item[0],
                 testId: `source-value-option-${encodeURIComponent(item[0])}`,
             })),
-        [rollupTableList, selectedTable, tableColumns],
+        [tableColumns],
     );
     const sIsJsonValue = isTagAnalyzerJsonValue(
         tableColumns,
@@ -332,7 +294,7 @@ export function usePanelSeriesSource(
         isTableNameLoading: sAvailableSourceTableNames === undefined,
         databaseOptions: sDatabaseOptions, activeDatabase: sActiveDatabase,
         ownerOptions: sOwnerOptions, activeOwner: sActiveOwner,
-        tableOptions: sTableOptions, hasOwners: sActiveDatabaseOwners.length > 0,
+        tableOptions: sTableOptions, hasOwners: sOwnerOptions.length > 0,
         timeColumnOptions: sTimeColumnOptions, valueColumnOptions: sValueColumnOptions,
         isJsonValue: sIsJsonValue,
         changeDatabase, changeOwner, changeTable, patchColumnSelection,
@@ -366,6 +328,14 @@ type SourceTableOption = {
     qualifiedName: string;
 };
 const EMPTY_TABLE_NAMES: string[] = [];
+
+function createSourceOptions(values: string[], field: 'database' | 'user'): ComboboxOption[] {
+    return [...new Set(values)].map((value) => ({
+        value,
+        label: value,
+        testId: `tag-analyzer-${field}-option-${encodeURIComponent(value)}`,
+    }));
+}
 
 function parseSourceTableOption(qualifiedName: string): SourceTableOption {
     const sParts = qualifiedName.split('.');

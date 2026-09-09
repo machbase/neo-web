@@ -33,7 +33,7 @@ import {
 } from '../range/rangeResolver';
 import { getNavigatorTrackWidth } from '../chart/chartLayout';
 import { getSeriesListAxisKind } from '../seriesModel';
-import type { PanelInfo } from './panelModel';
+import { areConfiguredPanelRangesEqual, type PanelInfo } from './panelModel';
 
 export type PanelBroadcastRequests = {
     rangeRequests: {
@@ -164,8 +164,22 @@ export function usePanelRangeRuntime(
 
     return {
         rangeState: machine.rangeState,
+        rangeOrigin: machine.rangeOrigin,
         chartAreaWidth: machine.chartAreaWidth,
         dataRefreshVersion: machine.dataRefreshVersion,
+        previewEditorRange: (nextPanelInfo: PanelInfo): RangeState | undefined => {
+            if (!machine.rangeState) return undefined;
+            const now = Date.now();
+            const preview = queueEditorReload(machine, inputs.panelInfo, nextPanelInfo, now);
+            return applyFullRangeResult(
+                preview,
+                preview.rangeReloadRequest,
+                machine.rangeState.fullRange,
+                nextPanelInfo,
+                inputs.rangeRequests,
+                now,
+            ).rangeState?.range;
+        },
         actions: {
             setChartAreaWidth: (width: number | undefined) => setMachine((current) =>
                 resizeRangeMachine(current, width),
@@ -208,19 +222,9 @@ export function usePanelRangeRuntime(
             expandFullRange: () => updateActive((current) =>
                 expandMachineRange(current, inputs.panelInfo, Date.now()),
             ),
-            reloadAfterEditorSave: (nextPanelInfo: PanelInfo) => setMachine((current) => {
-                const currentInput = inputs.panelInfo.time.rangeInput;
-                const nextInput = nextPanelInfo.time.rangeInput;
-                return queueDataReload(
-                    current,
-                    nextPanelInfo,
-                    currentInput.start !== nextInput.start ||
-                        currentInput.end !== nextInput.end
-                        ? 'configured'
-                        : 'preserveCurrent',
-                    Date.now(),
-                );
-            }),
+            reloadAfterEditorSave: (nextPanelInfo: PanelInfo) => setMachine((current) =>
+                queueEditorReload(current, inputs.panelInfo, nextPanelInfo, Date.now()),
+            ),
         },
     };
 }
@@ -334,6 +338,7 @@ type ReloadResolution = {
 
 type RangeMachineState = {
     rangeState: ResolvedRangeState | undefined;
+    rangeOrigin: 'configured' | 'chart';
     chartAreaWidth: number | undefined;
     dataRefreshVersion: number;
     rangeReloadRequest: RangeReloadRequest;
@@ -360,6 +365,7 @@ function createRangeMachine(inputs: PanelRangeRuntimeInputs): RangeMachineState 
 
     return {
         rangeState: inputs.rangeState,
+        rangeOrigin: 'configured',
         chartAreaWidth: undefined,
         dataRefreshVersion: 0,
         rangeReloadRequest: {
@@ -518,6 +524,7 @@ function commitMachineRange(
     state: RangeMachineState,
     nextRangeState: ResolvedRangeState,
     fixedRange: FixedRange,
+    rangeOrigin: RangeMachineState['rangeOrigin'] = 'chart',
 ): RangeMachineState {
     const adjustedRange = state.chartAreaWidth === undefined
         ? nextRangeState.range
@@ -535,8 +542,36 @@ function commitMachineRange(
         : {
               ...state,
               rangeState: adjustedState,
+              rangeOrigin,
               rangeRevision: state.rangeRevision + 1,
           };
+}
+
+function queueEditorReload(
+    current: RangeMachineState,
+    panelInfo: PanelInfo,
+    nextPanelInfo: PanelInfo,
+    now: number,
+): RangeMachineState {
+    current = { ...current, rangeOrigin: 'configured' };
+    const navigatorInput = nextPanelInfo.time.navigatorRangeInput ?? EMPTY_RANGE_INPUT;
+    if (current.rangeState && !isSameRangeInput(
+        panelInfo.time.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
+        navigatorInput,
+    )) {
+        current = {
+            ...current,
+            rangeState: { ...current.rangeState, navigatorRangeInput: navigatorInput },
+        };
+    }
+    return queueDataReload(
+        current,
+        nextPanelInfo,
+        areConfiguredPanelRangesEqual(panelInfo.time, nextPanelInfo.time)
+            ? 'preserveCurrent'
+            : 'configured',
+        now,
+    );
 }
 
 function queueRangeReload(
@@ -809,6 +844,11 @@ function applyFullRangeResult(
         next,
         resolution.state,
         resolution.fixedRange,
+        request.intent === 'preserveCurrent'
+            ? state.rangeOrigin
+            : request.intent === 'configured' || request.intent === 'initialize'
+            ? 'configured'
+            : 'chart',
     );
     return applyRangeBroadcasts(
         next,
@@ -916,7 +956,7 @@ function resolveReloadedRangeState(
             ? createResolvedRangeState(
                   request.panelInfo.time.lastViewedRange,
                   fullRange,
-                  EMPTY_RANGE_INPUT,
+                  request.panelInfo.time.navigatorRangeInput ?? EMPTY_RANGE_INPUT,
               )
             : undefined;
     if (restoredState) return createReloadResolution(restoredState);
@@ -928,7 +968,7 @@ function resolveReloadedRangeState(
         request.panelInfo.time.rangeInput,
         request.referenceTimeMs,
     );
-    const configuredNavigatorInput = current?.navigatorRangeInput;
+    const configuredNavigatorInput = current?.navigatorRangeInput ?? request.panelInfo.time.navigatorRangeInput;
     const hasConfiguredNavigator = configuredNavigatorInput !== undefined &&
         !isRangeExpressionEmpty(configuredNavigatorInput);
     const currentWithFullRange = current
@@ -967,7 +1007,9 @@ function resolveReloadedRangeState(
             configuredNavigatorInput,
         );
         return createReloadResolution(
-            configuredNavigatorState ?? baseState,
+            configuredNavigatorState
+                ? { ...configuredNavigatorState, navigatorRangeInput: { ...configuredNavigatorInput } }
+                : baseState,
             configuredNavigatorState ? navigatorFixedRange : 'main',
         );
     }

@@ -115,7 +115,7 @@ export function Section({
 // -------------------- Local --------------------
 
 type TextProps = HTMLAttributes<HTMLElement> & {
-    as?: 'span' | 'p' | 'div' | 'h3' | 'h4' | 'label' | 'legend' | 'dt' | 'dd';
+    as?: 'span' | 'p' | 'div' | 'h3' | 'h4' | 'h5' | 'label' | 'legend' | 'dt' | 'dd';
     htmlFor?: LabelHTMLAttributes<HTMLLabelElement>['htmlFor'];
     variant?: 'title' | 'section' | 'body' | 'label' | 'caption';
     tone?: 'inherited' | 'default' | 'secondary' | 'muted' | 'subtle' | 'danger' | 'warning';

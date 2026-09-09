@@ -243,25 +243,19 @@ export function createSeriesRowsQueryKeys(
               }
             : {}),
     }));
-    const [familyOptions, resolutionOptions]: [unknown, unknown] =
-        query.kind === 'raw'
-            ? [{ useOrderBy: query.useOrderBy }, undefined]
-            : query.kind === 'sampled-raw'
-              ? [
-                    {
-                        sampleCount: query.sampleCount,
-                        useOrderBy: query.useOrderBy,
-                    },
-                    undefined,
-                ]
-              : [
-                    { rollupTables: query.rollupTables },
-                    {
-                        interval: query.interval,
-                        rowLimit: query.rowLimit,
-                        numericBucketWidth: query.numericBucketWidth,
-                    },
-                ];
+    const familyOptions = query.kind === 'calculated'
+        ? { rollupTables: query.rollupTables }
+        : {
+              ...(query.kind === 'sampled-raw' && { sampleCount: query.sampleCount }),
+              useOrderBy: query.useOrderBy,
+          };
+    const resolutionOptions = query.kind === 'calculated'
+        ? {
+              interval: query.interval,
+              rowLimit: query.rowLimit,
+              numericBucketWidth: query.numericBucketWidth,
+          }
+        : undefined;
     const familyKey = JSON.stringify([
         query.kind,
         seriesKey,

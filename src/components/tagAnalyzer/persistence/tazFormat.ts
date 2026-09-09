@@ -269,6 +269,15 @@ export function parseLoadedPanelTazVer210(
     if (!sRangeInput) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel timeRange structure.');
     }
+    const navigatorRangeInput = panelInfo.timeRange.navigatorRangeInput === undefined
+        ? undefined
+        : normalizePersistedPanelRangeInput(
+              panelInfo.timeRange.navigatorRangeInput,
+              shouldUseNumericPanelRangeInput(sTagSet),
+          );
+    if (panelInfo.timeRange.navigatorRangeInput !== undefined && !navigatorRangeInput) {
+        throw new Error('Invalid TagAnalyzer .taz v2.1 panel navigator range structure.');
+    }
     const lastViewedRange: RangeState | undefined =
         decodePersistedPanelRangeState(panelInfo.timeRange.lastViewedRange);
     assertPanelMarkupList(panelInfo.highlights, false);
@@ -289,6 +298,7 @@ export function parseLoadedPanelTazVer210(
         },
         time: {
             rangeInput: sRangeInput,
+            navigatorRangeInput,
             useLastViewedRange: panelInfo.timeRange.useLastViewedRange ?? false,
             lastViewedRange,
         },
@@ -321,6 +331,7 @@ function isTazVersion(value: unknown): value is TazVersion {
 }
 
 type PersistedPanelTimeRangeV210 = RangeExpressionInput & {
+    navigatorRangeInput?: RangeExpressionInput;
     useLastViewedRange?: boolean;
     lastViewedRange?: PersistedPanelRangeState;
 };
@@ -829,6 +840,9 @@ function mapPanelToPersistedTaz(
         mode: { ...panelInfo.mode },
         timeRange: {
             ...panelInfo.time.rangeInput,
+            navigatorRangeInput: panelInfo.time.navigatorRangeInput
+                ? { ...panelInfo.time.navigatorRangeInput }
+                : undefined,
             useLastViewedRange: panelInfo.time.useLastViewedRange,
             lastViewedRange: panelInfo.time.lastViewedRange
                 ? encodePersistedPanelRangeState(

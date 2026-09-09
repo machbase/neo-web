@@ -361,6 +361,68 @@ describe('panel range resolution policy', () => {
 describe('usePanelRangeRuntime', () => {
     afterEach(() => jest.restoreAllMocks());
 
+    it('distinguishes chart interactions from asynchronous editor range updates', async () => {
+        jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(FULL_RANGE);
+        const panelInfo = createNumericPanelInfo();
+        const runtime = renderPanelRangeRuntime({ panelInfo });
+        act(() => runtime.result.current.actions.setChartAreaWidth(400));
+        await waitFor(() => expect(seriesDataApi.fetchSeriesFullRange).toHaveBeenCalled());
+        expect(runtime.result.current.rangeOrigin).toBe('configured');
+
+        act(() => runtime.result.current.actions.setMainRange({ start: 25, end: 50 }));
+        expect(runtime.result.current.rangeOrigin).toBe('configured');
+        act(() => runtime.result.current.actions.setMainRange({ start: 40, end: 60 }));
+        expect(runtime.result.current.rangeOrigin).toBe('chart');
+
+        const nextPanel = {
+            ...panelInfo,
+            time: { ...panelInfo.time, rangeInput: { start: 'first+10', end: 'first+30' } },
+        };
+        act(() => runtime.result.current.actions.reloadAfterEditorSave(nextPanel));
+        runtime.rerender({ ...runtime.props, panelInfo: nextPanel });
+        expect(runtime.result.current.rangeOrigin).toBe('configured');
+        await waitFor(() => expect(runtime.result.current.rangeState?.range.mainRange).toEqual({ start: 10, end: 30 }));
+        expect(runtime.result.current.rangeOrigin).toBe('configured');
+
+        act(() => runtime.result.current.actions.setNavigatorRange({ start: 20, end: 80 }));
+        expect(runtime.result.current.rangeOrigin).toBe('chart');
+        expect(runtime.result.current.rangeState?.range).toEqual({
+            mainRange: { start: 20, end: 40 },
+            navigatorRange: { start: 20, end: 80 },
+        });
+    });
+
+    it('loads, edits, refreshes, and clears a saved navigator range independently of main', async () => {
+        jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(FULL_RANGE);
+        const panelInfo = createNumericPanelInfo();
+        panelInfo.time.rangeInput = { start: '40', end: '60' };
+        panelInfo.time.navigatorRangeInput = { start: '10', end: '90' };
+        const runtime = renderPanelRangeRuntime({ panelInfo, rangeState: undefined });
+        act(() => runtime.result.current.actions.setChartAreaWidth(400));
+        await waitFor(() => expect(runtime.result.current.rangeState).toMatchObject({
+            range: { mainRange: { start: 40, end: 60 }, navigatorRange: { start: 10, end: 90 } },
+            navigatorRangeInput: { start: '10', end: '90' },
+        }));
+        const nextPanel = {
+            ...panelInfo,
+            time: { ...panelInfo.time, navigatorRangeInput: { start: '20', end: '80' } },
+        };
+        act(() => runtime.result.current.actions.reloadAfterEditorSave(nextPanel));
+        runtime.rerender({ ...runtime.props, panelInfo: nextPanel });
+        await waitFor(() => expect(runtime.result.current.rangeState?.range).toEqual({
+            mainRange: { start: 40, end: 60 }, navigatorRange: { start: 20, end: 80 },
+        }));
+        act(() => runtime.result.current.actions.refreshRange());
+        await waitFor(() => expect(runtime.result.current.rangeState?.navigatorRangeInput).toEqual({ start: '20', end: '80' }));
+        const clearedPanel = { ...nextPanel, time: { ...nextPanel.time, navigatorRangeInput: { start: '', end: '' } } };
+        act(() => runtime.result.current.actions.reloadAfterEditorSave(clearedPanel));
+        runtime.rerender({ ...runtime.props, panelInfo: clearedPanel });
+        await waitFor(() => expect(runtime.result.current.rangeState).toMatchObject({
+            range: { mainRange: { start: 40, end: 60 }, navigatorRange: FULL_RANGE },
+            navigatorRangeInput: { start: '', end: '' },
+        }));
+    });
+
     it('reloads the configured range only when the editor changes its exact input', async () => {
         const fetchFullRange = jest
             .spyOn(seriesDataApi, 'fetchSeriesFullRange')

@@ -62,7 +62,32 @@ export default memo(function Panel({
     const panelRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
     const hoveredMainSeriesNameRef = useRef<string | undefined>();
-    const [isEditorOpen, setEditorOpen] = useState(false);
+    const [editorState, setEditorState] = useState<{
+        phase: 'closed' | 'open' | 'closing';
+        session: number;
+    }>({ phase: 'closed', session: 0 });
+    const isEditorOpen = editorState.phase === 'open';
+
+    function closeEditor(): void {
+        setEditorState({ ...editorState, phase: 'closing' });
+        window.setTimeout(() => {
+            setEditorState((current) => current.session === editorState.session
+                ? { ...current, phase: 'closed' }
+                : current,
+            );
+        }, 150); // Matches the CSS closing transition.
+    }
+
+    function toggleEditor(): void {
+        if (isEditorOpen) {
+            closeEditor();
+        } else {
+            setEditorState({
+                phase: 'open',
+                session: editorState.session + 1,
+            });
+        }
+    }
 
     const rangeRuntime = usePanelRangeRuntime({
         ...broadcastRequests,
@@ -215,8 +240,7 @@ export default memo(function Panel({
             [PanelActionKey.REFRESH_DATA]: onRefreshData,
             [PanelActionKey.REFRESH_RANGE]: onRefreshRange,
             [PanelActionKey.EXPAND_FULL_RANGE]: onExpandFullRange,
-            [PanelActionKey.TOGGLE_EDIT]: () =>
-                setEditorOpen((open) => !open),
+            [PanelActionKey.TOGGLE_EDIT]: toggleEditor,
             [PanelActionKey.OPEN_EXPORT_CSV]: requestExport,
             [PanelActionKey.OPEN_DELETE_CONFIRM]: requestDelete,
         };
@@ -359,13 +383,18 @@ export default memo(function Panel({
                     pOnOpenNavigatorRangeModal={rangeDialog.openNavigator}
                 />
             </div>
-            {isEditorOpen && renderRange && (
+            {editorState.phase !== 'closed' && renderRange && (
                 <PanelEditor
+                    key={editorState.session}
+                    pIsClosing={editorState.phase === 'closing'}
                     pOnApplyEditorConfig={applyEditedPanelConfig}
-                    pOnClose={() => setEditorOpen(false)}
+                    pOnClose={closeEditor}
                     pPanelInfo={panelInfo}
                     pHasUnsavedBoardChanges={hasUnsavedBoardChanges}
                     pMainRange={renderRange.mainRange}
+                    pNavigatorRange={renderRange.navigatorRange}
+                    pRangeOrigin={rangeRuntime.rangeOrigin}
+                    pPreviewEditorRange={rangeRuntime.previewEditorRange}
                     pDataRange={rangeState?.fullRange ?? renderRange.mainRange}
                     pRollupTableList={rollupTableList}
                 />

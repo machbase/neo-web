@@ -1,5 +1,14 @@
 @use '../TextStyle' as text;
+@use '../ui/theme';
 
 .modal {
     @include text.control-surface;
+}
+
+.rangeField[aria-invalid='true'] div:has(> input) {
+    border-color: theme.$danger;
+
+    &:focus-within {
+        outline: 2px solid rgba(theme.$danger, 0.1);
+    }
 }
