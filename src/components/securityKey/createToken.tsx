@@ -73,20 +73,6 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
         }
     };
 
-    /** hand the plaintext token over as a file — it cannot be re-fetched from the server */
-    const handleDownload = () => {
-        if (!sGenInfo?.token) return;
-        const sBlob = new Blob([sGenInfo.token], { type: 'text/plain' });
-        const sUrl = URL.createObjectURL(sBlob);
-        const sLink = document.createElement('a');
-        sLink.href = sUrl;
-        sLink.setAttribute('download', `${sGenInfo.name || 'api'}.token`);
-        document.body.appendChild(sLink);
-        sLink.click();
-        document.body.removeChild(sLink);
-        URL.revokeObjectURL(sUrl);
-    };
-
     const Resizer = () => <SashContent className={`security-key-sash-style`} />;
 
     return (
@@ -188,8 +174,7 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
                                 <Alert variant="warning" message={RESPONSE_CAUTION} />
                             </Page.ContentBlock>
                             <Page.ContentBlock>
-                                <Page.CopyBlock pTitle="token" pContent={sGenInfo.token} />
-                                <Page.TextButton pText="Download *.token" pWidth="140px" pType="CREATE" pCallback={handleDownload} />
+                                <Page.CopyBlock pTitle="token" pContent={sGenInfo.token} pAccent />
                             </Page.ContentBlock>
                             <Page.ContentBlock>
                                 <div className={styles.facts}>
