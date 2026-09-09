@@ -70,3 +70,25 @@ export const canUseTagAnalyzerRollup = (aColName?: Partial<TagAnalyzerColumnInfo
     if (!aColName) return true;
     return String(aColName.time ?? '').toUpperCase() === 'TIME';
 };
+
+/**
+ * Whether a dashboard panel block is something the Tag Analyzer can actually take.
+ *
+ * A TAZ series is one NAME value read out of a table, so only a collapsed tag block crosses over:
+ * it must name a tag (`type === 'tag'`, not expanded, not a hand-typed query) and be drawn. The
+ * v8.7 tagless types can never qualify — a view inherits no TAGNAME flag and a transaction table
+ * has no `_<TABLE>_META`, so `repairDashboardBlockForTableColumns` forces `useCustom` on them and
+ * their `type` is not `tag` either. See `TAGLESS_TABLE_TYPES` in `dashboardTableKind`.
+ *
+ * `customFullTyping` is read defensively: boards saved before that field existed carry no object.
+ */
+export const isTagAnalyzerEligibleBlock = (aBlock: any): boolean =>
+    aBlock?.type === 'tag' && !aBlock?.useCustom && !!aBlock?.isVisible && !aBlock?.customFullTyping?.use;
+
+/**
+ * Whether a panel holds any block the Tag Analyzer can take.
+ *
+ * The panel menu's show condition, and the same predicate the hand-off itself filters by — a menu
+ * entry that only ever answers with an error toast is worse than no entry.
+ */
+export const hasTagAnalyzerEligibleBlock = (aBlockList: any[] = []): boolean => (aBlockList ?? []).some(isTagAnalyzerEligibleBlock);
