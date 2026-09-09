@@ -221,16 +221,12 @@ export const MetaTablePage = ({
 
         const { svrState, svrReason } = await fetchQuery(sQuery);
         if (svrState) {
-            setPage(0);
+            if (aCommand !== 'UPDATE') setPage(0);
             setModUpdateInfo({ isOpen: false, values: [], msg: undefined });
-            if (aCommand === 'INSERT') FetchMetaTable({ page: 0, filter: sFilter });
-            if (aCommand === 'DELETE')
-                setMetaTableInfo((prevInfo: any) => {
-                    return {
-                        ...prevInfo,
-                        rows: prevInfo?.rows?.filter((row: STR_NUM_ARR_TYPE) => row?.[sMetaTableInfo?.columns?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number] !== aTagNm),
-                    };
-                });
+            if (aCommand === 'INSERT' || aCommand === 'DELETE') {
+                setMetaTableInfo(undefined);
+                FetchMetaTable({ page: 0, filter: sFilter });
+            }
             if (aCommand === 'UPDATE')
                 setMetaTableInfo((prevInfo: any) => {
                     return {
