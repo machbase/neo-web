@@ -790,18 +790,25 @@ const Collapse = ({
     );
 };
 
-const CopyBlock = ({ pTitle, pContent, pHover = false }: { pTitle?: string; pContent: string; pHover?: boolean }) => {
+/** @param pAccent one-shot secret — brightens the edge and runs a light along it */
+const CopyBlock = ({ pTitle, pContent, pHover = false, pAccent = false }: { pTitle?: string; pContent: string; pHover?: boolean; pAccent?: boolean }) => {
     return (
-        <div className={[styles['page-copy-block-wrapper'], pHover && styles['page-copy-block-wrapper--hover']].filter(Boolean).join(' ')}>
+        <div
+            className={[styles['page-copy-block-wrapper'], pHover && styles['page-copy-block-wrapper--hover'], pAccent && styles['page-copy-block-wrapper--accent']]
+                .filter(Boolean)
+                .join(' ')}
+        >
             <div className={styles['page-copy-block-title']}>
                 <span>{pTitle ?? ''}</span>
             </div>
-            <div className={styles['page-copy-block']}>
-                <div className={styles['page-copy-block-text']}>
-                    <ContentText pContent={pContent} />
-                </div>
-                <div className={styles['page-copy-block-btn']}>
-                    <CopyButton pContent={pContent} />
+            <div className={styles['page-copy-block-frame']}>
+                <div className={styles['page-copy-block']}>
+                    <div className={styles['page-copy-block-text']}>
+                        <ContentText pContent={pContent} />
+                    </div>
+                    <div className={styles['page-copy-block-btn']}>
+                        <CopyButton pContent={pContent} />
+                    </div>
                 </div>
             </div>
         </div>
