@@ -1022,6 +1022,30 @@
                     background-color: t.$primary-base;
                     color: t.$text-active;
                 }
+
+                // Shown, and visibly not pickable. The hint carries the reason, so the row does
+                // not just fail to respond to a click.
+                &.page-selector-body-item-disabled {
+                    cursor: not-allowed;
+                    color: t.$text-disabled;
+
+                    span {
+                        cursor: not-allowed;
+                    }
+
+                    &:hover {
+                        background-color: transparent;
+                    }
+                }
+
+                &-hint {
+                    margin-left: t.$spacing-8;
+                    flex-shrink: 0;
+                    font-size: 11px;
+                    font-style: italic;
+                    opacity: 0.8;
+                    text-transform: none;
+                }
             }
         }
     }

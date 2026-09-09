@@ -38,3 +38,11 @@ export const explainTagRestore = 'Time-range backups of tag tables cannot be res
 export const explainEntireInstanceBackup =
     'Backs up the whole instance as a single restore baseline, restored with "machbase-neo restore --data <home> <backup_dir>". This image is not intended to be mounted as an individual database — pick a database above if you need a mountable one.';
 export const explainRestoreCmd = 'Restore: machbase-neo restore --data <home> <backup_dir>';
+/**
+ * Shown under `table name` while the target database step is still open.
+ *
+ * Distinct from `TABLE_BACKUP_NEEDS_ONE_DATABASE`, which is the answer to a different question:
+ * that one is why "all databases" cannot be combined with a table backup. This one is simply that
+ * the step above has not been answered yet, and the table list is a property of that answer.
+ */
+export const explainTableNeedsDatabaseFirst = 'Select a target database first — the table list belongs to one database, and the backup names the database it came from.';
