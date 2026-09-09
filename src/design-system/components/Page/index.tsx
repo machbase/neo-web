@@ -604,7 +604,14 @@ const Selector = <T,>({
     label,
     labelPosition = 'top',
 }: {
-    pList: { name: string; data: T }[];
+    /**
+     * `disabled` keeps an option visible but unpickable, which is the right shape when the option
+     * is legitimate in general and only wrong under the current state of another field: removing
+     * it instead makes the list change shape under the user and leaves nothing to explain why.
+     * `hint` is the reason, shown beside the option — the place someone actually looks when a row
+     * will not take a click.
+     */
+    pList: { name: string; data: T; disabled?: boolean; hint?: string }[];
     pSelectedItem: any;
     pCallback: (eTarget: T) => void;
     pWidth?: string;
@@ -639,10 +646,21 @@ const Selector = <T,>({
                         return (
                             <div
                                 key={pItem.name + aIdx + ''}
-                                className={[styles['page-selector-body-item'], pSelectedItem === pItem && styles['page-selector-body-item-selected']].filter(Boolean).join(' ')}
-                                onClick={() => handleCallback(pItem.data)}
+                                className={[
+                                    styles['page-selector-body-item'],
+                                    pItem.disabled && styles['page-selector-body-item-disabled'],
+                                    !pItem.disabled && pSelectedItem === pItem && styles['page-selector-body-item-selected'],
+                                ]
+                                    .filter(Boolean)
+                                    .join(' ')}
+                                aria-disabled={pItem.disabled || undefined}
+                                onClick={() => {
+                                    if (pItem.disabled) return;
+                                    handleCallback(pItem.data);
+                                }}
                             >
                                 <span>{pItem.name}</span>
+                                {pItem.disabled && pItem.hint && <span className={styles['page-selector-body-item-hint']}>{pItem.hint}</span>}
                             </div>
                         );
                     })}
@@ -772,18 +790,25 @@ const Collapse = ({
     );
 };
 
-const CopyBlock = ({ pTitle, pContent, pHover = false }: { pTitle?: string; pContent: string; pHover?: boolean }) => {
+/** @param pAccent one-shot secret — brightens the edge and runs a light along it */
+const CopyBlock = ({ pTitle, pContent, pHover = false, pAccent = false }: { pTitle?: string; pContent: string; pHover?: boolean; pAccent?: boolean }) => {
     return (
-        <div className={[styles['page-copy-block-wrapper'], pHover && styles['page-copy-block-wrapper--hover']].filter(Boolean).join(' ')}>
+        <div
+            className={[styles['page-copy-block-wrapper'], pHover && styles['page-copy-block-wrapper--hover'], pAccent && styles['page-copy-block-wrapper--accent']]
+                .filter(Boolean)
+                .join(' ')}
+        >
             <div className={styles['page-copy-block-title']}>
                 <span>{pTitle ?? ''}</span>
             </div>
-            <div className={styles['page-copy-block']}>
-                <div className={styles['page-copy-block-text']}>
-                    <ContentText pContent={pContent} />
-                </div>
-                <div className={styles['page-copy-block-btn']}>
-                    <CopyButton pContent={pContent} />
+            <div className={styles['page-copy-block-frame']}>
+                <div className={styles['page-copy-block']}>
+                    <div className={styles['page-copy-block-text']}>
+                        <ContentText pContent={pContent} />
+                    </div>
+                    <div className={styles['page-copy-block-btn']}>
+                        <CopyButton pContent={pContent} />
+                    </div>
                 </div>
             </div>
         </div>

@@ -6,6 +6,14 @@
     position: relative;
     flex-direction: column;
 
+    // a non-scrolling shell around the block: the block itself is an overflow container, so an
+    // accent ring drawn on it would be clipped and would scroll away with the content
+    .page-copy-block-frame {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+    }
+
     .page-copy-block {
         overflow-x: scroll;
         width: 100%;
@@ -13,7 +21,9 @@
         justify-content: space-between;
 
         flex-direction: row;
-        align-items: flex-start;
+        // stretch, not flex-start: the row's height is set by the 28px copy button, and a
+        // single-line value pinned to the top of it read as 4.5px off-centre
+        align-items: stretch;
         padding: 8px;
         border-radius: 3px;
         border: solid 1px t.$border-color-light;
@@ -23,6 +33,10 @@
 
         &-text {
             width: auto;
+            display: flex;
+            // centres a single-line value on the row; a multi-line value is the tallest thing in
+            // the row, so this is a no-op there and the copy button stays at the top
+            align-items: center;
         }
         &-btn {
             margin-left: 24px;
@@ -41,6 +55,70 @@
                 border-color: #5a5a5a;
             }
         }
+    }
+
+    // for a value that is shown exactly once and can never be fetched again: a brighter edge with
+    // a light running along it, so the eye lands on the thing that has to be copied now. The tone
+    // stays neutral — a coloured edge competes with the warning banner sitting right above it.
+    &--accent {
+        .page-copy-block {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .page-copy-block-frame {
+            border-radius: 3px;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+        }
+
+        // the running light is a 1px ring cut out of a filled rounded rect. Without mask-composite
+        // that cut-out never happens and the fill would cover the value itself, so the whole
+        // pseudo-element only exists where the compositing is supported.
+        @supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+            .page-copy-block-frame::after {
+                content: '';
+                position: absolute;
+                // sits on the block's own 1px border, not outside it — an outer ring reads as a
+                // second line running parallel to the border
+                inset: 0;
+                border-radius: 3px;
+                padding: 1px;
+                pointer-events: none;
+                background-image: linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.92) 50%,
+                    rgba(255, 255, 255, 0) 100%
+                );
+                background-repeat: no-repeat;
+                background-size: 45% 100%;
+                -webkit-mask:
+                    linear-gradient(#000 0 0) content-box,
+                    linear-gradient(#000 0 0);
+                -webkit-mask-composite: xor;
+                mask:
+                    linear-gradient(#000 0 0) content-box,
+                    linear-gradient(#000 0 0);
+                mask-composite: exclude;
+                animation: page-copy-block-sweep 3.2s linear infinite;
+            }
+        }
+    }
+}
+
+@keyframes page-copy-block-sweep {
+    from {
+        background-position: -60% 0;
+    }
+    to {
+        background-position: 160% 0;
+    }
+}
+
+// the brighter edge already carries the message; the travelling light is decoration only
+@media (prefers-reduced-motion: reduce) {
+    .page-copy-block-wrapper--accent .page-copy-block-frame::after {
+        animation: none;
+        background-image: none;
     }
 }
 .page-copy-block-title {
@@ -1021,6 +1099,30 @@
                 &.page-selector-body-item-selected {
                     background-color: t.$primary-base;
                     color: t.$text-active;
+                }
+
+                // Shown, and visibly not pickable. The hint carries the reason, so the row does
+                // not just fail to respond to a click.
+                &.page-selector-body-item-disabled {
+                    cursor: not-allowed;
+                    color: t.$text-disabled;
+
+                    span {
+                        cursor: not-allowed;
+                    }
+
+                    &:hover {
+                        background-color: transparent;
+                    }
+                }
+
+                &-hint {
+                    margin-left: t.$spacing-8;
+                    flex-shrink: 0;
+                    font-size: 11px;
+                    font-style: italic;
+                    opacity: 0.8;
+                    text-transform: none;
                 }
             }
         }

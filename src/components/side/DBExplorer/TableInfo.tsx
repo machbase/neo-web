@@ -299,8 +299,22 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
         setIsUnmount(true);
     };
     const unmountDB = async () => {
-        await unMountDB(pValue.dbName);
-        pUpdate();
+        // The server's answer has to reach the screen. UNMOUNT is refused outright while any
+        // session still holds a statement against the database — *MACHCLI-ERR-2317, UMOUNT
+        // DATABASE target has active sessions or statements* — and this tree produces exactly
+        // such statements itself: every table node runs `select count(*) from <db>.<user>.<table>`
+        // through `fetchRecordCount`. Discarding the response and refreshing anyway left the node
+        // in place with nothing said, which reads as the tree failing to update rather than as the
+        // engine declining. The BACKUPS list right below has always reported this; the database
+        // node did not.
+        const sRes: any = await unMountDB(pValue.dbName);
+        // Closed here rather than by the modal, which leaves that to its caller. It used to happen
+        // by accident — the refresh removed the node and took the modal with it — so on the failure
+        // path the confirm dialog stayed open on top of the toast. This is what the BACKUPS list's
+        // own unmount already did.
+        setIsUnmount(false);
+        if (sRes && sRes?.success) pUpdate();
+        else Toast.error(sRes?.data?.reason ?? sRes?.statusText ?? 'Unmount failed.');
     };
 
     return (

@@ -2,6 +2,8 @@ import {
     canUseTagAnalyzerRollup,
     createTagAnalyzerColumnInfoFromDashboardBlock,
     getTagAnalyzerTimeColumns,
+    hasTagAnalyzerEligibleBlock,
+    isTagAnalyzerEligibleBlock,
 } from './tagAnalyzerFields';
 
 const BASETIME_FLAG = 0x01000000;
@@ -116,5 +118,64 @@ describe('getTagAnalyzerTimeColumns', () => {
             ['ODOMETER', 20],
             ['SEQ', 12],
         ]);
+    });
+});
+
+// What the panel menu asks before drawing "Show Taganalyzer". The hand-off filters by the same
+// predicate, so every case here is also a statement about which blocks reach a TAZ board.
+describe('isTagAnalyzerEligibleBlock', () => {
+    const createPanelBlock = (overrides: Record<string, any> = {}) => ({
+        type: 'tag',
+        useCustom: false,
+        isVisible: true,
+        customFullTyping: { use: false, text: '' },
+        ...overrides,
+    });
+
+    test('a drawn, collapsed tag block is eligible', () => {
+        expect(isTagAnalyzerEligibleBlock(createPanelBlock())).toBe(true);
+    });
+
+    // The reported bug: v8.7's tagless types have no tag name to chart, yet the menu offered them.
+    test.each(['view', 'transaction'])('a %s block is never eligible', (type) => {
+        expect(isTagAnalyzerEligibleBlock(createPanelBlock({ type }))).toBe(false);
+        // ...and the repaired shape a real one carries, with useCustom forced on
+        expect(isTagAnalyzerEligibleBlock(createPanelBlock({ type, useCustom: true }))).toBe(false);
+    });
+
+    test('a log block is not eligible either', () => {
+        expect(isTagAnalyzerEligibleBlock(createPanelBlock({ type: 'log' }))).toBe(false);
+    });
+
+    test('a tag block that is expanded, hidden, or hand-typed is not eligible', () => {
+        expect(isTagAnalyzerEligibleBlock(createPanelBlock({ useCustom: true }))).toBe(false);
+        expect(isTagAnalyzerEligibleBlock(createPanelBlock({ isVisible: false }))).toBe(false);
+        expect(isTagAnalyzerEligibleBlock(createPanelBlock({ customFullTyping: { use: true, text: 'select 1' } }))).toBe(false);
+    });
+
+    // Boards saved before `customFullTyping` existed reach this with the field missing entirely.
+    test('a legacy block with no customFullTyping stays eligible', () => {
+        expect(isTagAnalyzerEligibleBlock({ type: 'tag', useCustom: false, isVisible: true })).toBe(true);
+    });
+
+    test('nothing at all is not eligible', () => {
+        expect(isTagAnalyzerEligibleBlock(undefined)).toBe(false);
+        expect(isTagAnalyzerEligibleBlock(null)).toBe(false);
+    });
+
+    describe('hasTagAnalyzerEligibleBlock', () => {
+        test('one eligible tag block among tagless ones still opens the door', () => {
+            expect(hasTagAnalyzerEligibleBlock([createPanelBlock({ type: 'view', useCustom: true }), createPanelBlock()])).toBe(true);
+        });
+
+        test('an all-tagless panel closes it', () => {
+            expect(hasTagAnalyzerEligibleBlock([createPanelBlock({ type: 'view', useCustom: true }), createPanelBlock({ type: 'transaction', useCustom: true })])).toBe(false);
+        });
+
+        test('an empty or missing block list closes it', () => {
+            expect(hasTagAnalyzerEligibleBlock([])).toBe(false);
+            expect(hasTagAnalyzerEligibleBlock(undefined)).toBe(false);
+            expect(hasTagAnalyzerEligibleBlock(null as any)).toBe(false);
+        });
     });
 });

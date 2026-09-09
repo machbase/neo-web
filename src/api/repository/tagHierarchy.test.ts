@@ -23,6 +23,7 @@ import {
     canRemoveHierarchySchemaKey,
     canRemoveHierarchyValueNode,
     escapeSqlString,
+    dropJsonPathIndex,
     hierarchyValueSubtreeHeight,
     indentHierarchyValueNode,
     insertHierarchyValueChild,
@@ -41,6 +42,25 @@ import {
     type HierarchyDocument,
     type HierarchyQueryConfig,
 } from './tagHierarchy';
+import { hasLogicalDatabases } from '@/utils/currentDatabaseState';
+import { fetchQuery, fetchTqlWithoutConsole } from './database';
+
+jest.mock('@/utils/currentDatabaseState', () => ({
+    hasLogicalDatabases: jest.fn(),
+}));
+
+jest.mock('./database', () => ({
+    fetchQuery: jest.fn(),
+    fetchTqlWithoutConsole: jest.fn(),
+}));
+
+const mockHasLogicalDatabases = hasLogicalDatabases as jest.MockedFunction<
+    typeof hasLogicalDatabases
+>;
+const mockFetchQuery = fetchQuery as jest.MockedFunction<typeof fetchQuery>;
+const mockFetchTqlWithoutConsole = fetchTqlWithoutConsole as jest.MockedFunction<
+    typeof fetchTqlWithoutConsole
+>;
 
 const config: HierarchyQueryConfig = {
     tableName: 'MACHBASEDB.SYS.SENSOR_TAG',
@@ -255,6 +275,37 @@ describe('tagHierarchy JSON-path index DDL', () => {
     test('rejects an unsafe schema key', () => {
         expect(() => buildHierarchyIndexName(config, "bad'key")).toThrow();
         expect(() => buildCreateJsonPathIndexSql(config, 'bad-key')).toThrow();
+    });
+});
+
+describe('dropJsonPathIndex database selection', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockFetchQuery.mockResolvedValue({ svrState: true, svrData: undefined, svrReason: '' });
+        mockFetchTqlWithoutConsole.mockResolvedValue({
+            svrState: true,
+            svrData: undefined,
+            svrReason: '',
+        });
+    });
+
+    test('drops the index in the database that owns the hierarchy table', async () => {
+        mockHasLogicalDatabases.mockReturnValue(true);
+        const otherDatabaseConfig = { ...config, tableName: 'FACTORY_A.SYS.SENSOR_TAG' };
+
+        const result = await dropJsonPathIndex(otherDatabaseConfig, 'city');
+
+        expect(mockFetchTqlWithoutConsole).toHaveBeenCalledWith(result.sql, 'FACTORY_A');
+        expect(mockFetchQuery).not.toHaveBeenCalled();
+    });
+
+    test('keeps the legacy query path when logical databases are unavailable', async () => {
+        mockHasLogicalDatabases.mockReturnValue(false);
+
+        const result = await dropJsonPathIndex(config, 'city');
+
+        expect(mockFetchQuery).toHaveBeenCalledWith(result.sql);
+        expect(mockFetchTqlWithoutConsole).not.toHaveBeenCalled();
     });
 });
 
@@ -549,5 +600,40 @@ describe('tagHierarchy value-tree edits', () => {
         expect(removeHierarchyValueNodeAt(document.tree, [1]).focusPath).toEqual([0, 1]);
         const { tree } = removeHierarchyValueNodeAt(document.tree, [0, 0, 1]);
         expect(valueAt(tree, [0, 0]).children).toHaveLength(1);
+    });
+});
+
+describe('hierarchy key validation ignores case', () => {
+    test.each([
+        ['country', 'COUNTRY'],
+        ['COUNTRY', 'country'],
+        ['country', 'Country'],
+        ['country', 'country'],
+    ])('rejects duplicate schema keys %s and %s without changing the input', (first, second) => {
+        const input: HierarchyDocument = { schema: [first, second], tree: [] };
+        expect(validateHierarchyDocument(input)).toContainEqual({
+            level: 'blocking',
+            message: `Hierarchy key "${second}" is duplicated.`,
+            schemaIndex: 1,
+        });
+        expect(input.schema).toEqual([first, second]);
+    });
+
+    test.each([
+        ['country', 'COUNTRY'],
+        ['COUNTRY', 'country'],
+        ['country', 'Country'],
+    ])('rejects duplicate legacy template keys %s and %s', (first, second) => {
+        expect(validateHierarchyTemplate({ [first]: { [second]: {} } })).toContainEqual({
+            level: 'blocking',
+            message: `Hierarchy key "${second}" is duplicated.`,
+        });
+    });
+
+    test('allows distinct keys with mixed case and preserves them', () => {
+        const input: HierarchyDocument = { schema: ['Country', 'CITY'], tree: [] };
+        expect(validateHierarchyDocument(input)).toEqual([]);
+        expect(input.schema).toEqual(['Country', 'CITY']);
+        expect(validateHierarchyTemplate({ Country: { CITY: {} } })).toEqual([]);
     });
 });

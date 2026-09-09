@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { buildBackupRequest, createBackupCode, ENTIRE_INSTANCE, normalizeBackupStatus, type BackupCode } from './backupPayload';
+import { buildBackupRequest, createBackupCode, ENTIRE_INSTANCE, normalizeBackupStatus, TABLE_BACKUP_NEEDS_ONE_DATABASE, type BackupCode } from './backupPayload';
 
 /** A ready-to-send form value, so each test can vary the one field it is about. */
 const code = (aOverrides: Partial<BackupCode> = {}): BackupCode => ({ ...createBackupCode(), path: 'bk1', ...aOverrides });
@@ -84,9 +84,8 @@ describe('buildBackupRequest — table backup', () => {
     const OPTIONS = { requireDatabase: true };
 
     it('names the database, the same way a database backup does', () => {
-        // The server refuses this today — 400, "database is only supported for database backup" —
-        // and that answer is the point: it is the server's to give, and the day it stops giving it
-        // this call starts working with no change here.
+        // Measured on v8.7.0-rc2-snapshot: this body backs up the named database's table, and a
+        // user-qualified `tableName` reaches that database's user-owned tables too.
         expect(built(buildBackupRequest(code({ type: 'table', tableName: 'EXAMPLE', database: 'FACTORY_A' }), OPTIONS))).toEqual({
             ...LEGACY_FULL_BODY,
             type: 'table',
@@ -95,10 +94,11 @@ describe('buildBackupRequest — table backup', () => {
         });
     });
 
-    it('sends no database for "all databases", which is the request it always sent', () => {
-        const sRequest = built(buildBackupRequest(code({ type: 'table', tableName: 'EXAMPLE', database: ENTIRE_INSTANCE }), OPTIONS));
-        expect(sRequest).not.toHaveProperty('database');
-        expect(sRequest).toEqual({ ...LEGACY_FULL_BODY, type: 'table', tableName: 'EXAMPLE' });
+    it('refuses "all databases", which for a table silently meant the default one', () => {
+        // Sending no `database` on a table backup does not mean "everywhere": the backup daemon
+        // resolves the bare name in its own default database, so the request either fails with
+        // ERR-2025 or backs up the wrong copy of a name that exists twice.
+        expect(failed(buildBackupRequest(code({ type: 'table', tableName: 'EXAMPLE', database: ENTIRE_INSTANCE }), OPTIONS))).toBe(TABLE_BACKUP_NEEDS_ONE_DATABASE);
     });
 
     it('asks for a database first, like a database backup does', () => {
@@ -107,6 +107,14 @@ describe('buildBackupRequest — table backup', () => {
 
     it('asks nothing of a server that offered no choice', () => {
         expect(built(buildBackupRequest(code({ type: 'table', tableName: 'EXAMPLE' }), { requireDatabase: false }))).toBeDefined();
+    });
+
+    it('keeps the legacy body on a server with no catalogue, even for "all databases"', () => {
+        // A pre-v8.7 server holds one database, so the omitted field is both the request this page
+        // always sent and the correct one. The new guard must not reach it.
+        const sRequest = built(buildBackupRequest(code({ type: 'table', tableName: 'EXAMPLE', database: ENTIRE_INSTANCE }), { requireDatabase: false }));
+        expect(sRequest).not.toHaveProperty('database');
+        expect(sRequest).toEqual({ ...LEGACY_FULL_BODY, type: 'table', tableName: 'EXAMPLE' });
     });
 });
 

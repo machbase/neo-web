@@ -249,3 +249,23 @@ describe('TagHierarchyPage row actions', () => {
         expect(depth3Child).toBeDisabled();
     });
 });
+
+describe('schema key duplicate validation', () => {
+    it('shows a case-insensitive duplicate error while typing and blocks saving', async () => {
+        renderPage();
+        await enterEdit();
+        const cityInput = screen.getByDisplayValue('city');
+        fireEvent.change(cityInput, { target: { value: 'COUNTRY' } });
+        expect(screen.getByText('Hierarchy key "COUNTRY" is duplicated.')).toBeInTheDocument();
+        expect(cityInput).toHaveValue('COUNTRY');
+        fireEvent.click(screen.getByRole('button', { name: 'Save Tree' }));
+        expect(mocked.updateHierarchyTemplate).not.toHaveBeenCalled();
+        expect(mocked.createJsonPathIndex).not.toHaveBeenCalled();
+        expect(mocked.dropJsonPathIndex).not.toHaveBeenCalled();
+
+        fireEvent.change(cityInput, { target: { value: 'CITY' } });
+        expect(screen.queryByText('Hierarchy key "COUNTRY" is duplicated.')).not.toBeInTheDocument();
+        expect(screen.getByText('No validation issues.')).toBeInTheDocument();
+        expect(cityInput).toHaveValue('CITY');
+    });
+});

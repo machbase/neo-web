@@ -6,7 +6,7 @@ import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
 import { generateRandomString, generateUUID } from '@/utils';
 import { Button, Menu, Page, Toast } from '@/design-system/components';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChartThemeTextColor } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
@@ -25,7 +25,7 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
-import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
+import { createTagAnalyzerColumnInfoFromDashboardBlock, hasTagAnalyzerEligibleBlock, isTagAnalyzerEligibleBlock } from '@/utils/tagAnalyzerFields';
 import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/integration';
 import { qualifyTableName } from '@/utils/qualifiedTableName';
 import { insertPanelAfterSource } from '@/utils/dashboardPanelLayout';
@@ -52,6 +52,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const sPanelRefresh = pPanelInfo?.timeRange?.refresh ?? 'Off';
     const sHonorsPanelRefresh = pPanelInfo?.type !== 'Geomap' || !!pPanelInfo?.chartOptions?.useAutoRefresh;
     const sShowPanelRefresh = sPanelRefresh !== 'Off' && sHonorsPanelRefresh && pType === undefined;
+
+    // The Tag Analyzer charts one series per tag name, so a panel with nothing it can name has no
+    // door to walk through. The v8.7 tagless types are the case that made this visible: a view or
+    // transaction block never survives the hand-off's filter, so the entry was always drawn and
+    // always answered with an error toast. Same predicate as `handleMoveTagz`, so the menu and the
+    // action cannot drift apart again.
+    const sCanShowTagAnalyzer = useMemo(() => hasTagAnalyzerEligibleBlock(pPanelInfo?.blockList), [pPanelInfo?.blockList]);
 
     // Panel-level, so it goes in the panel rather than in the board — the same field the panel
     // editor's Time/Distance tab writes, kept in sync by editing the same board list entry.
@@ -99,7 +106,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     };
     const handleMoveTagz = () => {
         const sTags: Parameters<typeof createTagAnalyzerBoardFromDashboard>[0]['seriesList'] = pPanelInfo.blockList
-            .filter((aTag: any) => aTag.type === 'tag' && !aTag.useCustom && aTag.isVisible && !aTag.customFullTyping.use)
+            .filter(isTagAnalyzerEligibleBlock)
             .map((aPanel: any) => ({
                 sourceTagName: aPanel.tag,
                 // The block keeps `table` and `userName` apart and joins them at query time
@@ -460,7 +467,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
                                     Duplicate
                                 </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
+                                {sCanShowTagAnalyzer && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
                                         Show Taganalyzer
                                     </Menu.Item>

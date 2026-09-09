@@ -2980,7 +2980,7 @@ describe('DataViewerPage table switch', () => {
         await act(async () => {
             rerender(tree(DISTANCE_TABLE));
         });
-        await waitFor(() => expect(rowReads().some((read) => read.tableName === 'DISTANCE_SENSOR')).toBe(true));
+        await waitFor(() => expect(queryTagDataArgs().some((args) => (args as Read).tableName === 'DISTANCE_SENSOR')).toBe(true));
         await settle();
 
         // The bug: `DISTANCE_SENSOR` + `ODOMETER_M` + `names: ['pneumatic']` + `baseKind: 'time'`,
@@ -2997,6 +2997,14 @@ describe('DataViewerPage table switch', () => {
     });
 
     test('and the same the other way round', async () => {
+        // A boundary lookup starts before the data query. Hold its response so this test cannot
+        // mistake the first lookup for a completed table switch, regardless of CI timing.
+        let resolveBoundary!: (value: string) => void;
+        const boundary = new Promise<string>((resolve) => {
+            resolveBoundary = resolve;
+        });
+        dataViewerApi.queryTagBoundaryTime.mockReturnValue(boundary);
+
         const { rerender } = renderTable(DISTANCE_TABLE);
         await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalled());
         expect(queryTagDataArgs()[0]).toMatchObject({ tableName: 'DISTANCE_SENSOR', names: [DISTANCE_TAG], baseKind: 'distance' });
@@ -3004,7 +3012,14 @@ describe('DataViewerPage table switch', () => {
         await act(async () => {
             rerender(tree(TIME_TABLE));
         });
-        await waitFor(() => expect(rowReads().some((read) => read.tableName === 'MACHROLL')).toBe(true));
+        await waitFor(() => expect(dataViewerApi.queryTagBoundaryTime).toHaveBeenCalledWith(expect.objectContaining({ tableName: 'MACHROLL' })));
+        expect(queryTagDataArgs().some((args) => (args as Read).tableName === 'MACHROLL')).toBe(false);
+        expect(incoherentReads()).toEqual([]);
+
+        await act(async () => {
+            resolveBoundary(new Date(BOUNDARY_BASE_MS).toISOString());
+        });
+        await waitFor(() => expect(queryTagDataArgs().some((args) => (args as Read).tableName === 'MACHROLL')).toBe(true));
         await settle();
 
         // The mirror image: a numeric 0 ~ 1000 window and `SENSOR_01` aimed at a DATETIME table.
@@ -3035,11 +3050,11 @@ describe('DataViewerPage table switch', () => {
         await waitFor(() => expect(dataViewerApi.listTableColumns).toHaveBeenCalledWith(expect.objectContaining({ tableName: 'DISTANCE_SENSOR' })));
         await settle();
 
-        const readsBeforeReturn = rowReads().length;
+        const dataReadsBeforeReturn = queryTagDataArgs().length;
         await act(async () => {
             rerender(tree(TIME_TABLE));
         });
-        await waitFor(() => expect(rowReads().length).toBeGreaterThan(readsBeforeReturn));
+        await waitFor(() => expect(queryTagDataArgs().length).toBeGreaterThan(dataReadsBeforeReturn));
         await settle();
 
         // The leak this guards: `MACHROLL` read on the distance table's axis — `baseKind: 'distance'`

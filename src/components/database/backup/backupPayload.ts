@@ -30,7 +30,10 @@ export type BackupCode = {
      * you holding the data; wanting the whole instance and getting FACTORY_A does not.
      *
      * `''` is an explicit "all databases", which sends no `database` field and is exactly the
-     * request this page made before per-database backup existed.
+     * request this page made before per-database backup existed. It is a `type: 'database'`
+     * answer only — one instance-wide image. A table backup cannot mean it, and
+     * `buildBackupRequest` refuses the pair rather than letting the server resolve the table in
+     * whichever database it happens to default to.
      *
      * A name is a named database backup. Pre-v8.7 servers have no catalogue to choose from, so
      * the form never leaves `null` there and `requireDatabase` stays off — see below.
@@ -45,11 +48,19 @@ export type BackupCode = {
 export const ENTIRE_INSTANCE = '';
 
 /**
+ * Why "all databases" and a table backup cannot be combined.
+ *
+ * Exported because the page shows the same sentence next to the table picker before the button is
+ * ever pressed — the form should say what it needs, not wait to be asked.
+ */
+export const TABLE_BACKUP_NEEDS_ONE_DATABASE = 'Select one target database — a table backup cannot span all databases.';
+
+/**
  * What goes on the wire.
  *
- * `database` is optional and absent-by-omission rather than sent empty. The server reads a missing
- * field and an empty string the same way for a database backup, but rejects the field outright on
- * a table backup, and omitting it is the one form that is unambiguous in both directions.
+ * `database` is optional and absent-by-omission rather than sent empty. Omitting it is the one
+ * form that is unambiguous: for a database backup it means the whole instance, and a table backup
+ * never gets here without a name, because omission there silently means the default database.
  */
 export type BackupRequest = {
     type: BackupType;
@@ -125,24 +136,39 @@ export const buildBackupRequest = (aCode: BackupCode, aOptions?: BackupBuildOpti
 
     const sRequest: BackupRequest = { type: aCode.type, tableName: aCode.tableName, duration: sDuration, path: aCode.path };
 
-    // Both backup types name the database the same way, including the one the server does not
-    // accept yet. Measured on v8.7 (engine dev-4158), `{type:'table', database:'FACTORY_A'}`
-    // answers 400 *database is only supported for database backup* — but the engine itself can do
-    // it: `SQL(use('FACTORY_A'), \`BACKUP TABLE … INTO DISK = …\`)` through /api/tql answers *table
-    // backup completed*. What the parser refuses is the qualified name
-    // (`BACKUP TABLE FACTORY_A.SYS.T` → ERR-2010), not the act, so this is an endpoint that has
-    // not caught up rather than a limit of the database.
+    // Both backup types name the database the same way, and the field takes a *name*. Measured
+    // on v8.7.0-rc2-snapshot through `POST /web/api/backup/archive`: `{type:'table',
+    // database:'FACTORY_A', tableName:'STATZ'}` backed up FACTORY_A's STATZ (verified by reading
+    // the archive's `backup.trc` table ids back through `M$SYS_TABLES`: DATABASE_ID 2), and
+    // `tableName:'KEV.K_TABLE'` reached that database's user-owned table too. The catalogue's
+    // numeric `id` is not a substitute — `database:'2'` answers *MACHCLI-ERR-2839, Database (2)
+    // does not exist*.
     //
-    // So the request goes out and the server's own answer is what the user reads. Dropping the
-    // field instead would be worse than a 400: a bare table name resolves in the default database,
-    // which fails confusingly when no such table is there and silently backs up the *wrong* table
-    // when a name happens to exist in both. And when the endpoint does catch up, nothing here
-    // changes.
+    // An earlier comment here recorded a 400 *database is only supported for database backup* on
+    // a table backup. That endpoint has since caught up; the request below is the one that works.
     if (aCode.database === null) {
         if (aOptions?.requireDatabase) return { error: 'Select a target database.' };
         return { request: sRequest };
     }
-    if (aCode.database === ENTIRE_INSTANCE) return { request: sRequest };
+    if (aCode.database === ENTIRE_INSTANCE) {
+        // Omitting the field is what "all databases" has always meant, and for a database backup
+        // it still does: one image of the whole instance. For a table backup it means nothing of
+        // the kind. The backup daemon resolves a bare table name in its own connection's default
+        // database, so "all databases" quietly became MACHBASEDB — measured, `{type:'table',
+        // tableName:'STATZ'}` with no `database` answers *MACHCLI-ERR-2025, Table STATZ does not
+        // exist* although STATZ exists in FACTORY_A, and where the name exists in both the wrong
+        // copy is backed up with no error at all.
+        //
+        // There is no request that means "this table, in every database": one archive holds one
+        // database's tables. So the choice has to be made, and it is made here rather than by
+        // fanning out silently.
+        //
+        // Only where a choice was actually offered. A pre-v8.7 server has one database and no
+        // catalogue to pick from, and there the omitted field is both the legacy request and the
+        // correct one.
+        if (aCode.type === 'table' && aOptions?.requireDatabase) return { error: TABLE_BACKUP_NEEDS_ONE_DATABASE };
+        return { request: sRequest };
+    }
     // Every name here comes from the server's own catalogue, so this rejects nothing in practice;
     // it exists so a value restored from a stale board cannot reach the backup statement.
     if (!isDatabaseNameSafe(aCode.database)) return { error: 'Invalid database name.' };

@@ -462,9 +462,11 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         setLogicalLengthCandidates(logicalLengthCandidates);
     };
     const FetchIndexGapForTag = async () => {
-        const sQuery = `SELECT TABLE_ID AS 'TABLE', INDEX_STATE AS STATE, (TABLE_END_RID-DISK_INDEX_END_RID) AS DISK_GAP, (TABLE_END_RID-MEMORY_INDEX_END_RID) AS MEMORY_GAP FROM V$STORAGE_TAG_INDEX WHERE INDEX_ID = 4294967295 AND TABLE_ID IN (SELECT ID FROM m$SYS_TABLES WHERE NAME LIKE '_${
-            mTableInfo[E_TABLE_INFO.TB_NM]
-        }_DATA%' AND DATABASE_ID=${mTableInfo[E_TABLE_INFO.DB_ID]} AND USER_ID=(SELECT USER_ID FROM M$SYS_USERS WHERE NAME=upper('${
+        // Match the full internal data-table name; LIKE treats underscores as wildcards.
+        const sTableNamePattern = mTableInfo[E_TABLE_INFO.TB_NM]
+            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            .replace(/'/g, "''");
+        const sQuery = `SELECT TABLE_ID AS 'TABLE', INDEX_STATE AS STATE, (TABLE_END_RID-DISK_INDEX_END_RID) AS DISK_GAP, (TABLE_END_RID-MEMORY_INDEX_END_RID) AS MEMORY_GAP FROM V$STORAGE_TAG_INDEX WHERE INDEX_ID = 4294967295 AND TABLE_ID IN (SELECT ID FROM m$SYS_TABLES WHERE NAME REGEXP '^_${sTableNamePattern}_DATA_[0-9]+$' AND DATABASE_ID=${mTableInfo[E_TABLE_INFO.DB_ID]} AND USER_ID=(SELECT USER_ID FROM M$SYS_USERS WHERE NAME=upper('${
             mTableInfo[E_TABLE_INFO.USER_NM]
         }') limit 1)) ORDER BY TABLE_ID`;
         const { svrState, svrData } = await fetchQuery(sQuery);
@@ -754,7 +756,10 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     };
     const FetchRollupState = async (aRollupName: string, aCommand: string) => {
         const sQuery = `EXEC ${aCommand}(${aRollupName})`;
-        const { svrState, svrReason } = await fetchTqlWithoutConsole(sQuery);
+        const { svrState, svrReason } = await fetchTqlWithoutConsole(
+            sQuery,
+            String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
+        );
         if (svrState) FetchRollup();
         else {
             setErrMsg({ key: 'ROLLUP', value: svrReason ?? '' });

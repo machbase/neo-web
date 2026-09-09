@@ -131,6 +131,10 @@ export const isMountedTableName = (aTable: string | undefined | null): boolean =
     // not a mounted backup was the one the session is in, which reports itself as MACHBASEDB;
     // this is the same rule `getRollupMatch` applies. Answering "not mounted" here instead
     // sent a mounted table to `V$<TABLE>_STAT`, which does not exist there (ERR-2025).
+    //
+    // `isMountedDatabaseName` answers `false` on the same miss, because it is asked in order to
+    // offer an unmount button and a wrong "mounted" there is worse than a wrong "not mounted".
+    // See its comment: the two defaults differ because the two consequences do.
     return sParts[0].trim().toUpperCase() !== getCurrentDatabaseName().trim().toUpperCase();
 };
 
