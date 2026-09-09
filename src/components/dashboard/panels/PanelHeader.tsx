@@ -26,7 +26,7 @@ import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOrigin
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { createTagAnalyzerColumnInfoFromDashboardBlock, hasTagAnalyzerEligibleBlock, isTagAnalyzerEligibleBlock } from '@/utils/tagAnalyzerFields';
-import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/integration';
+import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/application/adapters';
 import { qualifyTableName } from '@/utils/qualifiedTableName';
 import { insertPanelAfterSource } from '@/utils/dashboardPanelLayout';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';

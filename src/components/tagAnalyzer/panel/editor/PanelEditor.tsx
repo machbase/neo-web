@@ -1,3 +1,4 @@
+import type { RangeState } from '../rangeControl/rangeControlModel';
 import { useMemo, useState } from 'react';
 import {
     Button,
@@ -8,14 +9,14 @@ import EditorDataSettingTab from './tabs/EditorDataSettingTab';
 import EditorDataTab from './tabs/EditorDataTab';
 import EditorDisplayTab from './tabs/EditorDisplayTab';
 import EditorGeneralTab from './tabs/EditorGeneralTab';
-import EditorTimeTab from './tabs/EditorTimeTab';
+import EditorRangeTab from './tabs/EditorRangeTab';
 import styles from './PanelEditor.module.scss';
-import { type PanelInfo } from '../panelModel';
-import {
-    getSeriesListAxisKind,
-    type RollupTableMap,
-} from '../../seriesModel';
-import { type AxisRange } from '../../range/rangeModel';
+import { areConfiguredPanelRangesEqual, type PanelInfo } from '../panelModel';
+import { getSeriesListAxisKind } from '../../seriesModel';
+import type { RollupTableMap } from '../../api/rollupMetadata';
+import { type AxisKind, type AxisRange } from '../../rangeExpression/rangeModel';
+import { isSameRange } from '../../rangeExpression/rangeArithmetic';
+import { formatRangeInputValue } from '../../rangeExpression/expressionFormat';
 
 import { PANEL_EDITOR_TABS, validatePanelEditorDraft, type PanelEditorTab } from './editorValidation';
 import { Inline, Stack, Text } from '../../ui/Presentation';
@@ -23,24 +24,52 @@ import { Inline, Stack, Text } from '../../ui/Presentation';
 export default function PanelEditor({
     pOnApplyEditorConfig,
     pOnClose,
+    pIsClosing = false,
     pPanelInfo,
     pHasUnsavedBoardChanges,
     pMainRange,
     pDataRange,
+    pNavigatorRange = pDataRange,
+    pRangeOrigin = 'configured',
+    pPreviewEditorRange,
     pRollupTableList,
 }: {
     pOnApplyEditorConfig: (editorConfig: PanelInfo) => void;
     pOnClose: () => void;
+    pIsClosing?: boolean;
     pPanelInfo: PanelInfo;
     pHasUnsavedBoardChanges: boolean;
     pMainRange: AxisRange;
     pDataRange: AxisRange;
+    pNavigatorRange?: AxisRange;
+    pRangeOrigin?: 'configured' | 'chart';
+    pPreviewEditorRange?: (config: PanelInfo) => RangeState | undefined;
     pRollupTableList: RollupTableMap;
 }) {
+    const sOriginalAxisKind = getSeriesListAxisKind(pPanelInfo.query.tagSet);
+    const chartRange = { mainRange: pMainRange, navigatorRange: pNavigatorRange };
+    const [sObservedChartRange, setObservedChartRange] = useState(chartRange);
     const [sSelectedTab, setSelectedTab] = useState<PanelEditorTab>('General');
     const [sEditorDraft, setEditorDraft] = useState(() =>
-        createEditorDraft(pPanelInfo),
+        pRangeOrigin === 'chart'
+            ? withChartRanges(createEditorDraft(pPanelInfo), sOriginalAxisKind, chartRange)
+            : createEditorDraft(pPanelInfo),
     );
+    const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState<string | undefined>(() =>
+        pRangeOrigin === 'chart' ? undefined : createEditorChangeKey(pPanelInfo),
+    );
+    if (
+        !isSameRange(sObservedChartRange.mainRange, pMainRange) ||
+        !isSameRange(sObservedChartRange.navigatorRange, pNavigatorRange)
+    ) {
+        setObservedChartRange(chartRange);
+        // Chart interactions replace range edits; an Apply response preserves the newer draft.
+        if (pRangeOrigin === 'chart') {
+            setEditorDraft((draft) => withChartRanges(draft, sOriginalAxisKind, chartRange));
+            // Saved settings no longer describe the visible range, even when Reset restores their inputs.
+            setAppliedEditorConfigKey(undefined);
+        }
+    }
     const {
         title: sTitleDraft,
         mode: sModeDraft,
@@ -48,9 +77,6 @@ export default function PanelEditor({
         display: sDisplayDraft,
         time: sTimeDraft,
     } = sEditorDraft;
-    const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(() =>
-        createEditorChangeKey(pPanelInfo),
-    );
     const sEditorConfig = useMemo<PanelInfo>(
         () => ({ ...pPanelInfo, ...sEditorDraft }),
         [pPanelInfo, sEditorDraft],
@@ -62,13 +88,11 @@ export default function PanelEditor({
     const sAxisKind = getSeriesListAxisKind(
         sEditorConfig.query.tagSet,
     );
-    const sOriginalAxisKind = getSeriesListAxisKind(
-        pPanelInfo.query.tagSet,
-    );
     const sTabMessages = validatePanelEditorDraft(sEditorConfig, {
         lockedAxisKind: sOriginalAxisKind,
         dataRange: pDataRange,
         mainRange: pMainRange,
+        navigatorRange: pNavigatorRange,
         referenceTimeMs: Date.now(),
     });
     const sRangeInput = sEditorConfig.time.rangeInput;
@@ -85,9 +109,7 @@ export default function PanelEditor({
             return;
         }
 
-        const sConfiguredRangeIsUnchanged =
-            sRangeInput.start === pPanelInfo.time.rangeInput.start &&
-            sRangeInput.end === pPanelInfo.time.rangeInput.end;
+        const sConfiguredRangeIsUnchanged = areConfiguredPanelRangesEqual(sEditorConfig.time, pPanelInfo.time);
         pOnApplyEditorConfig({
             ...sEditorConfig,
             query: {
@@ -129,8 +151,9 @@ export default function PanelEditor({
     return (
         <div
             data-testid="editor"
-            data-state="open"
+            data-state={pIsClosing ? 'closing' : 'open'}
             className={styles.editor}
+            {...(pIsClosing ? { inert: '' } : {})}
         >
             <Page className={styles.editorPage}>
                 <Inline gap={12} justify="between" wrap className={styles.header}>
@@ -235,7 +258,7 @@ export default function PanelEditor({
                     </Inline>
                 </Inline>
 
-                <Stack className={styles.content}>
+                <Stack className={`${styles.content} ${sSelectedTab === 'Range' ? styles.rangeContent : ''}`}>
                     <EditorGeneralTab
                         pTitle={sTitleDraft}
                         pModeConfig={sModeDraft}
@@ -256,7 +279,6 @@ export default function PanelEditor({
                     />
                     <EditorDataSettingTab
                         pDisplayConfig={sEditorConfig.display}
-                        pIsRawMode={sModeDraft.isRaw}
                         pAxisKind={sAxisKind}
                         pDataValidationMessage={sTabMessages.Data}
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
@@ -274,14 +296,16 @@ export default function PanelEditor({
                         pOnChangeDisplayConfig={updateEditorDraft('display')}
                         pIsActive={sSelectedTab === 'Display'}
                     />
-                    <EditorTimeTab
+                    <EditorRangeTab
                         pTimeConfig={sEditorConfig.time}
+                        pPreviewRange={pPreviewEditorRange?.(sEditorConfig)}
                         pAxisKind={sAxisKind}
                         pDataRange={pDataRange}
-                        pIsValid={sTabMessages['Main Range'] === undefined}
+                        pMainRange={pMainRange}
+                        pNavigatorRange={pNavigatorRange}
                         pDataValidationMessage={sTabMessages.Data}
                         pOnChangeTimeConfig={updateEditorDraft('time')}
-                        pIsActive={sSelectedTab === 'Main Range'}
+                        pIsActive={sSelectedTab === 'Range'}
                     />
                 </Stack>
             </Page>
@@ -299,6 +323,22 @@ type PanelEditorDraft = Pick<
 function createEditorDraft(config: PanelInfo): PanelEditorDraft {
     const { title, mode, query, axes, display, time } = config;
     return { title, mode, query, axes, display, time };
+}
+
+function withChartRanges(draft: PanelEditorDraft, axisKind: AxisKind | undefined, range: RangeState): PanelEditorDraft {
+    if (!axisKind) return draft;
+    const toInput = (value: AxisRange) => ({
+        start: formatRangeInputValue(value.start, axisKind === 'numeric'),
+        end: formatRangeInputValue(value.end, axisKind === 'numeric'),
+    });
+    return {
+        ...draft,
+        time: {
+            ...draft.time,
+            rangeInput: toInput(range.mainRange),
+            navigatorRangeInput: toInput(range.navigatorRange),
+        },
+    };
 }
 
 function createEditorChangeKey(config: PanelInfo): string {

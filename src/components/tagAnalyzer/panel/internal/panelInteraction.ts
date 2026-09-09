@@ -1,8 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { ContextMenuPosition } from '@/design-system/components';
-import {
-    PanelOverlayMode,
-} from '../../chart/chartInteraction';
+import { PanelOverlayMode } from '../../chart/chartModel';
 import type { FFTSelectionPayload } from '../../tools/analysisModel';
 import {
     createPanelHighlightDraft,
@@ -10,8 +8,8 @@ import {
     type HighlightEditorSession,
     type PanelHighlight,
 } from '../../markup/markupModel';
-import { createNonEmptyAxisRange } from '../../range/rangeBuilder';
-import type { AxisRange } from '../../range/rangeModel';
+import { createNonEmptyAxisRange } from '../../rangeExpression/rangeBuilder';
+import type { AxisRange } from '../../rangeExpression/rangeModel';
 import type { PanelSeriesDefinition } from '../../seriesModel';
 
 export type PanelSurface = PanelSurfaceContent & { id: number };

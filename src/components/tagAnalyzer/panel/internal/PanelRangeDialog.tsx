@@ -1,16 +1,15 @@
+import type { RangeState, ResolvedRangeState } from '../rangeControl/rangeControlModel';
 import { useEffect, useRef, useState } from 'react';
-import { formatRangeInputValue } from '../../format/inputFormat';
+import { formatRangeInputValue } from '../../rangeExpression/expressionFormat';
 import { formatAbsoluteTime } from '../../format/timeFormat';
-import { isSameRange } from '../../range/rangeArithmetic';
-import { RangeModal } from '../../range/RangeModal';
+import { isSameRange } from '../../rangeExpression/rangeArithmetic';
+import { RangeModal } from '../rangeControl/RangeModal';
 import {
     isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
     type RangeExpressionInput,
-    type RangeState,
-    type ResolvedRangeState,
-} from '../../range/rangeModel';
+} from '../../rangeExpression/rangeModel';
 
 // eslint-disable-next-line react-refresh/only-export-components -- The hook and renderer form one range-dialog boundary.
 export function usePanelRangeDialog({

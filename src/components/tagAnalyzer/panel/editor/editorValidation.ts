@@ -8,12 +8,13 @@ import {
     MIXED_X_AXIS_KIND_WARNING,
     X_AXIS_KIND_CHANGE_WARNING,
 } from '../../seriesModel';
-import { resolveRangeInput } from '../../range/rangeInput';
+import { resolveRangeInput } from '../../rangeExpression/rangeInput';
 import {
     isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
-} from '../../range/rangeModel';
+    type RangeExpressionInput,
+} from '../../rangeExpression/rangeModel';
 
 export const PANEL_EDITOR_TABS = [
     'General',
@@ -21,7 +22,7 @@ export const PANEL_EDITOR_TABS = [
     'Data Setting',
     'Axes',
     'Display',
-    'Main Range',
+    'Range',
 ] as const;
 export type PanelEditorTab = (typeof PANEL_EDITOR_TABS)[number];
 
@@ -31,6 +32,7 @@ export function validatePanelEditorDraft(
         lockedAxisKind: AxisKind | undefined;
         dataRange: AxisRange;
         mainRange: AxisRange;
+        navigatorRange?: AxisRange;
         referenceTimeMs: number;
     },
 ): Record<PanelEditorTab, string | undefined> {
@@ -51,16 +53,8 @@ export function validatePanelEditorDraft(
     const validDisplay = [display.pointRadius, display.fill, display.stroke].every(
         (value) => value === undefined || Number.isFinite(value),
     );
-    const validRange =
-        !axisKind ||
-        isRangeExpressionEmpty(time.rangeInput) ||
-        resolveRangeInput(
-            time.rangeInput,
-            axisKind,
-            context.dataRange,
-            context.mainRange,
-            context.referenceTimeMs,
-        ) !== undefined;
+    const validMainRange = isEditorRangeValid(time.rangeInput, axisKind, context.dataRange, context.mainRange, context.referenceTimeMs);
+    const validNavigatorRange = isEditorRangeValid(time.navigatorRangeInput, axisKind, context.dataRange, context.navigatorRange ?? context.dataRange, context.referenceTimeMs);
 
     return {
         General: title.trim() ? undefined : 'Enter a panel title.',
@@ -72,8 +66,20 @@ export function validatePanelEditorDraft(
             ? undefined
             : 'Review the invalid axis settings.',
         Display: validDisplay ? undefined : 'Review the invalid display settings.',
-        'Main Range': validRange ? undefined : 'Enter a valid range.',
+        Range: validMainRange && validNavigatorRange ? undefined : 'Enter valid main and navigator ranges.',
     };
+}
+
+export function isEditorRangeValid(
+    input: RangeExpressionInput | undefined,
+    axisKind: AxisKind | undefined,
+    dataRange: AxisRange,
+    currentRange: AxisRange,
+    referenceTimeMs = Date.now(),
+): boolean {
+    if (!axisKind || !input || isRangeExpressionEmpty(input)) return true;
+    if (axisKind === 'numeric' && (!input.start.trim() || !input.end.trim())) return false;
+    return resolveRangeInput(input, axisKind, dataRange, currentRange, referenceTimeMs) !== undefined;
 }
 
 export function isValidPositiveNumber(value: number | undefined): value is number {

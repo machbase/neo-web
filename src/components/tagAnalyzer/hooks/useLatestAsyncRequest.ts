@@ -28,29 +28,24 @@ export function useLatestAsyncRequest<Result>(
         const abortController = new AbortController();
         let timerId: number | undefined;
 
+        function isCurrentRequest(): boolean {
+            const committedRequest = committedRequestRef.current;
+            return !abortController.signal.aborted &&
+                committedRequest?.enabled === true &&
+                committedRequest.requestKey === currentRequest.requestKey;
+        }
+
         if (currentRequest.enabled) {
             const execute = () => {
                 currentRequest.onStart?.();
                 void currentRequest.fetch(abortController.signal).then(
                     (result) => {
-                        const committedRequest = committedRequestRef.current;
-                        if (
-                            !abortController.signal.aborted &&
-                            committedRequest?.enabled &&
-                            committedRequest.requestKey ===
-                                currentRequest.requestKey
-                        ) {
+                        if (isCurrentRequest()) {
                             requestRef.current.onSuccess(result);
                         }
                     },
                     (error: unknown) => {
-                        const committedRequest = committedRequestRef.current;
-                        if (
-                            !abortController.signal.aborted &&
-                            committedRequest?.enabled &&
-                            committedRequest.requestKey ===
-                                currentRequest.requestKey
-                        ) {
+                        if (isCurrentRequest()) {
                             requestRef.current.onError(error);
                         }
                     },

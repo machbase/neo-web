@@ -1,7 +1,8 @@
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import type { ComponentProps, MutableRefObject } from 'react';
 import { createNewPanelInfo } from '../panel/panelModel';
-import { PanelOverlayMode, type PanelChartHandle, type PanelChartHandlers } from './chartInteraction';
+import { createPanelChartPresentation } from '../panel/panelChartPresentation';
+import { PanelOverlayMode, type PanelChartHandle, type PanelChartHandlers } from './chartModel';
 import type { ChartSeriesData } from './chartData';
 import type { buildChartOption } from './chartOptions';
 import PanelChart from './PanelChart';
@@ -76,7 +77,7 @@ function createProps(): ComponentProps<typeof PanelChart> {
     const panelInfo = createNewPanelInfo([], 'Chart', 'Line');
     panelInfo.display.useZoom = true;
     return {
-        panelInfo,
+        presentation: createPanelChartPresentation(panelInfo),
         isLoading: false,
         displayNotice: undefined,
         refs: { chartAreaRef: { current: null }, chartApiRef: { current: null } },
@@ -113,7 +114,7 @@ describe('PanelChart behavior', () => {
         const reloadedSeries = createSeries([[0, 3], [10, 4]]);
         const reloadedNavigatorSeries = createSeries([[-20, 30], [20, 40]]);
         const baseProps = {
-            panelInfo,
+            presentation: createPanelChartPresentation(panelInfo),
             isLoading: false,
             rangeState: {
                 mainRange: { start: 0, end: 10 },
@@ -203,9 +204,9 @@ describe('PanelChart behavior', () => {
 
     it('updates both ranges without resending cached data or dropping highlight labels', () => {
         const props = createProps();
-        props.panelInfo.highlights = [{
+        props.presentation.highlights = [{
             text: 'Reference',
-            timeRange: { start: 20, end: 40 },
+            range: { start: 20, end: 40 },
             fillColor: '#123456',
             textColor: '#fedcba',
         }];
@@ -305,8 +306,8 @@ describe('PanelChart behavior', () => {
             fireEvent(chartArea, wheel);
             expect(wheel.defaultPrevented).toBe(false);
         }
-        view.rerender(<PanelChart {...props} panelInfo={{
-            ...props.panelInfo, display: { ...props.panelInfo.display, useZoom: false },
+        view.rerender(<PanelChart {...props} presentation={{
+            ...props.presentation, display: { ...props.presentation.display, useZoom: false },
         }} />);
         const disabled = new WheelEvent('wheel', { deltaY: -1, cancelable: true });
         fireEvent(chartArea, disabled);
@@ -328,6 +329,22 @@ describe('PanelChart behavior', () => {
         expect(props.refs.chartApiRef.current).toBeNull();
         fireEvent.wheel(props.refs.chartAreaRef.current!, { deltaY: -1 });
         expect(handlers.rangeActions.setMainRange).not.toHaveBeenCalled();
+    });
+
+    it('updates the accessible title and loading layout with presentation changes', () => {
+        const props = createProps();
+        const view = render(<PanelChart {...props} isLoading />);
+        expect(view.getByRole('region', { name: 'Chart chart' })).toBeInTheDocument();
+        expect(view.getByText('Loading...').parentElement).toHaveStyle({ top: '40px', height: '182px' });
+
+        view.rerender(<PanelChart {...props} isLoading presentation={{
+            ...props.presentation,
+            title: 'Updated',
+            display: { ...props.presentation.display, showLegend: false },
+        }} />);
+
+        expect(view.getByRole('region', { name: 'Updated chart' })).toBeInTheDocument();
+        expect(view.getByText('Loading...').parentElement).toHaveStyle({ top: '16px', height: '206px' });
     });
 
     it('blocks right-button mouse-down without blocking normal chart clicks', () => {

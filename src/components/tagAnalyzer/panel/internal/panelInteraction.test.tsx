@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { PanelOverlayMode } from '../../chart/chartInteraction';
+import { PanelOverlayMode } from '../../chart/chartModel';
 import type { FFTSelectionPayload } from '../../tools/analysisModel';
 import { usePanelInteraction } from './panelInteraction';
 

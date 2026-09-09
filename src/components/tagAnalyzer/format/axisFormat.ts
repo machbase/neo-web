@@ -1,8 +1,8 @@
 import moment from 'moment';
-import { getRangeWidth } from '../range/rangeArithmetic';
-import type { AxisRange } from '../range/rangeModel';
+import { getRangeWidth } from '../rangeExpression/rangeArithmetic';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import { formatCompactNumber } from './numericFormat';
-import { DATE_TIME_INPUT_FORMAT } from './inputFormat';
+import { DATE_TIME_INPUT_FORMAT } from '../rangeExpression/expressionFormat';
 
 export type FormattedAxisRange = {
     start: string;

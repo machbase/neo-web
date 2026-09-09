@@ -61,6 +61,8 @@ src/components/tagAnalyzer/ARCHITECTURE.md
 !tests/e2e/tagAnalyzer/tag-analyzer-features.md
 !src/components/tagAnalyzer/REACT_BEST_PRACTICES_AUDIT.md
 .notion-plan
+# Graphify generated files
+graphify-out/
 coverage/cobertura-coverage.xml
 coverage/cobertura-coverage.xml
 coverage/cobertura-coverage.xml

@@ -6,15 +6,15 @@ import { SeriesCalculationModeField } from '../../series/SeriesCalculationModeFi
 import { Field, Inline, Stack, Surface, Text } from '../../../ui/Presentation';
 import { SeriesDialog } from '../../../ui/SeriesDialog';
 import type { PanelInfo } from '../../panelModel';
-import type { AxisKind } from '../../../range/rangeModel';
+import type { AxisKind } from '../../../rangeExpression/rangeModel';
 import {
     getPanelSeriesDisplayColor,
     getSeriesListAxisKind,
     X_AXIS_KIND_CHANGE_WARNING,
     type PanelSeriesDefinition,
-    type RollupTableMap,
     updatePanelSeriesCalculationMode,
 } from '../../../seriesModel';
+import type { RollupTableMap } from '../../../api/rollupMetadata';
 import styles from '../PanelEditorTab.module.scss';
 import controls from '../../../ui/Controls.module.scss';
 

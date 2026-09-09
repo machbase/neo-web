@@ -9,7 +9,6 @@ import {
     getAsyncRequestErrorMessage,
     useLatestAsyncRequest,
 } from '../hooks/useLatestAsyncRequest';
-import { buildPanelSeriesQuery } from '../panel/series/panelSeriesRequest';
 import {
     createOverlapChartSeriesGroup,
     type OverlapChartSeriesGroup,
@@ -98,7 +97,6 @@ export function useOverlapData(initialPanelsInfo: OverlapPanelInput[]) {
 
 // -------------------- Local --------------------
 
-const OVERLAP_CHART_FETCH_WIDTH_PX = 1000;
 const OVERLAP_LOAD_ERROR_MESSAGE = 'Failed to load overlap data.';
 
 type OverlapLoadState = {
@@ -108,31 +106,28 @@ type OverlapLoadState = {
 };
 
 async function fetchOverlapPanelData(
-    { panelInfo, visibleRange }: OverlapPanelInput,
+    panel: OverlapPanelInput,
     signal: AbortSignal,
 ) {
+    if ('error' in panel) throw new Error(panel.error);
+
+    const { query, visibleRange } = panel;
     const fetchResult = await seriesDataApi.fetchSeriesRows(
-        buildPanelSeriesQuery(
-            'main',
-            panelInfo,
-            visibleRange,
-            OVERLAP_CHART_FETCH_WIDTH_PX,
-            {},
-        ),
+        query,
         { signal },
     );
-
+    const isRaw = query.kind !== 'calculated';
     const seriesData = mapFetchResultToChartData(
         fetchResult?.filter(({ error }) => !error),
-        panelInfo.query.tagSet,
-        panelInfo.mode.isRaw,
+        query.seriesList,
+        isRaw,
         false,
     );
 
     return {
         seriesGroup: createOverlapChartSeriesGroup(
-            { panelInfo, visibleRange },
-            panelInfo.mode.isRaw
+            panel,
+            isRaw
                 ? filterChartDataByRange(
                       seriesData,
                       visibleRange,

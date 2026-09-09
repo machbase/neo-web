@@ -16,16 +16,14 @@ import {
 import {
     formatCompactNumber,
 } from '../format/numericFormat';
-import {
-    formatTimeUnitShortCode,
-} from '../format/timeFormat';
+import { formatTimeUnitShortCode } from '../rangeExpression/expressionFormat';
 import {
     getTimeUnitMilliseconds,
     TimeUnit,
-} from '../range/intervalResolver';
-import type { AxisRange } from '../range/rangeModel';
+} from '../rangeExpression/intervalResolver';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
-import PanelPopover from './PanelPopover';
+import PanelPopover from '../ui/PanelPopover';
 import {
     FFT_MINIMUM_SAMPLE_COUNT,
     type FFTSelectionPayload,

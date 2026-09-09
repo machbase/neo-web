@@ -1,29 +1,22 @@
-import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
-import type { PanelInfo } from '../panel/panelModel';
-import type { RangeState } from '../range/rangeModel';
-import { resolveRuntimePanelChartConfig } from './chartOptions';
+import type { PanelChartProps } from './chartModel';
 import { useChartInteraction, type ChartInteractionInputs } from './chartInteraction';
-import { getChartLayoutMetrics, PANEL_CHART_HEIGHT, PANEL_GRID_SIDE } from './chartLayout';
+import { PANEL_CHART_LAYOUTS, PANEL_CHART_HEIGHT, PANEL_GRID_SIDE } from './chartLayout';
 
 export default function PanelChart({
-    panelInfo,
+    presentation,
     isLoading,
     rangeState,
     displayNotice,
     ...runtimeProps
 }: PanelChartProps) {
-    const runtimeConfig = useMemo(
-        () => resolveRuntimePanelChartConfig(panelInfo),
-        [panelInfo],
-    );
     const { refs, handlers } = runtimeProps;
     const rangeReady = rangeState !== undefined;
-    const overlayLayout = getChartLayoutMetrics(
-        runtimeConfig.display.showLegend,
-    );
+    const overlayLayout = PANEL_CHART_LAYOUTS[
+        presentation.display.showLegend ? 'withLegend' : 'withoutLegend'
+    ];
 
     return (
         <div className="chart">
@@ -50,13 +43,13 @@ export default function PanelChart({
                     }
                 }}
                 role="region"
-                aria-label={`${panelInfo.title} chart`}
+                aria-label={`${presentation.title} chart`}
                 aria-busy={isLoading}
             >
                 {rangeState && (
                     <ReadyPanelChart
                         {...runtimeProps}
-                        runtimeConfig={runtimeConfig}
+                        runtimeConfig={presentation}
                         rangeState={rangeState}
                     />
                 )}
@@ -108,13 +101,3 @@ function ReadyPanelChart(props: ChartInteractionInputs) {
         />
     );
 }
-
-type PanelChartProps = Omit<
-    ChartInteractionInputs,
-    'rangeState' | 'runtimeConfig'
-> & {
-    panelInfo: PanelInfo;
-    isLoading: boolean;
-    rangeState: RangeState | undefined;
-    displayNotice: string | undefined;
-};

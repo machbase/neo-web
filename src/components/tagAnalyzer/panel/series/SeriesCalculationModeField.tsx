@@ -1,8 +1,7 @@
 import { Dropdown } from '@/design-system/components';
 import {
     normalizePanelSeriesCalculationMode,
-    TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
-    type PanelSeriesCalculationMode,
+    PanelSeriesCalculationMode,
 } from '../../seriesModel';
 
 export function SeriesCalculationModeField({
@@ -33,9 +32,10 @@ export function SeriesCalculationModeField({
 
 // -------------------- Local --------------------
 
-const CALCULATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MODE_OPTIONS.map(
-    (option) => ({
-        ...option,
-        testId: `calculation-mode-option-${encodeURIComponent(option.value)}`,
+const CALCULATION_MODE_OPTIONS = Object.values(PanelSeriesCalculationMode).map(
+    (value) => ({
+        label: value,
+        value,
+        testId: `calculation-mode-option-${encodeURIComponent(value)}`,
     }),
 );

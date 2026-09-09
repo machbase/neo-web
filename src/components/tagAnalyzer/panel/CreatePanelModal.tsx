@@ -10,10 +10,8 @@ import {
     type PanelEChartType,
     type PanelInfo,
 } from './panelModel';
-import type {
-    PanelSeriesDefinition,
-    RollupTableMap,
-} from '../seriesModel';
+import type { PanelSeriesDefinition } from '../seriesModel';
+import type { RollupTableMap } from '../api/rollupMetadata';
 import { PanelSeriesEditor } from './series/PanelSeriesEditor';
 import styles from './CreatePanelModal.module.scss';
 import controls from '../ui/Controls.module.scss';
@@ -45,6 +43,8 @@ export function CreatePanelModal({
     return (
         <SeriesDialog
             title="New Chart"
+            className={styles.modal}
+            bodyClassName={styles.body}
             onClose={onClose}
             onApply={applyPanel}
             message={sFooterMessage}
@@ -61,7 +61,7 @@ export function CreatePanelModal({
                 size="md"
             />
             <Field label="Chart type">
-                <Inline gap={12}>
+                <Inline gap={8} justify="between">
                     {PANEL_CHART_TYPES.map(({ type, Icon, label }) => {
                         const isActive = sSelectedChartType === type;
                         return (

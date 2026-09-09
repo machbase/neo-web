@@ -11,17 +11,16 @@ import type {
     DefaultLabelFormatterCallbackParams,
     TooltipComponentFormatterCallbackParams as TopLevelFormatterParams,
 } from 'echarts';
-import type { AxisRange, RangeState } from '../range/rangeModel';
-import { roundNumericAxisBounds } from '../range/intervalResolver';
+import type { AxisRange } from '../rangeExpression/rangeModel';
+import { roundNumericAxisBounds } from '../rangeExpression/intervalResolver';
 import { formatAxisPointer, formatAxisTick } from '../format/axisFormat';
 import { formatCompactNumber } from '../format/numericFormat';
 import { getPanelSeriesDisplayColor } from '../seriesModel';
-import type { PanelInfo, PanelYAxis, ValueRange } from '../panel/panelModel';
-import type { PanelHighlight } from '../markup/markupModel';
-import { buildChartMarkupSeries } from '../markup/chartMarkupOptions';
+import { buildChartMarkupSeries } from './chartMarkupOptions';
 import type { ChartRow, ChartSeriesData, ChartSeriesVisibilityMap } from './chartData';
+import type { ChartHighlight, ChartRangeState, ChartPresentation, ChartValueRange, PanelChartData } from './chartModel';
 import {
-    getChartLayoutMetrics,
+    PANEL_CHART_LAYOUTS,
     PANEL_GRID_BOTTOM,
     PANEL_GRID_SIDE,
     PANEL_NAVIGATOR_GRID_SIDE,
@@ -30,49 +29,18 @@ import {
     PANEL_NAVIGATOR_Y_AXIS_INDEX,
 } from './chartLayout';
 
-export function resolveRuntimePanelChartConfig(
-    panelInfo: PanelInfo,
-) {
-    return {
-        query: panelInfo.query,
-        mode: panelInfo.mode,
-        highlights: panelInfo.highlights,
-        annotations: panelInfo.annotations,
-        axes: {
-            x: { ...panelInfo.axes.x },
-            leftY: resolvePanelYAxisForRuntime(panelInfo.axes.leftY),
-            rightY: resolvePanelYAxisForRuntime(panelInfo.axes.rightY),
-            rightYEnabled: panelInfo.axes.rightY.enabled,
-        },
-        display: {
-            showLegend: panelInfo.display.showLegend,
-            showPoint: panelInfo.display.showPoint,
-            connectNulls: panelInfo.display.connectNulls,
-            useZoom: panelInfo.display.useZoom,
-            pointRadius: panelInfo.display.pointRadius ?? 0,
-            fill: panelInfo.display.fill ?? 0,
-            stroke: panelInfo.display.stroke ?? 0,
-        },
-    };
-}
+type RuntimePanelAxes = ChartPresentation['axes'];
 
-export type RuntimePanelChartConfig = ReturnType<typeof resolveRuntimePanelChartConfig>;
-
-type RuntimePanelAxes = RuntimePanelChartConfig['axes'];
-
-type RuntimePanelDisplay = RuntimePanelChartConfig['display'];
+type RuntimePanelDisplay = ChartPresentation['display'];
 
 export type PanelChartRuntime = {
-    config: RuntimePanelChartConfig;
-    data: {
-        chartData: ChartSeriesData[];
-        navigatorChartData: ChartSeriesData[];
-    };
-    ranges: RangeState;
+    config: ChartPresentation;
+    data: PanelChartData;
+    ranges: ChartRangeState;
     interaction: {
         visibleSeries: ChartSeriesVisibilityMap;
         hoveredLegendSeries?: string;
-        draftHighlight?: PanelHighlight;
+        draftHighlight?: ChartHighlight;
         isWheelZoomEnabled: boolean;
     };
     rendering: {
@@ -81,23 +49,6 @@ export type PanelChartRuntime = {
         animateNavigatorDataUpdate: boolean;
     };
 };
-
-function resolvePanelYAxisForRuntime(axis: PanelYAxis) {
-    return {
-        zeroBase: axis.zeroBase,
-        showTickline: axis.showTickline,
-        valueRange: { ...axis.valueRange },
-        rawValueRange: { ...axis.rawValueRange },
-        upperControlLimit: {
-            enabled: axis.upperControlLimit.enabled,
-            value: axis.upperControlLimit.value ?? 0,
-        },
-        lowerControlLimit: {
-            enabled: axis.lowerControlLimit.enabled,
-            value: axis.lowerControlLimit.value ?? 0,
-        },
-    };
-}
 
 export const PANEL_SLIDER_DATA_ZOOM_ID = 'panel-slider-data-zoom';
 
@@ -189,7 +140,7 @@ export function buildChartSeriesOption(
         : config.highlights;
     const sAnnotationContext = {
         annotations: config.annotations,
-        seriesDefinitions: config.query.tagSet,
+        series: config.series,
         chartData: data.chartData,
         yAxisOptions: resolvedYAxisOption,
         visibleSeries: interaction.visibleSeries,
@@ -310,7 +261,7 @@ function updateAxisBounds(
 function resolveChartValueRange(
     chartData: readonly { data: ChartRow[] }[],
     includeZero: boolean,
-): ValueRange {
+): ChartValueRange {
     const bounds: number[] = [];
     chartData.forEach((series) =>
         updateAxisBounds(bounds, series.data, includeZero),
@@ -356,10 +307,10 @@ function getYAxisValues(
 }
 
 function resolveAxisRange(
-    manualRange: ValueRange,
+    manualRange: ChartValueRange,
     defaultMin: number | undefined,
     defaultMax: number | undefined,
-): ValueRange {
+): ChartValueRange {
     return manualRange.min === undefined && manualRange.max === undefined
         ? { min: defaultMin, max: defaultMax }
         : { min: manualRange.min, max: manualRange.max };
@@ -416,7 +367,7 @@ function buildMainYAxisOption({
     showTickLine,
 }: {
     id: string;
-    axisRange: ValueRange;
+    axisRange: ChartValueRange;
     position?: 'left' | 'right';
     showAxisLabel?: boolean;
     showTickLine: boolean;
@@ -445,23 +396,21 @@ function buildChartYAxisOption(
     chartRuntime: PanelChartRuntime,
 ): YAXisComponentOption[] {
     const { config, data, ranges } = chartRuntime;
-    const { axes, mode } = config;
+    const { axes, normalizeRightAxis } = config;
     const [leftBounds, rightBounds] = getYAxisValues(
         data.chartData,
         axes,
         ranges.mainRange,
     );
     const sLeftAxisRange = resolveAxisRange(
-        mode.isRaw ? axes.leftY.rawValueRange : axes.leftY.valueRange,
+        axes.leftY.valueRange,
         leftBounds[0],
         leftBounds[1],
     );
     const sRightAxisRange = resolveAxisRange(
-        mode.isRaw
-            ? axes.rightY.rawValueRange
-            : axes.rightY.valueRange,
-        mode.useNormalize ? 0 : rightBounds[0],
-        mode.useNormalize ? 100 : rightBounds[1],
+        axes.rightY.valueRange,
+        normalizeRightAxis ? 0 : rightBounds[0],
+        normalizeRightAxis ? 100 : rightBounds[1],
     );
 
     return [
@@ -665,7 +614,9 @@ function buildPanelChartFrameOptions(
     const { config, data, interaction, ranges, rendering } = chartRuntime;
     const { mainRange } = ranges;
     const { isNumericXAxis } = rendering;
-    const sLayout = getChartLayoutMetrics(config.display.showLegend);
+    const sLayout = PANEL_CHART_LAYOUTS[
+        config.display.showLegend ? 'withLegend' : 'withoutLegend'
+    ];
     const sSeriesDisplayNameByEChartsName = new Map(
         data.chartData.map((series) => [
             series.echartsName,

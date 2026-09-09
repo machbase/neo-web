@@ -4,7 +4,7 @@ import {
     type PanelSeriesDefinition,
 } from '../seriesModel';
 import type { PanelDataFetchResult, SeriesDataRow } from '../api/seriesDataApi';
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 
 export type ChartRow = SeriesDataRow;
 

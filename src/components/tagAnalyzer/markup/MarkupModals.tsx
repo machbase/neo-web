@@ -9,18 +9,15 @@ import {
     type PanelHighlight,
     type AnnotationEditorSession,
     type HighlightEditorSession,
+    type AnnotationSeriesOption,
 } from './markupModel';
-import {
-    getPanelSeriesDisplayName,
-    type PanelSeriesDefinition,
-} from '../seriesModel';
 import {
     DATE_TIME_INPUT_FORMAT,
     formatRangeInputValue,
-    parseRangeInputValue,
-} from '../format/inputFormat';
-import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import PanelPopover from '../tools/PanelPopover';
+} from '../rangeExpression/expressionFormat';
+import { parseRangeInputValue } from '../rangeExpression/rangeInput';
+import { createNonEmptyAxisRange } from '../rangeExpression/rangeBuilder';
+import PanelPopover from '../ui/PanelPopover';
 import { Field, Inline, Surface, Text } from '../ui/Presentation';
 import controls from '../ui/Controls.module.scss';
 
@@ -34,7 +31,7 @@ export function EditAnnotationModal({
 }: {
     session: AnnotationEditorSession;
     annotations: readonly PanelAnnotation[];
-    annotationSeriesList: PanelSeriesDefinition[];
+    annotationSeriesList: readonly AnnotationSeriesOption[];
     onChange: (annotations: PanelAnnotation[]) => void;
     onClose: () => void;
     isNumericXAxis: boolean;
@@ -69,7 +66,7 @@ export function EditAnnotationModal({
             testId: 'annotation-series-empty',
         },
         ...annotationSeriesList.map((seriesInfo) => ({
-            label: getPanelSeriesDisplayName(seriesInfo),
+            label: seriesInfo.label,
             value: seriesInfo.key,
             testId: `annotation-series-option-${encodeURIComponent(seriesInfo.key)}`,
         })),

@@ -1,4 +1,4 @@
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import type { SqlIdentifierPath } from '../seriesModel';
 
 export const NANOSECONDS_PER_MILLISECOND = 1000000;

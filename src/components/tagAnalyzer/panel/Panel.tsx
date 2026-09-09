@@ -1,7 +1,8 @@
-import { memo, useEffect, useRef, useState, type MouseEvent } from 'react';
+import type { RangeState, ResolvedRangeState } from './rangeControl/rangeControlModel';
+import { memo, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import PanelChart from '../chart/PanelChart';
-import { PanelOverlayMode, type PanelChartHandle } from '../chart/chartInteraction';
-import { useChartAreaWidthObserver } from '../chart/useChartAreaWidthObserver';
+import { PanelOverlayMode, type PanelChartHandle } from '../chart/chartModel';
+import { useChartWidthObserver } from '../chart/useChartWidthObserver';
 import { Toast } from '@/design-system/components';
 import { PanelFooter } from './internal/PanelFooter';
 import { PanelHeader } from './internal/PanelHeader';
@@ -23,23 +24,20 @@ import {
     resolveSetGlobalRangeRequest,
     usePanelRangeRuntime,
     type PanelBroadcastRequests,
-} from './panelRuntime';
-import {
-    getSeriesListAxisKind,
-    MIXED_X_AXIS_KIND_WARNING,
-    type RollupTableMap,
-} from '../seriesModel';
+} from './rangeControl/rangeRuntime';
+import { MIXED_X_AXIS_KIND_WARNING } from '../seriesModel';
+import type { RollupTableMap } from '../api/rollupMetadata';
 import {
     type AxisKind,
     type AxisRange,
-    type RangeState,
-    type ResolvedRangeState,
-} from '../range/rangeModel';
+} from '../rangeExpression/rangeModel';
 import {
     usePanelData,
     type PanelDataIssue,
 } from './internal/panelData';
 import { usePanelInteraction } from './internal/panelInteraction';
+import { createChartHighlight, createPanelChartPresentation } from './panelChartPresentation';
+import { createPanelRangeConfig } from './panelRangeConfig';
 import './Panel.scss';
 
 export default memo(function Panel({
@@ -57,25 +55,56 @@ export default memo(function Panel({
     onToggleOverlap,
 }: PanelProps) {
     const isRaw = panelInfo.mode.isRaw;
+    const chartPresentation = useMemo(
+        () => createPanelChartPresentation(panelInfo),
+        [panelInfo],
+    );
     const isOverlapSelected = panelInfo.isOverlapSelected;
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
     const hoveredMainSeriesNameRef = useRef<string | undefined>();
-    const [isEditorOpen, setEditorOpen] = useState(false);
+    const [editorState, setEditorState] = useState<{
+        phase: 'closed' | 'open' | 'closing';
+        session: number;
+    }>({ phase: 'closed', session: 0 });
+    const isEditorOpen = editorState.phase === 'open';
 
+    function closeEditor(): void {
+        setEditorState({ ...editorState, phase: 'closing' });
+        window.setTimeout(() => {
+            setEditorState((current) => current.session === editorState.session
+                ? { ...current, phase: 'closed' }
+                : current,
+            );
+        }, 150); // Matches the CSS closing transition.
+    }
+
+    function toggleEditor(): void {
+        if (isEditorOpen) {
+            closeEditor();
+        } else {
+            setEditorState({
+                phase: 'open',
+                session: editorState.session + 1,
+            });
+        }
+    }
+
+    const rangeConfig = useMemo(() => createPanelRangeConfig(panelInfo), [panelInfo]);
+    const axisKind = rangeConfig.axisKind;
     const rangeRuntime = usePanelRangeRuntime({
         ...broadcastRequests,
-        panelInfo,
+        config: rangeConfig,
         rangeState: initialRangeState,
         isActive,
         onRangeStateChange: (nextRangeState) =>
             onPanelRangeStateChange(panelInfo.key, nextRangeState),
         onBroadcastError,
     });
-    const { rangeState, chartAreaWidth, dataRefreshVersion } = rangeRuntime;
+    const { rangeState, chartAreaWidth, navigatorTrackWidth, dataRefreshVersion } = rangeRuntime;
     const {
-        setChartAreaWidth: onChartAreaWidthChange,
+        setChartWidths: onChartWidthsChange,
         applyRangeAction: onRangeButtonAction,
         setMainRange: onMainRangeChange,
         applyRawLimitRange: onRawLimitRange,
@@ -93,6 +122,10 @@ export default memo(function Panel({
         draftHighlight,
         selectionSummary,
     } = interaction.state;
+    const chartDraftHighlight = useMemo(
+        () => draftHighlight && createChartHighlight(draftHighlight),
+        [draftHighlight],
+    );
     const {
         toggleOverlay,
         showContextMenu,
@@ -106,14 +139,14 @@ export default memo(function Panel({
         openSelection,
         closeSelection,
     } = interaction.actions;
-    useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
+    useChartWidthObserver(chartAreaRef, onChartWidthsChange);
 
-    const axisKind = getSeriesListAxisKind(panelInfo.query.tagSet);
     const { main, navigator, rawLimitRange, issue } = usePanelData({
         panelInfo,
         isActive,
         rangeState,
         chartAreaWidth,
+        navigatorTrackWidth,
         rollupTables: rollupTableList,
         dataRefreshVersion,
     });
@@ -137,7 +170,7 @@ export default memo(function Panel({
     });
     function applyEditedPanelConfig(editorConfig: PanelInfo): void {
         onApplyPanelInfo(editorConfig);
-        onReloadAfterEditorSave(editorConfig);
+        onReloadAfterEditorSave(createPanelRangeConfig(editorConfig));
     }
 
     function requireChartAreaRect(action: string): DOMRect {
@@ -150,7 +183,8 @@ export default memo(function Panel({
     }
 
     const setGlobalRangeRequest = resolveSetGlobalRangeRequest(
-        panelInfo,
+        axisKind,
+        isRaw,
         main.status === 'ready',
         renderRange,
     );
@@ -215,8 +249,7 @@ export default memo(function Panel({
             [PanelActionKey.REFRESH_DATA]: onRefreshData,
             [PanelActionKey.REFRESH_RANGE]: onRefreshRange,
             [PanelActionKey.EXPAND_FULL_RANGE]: onExpandFullRange,
-            [PanelActionKey.TOGGLE_EDIT]: () =>
-                setEditorOpen((open) => !open),
+            [PanelActionKey.TOGGLE_EDIT]: toggleEditor,
             [PanelActionKey.OPEN_EXPORT_CSV]: requestExport,
             [PanelActionKey.OPEN_DELETE_CONFIRM]: requestDelete,
         };
@@ -323,8 +356,8 @@ export default memo(function Panel({
                         chartAreaRef,
                         chartApiRef: panelChartApiRef,
                     }}
-                    panelInfo={panelInfo}
-                    draftHighlight={draftHighlight}
+                    presentation={chartPresentation}
+                    draftHighlight={chartDraftHighlight}
                     overlayMode={overlayMode}
                     data={{
                         chartData: mainChartData,
@@ -359,13 +392,19 @@ export default memo(function Panel({
                     pOnOpenNavigatorRangeModal={rangeDialog.openNavigator}
                 />
             </div>
-            {isEditorOpen && renderRange && (
+            {editorState.phase !== 'closed' && renderRange && (
                 <PanelEditor
+                    key={editorState.session}
+                    pIsClosing={editorState.phase === 'closing'}
                     pOnApplyEditorConfig={applyEditedPanelConfig}
-                    pOnClose={() => setEditorOpen(false)}
+                    pOnClose={closeEditor}
                     pPanelInfo={panelInfo}
                     pHasUnsavedBoardChanges={hasUnsavedBoardChanges}
                     pMainRange={renderRange.mainRange}
+                    pNavigatorRange={renderRange.navigatorRange}
+                    pRangeOrigin={rangeRuntime.rangeOrigin}
+                    pPreviewEditorRange={(config) =>
+                        rangeRuntime.previewEditorRange(createPanelRangeConfig(config))}
                     pDataRange={rangeState?.fullRange ?? renderRange.mainRange}
                     pRollupTableList={rollupTableList}
                 />

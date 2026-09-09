@@ -1,6 +1,7 @@
+import type { ResolvedRangeState } from '../panel/rangeControl/rangeControlModel';
 import { act, renderHook } from '@testing-library/react';
 import { createNewPanelInfo, type PanelInfo } from '../panel/panelModel';
-import type { ResolvedRangeState } from '../range/rangeModel';
+
 import {
     createPanelSeriesDefinition,
     DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
@@ -116,8 +117,16 @@ describe('board runtime hooks', () => {
         act(() => result.current.openOverlapChart());
         expect(result.current.openSession).toMatchObject({
             panels: [{
-                panelInfo: { key: 'panel-a' },
+                key: 'panel-a',
+                title: 'Panel',
                 visibleRange: PANEL_RANGE_STATE.range.mainRange,
+                query: {
+                    kind: 'calculated',
+                    seriesList: panel.query.tagSet,
+                    range: PANEL_RANGE_STATE.range.mainRange,
+                    rowLimit: 333,
+                    rollupTables: {},
+                },
             }],
             isNumericXAxis: false,
         });

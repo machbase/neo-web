@@ -10,12 +10,12 @@ import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { Button } from '@/design-system/components';
 import {
-    getChartLayoutMetrics,
+    PANEL_CHART_LAYOUTS,
     PANEL_NAVIGATOR_GRID_SIDE,
 } from '../../chart/chartLayout';
 import { formatAxisRange } from '../../format/axisFormat';
-import type { AxisRange } from '../../range/rangeModel';
-import type { RangeButtonAction } from '../../range/rangeResolver';
+import type { AxisRange } from '../../rangeExpression/rangeModel';
+import type { RangeButtonAction } from '../rangeControl/rangeTransitions';
 import { Inline, Text } from '../../ui/Presentation';
 import controls from '../../ui/Controls.module.scss';
 
@@ -34,7 +34,7 @@ export function PanelFooter({
     pIsNumericXAxis: boolean;
     pOnOpenNavigatorRangeModal: () => void;
 }) {
-    const sLayout = getChartLayoutMetrics(pShowLegend);
+    const sLayout = PANEL_CHART_LAYOUTS[pShowLegend ? 'withLegend' : 'withoutLegend'];
     const sNavigatorSide = `${PANEL_NAVIGATOR_GRID_SIDE}px`;
     const sRangeUnavailable = pIsLoading || !pNavigatorRange;
     const sFormattedNavigatorRange = pNavigatorRange

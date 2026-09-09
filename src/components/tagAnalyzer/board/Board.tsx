@@ -1,3 +1,4 @@
+import type { RangeState, ResolvedRangeState } from '../panel/rangeControl/rangeControlModel';
 import './Board.scss';
 import {
     useCallback,
@@ -22,25 +23,21 @@ import Panel from '../panel/Panel';
 import { HelpModal } from './HelpModal';
 import OverlapModal from '../overlap/OverlapModal';
 import { CreatePanelModal } from '../panel/CreatePanelModal';
-import { SaveAsModal } from '../save/SaveAsModal';
-import { useBoardSave } from '../save/useBoardSave';
+import { SaveAsModal } from '../persistence/SaveAsModal';
+import { useBoardSave } from './useBoardSave';
 import type { BoardInfo } from './boardModel';
 import type { PanelInfo } from '../panel/panelModel';
-import {
-    getSeriesListAxisKind,
-    type RollupTableMap,
-} from '../seriesModel';
+import { getSeriesListAxisKind } from '../seriesModel';
+import type { RollupTableMap } from '../api/rollupMetadata';
 import {
     isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
-    type RangeState,
     type RangeExpressionInput,
-    type ResolvedRangeState,
-} from '../range/rangeModel';
-import { getEnclosingRange } from '../range/rangeArithmetic';
+} from '../rangeExpression/rangeModel';
+import { getEnclosingRange } from '../rangeExpression/rangeArithmetic';
 
-import type { PanelBroadcastRequests } from '../panel/panelRuntime';
+import type { PanelBroadcastRequests } from '../panel/rangeControl/rangeRuntime';
 import { useBoardState } from './useBoardState';
 import { useBoardOverlapSelection } from './useBoardOverlapSelection';
 import { Inline, Text } from '../ui/Presentation';

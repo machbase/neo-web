@@ -15,7 +15,7 @@ import { useExperiment } from '@/hooks/useExperiment';
 import { formatAxisRange } from '../../format/axisFormat';
 import { formatNumericInterval } from '../../format/numericFormat';
 import { formatTimeInterval } from '../../format/timeFormat';
-import type { AxisRange } from '../../range/rangeModel';
+import type { AxisRange } from '../../rangeExpression/rangeModel';
 import {
     buildPanelActions,
     type PanelActionDescriptor,

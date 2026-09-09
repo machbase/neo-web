@@ -20,8 +20,8 @@ import {
     getIntervalMs,
     resolveNumericIntervalValue,
     type IntervalOption,
-} from '../range/intervalResolver';
-import type { AxisRange } from '../range/rangeModel';
+} from '../rangeExpression/intervalResolver';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import {
     buildSqlStringLiteral,
     buildTimeRangeConditionSql,

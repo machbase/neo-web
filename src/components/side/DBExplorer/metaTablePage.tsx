@@ -1,7 +1,7 @@
 import { Page, Toast, CommonTable } from '@/design-system/components';
 import { isDatabaseWritable, normalizeDatabaseId } from '@/utils/currentDatabaseState';
 import { isMountedTableName } from '@/utils/qualifiedTableName';
-import { createTagAnalyzerBoardFromDatabaseSeries } from '@/components/tagAnalyzer/integration';
+import { createTagAnalyzerBoardFromDatabaseSeries } from '@/components/tagAnalyzer/application/adapters';
 import { canOpenTagAnalyzerFromMetaColumns, createTagAnalyzerColumnsFromDbExplorer, getTagNameFromMetaRow } from './TagAnalyzerUtil';
 import { buildQualifiedTableName, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';

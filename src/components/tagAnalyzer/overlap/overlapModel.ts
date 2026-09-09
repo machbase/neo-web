@@ -2,10 +2,10 @@ import type {
     EChartsOption,
     TooltipComponentFormatterCallbackParams as TopLevelFormatterParams,
 } from 'echarts';
-import { getRangeWidth, shiftRange } from '../range/rangeArithmetic';
-import { type AxisRange } from '../range/rangeModel';
+import { getRangeWidth, shiftRange } from '../rangeExpression/rangeArithmetic';
+import { type AxisRange } from '../rangeExpression/rangeModel';
 import { formatAxisTick } from '../format/axisFormat';
-import type { PanelInfo } from '../panel/panelModel';
+import type { SeriesRowsQuery } from '../api/seriesDataApi';
 import type { ChartRow } from '../chart/chartData';
 import {
     buildInsideDataZoomOption,
@@ -16,9 +16,10 @@ import {
 } from '../chart/chartOptions';
 
 export type OverlapPanelInput = {
-    panelInfo: PanelInfo;
+    key: string;
+    title: string;
     visibleRange: AxisRange;
-};
+} & ({ query: SeriesRowsQuery } | { error: string });
 
 export type OverlapSeriesData = {
     name: string;
@@ -35,7 +36,7 @@ export type OverlapChartSeriesGroup = {
 };
 
 export function createOverlapChartSeriesGroup(
-    { panelInfo, visibleRange }: OverlapPanelInput,
+    { key, title, visibleRange }: Pick<OverlapPanelInput, 'key' | 'title' | 'visibleRange'>,
     seriesData: OverlapSeriesData[],
 ): OverlapChartSeriesGroup {
     const alignmentOffset = -(
@@ -43,8 +44,8 @@ export function createOverlapChartSeriesGroup(
     );
 
     return {
-        panelKey: panelInfo.key,
-        name: panelInfo.title.trim() || 'Panel',
+        panelKey: key,
+        name: title.trim() || 'Panel',
         sourceRange: { ...visibleRange },
         alignedRange: shiftRange(visibleRange, alignmentOffset),
         seriesData: alignmentOffset === 0

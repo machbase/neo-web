@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
     fireEvent,
     render,
@@ -163,7 +164,7 @@ describe('PanelSeriesEditor', () => {
         expect(user).toHaveValue('SYS');
         await waitFor(() => {
             expect(time).toHaveValue('TIME_SYS (DateTime)');
-            expect(value).toHaveValue('VALUE_SYS (No Rollup)');
+            expect(value).toHaveValue('VALUE_SYS');
         });
 
         fireEvent.focus(database);
@@ -180,7 +181,7 @@ describe('PanelSeriesEditor', () => {
         );
         await waitFor(() => {
             expect(time).toHaveValue('TIME_USER_A (DateTime)');
-            expect(value).toHaveValue('VALUE_USER_A (No Rollup)');
+            expect(value).toHaveValue('VALUE_USER_A');
         });
 
         fireEvent.focus(user);
@@ -199,7 +200,7 @@ describe('PanelSeriesEditor', () => {
         );
         await waitFor(() => {
             expect(time).toHaveValue('TIME_USER_B (DateTime)');
-            expect(value).toHaveValue('VALUE_USER_B (No Rollup)');
+            expect(value).toHaveValue('VALUE_USER_B');
         });
 
         fireEvent.change(user, { target: { value: 'USER_A' } });
@@ -212,7 +213,7 @@ describe('PanelSeriesEditor', () => {
         );
         await waitFor(() => {
             expect(time).toHaveValue('TIME_USER_A (DateTime)');
-            expect(value).toHaveValue('VALUE_USER_A (No Rollup)');
+            expect(value).toHaveValue('VALUE_USER_A');
         });
 
         fireEvent.focus(table);
@@ -307,7 +308,7 @@ describe('PanelSeriesEditor', () => {
         expect(onSeriesListChange).not.toHaveBeenCalled();
     });
 
-    it('does not add the same source series twice', async () => {
+    it('does not add the same source and calculation twice', async () => {
         jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([
             'TAG',
         ]);
@@ -345,6 +346,61 @@ describe('PanelSeriesEditor', () => {
         expect(onFooterMessageChange).toHaveBeenLastCalledWith(
             'This series has already been added.',
         );
+    });
+
+    it('adds the same tag again to compare MIN and MAX', async () => {
+        jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue(['TAG']);
+        jest.spyOn(tableMetadataApi, 'fetchTableColumns').mockResolvedValue([
+            { name: 'NAME', type: 5, flag: 0 },
+            { name: 'TIME', type: 6, flag: 0x01000000 },
+            { name: 'VALUE', type: 20, flag: 0 },
+        ]);
+        jest.spyOn(tableMetadataApi, 'fetchTags').mockResolvedValue({
+            tags: ['TAG_A'],
+            total: 1,
+        });
+        const onFooterMessageChange = jest.fn();
+        const onSeriesListChange = jest.fn();
+
+        function EditorHarness() {
+            const [seriesList, setSeriesList] = useState([SERIES]);
+            return (
+                <PanelSeriesEditor
+                    seriesList={seriesList}
+                    rollupTableList={{}}
+                    lockedAxisKind="time"
+                    onFooterMessageChange={onFooterMessageChange}
+                    onSeriesListChange={(nextSeriesList) => {
+                        setSeriesList(nextSeriesList);
+                        onSeriesListChange(nextSeriesList);
+                    }}
+                />
+            );
+        }
+
+        render(<EditorHarness />);
+        const tag = await screen.findByTestId('tag-analyzer-series-option-TAG_A');
+        fireEvent.click(screen.getByRole('button', { name: 'AVG' }));
+        fireEvent.click(screen.getByRole('option', { name: 'MIN' }));
+        fireEvent.click(tag);
+
+        expect(screen.getAllByTestId('calculation-mode')).toHaveLength(2);
+        fireEvent.click(screen.getByRole('button', { name: 'AVG' }));
+        fireEvent.click(screen.getByRole('option', { name: 'MAX' }));
+        expect(onSeriesListChange).toHaveBeenLastCalledWith([
+            expect.objectContaining({
+                table: 'TAG',
+                sourceTagName: 'TAG_A',
+                calculationMode: PanelSeriesCalculationMode.Minimum,
+            }),
+            expect.objectContaining({
+                table: 'TAG',
+                sourceTagName: 'TAG_A',
+                calculationMode: PanelSeriesCalculationMode.Maximum,
+            }),
+        ]);
+
+        expect(onFooterMessageChange).toHaveBeenLastCalledWith(undefined);
     });
 
     it('applies an explicit tag search after the initial tag load', async () => {

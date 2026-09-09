@@ -10,7 +10,7 @@ import {
     type SqlIdentifierPath,
     type ValidatedPanelSeriesSourceColumns,
 } from '../seriesModel';
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import {
     buildSqlStringLiteral,
     buildTqlDoubleQuotedString,

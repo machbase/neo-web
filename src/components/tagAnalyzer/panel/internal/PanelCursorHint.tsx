@@ -6,7 +6,7 @@ import {
     type MutableRefObject,
 } from 'react';
 import { MdBlock, MdCheckCircle } from 'react-icons/md';
-import { PanelOverlayMode, type PanelChartHandle } from '../../chart/chartInteraction';
+import { PanelOverlayMode, type PanelChartHandle } from '../../chart/chartModel';
 
 type PanelOverlayCursorHintState = {
     x: number;

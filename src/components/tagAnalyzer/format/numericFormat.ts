@@ -1,5 +1,5 @@
-import { getRangeWidth } from '../range/rangeArithmetic';
-import type { AxisRange } from '../range/rangeModel';
+import { getRangeWidth } from '../rangeExpression/rangeArithmetic';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 
 export function formatCompactNumber(
     value: number | string,

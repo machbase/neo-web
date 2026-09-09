@@ -1,8 +1,9 @@
+import { prepareSeriesDefinitions } from '../seriesModel';
+import type { RangeState } from '../panel/rangeControl/rangeControlModel';
 import { asRecord, isFiniteNumber, isPlainObject } from '../objectGuards';
 import {
     AUTO_VALUE_RANGE,
     clonePanelYAxis,
-    DEFAULT_RAW_NAVIGATOR_SAMPLING,
     PANEL_ECHART_TYPE_VALUES,
     type PanelAxes,
     type PanelAxisThreshold,
@@ -13,40 +14,32 @@ import {
     type PanelYAxis,
     type ValueRange,
 } from '../panel/panelModel';
-import {
-    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-    DEFAULT_SERIES_ANNOTATION_LABEL,
-    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-    type PanelAnnotation,
-    type PanelHighlight,
-} from '../markup/markupModel';
+import type {
+    PanelRestoreInput,
+    PanelAnnotationInput,
+    PanelHighlightInput,
+} from '../panel/panelReconstruction';
 import type { BoardInfo } from '../board/boardModel';
+import { formatAbsoluteTime } from '../format/timeFormat';
+import { formatNumericValue } from '../rangeExpression/expressionFormat';
 import {
-    decodePersistedTimeUnit,
-    formatAbsoluteTime,
     formatNumericExpression,
-    formatNumericValue,
     formatRelativeTime,
     isValidTimeExpression,
     parseAbsoluteTime,
     parseNumericExpression,
+} from '../rangeExpression/expressionSyntax';
+import {
+    decodePersistedTimeUnit,
     decodeAxisRange,
     encodeAxisRange,
     type PersistedAxisRange,
 } from './serializeRange';
-import { TimeUnit } from '../range/intervalResolver';
+import { TimeUnit } from '../rangeExpression/intervalResolver';
 import {
     type RangeExpressionInput,
     type AxisRange,
-    type RangeState,
-} from '../range/rangeModel';
-import {
-    assertCompatiblePanelSeriesList,
-    normalizePanelSeriesDefinitions,
-    shouldUseNumericPanelRangeInput,
-} from '../seriesModel';
+} from '../rangeExpression/rangeModel';
 import {
     decodePersistedPanelRangeState,
     encodePersistedPanelRangeState,
@@ -65,6 +58,12 @@ export enum TazVersion {
 }
 
 export const TAZ_FORMAT_VERSION = TazVersion.V210;
+
+// Saved files retain this fallback independently of defaults for new panels.
+export const TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING: Readonly<PanelSampling> = {
+    enabled: false,
+    sampleCount: 0.01,
+};
 
 export function normalizePersistedTazVersion(version: unknown): TazVersion {
     const sVersion = String(version ?? '').trim();
@@ -197,77 +196,68 @@ export function normalizePersistedPanelRangeInput(
     );
 }
 
-export function cloneSeriesAnnotations(
+export function decodeSeriesAnnotations(
     annotations: unknown,
-): Omit<PanelAnnotation, 'seriesKey'>[] {
+): Omit<PanelAnnotationInput, 'seriesKey'>[] {
     const sAnnotations = Array.isArray(annotations)
         ? annotations as PersistedTimedMarkupInput[]
         : [];
     return sAnnotations.map((annotation) => ({
-        ...cloneTimedMarkup(annotation, {
-            fillColor: DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-            textColor: DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-        }),
+        ...decodeTimedMarkup(annotation),
         clip: annotation.clip === true,
+        useDefaultLabel: false,
     }));
 }
 
-export function clonePanelHighlights(
+export function decodePanelHighlights(
     highlights: PersistedTimedMarkupInput[] | undefined,
-): PanelHighlight[] {
+): PanelHighlightInput[] {
     return (highlights ?? []).flatMap((highlight) => {
         const sTimeRange = decodeAxisRange(highlight.timeRange);
         return sTimeRange
-            ? [cloneTimedMarkup(
-                  highlight,
-                  {
-                      fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-                      textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-                  },
-                  sTimeRange,
-              )]
+            ? [decodeTimedMarkup(highlight, sTimeRange)]
             : [];
     });
 }
 
-export function clonePanelAnnotations(
+export function decodePanelAnnotations(
     annotations: PersistedPanelAnnotationInput[] | undefined,
-): PanelAnnotation[] {
+): PanelAnnotationInput[] {
     return (annotations ?? []).map((annotation) => ({
-        ...cloneTimedMarkup(
-            {
-                ...annotation,
-                text: annotation.text || DEFAULT_SERIES_ANNOTATION_LABEL,
-            },
-            {
-                fillColor: DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-                textColor: DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-            },
-        ),
+        ...decodeTimedMarkup(annotation),
         seriesKey: annotation.seriesKey,
         clip: annotation.clip === true,
     }));
 }
 
-export function parseLoadedPanelTazVer210(
+export function decodePanelTazVer210(
     panelInfo: unknown,
-): PanelInfo {
+): PanelRestoreInput {
     if (!isPersistedPanelInfoV210(panelInfo)) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel structure.');
     }
 
-    const sTagSet = normalizePanelSeriesDefinitions(panelInfo.query.tagSet);
-    if (!sTagSet) {
-        throw new Error('Invalid TagAnalyzer .taz v2.1 panel series structure.');
-    }
-    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz v2.1 panel');
+    const { tagSet: sTagSet, isNumericAxis } = prepareSeriesDefinitions(panelInfo.query.tagSet, {
+        validation: 'strict',
+        source: 'TagAnalyzer .taz v2.1 panel',
+        invalidSeriesMessage: 'Invalid TagAnalyzer .taz v2.1 panel series structure.',
+    });
 
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.timeRange,
-        shouldUseNumericPanelRangeInput(sTagSet),
+        isNumericAxis,
     );
     if (!sRangeInput) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel timeRange structure.');
+    }
+    const navigatorRangeInput = panelInfo.timeRange.navigatorRangeInput === undefined
+        ? undefined
+        : normalizePersistedPanelRangeInput(
+              panelInfo.timeRange.navigatorRangeInput,
+              isNumericAxis,
+          );
+    if (panelInfo.timeRange.navigatorRangeInput !== undefined && !navigatorRangeInput) {
+        throw new Error('Invalid TagAnalyzer .taz v2.1 panel navigator range structure.');
     }
     const lastViewedRange: RangeState | undefined =
         decodePersistedPanelRangeState(panelInfo.timeRange.lastViewedRange);
@@ -277,7 +267,6 @@ export function parseLoadedPanelTazVer210(
     return {
         key: panelInfo.key,
         title: panelInfo.title,
-        isOverlapSelected: false,
         query: {
             tagSet: sTagSet,
             intervalType: decodePersistedTimeUnit(panelInfo.query.intervalType),
@@ -289,13 +278,14 @@ export function parseLoadedPanelTazVer210(
         },
         time: {
             rangeInput: sRangeInput,
+            navigatorRangeInput,
             useLastViewedRange: panelInfo.timeRange.useLastViewedRange ?? false,
             lastViewedRange,
         },
         axes: parsePersistedAxes(panelInfo.axes),
         display: parsePersistedDisplay(panelInfo.display),
-        highlights: clonePanelHighlights(panelInfo.highlights),
-        annotations: clonePanelAnnotations(panelInfo.annotations),
+        highlights: decodePanelHighlights(panelInfo.highlights),
+        annotations: decodePanelAnnotations(panelInfo.annotations),
     };
 }
 
@@ -321,6 +311,7 @@ function isTazVersion(value: unknown): value is TazVersion {
 }
 
 type PersistedPanelTimeRangeV210 = RangeExpressionInput & {
+    navigatorRangeInput?: RangeExpressionInput;
     useLastViewedRange?: boolean;
     lastViewedRange?: PersistedPanelRangeState;
 };
@@ -572,24 +563,23 @@ function normalizeLegacyBoardStyleRangeValue(
     return sAbsolute === undefined ? '' : formatNumericValue(sAbsolute);
 }
 
-function cloneTimedMarkup(
+function decodeTimedMarkup(
     markup: PersistedTimedMarkupInput,
-    defaults: { fillColor: string; textColor: string },
     timeRange: AxisRange = {
         start: markup.timeRange.startTime,
         end: markup.timeRange.endTime,
     },
-): PanelHighlight {
+): PanelHighlightInput {
     return {
         text: markup.text,
         timeRange,
-        fillColor: markup.fillColor ?? defaults.fillColor,
-        textColor: markup.textColor ?? defaults.textColor,
+        fillColor: markup.fillColor,
+        textColor: markup.textColor,
     };
 }
 
 function encodeTimedMarkup(
-    markup: PanelHighlight,
+    markup: PanelInfo['highlights'][number],
 ): PersistedTimedMarkupInput {
     return {
         text: markup.text,
@@ -600,7 +590,7 @@ function encodeTimedMarkup(
 }
 
 function encodePanelAnnotation(
-    annotation: PanelAnnotation,
+    annotation: PanelInfo['annotations'][number],
 ): PersistedPanelAnnotationInput {
     return {
         ...encodeTimedMarkup(annotation),
@@ -719,7 +709,7 @@ function parsePersistedDisplay(value: unknown): PanelDisplay {
         rawNavigatorSampling: parseSampling(
             sDisplay.rawNavigatorSampling,
             'display.rawNavigatorSampling',
-            DEFAULT_RAW_NAVIGATOR_SAMPLING,
+            TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING,
         ),
     };
 }
@@ -831,6 +821,9 @@ function mapPanelToPersistedTaz(
         mode: { ...panelInfo.mode },
         timeRange: {
             ...panelInfo.time.rangeInput,
+            navigatorRangeInput: panelInfo.time.navigatorRangeInput
+                ? { ...panelInfo.time.navigatorRangeInput }
+                : undefined,
             useLastViewedRange: panelInfo.time.useLastViewedRange,
             lastViewedRange: panelInfo.time.lastViewedRange
                 ? encodePersistedPanelRangeState(

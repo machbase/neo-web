@@ -5,7 +5,6 @@ import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { parseFiniteNumber } from '../objectGuards';
 import {
-    findRollupTableEntry,
     hasMixedXAxisValueKinds,
     isNumericBaseTimeSourceColumns,
     parseSqlIdentifierPath,
@@ -13,19 +12,26 @@ import {
     validatePanelSeriesSourceColumns,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
-    type RollupDefinition,
-    type RollupTableEntry,
-    type RollupTableMap,
     type SqlIdentifierPath,
     type ValidatedPanelSeriesSourceColumns,
 } from '../seriesModel';
 import {
+    findRollupTableEntry,
+    type RollupDefinition,
+    type RollupTableEntry,
+    type RollupTableMap,
+} from './rollupMetadata';
+import {
     getIntervalMs,
     type IntervalOption,
-} from '../range/intervalResolver';
-import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import type { AxisRange } from '../range/rangeModel';
-import { getEnclosingRange } from '../range/rangeArithmetic';
+} from '../rangeExpression/intervalResolver';
+import { createNonEmptyAxisRange } from '../rangeExpression/rangeBuilder';
+import {
+    SINGLE_POINT_TIME_WIDTH_MS,
+    SINGLE_POINT_NUMERIC_WIDTH,
+    type AxisRange,
+} from '../rangeExpression/rangeModel';
+import { getEnclosingRange } from '../rangeExpression/rangeArithmetic';
 import {
     getUnknownErrorMessage,
     parseQueryResponse,
@@ -46,9 +52,6 @@ import {
 
 export type PanelDataFetchResult = PanelSeriesFetchResult[];
 export type SeriesDataRow = [axisValue: number, value: number | null];
-
-export const SINGLE_POINT_TIME_WIDTH_MS = 1_000;
-export const SINGLE_POINT_NUMERIC_WIDTH = 1;
 
 export type SeriesRowsQuery =
     | {

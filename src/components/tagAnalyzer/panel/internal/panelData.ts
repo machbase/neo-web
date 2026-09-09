@@ -1,3 +1,4 @@
+import type { RangeState, ResolvedRangeState } from '../rangeControl/rangeControlModel';
 import { useMemo, useState } from 'react';
 import {
     seriesDataApi,
@@ -14,19 +15,16 @@ import {
 import {
     fitRangeWithinBounds,
     isRangeWithin,
-} from '../../range/rangeArithmetic';
+} from '../../rangeExpression/rangeArithmetic';
 import type {
     AxisRange,
-    RangeState,
-    ResolvedRangeState,
-} from '../../range/rangeModel';
-import { enforceNavigatorTrackWidth } from '../../range/rangeResolver';
-import { getNavigatorTrackWidth } from '../../chart/chartLayout';
+} from '../../rangeExpression/rangeModel';
+import { enforceNavigatorTrackWidth } from '../rangeControl/rangeTransitions';
 import {
     getSeriesListAxisKind,
     type PanelSeriesDefinition,
-    type RollupTableMap,
 } from '../../seriesModel';
+import type { RollupTableMap } from '../../api/rollupMetadata';
 import type { PanelInfo } from '../panelModel';
 import {
     resolvePanelSeriesRequest,
@@ -84,11 +82,11 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
         () =>
             resolveRawRangeConstraint(
                 params.rangeState?.range,
-                chartWidth,
+                params.navigatorTrackWidth,
                 isRaw,
                 main.state.result,
             ),
-        [chartWidth, isRaw, main.state.result, params.rangeState?.range],
+        [params.navigatorTrackWidth, isRaw, main.state.result, params.rangeState?.range],
     );
     const renderRange = rawLimitRange ?? params.rangeState?.range;
     const navigator = usePanelDataLane(
@@ -139,6 +137,7 @@ type UsePanelDataParams = {
     isActive: boolean;
     rangeState: ResolvedRangeState | undefined;
     chartAreaWidth: number | undefined;
+    navigatorTrackWidth: number | undefined;
     rollupTables: RollupTableMap;
     dataRefreshVersion: number;
 };
@@ -297,11 +296,11 @@ function resolvePanelDataRequest(
 
 function resolveRawRangeConstraint(
     requestedRange: RangeState | undefined,
-    chartWidth: number | undefined,
+    navigatorTrackWidth: number | undefined,
     isRaw: boolean,
     result: PanelDataFetchResult | undefined,
 ): RangeState | undefined {
-    if (!requestedRange || !isRaw || chartWidth === undefined) {
+    if (!requestedRange || !isRaw || navigatorTrackWidth === undefined) {
         return undefined;
     }
 
@@ -322,7 +321,7 @@ function resolveRawRangeConstraint(
             },
             navigatorRange: requestedRange.navigatorRange,
         },
-        getNavigatorTrackWidth(chartWidth),
+        navigatorTrackWidth,
         'main',
     );
     return {

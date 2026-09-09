@@ -37,6 +37,16 @@
     transition-delay: 0s;
 }
 
+@starting-style {
+    .editor[data-state='open'] {
+        max-height: 0;
+        margin-top: 0;
+        border-width: 0;
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+}
+
 .editorPage {
     container: tag-analyzer-editor / inline-size;
     width: 100%;
@@ -71,6 +81,12 @@
     flex-wrap: nowrap;
     min-width: 0;
     overflow-x: auto;
+
+    > div {
+        flex: 0 0 84px;
+        box-sizing: border-box;
+        justify-content: center;
+    }
 }
 
 .invalidTab {
@@ -119,6 +135,10 @@
     height: 320px;
     padding: 8px 16px 16px;
     overflow-y: auto;
+}
+
+.rangeContent {
+    height: 420px;
 }
 
 .content button,

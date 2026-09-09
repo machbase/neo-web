@@ -1,3 +1,4 @@
+import type { ResolvedRangeState } from '../rangeControl/rangeControlModel';
 import type {
     SeriesRowsQuery,
 } from '../../api/seriesDataApi';
@@ -7,23 +8,22 @@ import {
     resolveNumericIntervalValue,
     type IntervalOption,
     type TimeUnit,
-} from '../../range/intervalResolver';
+} from '../../rangeExpression/intervalResolver';
 import {
     createRangeFromCenterAndWidth,
     fitRangeWithinBounds,
     getRangeCenter,
     getRangeWidth,
     isRangeWithin,
-} from '../../range/rangeArithmetic';
+} from '../../rangeExpression/rangeArithmetic';
 import type {
     AxisRange,
-    ResolvedRangeState,
-} from '../../range/rangeModel';
+} from '../../rangeExpression/rangeModel';
 import {
     getSeriesListAxisKind,
     PanelSeriesCalculationMode,
-    type RollupTableMap,
 } from '../../seriesModel';
+import type { RollupTableMap } from '../../api/rollupMetadata';
 import type { PanelInfo } from '../panelModel';
 
 export type PanelQueryResolution =
@@ -243,25 +243,19 @@ export function createSeriesRowsQueryKeys(
               }
             : {}),
     }));
-    const [familyOptions, resolutionOptions]: [unknown, unknown] =
-        query.kind === 'raw'
-            ? [{ useOrderBy: query.useOrderBy }, undefined]
-            : query.kind === 'sampled-raw'
-              ? [
-                    {
-                        sampleCount: query.sampleCount,
-                        useOrderBy: query.useOrderBy,
-                    },
-                    undefined,
-                ]
-              : [
-                    { rollupTables: query.rollupTables },
-                    {
-                        interval: query.interval,
-                        rowLimit: query.rowLimit,
-                        numericBucketWidth: query.numericBucketWidth,
-                    },
-                ];
+    const familyOptions = query.kind === 'calculated'
+        ? { rollupTables: query.rollupTables }
+        : {
+              ...(query.kind === 'sampled-raw' && { sampleCount: query.sampleCount }),
+              useOrderBy: query.useOrderBy,
+          };
+    const resolutionOptions = query.kind === 'calculated'
+        ? {
+              interval: query.interval,
+              rowLimit: query.rowLimit,
+              numericBucketWidth: query.numericBucketWidth,
+          }
+        : undefined;
     const familyKey = JSON.stringify([
         query.kind,
         seriesKey,

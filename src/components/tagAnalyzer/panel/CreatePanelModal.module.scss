@@ -1,5 +1,18 @@
+.modal {
+    --series-small-width: 200px;
+    --series-medium-width: 300px;
+    --series-source-columns: 3;
+    width: 700px;
+    min-width: min(700px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+}
+
+.body {
+    scrollbar-gutter: stable both-edges;
+}
+
 .chartTypeButton {
-    flex: 1;
+    flex: 0 0 var(--series-small-width);
     min-height: 72px;
     padding: 12px;
 }

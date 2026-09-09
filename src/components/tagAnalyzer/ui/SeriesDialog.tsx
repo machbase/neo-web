@@ -5,7 +5,7 @@ import { Stack, Text } from './Presentation';
 import styles from './SeriesDialog.module.scss';
 
 export function SeriesDialog({
-    title, onClose, onApply, message, applyDisabled, applyTestId, children,
+    title, onClose, onApply, message, applyDisabled, applyTestId, children, className, bodyClassName,
     'data-testid': testId,
 }: {
     title: string;
@@ -15,10 +15,12 @@ export function SeriesDialog({
     applyDisabled?: boolean;
     applyTestId?: string;
     children: ReactNode;
+    className?: string;
+    bodyClassName?: string;
     'data-testid'?: string;
 }) {
     return (
-        <Modal.Root isOpen onClose={onClose} className={styles.modal} data-testid={testId}>
+        <Modal.Root isOpen onClose={onClose} className={[styles.modal, className].filter(Boolean).join(' ')} data-testid={testId}>
             <Modal.Header>
                 <Modal.Title className={styles.title}>
                     <span className={styles.icon} aria-hidden="true"><BiSolidChart /></span>
@@ -26,7 +28,7 @@ export function SeriesDialog({
                 </Modal.Title>
                 <Modal.Close data-testid="close" />
             </Modal.Header>
-            <Modal.Body><Stack>{children}</Stack></Modal.Body>
+            <Modal.Body className={bodyClassName}><Stack>{children}</Stack></Modal.Body>
             <Modal.Footer>
                 {message && <Text variant="caption" tone="danger" className={styles.message} role="status">{message}</Text>}
                 <Modal.Cancel data-testid="cancel">Cancel</Modal.Cancel>

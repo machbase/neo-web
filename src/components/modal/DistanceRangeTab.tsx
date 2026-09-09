@@ -19,8 +19,12 @@ import {
 import styles from './DistanceRangeTab.module.scss';
 
 interface DistanceRangeTabProps {
-    /** Full data extent of the distance base column — the slider bounds [first, last]. {0,0} when unknown. */
+    /** Full data extent of the distance base column [first, last]. {0,0} when unknown. */
     pBounds: { min: number; max: number };
+    /** Optional editing extent, such as the current Nav range. Its presets emit coordinates, not data anchors. */
+    pSelectionBounds?: { min: number; max: number };
+    /** Expand the slider to include the selection; anchors and quick windows still use the data extent. */
+    pAllowOutsideBounds?: boolean;
     /**
      * Current selection. Either a coordinate, or an edge anchored to the data — `last-5000`, `first`,
      * `first+5000` — which is resolved against `pBounds` for display and stays an expression when it
@@ -30,10 +34,13 @@ interface DistanceRangeTabProps {
     pTo: number | string;
     /** Emits a new [from, to] selection (caller clamps/persists). Anchored edges pass through as text. */
     pOnChange: (aFrom: number | string, aTo: number | string) => void;
+    /** Preserves incomplete text in an editor draft so its Apply action can validate it. */
+    pOnTextChange?: (aFrom: string, aTo: string) => void;
     /** Reset to the system default (full) range. */
     pOnResetToFull?: () => void;
     /** Wording for that reset control — the modal resets to the system default, the panel editor clears an override. */
     pResetLabel?: string;
+    pResetTitle?: string;
     /** Greyed out when there is nothing to reset (no override in effect). */
     pResetDisabled?: boolean;
     /**
@@ -123,11 +130,15 @@ export const DistanceQuickWindows = ({ pBounds, pOnSelect }: { pBounds: { min: n
  */
 const DistanceRangeTab = ({
     pBounds,
+    pSelectionBounds,
+    pAllowOutsideBounds = false,
     pFrom,
     pTo,
     pOnChange,
+    pOnTextChange,
     pOnResetToFull,
     pResetLabel = 'Reset to default',
+    pResetTitle = 'Clear the saved range and follow the full data extent',
     pResetDisabled = false,
     pBadge,
     pMuted = false,
@@ -141,6 +152,7 @@ const DistanceRangeTab = ({
     // numeric input must not do.
     const [sFromText, setFromText] = useState(() => String(pFrom));
     const [sToText, setToText] = useState(() => String(pTo));
+    const [sThumbDrag, setThumbDrag] = useState<{ anchored: number; min: number; max: number } | null>(null);
 
     // The bounds arrive asynchronously (the modal fetches the panel's min/max after mount) and land
     // as new pFrom/pTo. Re-seed the text from the prop only when the two actually disagree, so an
@@ -156,14 +168,21 @@ const DistanceRangeTab = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pTo]);
 
-    const sHasExtent = Number.isFinite(pBounds?.min) && Number.isFinite(pBounds?.max) && pBounds.max > pBounds.min;
-    const sMin = sHasExtent ? pBounds.min : 0;
-    const sMax = sHasExtent ? pBounds.max : 0;
+    const sBounds = pSelectionBounds ?? pBounds;
+    const sHasExtent = Number.isFinite(sBounds?.min) && Number.isFinite(sBounds?.max) && sBounds.max > sBounds.min;
     // `last-5000` is a number the moment the extent is known, and nothing below this line needs to
     // know it was ever written as an anchor — the slider, the readout and the span all work on the
     // resolved pair. Only the From/To text and what is emitted keep the expression.
-    const sFromValue = resolveDistanceEdge(sFromText, sHasExtent ? { min: sMin, max: sMax } : null);
-    const sToValue = resolveDistanceEdge(sToText, sHasExtent ? { min: sMin, max: sMax } : null);
+    const sFromValue = resolveDistanceEdge(sFromText, pBounds);
+    const sToValue = resolveDistanceEdge(sToText, pBounds);
+    // Keep an expanded selection editable without changing what first/last mean. Freeze the rail
+    // during a drag so moving an outer thumb inward cannot rescale it beneath the pointer.
+    const sSliderBounds = sThumbDrag ?? (pAllowOutsideBounds ? {
+        min: Math.min(sBounds.min, sFromValue ?? sBounds.min, sToValue ?? sBounds.min),
+        max: Math.max(sBounds.max, sFromValue ?? sBounds.max, sToValue ?? sBounds.max),
+    } : sBounds);
+    const sMin = sHasExtent ? sSliderBounds.min : 0;
+    const sMax = sHasExtent ? sSliderBounds.max : 0;
     const sRange = sMax - sMin || 1;
     // An unparseable edge still has to put the thumb *somewhere*; the corresponding bound is the
     // only honest place for it, and the readout says `-` so nothing claims that guess is the value.
@@ -224,6 +243,12 @@ const DistanceRangeTab = ({
         pOnChange(aFrom, aTo);
     };
 
+    const selectQuickWindow = (aFrom: number | string, aTo: number | string) => {
+        const from = pSelectionBounds ? resolveDistanceEdge(aFrom, pSelectionBounds) : aFrom;
+        const to = pSelectionBounds ? resolveDistanceEdge(aTo, pSelectionBounds) : aTo;
+        if (from !== null && to !== null) setRange(from, to);
+    };
+
     const fromThumbRef = useRef<HTMLInputElement | null>(null);
     const toThumbRef = useRef<HTMLInputElement | null>(null);
 
@@ -272,7 +297,6 @@ const DistanceRangeTab = ({
     // nearer thumb, anchors the other, and from then on the gesture is just "this value, that
     // anchor" — which is why crossing needs no case of its own here.
     const sliderRef = useRef<HTMLDivElement | null>(null);
-    const thumbDragRef = useRef<{ anchored: number } | null>(null);
 
     // Value → x, on the rail the thumb centre can actually reach.
     const valueToClientX = (aValue: number, aRect: DOMRect) => {
@@ -291,14 +315,13 @@ const DistanceRangeTab = ({
 
     useEffect(() => {
         const handleMove = (aEvent: PointerEvent) => {
-            const sDrag = thumbDragRef.current;
             const sRect = sliderRef.current?.getBoundingClientRect();
-            if (!sDrag || !sRect || !(sRect.width > 0)) return;
+            if (!sThumbDrag || !sRect || !(sRect.width > 0)) return;
             aEvent.preventDefault();
-            commitEdges(clientXToValue(aEvent.clientX, sRect), sDrag.anchored);
+            commitEdges(clientXToValue(aEvent.clientX, sRect), sThumbDrag.anchored);
         };
         const handleUp = () => {
-            thumbDragRef.current = null;
+            setThumbDrag(null);
         };
         window.addEventListener('pointermove', handleMove);
         window.addEventListener('pointerup', handleUp);
@@ -338,13 +361,13 @@ const DistanceRangeTab = ({
 
         if (sEdge) {
             aEvent.preventDefault();
-            thumbDragRef.current = { anchored: sEdge === 'from' ? sSliderTo : sSliderFrom };
+            setThumbDrag({ anchored: sEdge === 'from' ? sSliderTo : sSliderFrom, min: sMin, max: sMax });
             return;
         }
 
         // Not a thumb, so nothing is being dragged — including anything a previous gesture left
         // behind if its pointerup landed somewhere that never reached us.
-        thumbDragRef.current = null;
+        setThumbDrag(null);
         const sNext = buildDistanceSliderClickRange({ ratio: (aEvent.clientX - sRect.left) / sRect.width, from: sSliderFrom, to: sSliderTo, min: sMin, max: sMax });
         if (!sNext) return;
         setRange(sNext.from, sNext.to);
@@ -361,11 +384,19 @@ const DistanceRangeTab = ({
     };
     const handleFromText = (aText: string) => {
         setFromText(aText);
+        if (pOnTextChange) {
+            pOnTextChange(aText, sToText);
+            return;
+        }
         if (parseDistanceValue(aText) === null && !isDistanceAnchorEdge(aText)) return;
         pOnChange(emittableEdge(aText, sSliderFrom), emittableEdge(sToText, sSliderTo));
     };
     const handleToText = (aText: string) => {
         setToText(aText);
+        if (pOnTextChange) {
+            pOnTextChange(sFromText, aText);
+            return;
+        }
         if (parseDistanceValue(aText) === null && !isDistanceAnchorEdge(aText)) return;
         pOnChange(emittableEdge(sFromText, sSliderFrom), emittableEdge(aText, sSliderTo));
     };
@@ -411,7 +442,7 @@ const DistanceRangeTab = ({
                         data-testid="reset-button"
                         onClick={pOnResetToFull}
                         disabled={pResetDisabled}
-                        title="Clear the saved range and follow the full data extent"
+                        title={pResetTitle}
                     >
                         <VscTrash size={12} />
                         {pResetLabel}
@@ -501,7 +532,7 @@ const DistanceRangeTab = ({
             {/* Quick windows. Every one of them is a fraction of the *extent*, so they exist only
                 when the extent does — the same condition that draws the slider. A caller that
                 places them itself (the panel editor's right-hand column) turns them off here. */}
-            {sHasExtent && !pHideQuickWindows && <DistanceQuickWindows pBounds={{ min: sMin, max: sMax }} pOnSelect={setRange} />}
+            {sHasExtent && !pHideQuickWindows && <DistanceQuickWindows pBounds={sBounds} pOnSelect={selectQuickWindow} />}
 
             {sNotice && <div className={styles.notice} data-testid="validation-message">{sNotice}</div>}
         </div>

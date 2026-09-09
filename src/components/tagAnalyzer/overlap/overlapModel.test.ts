@@ -1,13 +1,8 @@
-import { createNewPanelInfo, type PanelInfo } from '../panel/panelModel';
 import {
     buildOverlapChartOption,
     createOverlapChartSeriesGroup,
     type OverlapSeriesData,
 } from './overlapModel';
-
-function createPanel(key: string): PanelInfo {
-    return { ...createNewPanelInfo([], 'Same panel', 'Line'), key };
-}
 
 function createSeries(
     data: OverlapSeriesData['data'],
@@ -19,7 +14,8 @@ describe('overlap chart series groups', () => {
     it('aligns, shifts, names, and identifies series at the ECharts boundary', () => {
         const firstGroup = createOverlapChartSeriesGroup(
             {
-                panelInfo: createPanel('panel-a'),
+                key: 'panel-a',
+                title: 'Same panel',
                 visibleRange: { start: 90, end: 130 },
             },
             [
@@ -29,7 +25,8 @@ describe('overlap chart series groups', () => {
         );
         const secondGroup = createOverlapChartSeriesGroup(
             {
-                panelInfo: createPanel('panel-b'),
+                key: 'panel-b',
+                title: 'Same panel',
                 visibleRange: { start: 490, end: 530 },
             },
             [createSeries([[500, 3], [510, 4]])],
@@ -81,7 +78,8 @@ describe('overlap chart series groups', () => {
     it('omits chart options when no series has a plotted value', () => {
         expect(buildOverlapChartOption([], false, true)).toBeUndefined();
         const group = createOverlapChartSeriesGroup({
-            panelInfo: createPanel('empty'),
+            key: 'empty',
+            title: 'Same panel',
             visibleRange: { start: 90, end: 130 },
         }, [createSeries([]), createSeries([[100, null]])]);
         expect(buildOverlapChartOption([group], false, true)).toBeUndefined();

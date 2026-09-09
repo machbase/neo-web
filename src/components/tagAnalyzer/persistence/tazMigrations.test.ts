@@ -8,7 +8,11 @@ import {
     normalizePersistedPanelRangeInput,
     TazVersion,
 } from './tazFormat';
-import { parseLoadedTaz } from './tazMigrations';
+import { loadTazBoard } from '../board/boardDocuments';
+
+function loadTestBoard(document: unknown) {
+    return loadTazBoard(document, 'board', 'board.taz', '/');
+}
 
 const NUMERIC_SERIES: PanelSeriesDefinition = {
     key: 'numeric-series',
@@ -124,6 +128,7 @@ describe('TagAnalyzer persistence version dispatch', () => {
         ['first-10', 'last'],
         ['first', 'last+10'],
         ['first+1e1', 'last-1e1'],
+        ['FIRST + 1e1', 'last - .25e+2'],
     ])(
         'round-trips numeric expressions %s to %s without changing them',
         (start, end) => {
@@ -133,12 +138,14 @@ describe('TagAnalyzer persistence version dispatch', () => {
                 'Line',
             );
             panel.time.rangeInput = { start, end };
+            panel.time.navigatorRangeInput = { start, end };
 
             const encoded = encodePanel(panel, { start, end });
-            const decoded = parseLoadedTaz(encoded);
+            const decoded = loadTestBoard(encoded);
 
             expect(encoded.panels[0].timeRange).toMatchObject({ start, end });
             expect(decoded.panels[0].time.rangeInput).toEqual({ start, end });
+            expect(decoded.panels[0].time.navigatorRangeInput).toEqual({ start, end });
             expect(decoded.boardNumericRange).toEqual({ start, end });
         },
     );
@@ -146,6 +153,8 @@ describe('TagAnalyzer persistence version dispatch', () => {
     it('round-trips a current panel through the current parser', () => {
         const panel = createNewPanelInfo([], 'Panel', 'Line');
         panel.time.useLastViewedRange = true;
+        panel.time.rangeInput = { start: 'first+1h', end: 'last-1h' };
+        panel.time.navigatorRangeInput = { start: 'first', end: 'last' };
         panel.time.lastViewedRange = {
             mainRange: { start: 10, end: 20 },
             navigatorRange: { start: 0, end: 30 },
@@ -179,7 +188,9 @@ describe('TagAnalyzer persistence version dispatch', () => {
             endTime: 15,
         });
 
-        const decodedPanel = parseLoadedTaz(encoded).panels[0];
+        const decodedPanel = loadTestBoard(encoded).panels[0];
+        expect(decodedPanel.time.rangeInput).toEqual(panel.time.rangeInput);
+        expect(decodedPanel.time.navigatorRangeInput).toEqual(panel.time.navigatorRangeInput);
         expect(decodedPanel.time.lastViewedRange).toEqual(
             panel.time.lastViewedRange,
         );
@@ -200,14 +211,14 @@ describe('TagAnalyzer persistence version dispatch', () => {
                 sampleCount,
             };
 
-            expect(() => parseLoadedTaz(encoded)).toThrow(
+            expect(() => loadTestBoard(encoded)).toThrow(
                 'display.mainChartSampling.sampleCount',
             );
         },
     );
 
     it('disables invalid sampling while migrating v2.0.4', () => {
-        const panel = parseLoadedTaz(createV204Board(0)).panels[0];
+        const panel = loadTestBoard(createV204Board(0)).panels[0];
 
         expect(panel.display.mainChartSampling).toEqual({
             enabled: false,
@@ -222,10 +233,10 @@ describe('TagAnalyzer persistence version dispatch', () => {
         [TazVersion.V203, 'Invalid TagAnalyzer .taz 2.0.3 panel structure.'],
         [TazVersion.V200, 'Invalid TagAnalyzer .taz 2.0.0 panel structure.'],
     ])('rejects a malformed %s panel', (version, message) => {
-        expect(() => parseLoadedTaz({ version, panels: [{}] })).toThrow(message);
+        expect(() => loadTestBoard({ version, panels: [{}] })).toThrow(message);
     });
 
     it('retains the legacy repair path that drops an unrepairable panel', () => {
-        expect(parseLoadedTaz({ panels: [null] }).panels).toEqual([]);
+        expect(loadTestBoard({ panels: [null] }).panels).toEqual([]);
     });
 });

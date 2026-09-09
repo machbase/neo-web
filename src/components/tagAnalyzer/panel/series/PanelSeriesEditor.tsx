@@ -27,11 +27,6 @@ import { isTagAnalyzerJsonValue } from '@/utils/tagAnalyzerFields';
 import { tableMetadataApi } from '../../api/tableMetadataApi';
 import {
     createPanelSeriesDefinition,
-    formatRollupIntervalList,
-    formatRollupRangeLabel,
-    getPanelSeriesRollupColumn,
-    getPanelSeriesRollupInfo,
-    getPanelSeriesValueSummaryLabel,
     getSeriesListAxisKind,
     hasMixedXAxisValueKinds,
     MIXED_X_AXIS_KIND_WARNING,
@@ -39,10 +34,17 @@ import {
     PANEL_TAG_LIMIT,
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
-    type RollupTableMap,
     updatePanelSeriesCalculationMode,
 } from '../../seriesModel';
-import type { AxisKind } from '../../range/rangeModel';
+import {
+    formatRollupIntervalList,
+    formatRollupRangeLabel,
+    getPanelSeriesRollupColumn,
+    getPanelSeriesRollupInfo,
+    getPanelSeriesValueSummaryLabel,
+    type RollupTableMap,
+} from '../../api/rollupMetadata';
+import type { AxisKind } from '../../rangeExpression/rangeModel';
 import { getErrorMessageFromValue } from '../../errorMessage';
 import { useLatestAsyncRequest } from '../../hooks/useLatestAsyncRequest';
 import { Field, Inline, Stack, Text } from '../../ui/Presentation';
@@ -55,8 +57,6 @@ import {
 import { useSeriesTagSearch } from './useSeriesTagSearch';
 import styles from './PanelSeriesEditor.module.scss';
 import controls from '../../ui/Controls.module.scss';
-
-export { X_AXIS_KIND_CHANGE_WARNING } from '../../seriesModel';
 
 export function PanelSeriesEditor({
     seriesList,
@@ -73,7 +73,6 @@ export function PanelSeriesEditor({
 }) {
     const tagSearch = useSeriesTagSearch(setFooterMessage);
     const source = usePanelSeriesSource(
-        rollupTableList,
         tagSearch.changeSource,
         setFooterMessage,
     );
@@ -131,6 +130,7 @@ export function PanelSeriesEditor({
             (series) =>
                 series.table === sSelectedTable &&
                 series.sourceTagName === tagName &&
+                series.calculationMode === PanelSeriesCalculationMode.Average &&
                 series.sourceColumns.name === sColumns.name &&
                 series.sourceColumns.time === sColumns.time &&
                 series.sourceColumns.value === sColumns.value &&
@@ -149,7 +149,12 @@ export function PanelSeriesEditor({
                 tagName,
                 calculationMode: PanelSeriesCalculationMode.Average,
                 columns: sColumns,
-                rollupMetadata: rollupTableList,
+                useRollupTable: getPanelSeriesRollupColumn(
+                    rollupTableList,
+                    sSelectedTable,
+                    sColumns.value,
+                    sColumns.jsonKey,
+                ) !== undefined,
             }),
         ]);
     }
@@ -212,8 +217,8 @@ export function PanelSeriesEditor({
                 />
             </Field>
 
-            <div className={controls.twoColumns}>
-                <Stack gap={8}>
+            <div className={`${controls.twoColumns} ${styles.seriesColumns}`}>
+                <Stack gap={8} className={styles.seriesColumn}>
                     <Inline className={styles.columnHeader}>
                         <Text variant="section" tone="muted">Item list</Text>
                         <Badge variant="primary" size="sm">
@@ -235,16 +240,6 @@ export function PanelSeriesEditor({
                             }
                         }}
                     />
-                    <Pagination
-                        data-testid="series-pagination"
-                        currentPage={tagSearch.page}
-                        totalPages={tagSearch.totalPages}
-                        onPageChange={tagSearch.changePage}
-                        onPageInputChange={tagSearch.setPageInput}
-                        inputValue={tagSearch.pageInput}
-                        showTotalPage
-                        className={styles.seriesPagination}
-                    />
                 </Stack>
 
                 <SelectedSeriesList
@@ -253,6 +248,16 @@ export function PanelSeriesEditor({
                     onRemoveSeries={removeSelectedTag}
                     onClearAll={() => applyNewSeriesList([])}
                     onChangeCalculationMode={changeSeriesCalculationMode}
+                />
+                <Pagination
+                    data-testid="series-pagination"
+                    currentPage={tagSearch.page}
+                    totalPages={tagSearch.totalPages}
+                    onPageChange={tagSearch.changePage}
+                    onPageInputChange={tagSearch.setPageInput}
+                    inputValue={tagSearch.pageInput}
+                    showTotalPage
+                    className={styles.seriesPagination}
                 />
             </div>
         </>
@@ -294,7 +299,7 @@ function SelectedSeriesList({
     }
 
     return (
-        <Stack gap={8}>
+        <Stack gap={8} className={styles.seriesColumn}>
             <Inline justify="between" className={styles.columnHeader}>
                 <Inline data-testid="tag-analyzer-selected-series-count">
                     <Text variant="section" tone="muted">Selected</Text>
@@ -381,7 +386,7 @@ function SelectedSeriesSourceDetails({
     rollupTableList: RollupTableMap;
 }) {
     return (
-        <div className={controls.threeColumns}>
+        <div className={`${controls.threeColumns} ${styles.selectedSeriesDetails}`}>
             {[
                 ['Table', item.table.split('.').at(-1) ?? item.table],
                 ['Time', item.sourceColumns.time || 'Time not selected'],
@@ -454,7 +459,7 @@ function SourceSelector({
         <>
             <Stack gap={12}>
                 <div
-                    className={controls.threeColumns}
+                    className={`${controls.threeColumns} ${styles.sourceLocation}`}
                     role="group"
                     aria-label="Source location"
                 >
@@ -495,7 +500,7 @@ function SourceSelector({
                     />
                 </div>
                 <div
-                    className={controls.twoColumns}
+                    className={`${controls.twoColumns} ${styles.sourceFields}`}
                     role="group"
                     aria-label="Source fields"
                 >
@@ -722,13 +727,9 @@ function JsonKeyField({
 function SourceComboboxField({
     label,
     testId,
-    options,
-    value,
-    onChange,
-    disabled,
-    placeholder,
     dropdownWidth,
     children,
+    ...comboboxProps
 }: {
     label: string;
     testId: string;
@@ -745,15 +746,11 @@ function SourceComboboxField({
     return (
         <Field label={label} htmlFor={sInputId}>
             <Combobox.Root
-                options={options}
-                value={value}
-                onChange={onChange}
-                disabled={disabled}
-                placeholder={placeholder}
+                {...comboboxProps}
                 fullWidth
                 size="md"
             >
-                <Combobox.Input id={sInputId} data-testid={testId} />
+                <Combobox.Input id={sInputId} data-testid={testId} className={styles.sourceInput} />
                 <Combobox.Trigger icon={<ArrowDown size={14} />} />
                 <Combobox.Dropdown width={dropdownWidth}>
                     <Combobox.List />

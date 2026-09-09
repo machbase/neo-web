@@ -1,13 +1,14 @@
 import type { MutableRefObject } from 'react';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
-import type { PanelChartHandle } from '../../chart/chartInteraction';
+import type { PanelChartHandle } from '../../chart/chartModel';
 import {
     filterChartDataByRange,
     type ChartSeriesData,
 } from '../../chart/chartData';
 import { EditAnnotationModal, EditHighlightModal } from '../../markup/MarkupModals';
-import type { AxisRange } from '../../range/rangeModel';
+import { getPanelSeriesDisplayName } from '../../seriesModel';
+import type { AxisRange } from '../../rangeExpression/rangeModel';
 import type { PanelInfo } from '../panelModel';
 import { PanelContextMenu } from './PanelContextMenu';
 import type { PanelActionKey, PanelActionState } from './panelActions';
@@ -65,7 +66,10 @@ export function PanelSurfaceLayer({
                         : surface.session.annotationIndex}
                     session={surface.session}
                     annotations={panelInfo.annotations}
-                    annotationSeriesList={panelInfo.query.tagSet}
+                    annotationSeriesList={panelInfo.query.tagSet.map((series) => ({
+                        key: series.key,
+                        label: getPanelSeriesDisplayName(series),
+                    }))}
                     onChange={(annotations) =>
                         onApplyPanelInfo({ ...panelInfo, annotations })
                     }

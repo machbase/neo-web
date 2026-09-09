@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import type { ECElementEvent, EChartsOption, EChartsType, ElementEvent, SetOptionOpts } from 'echarts';
 import type { EChartsType as NativeEChartsType } from 'echarts/core';
-import type { AxisRange, RangeState } from '../range/rangeModel';
-import { getRangeWidth, isSameRange } from '../range/rangeArithmetic';
-import { createNonEmptyAxisRange } from '../range/rangeBuilder';
+import type { AxisRange } from '../rangeExpression/rangeModel';
+import { getRangeWidth, isSameRange } from '../rangeExpression/rangeArithmetic';
+import { createNonEmptyAxisRange } from '../rangeExpression/rangeBuilder';
 import { asRecord } from '../objectGuards';
 import { useStableCallback } from '../hooks/useStableCallback';
-import { hasNumericBaseTimeSeries } from '../seriesModel';
-import type { PanelHighlight } from '../markup/markupModel';
-import { isAnnotationLabelSeries, isHighlightLabelSeries } from '../markup/chartMarkupOptions';
+import { isAnnotationLabelSeries, isHighlightLabelSeries } from './chartMarkupOptions';
 import type { ChartSeriesVisibilityMap } from './chartData';
+import {
+    type ChartRangeState,
+    PanelOverlayMode,
+    type ChartPresentation,
+    type PanelChartClientPosition,
+    type PanelChartHandlers,
+    type PanelChartProps,
+} from './chartModel';
 import {
     buildChartOption,
     buildChartSeriesOption,
@@ -17,57 +23,14 @@ import {
     PANEL_NAVIGATOR_SERIES_ID_PREFIX,
     PANEL_SLIDER_DATA_ZOOM_ID,
     type PanelChartRuntime,
-    type RuntimePanelChartConfig,
 } from './chartOptions';
 
-export enum PanelOverlayMode {
-    NO_OVERLAY = 'noOverlay',
-    HIGHLIGHT = 'highlight',
-    ANNOTATION = 'annotation',
-    DRAG_SELECT = 'dragSelect',
-}
-
-export type PanelChartHandle = {
-    getVisibleSeries: () => Array<{ name: string; visible: boolean }>;
-    isPointInsideMainGrid: (clientX: number, clientY: number) => boolean;
-};
-
-export type PanelChartHandlers = {
-    rangeActions: {
-        setMainRange: (range: AxisRange) => void;
-        shiftMainRangeLeft: () => void;
-        shiftMainRangeRight: () => void;
-    };
-    markupHandlers: {
-        onOpenCreateAnnotation: (
-            position: PanelChartClientPosition,
-            seriesIndex: number | undefined,
-            timestamp: number,
-        ) => void;
-        onActivateHighlightEditor: (
-            position: PanelChartClientPosition,
-            highlightIndex: number,
-        ) => void;
-        onActivateAnnotationEditor: (
-            position: PanelChartClientPosition,
-            annotationIndex: number,
-        ) => void;
-    };
-    onHoveredMainSeriesChange: (seriesName: string | undefined) => void;
-    onSelection: (selectionRange: AxisRange) => void;
-};
-
-export type ChartInteractionInputs = {
-    refs: {
-        chartAreaRef: MutableRefObject<HTMLDivElement | null>;
-        chartApiRef: MutableRefObject<PanelChartHandle | null>;
-    };
-    runtimeConfig: RuntimePanelChartConfig;
-    draftHighlight?: PanelHighlight;
-    overlayMode: PanelOverlayMode;
-    data: PanelChartRuntime['data'];
-    rangeState: RangeState;
-    handlers: PanelChartHandlers;
+export type ChartInteractionInputs = Pick<
+    PanelChartProps,
+    'refs' | 'draftHighlight' | 'overlayMode' | 'data' | 'handlers'
+> & {
+    runtimeConfig: ChartPresentation;
+    rangeState: ChartRangeState;
 };
 
 export function useChartInteraction({
@@ -88,8 +51,7 @@ export function useChartInteraction({
         onHoveredMainSeriesChange,
         onSelection,
     } = handlers;
-    const { display, query } = runtimeConfig;
-    const seriesList = query.tagSet;
+    const { display, isNumericXAxis } = runtimeConfig;
     const latestHoverTimestampRef = useRef<number | undefined>();
     const latestChartClickRef = useRef(0);
     const latestRangeStateRef = useRef(rangeState);
@@ -109,7 +71,6 @@ export function useChartInteraction({
     }), [chartData, selectedSeries]);
     const visibleSeriesRef = useRef(visibleSeries);
     visibleSeriesRef.current = visibleSeries;
-    const isNumericXAxis = hasNumericBaseTimeSeries(seriesList);
     const isSelectionMode =
         overlayMode === PanelOverlayMode.DRAG_SELECT ||
         overlayMode === PanelOverlayMode.HIGHLIGHT;
@@ -248,6 +209,11 @@ export function useChartInteraction({
 
         chartInstance.dispatchAction({ type: 'hideTip' });
         if (sShouldResetChartData) {
+            // The loading overlay can send mouseout to a removed view. Retire
+            // its hit targets before clear() discards their ECharts models.
+            for (const element of chartInstance.getZr().storage.getDisplayList()) {
+                element.silent = true;
+            }
             chartInstance.clear();
         }
 
@@ -660,11 +626,6 @@ function getChartClickTimestamp(
         isNumericXAxis,
     );
 }
-
-type PanelChartClientPosition = {
-    x: number;
-    y: number;
-};
 
 function parsePanelChartTimestamp(
     value: unknown,

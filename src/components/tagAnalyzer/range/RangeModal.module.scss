@@ -1,5 +1,0 @@
-@use '../TextStyle' as text;
-
-.modal {
-    @include text.control-surface;
-}

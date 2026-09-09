@@ -13,9 +13,9 @@ import { formatAxisRange } from '../format/axisFormat';
 import {
     getTimeUnitMilliseconds,
     TimeUnit,
-} from '../range/intervalResolver';
-import type { AxisRange } from '../range/rangeModel';
-import { shiftRange } from '../range/rangeArithmetic';
+} from '../rangeExpression/intervalResolver';
+import type { AxisRange } from '../rangeExpression/rangeModel';
+import { shiftRange } from '../rangeExpression/rangeArithmetic';
 import {
     buildOverlapChartOption,
     formatOverlapElapsedDurationLabel,
