@@ -13,6 +13,7 @@ import useDebounce from '@/hooks/useDebounce';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { BiInfoCircle } from 'react-icons/bi';
 import { StatzTableModal } from './statzTableModal';
+import { StatzFilterMode, StatzModalInfo } from './statzTableQuery';
 import { TagHierarchyPage } from '@/components/tagHierarchy/TagHierarchyPage';
 import { HIERARCHY_RESERVED_NAME } from '@/api/repository/tagHierarchy';
 
@@ -52,9 +53,10 @@ export const MetaTablePage = ({
     // table/filter the user has already navigated away from, so its rows are discarded.
     const sMetaFetchSeq = useRef(0);
     const sMetaCntFetchSeq = useRef(0);
-    const [sVirtualModal, setVirtualModal] = useState<{ state: boolean; filter: string; table: any; recordCnt: number }>({
+    const [sVirtualModal, setVirtualModal] = useState<StatzModalInfo>({
         state: false,
         filter: '',
+        filterMode: 'search',
         table: undefined,
         recordCnt: 0,
     });
@@ -387,9 +389,9 @@ export const MetaTablePage = ({
         sSearchIIFE.current = true;
         debouncedFilterSearch();
     };
-    const handleVirtualModal = (aFilter: string, aFlag: boolean) => {
+    const handleVirtualModal = (aFilter: string, aFilterMode: StatzFilterMode) => {
         if (!allowedV$()) return;
-        setVirtualModal({ state: true, filter: aFilter, table: pMTableInfo, recordCnt: aFlag ? sMetaTableCnt : 1 });
+        setVirtualModal({ state: true, filter: aFilter, filterMode: aFilterMode, table: pMTableInfo, recordCnt: aFilterMode === 'search' ? sMetaTableCnt : 1 });
     };
     /**
      * May the `V$<TABLE>_STAT` view behind the Info panel be read?
@@ -477,7 +479,7 @@ export const MetaTablePage = ({
                                                             mr={mCanEditMeta ? '8px' : '0'}
                                                             pType="STATUS"
                                                             pIcon={<BiInfoCircle style={{ marginRight: '4px' }} />}
-                                                            pCallback={() => handleVirtualModal(sFilter, true)}
+                                                            pCallback={() => handleVirtualModal(sFilter, 'search')}
                                                         />
                                                     ) : null}
                                                     {mCanEditMeta ? <Page.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} /> : null}
@@ -509,7 +511,7 @@ export const MetaTablePage = ({
                                         infiniteScroll={{ onLoadMore: handleEndOfContent, hasMore: sHasMoreData }}
                                         onSave={handleUpdateMeta}
                                         scrollX={false}
-                                        v$Callback={allowedV$() ? (i) => handleVirtualModal(i, false) : undefined}
+                                        v$Callback={allowedV$() ? (i) => handleVirtualModal(i, 'exact') : undefined}
                                     />
                                 ) : null}
                                 {sIsOpenConfirm ? (

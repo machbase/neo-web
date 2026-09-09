@@ -4,16 +4,12 @@ import { E_TABLE_INFO, FetchCommonType } from './utils';
 import { Modal, Page, Pagination, CommonTable } from '@/design-system/components';
 import { useSchedule } from '@/hooks/useSchedule';
 import { formatStatzResult } from './statzTableRows';
+import { buildStatzTableQuery, StatzModalInfo } from './statzTableQuery';
 import moment from 'moment';
 
 interface VirtualTableProps {
-    pModalInfo: {
-        state: boolean;
-        filter: string;
-        table: any;
-        recordCnt: number;
-    };
-    pSetModalInfo: React.Dispatch<React.SetStateAction<{ state: boolean; filter: string; table: any; recordCnt: number }>>;
+    pModalInfo: StatzModalInfo;
+    pSetModalInfo: React.Dispatch<React.SetStateAction<StatzModalInfo>>;
 }
 
 const FETCH_LIMIT = 10;
@@ -32,9 +28,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
         // columns are MIN_TIME/MAX_TIME/... on a time base and MIN_DISTANCE/MAX_DISTANCE/... on a
         // distance one, so naming either set makes the panel fail outright on the other. The
         // datetime formatting `TO_CHAR` was doing moved to `formatStatzResult`.
-        const sQuery = `SELECT * FROM ${pModalInfo.table[E_TABLE_INFO.DB_NM]}.${pModalInfo.table[E_TABLE_INFO.USER_NM]}.V$${
-            pModalInfo.table[E_TABLE_INFO.TB_NM]
-        }_STAT${pModalInfo?.filter ? " WHERE NAME LIKE '%" + pModalInfo.filter + "%'" : ''} LIMIT ${(sCurPage - 1) * FETCH_LIMIT}, ${FETCH_LIMIT}`;
+        const sQuery = buildStatzTableQuery(pModalInfo, (sCurPage - 1) * FETCH_LIMIT, FETCH_LIMIT);
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) setStatzInfo(formatStatzResult(svrData));
         else setStatzInfo(undefined);
@@ -42,7 +36,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
     };
 
     const handleClose = () => {
-        pSetModalInfo({ state: false, filter: '', table: undefined, recordCnt: 1 });
+        pSetModalInfo({ state: false, filter: '', filterMode: 'search', table: undefined, recordCnt: 1 });
     };
 
     const handlePageChange = (newPage: number) => {
