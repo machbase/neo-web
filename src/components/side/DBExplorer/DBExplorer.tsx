@@ -1,5 +1,6 @@
 import { backupStatus, getBackupDBList, getConnectableDatabases, getTableList } from '@/api/repository/api';
 import { getDatabases, isDatabaseWritable } from '@/utils/currentDatabaseState';
+import { refreshDatabases } from '@/api/repository/currentDatabase';
 import { MdRefresh } from '@/assets/icons/Icon';
 import { useEffect, useState } from 'react';
 import { BackupTableInfo, TableInfo } from './TableInfo';
@@ -64,6 +65,26 @@ export const DBExplorer = () => {
     /** Get database list (with mounted database)*/
     const getDatabaseList = async () => {
         setRefresh(sRefresh + 1);
+        // The catalogue is re-read here, not just the table rows. `ensureCurrentDatabase()` memoises
+        // for the life of the page, so without this every refresh below — the toolbar button, a
+        // DROP, and a mount or unmount, which all funnel through `init` — rebuilt the tree from
+        // fresh `M$SYS_TABLES` rows against a page-old `V$DATABASES`. The two then disagreed in
+        // both directions: a newly mounted database appeared as a node (`buildDatabaseNodeList`
+        // unions in the table rows' own database names) but `isMountedDatabaseName` could not see
+        // it in the catalogue, so it got no unmount button; an unmounted one kept its node, because
+        // the same function seeds from the catalogue where it was still listed. Only F5 fixed it.
+        // The same staleness read a database another session created as not writable, greying out
+        // DROP, metadata editing and rollup with nothing on screen to explain it.
+        //
+        // `refreshDatabases()` rather than dropping the memo: the two callers here and everything
+        // downstream must keep sharing one probe. It also keeps the loaded catalogue on failure —
+        // see its own comment for why emptying it would be worse than serving a stale one.
+        //
+        // Awaited first because `getTableList` and `getConnectableDatabases` both await the
+        // resolver to build their SQL, so they could not have started sooner anyway. It adds one
+        // `V$DATABASES` read (measured ~0.3ms, five rows) per refresh, against the union query the
+        // same refresh already sends; and this path is user-initiated, never polled.
+        await refreshDatabases();
         const [sData, sConnectable] = await Promise.all([getTableList(), getConnectableDatabases()]);
         if (sData && sData.data) {
             // neo's own `_NEO_*` tables leave the catalogue here and never reach the tree. Every

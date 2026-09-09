@@ -17,6 +17,7 @@ import {
     explainEtc4,
     explainPathAndTime,
     explainRestoreCmd,
+    explainTableNeedsDatabaseFirst,
     explainTagRestore,
 } from './contents';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -25,7 +26,7 @@ import moment from 'moment';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { useSchedule } from '@/hooks/useSchedule';
 import { useTargetDatabases } from '@/components/database/targetDatabase';
-import { buildBackupRequest, createBackupCode, ENTIRE_INSTANCE, normalizeBackupStatus } from './backupPayload';
+import { buildBackupRequest, createBackupCode, ENTIRE_INSTANCE, normalizeBackupStatus, TABLE_BACKUP_NEEDS_ONE_DATABASE } from './backupPayload';
 
 /** The row that stands for "do not name a database", and the placeholder before a row is picked. */
 const DATABASE_OPTION_ALL = 'All databases (entire instance)';
@@ -56,6 +57,18 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
      */
     const sHasDatabaseChoice = sBackupTargets.length > 0;
     const sBuildOptions = useMemo(() => ({ requireDatabase: sHasDatabaseChoice }), [sHasDatabaseChoice]);
+    /**
+     * Is the table step blocked on the database step?
+     *
+     * Only where a choice was offered — a pre-v8.7 server has one database, the selector never
+     * renders, and the table picker there works exactly as it always did. `ENTIRE_INSTANCE` counts
+     * as unanswered for a table backup: the selectors will not let the two be combined, but a board
+     * saved before this rule, or a status response, can still arrive holding the pair.
+     */
+    const sNeedsDatabaseFirst =
+        sPayload?.type === 'table' && sHasDatabaseChoice && (sPayload?.database === null || sPayload?.database === ENTIRE_INSTANCE);
+    /** The same rule read from the other side: "all databases" is chosen, so `table` cannot be. */
+    const sTableTypeBlocked = sHasDatabaseChoice && sPayload?.database === ENTIRE_INSTANCE;
 
     const setDurationTypeSelect = (aSelectedItem: 'full' | 'incremental' | 'time range') => {
         setPayload((prev: any) => {
@@ -64,9 +77,11 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     };
     const setTypeSelect = (aSelectedItem: 'database' | 'table') => {
         setPayload((prev: any) => {
-            // The database is the step above this one, so choosing a type must not clear it.
-            // Nothing here needs to: `buildBackupRequest` never puts a `database` on a table
-            // request, so the field the server would reject cannot be sent whatever is held.
+            // The database is the step above this one, so choosing a type must not touch it. The
+            // one pair that cannot be sent — "all databases" with a table backup — is prevented by
+            // disabling each option under the other, so there is nothing here to clean up. Silently
+            // resetting the target instead would be the worse trade: the field the user chose
+            // changes under them, and the reason is only in a warning they may not read.
             return { ...prev, type: aSelectedItem };
         });
     };
@@ -110,6 +125,11 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
     };
     /** Cached per database, since that is what the list is of. */
     const getTableNameList = async () => {
+        // Nothing to list until the step above is answered. `getAllowBackupTable(null)` falls back
+        // to the *session* database, which is the wrong list to show under an unmade choice — and
+        // worse than wrong, because the backup would not go there: the daemon resolves a bare
+        // table name in its own default database, not in this session's.
+        if (sNeedsDatabaseFirst) return;
         const sDatabase = sPayload?.database ?? null;
         if (sTableList.database === sDatabase) return;
         const sResTableList = await getAllowBackupTable(sDatabase);
@@ -246,7 +266,16 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                                     <Page.Selector
                                                         capitalize={false}
                                                         pList={[
-                                                            { name: DATABASE_OPTION_ALL, data: ENTIRE_INSTANCE },
+                                                            // "All databases" is one instance-wide image, which is not a
+                                                            // thing a table backup can be. Shown but unpickable rather
+                                                            // than removed: a row that disappears when the type changes
+                                                            // takes its own explanation with it.
+                                                            {
+                                                                name: DATABASE_OPTION_ALL,
+                                                                data: ENTIRE_INSTANCE,
+                                                                disabled: sPayload?.type === 'table',
+                                                                hint: 'database backup only',
+                                                            },
                                                             ...sBackupTargets.map((aDb) => ({ name: aDb.name, data: aDb.name })),
                                                         ]}
                                                         pSelectedItem={sPayload?.database === null ? DATABASE_OPTION_NONE : sPayload.database || DATABASE_OPTION_ALL}
@@ -255,7 +284,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                                         }}
                                                     />
                                                 </div>
-                                                {sPayload?.database === ENTIRE_INSTANCE && (
+                                                {sPayload?.database === ENTIRE_INSTANCE && sPayload?.type !== 'table' && (
                                                     <>
                                                         <Page.Space />
                                                         <Alert variant="warning" message={explainEntireInstanceBackup} />
@@ -270,16 +299,26 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>backup type</Page.ContentTitle>
                                     {sPageMode === 'CREATE' && (
-                                        <Page.Selector
-                                            pList={[
-                                                { name: 'database', data: 'database' },
-                                                { name: 'table', data: 'table' },
-                                            ]}
-                                            pSelectedItem={sPayload?.type}
-                                            pCallback={(aSelectedItem: any) => {
-                                                setTypeSelect(aSelectedItem);
-                                            }}
-                                        />
+                                        <>
+                                            <Page.Selector
+                                                pList={[
+                                                    { name: 'database', data: 'database' },
+                                                    // The other half of the same rule, so the pair cannot be reached
+                                                    // from either side and neither side has to undo the other's choice.
+                                                    { name: 'table', data: 'table', disabled: sTableTypeBlocked, hint: 'needs one target database' },
+                                                ]}
+                                                pSelectedItem={sPayload?.type}
+                                                pCallback={(aSelectedItem: any) => {
+                                                    setTypeSelect(aSelectedItem);
+                                                }}
+                                            />
+                                            {sTableTypeBlocked && (
+                                                <>
+                                                    <Page.Space />
+                                                    <Alert variant="warning" message={TABLE_BACKUP_NEEDS_ONE_DATABASE} />
+                                                </>
+                                            )}
+                                        </>
                                     )}
                                     {sPageMode === 'VIEW' && <Page.ContentDesc>{sPayload.type.toUpperCase()}</Page.ContentDesc>}
                                 </Page.ContentBlock>
@@ -289,7 +328,11 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                 {sPayload?.type === 'table' && (
                                     <Page.ContentBlock>
                                         <Page.ContentTitle>table name</Page.ContentTitle>
-                                        {sPageMode === 'CREATE' && (
+                                        {/* Only the "step not answered yet" case belongs here. When the target is
+                                            "all databases" the backup-type block above already carries the reason,
+                                            and it is a different one — not late, but incompatible. */}
+                                        {sPageMode === 'CREATE' && sNeedsDatabaseFirst && !sTableTypeBlocked && <Alert variant="warning" message={explainTableNeedsDatabaseFirst} />}
+                                        {sPageMode === 'CREATE' && !sNeedsDatabaseFirst && (
                                             <div onClick={getTableNameList}>
                                                 <Page.Selector
                                                     pList={sTableList.rows.map((aItem: any) => {

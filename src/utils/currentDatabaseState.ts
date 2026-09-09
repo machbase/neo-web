@@ -157,7 +157,22 @@ export const isDatabaseWritable = (aId: unknown): boolean => {
 /** True only when the database is known to be an attached backup. */
 export const isMountedDatabase = (aId: unknown): boolean => findDatabaseById(aId)?.kind === 'MOUNTED';
 
-/** True only when the named database is known to be an attached backup. */
+/**
+ * True only when the named database is *known* to be an attached backup.
+ *
+ * A catalogue miss answers `false`, and deliberately: the explorer asks this to decide whether to
+ * offer an unmount, and guessing "mounted" would put that button on an ordinary active database
+ * whenever the probe had not landed — `unMountDB` on FACTORY_A is not a mistake a button should
+ * make available.
+ *
+ * `isMountedTableName` in `qualifiedTableName.ts` asks the same thing of a qualified name and
+ * falls back the *other* way on a miss. That asymmetry is not an oversight in either: it asks in
+ * order to skip `V$<TABLE>_STAT`, where guessing "mounted" costs a slower scan and guessing
+ * "not mounted" costs an ERR-2025. Each defaults to whichever answer is harmless for its own
+ * consequence, so unifying them would introduce a bug on one side or the other. Since the
+ * explorer refreshes the catalogue on every tree refresh, neither fallback should be reached in
+ * that tree at all.
+ */
 export const isMountedDatabaseName = (aName: string | undefined | null): boolean => findDatabaseByName(aName)?.kind === 'MOUNTED';
 
 /** Called by the resolver. Not application code. */
