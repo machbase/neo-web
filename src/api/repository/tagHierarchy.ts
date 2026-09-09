@@ -763,7 +763,7 @@ export const validateHierarchyDocument = (
                 message: 'Hierarchy key cannot use the reserved row name.',
                 schemaIndex: index,
             });
-        if (seenSchema.has(key))
+        if (seenSchema.has(key.toUpperCase()))
             issues.push({
                 level: 'blocking',
                 message: `Hierarchy key "${key}" is duplicated.`,
@@ -775,7 +775,7 @@ export const validateHierarchyDocument = (
                 message: `Hierarchy key "${key}" is not safe for JSON path queries.`,
                 schemaIndex: index,
             });
-        seenSchema.add(key);
+        seenSchema.add(key.toUpperCase());
     });
 
     const visit = (
@@ -924,14 +924,14 @@ export const validateHierarchyTemplate = (template: unknown): HierarchyValidatio
                 level: 'blocking',
                 message: 'Hierarchy key cannot use the reserved row name.',
             });
-        if (seen.has(key))
+        if (seen.has(key.toUpperCase()))
             issues.push({ level: 'blocking', message: `Hierarchy key "${key}" is duplicated.` });
         if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key))
             issues.push({
                 level: 'blocking',
                 message: `Hierarchy key "${key}" is not safe for JSON path queries.`,
             });
-        seen.add(key);
+        seen.add(key.toUpperCase());
     });
 
     return issues;
