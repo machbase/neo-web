@@ -95,12 +95,35 @@ interface ExtractOptions {
     destFiles?: Record<string, string>;
     /** Directories that already live at dest, relative (e.g. an empty `logs`). */
     destDirs?: string[];
+    /**
+     * `renameSync` refuses, with this message — a CONTAINER, not a unit-test
+     * fiction. `rename(2)` cannot cross a mount point, and the JSH runtime dresses
+     * every rename failure up as the same fabricated ENOENT
+     * (`engine/fs.go` → `fs.ErrInvalid`, then `/lib/fs.js` → a hardcoded string),
+     * so this is byte-for-byte what a reporter's Docker install answered.
+     */
+    renameFails?: string;
+    /** A dest-relative path whose write throws — a copy that dies halfway. */
+    copyFailsAt?: string;
 }
 
 /** The archive directory the script has hard-coded. Stated independently here. */
 const ARCHIVE_WORK_DIR = '/work/public/';
 
 const baseName = (p: string) => p.slice(p.lastIndexOf('/') + 1);
+
+/**
+ * A recorded `rm` that is NOT the staging purge — i.e. one aimed at the
+ * installed tree.
+ *
+ * Stated as "anything but staging" rather than as a `/work/public/` prefix on
+ * purpose: staging now lives INSIDE `/work/public/` (it has to, or the final
+ * rename crosses a mount point — see ARCHIVE_STAGING_PREFIX), so the prefix these
+ * assertions used to test stopped separating the two. Purging staging is routine
+ * and happens on every run; removing anything else under `/public/` is the
+ * config-deleting bug.
+ */
+const removesDest = (call: string) => call.startsWith('rm ') && !call.startsWith(`rm ${ARCHIVE_STAGING_PREFIX}`);
 
 /**
  * Run the real EXTRACT_SCRIPT source with a faked `fs` and a faked archive
@@ -214,6 +237,7 @@ const execExtractScript = (
             // stored as bytes: this write is the one place the script could lose
             // them, so the fake must not lose them on its behalf.
             expect(enc).toBe('buffer');
+            if (opts.copyFailsAt !== undefined && p === `${dest}/${opts.copyFailsAt}`) throw new Error(`EIO: write failed, ${p}`);
             if (!dirs.has(p.slice(0, p.lastIndexOf('/')))) throw new Error(`ENOENT: no directory for ${p}`);
             const bytes = entryBytes(data);
             files.set(p, bytes);
@@ -226,6 +250,10 @@ const execExtractScript = (
         },
         renameSync: (from: string, to: string) => {
             calls.push(`rename ${from} -> ${to}`);
+            // A REAL rename either happened or did not — there is no partial
+            // state to model, so the refusal leaves the fake disk untouched and
+            // the staged tree still sits where the fallback will read it from.
+            if (opts.renameFails !== undefined) throw new Error(opts.renameFails);
         },
         // OFFERED ON PURPOSE, AND MUST NEVER BE CALLED. This runtime's /lib/fs.js
         // really does export it, so `typeof fs.copyFileSync === "function"` is
@@ -459,13 +487,19 @@ describe('EXTRACT_SCRIPT — the server-side half, run for real', () => {
     // rename, in BOTH modes, which wiped every file the archive does not carry —
     // conf/, logs/, data/ — on a real server, on every local update.
     test('the destination is NEVER removed, in either mode', () => {
-        expect(EXTRACT_SCRIPT).not.toContain('fs.rmSync(dest');
+        // ONE `fs.rmSync(dest` IS ALLOWED IN THE SOURCE, and only one: the
+        // install path's fallback cleanup, which runs when a copy that replaced a
+        // refused rename dies halfway — i.e. at a `dest` the script proved did not
+        // exist. A second occurrence means somebody put the pre-rename `rm -rf`
+        // back, which is the bug this whole split exists for; the tests below pin
+        // the one that is allowed to the non-force path.
+        expect(EXTRACT_SCRIPT.split('fs.rmSync(dest')).toHaveLength(2);
 
         const update = runExtractScript({ name: 'neo-pkg-dbus', version: '1.0.0' }, dbusArchives(), {
             force: true,
             destFiles: { 'conf/collector.json': 'KEEP ME' },
         });
-        expect(update.calls.filter((c) => c.startsWith('rm /work/public/'))).toEqual([]);
+        expect(update.calls.filter((c) => removesDest(c))).toEqual([]);
         expect(update.dest.get('conf/collector.json')).toBe('KEEP ME');
     });
 
@@ -505,7 +539,7 @@ describe('EXTRACT_SCRIPT — the server-side half, run for real', () => {
 
         expect(message).toContain('destination already exists: /work/public/neo-pkg-dbus');
         expect(run.dest.get('conf/collector.json')).toBe('KEEP ME');
-        expect(run.calls.some((c) => c.startsWith('rename ') || c.startsWith('copy ') || c.startsWith('rm /work/public/'))).toBe(false);
+        expect(run.calls.some((c) => c.startsWith('rename ') || c.startsWith('copy ') || removesDest(c))).toBe(false);
     });
 
     // THE STRUCTURAL GATE still runs after the lookup, and these fixtures are how
@@ -576,6 +610,115 @@ describe('EXTRACT_SCRIPT — the server-side half, run for real', () => {
         expect(EXTRACT_SCRIPT).not.toContain('onprem');
         // …and the root DIRECTORY name must never be compared to the app name.
         expect(EXTRACT_SCRIPT).not.toContain('roots[0] !== appName');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// THE CONTAINER BUG: rename(2) CANNOT CROSS A MOUNT POINT
+// ---------------------------------------------------------------------------
+// Reported as:
+//
+//   neo-pkg-dbus install failed: failed to install into /work/public/neo-pkg-dbus:
+//   ENOENT: no such file or directory,
+//   rename '/work/.pkg-staging-neo-pkg-dbus/neo-pkg-dbus' -> '/work/public/neo-pkg-dbus'
+//
+// NOTHING WAS MISSING. The scan had found the archive (so `/work/public/` existed
+// and was readable), the tree had unpacked, and the structural gate had passed —
+// the failure is on the last line. In that container `/work` and `/work/public`
+// are different mounts, and a rename between two filesystems is EXDEV,
+// unconditionally. The JSH runtime then masks the errno twice and hands back a
+// fabricated ENOENT, which is why the message names a path that was there all
+// along. MEASURED in the reporter's container: writing directly into
+// /work/public OK, renaming from /work/.staging into it FAIL, renaming from
+// /work/public/.staging into it OK.
+//
+// The fix is placement, not error handling: stage beside the destination so the
+// rename never has a boundary to cross. The fallback below is the second belt.
+describe('EXTRACT_SCRIPT — the rename cannot cross a mount point', () => {
+    const dockerEnoent = (from: string, to: string) => `ENOENT: no such file or directory, rename '${from}' -> '${to}'`;
+
+    test('staging is a SIBLING of dest, so the rename stays inside one directory', () => {
+        const { calls } = runExtractScript({ name: 'neo-pkg-dbus', version: '1.0.0' }, dbusArchives());
+
+        const rename = calls.find((c) => c.startsWith('rename '));
+        const [from, to] = (rename as string).slice('rename '.length).split(' -> ');
+        const parent = (p: string) => p.slice(0, p.lastIndexOf('/'));
+
+        expect(parent(from)).toBe(`${ARCHIVE_STAGING_PREFIX}neo-pkg-dbus`);
+        expect(to).toBe('/work/public/neo-pkg-dbus');
+        // The two ends share a parent directory — the property that makes EXDEV
+        // impossible. `/work/.pkg-staging-x/root` -> `/work/public/x` did not.
+        expect(parent(parent(from))).toBe(parent(to));
+    });
+
+    test('a refused rename falls back to copying, and the package still installs', () => {
+        const staging = `${ARCHIVE_STAGING_PREFIX}neo-pkg-dbus`;
+        const { yields, calls, dest } = runExtractScript({ name: 'neo-pkg-dbus', version: '1.0.0' }, dbusArchives(), {
+            renameFails: dockerEnoent(`${staging}/neo-pkg-dbus-main`, '/work/public/neo-pkg-dbus'),
+        });
+
+        // It TRIED the atomic move first — the fallback is a fallback.
+        expect(calls).toContain(`rename ${staging}/neo-pkg-dbus-main -> /work/public/neo-pkg-dbus`);
+        // …said so out loud, so the reason reaches the install log instead of
+        // dying inside a catch the way the original failure did…
+        expect(yields.join('\n')).toContain('rename refused');
+        // …and the tree is at the destination anyway.
+        expect(dest.get('package.json')).toBeDefined();
+        expect(JSON.parse(dest.get('package.json') as string)).toMatchObject({ name: 'neo-pkg-dbus', version: '1.0.0' });
+        expect(dest.get('README.md')).toBe('# dbus');
+        expect(yields).toContain('installed /work/public/neo-pkg-dbus');
+        // The staged copy does not linger.
+        expect(calls).toContain(`rm ${staging}`);
+    });
+
+    test('the fallback copies bytes, never fs.copyFileSync', () => {
+        // Same reasoning as the update path: this runtime's copyFileSync moves the
+        // file through TEXT and destroys every non-UTF-8 byte. A fallback that
+        // reached for it would ship broken icons on exactly the installs this
+        // change exists to rescue.
+        const icon = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+        const archives: Record<string, FakeArchive> = {
+            'neo-pkg-dbus.zip': {
+                entries: [
+                    ...entriesFor('zip', { files: { 'neo-pkg-dbus-main/package.json': JSON.stringify({ name: 'neo-pkg-dbus', version: '1.0.0' }) } }),
+                    binaryEntry('neo-pkg-dbus-main/icon.png', icon),
+                ],
+            },
+        };
+
+        const { destBytes, copyFileSyncCalls } = runExtractScript({ name: 'neo-pkg-dbus', version: '1.0.0' }, archives, {
+            renameFails: 'ENOENT: no such file or directory, rename',
+        });
+
+        expect(copyFileSyncCalls).toEqual([]);
+        expect(Array.from(destBytes.get('icon.png') as Uint8Array)).toEqual(icon);
+    });
+
+    test('a fallback that dies halfway removes the partial tree instead of advertising it', () => {
+        // `isPkgInstalled` only asks whether /public/<name> exists, so half a tree
+        // left behind here reads as a finished install. Safe to delete precisely
+        // because this is the install path: dest was proven not to exist.
+        const { message, run } = runExtractFailure({ name: 'neo-pkg-dbus', version: '1.0.0' }, dbusArchives(), {
+            renameFails: 'ENOENT: no such file or directory, rename',
+            copyFailsAt: 'README.md',
+        });
+
+        expect(message).toContain('failed to install into /work/public/neo-pkg-dbus');
+        expect(run.calls).toContain('rm /work/public/neo-pkg-dbus');
+        expect(run.dest.size).toBe(0);
+    });
+
+    test('the update path never falls back — it never renames in the first place', () => {
+        const { calls, dest } = runExtractScript({ name: 'neo-pkg-dbus', version: '1.0.0' }, dbusArchives(), {
+            force: true,
+            destFiles: { 'conf/collector.json': 'KEEP ME' },
+            // Set, and irrelevant: force goes straight to mergeTree.
+            renameFails: 'ENOENT: no such file or directory, rename',
+        });
+
+        expect(calls.some((c) => c.startsWith('rename '))).toBe(false);
+        expect(calls.filter((c) => removesDest(c))).toEqual([]);
+        expect(dest.get('conf/collector.json')).toBe('KEEP ME');
     });
 });
 
@@ -674,7 +817,7 @@ describe.each(ALL_FORMATS)('EXTRACT_SCRIPT — %s', (format) => {
         expect(dest.get('conf/collector.json')).toBe('{"endpoint":"opc.tcp://plant1"}');
         expect(dest.get('logs/collector-a.log')).toBe('old log line');
         // …and nothing was deleted to get there.
-        expect(calls.filter((c) => c.startsWith('rm ') && c.includes('/work/public/'))).toEqual([]);
+        expect(calls.filter((c) => removesDest(c))).toEqual([]);
         expect(calls.some((c) => c.startsWith('rename '))).toBe(false);
     });
 
@@ -984,13 +1127,18 @@ describe('stepArchiveExtract', () => {
             // WHAT to install. The zip is the server's problem.
             name: 'pkg-a',
             version: '1.2.3',
-            // staging must live outside /work/public — a partially written tree
-            // there would be scanned as an installed package.
+            // staging must live INSIDE /work/public, as a sibling of dest: the
+            // install ends in a rename, and a rename cannot cross a mount point.
+            // Staging one level up (the original `/work/.pkg-staging-`) is exactly
+            // what made every containerised install fail with a fabricated ENOENT.
             staging: `${ARCHIVE_STAGING_PREFIX}pkg-a`,
             dest: '/work/public/pkg-a',
         });
         expect(params).not.toHaveProperty('archive');
-        expect(params?.staging.startsWith('/work/public/')).toBe(false);
+        expect(params?.staging.startsWith('/work/public/')).toBe(true);
+        // …and a SIBLING, not a child of dest: same parent directory, so the
+        // rename is a plain entry move within one directory.
+        expect(params?.staging.slice(0, params.staging.lastIndexOf('/'))).toBe('/work/public');
 
         expect(ctx.logs.join('\n')).toContain('== extract pkg-a 1.2.3 -> /work/public/pkg-a ==');
         expect(ctx.logs).toContain('installed /work/public/pkg-a');
