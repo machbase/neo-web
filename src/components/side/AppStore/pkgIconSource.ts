@@ -54,23 +54,21 @@ export const localIconPath = (name?: string, file: string = DEFAULT_ICON_FILE): 
 /**
  * Ordered `src` candidates, best first.
  *
- * 1. The installed copy's own icon file. Same origin as the console, so it is
- *    the only candidate that can load on an air-gapped server — and it matches
- *    the version that is actually installed.
- * 2. The catalog entry's icon URL (in practice a raw.githubusercontent link). Kept
- *    because an installed package may simply not ship an icon at all.
+ * 1. The installed copy's own icon file. Same origin as the console, and it
+ *    matches the version that is actually installed.
+ * 2. The catalog entry's icon URL (in practice a raw.githubusercontent link) —
+ *    ONLY for a package that is NOT installed.
+ *
+ * AN INSTALLED PACKAGE NEVER REQUESTS A REMOTE ICON. Everything it needs is under
+ * `/public/{name}/`; if its tree ships no icon, the fallback glyph is the answer.
+ * Falling back to the hub instead made one and the same installed card show an
+ * icon on a server with internet and a glyph on one without — the display followed
+ * the network rather than what is installed. A package that is not installed has
+ * nothing local to show, so the remote URL is the only candidate it has.
  *
  * An empty result is meaningful: a package that is neither installed nor carries
  * an icon URL has nothing to fetch, so the caller renders the fallback glyph with
  * no request at all instead of a broken <img>.
- *
- * @param pAllowRemote - issue #1452. `false` DROPS candidate 2 entirely, for
- *   local-only mode where no request may leave the machine. This is a real
- *   removal, not a reorder: an `<img src>` fires the moment it renders, so the
- *   only way to not make the request is to never hand over the URL. Defaults to
- *   `true`, which is the behaviour every pre-#1452 caller had. Note the distinction
- *   from plain offline mode, where the remote candidate is still WORTH trying —
- *   there the request is merely expected to fail, not forbidden.
  *
  * @param pInstalledIcon - issue #1452. The installed copy's icon FILE NAME as the
  *   server-side scan reported it (`APP_INFO.installed_icon`). THREE-VALUED, and
@@ -88,14 +86,7 @@ export const localIconPath = (name?: string, file: string = DEFAULT_ICON_FILE): 
  *   Ignored entirely when `pInstalled` is false: an icon under `/public/{name}/`
  *   presupposes a `/public/{name}/`.
  */
-export const pkgIconSources = (
-    pName?: string,
-    pIcon?: string,
-    pInstalled?: boolean,
-    pAllowRemote: boolean = true,
-    pInstalledIcon?: string
-): string[] => {
-    const sources: string[] = [];
+export const pkgIconSources = (pName?: string, pIcon?: string, pInstalled?: boolean, pInstalledIcon?: string): string[] => {
     if (pInstalled) {
         // `''` is the ONE value that means "known to have none" — and it is exactly
         // the value a truthiness check would confuse with `undefined`. Compare the
@@ -105,8 +96,7 @@ export const pkgIconSources = (
         // A known-empty name yields no candidate; a known non-empty one is still
         // validated (it came off the server's disk, not out of our own code).
         const local = file ? localIconPath(pName, file) : undefined;
-        if (local) sources.push(local);
+        return local ? [local] : [];
     }
-    if (pAllowRemote && typeof pIcon === 'string' && pIcon.trim()) sources.push(pIcon);
-    return sources;
+    return typeof pIcon === 'string' && pIcon.trim() ? [pIcon] : [];
 };

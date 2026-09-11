@@ -5,8 +5,7 @@ import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
 import { VscBook, VscHome, VscInfo, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
-import { getPkgMarkdown, isGrandfatheredPkg } from '@/api/repository/appStore';
-import { useExperiment } from '@/hooks/useExperiment';
+import { getPkgMarkdown } from '@/api/repository/appStore';
 import { useEffect, useMemo, useState } from 'react';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { BiLink } from '@/assets/icons/Icon';
@@ -16,31 +15,19 @@ import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
 import { PkgIcon } from './PkgIcon';
 import { readLocalReadme } from '@/api/repository/onpremCatalog';
-import { useRecoilValue } from 'recoil';
-import { gCatalogStatus } from '@/recoil/appStore';
 
 /**
- * issue #1452 — shown when local-only mode is on and the package ships no README
- * on disk.
+ * Shown for an INSTALLED package whose tree ships no README.md.
  *
  * Deliberately NOT the generic 'No repository information available.' / 'Failed to
  * load README.' wording: those describe something that went wrong and invite a
- * retry. Nothing went wrong here — the fetch was never attempted — and the reader
- * needs to know that the blank pane is the configured behaviour and where the
- * configuration lives.
+ * retry. Nothing went wrong — an installed package is read from disk and nowhere
+ * else, and this one simply has no README there.
  */
-const LOCAL_ONLY_README_MSG = 'Local-only mode: remote READMEs are not fetched (/public/.pkg-conf.json). This package has no README.md installed on this server.';
+const NO_LOCAL_README_MSG = 'This package has no README.md installed on this server.';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     const runCommand = usePkgCommand();
-    const { getExperiment } = useExperiment();
-    const sCatalogStatus = useRecoilValue(gCatalogStatus);
-    const isLocalOnly = sCatalogStatus.mode === 'localOnly';
-
-    // issue #1438: detail view for a package that only remains visible because it
-    // is installed. Same policy as the catalog card — stays viewable and
-    // removable, but must not advertise an update to an unvalidated version.
-    const isGated = isGrandfatheredPkg(pCode?.app, getExperiment());
 
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
@@ -57,7 +44,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const hasUpdate = useMemo(() => {
         const installed = pCode?.app?.installed_version;
         const latest = pCode?.app?.latest_version;
-        if (isGated) return false;
         if (!pCode?.app?.installed_frontend || !installed || !latest) return false;
         const r = comparePkgVersions(installed, latest);
         if (r === null) {
@@ -65,7 +51,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             return false;
         }
         return r === -1;
-    }, [isGated, pCode?.app?.installed_frontend, pCode?.app?.installed_version, pCode?.app?.latest_version, pCode?.app?.name]);
+    }, [pCode?.app?.installed_frontend, pCode?.app?.installed_version, pCode?.app?.latest_version, pCode?.app?.name]);
 
     // Surfaces a small info icon when both versions exist but cannot be SemVer-compared
     // (e.g. calendar-style "2024.01.15" vs "1.0.0"). Mirrors the same guard chain as
@@ -133,22 +119,16 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             const local = await readLocalReadme(appName);
             if (local) {
                 // NO relative-image rewriting here. The rewrite below points images at
-                // raw.githubusercontent, which is exactly the host that is unreachable
-                // in the case this branch exists for — a local README's relative links
-                // already resolve against /public/{name}/.
+                // raw.githubusercontent; a local README's relative links already
+                // resolve against /public/{name}/.
                 setReadme(local);
                 return;
             }
-        }
-
-        // issue #1452 — LOCAL-ONLY STOPS HERE. The local read above is same-origin
-        // and always allowed; everything below this line goes to
-        // raw.githubusercontent, which is exactly what this mode forbids. Placed
-        // AFTER the local read (so an installed package still shows its own README)
-        // and BEFORE the github guard (so the message is about the policy, not
-        // about missing repository metadata).
-        if (isLocalOnly) {
-            setReadmeError(LOCAL_ONLY_README_MSG);
+            // AN INSTALLED PACKAGE NEVER FETCHES A REMOTE README — the same rule as
+            // its icon (`pkgIconSources`). Falling through to GitHub made this pane
+            // follow the network rather than what is installed, and showed the
+            // default branch's README instead of the installed version's.
+            setReadmeError(NO_LOCAL_README_MSG);
             return;
         }
 
@@ -187,14 +167,11 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             setReadmeError(e?.message ?? 'Failed to load README.');
         }
     };
-    // `isLocalOnly` is a dependency too: the mode can flip under an open detail tab
-    // (a refresh picks up a newly written .pkg-conf.json), and the README strategy
-    // must follow it rather than stay on whatever the tab opened with.
     useEffect(() => {
         getReadme();
         setCommandResLog(undefined);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pCode, isLocalOnly]);
+    }, [pCode]);
 
     if (!pCode?.app) {
         return (
@@ -224,7 +201,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             pName={pCode?.app?.name}
                                             pIcon={pCode?.app?.icon}
                                             pInstalled={!!pCode?.app?.installed_frontend}
-                                            pAllowRemote={!isLocalOnly}
                                             pInstalledIcon={pCode?.app?.installed_icon}
                                         />
                                         <div className="app-store-item-info-contents">

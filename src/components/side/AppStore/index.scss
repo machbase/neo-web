@@ -90,12 +90,6 @@
     box-sizing: content-box;
     cursor: help;
 
-    // Local-only is a configured posture, not an incident: deliberately neutral,
-    // so it does not read as a warning the way --offline / --failed do.
-    &--localOnly {
-        color: t.$text-secondary;
-    }
-
     &--offline {
         color: t.$warning-main;
     }

@@ -62,16 +62,4 @@ describe('App Store header row', () => {
         expect(onRefresh).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('status')).toHaveAccessibleName('Catalog unavailable');
     });
-
-    test('local-only shows the indicator and NO toggle — the mode is not switchable from the panel', () => {
-        render(<Header pStatus={{ mode: 'localOnly' }} />);
-
-        expect(screen.getByRole('status')).toHaveAccessibleName('Local-only (policy)');
-        // The removed dev affordance: no badge, no label, and no control beyond
-        // Refresh. Local-only is turned on by an administrator placing
-        // `/public/.pkg-conf.json` on the server, never from here.
-        expect(screen.queryByText('DEV')).not.toBeInTheDocument();
-        expect(screen.queryByText(/local-only: (ON|OFF)/)).not.toBeInTheDocument();
-        expect(screen.getAllByRole('button')).toHaveLength(1);
-    });
 });
