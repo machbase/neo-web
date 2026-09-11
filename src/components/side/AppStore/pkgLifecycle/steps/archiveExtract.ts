@@ -322,7 +322,7 @@ if (!fs.statSync(root).isDirectory()) abort("archive root '" + roots[0] + "' is 
 // cgi-bin/package.json and frontend/package.json, which describe sub-projects.
 var pkgPath = root + "/package.json";
 if (!fs.existsSync(pkgPath)) abort("archive is missing package.json");
-// toText for the same reason readLocalOnlyFlag needs it: this runtime may answer
+// toText for the same reason the catalog scan needs it: this runtime may answer
 // with an ArrayBuffer even for "utf8", and String(arrayBuffer) is
 // "[object ArrayBuffer]", which JSON.parse rejects. It is a no-op on a string.
 // package.json is the ONE file this script is allowed to read as text.

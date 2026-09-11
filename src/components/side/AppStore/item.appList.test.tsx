@@ -17,9 +17,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gActivePkgView, gCatalogStatus, gOpenPkgViews, gServerVersion } from '@/recoil/appStore';
 import { invalidatePkgHtmlCache } from './pkgHtml';
 
-jest.mock('@/api/repository/appStore', () => ({
-    isGrandfatheredPkg: jest.fn(() => false),
-}));
+jest.mock('@/api/repository/appStore', () => ({}));
 jest.mock('@/hooks/useExperiment', () => ({
     useExperiment: () => ({ getExperiment: () => false }),
 }));

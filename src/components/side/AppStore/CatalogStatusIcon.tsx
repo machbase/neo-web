@@ -20,9 +20,7 @@
 //
 // The states, their derivation AND their copy live in ./catalogState — this file
 // stays component-only, the same split archiveWarningState.ts / ArchiveScanWarnings.tsx
-// uses. One of the states, `localOnly`, is NOT a problem report: the hub was
-// switched off on purpose and this indicator exists there purely to make an
-// otherwise invisible mode visible.
+// uses.
 //
 // Deliberately NOT behind the experiment gate: air-gapped sites are the audience
 // for this whole feature, and they are the least likely to run with experiment
@@ -34,7 +32,7 @@
 // from and nothing more.
 
 import { MdCloudOff } from 'react-icons/md';
-import { VscShield, VscWarning } from 'react-icons/vsc';
+import { VscWarning } from 'react-icons/vsc';
 import type { CatalogStatus } from '@/recoil/appStore';
 import { CATALOG_STATUS_LABEL, formatCatalogTooltip, resolveCatalogState } from './catalogState';
 
@@ -57,15 +55,13 @@ export const CatalogStatusIcon = ({ pStatus, pEntryCount }: CatalogStatusIconPro
     const state = resolveCatalogState(pStatus, pEntryCount);
     if (state === 'online') return null;
 
-    // A shield, not a cloud-off: local-only is a posture the server holds, and the
-    // disconnection iconography belongs to the states where something broke.
     // 12, not 14, and not by eye: the box is pinned to 16px so it lands in the
     // chevron column that keeps PACKAGES aligned with CATALOG (see index.scss), so
     // the only room left between the glyph and the title is whatever the glyph
     // does NOT fill. At 14 these are wide, solid marks and they read as touching
     // the P. Growing the box or padding the title would move the text off x=20 and
     // break the alignment this sizing exists to protect.
-    const icon = state === 'localOnly' ? <VscShield size={12} /> : state === 'failed' ? <VscWarning size={12} /> : <MdCloudOff size={12} />;
+    const icon = state === 'failed' ? <VscWarning size={12} /> : <MdCloudOff size={12} />;
 
     return (
         <span

@@ -16,7 +16,6 @@ import { getFiles } from '@/api/repository/fileTree';
 import { getInstalledIcons, invalidateLocalArchiveCache } from '@/api/repository/onpremCatalog';
 import { fileTreeParser } from '@/utils/fileTreeParser';
 import { isCurUserEqualAdmin } from '@/utils';
-import { useExperiment } from '@/hooks/useExperiment';
 import { closeTabState } from '@/components/mainContent/tabCloseUtils';
 import { buildCatalog, installedIconOf, listInstalledNames } from '../catalog';
 import { invalidatePkgHtmlCache } from '../pkgHtml';
@@ -75,12 +74,10 @@ export function buildBlockedMessage(appName: string, fresh: PkgHealthStatus): st
  *
  * WHY A SECOND GATE. The card already hides the affordance: `applyOfflineSelectable`
  * masks `source: 'hub'` rows and `applyOfflineEligibility` recomputes the default
- * target, so an offline / local-only panel does not offer these. But that gating is
- * computed at RENDER time from a status the panel may have held for minutes: the
- * policy file can be written, or the network can drop, while a version menu is
- * open. The stale click then reaches here and, in local-only mode, sends the one
- * request the whole feature exists to prevent. Commands are the last checkpoint
- * before the wire, so the check belongs here too.
+ * target, so an offline panel does not offer these. But that gating is computed at
+ * RENDER time from a status the panel may have held for minutes, and the network
+ * can drop while a version menu is open. Commands are the last checkpoint before
+ * the wire, so the check belongs here too.
  *
  * ONLY AN EXPLICIT `'hub'` IS REFUSED. `undefined` is the historical shape of every
  * caller that does not pick a row (`item.tsx` start/stop, the experiment-mode
@@ -93,11 +90,9 @@ export function shouldBlockHubCommand(mode: CatalogMode, command: PkgCommand, so
     return mode !== 'online';
 }
 
-/** Toast copy for the refusal above; the two modes must not sound alike. */
-export function buildHubBlockedMessage(appName: string, mode: CatalogMode): string {
-    return mode === 'localOnly'
-        ? `${appName}: this server is in local-only mode (/public/.pkg-conf.json). Only locally archived versions can be installed.`
-        : `${appName}: the package hub is unreachable. Only locally archived versions can be installed right now.`;
+/** Toast copy for the refusal above. */
+export function buildHubBlockedMessage(appName: string): string {
+    return `${appName}: the package hub is unreachable. Only locally archived versions can be installed right now.`;
 }
 
 /**
@@ -122,11 +117,6 @@ export interface PkgCommandOptions {
 }
 
 export function usePkgCommand() {
-    // Captured into the callback below: this refresh path re-seeds gSearchPkgs and
-    // must apply the same experiment gate as AppStoreSide.pkgsSearch, or a package
-    // hidden from the catalog reappears the moment any package is installed or
-    // removed, and stays visible until the next search (issue #1438).
-    const { getExperiment } = useExperiment();
     return useRecoilCallback(
         ({ snapshot, set }) =>
             async (app: APP_INFO, command: PkgCommand, version?: string, opts?: PkgCommandOptions): Promise<StepResult | null> => {
@@ -142,8 +132,8 @@ export function usePkgCommand() {
                 const catalogStatus = await snapshot.getPromise(gCatalogStatus);
                 const catalogMode: CatalogMode = catalogStatus?.mode ?? 'online';
                 if (shouldBlockHubCommand(catalogMode, command, opts?.source)) {
-                    Toast.warning(buildHubBlockedMessage(appName, catalogMode));
-                    return { ok: false, log: '', reason: catalogMode === 'localOnly' ? 'local_only_mode' : 'hub_unreachable' };
+                    Toast.warning(buildHubBlockedMessage(appName));
+                    return { ok: false, log: '', reason: 'hub_unreachable' };
                 }
 
                 set(gPkgBusy, (prev) => ({ ...prev, [appName]: command }));
@@ -224,7 +214,7 @@ export function usePkgCommand() {
                     // and let this one rebuild pay for the rescan.
                     invalidateLocalArchiveCache();
                     invalidatePkgHtmlCache();
-                    const { pkgs, mode, hubError, lastSyncAt, scanWarnings } = await buildCatalog({ search, experimentOn: getExperiment() });
+                    const { pkgs, mode, hubError, lastSyncAt, scanWarnings } = await buildCatalog({ search });
                     set(gCatalogStatus, { mode, hubError, lastSyncAt });
                     // issue #1452 — the SECOND of the two places a catalog build
                     // lands, and it must publish the findings too. The rescan a few

@@ -147,16 +147,6 @@ export interface LocalArchiveScan {
     archives: LocalArchiveEntry[];
     errors: LocalArchiveScanError[];
     /**
-     * `/public/.pkg-conf.json` says `{ "localOnly": true }` (issue #1452).
-     *
-     * A DELIBERATE POLICY, not a failure: the operator has turned the external
-     * package hub off for this server. Every other outcome — no file, a typo'd
-     * key, `false`, malformed json, a failed scan — is `false`, i.e. online.
-     * See `readLocalOnlyFlag` in `archiveScript.ts` for why the rule is exactly
-     * one strict comparison and nothing else.
-     */
-    localOnly: boolean;
-    /**
      * `{ "<installed package>": "<icon file name>" }` — issue #1452.
      *
      * THREE-VALUED, AND ALL THREE MATTER:
@@ -297,17 +287,13 @@ function scanReport() {
     return out;
 }
 
-// THE ENVELOPE, NOT A BARE ARRAY (issue #1452, local-only mode).
-//
-// \`.pkg-conf.json\` lives in the SAME directory this scan already walks, so reading
-// it here costs ZERO extra round trips — and, more importantly, the policy flag and
-// the archive list arrive as one atomic answer that cannot disagree with itself.
+// THE ENVELOPE, NOT A BARE ARRAY (issue #1452).
 //
 // The old shape was the bare array. \`parseArchiveScan\` still accepts it (see
 // \`collectScanPayload\`), so an older cached script body or a hand-run scan keeps
-// working and simply reads as localOnly: false.
+// working.
 //
-// \`installedIcons\` rides along for the same reason (issue #1452): the icon file
+// \`installedIcons\` rides along on the same walk (issue #1452): the icon file
 // names are read out of the directory this scan is already walking, so the browser
 // never has to guess an extension and never fires a request at a file that is not
 // there. An envelope WITHOUT the key is the older script body, and is read as
@@ -332,7 +318,6 @@ function scanReport() {
 try {
     var installed = scanInstalled();
     $.yield(JSON.stringify({
-        localOnly: readLocalOnlyFlag(),
         archives: scanReport(),
         installedIcons: installed.icons,
         installedNames: installed.names,
@@ -400,7 +385,6 @@ export const normalizeArchiveEntry = (item: unknown): LocalArchiveEntry | null =
 /** What {@link collectScanPayload} recovers from the script's stdout. */
 interface ScanPayload {
     records: unknown[];
-    localOnly: boolean;
     /** `undefined` ⇒ the script did not report icons at all. See {@link LocalArchiveScan}. */
     installedIcons?: Record<string, string>;
     /** `undefined` ⇒ the script did not report installed package names at all. */
@@ -437,16 +421,14 @@ const normalizeNameMap = (value: unknown): Record<string, string> | undefined =>
 };
 
 /**
- * Pull the JSON records — and the local-only flag — out of whatever the script
- * printed.
+ * Pull the JSON records out of whatever the script printed.
  *
  * TWO SHAPES ARE ACCEPTED, ON PURPOSE:
  *
- *   { localOnly, archives: [...] }   the current envelope
+ *   { archives: [...], installed… }  the current envelope
  *   [ ... ]                          the ORIGINAL bare array
  *
- * The bare array reads as `localOnly: false`, i.e. online — the behaviour that
- * shape always had. Keeping it is not politeness: `SCAN_SCRIPT` is a string
+ * Keeping the bare array is not politeness: `SCAN_SCRIPT` is a string
  * shipped inside the bundle, and a browser holding a cached older build (or an
  * operator re-running the scan by hand) must not turn a parse mismatch into an
  * empty catalog, which is the exact silent-empty-panel failure this whole module
@@ -458,7 +440,7 @@ const normalizeNameMap = (value: unknown): Record<string, string> | undefined =>
  * rather than fatal.
  */
 const collectScanPayload = (log: unknown): ScanPayload => {
-    const out: ScanPayload = { records: [], localOnly: false };
+    const out: ScanPayload = { records: [] };
     if (typeof log !== 'string') return out;
     const text = log.trim();
     if (!text) return out;
@@ -469,14 +451,9 @@ const collectScanPayload = (log: unknown): ScanPayload => {
             return;
         }
         if (!isPlainObject(value)) return;
-        // The envelope. Recognised by EITHER key so a scan that answers
-        // `{ localOnly: true }` with no archives at all is still read as policy
-        // rather than mistaken for one malformed archive record.
-        if (Array.isArray(value.archives) || 'localOnly' in value) {
-            if (Array.isArray(value.archives)) out.records.push(...value.archives);
-            // Strictly `=== true`, mirroring the server-side rule: anything else
-            // (missing, "true", 1, false) is online.
-            if (value.localOnly === true) out.localOnly = true;
+        // The envelope.
+        if (Array.isArray(value.archives)) {
+            out.records.push(...value.archives);
             // ABSENT stays `undefined` — an envelope from an older script body has
             // no opinion about icons, and must not be read as "there are none".
             if ('installedIcons' in value) out.installedIcons = normalizeNameMap(value.installedIcons);
@@ -568,7 +545,7 @@ export const dirsFromInstalledNames = (installedNames?: Record<string, string>):
     return out;
 };
 
-/** Split the script's output into usable entries, per-archive failures and the policy flag. */
+/** Split the script's output into usable entries and per-archive failures. */
 export const parseArchiveScan = (log: unknown): LocalArchiveScan => {
     const archives: LocalArchiveEntry[] = [];
     const errors: LocalArchiveScanError[] = [];
@@ -596,7 +573,6 @@ export const parseArchiveScan = (log: unknown): LocalArchiveScan => {
     return {
         archives,
         errors,
-        localOnly: payload.localOnly,
         installedIcons: payload.installedIcons,
         installedNames: payload.installedNames,
         installedDirs: payload.installedDirs ?? dirsFromInstalledNames(payload.installedNames),
@@ -611,18 +587,13 @@ export const parseArchiveScan = (log: unknown): LocalArchiveScan => {
  * NEVER THROWS. A server with no such directory, no TQL, or an outright script
  * failure answers "no local archives" — which is the normal state of an online
  * install, not an error worth failing the catalog over.
- *
- * A FAILED SCAN IS ALWAYS `localOnly: false`. The flag is a permission to STOP
- * talking to the hub, and a scan that did not run has not established that
- * permission — failing closed here would let a TQL hiccup masquerade as an
- * air-gap policy and quietly hide the whole hub catalog.
  */
 export const scanLocalArchives = async (): Promise<LocalArchiveScan> => {
     try {
         const res = await runScript(SCAN_SCRIPT, {});
         // A whole-scan failure is reported with an empty `archive` so a caller
         // can tell "nothing is archived here" from "the scan itself broke".
-        if (!res.ok) return { archives: [], errors: [{ archive: '', error: res.reason }], localOnly: false, installedDirs: {} };
+        if (!res.ok) return { archives: [], errors: [{ archive: '', error: res.reason }], installedDirs: {} };
         return parseArchiveScan(res.log);
     } catch (e) {
         // `installedIcons` stays absent on both failure paths, which is what makes a
@@ -633,7 +604,6 @@ export const scanLocalArchives = async (): Promise<LocalArchiveScan> => {
         return {
             archives: [],
             errors: [{ archive: '', error: e instanceof Error ? e.message : 'archive scan failed' }],
-            localOnly: false,
             installedDirs: {},
         };
     }
@@ -757,14 +727,12 @@ export const buildLocalCatalog = (scan: LocalArchiveScan): APP_INFO[] => {
 
 let cachedCatalog: Promise<APP_INFO[]> | null = null;
 let lastScanErrors: LocalArchiveScanError[] = [];
-let lastLocalOnly = false;
 let lastInstalledIcons: Record<string, string> | undefined;
 let lastInstalledDirs: Record<string, InstalledDirInfo> = {};
 
 const scanAndBuild = async (): Promise<APP_INFO[]> => {
     const scan = await scanLocalArchives();
     lastScanErrors = scan.errors;
-    lastLocalOnly = scan.localOnly;
     lastInstalledIcons = scan.installedIcons;
     lastInstalledDirs = scan.installedDirs;
     return buildLocalCatalog(scan);
@@ -793,7 +761,6 @@ export const fetchLocalArchiveEntries = (): Promise<APP_INFO[]> => {
             // rest of the session — drop the cache so the next call retries.
             cachedCatalog = null;
             lastScanErrors = [{ archive: '', error: 'archive scan failed' }];
-            lastLocalOnly = false;
             lastInstalledIcons = undefined;
             lastInstalledDirs = {};
             return [];
@@ -806,7 +773,6 @@ export const fetchLocalArchiveEntries = (): Promise<APP_INFO[]> => {
 export const invalidateLocalArchiveCache = () => {
     cachedCatalog = null;
     lastScanErrors = [];
-    lastLocalOnly = false;
     lastInstalledIcons = undefined;
     lastInstalledDirs = {};
 };
@@ -837,53 +803,11 @@ export const refreshLocalArchives = (): Promise<APP_INFO[]> => {
  */
 export const getLastArchiveScanErrors = (): LocalArchiveScanError[] => lastScanErrors;
 
-// ---------------------------------------------------------------------------
-// NOTHING IN THIS PRODUCT CREATES `/public/.pkg-conf.json` (issue #1452)
-// ---------------------------------------------------------------------------
-// The file is READ ONLY, everywhere, by design. There is no UI, no api call and
-// no install step that writes it — an App Store dev toggle used to, and it was
-// removed. So:
-//
-//   * NO FILE IS THE NORMAL STATE, and it means ONLINE. Local-only is opt-in and
-//     stays off until somebody deliberately turns it on.
-//   * TURNING IT ON IS AN ADMINISTRATOR PLACING THE FILE ON THE SERVER by hand
-//     (editor, scp, config management — whatever the deployment uses), at
-//     `/public/.pkg-conf.json` as the browser spells it, `/work/public/` as the
-//     server-side TQL scan does. Its whole content is:
-//
-//         {"localOnly": true}
-//
-//     `{"localOnly": false}`, a typo'd key, malformed json, or no file at all all
-//     resolve identically to online — see `readLocalOnlyFlag` in archiveScript.ts
-//     for why the rule is exactly one strict comparison.
-//   * IT IS A DOT FILE, so `/api/files` directory listings NEVER show it (the
-//     listing filters on extension and hides dot files); creating and reading it
-//     by exact name works fine. An admin checking "is it there?" must GET the
-//     path, not list the directory.
-//
-// If a write path is ever wanted again, it belongs behind an explicit, non-dev
-// admin affordance — not resurrected here as a helper with no caller.
-
-/**
- * Whether the LAST scan found `/public/.pkg-conf.json` saying `localOnly: true`.
- *
- * READ IT AFTER AWAITING {@link fetchLocalArchiveEntries}, NEVER BEFORE. It is a
- * side channel on the same cached scan (same pattern as
- * {@link getLastArchiveScanErrors}) rather than a field on the returned cards,
- * because it is a property of the SERVER, not of any package — and widening the
- * card array into a tuple would ripple through every caller for one boolean.
- *
- * `false` until a scan has completed, and `false` again after
- * {@link invalidateLocalArchiveCache}: the default is always "talk to the hub",
- * so an un-run or failed scan can never silently air-gap the panel.
- */
-export const isLocalOnlyMode = (): boolean => lastLocalOnly;
-
 /**
  * Icon FILE NAMES of the installed packages, as of the last scan (issue #1452).
  *
  * Same side-channel pattern (and the same "read it after awaiting
- * {@link fetchLocalArchiveEntries}" rule) as {@link isLocalOnlyMode}: it is a
+ * {@link fetchLocalArchiveEntries}" rule) as {@link getLastArchiveScanErrors}: it is a
  * property of the server's `/public/` directory, not of any one package, and the
  * card array is not widened into a tuple for it.
  *
