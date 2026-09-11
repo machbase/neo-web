@@ -589,7 +589,21 @@ export const AppList = ({ pList, pStatus }: { pList: APP_INFO[] | string[]; pSta
                         // `.app-store-row--static` keys off to drop the pointer cursor
                         // and the hover tint, so the row cannot look clickable while
                         // being inert.
-                        onClick={isStray ? undefined : () => handleSelectApp(aItem)}
+                        onClick={
+                            isStray
+                                ? undefined
+                                : (e) => {
+                                      // ONLY A CLICK THAT LANDS ON THE CARD OPENS IT. The version menu
+                                      // and the confirm prompt are portals: they render outside this row
+                                      // in the DOM, but React still bubbles their clicks here along the
+                                      // component tree — so picking "v1.0.11 update →" also opened the
+                                      // package behind the prompt. Checked against the DOM rather than by
+                                      // stopping propagation in each popup, so a future portal inside the
+                                      // card is covered too.
+                                      if (!e.currentTarget.contains(e.target as Node)) return;
+                                      handleSelectApp(aItem);
+                                  }
+                        }
                         className={
                             isStray
                                 ? 'app-store-row--static'
