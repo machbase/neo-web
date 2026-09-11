@@ -1,38 +1,15 @@
 import {
     fetchPkgHubList,
-    filterExperimentPkgs,
-    isGrandfatheredPkg,
     isPkgHubBackedOff,
     mapHubEntry,
     resetPkgHubBackoff,
     HUB_BACKOFF_MESSAGE,
     HUB_FAILURE_BACKOFF_MS,
     HUB_FETCH_TIMEOUT_MS,
-    type APP_INFO,
     type PkgHubEntry,
 } from './appStore';
 
-const ALL_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages-all.json';
-const LEGACY_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
-
-const pkg = (name: string, over: Partial<APP_INFO> = {}): APP_INFO =>
-    ({
-        name,
-        latest_version: '1.0.0',
-        published_at: '',
-        github: {
-            organization: 'machbase',
-            repo: name,
-            full_name: `machbase/${name}`,
-            description: '',
-            default_branch: 'main',
-            forks_count: 0,
-            language: 'TypeScript',
-            stargazers_count: 0,
-            license: null,
-        },
-        ...over,
-    }) as APP_INFO;
+const HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
 
 // Minimal hub payload entry — mirrors the shape sync.sh publishes.
 const hubEntry = (name: string, over: Record<string, unknown> = {}) => ({
@@ -81,87 +58,10 @@ describe('mapHubEntry — shared mapper for hub and local-archive entries (issue
     });
 });
 
-describe('filterExperimentPkgs — catalog visibility gate (issue #1438)', () => {
-    test('experiment:true + mode ON → shown', () => {
-        expect(filterExperimentPkgs([pkg('a', { experiment: true })], true).map((p) => p.name)).toEqual(['a']);
-    });
-
-    test('experiment:true + mode OFF → hidden', () => {
-        expect(filterExperimentPkgs([pkg('a', { experiment: true })], false)).toEqual([]);
-    });
-
-    test('experiment:false → shown regardless of mode', () => {
-        const list = [pkg('a', { experiment: false })];
-        expect(filterExperimentPkgs(list, true)).toHaveLength(1);
-        expect(filterExperimentPkgs(list, false)).toHaveLength(1);
-    });
-
-    test('experiment undefined (legacy fallback entry) → shown regardless of mode', () => {
-        const list = [pkg('a')];
-        expect(filterExperimentPkgs(list, true)).toHaveLength(1);
-        expect(filterExperimentPkgs(list, false)).toHaveLength(1);
-    });
-
-    // The exemption exists because allPkgs is derived from the hub list alone —
-    // dropping the entry would erase the only card offering uninstall/stop.
-    test('experiment:true + mode OFF + installed → SHOWN (uninstall path preserved)', () => {
-        const list = [pkg('a', { experiment: true, installed_frontend: true })];
-        expect(filterExperimentPkgs(list, false).map((p) => p.name)).toEqual(['a']);
-    });
-
-    test('experiment:true + mode OFF + installed_frontend false → hidden', () => {
-        expect(filterExperimentPkgs([pkg('a', { experiment: true, installed_frontend: false })], false)).toEqual([]);
-    });
-
-    test('empty list → empty list', () => {
-        expect(filterExperimentPkgs([], false)).toEqual([]);
-        expect(filterExperimentPkgs([], true)).toEqual([]);
-    });
-
-    test('mixed list keeps order and drops only gated entries', () => {
-        const list = [
-            pkg('stable-1', { experiment: false }),
-            pkg('gated', { experiment: true }),
-            pkg('legacy'),
-            pkg('gated-installed', { experiment: true, installed_frontend: true }),
-        ];
-        expect(filterExperimentPkgs(list, false).map((p) => p.name)).toEqual(['stable-1', 'legacy', 'gated-installed']);
-        expect(filterExperimentPkgs(list, true).map((p) => p.name)).toEqual(['stable-1', 'gated', 'legacy', 'gated-installed']);
-    });
-});
-
-describe('isGrandfatheredPkg — visible only because installed', () => {
-    // Full truth table over (experiment, mode, installed).
-    const cases: Array<[boolean, boolean, boolean, boolean]> = [
-        // experiment, experimentOn, installed, expected
-        [true, false, true, true], // the only grandfathered combination
-        [true, false, false, false],
-        [true, true, true, false],
-        [true, true, false, false],
-        [false, false, true, false],
-        [false, false, false, false],
-        [false, true, true, false],
-        [false, true, false, false],
-    ];
-
-    test.each(cases)('experiment=%s on=%s installed=%s → %s', (experiment, on, installed, expected) => {
-        expect(isGrandfatheredPkg(pkg('a', { experiment, installed_frontend: installed }), on)).toBe(expected);
-    });
-
-    test('undefined experiment is never grandfathered', () => {
-        expect(isGrandfatheredPkg(pkg('a', { installed_frontend: true }), false)).toBe(false);
-    });
-
-    test('null / undefined package → false (no crash)', () => {
-        expect(isGrandfatheredPkg(undefined, false)).toBe(false);
-        expect(isGrandfatheredPkg(null, false)).toBe(false);
-    });
-});
-
 // Every hub request now carries an AbortController signal (issue #1452).
 const withSignal = { signal: expect.anything() };
 
-describe('fetchPkgHubList — source selection and experiment passthrough', () => {
+describe('fetchPkgHubList', () => {
     const fetchMock = jest.fn();
 
     beforeEach(() => {
@@ -171,41 +71,20 @@ describe('fetchPkgHubList — source selection and experiment passthrough', () =
         resetPkgHubBackoff();
     });
 
-    test('reads packages-all.json, not the legacy view', async () => {
+    // packages.json is the released-only list, so reading it IS the rule "what is
+    // not released is not in the catalog". packages-all.json must never be read.
+    test('reads packages.json — one request, never packages-all.json', async () => {
         fetchMock.mockResolvedValueOnce(okResponse([hubEntry('a')]));
         await fetchPkgHubList();
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(ALL_URL, withSignal);
+        expect(fetchMock).toHaveBeenCalledWith(HUB_URL, withSignal);
+        expect(fetchMock.mock.calls.some(([url]) => String(url).includes('packages-all.json'))).toBe(false);
     });
 
-    test('preserves experiment true / false / undefined through the mapping', async () => {
-        fetchMock.mockResolvedValueOnce(
-            okResponse([hubEntry('gated', { experiment: true }), hubEntry('stable', { experiment: false }), hubEntry('legacy')])
-        );
-        const res = await fetchPkgHubList();
-        expect(res.map((p) => p.experiment)).toEqual([true, false, undefined]);
-    });
-
-    // The real legacy view still publishes `experiment: false` on every entry — its
-    // entry schema is identical to packages-all.json by design. A hub predating the
-    // gate omits the key entirely. Both must read as ungated.
-    test.each([
-        ['current hub (experiment: false present)', { experiment: false }, false],
-        ['pre-gate hub (key absent)', {}, undefined],
-    ])('falls back to packages.json — %s', async (_label, extra, expected) => {
-        fetchMock.mockResolvedValueOnce(notFound()).mockResolvedValueOnce(okResponse([hubEntry('a', extra)]));
-        const res = await fetchPkgHubList();
-        expect(fetchMock).toHaveBeenNthCalledWith(1, ALL_URL, withSignal);
-        expect(fetchMock).toHaveBeenNthCalledWith(2, LEGACY_URL, withSignal);
-        expect(res.map((p) => p.experiment)).toEqual([expected]);
-        expect(filterExperimentPkgs(res, false)).toHaveLength(1);
-    });
-
-    test('falls back when packages-all.json is not an array', async () => {
-        fetchMock.mockResolvedValueOnce(okResponse({ oops: true })).mockResolvedValueOnce(okResponse([hubEntry('a')]));
-        const res = await fetchPkgHubList();
-        expect(fetchMock).toHaveBeenCalledTimes(2);
-        expect(res.map((p) => p.name)).toEqual(['a']);
+    test('rejects a payload that is not an array, and backs off', async () => {
+        fetchMock.mockResolvedValueOnce(okResponse({ oops: true }));
+        await expect(fetchPkgHubList()).rejects.toThrow(/Malformed pkg hub payload/);
+        expect(isPkgHubBackedOff()).toBe(true);
     });
 
     // NEW CONTRACT (issue #1452). A rejection here means "the hub leg is
@@ -213,14 +92,14 @@ describe('fetchPkgHubList — source selection and experiment passthrough', () =
     // settled source of three and still renders /pkg-archives + /public. The
     // usable-catalog-without-a-hub case is proven end to end in
     // `src/components/side/AppStore/catalog.test.ts`.
-    test('rejects when both sources fail, and marks the hub as backed off', async () => {
-        fetchMock.mockResolvedValueOnce(notFound()).mockResolvedValueOnce(notFound());
+    test('rejects when the hub fails, and marks it as backed off', async () => {
+        fetchMock.mockResolvedValueOnce(notFound());
         await expect(fetchPkgHubList()).rejects.toThrow('Failed to fetch pkg hub: 404');
         expect(isPkgHubBackedOff()).toBe(true);
     });
 
     test('a successful fetch clears a previous failure window', async () => {
-        fetchMock.mockResolvedValueOnce(notFound()).mockResolvedValueOnce(notFound());
+        fetchMock.mockResolvedValueOnce(notFound());
         await expect(fetchPkgHubList()).rejects.toThrow();
         expect(isPkgHubBackedOff()).toBe(true);
 
@@ -252,10 +131,8 @@ describe('fetchPkgHubList — source selection and experiment passthrough', () =
             const pending = fetchPkgHubList();
             const assertion = expect(pending).rejects.toThrow(/abort/i);
 
-            // packages-all.json gets its own budget, then the legacy fallback.
             await jest.advanceTimersByTimeAsync(HUB_FETCH_TIMEOUT_MS);
-            expect(fetchMock).toHaveBeenCalledTimes(2);
-            await jest.advanceTimersByTimeAsync(HUB_FETCH_TIMEOUT_MS);
+            expect(fetchMock).toHaveBeenCalledTimes(1);
 
             await assertion;
         });
@@ -263,7 +140,7 @@ describe('fetchPkgHubList — source selection and experiment passthrough', () =
         test('the next call fails immediately from the backoff — no second stall per keystroke', async () => {
             hangUntilAborted();
             const assertion = expect(fetchPkgHubList()).rejects.toThrow();
-            await jest.advanceTimersByTimeAsync(HUB_FETCH_TIMEOUT_MS * 2);
+            await jest.advanceTimersByTimeAsync(HUB_FETCH_TIMEOUT_MS);
             await assertion;
 
             fetchMock.mockClear();
@@ -280,7 +157,7 @@ describe('fetchPkgHubList — source selection and experiment passthrough', () =
         test('Refresh (resetPkgHubBackoff) bypasses the window without waiting it out', async () => {
             hangUntilAborted();
             const assertion = expect(fetchPkgHubList()).rejects.toThrow();
-            await jest.advanceTimersByTimeAsync(HUB_FETCH_TIMEOUT_MS * 2);
+            await jest.advanceTimersByTimeAsync(HUB_FETCH_TIMEOUT_MS);
             await assertion;
 
             resetPkgHubBackoff();
@@ -290,10 +167,9 @@ describe('fetchPkgHubList — source selection and experiment passthrough', () =
         });
     });
 
-    test('release-less experiment package maps to empty versions[] without throwing', async () => {
-        fetchMock.mockResolvedValueOnce(okResponse([hubEntry('gated', { experiment: true, version: null, released_at: null, versions: [] })]));
+    test('a release-less entry maps to empty versions[] without throwing', async () => {
+        fetchMock.mockResolvedValueOnce(okResponse([hubEntry('bare', { version: null, released_at: null, versions: [] })]));
         const [entry] = await fetchPkgHubList();
-        expect(entry.experiment).toBe(true);
         expect(entry.versions).toEqual([]);
         expect(entry.latest_version).toBe('');
     });

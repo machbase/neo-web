@@ -48,7 +48,6 @@ import {
     getLastArchiveScanErrors,
     normalizeInstalledDirs,
     invalidateLocalArchiveCache,
-    isLocalOnlyMode,
     normalizeArchiveEntry,
     parseArchiveScan,
     readLocalReadme,
@@ -86,13 +85,6 @@ const mockGetFileList = getFileList as jest.MockedFunction<any>;
 const ARCHIVE_WORK_DIR = '/work/public/';
 
 /**
- * The local-only policy file, as the SCRIPT addresses it. Stated independently
- * here for the same reason as the directory above: no TypeScript constant carries
- * it, so the assertions below are what prove the script agrees.
- */
-const PKG_CONF_PATH = `${ARCHIVE_WORK_DIR}.pkg-conf.json`;
-
-/**
  * One record as the scan script emits it: the archive file name plus the four
  * fields a root package.json can supply. NOTE the archive name carries no
  * version — `/public/neo-pkg-dbus.zip` is what a real one is called.
@@ -106,21 +98,8 @@ const scanned = (name: string, over: Record<string, unknown> = {}) => ({
     ...over,
 });
 
-/**
- * What `runScript` resolves to for a successful scan of `rows` — the CURRENT
- * envelope shape (issue #1452). `localOnly` defaults to false, i.e. the ordinary
- * online server.
- */
-const scanOk = (rows: unknown[], localOnly = false) => ({ ok: true as const, log: JSON.stringify({ localOnly, archives: rows }) });
-
-/**
- * The ORIGINAL bare-array output, kept as a first-class fixture.
- *
- * `SCAN_SCRIPT` is a string shipped in the bundle, so a browser on a cached older
- * build really can hand this shape to a newer parser. It must keep producing
- * cards, and must read as online.
- */
-const scanLegacy = (rows: unknown[]) => ({ ok: true as const, log: JSON.stringify(rows) });
+/** What `runScript` resolves to for a successful scan of `rows` — the CURRENT envelope shape (issue #1452). */
+const scanOk = (rows: unknown[]) => ({ ok: true as const, log: JSON.stringify({ archives: rows }) });
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -186,19 +165,7 @@ interface FakeScanArchive extends FakeArchive {
  * NAME picks the container format, and the fake asserts the script asked for the
  * fixed directory.
  */
-/**
- * `/work/public/.pkg-conf.json` as the fake filesystem holds it (issue #1452).
- * Omit the argument entirely for "the file does not exist", which is the default
- * every pre-existing case below runs under.
- */
-interface FakePkgConf {
-    /** Raw bytes of the file. `undefined` + `readThrows: false` ⇒ an empty file. */
-    raw?: string;
-    /** `fs.readFileSync` blows up (permissions, a race with a writer, …). */
-    readThrows?: boolean;
-}
-
-const runScanScript = (files: Record<string, FakeScanArchive>, conf?: FakePkgConf) => {
+const runScanScript = (files: Record<string, FakeScanArchive>) => {
     const yields: string[] = [];
     const baseName = (p: string) => p.slice(p.lastIndexOf('/') + 1);
     const runtime = createArchiveRuntimeFake(files);
@@ -243,11 +210,11 @@ const runScanScript = (files: Record<string, FakeScanArchive>, conf?: FakePkgCon
             if (dir.dirReadThrows) throw new Error(`EACCES: ${p}`);
             return ['.', '..', ...(dir.dirFiles ?? [])];
         },
-        // TWO callers, and no others: the policy file, and an installed package's
-        // own package.json (issue #1452). The archives are found by readdirSync,
-        // never probed by name.
+        // Callers: an installed package's own package.json and its `.git` probe
+        // (issue #1452). The archives are found by readdirSync, never probed by
+        // name — and any other path fails the test below, which is also what would
+        // catch the scan reaching for a policy file again.
         existsSync: (p: string) => {
-            if (p === PKG_CONF_PATH) return conf !== undefined;
             const gitDir = gitProbeOf(p);
             if (gitDir) return !!gitDir.git;
             const dir = installedDirOf(p);
@@ -261,13 +228,8 @@ const runScanScript = (files: Record<string, FakeScanArchive>, conf?: FakePkgCon
             return { isDirectory: () => !!f?.isDir };
         },
         readFileSync: (p: string, enc: string) => {
-            // The policy file and an installed package's manifest are read as text;
-            // the tar formats read raw bytes and a zip is opened by path.
-            if (p === PKG_CONF_PATH) {
-                expect(enc).toBe('utf8');
-                if (conf?.readThrows) throw new Error('EACCES: permission denied');
-                return conf?.raw ?? '';
-            }
+            // An installed package's manifest is read as text; the tar formats read
+            // raw bytes and a zip is opened by path.
             const dir = installedDirOf(p);
             if (dir) {
                 expect(enc).toBe('utf8');
@@ -1030,93 +992,25 @@ describe('parseArchiveScan — output shapes', () => {
         // `installedDirs` is always an object (never undefined): "nothing was said"
         // and "nothing is wrong" have to act the same, and an empty map is what
         // every consumer can index into without a guard.
-        expect(parseArchiveScan(log)).toEqual({ archives: [], errors: [], localOnly: false, installedDirs: {} });
+        expect(parseArchiveScan(log)).toEqual({ archives: [], errors: [], installedDirs: {} });
     });
 });
 
-// ---------------------------------------------------------------------------
-// LOCAL-ONLY MODE (issue #1452)
-// ---------------------------------------------------------------------------
-// `/public/.pkg-conf.json` turns the external package hub off for this server. It
-// rides along with the archive scan because it lives in the SAME directory the
-// scan already walks — zero extra round trips, and one atomic answer.
-//
-// THE FILE CANNOT BE FOUND WITH THE FILE API. Measured on v8.5.10-snapshot:
-// `POST /api/files/_t/.pkg-conf.json` creates it, `GET` by exact name reads it
-// back, and `GET /api/files/_t/` lists NOTHING — dot files are excluded from
-// directory listings. So discovery has to happen server-side, in this script.
-describe('SCAN_SCRIPT — the local-only policy file', () => {
-    const withConf = (raw: string) => runScanScript({ 'good.zip': { entries: [pkgJsonEntry('good-main/package.json', { name: 'good', version: '1.0.0' })] } }, { raw });
-
-    test('the script reads the fixed path itself — no parameter, no TS constant', () => {
-        expect(SCAN_SCRIPT).toContain('var PKG_CONF_PATH = ARCHIVE_DIR + ".pkg-conf.json";');
-        expect(SCAN_SCRIPT).not.toContain('param("conf")');
+// The scan used to read a `/public/.pkg-conf.json` policy file (`localOnly`) on the
+// same walk. That mode is gone — the catalog renders local packages before the hub
+// answers, so there is nothing left for it to avoid — and the script must not keep
+// touching the file.
+describe('SCAN_SCRIPT — no policy file', () => {
+    test('the script never reads .pkg-conf.json', () => {
+        expect(SCAN_SCRIPT).not.toContain('.pkg-conf.json');
+        expect(SCAN_SCRIPT).not.toContain('localOnly');
     });
 
-    test('NO FILE AT ALL ⇒ online (the default every existing server is in)', () => {
+    test('the envelope carries no policy flag, only the scan', () => {
         const { scan } = runScanScript({ 'good.zip': { entries: [pkgJsonEntry('good-main/package.json', { name: 'good', version: '1.0.0' })] } });
 
-        expect(scan.localOnly).toBe(false);
+        expect(scan).not.toHaveProperty('localOnly');
         expect(scan.archives.map((a) => a.name)).toEqual(['good']);
-    });
-
-    test('{"localOnly":true} ⇒ localOnly, and the archives still come back', () => {
-        const { scan } = withConf(JSON.stringify({ localOnly: true }));
-
-        expect(scan.localOnly).toBe(true);
-        // The flag switches the HUB off, not the local catalog — the whole point is
-        // that the locally archived packages remain installable.
-        expect(scan.archives.map((a) => a.name)).toEqual(['good']);
-        expect(scan.errors).toEqual([]);
-    });
-
-    // ONE RULE, ONE SPELLING. A permissive reader here is the dangerous direction:
-    // it would let a stray file convince a connected site it is air-gapped.
-    test.each([
-        ['explicit false', '{"localOnly":false}'],
-        ['the key missing entirely', '{"somethingElse":true}'],
-        ['a typo in the key', '{"localonly":true}'],
-        ['the string "true"', '{"localOnly":"true"}'],
-        ['the number 1', '{"localOnly":1}'],
-        ['an empty object', '{}'],
-        ['an empty file', ''],
-        ['malformed json', '{ localOnly: true'],
-        ['a JSON array', '[{"localOnly":true}]'],
-        ['a JSON scalar', 'true'],
-    ])('%s ⇒ online', (_label, raw) => {
-        expect(withConf(raw).scan.localOnly).toBe(false);
-    });
-
-    // A TYPO FAILS OPEN AND SILENTLY. That is the accepted cost of a single
-    // unambiguous rule — and precisely why the banner states the resolved mode
-    // instead of only appearing when something is wrong.
-    test('an unreadable file ⇒ online, and the scan still returns its archives', () => {
-        const { scan } = runScanScript(
-            { 'good.zip': { entries: [pkgJsonEntry('good-main/package.json', { name: 'good', version: '1.0.0' })] } },
-            { readThrows: true }
-        );
-
-        expect(scan.localOnly).toBe(false);
-        expect(scan.archives.map((a) => a.name)).toEqual(['good']);
-    });
-
-    // It sits in the archive directory, so readdirSync reports it — and it must be
-    // ignored as quietly as a README, never reported as a broken archive.
-    test('the conf file itself never becomes an archive or an error record', () => {
-        const { scan } = runScanScript({ '.pkg-conf.json': {}, 'good.zip': { entries: [pkgJsonEntry('good-main/package.json', { name: 'good', version: '1.0.0' })] } }, {
-            raw: JSON.stringify({ localOnly: true }),
-        });
-
-        expect(scan.archives.map((a) => a.name)).toEqual(['good']);
-        expect(scan.errors).toEqual([]);
-        expect(scan.localOnly).toBe(true);
-    });
-
-    test('an empty archive directory in local-only mode is still local-only', () => {
-        const { scan } = runScanScript({}, { raw: JSON.stringify({ localOnly: true }) });
-
-        expect(scan.localOnly).toBe(true);
-        expect(scan.archives).toEqual([]);
     });
 });
 
@@ -1129,7 +1023,7 @@ describe('SCAN_SCRIPT — the local-only policy file', () => {
 //   /public/neo-pkg-opcua-client/icon.png
 //   /public/neo-pkg-dbus/icon.svg          ← the guess 404s, glyph only
 //
-// and in local-only mode there is no remote candidate left to recover with. The
+// and an installed package is never given a remote candidate to fall back on. The
 // scan is already walking that directory, so it reports the REAL file name and
 // the browser stops guessing.
 describe('SCAN_SCRIPT — installedIcons, the real icon file names', () => {
@@ -1430,7 +1324,7 @@ describe('dirsFromInstalledNames — the older-script-body fallback', () => {
 
 describe('parseArchiveScan — installedDirs', () => {
     test('the field survives the envelope', () => {
-        const scan = parseArchiveScan(JSON.stringify({ localOnly: false, archives: [], installedDirs: { d: { name: 'neo-pkg-foo', git: false } } }));
+        const scan = parseArchiveScan(JSON.stringify({ archives: [], installedDirs: { d: { name: 'neo-pkg-foo', git: false } } }));
 
         expect(scan.installedDirs).toEqual({ d: { name: 'neo-pkg-foo', git: false } });
     });
@@ -1439,7 +1333,7 @@ describe('parseArchiveScan — installedDirs', () => {
     // worth a card, so the names are lifted — minus the `.git` bit, which nobody
     // measured and which therefore must not read as `false`.
     test('an envelope with only installedNames falls back to it', () => {
-        const scan = parseArchiveScan(JSON.stringify({ localOnly: false, archives: [], installedNames: { 'neo-pkg-foo-main': 'neo-pkg-foo' } }));
+        const scan = parseArchiveScan(JSON.stringify({ archives: [], installedNames: { 'neo-pkg-foo-main': 'neo-pkg-foo' } }));
 
         expect(scan.installedDirs).toEqual({ 'neo-pkg-foo-main': { name: 'neo-pkg-foo' } });
         // …and NO warning: the classification decides what to say about it.
@@ -1449,7 +1343,6 @@ describe('parseArchiveScan — installedDirs', () => {
     test('installedDirs wins when both are present', () => {
         const scan = parseArchiveScan(
             JSON.stringify({
-                localOnly: false,
                 archives: [],
                 installedNames: { 'neo-pkg-foo-main': 'stale-name' },
                 installedDirs: { 'neo-pkg-foo-main': { name: 'neo-pkg-foo', git: false } },
@@ -1460,7 +1353,7 @@ describe('parseArchiveScan — installedDirs', () => {
     });
 
     test('an envelope with neither is an empty map, never undefined', () => {
-        expect(parseArchiveScan(JSON.stringify({ localOnly: false, archives: [] })).installedDirs).toEqual({});
+        expect(parseArchiveScan(JSON.stringify({ archives: [] })).installedDirs).toEqual({});
     });
 
     test('the legacy bare array is silent too', () => {
@@ -1470,7 +1363,6 @@ describe('parseArchiveScan — installedDirs', () => {
     test('archive errors are untouched by any of this', () => {
         const scan = parseArchiveScan(
             JSON.stringify({
-                localOnly: false,
                 archives: [{ archive: 'broken.zip', error: 'not a valid archive' }],
                 installedDirs: { 'neo-pkg-foo-main': { name: 'neo-pkg-foo' } },
             })
@@ -1488,7 +1380,7 @@ describe('getInstalledDirs — the cached side channel', () => {
     test('a completed scan publishes the map', async () => {
         mockRunScript.mockResolvedValue({
             ok: true,
-            log: JSON.stringify({ localOnly: false, archives: [], installedDirs: { 'neo-pkg-foo-main': { name: 'neo-pkg-foo', git: false } } }),
+            log: JSON.stringify({ archives: [], installedDirs: { 'neo-pkg-foo-main': { name: 'neo-pkg-foo', git: false } } }),
         });
 
         await fetchLocalArchiveEntries();
@@ -1501,7 +1393,7 @@ describe('getInstalledDirs — the cached side channel', () => {
     test('invalidating the cache forgets it — an un-run scan judges nobody', async () => {
         mockRunScript.mockResolvedValue({
             ok: true,
-            log: JSON.stringify({ localOnly: false, archives: [], installedDirs: { 'neo-pkg-foo-main': { name: 'neo-pkg-foo' } } }),
+            log: JSON.stringify({ archives: [], installedDirs: { 'neo-pkg-foo-main': { name: 'neo-pkg-foo' } } }),
         });
         await fetchLocalArchiveEntries();
 
@@ -1521,7 +1413,7 @@ describe('getInstalledDirs — the cached side channel', () => {
 
 describe('parseArchiveScan — installedIcons', () => {
     test('the field survives the envelope', () => {
-        const scan = parseArchiveScan(JSON.stringify({ localOnly: false, archives: [], installedIcons: { 'neo-pkg-dbus': 'icon.svg' } }));
+        const scan = parseArchiveScan(JSON.stringify({ archives: [], installedIcons: { 'neo-pkg-dbus': 'icon.svg' } }));
 
         expect(scan.installedIcons).toEqual({ 'neo-pkg-dbus': 'icon.svg' });
     });
@@ -1530,7 +1422,7 @@ describe('parseArchiveScan — installedIcons', () => {
     // icons. That must read as UNKNOWN — `undefined` — because "no icons exist"
     // would blank the icon of every installed package on that server.
     test('an envelope without the field is undefined, NOT an empty map', () => {
-        expect(parseArchiveScan(JSON.stringify({ localOnly: false, archives: [] })).installedIcons).toBeUndefined();
+        expect(parseArchiveScan(JSON.stringify({ archives: [] })).installedIcons).toBeUndefined();
     });
 
     test('the legacy bare array is undefined too', () => {
@@ -1538,7 +1430,7 @@ describe('parseArchiveScan — installedIcons', () => {
     });
 
     test('an empty map is preserved as an empty map — the scan looked and found none', () => {
-        expect(parseArchiveScan(JSON.stringify({ localOnly: false, archives: [], installedIcons: {} })).installedIcons).toEqual({});
+        expect(parseArchiveScan(JSON.stringify({ archives: [], installedIcons: {} })).installedIcons).toEqual({});
     });
 
     test('non-object garbage reads as unknown rather than as "no icons"', () => {
@@ -1559,7 +1451,7 @@ describe('getInstalledIcons — the cached side channel', () => {
     });
 
     test('a completed scan publishes the map', async () => {
-        mockRunScript.mockResolvedValue({ ok: true, log: JSON.stringify({ localOnly: false, archives: [], installedIcons: { 'neo-pkg-dbus': 'icon.svg' } }) } as any);
+        mockRunScript.mockResolvedValue({ ok: true, log: JSON.stringify({ archives: [], installedIcons: { 'neo-pkg-dbus': 'icon.svg' } }) } as any);
 
         await fetchLocalArchiveEntries();
 
@@ -1567,7 +1459,7 @@ describe('getInstalledIcons — the cached side channel', () => {
     });
 
     test('invalidating the cache forgets it — an un-run scan must never claim knowledge', async () => {
-        mockRunScript.mockResolvedValue({ ok: true, log: JSON.stringify({ localOnly: false, archives: [], installedIcons: { a: 'icon.svg' } }) } as any);
+        mockRunScript.mockResolvedValue({ ok: true, log: JSON.stringify({ archives: [], installedIcons: { a: 'icon.svg' } }) } as any);
         await fetchLocalArchiveEntries();
 
         invalidateLocalArchiveCache();
@@ -1585,95 +1477,35 @@ describe('getInstalledIcons — the cached side channel', () => {
 });
 
 describe('parseArchiveScan — the envelope and the legacy array', () => {
-    test('the envelope carries both the flag and the archives', () => {
-        const scan = parseArchiveScan(JSON.stringify({ localOnly: true, archives: [scanned('pkg-a')] }));
+    test('the envelope carries the archives', () => {
+        const scan = parseArchiveScan(JSON.stringify({ archives: [scanned('pkg-a')] }));
 
-        expect(scan.localOnly).toBe(true);
         expect(scan.archives.map((a) => a.name)).toEqual(['pkg-a']);
     });
 
     // BACKWARD COMPATIBILITY. SCAN_SCRIPT is a string in the bundle, so an older
     // cached build can hand this shape to today's parser. It must keep producing
-    // cards, and must read as online rather than as "flag missing ⇒ who knows".
-    test('a bare array (the original shape) still parses, as online', () => {
+    // cards.
+    test('a bare array (the original shape) still parses', () => {
         const scan = parseArchiveScan(JSON.stringify([scanned('pkg-a'), { archive: 'x.zip', error: 'bad' }]));
 
-        expect(scan.localOnly).toBe(false);
         expect(scan.archives.map((a) => a.name)).toEqual(['pkg-a']);
         expect(scan.errors).toEqual([{ archive: 'x.zip', error: 'bad' }]);
     });
 
-    test('an envelope with no archives key is still read as policy, not as a bad record', () => {
-        const scan = parseArchiveScan(JSON.stringify({ localOnly: true }));
+    // An envelope from a script body that still carried the old policy flag: the key
+    // is ignored, the archives are not.
+    test('a leftover localOnly key is ignored', () => {
+        const scan = parseArchiveScan(JSON.stringify({ localOnly: true, archives: [scanned('pkg-a')] }));
 
-        expect(scan.localOnly).toBe(true);
-        expect(scan.archives).toEqual([]);
-        expect(scan.errors).toEqual([]);
-    });
-
-    test('a non-true localOnly in the envelope is online', () => {
-        expect(parseArchiveScan(JSON.stringify({ localOnly: 'true', archives: [] })).localOnly).toBe(false);
-        expect(parseArchiveScan(JSON.stringify({ archives: [] })).localOnly).toBe(false);
-    });
-
-    test('the line-by-line fallback also recovers the flag', () => {
-        const log = ['noise the runtime printed', JSON.stringify({ localOnly: true, archives: [scanned('pkg-a')] })].join('\n');
-
-        const scan = parseArchiveScan(log);
-        expect(scan.localOnly).toBe(true);
+        expect(scan).not.toHaveProperty('localOnly');
         expect(scan.archives.map((a) => a.name)).toEqual(['pkg-a']);
     });
-});
 
-describe('isLocalOnlyMode — the cached side channel', () => {
-    test('false before any scan has run', () => {
-        expect(isLocalOnlyMode()).toBe(false);
-    });
+    test('the line-by-line fallback recovers the envelope', () => {
+        const log = ['noise the runtime printed', JSON.stringify({ archives: [scanned('pkg-a')] })].join('\n');
 
-    test('reflects the last completed scan', async () => {
-        mockRunScript.mockResolvedValue(scanOk([scanned('pkg-a')], true));
-
-        await fetchLocalArchiveEntries();
-        expect(isLocalOnlyMode()).toBe(true);
-    });
-
-    test('a legacy bare-array scan reads as online', async () => {
-        mockRunScript.mockResolvedValue(scanLegacy([scanned('pkg-a')]));
-
-        const entries = await fetchLocalArchiveEntries();
-        expect(entries.map((e) => e.name)).toEqual(['pkg-a']);
-        expect(isLocalOnlyMode()).toBe(false);
-    });
-
-    // FAILING CLOSED WOULD BE A BUG: a TQL hiccup must not masquerade as an
-    // air-gap policy and hide the entire hub catalog.
-    test('a failed scan is online, never local-only', async () => {
-        mockRunScript.mockResolvedValue({ ok: false, log: '', reason: 'script failed' });
-
-        await fetchLocalArchiveEntries();
-        expect(isLocalOnlyMode()).toBe(false);
-    });
-
-    test('invalidating the cache resets it to online until the next scan lands', async () => {
-        mockRunScript.mockResolvedValue(scanOk([], true));
-        await fetchLocalArchiveEntries();
-        expect(isLocalOnlyMode()).toBe(true);
-
-        invalidateLocalArchiveCache();
-        expect(isLocalOnlyMode()).toBe(false);
-
-        await fetchLocalArchiveEntries();
-        expect(isLocalOnlyMode()).toBe(true);
-    });
-
-    test('turning the policy off is picked up by the next refresh', async () => {
-        mockRunScript.mockResolvedValue(scanOk([], true));
-        await fetchLocalArchiveEntries();
-
-        mockRunScript.mockResolvedValue(scanOk([scanned('pkg-a')], false));
-        await refreshLocalArchives();
-
-        expect(isLocalOnlyMode()).toBe(false);
+        expect(parseArchiveScan(log).archives.map((a) => a.name)).toEqual(['pkg-a']);
     });
 });
 
@@ -1724,7 +1556,6 @@ describe('buildLocalCatalog — pure fold, no transport', () => {
         const entries = buildLocalCatalog({
             archives: [normalizeArchiveEntry(scanned('pkg-a'))!],
             errors: [],
-            localOnly: false,
             installedDirs: {},
         });
 

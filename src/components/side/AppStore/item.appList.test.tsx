@@ -10,16 +10,14 @@
 // The rule these tests pin down: a stray row is not selectable, therefore it is
 // never the selection, therefore it never highlights.
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { RecoilRoot, useRecoilValue, type MutableSnapshot } from 'recoil';
 import { AppList } from './item';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gActivePkgView, gCatalogStatus, gOpenPkgViews, gServerVersion } from '@/recoil/appStore';
 import { invalidatePkgHtmlCache } from './pkgHtml';
 
-jest.mock('@/api/repository/appStore', () => ({
-    isGrandfatheredPkg: jest.fn(() => false),
-}));
+jest.mock('@/api/repository/appStore', () => ({}));
 jest.mock('@/hooks/useExperiment', () => ({
     useExperiment: () => ({ getExperiment: () => false }),
 }));
@@ -341,5 +339,66 @@ describe('Remove directory does not select the card', () => {
         fireEvent.click(screen.getByText('Remove'));
 
         expect(screen.getByTestId('tabs').textContent).toBe('');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// THE CARD IS THE OPEN BUTTON - BUT ONLY FOR CLICKS THAT LAND ON THE CARD
+// ---------------------------------------------------------------------------
+// The version menu and the confirm prompt are PORTALS (rendered into document.body),
+// yet React bubbles their click events up the COMPONENT tree - through AppItem to
+// the row's open handler. Picking "v1.1.0 update ->" therefore raised the update
+// prompt AND opened the package behind it.
+describe("clicks inside the card's portals do not open the package", () => {
+    const updatableCard = () => ({
+        ...installedCard(),
+        versions: [
+            { version: '1.1.0', minServer: '', source: 'hub' },
+            { version: '1.0.0', minServer: '', source: 'hub' },
+        ],
+    });
+    // handleSelectApp probes main.html / side.html before it opens anything, so a
+    // wrongly-bubbled click only shows up once that probe has settled.
+    const settle = () =>
+        act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        });
+    const pickVersion = async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Select version' }));
+        fireEvent.click(screen.getByRole('button', { name: /v1\.1\.0/ }));
+        await settle();
+    };
+    const nothingOpened = () => {
+        expect(screen.getByTestId('tabs').textContent).toBe('');
+        expect(screen.getByTestId('pills').textContent).toBe('#');
+    };
+
+    test('picking a version raises the prompt and opens nothing', async () => {
+        renderList([updatableCard()]);
+
+        await pickVersion();
+
+        expect(screen.getByText('Update package')).toBeInTheDocument();
+        nothingOpened();
+    });
+
+    test.each(['Cancel', 'Update'])("the prompt's %s button opens nothing either", async (label) => {
+        renderList([updatableCard()]);
+        await pickVersion();
+
+        fireEvent.click(within(screen.getByTestId('modal-overlay')).getByRole('button', { name: label }));
+        await settle();
+
+        nothingOpened();
+    });
+
+    // CONTROL: without it the assertions above would pass on a harness that could
+    // never see a package open at all.
+    test('a click on the card itself still opens the package', async () => {
+        const { container } = renderList([updatableCard()]);
+
+        fireEvent.click(rowsOf(container)[0]);
+
+        await waitFor(() => expect(screen.getByTestId('tabs').textContent).not.toBe(''));
     });
 });

@@ -7,9 +7,7 @@ import { RecoilRoot, type MutableSnapshot } from 'recoil';
 import { AppItem } from './item';
 import { gCatalogStatus, gServerVersion, type CatalogMode } from '@/recoil/appStore';
 
-jest.mock('@/api/repository/appStore', () => ({
-    isGrandfatheredPkg: jest.fn(() => false),
-}));
+jest.mock('@/api/repository/appStore', () => ({}));
 jest.mock('@/hooks/useExperiment', () => ({
     useExperiment: () => ({ getExperiment: () => false }),
 }));
@@ -81,20 +79,9 @@ test('offline masks the hub target away, so the surviving local target lights th
     expect(screen.getByText('↑v1.2.0')).toBeInTheDocument();
 });
 
-// issue #1452 — local-only is a THIRD mode, and the masking must treat it exactly
-// like offline: a hub row has no bytes on this machine either way. This is the
-// case that would regress if any consumer read the mode as a truthy "not offline".
-test('local-only masks hub rows just as offline does', () => {
-    renderItem(MIXED_SOURCES, 'localOnly');
-
-    expect(screen.getByText('local')).toBeInTheDocument();
-    expect(screen.getByText('↑v1.2.0')).toBeInTheDocument();
-    expect(screen.queryByText('↑v1.3.0')).not.toBeInTheDocument();
-});
-
-// The mirror case: with the hub row the ONLY update, local-only must leave no
-// update affordance at all rather than one that cannot be fulfilled.
-test('local-only with a hub-only update offers no update button', () => {
+// With the hub row the ONLY update, offline must leave no update affordance at
+// all rather than one that cannot be fulfilled.
+test('offline with a hub-only update offers no update button', () => {
     renderItem(
         {
             name: 'neo-pkg-demo',
@@ -106,7 +93,7 @@ test('local-only with a hub-only update offers no update button', () => {
                 { version: '1.1.0', minServer: '8.0.10', source: 'local' },
             ],
         },
-        'localOnly'
+        'offline'
     );
 
     expect(screen.queryByText('↑v1.3.0')).not.toBeInTheDocument();

@@ -1,8 +1,8 @@
 import './item.scss';
-import { APP_INFO, isGrandfatheredPkg, PKG_STATUS } from '@/api/repository/appStore';
+import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
 import { useMemo, useState } from 'react';
 import { MdVerified } from 'react-icons/md';
-import { VscArchive, VscBeaker, VscChevronDown, VscWarning } from 'react-icons/vsc';
+import { VscArchive, VscChevronDown, VscWarning } from 'react-icons/vsc';
 import { useRecoilValue } from 'recoil';
 import { isCurUserEqualAdmin } from '@/utils';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -92,13 +92,9 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const sServerVersion = useRecoilValue(gServerVersion);
 
     const sCatalogStatus = useRecoilValue(gCatalogStatus);
-    // issue #1452 — the version gating asks one binary question ("can this row be
-    // fetched right now?"), and BOTH non-online modes answer no to a hub row: one
-    // because the hub is down, the other because it is switched off. So the mode is
-    // collapsed to a boolean here rather than threaded through the eligibility
-    // helpers, which have no business knowing why.
+    // issue #1452 — the version gating asks one binary question: can a hub row be
+    // fetched right now?
     const isHubUsable = sCatalogStatus.mode === 'online';
-    const isLocalOnly = sCatalogStatus.mode === 'localOnly';
     const installedVersion = isInstalled ? pItem?.installed_version : undefined;
 
     // issue #1369: classify the hub `versions[]` against the current server version
@@ -117,17 +113,8 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
         [pItem?.versions, sServerVersion, installedVersion, isHubUsable]
     );
 
-    // issue #1438: this card is only on screen because the package is already
-    // installed — the experiment gate would otherwise have removed it. Keep it
-    // removable (uninstall / stop stay untouched below) but stop advertising
-    // change: the package was pulled back for revalidation, so pushing its newer
-    // unvalidated versions at a non-experiment user defeats the recall.
-    const { getExperiment } = useExperiment();
-    const experimentOn = getExperiment();
-    const isGated = isGrandfatheredPkg(pItem, experimentOn);
-
-    const hasUpdate = isInstalled && !!eligibility.defaultUpdate && !isGated;
-    const canInstall = !!eligibility.defaultInstall && !isGated; // false when every version is ineligible
+    const hasUpdate = isInstalled && !!eligibility.defaultUpdate;
+    const canInstall = !!eligibility.defaultInstall; // false when every version is ineligible
 
     // In experiment mode the version menu carries a free-form "Custom version"
     // input, so it is worth opening even when the catalog offers no installable
@@ -136,7 +123,10 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     // skips, so the hub publishes no version at all. Without this the caret never
     // renders and the input is unreachable, leaving the package impossible to
     // install from the UI.
-    const canPickCustomVersion = experimentOn && !isGated;
+    //
+    // This is experiment mode's ONLY effect on the App Store.
+    const { getExperiment } = useExperiment();
+    const canPickCustomVersion = getExperiment();
     const isIncompatible = isInstalled && eligibility.isIncompatible;
 
     // issue #1452: say on the card itself — before the user opens the version
@@ -303,7 +293,6 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                         // local candidate is real — it just hangs off `stray.dir`
                         // rather than off the package name.
                         pInstalled={true}
-                        pAllowRemote={!isLocalOnly}
                         pInstalledIcon={pItem?.installed_icon}
                     />
                     <div className="app-store-item-head-contents">
@@ -371,7 +360,6 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                     pName={pItem?.name}
                     pIcon={pItem?.icon}
                     pInstalled={!!pItem?.installed_frontend}
-                    pAllowRemote={!isLocalOnly}
                     pInstalledIcon={pItem?.installed_icon}
                 />
                 <div className="app-store-item-head-contents">
@@ -389,11 +377,6 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                             {isLocalSource && (
                                 <span className="local" title="This version comes from the server's local package archive — installing it needs no network access.">
                                     <VscArchive size={11} /> local
-                                </span>
-                            )}
-                            {isGated && (
-                                <span className="experiment" title="This package is under validation. Updates are unavailable until it is released.">
-                                    <VscBeaker size={11} /> under validation
                                 </span>
                             )}
                             {isIncompatible && (
@@ -496,7 +479,6 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                     mode={menu.mode}
                     serverVersion={sServerVersion}
                     online={isHubUsable}
-                    localOnly={isLocalOnly}
                     rows={eligibility.rows}
                     onSelect={(version) => handleSelectVersion(menu.mode, version)}
                     onClose={() => setMenu(null)}
@@ -607,7 +589,21 @@ export const AppList = ({ pList, pStatus }: { pList: APP_INFO[] | string[]; pSta
                         // `.app-store-row--static` keys off to drop the pointer cursor
                         // and the hover tint, so the row cannot look clickable while
                         // being inert.
-                        onClick={isStray ? undefined : () => handleSelectApp(aItem)}
+                        onClick={
+                            isStray
+                                ? undefined
+                                : (e) => {
+                                      // ONLY A CLICK THAT LANDS ON THE CARD OPENS IT. The version menu
+                                      // and the confirm prompt are portals: they render outside this row
+                                      // in the DOM, but React still bubbles their clicks here along the
+                                      // component tree — so picking "v1.0.11 update →" also opened the
+                                      // package behind the prompt. Checked against the DOM rather than by
+                                      // stopping propagation in each popup, so a future portal inside the
+                                      // card is covered too.
+                                      if (!e.currentTarget.contains(e.target as Node)) return;
+                                      handleSelectApp(aItem);
+                                  }
+                        }
                         className={
                             isStray
                                 ? 'app-store-row--static'

@@ -7,7 +7,7 @@
 
 import { render, screen } from '@testing-library/react';
 import { CatalogStatusIcon } from './CatalogStatusIcon';
-import { CATALOG_STATUS_LABEL, formatCatalogTooltip } from './catalogState';
+import { CATALOG_STATUS_LABEL } from './catalogState';
 
 const LAST_SYNC = new Date('2026-02-03T04:05:06').getTime();
 
@@ -59,11 +59,10 @@ describe('CatalogStatusIcon', () => {
 
     // Each state must be distinguishable at a glance AND on hover: the icon carries
     // its own modifier class, and no two tooltips read alike.
-    test('the three non-silent states render different markers and different tooltips', () => {
+    test('the two non-silent states render different markers and different tooltips', () => {
         const titles = new Set<string>();
         const classes: string[] = [];
         const cases = [
-            { status: { mode: 'localOnly' } as const, entries: 3 },
             { status: { mode: 'offline', lastSyncAt: LAST_SYNC } as const, entries: 3 },
             { status: { mode: 'offline' } as const, entries: 0 },
         ];
@@ -76,9 +75,8 @@ describe('CatalogStatusIcon', () => {
             unmount();
         }
 
-        expect(titles.size).toBe(3);
+        expect(titles.size).toBe(2);
         expect(classes).toEqual([
-            'app-store-catalog-status app-store-catalog-status--localOnly',
             'app-store-catalog-status app-store-catalog-status--offline',
             'app-store-catalog-status app-store-catalog-status--failed',
         ]);
@@ -89,7 +87,6 @@ describe('CatalogStatusIcon', () => {
     // control wired to the identical handler. Do not bring it back.
     test('renders NO button in any state — Refresh in the header is the only retry', () => {
         for (const [status, entries] of [
-            [{ mode: 'localOnly' }, 3],
             [{ mode: 'offline' }, 3],
             [{ mode: 'offline' }, 0],
         ] as const) {
@@ -98,53 +95,5 @@ describe('CatalogStatusIcon', () => {
             expect(screen.queryByText(/retry/i)).not.toBeInTheDocument();
             unmount();
         }
-    });
-});
-
-// issue #1452 — local-only is a POSTURE, not an incident. The indicator's job here
-// is to make an otherwise invisible mode visible (a typo in .pkg-conf.json fails
-// open and silently), and to do it without sounding like a fault report.
-describe('CatalogStatusIcon — local-only (policy)', () => {
-    const renderLocalOnly = (entries = 3) => render(<CatalogStatusIcon pStatus={{ mode: 'localOnly', lastSyncAt: LAST_SYNC }} pEntryCount={entries} />);
-
-    test('states the mode and names the file that caused it', () => {
-        renderLocalOnly();
-
-        expect(screen.getByRole('status')).toHaveAccessibleName('Local-only (policy)');
-        expect(titleOf()).toMatch(/\/public\/\.pkg-conf\.json/);
-    });
-
-    test('still shown, and still not a failure, when the archive directory is empty', () => {
-        renderLocalOnly(0);
-
-        expect(screen.getByRole('status')).toHaveAccessibleName('Local-only (policy)');
-        expect(titleOf()).not.toMatch(/Catalog unavailable/);
-    });
-
-    // The two non-online states must not be mistakable for one another.
-    test('never borrows the failure vocabulary of offline / failed', () => {
-        renderLocalOnly();
-
-        expect(titleOf()).not.toMatch(/unreachable/i);
-        expect(titleOf()).not.toMatch(/could not be reached/i);
-        expect(titleOf()).not.toMatch(/unavailable/i);
-        expect(titleOf()).not.toMatch(/failed|error/i);
-    });
-
-    // Nothing was attempted, so nothing can be re-attempted: pointing at Refresh
-    // here would send an admin after a network fault that does not exist.
-    test('does not tell the operator to refresh — there is nothing to retry', () => {
-        renderLocalOnly();
-
-        expect(titleOf()).not.toMatch(/refresh/i);
-    });
-
-    // A hubError left over from a build before the policy file was written must not
-    // resurface as a tooltip suggesting something broke.
-    test('a stale hubError is not surfaced', () => {
-        render(<CatalogStatusIcon pStatus={{ mode: 'localOnly', hubError: 'getaddrinfo ENOTFOUND' }} pEntryCount={2} />);
-
-        expect(titleOf()).not.toContain('getaddrinfo ENOTFOUND');
-        expect(titleOf()).toBe(formatCatalogTooltip('localOnly', { mode: 'localOnly' }));
     });
 });

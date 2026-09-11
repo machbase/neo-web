@@ -42,26 +42,20 @@ export const gBrokenPkgs = selector({
 /**
  * issue #1452 — how the last catalog build got (or did not get) its hub data.
  *
- * THREE STATES, AND THE THIRD IS NOT A FAILURE:
- *
  *   online     the hub answered
- *   offline    the hub was ASKED and did not answer — network, proxy, outage.
- *              Something is wrong and retrying is the right response.
- *   localOnly  the hub was never asked, because `/public/.pkg-conf.json` says
- *              `{ "localOnly": true }`. Nothing is broken; an operator turned it
- *              off. Offering "Retry" here would send an admin chasing a network
- *              fault that does not exist, which is why this is its own state and
- *              not an `online: false` with a footnote.
+ *   offline    the hub was asked and did not answer — network, proxy, outage
  *
- * Deliberately NOT derived from `navigator.onLine`, which reports the LAN link and
- * says nothing about whether raw.githubusercontent is reachable from an
- * air-gapped site.
+ * Decided by the fetch alone. Deliberately NOT derived from `navigator.onLine`,
+ * which reports the LAN link and says nothing about whether raw.githubusercontent
+ * is reachable from a closed network.
  *
- * This REPLACED a boolean `online`. Consumers that need the boolean derive it as
- * `mode === 'online'` — one source of truth, so a third state cannot be added
- * again later and silently read as "online" somewhere.
+ * There used to be a third state, `localOnly`, switched on by a policy file so a
+ * closed-network server would not wait on a hub that never answers. The catalog
+ * now renders local packages BEFORE the hub answers, so that wait is invisible and
+ * the switch has nothing left to avoid. Consumers that need a boolean derive it as
+ * `mode === 'online'`.
  */
-export type CatalogMode = 'online' | 'offline' | 'localOnly';
+export type CatalogMode = 'online' | 'offline';
 
 export interface CatalogStatus {
     mode: CatalogMode;
