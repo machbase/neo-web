@@ -2,6 +2,7 @@ import {
     displayJsonPathLabel,
     extractJsonPathsFromSamples,
     formatJsonValueField,
+    getJsonPathSegments,
     jsonPathInputToStoredPath,
     jsonValueFieldToSql,
     normalizeJsonPath,
@@ -75,5 +76,35 @@ describe('dashboard JSON value path helpers', () => {
 
     test('treats direct dot input as nested path even when known paths have dotted segments', () => {
         expect(jsonPathInputToStoredPath('a.b.c', ['[a.b][c]'])).toBe('[a][b][c]');
+    });
+});
+
+// A key may contain the very characters the path syntax uses. The reader used to stop at the first
+// `]`, so `[TEST] RENAME_1` was cut down to `[TEST` and every such key collapsed onto one path.
+describe('paths whose keys carry bracket syntax', () => {
+    it('quotes only the segments that need it, leaving stored paths untouched', () => {
+        expect(normalizeJsonPath('[temp]')).toBe('[temp]');
+        expect(normalizeJsonPath('[pos][x]')).toBe('[pos][x]');
+        expect(normalizeJsonPath("['[TEST] RENAME_1']")).toBe("['[TEST] RENAME_1']");
+    });
+
+    it('reads a quoted segment back whole', () => {
+        expect(getJsonPathSegments("['[TEST] RENAME_1']")).toEqual(['[TEST] RENAME_1']);
+        expect(displayJsonPathLabel("['[TEST] RENAME_1']")).toBe('[TEST] RENAME_1');
+    });
+
+    it('keeps distinct bracketed keys distinct', () => {
+        const paths = ["['[TEST] RENAME_1']", "['[TEST] RENAME_2']"].map(normalizeJsonPath);
+        expect(new Set(paths).size).toBe(2);
+    });
+
+    it('round-trips a key containing a quote', () => {
+        const path = formatJsonValueField('VALUE', "[it's]").replace('VALUE->$', '');
+        expect(getJsonPathSegments(path)).toEqual(["it's"]);
+    });
+
+    it('discovers a bracketed key from a sample in addressable form', () => {
+        const paths = extractJsonPathsFromSamples(['{"[TEST] RENAME_1":1}']);
+        expect(getJsonPathSegments(paths[0])).toEqual(['[TEST] RENAME_1']);
     });
 });

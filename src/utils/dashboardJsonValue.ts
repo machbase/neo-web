@@ -9,9 +9,65 @@ const stripJsonRoot = (aPath: string) => {
     return sPath;
 };
 
+// A key needs quoting when a bare reader could not find its end, or when the quote character
+// itself would be ambiguous. Keys that need none keep their historical spelling exactly, so every
+// path already stored in a .taz or .dsh round-trips unchanged.
+const needsQuoting = (aSegment: string) => /[[\]']/.test(aSegment);
+
 const pathSegment = (aSegment: string) => {
     const sSegment = String(aSegment ?? '').trim();
-    return sSegment ? `[${sSegment}]` : '';
+    if (!sSegment) return '';
+    return needsQuoting(sSegment) ? `['${sSegment.replace(/'/g, "''")}']` : `[${sSegment}]`;
+};
+
+/**
+ * Read a bracket path into its segments, quoted or not.
+ *
+ * The plain `/\[([^\]]+)\]/g` this replaced stops at the first `]`, so a key named `[TEST] RENAME_1`
+ * was silently cut down to `[TEST` — a dozen distinct keys collapsing onto one wrong path. A quoted
+ * segment `['a]b']` is read to its closing quote instead, with `''` standing for a literal quote,
+ * which is the same spelling Machbase uses in a json path.
+ */
+const readPathSegments = (aPath: string): string[] => {
+    const sPath = String(aPath ?? '');
+    const sSegments: string[] = [];
+    let sIndex = 0;
+
+    while (sIndex < sPath.length) {
+        const sOpen = sPath.indexOf('[', sIndex);
+        if (sOpen < 0) break;
+
+        if (sPath[sOpen + 1] === "'") {
+            let sCursor = sOpen + 2;
+            let sValue = '';
+            while (sCursor < sPath.length) {
+                if (sPath[sCursor] === "'") {
+                    if (sPath[sCursor + 1] === "'") {
+                        sValue += "'";
+                        sCursor += 2;
+                        continue;
+                    }
+                    break;
+                }
+                sValue += sPath[sCursor];
+                sCursor += 1;
+            }
+            // An unterminated quote is malformed input, not a segment; stopping keeps the reader
+            // from inventing a key out of the remainder.
+            if (sPath[sCursor] !== "'" || sPath[sCursor + 1] !== ']') break;
+            if (sValue.trim()) sSegments.push(sValue.trim());
+            sIndex = sCursor + 2;
+            continue;
+        }
+
+        const sClose = sPath.indexOf(']', sOpen + 1);
+        if (sClose < 0) break;
+        const sValue = sPath.slice(sOpen + 1, sClose).trim();
+        if (sValue) sSegments.push(sValue);
+        sIndex = sClose + 1;
+    }
+
+    return sSegments;
 };
 
 const legacyPathToBracketPath = (aPath: string) => {
@@ -38,11 +94,7 @@ const legacyPathToBracketPath = (aPath: string) => {
         .join('');
 };
 
-const normalizeBracketPath = (aPath: string) => {
-    const sPath = String(aPath ?? '').trim();
-    const sSegments = [...sPath.matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
-    return sSegments.map(pathSegment).join('');
-};
+const normalizeBracketPath = (aPath: string) => readPathSegments(String(aPath ?? '').trim()).map(pathSegment).join('');
 
 export const normalizeJsonPath = (aPath: string) => {
     const sPath = stripJsonRoot(aPath);
@@ -51,9 +103,7 @@ export const normalizeJsonPath = (aPath: string) => {
     return legacyPathToBracketPath(sPath);
 };
 
-export const getJsonPathSegments = (aPath: string) => {
-    return [...normalizeJsonPath(aPath).matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
-};
+export const getJsonPathSegments = (aPath: string) => readPathSegments(normalizeJsonPath(aPath));
 
 export const displayJsonPathLabel = (aPath: string) => {
     const sSegments = getJsonPathSegments(aPath);
@@ -132,13 +182,33 @@ const parseSample = (aSample: any) => {
     }
 };
 
-export const extractJsonPathsFromSamples = (aSamples: any[]) => {
+/**
+ * The JSON type a leaf value carries, as one character.
+ *
+ * `n` number, `s` string, `b` boolean, `x` anything else. A key can then say what it holds before a
+ * single row has been fetched — a JSON collector knows this from its own config, and a table filled
+ * by SQL or an external writer has nowhere else it could come from.
+ */
+export const jsonSampleValueType = (aValue: any): 'n' | 's' | 'b' | 'a' | 'x' => {
+    if (typeof aValue === 'number') return 'n';
+    if (typeof aValue === 'string') return 's';
+    if (typeof aValue === 'boolean') return 'b';
+    if (Array.isArray(aValue)) return 'a';
+    return 'x';
+};
+
+export const extractJsonPathsFromSamples = (aSamples: any[]) => extractJsonPathEntriesFromSamples(aSamples).paths;
+
+/** Paths and their observed types, found in one walk so the two stay index-aligned. */
+export const extractJsonPathEntriesFromSamples = (aSamples: any[]) => {
     const sPaths: string[] = [];
+    const sTypes: string[] = [];
     const sSeen = new Set<string>();
-    const addPath = (aPath: string) => {
+    const addPath = (aPath: string, aValue?: any) => {
         if (!aPath || sSeen.has(aPath)) return;
         sSeen.add(aPath);
         sPaths.push(aPath);
+        sTypes.push(jsonSampleValueType(aValue));
     };
     const isObjectValue = (aValue: any) => aValue !== null && typeof aValue === 'object';
     const walk = (aValue: any, aPrefix = '') => {
@@ -148,13 +218,13 @@ export const extractJsonPathsFromSamples = (aSamples: any[]) => {
                 if (isObjectValue(aItem)) {
                     walk(aItem, sPath);
                 } else {
-                    addPath(sPath);
+                    addPath(sPath, aItem);
                 }
             });
             return;
         }
         if (!isObjectValue(aValue)) {
-            addPath(aPrefix);
+            addPath(aPrefix, aValue);
             return;
         }
 
@@ -163,7 +233,7 @@ export const extractJsonPathsFromSamples = (aSamples: any[]) => {
             if (isObjectValue(aValue[aKey])) {
                 walk(aValue[aKey], sPath);
             } else {
-                addPath(sPath);
+                addPath(sPath, aValue[aKey]);
             }
         });
     };
@@ -173,5 +243,5 @@ export const extractJsonPathsFromSamples = (aSamples: any[]) => {
         if (sParsedSample !== undefined) walk(sParsedSample);
     });
 
-    return sPaths;
+    return { paths: sPaths, types: sTypes.join('') };
 };
