@@ -18,6 +18,7 @@ import TagEChart, { type DataViewerTimeRange } from './TagEChart';
 import { MAX_JSON_KEY_SERIES, shortJsonKeyNames } from './jsonKeyTree';
 import { PANEL_TAG_LIMIT } from '@/components/tagAnalyzer/seriesModel';
 import { jsonKeyPathLabel } from '@/utils/jsonKeyCatalog';
+import { jsonChartNumber } from '@/utils/jsonChartNumber';
 
 /**
  * The selected keys, as a chart and a grid at once.
@@ -95,16 +96,6 @@ export interface JsonKeyDetailModalProps extends DataViewerTableParams {
     onOpenTagAnalyzer?: (paths: string[], window: { from?: string | number; to?: string | number }) => string | void;
     onClose: () => void;
 }
-
-const asNumber = (value: unknown): number | null => {
-    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-    if (typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : null;
-};
-
 
 
 /** The x a base value sits on: epoch milliseconds on a clock, the number itself on a distance axis. */
@@ -209,7 +200,7 @@ export const JsonKeyDetailModal = ({
     const { series, chartableCount, chartableIndexes } = useMemo(() => {
         const chartable: number[] = [];
         paths.forEach((_path, index) => {
-            if (rows.some((row) => asNumber(row.values[index]) !== null)) chartable.push(index);
+            if (rows.some((row) => jsonChartNumber(row.values[index]) !== null)) chartable.push(index);
         });
 
         const drawn = chartable.slice(0, MAX_JSON_KEY_SERIES);
@@ -231,7 +222,7 @@ export const JsonKeyDetailModal = ({
                  * `buildTagChartSeries` follows for a tag that has no row at a timestamp.
                  */
                 data: rows
-                    .map((row) => [baseAt(row.base, baseKind), asNumber(row.values[index])] as [number | null, number | null])
+                    .map((row) => [baseAt(row.base, baseKind), jsonChartNumber(row.values[index])] as [number | null, number | null])
                     .filter((point): point is [number, number] => point[0] !== null && point[1] !== null)
                     .sort((left, right) => left[0] - right[0]),
             })),

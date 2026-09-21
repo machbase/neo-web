@@ -5,6 +5,7 @@ import {
     getJsonPathSegments,
     jsonPathInputToStoredPath,
     jsonValueFieldToSql,
+    jsonPathToSqlPath,
     normalizeJsonPath,
     parseJsonValueField,
 } from './dashboardJsonValue';
@@ -78,12 +79,20 @@ describe('dashboard JSON value path helpers', () => {
         expect(jsonPathInputToStoredPath('a.b.c', ['[a.b][c]'])).toBe('[a][b][c]');
     });
 
+    test('does not throw while a user is still typing an incomplete bracket path', () => {
+        expect(() => jsonPathInputToStoredPath('[')).not.toThrow();
+        expect(jsonPathInputToStoredPath('[')).toBe('');
+        expect(() => jsonPathInputToStoredPath("['a")).not.toThrow();
+        expect(jsonPathInputToStoredPath("['a")).toBe('');
+        expect(() => jsonPathToSqlPath("['a")).toThrow('Invalid JSON path');
+    });
+
     test('preserves exact whitespace and empty key names in explicit bracket paths', () => {
         expect(normalizeJsonPath("[' a ']")) .toBe("[' a ']");
         expect(normalizeJsonPath("['']")).toBe("['']");
         expect(getJsonPathSegments("[' a ']['']")).toEqual([' a ', '']);
         expect(jsonValueFieldToSql('VALUE', "[' a ']")) .toBe("VALUE->'$['' a '']'");
-        expect(jsonValueFieldToSql('VALUE', "['']")).toBe("VALUE->'$['''']'");
+        expect(() => jsonValueFieldToSql('VALUE', "['']")).toThrow('cannot be queried');
     });
 });
 
@@ -109,6 +118,34 @@ describe('paths whose keys carry bracket syntax', () => {
     it('round-trips a key containing a quote', () => {
         const path = formatJsonValueField('VALUE', "[it's]").replace('VALUE->$', '');
         expect(getJsonPathSegments(path)).toEqual(["it's"]);
+        expect(path).toBe('["it\'s"]');
+        expect(jsonValueFieldToSql('VALUE', path)).toBe("VALUE->'$[\"it''s\"]'");
+    });
+
+    it('keeps legacy single-quoted saved paths readable while using a DB-safe path', () => {
+        expect(normalizeJsonPath("['a''b']")).toBe('["a\'b"]');
+        expect(getJsonPathSegments("['a''b']")).toEqual(["a'b"]);
+    });
+
+    it('keeps quote, bracket, and backslash key identities distinct', () => {
+        const keys = ["a'b", 'a"b', 'a]b', 'a\\b', "a'\"b"];
+        const paths = extractJsonPathsFromSamples([JSON.stringify(Object.fromEntries(keys.map((key) => [key, 42])))]);
+        expect(paths.map(getJsonPathSegments)).toEqual(keys.map((key) => [key]));
+        expect(paths).toEqual(['["a\'b"]', '[a"b]', "['a]b']", "['a\\b']", '[a\'"b]']);
+        expect(jsonValueFieldToSql('VALUE', paths[3])).toBe("VALUE->'$[''a\\\\b'']'");
+    });
+
+    it('reports keys that Machbase cannot address', () => {
+        expect(() => jsonPathToSqlPath("['']")).toThrow('cannot be queried');
+        expect(() => jsonPathToSqlPath("['a''\"b]']")).toThrow('cannot be queried');
+        expect(() => jsonPathToSqlPath("['\"a''b']")).toThrow('cannot be queried');
+        expect(() => jsonPathToSqlPath("['broken']tail")).toThrow('Invalid JSON path');
+    });
+
+    it('keeps keys beginning with either quote separate from JSONPath delimiters', () => {
+        const paths = extractJsonPathsFromSamples([JSON.stringify({ '"abc': 1, "'abc": 2 })]);
+        expect(paths).toEqual(["['\"abc']", '["\'abc"]']);
+        expect(paths.map(getJsonPathSegments)).toEqual([['"abc'], ["'abc"]]);
     });
 
     it('discovers a bracketed key from a sample in addressable form', () => {

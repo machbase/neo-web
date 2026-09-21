@@ -1,5 +1,6 @@
-import { displayJsonPathLabel, displayJsonPathSegments, getJsonPathSegments, jsonSampleValueType } from '@/utils/dashboardJsonValue';
+import { displayJsonPathLabel, displayJsonPathSegments, getJsonPathSegments, jsonPathSegment, jsonPathToSqlPath, jsonSampleValueType } from '@/utils/dashboardJsonValue';
 import { jsonKeyTypeLabel } from '@/utils/jsonKeyCatalog';
+import { jsonChartNumber } from '@/utils/jsonChartNumber';
 
 /**
  * One row's JSON document, as a pickable tree.
@@ -42,6 +43,8 @@ export type JsonKeyTreeNode = {
      * the gate off the badge instead would leave such a payload permanently unchartable.
      */
     numeric: boolean;
+    /** False when Machbase cannot address this key (for example an empty key). */
+    queryable: boolean;
     /** `object · 4` on a branch; the value itself on a leaf. */
     preview: string;
     /** Present on non-leaf nodes so the tree can be folded. */
@@ -59,8 +62,6 @@ export type JsonKeyTreeNode = {
  */
 const isContainer = (value: unknown) => value !== null && typeof value === 'object';
 
-const segment = (key: string) => (key.length === 0 || key.trim() !== key || /[[\]']/.test(key) ? `['${key.replace(/'/g, "''")}']` : `[${key}]`);
-
 const entriesOf = (value: object): (readonly [string, unknown])[] =>
     Array.isArray(value)
         ? value.map((item, index) => [String(index), item] as const)
@@ -77,11 +78,15 @@ const leafPreview = (value: unknown): string => {
 };
 
 /** See `JsonKeyTreeNode.numeric`: what the chart can draw, not what the document declares. */
-const isChartable = (value: unknown): boolean => {
-    if (typeof value === 'number') return Number.isFinite(value);
-    if (typeof value !== 'string') return false;
-    const trimmed = value.trim();
-    return trimmed.length > 0 && Number.isFinite(Number(trimmed));
+const isChartable = (value: unknown): boolean => jsonChartNumber(value) !== null;
+
+const isQueryable = (path: string): boolean => {
+    try {
+        jsonPathToSqlPath(path);
+        return true;
+    } catch {
+        return false;
+    }
 };
 
 /**
@@ -122,16 +127,18 @@ export const buildJsonKeyTree = (document: unknown, rootLabel = 'VALUE'): JsonKe
                 leaf: false,
                 dataType: '',
                 numeric: false,
+                queryable: false,
                 preview: branchPreview(value as object, entries.length),
                 childCount: entries.length,
             });
             for (const [key, child] of entries) {
-                const childPath = `${prefix}${segment(key)}`;
+                const childPath = `${prefix}${jsonPathSegment(key)}`;
                 walk(child, childPath, displayJsonPathLabel(childPath), dotted, key, depth + 1);
             }
             return;
         }
 
+        const queryable = isQueryable(prefix);
         nodes.push({
             path: prefix,
             label,
@@ -140,7 +147,8 @@ export const buildJsonKeyTree = (document: unknown, rootLabel = 'VALUE'): JsonKe
             depth,
             leaf: true,
             dataType: jsonKeyTypeLabel(jsonSampleValueType(value)),
-            numeric: isChartable(value),
+            numeric: queryable && isChartable(value),
+            queryable,
             preview: leafPreview(value),
             childCount: 0,
         });
@@ -167,6 +175,7 @@ export const buildJsonKeyTree = (document: unknown, rootLabel = 'VALUE'): JsonKe
                 leaf: true,
                 dataType: jsonKeyTypeLabel(jsonSampleValueType(parsed)),
                 numeric: isChartable(parsed),
+                queryable: true,
                 preview: leafPreview(parsed),
                 childCount: 0,
             },
@@ -178,7 +187,7 @@ export const buildJsonKeyTree = (document: unknown, rootLabel = 'VALUE'): JsonKe
     // The root itself is not a row — a document is the thing being explored, not a node in it. A
     // document that is an array at the top has one entry per position, since there is no key there.
     for (const [key, child] of entriesOf(parsed as object)) {
-        const path = segment(key);
+        const path = jsonPathSegment(key);
         walk(child, path, displayJsonPathLabel(path), '', key, 0);
     }
 
@@ -197,8 +206,8 @@ export const jsonKeyTreeLeavesUnder = (nodes: JsonKeyTreeNode[] = [], path: stri
     if (!node) return [];
     // Checked before the prefix walk below: the keyless document's path is empty, which is a prefix
     // of every other path there could be.
-    if (node.leaf) return [node.path];
-    return nodes.filter((entry) => entry.leaf && entry.path.startsWith(path)).map((entry) => entry.path);
+    if (node.leaf) return node.queryable ? [node.path] : [];
+    return nodes.filter((entry) => entry.leaf && entry.queryable && entry.path.startsWith(path)).map((entry) => entry.path);
 };
 
 /**

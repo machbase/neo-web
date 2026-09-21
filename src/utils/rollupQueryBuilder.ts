@@ -1,4 +1,4 @@
-import { jsonPathToSqlPath } from './dashboardJsonValue';
+import { escapeJsonPathSqlString, jsonPathToSqlPath } from './dashboardJsonValue';
 
 export type RollupQuerySourceMode = 'raw' | 'rollup' | 'split';
 
@@ -47,7 +47,6 @@ const sanitizeAlias = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '_').to
 
 const createMetricAlias = (prefix: string, outputAlias: string) => `${prefix}_${sanitizeAlias(outputAlias)}`;
 
-const escapeSqlString = (value: string) => value.replace(/'/g, "''");
 
 const getIntervalNanoseconds = (intervalType: string, intervalValue: number) => {
     switch (intervalType.toLowerCase()) {
@@ -219,7 +218,7 @@ export const createJsonRollupAggregationMetric = ({
 }: CreateJsonRollupAggregationMetricOptions): RollupAggregationMetric => {
     const normalizedAggregator = aggregator.toLowerCase();
     const jsonAlias = createMetricAlias('JSONVAL', outputAlias);
-    const jsonValueExpression = `TO_NUMBER_SAFE(${jsonAlias}->'${escapeSqlString(jsonPathToSqlPath(jsonPath))}')`;
+    const jsonValueExpression = `TO_NUMBER_SAFE(${jsonAlias}->'${escapeJsonPathSqlString(jsonPathToSqlPath(jsonPath))}')`;
 
     if (normalizedAggregator === 'count' || normalizedAggregator === 'count(*)') {
         return {

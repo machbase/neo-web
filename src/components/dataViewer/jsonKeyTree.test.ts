@@ -93,7 +93,10 @@ describe('buildJsonKeyTree', () => {
     it('keeps whitespace and empty key names as distinct selectable paths', () => {
         const nodes = buildJsonKeyTree({ '': 1, ' a ': 2, a: 3 });
         expect(nodes.filter((node) => node.leaf).map((node) => node.path)).toEqual(["['']", "[' a ']", '[a]']);
-        expect(nodes.filter((node) => node.leaf).map((node) => jsonKeyPathToSql(node.path))).toEqual(["$['']", "$[' a ']", '$[a]']);
+        expect(nodes.filter((node) => node.leaf).map((node) => node.queryable)).toEqual([false, true, true]);
+        expect(jsonKeyTreeLeavesUnder(nodes, "['']")).toEqual([]);
+        expect(() => jsonKeyPathToSql(nodes[0].path)).toThrow('cannot be queried');
+        expect(nodes.filter((node) => node.leaf).slice(1).map((node) => jsonKeyPathToSql(node.path))).toEqual(["$[' a ']", '$[a]']);
     });
 });
 
@@ -231,6 +234,13 @@ describe('chartable leaves', () => {
 
     it('counts nothing when nothing is picked', () => {
         expect(jsonKeyTreeSeriesCount(buildJsonKeyTree(doc), [])).toBe(0);
+    });
+
+    it('uses the database numeric rules for picker series', () => {
+        const nodes = buildJsonKeyTree({ binary: '0b10', octal: '0o10', hex: '0x10', decimal: '2.5' });
+        expect(nodes.map((node) => node.numeric)).toEqual([false, false, true, true]);
+        expect(jsonKeyTreeSeriesCount(nodes, nodes.map((node) => node.path))).toBe(2);
+        expect(nodes.map((node) => node.preview)).toEqual(['0b10', '0o10', '0x10', '2.5']);
     });
 });
 

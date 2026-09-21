@@ -58,11 +58,29 @@ describe('JsonKeyPickerModal', () => {
     it('shows and selects special key names without merging distinct paths', () => {
         open({ document: { ' spaced ': 42, spaced: 99, 'a.b': { c: 1 }, a: { 'b.c': 2 }, '': 7 } });
 
-        for (const name of ["[' spaced ']", 'spaced', '[a.b][c]', '[a][b.c]', "['']"]) {
+        for (const name of ["[' spaced ']", 'spaced', '[a.b][c]', '[a][b.c]']) {
             fireEvent.click(screen.getByRole('checkbox', { name }));
             expect(screen.getByRole('button', { name: `Remove ${name}` })).toBeInTheDocument();
         }
-        expect(screen.getByText('5 keys selected · 4 of 5 drawn')).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: "['']" })).toBeDisabled();
+        expect(screen.getByText('4 keys selected · 4 series')).toBeInTheDocument();
+    });
+
+    it('selects only readable children when a branch contains an unsupported key', () => {
+        const onConfirm = jest.fn();
+        open({ document: { group: { '': 7, value: 3 } }, onConfirm });
+
+        expect(screen.getByRole('checkbox', { name: "[group]['']" })).toBeDisabled();
+        fireEvent.click(screen.getByRole('checkbox', { name: 'group' }));
+        expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+        expect(onConfirm).toHaveBeenCalledWith(['[group][value]']);
+    });
+
+    it('does not count binary or octal text as a drawable series', () => {
+        open({ document: { binary: '0b10', octal: '0o10', hex: '0x10' } });
+        for (const name of ['binary', 'octal', 'hex']) fireEvent.click(screen.getByRole('checkbox', { name }));
+        expect(screen.getByText('3 keys selected · 1 series')).toBeInTheDocument();
     });
 
     // "Back" has to come back to what you left. The modal is unmounted while the detail view is up,

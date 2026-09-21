@@ -12,11 +12,16 @@ const stripJsonRoot = (aPath: string) => {
 // A key needs quoting when a bare reader could not find its end, or when the quote character
 // itself would be ambiguous. Keys that need none keep their historical spelling exactly, so every
 // path already stored in a .taz or .dsh round-trips unchanged.
-const needsQuoting = (aSegment: string) => aSegment.length === 0 || aSegment.trim() !== aSegment || /[[\]']/.test(aSegment);
+const needsQuoting = (aSegment: string) => aSegment.length === 0 || aSegment.trim() !== aSegment || aSegment.startsWith('"') || /[\[\]\\']/.test(aSegment);
 
-const pathSegment = (aSegment: string) => {
+export const jsonPathSegment = (aSegment: string) => {
     const sSegment = String(aSegment ?? '');
-    return needsQuoting(sSegment) ? `['${sSegment.replace(/'/g, "''")}']` : `[${sSegment}]`;
+    if (!needsQuoting(sSegment)) return `[${sSegment}]`;
+    // These are JSONPath delimiters, not SQL string delimiters. Doubling an apostrophe
+    // inside JSONPath changes the key; SQL escaping happens only when building SQL below.
+    if (sSegment.includes("'") && !sSegment.includes('"')) return `["${sSegment}"]`;
+    if (sSegment.includes("'") && sSegment.includes('"') && !sSegment.includes(']') && !/^["']/.test(sSegment)) return `[${sSegment}]`;
+    return `['${sSegment.replace(/'/g, "''")}']`;
 };
 
 /**
@@ -24,24 +29,28 @@ const pathSegment = (aSegment: string) => {
  *
  * The plain `/\[([^\]]+)\]/g` this replaced stops at the first `]`, so a key named `[TEST] RENAME_1`
  * was silently cut down to `[TEST` — a dozen distinct keys collapsing onto one wrong path. A quoted
- * segment `['a]b']` is read to its closing quote instead, with `''` standing for a literal quote,
- * which is the same spelling Machbase uses in a json path.
+ * segment `['a]b']` is read to its closing quote instead. Old saved paths with `''` are
+ * decoded to their original key, then written using a delimiter Machbase can read.
  */
-const readPathSegments = (aPath: string): string[] => {
+const readPathSegments = (aPath: string, strict = false): string[] => {
     const sPath = String(aPath ?? '');
     const sSegments: string[] = [];
     let sIndex = 0;
 
     while (sIndex < sPath.length) {
         const sOpen = sPath.indexOf('[', sIndex);
-        if (sOpen < 0) break;
+        if (sOpen !== sIndex) {
+            if (strict) throw new Error(`Invalid JSON path: ${sPath}`);
+            break;
+        }
 
-        if (sPath[sOpen + 1] === "'") {
+        if (sPath[sOpen + 1] === "'" || sPath[sOpen + 1] === '"') {
+            const sQuote = sPath[sOpen + 1];
             let sCursor = sOpen + 2;
             let sValue = '';
             while (sCursor < sPath.length) {
-                if (sPath[sCursor] === "'") {
-                    if (sPath[sCursor + 1] === "'") {
+                if (sPath[sCursor] === sQuote) {
+                    if (sQuote === "'" && sPath[sCursor + 1] === "'") {
                         sValue += "'";
                         sCursor += 2;
                         continue;
@@ -51,16 +60,20 @@ const readPathSegments = (aPath: string): string[] => {
                 sValue += sPath[sCursor];
                 sCursor += 1;
             }
-            // An unterminated quote is malformed input, not a segment; stopping keeps the reader
-            // from inventing a key out of the remainder.
-            if (sPath[sCursor] !== "'" || sPath[sCursor + 1] !== ']') break;
+            if (sPath[sCursor] !== sQuote || sPath[sCursor + 1] !== ']') {
+                if (strict) throw new Error(`Invalid JSON path: ${sPath}`);
+                break;
+            }
             sSegments.push(sValue);
             sIndex = sCursor + 2;
             continue;
         }
 
         const sClose = sPath.indexOf(']', sOpen + 1);
-        if (sClose < 0) break;
+        if (sClose < 0) {
+            if (strict) throw new Error(`Invalid JSON path: ${sPath}`);
+            break;
+        }
         const sValue = sPath.slice(sOpen + 1, sClose);
         sSegments.push(sValue);
         sIndex = sClose + 1;
@@ -89,11 +102,11 @@ const legacyPathToBracketPath = (aPath: string) => {
 
             return sSegments.length ? sSegments : [sPart];
         })
-        .map(pathSegment)
+        .map(jsonPathSegment)
         .join('');
 };
 
-const normalizeBracketPath = (aPath: string) => readPathSegments(String(aPath ?? '').trim()).map(pathSegment).join('');
+const normalizeBracketPath = (aPath: string) => readPathSegments(String(aPath ?? '').trim()).map(jsonPathSegment).join('');
 
 export const normalizeJsonPath = (aPath: string) => {
     const sPath = stripJsonRoot(aPath);
@@ -108,7 +121,7 @@ export const getJsonPathSegments = (aPath: string) => readPathSegments(normalize
 export const displayJsonPathSegments = (sSegments: string[]) => {
     if (sSegments.length === 0) return '';
     if (sSegments.length === 1 && !sSegments[0].includes('.') && !needsQuoting(sSegments[0])) return sSegments[0];
-    if (sSegments.some((aSegment) => aSegment.includes('.') || needsQuoting(aSegment))) return sSegments.map(pathSegment).join('');
+    if (sSegments.some((aSegment) => aSegment.includes('.') || needsQuoting(aSegment))) return sSegments.map(jsonPathSegment).join('');
     return sSegments.join('.');
 };
 
@@ -120,9 +133,19 @@ export const jsonPathInputToStoredPath = (aInput: string, aKnownPaths: string[] 
 };
 
 export const jsonPathToSqlPath = (aPath: string) => {
+    const raw = stripJsonRoot(aPath);
+    if (raw.startsWith('[')) readPathSegments(raw, true);
     const sPath = normalizeJsonPath(aPath);
+    // Machbase cannot load a JSON document containing an empty key. Its path parser also
+    // cannot address a key containing both quotes and a closing bracket. Fail clearly
+    // instead of returning NULL for a different key.
+    const unsupported = readPathSegments(sPath).find((segment) => segment === '' || (segment.includes("'") && segment.includes('"') && (segment.includes(']') || /^["']/.test(segment))));
+    if (unsupported !== undefined) throw new Error(`This JSON key cannot be queried: ${JSON.stringify(unsupported)}`);
     return sPath ? `$${sPath}` : '';
 };
+
+/** Escape a JSONPath only after it has been placed inside a Machbase SQL string. */
+export const escapeJsonPathSqlString = (path: string) => path.replace(/\\/g, '\\\\').replace(/'/g, "''");
 
 export const formatJsonValueField = (aColumn: string, aPath: string) => {
     const sPath = normalizeJsonPath(aPath);
@@ -153,7 +176,7 @@ export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
     const sPath = normalizeJsonPath(aJsonKey || sParsed?.path || '');
     if (!sColumn || !sPath) return sColumn;
 
-    return `${sColumn}->'${jsonPathToSqlPath(sPath).replace(/'/g, "''")}'`;
+    return `${sColumn}->'${escapeJsonPathSqlString(jsonPathToSqlPath(sPath))}'`;
 };
 
 export const toSqlValueExpression = (aValue: string, aJsonKey?: string) => jsonValueFieldToSql(aValue, aJsonKey);
@@ -230,7 +253,7 @@ export const extractJsonPathEntriesFromSamples = (aSamples: any[]) => {
         }
 
         Object.keys(aValue).forEach((aKey) => {
-            const sPath = `${aPrefix}${pathSegment(aKey)}`;
+            const sPath = `${aPrefix}${jsonPathSegment(aKey)}`;
             if (isObjectValue(aValue[aKey])) {
                 walk(aValue[aKey], sPath);
             } else {

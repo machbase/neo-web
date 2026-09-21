@@ -1,6 +1,7 @@
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { getCurrentDatabaseId, getCurrentDatabaseName, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { jsonKeyPathToSql } from '@/utils/jsonKeyCatalog';
+import { escapeJsonPathSqlString } from '@/utils/dashboardJsonValue';
 import { SQL_BASE_LIMIT } from '@/utils/sqlFormatter';
 import { buildTagStatExtentSelect, tagStatAxisColumns } from '@/utils/tagStatColumns';
 import { parseDataViewerDistanceValue, type DataViewerBaseKind } from './dataViewerModel';
@@ -493,7 +494,7 @@ export async function queryTagJsonKeyData({
     const projections = keyPaths
         .map((path, index) => {
             const sqlPath = jsonKeyPathToSql(path);
-            const expression = sqlPath ? `${valueColumnExpr}->'${escapeSqlString(sqlPath)}'` : valueColumnExpr;
+            const expression = sqlPath ? `${valueColumnExpr}->'${escapeJsonPathSqlString(sqlPath)}'` : valueColumnExpr;
             return `${expression} as ${JSON_VALUE_ALIAS}${index}`;
         })
         .join(', ');

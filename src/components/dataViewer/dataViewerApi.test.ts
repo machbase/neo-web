@@ -970,17 +970,25 @@ describe('queryTagJsonKeyData', () => {
     test('escapes a quote inside a key path', async () => {
         await queryTagJsonKeyData({ ...params, paths: ["['it''s']"] });
 
-        expect(mockedFetchTql.mock.calls[0][0]).toContain("VALUE->'$[''it''''s'']' as JV0");
+        expect(mockedFetchTql.mock.calls[0][0]).toContain("VALUE->'$[\"it''s\"]' as JV0");
     });
 
-    test('projects whitespace and empty member names rather than the whole document', async () => {
-        await queryTagJsonKeyData({ ...params, paths: ["[' a ']", "['']", '[a]'] });
+    test('projects whitespace and ordinary member names rather than the whole document', async () => {
+        await queryTagJsonKeyData({ ...params, paths: ["[' a ']", '[a]'] });
 
         const sql = mockedFetchTql.mock.calls[0][0];
         expect(sql).toContain("VALUE->'$['' a '']' as JV0");
-        expect(sql).toContain("VALUE->'$['''']' as JV1");
-        expect(sql).toContain("VALUE->'$[a]' as JV2");
-        expect(sql).not.toContain('VALUE as JV1');
+        expect(sql).toContain("VALUE->'$[a]' as JV1");
+    });
+
+    test('reports an empty member name instead of projecting the whole document', async () => {
+        await expect(queryTagJsonKeyData({ ...params, paths: ["['']"] })).rejects.toThrow('cannot be queried');
+    });
+
+    test('escapes a backslash only when the path enters a SQL string', async () => {
+        await queryTagJsonKeyData({ ...params, paths: ["['a\\b']"] });
+
+        expect(mockedFetchTql.mock.calls[0][0]).toContain("VALUE->'$[''a\\\\b'']' as JV0");
     });
 
     // A JSON document that is a bare value has no key to project out of it, so the column is taken

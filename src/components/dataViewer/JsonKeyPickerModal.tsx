@@ -123,7 +123,7 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
     // Open. The document the user clicked is the thing they came to look at, and folding it means
     // every key past the first level costs a click before it can even be seen.
     const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(initialView?.collapsed ?? []));
-    const [selected, setSelected] = useState<string[]>(() => initialSelected ?? []);
+    const [selected, setSelected] = useState<string[]>(() => (initialSelected ?? []).filter((path) => nodes.some((node) => node.leaf && node.queryable && node.path === path)));
 
     /** Fitted to the deepest key, so the staircase always lands inside the budget. See it above. */
     const indentStep = useMemo(() => {
@@ -184,7 +184,7 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
         const indent = { '--tree-indent': filtering ? '0px' : `${node.depth * indentStep}px` } as React.CSSProperties;
         const isCollapsed = collapsed.has(node.path);
 
-        const leaves = node.leaf ? [node.path] : jsonKeyTreeLeavesUnder(nodes, node.path);
+        const leaves = jsonKeyTreeLeavesUnder(nodes, node.path);
         const pickedCount = leaves.filter((path) => selected.includes(path)).length;
         const checked = leaves.length > 0 && pickedCount === leaves.length;
         const partial = pickedCount > 0 && !checked;
@@ -220,7 +220,7 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
             // A label, exactly as the tag list does it: the whole row is the checkbox's target
             // without a second control having to be wired up to it.
             return (
-                <label key={node.path} className={rowClass} style={indent} title={node.dotted}>
+                <label key={node.path} className={rowClass} style={indent} title={node.queryable ? node.dotted : 'This JSON key cannot be queried.'}>
                     <span className="json-key-caret" />
                     {box}
                     {/* Wrapped, never truncated: sibling keys share long prefixes, and an ellipsis

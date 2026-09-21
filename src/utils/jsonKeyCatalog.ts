@@ -20,9 +20,8 @@ export const jsonKeyTypeLabel = (type: string | undefined): string =>
 /**
  * A json path Machbase can follow.
  *
- * The same string the path is handed over as — `$['key']`, the form the Machbase docs use. There is
- * deliberately no second spelling for queries: a receiver that re-parses the path and a database
- * that reads it now agree, which is what lets any key be addressed everywhere.
+ * Paths use bracket segments. A key containing an apostrophe uses double quotes around that
+ * segment; SQL string escaping is applied later, when the path is placed in a query.
  */
 export const jsonKeyPathToSql = (path: string): string => jsonPathToSqlPath(path);
 
