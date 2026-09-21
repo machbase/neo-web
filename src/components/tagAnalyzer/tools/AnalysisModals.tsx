@@ -82,6 +82,7 @@ export function SelectionSummaryPopover({
             title="Selection Summary"
             position={position}
             onClose={onClose}
+            closeOnScroll={false}
             size="compact"
             outsideCloseIgnoreSelector=".panel-header"
             headerAction={(

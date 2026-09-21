@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { fftApi, type FftChartData } from '../api/fftApi';
 import type { ChartSeriesData } from '../chart/chartData';
@@ -253,6 +254,41 @@ describe('FFT interactions', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Apply values' }));
 
         expect(fftApi.fetchFftChartData).toHaveBeenCalledTimes(1);
+    });
+
+    test('keeps the selection summary open during console scrolling after FFT closes', async () => {
+        jest.mocked(fftApi.fetchFftChartData).mockResolvedValue({ chartID: 'fft-chart' });
+
+        function SelectionOwner() {
+            const [isOpen, setOpen] = useState(true);
+            return (
+                <>
+                    <div data-testid="console" />
+                    {isOpen && (
+                        <SelectionSummaryPopover
+                            selection={SELECTION}
+                            position={{ x: 0, y: 0 }}
+                            isNumericXAxis={false}
+                            isRaw
+                            onClose={() => setOpen(false)}
+                        />
+                    )}
+                </>
+            );
+        }
+
+        render(<SelectionOwner />);
+        fireEvent.click(screen.getByTestId('tag-analyzer-selection-open-fft'));
+        await waitFor(() => expect(screen.getByTestId('tag-analyzer-fft-chart')).toHaveAttribute('aria-busy', 'false'));
+        fireEvent.click(screen.getByTestId('tag-analyzer-fft-close'));
+        expect(screen.getByTestId('tag-analyzer-selection-summary')).toBeVisible();
+
+        fireEvent.scroll(screen.getByTestId('console'));
+        fireEvent.scroll(window);
+        expect(screen.getByTestId('tag-analyzer-selection-summary')).toBeVisible();
+
+        fireEvent.click(screen.getByTestId('close'));
+        expect(screen.queryByTestId('tag-analyzer-selection-summary')).not.toBeInTheDocument();
     });
 
     test('keeps reopening disabled until a closed FFT request finishes', async () => {
