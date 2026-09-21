@@ -1,0 +1,494 @@
+@use '@/design-system/tokens' as t;
+
+// -----------------------------------------------------------------------------
+// DB EXPLORER — SEARCH BAND, FILTER TRIGGERS, TYPE MENU
+// -----------------------------------------------------------------------------
+// The panel only ever grows by two rows: a 24px search band that is always there,
+// and a 22px summary row that exists only while a filter is on. Everything else
+// this feature adds lives inside the tree's existing 22px row rhythm, so turning
+// search and filters on never reflows the rows around them.
+//
+// New values only. Panel / header / popover / hairline / checkbox border / focus
+// ring / the three text greys / the seven type colours are all reused from the
+// design tokens, which already carry the exact values the mockup calls for.
+
+// 28px in a gutter rather than a flush 24px band: the panel's other search — the app
+// store's CatalogSearchBand — is an inset, rounded, filled field, and two search boxes
+// one extension apart should not be different objects.
+$explorer-search-h: 28px;
+$explorer-link-fg: #4199ff;
+$search-match-bg: rgba(65, 153, 255, 0.3);
+// On a selected row (#005fb8) a blue wash is invisible, so the highlight inverts
+// to a white one rather than tinting blue on blue.
+$search-match-bg-onsel: rgba(255, 255, 255, 0.28);
+$filter-summary-bg: rgba(65, 153, 255, 0.06);
+$filter-badge-active: rgb(0, 83, 160);
+// Below this the panel drops to 6px side padding and gives up the secondary
+// counts; the name is the last thing to go.
+$explorer-narrow-bp: 220px;
+
+.db-explorer-search-wrap {
+    flex-shrink: 0;
+    background-color: t.$bg-panel;
+}
+
+.db-explorer-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: $explorer-search-h;
+    // The gutter is the point: full-bleed, the field's own fill ran into the panel
+    // edge and the version bar above it, so it read as another header stripe rather
+    // than as something to type in.
+    margin: 6px 8px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background-color: t.$bg-elevated;
+    color: t.$text-disabled;
+
+    &:hover {
+        color: t.$text-secondary;
+    }
+
+    &:focus-within {
+        border-color: t.$border-color-focus;
+        background-color: t.$bg-input;
+    }
+
+    &.is-active .db-explorer-search-count {
+        color: t.$text-secondary;
+    }
+}
+
+.db-explorer-search-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    color: t.$text-disabled;
+}
+
+.db-explorer-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: t.$text-primary;
+    font-size: 12px;
+    outline: none;
+
+    &::placeholder {
+        color: t.$text-disabled;
+    }
+}
+
+.db-explorer-search-count {
+    flex-shrink: 0;
+    // Tabular by way of the editor face: the count changes on every keystroke and
+    // a proportional font makes it jitter under the cursor.
+    font-family: 'D2Coding', monospace;
+    font-size: 11px;
+    color: t.$text-disabled;
+    white-space: nowrap;
+}
+
+.db-explorer-search-clear {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    // Restated against the global `button { border-radius: 8px }` in src/index.css,
+    // which would otherwise round this 16px box almost to a circle.
+    border-radius: 2px;
+    background: transparent;
+    color: t.$text-disabled;
+    cursor: pointer;
+
+    &:hover {
+        background-color: t.$bg-hover-block;
+        color: t.$text-primary;
+    }
+}
+
+// Sits in the same gutter as the field above it, so the two read as one stack rather
+// than as a field with an unrelated stripe under it.
+.db-explorer-filter-summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    margin: -2px 8px 6px;
+    padding: 0 8px;
+    border-radius: 3px;
+    background-color: $filter-summary-bg;
+    font-size: 11px;
+    color: t.$text-secondary;
+
+    &-icon {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        color: $explorer-link-fg;
+    }
+
+    &-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}
+
+// Shared inline action: "Clear all", "All", "None", "Reset", "Clear search".
+.db-explorer-inline-link {
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: t.$border-radius-xs;
+    background: transparent;
+    color: $explorer-link-fg;
+    font-size: t.$font-size-xs;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+        text-decoration: underline;
+    }
+
+    &:disabled {
+        color: t.$text-muted;
+        cursor: default;
+    }
+}
+
+// -------------------------------------------------------------- empty states
+
+.db-explorer-empty {
+    padding: 4px 8px 6px 16px;
+    font-size: 11px;
+    line-height: 16px;
+    color: t.$text-disabled;
+
+    &-text {
+        font-style: italic;
+    }
+}
+
+// The line under a database whose filter hides every one of its tables. Indented
+// to the user-row column so it reads as belonging to that database, and it must
+// never be clipped — it carries the only way back.
+.db-explorer-filter-blocked {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px 0 28px;
+    font-size: 11px;
+    color: t.$text-disabled;
+
+    &-text {
+        font-style: italic;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .db-explorer-inline-link {
+        flex: none;
+    }
+}
+
+// ------------------------------------------------------- per-database trigger
+
+// The slot is always occupied, filtered or not, so the record counts to its left
+// never shift sideways when a filter goes on or comes off.
+// Shaped like the panel's other icon buttons (`Button size="side"`, 18px with a
+// `$bg-hover-block` wash) so it reads as pressable before it is pressed. Brightening
+// the glyph alone left it looking like a status mark rather than a control.
+.db-explorer-filter-trigger {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: t.$border-radius-base;
+    background: transparent;
+    color: t.$text-disabled;
+    opacity: 0.4;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+        background-color: t.$bg-hover-block;
+        color: t.$text-primary;
+        opacity: 1;
+    }
+
+    // Active state is a colour inversion of the trigger itself — no extra dot, no row
+    // tint. It fills the same 18px box, so nothing on the row moves when it goes on.
+    &.is-active {
+        padding: 0 4px;
+        border-radius: 3px;
+        background-color: t.$primary-base;
+        color: t.$text-primary;
+        opacity: 1;
+
+        &:hover,
+        &:focus-visible {
+            background-color: t.$primary-hover;
+        }
+
+        &:active {
+            background-color: $filter-badge-active;
+        }
+    }
+
+    &-count {
+        font-family: 'D2Coding', monospace;
+        font-size: 10px;
+        line-height: 1;
+    }
+}
+
+// `shown / total` on a database row, next to its trigger.
+.db-explorer-db-count {
+    flex-shrink: 0;
+    margin-left: 6px;
+    font-family: 'D2Coding', monospace;
+    font-size: 11px;
+    color: t.$text-disabled;
+    white-space: nowrap;
+
+    &.is-narrowed {
+        color: t.$text-secondary;
+    }
+}
+
+// No padding of its own: `Side.ItemAction` sits to its right and already carries the
+// panel's 11px gutter, empty or not, so the tail must not add a second one.
+.db-explorer-db-tail {
+    display: flex;
+    align-items: center;
+}
+
+// The design-system's `.sideItem .itemContent + div` (0-2-1) sets `flex: 0 1 auto` on
+// whatever follows the row's content — written for a record count, which may shrink.
+// A plain `.db-explorer-db-tail { flex-shrink: 0 }` (0-1-0) loses to it, and the tail
+// was measured collapsing to 15px at a 150px panel and 9.9px at 110px around an
+// 18px trigger, which then overflowed the row and got cut by `overflow-x: hidden`.
+// Two classes behind the attribute selector (0-3-0) outrank it; the button is a
+// target, not a label, so it is the one thing on this row that must never shrink.
+[class*='sideItem'] > .db-explorer-db-tail.db-explorer-db-tail {
+    flex: 0 0 auto;
+}
+
+// ------------------------------------------------------------ match highlight
+
+.db-explorer-match {
+    border-radius: 2px;
+    background-color: $search-match-bg;
+    // The glyph colour is left alone on purpose: recolouring it as well made the
+    // match read as a different kind of object rather than the same name, found.
+    color: inherit;
+
+    .sideItem.active &,
+    .db-explorer-row.is-selected & {
+        background-color: $search-match-bg-onsel;
+    }
+}
+
+// ---------------------------------------------------------------- type menu
+
+// Proportioned off `Dropdown.__menu / __list / __option` rather than invented: same
+// 12px option text, same 6px/8px option padding, same `$border-radius-sm` rows, same
+// `$dropdown-option-hover-bg` wash. The shared `Popover` supplies the shell (fill,
+// border, radius, shadow), so nothing here restates it.
+//
+// 184px + the Popover's own 8px side padding = its 200px min-width exactly, so the
+// menu never ends up wider than the box drawn around it.
+.db-explorer-type-menu {
+    // Stretches to whatever the shell is (its own `min-width: 200px`, or wider if a type
+    // name demands it) rather than fixing a width that has to be kept in sync with it.
+    min-width: 184px;
+    // The shared Popover hardcodes #2a2a2a; a dropdown in this design system is
+    // `$dropdown-bg`. Bleeding over the shell's own 4px/8px padding repaints it edge to
+    // edge without touching the shared component, and leaves the content box unmoved.
+    margin: -4px -8px;
+    padding: 4px 8px;
+    border-radius: t.$border-radius-base;
+    background-color: t.$dropdown-bg;
+    font-size: t.$font-size-sm;
+    color: t.$text-primary;
+
+    // Dividers reach the shell's edges; the rows stay inside its padding.
+    &-head,
+    &-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: t.$spacing-6;
+        height: 24px;
+        margin: 0 -8px;
+        padding: 0 t.$spacing-8;
+    }
+
+    &-head {
+        border-bottom: 1px solid t.$dropdown-border;
+    }
+
+    &-foot {
+        border-top: 1px solid t.$dropdown-border;
+    }
+
+    &-title {
+        font-size: t.$font-size-xs;
+        letter-spacing: 0.04em;
+        color: t.$text-tertiary;
+    }
+
+    &-head-actions {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: t.$spacing-8;
+    }
+
+    &-list {
+        display: flex;
+        flex-direction: column;
+        gap: t.$spacing-2;
+        max-height: 252px;
+        overflow-y: auto;
+        padding: t.$spacing-4 0;
+    }
+
+    &-empty {
+        padding: t.$spacing-6 t.$spacing-8;
+        font-size: t.$font-size-sm;
+        color: t.$text-tertiary;
+    }
+
+    &-hint {
+        font-size: t.$font-size-xs;
+        color: t.$text-muted;
+    }
+}
+
+.db-explorer-type-menu-row {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    width: 100%;
+    padding: t.$spacing-6 t.$spacing-8;
+    border: none;
+    border-radius: t.$border-radius-sm;
+    background: transparent;
+    color: inherit;
+    font-size: t.$font-size-sm;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover:not(:disabled) {
+        background-color: t.$dropdown-option-hover-bg;
+    }
+
+    &:focus-visible {
+        outline: none;
+        background-color: t.$dropdown-option-hover-bg;
+        box-shadow: 0 0 0 1px t.$border-color-focus inset;
+    }
+
+    // Greyed because checking it would reveal nothing under the current search. Still
+    // clickable while checked — the only way to undo a filter that has hidden
+    // everything. Matches `Dropdown.__option--disabled`, which also dims by opacity.
+    &.is-dim {
+        opacity: 0.4;
+    }
+
+    &:disabled {
+        cursor: default;
+    }
+}
+
+.db-explorer-type-check {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border: 1px solid t.$border-color-medium;
+    border-radius: t.$border-radius-xs;
+    color: t.$text-primary;
+
+    &.is-checked {
+        border-color: t.$primary-base;
+        background-color: t.$primary-base;
+    }
+}
+
+.db-explorer-type-swatch {
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: t.$border-radius-xs;
+}
+
+.db-explorer-type-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.db-explorer-type-count {
+    flex-shrink: 0;
+    font-size: t.$font-size-xs;
+    color: t.$text-tertiary;
+}
+
+// ------------------------------------------------------------ narrow panel
+
+// Under #{$explorer-narrow-bp} the side padding tightens and the secondary counts
+// stand down, so the table name — the thing being searched for — keeps its width
+// the longest. Driven by a ResizeObserver in DBExplorer rather than a container
+// query: the tree rows and the band sit in different subtrees, the split pane
+// gives neither a containment context of its own, and the flag is wanted in JS
+// anyway to decide whether the per-database counts render at all.
+.db-explorer-search-wrap.is-narrow {
+    .db-explorer-search {
+        gap: 4px;
+        margin: 6px 6px;
+        padding: 0 6px;
+    }
+
+    .db-explorer-filter-summary {
+        gap: 4px;
+        margin: -2px 6px 6px;
+        padding: 0 6px;
+    }
+
+    // "2 filters · 3/41 shown" stops fitting; the count alone still does, and the
+    // trigger badges on the rows already say which databases are filtered.
+    .db-explorer-filter-summary-text {
+        font-size: 10px;
+    }
+}
+
+.db-explorer-filter-blocked.is-narrow {
+    padding-left: 22px;
+}

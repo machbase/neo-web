@@ -1,8 +1,9 @@
+import './ExplorerSearchFilter.scss';
 import { backupStatus, getBackupDBList, getConnectableDatabases, getTableList } from '@/api/repository/api';
 import { getDatabases, isDatabaseWritable } from '@/utils/currentDatabaseState';
 import { refreshDatabases } from '@/api/repository/currentDatabase';
 import { MdRefresh } from '@/assets/icons/Icon';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackupTableInfo, TableInfo } from './TableInfo';
 import { generateUUID, isCurUserEqualAdmin } from '@/utils';
 import { TbDatabasePlus } from 'react-icons/tb';
@@ -18,10 +19,21 @@ import { fetchQuery } from '@/api/repository/database';
 import { Toast } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Side, Checkbox } from '@/design-system/components';
+import { ExplorerSearchBar } from './ExplorerSearchBar';
+import { buildExplorerView, clearAllTypeFilters, readTypeFilters, setTypeFilter, toggleTypeFilter, TypeFilterMap, writeTypeFilters } from './explorerFilter';
+
+/** Below this the panel drops to 6px padding and gives up the per-database counts. */
+const NARROW_PANEL_WIDTH = 220;
 
 export const DBExplorer = () => {
     const { getExperiment } = useExperiment();
     const [sDBList, setDBList] = useState<any>([]);
+    const [sQuery, setQuery] = useState<string>('');
+    // Seeded synchronously from storage so a reload never flashes the unfiltered tree
+    // before the saved filter lands.
+    const [sTypeFilters, setTypeFilters] = useState<TypeFilterMap>(() => readTypeFilters());
+    const [sIsNarrow, setIsNarrow] = useState<boolean>(false);
+    const sPanelRef = useRef<HTMLDivElement | null>(null);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
@@ -269,12 +281,58 @@ export const DBExplorer = () => {
         }
     };
 
+    /** Search and the per-database filters resolved against the built tree, in one pass. */
+    const sView = useMemo(() => buildExplorerView({ dbList: sDBList ?? [], query: sQuery, filters: sTypeFilters }), [sDBList, sQuery, sTypeFilters]);
+
+    const handleToggleType = (aDbName: string, aType: string) => {
+        setTypeFilters((aPrev: TypeFilterMap) => toggleTypeFilter(aPrev, aDbName, aType));
+    };
+    const handleSelectAllTypes = (aDbName: string) => {
+        // "All" selects every type the dropdown can actually reveal, which is the same as
+        // no filter — so it clears instead, and the trigger goes back to idle.
+        setTypeFilters((aPrev: TypeFilterMap) => setTypeFilter(aPrev, aDbName, []));
+    };
+    const handleClearTypes = (aDbName: string) => {
+        setTypeFilters((aPrev: TypeFilterMap) => setTypeFilter(aPrev, aDbName, []));
+    };
+
     useEffect(() => {
         init();
     }, []);
 
+    /** Persisted on change rather than on unmount: the panel is swapped out, not unmounted,
+     *  when another extension is selected, and a closed tab would otherwise lose the filter. */
+    useEffect(() => {
+        writeTypeFilters(sTypeFilters);
+    }, [sTypeFilters]);
+
+    useEffect(() => {
+        const sNode = sPanelRef.current;
+        if (!sNode || typeof ResizeObserver === 'undefined') return;
+        const sObserver = new ResizeObserver((aEntries) => {
+            const sWidth = aEntries[0]?.contentRect?.width ?? 0;
+            // Guarded against 0, which is what a hidden panel reports — without it every
+            // extension switch would flip the tree to its narrow layout for a frame.
+            if (sWidth > 0) setIsNarrow(sWidth < NARROW_PANEL_WIDTH);
+        });
+        sObserver.observe(sNode);
+        return () => sObserver.disconnect();
+    }, []);
+
     return (
         <>
+            <div ref={sPanelRef} className={`db-explorer-search-wrap ${sIsNarrow ? 'is-narrow' : ''}`}>
+                <ExplorerSearchBar
+                    pQuery={sQuery}
+                    pOnQueryChange={setQuery}
+                    pMatched={sView.matchedTotal}
+                    pTotal={sView.renderedTotal}
+                    pFilteredDbCount={sView.filteredDbCount}
+                    pFilteredShown={sView.filteredShown}
+                    pFilteredTotal={sView.filteredTotal}
+                    pOnClearFilters={() => setTypeFilters(clearAllTypeFilters())}
+                />
+            </div>
             <Side.Container splitSizes={sSideSizes} onSplitChange={setSideSizes}>
                 <Side.Section>
                     <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
@@ -316,13 +374,41 @@ export const DBExplorer = () => {
                         </Button.Group>
                     </Side.Collapse>
                     <Side.List>
-                        {/* DB LIST */}
-                        {sDBList &&
-                            sDBList.length !== 0 &&
+                        {/* DB LIST — a search that matches nothing takes the database rows with
+                            it. Leaving them as a row of `0/14` chevrons over an empty tree looks
+                            like the nodes failed to expand rather than like a search that found
+                            nothing, and the count beside the input already says how many exist. */}
+                        {sView.dbList.length !== 0 &&
                             sCollapseTree &&
-                            sDBList.map((aDB: any, aIdx: number) => {
-                                return <TableInfo pShowHiddenObj={true} key={aIdx} pValue={aDB} pRefresh={sRefresh} pUpdate={init} pContextMenu={handleContextMenu} />;
+                            !(sView.hasQuery && sView.matchedTotal === 0) &&
+                            sView.dbList.map((aDB: any, aIdx: number) => {
+                                return (
+                                    <TableInfo
+                                        pShowHiddenObj={true}
+                                        key={aIdx}
+                                        pValue={aDB}
+                                        pRefresh={sRefresh}
+                                        pUpdate={init}
+                                        pContextMenu={handleContextMenu}
+                                        pQuery={sQuery}
+                                        pStat={sView.stats[aDB.dbName]}
+                                        pIsNarrow={sIsNarrow}
+                                        pOnToggleType={handleToggleType}
+                                        pOnSelectAllTypes={handleSelectAllTypes}
+                                        pOnClearTypes={handleClearTypes}
+                                    />
+                                );
                             })}
+                        {/* The section header stays, so the panel never looks dead — only the
+                            rows under it are gone, with the way back on the line below. */}
+                        {sCollapseTree && sView.hasQuery && sView.matchedTotal === 0 && sView.dbList.length !== 0 && (
+                            <div className="db-explorer-empty">
+                                <div className="db-explorer-empty-text">No matching items</div>
+                                <button type="button" className="db-explorer-inline-link" onClick={() => setQuery('')}>
+                                    Clear search
+                                </button>
+                            </div>
+                        )}
                     </Side.List>
                 </Side.Section>
                 {/* BACKUP DB LIST */}
