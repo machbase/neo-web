@@ -973,6 +973,16 @@ describe('queryTagJsonKeyData', () => {
         expect(mockedFetchTql.mock.calls[0][0]).toContain("VALUE->'$[''it''''s'']' as JV0");
     });
 
+    test('projects whitespace and empty member names rather than the whole document', async () => {
+        await queryTagJsonKeyData({ ...params, paths: ["[' a ']", "['']", '[a]'] });
+
+        const sql = mockedFetchTql.mock.calls[0][0];
+        expect(sql).toContain("VALUE->'$['' a '']' as JV0");
+        expect(sql).toContain("VALUE->'$['''']' as JV1");
+        expect(sql).toContain("VALUE->'$[a]' as JV2");
+        expect(sql).not.toContain('VALUE as JV1');
+    });
+
     // A JSON document that is a bare value has no key to project out of it, so the column is taken
     // as it stands — projecting `->'$'` would ask the database for a path that is not there.
     test('takes the column itself when the path is empty', async () => {

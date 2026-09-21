@@ -55,6 +55,16 @@ describe('JsonKeyPickerModal', () => {
         expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeInTheDocument();
     });
 
+    it('shows and selects special key names without merging distinct paths', () => {
+        open({ document: { ' spaced ': 42, spaced: 99, 'a.b': { c: 1 }, a: { 'b.c': 2 }, '': 7 } });
+
+        for (const name of ["[' spaced ']", 'spaced', '[a.b][c]', '[a][b.c]', "['']"]) {
+            fireEvent.click(screen.getByRole('checkbox', { name }));
+            expect(screen.getByRole('button', { name: `Remove ${name}` })).toBeInTheDocument();
+        }
+        expect(screen.getByText('5 keys selected · 4 of 5 drawn')).toBeInTheDocument();
+    });
+
     // "Back" has to come back to what you left. The modal is unmounted while the detail view is up,
     // so the filter and the folds ride out and back on the page rather than living only in here.
     it('starts from the view it was left with, and reports the one it is in', () => {
@@ -277,6 +287,22 @@ describe('JsonKeyDetailModal', () => {
         // Two keys across the first cycle, so the first two rows are that cycle's two values.
         const firstRow = screen.getAllByRole('row')[1];
         expect(within(firstRow).getByText('value')).toBeInTheDocument();
+    });
+
+    it('shows distinct grid and chart names for different dotted key paths', async () => {
+        const paths = ['[a.b][c]', '[a][b.c]', '[a][b][c]'];
+        mockedQuery.mockResolvedValue({
+            rows: [{ base: '2026-08-25 10:00:00.000', values: [1, 2, 3] }],
+        });
+        open({ paths });
+        await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+
+        expect(screen.getByTitle('[a.b][c]')).toBeInTheDocument();
+        expect(screen.getByTitle('[a][b.c]')).toBeInTheDocument();
+        expect(screen.getByTitle('a.b.c')).toBeInTheDocument();
+        const chart = (require('echarts') as typeof import('echarts')).init as jest.Mock;
+        const option = (chart.mock.results.at(-1)?.value.setOption as jest.Mock).mock.calls.at(-1)?.[0];
+        expect(option.series.slice(0, 3).map((item: { name: string }) => item.name)).toEqual(['[a.b][c]', '[a][b.c]', 'b.c']);
     });
 
     // A key holding text is real data and belongs in the grid; saying so is what keeps its absence

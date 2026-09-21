@@ -195,7 +195,7 @@ export const JsonKeyDetailModal = ({
     // An empty path is the column itself — a document that is a bare value has no key to name — so
     // it borrows the column's name rather than rendering as a blank header.
     const columnNames = useMemo(
-        () => shortJsonKeyNames(paths.map((path) => jsonKeyPathLabel(path) || valueColumn || path)),
+        () => shortJsonKeyNames(paths).map((name, index) => name || valueColumn || paths[index]),
         [paths, valueColumn]
     );
 

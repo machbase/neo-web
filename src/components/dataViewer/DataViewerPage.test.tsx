@@ -3246,6 +3246,18 @@ describe('DataViewerPage JSON key chain', () => {
         expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
     });
 
+    test('a JSON document with only empty branches opens the row inspector', async () => {
+        dataViewerApi.listTableColumns.mockResolvedValue(JSON_VALUE_COLUMNS);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: [{ ...JSON_ROWS[0], value: '{"a":{},"b":[]}' }] });
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+
+        fireEvent.click(getDataRows(container)[0]);
+
+        expect(await screen.findByText(/row 1 of/)).toBeInTheDocument();
+        expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
+    });
+
     test('the detail is read for the keys that were ticked, over the page window', async () => {
         const { container } = renderJson();
         await openKeyPicker(container);

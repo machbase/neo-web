@@ -24,13 +24,20 @@ describe('jsonKeyPathLabel', () => {
     // An OPC UA node may be called `[TEST] RENAME_1`. The old segment regex stopped at the first
     // `]`, so every such key rendered as `[TEST` and a dozen distinct keys looked identical.
     it('recovers a key that contains brackets of its own', () => {
-        expect(jsonKeyPathLabel("['[TEST] RENAME_1']")).toBe('[TEST] RENAME_1');
+        expect(jsonKeyPathLabel("['[TEST] RENAME_1']")).toBe("['[TEST] RENAME_1']");
         const labels = ["['[TEST] RENAME_1']", "['[TEST] RENAME_2']"].map(jsonKeyPathLabel);
         expect(new Set(labels).size).toBe(2);
     });
 
     it('returns nothing for an empty path', () => {
         expect(jsonKeyPathLabel('  ')).toBe('');
+    });
+
+    it('distinguishes dotted member names from nesting at every level', () => {
+        expect(['[a.b][c]', '[a][b.c]', '[a][b][c]'].map(jsonKeyPathLabel)).toEqual(['[a.b][c]', '[a][b.c]', 'a.b.c']);
+        expect(jsonKeyPathLabel("['[a.b][c]']")).toBe("['[a.b][c]']");
+        expect(jsonKeyPathLabel("[' a ']")).toBe("[' a ']");
+        expect(jsonKeyPathLabel("['']")).toBe("['']");
     });
 });
 
@@ -59,5 +66,10 @@ describe('toTagAnalyzerJsonKeyPath', () => {
     it('refuses a key too long for the handoff field, and an empty one', () => {
         expect(toTagAnalyzerJsonKeyPath(`[${'k'.repeat(TAG_ANALYZER_MAX_JSON_KEY_TEXT)}]`)).toMatchObject({ ok: false });
         expect(toTagAnalyzerJsonKeyPath('')).toMatchObject({ ok: false });
+    });
+
+    it('hands over a named empty key without treating it as the whole JSON column', () => {
+        expect(toTagAnalyzerJsonKeyPath("['']")).toEqual({ ok: true, path: "['']" });
+        expect(toTagAnalyzerJsonKeyPath("[' a ']")).toEqual({ ok: true, path: "[' a ']" });
     });
 });

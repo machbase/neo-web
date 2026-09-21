@@ -1,4 +1,4 @@
-import { getJsonPathSegments, jsonPathToSqlPath, normalizeJsonPath } from './dashboardJsonValue';
+import { displayJsonPathLabel, jsonPathToSqlPath, normalizeJsonPath } from './dashboardJsonValue';
 
 /**
  * Addressing the keys inside a JSON value column.
@@ -52,8 +52,5 @@ export const toTagAnalyzerJsonKeyPath = (path: string): { ok: true; path: string
  * and does not have to be recovered by hand here.
  */
 export const jsonKeyPathLabel = (path: string): string => {
-    const segments = getJsonPathSegments(path);
-    if (segments.length === 0) return '';
-    // A nested path reads better dotted; a single key is shown exactly as it is named.
-    return segments.length === 1 ? segments[0] : segments.join('.');
+    return displayJsonPathLabel(path);
 };

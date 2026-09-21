@@ -12,11 +12,10 @@ const stripJsonRoot = (aPath: string) => {
 // A key needs quoting when a bare reader could not find its end, or when the quote character
 // itself would be ambiguous. Keys that need none keep their historical spelling exactly, so every
 // path already stored in a .taz or .dsh round-trips unchanged.
-const needsQuoting = (aSegment: string) => /[[\]']/.test(aSegment);
+const needsQuoting = (aSegment: string) => aSegment.length === 0 || aSegment.trim() !== aSegment || /[[\]']/.test(aSegment);
 
 const pathSegment = (aSegment: string) => {
-    const sSegment = String(aSegment ?? '').trim();
-    if (!sSegment) return '';
+    const sSegment = String(aSegment ?? '');
     return needsQuoting(sSegment) ? `['${sSegment.replace(/'/g, "''")}']` : `[${sSegment}]`;
 };
 
@@ -55,15 +54,15 @@ const readPathSegments = (aPath: string): string[] => {
             // An unterminated quote is malformed input, not a segment; stopping keeps the reader
             // from inventing a key out of the remainder.
             if (sPath[sCursor] !== "'" || sPath[sCursor + 1] !== ']') break;
-            if (sValue.trim()) sSegments.push(sValue.trim());
+            sSegments.push(sValue);
             sIndex = sCursor + 2;
             continue;
         }
 
         const sClose = sPath.indexOf(']', sOpen + 1);
         if (sClose < 0) break;
-        const sValue = sPath.slice(sOpen + 1, sClose).trim();
-        if (sValue) sSegments.push(sValue);
+        const sValue = sPath.slice(sOpen + 1, sClose);
+        sSegments.push(sValue);
         sIndex = sClose + 1;
     }
 
@@ -105,13 +104,15 @@ export const normalizeJsonPath = (aPath: string) => {
 
 export const getJsonPathSegments = (aPath: string) => readPathSegments(normalizeJsonPath(aPath));
 
-export const displayJsonPathLabel = (aPath: string) => {
-    const sSegments = getJsonPathSegments(aPath);
+/** Keep unusual key names visibly distinct from nested ordinary keys. */
+export const displayJsonPathSegments = (sSegments: string[]) => {
     if (sSegments.length === 0) return '';
-    if (sSegments.some((aSegment) => aSegment.includes('.'))) return sSegments.map(pathSegment).join('');
-    if (sSegments.length === 1) return sSegments[0];
+    if (sSegments.length === 1 && !sSegments[0].includes('.') && !needsQuoting(sSegments[0])) return sSegments[0];
+    if (sSegments.some((aSegment) => aSegment.includes('.') || needsQuoting(aSegment))) return sSegments.map(pathSegment).join('');
     return sSegments.join('.');
 };
+
+export const displayJsonPathLabel = (aPath: string) => displayJsonPathSegments(getJsonPathSegments(aPath));
 
 export const jsonPathInputToStoredPath = (aInput: string, aKnownPaths: string[] = []) => {
     void aKnownPaths;

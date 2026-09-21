@@ -77,6 +77,14 @@ describe('dashboard JSON value path helpers', () => {
     test('treats direct dot input as nested path even when known paths have dotted segments', () => {
         expect(jsonPathInputToStoredPath('a.b.c', ['[a.b][c]'])).toBe('[a][b][c]');
     });
+
+    test('preserves exact whitespace and empty key names in explicit bracket paths', () => {
+        expect(normalizeJsonPath("[' a ']")) .toBe("[' a ']");
+        expect(normalizeJsonPath("['']")).toBe("['']");
+        expect(getJsonPathSegments("[' a ']['']")).toEqual([' a ', '']);
+        expect(jsonValueFieldToSql('VALUE', "[' a ']")) .toBe("VALUE->'$['' a '']'");
+        expect(jsonValueFieldToSql('VALUE', "['']")).toBe("VALUE->'$['''']'");
+    });
 });
 
 // A key may contain the very characters the path syntax uses. The reader used to stop at the first
@@ -90,7 +98,7 @@ describe('paths whose keys carry bracket syntax', () => {
 
     it('reads a quoted segment back whole', () => {
         expect(getJsonPathSegments("['[TEST] RENAME_1']")).toEqual(['[TEST] RENAME_1']);
-        expect(displayJsonPathLabel("['[TEST] RENAME_1']")).toBe('[TEST] RENAME_1');
+        expect(displayJsonPathLabel("['[TEST] RENAME_1']")).toBe("['[TEST] RENAME_1']");
     });
 
     it('keeps distinct bracketed keys distinct', () => {

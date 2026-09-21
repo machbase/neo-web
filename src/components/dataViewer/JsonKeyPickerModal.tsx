@@ -16,6 +16,8 @@ import Modal from '@/components/modal/Modal';
 import DataViewerModalPortal from './DataViewerModalPortal';
 import useOutsideCloseGuard from './useOutsideCloseGuard';
 import useModalDialog from './useModalDialog';
+import { displayJsonPathSegments } from '@/utils/dashboardJsonValue';
+import { jsonKeyPathLabel } from '@/utils/jsonKeyCatalog';
 import {
     buildJsonKeyTree,
     filterJsonKeyTree,
@@ -190,7 +192,7 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
         const label = (
             <span className="json-key-name json-key-name-leaf">
                 {filtering && node.parentDotted ? <span className="json-key-prefix">{node.parentDotted}.</span> : null}
-                {node.label}
+                {displayJsonPathSegments([node.label])}
             </span>
         );
 
@@ -331,7 +333,7 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
                             {selected.length === 0 ? <div className="empty-state">Nothing picked yet.</div> : null}
                             {selected.map((path) => {
                                 const node = nodes.find((entry) => entry.path === path);
-                                const name = node?.dotted ?? path;
+                                const name = jsonKeyPathLabel(path) || node?.dotted || path;
                                 return (
                                     <span key={path} className={`json-key-picker-chip${node?.numeric ? '' : ' is-flat'}`} title={name}>
                                         <span className="json-key-picker-chip-name">{name}</span>

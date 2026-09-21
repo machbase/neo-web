@@ -1,4 +1,4 @@
-import { jsonSampleValueType } from '@/utils/dashboardJsonValue';
+import { displayJsonPathLabel, displayJsonPathSegments, getJsonPathSegments, jsonSampleValueType } from '@/utils/dashboardJsonValue';
 import { jsonKeyTypeLabel } from '@/utils/jsonKeyCatalog';
 
 /**
@@ -59,7 +59,7 @@ export type JsonKeyTreeNode = {
  */
 const isContainer = (value: unknown) => value !== null && typeof value === 'object';
 
-const segment = (key: string) => (/[[\]']/.test(key) ? `['${key.replace(/'/g, "''")}']` : `[${key}]`);
+const segment = (key: string) => (key.length === 0 || key.trim() !== key || /[[\]']/.test(key) ? `['${key.replace(/'/g, "''")}']` : `[${key}]`);
 
 const entriesOf = (value: object): (readonly [string, unknown])[] =>
     Array.isArray(value)
@@ -126,7 +126,8 @@ export const buildJsonKeyTree = (document: unknown, rootLabel = 'VALUE'): JsonKe
                 childCount: entries.length,
             });
             for (const [key, child] of entries) {
-                walk(child, `${prefix}${segment(key)}`, `${dotted}.${key}`, dotted, key, depth + 1);
+                const childPath = `${prefix}${segment(key)}`;
+                walk(child, childPath, displayJsonPathLabel(childPath), dotted, key, depth + 1);
             }
             return;
         }
@@ -176,7 +177,10 @@ export const buildJsonKeyTree = (document: unknown, rootLabel = 'VALUE'): JsonKe
 
     // The root itself is not a row — a document is the thing being explored, not a node in it. A
     // document that is an array at the top has one entry per position, since there is no key there.
-    for (const [key, child] of entriesOf(parsed as object)) walk(child, segment(key), key, '', key, 0);
+    for (const [key, child] of entriesOf(parsed as object)) {
+        const path = segment(key);
+        walk(child, path, displayJsonPathLabel(path), '', key, 0);
+    }
 
     return nodes;
 };
@@ -203,7 +207,7 @@ export const jsonKeyTreeLeavesUnder = (nodes: JsonKeyTreeNode[] = [], path: stri
  * The picker is a key explorer, so a bare JSON scalar has nothing it can offer. Empty objects and
  * arrays have no descendants either. Those rows stay on the ordinary row inspector.
  */
-export const jsonKeyDocumentHasKeys = (value: unknown): boolean => buildJsonKeyTree(value).some((node) => node.path !== '');
+export const jsonKeyDocumentHasKeys = (value: unknown): boolean => buildJsonKeyTree(value).some((node) => node.leaf && node.path !== '');
 
 /** Paths of every leaf, which is the full set a "select all" may reach. */
 export const jsonKeyTreeLeafPaths = (nodes: JsonKeyTreeNode[] = []): string[] =>
@@ -263,17 +267,16 @@ export const visibleJsonKeyTree = (nodes: JsonKeyTreeNode[] = [], collapsed: Set
  * Series names short enough to read, long enough to tell apart.
  *
  * Two branches both ending in `value` produce two legend entries called `value`. A colliding name
- * grows one segment leftwards until the whole set is unique, so `temperature.value` and
- * `humidity.value` appear only once something actually collides — names that never collided stay
- * short.
+ * grows one path segment leftwards until the whole set is unique. The source is the bracket path,
+ * not a dotted label: a literal `a.b` key and nested `a` → `b` must remain different series.
  */
-export const shortJsonKeyNames = (dottedPaths: string[] = []): string[] => {
-    const parts = dottedPaths.map((path) => String(path ?? '').split('.'));
+export const shortJsonKeyNames = (paths: string[] = []): string[] => {
+    const parts = paths.map((path) => getJsonPathSegments(path));
     const longest = parts.reduce((max, part) => Math.max(max, part.length), 1);
-    let names = parts.map((part) => part[part.length - 1] ?? '');
+    let names = parts.map((part) => displayJsonPathSegments(part.slice(-1)));
 
     for (let depth = 2; depth <= longest && new Set(names).size !== names.length; depth += 1) {
-        names = parts.map((part) => part.slice(-depth).join('.'));
+        names = parts.map((part) => displayJsonPathSegments(part.slice(-depth)));
     }
 
     return names;

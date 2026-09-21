@@ -75,7 +75,7 @@ describe('buildJsonKeyTree', () => {
     it('quotes a key that carries bracket syntax, and reads it back', () => {
         const [node] = buildJsonKeyTree({ '[TEST] RENAME_1': 1 });
         expect(node.path).toBe("['[TEST] RENAME_1']");
-        expect(jsonKeyPathLabel(node.path)).toBe('[TEST] RENAME_1');
+        expect(jsonKeyPathLabel(node.path)).toBe("['[TEST] RENAME_1']");
     });
 
     // An array of objects is the case that decides this: leaving the array whole would put every
@@ -88,6 +88,12 @@ describe('buildJsonKeyTree', () => {
     it('returns nothing for a value that is not a document', () => {
         expect(buildJsonKeyTree('not json')).toEqual([]);
         expect(buildJsonKeyTree(null)).toEqual([]);
+    });
+
+    it('keeps whitespace and empty key names as distinct selectable paths', () => {
+        const nodes = buildJsonKeyTree({ '': 1, ' a ': 2, a: 3 });
+        expect(nodes.filter((node) => node.leaf).map((node) => node.path)).toEqual(["['']", "[' a ']", '[a]']);
+        expect(nodes.filter((node) => node.leaf).map((node) => jsonKeyPathToSql(node.path))).toEqual(["$['']", "$[' a ']", '$[a]']);
     });
 });
 
@@ -115,6 +121,9 @@ describe('a document that is a bare value', () => {
         expect(jsonKeyDocumentHasKeys('"text"')).toBe(false);
         expect(jsonKeyDocumentHasKeys('{}')).toBe(false);
         expect(jsonKeyDocumentHasKeys('[]')).toBe(false);
+        expect(jsonKeyDocumentHasKeys('{"a":{}}')).toBe(false);
+        expect(jsonKeyDocumentHasKeys('{"a":[]}')).toBe(false);
+        expect(jsonKeyDocumentHasKeys('{"a":{"b":[]}}')).toBe(false);
         expect(jsonKeyDocumentHasKeys('{"a":1}')).toBe(true);
         expect(jsonKeyDocumentHasKeys('{"a":{"b":1}}')).toBe(true);
         expect(jsonKeyDocumentHasKeys('[{"a":1}]')).toBe(true);
@@ -241,5 +250,9 @@ describe('shortJsonKeyNames', () => {
 
     it('stops growing at the full path rather than looping', () => {
         expect(shortJsonKeyNames(['a.b', 'a.b'])).toEqual(['a.b', 'a.b']);
+    });
+
+    it('keeps dotted literal keys distinct from nested keys in the legend', () => {
+        expect(shortJsonKeyNames(['[a.b][c]', '[a][b.c]', '[a][b][c]'])).toEqual(['[a.b][c]', '[a][b.c]', 'b.c']);
     });
 });
