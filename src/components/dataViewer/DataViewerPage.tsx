@@ -13,9 +13,13 @@ import {
 import NeoTimeRangeModal from '@/components/modal/TimeRangeModal';
 import { TimeZoneModal as NeoTimeZoneModal } from '@/components/modal/TimeZoneModal';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/integration';
 import { TABLE_COLUMN_TYPE } from '@/utils/constants';
 import TagEChart, { type DataViewerTimeRange } from './TagEChart';
+import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/application/adapters';
+import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
+import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
+import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
+import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { getUserName } from '@/utils';
 import {
     DataViewerAssetHierarchy,

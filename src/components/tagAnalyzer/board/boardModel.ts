@@ -5,11 +5,12 @@ import {
     type PanelEChartType,
     type PanelInfo,
 } from '../panel/panelModel';
-import { formatAbsoluteTime, formatNumericValue } from '../persistence/serializeRange';
+import { formatAbsoluteTime } from '../format/timeFormat';
+import { formatNumericValue } from '../rangeExpression/expressionFormat';
 import {
     type RangeExpressionInput,
     type AxisRange,
-} from '../range/rangeModel';
+} from '../rangeExpression/rangeModel';
 import {
     assertValidPanelSeriesIdentifiers,
     createPanelSeriesDefinition,
@@ -31,32 +32,6 @@ export type BoardInfo = {
     savedCode: string | false;
     version?: string;
     loadWarning?: string;
-};
-
-type TagAnalyzerDefaultBoardOptions = {
-    tag: string;
-    timeRange: AxisRange;
-    table: string;
-    sourceColumns: PanelSeriesSourceColumns;
-};
-
-type TazBoardCreationOptions = {
-    id: string;
-    name: string;
-    path: string;
-    chartTitle: string;
-    chartType?: PanelEChartType;
-    seriesList: PanelSeriesDefinition[];
-};
-
-type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
-    timeRange: RangeExpressionInput;
-};
-
-type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
-    boardTimeRange: RangeExpressionInput;
-    boardNumericRange: RangeExpressionInput;
-    mainRange: RangeExpressionInput;
 };
 
 export function createDefaultTazBoard(
@@ -107,7 +82,7 @@ export function createTazBoardFromTimeRange(
     });
 }
 
-function createTazBoardFromSeries(
+export function createTazBoardFromSeries(
     options: CreateTazBoardFromSeriesOptions,
 ): BoardInfo {
     const {
@@ -141,6 +116,34 @@ function createTazBoardFromSeries(
         savedCode: false,
     };
 }
+
+// -------------------- Local --------------------
+
+type TagAnalyzerDefaultBoardOptions = {
+    tag: string;
+    timeRange: AxisRange;
+    table: string;
+    sourceColumns: PanelSeriesSourceColumns;
+};
+
+type TazBoardCreationOptions = {
+    id: string;
+    name: string;
+    path: string;
+    chartTitle: string;
+    chartType?: PanelEChartType;
+    seriesList: PanelSeriesDefinition[];
+};
+
+type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
+    timeRange: RangeExpressionInput;
+};
+
+type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
+    boardTimeRange: RangeExpressionInput;
+    boardNumericRange: RangeExpressionInput;
+    mainRange: RangeExpressionInput;
+};
 
 function resolveDefaultMainRange(
     timeRange: AxisRange,

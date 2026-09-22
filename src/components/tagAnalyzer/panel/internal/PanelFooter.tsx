@@ -10,15 +10,14 @@ import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { Button } from '@/design-system/components';
 import {
-    getChartLayoutMetrics,
+    PANEL_CHART_LAYOUTS,
     PANEL_NAVIGATOR_GRID_SIDE,
-} from '../../chart/chartGeometry';
+} from '../../chart/chartLayout';
 import { formatAxisRange } from '../../format/axisFormat';
-import type { AxisRange } from '../../range/rangeModel';
-import type { RangeButtonAction } from '../../range/rangeResolver';
-
-const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
-const NAVIGATOR_RANGE_BOUNDARIES = ['start', 'end'] as const;
+import type { AxisRange } from '../../rangeExpression/rangeModel';
+import type { RangeButtonAction } from '../rangeControl/rangeTransitions';
+import { Inline, Text } from '../../ui/Presentation';
+import controls from '../../ui/Controls.module.scss';
 
 export function PanelFooter({
     pShowLegend,
@@ -35,7 +34,7 @@ export function PanelFooter({
     pIsNumericXAxis: boolean;
     pOnOpenNavigatorRangeModal: () => void;
 }) {
-    const sLayout = getChartLayoutMetrics(pShowLegend);
+    const sLayout = PANEL_CHART_LAYOUTS[pShowLegend ? 'withLegend' : 'withoutLegend'];
     const sNavigatorSide = `${PANEL_NAVIGATOR_GRID_SIDE}px`;
     const sRangeUnavailable = pIsLoading || !pNavigatorRange;
     const sFormattedNavigatorRange = pNavigatorRange
@@ -55,17 +54,15 @@ export function PanelFooter({
             data-testid="footer"
         >
             {pIsLoading && (
-                <span
+                <Text variant="caption" tone="warning"
                     className="navigator-loading-indicator"
                     data-testid="navigator-loading"
                 >
                     Loading navigator...
-                </span>
+                </Text>
             )}
-            <div style={{ top: `${sLayout.toolbarTop}px` }} className="toolbar-controls">
-                <Button.Group
-                    style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
-                >
+            <Inline gap={0} justify="center" style={{ top: `${sLayout.toolbarTop}px` }} className="toolbar-controls">
+                <Button.Group className="navigator-toolbar">
                     {navigatorControls.map((control) => (
                         <Button
                             key={control.key}
@@ -80,8 +77,8 @@ export function PanelFooter({
                         />
                     ))}
                 </Button.Group>
-            </div>
-            <div
+            </Inline>
+            <Inline gap={0} justify="between"
                 style={{
                     top: `${sLayout.sliderTop + 1}px`,
                     left: sNavigatorSide,
@@ -109,22 +106,27 @@ export function PanelFooter({
                     disabled={sRangeUnavailable}
                     onClick={() => pOnRangeButtonPress('shift-navigator-right')}
                 />
-            </div>
-            <div style={{ top: `${sLayout.sliderTop + sLayout.sliderHeight + 4}px` }} className="range-labels">
+            </Inline>
+            <Inline gap={4} justify="between" style={{ top: `${sLayout.sliderTop + sLayout.sliderHeight + 4}px` }} className="range-labels">
                 {NAVIGATOR_RANGE_BOUNDARIES.map((boundary) => (
                     <button
                         key={boundary}
                         data-testid={`navigator-range-${boundary}`}
                         type="button"
-                        className="range-label"
+                        className={`${controls.textAction} range-label`}
                         title="Set current navigator range"
                         disabled={sRangeUnavailable}
                         onClick={pOnOpenNavigatorRangeModal}
                     >
-                        {sFormattedNavigatorRange[boundary]}
+                        <Text>{sFormattedNavigatorRange[boundary]}</Text>
                     </button>
                 ))}
-            </div>
+            </Inline>
         </div>
     );
 }
+
+// -------------------- Local --------------------
+
+const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
+const NAVIGATOR_RANGE_BOUNDARIES = ['start', 'end'] as const;

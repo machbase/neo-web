@@ -1,0 +1,40 @@
+import { useEffect, useRef, type MutableRefObject } from 'react';
+import { getNavigatorTrackWidth } from './chartLayout';
+
+export function useChartWidthObserver(
+    chartAreaRef: MutableRefObject<HTMLDivElement | null>,
+    onWidthChange: (areaWidth: number | undefined, navigatorWidth: number | undefined) => void,
+): void {
+    const onWidthChangeRef = useRef(onWidthChange);
+    onWidthChangeRef.current = onWidthChange;
+
+    useEffect(() => {
+        const chartArea = chartAreaRef.current;
+        if (!chartArea) {
+            onWidthChangeRef.current(undefined, undefined);
+            return;
+        }
+
+        let lastWidth: number | undefined;
+        function updateWidth(): void {
+            const nextWidth = chartArea!.clientWidth || undefined;
+            if (nextWidth === lastWidth) return;
+
+            lastWidth = nextWidth;
+            onWidthChangeRef.current(
+                nextWidth,
+                nextWidth === undefined ? undefined : getNavigatorTrackWidth(nextWidth),
+            );
+        }
+
+        updateWidth();
+        if (typeof ResizeObserver === 'undefined') {
+            window.addEventListener('resize', updateWidth);
+            return () => window.removeEventListener('resize', updateWidth);
+        }
+
+        const observer = new ResizeObserver(updateWidth);
+        observer.observe(chartArea);
+        return () => observer.disconnect();
+    }, [chartAreaRef]);
+}

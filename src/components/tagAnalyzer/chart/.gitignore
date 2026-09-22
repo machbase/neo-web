@@ -1,0 +1,2 @@
+# Keep the native ECharts regression test with the chart implementation.
+!chartNative.test.tsx

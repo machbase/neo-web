@@ -1,9 +1,9 @@
+import type { RangeState } from './rangeControl/rangeControlModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
-import type { TimeUnit } from '../range/intervalResolver';
+import type { TimeUnit } from '../rangeExpression/intervalResolver';
 import type {
-    RangeState,
     RangeExpressionInput,
-} from '../range/rangeModel';
+} from '../rangeExpression/rangeModel';
 import type { PanelAnnotation, PanelHighlight } from '../markup/markupModel';
 
 export type ValueRange = {
@@ -104,6 +104,7 @@ export type PanelInfo = {
     };
     time: {
         rangeInput: RangeExpressionInput;
+        navigatorRangeInput?: RangeExpressionInput;
         useLastViewedRange: boolean;
         lastViewedRange: RangeState | undefined;
     };
@@ -115,8 +116,13 @@ export type PanelInfo = {
 
 export const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 
-const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
-const DEFAULT_SAMPLING_VALUE = 0.01;
+export function areConfiguredPanelRangesEqual(left: PanelInfo['time'], right: PanelInfo['time']): boolean {
+    return (['rangeInput', 'navigatorRangeInput'] as const).every((key) =>
+        (left[key]?.start ?? '') === (right[key]?.start ?? '') &&
+        (left[key]?.end ?? '') === (right[key]?.end ?? ''),
+    );
+}
+
 export const PANEL_DISPLAY_PRESETS = {
     Line: { showPoint: true, pointRadius: 0, fill: 0, stroke: 1 },
     Zone: { showPoint: false, pointRadius: 0, fill: 0.15, stroke: 1 },
@@ -176,24 +182,6 @@ export function createNewPanelInfo(
     };
 }
 
-function createYAxis(zeroBase: boolean): PanelYAxis {
-    return {
-        zeroBase,
-        showTickline: true,
-        valueRange: { ...AUTO_VALUE_RANGE },
-        rawValueRange: { ...AUTO_VALUE_RANGE },
-        upperControlLimit: { enabled: false, value: 0 },
-        lowerControlLimit: { enabled: false, value: 0 },
-    };
-}
-
-let runtimePanelKeyCounter = 0;
-
-function createPanelIndexKey(): string {
-    runtimePanelKeyCounter += 1;
-    return globalThis.crypto?.randomUUID?.() ?? `panel-${runtimePanelKeyCounter}`;
-}
-
 export function ensureUniquePanelKeys(panels: PanelInfo[]): PanelInfo[] {
     const usedPanelKeys = new Set<string>();
     const nextPanels = panels.map((panel) => {
@@ -211,4 +199,27 @@ export function ensureUniquePanelKeys(panels: PanelInfo[]): PanelInfo[] {
     return nextPanels.some((panel, index) => panel !== panels[index])
         ? nextPanels
         : panels;
+}
+
+// -------------------- Local --------------------
+
+const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
+const DEFAULT_SAMPLING_VALUE = 0.01;
+
+function createYAxis(zeroBase: boolean): PanelYAxis {
+    return {
+        zeroBase,
+        showTickline: true,
+        valueRange: { ...AUTO_VALUE_RANGE },
+        rawValueRange: { ...AUTO_VALUE_RANGE },
+        upperControlLimit: { enabled: false, value: 0 },
+        lowerControlLimit: { enabled: false, value: 0 },
+    };
+}
+
+let runtimePanelKeyCounter = 0;
+
+function createPanelIndexKey(): string {
+    runtimePanelKeyCounter += 1;
+    return globalThis.crypto?.randomUUID?.() ?? `panel-${runtimePanelKeyCounter}`;
 }

@@ -1,23 +1,9 @@
 import { Checkbox, Input } from '@/design-system/components';
-import { useLayoutEffect } from 'react';
 import type { PanelInfo } from '../../panelModel';
-import { Section } from './TabControls';
+import { Section, Stack, Text } from '../../../ui/Presentation';
 import styles from '../PanelEditorTab.module.scss';
 
-type EditorGeneralTabProps = {
-    pTitle: PanelInfo['title'];
-    pModeConfig: PanelInfo['mode'];
-    pDisplayConfig: PanelInfo['display'];
-    pTimeConfig: PanelInfo['time'];
-    pOnChangeTitle: (title: PanelInfo['title']) => void;
-    pOnChangeModeConfig: (modeConfig: PanelInfo['mode']) => void;
-    pOnChangeDisplayConfig: (displayConfig: PanelInfo['display']) => void;
-    pOnChangeTimeConfig: (timeConfig: PanelInfo['time']) => void;
-    pReportValidity: (tab: 'General', isValid: boolean, message?: string) => void;
-    pIsActive: boolean;
-};
-
-function EditorGeneralTab({
+export default function EditorGeneralTab({
     pTitle,
     pModeConfig,
     pDisplayConfig,
@@ -26,31 +12,20 @@ function EditorGeneralTab({
     pOnChangeModeConfig,
     pOnChangeDisplayConfig,
     pOnChangeTimeConfig,
-    pReportValidity,
     pIsActive,
 }: EditorGeneralTabProps) {
-    const sIsValid = pTitle.trim() !== '';
-    useLayoutEffect(() => {
-        pReportValidity(
-            'General',
-            sIsValid,
-            sIsValid ? undefined : 'Enter a panel title.',
-        );
-    }, [pReportValidity, sIsValid]);
     if (!pIsActive) return null;
     return (
         <Section title="Chart title">
-            <div className={styles.controlGrid}>
-                <Input
-                    data-testid="editor-title-input"
-                    aria-label="Chart title"
-                    value={pTitle}
-                    onChange={(event) => pOnChangeTitle(event.target.value)}
-                    size="md"
-                    className={styles.titleInput}
-                />
-            </div>
-            <div className={styles.controlStack}>
+            <Input
+                data-testid="editor-title-input"
+                aria-label="Chart title"
+                value={pTitle}
+                onChange={(event) => pOnChangeTitle(event.target.value)}
+                size="md"
+                className={styles.titleInput}
+            />
+            <Stack align="start">
                 <Checkbox
                     data-testid="editor-use-zoom-checkbox"
                     checked={pDisplayConfig.useZoom}
@@ -112,14 +87,26 @@ function EditorGeneralTab({
                     label="Save current visible range in TAZ"
                     size="sm"
                 />
-                <span className={styles.savedRangeNote}>
+                <Text as="div" variant="caption" tone="subtle" className={styles.savedRangeNote}>
                     {pTimeConfig.useLastViewedRange
                         ? 'Save and Save As will include the current visible range.'
                         : 'Save and Save As will use the configured panel range.'}
-                </span>
-            </div>
+                </Text>
+            </Stack>
         </Section>
     );
 }
 
-export default EditorGeneralTab;
+// -------------------- Local --------------------
+
+type EditorGeneralTabProps = {
+    pTitle: PanelInfo['title'];
+    pModeConfig: PanelInfo['mode'];
+    pDisplayConfig: PanelInfo['display'];
+    pTimeConfig: PanelInfo['time'];
+    pOnChangeTitle: (title: PanelInfo['title']) => void;
+    pOnChangeModeConfig: (modeConfig: PanelInfo['mode']) => void;
+    pOnChangeDisplayConfig: (displayConfig: PanelInfo['display']) => void;
+    pOnChangeTimeConfig: (timeConfig: PanelInfo['time']) => void;
+    pIsActive: boolean;
+};

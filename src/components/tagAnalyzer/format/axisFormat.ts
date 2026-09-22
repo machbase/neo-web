@@ -1,18 +1,13 @@
 import moment from 'moment';
-import { getRangeWidth } from '../range/rangeArithmetic';
-import type { AxisRange } from '../range/rangeModel';
+import { getRangeWidth } from '../rangeExpression/rangeArithmetic';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import { formatCompactNumber } from './numericFormat';
-import { DATE_TIME_INPUT_FORMAT } from './inputFormat';
+import { DATE_TIME_INPUT_FORMAT } from '../rangeExpression/expressionFormat';
 
 export type FormattedAxisRange = {
     start: string;
     end: string;
 };
-
-const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
-const SECOND_LABEL_SPAN = 60 * 60 * 1000;
-const MINUTE_LABEL_SPAN = 24 * 60 * 60 * 1000;
-const DAY_TIME_LABEL_SPAN = 30 * 24 * 60 * 60 * 1000;
 
 export function formatAxisRange(
     range: AxisRange,
@@ -77,3 +72,10 @@ export function formatAxisSpan(
         .filter(Boolean)
         .join(' ');
 }
+
+// -------------------- Local --------------------
+
+const DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+const SECOND_LABEL_SPAN = 60 * 60 * 1000;
+const MINUTE_LABEL_SPAN = 24 * 60 * 60 * 1000;
+const DAY_TIME_LABEL_SPAN = 30 * 24 * 60 * 60 * 1000;

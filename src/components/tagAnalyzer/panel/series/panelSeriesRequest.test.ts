@@ -1,4 +1,4 @@
-import { TimeUnit } from '../../range/intervalResolver';
+import { TimeUnit } from '../../rangeExpression/intervalResolver';
 import {
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,

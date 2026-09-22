@@ -1,4 +1,4 @@
-import { useState, type InputHTMLAttributes, type KeyboardEvent } from 'react';
+import { useId, useState, type InputHTMLAttributes, type KeyboardEvent } from 'react';
 import { Button, Dropdown } from '@/design-system/components';
 import {
     DEFAULT_PANEL_HIGHLIGHT_LABEL,
@@ -9,18 +9,312 @@ import {
     type PanelHighlight,
     type AnnotationEditorSession,
     type HighlightEditorSession,
+    type AnnotationSeriesOption,
 } from './markupModel';
-import {
-    getPanelSeriesDisplayName,
-    type PanelSeriesDefinition,
-} from '../seriesModel';
 import {
     DATE_TIME_INPUT_FORMAT,
     formatRangeInputValue,
-    parseRangeInputValue,
-} from '../format/inputFormat';
-import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import PanelPopover from '../tools/PanelPopover';
+} from '../rangeExpression/expressionFormat';
+import { parseRangeInputValue } from '../rangeExpression/rangeInput';
+import { createNonEmptyAxisRange } from '../rangeExpression/rangeBuilder';
+import PanelPopover from '../ui/PanelPopover';
+import { Field, Inline, Surface, Text } from '../ui/Presentation';
+import controls from '../ui/Controls.module.scss';
+
+export function EditAnnotationModal({
+    session,
+    annotations,
+    annotationSeriesList,
+    onChange,
+    onClose,
+    isNumericXAxis,
+}: {
+    session: AnnotationEditorSession;
+    annotations: readonly PanelAnnotation[];
+    annotationSeriesList: readonly AnnotationSeriesOption[];
+    onChange: (annotations: PanelAnnotation[]) => void;
+    onClose: () => void;
+    isNumericXAxis: boolean;
+}) {
+    const annotationIndex = session.kind === 'edit'
+        ? session.annotationIndex
+        : undefined;
+    const annotation = annotationIndex === undefined
+        ? undefined
+        : annotations[annotationIndex];
+    const annotationTimestamp =
+        annotation?.timeRange.start ?? (
+            session.kind === 'create' ? session.timestamp : undefined
+        );
+    const { state, setField } = useEditFormState<AnnotationFormState>(() => ({
+        seriesValue:
+            annotation?.seriesKey ??
+            (session.kind === 'create' ? session.seriesKey : undefined) ??
+            EMPTY_ANNOTATION_SERIES_VALUE,
+        timeText: annotationTimestamp === undefined
+            ? ''
+            : formatRangeInputValue(annotationTimestamp, isNumericXAxis),
+        labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
+        fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+        textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+        clip: annotation?.clip ?? true,
+    }));
+    const seriesOptions = [
+        {
+            label: 'annotation not selected',
+            value: EMPTY_ANNOTATION_SERIES_VALUE,
+            testId: 'annotation-series-empty',
+        },
+        ...annotationSeriesList.map((seriesInfo) => ({
+            label: seriesInfo.label,
+            value: seriesInfo.key,
+            testId: `annotation-series-option-${encodeURIComponent(seriesInfo.key)}`,
+        })),
+    ];
+    const validation = validateAnnotationFormState({
+        formState: state,
+        existingAnnotation: annotation,
+        isNumericXAxis,
+    });
+    function applyForm(): void {
+        const nextAnnotation = validation.annotation;
+        if (nextAnnotation === undefined) return;
+
+        if (
+            !annotationSeriesList.some(
+                (series) => series.key === nextAnnotation.seriesKey,
+            )
+        ) {
+            throw new Error('Cannot save an annotation for an unknown series.');
+        }
+
+        onChange(saveMarkupItem(
+            annotations,
+            { ...nextAnnotation },
+            annotationIndex,
+        ));
+        onClose();
+    }
+
+    function deleteAnnotation(): void {
+        if (annotationIndex === undefined) return;
+
+        onChange(annotations.filter((_, index) => index !== annotationIndex));
+        onClose();
+    }
+
+    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+        handleEditFormKeyDown(event, { onApply: applyForm, onCancel: onClose });
+    }
+
+    return (
+        <PanelPopover
+            data-testid="tag-analyzer-annotation-editor"
+            title="Edit annotation"
+            position={session.position}
+            onClose={onClose}
+            size="wide"
+            outsideCloseIgnoreSelector={`.${MARKUP_DROPDOWN_MENU_CLASS}`}
+            closeOnScroll={false}
+            actions={(
+                <MarkupActions
+                    onDelete={annotation === undefined ? undefined : deleteAnnotation}
+                    onCancel={onClose}
+                    onApply={applyForm}
+                    applyDisabled={validation.annotation === undefined}
+                />
+            )}
+        >
+            <Field gap={4} label={<MarkupFieldLabel label="Series" message={validation.seriesMessage} />}>
+                <Dropdown.Root
+                    options={seriesOptions}
+                    value={state.seriesValue}
+                    onChange={(value) => setField('seriesValue', value)}
+                    placeholder="annotation not selected"
+                    fullWidth
+                >
+                    <Dropdown.Trigger
+                        data-testid="series-trigger"
+                        className={controls.control}
+                    />
+                    <Dropdown.Menu className={MARKUP_DROPDOWN_MENU_CLASS}>
+                        <Dropdown.List />
+                    </Dropdown.Menu>
+                </Dropdown.Root>
+            </Field>
+            <MarkupInputField
+                data-testid="anchor-input"
+                label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
+                validationMessage={validation.timeMessage}
+                placeholder={isNumericXAxis ? 'Numeric value' : DATE_TIME_INPUT_FORMAT}
+                value={state.timeText}
+                onChange={(event) => setField('timeText', event.target.value)}
+                onKeyDown={handleKeyDown}
+            />
+            <MarkupInputField
+                data-testid="text-input"
+                label="Text"
+                autoSelect
+                value={state.labelText}
+                onChange={(event) => setField('labelText', event.target.value)}
+                onKeyDown={handleKeyDown}
+            />
+            <MarkupColorFields
+                kind="Annotation"
+                state={state}
+                onChange={setField}
+            />
+            <Inline as="label">
+                <input
+                    data-testid="clip-checkbox"
+                    aria-label="Clip annotation to panel range"
+                    type="checkbox"
+                    checked={state.clip}
+                    onChange={(event) => setField('clip', event.target.checked)}
+                />
+                Clip to panel range
+            </Inline>
+            <Surface
+                variant="outlined"
+                density="compact"
+                style={{
+                    backgroundColor: state.fillColor,
+                    borderColor: state.fillColor,
+                    color: state.textColor,
+                }}
+            >
+                {state.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL}
+            </Surface>
+        </PanelPopover>
+    );
+}
+
+export function EditHighlightModal({
+    session,
+    highlights,
+    onChange,
+    onClose,
+    isNumericXAxis,
+}: {
+    session: HighlightEditorSession;
+    highlights: readonly PanelHighlight[];
+    onChange: (highlights: PanelHighlight[]) => void;
+    onClose: () => void;
+    isNumericXAxis: boolean;
+}) {
+    const highlightIndex = session.kind === 'edit'
+        ? session.highlightIndex
+        : undefined;
+    const highlight = session.kind === 'create'
+        ? session.initialHighlight
+        : highlights[session.highlightIndex];
+    if (highlight === undefined) {
+        throw new Error('Cannot open the highlight editor without a highlight.');
+    }
+
+    const { state, setField } = useEditFormState<HighlightFormState>(() => ({
+        labelText: highlight.text,
+        startTimeText: formatRangeInputValue(
+            highlight.timeRange.start,
+            isNumericXAxis,
+        ),
+        endTimeText: formatRangeInputValue(
+            highlight.timeRange.end,
+            isNumericXAxis,
+        ),
+        fillColor: highlight.fillColor,
+        textColor: highlight.textColor,
+    }));
+    const validation = validateHighlightFormState(state, isNumericXAxis);
+    const timePlaceholder = isNumericXAxis ? 'Numeric value' : DATE_TIME_INPUT_FORMAT;
+
+    function applyForm(): void {
+        if (validation.highlight === undefined) return;
+
+        onChange(saveMarkupItem(
+            highlights,
+            validation.highlight,
+            highlightIndex,
+        ));
+        onClose();
+    }
+
+    function deleteHighlight(): void {
+        if (highlightIndex === undefined) return;
+
+        onChange(highlights.filter((_, index) => index !== highlightIndex));
+        onClose();
+    }
+
+    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+        handleEditFormKeyDown(event, { onApply: applyForm, onCancel: onClose });
+    }
+
+    return (
+        <PanelPopover
+            data-testid="tag-analyzer-highlight-editor"
+            title={session.kind === 'create' ? 'Create highlight' : 'Edit highlight'}
+            position={session.position}
+            onClose={onClose}
+            size="compact"
+            actions={(
+                <MarkupActions
+                    onDelete={highlightIndex === undefined ? undefined : deleteHighlight}
+                    onCancel={onClose}
+                    onApply={applyForm}
+                    applyDisabled={validation.highlight === undefined}
+                />
+            )}
+        >
+            <MarkupInputField
+                data-testid="label-input"
+                label="Label"
+                autoSelect
+                value={state.labelText}
+                onChange={(event) => setField('labelText', event.target.value)}
+                onKeyDown={handleKeyDown}
+            />
+            <div className={controls.twoColumns}>
+                <MarkupInputField
+                    data-testid="start-input"
+                    label={isNumericXAxis ? 'Start value' : 'Start time (Local)'}
+                    validationMessage={validation.startTimeMessage}
+                    placeholder={timePlaceholder}
+                    value={state.startTimeText}
+                    onChange={(event) => setField('startTimeText', event.target.value)}
+                    onKeyDown={handleKeyDown}
+                />
+                <MarkupInputField
+                    data-testid="end-input"
+                    label={isNumericXAxis ? 'End value' : 'End time (Local)'}
+                    validationMessage={validation.endTimeMessage}
+                    placeholder={timePlaceholder}
+                    value={state.endTimeText}
+                    onChange={(event) => setField('endTimeText', event.target.value)}
+                    onKeyDown={handleKeyDown}
+                />
+            </div>
+            <MarkupColorFields
+                kind="Highlight"
+                state={state}
+                onChange={setField}
+            />
+            <Surface
+                variant="outlined"
+                density="compact"
+                style={{
+                    backgroundColor: `${state.fillColor}29`,
+                    borderColor: state.fillColor,
+                    color: state.textColor,
+                }}
+            >
+                {state.labelText.trim() || DEFAULT_PANEL_HIGHLIGHT_LABEL}
+            </Surface>
+        </PanelPopover>
+    );
+}
+
+// -------------------- Local --------------------
 
 type MarkupAppearanceState = {
     labelText: string;
@@ -37,12 +331,6 @@ type AnnotationFormState = MarkupAppearanceState & {
 const EMPTY_ANNOTATION_SERIES_VALUE = '';
 const MARKUP_DROPDOWN_MENU_CLASS = 'panel-popover-form__dropdown-menu';
 
-function getRangeInputPlaceholder(isNumericAxis: boolean): string {
-    return isNumericAxis
-        ? 'Numeric value'
-        : DATE_TIME_INPUT_FORMAT;
-}
-
 type MarkupInputFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>,
     'autoFocus' | 'className' | 'onFocus'> & {
     label: string;
@@ -51,24 +339,36 @@ type MarkupInputFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>,
 };
 
 function MarkupInputField({
-    label, validationMessage, autoSelect, type,
+    label, validationMessage, autoSelect, type, id,
     'aria-label': ariaLabel = label, ...inputProps
 }: MarkupInputFieldProps) {
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
     return (
-        <label className="panel-popover-form__field">
-            <span className="panel-popover-form__field-label">
-                {label}
-                {validationMessage && <span className="panel-popover-form__field-error">{validationMessage}</span>}
-            </span>
+        <Field htmlFor={inputId} gap={4} label={(
+            <MarkupFieldLabel label={label} message={validationMessage} errorId={`${inputId}-error`} />
+        )}>
             <input
                 {...inputProps}
+                id={inputId}
                 aria-label={ariaLabel}
+                aria-describedby={validationMessage ? `${inputId}-error` : inputProps['aria-describedby']}
+                aria-invalid={validationMessage ? true : inputProps['aria-invalid']}
                 autoFocus={autoSelect}
-                className={type === 'color' ? 'panel-popover-form__color-input' : 'panel-popover-form__input'}
+                className={controls.input}
                 type={type}
                 onFocus={autoSelect ? (event) => event.currentTarget.select() : undefined}
             />
-        </label>
+        </Field>
+    );
+}
+
+function MarkupFieldLabel({ label, message, errorId }: { label: string; message?: string; errorId?: string }) {
+    return (
+        <Inline as="span" justify="between">
+            {label}
+            {message && <Text variant="caption" tone="danger" id={errorId}>{message}</Text>}
+        </Inline>
     );
 }
 
@@ -81,7 +381,7 @@ function MarkupColorFields({ kind, state, onChange }: {
     onChange: (field: MarkupColorField, value: string) => void;
 }) {
     return (
-        <div className="panel-popover-form__row panel-popover-form__row--two">
+        <div className={controls.twoColumns}>
             {MARKUP_COLOR_FIELDS.map((field) => {
                 const colorKind = field === 'fillColor' ? 'Fill' : 'Text';
 
@@ -156,21 +456,16 @@ function saveMarkupItem<T>(
           );
 }
 
-function deleteMarkupItem<T>(items: readonly T[], index: number): T[] {
-    return items.filter((_item, currentIndex) => currentIndex !== index);
-}
-
 function validateAnnotationFormState({
     formState,
-    selectedSeriesKey,
     existingAnnotation,
     isNumericXAxis,
 }: {
     formState: AnnotationFormState;
-    selectedSeriesKey: string;
     existingAnnotation: PanelAnnotation | undefined;
     isNumericXAxis: boolean;
 }) {
+    const selectedSeriesKey = formState.seriesValue.trim();
     const annotationTimestamp = parseRangeInputValue(
         formState.timeText,
         isNumericXAxis ? 'numeric' : 'time',
@@ -191,11 +486,9 @@ function validateAnnotationFormState({
     }
 
     const existingTimeRange = existingAnnotation?.timeRange;
-    const existingStartTimeText = existingTimeRange
-        ? formatRangeInputValue(existingTimeRange.start, isNumericXAxis)
-        : undefined;
     const annotationTimeRange =
-        existingTimeRange && existingStartTimeText === formState.timeText
+        existingTimeRange &&
+        formatRangeInputValue(existingTimeRange.start, isNumericXAxis) === formState.timeText
             ? existingTimeRange
             : {
                   start: annotationTimestamp,
@@ -212,181 +505,6 @@ function validateAnnotationFormState({
             clip: formState.clip,
         },
     };
-}
-
-export function EditAnnotationModal({
-    session,
-    annotations,
-    annotationSeriesList,
-    onChange,
-    onClose,
-    isNumericXAxis,
-}: {
-    session: AnnotationEditorSession;
-    annotations: readonly PanelAnnotation[];
-    annotationSeriesList: PanelSeriesDefinition[];
-    onChange: (annotations: PanelAnnotation[]) => void;
-    onClose: () => void;
-    isNumericXAxis: boolean;
-}) {
-    const annotationIndex = session.kind === 'edit'
-        ? session.annotationIndex
-        : undefined;
-    const annotation = annotationIndex === undefined
-        ? undefined
-        : annotations[annotationIndex];
-    const annotationTimestamp =
-        annotation?.timeRange.start ?? (
-            session.kind === 'create' ? session.timestamp : undefined
-        );
-    const { state, setField } = useEditFormState<AnnotationFormState>(() => ({
-        seriesValue:
-            annotation?.seriesKey ??
-            (session.kind === 'create' ? session.seriesKey : undefined) ??
-            EMPTY_ANNOTATION_SERIES_VALUE,
-        timeText: annotationTimestamp === undefined
-            ? ''
-            : formatRangeInputValue(annotationTimestamp, isNumericXAxis),
-        labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
-        fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-        textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-        clip: annotation?.clip ?? true,
-    }));
-    const seriesOptions = [
-        {
-            label: 'annotation not selected',
-            value: EMPTY_ANNOTATION_SERIES_VALUE,
-        },
-        ...annotationSeriesList.map((seriesInfo) => ({
-            label: getPanelSeriesDisplayName(seriesInfo),
-            value: seriesInfo.key,
-        })),
-    ];
-    const selectedSeriesKey = state.seriesValue.trim();
-    const validation = validateAnnotationFormState({
-        formState: state,
-        selectedSeriesKey,
-        existingAnnotation: annotation,
-        isNumericXAxis,
-    });
-    function applyForm(): void {
-        const nextAnnotation = validation.annotation;
-        if (nextAnnotation === undefined) return;
-
-        if (
-            !annotationSeriesList.some(
-                (series) => series.key === nextAnnotation.seriesKey,
-            )
-        ) {
-            throw new Error('Cannot save an annotation for an unknown series.');
-        }
-
-        onChange(saveMarkupItem(
-            annotations,
-            { ...nextAnnotation },
-            annotationIndex,
-        ));
-        onClose();
-    }
-
-    function deleteAnnotation(): void {
-        if (annotationIndex === undefined) return;
-
-        onChange(deleteMarkupItem(annotations, annotationIndex));
-        onClose();
-    }
-
-    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-        handleEditFormKeyDown(event, { onApply: applyForm, onCancel: onClose });
-    }
-
-    return (
-        <PanelPopover
-            data-testid="tag-analyzer-annotation-editor"
-            title="Edit annotation"
-            position={session.position}
-            onClose={onClose}
-            size="wide"
-            outsideCloseIgnoreSelector={`.${MARKUP_DROPDOWN_MENU_CLASS}`}
-            closeOnScroll={false}
-            actions={(
-                <MarkupActions
-                    onDelete={annotation === undefined ? undefined : deleteAnnotation}
-                    onCancel={onClose}
-                    onApply={applyForm}
-                    applyDisabled={validation.annotation === undefined}
-                />
-            )}
-        >
-            <label className="panel-popover-form__field">
-                <span className="panel-popover-form__field-label">
-                    Series
-                    {validation.seriesMessage ? (
-                        <span className="panel-popover-form__field-error">
-                            {validation.seriesMessage}
-                        </span>
-                    ) : null}
-                </span>
-                <Dropdown.Root
-                    options={seriesOptions}
-                    value={state.seriesValue}
-                    onChange={(value) => setField('seriesValue', value)}
-                    placeholder="annotation not selected"
-                    fullWidth
-                >
-                    <Dropdown.Trigger
-                        data-testid="series-trigger"
-                        style={{ height: '32px' }}
-                    />
-                    <Dropdown.Menu className={MARKUP_DROPDOWN_MENU_CLASS}>
-                        <Dropdown.List />
-                    </Dropdown.Menu>
-                </Dropdown.Root>
-            </label>
-            <MarkupInputField
-                data-testid="anchor-input"
-                label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
-                validationMessage={validation.timeMessage}
-                placeholder={getRangeInputPlaceholder(isNumericXAxis)}
-                value={state.timeText}
-                onChange={(event) => setField('timeText', event.target.value)}
-                onKeyDown={handleKeyDown}
-            />
-            <MarkupInputField
-                data-testid="text-input"
-                label="Text"
-                autoSelect
-                value={state.labelText}
-                onChange={(event) => setField('labelText', event.target.value)}
-                onKeyDown={handleKeyDown}
-            />
-            <MarkupColorFields
-                kind="Annotation"
-                state={state}
-                onChange={(field, value) => setField(field, value)}
-            />
-            <label className="panel-popover-form__checkbox-field">
-                <input
-                    data-testid="clip-checkbox"
-                    aria-label="Clip annotation to panel range"
-                    type="checkbox"
-                    checked={state.clip}
-                    onChange={(event) => setField('clip', event.target.checked)}
-                />
-                Clip to panel range
-            </label>
-            <div
-                className="panel-popover-form__preview"
-                style={{
-                    backgroundColor: state.fillColor,
-                    borderColor: state.fillColor,
-                    color: state.textColor,
-                }}
-            >
-                {state.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL}
-            </div>
-        </PanelPopover>
-    );
 }
 
 type HighlightFormState = MarkupAppearanceState & {
@@ -433,130 +551,6 @@ function validateHighlightFormState(
             textColor: formState.textColor,
         },
     };
-}
-
-export function EditHighlightModal({
-    session,
-    highlights,
-    onChange,
-    onClose,
-    isNumericXAxis,
-}: {
-    session: HighlightEditorSession;
-    highlights: readonly PanelHighlight[];
-    onChange: (highlights: PanelHighlight[]) => void;
-    onClose: () => void;
-    isNumericXAxis: boolean;
-}) {
-    const highlightIndex = session.kind === 'edit'
-        ? session.highlightIndex
-        : undefined;
-    const highlight = session.kind === 'create'
-        ? session.initialHighlight
-        : highlights[session.highlightIndex];
-    if (highlight === undefined) {
-        throw new Error('Cannot open the highlight editor without a highlight.');
-    }
-
-    const { state, setField } = useEditFormState<HighlightFormState>(() => ({
-        labelText: highlight.text,
-        startTimeText: formatRangeInputValue(
-            highlight.timeRange.start,
-            isNumericXAxis,
-        ),
-        endTimeText: formatRangeInputValue(
-            highlight.timeRange.end,
-            isNumericXAxis,
-        ),
-        fillColor: highlight.fillColor,
-        textColor: highlight.textColor,
-    }));
-    const validation = validateHighlightFormState(state, isNumericXAxis);
-    const timePlaceholder = getRangeInputPlaceholder(isNumericXAxis);
-
-    function applyForm(): void {
-        if (validation.highlight === undefined) return;
-
-        onChange(saveMarkupItem(
-            highlights,
-            validation.highlight,
-            highlightIndex,
-        ));
-        onClose();
-    }
-
-    function deleteHighlight(): void {
-        if (highlightIndex === undefined) return;
-
-        onChange(deleteMarkupItem(highlights, highlightIndex));
-        onClose();
-    }
-
-    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
-        handleEditFormKeyDown(event, { onApply: applyForm, onCancel: onClose });
-    }
-
-    return (
-        <PanelPopover
-            data-testid="tag-analyzer-highlight-editor"
-            title={session.kind === 'create' ? 'Create highlight' : 'Edit highlight'}
-            position={session.position}
-            onClose={onClose}
-            size="compact"
-            actions={(
-                <MarkupActions
-                    onDelete={highlightIndex === undefined ? undefined : deleteHighlight}
-                    onCancel={onClose}
-                    onApply={applyForm}
-                    applyDisabled={validation.highlight === undefined}
-                />
-            )}
-        >
-            <MarkupInputField
-                data-testid="label-input"
-                label="Label"
-                autoSelect
-                value={state.labelText}
-                onChange={(event) => setField('labelText', event.target.value)}
-                onKeyDown={handleKeyDown}
-            />
-            <div className="panel-popover-form__row panel-popover-form__row--two">
-                <MarkupInputField
-                    data-testid="start-input"
-                    label={isNumericXAxis ? 'Start value' : 'Start time (Local)'}
-                    validationMessage={validation.startTimeMessage}
-                    placeholder={timePlaceholder}
-                    value={state.startTimeText}
-                    onChange={(event) => setField('startTimeText', event.target.value)}
-                    onKeyDown={handleKeyDown}
-                />
-                <MarkupInputField
-                    data-testid="end-input"
-                    label={isNumericXAxis ? 'End value' : 'End time (Local)'}
-                    validationMessage={validation.endTimeMessage}
-                    placeholder={timePlaceholder}
-                    value={state.endTimeText}
-                    onChange={(event) => setField('endTimeText', event.target.value)}
-                    onKeyDown={handleKeyDown}
-                />
-            </div>
-            <MarkupColorFields
-                kind="Highlight"
-                state={state}
-                onChange={(field, value) => setField(field, value)}
-            />
-            <div
-                className="panel-popover-form__preview"
-                style={{
-                    backgroundColor: `${state.fillColor}29`,
-                    borderColor: state.fillColor,
-                    color: state.textColor,
-                }}
-            >
-                {state.labelText.trim() || DEFAULT_PANEL_HIGHLIGHT_LABEL}
-            </div>
-        </PanelPopover>
-    );
 }
 
 function useEditFormState<T>(initializer: () => T) {

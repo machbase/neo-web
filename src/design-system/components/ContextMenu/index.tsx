@@ -8,6 +8,7 @@ export interface ContextMenuPosition {
 }
 
 export interface ContextMenuProps {
+    'data-testid'?: string;
     isOpen: boolean;
     position: ContextMenuPosition;
     children: React.ReactNode;
@@ -16,6 +17,7 @@ export interface ContextMenuProps {
 }
 
 export interface ContextMenuItemProps {
+    'data-testid'?: string;
     children: React.ReactNode;
     onClick?: React.MouseEventHandler<HTMLButtonElement>;
     disabled?: boolean;
@@ -27,7 +29,7 @@ export interface ContextMenuItemProps {
  * A portal-based context menu that reuses the Menu component's styles.
  * Displays at a specific x,y position (typically from a right-click event).
  */
-const ContextMenu = ({ isOpen, position, children, onClose, closeOnOutsideClick = true }: ContextMenuProps) => {
+const ContextMenu = ({ isOpen, position, children, onClose, closeOnOutsideClick = true, 'data-testid': testId }: ContextMenuProps) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const [adjustedPosition, setAdjustedPosition] = useState(position);
 
@@ -98,6 +100,7 @@ const ContextMenu = ({ isOpen, position, children, onClose, closeOnOutsideClick 
     return createPortal(
         <div
             ref={menuRef}
+            data-testid={testId}
             className={styles['menu__content']} // Reuse Menu content styles
             style={{
                 position: 'fixed',
@@ -116,7 +119,7 @@ const ContextMenu = ({ isOpen, position, children, onClose, closeOnOutsideClick 
  *
  * A menu item that reuses the Menu.Item styles.
  */
-const ContextMenuItem = ({ children, onClick, disabled = false }: ContextMenuItemProps) => {
+const ContextMenuItem = ({ children, onClick, disabled = false, 'data-testid': testId }: ContextMenuItemProps) => {
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         if (disabled) return;
         onClick?.(e);
@@ -130,6 +133,7 @@ const ContextMenuItem = ({ children, onClick, disabled = false }: ContextMenuIte
     return (
         <button
             type="button"
+            data-testid={testId}
             className={itemClasses}
             onClick={handleClick}
             disabled={disabled}

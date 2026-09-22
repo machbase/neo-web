@@ -1,5 +1,6 @@
+import type { RangeState } from '../panel/rangeControl/rangeControlModel';
 import { isPlainObject } from '../objectGuards';
-import type { RangeState } from '../range/rangeModel';
+
 import {
     decodeAxisRange,
     encodeAxisRange,

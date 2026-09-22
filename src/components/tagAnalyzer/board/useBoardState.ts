@@ -1,20 +1,15 @@
+import type { ResolvedRangeState } from '../panel/rangeControl/rangeControlModel';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ensureUniquePanelKeys,
     type PanelInfo,
 } from '../panel/panelModel';
 import type { BoardInfo } from './boardModel';
-import { isSameRange } from '../range/rangeArithmetic';
+import { isSameRange } from '../rangeExpression/rangeArithmetic';
 import {
     type AxisKind,
     type RangeExpressionInput,
-    type ResolvedRangeState,
-} from '../range/rangeModel';
-
-type BoardRuntimeState = {
-    info: BoardInfo;
-    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
-};
+} from '../rangeExpression/rangeModel';
 
 export function useBoardState(boardInfo: BoardInfo) {
     const [state, setState] = useState<BoardRuntimeState>(() =>
@@ -119,6 +114,13 @@ export function useBoardState(boardInfo: BoardInfo) {
         commands,
     };
 }
+
+// -------------------- Local --------------------
+
+type BoardRuntimeState = {
+    info: BoardInfo;
+    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
+};
 
 function createBoardRuntimeState(
     boardInfo: BoardInfo,

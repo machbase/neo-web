@@ -1,57 +1,87 @@
+import { prepareSeriesDefinitions } from '../seriesModel';
+import type { RangeState } from '../panel/rangeControl/rangeControlModel';
 import { validateAndRepairTazPanel } from '@/utils/panelValidator';
-import type { BoardInfo } from '../board/boardModel';
+import type { BoardRestoreInput } from '../board/boardReconstruction';
 import { asRecord, isFiniteNumber, isPlainObject } from '../objectGuards';
-import {
-    DEFAULT_RAW_NAVIGATOR_SAMPLING,
-    ensureUniquePanelKeys,
-    type PanelAxisThreshold,
-    type PanelEChartType,
-    type PanelInfo,
-    type PanelYAxis,
-    type ValueRange,
+import type {
+    PanelAxisThreshold,
+    PanelEChartType,
+    PanelInfo,
+    PanelYAxis,
+    ValueRange,
 } from '../panel/panelModel';
-import type { PanelAnnotation } from '../markup/markupModel';
 import { decodePersistedPanelRangeState } from './persistedPanelRange';
-import {
-    decodePersistedTimeUnit,
-    formatAbsoluteTime,
-    formatNumericValue,
-} from './serializeRange';
+import { decodePersistedTimeUnit } from './serializeRange';
+import { formatAbsoluteTime } from '../format/timeFormat';
+import { formatNumericValue } from '../rangeExpression/expressionFormat';
 import {
     type RangeExpressionInput,
-    type RangeState,
-} from '../range/rangeModel';
+} from '../rangeExpression/rangeModel';
+import type {
+    PanelRestoreInput,
+    PanelAnnotationInput,
+} from '../panel/panelReconstruction';
 import {
-    DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
-    getPanelSeriesDisplayColor,
-    getPanelSeriesDisplayName,
-    normalizePanelSeriesCalculationMode,
-    assertCompatiblePanelSeriesList,
-    normalizePanelSeriesDefinitions,
-    PanelSeriesCalculationMode,
-    shouldUseNumericPanelRangeInput,
-    type PanelSeriesDefinition,
-    type PanelSeriesSourceColumns,
-} from '../seriesModel';
-import {
-    clonePanelAnnotations,
-    clonePanelHighlights,
-    cloneSeriesAnnotations,
+    decodePanelAnnotations,
+    decodePanelHighlights,
+    decodeSeriesAnnotations,
     createTimeRangeInputFromStoredValues,
     normalizePersistedPanelChartType,
     normalizePersistedPanelRangeInput,
     normalizePersistedTimeRangeInput,
     normalizePersistedTazVersion,
     normalizePersistedValueRangeOrAuto,
-    parseLoadedPanelTazVer210,
+    decodePanelTazVer210,
     parsePersistedValueRangeOrThrow,
     TAZ_FORMAT_VERSION,
+    TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING,
     TazVersion,
     type PersistedBoardRange,
     type PersistedPanelAnnotationInput,
     type PersistedPanelSeries,
     type PersistedTimedMarkupInput,
 } from './tazFormat';
+
+export function parseTazDocument(boardInfo: unknown): BoardRestoreInput {
+    const sBoardInfo = assertLoadedTazBoardData(boardInfo);
+    const sVersion = normalizePersistedTazVersion(sBoardInfo.version);
+    const sPanels = sBoardInfo.panels
+        .flatMap((panel) => repairLegacyPanelIfNeeded(panel, sVersion))
+        .map(normalizeTazPanelSeriesCompatibility);
+    const sBoardTimeRange = normalizePersistedBoardRange(
+        sBoardInfo.boardTimeRange ??
+            createTimeRangeInputFromStoredValues(
+                normalizeStoredTimeRangeValue(sBoardInfo.range_bgn),
+                normalizeStoredTimeRangeValue(sBoardInfo.range_end),
+            ),
+        'boardTimeRange',
+    );
+    const sBoardNumericRange = normalizePersistedBoardRange(
+        sBoardInfo.boardNumericRange,
+        'boardNumericRange',
+    );
+
+    return {
+        ...sBoardInfo,
+        version: sVersion,
+        id: normalizeLoadedString(sBoardInfo.id),
+        type: normalizeLoadedString(sBoardInfo.type, 'taz'),
+        name: normalizeLoadedString(sBoardInfo.name),
+        path: normalizeLoadedString(sBoardInfo.path),
+        code: sBoardInfo.code ?? '',
+        panels: sPanels.map((panelInfo) =>
+            decodePanelTazByVersion(panelInfo, sVersion),
+        ),
+        savedCode:
+            typeof sBoardInfo.savedCode === 'string'
+                ? sBoardInfo.savedCode
+                : false,
+        boardTimeRange: sBoardTimeRange,
+        boardNumericRange: sBoardNumericRange,
+    };
+}
+
+// -------------------- Local --------------------
 
 type PersistedPanelAxisThresholdV200 = {
     enabled: boolean;
@@ -193,6 +223,8 @@ type PersistedPanelInfoV204 = {
     annotations?: PersistedPanelAnnotationInput[];
 };
 
+type SeriesSourceColumns = PanelInfo['query']['tagSet'][number]['sourceColumns'];
+
 type LegacyCompatibleSeriesConfig = {
     key: string;
     table: string;
@@ -200,11 +232,11 @@ type LegacyCompatibleSeriesConfig = {
     calculationMode: string;
     color?: string;
     id: string | undefined;
-    sourceColumns?: PanelSeriesSourceColumns;
-    columnNames?: PanelSeriesSourceColumns;
+    sourceColumns?: SeriesSourceColumns;
+    columnNames?: SeriesSourceColumns;
     sourceTagName?: string;
     tagName?: string;
-    colName?: PanelSeriesSourceColumns;
+    colName?: SeriesSourceColumns;
     use_y2: 'Y' | 'N';
     onRollup?: boolean;
     [key: string]: unknown;
@@ -214,46 +246,19 @@ function fromLegacyBoolean(value: 'Y' | 'N' | undefined): boolean {
     return value === 'Y';
 }
 
-function normalizeLegacySeriesConfig(
-    item: LegacyCompatibleSeriesConfig,
-): PanelSeriesDefinition {
-    const sCalculationMode = normalizePanelSeriesCalculationMode(
-        item.calculationMode ?? PanelSeriesCalculationMode.Average,
-    );
-    if (!sCalculationMode) {
-        throw new Error(
-            'Invalid TagAnalyzer legacy panel series calculationMode.',
-        );
-    }
-    const sSourceColumns =
-        item.sourceColumns ?? item.columnNames ?? item.colName;
-
-    const sSeries = {
+function mapLegacySeriesConfig(item: LegacyCompatibleSeriesConfig) {
+    return {
         key: item.key,
         table: item.table,
         alias: item.alias,
-        calculationMode: sCalculationMode,
+        calculationMode: item.calculationMode ?? 'AVG',
         color: item.color,
         id: item.id,
-        sourceColumns: {
-            ...(sSourceColumns ?? {}),
-            name:
-                sSourceColumns?.name ??
-                DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.name,
-            time:
-                sSourceColumns?.time ??
-                DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.time,
-            value:
-                sSourceColumns?.value ??
-                DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.value,
-        },
+        sourceColumns: item.sourceColumns ?? item.columnNames ?? item.colName,
         sourceTagName: item.sourceTagName || item.tagName || '',
         useSecondaryAxis: fromLegacyBoolean(item.use_y2),
         useRollupTable: item.onRollup ?? false,
     };
-
-    sSeries.alias = getPanelSeriesDisplayName(sSeries);
-    return sSeries;
 }
 
 type LegacyStoredTimeRangeValue = string | number | '';
@@ -306,15 +311,6 @@ type LegacyFlatPanelInfo = {
     [key: string]: unknown;
 };
 
-function buildMigratedPanelInfo(
-    panelInfo: Omit<PanelInfo, 'isOverlapSelected'>,
-): PanelInfo {
-    return {
-        ...panelInfo,
-        isOverlapSelected: false,
-    };
-}
-
 function normalizeMigratedSampling(enabled: unknown, sampleCount: unknown) {
     const sSampleCount = isFiniteNumber(sampleCount) ? sampleCount : undefined;
     return {
@@ -323,20 +319,28 @@ function normalizeMigratedSampling(enabled: unknown, sampleCount: unknown) {
     };
 }
 
-function createPanelInfoFromLegacyFlatPanelInfo(
+function decodeLegacyFlatPanel(
     panelInfo: LegacyFlatPanelInfo,
-): PanelInfo {
-    const sTagSet = (panelInfo.tag_set || []).map(normalizeLegacySeriesConfig);
-    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz legacy panel');
+): PanelRestoreInput {
+    const { tagSet: sTagSet, isNumericAxis } = prepareSeriesDefinitions(
+        (panelInfo.tag_set || []).map(mapLegacySeriesConfig),
+        {
+            validation: 'compatible',
+            fillMissingColors: true,
+            source: 'TagAnalyzer .taz legacy panel',
+            invalidSeriesMessage: 'Invalid TagAnalyzer legacy panel series structure.',
+            invalidCalculationModeMessage: 'Invalid TagAnalyzer legacy panel series calculationMode.',
+        },
+    );
     const sRangeConfig = resolveLegacyRangeConfig(
         panelInfo,
         createTimeRangeInputFromStoredValues(
             panelInfo.range_bgn ?? '',
             panelInfo.range_end ?? '',
         ),
-        shouldUseNumericPanelRangeInput(sTagSet),
+        isNumericAxis,
     );
-    return buildMigratedPanelInfo({
+    return {
         key: panelInfo.index_key,
         title: panelInfo.chart_title,
         query: {
@@ -380,11 +384,11 @@ function createPanelInfoFromLegacyFlatPanelInfo(
                 false,
                 normalizeNumericValue(panelInfo.sampling_value),
             ),
-            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
+            rawNavigatorSampling: { ...TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
         highlights: [],
         annotations: [],
-    });
+    };
 }
 
 function mapLegacyFlatYAxis(
@@ -492,15 +496,15 @@ type LegacyNestedPanelTaz = {
     use_normalize?: boolean;
 };
 
-function parseLoadedLegacyPanelTaz(panelInfo: unknown): PanelInfo {
+function decodeLegacyPanel(panelInfo: unknown): PanelRestoreInput {
     if (isLegacyNestedPanelTaz(panelInfo)) {
-        return createPanelInfoFromLegacyFlatPanelInfo(
+        return decodeLegacyFlatPanel(
             flattenLegacyNestedPanelTaz(panelInfo),
         );
     }
 
     if (isLegacyFlatPanelTaz(panelInfo)) {
-        return createPanelInfoFromLegacyFlatPanelInfo(panelInfo);
+        return decodeLegacyFlatPanel(panelInfo);
     }
 
     throw new Error('Invalid TagAnalyzer legacy .taz panel structure.');
@@ -645,19 +649,27 @@ function isPersistedYAxisContainer(value: unknown): boolean {
         isPlainObject(value.lowerControlLimit);
 }
 
-function parseLoadedPanelTazVer200(
+function decodePanelTazVer200(
     panelInfo: unknown,
     version: TazVersion,
-): PanelInfo {
+): PanelRestoreInput {
     if (!isPersistedPanelInfoV200(panelInfo)) {
         throw new Error(`Invalid TagAnalyzer .taz ${version} panel structure.`);
     }
 
-    const sTagSet = panelInfo.data.seriesList.map(createSeriesInfoFromPersistedV200);
-    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz v2.0 panel');
+    const { tagSet: sTagSet, isNumericAxis } = prepareSeriesDefinitions(
+        panelInfo.data.seriesList.map(mapSeriesFromPersistedV200),
+        {
+            validation: 'compatible',
+            fillMissingColors: true,
+            source: 'TagAnalyzer .taz v2.0 panel',
+            invalidSeriesMessage: 'Invalid TagAnalyzer .taz panel series structure.',
+            invalidCalculationModeMessage: 'Invalid TagAnalyzer .taz panel series calculationMode.',
+        },
+    );
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.rangeConfig,
-        shouldUseNumericPanelRangeInput(sTagSet),
+        isNumericAxis,
     );
     if (!sRangeInput) {
         throw new Error('Invalid TagAnalyzer .taz panel time rangeConfig structure.');
@@ -665,7 +677,7 @@ function parseLoadedPanelTazVer200(
     const sMainChartSampling =
         panelInfo.axes.mainChartSampling ?? panelInfo.axes.sampling;
 
-    return buildMigratedPanelInfo({
+    return {
         key: panelInfo.meta.panelKey,
         title: panelInfo.meta.chartTitle,
         query: {
@@ -712,11 +724,11 @@ function parseLoadedPanelTazVer200(
                 sMainChartSampling?.enabled,
                 sMainChartSampling?.sampleCount ?? 0,
             ),
-            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
+            rawNavigatorSampling: { ...TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
-        highlights: clonePanelHighlights(panelInfo.highlights),
+        highlights: decodePanelHighlights(panelInfo.highlights),
         annotations: createPanelAnnotationsFromPersistedPanel(panelInfo),
-    });
+    };
 }
 
 function mapPersistedYAxisV200(
@@ -740,10 +752,10 @@ function mapPersistedYAxisV200(
 
 function createPanelAnnotationsFromPersistedPanel(
     panelInfo: PersistedPanelInfoV200,
-): PanelAnnotation[] {
-    const sPanelAnnotations = clonePanelAnnotations(panelInfo.annotations);
+): PanelAnnotationInput[] {
+    const sPanelAnnotations = decodePanelAnnotations(panelInfo.annotations);
     const sSeriesAnnotations = panelInfo.data.seriesList.flatMap((seriesInfo) =>
-        cloneSeriesAnnotations(seriesInfo.annotations).map((annotation) => ({
+        decodeSeriesAnnotations(seriesInfo.annotations).map((annotation) => ({
             ...annotation,
             seriesKey: seriesInfo.seriesKey,
         })),
@@ -752,46 +764,32 @@ function createPanelAnnotationsFromPersistedPanel(
     return [...sPanelAnnotations, ...sSeriesAnnotations];
 }
 
-function createSeriesInfoFromPersistedV200(
+function mapSeriesFromPersistedV200(
     seriesInfo: PersistedPanelInfoV200['data']['seriesList'][number],
-): PanelSeriesDefinition {
-    const sCalculationMode = normalizePanelSeriesCalculationMode(
-        seriesInfo.calculationMode,
-    );
-    if (!sCalculationMode) {
-        throw new Error(
-            'Invalid TagAnalyzer .taz panel series calculationMode.',
-        );
-    }
-
-    const sSeries = {
+) {
+    return {
         key: seriesInfo.seriesKey,
         table: seriesInfo.tableName,
         sourceTagName: seriesInfo.sourceTagName,
         alias: seriesInfo.alias,
-        calculationMode: sCalculationMode,
+        calculationMode: seriesInfo.calculationMode,
         color: seriesInfo.color,
         useSecondaryAxis: seriesInfo.useSecondaryAxis ?? false,
         id: seriesInfo.id,
         useRollupTable: seriesInfo.useRollupTable ?? false,
-        sourceColumns: createRuntimeSeriesColumns(seriesInfo.sourceColumns),
+        sourceColumns: mapPersistedSeriesColumns(seriesInfo.sourceColumns),
     };
-
-    sSeries.alias = getPanelSeriesDisplayName(sSeries);
-    return sSeries;
 }
 
-function createRuntimeSeriesColumns(
+function mapPersistedSeriesColumns(
     columns: PersistedPanelInfoV200['data']['seriesList'][number]['sourceColumns'] | undefined,
-): PanelSeriesSourceColumns {
-    if (!columns) {
-        return { ...DEFAULT_PANEL_SERIES_SOURCE_COLUMNS };
-    }
+) {
+    if (!columns) return undefined;
 
     return {
-        name: columns.nameColumn ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.name,
-        time: columns.timeColumn ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.time,
-        value: columns.valueColumn ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.value,
+        name: columns.nameColumn,
+        time: columns.timeColumn,
+        value: columns.valueColumn,
         jsonKey: typeof columns.jsonKey === 'string' ? columns.jsonKey : undefined,
         timeType: typeof columns.timeType === 'number' ? columns.timeType : undefined,
         timeBaseTime: typeof columns.timeBaseTime === 'boolean'
@@ -888,23 +886,24 @@ function isOptionalFiniteNumber(value: unknown): boolean {
     return value === undefined || isFiniteNumber(value);
 }
 
-function parseLoadedPanelTazVer204(
+function decodePanelTazVer204(
     panelInfo: unknown,
     version: TazVersion,
-): PanelInfo {
+): PanelRestoreInput {
     if (!isPersistedPanelInfoV204(panelInfo)) {
         throw new Error(`Invalid TagAnalyzer .taz ${version} panel structure.`);
     }
 
-    const sTagSet = normalizePanelSeriesDefinitions(panelInfo.data.tag_set);
-    if (!sTagSet) {
-        throw new Error('Invalid TagAnalyzer .taz panel series structure.');
-    }
-    assertCompatiblePanelSeriesList(sTagSet, 'TagAnalyzer .taz panel');
+    const { tagSet: sTagSet, isNumericAxis } = prepareSeriesDefinitions(panelInfo.data.tag_set, {
+        validation: 'strict',
+        fillMissingColors: true,
+        source: 'TagAnalyzer .taz panel',
+        invalidSeriesMessage: 'Invalid TagAnalyzer .taz panel series structure.',
+    });
 
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.time.range_config,
-        shouldUseNumericPanelRangeInput(sTagSet),
+        isNumericAxis,
     );
     if (!sRangeInput) {
         throw new Error('Invalid TagAnalyzer .taz panel time range_config structure.');
@@ -912,7 +911,7 @@ function parseLoadedPanelTazVer204(
     const sMainChartSampling =
         panelInfo.axes.main_chart_sampling ?? panelInfo.axes.sampling;
 
-    return buildMigratedPanelInfo({
+    return {
         key: panelInfo.data.index_key,
         title: panelInfo.general.chart_title,
         query: {
@@ -960,11 +959,11 @@ function parseLoadedPanelTazVer204(
                 sMainChartSampling?.enabled,
                 sMainChartSampling?.sample_count,
             ),
-            rawNavigatorSampling: { ...DEFAULT_RAW_NAVIGATOR_SAMPLING },
+            rawNavigatorSampling: { ...TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING },
         },
-        highlights: clonePanelHighlights(panelInfo.highlights),
-        annotations: clonePanelAnnotations(panelInfo.annotations),
-    });
+        highlights: decodePanelHighlights(panelInfo.highlights),
+        annotations: decodePanelAnnotations(panelInfo.annotations),
+    };
 }
 
 function mapPersistedYAxis(
@@ -994,47 +993,6 @@ type LoadedTazBoardData = Record<string, unknown> & {
     range_bgn?: unknown;
     range_end?: unknown;
 };
-
-export function parseLoadedTaz(boardInfo: unknown): BoardInfo {
-    const sBoardInfo = assertLoadedTazBoardData(boardInfo);
-    const sVersion = normalizePersistedTazVersion(sBoardInfo.version);
-    const sPanels = sBoardInfo.panels
-        .flatMap((panel) => repairLegacyPanelIfNeeded(panel, sVersion))
-        .map(normalizeTazPanelSeriesCompatibility);
-    const sBoardTimeRange = normalizePersistedBoardRange(
-        sBoardInfo.boardTimeRange ??
-            createTimeRangeInputFromStoredValues(
-                normalizeStoredTimeRangeValue(sBoardInfo.range_bgn),
-                normalizeStoredTimeRangeValue(sBoardInfo.range_end),
-            ),
-        'boardTimeRange',
-    );
-    const sBoardNumericRange = normalizePersistedBoardRange(
-        sBoardInfo.boardNumericRange,
-        'boardNumericRange',
-    );
-
-    return {
-        ...sBoardInfo,
-        version: sVersion,
-        id: normalizeLoadedString(sBoardInfo.id),
-        type: normalizeLoadedString(sBoardInfo.type, 'taz'),
-        name: normalizeLoadedString(sBoardInfo.name),
-        path: normalizeLoadedString(sBoardInfo.path),
-        code: sBoardInfo.code ?? '',
-        panels: ensureUniquePanelKeys(
-            sPanels.map((panelInfo) =>
-                parseLoadedPanelTazByVersion(panelInfo, sVersion),
-            ),
-        ),
-        savedCode:
-            typeof sBoardInfo.savedCode === 'string'
-                ? sBoardInfo.savedCode
-                : false,
-        boardTimeRange: sBoardTimeRange,
-        boardNumericRange: sBoardNumericRange,
-    };
-}
 
 function repairLegacyPanelIfNeeded(
     panel: unknown,
@@ -1078,7 +1036,7 @@ function normalizeTazPanelSeriesCompatibility(panel: unknown): unknown {
 }
 
 function normalizeSeriesList(seriesList: unknown[]): unknown[] {
-    return seriesList.map((series, index) => {
+    return seriesList.map((series) => {
         if (!isPlainObject(series)) return series;
 
         const columnInfo = asRecord(series.colName);
@@ -1087,10 +1045,6 @@ function normalizeSeriesList(seriesList: unknown[]): unknown[] {
             colName: columnInfo
                 ? { ...columnInfo, jsonKey: columnInfo.jsonKey ?? '' }
                 : series.colName,
-            color:
-                typeof series.color === 'string' && series.color.length > 0
-                    ? series.color
-                    : getPanelSeriesDisplayColor({}, index),
         };
     });
 }
@@ -1107,23 +1061,23 @@ function assertLoadedTazBoardData(boardInfo: unknown): LoadedTazBoardData {
     return boardInfo as LoadedTazBoardData;
 }
 
-function parseLoadedPanelTazByVersion(
+function decodePanelTazByVersion(
     panelInfo: unknown,
     version: TazVersion,
-): PanelInfo {
+): PanelRestoreInput {
     switch (version) {
         case TazVersion.Legacy:
-            return parseLoadedLegacyPanelTaz(panelInfo);
+            return decodeLegacyPanel(panelInfo);
         case TAZ_FORMAT_VERSION:
-            return parseLoadedPanelTazVer210(panelInfo);
+            return decodePanelTazVer210(panelInfo);
         case TazVersion.V204:
         case TazVersion.V205:
-            return parseLoadedPanelTazVer204(panelInfo, version);
+            return decodePanelTazVer204(panelInfo, version);
         case TazVersion.V200:
         case TazVersion.V201:
         case TazVersion.V202:
         case TazVersion.V203:
-            return parseLoadedPanelTazVer200(panelInfo, version);
+            return decodePanelTazVer200(panelInfo, version);
         default:
             throw new Error(`Unsupported TagAnalyzer .taz version: ${version}`);
     }

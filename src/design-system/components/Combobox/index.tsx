@@ -91,18 +91,19 @@ const ComboboxRoot = ({ children, className, label, labelPosition = 'top', fullW
 // Input Component
 interface ComboboxInputProps {
     id?: string;
+    'data-testid'?: string;
     className?: string;
     icon?: React.ReactNode;
     style?: React.CSSProperties;
 }
 
-const ComboboxInput = ({ id, className, icon, style }: ComboboxInputProps) => {
+const ComboboxInput = ({ id, className, icon, style, 'data-testid': testId }: ComboboxInputProps) => {
     const combobox = useComboboxContext();
 
     return (
         <div className={styles['combobox__input-wrapper']}>
             {icon && <span className={styles['combobox__input-icon']}>{icon}</span>}
-            <input id={id} {...combobox.getInputProps()} className={`${styles['combobox__input']} ${className ?? ''}`} style={style} />
+            <input id={id} {...combobox.getInputProps()} data-testid={testId} className={`${styles['combobox__input']} ${className ?? ''}`} style={style} />
         </div>
     );
 };

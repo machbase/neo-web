@@ -1,4 +1,16 @@
 @use '@/design-system/tokens' as t;
+@use '../ui/theme';
+
+.selectionGrid {
+    display: grid;
+    grid-template-columns: minmax(88px, 1.4fr) repeat(3, minmax(72px, 1fr));
+    gap: t.$spacing-8;
+    align-items: baseline;
+    overflow-wrap: anywhere;
+
+    > * { min-width: 0; }
+    > [data-numeric] { text-align: right; }
+}
 
 .fftModal {
     min-height: 320px;
@@ -7,8 +19,6 @@
 }
 
 .fftBody {
-    display: flex;
-    flex-direction: column;
     min-height: 0;
     gap: t.$spacing-16;
 }
@@ -21,42 +31,16 @@
 }
 
 .fftFieldset {
-    display: flex;
-    flex-direction: column;
-    gap: t.$spacing-8;
-    min-width: 0;
     margin: 0;
     padding: 0;
     border: 0;
-}
-
-.fftControlLabel {
-    padding: 0;
-    color: t.$text-secondary;
-    font-size: t.$font-size-base;
-    font-weight: t.$font-weight-medium;
+    legend { padding: 0; }
 }
 
 .fftDimensionButtons {
-    display: flex;
-    gap: t.$spacing-4;
-
     button {
         min-width: 56px;
-        height: 32px;
     }
-}
-
-.fftInputs {
-    display: flex;
-    flex-direction: column;
-}
-
-.fftInputRow {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: t.$spacing-12;
 }
 
 .fftFrequencyField {
@@ -70,36 +54,15 @@
     gap: t.$spacing-8;
 }
 
-.fftApplyButton {
-    min-height: 32px;
-    padding-inline: t.$spacing-12;
-}
-
 .fftSelectionSummary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: t.$spacing-8 t.$spacing-20;
     margin: 0;
-    padding: t.$spacing-10 0;
-    border-top: 1px solid t.$border-color-default;
-    border-bottom: 1px solid t.$border-color-default;
+    padding: t.$spacing-12 0;
+    border-top: 1px solid theme.$border-color;
+    border-bottom: 1px solid theme.$border-color;
 }
 
 .fftSummaryItem {
-    display: inline-flex;
-    align-items: baseline;
-    gap: t.$spacing-6;
-
-    dt {
-        color: t.$text-tertiary;
-        font-size: t.$font-size-sm;
-    }
-
     dd {
-        margin: 0;
-        color: t.$text-primary;
-        font-size: t.$font-size-base;
         font-variant-numeric: tabular-nums;
     }
 }
