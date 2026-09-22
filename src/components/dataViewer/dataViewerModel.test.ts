@@ -60,7 +60,7 @@ import {
     isDataViewerRangeReversed,
     parseDataViewerDistanceValue,
 } from './dataViewerModel';
-import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/integration/adapters';
+import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/application/adapters';
 
 describe('data viewer chart helpers', () => {
     test('shouldFetchDataViewerRowsForMode keeps raw rows active for raw and chart', () => {
