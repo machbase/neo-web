@@ -228,7 +228,9 @@ const SideBox = ({ children, pCollapseState = true }: SideBoxProps) => {
 };
 
 const SideList = ({ children }: SideListProps) => {
-    return <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>;
+    // Vertical only, for the same reason as `.sideContainer`: rows ellipsise rather than
+    // extend, so a horizontal scrollbar here only ever exposes an overflowing header.
+    return <div style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto' }}>{children}</div>;
 };
 
 const SideItem = ({ children, onClick, onContextMenu, onMouseEnter, onMouseLeave, active, className, paddingLeft, style, tooltip, tooltipPlace = 'top-end' }: SideItemProps) => {
