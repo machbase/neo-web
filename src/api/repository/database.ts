@@ -64,7 +64,16 @@ export const fetchQuery = async (query: string) => {
     });
     return { svrState: sData?.success ?? false, svrData: sData?.data, svrReason: sData?.data?.reason ?? sData?.reason ?? sData?.toString() };
 };
-export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string) => {
+/**
+ * Run SQL through TQL over POST.
+ *
+ * The body carries the statement, so nothing about its length reaches a URL — which is what makes
+ * this the transport for queries whose size is driven by user selection (a JSON key projection adds
+ * one `->` expression per selected key, and `fetchQuery` would percent-encode all of it into
+ * `?q=`). `signal` abandons a read the caller has already moved on from. `aDatabase` keeps logical
+ * database routing identical to the other TQL callers.
+ */
+export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string, signal?: AbortSignal) => {
     const query = wrapSqlForTql(aSql, aDatabase);
     const consoleId = localStorage.getItem('consoleId');
 
@@ -72,6 +81,7 @@ export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string) =
         method: 'POST',
         url: `/api/tql`,
         data: query,
+        signal,
     };
 
     requestConfig.headers = {

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import * as echarts from 'echarts';
 import { TableVirtuoso, type TableComponents } from 'react-virtuoso';
 import { useSetRecoilState } from 'recoil';
 import {
@@ -14,11 +13,9 @@ import {
 import NeoTimeRangeModal from '@/components/modal/TimeRangeModal';
 import { TimeZoneModal as NeoTimeZoneModal } from '@/components/modal/TimeZoneModal';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { TABLE_COLUMN_TYPE } from '@/utils/constants';
+import TagEChart, { type DataViewerTimeRange } from './TagEChart';
 import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/application/adapters';
-import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
-import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
-import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
-import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { getUserName } from '@/utils';
 import {
     DataViewerAssetHierarchy,
@@ -31,6 +28,11 @@ import {
     queryTagData,
     queryTagDataTotal,
 } from './dataViewerApi';
+import JsonKeyPickerModal, { type JsonKeyPickerView } from './JsonKeyPickerModal';
+import RawRowDetailModal from './RawRowDetailModal';
+import JsonKeyDetailModal from './JsonKeyDetailModal';
+import { jsonKeyDocumentHasKeys } from './jsonKeyTree';
+import { toTagAnalyzerJsonKeyPath } from '@/utils/jsonKeyCatalog';
 import {
     DEFAULT_DATA_VIEWER_ROWS_PER_TAG,
     DEFAULT_TIME_FORMAT,
@@ -38,9 +40,9 @@ import {
     buildAssetTreeRows,
     buildDataViewerChartGroups,
     buildDataViewerChartResultsFromRawRows,
-    buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
     buildDataViewerTagAnalyzerRange,
+    buildDataViewerJsonKeyTagAnalyzerRange,
     buildDataViewerTagAnalyzerTableName,
     buildDataViewerHeaderLabels,
     buildDataViewerDefaultChartShiftRawPageUpdate,
@@ -51,35 +53,26 @@ import {
     buildDataViewerSplitGroups,
     buildDataViewerShiftBaseRangeUpdate,
     buildDataViewerShiftMainRangeUpdate,
-    buildDataViewerDragRangeUpdate,
     buildDataViewerTagSelectionUpdate,
-    buildDataViewerWheelZoomRange,
-    buildDataViewerZoomControlRange,
     buildRawColumnWidths,
     buildRawResultColumns,
     buildRawRowNameColors,
     buildSeriesColorMap,
-    extractDataViewerDataZoomRange,
     toDataViewerTimeRangeModalValue,
     preserveDataViewerTimeRangeModalEdge,
-    formatDataViewerNavigatorRangeLabels,
     filterDataViewerTags,
     filterVisibleAssetRows,
     formatDataViewerBaseRangeLabel,
     formatDataViewerBaseValue,
-    formatDataViewerChartRangeEdge,
     formatDataViewerDistance,
-    getDataViewerChartRangeMs,
     getDataViewerBaseAxisLabel,
     getDataViewerDefaultRange,
     getDataViewerRawPageSize,
     getTimeFormatLabel,
     getTimeZoneLabel,
     hasDataViewerRawNextPage,
-    hasExplicitDataViewerDataZoomEventRange,
     isDataViewerJsonValueColumn,
     isDataViewerRangeReversed,
-    isSameDataViewerChartRange,
     normalizeSelectedTagNames,
     resolveDataViewerBaseColumn,
     resolveDataViewerBaseColumnType,
@@ -92,7 +85,6 @@ import { isDistanceAnchorEdge, resolveDistanceEdge } from '@/utils/distanceRange
 import './DataViewerPage.scss';
 
 type ResultRow = Record<string, unknown>;
-type DataViewerTimeRange = { from?: string | number; to?: string | number; start?: string | number; end?: string | number; startTime?: number; endTime?: number };
 type RawPageRequest = {
     page: number;
     from?: string | number;
@@ -105,7 +97,8 @@ type RawPageRequest = {
 };
 
 const getParam = (params: URLSearchParams, key: string) => params.get(key)?.trim() ?? '';
-const isMissingRangeEdge = (value: unknown) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+const isMissingRangeEdge = (value: unknown) =>
+    value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
 
 // Every read is bounded on both edges, so the range the user types is only ever an *expression*:
 // `last-1h ~ last` means "one hour back from this tag's newest sample". Resolving it per query would
@@ -126,14 +119,44 @@ const TAG_HAS_NO_DATA_MESSAGE = 'The selected tag has no data to anchor the time
 // edges for the identical reason a time window is, but "check the entered time" would send someone
 // looking for a clock on a table that has an odometer.
 const DISTANCE_RANGE_REQUIRED_MESSAGE = 'Distance range requires both From and To.';
-const DISTANCE_RANGE_INVALID_MESSAGE = 'Distance range accepts numbers, or first / last (e.g. last-5000).';
+const DISTANCE_RANGE_INVALID_MESSAGE =
+    'Distance range accepts numbers, or first / last (e.g. last-5000).';
 const DISTANCE_RANGE_ORDER_MESSAGE = 'From should be smaller than To.';
 // A JSON value column holds a document, not a scalar. Raw is unaffected — the grid prints the
 // document as text, which is exactly what someone reading a JSON column wants to see. What breaks
 // is everything that needs a *number*: the chart plots NaN, and Tag Analyzer aggregates (avg/min/
 // max) over the same non-numeric column. So those two doors are the ones that close, and this is
 // what they say when asked why. See `isDataViewerJsonValueColumn`.
-const JSON_VALUE_COLUMN_BLOCK_REASON = 'Unavailable: the value column of this table is a JSON type, which cannot be charted or analyzed.';
+const JSON_VALUE_COLUMN_BLOCK_REASON =
+    'Unavailable: the value column of this table is a JSON type, which cannot be charted or analyzed.';
+
+// A key is a number once it has been projected out of the document, and the average is Tag
+// Analyzer's own default for a numeric series.
+/**
+ * The declared type of a raw column, as the schema read gives it.
+ *
+ * `buildRawResultColumns` names columns from the rows, which carry values and not types, so the
+ * type is looked up against the table's own column list. A column the schema does not mention —
+ * anything the query added — simply has none to show.
+ */
+const rawColumnTypeLabel = (
+    columns: DataViewerColumnRow[] | null,
+    key: string,
+): string | undefined => {
+    const wanted = String(key ?? '')
+        .trim()
+        .toLowerCase();
+    const row = (columns ?? []).find(
+        (column) =>
+            String(column?.[0] ?? '')
+                .trim()
+                .toLowerCase() === wanted,
+    );
+    if (!row) return undefined;
+    return TABLE_COLUMN_TYPE.find((entry) => entry.key === Number(row[1]))?.value;
+};
+
+const TAG_ANALYZER_JSON_CALCULATION_MODE = 'avg';
 
 // `rawPageRequest` is a dependency of `fetchRows`, so a fresh `{ page: 1 }` object is a fresh
 // identity and re-fires the row query even when nothing about the request changed. Several places
@@ -143,7 +166,9 @@ const JSON_VALUE_COLUMN_BLOCK_REASON = 'Unavailable: the value column of this ta
 // object makes the second reset a no-op.
 const FIRST_PAGE_REQUEST: RawPageRequest = { page: 1 };
 const toFirstPageRequest = (current: RawPageRequest): RawPageRequest =>
-    current.page === 1 && current.from === undefined && current.cursorSide === undefined ? current : FIRST_PAGE_REQUEST;
+    current.page === 1 && current.from === undefined && current.cursorSide === undefined
+        ? current
+        : FIRST_PAGE_REQUEST;
 
 /**
  * The identity of the inputs an asynchronous read was made from.
@@ -156,9 +181,14 @@ const toFirstPageRequest = (current: RawPageRequest): RawPageRequest =>
  * and the result is still the previous table's, and a query fired from that commit carries a
  * mixture of the two that describes no table at all.
  */
-const buildDataViewerReadKey = (...parts: unknown[]) => parts.map((part) => String(part ?? '')).join('\u0000');
+const buildDataViewerReadKey = (...parts: unknown[]) =>
+    parts.map((part) => String(part ?? '')).join('\u0000');
 
-const buildFrozenWindowKey = (range: DataViewerTimeRange, selectedTagKey: string, refreshToken: number) =>
+const buildFrozenWindowKey = (
+    range: DataViewerTimeRange,
+    selectedTagKey: string,
+    refreshToken: number,
+) =>
     [String(range.from ?? ''), String(range.to ?? ''), selectedTagKey, refreshToken].join('\u0000');
 
 // Must stay in sync with `.data-viewer-raw-table th, td { height: 25px }` (DataViewerPage.scss).
@@ -232,10 +262,22 @@ function ResultPagination({
 
     return (
         <div className="pagination">
-            <button type="button" className="btn btn-sm btn-ghost" disabled={page <= 1 || loading} onClick={() => go(1)} aria-label="First page">
+            <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                disabled={page <= 1 || loading}
+                onClick={() => go(1)}
+                aria-label="First page"
+            >
                 <MdKeyboardDoubleArrowLeft className="icon-sm" />
             </button>
-            <button type="button" className="btn btn-sm btn-ghost" disabled={page <= 1 || loading} onClick={() => go(page - 1)} aria-label="Previous page">
+            <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                disabled={page <= 1 || loading}
+                onClick={() => go(page - 1)}
+                aria-label="Previous page"
+            >
                 <VscChevronLeft className="icon-sm" />
             </button>
             <input
@@ -251,10 +293,23 @@ function ResultPagination({
                 className="pagination-input"
                 aria-label="Current result page"
             />
-            <button type="button" className="btn btn-sm btn-ghost" disabled={!hasNextPage || loading || endLoading} onClick={() => go(page + 1)} aria-label="Next page">
+            <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                disabled={!hasNextPage || loading || endLoading}
+                onClick={() => go(page + 1)}
+                aria-label="Next page"
+            >
                 <VscChevronRight className="icon-sm" />
             </button>
-            <button type="button" className="btn btn-sm btn-ghost" disabled={!hasNextPage || loading || endLoading} onClick={onEndPage} aria-label="Move to end page" title="Move to end page">
+            <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                disabled={!hasNextPage || loading || endLoading}
+                onClick={onEndPage}
+                aria-label="Move to end page"
+                title="Move to end page"
+            >
                 <MdKeyboardDoubleArrowRight className="icon-sm" />
             </button>
             <label className="pagination-page-size">
@@ -308,14 +363,24 @@ function RangeEditorModal({
             }}
             // A distance edge is a number or an anchor expression and is handed over as written; a
             // time edge goes through the page's own input formatting first.
-            pStartTime={distance ? (range.from as string | number) : toDataViewerTimeRangeModalValue(range.from)}
-            pEndTime={distance ? (range.to as string | number) : toDataViewerTimeRangeModalValue(range.to)}
+            pStartTime={
+                distance
+                    ? (range.from as string | number)
+                    : toDataViewerTimeRangeModalValue(range.from)
+            }
+            pEndTime={
+                distance ? (range.to as string | number) : toDataViewerTimeRangeModalValue(range.to)
+            }
             pSetTime={() => undefined}
             pAllowNegativeTime={!distance}
             pSaveCallback={(from, to) =>
                 onApply({
-                    from: distance ? from ?? '' : preserveDataViewerTimeRangeModalEdge(range.from, from ?? ''),
-                    to: distance ? to ?? '' : preserveDataViewerTimeRangeModalEdge(range.to, to ?? ''),
+                    from: distance
+                        ? (from ?? '')
+                        : preserveDataViewerTimeRangeModalEdge(range.from, from ?? ''),
+                    to: distance
+                        ? (to ?? '')
+                        : preserveDataViewerTimeRangeModalEdge(range.to, to ?? ''),
                 })
             }
             pLockTab={distance ? 'distance' : 'time'}
@@ -323,7 +388,6 @@ function RangeEditorModal({
         />
     );
 }
-
 
 function FormatTimezoneModal({
     timeFormat,
@@ -346,437 +410,6 @@ function FormatTimezoneModal({
                 else onApply(next);
             }}
         />
-    );
-}
-
-function TagEChart({
-    series,
-    timeFormat,
-    timeZone,
-    timeRange,
-    displayRange,
-    baseKind = 'time',
-    seriesColors,
-    pending = false,
-    onDisplayRangeChange,
-    onShiftMainRange,
-}: {
-    series: Array<{ name: string; data: Array<[number, number | null]> }>;
-    timeFormat: string;
-    timeZone: string;
-    timeRange: DataViewerTimeRange;
-    displayRange?: DataViewerTimeRange;
-    baseKind?: DataViewerBaseKind;
-    seriesColors?: Record<string, string>;
-    /**
-     * The rows this panel would be drawn from have not arrived yet.
-     *
-     * Only the empty state reads it, and only to stay silent: "no data" and "not here yet" look
-     * identical from inside the chart — both are an empty `series` — and announcing the first while
-     * the second is true is the flicker the page's `chartRowsPending` exists to remove. The series
-     * is still drawn while this is true, because during a transition it is the *previous* window's
-     * series and holding it is the point.
-     */
-    pending?: boolean;
-    onDisplayRangeChange?: (range: DataViewerTimeRange, navigatorRange?: DataViewerTimeRange) => void;
-    onShiftMainRange?: (direction: 'backward' | 'forward', currentRange: any, navigatorRange: any) => void;
-}) {
-    const containerRef = useRef<HTMLDivElement | null>(null);
-    const chartRef = useRef<echarts.ECharts | null>(null);
-    // `baseKind` rides in the ref alongside the ranges because the interaction effect below is
-    // installed once (on mount) and every emitted edge has to be written in the axis's own units —
-    // a captured value would keep emitting ISO strings after a distance table loaded.
-    const rangeRef = useRef({ currentRange: {}, navigatorRange: {}, onDisplayRangeChange, baseKind });
-    const dragStateRef = useRef<{
-        mode: 'zoom-in' | 'pan' | 'zoom-out';
-        startTime: number;
-        startX: number;
-        containerLeft: number;
-        currentRange: any;
-        navigatorRange: any;
-        onDisplayRangeChange?: (range: DataViewerTimeRange, navigatorRange?: DataViewerTimeRange) => void;
-        gridBounds: { top: number; height: number };
-        // The plot's own left/right edge in container pixels, read once when the gesture starts. The
-        // guide is drawn against these so it stops at the axis rather than following the cursor off
-        // into the legend, the navigator and the page beyond.
-        plotBounds?: { left: number; right: number };
-    } | null>(null);
-    const [dragPreview, setDragPreview] = useState<{ mode: 'zoom-in' | 'zoom-out'; left: number; width: number; top: number; height: number } | null>(null);
-    const allPoints = useMemo(() => series.flatMap((item) => item.data), [series]);
-    const hasChartData = allPoints.length > 0;
-    const options = useMemo(
-        () => buildDataViewerEChartOption({ series, timeFormat, timeZone, timeRange, displayRange, baseKind, seriesColors }),
-        [baseKind, displayRange, series, seriesColors, timeFormat, timeRange, timeZone],
-    );
-    const currentRange = useMemo(() => getDataViewerChartRangeMs(allPoints, displayRange || timeRange, baseKind), [allPoints, baseKind, displayRange, timeRange]);
-    const navigatorRange = useMemo(() => getDataViewerChartRangeMs(allPoints, timeRange, baseKind), [allPoints, baseKind, timeRange]);
-
-    useEffect(() => {
-        rangeRef.current = { currentRange, navigatorRange, onDisplayRangeChange, baseKind };
-    }, [baseKind, currentRange, navigatorRange, onDisplayRangeChange]);
-
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return undefined;
-
-        const chart = echarts.init(container, null, { renderer: 'canvas' });
-        chartRef.current = chart;
-        const getDataZoomEventState = (params: any = {}) => {
-            const eventState = Array.isArray(params.batch) ? params.batch[0] : params;
-            const dataZoomOptions = (chart.getOption?.()?.dataZoom || []) as any[];
-            const dataZoomIndex = Number(eventState?.dataZoomIndex);
-            const dataZoomId = eventState?.dataZoomId;
-            const optionState = dataZoomId ? dataZoomOptions.find((item) => item?.id === dataZoomId) : Number.isFinite(dataZoomIndex) ? dataZoomOptions[dataZoomIndex] : undefined;
-            return {
-                ...(optionState || dataZoomOptions[1] || dataZoomOptions[0] || {}),
-                ...(eventState || {}),
-            };
-        };
-        // `outside: 'clamp'` is what makes a drag survive leaving the plot. A gesture that starts on
-        // the chart and ends over the tag list is still a gesture the user finished deliberately, and
-        // ECharts extrapolates happily past the axis — so the pixel converts to a real value, it is
-        // simply one the axis does not show. Pinning it to the visible edge is the range the guide
-        // was already drawing, which is the one the user was aiming at.
-        //
-        // `outside: 'reject'` (the default) stays on the *entry* points — mousedown and the wheel.
-        // A press that lands on the legend or the navigator is not a main-plot gesture at all, and
-        // accepting it there would start a zoom from a coordinate nothing on screen points at.
-        const convertMouseEventToTimestamp = (event: MouseEvent | WheelEvent, outside: 'reject' | 'clamp' = 'reject') => {
-            const rect = container.getBoundingClientRect?.();
-            if (!rect) return undefined;
-            const pixel = [event.clientX - rect.left, event.clientY - rect.top];
-            const inside = Boolean(chart.containPixel?.({ gridIndex: 0 }, pixel));
-            if (!inside && outside === 'reject') return undefined;
-            const fromAxis = chart.convertFromPixel?.({ xAxisIndex: 0 }, pixel);
-            const fromGrid = chart.convertFromPixel?.({ gridIndex: 0 }, pixel);
-            const axisTime = Array.isArray(fromAxis) ? Number(fromAxis[0]) : Number(fromAxis);
-            const gridTime = Array.isArray(fromGrid) ? Number(fromGrid[0]) : Number(fromGrid);
-            const { currentRange: activeRange } = rangeRef.current as any;
-            const start = Number(activeRange?.startTime);
-            const end = Number(activeRange?.endTime);
-            const converted = Number.isFinite(axisTime)
-                ? axisTime
-                : Number.isFinite(gridTime)
-                  ? gridTime
-                  : Number.isFinite(start) && Number.isFinite(end)
-                    ? start + (end - start) / 2
-                    : undefined;
-            if (converted === undefined || inside) return converted;
-            // Outside: clamp onto the window the axis is currently showing. `currentRange` is the
-            // same pair `buildDataViewerEChartOption` writes into `xAxis.min/max`, so its two edges
-            // *are* the plot's two edges, said in the axis's units rather than in pixels.
-            if (!Number.isFinite(start) || !Number.isFinite(end)) return converted;
-            return Math.min(Math.max(converted, Math.min(start, end)), Math.max(start, end));
-        };
-        // The plot's horizontal extent in container pixels. `convertToPixel` on the main x axis is
-        // the only honest source for it: the option says `left: 35, right: 35` but `containLabel`
-        // then insets the left edge by however wide the y-axis labels came out, so anything derived
-        // from the option alone would put the boundary in the wrong place on exactly the tables
-        // whose values are widest.
-        const getPlotXBounds = () => {
-            const { currentRange: activeRange } = rangeRef.current as any;
-            // `convertToPixel`'s published signature takes a string or an array; a bare number on a
-            // single-axis finder is what ECharts actually accepts (and what returns the axis's own
-            // pixel), so the cast is the type definition being narrower than the runtime.
-            const toPixel = (value: unknown) => Number((chart.convertToPixel as any)?.({ xAxisIndex: 0 }, Number(value)));
-            const left = toPixel(activeRange?.startTime);
-            const right = toPixel(activeRange?.endTime);
-            if (!Number.isFinite(left) || !Number.isFinite(right)) return undefined;
-            return { left: Math.min(left, right), right: Math.max(left, right) };
-        };
-        // The axis hands back coordinates; the page stores range edges. On a distance axis those are
-        // numbers, so the conversion goes through one helper rather than four inline `new Date(...)`
-        // calls that would each have to be remembered.
-        const toRangeEdge = (value: unknown) => formatDataViewerChartRangeEdge(value, (rangeRef.current as any).baseKind);
-        const handleMouseWheelZoom = (event: WheelEvent) => {
-            if (event.deltaY === 0) return;
-            const { currentRange: activeRange, navigatorRange: activeNavigatorRange, onDisplayRangeChange: activeRangeChange } = rangeRef.current as any;
-            const anchorTime = convertMouseEventToTimestamp(event);
-            const nextRange = buildDataViewerWheelZoomRange(event.deltaY, anchorTime, activeRange, activeNavigatorRange);
-            if (!nextRange || isSameDataViewerChartRange(nextRange, activeRange)) return;
-            event.preventDefault();
-            event.stopPropagation();
-            activeRangeChange?.(
-                { from: toRangeEdge(nextRange.startTime), to: toRangeEdge(nextRange.endTime) },
-                { from: toRangeEdge(activeNavigatorRange.startTime), to: toRangeEdge(activeNavigatorRange.endTime) },
-            );
-        };
-        const getDragMode = (button: number) => {
-            if (button === 0) return 'zoom-in';
-            if (button === 1) return 'pan';
-            if (button === 2) return 'zoom-out';
-            return undefined;
-        };
-        const getMainGridBounds = () => {
-            const grid = ((chart.getOption?.()?.grid as any[]) || [])[0] || {};
-            const top = Number(grid.top);
-            const height = Number(grid.height);
-            return {
-                top: Number.isFinite(top) ? top : 40,
-                height: Number.isFinite(height) ? height : 178,
-            };
-        };
-        const emitDragRange = (dragState: NonNullable<typeof dragStateRef.current>, endTime: number) => {
-            const nextRange = buildDataViewerDragRangeUpdate({
-                mode: dragState.mode,
-                dragStartTime: dragState.startTime,
-                dragEndTime: endTime,
-                currentRange: dragState.currentRange,
-                navigatorRange: dragState.navigatorRange,
-            });
-            if (!nextRange || isSameDataViewerChartRange(nextRange, dragState.currentRange)) return;
-
-            dragState.onDisplayRangeChange?.(
-                { from: toRangeEdge(nextRange.startTime), to: toRangeEdge(nextRange.endTime) },
-                { from: toRangeEdge(dragState.navigatorRange.startTime), to: toRangeEdge(dragState.navigatorRange.endTime) },
-            );
-        };
-        const applyDragRange = (event: MouseEvent) => {
-            const dragState = dragStateRef.current;
-            dragStateRef.current = null;
-            setDragPreview(null);
-            if (!dragState) return;
-
-            // Released outside the plot still counts, clamped to the edge it left through. Rejecting
-            // it — which is what happens when the conversion refuses a pixel it does not contain —
-            // threw the whole gesture away, so a drag that overshot by two pixels selected nothing
-            // and the user had to start again with no explanation.
-            const endTime = convertMouseEventToTimestamp(event, 'clamp');
-            if (!Number.isFinite(endTime) || Math.abs(event.clientX - dragState.startX) < 8) return;
-
-            emitDragRange(dragState, Number(endTime));
-        };
-        // Container-relative x, held inside the plot. The guide is the promise the release keeps, so
-        // the two clamp against the same boundary: what the rectangle covers when the pointer is out
-        // in the tag list is exactly the range that lands when the button comes up there.
-        const toPlotX = (clientX: number, dragState: NonNullable<typeof dragStateRef.current>) => {
-            const x = clientX - dragState.containerLeft;
-            const bounds = dragState.plotBounds;
-            return bounds ? Math.min(Math.max(x, bounds.left), bounds.right) : x;
-        };
-        const handleDragMove = (event: MouseEvent) => {
-            const dragState = dragStateRef.current;
-            if (!dragState) return;
-            event.preventDefault();
-            event.stopPropagation();
-
-            const endTime = convertMouseEventToTimestamp(event, 'clamp');
-            if (dragState.mode === 'pan') {
-                if (Number.isFinite(endTime) && Math.abs(event.clientX - dragState.startX) >= 1) {
-                    emitDragRange(dragState, Number(endTime));
-                }
-                return;
-            }
-            const startX = toPlotX(dragState.startX, dragState);
-            const currentX = toPlotX(event.clientX, dragState);
-            setDragPreview({ mode: dragState.mode, left: Math.min(startX, currentX), width: Math.abs(currentX - startX), ...dragState.gridBounds });
-        };
-        const handleDragEnd = (event: MouseEvent) => {
-            if (!dragStateRef.current) return;
-            event.preventDefault();
-            event.stopPropagation();
-            window.removeEventListener('mousemove', handleDragMove, true);
-            window.removeEventListener('mouseup', handleDragEnd, true);
-            applyDragRange(event);
-        };
-        const handleMouseDownDrag = (event: MouseEvent) => {
-            const mode = getDragMode(event.button);
-            if (!mode) return;
-            const startTime = convertMouseEventToTimestamp(event);
-            if (!Number.isFinite(startTime)) return;
-            const numericStartTime = Number(startTime);
-
-            const rect = container.getBoundingClientRect?.();
-            if (!rect) return;
-            event.preventDefault();
-            event.stopPropagation();
-
-            const { currentRange: activeRange, navigatorRange: activeNavigatorRange, onDisplayRangeChange: activeRangeChange } = rangeRef.current as any;
-            dragStateRef.current = {
-                mode,
-                startTime: numericStartTime,
-                startX: event.clientX,
-                containerLeft: rect.left,
-                currentRange: activeRange,
-                navigatorRange: activeNavigatorRange,
-                onDisplayRangeChange: activeRangeChange,
-                gridBounds: getMainGridBounds(),
-                plotBounds: getPlotXBounds(),
-            };
-            setDragPreview(mode === 'pan' ? null : { mode, left: toPlotX(event.clientX, dragStateRef.current), width: 0, ...dragStateRef.current.gridBounds });
-            window.addEventListener('mousemove', handleDragMove, true);
-            window.addEventListener('mouseup', handleDragEnd, true);
-        };
-        const handleContextMenu = (event: MouseEvent) => {
-            const startTime = convertMouseEventToTimestamp(event);
-            if (!Number.isFinite(startTime)) return;
-            event.preventDefault();
-        };
-        const handleDataZoom = (params: any) => {
-            const { currentRange: activeRange, navigatorRange: activeNavigatorRange, onDisplayRangeChange: activeRangeChange } = rangeRef.current as any;
-            const dataZoomState = getDataZoomEventState(params);
-            const nextRange = hasExplicitDataViewerDataZoomEventRange(params)
-                ? extractDataViewerDataZoomRange(params, activeRange, activeNavigatorRange)
-                : extractDataViewerDataZoomRange(dataZoomState, activeRange, activeNavigatorRange);
-            if (!nextRange || isSameDataViewerChartRange(nextRange, activeRange)) return;
-            activeRangeChange?.(
-                { from: toRangeEdge(nextRange.startTime), to: toRangeEdge(nextRange.endTime) },
-                { from: toRangeEdge(activeNavigatorRange.startTime), to: toRangeEdge(activeNavigatorRange.endTime) },
-            );
-        };
-        chart.on('datazoom', handleDataZoom);
-        container.addEventListener('wheel', handleMouseWheelZoom, { passive: false, capture: true });
-        container.addEventListener('mousedown', handleMouseDownDrag, { capture: true });
-        container.addEventListener('contextmenu', handleContextMenu, { capture: true });
-
-        const resize = () => chart.resize();
-        let observer: ResizeObserver | undefined;
-        if (typeof ResizeObserver !== 'undefined') {
-            observer = new ResizeObserver(resize);
-            observer.observe(container);
-        } else {
-            window.addEventListener('resize', resize);
-        }
-        resize();
-
-        return () => {
-            chart.off('datazoom', handleDataZoom);
-            container.removeEventListener('wheel', handleMouseWheelZoom, true);
-            container.removeEventListener('mousedown', handleMouseDownDrag, true);
-            container.removeEventListener('contextmenu', handleContextMenu, true);
-            window.removeEventListener('mousemove', handleDragMove, true);
-            window.removeEventListener('mouseup', handleDragEnd, true);
-            if (observer) observer.disconnect();
-            else window.removeEventListener('resize', resize);
-            chart.dispose();
-            chartRef.current = null;
-            dragStateRef.current = null;
-        };
-        // Mount-once, deliberately. This used to depend on `hasChartData`, from a version of the
-        // component that *early-returned* `<div>No chart data</div>` — the container really was
-        // unmounted then, so the instance had to be rebuilt when it came back. The empty state is an
-        // overlay now (`data-viewer-chart-empty-overlay`) and the container never leaves the tree, so
-        // the dependency's only remaining effect was to `dispose()` and `echarts.init()` again every
-        // time the series went empty and refilled. Changing tags does exactly that — the rows blank
-        // while the window re-resolves — so the canvas was torn down and rebuilt twice per tag
-        // change. That is the blink: the axis never moves, the *canvas* disappears. Nothing inside
-        // reads props; the handlers all go through `rangeRef`, which is why this can be `[]` at all.
-    }, []);
-
-    useEffect(() => {
-        if (!chartRef.current) return;
-        chartRef.current.setOption(options as any, true);
-        if (Number.isFinite(currentRange.startTime) && Number.isFinite(currentRange.endTime)) {
-            chartRef.current.dispatchAction?.({ type: 'dataZoom', dataZoomId: 'panel-inside-data-zoom', startValue: currentRange.startTime, endValue: currentRange.endTime });
-            chartRef.current.dispatchAction?.({ type: 'dataZoom', dataZoomId: 'panel-slider-data-zoom', startValue: currentRange.startTime, endValue: currentRange.endTime });
-        }
-        chartRef.current.resize();
-    }, [currentRange, options]);
-
-    const applyZoomControl = useCallback(
-        (action: string, zoom?: number) => {
-            const nextRange = buildDataViewerZoomControlRange(action, currentRange, navigatorRange, zoom);
-            if (!nextRange || isSameDataViewerChartRange(nextRange, currentRange)) return;
-            const navigatorStart = Number(navigatorRange.startTime);
-            const navigatorEnd = Number(navigatorRange.endTime);
-            onDisplayRangeChange?.(
-                { from: formatDataViewerChartRangeEdge(nextRange.startTime, baseKind), to: formatDataViewerChartRangeEdge(nextRange.endTime, baseKind) },
-                Number.isFinite(navigatorStart) && Number.isFinite(navigatorEnd)
-                    ? { from: formatDataViewerChartRangeEdge(navigatorStart, baseKind), to: formatDataViewerChartRangeEdge(navigatorEnd, baseKind) }
-                    : undefined,
-            );
-        },
-        [baseKind, currentRange, navigatorRange, onDisplayRangeChange],
-    );
-
-    const zoomControlsDisabled =
-        !Number.isFinite(currentRange.startTime) || !Number.isFinite(currentRange.endTime) || !Number.isFinite(navigatorRange.startTime) || !Number.isFinite(navigatorRange.endTime);
-    const navigatorLabels = useMemo(
-        () => formatDataViewerNavigatorRangeLabels(navigatorRange, timeFormat, timeZone, baseKind),
-        [baseKind, navigatorRange, timeFormat, timeZone],
-    );
-
-    return (
-        <div className="data-viewer-chart-shell">
-            <button
-                type="button"
-                className="data-viewer-chart-range-shift data-viewer-chart-range-shift-left"
-                title="Move range backward"
-                aria-label="Move range backward"
-                disabled={zoomControlsDisabled}
-                onClick={() => onShiftMainRange?.('backward', currentRange, navigatorRange)}
-            >
-                <VscChevronLeft size={20} />
-            </button>
-            <div className="data-viewer-chart-footer-form" aria-label="Chart zoom controls">
-                <div className="data-viewer-chart-toolbar-controls">
-                    <div className="data-viewer-chart-toolbar-group">
-                        {[
-                            ['zoom-in', ZoomInFour, 'Zoom in', 0.4],
-                            ['zoom-in', ZoomInTwo, 'Zoom in', 0.2],
-                            ['focus', undefined, 'Focus', undefined],
-                            ['zoom-out', ZoomOutTwo, 'Zoom out', 0.2],
-                            ['zoom-out', ZoomOutFour, 'Zoom out', 0.4],
-                        ].map(([action, image, label, zoom], index) => (
-                            <button
-                                key={`${action}-${index}`}
-                                type="button"
-                                className="data-viewer-chart-toolbar-button"
-                                title={String(label)}
-                                aria-label={String(label)}
-                                disabled={zoomControlsDisabled}
-                                onClick={() => applyZoomControl(String(action), zoom as number | undefined)}
-                            >
-                                {image ? <img src={image as string} alt="" className="data-viewer-chart-toolbar-image" /> : <MaterialIcon name="center_focus_strong" className="data-viewer-chart-toolbar-icon" />}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-            <div
-                ref={containerRef}
-                className={`data-viewer-chart${dragStateRef.current?.mode === 'pan' ? ' is-panning' : ''}`}
-                data-display-from={Number.isFinite(currentRange.startTime) ? String(Math.floor(Number(currentRange.startTime))) : ''}
-                data-display-to={Number.isFinite(currentRange.endTime) ? String(Math.ceil(Number(currentRange.endTime))) : ''}
-                data-navigator-from={Number.isFinite(navigatorRange.startTime) ? String(Math.floor(Number(navigatorRange.startTime))) : ''}
-                data-navigator-to={Number.isFinite(navigatorRange.endTime) ? String(Math.ceil(Number(navigatorRange.endTime))) : ''}
-            />
-            {dragPreview ? (
-                <div
-                    className={`data-viewer-chart-drag-preview data-viewer-chart-drag-preview-${dragPreview.mode}`}
-                    style={{
-                        left: `${48 + Math.max(0, dragPreview.left)}px`,
-                        top: `${dragPreview.top}px`,
-                        width: `${dragPreview.width}px`,
-                        height: `${dragPreview.height}px`,
-                    }}
-                />
-            ) : null}
-            {/* `pending` and not just `hasChartData`: an empty series during a transition is a panel
-                waiting for its rows, not a window with nothing in it, and saying "No chart data"
-                over it is the blink the user sees. See `chartRowsPending` on the page. */}
-            {!hasChartData && !pending ? (
-                <div className="data-viewer-chart-empty-overlay" aria-live="polite">
-                    No chart data
-                </div>
-            ) : null}
-            {navigatorLabels.start || navigatorLabels.end ? (
-                <div className="data-viewer-chart-navigator-labels" aria-label="Mini chart time range">
-                    <span title={navigatorLabels.start}>{navigatorLabels.start}</span>
-                    <span title={navigatorLabels.end}>{navigatorLabels.end}</span>
-                </div>
-            ) : null}
-            <button
-                type="button"
-                className="data-viewer-chart-range-shift data-viewer-chart-range-shift-right"
-                title="Move range forward"
-                aria-label="Move range forward"
-                disabled={zoomControlsDisabled}
-                onClick={() => onShiftMainRange?.('forward', currentRange, navigatorRange)}
-            >
-                <VscChevronRight size={20} />
-            </button>
-        </div>
     );
 }
 
@@ -809,7 +442,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const timeColumn = pCode?.timeColumn || 'TIME';
     const valueColumn = pCode?.valueColumn || 'VALUE';
     const metaTagColumn = pCode?.metaTagColumn || tagColumn;
-    const headerLabels = buildDataViewerHeaderLabels(pCode?.jobName ?? pCode?.collectorId, tableName);
+    const headerLabels = buildDataViewerHeaderLabels(
+        pCode?.jobName ?? pCode?.collectorId,
+        tableName,
+    );
     // One Data Viewer board is reused for every table opened from the DB Explorer, so all of the
     // above can change under a live mount. These two keys are what every table-scoped read is
     // matched against; each names exactly the inputs its own read is built from, so a read is stale
@@ -827,17 +463,42 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // Column metadata for the viewed table, read once per table, carried with the key of the table
     // it was read for. Two decisions below consume it — the base axis and the JSON-value refusal —
     // but it is deliberately not fed back into the query columns (see `baseColumn`).
-    const [baseColumnsRead, setBaseColumnsRead] = useState<{ key: string; columns: DataViewerColumnRow[] } | null>(null);
+    const [baseColumnsRead, setBaseColumnsRead] = useState<{
+        key: string;
+        columns: DataViewerColumnRow[];
+    } | null>(null);
     // `null` means "not read yet, or read for a table that is no longer the one on screen", which is
     // a different answer from `[]` ("read, and there is nothing there"): the JSON check has to be
     // able to tell an unresolved schema from an unreadable one, or the page fires a query it is
     // about to refuse. Derived rather than reset from an effect — see `buildDataViewerReadKey`.
-    const baseColumns = baseColumnsRead && baseColumnsRead.key === tableKey ? baseColumnsRead.columns : null;
+    const baseColumns =
+        baseColumnsRead && baseColumnsRead.key === tableKey ? baseColumnsRead.columns : null;
     const [assetHierarchy, setAssetHierarchy] = useState<DataViewerAssetHierarchy | undefined>();
     const [tagsLoading, setTagsLoading] = useState(false);
     const [tagFilter, setTagFilter] = useState('');
     const [activeTagTab, setActiveTagTab] = useState<'tags' | 'asset'>('tags');
-    const [collapsedAssetFolders, setCollapsedAssetFolders] = useState<Set<string>>(() => new Set());
+    const [collapsedAssetFolders, setCollapsedAssetFolders] = useState<Set<string>>(
+        () => new Set(),
+    );
+    // A JSON row is the entry point to its own keys: the document it holds already describes them,
+    // so opening one is all the discovery this page needs. `picker` holds the row that was clicked,
+    // `detail` the keys chosen from it.
+    const [jsonKeyPicker, setJsonKeyPicker] = useState<{
+        tagName: string;
+        baseLabel: string;
+        document: unknown;
+        selected: string[];
+    } | null>(null);
+    // Index into the page's rows rather than a copy of one: the detail view moves between rows with
+    // the arrow keys, and holding the row itself would freeze it on whichever one was opened.
+    const [rowDetailIndex, setRowDetailIndex] = useState<number | null>(null);
+    const [jsonKeyDetail, setJsonKeyDetail] = useState<{ tagName: string; paths: string[] } | null>(
+        null,
+    );
+    // The picker's filter and folds, held across the trip into the detail view and back. A ref, not
+    // state: nothing on this page renders from it, and putting it in state would re-render the whole
+    // Data Viewer on every keystroke typed into a modal filter box. Cleared with the picker itself.
+    const jsonKeyPickerViewRef = useRef<JsonKeyPickerView | undefined>(undefined);
     const [selectedTagNames, setSelectedTagNames] = useState<string[]>([]);
     const [mode, setMode] = useState<'raw' | 'chart'>('raw');
     const [page, setPage] = useState(1);
@@ -855,17 +516,35 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // The window resolver can issue its own boundary query, and until it answers there is no window
     // to read with. Without this the grid would blink through "No data" on every re-resolution.
     const [rangeResolving, setRangeResolving] = useState(false);
-    const [rangeEditor, setRangeEditor] = useState<{ type: 'global' } | { type: 'split'; groupId: string } | null>(null);
+    const [rangeEditor, setRangeEditor] = useState<
+        { type: 'global' } | { type: 'split'; groupId: string } | null
+    >(null);
     // The distance editor's slider extent. `null` is "not known" — the editor then hides the slider
     // and keeps free numeric entry, so this never gates the dialog opening.
     const [distanceBounds, setDistanceBounds] = useState<{ min: number; max: number } | null>(null);
-    const [splitChartGroups, setSplitChartGroups] = useState<Array<{ id: string; title: string; tagNames: string[] }>>([]);
-    const [splitChartRanges, setSplitChartRanges] = useState<Record<string, DataViewerTimeRange>>({});
-    const [resolvedSplitChartRanges, setResolvedSplitChartRanges] = useState<Record<string, DataViewerTimeRange>>({});
+    const [splitChartGroups, setSplitChartGroups] = useState<
+        Array<{ id: string; title: string; tagNames: string[] }>
+    >([]);
+    const [splitChartRanges, setSplitChartRanges] = useState<Record<string, DataViewerTimeRange>>(
+        {},
+    );
+    const [resolvedSplitChartRanges, setResolvedSplitChartRanges] = useState<
+        Record<string, DataViewerTimeRange>
+    >({});
     const [chartViewRanges, setChartViewRanges] = useState<Record<string, DataViewerTimeRange>>({});
-    const [chartNavigatorRanges, setChartNavigatorRanges] = useState<Record<string, DataViewerTimeRange>>({});
+    const [chartNavigatorRanges, setChartNavigatorRanges] = useState<
+        Record<string, DataViewerTimeRange>
+    >({});
     const [openChartMenuId, setOpenChartMenuId] = useState<string | null>(null);
-    const [chartResults, setChartResults] = useState<Record<string, { range: DataViewerTimeRange; series: Array<{ name: string; data: Array<[number, number | null]> }> }>>({});
+    const [chartResults, setChartResults] = useState<
+        Record<
+            string,
+            {
+                range: DataViewerTimeRange;
+                series: Array<{ name: string; data: Array<[number, number | null]> }>;
+            }
+        >
+    >({});
     const [splitChartRows, setSplitChartRows] = useState<Record<string, ResultRow[]>>({});
     const [chartLoading, setChartLoading] = useState(false);
     const [chartError, setChartError] = useState('');
@@ -890,7 +569,8 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const [endLoading, setEndLoading] = useState(false);
     const [error, setError] = useState('');
     const [rawRowsPerTag, setRawRowsPerTag] = useState(DEFAULT_DATA_VIEWER_ROWS_PER_TAG);
-    const [rawPageBounds, setRawPageBounds] = useState<ReturnType<typeof buildDataViewerRawPageBounds>>(null);
+    const [rawPageBounds, setRawPageBounds] =
+        useState<ReturnType<typeof buildDataViewerRawPageBounds>>(null);
     const [rawPageRequest, setRawPageRequest] = useState<RawPageRequest>({ page: 1 });
     // `customScrollParent` takes an HTMLElement, not a ref object, and a `useRef.current` read is
     // still null on the first render — state + callback ref forces the re-render that hands the
@@ -907,7 +587,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const endPageRequestRef = useRef(0);
     const splitRangeRequestRef = useRef(0);
     const selectedTagKey = selectedTagNames.join('\n');
-    const rawPageSize = useMemo(() => getDataViewerRawPageSize(selectedTagNames, rawRowsPerTag), [rawRowsPerTag, selectedTagNames]);
+    const rawPageSize = useMemo(
+        () => getDataViewerRawPageSize(selectedTagNames, rawRowsPerTag),
+        [rawRowsPerTag, selectedTagNames],
+    );
 
     const visibleTags = useMemo(() => {
         return filterDataViewerTags(tags, tagFilter);
@@ -920,11 +603,22 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
 
     const assetRows = useMemo(() => {
         if (!assetHierarchy) return [];
-        return filterVisibleAssetRows(buildAssetTreeRows(tags, assetHierarchy, tagFilter), collapsedAssetFolders);
+        return filterVisibleAssetRows(
+            buildAssetTreeRows(tags, assetHierarchy, tagFilter),
+            collapsedAssetFolders,
+        );
     }, [assetHierarchy, collapsedAssetFolders, tagFilter, tags]);
     const selectableRows = useMemo(
         () => [
-            ...tags.map((tag) => ({ type: 'tag' as const, id: `tag:${tag.name}`, label: tag.name, depth: 0, name: tag.name, dataType: tag.dataType, parentIds: [] })),
+            ...tags.map((tag) => ({
+                type: 'tag' as const,
+                id: `tag:${tag.name}`,
+                label: tag.name,
+                depth: 0,
+                name: tag.name,
+                dataType: tag.dataType,
+                parentIds: [],
+            })),
             ...allAssetRows.filter((row) => row.type === 'tag'),
         ],
         [allAssetRows, tags],
@@ -932,7 +626,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // Everything the user has to supply before a read is even meaningful. Kept separate from
     // `canQuery` because the two answer different questions: this one drives the "you still have to
     // pick something" empty state, `canQuery` drives whether SQL goes out.
-    const queryInputsReady = Boolean(dbName && userName && tableName && selectedTagNames.length > 0);
+    const queryInputsReady = Boolean(
+        dbName && userName && tableName && selectedTagNames.length > 0,
+    );
     // The schema read has not answered *for the table on screen* yet. Not a refusal — a not-yet.
     // Every query waits it out, so a JSON table never gets a single read off the ground, and the
     // grid stays in its normal loading state rather than flashing a refusal it might have to take
@@ -979,7 +675,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // and fire one query against it before the fresh window landed.
     const frozenWindowKey = buildFrozenWindowKey(range, selectedTagKey, refreshToken);
     const activeWindow = frozenWindow && frozenWindow.key === frozenWindowKey ? frozenWindow : null;
-    const resolvedRange = useMemo<DataViewerTimeRange>(() => ({ from: activeWindow?.from ?? '', to: activeWindow?.to ?? '' }), [activeWindow]);
+    const resolvedRange = useMemo<DataViewerTimeRange>(
+        () => ({ from: activeWindow?.from ?? '', to: activeWindow?.to ?? '' }),
+        [activeWindow],
+    );
     const chartGroups = useMemo(
         () =>
             buildDataViewerChartGroups({
@@ -990,7 +689,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             }),
         [resolvedRange, resolvedSplitChartRanges, selectedTagNames, splitChartGroups],
     );
-    const splitAssignedNames = useMemo(() => new Set(splitChartGroups.flatMap((group) => group.tagNames || [])), [splitChartGroups]);
+    const splitAssignedNames = useMemo(
+        () => new Set(splitChartGroups.flatMap((group) => group.tagNames || [])),
+        [splitChartGroups],
+    );
 
     // The axis is only known once the schema read lands, so the format button is on screen — and can
     // be clicked — while the table is still provisionally a time base. A modal that outlives the
@@ -1003,7 +705,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         if (!openChartMenuId) return undefined;
 
         const handlePointerDown = (event: PointerEvent) => {
-            if (event.target instanceof Element && event.target.closest('.data-viewer-chart-action-menu')) return;
+            if (
+                event.target instanceof Element &&
+                event.target.closest('.data-viewer-chart-action-menu')
+            )
+                return;
             setOpenChartMenuId(null);
         };
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -1059,7 +765,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 .filter((group) => group.tagNames.length > 0);
             const same =
                 next.length === current.length &&
-                next.every((group, index) => group.id === current[index].id && group.tagNames.join('\n') === (current[index].tagNames || []).join('\n'));
+                next.every(
+                    (group, index) =>
+                        group.id === current[index].id &&
+                        group.tagNames.join('\n') === (current[index].tagNames || []).join('\n'),
+                );
             return same ? current : next;
         });
     }, [selectedTagNames]);
@@ -1132,7 +842,8 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
      * what makes the schema read state it differently.
      */
     useEffect(() => {
-        const clearRanges = (current: Record<string, DataViewerTimeRange>) => (Object.keys(current).length === 0 ? current : {});
+        const clearRanges = (current: Record<string, DataViewerTimeRange>) =>
+            Object.keys(current).length === 0 ? current : {};
         setChartViewRanges(clearRanges);
         setChartNavigatorRanges(clearRanges);
         setSplitChartRanges(clearRanges);
@@ -1215,7 +926,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setSplitChartRanges(rangeUpdate.splitRanges);
             setSplitChartGroups((current) => [...current, ...nextGroups]);
         },
-        [chartNavigatorRanges, chartViewRanges, selectedTagNames, splitAssignedNames, splitChartRanges],
+        [
+            chartNavigatorRanges,
+            chartViewRanges,
+            selectedTagNames,
+            splitAssignedNames,
+            splitChartRanges,
+        ],
     );
 
     const handleRemoveSplitChart = useCallback((groupId: string) => {
@@ -1262,7 +979,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
 
     const handleToggleSplitChart = useCallback(
         (tagName: string) => {
-            const splitGroup = splitChartGroups.find((group) => (group.tagNames || []).includes(tagName));
+            const splitGroup = splitChartGroups.find((group) =>
+                (group.tagNames || []).includes(tagName),
+            );
             if (splitGroup) {
                 handleRemoveSplitChart(splitGroup.id);
                 return;
@@ -1336,7 +1055,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         let alive = true;
         listTableColumns({ dbName, userName, tableName })
             .then((columns) => {
-                if (alive) setBaseColumnsRead({ key: readKey, columns: Array.isArray(columns) ? columns : [] });
+                if (alive)
+                    setBaseColumnsRead({
+                        key: readKey,
+                        columns: Array.isArray(columns) ? columns : [],
+                    });
             })
             .catch(() => {
                 if (alive) setBaseColumnsRead({ key: readKey, columns: [] });
@@ -1346,61 +1069,74 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         };
     }, [dbName, tableName, userName]);
 
-    const resolveRangeForTagNames = useCallback(async (targetRange: DataViewerTimeRange, tagNames: string[]) => {
-        // A distance axis has no clock, so no *time* boundary query is issued — `queryTagBoundaryTime`
-        // would ask a stat view that has no MIN_TIME column to answer with, then fall back to scanning
-        // a column that measures metres — and no date parsing happens, so `toDataViewerDate` never
-        // gets the chance to turn 999990 into 1970-01-01. The edges are the numbers themselves;
-        // `null` means the value was not one.
-        //
-        // It does have an *extent*, though, and that is what `first`/`last` are anchored to. Those
-        // edges are resolved here, against the same base-column bounds the slider is drawn from, and
-        // only when one is actually present — a pair of coordinates costs no round trip.
-        if (baseKind === 'distance') {
-            const needsExtent = isDistanceAnchorEdge(targetRange.from) || isDistanceAnchorEdge(targetRange.to);
-            const extent = needsExtent
-                ? await queryTagBaseColumnBounds({ dbName, userName, tableName, names: tagNames, tagColumn, baseColumn, baseKind }).catch(() => null)
-                : null;
-            const fromValue = resolveDistanceEdge(targetRange.from, extent);
-            const toValue = resolveDistanceEdge(targetRange.to, extent);
-            return {
-                from: fromValue === null ? null : formatDataViewerDistance(fromValue),
-                to: toValue === null ? null : formatDataViewerDistance(toValue),
-                // The same signal the time path raises when `last` cannot be resolved: an anchored
-                // edge with no extent behind it is a window nobody can query.
-                missingBoundary: needsExtent && !extent,
-            };
-        }
-
-        const nowDate = new Date();
-        let lastBaseDate: Date | null | undefined;
-        const resolveQueryRange = async (value: unknown, boundary: 'from' | 'to') => {
-            const text = String(value ?? '').trim();
-            if (!text.startsWith('last')) return resolveTimeRangeInput(value, nowDate, boundary);
-
-            if (lastBaseDate === undefined) {
-                const latestTime = await queryTagBoundaryTime({
-                    dbName,
-                    userName,
-                    tableName,
-                    names: tagNames,
-                    direction: 'latest',
-                    tagColumn,
-                    timeColumn,
-                });
-                lastBaseDate = toDataViewerDate(latestTime);
+    const resolveRangeForTagNames = useCallback(
+        async (targetRange: DataViewerTimeRange, tagNames: string[]) => {
+            // A distance axis has no clock, so no *time* boundary query is issued — `queryTagBoundaryTime`
+            // would ask a stat view that has no MIN_TIME column to answer with, then fall back to scanning
+            // a column that measures metres — and no date parsing happens, so `toDataViewerDate` never
+            // gets the chance to turn 999990 into 1970-01-01. The edges are the numbers themselves;
+            // `null` means the value was not one.
+            //
+            // It does have an *extent*, though, and that is what `first`/`last` are anchored to. Those
+            // edges are resolved here, against the same base-column bounds the slider is drawn from, and
+            // only when one is actually present — a pair of coordinates costs no round trip.
+            if (baseKind === 'distance') {
+                const needsExtent =
+                    isDistanceAnchorEdge(targetRange.from) || isDistanceAnchorEdge(targetRange.to);
+                const extent = needsExtent
+                    ? await queryTagBaseColumnBounds({
+                          dbName,
+                          userName,
+                          tableName,
+                          names: tagNames,
+                          tagColumn,
+                          baseColumn,
+                          baseKind,
+                      }).catch(() => null)
+                    : null;
+                const fromValue = resolveDistanceEdge(targetRange.from, extent);
+                const toValue = resolveDistanceEdge(targetRange.to, extent);
+                return {
+                    from: fromValue === null ? null : formatDataViewerDistance(fromValue),
+                    to: toValue === null ? null : formatDataViewerDistance(toValue),
+                    // The same signal the time path raises when `last` cannot be resolved: an anchored
+                    // edge with no extent behind it is a window nobody can query.
+                    missingBoundary: needsExtent && !extent,
+                };
             }
 
-            if (!lastBaseDate) return null;
-            return resolveTimeRangeInput(value, lastBaseDate, boundary);
-        };
+            const nowDate = new Date();
+            let lastBaseDate: Date | null | undefined;
+            const resolveQueryRange = async (value: unknown, boundary: 'from' | 'to') => {
+                const text = String(value ?? '').trim();
+                if (!text.startsWith('last'))
+                    return resolveTimeRangeInput(value, nowDate, boundary);
 
-        const from = await resolveQueryRange(targetRange.from, 'from');
-        const to = await resolveQueryRange(targetRange.to, 'to');
-        // `null` from a `last` token means the tag simply has no samples to anchor to — a data
-        // availability fact, not bad input. Reported separately so the UI can say which it was.
-        return { from, to, missingBoundary: lastBaseDate === null };
-    }, [baseKind, dbName, tableName, tagColumn, timeColumn, userName]);
+                if (lastBaseDate === undefined) {
+                    const latestTime = await queryTagBoundaryTime({
+                        dbName,
+                        userName,
+                        tableName,
+                        names: tagNames,
+                        direction: 'latest',
+                        tagColumn,
+                        timeColumn,
+                    });
+                    lastBaseDate = toDataViewerDate(latestTime);
+                }
+
+                if (!lastBaseDate) return null;
+                return resolveTimeRangeInput(value, lastBaseDate, boundary);
+            };
+
+            const from = await resolveQueryRange(targetRange.from, 'from');
+            const to = await resolveQueryRange(targetRange.to, 'to');
+            // `null` from a `last` token means the tag simply has no samples to anchor to — a data
+            // availability fact, not bad input. Reported separately so the UI can say which it was.
+            return { from, to, missingBoundary: lastBaseDate === null };
+        },
+        [baseKind, dbName, tableName, tagColumn, timeColumn, userName],
+    );
 
     // The one place `last`/`now` is turned into a literal timestamp pair. It runs on mount, on a tag
     // selection change (the `last` base is the *selected* tags' newest sample, so it moves with them),
@@ -1426,12 +1162,20 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     // what the user typed — saying "check the entered time" sends them to fix a
                     // range that is perfectly valid. On a distance axis there is no boundary to be
                     // missing, so `null` can only mean the edge was not a number.
-                    setError(distance ? DISTANCE_RANGE_INVALID_MESSAGE : missingBoundary ? TAG_HAS_NO_DATA_MESSAGE : TIME_RANGE_INVALID_MESSAGE);
+                    setError(
+                        distance
+                            ? DISTANCE_RANGE_INVALID_MESSAGE
+                            : missingBoundary
+                              ? TAG_HAS_NO_DATA_MESSAGE
+                              : TIME_RANGE_INVALID_MESSAGE,
+                    );
                     return;
                 }
                 if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
                     setFrozenWindow(null);
-                    setError(distance ? DISTANCE_RANGE_REQUIRED_MESSAGE : TIME_RANGE_REQUIRED_MESSAGE);
+                    setError(
+                        distance ? DISTANCE_RANGE_REQUIRED_MESSAGE : TIME_RANGE_REQUIRED_MESSAGE,
+                    );
                     return;
                 }
                 // Numeric on distance, chronological on time. `new Date('0')` is the year 2000 and
@@ -1457,7 +1201,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // `frozenWindowKey` is the real trigger — `range` and `selectedTagNames` are listed because
         // the effect reads them, but they are state objects whose identity only changes alongside
         // the key, so they add no extra runs.
-    }, [baseKind, canQuery, frozenWindowKey, range, resolveRangeForTagNames, selectedTagNames]);
+    }, [baseKind, canQuery, frozenWindowKey, selectedTagNames, range, resolveRangeForTagNames]);
 
     // The distance editor's slider bounds, read when the editor opens rather than with the table:
     // it is the only thing that wants them, and a dialog nobody opens should not have cost a query.
@@ -1476,7 +1220,15 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         }
 
         let alive = true;
-        queryTagBaseColumnBounds({ dbName, userName, tableName, names: selectedTagNames, tagColumn, baseColumn, baseKind })
+        queryTagBaseColumnBounds({
+            dbName,
+            userName,
+            tableName,
+            names: selectedTagNames,
+            tagColumn,
+            baseColumn,
+            baseKind,
+        })
             .then((bounds) => {
                 if (alive) setDistanceBounds(bounds);
             })
@@ -1488,7 +1240,17 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         return () => {
             alive = false;
         };
-    }, [baseColumn, baseKind, canQuery, dbName, rangeEditor, selectedTagNames, tableName, tagColumn, userName]);
+    }, [
+        baseColumn,
+        baseKind,
+        canQuery,
+        dbName,
+        selectedTagNames,
+        rangeEditor,
+        tableName,
+        tagColumn,
+        userName,
+    ]);
 
     const fetchRows = useCallback(async () => {
         const requestId = rowsRequestRef.current + 1;
@@ -1559,7 +1321,22 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         } finally {
             if (rowsRequestRef.current === requestId) setLoading(false);
         }
-    }, [activeWindow, backwardScan, baseKind, canQuery, dbName, page, rawPageRequest, rawPageSize, selectedTagNames, tableName, tagColumn, timeColumn, userName, valueColumn]);
+    }, [
+        activeWindow,
+        backwardScan,
+        baseKind,
+        canQuery,
+        dbName,
+        page,
+        selectedTagNames,
+        rawPageRequest,
+        rawPageSize,
+        tableName,
+        tagColumn,
+        timeColumn,
+        userName,
+        valueColumn,
+    ]);
 
     useEffect(() => {
         fetchRows();
@@ -1635,7 +1412,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             rowsByGroup: splitChartRows,
             chartGroups,
             baseKind,
-        }) as Record<string, { range: DataViewerTimeRange; series: Array<{ name: string; data: Array<[number, number | null]> }> }>;
+        }) as Record<
+            string,
+            {
+                range: DataViewerTimeRange;
+                series: Array<{ name: string; data: Array<[number, number | null]> }>;
+            }
+        >;
         if (chartRequestRef.current !== requestId) return undefined;
         setChartResults(nextResults);
         setChartNavigatorRanges((current) => {
@@ -1663,16 +1446,28 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // answered once, from the schema, rather than guessed per call site. `formatDataViewerTime`
     // reads any finite number as an epoch, which is what silently turned odometer readings into
     // 1970 timestamps.
-    const formatBaseValue = useCallback((value: unknown) => formatDataViewerBaseValue(value, baseKind, timeFormat, timeZone), [baseKind, timeFormat, timeZone]);
+    const formatBaseValue = useCallback(
+        (value: unknown) => formatDataViewerBaseValue(value, baseKind, timeFormat, timeZone),
+        [baseKind, timeFormat, timeZone],
+    );
     // Two labels, because they answer different questions. The expression is what the user typed
     // (`last-1h ~ last`); the resolved label is the literal window every query on screen actually
     // used. Showing only the expression leaves "which hour am I looking at?" unanswerable, which is
     // precisely the ambiguity the frozen window was introduced to remove. On a distance axis the two
     // coincide — a number resolves to itself — and both read as plain numbers.
-    const timeRangeExpressionText = formatDataViewerBaseRangeLabel(activeRange.from, activeRange.to, baseKind);
-    const resolvedRangeText = activeWindow ? `${formatBaseValue(activeWindow.from)} ~ ${formatBaseValue(activeWindow.to)}` : '';
+    const timeRangeExpressionText = formatDataViewerBaseRangeLabel(
+        activeRange.from,
+        activeRange.to,
+        baseKind,
+    );
+    const resolvedRangeText = activeWindow
+        ? `${formatBaseValue(activeWindow.from)} ~ ${formatBaseValue(activeWindow.to)}`
+        : '';
     const timeRangeButtonText = resolvedRangeText || timeRangeExpressionText;
-    const timeRangeButtonTitle = resolvedRangeText && resolvedRangeText !== timeRangeExpressionText ? `${timeRangeExpressionText} → ${resolvedRangeText}` : timeRangeButtonText;
+    const timeRangeButtonTitle =
+        resolvedRangeText && resolvedRangeText !== timeRangeExpressionText
+            ? `${timeRangeExpressionText} → ${resolvedRangeText}`
+            : timeRangeButtonText;
     const timeFormatButtonText = `${getTimeFormatLabel(timeFormat)} / ${getTimeZoneLabel(timeZone)}`;
     // Resolving the window and reading rows are one operation to the user, so they share a spinner.
     // `rangeResolving` alone leaves a gap: it is cleared in the resolver's `.then`, batched with
@@ -1684,7 +1479,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // — the schema and the tag list. Without it the grid would report itself idle-and-empty for the
     // length of those reads and blink "No data" before the first row query is even allowed to start;
     // on a table switch, where both are re-read, that is the whole span of the switch.
-    const rawLoading = loading || rangeResolving || (queryInputsReady && tableReadsPending) || (canQuery && !activeWindow && !error);
+    const rawLoading =
+        loading ||
+        rangeResolving ||
+        (queryInputsReady && tableReadsPending) ||
+        (canQuery && !activeWindow && !error);
     const handleRefreshRange = useCallback(() => {
         if (loading || endLoading || rangeResolving) return;
         // The token is part of the window key, so this re-resolves `last`/`now` against the current
@@ -1723,6 +1522,8 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         setEndLoading(true);
         setError('');
         try {
+            // The total counts cycles, not projected rows — the key fan-out happens after the read,
+            // so multiplying it here would overstate the page count by the number of selected keys.
             const result = await queryTagDataTotal({
                 dbName,
                 userName,
@@ -1753,7 +1554,21 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         } finally {
             if (endPageRequestRef.current === requestId) setEndLoading(false);
         }
-    }, [activeWindow, baseKind, canQuery, dbName, endLoading, page, rawPageBounds, rawPageSize, selectedTagNames, tableName, tagColumn, timeColumn, userName]);
+    }, [
+        activeWindow,
+        baseKind,
+        canQuery,
+        dbName,
+        endLoading,
+        page,
+        selectedTagNames,
+        rawPageBounds,
+        rawPageSize,
+        tableName,
+        tagColumn,
+        timeColumn,
+        userName,
+    ]);
     // `baseKind` only renames the base column's header — the row key stays `time`, which is what the
     // cells, the widths and the page cursors all read. Header and widths share this one array, so
     // they cannot disagree about how wide `Distance` is.
@@ -1769,7 +1584,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         if (!rawScrollEl) return undefined;
         let alive = true;
         const measure = () => {
-            const family = getComputedStyle(rawScrollEl).getPropertyValue('--font-family-mono').trim() || 'monospace';
+            const family =
+                getComputedStyle(rawScrollEl).getPropertyValue('--font-family-mono').trim() ||
+                'monospace';
             const context = document.createElement('canvas').getContext('2d');
             if (!context) return;
             context.font = `${RAW_CELL_FONT_SIZE}px ${family}`;
@@ -1811,17 +1628,55 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         if (!Array.isArray(mainSeries) || mainSeries.length === 0) return rawNameColors;
         return buildSeriesColorMap(mainSeries.map((item) => item?.name));
     }, [chartResults, rawNameColors]);
-    const rawTableMinWidth = useMemo(() => rawColumns.reduce((total, column) => total + (rawColumnWidths[column.key] || 0), 0), [rawColumnWidths, rawColumns]);
+    const rawTableMinWidth = useMemo(
+        () => rawColumns.reduce((total, column) => total + (rawColumnWidths[column.key] || 0), 0),
+        [rawColumnWidths, rawColumns],
+    );
     // Memoised because react-virtuoso subscribes to `components.Table` with a strict-equality
     // `distinctUntilChanged` — a fresh component identity on every render remounts the whole
     // `<table>` (and with it the scroll position) on each keystroke elsewhere in the page.
     const rawComponents = useMemo<TableComponents<ResultRow>>(
         () => ({
+            // The whole row opens the detail. Confining it to the value cell made the target a
+            // sliver of the row, and the cell is also the one part a user may want to select text in.
+            TableRow: (props) => {
+                // `item` is the row object Virtuoso passes alongside the DOM props; spreading it onto
+                // a <tr> would emit it as an attribute. The index it also passes is what the detail
+                // view needs, since that view moves between rows on its own.
+                const { item, ...rest } = props as typeof props & { item?: unknown };
+                void item;
+                const index = rest['data-index'] as number;
+                // The row is the only door into the key flow, so it has to be a control and not just
+                // a click target: a bare `<tr onClick>` is invisible to the keyboard, and a 120-press
+                // Tab sweep in both directions never once landed inside this grid. `role="button"`
+                // over the row rather than a nested one keeps the whole row as the target, which is
+                // what the pointer already gets.
+                return (
+                    <tr
+                        {...rest}
+                        className="data-viewer-raw-row"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => rawRowClickRef.current(index)}
+                        onKeyDown={(event) => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                            // Space scrolls the grid otherwise, which moves the row out from under
+                            // the press that was meant to open it.
+                            event.preventDefault();
+                            rawRowClickRef.current(index);
+                        }}
+                    />
+                );
+            },
             Table: ({ style, children, ...props }) => (
                 // `children` has to be destructured and re-rendered after the colgroup: TableProps
                 // carries thead/tbody as a `children` prop, so writing JSX children on a spread
                 // `<table {...props}>` would overwrite them and leave an empty grid.
-                <table {...props} className="table-clean data-viewer-raw-table" style={{ ...style, minWidth: rawTableMinWidth }}>
+                <table
+                    {...props}
+                    className="table-clean data-viewer-raw-table"
+                    style={{ ...style, minWidth: rawTableMinWidth }}
+                >
                     <colgroup>
                         {rawColumns.map((column) => (
                             <col key={column.key} style={{ width: rawColumnWidths[column.key] }} />
@@ -1840,7 +1695,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             // here rather than inside the modal keeps every other consumer of the modal untouched.
             // The editor is closed so the reason lands in the page's error box, which the modal
             // overlay would otherwise cover.
-            const requiredMessage = baseKind === 'distance' ? DISTANCE_RANGE_REQUIRED_MESSAGE : TIME_RANGE_REQUIRED_MESSAGE;
+            const requiredMessage =
+                baseKind === 'distance'
+                    ? DISTANCE_RANGE_REQUIRED_MESSAGE
+                    : TIME_RANGE_REQUIRED_MESSAGE;
             if (!String(next.from ?? '').trim() || !String(next.to ?? '').trim()) {
                 if (rangeEditor?.type === 'split') setChartError(requiredMessage);
                 else setError(requiredMessage);
@@ -1848,7 +1706,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 return;
             }
             if (rangeEditor?.type === 'split' && rangeEditor.groupId) {
-                const group = chartGroups.find((chartGroup) => chartGroup.id === rangeEditor.groupId);
+                const group = chartGroups.find(
+                    (chartGroup) => chartGroup.id === rangeEditor.groupId,
+                );
                 if (!group) {
                     setRangeEditor(null);
                     return;
@@ -1865,7 +1725,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                         const { from, to } = await resolveRangeForTagNames(next, group.tagNames);
                         if (splitRangeRequestRef.current !== splitRequestId) return;
                         if (from === null || to === null) {
-                            setChartError(baseKind === 'distance' ? DISTANCE_RANGE_INVALID_MESSAGE : TIME_RANGE_INVALID_MESSAGE);
+                            setChartError(
+                                baseKind === 'distance'
+                                    ? DISTANCE_RANGE_INVALID_MESSAGE
+                                    : TIME_RANGE_INVALID_MESSAGE,
+                            );
                             return;
                         }
                         if (isMissingRangeEdge(from) || isMissingRangeEdge(to)) {
@@ -1873,7 +1737,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             return;
                         }
                         if (isDataViewerRangeReversed(from, to, baseKind)) {
-                            setChartError(baseKind === 'distance' ? DISTANCE_RANGE_ORDER_MESSAGE : TIME_RANGE_ORDER_MESSAGE);
+                            setChartError(
+                                baseKind === 'distance'
+                                    ? DISTANCE_RANGE_ORDER_MESSAGE
+                                    : TIME_RANGE_ORDER_MESSAGE,
+                            );
                             return;
                         }
                         const result = await queryTagData({
@@ -1904,12 +1772,14 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 if (rangeChanged) {
                     chartRequestRef.current += 1;
                     setChartViewRanges((current) => {
-                        if (!Object.prototype.hasOwnProperty.call(current, rangeEditor.groupId)) return current;
+                        if (!Object.prototype.hasOwnProperty.call(current, rangeEditor.groupId))
+                            return current;
                         const { [rangeEditor.groupId]: _removed, ...rest } = current;
                         return rest;
                     });
                     setChartNavigatorRanges((current) => {
-                        if (!Object.prototype.hasOwnProperty.call(current, rangeEditor.groupId)) return current;
+                        if (!Object.prototype.hasOwnProperty.call(current, rangeEditor.groupId))
+                            return current;
                         const { [rangeEditor.groupId]: _removed, ...rest } = current;
                         return rest;
                     });
@@ -1944,11 +1814,31 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             }
             setRangeEditor(null);
         },
-        [backwardScan, baseKind, canQuery, chartGroups, dbName, rangeEditor, rawRowsPerTag, resolveRangeForTagNames, splitChartRanges, tableName, tagColumn, timeColumn, userName, valueColumn],
+        [
+            backwardScan,
+            baseKind,
+            canQuery,
+            chartGroups,
+            dbName,
+            rangeEditor,
+            rawRowsPerTag,
+            resolveRangeForTagNames,
+            splitChartRanges,
+            tableName,
+            tagColumn,
+            timeColumn,
+            userName,
+            valueColumn,
+        ],
     );
     const handleOpenTagAnalyzer = useCallback(
         (
-            group: { id: string; title: string; tagNames: string[]; range: { from?: unknown; to?: unknown } },
+            group: {
+                id: string;
+                title: string;
+                tagNames: string[];
+                range: { from?: unknown; to?: unknown };
+            },
             chartData?: { range?: DataViewerTimeRange },
         ) => {
             // Tag Analyzer opens a board whose every tag carries `calculationMode: 'avg'` over this
@@ -1964,6 +1854,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             // removing it fails nothing, which is the accurate description of a redundant guard,
             // not of a vacuous test.
             if (valueColumnIsJson) return;
+
             const tazRange = chartViewRanges[group.id] || chartData?.range || group.range;
             const normalizedRange = buildDataViewerTagAnalyzerRange(tazRange, baseKind);
             const tagAnalyzerTable = buildDataViewerTagAnalyzerTableName({
@@ -1973,6 +1864,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 databaseId,
                 currentUserName: getUserName(),
             });
+
             const payload = {
                 title: group.title || 'Data Viewer',
                 ...(normalizedRange ? { range: normalizedRange } : {}),
@@ -1998,6 +1890,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     },
                 })),
             };
+
             const result = createTagAnalyzerBoardFromPayload(payload);
             if (result.status !== 'ok') {
                 setError(result.reason || 'Cannot open Tag Analyzer.');
@@ -2006,7 +1899,148 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setBoardList((current) => [...current, result.board]);
             setSelectedTab(result.board.id);
         },
-        [baseColumn, baseColumnType, baseKind, chartViewRanges, databaseId, dbName, setBoardList, setSelectedTab, tableName, tagColumn, userName, valueColumn, valueColumnIsJson],
+        [
+            baseColumn,
+            baseColumnType,
+            baseKind,
+            chartViewRanges,
+            databaseId,
+            dbName,
+            setBoardList,
+            setSelectedTab,
+            tableName,
+            tagColumn,
+            userName,
+            valueColumn,
+            valueColumnIsJson,
+        ],
+    );
+    /**
+     * What a row click opens.
+     *
+     * On a JSON value column the row *is* its keys — the picker lists every one of them beside the
+     * value it holds, which is the row read more closely than an inspector could put it, so the
+     * click lands there directly rather than on a modal whose only useful control is a button to
+     * this one. Everywhere else there are no keys to pick and the inspector is the whole answer —
+     * including on a JSON column whose row holds a bare value, which is a document with nothing in
+     * it to pick and would otherwise open an empty tree.
+     */
+    const handleRawRowClick = useCallback(
+        (index: number) => {
+            const row = rows[index];
+            if (!row) return;
+            if (!valueColumnIsJson || !jsonKeyDocumentHasKeys(row.value)) {
+                setRowDetailIndex(index);
+                return;
+            }
+            // A different row is a different document, so the filter and folds kept for the trip
+            // into the detail view and back do not carry over to it.
+            jsonKeyPickerViewRef.current = undefined;
+            setJsonKeyPicker({
+                tagName: String(row.name ?? ''),
+                baseLabel: formatBaseValue(row.time),
+                document: row.value,
+                selected: [],
+            });
+        },
+        [formatBaseValue, rows, valueColumnIsJson],
+    );
+
+    /**
+     * The row click, held where the memo below can reach it without depending on it.
+     *
+     * `rawComponents` has to keep one identity for the life of the grid — Virtuoso remounts the
+     * whole table when it changes — but the handler moves with `rows`, so listing it as a dependency
+     * would rebuild the memo on every read. Reading it through a ref keeps both: a stable table and
+     * a handler that is never a page behind.
+     */
+    const rawRowClickRef = useRef(handleRawRowClick);
+    useEffect(() => {
+        rawRowClickRef.current = handleRawRowClick;
+    }, [handleRawRowClick]);
+
+    // The table name Tag Analyzer receives, resolved once so the confirm dialog states exactly the
+    // string the board will be built with rather than a second rendering of it.
+    const tagAnalyzerTableName = useMemo(
+        () =>
+            buildDataViewerTagAnalyzerTableName({
+                dbName,
+                userName,
+                tableName,
+                databaseId,
+                currentUserName: getUserName(),
+            }),
+        [databaseId, dbName, tableName, userName],
+    );
+
+    /**
+     * Open a board on one tag's JSON keys.
+     *
+     * Deliberately not `handleOpenTagAnalyzer`: that one refuses a JSON value column outright,
+     * because averaging a document yields nothing. Here a key has been picked, so what is handed
+     * over is a number — the `jsonKey` field is what turns the board's projection from the document
+     * into that key, and it is the whole reason this path exists.
+     */
+    /** Returns an explanation when nothing opened, so the caller can keep the flow standing. */
+    const handleOpenTagAnalyzerJsonKeys = useCallback(
+        (
+            tagName: string,
+            paths: string[],
+            window: { from?: string | number; to?: string | number },
+        ): string | undefined => {
+            const normalizedRange = buildDataViewerJsonKeyTagAnalyzerRange(window, baseKind);
+
+            // Querying a long key is fine; it is only Tag Analyzer's own field that cannot hold one,
+            // so the check belongs here. An empty path is the column itself and passes through as an
+            // empty `jsonKey`, which is exactly how Tag Analyzer says "no key".
+            const converted = paths.map((path) =>
+                path ? toTagAnalyzerJsonKeyPath(path) : ({ ok: true, path: '' } as const),
+            );
+            const refused = converted.flatMap((entry) => (entry.ok ? [] : [entry.reason]));
+            if (refused.length > 0) {
+                return refused[0] || 'Cannot open Tag Analyzer.';
+            }
+            const jsonKeys = converted.flatMap((entry) => (entry.ok ? [entry.path] : []));
+
+            const payload = {
+                title: tagName || 'Data Viewer',
+                ...(normalizedRange ? { range: normalizedRange } : {}),
+                tags: jsonKeys.map((jsonKey) => ({
+                    tagName,
+                    table: tagAnalyzerTableName,
+                    calculationMode: TAG_ANALYZER_JSON_CALCULATION_MODE,
+                    alias: '',
+                    weight: 1,
+                    // Same contract as the non-JSON handoff above — see its note on `colName` —
+                    // plus the key, which is the one field that differs.
+                    colName: {
+                        name: tagColumn,
+                        time: baseColumn,
+                        value: valueColumn,
+                        timeType: baseColumnType,
+                        timeBaseTime: true,
+                        jsonKey,
+                    },
+                })),
+            };
+
+            const result = createTagAnalyzerBoardFromPayload(payload);
+            if (result.status !== 'ok') {
+                return result.reason || 'Cannot open Tag Analyzer.';
+            }
+            setBoardList((current) => [...current, result.board]);
+            setSelectedTab(result.board.id);
+        },
+        [
+            baseColumn,
+            baseColumnType,
+            baseKind,
+            setBoardList,
+            setSelectedTab,
+            tagAnalyzerTableName,
+            tagColumn,
+            valueColumn,
+        ],
     );
     const handleSetGlobalTime = useCallback(
         async (groupId: string) => {
@@ -2039,8 +2073,12 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             setChartNavigatorRanges(update.navigatorRanges);
             setSplitChartRanges(update.splitRanges);
             setResolvedSplitChartRanges(update.splitRanges);
-            const splitGroupsToFetch = chartGroups.filter((group) => group.id !== 'default' && update.splitRanges[group.id]);
-            setSplitChartRows(Object.fromEntries(splitGroupsToFetch.map((group) => [group.id, []])));
+            const splitGroupsToFetch = chartGroups.filter(
+                (group) => group.id !== 'default' && update.splitRanges[group.id],
+            );
+            setSplitChartRows(
+                Object.fromEntries(splitGroupsToFetch.map((group) => [group.id, []])),
+            );
 
             if (!canQuery || splitGroupsToFetch.length === 0) return;
 
@@ -2128,7 +2166,12 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 return;
             }
 
-            const update = buildDataViewerShiftMainRangeUpdate({ direction, currentRange, navigatorRange, baseKind });
+            const update = buildDataViewerShiftMainRangeUpdate({
+                direction,
+                currentRange,
+                navigatorRange,
+                baseKind,
+            });
             if (!update) {
                 return;
             }
@@ -2184,7 +2227,21 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 setChartError(err?.message || 'Failed to move chart range');
             }
         },
-        [backwardScan, baseKind, canQuery, dbName, page, rawPageBounds, rawPageSize, rawRowsPerTag, tableName, tagColumn, timeColumn, userName, valueColumn],
+        [
+            backwardScan,
+            baseKind,
+            canQuery,
+            dbName,
+            page,
+            rawPageBounds,
+            rawPageSize,
+            rawRowsPerTag,
+            tableName,
+            tagColumn,
+            timeColumn,
+            userName,
+            valueColumn,
+        ],
     );
 
     // Opening the range editor is the same act on both axes; which editor appears is decided in one
@@ -2213,7 +2270,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             if (!canQuery) return;
             const update = buildDataViewerShiftBaseRangeUpdate({
                 direction,
-                range: activeWindow ? { from: activeWindow.from, to: activeWindow.to } : activeRange,
+                range: activeWindow
+                    ? { from: activeWindow.from, to: activeWindow.to }
+                    : activeRange,
                 baseKind,
             });
             if (!update) return;
@@ -2242,7 +2301,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     <div className="data-viewer-header-title">
                         <MaterialIcon name="query_stats" className="text-primary" />
                         <h2 className="page-title truncate">{headerLabels.title}</h2>
-                        {headerLabels.detail ? <span className="badge badge-muted truncate">{headerLabels.detail}</span> : null}
+                        {headerLabels.detail ? (
+                            <span className="badge badge-muted truncate">
+                                {headerLabels.detail}
+                            </span>
+                        ) : null}
                     </div>
                 </div>
             </header>
@@ -2258,7 +2321,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                 </div>
                             ) : null}
                             {assetHierarchy ? (
-                                <div className="data-viewer-tag-tabs" role="tablist" aria-label="Tag views">
+                                <div
+                                    className="data-viewer-tag-tabs"
+                                    role="tablist"
+                                    aria-label="Tag views"
+                                >
                                     <button
                                         type="button"
                                         className={`data-viewer-tag-tab ${activeTagTab === 'tags' ? 'is-active' : ''}`}
@@ -2280,22 +2347,54 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                 </div>
                             ) : null}
                             <div className="data-viewer-tag-search">
-                                <input className="w-full" value={tagFilter} onChange={(event) => setTagFilter(event.target.value)} placeholder="Filter tags..." />
+                                <input
+                                    className="w-full"
+                                    value={tagFilter}
+                                    onChange={(event) => setTagFilter(event.target.value)}
+                                    placeholder="Filter tags..."
+                                />
                             </div>
                             <div className="data-viewer-tag-list">
-                                {tagsLoading ? <div className="empty-state">Loading tags...</div> : null}
-                                {!tagsLoading && activeTagTab === 'tags' && visibleTags.length === 0 ? <div className="empty-state">No tags</div> : null}
-                                {!tagsLoading && activeTagTab === 'asset' && assetRows.length === 0 ? <div className="empty-state">No asset tags</div> : null}
+                                {tagsLoading ? (
+                                    <div className="empty-state">Loading tags...</div>
+                                ) : null}
+                                {!tagsLoading &&
+                                activeTagTab === 'tags' &&
+                                visibleTags.length === 0 ? (
+                                    <div className="empty-state">No tags</div>
+                                ) : null}
+                                {!tagsLoading &&
+                                activeTagTab === 'asset' &&
+                                assetRows.length === 0 ? (
+                                    <div className="empty-state">No asset tags</div>
+                                ) : null}
                                 {activeTagTab === 'tags'
                                     ? visibleTags.map((tag) => {
                                           const checked = selectedTagNames.includes(tag.name);
                                           return (
-                                              <label key={`tag:${tag.name}`} className={`data-viewer-tag-row ${checked ? 'is-active' : ''}`} title={tag.name}>
+                                              <label
+                                                  key={`tag:${tag.name}`}
+                                                  className={`data-viewer-tag-row ${checked ? 'is-active' : ''}`}
+                                                  title={tag.name}
+                                              >
                                                   <span className="node-tree-toggle">
-                                                      <input type="checkbox" checked={checked} onChange={() => handleTagSelectionChange(tag.name)} aria-label={`${tag.name} select`} />
+                                                      <input
+                                                          type="checkbox"
+                                                          checked={checked}
+                                                          onChange={() =>
+                                                              handleTagSelectionChange(tag.name)
+                                                          }
+                                                          aria-label={`${tag.name} select`}
+                                                      />
                                                   </span>
-                                                  <span className="node-tree-label truncate">{tag.name}</span>
-                                                  {tag.dataType ? <span className="badge badge-success">{tag.dataType}</span> : null}
+                                                  <span className="node-tree-label truncate">
+                                                      {tag.name}
+                                                  </span>
+                                                  {tag.dataType ? (
+                                                      <span className="badge badge-success">
+                                                          {tag.dataType}
+                                                      </span>
+                                                  ) : null}
                                               </label>
                                           );
                                       })
@@ -2303,15 +2402,33 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                           // Depth is handed to CSS as a variable rather than as `padding-left`: an inline
                                           // `padding-left` replaces the row's own, which zeroes it at depth 0 and puts the
                                           // checkbox on top of the selected row's accent bar. The stylesheet adds the two.
-                                          const treeIndent = { '--tree-indent': `${row.depth * 16}px` } as React.CSSProperties;
+                                          const treeIndent = {
+                                              '--tree-indent': `${row.depth * 16}px`,
+                                          } as React.CSSProperties;
                                           if (row.type === 'folder') {
                                               const collapsed = collapsedAssetFolders.has(row.id);
                                               return (
-                                                  <div key={row.id} className="node-tree-row node-tree-row-folder" style={treeIndent} title={row.label}>
-                                                      <button type="button" className="node-tree-toggle" onClick={() => toggleAssetFolder(row.id)} aria-label={`${row.label} ${collapsed ? 'expand' : 'collapse'}`}>
-                                                          {collapsed ? <VscChevronRight className="icon-sm" /> : <VscChevronDown className="icon-sm" />}
+                                                  <div
+                                                      key={row.id}
+                                                      className="node-tree-row node-tree-row-folder"
+                                                      style={treeIndent}
+                                                      title={row.label}
+                                                  >
+                                                      <button
+                                                          type="button"
+                                                          className="node-tree-toggle"
+                                                          onClick={() => toggleAssetFolder(row.id)}
+                                                          aria-label={`${row.label} ${collapsed ? 'expand' : 'collapse'}`}
+                                                      >
+                                                          {collapsed ? (
+                                                              <VscChevronRight className="icon-sm" />
+                                                          ) : (
+                                                              <VscChevronDown className="icon-sm" />
+                                                          )}
                                                       </button>
-                                                      <span className="node-tree-label truncate">{row.label}</span>
+                                                      <span className="node-tree-label truncate">
+                                                          {row.label}
+                                                      </span>
                                                   </div>
                                               );
                                           }
@@ -2325,10 +2442,23 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                   title={row.name}
                                               >
                                                   <span className="node-tree-toggle">
-                                                      <input type="checkbox" checked={checked} onChange={() => handleTagSelectionChange(row.name)} aria-label={`${row.name} select`} />
+                                                      <input
+                                                          type="checkbox"
+                                                          checked={checked}
+                                                          onChange={() =>
+                                                              handleTagSelectionChange(row.name)
+                                                          }
+                                                          aria-label={`${row.name} select`}
+                                                      />
                                                   </span>
-                                                  <span className="node-tree-label truncate">{row.label}</span>
-                                                  {row.dataType ? <span className="badge badge-success">{row.dataType}</span> : null}
+                                                  <span className="node-tree-label truncate">
+                                                      {row.label}
+                                                  </span>
+                                                  {row.dataType ? (
+                                                      <span className="badge badge-success">
+                                                          {row.dataType}
+                                                      </span>
+                                                  ) : null}
                                               </label>
                                           );
                                       })}
@@ -2353,14 +2483,21 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                             <MdRefresh className="icon-sm" />
                                         </button>
                                         {resolvedRangeText ? (
-                                            <span className="data-viewer-time-range-resolved" title={resolvedRangeText}>
+                                            <span
+                                                className="data-viewer-time-range-resolved"
+                                                title={resolvedRangeText}
+                                            >
                                                 {resolvedRangeText}
                                             </span>
                                         ) : null}
                                     </div>
                                     <div className="data-viewer-title-actions">
                                         {mode === 'raw' ? (
-                                            <div className="data-viewer-segmented data-viewer-scan-control" role="group" aria-label="Scan direction">
+                                            <div
+                                                className="data-viewer-segmented data-viewer-scan-control"
+                                                role="group"
+                                                aria-label="Scan direction"
+                                            >
                                                 <button
                                                     type="button"
                                                     className={`data-viewer-segmented-item ${backwardScan ? 'is-active' : ''}`}
@@ -2394,7 +2531,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                     onClick={() => setFormatOpen(true)}
                                                     aria-label="Set time format and timezone"
                                                 >
-                                                    <MaterialIcon name="public" className="icon-sm" />
+                                                    <MaterialIcon
+                                                        name="public"
+                                                        className="icon-sm"
+                                                    />
                                                 </button>
                                             )}
                                             {/* Range chip, matching the dashboard's RangeChips: [axis][◀][value][▶].
@@ -2409,12 +2549,15 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 aria-label="Set time range"
                                                 onClick={handleOpenGlobalRangeEditor}
                                                 onKeyDown={(event) => {
-                                                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                                                    if (event.key !== 'Enter' && event.key !== ' ')
+                                                        return;
                                                     event.preventDefault();
                                                     handleOpenGlobalRangeEditor();
                                                 }}
                                             >
-                                                <span className="data-viewer-range-chip-axis">{baseAxisLabel}</span>
+                                                <span className="data-viewer-range-chip-axis">
+                                                    {baseAxisLabel}
+                                                </span>
                                                 <button
                                                     type="button"
                                                     className="data-viewer-range-chip-chevron"
@@ -2426,7 +2569,9 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 >
                                                     <VscChevronLeft />
                                                 </button>
-                                                <span className="data-viewer-range-chip-value">{timeRangeExpressionText}</span>
+                                                <span className="data-viewer-range-chip-value">
+                                                    {timeRangeExpressionText}
+                                                </span>
                                                 <button
                                                     type="button"
                                                     className="data-viewer-range-chip-chevron"
@@ -2440,8 +2585,18 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="data-viewer-segmented data-viewer-mode-control" role="tablist" aria-label="Result mode">
-                                            <button type="button" role="tab" aria-selected={mode === 'raw'} className={`data-viewer-segmented-item ${mode === 'raw' ? 'is-active' : ''}`} onClick={() => handleModeChange('raw')}>
+                                        <div
+                                            className="data-viewer-segmented data-viewer-mode-control"
+                                            role="tablist"
+                                            aria-label="Result mode"
+                                        >
+                                            <button
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={mode === 'raw'}
+                                                className={`data-viewer-segmented-item ${mode === 'raw' ? 'is-active' : ''}`}
+                                                onClick={() => handleModeChange('raw')}
+                                            >
                                                 Raw
                                             </button>
                                             {/* Not rendered at all on a JSON value column, rather than rendered
@@ -2470,7 +2625,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                 is still being read would be told to pick a tag it has already got.
                                 A JSON value column is not part of this: Raw serves it normally, so
                                 there is nothing to say here about it. */}
-                            {!queryInputsReady && !error ? <div className="empty-state">Database table and tag are required</div> : null}
+                            {!queryInputsReady && !error ? (
+                                <div className="empty-state">
+                                    Database table and tag are required
+                                </div>
+                            ) : null}
                             {queryInputsReady && mode === 'raw' ? (
                                 <div className="table-card data-viewer-raw-card">
                                     <div className="table-card-body" ref={setRawScrollEl}>
@@ -2487,7 +2646,15 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                             // A JSON document right-aligned starts at a different x per row, which makes a
                                                             // column of documents unreadable. The header carries it too so the
                                                             // label sits over the digits instead of drifting to the far edge.
-                                                            <th key={column.key} className={column.key === 'value' && !valueColumnIsJson ? 'is-numeric' : undefined}>
+                                                            <th
+                                                                key={column.key}
+                                                                className={
+                                                                    column.key === 'value' &&
+                                                                    !valueColumnIsJson
+                                                                        ? 'is-numeric'
+                                                                        : undefined
+                                                                }
+                                                            >
                                                                 {column.label}
                                                             </th>
                                                         ))}
@@ -2502,19 +2669,44 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                             // result grid: a blank cell is indistinguishable from an empty string.
                                                             // Only the value column can be null — `time` is the BASETIME column and
                                                             // `name` the tag primary key — so `name`'s colour lookup below is safe.
-                                                            const isNull = column.key !== 'time' && (raw === null || raw === undefined);
-                                                            const value = column.key === 'time' ? formatBaseValue(raw) : String(raw ?? '');
+                                                            const isNull =
+                                                                column.key !== 'time' &&
+                                                                (raw === null || raw === undefined);
+                                                            const value =
+                                                                column.key === 'time'
+                                                                    ? formatBaseValue(raw)
+                                                                    : String(raw ?? '');
                                                             if (column.key === 'name') {
                                                                 // `--raw-dot` feeds the ::before swatch, which ties a row back to its chart line.
                                                                 return (
-                                                                    <td key={column.key} className="mono raw-name" style={{ '--raw-dot': rawNameColors[value] } as React.CSSProperties}>
+                                                                    <td
+                                                                        key={column.key}
+                                                                        className="mono raw-name"
+                                                                        style={
+                                                                            {
+                                                                                '--raw-dot':
+                                                                                    rawNameColors[
+                                                                                        value
+                                                                                    ],
+                                                                            } as React.CSSProperties
+                                                                        }
+                                                                    >
                                                                         {value}
                                                                     </td>
                                                                 );
                                                             }
                                                             return (
-                                                                <td key={column.key} className={`mono${column.key === 'value' && !valueColumnIsJson ? ' is-numeric' : ''}`}>
-                                                                    {isNull ? <span className="is-null">NULL</span> : value}
+                                                                <td
+                                                                    key={column.key}
+                                                                    className={`mono${column.key === 'value' && !valueColumnIsJson ? ' is-numeric' : ''}`}
+                                                                >
+                                                                    {isNull ? (
+                                                                        <span className="is-null">
+                                                                            NULL
+                                                                        </span>
+                                                                    ) : (
+                                                                        value
+                                                                    )}
                                                                 </td>
                                                             );
                                                         })}
@@ -2522,15 +2714,32 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 )}
                                             />
                                         ) : null}
-                                        {rawLoading ? <div className="empty-state">Loading...</div> : null}
-                                        {!rawLoading && rows.length === 0 ? <div className="empty-state">No data</div> : null}
+                                        {rawLoading ? (
+                                            <div className="empty-state">Loading...</div>
+                                        ) : null}
+                                        {!rawLoading && rows.length === 0 ? (
+                                            <div className="empty-state">No data</div>
+                                        ) : null}
                                     </div>
-                                    <ResultPagination page={page} pageSize={rawPageSize} rowCount={rows.length} loading={rawLoading} endLoading={endLoading} forceNextPage={Boolean(rawPageRequest?.boundedRange)} rowsPerTag={rawRowsPerTag} onRowsPerTagChange={handleRowsPerTagChange} onPage={moveRawPage} onEndPage={handleEndPage} />
+                                    <ResultPagination
+                                        page={page}
+                                        pageSize={rawPageSize}
+                                        rowCount={rows.length}
+                                        loading={rawLoading}
+                                        endLoading={endLoading}
+                                        forceNextPage={Boolean(rawPageRequest?.boundedRange)}
+                                        rowsPerTag={rawRowsPerTag}
+                                        onRowsPerTagChange={handleRowsPerTagChange}
+                                        onPage={moveRawPage}
+                                        onEndPage={handleEndPage}
+                                    />
                                 </div>
                             ) : null}
                             {queryInputsReady && mode === 'chart' ? (
                                 <div className="data-viewer-chart-stack">
-                                    {chartError ? <div className="error-box">{chartError}</div> : null}
+                                    {chartError ? (
+                                        <div className="error-box">{chartError}</div>
+                                    ) : null}
                                     {/* An overlay, not a replacement. Swapping the panels out for a
                                         "Loading..." block unmounts every ECharts instance under it and
                                         mounts a fresh one when it comes back, so a load the user did not
@@ -2538,12 +2747,18 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                         stack blinking. The raw grid already resolves this the same way —
                                         it keeps the table and lays the notice over it. */}
                                     {chartLoading ? (
-                                        <div className="data-viewer-chart-loading-overlay" aria-live="polite">
+                                        <div
+                                            className="data-viewer-chart-loading-overlay"
+                                            aria-live="polite"
+                                        >
                                             Loading...
                                         </div>
                                     ) : null}
                                     {chartGroups.map((group) => {
-                                        const chartData = chartResults[group.id] || { series: [], range: group.range as DataViewerTimeRange };
+                                        const chartData = chartResults[group.id] || {
+                                            series: [],
+                                            range: group.range as DataViewerTimeRange,
+                                        };
                                         const globalTimeUpdate = buildDataViewerGlobalTimeUpdate({
                                             sourceGroupId: group.id,
                                             chartGroups,
@@ -2562,39 +2777,87 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 // exactly one — and `undefined` is left unset rather than written as a
                                                 // value, so the stylesheet's `var(--split-accent, var(--color-primary))`
                                                 // falls back instead of resolving to an empty custom property.
-                                                style={group.split ? ({ '--split-accent': seriesColors[group.tagNames[0]] } as React.CSSProperties) : undefined}
+                                                style={
+                                                    group.split
+                                                        ? ({
+                                                              '--split-accent':
+                                                                  seriesColors[group.tagNames[0]],
+                                                          } as React.CSSProperties)
+                                                        : undefined
+                                                }
                                             >
                                                 <div className="data-viewer-chart-panel-header">
                                                     <div className="data-viewer-chart-panel-title">
-                                                        <MaterialIcon name={group.split ? 'call_split' : 'query_stats'} className="icon-sm text-primary" />
-                                                        <span className="truncate">{group.title}</span>
-                                                        <span className="badge badge-muted">{group.tagNames.length}</span>
+                                                        <MaterialIcon
+                                                            name={
+                                                                group.split
+                                                                    ? 'call_split'
+                                                                    : 'query_stats'
+                                                            }
+                                                            className="icon-sm text-primary"
+                                                        />
+                                                        <span className="truncate">
+                                                            {group.title}
+                                                        </span>
+                                                        <span className="badge badge-muted">
+                                                            {group.tagNames.length}
+                                                        </span>
                                                     </div>
-                                                    {!group.split && group.tagNames.length > 0 && (group.tagNames.length > 1 || splitChartGroups.length > 0) ? (
+                                                    {!group.split &&
+                                                    group.tagNames.length > 0 &&
+                                                    (group.tagNames.length > 1 ||
+                                                        splitChartGroups.length > 0) ? (
                                                         <div
                                                             className="data-viewer-chart-tag-actions"
                                                             aria-label="Split individual tags"
                                                             onWheel={(event) => {
                                                                 const target = event.currentTarget;
-                                                                if (target.scrollWidth <= target.clientWidth) return;
+                                                                if (
+                                                                    target.scrollWidth <=
+                                                                    target.clientWidth
+                                                                )
+                                                                    return;
 
                                                                 event.preventDefault();
-                                                                target.scrollLeft += event.deltaX || event.deltaY;
+                                                                target.scrollLeft +=
+                                                                    event.deltaX || event.deltaY;
                                                             }}
                                                         >
                                                             {group.tagNames.map((tagName) => {
-                                                                const splitGroup = splitChartGroups.find((item) => (item.tagNames || []).includes(tagName));
+                                                                const splitGroup =
+                                                                    splitChartGroups.find((item) =>
+                                                                        (
+                                                                            item.tagNames || []
+                                                                        ).includes(tagName),
+                                                                    );
                                                                 const split = Boolean(splitGroup);
                                                                 return (
                                                                     <button
                                                                         key={tagName}
                                                                         type="button"
                                                                         className={`data-viewer-chart-tag-chip${split ? ' is-split' : ''}`}
-                                                                        title={split ? `Remove split ${tagName}` : `Split ${tagName}`}
-                                                                        onClick={() => handleToggleSplitChart(tagName)}
+                                                                        title={
+                                                                            split
+                                                                                ? `Remove split ${tagName}`
+                                                                                : `Split ${tagName}`
+                                                                        }
+                                                                        onClick={() =>
+                                                                            handleToggleSplitChart(
+                                                                                tagName,
+                                                                            )
+                                                                        }
                                                                     >
-                                                                        <span className="truncate">{tagName}</span>
-                                                                        <MaterialIcon name={split ? 'close' : 'call_split'} className="icon-sm" />
+                                                                        <span className="truncate">
+                                                                            {tagName}
+                                                                        </span>
+                                                                        <MaterialIcon
+                                                                            name={
+                                                                                split
+                                                                                    ? 'close'
+                                                                                    : 'call_split'
+                                                                            }
+                                                                            className="icon-sm"
+                                                                        />
                                                                     </button>
                                                                 );
                                                             })}
@@ -2609,25 +2872,53 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                 aria-label="Chart actions"
                                                                 aria-haspopup="menu"
                                                                 aria-expanded={chartMenuOpen}
-                                                                onClick={() => setOpenChartMenuId((current) => (current === group.id ? null : group.id))}
+                                                                onClick={() =>
+                                                                    setOpenChartMenuId((current) =>
+                                                                        current === group.id
+                                                                            ? null
+                                                                            : group.id,
+                                                                    )
+                                                                }
                                                             >
-                                                                <MaterialIcon name="more_vert" className="icon-sm" />
+                                                                <MaterialIcon
+                                                                    name="more_vert"
+                                                                    className="icon-sm"
+                                                                />
                                                             </button>
                                                             {chartMenuOpen ? (
-                                                                <div className="data-viewer-chart-menu" role="menu">
+                                                                <div
+                                                                    className="data-viewer-chart-menu"
+                                                                    role="menu"
+                                                                >
                                                                     <button
                                                                         type="button"
                                                                         className="data-viewer-chart-menu-item"
                                                                         role="menuitem"
                                                                         disabled={valueColumnIsJson}
-                                                                        title={valueColumnIsJson ? JSON_VALUE_COLUMN_BLOCK_REASON : undefined}
-                                                                        aria-label={valueColumnIsJson ? `Tag Analyzer — ${JSON_VALUE_COLUMN_BLOCK_REASON}` : undefined}
+                                                                        title={
+                                                                            valueColumnIsJson
+                                                                                ? JSON_VALUE_COLUMN_BLOCK_REASON
+                                                                                : undefined
+                                                                        }
+                                                                        aria-label={
+                                                                            valueColumnIsJson
+                                                                                ? `Tag Analyzer — ${JSON_VALUE_COLUMN_BLOCK_REASON}`
+                                                                                : undefined
+                                                                        }
                                                                         onClick={() => {
-                                                                            setOpenChartMenuId(null);
-                                                                            handleOpenTagAnalyzer(group, chartData);
+                                                                            setOpenChartMenuId(
+                                                                                null,
+                                                                            );
+                                                                            handleOpenTagAnalyzer(
+                                                                                group,
+                                                                                chartData,
+                                                                            );
                                                                         }}
                                                                     >
-                                                                        <MaterialIcon name="monitoring" className="icon-sm" />
+                                                                        <MaterialIcon
+                                                                            name="monitoring"
+                                                                            className="icon-sm"
+                                                                        />
                                                                         <span>Tag Analyzer</span>
                                                                     </button>
                                                                     <button
@@ -2636,8 +2927,12 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                         role="menuitem"
                                                                         disabled={!globalTimeUpdate}
                                                                         onClick={() => {
-                                                                            setOpenChartMenuId(null);
-                                                                            handleSetGlobalTime(group.id);
+                                                                            setOpenChartMenuId(
+                                                                                null,
+                                                                            );
+                                                                            handleSetGlobalTime(
+                                                                                group.id,
+                                                                            );
                                                                         }}
                                                                     >
                                                                         {/* The item copies this panel's window onto every other panel —
@@ -2646,8 +2941,20 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                             a menu item that moves odometer readings is the same misread
                                                                             `formatDataViewerBaseValue` exists to prevent. `straighten`
                                                                             is the icon the distance range editor already carries. */}
-                                                                        <MaterialIcon name={baseKind === 'distance' ? 'straighten' : 'schedule'} className="icon-sm" />
-                                                                        <span>{baseKind === 'distance' ? 'Global Distance' : 'Global Time'}</span>
+                                                                        <MaterialIcon
+                                                                            name={
+                                                                                baseKind ===
+                                                                                'distance'
+                                                                                    ? 'straighten'
+                                                                                    : 'schedule'
+                                                                            }
+                                                                            className="icon-sm"
+                                                                        />
+                                                                        <span>
+                                                                            {baseKind === 'distance'
+                                                                                ? 'Global Distance'
+                                                                                : 'Global Time'}
+                                                                        </span>
                                                                     </button>
                                                                     {group.split ? (
                                                                         <button
@@ -2655,11 +2962,20 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                             className="data-viewer-chart-menu-item"
                                                                             role="menuitem"
                                                                             onClick={() => {
-                                                                                setOpenChartMenuId(null);
-                                                                                setRangeEditor({ type: 'split', groupId: group.id });
+                                                                                setOpenChartMenuId(
+                                                                                    null,
+                                                                                );
+                                                                                setRangeEditor({
+                                                                                    type: 'split',
+                                                                                    groupId:
+                                                                                        group.id,
+                                                                                });
                                                                             }}
                                                                         >
-                                                                            <MaterialIcon name="calendar_month" className="icon-sm" />
+                                                                            <MaterialIcon
+                                                                                name="calendar_month"
+                                                                                className="icon-sm"
+                                                                            />
                                                                             <span>Time Range</span>
                                                                         </button>
                                                                     ) : null}
@@ -2672,9 +2988,14 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                 className="btn btn-sm btn-ghost btn-icon data-viewer-chart-close-button"
                                                                 title="Remove split chart"
                                                                 aria-label="Remove split chart"
-                                                                onClick={() => handleRemoveSplitChart(group.id)}
+                                                                onClick={() =>
+                                                                    handleRemoveSplitChart(group.id)
+                                                                }
                                                             >
-                                                                <MaterialIcon name="close" className="icon-sm" />
+                                                                <MaterialIcon
+                                                                    name="close"
+                                                                    className="icon-sm"
+                                                                />
                                                             </button>
                                                         ) : null}
                                                     </div>
@@ -2689,19 +3010,36 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                         baseKind={baseKind}
                                                         seriesColors={seriesColors}
                                                         pending={chartRowsPending}
-                                                        onDisplayRangeChange={(nextRange, nextNavigatorRange) => {
+                                                        onDisplayRangeChange={(
+                                                            nextRange,
+                                                            nextNavigatorRange,
+                                                        ) => {
                                                             setChartViewRanges((current) => ({
                                                                 ...current,
                                                                 [group.id]: nextRange,
                                                             }));
                                                             if (nextNavigatorRange) {
-                                                                setChartNavigatorRanges((current) => ({
-                                                                    ...current,
-                                                                    [group.id]: nextNavigatorRange,
-                                                                }));
+                                                                setChartNavigatorRanges(
+                                                                    (current) => ({
+                                                                        ...current,
+                                                                        [group.id]:
+                                                                            nextNavigatorRange,
+                                                                    }),
+                                                                );
                                                             }
                                                         }}
-                                                        onShiftMainRange={(direction, currentRange, navigatorRange) => handleShiftMainRange(group, direction, currentRange, navigatorRange)}
+                                                        onShiftMainRange={(
+                                                            direction,
+                                                            currentRange,
+                                                            navigatorRange,
+                                                        ) =>
+                                                            handleShiftMainRange(
+                                                                group,
+                                                                direction,
+                                                                currentRange,
+                                                                navigatorRange,
+                                                            )
+                                                        }
                                                     />
                                                 </div>
                                             </div>
@@ -2713,6 +3051,118 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     </div>
                 </div>
             </main>
+
+            {/* The row inspector. It moves between rows itself, so the page hands it an index and
+                the row list rather than a snapshot of one row. */}
+            {rowDetailIndex !== null && rows[rowDetailIndex] ? (
+                <RawRowDetailModal
+                    subtitle={tableName}
+                    position={`row ${rowDetailIndex + 1} of ${rows.length}`}
+                    title={String(rows[rowDetailIndex].name ?? '')}
+                    fields={rawColumns.map((column) => ({
+                        key: column.key,
+                        label: column.label,
+                        // The type the table declares for this column, written under its name — the
+                        // one thing about a value the value itself does not say.
+                        // The query aliases every column (`... as time, ... as name, ... as value`),
+                        // so the alias has to be mapped back to the name the schema declares before
+                        // the type can be looked up — on a table with its own column names, the
+                        // aliases match nothing.
+                        typeLabel: rawColumnTypeLabel(
+                            baseColumns,
+                            column.key === 'time'
+                                ? baseColumn
+                                : column.key === 'name'
+                                  ? tagColumn
+                                  : column.key === 'value'
+                                    ? valueColumn
+                                    : column.key,
+                        ),
+                        value:
+                            column.key === 'time'
+                                ? formatBaseValue(rows[rowDetailIndex]?.time)
+                                : rows[rowDetailIndex]?.[column.key],
+                    }))}
+                    hasPrevious={rowDetailIndex > 0}
+                    hasNext={rowDetailIndex < rows.length - 1}
+                    onPrevious={() =>
+                        setRowDetailIndex((current) => Math.max(0, (current ?? 0) - 1))
+                    }
+                    onNext={() =>
+                        setRowDetailIndex((current) =>
+                            Math.min(rows.length - 1, (current ?? 0) + 1),
+                        )
+                    }
+                    onClose={() => setRowDetailIndex(null)}
+                />
+            ) : null}
+
+            {/* The picker is built from the row that was opened, and the detail from what was picked
+                there. Nothing about a JSON key outlives these modals — but the picker's selection
+                outlives the picker, so "Back to keys" returns to the tree as it was left rather
+                than to an empty one. The picker stays in state while the detail is up, and is
+                simply not rendered; closing the detail is what ends both. */}
+            {jsonKeyPicker && !jsonKeyDetail ? (
+                <JsonKeyPickerModal
+                    tagName={jsonKeyPicker.tagName}
+                    baseLabel={jsonKeyPicker.baseLabel}
+                    document={jsonKeyPicker.document}
+                    valueColumn={valueColumn}
+                    initialSelected={jsonKeyPicker.selected}
+                    initialView={jsonKeyPickerViewRef.current}
+                    onViewChange={(view) => {
+                        jsonKeyPickerViewRef.current = view;
+                    }}
+                    onClose={() => setJsonKeyPicker(null)}
+                    onConfirm={(paths) => {
+                        setJsonKeyPicker((current) =>
+                            current ? { ...current, selected: paths } : current,
+                        );
+                        setJsonKeyDetail({ tagName: jsonKeyPicker.tagName, paths });
+                    }}
+                />
+            ) : null}
+
+            {jsonKeyDetail ? (
+                <JsonKeyDetailModal
+                    dbName={dbName}
+                    userName={userName}
+                    tableName={tableName}
+                    tagName={jsonKeyDetail.tagName}
+                    paths={jsonKeyDetail.paths}
+                    from={activeWindow?.from}
+                    to={activeWindow?.to}
+                    tagColumn={tagColumn}
+                    timeColumn={timeColumn}
+                    valueColumn={valueColumn}
+                    baseKind={baseKind}
+                    baseLabel={baseColumn}
+                    formatBase={formatBaseValue}
+                    timeFormat={timeFormat}
+                    timeZone={timeZone}
+                    onBack={jsonKeyPicker ? () => setJsonKeyDetail(null) : undefined}
+                    // Straight to the board, and this page's dialogs close behind it — the tab has
+                    // already changed, so leaving them up would put a modal over a board that has
+                    // nothing to do with them.
+                    onOpenTagAnalyzer={(paths, window) => {
+                        // Only on the way out. A refused handoff used to tear both modals down
+                        // anyway, so a rejected payload cost the whole selection with no way back to
+                        // it — the error text landed on a page the user had been pulled away from.
+                        const handoffError = handleOpenTagAnalyzerJsonKeys(
+                            jsonKeyDetail.tagName,
+                            paths,
+                            window,
+                        );
+                        if (handoffError) return handoffError;
+                        setJsonKeyDetail(null);
+                        setJsonKeyPicker(null);
+                    }}
+                    onClose={() => {
+                        setJsonKeyDetail(null);
+                        setJsonKeyPicker(null);
+                    }}
+                />
+            ) : null}
 
             {/* ─── distance-base seam (mount point) ─────────────────────────────────────────────
                 The ONE place the page picks a range editor. Both editors take the same three core

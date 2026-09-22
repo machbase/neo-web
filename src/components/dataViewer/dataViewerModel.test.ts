@@ -4,6 +4,7 @@ import {
     buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
     buildDataViewerTagAnalyzerRange,
+    buildDataViewerJsonKeyTagAnalyzerRange,
     resolveDataViewerBaseColumnType,
     buildDataViewerTagAnalyzerTableName,
     buildDataViewerChartResultsFromRawRows,
@@ -59,6 +60,7 @@ import {
     isDataViewerRangeReversed,
     parseDataViewerDistanceValue,
 } from './dataViewerModel';
+import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/application/adapters';
 
 describe('data viewer chart helpers', () => {
     test('shouldFetchDataViewerRowsForMode keeps raw rows active for raw and chart', () => {
@@ -997,6 +999,28 @@ describe('data viewer chart helpers', () => {
             endEpochMs: Date.parse('2026-06-01T01:00:00.000Z'),
         });
         expect(buildDataViewerTagAnalyzerRange({ startTime: 2000, endTime: 1000 })).toBeUndefined();
+    });
+
+    test('JSON key handoff keeps displayed milliseconds in the created board', () => {
+        const start = Date.parse('2026-09-21T12:00:01.163Z');
+        const end = Date.parse('2026-09-21T12:00:02.839Z');
+        const range = buildDataViewerJsonKeyTagAnalyzerRange({ from: start, to: end });
+        expect(range).toEqual({ startIso: '2026-09-21T12:00:01.163Z', endIso: '2026-09-21T12:00:02.839Z' });
+
+        const result = createTagAnalyzerBoardFromPayload({
+            range,
+            tags: [{
+                tagName: 'sensor', table: 'MACHBASEDB.SYS.TAG', calculationMode: 'avg', alias: '', weight: 1,
+                colName: { name: 'NAME', time: 'TIME', value: 'VALUE', timeType: 6, timeBaseTime: true, jsonKey: '[temperature]' },
+            }],
+        });
+        expect(result.status).toBe('ok');
+        if (result.status === 'ok') {
+            expect(result.board.boardTimeRange).toEqual({
+                start: '2026-09-21T12:00:01.163Z',
+                end: '2026-09-21T12:00:02.839Z',
+            });
+        }
     });
 
     test('buildDataViewerTagAnalyzerRange sends a distance window in the numeric vocabulary', () => {
