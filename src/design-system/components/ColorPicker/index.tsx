@@ -5,6 +5,7 @@ import { Button } from '../Button';
 import styles from './index.module.scss';
 
 export interface ColorPickerProps {
+    'data-testid'?: string;
     /**
      * Current color value
      */
@@ -27,7 +28,7 @@ export interface ColorPickerProps {
     className?: string;
 }
 
-export const ColorPicker = ({ color, onChange, disabled = false, tooltipContent = 'Color', className }: ColorPickerProps) => {
+export const ColorPicker = ({ color, onChange, disabled = false, tooltipContent = 'Color', className, 'data-testid': testId }: ColorPickerProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [position, setPosition] = useState({ top: 0, left: 0, showAbove: false });
     const buttonRef = useRef<HTMLDivElement>(null);
@@ -135,11 +136,13 @@ export const ColorPicker = ({ color, onChange, disabled = false, tooltipContent 
     return (
         <div ref={buttonRef} className={`${styles.colorPicker} ${className || ''}`}>
             <Button
+                data-testid={testId}
                 size="side"
                 variant="secondary"
                 disabled={disabled}
                 icon={
                     <div
+                        data-testid="swatch"
                         className={styles.colorSwatch}
                         style={{
                             backgroundColor: color,
@@ -155,6 +158,7 @@ export const ColorPicker = ({ color, onChange, disabled = false, tooltipContent 
                 createPortal(
                     <div
                         ref={pickerRef}
+                        data-testid="color-picker-popover"
                         className={styles.colorPickerPortal}
                         style={{
                             position: 'fixed',

@@ -1,0 +1,11 @@
+# Keep architecture regression tests with the implementation.
+!seriesModel.test.ts
+!api/rollupMetadata.test.ts
+!api/tableMetadataApi.test.ts
+!panel/series/PanelSeriesEditor.requests.test.tsx
+!board/useBoardSave.test.tsx
+!persistence/tazLoading.test.ts
+!persistence/panelReconstructionCompatibility.test.ts
+!panel/panelRangeConfig.test.ts
+!panel/editor/numericRangeEditor.test.tsx
+!panel/rangeControl/rangeRuntime.test.tsx

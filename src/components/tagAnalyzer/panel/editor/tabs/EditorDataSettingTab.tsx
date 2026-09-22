@@ -1,13 +1,154 @@
 import { Checkbox } from '@/design-system/components';
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Tooltip } from 'react-tooltip';
 import {
     DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
     type PanelDisplay,
 } from '../../panelModel';
-import type { AxisKind } from '../../../range/rangeModel';
-import { NumberInput, Section } from './TabControls';
+import type { AxisKind } from '../../../rangeExpression/rangeModel';
+import { NumberInput } from './TabControls';
+import { Inline, Section, Stack, Text } from '../../../ui/Presentation';
 import styles from '../PanelEditorTab.module.scss';
+import controls from '../../../ui/Controls.module.scss';
+import { isValidPositiveNumber } from '../editorValidation';
+
+export default function EditorDataSettingTab({
+    pDisplayConfig,
+    pAxisKind,
+    pDataValidationMessage,
+    pOnChangeDisplayConfig,
+    pIsActive,
+}: {
+    pDisplayConfig: PanelDisplay;
+    pAxisKind: AxisKind | undefined;
+    pDataValidationMessage?: string;
+    pOnChangeDisplayConfig: (config: PanelDisplay) => void;
+    pIsActive: boolean;
+}) {
+    if (!pIsActive) return null;
+    if (!pAxisKind) {
+        return <Text variant="caption" tone="danger">{pDataValidationMessage}</Text>;
+    }
+    const patchDisplayField = <
+        K extends 'pixelsPerTick' | 'mainChartSampling' | 'rawNavigatorSampling',
+    >(
+        field: K,
+        patch: Partial<PanelDisplay[K]>,
+    ) => {
+        pOnChangeDisplayConfig({
+            ...pDisplayConfig,
+            [field]: {
+                ...pDisplayConfig[field],
+                ...patch,
+            },
+        });
+    };
+
+    const renderDataDensityInput = (field: PixelsPerTickField) => {
+        const sPixelsPerTick = pDisplayConfig.pixelsPerTick[field];
+
+        return (
+            <Stack gap={4} data-testid={`density-${field}`}>
+                <DataDensityRatioInput
+                    pixelsPerTick={sPixelsPerTick}
+                    onChange={(value) =>
+                        patchDisplayField('pixelsPerTick', {
+                            [field]: value,
+                        })
+                    }
+                />
+                <Tooltip
+                    anchorSelect={`.data-density-${field}-tooltip`}
+                    content={DATA_DENSITY_DESCRIPTION}
+                />
+                {sPixelsPerTick !== undefined &&
+                    !isValidPositiveNumber(sPixelsPerTick) && (
+                    <Text variant="caption" tone="danger">
+                        Points and pixels must be greater than 0.
+                    </Text>
+                )}
+            </Stack>
+        );
+    };
+
+    const renderSamplingInput = (
+        field: 'mainChartSampling' | 'rawNavigatorSampling',
+    ) => {
+        const config = pDisplayConfig[field];
+
+        return (
+            <>
+                <Checkbox
+                    data-testid={`${field}-enabled`}
+                    checked={config.enabled}
+                    onChange={(event) =>
+                        patchDisplayField(field, {
+                            enabled: event.target.checked,
+                            ...(field === 'rawNavigatorSampling' && {
+                                sampleCount: config.sampleCount ?? DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
+                            }),
+                        })
+                    }
+                    size="sm"
+                />
+                <NumberInput
+                    data-testid={`${field}-count`}
+                    value={config.sampleCount}
+                    error={
+                        config.enabled &&
+                        !isValidPositiveNumber(config.sampleCount)
+                    }
+                    onChange={(sampleCount) =>
+                        patchDisplayField(field, { sampleCount })
+                    }
+                    width="standard"
+                />
+            </>
+        );
+    };
+
+    const rawNavigatorTooltip = pAxisKind === 'numeric'
+        ? 'Raw numeric navigator data requires database sampling.'
+        : 'Raw navigator data uses average buckets by default. Enable sampling to use database sampling.';
+    const sUseRawNavigatorSampling = pDisplayConfig.rawNavigatorSampling.enabled;
+    return (
+        <div className={styles.dataSettingGrid}>
+            <Section title="Calculation Mode" testId="calculated-settings">
+                <Text as="h5" variant="section" tone="secondary" className="data-density-calculated-tooltip">
+                    Main Chart Data Density
+                </Text>
+                {renderDataDensityInput('calculated')}
+                <Text as="h5" variant="section" tone="secondary" className="data-density-calculatedNavigator-tooltip">
+                    Nav Bar Data Density
+                </Text>
+                {renderDataDensityInput('calculatedNavigator')}
+            </Section>
+            <Section title="Raw Mode" testId="raw-settings">
+                <Text as="h5" variant="section" tone="secondary">Main Chart</Text>
+                <TooltipRow
+                    anchorClass="main-chart-sampling-tooltip"
+                    label="Use main chart sampling"
+                    content="Main raw chart data uses this database sampling value instead of the fixed 20,000-row query."
+                >
+                    {renderSamplingInput('mainChartSampling')}
+                </TooltipRow>
+                <Text as="h5" variant="section" tone="secondary">Nav Bar</Text>
+                <TooltipRow
+                    anchorClass="navigation-sampling-tooltip"
+                    label="Use navigation sampling"
+                    content={rawNavigatorTooltip}
+                >
+                    {renderSamplingInput('rawNavigatorSampling')}
+                    <Text variant="body" tone="secondary" truncate className={controls.chip}>
+                        {sUseRawNavigatorSampling ? 'Sampled' : 'Average'}
+                    </Text>
+                </TooltipRow>
+            </Section>
+        </div>
+    );
+}
+
+// -------------------- Local --------------------
 
 type PixelsPerTickField = 'calculated' | 'calculatedNavigator';
 
@@ -37,30 +178,13 @@ function TooltipRow({
     children,
 }: TooltipRowProps) {
     return (
-        <div className={styles.controlRow}>
-            <span
-                className={[anchorClass, styles.mutedLabel]
-                    .filter(Boolean)
-                    .join(' ')}
-            >
+        <Inline gap={12} className={styles.dataSettingRow}>
+            <Text variant="label" tone="muted" weight="medium" className={anchorClass}>
                 {label}
-            </span>
+            </Text>
             {children}
             <Tooltip anchorSelect={`.${anchorClass}`} content={content} />
-        </div>
-    );
-}
-
-function StatusRow({
-    checked,
-    ...tooltip
-}: Omit<TooltipRowProps, 'children'> & { checked: boolean }) {
-    return (
-        <TooltipRow {...tooltip}>
-            <span className={styles.editorFixedValue}>
-                {checked ? 'Enabled' : 'Disabled'}
-            </span>
-        </TooltipRow>
+        </Inline>
     );
 }
 
@@ -110,234 +234,35 @@ function DataDensityRatioInput({
 
     const sIsAutomatic =
         sDraft.points === undefined && sDraft.pixels === undefined;
-    const sPointValueInvalid =
-        !sIsAutomatic && !isValidPositiveNumber(sDraft.points);
-    const sPixelValueInvalid =
-        !sIsAutomatic && !isValidPositiveNumber(sDraft.pixels);
     const sDataDensity = toDataDensityRatio(sDraft.points, sDraft.pixels);
 
     return (
-        <div className={styles.controlRow}>
-            <span className={styles.editorInlineField}>
-                <NumberInput
-                    value={sDraft.points}
-                    error={sPointValueInvalid}
-                    onChange={(points) => patchDraft({ points })}
-                    width="auto"
-                />
-                <span className={styles.rangeSeparator}>points</span>
-            </span>
-            <span className={styles.rangeSeparator}>per</span>
-            <span className={styles.editorInlineField}>
-                <NumberInput
-                    value={sDraft.pixels}
-                    error={sPixelValueInvalid}
-                    onChange={(pixels) => patchDraft({ pixels })}
-                    width="auto"
-                />
-                <span className={styles.rangeSeparator}>pixels</span>
-            </span>
-            <span className={styles.editorFixedValue}>
+        <Inline gap={12} className={styles.dataSettingRow}>
+            {(['points', 'pixels'] as const).map((field) => (
+                <Fragment key={field}>
+                    {field === 'pixels' && <Text variant="label" tone="muted">per</Text>}
+                    <Inline>
+                        <NumberInput
+                            data-testid={field}
+                            value={sDraft[field]}
+                            error={!sIsAutomatic && !isValidPositiveNumber(sDraft[field])}
+                            onChange={(value) => patchDraft({ [field]: value })}
+                            width="compact"
+                        />
+                        <Text variant="label" tone="muted">{field}</Text>
+                    </Inline>
+                </Fragment>
+            ))}
+            <Text variant="body" tone="secondary" truncate className={controls.chip}>
                 {sIsAutomatic
                     ? 'Automatic density'
                     : isValidPositiveNumber(sDataDensity)
                       ? `${sDataDensity} points/pixel`
                       : 'Invalid density'}
-            </span>
-        </div>
+            </Text>
+        </Inline>
     );
 }
-
-const EditorDataSettingTab = ({
-    pDisplayConfig,
-    pIsRawMode,
-    pAxisKind,
-    pDataValidationMessage,
-    pOnChangeDisplayConfig,
-    pReportValidity,
-    pIsActive,
-}: {
-    pDisplayConfig: PanelDisplay;
-    pIsRawMode: boolean;
-    pAxisKind: AxisKind | undefined;
-    pDataValidationMessage?: string;
-    pOnChangeDisplayConfig: (config: PanelDisplay) => void;
-    pReportValidity: (
-        tab: 'Data Setting',
-        isValid: boolean,
-        message?: string,
-    ) => void;
-    pIsActive: boolean;
-}) => {
-    const sIsValid =
-        Object.values(pDisplayConfig.pixelsPerTick).every(
-            (value) => value === undefined || isValidPositiveNumber(value),
-        ) &&
-        [pDisplayConfig.mainChartSampling, pDisplayConfig.rawNavigatorSampling]
-            .every(({ enabled, sampleCount }) =>
-                !enabled || isValidPositiveNumber(sampleCount),
-            );
-    useLayoutEffect(() => {
-        pReportValidity(
-            'Data Setting',
-            sIsValid,
-            sIsValid ? undefined : 'Review the invalid data settings.',
-        );
-    }, [pReportValidity, sIsValid]);
-    if (!pIsActive) return null;
-    if (!pAxisKind) {
-        return <span className={styles.fieldError}>{pDataValidationMessage}</span>;
-    }
-    const sIsNumericXAxis = pAxisKind === 'numeric';
-    const patchDisplayField = <
-        K extends 'pixelsPerTick' | 'mainChartSampling' | 'rawNavigatorSampling',
-    >(
-        field: K,
-        patch: Partial<PanelDisplay[K]>,
-    ) => {
-        pOnChangeDisplayConfig({
-            ...pDisplayConfig,
-            [field]: {
-                ...pDisplayConfig[field],
-                ...patch,
-            },
-        });
-    };
-
-    const renderDataDensityInput = (field: PixelsPerTickField) => {
-        const sPixelsPerTick = pDisplayConfig.pixelsPerTick[field];
-        const sDensityTooltipClass = `data-density-${field}-tooltip`;
-
-        return (
-            <div className={styles.rangeField}>
-                <TooltipRow
-                    anchorClass={sDensityTooltipClass}
-                    label="Data Density"
-                    content={DATA_DENSITY_DESCRIPTION}
-                >
-                    <DataDensityRatioInput
-                        pixelsPerTick={sPixelsPerTick}
-                        onChange={(value) =>
-                            patchDisplayField('pixelsPerTick', {
-                                [field]: value,
-                            })
-                        }
-                    />
-                </TooltipRow>
-                {sPixelsPerTick !== undefined &&
-                    !isValidPositiveNumber(sPixelsPerTick) && (
-                    <span className={styles.fieldError}>
-                        Points and pixels must be greater than 0.
-                    </span>
-                )}
-            </div>
-        );
-    };
-
-    const renderSamplingInput = (
-        field: 'mainChartSampling' | 'rawNavigatorSampling',
-    ) => {
-        const config = pDisplayConfig[field];
-
-        return (
-            <NumberInput
-                value={config.sampleCount}
-                error={
-                    config.enabled &&
-                    !isValidPositiveNumber(config.sampleCount)
-                }
-                onChange={(sampleCount) =>
-                    patchDisplayField(field, { sampleCount })
-                }
-                width="standard"
-            />
-        );
-    };
-
-    const rawNavigatorTooltip = sIsNumericXAxis
-        ? 'Raw numeric navigator data requires database sampling.'
-        : 'Raw navigator data uses average buckets by default. Enable sampling to use database sampling.';
-    const sUseRawNavigatorSampling = pDisplayConfig.rawNavigatorSampling.enabled;
-    const sCanPrefetchMainChart = !pIsRawMode;
-    const sPrefetchTooltip = sCanPrefetchMainChart
-        ? 'Main chart prefetch is active for calculated data.'
-        : 'Main chart prefetch is disabled for raw data because raw limits can make expanded ranges unsafe.';
-    return (
-        <div className={styles.dataSettingStack}>
-            <div className={styles.dataSettingGrid}>
-                <Section title="Calculation Mode">
-                    <span className={styles.axisSubsectionTitle}>Main Chart</span>
-                    {renderDataDensityInput('calculated')}
-                    <StatusRow
-                        anchorClass="calculation-prefetch-main-tooltip"
-                        label="Prefetch main chart"
-                        content={sPrefetchTooltip}
-                        checked={sCanPrefetchMainChart}
-                    />
-                    <div
-                        className={styles.dataSettingAlignmentSpacer}
-                        aria-hidden="true"
-                    />
-                    <span className={styles.axisSubsectionTitle}>Nav Bar</span>
-                    {renderDataDensityInput('calculatedNavigator')}
-                </Section>
-                <Section title="Raw Mode">
-                    <span className={styles.axisSubsectionTitle}>Main Chart</span>
-                    <StatusRow
-                        anchorClass="raw-prefetch-main-tooltip"
-                        label="Prefetch main chart"
-                        content={sPrefetchTooltip}
-                        checked={sCanPrefetchMainChart}
-                    />
-                    <TooltipRow
-                        anchorClass="main-chart-sampling-tooltip"
-                        label="Use main chart sampling"
-                        content="Main raw chart data uses this database sampling value instead of the fixed 20,000-row query."
-                    >
-                        <div className={styles.controlRow}>
-                            <Checkbox
-                                checked={pDisplayConfig.mainChartSampling.enabled}
-                                onChange={(event) =>
-                                    patchDisplayField('mainChartSampling', {
-                                        enabled: event.target.checked,
-                                    })
-                                }
-                                size="sm"
-                            />
-                            {renderSamplingInput('mainChartSampling')}
-                        </div>
-                    </TooltipRow>
-                    <span className={styles.axisSubsectionTitle}>Nav Bar</span>
-                    <TooltipRow
-                        anchorClass="navigation-sampling-tooltip"
-                        label="Use navigation sampling"
-                        content={rawNavigatorTooltip}
-                    >
-                        <div className={styles.controlRow}>
-                            <Checkbox
-                                checked={sUseRawNavigatorSampling}
-                                onChange={(event) =>
-                                    patchDisplayField('rawNavigatorSampling', {
-                                        enabled: event.target.checked,
-                                        sampleCount:
-                                            pDisplayConfig.rawNavigatorSampling
-                                                .sampleCount ??
-                                            DEFAULT_RAW_NAVIGATOR_SAMPLE_COUNT,
-                                    })
-                                }
-                                size="sm"
-                            />
-                            {renderSamplingInput('rawNavigatorSampling')}
-                            <span className={styles.editorFixedValue}>
-                                {sUseRawNavigatorSampling ? 'Sampled' : 'Average'}
-                            </span>
-                        </div>
-                    </TooltipRow>
-                </Section>
-            </div>
-        </div>
-    );
-};
 
 function toDataDensityDraft(
     pixelsPerTick: number | undefined,
@@ -386,11 +311,3 @@ function toRoundedDataDensityValue(value: number): number {
 
     return Number(value.toPrecision(DATA_DENSITY_VALUE_PRECISION));
 }
-
-function isValidPositiveNumber(
-    value: number | undefined,
-): value is number {
-    return value !== undefined && Number.isFinite(value) && value > 0;
-}
-
-export default EditorDataSettingTab;

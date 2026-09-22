@@ -125,7 +125,7 @@ jest.mock('echarts', () => {
 // The Tag Analyzer hand-off is the thing being blocked, so it is stubbed at its own boundary:
 // asserting on this mock is the difference between "the button did not open a board" and "the
 // button was not there", and only the first of those is the guarantee.
-jest.mock('@/components/tagAnalyzer/integration', () => ({
+jest.mock('@/components/tagAnalyzer/application/adapters', () => ({
     createTagAnalyzerBoardFromPayload: jest.fn(() => ({ status: 'ok', board: { id: 'board-1' } })),
 }));
 
@@ -148,7 +148,7 @@ const dataViewerApi = jest.requireMock('./dataViewerApi') as {
     queryTagBaseColumnBounds: jest.Mock;
 };
 
-const tagAnalyzerBridge = jest.requireMock('@/components/tagAnalyzer/integration') as {
+const tagAnalyzerBridge = jest.requireMock('@/components/tagAnalyzer/application/adapters') as {
     createTagAnalyzerBoardFromPayload: jest.Mock;
 };
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import {
     MIXED_X_AXIS_KIND_WARNING,
     PanelSeriesCalculationMode,
@@ -6,6 +6,11 @@ import {
 } from '../../seriesModel';
 import { createNewPanelInfo, type PanelInfo } from '../panelModel';
 import PanelEditor from './PanelEditor';
+import { formatRangeInputValue } from '../../rangeExpression/expressionFormat';
+import type { ComponentProps } from 'react';
+import { usePanelRangeRuntime } from '../rangeControl/rangeRuntime';
+import { seriesDataApi } from '../../api/seriesDataApi';
+import { createPanelRangeConfig } from '../panelRangeConfig';
 
 const TIME_SERIES: PanelSeriesDefinition = {
     key: 'time-series',
@@ -64,8 +69,8 @@ const INVALID_TAB_CASES: Array<{
         },
     },
     {
-        name: 'Main Range',
-        testId: 'editor-tab-main-range',
+        name: 'Range',
+        testId: 'editor-tab-range',
         mutate: (panelInfo) => {
             panelInfo.time.rangeInput = { start: 'now', end: 'now-1h' };
         },
@@ -176,18 +181,18 @@ const VALID_TAB_CASES: Array<{
 function createEditor(
     panelInfo: PanelInfo,
     onApplyEditorConfig = jest.fn(),
-    isOpen = true,
+    rangeProps: Partial<Pick<ComponentProps<typeof PanelEditor>, 'pMainRange' | 'pNavigatorRange' | 'pDataRange' | 'pRangeOrigin' | 'pPreviewEditorRange'>> = {},
 ) {
     return (
         <PanelEditor
             pOnApplyEditorConfig={onApplyEditorConfig}
             pOnClose={jest.fn()}
-            pIsOpen={isOpen}
             pPanelInfo={panelInfo}
             pHasUnsavedBoardChanges={false}
             pMainRange={{ start: 0, end: 10 }}
             pDataRange={{ start: 0, end: 100 }}
             pRollupTableList={{}}
+            {...rangeProps}
         />
     );
 }
@@ -238,7 +243,8 @@ describe('PanelEditor validation', () => {
         expect(titleInput).not.toBeInTheDocument();
         expect(screen.getByLabelText('Show X-axis tick marks')).toBeVisible();
 
-        view.rerender(createEditor(panelInfo, jest.fn(), false));
+        view.rerender(<></>);
+        view.rerender(createEditor(panelInfo));
 
         expect(screen.getByTestId('editor-title-input')).toBeInTheDocument();
         expect(
@@ -287,14 +293,14 @@ describe('PanelEditor validation', () => {
         );
 
         changeTitle('Changed panel');
-        fireEvent.click(screen.getByText('Main Range'));
+        fireEvent.click(screen.getByText('Range'));
 
         expect(screen.getAllByText(MIXED_X_AXIS_KIND_WARNING)).not.toHaveLength(0);
         expect(screen.getByTestId('editor-tab-data')).toHaveAttribute(
             'aria-invalid',
             'true',
         );
-        expect(screen.getByTestId('editor-tab-main-range')).not.toHaveAttribute(
+        expect(screen.getByTestId('editor-tab-range')).not.toHaveAttribute(
             'aria-invalid',
         );
         expect(screen.getByTestId('editor-apply')).toBeDisabled();
@@ -378,7 +384,7 @@ describe('PanelEditor validation', () => {
         const onApply = jest.fn();
         const view = renderEditor(validPanel, onApply);
 
-        view.rerender(createEditor(invalidPanel, onApply, false));
+        view.rerender(<></>);
         view.rerender(createEditor(invalidPanel, onApply));
         changeTitle('Invalid panel');
 
@@ -388,7 +394,7 @@ describe('PanelEditor validation', () => {
         );
         expect(screen.getByTestId('editor-apply')).toBeDisabled();
 
-        view.rerender(createEditor(validPanel, onApply, false));
+        view.rerender(<></>);
         view.rerender(createEditor(validPanel, onApply));
         changeTitle('Valid panel');
 
@@ -400,78 +406,215 @@ describe('PanelEditor validation', () => {
 });
 
 describe('PanelEditor apply', () => {
-    it('uses the dashboard time-range controls for a time-based panel', () => {
-        renderEditor(createNewPanelInfo([TIME_SERIES], 'Panel', 'Line'));
+    afterEach(() => jest.restoreAllMocks());
 
-        fireEvent.click(screen.getByText('Main Range'));
-
-        expect(screen.getByText('Custom time range')).toBeInTheDocument();
-        expect(screen.getByLabelText('From')).toBeInTheDocument();
-        expect(screen.getByLabelText('To')).toBeInTheDocument();
-        expect(screen.queryByTestId('distance-body')).not.toBeInTheDocument();
-    });
-
-    it('uses the dashboard distance-range controls for a numeric panel', () => {
-        const onApplyEditorConfig = jest.fn();
-        renderEditor(
-            createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line'),
-            onApplyEditorConfig,
-        );
-
-        fireEvent.click(screen.getByText('Main Range'));
-
-        expect(screen.getByText('Custom distance range')).toBeInTheDocument();
-        expect(screen.getByTestId('distance-body')).toBeInTheDocument();
-        expect(screen.getByTestId('distance-range-slider')).toBeInTheDocument();
-        expect(screen.getByTestId('distance-quick')).toBeInTheDocument();
-        expect(screen.getByLabelText('Distance from')).toHaveValue('0');
-        expect(screen.getByLabelText('Distance to')).toHaveValue('100');
-
-        fireEvent.change(screen.getByLabelText('Distance from'), {
-            target: { value: '2' },
-        });
-        fireEvent.change(screen.getByLabelText('Distance to'), {
-            target: { value: '8' },
-        });
+    it.each([
+        { name: 'automatic Nav', navInput: { start: '', end: '' }, mainAfterReset: { start: 37.5, end: 62.5 } },
+        { name: 'custom Nav', navInput: { start: 'first', end: 'first+80' }, mainAfterReset: { start: 10, end: 20 } },
+    ])('previews the actual Main Reset result and preserves $name until Apply', async ({ navInput, mainAfterReset }) => {
+        const fullRange = { start: 0, end: 100 };
+        const navRange = { start: 0, end: navInput.end ? 80 : 100 };
+        const panel = createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line');
+        panel.time.rangeInput = { start: 'first+10', end: 'first+20' };
+        panel.time.navigatorRangeInput = navInput;
+        const fetch = jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(fullRange);
+        const runtimeInputs: Parameters<typeof usePanelRangeRuntime>[0] = {
+            config: createPanelRangeConfig(panel),
+            rangeState: { range: { mainRange: { start: 10, end: 20 }, navigatorRange: navRange }, fullRange, navigatorRangeInput: navInput },
+            isActive: true,
+            onRangeStateChange: jest.fn(),
+            onBroadcastError: jest.fn(),
+            rangeRequests: { board: { numeric: { input: { start: '', end: '' }, applyVersion: 0 }, time: { input: { start: '', end: '' }, applyVersion: 0 } } },
+            commandVersions: { refreshDataVersion: 0, refreshRangeVersion: 0, expandFullRangeVersion: 0 },
+        };
+        const runtime = renderHook(() => usePanelRangeRuntime(runtimeInputs));
+        act(() => runtime.result.current.actions.setChartWidths(400, 344));
+        await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+        const apply = jest.fn<void, [PanelInfo]>();
+        render(createEditor(panel, apply, {
+            pMainRange: { start: 10, end: 20 }, pNavigatorRange: navRange,
+            pPreviewEditorRange: (config) => runtime.result.current.previewEditorRange(createPanelRangeConfig(config)),
+        }));
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        fireEvent.click(mainRangeSection().getByRole('button', { name: 'Reset' }));
+        expect(mainRangeSection().getByLabelText('Distance from')).toHaveValue(String(mainAfterReset.start));
+        expect(mainRangeSection().getByLabelText('Distance to')).toHaveValue(String(mainAfterReset.end));
+        expect(mainRangeSection().getByTestId('from-slider')).toHaveValue(String(mainAfterReset.start));
+        expect(mainRangeSection().getByTestId('to-slider')).toHaveValue(String(mainAfterReset.end));
+        expect(mainRangeSection().getByText('Auto')).toBeVisible();
+        expect(mainRangeSection().getByRole('button', { name: 'Reset' })).toBeDisabled();
+        expect(apply).not.toHaveBeenCalled();
+        expect(runtime.result.current.rangeState?.range.mainRange).toEqual({ start: 10, end: 20 });
         fireEvent.click(screen.getByTestId('editor-apply'));
-
-        expect(onApplyEditorConfig).toHaveBeenCalledWith(
-            expect.objectContaining({
-                time: expect.objectContaining({
-                    rangeInput: { start: '2', end: '8' },
-                }),
-            }),
-        );
+        const applied = apply.mock.calls[0][0];
+        expect(applied.time.rangeInput).toEqual({ start: '', end: '' });
+        expect(applied.time.navigatorRangeInput).toEqual(navInput);
+        act(() => runtime.result.current.actions.reloadAfterEditorSave(createPanelRangeConfig(applied)));
+        await waitFor(() => expect(runtime.result.current.rangeState?.range.mainRange).toEqual(mainAfterReset));
+        expect(runtime.result.current.rangeState?.range.navigatorRange).toEqual(navRange);
+        fetch.mockRestore();
     });
 
-    it('accepts the shared first+offset distance expression', () => {
-        const onApplyEditorConfig = jest.fn();
-        renderEditor(
-            createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line'),
-            onApplyEditorConfig,
-        );
+    it.each([
+        { series: TIME_SERIES, from: 'From', to: 'To', offset: 'ms' },
+        { series: NUMERIC_SERIES, from: 'Distance from', to: 'Distance to', offset: '' },
+    ])('embeds both range editors with Main first and couples drafts until Apply ($from)', ({ series, from, to, offset }) => {
+        const panel = createNewPanelInfo([series], 'Panel', 'Line');
+        panel.time.useLastViewedRange = true;
+        panel.time.lastViewedRange = LAST_VIEWED_RANGE;
+        const apply = jest.fn();
+        renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        const mainElement = screen.getByTestId('editor-main-range');
+        const navElement = screen.getByTestId('editor-nav-range');
+        expect(mainElement.compareDocumentPosition(navElement) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('range-summary')).not.toBeInTheDocument();
+        const main = within(mainElement);
+        const nav = within(navElement);
+        expect(main.getByLabelText(from)).toBeVisible();
+        expect(nav.getByLabelText(from)).toBeVisible();
+        fireEvent.change(nav.getByLabelText(from), { target: { value: 'first' } });
+        fireEvent.change(nav.getByLabelText(to), { target: { value: 'first' } });
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+        fireEvent.change(nav.getByLabelText(to), { target: { value: 'first+50' + offset } });
+        fireEvent.change(main.getByLabelText(from), { target: { value: 'first+10' + offset } });
+        fireEvent.change(main.getByLabelText(to), { target: { value: 'first+20' + offset } });
+        expect(apply).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply).toHaveBeenLastCalledWith(expect.objectContaining({
+            time: expect.objectContaining({
+                navigatorRangeInput: { start: 'first', end: 'first+50' + offset },
+                rangeInput: { start: 'first+10' + offset, end: 'first+20' + offset },
+                lastViewedRange: undefined,
+            }),
+        }));
+        fireEvent.click(nav.getByRole('button', { name: 'Reset' }));
+        expect(main.getByLabelText(from)).toHaveValue('first+10' + offset);
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply).toHaveBeenLastCalledWith(expect.objectContaining({
+            time: expect.objectContaining({
+                navigatorRangeInput: { start: '', end: '' },
+                rangeInput: { start: 'first+10' + offset, end: 'first+20' + offset },
+            }),
+        }));
+    });
 
-        fireEvent.click(screen.getByText('Main Range'));
-        fireEvent.change(screen.getByLabelText('Distance from'), {
-            target: { value: 'first' },
-        });
-        fireEvent.change(screen.getByLabelText('Distance to'), {
-            target: { value: 'first+100' },
-        });
+    it('embeds calendar inputs and time presets in each range section', () => {
+        const apply = jest.fn();
+        renderEditor(createNewPanelInfo([TIME_SERIES], 'Panel', 'Line'), apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        const main = mainRangeSection();
+        const nav = within(screen.getByTestId('editor-nav-range'));
+        for (const range of [main, nav]) {
+            expect(range.getByLabelText('From')).toHaveValue('');
+            expect(range.getAllByRole('button', { name: 'Open date picker' })).toHaveLength(2);
+            expect(range.getByTestId('quick-time-range')).toBeVisible();
+        }
+        fireEvent.click(main.getByRole('button', { name: 'First 1 hour of data' }));
+        expect(main.getByLabelText('From')).toHaveValue('first');
+        expect(main.getByLabelText('To')).toHaveValue('first+1h');
+        expect(nav.getByLabelText('To')).toHaveValue('first+1h');
+        expect(apply).not.toHaveBeenCalled();
+    });
 
-        expect(
-            screen.queryByText('Enter both value boundaries in a valid order.'),
-        ).not.toBeInTheDocument();
+    it('embeds both distance sliders and quick windows over the full data extent', () => {
+        const apply = jest.fn();
+        renderEditor(createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line'), apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        const main = mainRangeSection();
+        const nav = within(screen.getByTestId('editor-nav-range'));
+        for (const range of [main, nav]) {
+            expect(range.getByTestId('distance-range-slider')).toBeVisible();
+            expect(range.getByLabelText('Distance from')).toHaveValue('0');
+            expect(range.getByLabelText('Distance to')).toHaveValue(range === main ? '10' : '100');
+        }
+        fireEvent.click(main.getByTestId('first-10'));
+        fireEvent.click(nav.getByTestId('last-25'));
+        expect(main.getByLabelText('Distance to')).toHaveValue('85');
+        expect(nav.getByLabelText('Distance from')).toHaveValue('last-25');
+        expect(apply).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply).toHaveBeenCalledWith(expect.objectContaining({
+            time: expect.objectContaining({
+                rangeInput: { start: 'last-25', end: '85' },
+                navigatorRangeInput: { start: 'last-25', end: 'last' },
+            }),
+        }));
+    });
+
+    it.each(['main', 'nav'])('retains invalid %s distance drafts across tabs and blocks Apply', (target) => {
+        renderEditor(createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line'));
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        const range = () => within(screen.getByTestId('editor-' + target + '-range'));
+        fireEvent.click(range().getByTestId('first-50'));
+        for (const value of ['bad input', '', 'first+50', 'first+75']) {
+            fireEvent.change(range().getByLabelText('Distance from'), { target: { value } });
+            expect(screen.getByTestId('editor-apply')).toBeDisabled();
+            fireEvent.click(screen.getByTestId('editor-tab-general'));
+            expect(screen.getByTestId('editor-apply')).toBeDisabled();
+            fireEvent.click(screen.getByTestId('editor-tab-range'));
+            expect(range().getByLabelText('Distance from')).toHaveValue(value);
+        }
+        fireEvent.change(range().getByLabelText('Distance from'), { target: { value: 'first+10' } });
         expect(screen.getByTestId('editor-apply')).toBeEnabled();
+    });
 
+    it.each([
+        { series: NUMERIC_SERIES, from: 'Distance from', to: 'Distance to', unit: '', numeric: true },
+        { series: TIME_SERIES, from: 'From', to: 'To', unit: 'ms', numeric: false },
+    ])('only adjusts the other range when containment requires it and waits for Apply ($from)', ({ series, from, to, unit, numeric }) => {
+        const panel = createNewPanelInfo([series], 'Panel', 'Line');
+        panel.time.rangeInput = { start: 'first+10' + unit, end: 'first+20' + unit };
+        panel.time.navigatorRangeInput = { start: 'first', end: 'first+50' + unit };
+        const originalTime = JSON.stringify(panel.time);
+        const apply = jest.fn();
+        renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        const main = mainRangeSection();
+        const nav = within(screen.getByTestId('editor-nav-range'));
+
+        fireEvent.change(nav.getByLabelText(to), { target: { value: 'first+100' + unit } });
+        expect(main.getByLabelText(from)).toHaveValue('first+10' + unit);
+        expect(main.getByLabelText(to)).toHaveValue('first+20' + unit);
+        fireEvent.change(nav.getByLabelText(to), { target: { value: 'first+15' + unit } });
+        expect(main.getByLabelText(from)).toHaveValue(formatRangeInputValue(5, numeric));
+        expect(main.getByLabelText(to)).toHaveValue('first+15' + unit);
+        fireEvent.change(nav.getByLabelText(to), { target: { value: '' } });
+        fireEvent.change(nav.getByLabelText(to), { target: { value: 'first+50' + unit } });
+        expect(main.getByLabelText(from)).toHaveValue(formatRangeInputValue(5, numeric));
+        expect(main.getByLabelText(to)).toHaveValue('first+15' + unit);
+
+        fireEvent.change(main.getByLabelText(to), { target: { value: 'first+75' + unit } });
+        expect(nav.getByLabelText(to)).toHaveValue('first+75' + unit);
+        expect(nav.getByLabelText(from)).toHaveValue('first');
+        fireEvent.change(main.getByLabelText(to), { target: { value: 'first+60' + unit } });
+        expect(nav.getByLabelText(to)).toHaveValue('first+75' + unit);
+        expect(apply).not.toHaveBeenCalled();
+        expect(JSON.stringify(panel.time)).toBe(originalTime);
+
+        fireEvent.click(screen.getByTestId('editor-tab-general'));
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        expect(mainRangeSection().getByLabelText(to)).toHaveValue('first+60' + unit);
         fireEvent.click(screen.getByTestId('editor-apply'));
-        expect(onApplyEditorConfig).toHaveBeenCalledWith(
-            expect.objectContaining({
-                time: expect.objectContaining({
-                    rangeInput: { start: 'first', end: 'first+100' },
-                }),
+        expect(apply).toHaveBeenCalledTimes(1);
+        expect(apply).toHaveBeenCalledWith(expect.objectContaining({
+            time: expect.objectContaining({
+                rangeInput: { start: formatRangeInputValue(5, numeric), end: 'first+60' + unit },
+                navigatorRangeInput: { start: 'first', end: 'first+75' + unit },
             }),
-        );
+        }));
+    });
+
+    it('keeps the current time boundary when one input is blank', () => {
+        const apply = jest.fn();
+        renderEditor(createNewPanelInfo([TIME_SERIES], 'Panel', 'Line'), apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        fireEvent.change(mainRangeSection().getByLabelText('To'), { target: { value: 'last' } });
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply).toHaveBeenCalledWith(expect.objectContaining({
+            time: expect.objectContaining({ rangeInput: { start: '', end: 'last' } }),
+        }));
     });
 
     it('normalizes the disabled secondary axis and keeps an unchanged saved range', () => {
@@ -519,8 +662,9 @@ describe('PanelEditor apply', () => {
         const onApplyEditorConfig = jest.fn();
         renderEditor(panelInfo, onApplyEditorConfig);
 
-        fireEvent.click(screen.getByText('Main Range'));
-        fireEvent.change(screen.getByLabelText('From'), {
+        fireEvent.click(screen.getByText('Range'));
+        const dialog = mainRangeSection();
+        fireEvent.change(dialog.getByLabelText('From'), {
             target: { value: 'now-2h' },
         });
         fireEvent.click(screen.getByTestId('editor-apply'));
@@ -535,3 +679,173 @@ describe('PanelEditor apply', () => {
         );
     });
 });
+
+describe('PanelEditor chart range synchronization', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('restores automatic ranges after zooming even when the saved inputs were already automatic', async () => {
+        const panel = createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line');
+        panel.time.navigatorRangeInput = { start: '', end: '' };
+        const fullRange = { start: 0, end: 100 };
+        const fetch = jest.spyOn(seriesDataApi, 'fetchSeriesFullRange').mockResolvedValue(fullRange);
+        const runtime = renderHook(() => usePanelRangeRuntime({
+            config: createPanelRangeConfig(panel),
+            rangeState: undefined,
+            isActive: true,
+            onRangeStateChange: jest.fn(),
+            onBroadcastError: jest.fn(),
+            rangeRequests: { board: { numeric: { input: { start: '', end: '' }, applyVersion: 0 }, time: { input: { start: '', end: '' }, applyVersion: 0 } } },
+            commandVersions: { refreshDataVersion: 0, refreshRangeVersion: 0, expandFullRangeVersion: 0 },
+        }));
+        act(() => runtime.result.current.actions.setChartWidths(400, 344));
+        await waitFor(() => expect(runtime.result.current.rangeState).toBeDefined());
+        const automaticRange = runtime.result.current.rangeState!.range;
+        act(() => runtime.result.current.actions.setNavigatorRange({ start: 10, end: 90 }, { start: '10', end: '90' }));
+        act(() => runtime.result.current.actions.setMainRange({ start: 25, end: 35 }));
+        const apply = jest.fn((config: PanelInfo) => runtime.result.current.actions.reloadAfterEditorSave(createPanelRangeConfig(config)));
+        render(createEditor(panel, apply, {
+            pMainRange: runtime.result.current.rangeState!.range.mainRange,
+            pNavigatorRange: runtime.result.current.rangeState!.range.navigatorRange,
+            pRangeOrigin: runtime.result.current.rangeOrigin,
+            pPreviewEditorRange: (config) => runtime.result.current.previewEditorRange(createPanelRangeConfig(config)),
+        }));
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        for (const target of ['main', 'nav']) {
+            fireEvent.click(within(screen.getByTestId(`editor-${target}-range`)).getByRole('button', { name: 'Reset' }));
+        }
+        expect(mainRangeSection().getByLabelText('Distance from')).toHaveValue(String(automaticRange.mainRange.start));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+        expect(runtime.result.current.rangeState?.range).toEqual(automaticRange);
+        expect(runtime.result.current.rangeState?.navigatorRangeInput).toEqual({ start: '', end: '' });
+    });
+
+    it.each([NUMERIC_SERIES, TIME_SERIES].flatMap((series) => [true, false].map((initiallyZoomed) => ({ series, initiallyZoomed }))))(
+        'can apply both range resets after a chart interaction ($series.key, initially zoomed: $initiallyZoomed)', ({ series, initiallyZoomed }) => {
+        const panel = createNewPanelInfo([series], 'Panel', 'Line');
+        panel.time.navigatorRangeInput = { start: '', end: '' };
+        const apply = jest.fn();
+        const chartProps = {
+            pMainRange: { start: 25, end: 35 },
+            pNavigatorRange: { start: 10, end: 90 },
+            pRangeOrigin: 'chart' as const,
+        };
+        const view = render(createEditor(panel, apply, initiallyZoomed ? chartProps : {}));
+        if (!initiallyZoomed) view.rerender(createEditor(panel, apply, chartProps));
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        for (const target of ['main', 'nav']) {
+            fireEvent.click(within(screen.getByTestId(`editor-${target}-range`)).getByRole('button', { name: 'Reset' }));
+        }
+        expect(screen.getByTestId('editor-tab-range')).not.toHaveAttribute('aria-invalid');
+        expect(screen.getByTestId('editor-apply')).toBeEnabled();
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply).toHaveBeenCalledWith(expect.objectContaining({
+            time: expect.objectContaining({
+                rangeInput: { start: '', end: '' },
+                navigatorRangeInput: { start: '', end: '' },
+            }),
+        }));
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+    });
+
+    it.each([
+        { series: NUMERIC_SERIES, from: 'Distance from', to: 'Distance to', numeric: true },
+        { series: TIME_SERIES, from: 'From', to: 'To', numeric: false },
+    ])('replaces range drafts after chart changes and preserves other settings ($from)', ({ series, from, to, numeric }) => {
+        const panel = createNewPanelInfo([series], 'Panel', 'Line');
+        const apply = jest.fn();
+        const view = renderEditor(panel, apply);
+        changeTitle('Keep this title');
+        fireEvent.click(screen.getByTestId('editor-normalize-checkbox'));
+        fireEvent.click(screen.getByTestId('editor-save-visible-range-checkbox'));
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        fireEvent.change(mainRangeSection().getByLabelText(from), { target: { value: 'invalid draft' } });
+        fireEvent.change(within(screen.getByTestId('editor-nav-range')).getByLabelText(to), { target: { value: 'invalid nav' } });
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+
+        // New objects and data refreshes at the same viewport must leave the draft alone.
+        view.rerender(createEditor(panel, apply, { pDataRange: { start: 0, end: 200 }, pNavigatorRange: { start: 0, end: 100 } }));
+        expect(mainRangeSection().getByLabelText(from)).toHaveValue('invalid draft');
+
+        const chartProps = {
+            pMainRange: { start: 50, end: 70 },
+            pNavigatorRange: { start: 0, end: 100 },
+            pRangeOrigin: 'chart' as const,
+        };
+        view.rerender(createEditor(panel, apply, chartProps));
+        const format = (value: number) => formatRangeInputValue(value, numeric);
+        expect(mainRangeSection().getByLabelText(from)).toHaveValue(format(50));
+        expect(mainRangeSection().getByLabelText(to)).toHaveValue(format(70));
+        expect(within(screen.getByTestId('editor-nav-range')).getByLabelText(to)).toHaveValue(format(100));
+        expect(screen.getByTestId('editor-apply')).toBeEnabled();
+        expect(apply).not.toHaveBeenCalled();
+        expect(panel.time.rangeInput).toEqual({ start: '', end: '' });
+
+        // Navigator-only changes also win, even while another tab is open.
+        fireEvent.change(mainRangeSection().getByLabelText(to), { target: { value: format(80) } });
+        view.rerender(createEditor(panel, apply, { ...chartProps, pMainRange: { ...chartProps.pMainRange } }));
+        expect(mainRangeSection().getByLabelText(to)).toHaveValue(format(80));
+        fireEvent.click(screen.getByTestId('editor-tab-general'));
+        view.rerender(createEditor(panel, apply, { ...chartProps, pNavigatorRange: { start: 0, end: 150 } }));
+        expect(screen.getByTestId('editor-title-input')).toHaveValue('Keep this title');
+        expect(screen.getByTestId('editor-normalize-checkbox')).toBeChecked();
+        expect(screen.getByTestId('editor-save-visible-range-checkbox')).toBeChecked();
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        expect(mainRangeSection().getByLabelText(to)).toHaveValue(format(70));
+        expect(within(screen.getByTestId('editor-nav-range')).getByLabelText(to)).toHaveValue(format(150));
+        fireEvent.change(mainRangeSection().getByLabelText(to), { target: { value: format(75) } });
+        expect(apply).not.toHaveBeenCalled();
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply).toHaveBeenCalledTimes(1);
+        expect(apply).toHaveBeenCalledWith(expect.objectContaining({
+            title: 'Keep this title',
+            mode: expect.objectContaining({ useNormalize: true }),
+            time: expect.objectContaining({
+                useLastViewedRange: true,
+                rangeInput: { start: format(50), end: format(75) },
+                navigatorRangeInput: { start: format(0), end: format(150) },
+            }),
+        }));
+    });
+
+    it('opens with ranges from an earlier chart interaction', () => {
+        const panel = createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line');
+        render(createEditor(panel, jest.fn(), {
+            pMainRange: { start: 25, end: 35 },
+            pNavigatorRange: { start: 10, end: 90 },
+            pRangeOrigin: 'chart',
+        }));
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        expect(mainRangeSection().getByLabelText('Distance from')).toHaveValue('25');
+        expect(within(screen.getByTestId('editor-nav-range')).getByLabelText('Distance from')).toHaveValue('10');
+    });
+
+    it('preserves applied expressions and newer edits when the Apply response changes the chart', () => {
+        const panel = createNewPanelInfo([NUMERIC_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        const view = renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        fireEvent.click(mainRangeSection().getByTestId('first-50'));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        const applied = apply.mock.calls[0][0];
+        view.rerender(createEditor(applied, apply, { pMainRange: { start: 0, end: 50 }, pRangeOrigin: 'configured' }));
+        expect(mainRangeSection().getByLabelText('Distance from')).toHaveValue(applied.time.rangeInput.start);
+        expect(mainRangeSection().getByLabelText('Distance to')).toHaveValue(applied.time.rangeInput.end);
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+
+        fireEvent.click(mainRangeSection().getByTestId('first-25'));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        const secondApply = apply.mock.calls[1][0];
+        fireEvent.change(mainRangeSection().getByLabelText('Distance to'), { target: { value: 'first+30' } });
+        view.rerender(createEditor(secondApply, apply, { pMainRange: { start: 0, end: 25 }, pRangeOrigin: 'configured' }));
+        expect(mainRangeSection().getByLabelText('Distance to')).toHaveValue('first+30');
+        expect(screen.getByTestId('editor-apply')).toBeEnabled();
+
+        view.rerender(createEditor(secondApply, apply, { pMainRange: { start: 10, end: 20 }, pRangeOrigin: 'chart' }));
+        expect(mainRangeSection().getByLabelText('Distance to')).toHaveValue('20');
+    });
+});
+
+function mainRangeSection() {
+    return within(screen.getByTestId('editor-main-range'));
+}

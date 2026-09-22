@@ -13,11 +13,8 @@ import { parseDashboardTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { extractJsonPathsFromSamples } from '@/utils/dashboardJsonValue';
 import { isPlainObject, parseFiniteNumber } from '../objectGuards';
-import {
-    parseSqlIdentifierPath,
-    type RollupDefinition,
-    type RollupTableMap,
-} from '../seriesModel';
+import { parseSqlIdentifierPath } from '../seriesModel';
+import type { RollupDefinition, RollupTableMap } from './rollupMetadata';
 import {
     getUnknownErrorMessage,
     parseQueryResponse,
@@ -29,11 +26,28 @@ import {
     joinSqlLines,
 } from './sql';
 
+export type TableColumn = {
+    name: string;
+    type: number;
+    flag: number;
+};
+
+export const tableMetadataApi = {
+    fetchRollupMetadata,
+    fetchTableNames,
+    fetchTableColumns,
+    fetchTags,
+    fetchJsonColumnPaths,
+};
+
+// -------------------- Local --------------------
+
 const ROLLUP_METADATA_REQUEST_FAILED_MESSAGE = 'Rollup metadata request failed.';
 const MALFORMED_ROLLUP_METADATA_MESSAGE =
     'Rollup metadata response contained malformed rows.';
 const ROLLUP_VERSION_STORAGE_KEY = 'V$ROLLUP_VER';
 const TABLE_LIST_REQUEST_FAILED_MESSAGE = 'Failed to fetch table names.';
+
 /** `M$SYS_TABLES.TYPE` for a tag table. Verified against a v8.7 catalogue. */
 const TAG_TABLE_TYPE = 6;
 const MALFORMED_TABLE_LIST_MESSAGE =
@@ -49,12 +63,6 @@ const JSON_PATH_REQUEST_FAILED_MESSAGE =
     'Failed to fetch JSON column paths.';
 const MALFORMED_JSON_PATH_MESSAGE =
     'JSON column response contained malformed rows.';
-
-export type TableColumn = {
-    name: string;
-    type: number;
-    flag: number;
-};
 
 type RollupMetadataRow = [
     userName: string,
@@ -307,14 +315,6 @@ async function fetchJsonColumnPaths(
     );
 }
 
-export const tableMetadataApi = {
-    fetchRollupMetadata,
-    fetchTableNames,
-    fetchTableColumns,
-    fetchTags,
-    fetchJsonColumnPaths,
-};
-
 function getConfiguredRollupVersion(): string | null {
     return typeof localStorage === 'undefined'
         ? null
@@ -447,20 +447,20 @@ function parseRollupMetadataRow(
 
 function resolveTableColumnsTarget(tableName: string): TableColumnsTarget {
     const tableParts: string[] = tableName.split('.');
+    const isCurrentDatabase = tableParts.length < 3 ||
+        tableParts[0].trim().toUpperCase() === getCurrentDatabaseName().trim().toUpperCase();
     const hasUserName: boolean = tableParts.length >= 2;
     const userName: string = tableParts.length >= 3
         ? tableParts[1]
         : tableParts[0];
     return {
-        // Three-part names carry their database in the first part. On v8.7 that is a logical
-        // database, resolved through V$DATABASES; on older servers the only multi-database
-        // concept was a mounted backup, so the lookup stays on V$STORAGE_MOUNT_DATABASES.
-        // A shorter name means "the database this session is in", which is -1 only pre-v8.7.
-        databaseIdQuery: tableParts.length >= 3
-            ? hasLogicalDatabases()
+        // A qualified local table still uses this session's database id (-1 on legacy servers).
+        // Only another database needs a catalogue lookup: logical database or mounted backup.
+        databaseIdQuery: isCurrentDatabase
+            ? String(getCurrentDatabaseId())
+            : hasLogicalDatabases()
                 ? `(SELECT DATABASE_ID FROM V$DATABASES WHERE NAME = ${buildSqlStringLiteral(tableParts[0])})`
-                : `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(tableParts[0])})`
-            : String(getCurrentDatabaseId()),
+                : `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(tableParts[0])})`,
         tableName: parseSqlIdentifierPath(
             tableParts.at(-1) ?? '',
             'SQL table name',

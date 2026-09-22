@@ -1,9 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { ContextMenuPosition } from '@/design-system/components';
-import {
-    PanelOverlayMode,
-    type PanelOverlayCursorHintState,
-} from '../../chart/chartRuntime';
+import { PanelOverlayMode } from '../../chart/chartModel';
 import type { FFTSelectionPayload } from '../../tools/analysisModel';
 import {
     createPanelHighlightDraft,
@@ -11,39 +8,11 @@ import {
     type HighlightEditorSession,
     type PanelHighlight,
 } from '../../markup/markupModel';
-import { createNonEmptyAxisRange } from '../../range/rangeBuilder';
-import type { AxisRange } from '../../range/rangeModel';
+import { createNonEmptyAxisRange } from '../../rangeExpression/rangeBuilder';
+import type { AxisRange } from '../../rangeExpression/rangeModel';
 import type { PanelSeriesDefinition } from '../../seriesModel';
 
-type PanelSurfaceContent =
-    | { kind: 'contextMenu'; position: ContextMenuPosition }
-    | { kind: 'highlightEditor'; session: HighlightEditorSession }
-    | { kind: 'annotationEditor'; session: AnnotationEditorSession }
-    | { kind: 'deleteConfirm' }
-    | { kind: 'exportCsv' };
-
 export type PanelSurface = PanelSurfaceContent & { id: number };
-
-type PanelSelectionSummary = {
-    selection: FFTSelectionPayload;
-    popoverPosition: ContextMenuPosition;
-};
-
-type PanelInteractionState = {
-    overlayMode: PanelOverlayMode;
-    activeSurface: PanelSurface | undefined;
-    selectionSummary: PanelSelectionSummary | undefined;
-    overlayCursorHint: PanelOverlayCursorHintState | undefined;
-    hoveredMainSeriesName: string | undefined;
-};
-
-const INITIAL_STATE: PanelInteractionState = {
-    overlayMode: PanelOverlayMode.NO_OVERLAY,
-    activeSurface: undefined,
-    selectionSummary: undefined,
-    overlayCursorHint: undefined,
-    hoveredMainSeriesName: undefined,
-};
 
 export function usePanelInteraction(
     seriesList: readonly Pick<PanelSeriesDefinition, 'key'>[],
@@ -164,25 +133,6 @@ export function usePanelInteraction(
                 overlayMode: PanelOverlayMode.NO_OVERLAY,
                 selectionSummary: undefined,
             })),
-            showCursorHint: (hint: PanelOverlayCursorHintState) =>
-                setState((current) => ({
-                    ...current,
-                    overlayCursorHint: hint,
-                })),
-            setHoveredSeries: (seriesName: string | undefined) =>
-                setState((current) => ({
-                    ...current,
-                    hoveredMainSeriesName: seriesName,
-                    overlayCursorHint: current.overlayCursorHint && {
-                        ...current.overlayCursorHint,
-                        hoveredMainSeriesName: seriesName,
-                    },
-                })),
-            clearCursorHint: () => setState((current) => ({
-                ...current,
-                overlayCursorHint: undefined,
-                hoveredMainSeriesName: undefined,
-            })),
         };
     }, [seriesList]);
     const draftHighlight: PanelHighlight | undefined =
@@ -193,3 +143,29 @@ export function usePanelInteraction(
 
     return { state: { ...state, draftHighlight }, actions };
 }
+
+// -------------------- Local --------------------
+
+type PanelSurfaceContent =
+    | { kind: 'contextMenu'; position: ContextMenuPosition }
+    | { kind: 'highlightEditor'; session: HighlightEditorSession }
+    | { kind: 'annotationEditor'; session: AnnotationEditorSession }
+    | { kind: 'deleteConfirm' }
+    | { kind: 'exportCsv' };
+
+type PanelSelectionSummary = {
+    selection: FFTSelectionPayload;
+    popoverPosition: ContextMenuPosition;
+};
+
+type PanelInteractionState = {
+    overlayMode: PanelOverlayMode;
+    activeSurface: PanelSurface | undefined;
+    selectionSummary: PanelSelectionSummary | undefined;
+};
+
+const INITIAL_STATE: PanelInteractionState = {
+    overlayMode: PanelOverlayMode.NO_OVERLAY,
+    activeSurface: undefined,
+    selectionSummary: undefined,
+};

@@ -3,13 +3,13 @@ import { renderHook } from '@testing-library/react';
 import { useLatestAsyncRequest } from './useLatestAsyncRequest';
 
 describe('useLatestAsyncRequest', () => {
-    it('ignores an obsolete success after a newer request key commits', () => {
+    it.each(['success', 'error'] as const)('ignores an obsolete %s after a newer request key commits', (outcome) => {
         let obsoleteSignal: AbortSignal | undefined;
         let deliverObsolete: ((result: string) => void) | undefined;
         let obsoleteWasActiveWhenDelivered = false;
         const obsoleteRequest = {
-            then(onSuccess: (result: string) => void) {
-                deliverObsolete = onSuccess;
+            then(onSuccess: (result: string) => void, onError: (error: unknown) => void) {
+                deliverObsolete = outcome === 'success' ? onSuccess : onError;
             },
         } as unknown as Promise<string>;
         const onSuccess = jest.fn();

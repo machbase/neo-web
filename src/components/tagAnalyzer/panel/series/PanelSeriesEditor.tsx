@@ -1,9 +1,7 @@
 import {
-    useCallback,
     useEffect,
     useId,
     useMemo,
-    useRef,
     useState,
     type KeyboardEvent,
     type ReactNode,
@@ -14,7 +12,6 @@ import {
     Badge,
     Button,
     Combobox,
-    Dropdown,
     Input,
     InputSelect,
     List,
@@ -22,55 +19,44 @@ import {
     type ComboboxOption,
 } from '@/design-system/components';
 import { getId } from '@/utils';
-import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
 import {
     displayJsonPathLabel,
-    isJsonTypeColumn,
     jsonPathInputToStoredPath,
 } from '@/utils/dashboardJsonValue';
-import {
-    createTagAnalyzerColumnInfo,
-    getTagAnalyzerTimeColumns,
-    getTagAnalyzerValueColumns,
-    isTagAnalyzerJsonValue,
-} from '@/utils/tagAnalyzerFields';
-import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
-import { resolveStoredTableName } from '@/utils/qualifiedTableName';
-import {
-    tableMetadataApi,
-    type TableColumn,
-} from '../../api/tableMetadataApi';
+import { isTagAnalyzerJsonValue } from '@/utils/tagAnalyzerFields';
+import { tableMetadataApi } from '../../api/tableMetadataApi';
 import {
     createPanelSeriesDefinition,
+    getSeriesListAxisKind,
+    hasMixedXAxisValueKinds,
+    MIXED_X_AXIS_KIND_WARNING,
+    X_AXIS_KIND_CHANGE_WARNING,
+    PANEL_TAG_LIMIT,
+    PanelSeriesCalculationMode,
+    type PanelSeriesDefinition,
+    updatePanelSeriesCalculationMode,
+} from '../../seriesModel';
+import {
     formatRollupIntervalList,
     formatRollupRangeLabel,
     getPanelSeriesRollupColumn,
     getPanelSeriesRollupInfo,
     getPanelSeriesValueSummaryLabel,
-    getSeriesListAxisKind,
-    hasMixedXAxisValueKinds,
-    MIXED_X_AXIS_KIND_WARNING,
-    normalizePanelSeriesCalculationMode,
-    PANEL_TAG_LIMIT,
-    PanelSeriesCalculationMode,
-    TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
-    type PanelSeriesDefinition,
-    type PanelSeriesSourceColumns,
     type RollupTableMap,
-    updatePanelSeriesCalculationMode,
-} from '../../seriesModel';
-import type { AxisKind } from '../../range/rangeModel';
+} from '../../api/rollupMetadata';
+import type { AxisKind } from '../../rangeExpression/rangeModel';
 import { getErrorMessageFromValue } from '../../errorMessage';
 import { useLatestAsyncRequest } from '../../hooks/useLatestAsyncRequest';
+import { Field, Inline, Stack, Text } from '../../ui/Presentation';
+import { SeriesCalculationModeField } from './SeriesCalculationModeField';
+import {
+    formatRollupOptionLabel,
+    getJsonPathOptionsKey,
+    usePanelSeriesSource,
+} from './usePanelSeriesSource';
+import { useSeriesTagSearch } from './useSeriesTagSearch';
 import styles from './PanelSeriesEditor.module.scss';
-
-const TAG_PAGE_SIZE = 10;
-export const X_AXIS_KIND_CHANGE_WARNING =
-    'The panel x-axis type cannot be changed.';
-
-function encodeTestIdSegment(value: string): string {
-    return encodeURIComponent(value);
-}
+import controls from '../../ui/Controls.module.scss';
 
 export function PanelSeriesEditor({
     seriesList,
@@ -85,52 +71,17 @@ export function PanelSeriesEditor({
     onFooterMessageChange: (message: string | undefined) => void;
     onSeriesListChange: (seriesList: PanelSeriesDefinition[]) => void;
 }) {
-    const [sAvailableSourceTableNames, setAvailableSourceTableNames] =
-        useState<string[] | undefined>();
-    const [sSelectedTable, setSelectedTableState] = useState('');
-    const [sSourceColumns, setSourceColumns] =
-        useState<PanelSeriesSourceColumns | undefined>();
-    const [sTableColumns, setTableColumns] =
-        useState<TableColumn[]>([]);
-    const [sAvailableTags, setAvailableTags] =
-        useState<string[]>([]);
-    const [sTagTotal, setTagTotal] = useState(0);
-    const [sTagPage, setTagPage] = useState(1);
-    const [sTagPageInputValue, setTagPageInputValue] = useState('1');
-    const [sTagInputValue, setTagInputValue] = useState('');
-    const [sAppliedTagSearchText, setAppliedTagSearchText] = useState('');
-    const [sTagRequest, setTagRequest] = useState<{
-        table: string;
-        tagColumn: string;
-        searchText: string;
-        page: number;
-        generation: number;
-    }>();
-    const sHasPendingTagSearch = sTagInputValue !== sAppliedTagSearchText;
-    const sTagInputId = useId();
-    const sIsTableNameLoading = sAvailableSourceTableNames === undefined;
-    const sTotalTagPages = Math.max(
-        1,
-        Math.ceil(sTagTotal / TAG_PAGE_SIZE),
+    const tagSearch = useSeriesTagSearch(setFooterMessage);
+    const source = usePanelSeriesSource(
+        tagSearch.changeSource,
+        setFooterMessage,
     );
-    const sAvailableTagItems = sAvailableTags.map((tag) => ({
-        id: tag,
-        label: tag,
-        tooltip: tag,
-        testId: `tag-analyzer-series-option-${encodeTestIdSegment(tag)}`,
-    }));
-
-    useLatestAsyncRequest({
-        enabled: true,
-        requestKey: 'tag-analyzer-table-names',
-        fetch: () => tableMetadataApi.fetchTableNames(),
-        onSuccess: setAvailableSourceTableNames,
-        onError: (error) => {
-            setAvailableSourceTableNames([]);
-            setFooterMessage(getErrorMessageFromValue(error));
-        },
-    });
-
+    const {
+        selectedTable: sSelectedTable,
+        sourceColumns: sColumns,
+        tableColumns: sTableColumns,
+    } = source;
+    const sTagInputId = useId();
     function applyNewSeriesList(
         nextSeriesList: PanelSeriesDefinition[],
     ): void {
@@ -152,128 +103,12 @@ export function PanelSeriesEditor({
         onSeriesListChange(nextSeriesList);
     }
 
-    const handleSourceChange = useCallback((
-        table: string,
-        sourceColumns: PanelSeriesSourceColumns | undefined,
-        tableColumns: TableColumn[],
-    ): void => {
-        const sTagSourceChanged =
-            table !== sSelectedTable ||
-            sourceColumns?.name !== sSourceColumns?.name;
-
-        setFooterMessage(undefined);
-        setSelectedTableState(table);
-        setSourceColumns(sourceColumns);
-        setTableColumns(tableColumns);
-
-        if (!sTagSourceChanged) return;
-
-        setAvailableTags([]);
-        setTagTotal(0);
-        setTagPageState(1);
-        if (!table || !sourceColumns?.name) {
-            setTagRequest(undefined);
-            return;
-        }
-
-        setTagRequest((current) => ({
-            table,
-            tagColumn: sourceColumns.name,
-            searchText: sAppliedTagSearchText,
-            page: 1,
-            generation: (current?.generation ?? 0) + 1,
-        }));
-    }, [
-        sAppliedTagSearchText,
-        sSelectedTable,
-        sSourceColumns?.name,
-        setFooterMessage,
-    ]);
-
-    function loadTagList(
-        searchText = sAppliedTagSearchText,
-        page = sTagPage,
-    ): void {
-        if (!sSelectedTable || !sSourceColumns?.name) {
-            setAvailableTags([]);
-            setTagTotal(0);
-            setTagPageState(1);
-            return;
-        }
-        setTagRequest((current) => ({
-            table: sSelectedTable,
-            tagColumn: sSourceColumns.name,
-            searchText,
-            page,
-            generation: (current?.generation ?? 0) + 1,
-        }));
-    }
-
-    useLatestAsyncRequest({
-        enabled: sTagRequest !== undefined,
-        requestKey: JSON.stringify(sTagRequest),
-        fetch: async () => {
-            if (!sTagRequest) {
-                throw new Error('Tag search source is unavailable.');
-            }
-            return {
-                request: sTagRequest,
-                result: await tableMetadataApi.fetchTags(
-                    sTagRequest.table,
-                    sTagRequest.tagColumn,
-                    sTagRequest.searchText,
-                    sTagRequest.page,
-                    TAG_PAGE_SIZE,
-                ),
-            };
-        },
-        onSuccess: ({ request, result: { tags, total } }) => {
-            const sMaxPage = Math.max(
-                1,
-                Math.ceil(total / TAG_PAGE_SIZE),
-            );
-            setTagTotal(total);
-            if (request.page > sMaxPage) {
-                setAvailableTags([]);
-                setTagPageState(sMaxPage);
-                loadTagList(request.searchText, sMaxPage);
-                return;
-            }
-            setAvailableTags(tags);
-            setFooterMessage(undefined);
-        },
-        onError: (error) => {
-            setAvailableTags([]);
-            setTagTotal(0);
-            setFooterMessage(getErrorMessageFromValue(error));
-        },
-    });
-
-    function setTagPageState(page: number): void {
-        const sSafePage = Math.max(1, Math.floor(page));
-        setTagPage(sSafePage);
-        setTagPageInputValue(String(sSafePage));
-    }
-
-    function handleTagSearch(): void {
-        setFooterMessage(undefined);
-        setAppliedTagSearchText(sTagInputValue);
-        setTagPageState(1);
-        loadTagList(sTagInputValue, 1);
-    }
-
-    function handleTagPageChange(page: number): void {
-        setTagPageState(page);
-        loadTagList(sAppliedTagSearchText, page);
-    }
-
     function addSelectedTag(tagName: string): void {
         if (seriesList.length >= PANEL_TAG_LIMIT) {
             setFooterMessage(`The maximum number of tags in a chart is ${PANEL_TAG_LIMIT}.`);
             return;
         }
 
-        const sColumns = sSourceColumns;
         if (!sSelectedTable || !sColumns) {
             setFooterMessage('Select a table.');
             return;
@@ -291,17 +126,17 @@ export function PanelSeriesEditor({
             return;
         }
 
-        const sHasDuplicateSource = seriesList.some(
+        if (seriesList.some(
             (series) =>
                 series.table === sSelectedTable &&
                 series.sourceTagName === tagName &&
+                series.calculationMode === PanelSeriesCalculationMode.Average &&
                 series.sourceColumns.name === sColumns.name &&
                 series.sourceColumns.time === sColumns.time &&
                 series.sourceColumns.value === sColumns.value &&
                 (series.sourceColumns.jsonKey ?? '') ===
                     (sColumns.jsonKey ?? ''),
-        );
-        if (sHasDuplicateSource) {
+        )) {
             setFooterMessage('This series has already been added.');
             return;
         }
@@ -314,7 +149,12 @@ export function PanelSeriesEditor({
                 tagName,
                 calculationMode: PanelSeriesCalculationMode.Average,
                 columns: sColumns,
-                rollupMetadata: rollupTableList,
+                useRollupTable: getPanelSeriesRollupColumn(
+                    rollupTableList,
+                    sSelectedTable,
+                    sColumns.value,
+                    sColumns.jsonKey,
+                ) !== undefined,
             }),
         ]);
     }
@@ -339,36 +179,28 @@ export function PanelSeriesEditor({
     return (
         <>
             <SourceSelector
-                availableSourceTableNames={sAvailableSourceTableNames ?? []}
+                source={source}
                 rollupTableList={rollupTableList}
-                isTableNameLoading={sIsTableNameLoading}
-                selectedTable={sSelectedTable}
-                sourceColumns={sSourceColumns}
-                tableColumns={sTableColumns}
-                onSourceChange={handleSourceChange}
                 onError={setFooterMessage}
             />
 
-            <div className={styles.fieldCell}>
-                <label className={styles.fieldLabelTop} htmlFor={sTagInputId}>
-                    Tag
-                </label>
+            <Field label="Tag" htmlFor={sTagInputId}>
                 <Input
                     id={sTagInputId}
                     data-testid="tag-analyzer-series-search-input"
-                    value={sTagInputValue}
+                    value={tagSearch.searchInput}
                     placeholder="Search Tag"
                     onChange={(event) => {
                         setFooterMessage(undefined);
-                        setTagInputValue(event.target.value);
+                        tagSearch.setSearchInput(event.target.value);
                     }}
                     onKeyDown={(event) => {
                         if (event.key === 'Enter') {
-                            handleTagSearch();
+                            tagSearch.search();
                         }
                     }}
                     fullWidth
-                    size="sm"
+                    size="md"
                     rightIcon={
                         <Button
                             data-testid="tag-analyzer-series-search-button"
@@ -376,47 +208,39 @@ export function PanelSeriesEditor({
                             size="icon"
                             icon={<Search size={16} />}
                             className={`${styles.tagSearchButton} ${
-                                sHasPendingTagSearch ? styles.tagSearchButtonPending : ''
+                                tagSearch.hasPendingSearch ? styles.tagSearchButtonPending : ''
                             }`}
-                            onClick={handleTagSearch}
+                            onClick={tagSearch.search}
                             aria-label="Search tags"
                         />
                     }
                 />
-            </div>
+            </Field>
 
-            <div className={styles.itemListGroup}>
-                <div className={styles.listColumn}>
-                    <div className={styles.columnHeader}>
-                        <span className={styles.columnTitle}>
-                            <span className={styles.columnTitleText}>
-                                Item list
-                            </span>
-                            <Badge variant="primary" size="sm">
-                                {sTagTotal}
-                            </Badge>
-                        </span>
-                    </div>
+            <div className={`${controls.twoColumns} ${styles.seriesColumns}`}>
+                <Stack gap={8} className={styles.seriesColumn}>
+                    <Inline className={styles.columnHeader}>
+                        <Text variant="section" tone="muted">Item list</Text>
+                        <Badge variant="primary" size="sm">
+                            {tagSearch.total}
+                        </Badge>
+                    </Inline>
                     <List
-                        className={`${styles.seriesList} ${styles.availableTagList}`}
-                        items={sAvailableTagItems}
+                        className={`${styles.seriesList} ${controls.selectableList}`}
+                        items={tagSearch.tags.map((tag) => ({
+                            id: tag,
+                            label: tag,
+                            tooltip: tag,
+                            testId: `tag-analyzer-series-option-${encodeURIComponent(tag)}`,
+                        }))}
                         onItemClick={(id) => {
                             const sTag = String(id);
-                            if (sAvailableTags.includes(sTag)) {
+                            if (tagSearch.tags.includes(sTag)) {
                                 addSelectedTag(sTag);
                             }
                         }}
                     />
-                    <Pagination
-                        currentPage={sTagPage}
-                        totalPages={sTotalTagPages}
-                        onPageChange={handleTagPageChange}
-                        onPageInputChange={setTagPageInputValue}
-                        inputValue={sTagPageInputValue}
-                        showTotalPage
-                        className={styles.seriesPagination}
-                    />
-                </div>
+                </Stack>
 
                 <SelectedSeriesList
                     selectedSeries={seriesList}
@@ -425,10 +249,22 @@ export function PanelSeriesEditor({
                     onClearAll={() => applyNewSeriesList([])}
                     onChangeCalculationMode={changeSeriesCalculationMode}
                 />
+                <Pagination
+                    data-testid="series-pagination"
+                    currentPage={tagSearch.page}
+                    totalPages={tagSearch.totalPages}
+                    onPageChange={tagSearch.changePage}
+                    onPageInputChange={tagSearch.setPageInput}
+                    inputValue={tagSearch.pageInput}
+                    showTotalPage
+                    className={styles.seriesPagination}
+                />
             </div>
         </>
     );
 }
+
+// -------------------- Local --------------------
 
 function SelectedSeriesList({
     selectedSeries,
@@ -447,10 +283,9 @@ function SelectedSeriesList({
     ) => void;
 }) {
     const sSelectedCount = selectedSeries.length;
-    const sIsAtSelectionLimit = sSelectedCount >= PANEL_TAG_LIMIT;
 
     function handleSelectedSeriesKeyDown(
-        event: KeyboardEvent<HTMLDivElement>,
+        event: KeyboardEvent<HTMLElement>,
         seriesKey: string,
     ): void {
         if (event.target !== event.currentTarget) {
@@ -464,21 +299,19 @@ function SelectedSeriesList({
     }
 
     return (
-        <div className={styles.listColumn}>
-            <div className={styles.columnHeader}>
-                <span
-                    className={styles.columnTitle}
-                    data-testid="tag-analyzer-selected-series-count"
-                >
-                    <span className={styles.columnTitleText}>Selected</span>
+        <Stack gap={8} className={styles.seriesColumn}>
+            <Inline justify="between" className={styles.columnHeader}>
+                <Inline data-testid="tag-analyzer-selected-series-count">
+                    <Text variant="section" tone="muted">Selected</Text>
                     <Badge
-                        variant={sIsAtSelectionLimit ? 'error' : 'primary'}
+                        variant={sSelectedCount >= PANEL_TAG_LIMIT ? 'error' : 'primary'}
                         size="sm"
                     >
                         {`${sSelectedCount} / ${PANEL_TAG_LIMIT}`}
                     </Badge>
-                </span>
+                </Inline>
                 <Button
+                    data-testid="clear-all"
                     variant="ghost"
                     size="sm"
                     onClick={onClearAll}
@@ -486,80 +319,62 @@ function SelectedSeriesList({
                 >
                     Clear all
                 </Button>
-            </div>
-            <div className={styles.selectedSeriesList}>
+            </Inline>
+            <Stack gap={0} className={styles.selectedSeriesList}>
                 {selectedSeries.length > 0 ? (
-                    <div className={`${styles.selectedSeriesItems} scrollbar-dark`}>
+                    <Stack gap={4} className={`${styles.selectedSeriesItems} scrollbar-dark`}>
                         {selectedSeries.map((item) => (
-                            <div
+                            <Stack
                                 key={item.key}
+                                data-testid={`selected-series-${encodeURIComponent(item.key)}`}
+                                gap={8}
                                 role="button"
                                 tabIndex={0}
                                 title={getSelectedSeriesTooltip(
                                     item,
                                     rollupTableList,
                                 )}
-                                className={styles.selectedSeriesItem}
+                                className={`${controls.selectable} ${styles.selectedSeriesItem}`}
                                 onClick={() => onRemoveSeries(item.key)}
                                 onKeyDown={(event) =>
                                     handleSelectedSeriesKeyDown(event, item.key)
                                 }
                             >
-                                <div className={styles.selectedSeriesItemContent}>
-                                    <div className={styles.selectedSeriesHeader}>
-                                        <span
-                                            className={styles.selectedSeriesName}
-                                            title={item.sourceTagName}
-                                        >
-                                            {item.sourceTagName}
-                                        </span>
-                                        <div
-                                            className={styles.modeTriggerWrapper}
-                                            onClick={(event) => event.stopPropagation()}
-                                        >
-                                            <Dropdown.Root
-                                                options={
-                                                    TAG_ANALYZER_AGGREGATION_MODE_OPTIONS
-                                                }
-                                                value={item.calculationMode}
-                                                onChange={(value) => {
-                                                    const sMode =
-                                                        normalizePanelSeriesCalculationMode(
-                                                            value,
-                                                        );
-                                                    if (sMode) {
-                                                        onChangeCalculationMode(
-                                                            item.key,
-                                                            sMode,
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                <Dropdown.Trigger
-                                                    className="dropdown-trigger-sm"
-                                                    style={{ width: '100%' }}
-                                                />
-                                                <Dropdown.Menu>
-                                                    <Dropdown.List />
-                                                </Dropdown.Menu>
-                                            </Dropdown.Root>
-                                        </div>
-                                    </div>
-                                    <SelectedSeriesSourceDetails
-                                        item={item}
-                                        rollupTableList={rollupTableList}
-                                    />
+                                <div className={styles.selectedSeriesHeader}>
+                                    <Text
+                                        data-testid={`source-tag-${encodeURIComponent(JSON.stringify([item.table, item.sourceTagName]))}`}
+                                        variant="section"
+                                        truncate
+                                        tone="default"
+                                        title={item.sourceTagName}
+                                    >
+                                        {item.sourceTagName}
+                                    </Text>
+                                    <Inline
+                                        gap={0}
+                                        onClick={(event) => event.stopPropagation()}
+                                    >
+                                        <SeriesCalculationModeField
+                                            value={item.calculationMode}
+                                            onChange={(mode) => onChangeCalculationMode(item.key, mode)}
+                                            className={controls.control}
+                                        />
+                                    </Inline>
                                 </div>
-                            </div>
+                                <SelectedSeriesSourceDetails
+                                    item={item}
+                                    rollupTableList={rollupTableList}
+                                />
+                            </Stack>
                         ))}
-                    </div>
+                    </Stack>
                 ) : (
-                    <div className={styles.selectedSeriesEmpty}>
-                        No series selected.
-                    </div>
+                    <Inline justify="center" className={styles.selectedSeriesEmpty}>
+                        <Text tone="subtle">No series selected.</Text>
+                    </Inline>
                 )}
-            </div>
-        </div>
+            </Stack>
+        </Stack>
     );
 }
 
@@ -570,23 +385,17 @@ function SelectedSeriesSourceDetails({
     item: PanelSeriesDefinition;
     rollupTableList: RollupTableMap;
 }) {
-    const sRows = [
-        ['Table', item.table.split('.').at(-1) ?? item.table],
-        ['Time', getSourceTimeLabel(item)],
-        ['Value', getSourceValueLabel(item, rollupTableList)],
-    ] as const;
-
     return (
-        <div className={styles.selectedSeriesSourceDetails}>
-            {sRows.map(([label, value]) => (
-                <div key={label} className={styles.selectedSeriesSourceRow}>
-                    <span className={styles.selectedSeriesSourceLabel}>
-                        {label}
-                    </span>
-                    <span className={styles.selectedSeriesSourceValue}>
-                        {value}
-                    </span>
-                </div>
+        <div className={`${controls.threeColumns} ${styles.selectedSeriesDetails}`}>
+            {[
+                ['Table', item.table.split('.').at(-1) ?? item.table],
+                ['Time', item.sourceColumns.time || 'Time not selected'],
+                ['Value', getSourceValueLabel(item, rollupTableList)],
+            ].map(([label, value]) => (
+                <Inline key={label} gap={4}>
+                    <Text variant="caption" tone="subtle" weight="semibold" style={{ flexShrink: 0 }}>{label}</Text>
+                    <Text variant="caption" tone="secondary" truncate>{value}</Text>
+                </Inline>
             ))}
         </div>
     );
@@ -614,10 +423,6 @@ function getSourceValueLabel(
     return item.sourceColumns.value || 'Value not selected';
 }
 
-function getSourceTimeLabel(item: PanelSeriesDefinition): string {
-    return item.sourceColumns.time || 'Time not selected';
-}
-
 function getSelectedSeriesTooltip(
     item: PanelSeriesDefinition,
     rollupTableList: RollupTableMap,
@@ -625,380 +430,84 @@ function getSelectedSeriesTooltip(
     return [
         `Tag: ${item.sourceTagName}`,
         `Table: ${item.table}`,
-        `Time: ${getSourceTimeLabel(item)}`,
+        `Time: ${item.sourceColumns.time || 'Time not selected'}`,
         `Value: ${getSourceValueLabel(item, rollupTableList)}`,
         `Mode: ${item.calculationMode}`,
     ].join('\n');
 }
 
-type SourceColumnRequest = {
-    table: string;
-    generation: number;
-};
-
-type SourceTableOption = {
-    database: string;
-    owner: string;
-    table: string;
-    qualifiedName: string;
-};
-
 const EMPTY_JSON_PATH_OPTIONS: string[] = [];
 
 function SourceSelector({
-    availableSourceTableNames,
+    source,
     rollupTableList,
-    isTableNameLoading,
-    selectedTable,
-    sourceColumns,
-    tableColumns,
-    onSourceChange,
     onError,
 }: {
-    availableSourceTableNames: string[];
+    source: ReturnType<typeof usePanelSeriesSource>;
     rollupTableList: RollupTableMap;
-    isTableNameLoading: boolean;
-    selectedTable: string;
-    sourceColumns: PanelSeriesSourceColumns | undefined;
-    tableColumns: TableColumn[];
-    onSourceChange: (
-        table: string,
-        sourceColumns: PanelSeriesSourceColumns | undefined,
-        tableColumns: TableColumn[],
-    ) => void;
     onError: (message: string) => void;
 }) {
-    const sJsonKeyByColumnRef = useRef<Record<string, string>>({});
-    const [sColumnRequest, setColumnRequest] =
-        useState<SourceColumnRequest>();
-    const [sSelectedDatabase, setSelectedDatabase] = useState('');
-    const [sSelectedOwner, setSelectedOwner] = useState('');
-
-    const sSourceTables = useMemo<SourceTableOption[]>(
-        () => availableSourceTableNames.map(parseSourceTableOption),
-        [availableSourceTableNames],
-    );
-    const sDatabaseNames = useMemo<string[]>(
-        () => [...new Set(sSourceTables.map(({ database }) => database))],
-        [sSourceTables],
-    );
-    const sDatabaseOptions = useMemo<ComboboxOption[]>(
-        () =>
-            sDatabaseNames.map((database) => ({
-                value: database,
-                label: database,
-                testId: `tag-analyzer-database-option-${encodeTestIdSegment(database)}`,
-            })),
-        [sDatabaseNames],
-    );
-    const sSelectedSourceTable = sSourceTables.find(
-        ({ qualifiedName }) => qualifiedName === selectedTable,
-    );
-    const sSelectedTableDatabase = sSelectedSourceTable?.database;
-    const sActiveDatabase = sDatabaseNames.includes(sSelectedDatabase)
-        ? sSelectedDatabase
-        : sSelectedTableDatabase ?? sDatabaseNames[0] ?? '';
-    const sActiveDatabaseTables = useMemo<SourceTableOption[]>(
-        () =>
-            sSourceTables.filter(
-                ({ database }) => database === sActiveDatabase,
-            ),
-        [sActiveDatabase, sSourceTables],
-    );
-    const sActiveDatabaseOwners = useMemo<string[]>(
-        () => [
-            ...new Set(
-                sActiveDatabaseTables
-                    .map(({ owner }) => owner)
-                    .filter(Boolean),
-            ),
-        ],
-        [sActiveDatabaseTables],
-    );
-    const sOwnerOptions = useMemo<ComboboxOption[]>(
-        () =>
-            sActiveDatabaseOwners.map((owner) => ({
-                value: owner,
-                label: owner,
-                testId: `tag-analyzer-user-option-${encodeTestIdSegment(owner)}`,
-            })),
-        [sActiveDatabaseOwners],
-    );
-    const sActiveOwner = sActiveDatabaseOwners.includes(sSelectedOwner)
-        ? sSelectedOwner
-        : sSelectedSourceTable?.database === sActiveDatabase
-          ? sSelectedSourceTable.owner
-          : sActiveDatabaseOwners[0] ?? '';
-    const sActiveOwnerTables = useMemo<SourceTableOption[]>(
-        () =>
-            sActiveDatabaseOwners.length === 0
-                ? sActiveDatabaseTables
-                : sActiveDatabaseTables.filter(
-                      ({ owner }) => owner === sActiveOwner,
-                  ),
-        [
-            sActiveDatabaseOwners.length,
-            sActiveDatabaseTables,
-            sActiveOwner,
-        ],
-    );
-    const sTableOptions = useMemo<ComboboxOption[]>(
-        () =>
-            sActiveOwnerTables.map(({ table, qualifiedName }) => ({
-                value: qualifiedName,
-                label: table,
-                tooltip: qualifiedName,
-                testId: `tag-analyzer-table-option-${encodeTestIdSegment(qualifiedName)}`,
-            })),
-        [sActiveOwnerTables],
-    );
-    const sTimeColumnOptions = useMemo<ComboboxOption[]>(
-        () =>
-            getTagAnalyzerTimeColumns(tableColumns).map((item) => ({
-                label: `${item[0]} (${item[1] === DATETIME_COLUMN_TYPE ? 'DateTime' : 'Numeric'})`,
-                value: item[0],
-            })),
-        [tableColumns],
-    );
-    const sValueColumnOptions = useMemo<ComboboxOption[]>(
-        () =>
-            getTagAnalyzerValueColumns(tableColumns).map((item) => ({
-                label: isJsonTypeColumn(item[1])
-                    ? `${item[0]} (JSON)`
-                    : formatRollupOptionLabel(
-                          item[0],
-                          getPanelSeriesValueSummaryLabel(
-                              rollupTableList,
-                              selectedTable,
-                              item[0],
-                          ),
-                      ),
-                value: item[0],
-            })),
-        [rollupTableList, selectedTable, tableColumns],
-    );
-    const sIsJsonValue = isTagAnalyzerJsonValue(
-        tableColumns,
-        sourceColumns?.value ?? '',
-    );
-
-    useLatestAsyncRequest({
-        enabled: sColumnRequest !== undefined,
-        requestKey: JSON.stringify(sColumnRequest),
-        fetch: async () => {
-            if (!sColumnRequest) {
-                throw new Error('Source table is unavailable.');
-            }
-            const table = sColumnRequest.table;
-            const tableColumns = await tableMetadataApi.fetchTableColumns(
-                table,
-            );
-            const columnInfo = createTagAnalyzerColumnInfo(tableColumns);
-            return {
-                table,
-                sourceColumns: {
-                    name:
-                        columnInfo.name ||
-                        String(tableColumns[0]?.name ?? ''),
-                    time: columnInfo.time,
-                    timeType: columnInfo.timeType,
-                    timeBaseTime: columnInfo.timeBaseTime,
-                    value:
-                        columnInfo.value ||
-                        String(tableColumns[2]?.name ?? ''),
-                    jsonKey: columnInfo.jsonKey ?? '',
-                },
-                tableColumns,
-            };
-        },
-        onSuccess: ({
-            table,
-            sourceColumns: nextSourceColumns,
-            tableColumns: nextTableColumns,
-        }) => {
-            onSourceChange(table, nextSourceColumns, nextTableColumns);
-        },
-        onError: (error) => onError(getErrorMessageFromValue(error)),
-    });
-
-    const changeTable = useCallback(
-        (value: string): void => {
-            onSourceChange(value, undefined, []);
-
-            if (!value) {
-                setColumnRequest(undefined);
-                return;
-            }
-
-            setColumnRequest((current) => ({
-                table: value,
-                generation: (current?.generation ?? 0) + 1,
-            }));
-        },
-        [onSourceChange],
-    );
-
-    const changeDatabase = useCallback(
-        (value: string): void => {
-            const sFirstOwner = sSourceTables.find(
-                ({ database, owner }) => database === value && owner,
-            )?.owner;
-            const sFirstTable = sSourceTables.find(
-                ({ database, owner }) =>
-                    database === value &&
-                    (sFirstOwner === undefined || owner === sFirstOwner),
-            );
-            setSelectedDatabase(value);
-            setSelectedOwner(sFirstOwner ?? '');
-            changeTable(sFirstTable?.qualifiedName ?? '');
-        },
-        [changeTable, sSourceTables],
-    );
-
-    const changeOwner = useCallback(
-        (value: string): void => {
-            const sFirstTable = sActiveDatabaseTables.find(
-                ({ owner }) => owner === value,
-            );
-            setSelectedDatabase(sActiveDatabase);
-            setSelectedOwner(value);
-            changeTable(sFirstTable?.qualifiedName ?? '');
-        },
-        [changeTable, sActiveDatabase, sActiveDatabaseTables],
-    );
-
-    /**
-     * Reconcile the series' stored table with the list the server just returned.
-     *
-     * This used to be a string comparison against the list, and anything that failed it was
-     * replaced by `availableSourceTableNames[0]`. The three names a board can hold —
-     * `SENSOR` from before v8.7, `SYS.SENSOR`, and the `FACTORY_A.SYS.SENSOR` the explorer hands
-     * over — do not compare equal to each other, so opening a saved board silently repointed its
-     * series at an unrelated table and charted it under the board's own title.
-     *
-     * `resolveStoredTableName` applies the tail rule the engine itself accepts, so the short forms
-     * are *promoted* to the qualified name rather than discarded. Only a genuinely new series
-     * (no table at all) still takes the first entry; a name that resolves to nothing, or to several
-     * tables in different databases, keeps what the board said and says so in the footer. There is
-     * no name that means what the board intended, and picking one anyway is the bug being removed.
-     */
-    useEffect(() => {
-        if (availableSourceTableNames.length === 0) return;
-
-        const sResolved = resolveStoredTableName(
-            selectedTable,
-            availableSourceTableNames,
-        );
-        if (sResolved.status === 'exact') return;
-        if (sResolved.status === 'promoted') {
-            if (sResolved.name !== selectedTable) changeTable(sResolved.name);
-            return;
-        }
-        if (!selectedTable) {
-            changeTable(
-                sActiveOwnerTables[0]?.qualifiedName ??
-                    availableSourceTableNames[0],
-            );
-            return;
-        }
-        onError(
-            sResolved.status === 'ambiguous'
-                ? `${selectedTable} matches ${sResolved.candidates.length} tables (${sResolved.candidates.join(', ')}). Pick one so the series names its database.`
-                : `${selectedTable} is not in this server's tag table list. The series still points at it.`,
-        );
-    }, [
-        availableSourceTableNames,
-        changeTable,
-        onError,
-        sActiveOwnerTables,
-        selectedTable,
-    ]);
-
-    function patchColumnSelection(
-        patch: Partial<PanelSeriesSourceColumns>,
-    ): void {
-        const nextColumns = createTagAnalyzerColumnInfo(tableColumns, {
-            ...sourceColumns,
-            ...patch,
-        });
-        onSourceChange(selectedTable, nextColumns, tableColumns);
-    }
-
-    function changeValueColumn(value: string): void {
-        const sJsonOptionsKey = getJsonPathOptionsKey(selectedTable, value);
-        const sJsonKey =
-            isTagAnalyzerJsonValue(tableColumns, value) &&
-            sourceColumns?.value === value
-                ? sourceColumns?.jsonKey ?? ''
-                : sJsonKeyByColumnRef.current[sJsonOptionsKey] ?? '';
-        patchColumnSelection({
-            value,
-            jsonKey: isTagAnalyzerJsonValue(tableColumns, value)
-                ? sJsonKey
-                : '',
-        });
-    }
-
-    function applyJsonKey(jsonKey: string): void {
-        if (!sourceColumns) {
-            return;
-        }
-
-        patchColumnSelection({ jsonKey });
-        sJsonKeyByColumnRef.current[
-            getJsonPathOptionsKey(selectedTable, sourceColumns.value)
-        ] = jsonKey;
-    }
+    const {
+        selectedTable, sourceColumns, isTableNameLoading,
+        databaseOptions, activeDatabase, ownerOptions, activeOwner,
+        tableOptions, hasOwners, timeColumnOptions, valueColumnOptions,
+        isJsonValue, changeDatabase, changeOwner, changeTable,
+        patchColumnSelection, changeValueColumn, applyJsonKey,
+    } = source;
 
     return (
         <>
-            <div className={styles.fieldGroups}>
+            <Stack gap={12}>
                 <div
-                    className={styles.sourceFieldGrid}
+                    className={`${controls.threeColumns} ${styles.sourceLocation}`}
                     role="group"
                     aria-label="Source location"
                 >
                     <SourceComboboxField
                         label="Database"
-                        options={sDatabaseOptions}
-                        value={sActiveDatabase}
+                        testId="source-database"
+                        options={databaseOptions}
+                        value={activeDatabase}
                         onChange={changeDatabase}
                         disabled={isTableNameLoading}
                     />
                     <SourceComboboxField
                         label="User"
-                        options={sOwnerOptions}
-                        value={sActiveOwner}
+                        testId="source-user"
+                        options={ownerOptions}
+                        value={activeOwner}
                         onChange={changeOwner}
                         placeholder="Select a user"
                         disabled={
                             isTableNameLoading ||
-                            !sActiveDatabase ||
-                            sOwnerOptions.length === 0
+                            !activeDatabase ||
+                            ownerOptions.length === 0
                         }
                     />
                     <SourceComboboxField
                         label="Table"
-                        options={sTableOptions}
+                        testId="source-table"
+                        options={tableOptions}
                         value={selectedTable}
                         onChange={changeTable}
                         disabled={
                             isTableNameLoading ||
-                            !sActiveDatabase ||
-                            (sActiveDatabaseOwners.length > 0 &&
-                                !sActiveOwner)
+                            !activeDatabase ||
+                            (hasOwners &&
+                                !activeOwner)
                         }
                         dropdownWidth="auto"
                     />
                 </div>
                 <div
-                    className={styles.columnFieldGrid}
+                    className={`${controls.twoColumns} ${styles.sourceFields}`}
                     role="group"
                     aria-label="Source fields"
                 >
                     <SourceComboboxField
                         label="Time"
-                        options={sTimeColumnOptions}
+                        testId="source-time"
+                        options={timeColumnOptions}
                         value={sourceColumns?.time ?? ''}
                         onChange={(value) =>
                             patchColumnSelection({ time: value })
@@ -1007,7 +516,8 @@ function SourceSelector({
                     />
                     <SourceComboboxField
                         label="Value"
-                        options={sValueColumnOptions}
+                        testId="source-value"
+                        options={valueColumnOptions}
                         value={sourceColumns?.value ?? ''}
                         onChange={changeValueColumn}
                         disabled={isTableNameLoading || !selectedTable}
@@ -1020,9 +530,9 @@ function SourceSelector({
                         />
                     </SourceComboboxField>
                 </div>
-            </div>
+            </Stack>
 
-            {sIsJsonValue ? (
+            {isJsonValue ? (
                 <JsonKeyField
                     selectedTable={selectedTable}
                     valueColumn={sourceColumns?.value ?? ''}
@@ -1034,19 +544,6 @@ function SourceSelector({
             ) : null}
         </>
     );
-}
-
-function parseSourceTableOption(qualifiedName: string): SourceTableOption {
-    const sParts = qualifiedName.split('.');
-    const sTable = sParts.at(-1) ?? qualifiedName;
-
-    return {
-        database:
-            sParts.length >= 3 ? sParts[0] : getCurrentDatabaseName(),
-        owner: sParts.length >= 2 ? sParts.at(-2) ?? '' : '',
-        table: sTable,
-        qualifiedName,
-    };
 }
 
 function ValueRollupStatus({
@@ -1071,9 +568,6 @@ function ValueRollupStatus({
         valueColumn,
         jsonKey,
     );
-    const sLabel = sRollupInfo
-        ? `Has Rollup (${formatRollupRangeLabel(sRollupInfo)})`
-        : 'No Rollup';
     const sTooltip = sRollupInfo
         ? [
               `Column: ${sRollupInfo.columnName}`,
@@ -1085,18 +579,15 @@ function ValueRollupStatus({
 
     return (
         <>
-            <span
-                className={[
-                    styles.valueRollupStatus,
-                    sRollupInfo
-                        ? styles.valueRollupStatusActive
-                        : styles.valueRollupStatusInactive,
-                ].join(' ')}
+            <Text
+                variant="caption"
+                tone={sRollupInfo ? 'warning' : 'subtle'}
+                className={styles.valueRollupStatus}
                 data-tooltip-id={sTooltipId}
                 data-tooltip-content={sTooltip}
             >
-                {sLabel}
-            </span>
+                {sRollupInfo ? `Has Rollup (${formatRollupRangeLabel(sRollupInfo)})` : 'No Rollup'}
+            </Text>
             <Tooltip
                 id={sTooltipId}
                 className="tooltip-div"
@@ -1161,9 +652,6 @@ function JsonKeyField({
             })),
         [rollupTableList, sJsonPathOptions, selectedTable, valueColumn],
     );
-    const sJsonKeyInputValue =
-        sJsonKeyInputDraft ?? displayJsonPathLabel(selectedJsonKey);
-
     useEffect(() => {
         setJsonKeyInputDraft(undefined);
     }, [sJsonPathOptionsKey]);
@@ -1203,21 +691,22 @@ function JsonKeyField({
     }
 
     return (
-        <div className={styles.fieldGridFull}>
-            <span className={styles.jsonKeyLabel}>
-                <span>-&gt;$</span>
+        <Inline>
+            <Inline className={styles.jsonKeyLabel}>
+                <Text variant="label" weight="semibold" tone="muted">-&gt;$</Text>
                 {sSelectedJsonKeySummaryLabel ? (
-                    <span className={styles.jsonKeyMeta}>
+                    <Text variant="caption" tone="secondary" weight="medium">
                         {sSelectedJsonKeySummaryLabel}
-                    </span>
+                    </Text>
                 ) : null}
-            </span>
+            </Inline>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <InputSelect
                     aria-label="JSON key"
+                    data-testid="source-json-key"
                     type="text"
                     options={sJsonKeyOptions}
-                    value={sJsonKeyInputValue}
+                    value={sJsonKeyInputDraft ?? displayJsonPathLabel(selectedJsonKey)}
                     onChange={(event) =>
                         setJsonKeyInputDraft(event.target.value)
                     }
@@ -1231,21 +720,19 @@ function JsonKeyField({
                     size="md"
                 />
             </div>
-        </div>
+        </Inline>
     );
 }
 
 function SourceComboboxField({
     label,
-    options,
-    value,
-    onChange,
-    disabled,
-    placeholder,
+    testId,
     dropdownWidth,
     children,
+    ...comboboxProps
 }: {
     label: string;
+    testId: string;
     options: ComboboxOption[];
     value: string;
     onChange: (value: string) => void;
@@ -1257,42 +744,19 @@ function SourceComboboxField({
     const sInputId = useId();
 
     return (
-        <div className={styles.fieldCell}>
-            <label className={styles.fieldLabelTop} htmlFor={sInputId}>
-                {label}
-            </label>
+        <Field label={label} htmlFor={sInputId}>
             <Combobox.Root
-                options={options}
-                value={value}
-                onChange={onChange}
-                disabled={disabled}
-                placeholder={placeholder}
+                {...comboboxProps}
                 fullWidth
                 size="md"
             >
-                <Combobox.Input id={sInputId} />
+                <Combobox.Input id={sInputId} data-testid={testId} className={styles.sourceInput} />
                 <Combobox.Trigger icon={<ArrowDown size={14} />} />
                 <Combobox.Dropdown width={dropdownWidth}>
                     <Combobox.List />
                 </Combobox.Dropdown>
             </Combobox.Root>
             {children}
-        </div>
+        </Field>
     );
-}
-
-function getJsonPathOptionsKey(
-    tableName: string,
-    valueColumn: string,
-): string {
-    return tableName && valueColumn
-        ? [tableName, valueColumn].join('\u0000')
-        : '';
-}
-
-function formatRollupOptionLabel(
-    label: string,
-    summaryLabel: string | undefined,
-): string {
-    return summaryLabel ? `${label} (${summaryLabel})` : label;
 }

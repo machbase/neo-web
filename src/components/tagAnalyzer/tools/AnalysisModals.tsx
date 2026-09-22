@@ -6,7 +6,7 @@ import {
 } from 'react';
 import { Close, LineChart, Play } from '@/assets/icons/Icon';
 import { Spinner } from '@/components/spinner/Spinner';
-import { Alert, Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
+import { Alert, Button, Dropdown, Input, Modal, Toast } from '@/design-system/components';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import {
     formatAxisPointer,
@@ -16,16 +16,14 @@ import {
 import {
     formatCompactNumber,
 } from '../format/numericFormat';
-import {
-    formatTimeUnitShortCode,
-} from '../format/timeFormat';
+import { formatTimeUnitShortCode } from '../rangeExpression/expressionFormat';
 import {
     getTimeUnitMilliseconds,
     TimeUnit,
-} from '../range/intervalResolver';
-import type { AxisRange } from '../range/rangeModel';
+} from '../rangeExpression/intervalResolver';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
-import PanelPopover from './PanelPopover';
+import PanelPopover from '../ui/PanelPopover';
 import {
     FFT_MINIMUM_SAMPLE_COUNT,
     type FFTSelectionPayload,
@@ -34,9 +32,119 @@ import {
 
 import { fftApi, type FftChartData } from '../api/fftApi';
 import { useLatestAsyncRequest } from '../hooks/useLatestAsyncRequest';
+import { Inline, Stack, Text } from '../ui/Presentation';
 import styles from './AnalysisModals.module.scss';
+import controls from '../ui/Controls.module.scss';
 
-type SelectedRangeSeriesSummary = FFTSeriesSummary;
+export function SelectionSummaryPopover({
+    selection,
+    position,
+    isNumericXAxis,
+    isRaw,
+    onClose,
+}: {
+    selection: FFTSelectionPayload;
+    position: { x: number; y: number };
+    isNumericXAxis: boolean;
+    isRaw: boolean;
+    onClose: () => void;
+}) {
+    const [isFftOpen, setFftOpen] = useState(false);
+    const sFftChartData = useFftChartData();
+    const sFftUnavailableReason = !isRaw
+        ? 'FFT is only allowed during raw mode'
+        : isNumericXAxis
+          ? 'Numeric cannot be used to generate FFT.'
+          : sFftChartData.isLoading
+            ? 'Wait for the current FFT request to finish.'
+          : undefined;
+
+    useEffect(() => {
+        if (!isRaw) setFftOpen(false);
+    }, [isRaw]);
+
+    if (isFftOpen && isRaw) {
+        return (
+            <FFTModal
+                seriesSummaries={selection.seriesSummaries}
+                start={selection.start}
+                end={selection.end}
+                isNumericXAxis={isNumericXAxis}
+                fftChartData={sFftChartData}
+                onClose={() => setFftOpen(false)}
+            />
+        );
+    }
+
+    return (
+        <PanelPopover
+            data-testid="tag-analyzer-selection-summary"
+            title="Selection Summary"
+            position={position}
+            onClose={onClose}
+            closeOnScroll={false}
+            size="compact"
+            outsideCloseIgnoreSelector=".panel-header"
+            headerAction={(
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onClose}
+                    icon={<Close size={16} />}
+                    aria-label="Close selection summary"
+                    data-testid="close"
+                />
+            )}
+        >
+            <Stack gap={24}>
+                <Stack gap={12}>
+                    <Text as="div" variant="body" tone="muted">
+                        {formatAxisPointer(selection.start, isNumericXAxis)}{' ~ '}
+                        {formatAxisPointer(selection.end, isNumericXAxis)}
+                    </Text>
+                    <Inline justify="center">
+                        <Text variant="body" tone="muted">
+                            {`( ${formatAxisSpan(selection.start, selection.end, isNumericXAxis)} )`}
+                        </Text>
+                    </Inline>
+                </Stack>
+                <div className={styles.selectionGrid}>
+                    {SUMMARY_FIELD_LABELS.map((label) => (
+                        <Text variant="label" tone="muted" key={label}>{label}</Text>
+                    ))}
+                    {selection.seriesSummaries.flatMap((item) => (
+                        [item.series.sourceTagName, item.min, item.max, item.avg].map((value, index) => (
+                            <Text
+                                key={`${item.series.key}:${SUMMARY_FIELD_LABELS[index]}`}
+                                variant="body"
+                                data-numeric={index > 0 || undefined}
+                            >
+                                {value}
+                            </Text>
+                        ))
+                    ))}
+                </div>
+                <div title={sFftUnavailableReason}>
+                    <Button
+                        data-testid="tag-analyzer-selection-open-fft"
+                        size="sm"
+                        variant="secondary"
+                        disabled={sFftUnavailableReason !== undefined}
+                        onClick={() => {
+                            if (!sFftUnavailableReason) setFftOpen(true);
+                        }}
+                        icon={<LineChart size={16} />}
+                        fullWidth
+                    >
+                        Open FFT chart
+                    </Button>
+                </div>
+            </Stack>
+        </PanelPopover>
+    );
+}
+
+// -------------------- Local --------------------
 
 const FFT_INTERVAL_OPTIONS = [
     TimeUnit.Millisecond,
@@ -107,12 +215,6 @@ function FFTModal({
               end: formatCompactNumber(end),
           }
         : formatAxisRange({ start, end }, false);
-    const sRangeLabel = `${sFormattedRange.start} ~ ${sFormattedRange.end}`;
-    const sDropdownOptions = seriesSummaries.map((summary) => ({
-        value: summary.series.key,
-        label: summary.series.alias || summary.series.sourceTagName,
-        testId: `tag-analyzer-fft-series-option-${encodeURIComponent(summary.series.sourceTagName)}`,
-    }));
     const rejectNumeric3dFft = (): boolean => {
         if (!isNumericXAxis) return false;
 
@@ -130,7 +232,7 @@ function FFTModal({
     }, [end, loadChartData, seriesSummaries, start]);
 
     const loadSelectedFft = (
-        summary: SelectedRangeSeriesSummary,
+        summary: FFTSeriesSummary,
         isChart2D: boolean,
         values = sAppliedValuesRef.current,
     ): void => {
@@ -140,18 +242,13 @@ function FFTModal({
         setFftWarning(sWarning);
         if (sWarning !== undefined) return;
 
-        const sArgs = [
+        loadChartData(
             summary.series,
             { start, end },
             values.minHz,
             values.maxHz,
-        ] as const;
-
-        if (isChart2D) {
-            loadChartData(...sArgs);
-            return;
-        }
-        loadChartData(...sArgs, values.intervalMs);
+            isChart2D ? undefined : values.intervalMs,
+        );
     };
 
     const handleSelectedSeries = (value: string): void => {
@@ -242,40 +339,46 @@ function FFTModal({
         >
             <Modal.Header>
                 <Modal.Title>
-                    <LineChart size={16} /> FFT
+                    <LineChart size={16} /> <Text variant="title">FFT</Text>
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body className={styles.fftBody}>
                 <div className={styles.fftToolbar}>
-                    <fieldset className={styles.fftFieldset}>
-                        <legend className={styles.fftControlLabel}>
+                    <Stack as="fieldset" gap={8} className={styles.fftFieldset}>
+                        <Text as="legend" variant="label" tone="muted">
                             Series
-                        </legend>
+                        </Text>
                         <Dropdown.Root
-                            options={sDropdownOptions}
+                            options={seriesSummaries.map(({ series }) => ({
+                                value: series.key,
+                                label: series.alias || series.sourceTagName,
+                                testId: `tag-analyzer-fft-series-option-${encodeURIComponent(series.sourceTagName)}`,
+                            }))}
                             value={sSelectedInfo.series.key}
                             onChange={handleSelectedSeries}
                             disabled={sIsLoading}
                             placeholder="Select series"
                             fullWidth
                         >
-                            <Dropdown.Trigger data-testid="tag-analyzer-fft-series" />
+                            <Dropdown.Trigger data-testid="tag-analyzer-fft-series" className={controls.control} />
                             <Dropdown.Menu>
                                 <Dropdown.List />
                             </Dropdown.Menu>
                         </Dropdown.Root>
-                    </fieldset>
+                    </Stack>
 
-                    <fieldset className={styles.fftFieldset}>
-                        <legend className={styles.fftControlLabel}>
+                    <Stack as="fieldset" gap={8} className={styles.fftFieldset}>
+                        <Text as="legend" variant="label" tone="muted">
                             Chart dimension
-                        </legend>
-                        <div
+                        </Text>
+                        <Inline
+                            gap={4}
                             className={styles.fftDimensionButtons}
                         >
                             <Button
                                 data-testid="tag-analyzer-fft-2d"
+                                className={controls.control}
                                 type="button"
                                 size="sm"
                                 variant="secondary"
@@ -289,6 +392,7 @@ function FFTModal({
                             </Button>
                             <Button
                                 data-testid="tag-analyzer-fft-3d"
+                                className={controls.control}
                                 type="button"
                                 size="sm"
                                 variant="secondary"
@@ -300,86 +404,72 @@ function FFTModal({
                             >
                                 3D
                             </Button>
-                        </div>
-                    </fieldset>
+                        </Inline>
+                    </Stack>
                 </div>
 
-                <div
-                    className={styles.fftInputs}
-                >
-                    <div className={styles.fftInputRow}>
+                <Inline wrap align="end" gap={12}>
+                    {[
+                        { name: 'min', label: 'Min Hz', value: sMinHz, setValue: setMinHz },
+                        { name: 'max', label: 'Max Hz', value: sMaxHz, setValue: setMaxHz },
+                    ].map(({ name, label, value, setValue }) => (
                         <Input
-                            data-testid="tag-analyzer-fft-min-hz"
+                            key={name}
+                            data-testid={`tag-analyzer-fft-${name}-hz`}
                             className={styles.fftFrequencyField}
-                            label="Min Hz"
+                            label={label}
                             labelPosition="top"
                             type="number"
                             min={0}
                             step="any"
                             size="md"
-                            value={sMinHz}
-                            onChange={(event) => setMinHz(event.target.value)}
+                            value={value}
+                            onChange={(event) => setValue(event.target.value)}
                         />
-                        <Input
-                            data-testid="tag-analyzer-fft-max-hz"
-                            className={styles.fftFrequencyField}
-                            label="Max Hz"
-                            labelPosition="top"
-                            type="number"
-                            min={0}
-                            step="any"
-                            size="md"
-                            value={sMaxHz}
-                            onChange={(event) => setMaxHz(event.target.value)}
-                        />
-                        {!sIsChart2D && (
-                            <div className={styles.fftIntervalFields}>
-                                <Input
-                                    data-testid="tag-analyzer-fft-interval"
-                                    label="Interval"
-                                    labelPosition="top"
-                                    type="number"
-                                    min={0}
-                                    step="any"
-                                    size="md"
-                                    value={sInterval}
-                                    onChange={(event) =>
-                                        setInterval(event.target.value)
-                                    }
-                                />
-                                <fieldset className={styles.fftFieldset}>
-                                    <legend className={styles.fftControlLabel}>
-                                        Unit
-                                    </legend>
-                                    <Dropdown.Root
-                                        options={FFT_INTERVAL_OPTIONS}
-                                        value={sIntervalUnit}
-                                        onChange={handleSelectInterval}
-                                        placeholder="Unit"
-                                        fullWidth
-                                    >
-                                        <Dropdown.Trigger data-testid="tag-analyzer-fft-interval-unit" />
-                                        <Dropdown.Menu>
-                                            <Dropdown.List />
-                                        </Dropdown.Menu>
-                                    </Dropdown.Root>
-                                </fieldset>
-                            </div>
-                        )}
-                        <Button
-                            data-testid="tag-analyzer-fft-apply"
-                            className={styles.fftApplyButton}
-                            type="button"
-                            size="sm"
-                            variant="primary"
-                            icon={<Play size={16} />}
-                            disabled={sIsLoading}
-                            onClick={handleApplyInputs}
-                        >
-                            Apply values
-                        </Button>
-                    </div>
-                </div>
+                    ))}
+                    {!sIsChart2D && (
+                        <div className={styles.fftIntervalFields}>
+                            <Input
+                                data-testid="tag-analyzer-fft-interval"
+                                label="Interval"
+                                labelPosition="top"
+                                type="number"
+                                min={0}
+                                step="any"
+                                size="md"
+                                value={sInterval}
+                                onChange={(event) => setInterval(event.target.value)}
+                            />
+                            <Stack as="fieldset" gap={8} className={styles.fftFieldset}>
+                                <Text as="legend" variant="label" tone="muted">Unit</Text>
+                                <Dropdown.Root
+                                    options={FFT_INTERVAL_OPTIONS}
+                                    value={sIntervalUnit}
+                                    onChange={handleSelectInterval}
+                                    placeholder="Unit"
+                                    fullWidth
+                                >
+                                    <Dropdown.Trigger data-testid="tag-analyzer-fft-interval-unit" className={controls.control} />
+                                    <Dropdown.Menu>
+                                        <Dropdown.List />
+                                    </Dropdown.Menu>
+                                </Dropdown.Root>
+                            </Stack>
+                        </div>
+                    )}
+                    <Button
+                        data-testid="tag-analyzer-fft-apply"
+                        className={`${controls.control} ${styles.fftApplyButton}`}
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        icon={<Play size={16} />}
+                        disabled={sIsLoading}
+                        onClick={handleApplyInputs}
+                    >
+                        Apply values
+                    </Button>
+                </Inline>
 
                 <div
                     data-testid="tag-analyzer-fft-chart"
@@ -410,7 +500,7 @@ function FFTModal({
                         <ShowVisualization pData={sChartData} pLoopMode={false} />
                     )}
                 </div>
-                <dl
+                <Inline as="dl" wrap align="baseline" gap={16}
                     data-testid="tag-analyzer-fft-summary"
                     className={styles.fftSelectionSummary}
                 >
@@ -419,23 +509,29 @@ function FFTModal({
                         ['Max', sSelectedInfo.max],
                         ['Avg', sSelectedInfo.avg],
                     ].map(([label, value]) => (
-                        <div
+                        <Inline
+                            align="baseline"
+                            gap={8}
                             key={label}
                             data-testid={`tag-analyzer-fft-summary-${label.toLowerCase()}`}
                             className={styles.fftSummaryItem}
                         >
-                            <dt>{label}</dt>
-                            <dd>{value}</dd>
-                        </div>
+                            <Text as="dt" variant="body" tone="subtle">{label}</Text>
+                            <Text as="dd" variant="body" tone="default">{value}</Text>
+                        </Inline>
                     ))}
-                    <div
+                    <Inline
+                        align="baseline"
+                        gap={8}
                         data-testid="tag-analyzer-fft-summary-range"
                         className={`${styles.fftSummaryItem} ${styles.fftSummaryRange}`}
                     >
-                        <dt>Selected range</dt>
-                        <dd>{sRangeLabel}</dd>
-                    </div>
-                </dl>
+                        <Text as="dt" variant="body" tone="subtle">Selected range</Text>
+                        <Text as="dd" variant="body" tone="default">
+                            {`${sFormattedRange.start} ~ ${sFormattedRange.end}`}
+                        </Text>
+                    </Inline>
+                </Inline>
             </Modal.Body>
             <Modal.Footer>
                 <Modal.Cancel data-testid="tag-analyzer-fft-close">
@@ -502,7 +598,7 @@ function useFftChartData() {
 }
 
 function parseNonNegativeNumber(value: string): number | undefined {
-    const sValue = value.trim() === '' ? 0 : Number(value);
+    const sValue = Number(value);
     return Number.isFinite(sValue) && sValue >= 0 ? sValue : undefined;
 }
 
@@ -526,132 +622,3 @@ function getFftIntervalWarning(
 }
 
 const SUMMARY_FIELD_LABELS = ['Name', 'Min', 'Max', 'Avg'] as const;
-
-export function SelectionSummaryPopover({
-    selection,
-    position,
-    isNumericXAxis,
-    isRaw,
-    onClose,
-}: {
-    selection: FFTSelectionPayload;
-    position: { x: number; y: number };
-    isNumericXAxis: boolean;
-    isRaw: boolean;
-    onClose: () => void;
-}) {
-    const [isFftOpen, setFftOpen] = useState(false);
-    const sFftChartData = useFftChartData();
-    const sFftUnavailableReason = !isRaw
-        ? 'FFT is only allowed during raw mode'
-        : isNumericXAxis
-          ? 'Numeric cannot be used to generate FFT.'
-          : sFftChartData.isLoading
-            ? 'Wait for the current FFT request to finish.'
-          : undefined;
-
-    useEffect(() => {
-        if (!isRaw) setFftOpen(false);
-    }, [isRaw]);
-
-    if (isFftOpen && isRaw) {
-        return (
-            <FFTModal
-                seriesSummaries={selection.seriesSummaries}
-                start={selection.start}
-                end={selection.end}
-                isNumericXAxis={isNumericXAxis}
-                fftChartData={sFftChartData}
-                onClose={() => setFftOpen(false)}
-            />
-        );
-    }
-
-    return (
-        <PanelPopover
-            data-testid="tag-analyzer-selection-summary"
-            title="Selection Summary"
-            position={position}
-            onClose={onClose}
-            size="compact"
-            outsideCloseIgnoreSelector=".panel-header"
-            headerAction={(
-                <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={onClose}
-                    icon={<Close size={16} />}
-                    aria-label="Close selection summary"
-                />
-            )}
-        >
-            <Page.ContentDesc>
-                {formatAxisPointer(selection.start, isNumericXAxis)}{' '}
-                ~{' '}
-                {formatAxisPointer(selection.end, isNumericXAxis)}
-            </Page.ContentDesc>
-            <Page.DpRow style={{ justifyContent: 'center' }}>
-                <Page.ContentDesc>
-                    {`( ${formatAxisSpan(
-                        selection.start,
-                        selection.end,
-                        isNumericXAxis,
-                    )} )`}
-                </Page.ContentDesc>
-            </Page.DpRow>
-            <Page.Space />
-            <div
-                style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(88px, 1.4fr) repeat(3, minmax(72px, 1fr))',
-                    gap: '6px 10px',
-                    alignItems: 'baseline',
-                }}
-            >
-                {SUMMARY_FIELD_LABELS.map((label) => (
-                    <Page.ContentDesc key={label}>
-                        {label}
-                    </Page.ContentDesc>
-                ))}
-                {selection.seriesSummaries.map((item) => {
-                    const sValues = [
-                        item.series.sourceTagName,
-                        item.min,
-                        item.max,
-                        item.avg,
-                    ];
-
-                    return sValues.map((value, index) => (
-                        <Page.ContentText
-                            key={`${item.series.key}:${SUMMARY_FIELD_LABELS[index]}`}
-                            pContent={value}
-                            style={{
-                                minWidth: 0,
-                                overflowWrap: 'anywhere',
-                                textAlign: index === 0 ? 'left' : 'right',
-                            }}
-                        />
-                    ));
-                })}
-            </div>
-            <Page.Space />
-            <div
-                title={sFftUnavailableReason}
-            >
-                <Button
-                    data-testid="tag-analyzer-selection-open-fft"
-                    size="sm"
-                    variant="secondary"
-                    disabled={sFftUnavailableReason !== undefined}
-                    onClick={() => {
-                        if (!sFftUnavailableReason) setFftOpen(true);
-                    }}
-                    icon={<LineChart size={16} />}
-                    fullWidth
-                >
-                    Open FFT chart
-                </Button>
-            </div>
-        </PanelPopover>
-    );
-}

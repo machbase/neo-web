@@ -1,20 +1,5 @@
-import { getRangeWidth } from '../range/rangeArithmetic';
-import type { AxisRange } from '../range/rangeModel';
-
-const COMPACT_VISIBLE_SPAN_THRESHOLD = 10_000;
-const MAX_FRACTION_DIGITS = 8;
-const COMPACT_UNITS = [
-    { value: 1_000_000_000_000, suffix: 'T' },
-    { value: 1_000_000_000, suffix: 'B' },
-    { value: 1_000_000, suffix: 'M' },
-    { value: 1_000, suffix: 'K' },
-] as const;
-const COMPACT_FORMATTER = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 1,
-});
-const STANDARD_FORMATTERS = new Map<number, Intl.NumberFormat>([
-    [4, new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 })],
-]);
+import { getRangeWidth } from '../rangeExpression/rangeArithmetic';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 
 export function formatCompactNumber(
     value: number | string,
@@ -63,6 +48,23 @@ export function formatNumericInterval(interval: number | undefined): string {
 
     return usesThousands ? `${formatted}k` : formatted;
 }
+
+// -------------------- Local --------------------
+
+const COMPACT_VISIBLE_SPAN_THRESHOLD = 10_000;
+const MAX_FRACTION_DIGITS = 8;
+const COMPACT_UNITS = [
+    { value: 1_000_000_000_000, suffix: 'T' },
+    { value: 1_000_000_000, suffix: 'B' },
+    { value: 1_000_000, suffix: 'M' },
+    { value: 1_000, suffix: 'K' },
+] as const;
+const COMPACT_FORMATTER = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+});
+const STANDARD_FORMATTERS = new Map<number, Intl.NumberFormat>([
+    [4, new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 })],
+]);
 
 function shouldUseLargerUnit(
     absoluteValue: number,

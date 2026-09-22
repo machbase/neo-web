@@ -3,23 +3,16 @@ import {
     getPanelSeriesEChartsName,
     type PanelSeriesDefinition,
 } from '../seriesModel';
-import type { PanelDataFetchResult } from '../api/seriesDataApi';
-import type { AxisRange } from '../range/rangeModel';
+import type { PanelDataFetchResult, SeriesDataRow } from '../api/seriesDataApi';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 
-export type ChartRow = [number, number | null];
+export type ChartRow = SeriesDataRow;
 
 export type ChartSeriesData = {
     name: string;
-    echartsName?: string;
+    echartsName: string;
     data: ChartRow[];
-    yAxis: number;
-    marker:
-        | {
-              symbol: string | undefined;
-              lineColor: string | undefined;
-              lineWidth: number | undefined;
-          }
-        | undefined;
+    yAxis: 0 | 1;
     color: string | undefined;
 };
 
@@ -36,12 +29,6 @@ export function filterChartDataByRange(
                 timestamp >= range.start && timestamp <= range.end,
         ),
     }));
-}
-
-export function getChartSeriesEChartsName(
-    series: Pick<ChartSeriesData, 'name' | 'echartsName'>,
-): string {
-    return series.echartsName ?? series.name;
 }
 
 export function mapFetchResultToChartData(
@@ -71,11 +58,6 @@ export function mapFetchResultToChartData(
                 ([aTime, aValue]): ChartRow => [aTime, aValue],
             ),
             yAxis: sSeriesConfig.useSecondaryAxis ? 1 : 0,
-            marker: {
-                symbol: 'circle',
-                lineColor: undefined,
-                lineWidth: 1,
-            },
             color: includeColor ? sSeriesConfig.color : undefined,
         };
     });

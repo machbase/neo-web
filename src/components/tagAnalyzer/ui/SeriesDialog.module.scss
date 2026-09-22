@@ -1,0 +1,17 @@
+@use '../TextStyle' as text;
+@use './theme';
+
+.modal {
+    @include text.control-surface;
+    max-width: 700px;
+    width: 100%;
+}
+
+.title { @include text.title; }
+.icon { display: inline-flex; align-items: center; color: theme.$accent; }
+.message {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-align: right;
+}

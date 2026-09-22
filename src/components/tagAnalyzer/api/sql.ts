@@ -1,4 +1,4 @@
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import type { SqlIdentifierPath } from '../seriesModel';
 
 export const NANOSECONDS_PER_MILLISECOND = 1000000;
@@ -22,17 +22,6 @@ export function indentSql(sql: string): string {
         .split('\n')
         .map((line) => line.length > 0 ? `    ${line}` : line)
         .join('\n');
-}
-
-function millisecondsToNanosecondsSql(ms: number): string {
-    const wholeMilliseconds: number = Math.trunc(ms);
-    const fractionalNanoseconds: number = Math.round(
-        (ms - wholeMilliseconds) * NANOSECONDS_PER_MILLISECOND,
-    );
-    return String(
-        BigInt(wholeMilliseconds) * BigInt(NANOSECONDS_PER_MILLISECOND) +
-        BigInt(fractionalNanoseconds),
-    );
 }
 
 export function toQueryTimeLiteralSql(
@@ -59,4 +48,17 @@ export function toQueryResultMillisecondsSql(
     dateTimeExpressionSql: string,
 ): string {
     return `TO_TIMESTAMP(${dateTimeExpressionSql}) / ${NANOSECONDS_PER_MILLISECOND}.0`;
+}
+
+// -------------------- Local --------------------
+
+function millisecondsToNanosecondsSql(ms: number): string {
+    const wholeMilliseconds: number = Math.trunc(ms);
+    const fractionalNanoseconds: number = Math.round(
+        (ms - wholeMilliseconds) * NANOSECONDS_PER_MILLISECOND,
+    );
+    return String(
+        BigInt(wholeMilliseconds) * BigInt(NANOSECONDS_PER_MILLISECOND) +
+        BigInt(fractionalNanoseconds),
+    );
 }

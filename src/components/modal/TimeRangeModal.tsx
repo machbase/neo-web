@@ -305,6 +305,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
 
     return (
         <Modal.Root
+            data-testid="time-range-dialog"
             isOpen={true}
             onClose={() => pSetTimeRangeModal(false)}
             // Enter applies, which is what the Data Viewer's own distance dialog did before it was
@@ -326,7 +327,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                     {sLockTab === 'distance' ? <MaterialIcon name="straighten" size={16} /> : <Calendar />}
                     {sLockTab === 'distance' ? 'Distance Range' : sLockTab === 'time' ? 'Time Range' : sHasDistance ? 'Range' : 'Time Range'}
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="close-button" />
             </Modal.Header>
 
             <Modal.Body>
@@ -335,6 +336,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                         {(['time', 'distance'] as const).map((aKey) => (
                             <button
                                 key={aKey}
+                                data-testid={`kind-${aKey}`}
                                 type="button"
                                 onClick={() => setTab(aKey)}
                                 style={{
@@ -370,8 +372,8 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                     />
                 ) : (
                     <>
-                        <DatePicker pLabel="From" pTopPixel={32} pTimeValue={sStartTime} onChange={(date: any) => handleStartTime(date)} pSetApply={(date: any) => setStartTime(date)} />
-                        <DatePicker pLabel="To" pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
+                        <DatePicker pTestId="from-input" pLabel="From" pTopPixel={32} pTimeValue={sStartTime} onChange={(date: any) => handleStartTime(date)} pSetApply={(date: any) => setStartTime(date)} />
+                        <DatePicker pTestId="to-input" pLabel="To" pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
                         {pShowRefresh && (
                             <Dropdown.Root
                                 label="Refresh"
@@ -395,8 +397,8 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             </Modal.Body>
 
             <Modal.Footer>
-                <Modal.Confirm onClick={setGlobalTime}>Apply</Modal.Confirm>
-                <Modal.Cancel>Cancel</Modal.Cancel>
+                <Modal.Confirm data-testid="apply-button" onClick={setGlobalTime}>Apply</Modal.Confirm>
+                <Modal.Cancel data-testid="cancel-button">Cancel</Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );

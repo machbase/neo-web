@@ -9,8 +9,11 @@
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
         "preview": "vite preview",
         "test": "jest",
-        "test:playwright": "playwright test",
-        "test:playwright:grouped": "node playwright_test/runFeatureGroups.mjs"
+        "test:unit": "jest",
+        "test:integration": "playwright test --project=integration",
+        "test:integration:client": "jest --config tests/integration/jest.config.cjs",
+        "test:e2e": "playwright test --project=e2e",
+        "test:playwright": "playwright test"
     },
     "dependencies": {
         "@emotion/react": "^11.11.1",
@@ -80,6 +83,7 @@
         "identity-obj-proxy": "^3.0.0",
         "jest": "^29.6.4",
         "jest-environment-jsdom": "^29.6.4",
+        "msw": "^2.15.0",
         "react-test-renderer": "^18.2.0",
         "ts-jest": "^29.1.1",
         "typescript": "^5.0.2",
@@ -87,6 +91,13 @@
         "vite-plugin-svgr": "^4.5.0"
     },
     "jest": {
+        "displayName": "unit",
+        "roots": [
+            "<rootDir>/src"
+        ],
+        "testMatch": [
+            "**/*.test.[jt]s?(x)"
+        ],
         "testEnvironment": "jsdom",
         "testPathIgnorePatterns": [
             "/node_modules/",

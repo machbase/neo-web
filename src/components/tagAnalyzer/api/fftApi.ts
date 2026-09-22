@@ -10,7 +10,7 @@ import {
     type SqlIdentifierPath,
     type ValidatedPanelSeriesSourceColumns,
 } from '../seriesModel';
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import {
     buildSqlStringLiteral,
     buildTqlDoubleQuotedString,
@@ -21,6 +21,10 @@ export type FftChartData = {
     [key: string]: unknown;
     chartID: string;
 };
+
+export const fftApi = { fetchFftChartData };
+
+// -------------------- Local --------------------
 
 const FFT_CHART_REQUEST_FAILED_MESSAGE: string = 'Failed to fetch FFT chart.';
 
@@ -97,8 +101,6 @@ async function fetchFftChartData(
         ),
     );
 }
-
-export const fftApi = { fetchFftChartData };
 
 function buildFftFrequencyArguments(minHz: number, maxHz: number): string {
     return minHz === 0 && maxHz === 0 ? '' : `minHz(${minHz}), maxHz(${maxHz})`;
