@@ -83,7 +83,10 @@ it.each(['empty', 'same-count'])('retires a hovered series during %s reload with
         expect(onMove).toHaveBeenLastCalledWith(expect.objectContaining({
             componentType: 'series', seriesIndex: 0, seriesName: 'Temperature',
         }));
-        chart.on('legendselectchanged', view.result.current.onEvents.legendselectchanged);
+        // The legacy global @types/echarts used to widen `on`'s handler parameter to `any`. With the
+        // real v5 types the handler is `(...args: unknown[]) => boolean | void`, so the typed
+        // payload this suite passes needs an explicit widening at the boundary.
+        chart.on('legendselectchanged', view.result.current.onEvents.legendselectchanged as (...args: unknown[]) => void);
         act(() => { chart.dispatchAction({ type: 'legendToggleSelect', name: 'Temperature' }); });
         expect(inputs.refs.chartApiRef.current?.getVisibleSeries()).toEqual([{ name: 'Temperature', visible: false }]);
 
@@ -112,7 +115,10 @@ it('renders and updates the chart through native ECharts', () => {
             dataZoom: expect.arrayContaining([expect.objectContaining({ id: 'panel-slider-data-zoom', startValue: 20, endValue: 80 })]),
             series: [expect.objectContaining({ data: chartData[0].data }), expect.objectContaining({ data: chartData[0].data })],
         });
-        chart.on('legendselectchanged', view.result.current.onEvents.legendselectchanged);
+        // The legacy global @types/echarts used to widen `on`'s handler parameter to `any`. With the
+        // real v5 types the handler is `(...args: unknown[]) => boolean | void`, so the typed
+        // payload this suite passes needs an explicit widening at the boundary.
+        chart.on('legendselectchanged', view.result.current.onEvents.legendselectchanged as (...args: unknown[]) => void);
         act(() => { chart.dispatchAction({ type: 'legendToggleSelect', name: 'Temperature' }); });
         expect(inputs.refs.chartApiRef.current?.getVisibleSeries()).toEqual([{ name: 'Temperature', visible: false }]);
         act(() => { chart.dispatchAction({ type: 'legendToggleSelect', name: 'Temperature' }); });

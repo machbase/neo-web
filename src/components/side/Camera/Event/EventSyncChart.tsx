@@ -6,12 +6,12 @@ import {
     // useCallback
 } from 'react';
 import { getTqlChart } from '@/api/repository/machiot';
+import { getEcharts } from '@/plugin/echartsRuntime';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import type { CameraInfo } from '@/api/repository/mediaSvr';
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
 
-declare const echarts: any;
 
 export interface EventSyncChartProps {
     cameraId: string;
@@ -237,10 +237,11 @@ CHART(
         if (!hasData || !visualData) return;
 
         const findInstance = () => {
-            if (typeof echarts === 'undefined') return false;
+            const sEcharts = getEcharts();
+            if (!sEcharts) return false;
             const dom = document.getElementById(chartIdRef.current);
             if (!dom) return false;
-            const instance = echarts.getInstanceByDom(dom);
+            const instance = sEcharts.getInstanceByDom(dom);
             if (!instance) return false;
             chartInstanceRef.current = instance;
             markerInitializedRef.current = false;

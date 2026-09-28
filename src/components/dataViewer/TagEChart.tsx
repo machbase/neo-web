@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import * as echarts from 'echarts';
+import type { ECharts } from 'echarts';
+import { useEcharts } from '@/plugin/echartsRuntime';
 import { VscChevronLeft, VscChevronRight } from 'react-icons/vsc';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
@@ -89,7 +90,10 @@ export function TagEChart({
         observer.observe(container);
         return () => observer.disconnect();
     }, []);
-    const chartRef = useRef<echarts.ECharts | null>(null);
+    const chartRef = useRef<ECharts | null>(null);
+    // The runtime arrives as a server script, not a bundled import, so it can be absent for the
+    // first paint. The init effect below waits for it rather than reaching for a second copy.
+    const { echarts } = useEcharts();
     // Which legend entries the reader has switched off. Every option write below is `notMerge`, and
     // a legend without an explicit `selected` comes back with everything on — so hiding a series and
     // then panning, zooming or paging (all of which rewrite the option) put it straight back on
@@ -135,7 +139,7 @@ export function TagEChart({
 
     useEffect(() => {
         const container = containerRef.current;
-        if (!container) return undefined;
+        if (!container || !echarts) return undefined;
 
         const chart = echarts.init(container, null, { renderer: 'canvas' });
         chartRef.current = chart;
@@ -385,7 +389,11 @@ export function TagEChart({
         // while the window re-resolves — so the canvas was torn down and rebuilt twice per tag
         // change. That is the blink: the axis never moves, the *canvas* disappears. Nothing inside
         // reads props; the handlers all go through `rangeRef`, which is why this can be `[]` at all.
-    }, []);
+        //
+        // `echarts` is the one exception: it is undefined until the runtime script lands, and the
+        // effect must run once more when it does. It only ever transitions undefined -> runtime and
+        // never back, so this stays a single extra pass, not a rebuild per render.
+    }, [echarts]);
 
     useEffect(() => {
         if (!chartRef.current) return;
@@ -413,7 +421,14 @@ export function TagEChart({
             chartRef.current.dispatchAction?.({ type: 'dataZoom', dataZoomId: 'panel-slider-data-zoom', startValue: currentRange.startTime, endValue: currentRange.endTime });
         }
         chartRef.current.resize();
-    }, [currentRange, options]);
+        // `echarts` is a dependency because the instance this writes to is created by the effect
+        // above, which only runs once the runtime script has landed. Without it, a chart opened
+        // before /web/echarts/echarts.min.js finished loading would bail here on a null ref, the
+        // instance would then be created with no option at all, and the first pointer event would
+        // call convertFromPixel/containPixel on a model-less instance — "Cannot read properties of
+        // undefined (reading 'queryComponents')". Both effects run in the same commit, in
+        // declaration order, so the instance is always configured before it can be interacted with.
+    }, [currentRange, options, echarts]);
 
     const applyZoomControl = useCallback(
         (action: string, zoom?: number) => {
