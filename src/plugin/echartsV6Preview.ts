@@ -25,19 +25,35 @@ const PLUGIN_MAP: Record<string, string> = {
 
 export const V6_ECHARTS_SRC = `${V6}/echarts@${V6_ECHARTS_VERSION}/dist/echarts.min.js`;
 
+const STORAGE_KEY = 'neo.echartsPreview';
+
 /**
- * 미리보기를 켤지. 쿼리스트링이나 localStorage 로 한 세션만 켤 수 있게 해서, 기본 동작은
- * 건드리지 않고 같은 빌드로 v5/v6 를 오갈 수 있게 한다.
+ * 쿼리스트링을 **모듈 평가 시점에 한 번** 읽어 localStorage 로 옮긴다.
  *
- *   ?echarts=6   한 번 켜고 localStorage 에 기억
+ * 지연해서 읽으면 안 된다 — 로그인 안 된 상태로 들어오면 `useToken` 이 `/login` 으로
+ * 리다이렉트하면서 쿼리스트링을 지워버리고, 차트가 그려질 때쯤엔 이미 사라져 있다.
+ * App 이 이 모듈을 import 해서 부팅 시 반드시 평가되게 한다.
+ */
+const captureFlag = (): void => {
+    try {
+        const sParam = new URLSearchParams(window.location.search).get('echarts');
+        if (sParam === '6') localStorage.setItem(STORAGE_KEY, '6');
+        if (sParam === '5') localStorage.removeItem(STORAGE_KEY);
+    } catch {
+        // private 모드 등 — 미리보기를 못 켤 뿐이다
+    }
+};
+captureFlag();
+
+/**
+ * 미리보기를 켤지.
+ *
+ *   ?echarts=6   켜고 기억 (이후 새로고침에도 유지)
  *   ?echarts=5   끄기
  */
 export const isV6Preview = (): boolean => {
     try {
-        const sParam = new URLSearchParams(window.location.search).get('echarts');
-        if (sParam === '6') localStorage.setItem('neo.echartsPreview', '6');
-        if (sParam === '5') localStorage.removeItem('neo.echartsPreview');
-        return localStorage.getItem('neo.echartsPreview') === '6';
+        return localStorage.getItem(STORAGE_KEY) === '6';
     } catch {
         return false;
     }

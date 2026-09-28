@@ -106,6 +106,12 @@ export const loadEcharts = (): Promise<EChartsRuntime> => {
                 );
             }
             ensureWhiteTheme(sEcharts);
+            // 수동 테스트에서 어느 런타임이 떴는지 바로 보이게 한다. 미리보기가 사라지면 같이 지운다.
+            // eslint-disable-next-line no-console
+            console.info(
+                `[echarts] runtime ${sEcharts.version} from ${sSrc}` +
+                    (isV6Preview() ? '  (v6 preview)' : '')
+            );
             return sEcharts;
         })
         .catch((aError) => {
