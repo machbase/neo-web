@@ -8,6 +8,7 @@ import {
     rawAppendScript,
     registerScriptPromise,
 } from '@/assets/ts/ScriptRegister';
+import { isV6Preview, toV6AssetUrl, V6_ECHARTS_SRC } from './echartsV6Preview';
 
 export type EChartsRuntime = typeof EChartsNS;
 
@@ -17,7 +18,16 @@ export type EChartsRuntime = typeof EChartsNS;
  * 전역 `echarts` 를 참조하므로, 클라이언트가 별도 사본을 들면 사본이 두 벌이 되고
  * `window.echarts` 의 주인이 로드 순서에 따라 바뀐다(machbase/neo#1439).
  */
-export const ECHARTS_SRC = '/web/echarts/echarts.min.js';
+const SERVER_ECHARTS_SRC = '/web/echarts/echarts.min.js';
+
+/**
+ * 실제로 로드할 런타임 URL. 평상시엔 서버 자산이고, v6 미리보기(#1005)에서만 CDN 을 가리킨다.
+ * 미리보기 스캐폴딩이 사라지면 이 함수도 상수로 되돌린다.
+ */
+export const echartsSrc = (): string => (isV6Preview() ? V6_ECHARTS_SRC : SERVER_ECHARTS_SRC);
+
+/** @deprecated v6 미리보기 기간에는 `echartsSrc()` 를 쓸 것 — URL 이 런타임에 결정된다. */
+export const ECHARTS_SRC = SERVER_ECHARTS_SRC;
 
 /**
  * 전역 슬롯 접근자.
@@ -73,7 +83,8 @@ const ensureWhiteTheme = (aEcharts: EChartsRuntime): void => {
  * 순서나 체인 깊이에 기대지 않는다.
  */
 export const loadEcharts = (): Promise<EChartsRuntime> => {
-    const sKnown = getRegisteredScript(ECHARTS_SRC);
+    const sSrc = echartsSrc();
+    const sKnown = getRegisteredScript(sSrc);
     if (sKnown) return sKnown as Promise<EChartsRuntime>;
 
     // 우리가 아니라 chartext 의 CDN 폴백이 이미 설치했을 수도 있다.
@@ -83,7 +94,7 @@ export const loadEcharts = (): Promise<EChartsRuntime> => {
         return Promise.resolve(sExisting);
     }
 
-    const sPending = rawAppendScript(ECHARTS_SRC)
+    const sPending = rawAppendScript(sSrc)
         .then(() => {
             const sEcharts = globalSlot().echarts;
             if (!sEcharts) {
@@ -98,13 +109,13 @@ export const loadEcharts = (): Promise<EChartsRuntime> => {
             return sEcharts;
         })
         .catch((aError) => {
-            forgetScript(ECHARTS_SRC);
+            forgetScript(sSrc);
             throw aError;
         });
 
     // 여기까지 await 가 하나도 없다. 호출자가 `setChartext()` 진입부든
     // `loadChartAssets()` 첫 줄이든, 이 함수가 반환되는 시점에 원장은 이미 선점돼 있다.
-    registerScriptPromise(ECHARTS_SRC, sPending);
+    registerScriptPromise(sSrc, sPending);
     return sPending;
 };
 
@@ -120,13 +131,15 @@ export const loadChartAssets = async (aJsAssets?: string[], aJsCodeAssets?: stri
     // and nothing else, and making it wait on a 1 MB runtime it never calls would undo the reason
     // there is no boot preload. Callers that need the runtime for their own bookkeeping — the
     // theme override in ShowVisualization, say — ask for it themselves.
-    if ((aJsAssets ?? []).some((aUrl) => aUrl === ECHARTS_SRC || aUrl.startsWith('/web/echarts/'))) {
+    if ((aJsAssets ?? []).some((aUrl) => aUrl === SERVER_ECHARTS_SRC || aUrl.startsWith('/web/echarts/'))) {
         await loadEcharts();
     }
 
-    for (const sUrl of aJsAssets ?? []) {
-        if (sUrl === ECHARTS_SRC) continue; // 위에서 이미 책임졌다
-        await appendScriptOnce(sUrl);
+    for (const sRaw of aJsAssets ?? []) {
+        if (sRaw === SERVER_ECHARTS_SRC) continue; // 위에서 이미 책임졌다
+        // v6 미리보기에서는 서버가 준 v5 자산 URL 을 CDN v6 로 치환한다. 치환하지 않으면
+        // 원장 키가 갈라져 v5 와 v6 가 같이 실행되고 #1439 가 그대로 재현된다.
+        await appendScriptOnce(toV6AssetUrl(sRaw));
     }
 
     // jsCodeAssets 는 차트별 일회성 코드다. 렌더마다 다시 실행돼야 하므로 중복 제거하지 않는다.
@@ -191,5 +204,6 @@ export const useEcharts = (): EChartsGate => {
 export const __setEchartsRuntimeForTest = (aEcharts: EChartsRuntime | undefined): void => {
     globalSlot().echarts = aEcharts;
     whiteRegistered = false;
-    forgetScript(ECHARTS_SRC);
+    forgetScript(SERVER_ECHARTS_SRC);
+    forgetScript(V6_ECHARTS_SRC);
 };
