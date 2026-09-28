@@ -1,6 +1,6 @@
 import './ShowVisualization.scss';
 import { useEffect, useRef, useState } from 'react';
-import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
+import { getEcharts, loadChartAssets, loadEcharts } from '@/plugin/echartsRuntime';
 import { CheckObjectKey, E_VISUAL_LOAD_ID, PanelIdParser } from '@/utils/dashboardUtil';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
@@ -117,8 +117,10 @@ export const ShowVisualization = (props: ShowChartProps) => {
     };
     const OverrideChartTheme = () => {
         if (!CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) || !GetElementByResId()) return;
+        const sEcharts = getEcharts();
+        if (!sEcharts) return;
         const sDom = GetElementByResId() as any;
-        const sExisting = echarts.getInstanceByDom(sDom);
+        const sExisting = sEcharts.getInstanceByDom(sDom);
         if (sExisting && !pLoopMode) {
             // Synchronous capture immediately before dispose() so the legend
             // selection survives even if the registered 'legendselectchanged'
@@ -126,11 +128,12 @@ export const ShowVisualization = (props: ShowChartProps) => {
             CaptureLegendSelectionFromInstance(sExisting);
             sExisting.dispose();
         }
-        const sInstance = echarts.init(sDom, sTheme);
+        const sInstance = sEcharts.init(sDom, sTheme);
         if (sTheme === 'dark')
             sInstance.setOption({ backgroundColor: ChartThemeBackgroundColor['dark'] });
     };
     const EchartInstance = (domElement: any) => {
+        const sEcharts = getEcharts();
         const sCommand = pLoopMode ? 'resize' : 'clear';
         const sSize = GetPanelSize();
 
@@ -140,10 +143,10 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (GetIsTqlType()) domElement.id = pData[GetVisualID()];
         if (sCommand === 'clear')
             CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) &&
-                echarts['getInstanceByDom'](domElement)?.['resize']();
+                sEcharts?.getInstanceByDom(domElement)?.resize();
 
         if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART)) {
-            const sChart = echarts['getInstanceByDom'](domElement);
+            const sChart = sEcharts?.getInstanceByDom(domElement) as any;
             // clear() wipes the option (including legend.selected). Capture
             // current selection synchronously beforehand so RestoreLegendSelection
             // can re-inject after the next setOption from jsCodeAssets executes.
@@ -164,12 +167,15 @@ export const ShowVisualization = (props: ShowChartProps) => {
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && EchartInstance(sDomElement);
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance(sDomElement);
     };
+    // The runtime is awaited here even when the response carries no jsAssets: OverrideChartTheme
+    // and EchartInstance below both need `window.echarts`, and a panel whose assets were already
+    // loaded by an earlier panel still arrives with the full list filtered out downstream.
     const LoadCommonScripts = async () => {
-        if (pData?.jsAssets)
-            await loadScriptsSequentially({
-                jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [],
-                jsCodeAssets: [],
-            });
+        // A chart payload needs the runtime even beyond its own assets: OverrideChartTheme and
+        // EchartInstance below reach for it directly. A geomap payload never does, and asking for
+        // it there would pull a megabyte this panel has no use for.
+        if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART)) await loadEcharts();
+        await loadChartAssets(pData?.jsAssets, []);
     };
     const LoadCodeScripts = async () => {
         let sCodeAsset = pData.jsCodeAssets;
@@ -189,7 +195,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
                 );
         }
 
-        if (sCodeAsset) await loadScriptsSequentially({ jsAssets: [], jsCodeAssets: sCodeAsset });
+        if (sCodeAsset) await loadChartAssets([], sCodeAsset);
     };
 
     const RemoveMapZoomOpt = () => {
@@ -229,7 +235,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
         if (!sDomElement) return undefined;
         try {
-            return (echarts as any)?.getInstanceByDom?.(sDomElement);
+            return getEcharts()?.getInstanceByDom?.(sDomElement);
         } catch {
             return undefined;
         }

@@ -1,5 +1,5 @@
 import './OverlapModal.scss';
-import ReactECharts from 'echarts-for-react';
+import { EChart } from '@/components/chart/EChart';
 import {
     MdOutlineStackedLineChart,
     Refresh,
@@ -87,7 +87,7 @@ export default function OverlapModal({
                         ) : !option ? (
                             <Page.ContentText pContent="No overlap data." />
                         ) : (
-                            <ReactECharts
+                            <EChart
                                 data-testid="viewport-surface"
                                 option={option}
                                 notMerge

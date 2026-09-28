@@ -6,6 +6,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import DataViewerPage from './DataViewerPage';
 import { buildRawColumnWidths, buildRawResultColumns, buildRawRowNameColors } from './dataViewerModel';
+import { __setEchartsRuntimeForTest } from '@/plugin/echartsRuntime';
+
+// TagEChart takes the runtime from the shared loader, not a bundled `import * as echarts`.
+// Seed the global slot with the module mocked above so `echartsMock.init` assertions and the
+// single shared instance keep working, and so useEcharts() reports ready synchronously.
+beforeEach(() => {
+    __setEchartsRuntimeForTest(jest.requireMock('echarts') as never);
+});
 
 // react-virtuoso measures its viewport through `offsetParent`, which jsdom hard-codes to null,
 // so an unassisted render mounts zero rows and every row assertion below would pass vacuously.

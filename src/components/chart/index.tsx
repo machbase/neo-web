@@ -4,7 +4,7 @@ import { sqlBasicChartFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { applyTargetDatabase } from '@/utils/sqlTargetDatabase';
 import { Play } from '@/assets/icons/Icon';
 import './index.scss';
-import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
+import { loadChartAssets } from '@/plugin/echartsRuntime';
 import { Button, Dropdown } from '@/design-system/components';
 
 const CHART = ({
@@ -54,11 +54,7 @@ const CHART = ({
             )
         );
         setResult(sTmpResult.data);
-        sTmpResult.data &&
-            (await loadScriptsSequentially({
-                jsAssets: ExistCommonScript(sTmpResult.data.jsAssets) as string[],
-                jsCodeAssets: sTmpResult.data.jsCodeAssets ? sTmpResult.data.jsCodeAssets : [],
-            }));
+        sTmpResult.data && (await loadChartAssets(sTmpResult.data.jsAssets, sTmpResult.data.jsCodeAssets));
     };
 
     // `chartRef.current` is only set while the tab is showing, so a chip change on another tab

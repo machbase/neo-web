@@ -25,12 +25,15 @@ const mockChartInstance = {
     })),
 };
 
-jest.mock('echarts-for-react', () => {
+// PanelChart renders through `@/components/chart/EChart`, the wrapper that injects the shared
+// server-script runtime into echarts-for-react's core. Mocking the wrapper (rather than
+// echarts-for-react) keeps this suite about PanelChart and skips the runtime load entirely.
+jest.mock('@/components/chart/EChart', () => {
     const React = jest.requireActual<typeof import('react')>('react');
 
     return {
         __esModule: true,
-        default: function MockReactECharts({
+        EChart: function MockEChart({
             onChartReady,
         }: {
             onChartReady: (instance: unknown) => void;
@@ -47,6 +50,12 @@ jest.mock('echarts-for-react', () => {
         },
     };
 });
+
+// The gate in PanelChart withholds the chart until the runtime is present.
+jest.mock('@/plugin/echartsRuntime', () => ({
+    __esModule: true,
+    useEcharts: () => ({ status: 'ready', echarts: {}, error: undefined, retry: undefined }),
+}));
 
 function createSeries(data: ChartSeriesData['data']): ChartSeriesData {
     return {

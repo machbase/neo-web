@@ -5,6 +5,14 @@ import JsonKeyPickerModal from './JsonKeyPickerModal';
 import JsonKeyDetailModal from './JsonKeyDetailModal';
 import RawRowDetailModal from './RawRowDetailModal';
 import { queryTagJsonKeyData } from './dataViewerApi';
+import { __setEchartsRuntimeForTest } from '@/plugin/echartsRuntime';
+
+// TagEChart takes the runtime from the shared loader, not a bundled `import * as echarts`.
+// Seed the global slot with the module mocked above so `echartsMock.init` assertions and the
+// single shared instance keep working, and so useEcharts() reports ready synchronously.
+beforeEach(() => {
+    __setEchartsRuntimeForTest(jest.requireMock('echarts') as never);
+});
 
 // The detail view builds a real ECharts instance against a canvas jsdom does not provide. What is
 // under test here is the option it hands over and the grid beside it, so the instance is a stub.

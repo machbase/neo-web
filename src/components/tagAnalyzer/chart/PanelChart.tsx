@@ -1,4 +1,5 @@
-import ReactECharts from 'echarts-for-react';
+import { EChart } from '@/components/chart/EChart';
+import { useEcharts } from '@/plugin/echartsRuntime';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import type { PanelChartProps } from './chartModel';
@@ -13,6 +14,10 @@ export default function PanelChart({
     ...runtimeProps
 }: PanelChartProps) {
     const { refs, handlers } = runtimeProps;
+    // The chart runtime is a server script now, so it can be absent for the first paint. Gate at
+    // this level rather than inside ReadyPanelChart: that component runs useChartInteraction, and
+    // an early return there would change hook order between renders.
+    const { echarts } = useEcharts();
     const rangeReady = rangeState !== undefined;
     const overlayLayout = PANEL_CHART_LAYOUTS[
         presentation.display.showLegend ? 'withLegend' : 'withoutLegend'
@@ -46,16 +51,16 @@ export default function PanelChart({
                 aria-label={`${presentation.title} chart`}
                 aria-busy={isLoading}
             >
-                {rangeState && (
+                {rangeState && echarts && (
                     <ReadyPanelChart
                         {...runtimeProps}
                         runtimeConfig={presentation}
                         rangeState={rangeState}
                     />
                 )}
-                {(isLoading || displayNotice) && (
+                {(isLoading || !echarts || displayNotice) && (
                     <div
-                        className={`panel-main-chart-${isLoading ? 'loading' : 'notice'}-overlay`}
+                        className={`panel-main-chart-${isLoading || !echarts ? 'loading' : 'notice'}-overlay`}
                         style={{
                             left: PANEL_GRID_SIDE,
                             right: PANEL_GRID_SIDE,
@@ -63,10 +68,10 @@ export default function PanelChart({
                             height: overlayLayout.mainGridHeight,
                         }}
                     >
-                        {isLoading && (
+                        {(isLoading || !echarts) && (
                             <span className="panel-main-chart-loading-spinner" />
                         )}
-                        <span>{isLoading ? 'Loading...' : displayNotice}</span>
+                        <span>{isLoading || !echarts ? 'Loading...' : displayNotice}</span>
                     </div>
                 )}
             </div>
@@ -91,7 +96,7 @@ function ReadyPanelChart(props: ChartInteractionInputs) {
     const { option, onEvents, onChartReady } = useChartInteraction(props);
 
     return (
-        <ReactECharts
+        <EChart
             option={option}
             onEvents={onEvents}
             onChartReady={onChartReady}
