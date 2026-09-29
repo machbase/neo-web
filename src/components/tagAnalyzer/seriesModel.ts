@@ -1,3 +1,4 @@
+import { buildArrayElementSql, isArrayTypeColumn, type ArrayColumnMetadata } from '@/utils/arrayValue';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import { isFiniteNumber, isPlainObject } from './objectGuards';
 import type { AxisKind } from './rangeExpression/rangeModel';
@@ -33,15 +34,22 @@ export type PanelSeriesSourceColumns = {
     time: string;
     value: string;
     jsonKey?: string;
+    arrayIndex?: number;
+    /** Known DB ARRAY type; legacy scalar/JSON columns leave this absent. */
+    arrayType?: number;
     timeType?: number;
     timeBaseTime?: boolean;
 };
 
 export type ValidatedPanelSeriesSourceColumns = {
+    arrayMetadata?: ArrayColumnMetadata;
     name: SqlIdentifierPath;
     time: SqlIdentifierPath;
     value: SqlIdentifierPath;
     jsonKey?: string;
+    arrayIndex?: number;
+    /** Known DB ARRAY type; legacy scalar/JSON columns leave this absent. */
+    arrayType?: number;
     timeType?: number;
     timeBaseTime?: boolean;
 };
@@ -49,6 +57,14 @@ export type ValidatedPanelSeriesSourceColumns = {
 export function validatePanelSeriesSourceColumns(
     columns: PanelSeriesSourceColumns,
 ): ValidatedPanelSeriesSourceColumns {
+    if (columns.arrayType !== undefined) {
+        if (typeof columns.arrayType !== 'number' || !isArrayTypeColumn(columns.arrayType)) throw new Error('Invalid ARRAY column type.');
+        if (columns.arrayIndex === undefined) throw new Error('Select an ARRAY element before querying.');
+    }
+    if (columns.arrayIndex !== undefined) {
+        if (columns.jsonKey) throw new Error('An ARRAY element cannot also select a JSON key.');
+        buildArrayElementSql(columns.value, columns.arrayIndex);
+    }
     return {
         ...columns,
         name: parseSqlIdentifierPath(columns.name, 'SQL tag name column'),
@@ -360,6 +376,8 @@ function normalizePanelSeriesDefinition(
             name: sColumns.name,
             time: sColumns.time,
             value: sColumns.value,
+            arrayIndex: sColumns.arrayIndex as number | undefined,
+            ...(sColumns.arrayType !== undefined ? { arrayType: sColumns.arrayType as number } : {}),
             jsonKey:
                 typeof sColumns.jsonKey === 'string'
                     ? sColumns.jsonKey
@@ -412,6 +430,7 @@ function getPanelSeriesValueLabel(
     const sValue = String(series.sourceColumns?.value ?? '').trim();
     const sJsonKey = series.sourceColumns?.jsonKey?.trim();
 
+    if (series.sourceColumns?.arrayIndex !== undefined) return `${sValue}[${series.sourceColumns.arrayIndex}]`;
     return sJsonKey ? `${sValue} -> ${sJsonKey}` : sValue;
 }
 

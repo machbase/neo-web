@@ -2256,3 +2256,30 @@ describe('distance slider edge snapping', () => {
         expect(snapDataViewerDistanceEdge()).toBe(0);
     });
 });
+
+describe('ARRAY chart rendering', () => {
+    test.each([
+        [[1, 2, 3], [0, 0, 0]],
+        [[null, 2, null], [0, 6, 0]],
+        [[1], [6]],
+        [[1, null, 3, 4, null, 6], [6, 0, 0, 0, 0, 6]],
+        [[null, null], [0, 0]],
+        [[0, null], [6, 0]],
+    ])('marks only isolated values in %j', (values, sizes) => {
+        const data = values.map((value, index) => [index, value] as [number, number | null]);
+        const options = buildDataViewerEChartOption({ arrayElements: true, series: [{name: 'VALUE[0]', data}] });
+        const main = options.series[0];
+        if (!('symbolSize' in main)) throw new Error('Missing main series');
+        const size = main.symbolSize as (value: unknown, params: {dataIndex: number}) => number;
+        expect(data.map((point, dataIndex) => size(point, {dataIndex}))).toEqual(sizes);
+    });
+    test('keeps isolated points and disables sampling without drawing a partial navigator', () => {
+        const data: Array<[number, number | null]> = Array.from({ length: 1001 }, (_, index) => [index, index % 2 ? null : index]);
+        const options = buildDataViewerEChartOption({ arrayElements: true, baseKind: 'distance', series: [{ name: 'VALUE[0]', data }], timeRange: { from: 0, to: 2000 } });
+        expect(options.series).toHaveLength(1);
+        expect(options.series[0]).toMatchObject({ showSymbol: true, connectNulls: false, sampling: undefined, data });
+        const existing = buildDataViewerEChartOption({ baseKind: 'distance', series: [{ name: 'scalar', data }] });
+        expect(existing.series).toHaveLength(2);
+        expect(existing.series[0]).toMatchObject({ showSymbol: false, sampling: 'lttb' });
+    });
+});

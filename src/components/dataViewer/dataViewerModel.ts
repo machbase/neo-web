@@ -1,4 +1,5 @@
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
+import { arrayTimestampNanoseconds, type ArrayTimeUnit } from './arrayTimestamp';
 import { getCurrentDatabaseId, normalizeDatabaseId } from '@/utils/currentDatabaseState';
 import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import {
@@ -518,11 +519,11 @@ function getRawRowValueValue(row: unknown) {
 export type DataViewerRawPageBounds = {
     pageStart: { time: string | number; name: string };
     pageEnd: { time: string | number; name: string };
-    pageBounds: { from: string | number; to: string | number };
+    pageBounds: { from: string | number; to: string | number; timeUnit?: ArrayTimeUnit };
 };
 
 export type DataViewerRawPageRequest =
-    | { page: number; from: string | number; to: string | number; boundedRange: true; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
+    | { page: number; from: string | number; to: string | number; timeUnit?: ArrayTimeUnit; boundedRange: true; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
     | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
     | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide: 'next' | 'prev'; cursorTime: string | number; cursorName: string; cursorOffset: number };
 
@@ -535,8 +536,19 @@ export type DataViewerRawPageRequest =
  * a page move that silently returns nothing. The field is still called `time` because it is the
  * base-column position in the row, whatever the base column happens to measure.
  */
-export function buildDataViewerRawPageBounds(rows: unknown[] = [], baseKind: DataViewerBaseKind = 'time'): DataViewerRawPageBounds | null {
+export function buildDataViewerRawPageBounds(rows: unknown[] = [], baseKind: DataViewerBaseKind = 'time', timeUnit?: ArrayTimeUnit): DataViewerRawPageBounds | null {
     if (!Array.isArray(rows) || rows.length === 0) return null;
+
+    if (baseKind === 'time' && timeUnit === 'ns') {
+        const normalized = rows.map((row) => ({
+            time: arrayTimestampNanoseconds(getRawRowTimeValue(row)),
+            name: String(getRawRowNameValue(row) ?? ''),
+        }));
+        const min = normalized.reduce((value, row) => row.time < value ? row.time : value, normalized[0].time);
+        const max = normalized.reduce((value, row) => row.time > value ? row.time : value, normalized[0].time);
+        const edge = (row: typeof normalized[number]) => ({ time: String(row.time), name: row.name });
+        return { pageStart: edge(normalized[0]), pageEnd: edge(normalized[normalized.length - 1]), pageBounds: { from: String(min), to: String(max), timeUnit } };
+    }
 
     const distance = baseKind === 'distance';
     const toSortKey = (value: unknown) => {
@@ -607,6 +619,7 @@ export function buildDataViewerRawPageRequest({
             page,
             from: currentBounds.pageBounds.from,
             to: currentBounds.pageBounds.to,
+            ...(currentBounds.pageBounds.timeUnit ? { timeUnit: currentBounds.pageBounds.timeUnit } : {}),
             boundedRange: true,
         };
     }
@@ -1702,6 +1715,7 @@ export function buildDataViewerEChartOption({
     // line in the main chart or its dot in the raw grid. Falls back to this panel's own palette
     // position for names the map does not cover.
     seriesColors = {},
+    arrayElements = false,
 }: {
     series?: Array<{ name: string; data: Array<[number, number | null]> }>;
     timeRange?: { from?: unknown; to?: unknown };
@@ -1711,6 +1725,8 @@ export function buildDataViewerEChartOption({
     baseKind?: DataViewerBaseKind;
     panelHeight?: number;
     seriesColors?: Record<string, string>;
+    /** Keep ARRAY gaps and isolated points, without a misleading partial navigator line. */
+    arrayElements?: boolean;
 } = {}) {
     const mainHeight = Number.isFinite(panelHeight)
         ? Math.max(PANEL_MIN_MAIN_HEIGHT, Math.round(Number(panelHeight) - PANEL_MAIN_TOP_WITH_LEGEND - PANEL_BOTTOM_RESERVE))
@@ -1899,17 +1915,25 @@ export function buildDataViewerEChartOption({
                 xAxisIndex: 0,
                 yAxisIndex: 0,
                 symbol: 'circle',
-                showSymbol: false,
-                symbolSize: 6,
+                showSymbol: arrayElements,
+                // Only a value with no drawable neighbour needs a marker to remain visible.
+                symbolSize: arrayElements ? (_value: unknown, params: { dataIndex: number }) => {
+                    const drawable = (position: number) => {
+                        const point = item.data[position];
+                        return point != null && Number.isFinite(point[0]) && point[1] !== null && Number.isFinite(point[1]);
+                    };
+                    const position = params.dataIndex;
+                    return drawable(position) && !drawable(position - 1) && !drawable(position + 1) ? 6 : 0;
+                } : 6,
                 animation: false,
-                sampling: item.data?.length > 1000 ? 'lttb' : undefined,
+                sampling: !arrayElements && item.data?.length > 1000 ? 'lttb' : undefined,
                 lineStyle: { width: 1, color: colorFor(item, index), opacity: 1 },
                 itemStyle: { color: colorFor(item, index), opacity: 1 },
                 connectNulls: false,
                 triggerEvent: true,
                 z: 2,
             })),
-            ...series.map((item, index) => ({
+            ...(arrayElements ? [] : series).map((item, index) => ({
                 id: `navigator-series-${index}`,
                 name: item.name,
                 type: 'line',
@@ -1921,7 +1945,7 @@ export function buildDataViewerEChartOption({
                 silent: true,
                 tooltip: { show: false },
                 animation: false,
-                sampling: item.data?.length > 1000 ? 'lttb' : undefined,
+                sampling: !arrayElements && item.data?.length > 1000 ? 'lttb' : undefined,
                 lineStyle: { width: 1, color: colorFor(item, index), opacity: 0.85 },
                 itemStyle: { color: colorFor(item, index), opacity: 0.85 },
                 emphasis: { disabled: true },

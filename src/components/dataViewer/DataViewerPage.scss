@@ -3737,3 +3737,14 @@
     /* …but never so short that the chart's own floor paints through the bottom edge. */
     min-height: min(420px, 92vh);
 }
+
+// Shared detail dialogs stack consistently on narrow screens.
+.neo-data-viewer .modal.json-key-detail-modal {
+    @media (max-width: 650px) {
+        .json-key-detail-split { flex-direction: column; overflow: visible; }
+        .json-key-detail-chart-col { flex: none; min-height: 340px; }
+        .json-key-detail-grid-col { flex: none; height: 260px; }
+        .json-key-detail-window { display: none; }
+        .json-key-detail-head { grid-template-columns: minmax(0, 1fr) auto; }
+    }
+}

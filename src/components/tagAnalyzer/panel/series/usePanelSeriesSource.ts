@@ -1,3 +1,4 @@
+import { isArrayTypeColumn } from '@/utils/arrayValue';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComboboxOption } from '@/design-system/components';
 import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
@@ -7,6 +8,7 @@ import {
     getTagAnalyzerTimeColumns,
     getTagAnalyzerValueColumns,
     isTagAnalyzerJsonValue,
+    isTagAnalyzerArrayValue,
 } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import { resolveStoredTableName } from '@/utils/qualifiedTableName';
@@ -116,7 +118,7 @@ export function usePanelSeriesSource(
     const sValueColumnOptions = useMemo<ComboboxOption[]>(
         () =>
             getTagAnalyzerValueColumns(tableColumns).map((item) => ({
-                label: isJsonTypeColumn(item[1]) ? `${item[0]} (JSON)` : item[0],
+                label: isJsonTypeColumn(item[1]) ? `${item[0]} (JSON)` : isTagAnalyzerArrayValue(tableColumns, item[0]) ? `${item[0]} (ARRAY)` : item[0],
                 value: item[0],
                 testId: `source-value-option-${encodeURIComponent(item[0])}`,
             })),
@@ -139,6 +141,8 @@ export function usePanelSeriesSource(
                 table,
             );
             const columnInfo = createTagAnalyzerColumnInfo(tableColumns);
+            const value = columnInfo.value || String(tableColumns[2]?.name ?? '');
+            const valueType = tableColumns.find((column) => column.name === value)?.type;
             return {
                 table,
                 sourceColumns: {
@@ -148,9 +152,8 @@ export function usePanelSeriesSource(
                     time: columnInfo.time,
                     timeType: columnInfo.timeType,
                     timeBaseTime: columnInfo.timeBaseTime,
-                    value:
-                        columnInfo.value ||
-                        String(tableColumns[2]?.name ?? ''),
+                    value,
+                    ...(isArrayTypeColumn(valueType) ? { arrayType: valueType } : {}),
                     jsonKey: columnInfo.jsonKey ?? '',
                 },
                 tableColumns,
@@ -272,6 +275,7 @@ export function usePanelSeriesSource(
                 : sJsonKeyByColumnRef.current[getJsonPathOptionsKey(selectedTable, value)] ?? '';
         patchColumnSelection({
             value,
+            arrayIndex: undefined,
             jsonKey: isTagAnalyzerJsonValue(tableColumns, value)
                 ? sJsonKey
                 : '',
@@ -299,6 +303,8 @@ export function usePanelSeriesSource(
         isJsonValue: sIsJsonValue,
         changeDatabase, changeOwner, changeTable, patchColumnSelection,
         changeValueColumn, applyJsonKey,
+        isArrayValue: isTagAnalyzerArrayValue(tableColumns, sourceColumns?.value ?? ''),
+        arrayMetadata: tableColumns.find((column) => column.name === sourceColumns?.value)?.arrayMetadata,
     };
 }
 

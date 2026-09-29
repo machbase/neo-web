@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 import { reLogin } from '@/api/repository/login';
 import { isImage } from '@/utils';
 import { Toast } from '@/design-system/components';
+import { parseArrayJsonLosslessly } from '@/utils/arrayValue';
 
 // Define custom type for headers
 interface CustomHeaders {
@@ -95,6 +96,10 @@ request.interceptors.request.use(
             sHeaders['Content-Type'] = 'text/plain';
             config.responseType = 'text';
         }
+        if (config.preserveArrayNumbers === true) {
+            config.responseType = 'text';
+            config.transformResponse = [(data: string) => data];
+        }
 
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
             const accessToken = localStorage.getItem('accessToken');
@@ -169,6 +174,10 @@ export const executeReLogin = async (): Promise<any> => {
 // Response interceptor
 request.interceptors.response.use(
     (response: AxiosResponse) => {
+        if ((response.config as any).preserveArrayNumbers === true) {
+            const parsed = typeof response.data === 'string' ? parseArrayJsonLosslessly(response.data) : response.data;
+            return response.config.url === '/api/tql' ? { ...response, data: parsed } : parsed;
+        }
         if (sTqlFilePattern.test(response.config.url as string) && response.config.method === 'get') return response;
         if (response.config.url === '/api/tql') {
             if (isJsonString(response.data)) {

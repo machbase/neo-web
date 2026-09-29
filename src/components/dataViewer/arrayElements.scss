@@ -1,0 +1,12 @@
+// Use the JSON dialogs' shared shell and controls; only ARRAY-specific layout belongs here.
+.neo-data-viewer .array-element-modal {
+    .array-index-list { overflow: auto; width: 100%; }
+    .array-index-row { left: 0; right: 0; box-sizing: border-box; }
+    .array-index-row label { height: 100%; }
+    .array-index-row .json-key-picker-chip { max-width: 100%; box-sizing: border-box; }
+    .json-key-modal-sub:has(.array-chart-selection) { white-space: normal; }
+    .array-chart-selection { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    select { background-color: var(--color-surface); color: var(--color-on-surface); }
+    .array-detail-grid table { table-layout: fixed; }
+    .array-detail-grid th, .array-detail-grid td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; }
+}

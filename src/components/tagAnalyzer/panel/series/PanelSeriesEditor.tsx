@@ -23,7 +23,7 @@ import {
     displayJsonPathLabel,
     jsonPathInputToStoredPath,
 } from '@/utils/dashboardJsonValue';
-import { isTagAnalyzerJsonValue } from '@/utils/tagAnalyzerFields';
+import { isTagAnalyzerArrayValue, isTagAnalyzerJsonValue } from '@/utils/tagAnalyzerFields';
 import { tableMetadataApi } from '../../api/tableMetadataApi';
 import {
     createPanelSeriesDefinition,
@@ -126,6 +126,18 @@ export function PanelSeriesEditor({
             return;
         }
 
+        if (isTagAnalyzerArrayValue(sTableColumns, sColumns.value)) {
+            const metadata = sTableColumns.find((column) => column.name === sColumns.value)?.arrayMetadata;
+            if (!metadata) {
+                setFooterMessage('Array metadata is unavailable. Select the table again to retry.');
+                return;
+            }
+            if (sColumns.arrayIndex === undefined || !Number.isInteger(sColumns.arrayIndex) || sColumns.arrayIndex < 0 || sColumns.arrayIndex >= metadata.cardinality) {
+                setFooterMessage(`Select an array index between 0 and ${metadata.cardinality - 1}.`);
+                return;
+            }
+        }
+
         if (seriesList.some(
             (series) =>
                 series.table === sSelectedTable &&
@@ -135,7 +147,8 @@ export function PanelSeriesEditor({
                 series.sourceColumns.time === sColumns.time &&
                 series.sourceColumns.value === sColumns.value &&
                 (series.sourceColumns.jsonKey ?? '') ===
-                    (sColumns.jsonKey ?? ''),
+                    (sColumns.jsonKey ?? '') &&
+                series.sourceColumns.arrayIndex === sColumns.arrayIndex,
         )) {
             setFooterMessage('This series has already been added.');
             return;
@@ -149,7 +162,7 @@ export function PanelSeriesEditor({
                 tagName,
                 calculationMode: PanelSeriesCalculationMode.Average,
                 columns: sColumns,
-                useRollupTable: getPanelSeriesRollupColumn(
+                useRollupTable: sColumns.arrayIndex === undefined && getPanelSeriesRollupColumn(
                     rollupTableList,
                     sSelectedTable,
                     sColumns.value,
@@ -405,6 +418,7 @@ function getSourceValueLabel(
     item: PanelSeriesDefinition,
     rollupTableList: RollupTableMap,
 ): string {
+    if (item.sourceColumns.arrayIndex !== undefined) return `${item.sourceColumns.value}[${item.sourceColumns.arrayIndex}]`;
     if (item.sourceColumns.jsonKey) {
         return `${item.sourceColumns.value} -> ${item.sourceColumns.jsonKey}`;
     }
@@ -451,7 +465,7 @@ function SourceSelector({
         selectedTable, sourceColumns, isTableNameLoading,
         databaseOptions, activeDatabase, ownerOptions, activeOwner,
         tableOptions, hasOwners, timeColumnOptions, valueColumnOptions,
-        isJsonValue, changeDatabase, changeOwner, changeTable,
+        isJsonValue, isArrayValue, arrayMetadata, changeDatabase, changeOwner, changeTable,
         patchColumnSelection, changeValueColumn, applyJsonKey,
     } = source;
 
@@ -522,16 +536,32 @@ function SourceSelector({
                         onChange={changeValueColumn}
                         disabled={isTableNameLoading || !selectedTable}
                     >
-                        <ValueRollupStatus
+                        {!isArrayValue ? <ValueRollupStatus
                             rollupTableList={rollupTableList}
                             selectedTable={selectedTable}
                             valueColumn={sourceColumns?.value ?? ''}
                             jsonKey={sourceColumns?.jsonKey}
-                        />
+                        /> : null}
                     </SourceComboboxField>
                 </div>
             </Stack>
 
+            {isArrayValue ? (
+                <Field label="Array index">
+                    <input
+                        aria-label="Array index"
+                        type="number"
+                        min={0}
+                        max={arrayMetadata ? arrayMetadata.cardinality - 1 : undefined}
+                        step={1}
+                        disabled={!arrayMetadata}
+                        value={sourceColumns?.arrayIndex ?? ''}
+                        onChange={(event) => patchColumnSelection({ arrayIndex: event.target.value === '' ? undefined : Number(event.target.value), jsonKey: '' })}
+                    />
+                    <Text>{arrayMetadata ? `0–${arrayMetadata.cardinality - 1}` : 'Array metadata unavailable.'}</Text>
+                    {!arrayMetadata ? <Button onClick={() => changeTable(selectedTable)}>Retry schema</Button> : null}
+                </Field>
+            ) : null}
             {isJsonValue ? (
                 <JsonKeyField
                     selectedTable={selectedTable}
