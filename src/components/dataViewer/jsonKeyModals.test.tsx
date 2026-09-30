@@ -55,6 +55,52 @@ describe('JsonKeyPickerModal', () => {
     const open = (props: Partial<React.ComponentProps<typeof JsonKeyPickerModal>> = {}) =>
         render(<JsonKeyPickerModal tagName="EDGE-07" baseLabel="2026-08-25 10:00:00" document={doc} onClose={jest.fn()} onConfirm={jest.fn()} {...props} />);
 
+    it('adds a missing nested key and restores it without relying on the sample', () => {
+        const onConfirm = jest.fn();
+        open({ document: {}, initialSelected: ['[existing][missing]'], onConfirm });
+        const input = screen.getByLabelText('Filter keys');
+        fireEvent.change(input, { target: { value: "device['a.b']" } });
+        fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+        expect(screen.queryByRole('button', { name: 'Remove [device][a.b]' })).not.toBeInTheDocument();
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(input).toHaveValue('');
+        expect(screen.getByRole('button', { name: 'Remove [device][a.b]' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+        expect(onConfirm).toHaveBeenCalledWith(['[existing][missing]', '[device][a.b]']);
+    });
+
+    it('deduplicates tree and manual paths and selects containers without expanding their leaves', () => {
+        const onConfirm = jest.fn();
+        open({ onConfirm });
+        fireEvent.click(screen.getByRole('checkbox', { name: 'sensor.temperature.value' }));
+        const input = screen.getByLabelText('Filter keys');
+        fireEvent.change(input, { target: { value: '$.sensor.temperature.value' } });
+        expect(screen.getByText('This key is already selected.')).toBeInTheDocument();
+        fireEvent.keyDown(input, { key: 'Enter' });
+        fireEvent.change(input, { target: { value: 'sensor' } });
+        fireEvent.click(screen.getByRole('button', { name: '+ Add “sensor”' }));
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+        expect(onConfirm).toHaveBeenCalledWith(['[sensor][temperature][value]', '[sensor]']);
+    });
+
+    it('distinguishes a null key from an absent or inherited key', () => {
+        open({ document: { nullable: null }, initialSelected: ['[nullable]', '[missing]', '[toString]'] });
+        expect(screen.getAllByText('Not found in this row')).toHaveLength(2);
+        fireEvent.change(screen.getByLabelText('Filter keys'), { target: { value: 'bad..path' } });
+        expect(screen.queryByRole('button', { name: /Add/ })).not.toBeInTheDocument();
+    });
+
+    it('restores and reports both scroll positions', () => {
+        const onViewChange = jest.fn();
+        const { container } = open({ initialView: { filter: '', collapsed: [], scrollTop: 120, selectedScrollTop: 40 }, onViewChange });
+        const tree = container.ownerDocument.querySelector('.json-key-modal-tree')!;
+        const picked = container.ownerDocument.querySelector('.json-key-picker-selected-list')!;
+        expect(tree.scrollTop).toBe(120);
+        expect(picked.scrollTop).toBe(40);
+        fireEvent.scroll(tree, { target: { scrollTop: 180 } });
+        expect(onViewChange).toHaveBeenLastCalledWith({ filter: '', collapsed: [], scrollTop: 180, selectedScrollTop: 40 });
+    });
+
     // The document the user clicked is the thing they came to look at, so it is open — folding it
     // would put a click in front of every key past the first level.
     it('opens expanded, all the way down', () => {
@@ -71,7 +117,7 @@ describe('JsonKeyPickerModal', () => {
             expect(screen.getByRole('button', { name: `Remove ${name}` })).toBeInTheDocument();
         }
         expect(screen.getByRole('checkbox', { name: "['']" })).toBeDisabled();
-        expect(screen.getByText('4 keys selected · 4 series')).toBeInTheDocument();
+        expect(screen.getByText('4 keys selected · 4 numeric in this row')).toBeInTheDocument();
     });
 
     it('selects only readable children when a branch contains an unsupported key', () => {
@@ -80,7 +126,7 @@ describe('JsonKeyPickerModal', () => {
 
         expect(screen.getByRole('checkbox', { name: "[group]['']" })).toBeDisabled();
         fireEvent.click(screen.getByRole('checkbox', { name: 'group' }));
-        expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 1 numeric in this row')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
         expect(onConfirm).toHaveBeenCalledWith(['[group][value]']);
     });
@@ -88,7 +134,7 @@ describe('JsonKeyPickerModal', () => {
     it('does not count binary or octal text as a drawable series', () => {
         open({ document: { binary: '0b10', octal: '0o10', hex: '0x10' } });
         for (const name of ['binary', 'octal', 'hex']) fireEvent.click(screen.getByRole('checkbox', { name }));
-        expect(screen.getByText('3 keys selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('3 keys selected · 1 numeric in this row')).toBeInTheDocument();
     });
 
     // "Back" has to come back to what you left. The modal is unmounted while the detail view is up,
@@ -103,17 +149,17 @@ describe('JsonKeyPickerModal', () => {
         expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeInTheDocument();
 
         fireEvent.change(screen.getByLabelText('Filter keys'), { target: { value: 'status' } });
-        expect(onViewChange).toHaveBeenLastCalledWith({ filter: 'status', collapsed: [] });
+        expect(onViewChange).toHaveBeenLastCalledWith({ filter: 'status', collapsed: [], scrollTop: 0, selectedScrollTop: 0 });
     });
 
-    // The count under the tree is what the next screen will honour, so it has to be the capped one.
-    it('counts what the chart will draw, not what was ticked', () => {
+    // Only the opened row is known until detail queries the complete range.
+    it('counts numeric keys in this row without promising a future chart count', () => {
         const wide = Object.fromEntries(Array.from({ length: 6 }, (_, index) => [`k${index}`, index]));
         open({ document: wide });
         Array.from({ length: 6 }, (_, index) => index).forEach((index) => {
             fireEvent.click(screen.getByRole('checkbox', { name: `k${index}` }));
         });
-        expect(screen.getByText('6 keys selected · 4 of 6 drawn')).toBeInTheDocument();
+        expect(screen.getByText('6 keys selected · 6 numeric in this row')).toBeInTheDocument();
     });
 
     // A scrim covers the page but does nothing to the tab order, and an unnamed `<div>` is not a
@@ -139,7 +185,7 @@ describe('JsonKeyPickerModal', () => {
         fireEvent.click(body!);
 
         expect(screen.queryByRole('checkbox', { name: 'sensor.temperature.value' })).not.toBeInTheDocument();
-        expect(screen.getByText('0 keys selected · 0 series')).toBeInTheDocument();
+        expect(screen.getByText('0 keys selected · 0 numeric in this row')).toBeInTheDocument();
     });
 
     it('selects the whole branch when its box is clicked, and does not fold it', () => {
@@ -148,7 +194,7 @@ describe('JsonKeyPickerModal', () => {
         fireEvent.click(screen.getByRole('checkbox', { name: 'sensor' }));
 
         expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeChecked();
-        expect(screen.getByText('4 keys selected · 2 series')).toBeInTheDocument();
+        expect(screen.getByText('4 keys selected · 2 numeric in this row')).toBeInTheDocument();
     });
 
     // A branch says its size in the row, so nobody has to open it to find out whether it is worth
@@ -169,7 +215,7 @@ describe('JsonKeyPickerModal', () => {
     it('takes every leaf under a branch that is ticked', () => {
         open();
         fireEvent.click(screen.getByRole('checkbox', { name: 'sensor' }));
-        expect(screen.getByText('4 keys selected · 2 series')).toBeInTheDocument();
+        expect(screen.getByText('4 keys selected · 2 numeric in this row')).toBeInTheDocument();
     });
 
     // A half-filled box has exactly one open question, and filling up is the answer to it.
@@ -180,7 +226,7 @@ describe('JsonKeyPickerModal', () => {
         expect(branch.indeterminate).toBe(true);
 
         fireEvent.click(branch);
-        expect(screen.getByText('4 keys selected · 2 series')).toBeInTheDocument();
+        expect(screen.getByText('4 keys selected · 2 numeric in this row')).toBeInTheDocument();
         expect(screen.getByRole('checkbox', { name: 'sensor' })).toBeChecked();
     });
 
@@ -190,10 +236,10 @@ describe('JsonKeyPickerModal', () => {
         open();
 
         fireEvent.click(screen.getByRole('checkbox', { name: 'status' }));
-        expect(screen.getByText('1 key selected · 0 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 0 numeric in this row')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('checkbox', { name: 'sensor.temperature.value' }));
-        expect(screen.getByText('2 keys selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('2 keys selected · 1 numeric in this row')).toBeInTheDocument();
     });
 
     // A key holding text has no line to draw but every one of its readings is a row, so the detail
@@ -206,10 +252,10 @@ describe('JsonKeyPickerModal', () => {
 
         fireEvent.click(screen.getByRole('checkbox', { name: 'status' }));
         expect(view).toBeEnabled();
-        expect(screen.getByText('1 key selected · 0 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 0 numeric in this row')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('checkbox', { name: 'sensor.humidity.value' }));
-        expect(screen.getByText('2 keys selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('2 keys selected · 1 numeric in this row')).toBeInTheDocument();
     });
 
     it('hands over exactly what was ticked', () => {
@@ -228,7 +274,7 @@ describe('JsonKeyPickerModal', () => {
         open({ initialSelected: ['[sensor][temperature][value]'] });
 
         expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeChecked();
-        expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 1 numeric in this row')).toBeInTheDocument();
     });
 
     // Filtering flattens the tree, so a match three levels down has to carry its own path — the
@@ -251,7 +297,7 @@ describe('JsonKeyPickerModal', () => {
 
         expect(screen.getAllByRole('checkbox')).toHaveLength(2);
         fireEvent.click(screen.getByRole('checkbox', { name: 'sensor.temperature.unit' }));
-        expect(screen.getByText('1 key selected · 0 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 0 numeric in this row')).toBeInTheDocument();
     });
 
     // The panel gathers what is picked, so it is also where the whole lot is dropped.
@@ -263,10 +309,10 @@ describe('JsonKeyPickerModal', () => {
         expect(screen.getAllByTitle('sensor.temperature.value')).toHaveLength(2);
 
         fireEvent.click(screen.getByRole('button', { name: 'Remove status' }));
-        expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 1 numeric in this row')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
-        expect(screen.getByText('0 keys selected · 0 series')).toBeInTheDocument();
+        expect(screen.getByText('0 keys selected · 0 numeric in this row')).toBeInTheDocument();
     });
 });
 
@@ -750,3 +796,10 @@ describe('RawRowDetailModal', () => {
         expect(await screen.findByText('Time copied')).toBeInTheDocument();
     });
 });
+
+ it('reports null-only requested paths alongside real values across the complete range', async () => {
+    mockedQuery.mockResolvedValueOnce({ rows: [{ base: '2026-09-29 10:00:00', values: [7, null] }] } as never);
+    render(<JsonKeyDetailModal dbName="MACHBASEDB" userName="SYS" tableName="T" tagName="sensor.a" paths={['[real]', '[absent]']} onClose={jest.fn()} />);
+    expect(await screen.findByText('absent: No confirmed values in this range (missing or NULL).')).toBeInTheDocument();
+    expect(screen.queryByText(/real: No confirmed/)).not.toBeInTheDocument();
+ });

@@ -372,6 +372,8 @@ export const JsonKeyDetailModal = ({
                                     onShiftMainRange={(direction) => goToPage(currentPage + (direction === 'forward' ? 1 : -1))}
                                 />}
         grid={<div className="json-key-detail-grid">
+                                {!loading && !error ? paths.map((path, index) => rows.every(row => row.values[index] === null || row.values[index] === undefined)
+                                    ? <div key={path} className="json-key-manual-hint" role="status">{fullNames[index]}: No confirmed values in this range (missing or NULL).</div> : null) : null}
                                 {loading ? <div className="empty-state">Loading...</div> : null}
                                 {!loading && valueRows.length === 0 && !error ? <div className="empty-state">No data in this range.</div> : null}
                                 {!loading && valueRows.length > 0 ? (

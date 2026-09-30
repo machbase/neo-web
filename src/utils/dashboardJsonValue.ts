@@ -117,12 +117,18 @@ export const normalizeJsonPath = (aPath: string) => {
 
 export const getJsonPathSegments = (aPath: string) => readPathSegments(normalizeJsonPath(aPath));
 
-/** Keep unusual key names visibly distinct from nested ordinary keys. */
+/** Keep labels valid as both manual input and legacy saved-path input. */
 export const displayJsonPathSegments = (sSegments: string[]) => {
     if (sSegments.length === 0) return '';
-    if (sSegments.length === 1 && !sSegments[0].includes('.') && !needsQuoting(sSegments[0])) return sSegments[0];
-    if (sSegments.some((aSegment) => aSegment.includes('.') || needsQuoting(aSegment))) return sSegments.map(jsonPathSegment).join('');
-    return sSegments.join('.');
+    // Only identifiers accepted by the manual dot-path grammar can use dot notation.
+    if (sSegments.every((segment) => /^[\p{L}_][\p{L}\p{N}_-]*$/u.test(segment))) return sSegments.join('.');
+    return sSegments.map((segment) => {
+        // Keep historical bracket labels for ordinary names, dotted literal keys and indexes.
+        if (/^[\p{L}_][\p{L}\p{N}_.-]*$/u.test(segment) || /^\d+$/.test(segment)) return jsonPathSegment(segment);
+        // Display quoting is independent of storage/SQL quoting. In particular, literal
+        // wildcard/filter characters must never become expressions when pasted back.
+        return `['${segment.replace(/'/g, "''")}']`;
+    }).join('');
 };
 
 export const displayJsonPathLabel = (aPath: string) => displayJsonPathSegments(getJsonPathSegments(aPath));

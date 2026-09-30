@@ -3272,6 +3272,23 @@ describe('DataViewerPage JSON key chain', () => {
         expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
     });
 
+    test.each(['{}', '[]', 'null', '123', null])('opens manual entry from the inspector for JSON %s without stacking dialogs', async (value) => {
+        dataViewerApi.listTableColumns.mockResolvedValue(JSON_VALUE_COLUMNS);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: [{ ...JSON_ROWS[0], value }] });
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        fireEvent.click(getDataRows(container)[0]);
+        fireEvent.click(await screen.findByRole('button', { name: 'Select keys' }));
+        expect(screen.queryByText(/row 1 of/)).not.toBeInTheDocument();
+        const input = screen.getByLabelText('Filter keys');
+        fireEvent.change(input, { target: { value: 'future.value' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+        await waitFor(() => expect(dataViewerApi.queryTagJsonKeyData).toHaveBeenCalledWith(expect.objectContaining({ paths: ['[future][value]'] })));
+        fireEvent.click(screen.getByRole('button', { name: 'Back to keys' }));
+        expect(screen.getByRole('button', { name: 'Remove future.value' })).toBeInTheDocument();
+    });
+
     test('the detail is read for the keys that were ticked, over the page window', async () => {
         const { container } = renderJson();
         await openKeyPicker(container);
@@ -3329,7 +3346,7 @@ describe('DataViewerPage JSON key chain', () => {
         fireEvent.click(await screen.findByRole('button', { name: /Back to keys/ }));
 
         expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeChecked();
-        expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 1 numeric in this row')).toBeInTheDocument();
     });
 });
 

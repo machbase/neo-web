@@ -3164,6 +3164,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             Math.min(rows.length - 1, (current ?? 0) + 1),
                         )
                     }
+                    onSelectKeys={valueColumnIsJson ? () => {
+                        const row = rows[rowDetailIndex];
+                        jsonKeyPickerViewRef.current = undefined;
+                        setRowDetailIndex(null);
+                        setJsonKeyDetail(null);
+                        setJsonKeyPicker({ tagName: String(row.name ?? ''), baseLabel: formatBaseValue(row.time), document: row.value, selected: [] });
+                    } : undefined}
                     onClose={() => setRowDetailIndex(null)}
                 />
             ) : null}

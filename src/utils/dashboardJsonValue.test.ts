@@ -66,6 +66,19 @@ describe('dashboard JSON value path helpers', () => {
         expect(displayJsonPathLabel('[a.b][c.d]')).toBe('[a.b][c.d]');
     });
 
+    test.each([
+        ['[Device 1][temperature]', "['Device 1'][temperature]"],
+        ['[sensor:temperature]', "['sensor:temperature']"],
+        ['[123abc]', "['123abc']"],
+        ['[sensor*]', "['sensor*']"],
+        ['[channels][0][value]', '[channels][0][value]'],
+    ])('displays a reusable input label for %s', (path, label) => {
+        expect(displayJsonPathLabel(path)).toBe(label);
+        // Dashboard and Analyzer use this legacy input reader when accepting an edited label.
+        expect(jsonPathInputToStoredPath(label)).toBe(path);
+        expect(jsonValueFieldToSql('PAYLOAD', label)).toBe(jsonValueFieldToSql('PAYLOAD', path));
+    });
+
     test('keeps bracket path input explicit and treats plain dot input as legacy nested path', () => {
         const paths = ['[a.b.c]', '[a][b][c]'];
 
