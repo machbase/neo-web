@@ -1,10 +1,10 @@
+import { validateSeriesSchema } from './seriesSchemaValidation';
 import { getTqlChart } from '@/api/repository/machiot';
-import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
+import { seriesValueSql } from './seriesValueSql';
 import { asRecord } from '../objectGuards';
 import {
     isNumericBaseTimeSourceColumns,
     parseSqlIdentifierPath,
-    validatePanelSeriesSourceColumns,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
     type SqlIdentifierPath,
@@ -87,7 +87,7 @@ async function fetchFftChartData(
         : configuredColumns;
     const tableName: SqlIdentifierPath = parseSqlIdentifierPath(series.table, 'SQL table name');
     const columns: ValidatedPanelSeriesSourceColumns =
-        validatePanelSeriesSourceColumns(sourceColumns);
+        await validateSeriesSchema(series.table, sourceColumns, signal);
     const sql: string = buildFftSql(tableName, series.sourceTagName, columns, timeRange);
     const chartTql: string = (is3d ? FFT_3D_QUERY_TEMPLATE : FFT_2D_QUERY_TEMPLATE)
         .replace('{MinMaxHz}', buildFftFrequencyArguments(minHz, maxHz))
@@ -116,7 +116,7 @@ function buildFftSql(
     const timeColumn: SqlIdentifierPath = columns.time;
 
     return [
-        `SELECT ${timeColumn}, ${jsonValueFieldToNumericSql(columns.value, columns.jsonKey)}`,
+        `SELECT ${timeColumn}, ${seriesValueSql(columns)}`,
         `FROM ${tableName}`,
         `WHERE ${columns.name} IN (${buildSqlStringLiteral(tagName)})`,
         `AND ${buildTimeRangeConditionSql(columns.time, timeRange, usesNumericTime)}`,

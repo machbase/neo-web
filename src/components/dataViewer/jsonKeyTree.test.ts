@@ -1,3 +1,5 @@
+import { parseManualJsonPath } from '@/utils/manualJsonPath';
+import { normalizeJsonPath } from '@/utils/dashboardJsonValue';
 import { jsonKeyPathLabel, jsonKeyPathToSql } from '@/utils/jsonKeyCatalog';
 import {
     buildJsonKeyTree,
@@ -264,5 +266,25 @@ describe('shortJsonKeyNames', () => {
 
     it('keeps dotted literal keys distinct from nested keys in the legend', () => {
         expect(shortJsonKeyNames(['[a.b][c]', '[a][b.c]', '[a][b][c]'])).toEqual(['[a.b][c]', '[a][b.c]', 'b.c']);
+    });
+});
+
+describe('displayed JSON paths can be entered again', () => {
+    test.each([
+        [{ channels: [{ value: 1 }] }, '[channels][0][value]', '[channels][0][value]'],
+        [[{ value: 1 }], '[0][value]', '[0][value]'],
+        [[[1]], '[0][0]', '[0][0]'],
+        [{ channels: [[{ value: 1 }]] }, '[channels][0][0][value]', '[channels][0][0][value]'],
+        [{ device: { value: 1 } }, '[device][value]', 'device.value'],
+        [{ channels: [{ 'a.b': 1 }] }, '[channels][0][a.b]', '[channels][0][a.b]'],
+        [{ '[bracket]': [1] }, "['[bracket]'][0]", "['[bracket]'][0]"],
+    ])('can re-enter the displayed path of %j', (document, path, label) => {
+        const node = buildJsonKeyTree(document).find(entry => entry.path === path)!;
+        expect(node).toBeDefined();
+        expect(node.dotted).toBe(label);
+        expect(jsonKeyPathLabel(node.path)).toBe(label);
+        expect(parseManualJsonPath(node.dotted).path).toBe(path);
+        expect(normalizeJsonPath(node.dotted)).toBe(path);
+        expect(jsonKeyPathToSql(node.path)).toBe(`$${path}`);
     });
 });

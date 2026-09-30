@@ -1,22 +1,18 @@
+import ValuePickerDialog from './ValuePickerDialog';
+import { parseManualJsonPath } from '@/utils/manualJsonPath';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    VscAdd,
     VscChevronDown,
     VscChevronRight,
     VscChromeClose,
-    VscClearAll,
-    VscClose,
-    VscListSelection,
     VscSymbolArray,
     VscSymbolBoolean,
     VscSymbolNamespace,
     VscSymbolNumeric,
     VscSymbolString,
 } from 'react-icons/vsc';
-import Modal from '@/components/modal/Modal';
-import DataViewerModalPortal from './DataViewerModalPortal';
-import useOutsideCloseGuard from './useOutsideCloseGuard';
-import useModalDialog from './useModalDialog';
-import { displayJsonPathSegments } from '@/utils/dashboardJsonValue';
+import { displayJsonPathSegments, jsonPathToSqlPath, normalizeJsonPath } from '@/utils/dashboardJsonValue';
 import { jsonKeyPathLabel } from '@/utils/jsonKeyCatalog';
 import {
     buildJsonKeyTree,
@@ -24,7 +20,6 @@ import {
     jsonKeyTreeLeafPaths,
     jsonKeyTreeLeavesUnder,
     jsonKeyTreeSeriesCount,
-    MAX_JSON_KEY_SERIES,
     visibleJsonKeyTree,
     type JsonKeyTreeNode,
 } from './jsonKeyTree';
@@ -39,6 +34,8 @@ import {
 export interface JsonKeyPickerView {
     filter: string;
     collapsed: string[];
+    scrollTop?: number;
+    selectedScrollTop?: number;
 }
 
 export interface JsonKeyPickerModalProps {
@@ -116,14 +113,33 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
 
     // A drag that began inside and ended past the edge is still that gesture, not a click
     // outside — see `useOutsideCloseGuard`.
-    const closeOnOutside = useOutsideCloseGuard(onClose);
     // Names the dialog, puts focus in it and keeps Tab inside — see the hook.
-    const dialogRef = useModalDialog<HTMLDivElement>(`Choose keys from ${tagName}`);
     const [filter, setFilter] = useState(() => initialView?.filter ?? '');
     // Open. The document the user clicked is the thing they came to look at, and folding it means
     // every key past the first level costs a click before it can even be seen.
     const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(initialView?.collapsed ?? []));
-    const [selected, setSelected] = useState<string[]>(() => (initialSelected ?? []).filter((path) => nodes.some((node) => node.leaf && node.queryable && node.path === path)));
+    const [selected, setSelected] = useState<string[]>(() => Array.from(new Set((initialSelected ?? []).filter((path) => { try { jsonPathToSqlPath(path); return true; } catch { return false; } }).map(normalizeJsonPath))));
+
+    const inputRef = useRef<HTMLInputElement>(null);
+    const treeRef = useRef<HTMLDivElement>(null);
+    const selectedRef = useRef<HTMLDivElement>(null);
+    const scrollRef = useRef({ scrollTop: initialView?.scrollTop ?? 0, selectedScrollTop: initialView?.selectedScrollTop ?? 0 });
+    useEffect(() => {
+        if (treeRef.current) treeRef.current.scrollTop = scrollRef.current.scrollTop;
+        if (selectedRef.current) selectedRef.current.scrollTop = scrollRef.current.selectedScrollTop;
+    }, []);
+    const manual = useMemo(() => {
+        if (!filter.trim()) return { path: '', error: '' };
+        try { return { path: parseManualJsonPath(filter).path, error: '' }; }
+        catch (error) { return { path: '', error: (error as Error).message }; }
+    }, [filter]);
+    const alreadySelected = selected.includes(manual.path);
+    const addManual = () => {
+        if (!manual.path || alreadySelected) return;
+        setSelected(current => Array.from(new Set([...current, manual.path])));
+        setFilter('');
+        inputRef.current?.focus();
+    };
 
     /** Fitted to the deepest key, so the staircase always lands inside the budget. See it above. */
     const indentStep = useMemo(() => {
@@ -175,7 +191,7 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
     const viewChangeRef = useRef(onViewChange);
     viewChangeRef.current = onViewChange;
     useEffect(() => {
-        viewChangeRef.current?.({ filter, collapsed: Array.from(collapsed) });
+        viewChangeRef.current?.({ filter, collapsed: Array.from(collapsed), ...scrollRef.current });
     }, [collapsed, filter]);
 
     const renderRow = (node: JsonKeyTreeNode) => {
@@ -274,69 +290,28 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
     };
 
 
-    return (
-        // `modal-header` / `modal-body` / `modal-footer` / `btn-icon-sm` are the page's own modal
-        // parts (DataViewerPage.scss) — border, ground, shadow and spacing come from there rather
-        // than from a second set of rules that would have to be kept in step with them. They are
-        // written as direct children because `Modal` renders `children` straight into `.modal`.
-        <DataViewerModalPortal>
-            <Modal pIsDarkMode className="json-key-modal json-key-picker-modal" onOutSideClose={closeOnOutside}>
-                <div ref={dialogRef} className="modal-header json-key-picker-header">
-                    <div className="modal-header-title">Select keys</div>
-                    <span className="json-key-modal-sub">{[tagName, `${documentKeyCount} keys`, baseLabel].filter(Boolean).join(' · ')}</span>
-                    <button type="button" className="btn-icon-sm" onClick={onClose} aria-label="Close">
-                        <VscClose />
-                    </button>
-                </div>
-
-                <div className="modal-body json-key-modal-body json-key-picker-body">
-                    <div className="json-key-picker-tree-col">
-                        <div className="json-key-modal-toolbar">
-                            <input
-                                className="json-key-modal-filter"
-                                value={filter}
-                                onChange={(event) => setFilter(event.target.value)}
-                                placeholder="Filter keys — any depth"
-                                aria-label="Filter keys"
-                            />
-                        </div>
-
-                        <div className="json-key-modal-tree">
-                            {nodes.length === 0 ? <div className="empty-state">This row does not hold a JSON document.</div> : null}
-                            {nodes.length > 0 && visible.length === 0 ? <div className="empty-state">No keys match.</div> : null}
-                            {visible.map(renderRow)}
-                        </div>
-                    </div>
-
-                    {/* What is picked, gathered in one place.
-                        Ticked keys are otherwise scattered down a tree that folds, filters and
-                        scrolls — so the only way to review a selection was to go looking for it.
-                        Here it is a list, and each entry can be dropped without finding its row. */}
-                    <div className="json-key-picker-selected">
-                        <div className="json-key-picker-selected-head">
-                            <span className="json-key-picker-selected-title">
-                                <VscListSelection className="icon-sm" /> SELECTED · {selected.length}
-                            </span>
-                            <button
-                                type="button"
-                                className="btn-icon-sm"
-                                onClick={clearAll}
-                                disabled={selected.length === 0}
-                                title="Clear selection"
-                                aria-label="Clear selection"
-                            >
-                                <VscClearAll />
-                            </button>
-                        </div>
-
-                        <div className="json-key-picker-selected-list">
-                            {selected.length === 0 ? <div className="empty-state">Nothing picked yet.</div> : null}
-                            {selected.map((path) => {
+    return <ValuePickerDialog className="json-key-manual-picker" label={`Choose keys from ${tagName}`} title="Select keys"
+        meta={[tagName, `${documentKeyCount} keys`, baseLabel].filter(Boolean).join(' · ')}
+        filter={filter} onFilter={setFilter} filterLabel="Filter keys" placeholder="Search or enter a key path"
+        inputRef={inputRef} onInputKeyDown={event => {
+            if (event.key === 'Enter' && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); addManual(); }
+        }}
+        treeRef={treeRef} selectedRef={selectedRef}
+        onTreeScroll={event => { scrollRef.current.scrollTop = event.currentTarget.scrollTop; viewChangeRef.current?.({ filter, collapsed: Array.from(collapsed), ...scrollRef.current }); }}
+        onSelectedScroll={event => { scrollRef.current.selectedScrollTop = event.currentTarget.scrollTop; viewChangeRef.current?.({ filter, collapsed: Array.from(collapsed), ...scrollRef.current }); }}
+        tree={<>{nodes.length === 0 ? <div className="empty-state">No keys in this row. Enter a key path to query other rows.</div> : null}{nodes.length > 0 && visible.length === 0 ? <div className="empty-state">No keys match.</div> : null}{visible.map(renderRow)}
+            {filter.trim() ? <div className="json-key-manual-entry">
+                {manual.error ? <div role="status">{manual.error}</div> : alreadySelected ? <div role="status">This key is already selected.</div> : <>
+                    <button type="button" className="json-key-manual-add json-key-row is-active" aria-label={`+ Add “${filter.trim()}”`} onClick={addManual}><VscAdd className="icon-sm" /><span>Add “{filter.trim()}”</span><kbd>Enter</kbd></button>
+                    {!nodes.some(node => node.path === manual.path) ? <div className="json-key-manual-hint">Not found in this row. Values will be checked in the selected range.</div> : null}
+                </>}
+            </div> : null}</>}
+        selected={< >{selected.map((path) => {
                                 const node = nodes.find((entry) => entry.path === path);
                                 const name = jsonKeyPathLabel(path) || node?.dotted || path;
                                 return (
                                     <span key={path} className={`json-key-picker-chip${node?.numeric ? '' : ' is-flat'}`} title={name}>
-                                        <span className="json-key-picker-chip-name">{name}</span>
+                                        <span className="json-key-picker-chip-name">{name}{!node ? <small className="json-key-manual-hint">Not found in this row</small> : null}</span>
                                         <button
                                             type="button"
                                             onClick={() => setSelected((current) => current.filter((entry) => entry !== path))}
@@ -347,34 +322,10 @@ export const JsonKeyPickerModal = ({ tagName, baseLabel, document, valueColumn =
                                         </button>
                                     </span>
                                 );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="modal-footer json-key-modal-footer">
-                        <span className="json-key-modal-count">
-                            {`${selected.length} ${selected.length === 1 ? 'key' : 'keys'} selected · ${
-                                seriesCount > MAX_JSON_KEY_SERIES ? `${MAX_JSON_KEY_SERIES} of ${seriesCount} drawn` : `${seriesCount} series`
-                            }`}
-                        </span>
-                        <div className="json-key-modal-buttons">
-                            <button type="button" className="btn btn-sm btn-ghost" onClick={onClose}>
-                                Cancel
-                            </button>
-                            {/* Open for anything picked, numeric or not. The detail view is a chart
-                                *and* a grid: a key holding text has no line to draw but every one of
-                                its readings is a row, and the chart says so itself rather than the
-                                door being held shut on account of it. The count beside this button
-                                is what says how many of the picks will be drawn. */}
-                            <button type="button" className="btn btn-sm btn-primary" onClick={() => onConfirm(selected)} disabled={selected.length === 0}>
-                                View detail
-                            </button>
-                        </div>
-                </div>
-            </Modal>
-        </DataViewerModalPortal>
-    );
+                            })}</>}
+        selectedCount={selected.length} onClear={clearAll}
+        count={`${selected.length} ${selected.length === 1 ? 'key' : 'keys'} selected · ${seriesCount} numeric in this row${selected.some(path => !nodes.some(node => node.path === path)) ? ` · ${selected.filter(path => !nodes.some(node => node.path === path)).length} unverified` : ''}`}
+        onConfirm={() => onConfirm(selected)} onClose={onClose} />;
 };
 
 export default JsonKeyPickerModal;

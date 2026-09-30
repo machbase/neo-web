@@ -20,8 +20,7 @@ import type {
     PanelHighlightInput,
 } from '../panel/panelReconstruction';
 import type { BoardInfo } from '../board/boardModel';
-import { formatAbsoluteTime } from '../format/timeFormat';
-import { formatNumericValue } from '../rangeExpression/expressionFormat';
+import { formatStoredTimeValue, formatStoredNumericValue } from './storedRangeFormat';
 import {
     formatNumericExpression,
     formatRelativeTime,
@@ -55,9 +54,17 @@ export enum TazVersion {
     V204 = '2.0.4',
     V205 = '2.0.5',
     V210 = '2.1.0',
+    V220 = '2.2.0',
 }
 
+// Default for new/compatible boards. ARRAY boards select V220 at save time.
 export const TAZ_FORMAT_VERSION = TazVersion.V210;
+
+export function getTazFormatVersion(board: Pick<BoardInfo, 'panels'>): TazVersion.V210 | TazVersion.V220 {
+    return board.panels.some((panel) => panel.query.tagSet.some(
+        (series) => series.sourceColumns.arrayIndex !== undefined,
+    )) ? TazVersion.V220 : TazVersion.V210;
+}
 
 // Saved files retain this fallback independently of defaults for new panels.
 export const TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING: Readonly<PanelSampling> = {
@@ -86,7 +93,7 @@ export function getOutdatedTazFormatWarning(
     version: string | undefined,
     panelCount: number,
 ): string | undefined {
-    if (version === TAZ_FORMAT_VERSION) {
+    if (version === TazVersion.V210 || version === TazVersion.V220) {
         return undefined;
     }
 
@@ -131,6 +138,7 @@ export type PersistedPanelSeries = {
         time: string;
         value: string;
         jsonKey?: string;
+        arrayIndex?: number;
         timeType?: number;
         timeBaseTime?: boolean;
     };
@@ -232,6 +240,7 @@ export function decodePanelAnnotations(
 
 export function decodePanelTazVer210(
     panelInfo: unknown,
+    supportsArray = false,
 ): PanelRestoreInput {
     if (!isPersistedPanelInfoV210(panelInfo)) {
         throw new Error('Invalid TagAnalyzer .taz v2.1 panel structure.');
@@ -242,6 +251,9 @@ export function decodePanelTazVer210(
         source: 'TagAnalyzer .taz v2.1 panel',
         invalidSeriesMessage: 'Invalid TagAnalyzer .taz v2.1 panel series structure.',
     });
+    if (!supportsArray && sTagSet.some((series) => series.sourceColumns.arrayIndex !== undefined)) {
+        throw new Error('ARRAY series require TagAnalyzer .taz version 2.2.0.');
+    }
 
     const sRangeInput = normalizePersistedPanelRangeInput(
         panelInfo.timeRange,
@@ -295,7 +307,7 @@ export function encodeTazBoard(
     return {
         id: boardInfo.id,
         type: boardInfo.type,
-        version: TAZ_FORMAT_VERSION,
+        version: getTazFormatVersion(boardInfo),
         boardTimeRange: { ...boardInfo.boardTimeRange },
         boardNumericRange: { ...boardInfo.boardNumericRange },
         panels: boardInfo.panels.map(mapPanelToPersistedTaz),
@@ -343,7 +355,7 @@ type PersistedPanelInfoV210 = {
 type PersistedTazBoardInfoV210 = {
     id: string;
     type: string;
-    version: TazVersion.V210;
+    version: TazVersion.V210 | TazVersion.V220;
     boardTimeRange: PersistedBoardRange;
     boardNumericRange?: PersistedBoardRange;
     panels: PersistedPanelInfoV210[];
@@ -383,7 +395,7 @@ function normalizePersistedValueRange(
 
 function normalizeStoredTimeRangeExpression(value: string | number): string {
     return typeof value === 'number'
-        ? formatAbsoluteTime(value)
+        ? formatStoredTimeValue(value)
         : value.trim();
 }
 
@@ -406,7 +418,7 @@ function normalizePersistedTimeExpression(
     }
 
     if (sKind === 'absolute' && typeof sRangeValue.timestamp === 'number') {
-        return formatAbsoluteTime(sRangeValue.timestamp);
+        return formatStoredTimeValue(sRangeValue.timestamp);
     }
 
     if (sKind === 'now' || sKind === 'last') {
@@ -470,8 +482,8 @@ function normalizePersistedPanelRangeValue(
 ): string | undefined {
     if (typeof value === 'number') {
         return isNumericAxis
-            ? formatNumericValue(value)
-            : formatAbsoluteTime(value);
+            ? formatStoredNumericValue(value)
+            : formatStoredTimeValue(value);
     }
 
     if (typeof value === 'string') {
@@ -503,7 +515,7 @@ function normalizePanelExpressionString(
 
         // A numeric panel could legacy-store an absolute datetime string.
         const sAbsolute = parseAbsoluteTime(sValue);
-        return sAbsolute === undefined ? '' : formatNumericValue(sAbsolute);
+        return sAbsolute === undefined ? '' : formatStoredNumericValue(sAbsolute);
     }
 
     return isValidTimeExpression(sValue) ? sValue : '';
@@ -523,8 +535,8 @@ function normalizeLegacyStructuredRangeValue(
         case 'timestamp_absolute':
         case 'numeric_value':
             return isNumericAxis
-                ? formatNumericValue(sValue)
-                : formatAbsoluteTime(sValue);
+                ? formatStoredNumericValue(sValue)
+                : formatStoredTimeValue(sValue);
         case 'timestamp_now':
         case 'timestamp_data_end':
             return formatRelativeTime(
@@ -560,7 +572,7 @@ function normalizeLegacyBoardStyleRangeValue(
     }
 
     const sAbsolute = parseAbsoluteTime(sExpression);
-    return sAbsolute === undefined ? '' : formatNumericValue(sAbsolute);
+    return sAbsolute === undefined ? '' : formatStoredNumericValue(sAbsolute);
 }
 
 function decodeTimedMarkup(

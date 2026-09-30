@@ -1,3 +1,4 @@
+import { isArrayTypeColumn } from './arrayValue';
 import { isNumberTypeColumn } from './dashboardUtil';
 import { isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from './dashboardJsonValue';
 import { getColumnType, getDefaultTimeFieldColumn, getTimeFieldColumns, isBaseTimeColumn, findColumnByName, DATETIME_COLUMN_TYPE } from './timeFieldColumns';
@@ -11,6 +12,8 @@ export type TagAnalyzerColumnInfo = {
     timeBaseTime?: boolean;
     value: string;
     jsonKey?: string;
+    arrayIndex?: number;
+    arrayType?: number;
 };
 
 const columnName = (aColumn: any) => String(aColumn?.name ?? aColumn?.[0] ?? '');
@@ -21,7 +24,7 @@ export const getTagAnalyzerTimeColumns = (aColumns: any[] = []): TagAnalyzerColu
 };
 
 export const getTagAnalyzerValueColumns = (aColumns: any[] = []): TagAnalyzerColumn[] => {
-    return aColumns.filter((aColumn) => !isBaseTimeColumn(aColumn, 2) && (isNumberTypeColumn(columnType(aColumn)) || isJsonTypeColumn(columnType(aColumn)))).map((aColumn) => [columnName(aColumn), columnType(aColumn)]);
+    return aColumns.filter((aColumn) => !isBaseTimeColumn(aColumn, 2) && (isNumberTypeColumn(columnType(aColumn)) || isJsonTypeColumn(columnType(aColumn)) || isArrayTypeColumn(columnType(aColumn)))).map((aColumn) => [columnName(aColumn), columnType(aColumn)]);
 };
 
 export const isTagAnalyzerJsonValue = (aColumns: any[] = [], aValue: string) => {
@@ -38,14 +41,18 @@ export const createTagAnalyzerColumnInfo = (aColumns: any[] = [], aCurrent?: Par
     const sCurrentValue = aCurrent?.value && sValueColumns.some((aColumn) => aColumn[0] === aCurrent.value) ? aCurrent.value : '';
     const sTime = sCurrentTime || getDefaultTimeFieldColumn(aColumns, 2);
     const sTimeColumn = findColumnByName(aColumns, sTime);
+    const sValue = sCurrentValue || columnName(sNumericColumn) || '';
+    const sValueType = columnType(aColumns.find((column) => columnName(column) === sValue));
 
     return {
         name: sCurrentName || columnName(aColumns[0]),
         time: sTime,
         timeType: sTimeColumn ? getColumnType(sTimeColumn) : DATETIME_COLUMN_TYPE,
         timeBaseTime: sTimeColumn ? isBaseTimeColumn(sTimeColumn, 2) : false,
-        value: sCurrentValue || columnName(sNumericColumn) || '',
+        value: sValue,
+        ...(isArrayTypeColumn(sValueType) ? { arrayType: sValueType } : {}),
         jsonKey: normalizeJsonPath(aCurrent?.jsonKey ?? ''),
+        ...(aCurrent?.arrayIndex !== undefined ? { arrayIndex: aCurrent.arrayIndex } : {}),
     };
 };
 
@@ -68,7 +75,7 @@ export const createTagAnalyzerColumnInfoFromDashboardBlock = (aBlock: any): TagA
 
 export const canUseTagAnalyzerRollup = (aColName?: Partial<TagAnalyzerColumnInfo>) => {
     if (!aColName) return true;
-    return String(aColName.time ?? '').toUpperCase() === 'TIME';
+    return aColName.arrayIndex === undefined && String(aColName.time ?? '').toUpperCase() === 'TIME';
 };
 
 /**
@@ -92,3 +99,6 @@ export const isTagAnalyzerEligibleBlock = (aBlock: any): boolean =>
  * entry that only ever answers with an error toast is worse than no entry.
  */
 export const hasTagAnalyzerEligibleBlock = (aBlockList: any[] = []): boolean => (aBlockList ?? []).some(isTagAnalyzerEligibleBlock);
+
+export const isTagAnalyzerArrayValue = (columns: any[] = [], value: string) =>
+    columns.some((column) => columnName(column) === value && isArrayTypeColumn(columnType(column)));

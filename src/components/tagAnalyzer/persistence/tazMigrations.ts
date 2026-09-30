@@ -12,8 +12,7 @@ import type {
 } from '../panel/panelModel';
 import { decodePersistedPanelRangeState } from './persistedPanelRange';
 import { decodePersistedTimeUnit } from './serializeRange';
-import { formatAbsoluteTime } from '../format/timeFormat';
-import { formatNumericValue } from '../rangeExpression/expressionFormat';
+import { formatStoredTimeValue, formatStoredNumericValue } from './storedRangeFormat';
 import {
     type RangeExpressionInput,
 } from '../rangeExpression/rangeModel';
@@ -33,7 +32,6 @@ import {
     normalizePersistedValueRangeOrAuto,
     decodePanelTazVer210,
     parsePersistedValueRangeOrThrow,
-    TAZ_FORMAT_VERSION,
     TAZ_DEFAULT_RAW_NAVIGATOR_SAMPLING,
     TazVersion,
     type PersistedBoardRange,
@@ -465,8 +463,8 @@ function resolveLegacyRangeConfig(
     }
 
     const sFormatter = isNumericAxis
-        ? formatNumericValue
-        : formatAbsoluteTime;
+        ? formatStoredNumericValue
+        : formatStoredTimeValue;
     return {
         start: sFormatter(sValueRange.min),
         end: sFormatter(sValueRange.max),
@@ -1068,7 +1066,9 @@ function decodePanelTazByVersion(
     switch (version) {
         case TazVersion.Legacy:
             return decodeLegacyPanel(panelInfo);
-        case TAZ_FORMAT_VERSION:
+        case TazVersion.V220:
+            return decodePanelTazVer210(panelInfo, true);
+        case TazVersion.V210:
             return decodePanelTazVer210(panelInfo);
         case TazVersion.V204:
         case TazVersion.V205:

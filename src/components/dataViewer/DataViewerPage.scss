@@ -3737,3 +3737,53 @@
     /* …but never so short that the chart's own floor paints through the bottom edge. */
     min-height: min(420px, 92vh);
 }
+
+// Shared detail dialogs stack consistently on narrow screens.
+.neo-data-viewer .modal.json-key-detail-modal {
+    @media (max-width: 650px) {
+        .json-key-detail-split { flex-direction: column; overflow: visible; }
+        .json-key-detail-chart-col { flex: none; min-height: 340px; }
+        .json-key-detail-grid-col { flex: none; height: 260px; }
+        .json-key-detail-window { display: none; }
+        .json-key-detail-head { grid-template-columns: minmax(0, 1fr) auto; }
+    }
+}
+
+.neo-data-viewer .json-key-manual-entry {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border-color, #333);
+    font-size: 12px;
+    .json-key-manual-add {
+        display: flex;
+        width: 100%;
+        gap: 8px;
+        padding: 10px;
+        border: 0;
+        border-left: 2px solid #6b9eff;
+        border-radius: 0;
+        background: rgba(86, 142, 235, .12);
+        color: inherit;
+        cursor: pointer;
+        text-align: left;
+        white-space: normal;
+        span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        svg, kbd { flex-shrink: 0; }
+        kbd { color: #9299a5; font-size: 11px; font-family: inherit; }
+        &:hover, &:focus-visible { background: rgba(86, 142, 235, .2); }
+    }
+}
+.neo-data-viewer .json-key-manual-hint {
+    display: block;
+    color: var(--text-muted, #9299a5);
+    font-size: 11px;
+    font-weight: normal;
+    padding: 4px 0;
+    overflow-wrap: anywhere;
+}
+
+.neo-data-viewer .json-key-manual-picker .json-key-modal-tree > .empty-state {
+    min-height: 0;
+    padding: 10px 12px;
+    text-align: left;
+    justify-content: flex-start;
+}

@@ -1,3 +1,4 @@
+import { isArrayTypeColumn } from '@/utils/arrayValue';
 import { getId } from '@/utils';
 import type { GBoardListType } from '@/recoil/recoil';
 import type { TagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
@@ -20,8 +21,6 @@ import {
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
 } from '../seriesModel';
-import { formatAbsoluteTime } from '../format/timeFormat';
-import { formatNumericValue } from '../rangeExpression/expressionFormat';
 import type { RangeExpressionInput } from '../rangeExpression/rangeModel';
 
 export function createTagAnalyzerBoardFromDashboard({
@@ -80,11 +79,28 @@ export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<Br
     const sPayload = normalizePayload(aPayload);
     if (!sPayload.ok) return { status: 'error', reason: sPayload.reason };
     const { title, range, tags, isNumericBase } = sPayload.value;
-    // Which axis holds the window, and how its ends are written. `formatNumericValue` for a numeric
-    // base and `formatAbsoluteTime` for a datetime one — the same pairing
+    // Preserve numeric round trips and millisecond ISO timestamps in range inputs; display
+    // rounding must not change the query range. Use the same pairing
     // `createDefaultTazBoard` makes, because a board opened through this bridge and a board opened
     // from the setup dialog have to be the same board.
-    const sRangeInput: RangeExpressionInput = resolveBridgeRangeInput(range, isNumericBase);
+    const hasArraySelection = tags.some((tag) => tag.sourceColumns.arrayIndex !== undefined);
+    if (hasArraySelection && range.kind === 'absent') {
+        return { status: 'error', reason: 'ARRAY series require an explicit valid range.' };
+    }
+    let sRangeInput: RangeExpressionInput;
+    try {
+        sRangeInput = resolveBridgeRangeInput(range, isNumericBase);
+        if (range.kind !== 'absent') {
+            const toValue = range.kind === 'numeric' ? Number : (value: string | number) => typeof value === 'number' ? value : Date.parse(value);
+            const start = toValue(sRangeInput.start);
+            const end = toValue(sRangeInput.end);
+            if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end || start !== toValue(range.min) || end !== toValue(range.max)) {
+                return { status: 'error', reason: 'The selected range could not be preserved.' };
+            }
+        }
+    } catch {
+        return { status: 'error', reason: 'The selected range could not be preserved.' };
+    }
 
     return {
         status: 'ok',
@@ -97,7 +113,9 @@ export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<Br
                 seriesList: tags,
                 boardTimeRange: isNumericBase ? EMPTY_BRIDGE_RANGE : sRangeInput,
                 boardNumericRange: isNumericBase ? sRangeInput : EMPTY_BRIDGE_RANGE,
-                mainRange: { start: '', end: '' },
+                // ARRAY detail hands over the visible window, including sparse/NULL rows.
+                // An empty main range would narrow it to the default centre of the navigator.
+                mainRange: hasArraySelection ? { ...sRangeInput } : { start: '', end: '' },
             }),
             sheet: [],
             range_bgn: sRangeInput.start,
@@ -269,6 +287,16 @@ const normalizeColumnInfo = (aValue: unknown, aIndex: number): Result<TagAnalyze
         }
         sColumnInfo.timeBaseTime = aValue.timeBaseTime;
     }
+    if (aValue.arrayType !== undefined) {
+        if (typeof aValue.arrayType !== 'number' || !isArrayTypeColumn(aValue.arrayType)) return fail(`tags[${aIndex}].colName.arrayType is invalid`);
+        sColumnInfo.arrayType = aValue.arrayType;
+    }
+    if (aValue.arrayIndex !== undefined) {
+        if (typeof aValue.arrayIndex !== 'number' || !Number.isInteger(aValue.arrayIndex) || aValue.arrayIndex < 0) {
+            return fail(`tags[${aIndex}].colName.arrayIndex is invalid`);
+        }
+        sColumnInfo.arrayIndex = aValue.arrayIndex;
+    }
     const sJsonKey = optionalText(aValue.jsonKey);
     if (sJsonKey) sColumnInfo.jsonKey = sJsonKey;
 
@@ -363,7 +391,7 @@ const normalizePayload = (aPayload: unknown): Result<NormalizedPayload> => {
 
 function formatBridgeRangeInputValue(value: string | number): string {
     return typeof value === 'number'
-        ? formatAbsoluteTime(value)
+        ? new Date(value).toISOString()
         : value;
 }
 
@@ -383,7 +411,7 @@ function resolveBridgeRangeInput(range: NormalizedRange, isNumericBase: boolean)
         return isNumericBase ? EMPTY_BRIDGE_RANGE : { start: 'now-1h', end: 'now' };
     }
     if (range.kind === 'numeric') {
-        return { start: formatNumericValue(range.min), end: formatNumericValue(range.max) };
+        return { start: String(range.min), end: String(range.max) };
     }
     return {
         start: formatBridgeRangeInputValue(range.min),

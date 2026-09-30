@@ -1,10 +1,5 @@
+import ValueDetailDialog, { ValueDetailPager } from './ValueDetailDialog';
 import { useEffect, useMemo, useState } from 'react';
-import { VscArrowLeft, VscClose } from 'react-icons/vsc';
-import { MuiTagAnalyzer } from '@/assets/icons/Mui';
-import Modal from '@/components/modal/Modal';
-import DataViewerModalPortal from './DataViewerModalPortal';
-import useOutsideCloseGuard from './useOutsideCloseGuard';
-import useModalDialog from './useModalDialog';
 import { queryTagJsonKeyData, type DataViewerTableParams, type JsonKeyCycleRow } from './dataViewerApi';
 import {
     DEFAULT_TIME_FORMAT,
@@ -60,7 +55,7 @@ const readableJsonValue = (value: unknown): string => {
     return round.length < text.length ? round : text;
 };
 
-const PAGE_SIZES = [25, 50, 100];
+
 
 export interface JsonKeyDetailModalProps extends DataViewerTableParams {
     tagName: string;
@@ -125,13 +120,11 @@ export const JsonKeyDetailModal = ({
     const [rows, setRows] = useState<JsonKeyCycleRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
+    const [pageSize, setPageSize] = useState(25);
     const [page, setPage] = useState(0);
     // A drag that began inside and ended past the edge is still that gesture, not a click
     // outside — see `useOutsideCloseGuard`.
-    const closeOnOutside = useOutsideCloseGuard(onClose);
     // Names the dialog, puts focus in it and keeps Tab inside — see the hook.
-    const dialogRef = useModalDialog<HTMLDivElement>(`Key detail for ${tagName}`);
 
     /**
      * A zoom the user made inside the plot, which lasts until they page.
@@ -360,61 +353,12 @@ export const JsonKeyDetailModal = ({
         if (handoffError) setError(handoffError);
     };
 
-    return (
-        // Same page-owned modal parts as the picker — see the note there.
-        <DataViewerModalPortal>
-            <Modal pIsDarkMode className="json-key-modal json-key-detail-modal" onOutSideClose={closeOnOutside}>
-                <div ref={dialogRef} className="modal-header json-key-detail-head">
-                    <div className="modal-header-title json-key-modal-title">
-                        <span title={fullNames.join(', ')}>{title}</span>
-                        <span className="json-key-modal-sub">{meta}</span>
-                    </div>
-                    {/* Centred, because the window belongs to neither side it sits between: the title
-                        on the left names the key, the controls on the right act on it, and this is
-                        the one thing both of them are true only within. */}
-                    <span className="json-key-detail-window" title={windowLabel.full}>
-                        {windowLabel.text}
-                    </span>
-                    <div className="json-key-detail-head-actions">
-                        {onOpenTagAnalyzer ? (
-                            <button
-                                type="button"
-                                className="json-key-detail-handoff"
-                                onClick={openTagAnalyzer}
-                                disabled={analyzableAll.length === 0}
-                                title={
-                                    analyzableAll.length === 0
-                                        ? 'Nothing numeric to analyze'
-                                        : analyzableAll.length > PANEL_TAG_LIMIT
-                                          ? `Tag Analyzer supports up to ${PANEL_TAG_LIMIT} keys`
-                                          : 'Open in Tag Analyzer'
-                                }
-                                // Icon only: the word beside its own icon says the same thing twice,
-                                // and the name is still on the button as its tooltip and its label.
-                                aria-label="Open in Tag Analyzer"
-                            >
-                                <MuiTagAnalyzer width={18} height={18} />
-                            </button>
-                        ) : null}
-                        <button type="button" className="btn-icon-sm" onClick={onClose} aria-label="Close">
-                            <VscClose />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="modal-body json-key-modal-body">
-                    {error ? <div className="json-key-detail-error">{error}</div> : null}
-
-                    {/* Side by side, because the one is the shape of the other: the chart draws the
-                        rows the grid is showing, and reading them stacked meant scrolling away from
-                        whichever half you were not looking at. */}
-                    <div className="json-key-detail-split">
-                        <div className="json-key-detail-chart-col">
-                            {/* The page's own chart, imported rather than rebuilt — the drag, the
-                                wheel, the navigator and the shift buttons are the ones the chart
-                                panel has, so there is one way to operate a chart on this page. */}
-                            <div className="json-key-detail-chart">
-                                <TagEChart
+    return <ValueDetailDialog
+        label={`Key detail for ${tagName}`} title={title} titleTooltip={fullNames.join(', ')} meta={meta} windowLabel={windowLabel}
+        onClose={onClose} onBack={onBack} error={error}
+        analyzer={onOpenTagAnalyzer ? { onClick: openTagAnalyzer, disabled: analyzableAll.length === 0,
+            title: analyzableAll.length === 0 ? 'Nothing numeric to analyze' : analyzableAll.length > PANEL_TAG_LIMIT ? `Tag Analyzer supports up to ${PANEL_TAG_LIMIT} keys` : 'Open in Tag Analyzer' } : undefined}
+        chart={<TagEChart
                                     series={series.map((entry) => ({ name: entry.name, data: entry.data }))}
                                     timeFormat={timeFormat}
                                     timeZone={timeZone}
@@ -426,13 +370,10 @@ export const JsonKeyDetailModal = ({
                                     // The chart's own shift arrows and the pager are the same
                                     // control: one span at a time, moved one span at a time.
                                     onShiftMainRange={(direction) => goToPage(currentPage + (direction === 'forward' ? 1 : -1))}
-                                />
-                            </div>
-
-                        </div>
-
-                        <div className="json-key-detail-grid-col">
-                            <div className="json-key-detail-grid">
+                                />}
+        grid={<div className="json-key-detail-grid">
+                                {!loading && !error ? paths.map((path, index) => rows.every(row => row.values[index] === null || row.values[index] === undefined)
+                                    ? <div key={path} className="json-key-manual-hint" role="status">{fullNames[index]}: No confirmed values in this range (missing or NULL).</div> : null) : null}
                                 {loading ? <div className="empty-state">Loading...</div> : null}
                                 {!loading && valueRows.length === 0 && !error ? <div className="empty-state">No data in this range.</div> : null}
                                 {!loading && valueRows.length > 0 ? (
@@ -461,96 +402,11 @@ export const JsonKeyDetailModal = ({
                                         </tbody>
                                     </table>
                                 ) : null}
-                            </div>
-
-                            <div className="json-key-detail-pager">
-                                <span className="json-key-modal-count">
-                                    {valueRows.length === 0
-                                        ? '0 rows'
-                                        : `${firstRow + 1}–${Math.min(firstRow + pageSize, valueRows.length)} of ${valueRows.length} rows`}
-                                </span>
-                                <div className="json-key-detail-pager-controls">
-                                    <button
-                                        type="button"
-                                        className="json-key-detail-step"
-                                        onClick={() => goToPage(0)}
-                                        disabled={currentPage === 0}
-                                        aria-label="First page"
-                                    >
-                                        «
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="json-key-detail-step"
-                                        onClick={() => goToPage(currentPage - 1)}
-                                        disabled={currentPage === 0}
-                                        aria-label="Previous page"
-                                    >
-                                        ‹
-                                    </button>
-                                    <span className="json-key-detail-page">
-                                        {currentPage + 1} / {pageCount}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className="json-key-detail-step"
-                                        onClick={() => goToPage(currentPage + 1)}
-                                        disabled={currentPage >= pageCount - 1}
-                                        aria-label="Next page"
-                                    >
-                                        ›
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="json-key-detail-step"
-                                        onClick={() => goToPage(pageCount - 1)}
-                                        disabled={currentPage >= pageCount - 1}
-                                        aria-label="Last page"
-                                    >
-                                        »
-                                    </button>
-                                </div>
-                                <div className="json-key-detail-sizes" role="group" aria-label="Rows per page">
-                                    {PAGE_SIZES.map((size) => (
-                                        <button
-                                            key={size}
-                                            type="button"
-                                            className={`json-key-detail-chip${pageSize === size ? ' is-active' : ''}`}
-                                            onClick={() => {
-                                                setPageSize(size);
-                                                setPage(0);
-                                                // Same reason `goToPage` does it: this is a new span,
-                                                // and keeping the old zoom leaves the chart looking
-                                                // at rows the grid beside it is no longer showing.
-                                                setZoomRange(undefined);
-                                            }}
-                                            aria-pressed={pageSize === size}
-                                        >
-                                            {size}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="modal-footer json-key-detail-foot">
-                    {/* Close only dismisses. Back is where this view leads on to — you came from the
-                        picker to read these keys and go back to change them — so it takes the primary
-                        and the last position, which is where the footer's forward button always is. */}
-                    <button type="button" className="btn btn-sm btn-secondary" onClick={onClose}>
-                        Close
-                    </button>
-                    {onBack ? (
-                        <button type="button" className="btn btn-sm btn-primary" onClick={onBack}>
-                            <VscArrowLeft className="icon-sm" /> Back to keys
-                        </button>
-                    ) : null}
-                </div>
-            </Modal>
-        </DataViewerModalPortal>
-    );
+                            </div>}
+        pager={<ValueDetailPager page={currentPage} pageCount={pageCount} pageSize={pageSize} hasMore={currentPage < pageCount - 1}
+            count={valueRows.length === 0 ? '0 rows' : `${firstRow + 1}–${Math.min(firstRow + pageSize, valueRows.length)} of ${valueRows.length} rows`}
+            onPage={goToPage} onPageSize={(size) => { setPageSize(size); setPage(0); setZoomRange(undefined); }} />}
+    />;
 };
 
 export default JsonKeyDetailModal;

@@ -57,11 +57,12 @@ const wrapSqlForTql = (sql: string, database?: string) => {
     return `SQL(${sUse ? sUse + ', ' : ''}\`${sql.replace(/`/g, '\\`')}\`)\nJSON()`;
 };
 
-export const fetchQuery = async (query: string) => {
+export const fetchQuery = async (query: string, preserveArrayNumbers = false) => {
     const sData: any = await request({
         method: 'GET',
         url: `/api/query?q=` + encodeURIComponent(query),
-    });
+        ...(preserveArrayNumbers ? { preserveArrayNumbers: true } : {}),
+    } as any);
     return { svrState: sData?.success ?? false, svrData: sData?.data, svrReason: sData?.data?.reason ?? sData?.reason ?? sData?.toString() };
 };
 /**
@@ -73,7 +74,7 @@ export const fetchQuery = async (query: string) => {
  * `?q=`). `signal` abandons a read the caller has already moved on from. `aDatabase` keeps logical
  * database routing identical to the other TQL callers.
  */
-export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string, signal?: AbortSignal) => {
+export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string, signal?: AbortSignal, preserveArrayNumbers = false) => {
     const query = wrapSqlForTql(aSql, aDatabase);
     const consoleId = localStorage.getItem('consoleId');
 
@@ -82,6 +83,7 @@ export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string, s
         url: `/api/tql`,
         data: query,
         signal,
+        ...(preserveArrayNumbers ? { preserveArrayNumbers: true } : {}),
     };
 
     requestConfig.headers = {

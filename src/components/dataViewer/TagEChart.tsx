@@ -47,6 +47,7 @@ export function TagEChart({
     baseKind = 'time',
     seriesColors,
     pending = false,
+    arrayElements = false,
     onDisplayRangeChange,
     onShiftMainRange,
 }: {
@@ -67,6 +68,7 @@ export function TagEChart({
      * series and holding it is the point.
      */
     pending?: boolean;
+    arrayElements?: boolean;
     onDisplayRangeChange?: (range: DataViewerTimeRange, navigatorRange?: DataViewerTimeRange) => void;
     onShiftMainRange?: (direction: 'backward' | 'forward', currentRange: any, navigatorRange: any) => void;
 }) {
@@ -127,8 +129,8 @@ export function TagEChart({
     const allPoints = useMemo(() => series.flatMap((item) => item.data), [series]);
     const hasChartData = allPoints.length > 0;
     const options = useMemo(
-        () => buildDataViewerEChartOption({ series, timeFormat, timeZone, timeRange, displayRange, baseKind, seriesColors, panelHeight }),
-        [baseKind, displayRange, panelHeight, series, seriesColors, timeFormat, timeRange, timeZone],
+        () => buildDataViewerEChartOption({ series, timeFormat, timeZone, timeRange, displayRange, baseKind, seriesColors, panelHeight, arrayElements }),
+        [arrayElements, baseKind, displayRange, panelHeight, series, seriesColors, timeFormat, timeRange, timeZone],
     );
     const currentRange = useMemo(() => getDataViewerChartRangeMs(allPoints, displayRange || timeRange, baseKind), [allPoints, baseKind, displayRange, timeRange]);
     const navigatorRange = useMemo(() => getDataViewerChartRangeMs(allPoints, timeRange, baseKind), [allPoints, baseKind, timeRange]);

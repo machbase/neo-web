@@ -46,6 +46,9 @@ jest.mock('./dataViewerApi', () => ({
     ...jest.requireActual<typeof import('./dataViewerApi')>('./dataViewerApi'),
     listTableTags: jest.fn(),
     listTableColumns: jest.fn(),
+    fetchDataViewerArrayMetadata: jest.fn(),
+    queryTagArrayElementData: jest.fn(),
+    queryTagArrayBoundaryRange: jest.fn(),
     queryTagData: jest.fn(),
     queryTagDataTotal: jest.fn(),
     queryTagBoundaryTime: jest.fn(),
@@ -155,6 +158,9 @@ beforeAll(() => {
 const dataViewerApi = jest.requireMock('./dataViewerApi') as {
     listTableTags: jest.Mock;
     listTableColumns: jest.Mock;
+    fetchDataViewerArrayMetadata: jest.Mock;
+    queryTagArrayElementData: jest.Mock;
+    queryTagArrayBoundaryRange: jest.Mock;
     queryTagData: jest.Mock;
     queryTagDataTotal: jest.Mock;
     queryTagBoundaryTime: jest.Mock;
@@ -3266,6 +3272,23 @@ describe('DataViewerPage JSON key chain', () => {
         expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
     });
 
+    test.each(['{}', '[]', 'null', '123', null])('opens manual entry from the inspector for JSON %s without stacking dialogs', async (value) => {
+        dataViewerApi.listTableColumns.mockResolvedValue(JSON_VALUE_COLUMNS);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: [{ ...JSON_ROWS[0], value }] });
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        fireEvent.click(getDataRows(container)[0]);
+        fireEvent.click(await screen.findByRole('button', { name: 'Select keys' }));
+        expect(screen.queryByText(/row 1 of/)).not.toBeInTheDocument();
+        const input = screen.getByLabelText('Filter keys');
+        fireEvent.change(input, { target: { value: 'future.value' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+        await waitFor(() => expect(dataViewerApi.queryTagJsonKeyData).toHaveBeenCalledWith(expect.objectContaining({ paths: ['[future][value]'] })));
+        fireEvent.click(screen.getByRole('button', { name: 'Back to keys' }));
+        expect(screen.getByRole('button', { name: 'Remove future.value' })).toBeInTheDocument();
+    });
+
     test('the detail is read for the keys that were ticked, over the page window', async () => {
         const { container } = renderJson();
         await openKeyPicker(container);
@@ -3323,6 +3346,57 @@ describe('DataViewerPage JSON key chain', () => {
         fireEvent.click(await screen.findByRole('button', { name: /Back to keys/ }));
 
         expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeChecked();
-        expect(screen.getByText('1 key selected · 1 series')).toBeInTheDocument();
+        expect(screen.getByText('1 key selected · 1 numeric in this row')).toBeInTheDocument();
+    });
+});
+
+
+describe('ARRAY value entry', () => {
+    beforeEach(() => {
+        // ARRAY's opt-in transport preserves every JSON numeric token, including time, as text.
+        dataViewerApi.queryTagBoundaryTime.mockResolvedValue(String(BigInt(BOUNDARY_BASE_MS) * 1_000_000n));
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: ROWS.map((row) => ({ ...row, time: String(BigInt(Date.parse(row.time)) * 1_000_000n) })) });
+    });
+    test('preserves raw array brackets, NULL positions and exact number spelling', async () => {
+        dataViewerApi.listTableColumns.mockResolvedValue([['NAME', 5, 0], ['TIME', 6, BASETIME_FLAG], ['VALUE', 153, 0]]);
+        dataViewerApi.fetchDataViewerArrayMetadata.mockResolvedValue({ kind: 'array', elementType: 12, cardinality: 3 });
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: [{ ...ROWS[0], time: String(BigInt(Date.parse(ROWS[0].time)) * 1_000_000n), value: ['9007199254740993', null, '30'] }] });
+        renderPage();
+        await waitFor(() => expect(screen.getByText('[9007199254740993, NULL, 30]')).toBeInTheDocument());
+        expect(dataViewerApi.queryTagData.mock.calls.at(-1)[0].preserveArrayNumbers).toBe(true);
+    });
+    test('fails closed when declared length is unavailable and offers metadata retry', async () => {
+        dataViewerApi.listTableColumns.mockResolvedValue([['NAME', 5, 0], ['TIME', 6, BASETIME_FLAG], ['VALUE', 165, 0]]);
+        dataViewerApi.fetchDataViewerArrayMetadata.mockRejectedValue(new Error('Declared array length unavailable'));
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        expect(screen.queryByRole('tab', { name: 'Chart' })).not.toBeInTheDocument();
+        fireEvent.click(getDataRows(container)[0]);
+        expect(screen.queryByRole('dialog', { name: /Array elements/ })).not.toBeInTheDocument();
+        expect(dataViewerApi.queryTagArrayElementData).not.toHaveBeenCalled();
+        dataViewerApi.fetchDataViewerArrayMetadata.mockResolvedValue({ kind: 'array', elementType: 20, cardinality: 4 });
+        fireEvent.click(screen.getByRole('button', { name: 'Retry array metadata' }));
+        await waitFor(() => expect(dataViewerApi.fetchDataViewerArrayMetadata).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry array metadata' })).not.toBeInTheDocument());
+        fireEvent.click(getDataRows(container)[0]);
+        expect(screen.getByRole('dialog', { name: /Array elements/ })).toBeInTheDocument();
+        expect(screen.getAllByRole('checkbox').filter((entry) => entry.closest('.array-element-modal'))).toHaveLength(4);
+    });
+    test.each(['0', '2678400000000000'])('resolves last and raw paging using explicit server ns from %s', async (first) => {
+        dataViewerApi.listTableColumns.mockResolvedValue([['NAME', 5, 0], ['TIME', 6, BASETIME_FLAG], ['VALUE', 165, 0]]);
+        dataViewerApi.fetchDataViewerArrayMetadata.mockResolvedValue({ kind: 'array', elementType: 20, cardinality: 1 });
+        const rows = ROWS.map((row, index) => ({ ...row, time: String(BigInt(first) + BigInt(index) * 1_000_000n), value: ['10'] }));
+        const last = rows[rows.length - 1].time;
+        dataViewerApi.queryTagBoundaryTime.mockResolvedValue(last);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows });
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        expect(dataViewerApi.queryTagBoundaryTime.mock.calls[0][0].preserveArrayNumbers).toBe(true);
+        expect(dataViewerApi.queryTagData.mock.calls[0][0].to).toBe(Number(BigInt(last) / 1_000_000n) + 1);
+        expect(getDataRows(container)[0].querySelector('td')?.textContent).toContain('1970-');
+        gotoPage(2);
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+        expect(dataViewerApi.queryTagData.mock.calls[1][0]).toMatchObject({ cursorTime: last, preserveArrayNumbers: true });
+        expect(dataViewerApi.queryTagBoundaryTime).toHaveBeenCalledTimes(1);
     });
 });

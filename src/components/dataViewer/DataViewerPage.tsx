@@ -31,6 +31,11 @@ import {
 import JsonKeyPickerModal, { type JsonKeyPickerView } from './JsonKeyPickerModal';
 import RawRowDetailModal from './RawRowDetailModal';
 import JsonKeyDetailModal from './JsonKeyDetailModal';
+import ArrayElementPickerModal, { type ArrayPickerView } from './ArrayElementPickerModal';
+import ArrayElementDetailModal from './ArrayElementDetailModal';
+import { arrayTimestampIso, arrayTimestampNanoseconds, type ArrayTimeUnit } from './arrayTimestamp';
+import { isArrayColumnType, type ArrayColumnMetadata } from '@/utils/arrayValue';
+import { fetchDataViewerArrayMetadata } from './dataViewerApi';
 import { jsonKeyDocumentHasKeys } from './jsonKeyTree';
 import { toTagAnalyzerJsonKeyPath } from '@/utils/jsonKeyCatalog';
 import {
@@ -86,6 +91,7 @@ import './DataViewerPage.scss';
 
 type ResultRow = Record<string, unknown>;
 type RawPageRequest = {
+    timeUnit?: ArrayTimeUnit;
     page: number;
     from?: string | number;
     to?: string | number;
@@ -499,6 +505,11 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // state: nothing on this page renders from it, and putting it in state would re-render the whole
     // Data Viewer on every keystroke typed into a modal filter box. Cleared with the picker itself.
     const jsonKeyPickerViewRef = useRef<JsonKeyPickerView | undefined>(undefined);
+    const [arrayPicker, setArrayPicker] = useState<{ tagName: string; baseLabel: string; preview: unknown; selected: number[] } | null>(null);
+    const [arrayDetail, setArrayDetail] = useState<number[] | null>(null);
+    const arrayPickerViewRef = useRef<ArrayPickerView>();
+    const [arrayMetadataRead, setArrayMetadataRead] = useState<{ key: string; metadata?: ArrayColumnMetadata; error?: string } | null>(null);
+    const [arrayMetadataRetry, setArrayMetadataRetry] = useState(0);
     const [selectedTagNames, setSelectedTagNames] = useState<string[]>([]);
     const [mode, setMode] = useState<'raw' | 'chart'>('raw');
     const [page, setPage] = useState(1);
@@ -649,6 +660,23 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // of `canQuery`: a JSON value column is a perfectly readable table, and Raw shows the document
     // as text. It gates the two consumers that need a numeric value — Chart and Tag Analyzer.
     const valueColumnIsJson = isDataViewerJsonValueColumn(baseColumns ?? [], valueColumn);
+    const valueColumnIsArray = isArrayColumnType((baseColumns ?? []).find((column) => column[0].toLowerCase() === valueColumn.toLowerCase())?.[1]);
+    const valueColumnNeedsSelection = valueColumnIsJson || valueColumnIsArray;
+    const arrayMetadataKey = `${tableKey}/${valueColumn}`;
+    const arrayMetadata = arrayMetadataRead?.key === arrayMetadataKey ? arrayMetadataRead.metadata : undefined;
+    const arrayMetadataError = arrayMetadataRead?.key === arrayMetadataKey ? arrayMetadataRead.error : undefined;
+    useEffect(() => {
+        setArrayPicker(null); setArrayDetail(null); arrayPickerViewRef.current = undefined;
+    }, [tableKey, valueColumn]);
+    useEffect(() => {
+        if (!valueColumnIsArray) return;
+        let alive = true; const abort = new AbortController();
+        setArrayMetadataRead(null);
+        fetchDataViewerArrayMetadata({ dbName, userName, tableName, valueColumn, signal: abort.signal })
+            .then((metadata) => { if (alive) setArrayMetadataRead({ key: arrayMetadataKey, metadata }); })
+            .catch((reason) => { if (alive) setArrayMetadataRead({ key: arrayMetadataKey, error: reason instanceof Error ? reason.message : 'Array metadata unavailable' }); });
+        return () => { alive = false; abort.abort(); };
+    }, [dbName, userName, tableName, valueColumn, valueColumnIsArray, arrayMetadataKey, arrayMetadataRetry]);
     // The single gate every query path in this component already reads. Only the two table reads are
     // folded in, and only because what a query *is* depends on them — reads themselves are never
     // refused on the strength of what the schema turns out to say.
@@ -1114,6 +1142,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
 
                 if (lastBaseDate === undefined) {
                     const latestTime = await queryTagBoundaryTime({
+                        ...(valueColumnIsArray ? { preserveArrayNumbers: true } : {}),
                         dbName,
                         userName,
                         tableName,
@@ -1122,7 +1151,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                         tagColumn,
                         timeColumn,
                     });
-                    lastBaseDate = toDataViewerDate(latestTime);
+                    lastBaseDate = latestTime == null ? null : toDataViewerDate(valueColumnIsArray ? arrayTimestampIso(latestTime) : latestTime);
                 }
 
                 if (!lastBaseDate) return null;
@@ -1135,7 +1164,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             // availability fact, not bad input. Reported separately so the UI can say which it was.
             return { from, to, missingBoundary: lastBaseDate === null };
         },
-        [baseKind, dbName, tableName, tagColumn, timeColumn, userName],
+        [baseKind, dbName, tableName, tagColumn, timeColumn, userName, valueColumnIsArray],
     );
 
     // The one place `last`/`now` is turned into a literal timestamp pair. It runs on mount, on a tag
@@ -1282,6 +1311,8 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         setError('');
         try {
             const result = await queryTagData({
+                preserveArrayNumbers: valueColumnIsArray,
+                timeUnit: rawPageRequest.timeUnit,
                 dbName,
                 userName,
                 tableName,
@@ -1305,7 +1336,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             // The bounds are the next page's cursor anchors, so they have to be read on the same
             // axis the query used — a distance value pushed through `new Date(...)` here would come
             // back as a 1970 timestamp and the next page move would match nothing.
-            const nextBounds = buildDataViewerRawPageBounds(result.rows, baseKind);
+            const nextBounds = buildDataViewerRawPageBounds(result.rows, baseKind, valueColumnIsArray ? 'ns' : undefined);
             setRows(result.rows);
             setRowsWindowKey(windowKey);
             setRawPageBounds(nextBounds);
@@ -1336,6 +1367,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         timeColumn,
         userName,
         valueColumn,
+        valueColumnIsArray,
     ]);
 
     useEffect(() => {
@@ -1383,7 +1415,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         const requestId = chartRequestRef.current + 1;
         chartRequestRef.current = requestId;
 
-        if (!canQuery || mode !== 'chart') {
+        if (!canQuery || mode !== 'chart' || valueColumnNeedsSelection) {
             setChartResults({});
             setChartError('');
             setChartLoading(false);
@@ -1435,7 +1467,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         // `activeWindow` is gone from here on purpose: `chartRowsPending` already answers everything
         // the effect asked it, and keeping both would re-run the rebuild on the commit where the
         // window lands but the rows have not — the one commit this exists to skip.
-    }, [baseKind, canQuery, chartGroups, chartRowsPending, mode, rows, splitChartRows]);
+    }, [baseKind, canQuery, chartGroups, chartRowsPending, mode, rows, splitChartRows, valueColumnNeedsSelection]);
 
     const activeRange = range;
     const rangeEditorRange = useMemo(() => {
@@ -1450,6 +1482,15 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         (value: unknown) => formatDataViewerBaseValue(value, baseKind, timeFormat, timeZone),
         [baseKind, timeFormat, timeZone],
     );
+    const formatRawBaseValue = useCallback((value: unknown) => {
+        if (!valueColumnIsArray || baseKind !== 'time' || value == null) return formatBaseValue(value);
+        const ns = arrayTimestampNanoseconds(value);
+        if (timeFormat === 'ns' || timeFormat === 'EPOCH_NS') return String(ns);
+        if (timeFormat === 'us') return String(ns / 1000n);
+        if (timeFormat === 'ms' || timeFormat === 'EPOCH_MS') return String(ns / 1_000_000n);
+        if (timeFormat === 's') return String(ns / 1_000_000_000n);
+        return formatBaseValue(arrayTimestampIso(value));
+    }, [valueColumnIsArray, baseKind, timeFormat, formatBaseValue]);
     // Two labels, because they answer different questions. The expression is what the user typed
     // (`last-1h ~ last`); the resolved label is the literal window every query on screen actually
     // used. Showing only the expression leaves "which hour am I looking at?" unanswerable, which is
@@ -1496,10 +1537,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     }, [endLoading, loading, rangeResolving]);
     const handleModeChange = useCallback(
         (nextMode: 'raw' | 'chart') => {
-            if (nextMode === mode) return;
+            if (nextMode === mode || (nextMode === 'chart' && valueColumnNeedsSelection)) return;
             setMode(nextMode);
         },
-        [mode],
+        [mode, valueColumnNeedsSelection],
     );
     // "Chart mode and a JSON value column never coexist", enforced as an invariant rather than as a
     // second copy of the button's `disabled`. It has to be an invariant because the schema lands
@@ -1508,8 +1549,8 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     // same table without needing the value to be a number. Keeping `mode` in the dependencies makes
     // the rule total, so the button's `disabled` is the affordance and this is the guarantee.
     useEffect(() => {
-        if (valueColumnIsJson && mode === 'chart') setMode('raw');
-    }, [mode, valueColumnIsJson]);
+        if (valueColumnNeedsSelection && mode === 'chart') setMode('raw');
+    }, [mode, valueColumnNeedsSelection]);
     const handleEndPage = useCallback(async () => {
         if (!canQuery || endLoading) return;
         // Jumping to the last page counts the rows inside the *same* frozen window the grid is
@@ -1608,13 +1649,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
     const rawColumnWidths = useMemo(
         () =>
             buildRawColumnWidths(rows, rawColumns, {
-                timeSample: rows.length ? formatBaseValue(rows[0].time) : '',
+                timeSample: rows.length ? formatRawBaseValue(rows[0].time) : '',
                 // The dot is drawn inside the name cell, so its footprint has to be part of the
                 // column width or `text-overflow: ellipsis` eats the tail of every tag name.
                 extra: { name: RAW_NAME_DOT_SPACE },
                 charWidth: rawCharWidth,
             }),
-        [formatBaseValue, rawCharWidth, rawColumns, rows],
+        [formatRawBaseValue, rawCharWidth, rawColumns, rows],
     );
     const rawNameColors = useMemo(() => buildRawRowNameColors(rows), [rows]);
     // One colour per tag for every panel. Taken from the "default" group — it always holds all the
@@ -1745,6 +1786,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             return;
                         }
                         const result = await queryTagData({
+                preserveArrayNumbers: valueColumnIsArray,
                             dbName,
                             userName,
                             tableName,
@@ -1829,6 +1871,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             timeColumn,
             userName,
             valueColumn,
+            valueColumnIsArray,
         ],
     );
     const handleOpenTagAnalyzer = useCallback(
@@ -1853,7 +1896,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             // would make it load-bearing without anyone remembering to add it. Mutation-tested:
             // removing it fails nothing, which is the accurate description of a redundant guard,
             // not of a vacuous test.
-            if (valueColumnIsJson) return;
+            if (valueColumnNeedsSelection) return;
 
             const tazRange = chartViewRanges[group.id] || chartData?.range || group.range;
             const normalizedRange = buildDataViewerTagAnalyzerRange(tazRange, baseKind);
@@ -1912,7 +1955,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             tagColumn,
             userName,
             valueColumn,
-            valueColumnIsJson,
+            valueColumnNeedsSelection,
         ],
     );
     /**
@@ -1929,6 +1972,14 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
         (index: number) => {
             const row = rows[index];
             if (!row) return;
+            if (valueColumnIsArray) {
+                if (!arrayMetadata) { setError(arrayMetadataError || 'Loading declared array metadata. Retry when it is available.'); return; }
+                setError('');
+                arrayPickerViewRef.current = undefined;
+                setArrayDetail(null);
+                setArrayPicker({ tagName: String(row.name ?? ''), baseLabel: formatRawBaseValue(row.time), preview: row.value, selected: [] });
+                return;
+            }
             if (!valueColumnIsJson || !jsonKeyDocumentHasKeys(row.value)) {
                 setRowDetailIndex(index);
                 return;
@@ -1943,7 +1994,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 selected: [],
             });
         },
-        [formatBaseValue, rows, valueColumnIsJson],
+        [arrayMetadata, arrayMetadataError, formatBaseValue, formatRawBaseValue, rows, valueColumnIsArray, valueColumnIsJson],
     );
 
     /**
@@ -2040,8 +2091,22 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             tagAnalyzerTableName,
             tagColumn,
             valueColumn,
+            valueColumnIsArray,
         ],
     );
+    const handleOpenTagAnalyzerArray = (tagName: string, indexes: number[], window: { from?: string | number; to?: string | number }): string | undefined => {
+        const normalizedRange = buildDataViewerJsonKeyTagAnalyzerRange(window, baseKind);
+        if (!normalizedRange) return 'Choose a valid range whose start is before its end.';
+        const result = createTagAnalyzerBoardFromPayload({
+            title: tagName || 'Data Viewer', range: normalizedRange,
+            tags: indexes.map((arrayIndex) => ({ tagName, table: tagAnalyzerTableName,
+                calculationMode: TAG_ANALYZER_JSON_CALCULATION_MODE, alias: '', weight: 1,
+                colName: { name: tagColumn, time: baseColumn, value: valueColumn, timeType: baseColumnType, timeBaseTime: true, arrayIndex },
+            })),
+        });
+        if (result.status !== 'ok') return result.reason || 'Cannot open Tag Analyzer.';
+        setBoardList((current) => [...current, result.board]); setSelectedTab(result.board.id);
+    };
     const handleSetGlobalTime = useCallback(
         async (groupId: string) => {
             // `baseKind` decides the units the copied range comes back in. Without it a distance
@@ -2087,6 +2152,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                     splitGroupsToFetch.map(async (group) => {
                         const groupRange = update.splitRanges[group.id];
                         const result = await queryTagData({
+                preserveArrayNumbers: valueColumnIsArray,
                             dbName,
                             userName,
                             tableName,
@@ -2128,6 +2194,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             timeColumn,
             userName,
             valueColumn,
+            valueColumnIsArray,
         ],
     );
     const handleShiftMainRange = useCallback(
@@ -2200,6 +2267,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
 
             try {
                 const result = await queryTagData({
+                preserveArrayNumbers: valueColumnIsArray,
                     dbName,
                     userName,
                     tableName,
@@ -2241,6 +2309,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
             timeColumn,
             userName,
             valueColumn,
+            valueColumnIsArray,
         ],
     );
 
@@ -2605,7 +2674,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                 only does Raw. Same call as the format/timezone button on a
                                                 distance axis. The mode invariant effect keeps `mode` on 'raw',
                                                 so the remaining segment is always the selected one. */}
-                                            {valueColumnIsJson ? null : (
+                                            {valueColumnNeedsSelection ? null : (
                                                 <button
                                                     type="button"
                                                     role="tab"
@@ -2650,7 +2719,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                 key={column.key}
                                                                 className={
                                                                     column.key === 'value' &&
-                                                                    !valueColumnIsJson
+                                                                    !valueColumnNeedsSelection
                                                                         ? 'is-numeric'
                                                                         : undefined
                                                                 }
@@ -2674,8 +2743,10 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                 (raw === null || raw === undefined);
                                                             const value =
                                                                 column.key === 'time'
-                                                                    ? formatBaseValue(raw)
-                                                                    : String(raw ?? '');
+                                                                    ? formatRawBaseValue(raw)
+                                                                    : column.key === 'value' && valueColumnIsArray && Array.isArray(raw)
+                                                                      ? `[${raw.map((item) => item == null ? 'NULL' : String(item)).join(', ')}]`
+                                                                      : String(raw ?? '');
                                                             if (column.key === 'name') {
                                                                 // `--raw-dot` feeds the ::before swatch, which ties a row back to its chart line.
                                                                 return (
@@ -2698,7 +2769,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                             return (
                                                                 <td
                                                                     key={column.key}
-                                                                    className={`mono${column.key === 'value' && !valueColumnIsJson ? ' is-numeric' : ''}`}
+                                                                    className={`mono${column.key === 'value' && !valueColumnNeedsSelection ? ' is-numeric' : ''}`}
                                                                 >
                                                                     {isNull ? (
                                                                         <span className="is-null">
@@ -2894,7 +2965,7 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                                                                         type="button"
                                                                         className="data-viewer-chart-menu-item"
                                                                         role="menuitem"
-                                                                        disabled={valueColumnIsJson}
+                                                                        disabled={valueColumnNeedsSelection}
                                                                         title={
                                                                             valueColumnIsJson
                                                                                 ? JSON_VALUE_COLUMN_BLOCK_REASON
@@ -3093,6 +3164,13 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                             Math.min(rows.length - 1, (current ?? 0) + 1),
                         )
                     }
+                    onSelectKeys={valueColumnIsJson ? () => {
+                        const row = rows[rowDetailIndex];
+                        jsonKeyPickerViewRef.current = undefined;
+                        setRowDetailIndex(null);
+                        setJsonKeyDetail(null);
+                        setJsonKeyPicker({ tagName: String(row.name ?? ''), baseLabel: formatBaseValue(row.time), document: row.value, selected: [] });
+                    } : undefined}
                     onClose={() => setRowDetailIndex(null)}
                 />
             ) : null}
@@ -3102,6 +3180,28 @@ export default function DataViewerPage({ pCode, embedded = false }: DataViewerPa
                 outlives the picker, so "Back to keys" returns to the tree as it was left rather
                 than to an empty one. The picker stays in state while the detail is up, and is
                 simply not rendered; closing the detail is what ends both. */}
+            {valueColumnIsArray && !arrayMetadata ? <div className="array-message" role="status">
+                {arrayMetadataError || 'Loading declared array metadata…'}
+                {arrayMetadataError ? <button onClick={() => setArrayMetadataRetry((value) => value + 1)}>Retry array metadata</button> : null}
+            </div> : null}
+            {arrayPicker && arrayMetadata && !arrayDetail ? <ArrayElementPickerModal
+                tagName={arrayPicker.tagName} baseLabel={arrayPicker.baseLabel} valueColumn={valueColumn}
+                metadata={arrayMetadata} preview={arrayPicker.preview} initialSelected={arrayPicker.selected}
+                initialView={arrayPickerViewRef.current} onViewChange={(view) => { arrayPickerViewRef.current = view; }}
+                onClose={() => setArrayPicker(null)} onConfirm={(indexes) => {
+                    setArrayPicker((current) => current ? { ...current, selected: indexes } : current); setArrayDetail(indexes);
+                }} /> : null}
+            {arrayPicker && arrayMetadata && arrayDetail ? <ArrayElementDetailModal
+                dbName={dbName} userName={userName} tableName={tableName} tagName={arrayPicker.tagName}
+                indexes={arrayDetail} metadata={arrayMetadata} from={activeWindow?.from} to={activeWindow?.to}
+                tagColumn={tagColumn} timeColumn={baseColumn} valueColumn={valueColumn} baseKind={baseKind}
+                formatBase={formatRawBaseValue} timeFormat={timeFormat} timeZone={timeZone}
+                onBack={() => setArrayDetail(null)} onClose={() => { setArrayDetail(null); setArrayPicker(null); }}
+                onOpenTagAnalyzer={(indexes, window) => {
+                    const reason = handleOpenTagAnalyzerArray(arrayPicker.tagName, indexes, window);
+                    if (reason) return reason;
+                    setArrayDetail(null); setArrayPicker(null);
+                }} /> : null}
             {jsonKeyPicker && !jsonKeyDetail ? (
                 <JsonKeyPickerModal
                     tagName={jsonKeyPicker.tagName}

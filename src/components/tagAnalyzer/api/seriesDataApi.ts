@@ -1,3 +1,4 @@
+import { validateSeriesSchema } from './seriesSchemaValidation';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
 import { qualifyThreePart } from '@/utils/qualifiedTableName';
@@ -9,7 +10,6 @@ import {
     isNumericBaseTimeSourceColumns,
     parseSqlIdentifierPath,
     PanelSeriesCalculationMode,
-    validatePanelSeriesSourceColumns,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
     type SqlIdentifierPath,
@@ -193,7 +193,7 @@ async function fetchRawSeriesRowsByQuery(
                 'SQL table name',
             );
             const columns: ValidatedPanelSeriesSourceColumns =
-                validatePanelSeriesSourceColumns(series.sourceColumns);
+                await validateSeriesSchema(series.table, series.sourceColumns, signal);
             const querySql: string = buildRawSeriesSql(
                 tableName,
                 series.sourceTagName,
@@ -281,7 +281,7 @@ async function fetchCalculatedSeriesData(
     options?: CalculatedSeriesFetchOptions,
 ): Promise<PanelSeriesFetchResult> {
     const columns: ValidatedPanelSeriesSourceColumns =
-        validatePanelSeriesSourceColumns(series.sourceColumns);
+        await validateSeriesSchema(series.table, series.sourceColumns, options?.signal);
     const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
         addAdminSchemaIfNeeded(series.table),
         'SQL table name',
@@ -454,7 +454,7 @@ function resolveCalculatedRollupMode(
     interval: IntervalOption,
     rollupTables: RollupTableMap,
 ): RollupMode | undefined {
-    if (columns.timeBaseTime !== true) {
+    if (columns.arrayIndex !== undefined || columns.timeBaseTime !== true) {
         return undefined;
     }
 
@@ -557,7 +557,9 @@ async function fetchSeriesFullRange(
     };
     const rangeRequests: Map<string, Promise<AxisRange | undefined>> =
         new Map();
-    for (const series of seriesList) {
+    const schemas = seriesList.map((series) => validateSeriesSchema(series.table, series.sourceColumns)
+        .then((columns) => ({ columns, error: undefined }), (error: unknown) => ({ columns: undefined, error })));
+    for (const [index, series] of seriesList.entries()) {
         try {
             if (!series.table.trim()) {
                 throw new Error('Series table is missing.');
@@ -570,8 +572,9 @@ async function fetchSeriesFullRange(
                 series.table,
                 'SQL table name',
             );
-            const columns: ValidatedPanelSeriesSourceColumns =
-                validatePanelSeriesSourceColumns(series.sourceColumns);
+            const schema = await schemas[index];
+            if (!schema.columns) throw schema.error;
+            const columns: ValidatedPanelSeriesSourceColumns = schema.columns;
             const usesNumericTime: boolean =
                 isNumericBaseTimeSourceColumns(columns);
             const sqlQueries: SeriesFullRangeSqlQueries =

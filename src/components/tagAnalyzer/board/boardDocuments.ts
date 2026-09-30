@@ -1,7 +1,7 @@
 import type { BoardInfo } from './boardModel';
 import { restoreBoard } from './boardReconstruction';
 import { parseTazDocument } from '../persistence/tazMigrations';
-import { getOutdatedTazFormatWarning, TAZ_FORMAT_VERSION } from '../persistence/tazFormat';
+import { getOutdatedTazFormatWarning, getTazFormatVersion } from '../persistence/tazFormat';
 import { createTazBoardSnapshot } from '../persistence/tazBoardSnapshot';
 import { writeTazBoard } from '../persistence/writeTazBoard';
 
@@ -34,7 +34,7 @@ export async function saveTazBoard(
     try {
         const sSavedBoard = createTazBoardSnapshot({
             ...boardInfo,
-            version: TAZ_FORMAT_VERSION,
+            version: getTazFormatVersion(boardInfo),
             code: '',
             loadWarning: undefined,
         });

@@ -110,6 +110,7 @@ export interface RawRowDetailModalProps {
     onPrevious: () => void;
     onNext: () => void;
     onClose: () => void;
+    onSelectKeys?: () => void;
 }
 
 export const RawRowDetailModal = ({
@@ -122,6 +123,7 @@ export const RawRowDetailModal = ({
     onPrevious,
     onNext,
     onClose,
+    onSelectKeys,
 }: RawRowDetailModalProps) => {
     // A drag that began inside and ended past the edge is still that gesture, not a click
     // outside — see `useOutsideCloseGuard`.
@@ -279,6 +281,7 @@ export const RawRowDetailModal = ({
                             : '↑ ↓ to move between rows · Esc to close'}
                     </span>
                     <div className="raw-row-modal-actions">
+                        {onSelectKeys ? <button type="button" className="btn btn-sm btn-primary" onClick={onSelectKeys}>Select keys</button> : null}
                         <button type="button" className="btn btn-sm btn-ghost" onClick={() => copy('__row', 'JSON', rowJson)}>
                             {copied?.key === '__row' ? (copied.ok ? 'Copied' : 'Failed') : 'Copy JSON'}
                         </button>

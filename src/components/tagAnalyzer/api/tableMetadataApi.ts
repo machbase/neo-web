@@ -1,3 +1,5 @@
+import { isArrayTypeColumn, type ArrayColumnMetadata } from '@/utils/arrayValue';
+import { fetchArrayColumnMetadata } from '@/api/repository/arrayMetadata';
 import { isNeoInternalTable } from '@/utils/internalTable';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { getTableList } from '@/api/repository/api';
@@ -27,6 +29,7 @@ import {
 } from './sql';
 
 export type TableColumn = {
+    arrayMetadata?: ArrayColumnMetadata;
     name: string;
     type: number;
     flag: number;
@@ -237,7 +240,19 @@ async function fetchTableColumns(tableName: string): Promise<TableColumn[]> {
         MALFORMED_TABLE_COLUMNS_MESSAGE,
     );
 
-    return parseTableColumns(response.rows);
+    const columns = parseTableColumns(response.rows);
+    const target = resolveTableColumnsTarget(tableName);
+    const parts = tableName.split('.');
+    const dbName = parts.length >= 3 ? parts[0] : getCurrentDatabaseName();
+    await Promise.all(columns.filter((column) => isArrayTypeColumn(column.type)).map(async (column) => {
+        try {
+            column.arrayMetadata = await fetchArrayColumnMetadata({ dbName, userName: target.userName, tableName: target.tableName, valueColumn: column.name });
+        } catch {
+            // Preserve NAME/TYPE/FLAG and scalar functionality when ARRAY extensions are unavailable.
+            // The ARRAY editor/query guard reports the missing metadata and offers a retry.
+        }
+    }));
+    return columns;
 }
 
 async function fetchTags(

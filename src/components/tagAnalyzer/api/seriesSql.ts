@@ -1,6 +1,6 @@
+import { seriesValueSql } from './seriesValueSql';
 import {
     jsonValueFieldToNumericSql,
-    toSqlValueExpressionForAggregator,
 } from '@/utils/dashboardJsonValue';
 import { ADMIN_ID } from '@/utils/constants';
 import { isStatViewReadable, qualifySiblingObject, qualifyTableName } from '@/utils/qualifiedTableName';
@@ -77,11 +77,7 @@ export function buildCalculatedSeriesSql(
 
     const sourceValueSql: string = rollupMode === 'base-json'
         ? columns.value
-        : toSqlValueExpressionForAggregator(
-              columns.value,
-              calculationMode,
-              columns.jsonKey,
-          );
+        : seriesValueSql(columns, calculationMode);
     const outputTimeSql: string = usesNumericTime
         ? 'mTime'
         : toQueryResultMillisecondsSql('mTime');
@@ -370,10 +366,7 @@ function createRawSeriesSqlContext(
     const outputTimeSql: string = usesNumericTime
         ? columns.time
         : toQueryResultMillisecondsSql(columns.time);
-    const outputValueSql: string = jsonValueFieldToNumericSql(
-        columns.value,
-        columns.jsonKey,
-    );
+    const outputValueSql: string = seriesValueSql(columns);
     const hintTableName: string = tableName.slice(tableName.lastIndexOf('.') + 1);
     const selectBodySql: string = joinSqlLines([
         `${outputTimeSql} AS mTime,`,
