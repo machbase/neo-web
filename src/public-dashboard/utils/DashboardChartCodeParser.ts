@@ -86,6 +86,36 @@ const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string)
         \t}`;
 };
 /** TIME_VALUE func */
+// v6 rewrote alignTicks: a secondary y axis whose data is all >= 0 but starts near zero can now be aligned
+// onto a range that dips below zero (0..8639 → -2000..10000, where v5 gave 0..12000). In every case measured
+// where v6 went negative, v5 had anchored at 0, so pin min: 0 on exactly those axes after the data lands.
+// Re-evaluated from the unpinned extent on every load (auto refresh reuses the instance), so a pin never outlives the data that needed it.
+const ALIGNED_AXIS_ZERO_CLAMP = `
+        if (sCount >= sQuery.length) {
+            var sYAxisOpt = Array.isArray(_chartOption.yAxis) ? _chartOption.yAxis : [_chartOption.yAxis];
+            var sPinned = _chart.__alignedZeroPin || [];
+            // Release the previous pin first: setOption merges, so a pinned min:0 would otherwise survive and
+            // hide whether this data still aligns below zero.
+            if (sPinned.length) _chart.setOption({ yAxis: sYAxisOpt.map(function (_, i) { return sPinned.indexOf(i) >= 0 ? { min: null } : {}; }) });
+            var sModel = _chart.getModel();
+            var sNextPinned = [];
+            sYAxisOpt.forEach(function (aYOpt, aYIdx) {
+                if (aYIdx < 1 || !aYOpt || (aYOpt.min !== undefined && aYOpt.min !== null)) return;
+                var sAxisModel = sModel.getComponent('yAxis', aYIdx);
+                if (!sAxisModel || !sAxisModel.get('alignTicks')) return;
+                var sLow = Infinity;
+                sModel.eachSeries(function (aSeries) {
+                    if ((aSeries.get('yAxisIndex') || 0) !== aYIdx) return;
+                    var sData = aSeries.getData();
+                    var sDim = sData.mapDimension('y');
+                    if (sDim) sLow = Math.min(sLow, sData.getDataExtent(sDim)[0]);
+                });
+                if (sLow >= 0 && sLow !== Infinity && sAxisModel.axis.scale.getExtent()[0] < 0) sNextPinned.push(aYIdx);
+            });
+            _chart.__alignedZeroPin = sNextPinned;
+            if (sNextPinned.length) _chart.setOption({ yAxis: sYAxisOpt.map(function (_, i) { return sNextPinned.indexOf(i) >= 0 ? { min: 0 } : {}; }) });
+        }`;
+
 const TimeValueFunc = (aYAxisOptions: any) => {
     const sThresholdList: { value: number; color: string; yIdx: number }[] = [];
 
@@ -100,7 +130,6 @@ const TimeValueFunc = (aYAxisOptions: any) => {
     const sThresholdCode =
         sThresholdList.length > 0
             ? `
-        sCount++;
         if (sCount >= sQuery.length) {
             var sThresholds = ${JSON.stringify(sThresholdList)};
             var gridRect = _chart.getModel().getComponent('grid').coordinateSystem.getRect();
@@ -123,6 +152,8 @@ const TimeValueFunc = (aYAxisOptions: any) => {
         \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
+        \t\tsCount++;
+        \t\t${ALIGNED_AXIS_ZERO_CLAMP}
         \t\t${sThresholdCode}
         \t}`;
 };

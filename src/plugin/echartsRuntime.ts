@@ -8,7 +8,6 @@ import {
     rawAppendScript,
     registerScriptPromise,
 } from '@/assets/ts/ScriptRegister';
-import { isV6Preview, toV6AssetUrl, V6_ECHARTS_SRC } from './echartsV6Preview';
 
 export type EChartsRuntime = typeof EChartsNS;
 
@@ -18,16 +17,7 @@ export type EChartsRuntime = typeof EChartsNS;
  * 전역 `echarts` 를 참조하므로, 클라이언트가 별도 사본을 들면 사본이 두 벌이 되고
  * `window.echarts` 의 주인이 로드 순서에 따라 바뀐다(machbase/neo#1439).
  */
-const SERVER_ECHARTS_SRC = '/web/echarts/echarts.min.js';
-
-/**
- * 실제로 로드할 런타임 URL. 평상시엔 서버 자산이고, v6 미리보기(#1005)에서만 CDN 을 가리킨다.
- * 미리보기 스캐폴딩이 사라지면 이 함수도 상수로 되돌린다.
- */
-export const echartsSrc = (): string => (isV6Preview() ? V6_ECHARTS_SRC : SERVER_ECHARTS_SRC);
-
-/** @deprecated v6 미리보기 기간에는 `echartsSrc()` 를 쓸 것 — URL 이 런타임에 결정된다. */
-export const ECHARTS_SRC = SERVER_ECHARTS_SRC;
+export const ECHARTS_SRC = '/web/echarts/echarts.min.js';
 
 /**
  * 전역 슬롯 접근자.
@@ -72,6 +62,95 @@ const ensureWhiteTheme = (aEcharts: EChartsRuntime): void => {
     }
 };
 
+type ThemeObject = Record<string, any>;
+type AxisOption = Record<string, any>;
+
+/** Cartesian axes the v5 AxisBuilder label rule applies to, and the theme key each axis type reads. */
+const LABELLED_AXES = ['xAxis', 'yAxis'] as const;
+const themeAxisKey = (aAxis: AxisOption, aMain: (typeof LABELLED_AXES)[number]): string =>
+    `${aAxis?.type ?? (aMain === 'xAxis' ? 'category' : 'value')}Axis`;
+/** A label colour in either form echarts accepts — gallery themes (chalk, essos…) still write the v4 `axisLabel.textStyle.color`. */
+const hasLabelColor = (aAxis: AxisOption | undefined): boolean =>
+    aAxis?.axisLabel?.color !== undefined || aAxis?.axisLabel?.textStyle?.color !== undefined;
+
+/**
+ * v5 의 축 라벨 색 결정을 v6 옵션에 명시로 옮긴다 (machbase/neo#1005).
+ *
+ * v5 AxisBuilder: `axisLabel.color || textStyle.color(전역) || axisLine.lineStyle.color`, 각 단계는
+ * 사용자 옵션이 테마보다 앞선다. v6 는 `axisLabel.color` 기본값을 `#54555a` 로 두어 첫 단계에서 끝난다.
+ * 그래서 서버의 v5 시절 테마(dark 는 textStyle, macarons 는 축선 색만 가짐)와 사용자가 준 전역 글자색·
+ * 축선 색이 라벨에 닿지 않는다. 사용자도 테마도 라벨 색을 정하지 않은 축에 한해, v5 가 도달했을 값을
+ * 사용자 옵션에 적어 넣는다. 어느 단계에도 값이 없으면 손대지 않는다(v5 기본 축 색 → v6 기본 색은
+ * 기본 테마 개편으로 수용). `aUserTextColor` 는 이전 setOption 에서 받은 전역 글자색(부분 갱신 대비).
+ */
+export const resolveV5AxisLabelColors = (aOption: unknown, aTheme: ThemeObject | undefined, aUserTextColor?: string): unknown => {
+    if (!aOption || typeof aOption !== 'object') return aOption;
+    const sOption = aOption as Record<string, any>;
+    const sTextColor = sOption.textStyle?.color ?? aUserTextColor ?? aTheme?.textStyle?.color;
+    let sPatched: Record<string, any> | undefined;
+    for (const aMain of LABELLED_AXES) {
+        const sRaw = sOption[aMain];
+        if (!sRaw) continue;
+        const sList: AxisOption[] = Array.isArray(sRaw) ? sRaw : [sRaw];
+        let sChanged = false;
+        const sNext = sList.map((aAxis) => {
+            if (!aAxis || typeof aAxis !== 'object' || hasLabelColor(aAxis)) return aAxis;
+            const sThemeAxis = aTheme?.[themeAxisKey(aAxis, aMain)];
+            if (hasLabelColor(sThemeAxis)) return aAxis;
+            const sColor = sTextColor ?? aAxis.axisLine?.lineStyle?.color ?? sThemeAxis?.axisLine?.lineStyle?.color;
+            if (typeof sColor !== 'string') return aAxis;
+            sChanged = true;
+            return { ...aAxis, axisLabel: { ...aAxis.axisLabel, color: sColor } };
+        });
+        if (!sChanged) continue;
+        sPatched ??= { ...sOption };
+        sPatched[aMain] = Array.isArray(sRaw) ? sNext : sNext[0];
+    }
+    return sPatched ?? aOption;
+};
+
+type Wrapped<T> = T & { __v5AxisLabels?: true };
+
+/**
+ * v6 런타임에만 위 보정을 건다 — v5 는 원래 이 순서로 동작하므로 건드리지 않는다.
+ * registerTheme 를 감싸 이름별 테마 원본을 기억하고, init 을 감싸 인스턴스의 setOption 에서 보정한다.
+ * 테마 UMD 는 런타임 확정 뒤에만 실행되므로(loadChartAssets 가 먼저 기다린다) 서버 테마는 빠짐없이
+ * 기록된다. v6 내장 테마(dark 등)는 기록되지 않지만, 내장 테마는 라벨 색을 스스로 정한다.
+ */
+const ensureV5AxisLabels = (aEcharts: EChartsRuntime): void => {
+    if (!(parseInt(String(aEcharts.version), 10) >= 6)) return;
+    const sRuntime = aEcharts as any;
+    if ((sRuntime.init as Wrapped<unknown>)?.__v5AxisLabels) return;
+    const sThemes: Record<string, ThemeObject> = {};
+    const sRegister = sRuntime.registerTheme;
+    const sInit = sRuntime.init;
+    if (typeof sRegister !== 'function' || typeof sInit !== 'function') return;
+    const sWrappedRegister = function (aName: string, aTheme: ThemeObject) {
+        sThemes[aName] = aTheme;
+        return sRegister.call(aEcharts, aName, aTheme);
+    };
+    const sWrappedInit: Wrapped<(...a: any[]) => any> = function (aDom: unknown, aTheme?: unknown, ...aRest: unknown[]) {
+        const sChart = sInit.call(aEcharts, aDom, aTheme, ...aRest);
+        if (!sChart || sChart.__v5AxisLabels) return sChart;
+        const sThemeObj = typeof aTheme === 'string' ? () => sThemes[aTheme] : () => aTheme as ThemeObject | undefined;
+        const sSetOption = sChart.setOption;
+        let sUserTextColor: string | undefined;
+        sChart.setOption = function (aOption: any, ...aArgs: unknown[]) {
+            if (aOption?.textStyle?.color !== undefined) sUserTextColor = aOption.textStyle.color;
+            return sSetOption.call(this, resolveV5AxisLabelColors(aOption, sThemeObj(), sUserTextColor), ...aArgs);
+        };
+        sChart.__v5AxisLabels = true;
+        return sChart;
+    };
+    sWrappedInit.__v5AxisLabels = true;
+    try {
+        sRuntime.registerTheme = sWrappedRegister;
+        sRuntime.init = sWrappedInit;
+    } catch {
+        // 읽기 전용이면 보정 없이 간다.
+    }
+};
+
 /**
  * 런타임을 확보한다. 세 진입점(`setChartext` / `loadChartAssets` / `useEcharts`)이 각자
  * 호출하며, 누가 먼저 오든 결과가 같아야 한다.
@@ -83,18 +162,18 @@ const ensureWhiteTheme = (aEcharts: EChartsRuntime): void => {
  * 순서나 체인 깊이에 기대지 않는다.
  */
 export const loadEcharts = (): Promise<EChartsRuntime> => {
-    const sSrc = echartsSrc();
-    const sKnown = getRegisteredScript(sSrc);
+    const sKnown = getRegisteredScript(ECHARTS_SRC);
     if (sKnown) return sKnown as Promise<EChartsRuntime>;
 
     // 우리가 아니라 chartext 의 CDN 폴백이 이미 설치했을 수도 있다.
     const sExisting = globalSlot().echarts;
     if (sExisting) {
+        ensureV5AxisLabels(sExisting);
         ensureWhiteTheme(sExisting);
         return Promise.resolve(sExisting);
     }
 
-    const sPending = rawAppendScript(sSrc)
+    const sPending = rawAppendScript(ECHARTS_SRC)
         .then(() => {
             const sEcharts = globalSlot().echarts;
             if (!sEcharts) {
@@ -105,23 +184,18 @@ export const loadEcharts = (): Promise<EChartsRuntime> => {
                     'echarts.min.js loaded but window.echarts is undefined (AMD define detected?)'
                 );
             }
+            ensureV5AxisLabels(sEcharts);
             ensureWhiteTheme(sEcharts);
-            // 수동 테스트에서 어느 런타임이 떴는지 바로 보이게 한다. 미리보기가 사라지면 같이 지운다.
-            // eslint-disable-next-line no-console
-            console.info(
-                `[echarts] runtime ${sEcharts.version} from ${sSrc}` +
-                    (isV6Preview() ? '  (v6 preview)' : '')
-            );
             return sEcharts;
         })
         .catch((aError) => {
-            forgetScript(sSrc);
+            forgetScript(ECHARTS_SRC);
             throw aError;
         });
 
     // 여기까지 await 가 하나도 없다. 호출자가 `setChartext()` 진입부든
     // `loadChartAssets()` 첫 줄이든, 이 함수가 반환되는 시점에 원장은 이미 선점돼 있다.
-    registerScriptPromise(sSrc, sPending);
+    registerScriptPromise(ECHARTS_SRC, sPending);
     return sPending;
 };
 
@@ -137,15 +211,13 @@ export const loadChartAssets = async (aJsAssets?: string[], aJsCodeAssets?: stri
     // and nothing else, and making it wait on a 1 MB runtime it never calls would undo the reason
     // there is no boot preload. Callers that need the runtime for their own bookkeeping — the
     // theme override in ShowVisualization, say — ask for it themselves.
-    if ((aJsAssets ?? []).some((aUrl) => aUrl === SERVER_ECHARTS_SRC || aUrl.startsWith('/web/echarts/'))) {
+    if ((aJsAssets ?? []).some((aUrl) => aUrl === ECHARTS_SRC || aUrl.startsWith('/web/echarts/'))) {
         await loadEcharts();
     }
 
     for (const sRaw of aJsAssets ?? []) {
-        if (sRaw === SERVER_ECHARTS_SRC) continue; // 위에서 이미 책임졌다
-        // v6 미리보기에서는 서버가 준 v5 자산 URL 을 CDN v6 로 치환한다. 치환하지 않으면
-        // 원장 키가 갈라져 v5 와 v6 가 같이 실행되고 #1439 가 그대로 재현된다.
-        await appendScriptOnce(toV6AssetUrl(sRaw));
+        if (sRaw === ECHARTS_SRC) continue; // 위에서 이미 책임졌다
+        await appendScriptOnce(sRaw);
     }
 
     // jsCodeAssets 는 차트별 일회성 코드다. 렌더마다 다시 실행돼야 하므로 중복 제거하지 않는다.
@@ -210,6 +282,5 @@ export const useEcharts = (): EChartsGate => {
 export const __setEchartsRuntimeForTest = (aEcharts: EChartsRuntime | undefined): void => {
     globalSlot().echarts = aEcharts;
     whiteRegistered = false;
-    forgetScript(SERVER_ECHARTS_SRC);
-    forgetScript(V6_ECHARTS_SRC);
+    forgetScript(ECHARTS_SRC);
 };

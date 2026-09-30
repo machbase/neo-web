@@ -8,6 +8,7 @@ import {
     getEcharts,
     loadChartAssets,
     loadEcharts,
+    resolveV5AxisLabelColors,
 } from './echartsRuntime';
 
 type ScriptTag = HTMLScriptElement;
@@ -144,6 +145,98 @@ describe('white theme', () => {
         await loadEcharts();
 
         expect(registerTheme).toHaveBeenCalledWith('white', { backgroundColor: '#ffffff' });
+    });
+});
+
+describe('axis labels resolve as v5 did (#1005)', () => {
+    // v5: axisLabel.color || textStyle.color || axisLine.lineStyle.color, the user's option before the
+    // theme at each step. v6 defaults axisLabel.color to #54555a, so the chain stops at the first step.
+    const sDark = { textStyle: { color: '#B9B8CE' }, valueAxis: { axisLine: { lineStyle: { color: '#B9B8CE' } } } };
+    const sMacarons = { valueAxis: { axisLine: { lineStyle: { color: '#008acd' } } }, categoryAxis: { axisLine: { lineStyle: { color: '#008acd' } } } };
+    const labelOf = (aOption: any, aMain: 'xAxis' | 'yAxis', aIdx = 0) => {
+        const sAxis = aOption[aMain];
+        return (Array.isArray(sAxis) ? sAxis[aIdx] : sAxis)?.axisLabel?.color;
+    };
+
+    it('takes the theme text colour when the user sets nothing (dark)', () => {
+        const sOut = resolveV5AxisLabelColors({ xAxis: { type: 'category' }, yAxis: {} }, sDark) as any;
+
+        expect(labelOf(sOut, 'xAxis')).toBe('#B9B8CE');
+        expect(labelOf(sOut, 'yAxis')).toBe('#B9B8CE');
+    });
+
+    it('lets the user text colour win over the theme', () => {
+        const sOut = resolveV5AxisLabelColors({ textStyle: { color: '#ffff00' }, yAxis: {} }, sDark) as any;
+
+        expect(labelOf(sOut, 'yAxis')).toBe('#ffff00');
+    });
+
+    it('falls back to the axis line colour — the user one first — when there is no text colour (macarons)', () => {
+        const sOut = resolveV5AxisLabelColors(
+            { yAxis: [{}, { axisLine: { lineStyle: { color: '#00aa00' } } }] },
+            sMacarons
+        ) as any;
+
+        expect(labelOf(sOut, 'yAxis', 0)).toBe('#008acd');
+        expect(labelOf(sOut, 'yAxis', 1)).toBe('#00aa00');
+    });
+
+    it('reads the theme key for the axis type', () => {
+        const sTimeOnly = { timeAxis: { axisLine: { lineStyle: { color: '#123456' } } } };
+        const sOut = resolveV5AxisLabelColors({ xAxis: { type: 'time' }, yAxis: {} }, sTimeOnly) as any;
+
+        expect(labelOf(sOut, 'xAxis')).toBe('#123456');
+        expect(labelOf(sOut, 'yAxis')).toBeUndefined();
+    });
+
+    it('never touches a label colour the user or the theme already set', () => {
+        const sChalk = { textStyle: { color: '#fff' }, valueAxis: { axisLabel: { color: '#aaaaaa' } } };
+
+        expect(labelOf(resolveV5AxisLabelColors({ yAxis: { axisLabel: { color: '#ff0000' } } }, sDark), 'yAxis')).toBe('#ff0000');
+        expect(labelOf(resolveV5AxisLabelColors({ yAxis: {} }, sChalk), 'yAxis')).toBeUndefined();
+    });
+
+    it('treats the v4 axisLabel.textStyle.color form as a set colour (gallery themes, old user options)', () => {
+        const sChalkRaw = { valueAxis: { axisLine: { lineStyle: { color: '#666666' } }, axisLabel: { textStyle: { color: '#aaaaaa' } } } };
+
+        expect(labelOf(resolveV5AxisLabelColors({ yAxis: {} }, sChalkRaw), 'yAxis')).toBeUndefined();
+        expect(labelOf(resolveV5AxisLabelColors({ yAxis: { axisLabel: { textStyle: { color: '#ff0000' } } } }, sDark), 'yAxis')).toBeUndefined();
+    });
+
+    it('carries the text colour of an earlier setOption into a partial update', () => {
+        const sOut = resolveV5AxisLabelColors({ yAxis: {} }, sMacarons, '#ffff00') as any;
+
+        expect(labelOf(sOut, 'yAxis')).toBe('#ffff00');
+    });
+
+    it('returns an option with nothing to resolve as the same object', () => {
+        const sOption = { series: [] };
+
+        expect(resolveV5AxisLabelColors(sOption, undefined)).toBe(sOption);
+    });
+
+    it('wraps only a v6 runtime, and resolves against the theme the chart was created with', async () => {
+        const sSetOption = jest.fn();
+        const sInit = jest.fn(() => ({ setOption: sSetOption }));
+        const sV6 = { version: '6.1.0', registerTheme: jest.fn(), getInstanceByDom: jest.fn(), init: sInit };
+        const sCall = loadEcharts();
+        settleScript(ECHARTS_SRC, 'load', sV6);
+        const sRuntime = (await sCall) as any;
+
+        sRuntime.registerTheme('dark', sDark);
+        sRuntime.init(document.createElement('div'), 'dark').setOption({ yAxis: {} });
+
+        expect(sSetOption.mock.calls[0][0].yAxis.axisLabel.color).toBe('#B9B8CE');
+    });
+
+    it('leaves a v5 runtime as it is', async () => {
+        const sInit = jest.fn();
+        const sV5 = { version: '5.6.0', registerTheme: jest.fn(), getInstanceByDom: jest.fn(), init: sInit };
+        const sCall = loadEcharts();
+        settleScript(ECHARTS_SRC, 'load', sV5);
+        const sRuntime = (await sCall) as any;
+
+        expect(sRuntime.init).toBe(sInit);
     });
 });
 

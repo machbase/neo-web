@@ -1,3 +1,5 @@
+import type { ChartTheme } from '@/type/eChart';
+import { ChartThemeBackgroundColor } from '@/utils/constants';
 import { getEcharts, loadEcharts } from './echartsRuntime';
 
 type ChartRoot = ShadowRoot | HTMLElement | Document;
@@ -51,6 +53,28 @@ const disposeCharts = (root: ChartRoot) => {
     root.querySelectorAll<HTMLElement>('.chartext-echarts').forEach(disposeNode);
 };
 
+// The server bootstrap passes the theme only as a literal inside its script: `echarts.init(__dom, "roma", …)`.
+const BOOTSTRAP_THEME = /echarts\.init\(\s*__dom\s*,\s*"([^"]+)"/;
+// The bootstrap template itself never writes a background, so this only matches the user's chart code.
+const USER_BACKGROUND = /\bbackgroundColor\s*:/;
+
+/**
+ * Give the chart node the same per-theme ground the TQL result view paints (ShowVisualization).
+ * Light gallery themes (macarons, infographic, roma, shine, westeros…) set no backgroundColor, so
+ * their canvas is transparent and the dark markdown surface shows through: white split lines on
+ * dark, grey titles and axis labels that disappear. Themes that paint their own background cover
+ * this, so it only shows where the theme left the canvas transparent.
+ */
+const paintThemeGround = (script: HTMLScriptElement, code: string) => {
+    const chartNode = script.previousElementSibling as HTMLElement | null;
+    if (!chartNode?.classList.contains('chartext-echarts') || chartNode.style.backgroundColor) return;
+    // The user's option names its own background (possibly transparent on purpose) — leave the node alone.
+    if (USER_BACKGROUND.test(code)) return;
+    const theme = BOOTSTRAP_THEME.exec(code)?.[1] as ChartTheme | undefined;
+    const ground = theme ? ChartThemeBackgroundColor[theme] : undefined;
+    if (ground) chartNode.style.backgroundColor = ground;
+};
+
 const executePendingScripts = (root: ChartRoot) => {
     const scripts = root.querySelectorAll<HTMLScriptElement>(
         '.chartext script:not([data-processed])',
@@ -58,6 +82,7 @@ const executePendingScripts = (root: ChartRoot) => {
     scripts.forEach((script) => {
         const win = window as any;
         const code = script.textContent ?? '';
+        paintThemeGround(script, code);
         try {
             win.__chartextCurrentScript = script;
             // Execute chart bootstrap script after HTML injection even in Shadow DOM.

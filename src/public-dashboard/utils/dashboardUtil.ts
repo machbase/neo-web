@@ -26,6 +26,10 @@ import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
 import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
 
+// With no position given, v6 lays the slider out 8px higher than v5 did, onto the x-axis labels of a
+// grid whose bottom is fixed at 50. `bottom: 14` is where v5 put it; both versions render it there.
+const DATA_ZOOM_SLIDER = { type: 'slider', bottom: 14 };
+
 export enum E_VISUAL_LOAD_ID {
     CHART = 'chartID',
     MAP = 'geomapID',
@@ -223,7 +227,7 @@ export const createCommonOption = (aCommonOptions: any) => {
     sCommon.legend.show = aCommonOptions.isLegend;
     sCommon.tooltip.show = aCommonOptions.isTooltip;
     sCommon.tooltip.trigger = aCommonOptions.tooltipTrigger;
-    sCommon.dataZoom = aCommonOptions.isDataZoom ? [{ type: 'slider' }] : false;
+    sCommon.dataZoom = aCommonOptions.isDataZoom ? [DATA_ZOOM_SLIDER] : false;
     if (aCommonOptions.isTooltip && aCommonOptions.tooltipTrigger === 'axis') {
         sCommon.tooltip.formatter = ChartAxisTooltipFormatter;
     }

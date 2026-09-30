@@ -1880,6 +1880,8 @@ export function buildDataViewerEChartOption({
                 brushSelect: false,
                 backgroundColor: 'rgba(0, 0, 0, 0)',
                 borderColor: '#7a828c',
+                // v6 changed the slider default from 3 to 0; pin it so the navigator looks the same on both.
+                borderRadius: 3,
                 fillerColor: 'rgba(104, 119, 138, 0.28)',
                 showDataShadow: false,
                 handleSize: 24,

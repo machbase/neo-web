@@ -248,7 +248,8 @@ export const sqlCsvDownloadUrl = ({
 const Animation = `"animation": false`;
 const DataZoom = `"dataZoom": [{"type": "slider","end": 100}]`;
 const Color = `"color": ["#5470c6","#91cc75","#fac858","#ee6666","#73c0de","#3ba272","#fc8452","#9a60b4","#ea7ccc"]`;
-const Legend = `"legend": {"show": true,"type": ""}`;
+// `top` pins v5's default: v6 moved legends to the bottom, onto the slider dataZoom above.
+const Legend = `"legend": {"show": true,"type": "","top": 0}`;
 const Title = `"title": {}`;
 const Tooltip = `"tooltip": {"show": true,"trigger": "axis","axisPointer": {"type": "cross","show": false}}`;
 

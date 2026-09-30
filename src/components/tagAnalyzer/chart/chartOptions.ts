@@ -669,6 +669,8 @@ function buildPanelChartFrameOptions(
                     color: 'red',
                     width: 0.5,
                 },
+                // v5's default 'auto' (the axis line colour, #323333 here); v6 defaults to a fixed accent blue.
+                label: { backgroundColor: 'auto' },
             },
             formatter: (tooltipFormatterParams) => formatChartTooltip(
                 tooltipFormatterParams,
