@@ -15,6 +15,11 @@ import {
     getTooltipColorStyle,
 } from '../chart/chartOptions';
 
+// v6 pulls a grid without containLabel inward to fit its labels (v5 kept it where it was placed).
+// A spread, not a literal key: the devDependency types are still 5.x and don't know the option
+// yet — fold it back into the literal once they move to 6.x.
+const GRID_FIXED_OUTER_BOUNDS = { outerBoundsMode: 'none' } as const;
+
 export type OverlapPanelInput = {
     key: string;
     title: string;
@@ -100,7 +105,7 @@ export function buildOverlapChartOption(
         animation: false,
         backgroundColor: '#2a2a2a',
         color: OVERLAP_CHART_COLORS,
-        grid: { left: 35, right: 18, top: 42, bottom: 28 },
+        grid: { left: 35, right: 18, top: 42, bottom: 28, ...GRID_FIXED_OUTER_BOUNDS },
         legend: {
             show: true,
             left: 10,

@@ -122,7 +122,9 @@ export const EventSyncChart = ({
                     },
                     animation: false,
                     backgroundColor: '#252525',
-                    grid: { left: 50, right: 20, top: 50, bottom: 50 },
+                    // No containLabel, so v6's default outerBoundsMode ('auto') would pull the grid inward
+                    // whenever a label overflows; 'none' keeps it where these margins put it, as in v5.
+                    grid: { left: 50, right: 20, top: 50, bottom: 50, outerBoundsMode: 'none' },
                     xAxis: {
                         type: 'time',
                         min: chartStart.getTime(),
