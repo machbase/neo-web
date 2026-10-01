@@ -177,6 +177,7 @@ const Tql = (props: TqlProps) => {
         <Page>
             <SplitPane
                 sashRender={() => Resizer()}
+                className="split-pane--below-header"
                 split={isVertical ? 'vertical' : 'horizontal'}
                 sizes={sizes}
                 onDragEnd={() => pSetDragStat(false)}

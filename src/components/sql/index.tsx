@@ -377,6 +377,7 @@ const Sql = ({
             <Page pRef={sSaveCommand}>
                 <SplitPane
                     sashRender={() => <></>}
+                    className="split-pane--below-header"
                     split={isVertical ? 'vertical' : 'horizontal'}
                     onDragEnd={() => pSetDragStat(false)}
                     onDragStart={() => pSetDragStat(true)}

@@ -68,3 +68,15 @@
         @include m.resize-handle-engaged;
     }
 }
+
+// Editor ↔ result splits (TQL, SQL) put a 40px `Page.Header` on top of BOTH panes.
+// A full-height line cuts that header row in two and runs beside the header's own
+// bottom border, so here the line starts where the header ends and the header
+// reads as one continuous strip. Only the line moves — the sash (and its glow) still
+// spans the full height, so it stays grabbable from the header row.
+.react-split--vertical.split-pane--below-header
+    > .react-split__sash
+    .custom-split-sash
+    .custom-split-sash-line.custom-split-sash-line--vertical::after {
+    top: 40px;
+}
