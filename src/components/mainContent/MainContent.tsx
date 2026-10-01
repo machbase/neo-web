@@ -406,6 +406,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'new') && (
                                     <NewBoard
                                         pExtentionList={pExtentionList}
+                                        pIsActiveTab={aItem.id === sSelectedTab}
                                         pGetInfo={pGetInfo}
                                         setIsOpenModal={setIsOpenModal}
                                     />

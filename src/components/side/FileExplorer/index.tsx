@@ -15,11 +15,10 @@ import { DeleteModal } from '../../modal/DeleteModal';
 import { Side, ContextMenu, ContextMenuPosition, Button } from '@/design-system/components';
 import { renameManager } from '@/utils/file-manager';
 import { UrlDownloadModal } from '../../modal/UrlDownloadModal';
-import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
-import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
+import { recordRecentFile } from '@/utils/recentFiles';
+import { loadBoardFromFile } from './loadBoardFromFile';
 import { VscCopy } from 'react-icons/vsc';
 import { FileCopy } from '@/utils/UpdateTree';
-import axios from 'axios';
 import { EXTENSION_SET } from '@/utils/constants';
 import { Toast } from '@/design-system/components';
 import { gWsLog } from '@/recoil/websocket';
@@ -125,67 +124,17 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
         if (sExistBoard) {
             setSelectedTab(sExistBoard.id as string);
         } else {
-            const sContentResult: any = await getFiles(`${file.path}${file.name}`);
-            const sFileExtension = extractionExtension(file.id);
-            if (axios.isAxiosError(sContentResult)) return;
-            if (sContentResult?.hasOwnProperty('headers') || sContentResult?.hasOwnProperty('reason') || sContentResult?.data?.hasOwnProperty('reason')) {
-                let sParseData = sContentResult?.data;
-                if (typeof sParseData === 'string') {
-                    try {
-                        sParseData = JSON.parse(sParseData);
-                    } catch {
-                        // Invalid JSON response from server
-                    }
-                }
-                return Toast.error(sContentResult?.reason ?? sParseData?.reason ?? 'Unknown error');
+            const sLoaded = await loadBoardFromFile(file, sTmpId);
+            if (sLoaded.error !== undefined) {
+                if (!sLoaded.transport) Toast.error(sLoaded.error);
+                return;
             }
-            let sTmpBoard: any = { id: sTmpId, name: file.name, type: sFileExtension, path: file.path, savedCode: sContentResult, code: '' };
-            if (sFileExtension === 'wrk') {
-                const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
-                if (sTmpData.data) {
-                    sTmpBoard.sheet = sTmpData.data;
-                    sTmpBoard.savedCode = JSON.stringify(sTmpData.data);
-                } else if (sTmpData.sheet) {
-                    sTmpBoard.sheet = sTmpData.sheet;
-                    sTmpBoard.savedCode = JSON.stringify(sTmpData.sheet);
-                } else {
-                    sTmpBoard.sheet = sTmpData;
-                    sTmpBoard.savedCode = JSON.stringify(sTmpData);
-                }
-            } else if (sFileExtension === 'dsh') {
-                const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
-                sTmpBoard = {
-                    ...sTmpData,
-                    id: sTmpBoard.id,
-                    name: sTmpBoard.name,
-                    type: sFileExtension,
-                    path: sTmpBoard.path,
-                    savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
-                };
-            } else if (sFileExtension === 'taz') {
-                try {
-                    const sParsedTaz = typeof sContentResult === 'string' ? JSON.parse(sContentResult) : sContentResult;
-                    sTmpBoard = loadTazBoard(sParsedTaz, sTmpId, file.name, file.path);
-                } catch (error) {
-                    Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
-                    return;
-                }
-            } else if (isImage(file.id)) {
-                const base64 = binaryCodeEncodeBase64(sContentResult);
-                const updateBoard = {
-                    ...sTmpBoard,
-                    code: base64,
-                    savedCode: base64,
-                    type: extractionExtension(file.id),
-                };
-                sTmpBoard = updateBoard;
-                setBoardList([...sBoardList, sTmpBoard]);
-            } else sTmpBoard.code = sContentResult;
 
             pGetInfo();
-            setBoardList([...sBoardList, sTmpBoard]);
+            setBoardList([...sBoardList, sLoaded.board]);
             setSelectedTab(sTmpId);
         }
+        recordRecentFile(file);
         setSelectedFile(file);
     };
 

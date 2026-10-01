@@ -139,6 +139,14 @@ const Tql = (props: TqlProps) => {
         }
     }, [createSignal]);
 
+    // A tab opened from a New-tab example runs once on arrival, so its result is already showing.
+    useEffect(() => {
+        const sBoardId = sSelectedTab;
+        if (!sBoardList.find((aBoard) => aBoard.id === sBoardId)?.autoRun) return;
+        setBoardList((aPrev) => aPrev.map((aBoard) => (aBoard.id === sBoardId ? { ...aBoard, autoRun: false } : aBoard)));
+        getTqlData(pCode);
+    }, []);
+
     const handleChangeText = (aText: any) => {
         setText(aText);
 
