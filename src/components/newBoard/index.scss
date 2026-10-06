@@ -1,6 +1,7 @@
 @use '@/design-system/tokens' as t;
 
-// The New tab. Summary first (server pulse), then what to create, then shortcuts (examples, recent).
+// The New tab: a board of section widgets (full rows, nestable) holding widgets. Customize edits it with a
+// widget panel on the right. The default board is: server pulse, create new (+ shells), examples and recent.
 //
 // Two global rules reach in here and are overridden on purpose: `button { border-radius: 8px }`
 // from src/index.css, and `* { font-family: Pretendard }`, which also wins over the monospace a
@@ -8,10 +9,20 @@
 // element names its own font.
 
 $nb-mono: D2Coding, ui-monospace, SFMono-Regular, Menlo, monospace;
-$nb-surface: t.$bg-primary;
-$nb-preview-bg: #191919;
-$nb-border-strong: rgba(255, 255, 255, 0.28);
+// Graphite: the page keeps the app's own background (Page's t.$bg-secondary, #252525) and widgets sit
+// one step up on t.$bg-elevated, both existing app tones. Hairlines are fainter than the app's default border, and
+// one tone ($nb-tone) carries every coloured state in the widgets (sparklines, today, switches) while
+// editing keeps the app's blue ($nb-accent). Item icons keep the explorer's colours.
+$nb-surface: t.$bg-elevated;
+$nb-preview-bg: #282828;
+$nb-line: rgba(255, 255, 255, 0.07);
+$nb-border-strong: rgba(255, 255, 255, 0.18);
 $nb-accent: t.$primary-hover;
+$nb-tone: #6d8bff;
+$nb-tone-hover: #8ea4ff;
+$nb-tone-ink: #0d1020;
+$nb-tone-soft: rgba(109, 139, 255, 0.35);
+$nb-weekend: #9a9aa3;
 $nb-fog-duration: 0.25s;
 
 @mixin nb-reset-button {
@@ -46,6 +57,18 @@ $nb-fog-duration: 0.25s;
     }
 }
 
+// The icons and labels inside a button (a span or svg) were resolving to the default arrow
+// (measured: button `pointer`, its icon and label `default`), so the hand showed only in the
+// button's padding. Everything inside a button here takes the button's own cursor.
+.new-board,
+.nb-panel,
+.nb-modal {
+    button *,
+    label * {
+        cursor: inherit;
+    }
+}
+
 .new-board-inner {
     max-width: 1080px;
     margin: 0 auto;
@@ -65,29 +88,6 @@ $nb-fog-duration: 0.25s;
     }
 }
 
-.new-board-section-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: t.$spacing-8;
-    margin-bottom: t.$spacing-12;
-
-    h2 {
-        margin: 0;
-        font-size: t.$font-size-md;
-        font-weight: t.$font-weight-semibold;
-    }
-    small {
-        color: t.$text-muted;
-        font-size: t.$font-size-sm;
-    }
-    code {
-        font-size: 11.5px;
-        color: t.$text-tertiary;
-    }
-}
-
 // Server pulse
 .pulse-grid {
     display: grid;
@@ -102,7 +102,7 @@ $nb-fog-duration: 0.25s;
     gap: t.$spacing-4;
     padding: 14px 14px 10px;
     background: $nb-surface;
-    border: 1px solid t.$border-color-default;
+    border: 1px solid $nb-line;
     border-radius: t.$border-radius-md;
 
     p {
@@ -116,8 +116,7 @@ $nb-fog-duration: 0.25s;
 .pulse-tile--cta {
     justify-content: space-between;
     padding-bottom: 14px;
-    border-color: rgba(0, 117, 226, 0.4);
-    background: linear-gradient(160deg, rgba(0, 117, 226, 0.16), rgba(0, 117, 226, 0.04) 70%), $nb-surface;
+    border-color: $nb-tone-soft;
 }
 
 .pulse-key {
@@ -138,9 +137,10 @@ $nb-fog-duration: 0.25s;
 }
 
 .pulse-value {
-    font-size: 24px;
-    font-weight: t.$font-weight-semibold;
+    font-size: 26px;
+    font-weight: t.$font-weight-medium;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
 
     span {
         margin-left: 4px;
@@ -166,13 +166,13 @@ $nb-fog-duration: 0.25s;
     padding: 8px 12px;
     font-size: t.$font-size-base;
     font-weight: t.$font-weight-medium;
-    color: #fff;
-    background: t.$primary-base;
+    color: $nb-tone-ink;
+    background: $nb-tone;
     border-radius: t.$border-radius-base;
     @include nb-focus-ring;
 
     &:hover:not(:disabled) {
-        background: t.$primary-hover;
+        background: $nb-tone-hover;
     }
     &:disabled {
         cursor: progress;
@@ -194,7 +194,7 @@ $nb-fog-duration: 0.25s;
     flex-direction: column;
     overflow: hidden;
     background: $nb-surface;
-    border: 1px solid t.$border-color-default;
+    border: 1px solid $nb-line;
     border-radius: t.$border-radius-md;
     transition: border-color t.$transition-duration-fast, transform t.$transition-duration-fast;
     @include nb-focus-ring;
@@ -219,7 +219,7 @@ $nb-fog-duration: 0.25s;
     justify-content: center;
     height: 104px;
     background: $nb-preview-bg;
-    border-bottom: 1px solid t.$border-color-default;
+    border-bottom: 1px solid $nb-line;
 
     svg {
         display: block;
@@ -307,26 +307,6 @@ $nb-fog-duration: 0.25s;
 }
 
 // Shells
-.new-board-subhead {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: t.$spacing-8;
-    margin: t.$spacing-20 0 t.$spacing-10;
-
-    h3 {
-        margin: 0;
-        font-size: t.$font-size-base;
-        font-weight: t.$font-weight-semibold;
-        color: t.$text-secondary;
-    }
-    small {
-        color: t.$text-muted;
-        font-size: t.$font-size-sm;
-    }
-}
-
 .new-board-shell-cards {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -339,7 +319,7 @@ $nb-fog-duration: 0.25s;
     flex-direction: column;
     overflow: hidden;
     background: $nb-surface;
-    border: 1px solid t.$border-color-default;
+    border: 1px solid $nb-line;
     border-radius: t.$border-radius-md;
     transition: border-color t.$transition-duration-fast, transform t.$transition-duration-fast;
     @include nb-focus-ring;
@@ -359,7 +339,7 @@ $nb-fog-duration: 0.25s;
     padding: 0 12px;
     font-family: $nb-mono;
     font-size: 11.5px;
-    border-bottom: 1px solid t.$border-color-default;
+    border-bottom: 1px solid $nb-line;
 }
 
 .new-board-shell-term--add {
@@ -425,21 +405,6 @@ $nb-fog-duration: 0.25s;
 }
 
 // Examples + recent
-.new-board-split {
-    display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-    gap: t.$spacing-24;
-
-    // A returning user sees their files first.
-    &.new-board-split--returning {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
-
-        .new-board-recent {
-            order: -1;
-        }
-    }
-}
-
 .new-board-template-list {
     display: flex;
     flex-direction: column;
@@ -453,12 +418,12 @@ $nb-fog-duration: 0.25s;
     gap: 3px t.$spacing-12;
     padding: 12px 14px;
     background: $nb-surface;
-    border: 1px solid t.$border-color-default;
+    border: 1px solid $nb-line;
     border-radius: t.$border-radius-md;
     @include nb-focus-ring;
 
     &:hover {
-        background: #232323;
+        background: #323232;
         border-color: $nb-border-strong;
     }
 
@@ -493,9 +458,16 @@ $nb-fog-duration: 0.25s;
 .new-board-recent-list {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    // Scrolls inside its own frame when the widget is held shorter than the list (a section with a
+    // set height); hidden clipped the rows with no way to reach them.
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    > * {
+        flex: none;
+    }
     background: $nb-surface;
-    border: 1px solid t.$border-color-default;
+    border: 1px solid $nb-line;
     border-radius: t.$border-radius-md;
 }
 
@@ -508,7 +480,7 @@ $nb-fog-duration: 0.25s;
     padding: 9px 12px;
     font-size: t.$font-size-base;
     color: t.$text-secondary;
-    border-bottom: 1px solid t.$border-color-default;
+    border-bottom: 1px solid $nb-line;
     @include nb-focus-ring;
 
     &:last-child {
@@ -594,7 +566,1964 @@ $nb-fog-duration: 0.25s;
     }
 }
 
+// ---------- widget board ----------
+.new-board-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 100%;
+
+    // While editing, board and panel scroll on their own, so the panel always runs the full height.
+    &.has-panel {
+        grid-template-columns: minmax(0, 1fr) 300px;
+        height: 100%;
+
+        > .new-board {
+            min-height: 0;
+            overflow-y: auto;
+        }
+    }
+}
+
+.nb-head-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-6;
+}
+
+.nb-editbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: t.$spacing-10;
+    padding: 10px 14px;
+    margin-bottom: t.$spacing-4;
+    font-size: 12.5px;
+    color: t.$text-secondary;
+    border: 1px solid rgba(0, 117, 226, 0.45);
+    background: rgba(0, 117, 226, 0.09);
+    border-radius: t.$border-radius-md;
+}
+
+.nb-board {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-32;
+
+    &.is-editing {
+        gap: 0;
+    }
+}
+
+.nb-section-body {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    // A section given a height (dragged in Customize) is exactly that tall, taller or shorter than
+    // its widgets: rows share the height, and a widget that does not fit scrolls inside itself.
+    &.has-height {
+        grid-auto-rows: minmax(0, 1fr);
+        // Rows of nested sections stack from the top; space they leave stays at the bottom instead of
+        // being spread between them (which opened gaps between sections and moved them off their handles).
+        align-content: start;
+
+        > .nb-node {
+            min-height: 0;
+        }
+        > .nb-node > .nb-widget-body {
+            overflow-y: auto;
+        }
+        // A nested section keeps its own height but never runs past its row: its body gives way
+        // (and scrolls) instead of spilling over the section below.
+        > .nb-node > .nb-section {
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        > .nb-node > .nb-section > .nb-section-frame {
+            flex: 0 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+
+            > .nb-section-body {
+                flex: 0 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+            }
+        }
+        .nb-folder {
+            flex: 1 1 0 !important;
+            height: auto !important;
+            min-height: 0;
+        }
+        .nb-clock,
+        .nb-weather,
+        .nb-calendar,
+        .nb-item-widget {
+            min-height: 0;
+        }
+    }
+    // Same 12px as the cards inside the built-in widgets (pulse tiles, create cards, shells),
+    // so a row of separate widgets is spaced like a row of cards.
+    gap: t.$spacing-12;
+}
+
+.nb-node {
+    position: relative;
+    min-width: 0;
+    grid-column: span 4;
+
+    // Every row is four columns; a node spans one to four of them.
+    &.nb-span-1 {
+        grid-column: span 1;
+    }
+    &.nb-span-2 {
+        grid-column: span 2;
+    }
+    &.nb-span-3 {
+        grid-column: span 3;
+    }
+    &.nb-span-4 {
+        grid-column: span 4;
+    }
+}
+
+.nb-section {
+    position: relative;
+    min-width: 0;
+}
+.nb-section-frame {
+    position: relative;
+}
+// Nested sections draw their outline 5px out, so their handle sits 3px higher.
+.nb-depth-1 > .nb-section-resize,
+.nb-depth-1 > .nb-section-frame > .nb-section-resize,
+.nb-depth-2 > .nb-section-frame > .nb-section-resize {
+    bottom: -7px;
+}
+// While editing, a nested section's outline is 12px below its body (its bottom padding).
+.nb-board.is-editing .nb-depth-1 > .nb-section-frame > .nb-section-resize,
+.nb-board.is-editing .nb-depth-2 > .nb-section-frame > .nb-section-resize {
+    bottom: -19px;
+}
+
+// Widgets sharing a row take the height of the tallest one: the grid cell stretches, and the
+// widget's own tile is made to fill it.
+.nb-widget {
+    display: flex;
+    flex-direction: column;
+}
+.nb-widget-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    > * {
+        flex: 1 1 auto;
+    }
+}
+
+.nb-section-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: t.$spacing-8;
+    margin-bottom: t.$spacing-12;
+    // One height in both modes (the edit controls overhang it), so a section is laid out the same
+    // while editing as once saved.
+    height: 20px;
+
+    h2 {
+        min-width: 0;
+        margin: 0;
+        font-size: 11.5px;
+        font-weight: t.$font-weight-semibold;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: t.$text-tertiary;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.nb-depth-1 > .nb-section-head h2,
+.nb-depth-2 > .nb-section-head h2 {
+    font-size: 11px;
+    color: t.$text-muted;
+}
+
+.nb-section.is-untitled > .nb-section-head {
+    display: none;
+}
+
+.nb-section-side {
+    min-width: 0;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-8;
+
+    small {
+        min-width: 0;
+        color: t.$text-muted;
+        font-size: t.$font-size-sm;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.nb-section-ctl {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nb-icon-btn {
+    @include nb-reset-button;
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    flex: none;
+    font-size: 14px;
+    line-height: 1;
+    color: t.$text-tertiary;
+    border-radius: t.$border-radius-base;
+    text-align: center;
+    @include nb-focus-ring;
+
+    &:hover {
+        background: t.$bg-hover;
+        color: t.$text-primary;
+    }
+}
+
+.nb-remove:hover {
+    background: #c43c3c;
+    color: #fff;
+}
+
+.nb-sizes {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    background: t.$bg-elevated;
+    border: 1px solid $nb-line;
+    border-radius: 999px;
+
+    button {
+        @include nb-reset-button;
+        width: 22px;
+        height: 18px;
+        font-size: 11px;
+        font-weight: t.$font-weight-semibold;
+        text-align: center;
+        color: t.$text-tertiary;
+        border-radius: 999px;
+        @include nb-focus-ring;
+
+        &[aria-pressed='true'] {
+            background: t.$primary-base;
+            color: #fff;
+        }
+    }
+}
+
+// Editing marks: sections dashed, widgets solid; the selected section is the target for "+".
+.nb-board.is-editing {
+    .nb-section {
+        outline: 1px dashed $nb-border-strong;
+        outline-offset: 8px;
+        border-radius: t.$border-radius-base;
+        cursor: pointer;
+    }
+    // Nested sections draw their outline on their own edge and keep their content 12px in from it,
+    // so each level's dashed line sits apart from its parent's and its children's (they shared one
+    // line when every nested outline sat 5px out). The 10px above (keeping the head's buttons off the
+    // outline) and 12px below are counted in LayoutBoard's editExtra (EDIT_NEST_PAD), so saved
+    // heights are unchanged.
+    .nb-depth-1,
+    .nb-depth-2 {
+        outline-offset: 0;
+        padding: 10px 12px 12px;
+    }
+    .nb-section.is-selected {
+        outline: 2px solid $nb-accent;
+    }
+    // A nested body may scroll once saved, but while editing it must not clip the control bars that
+    // sit above its first row.
+    .nb-section-body.has-height > .nb-node > .nb-section > .nb-section-frame > .nb-section-body {
+        overflow: visible;
+    }
+    // Keeps a last nested section's resize handle clear of this section's (EDIT_FOOT_ROOM).
+    .nb-section-body.ends-with-section {
+        padding-bottom: 20px;
+    }
+    // Dropping on a section's empty space adds to its end: the section lights up to say so.
+    .nb-section.is-drop-into {
+        outline: 2px solid $nb-accent;
+    }
+    .nb-section.is-drop-into > .nb-section-frame > .nb-section-body {
+        background: rgba(0, 117, 226, 0.08);
+        border-radius: t.$border-radius-md;
+    }
+    .nb-section-body.is-empty {
+        min-height: 64px;
+        border: 1px dashed $nb-border-strong;
+        border-radius: t.$border-radius-md;
+
+        &::before {
+            content: attr(data-empty-hint);
+            grid-column: 1 / -1;
+            align-self: center;
+            padding: 12px;
+            text-align: center;
+            font-size: 12.5px;
+            color: t.$text-muted;
+        }
+    }
+    // The bars show under the pointer or keyboard focus only; the room stays, so nothing moves.
+    .nb-widget-ctl {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity t.$transition-duration-fast;
+    }
+    .nb-widget:hover > .nb-widget-ctl,
+    .nb-widget:focus-within > .nb-widget-ctl {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    // An invisible strip over the 2px between bar and widget, so moving up to the bar keeps it open.
+    .nb-widget-ctl::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        height: 6px;
+    }
+    // Each row of widgets gets 18px above it for the control bars, which sit in that room plus the
+    // 12px gap, clear of the widget. A section with a set height grows by the same room while editing
+    // (editExtra in LayoutBoard), so its widgets are as tall as they will be once saved.
+    .nb-widget {
+        margin-top: 18px;
+        outline: 1px solid rgba(255, 255, 255, 0.18);
+        outline-offset: 3px;
+        border-radius: t.$border-radius-md;
+        cursor: grab;
+    }
+    .nb-widget-body {
+        opacity: 0.85;
+    }
+    // Where a drop will land: a bar on the side of the node the pointer is over.
+    .nb-node[class*='is-drop-']::before {
+        content: '';
+        position: absolute;
+        z-index: 4;
+        border-radius: 2px;
+        background: $nb-accent;
+    }
+    .nb-node.is-drop-before-x::before,
+    .nb-node.is-drop-after-x::before {
+        top: 0;
+        bottom: 0;
+        width: 3px;
+    }
+    .nb-node.is-drop-before-x::before {
+        left: -8px;
+    }
+    .nb-node.is-drop-after-x::before {
+        right: -8px;
+    }
+    .nb-node.is-drop-before-y::before,
+    .nb-node.is-drop-after-y::before {
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    .nb-node.is-drop-before-y::before {
+        top: -8px;
+    }
+    .nb-node.is-drop-after-y::before {
+        bottom: -8px;
+    }
+    > .nb-node.is-drop-before-y::before {
+        top: -20px;
+    }
+    > .nb-node.is-drop-after-y::before {
+        bottom: -20px;
+    }
+}
+
+.nb-section-resize {
+    // Sits on the section's dashed outline (8px outside it), cutting the line, so it reads as a
+    // handle on the edge rather than one more thing inside the section.
+    position: absolute;
+    left: 50%;
+    bottom: -15px;
+    z-index: 2;
+    width: 88px;
+    height: 14px;
+    transform: translateX(-50%);
+    background: t.$bg-secondary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ns-resize;
+    touch-action: none;
+    border-radius: t.$border-radius-sm;
+    @include nb-focus-ring;
+
+    &:hover .nb-section-resize-grip,
+    &.is-dragging .nb-section-resize-grip,
+    &:focus-visible .nb-section-resize-grip {
+        background: $nb-accent;
+        width: 64px;
+    }
+}
+.nb-section-resize-grip {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: $nb-border-strong;
+    transition: width t.$transition-duration-fast, background t.$transition-duration-fast;
+}
+.nb-section-resize-value {
+    position: absolute;
+    left: calc(100% + 6px);
+    white-space: nowrap;
+    font-size: 11px;
+    color: $nb-accent;
+    font-variant-numeric: tabular-nums;
+}
+
+.nb-grip {
+    color: t.$text-muted;
+    cursor: grab;
+    font-size: 13px;
+    letter-spacing: -2px;
+    user-select: none;
+}
+
+.nb-section-title-input {
+    width: 240px;
+    max-width: 50%;
+    min-width: 0;
+    height: 20px;
+    padding: 0 4px;
+    margin-left: -5px;
+    font: inherit;
+    font-family: t.$font-family-pretendard;
+    font-size: 11.5px;
+    font-weight: t.$font-weight-semibold;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: t.$text-secondary;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: t.$border-radius-sm;
+
+    &:hover {
+        border-color: $nb-line;
+    }
+    &:focus {
+        outline: none;
+        border-color: $nb-accent;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    &::placeholder {
+        color: t.$text-muted;
+        font-weight: t.$font-weight-normal;
+        font-style: italic;
+    }
+}
+
+// The edit strip sits on the widget's top edge and never outgrows it, so neighbours cannot overlap.
+.nb-widget-ctl {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: -30px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px;
+    background: rgba(30, 30, 30, 0.96);
+    border: 1px solid $nb-line;
+    border-radius: 999px;
+
+    .nb-icon-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+    }
+    .nb-sizes button {
+        width: 20px;
+    }
+}
+
+.nb-widget-label {
+    flex: 1;
+    min-width: 0;
+    padding: 0 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: t.$text-tertiary;
+}
+
+
+.nb-insert {
+    position: relative;
+    // Tall enough that the button sits in the clear space between two sections' outlines (8px each)
+    // and the handle on the section above.
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 1px dashed transparent;
+    }
+    &:hover::before {
+        border-top-color: $nb-accent;
+    }
+    &.is-over {
+        height: 64px;
+    }
+    &.is-over::before {
+        border-top: 3px solid $nb-accent;
+    }
+}
+
+.nb-insert-btn {
+    @include nb-reset-button;
+    position: relative;
+    z-index: 1;
+    padding: 2px 12px;
+    font-size: 12px;
+    color: t.$text-muted;
+    background: t.$bg-secondary;
+    border: 1px solid $nb-line;
+    border-radius: 999px;
+    opacity: 0.6;
+    @include nb-focus-ring;
+
+    .nb-insert:hover &,
+    .nb-insert.is-over &,
+    &:focus-visible {
+        opacity: 1;
+        color: t.$text-primary;
+        border-color: $nb-accent;
+    }
+}
+
+.nb-link-btn {
+    @include nb-reset-button;
+    font-size: t.$font-size-sm;
+    color: $nb-accent;
+    border-radius: t.$border-radius-sm;
+    @include nb-focus-ring;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.nb-empty-line,
+.pulse-asof {
+    margin: t.$spacing-8 0 0;
+    font-size: t.$font-size-sm;
+    color: t.$text-muted;
+}
+
+.nb-tile {
+    background: $nb-surface;
+    border: 1px solid $nb-line;
+    border-radius: t.$border-radius-md;
+    min-width: 0;
+}
+
+.nb-muted {
+    color: t.$text-muted;
+    font-size: t.$font-size-sm;
+}
+.nb-warn {
+    color: #ffdc72;
+}
+.nb-error-text {
+    color: t.$error-light;
+    font-size: t.$font-size-sm;
+}
+.nb-danger-text {
+    color: t.$error-light !important;
+}
+
+// Built-in widgets laid out for fewer columns.
+.nb-span-2 .pulse-grid,
+.nb-span-2 .new-board-cards,
+.nb-span-2 .new-board-shell-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.nb-span-3 .new-board-shell-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.nb-span-1 .new-board-cards,
+.nb-span-1 .new-board-shell-cards {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+// ---------- clock / calendar / weather ----------
+// Small tiles sized for a quarter of a row; every tile in a row shares one height.
+.nb-clock,
+.nb-weather,
+.nb-calendar {
+    height: 100%;
+    min-height: 196px;
+}
+
+// The small widgets share one frame so side by side they line up: 16px padding, a 20px title line at
+// the top and a 16px footer line pinned to the bottom (the analog clock's face takes the space between).
+.nb-clock {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+}
+.nb-clock-face {
+    // The face gives way in a short row (down to 48px) so the caption and date below always fit;
+    // they were clipped when the face kept its 124px.
+    flex: 0 1 124px;
+    height: 124px;
+    min-height: 48px;
+    width: auto;
+    aspect-ratio: 1;
+    margin: auto 0 10px;
+}
+.nb-clock--analog {
+    .nb-clock-caption,
+    .nb-clock-date {
+        flex: none;
+    }
+}
+.nb-clock-caption {
+    max-width: 100%;
+    line-height: 20px;
+    font-size: 14px;
+    font-weight: t.$font-weight-semibold;
+    color: t.$text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nb-clock-date {
+    line-height: 16px;
+    font-size: t.$font-size-sm;
+    color: t.$text-tertiary;
+    font-variant-numeric: tabular-nums;
+}
+.nb-clock--digital {
+    align-items: stretch;
+    justify-content: space-between;
+    text-align: left;
+}
+.nb-clock-top {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: t.$spacing-8;
+    min-width: 0;
+}
+.nb-clock-offset {
+    flex: none;
+    padding: 0 7px;
+    line-height: 18px;
+    font-size: 11px;
+    color: t.$text-tertiary;
+    border: 1px solid $nb-line;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+}
+.nb-clock-digits {
+    display: flex;
+    align-items: baseline;
+    font-family: $nb-mono;
+    font-size: 44px;
+    font-weight: t.$font-weight-semibold;
+    line-height: 1;
+    color: t.$text-primary;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+}
+.nb-clock-colon {
+    margin: 0 1px;
+    animation: nb-colon 1s steps(1) infinite;
+}
+.nb-clock-sec {
+    margin-left: 8px;
+    font-size: 16px;
+    color: t.$text-muted;
+    letter-spacing: 0;
+}
+@keyframes nb-colon {
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.nb-calendar {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.nb-calendar-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: t.$spacing-8;
+}
+.nb-calendar-today {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    min-width: 0;
+}
+.nb-calendar-bigday {
+    font-size: 30px;
+    font-weight: t.$font-weight-bold;
+    line-height: 1;
+    color: t.$text-primary;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+.nb-calendar-when {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+}
+.nb-calendar-weekname {
+    font-size: 11px;
+    font-weight: t.$font-weight-semibold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $nb-tone;
+}
+.nb-calendar-month {
+    font-size: t.$font-size-sm;
+    color: t.$text-tertiary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.nb-calendar-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    flex: none;
+
+    .nb-icon-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 16px;
+    }
+}
+.nb-calendar-back {
+    @include nb-reset-button;
+    margin-right: 2px;
+    padding: 1px 6px;
+    font-size: 11px;
+    color: $nb-tone;
+    border: 1px solid $nb-tone-soft;
+    border-radius: 999px;
+    @include nb-focus-ring;
+}
+.nb-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    row-gap: 1px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.nb-calendar-weekday {
+    padding-bottom: 3px;
+    font-size: 10px;
+    font-weight: t.$font-weight-semibold;
+    color: t.$text-tertiary;
+
+    &.is-weekend {
+        color: $nb-weekend;
+    }
+}
+.nb-calendar-day {
+    justify-self: center;
+    width: 22px;
+    height: 20px;
+    line-height: 20px;
+    font-size: 11.5px;
+    color: t.$text-primary;
+    border-radius: 999px;
+
+    &.is-weekend {
+        color: $nb-weekend;
+    }
+    &.is-past {
+        opacity: 0.45;
+    }
+    &.is-outside {
+        opacity: 0.18;
+    }
+    &.is-today {
+        opacity: 1;
+        background: $nb-tone;
+        color: $nb-tone-ink;
+        font-weight: t.$font-weight-bold;
+        box-shadow: 0 0 0 3px rgba(109, 139, 255, 0.2);
+    }
+}
+
+.nb-weather {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: $nb-surface;
+}
+.nb-weather--empty {
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    font-size: t.$font-size-base;
+    color: t.$text-tertiary;
+}
+.nb-weather-place {
+    line-height: 20px;
+    font-size: 14px;
+    font-weight: t.$font-weight-semibold;
+    color: t.$text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    small {
+        margin-left: 6px;
+        font-size: t.$font-size-sm;
+        font-weight: t.$font-weight-normal;
+        color: t.$text-muted;
+    }
+}
+// Temperature and condition sit centred between the place (top) and the stats (bottom), like a
+// digital clock's digits between its caption and date, so the two line up side by side.
+.nb-weather-main {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    margin-top: auto;
+
+    svg {
+        width: 48px;
+        height: 48px;
+        flex: none;
+    }
+}
+.nb-weather-icon-placeholder {
+    width: 48px;
+    height: 48px;
+}
+.nb-weather-temp {
+    font-size: 44px;
+    font-weight: t.$font-weight-semibold;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+
+    small {
+        margin-left: 2px;
+        font-size: 16px;
+        font-weight: t.$font-weight-normal;
+        color: t.$text-tertiary;
+        vertical-align: top;
+    }
+}
+.nb-weather-condition {
+    font-size: t.$font-size-sm;
+    color: t.$text-secondary;
+    line-height: t.$line-height-normal;
+}
+.nb-weather-stats {
+    margin-top: auto;
+    padding-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    line-height: 16px;
+    font-size: t.$font-size-sm;
+    color: t.$text-tertiary;
+    border-top: 1px solid $nb-line;
+    font-variant-numeric: tabular-nums;
+
+    span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    b {
+        color: t.$text-primary;
+        font-weight: t.$font-weight-semibold;
+    }
+}
+
+// Two-column layouts for the small widgets: use the width instead of stretching the one-column look.
+.nb-weather-now {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+.nb-weather-hours {
+    display: none;
+}
+.nb-span-2 {
+    .nb-clock--analog {
+        display: grid;
+        grid-template-columns: auto minmax(0, auto);
+        grid-template-rows: auto auto;
+        align-content: center;
+        justify-content: center;
+        column-gap: 28px;
+        text-align: left;
+
+        .nb-clock-face {
+            grid-row: 1 / 3;
+            width: 140px;
+            height: 140px;
+            margin: 0;
+        }
+        .nb-clock-caption {
+            align-self: end;
+            font-size: 18px;
+        }
+        .nb-clock-date {
+            align-self: start;
+            margin-top: 4px;
+            font-size: 13px;
+        }
+    }
+    .nb-clock-digits {
+        font-size: 72px;
+    }
+    .nb-clock-sec {
+        font-size: 24px;
+    }
+
+    .nb-calendar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+        column-gap: 20px;
+        align-items: center;
+    }
+    .nb-calendar-head {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 12px;
+        height: 100%;
+        padding-right: 20px;
+        border-right: 1px solid $nb-line;
+    }
+    .nb-calendar-today {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .nb-calendar-bigday {
+        font-size: 56px;
+    }
+    .nb-calendar-weekname {
+        font-size: 12px;
+    }
+    .nb-calendar-month {
+        font-size: 13px;
+    }
+
+    .nb-weather {
+        flex-direction: row;
+        gap: 20px;
+    }
+    .nb-weather-hours {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        align-items: center;
+        flex: 1.4;
+        min-width: 0;
+        margin: 0;
+        padding: 0 0 0 20px;
+        list-style: none;
+        border-left: 1px solid $nb-line;
+
+        li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        svg {
+            width: 28px;
+            height: 28px;
+        }
+    }
+}
+// References / SDK: the server's link lists. Links flow into as many columns as fit (one in a
+// one-column widget), each a title over its site.
+.nb-refs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    align-content: start;
+    gap: 2px 8px;
+    padding: 8px;
+    overflow-y: auto;
+}
+.nb-refs--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 96px;
+    font-size: t.$font-size-sm;
+    color: t.$text-muted;
+}
+.nb-ref {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    border-radius: t.$border-radius-base;
+
+    &:hover {
+        background: t.$bg-hover;
+    }
+}
+.nb-ref-open {
+    @include nb-reset-button;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: t.$border-radius-base;
+    @include nb-focus-ring;
+}
+.nb-ref-icon {
+    display: inline-flex;
+    flex: none;
+    color: t.$text-tertiary;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+.nb-ref-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    b,
+    small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    b {
+        font-size: t.$font-size-base;
+        font-weight: t.$font-weight-medium;
+        color: t.$text-primary;
+    }
+    small {
+        font-size: t.$font-size-sm;
+        color: t.$text-muted;
+    }
+}
+.nb-ref-install {
+    margin-right: 4px;
+}
+
+// A widget this account cannot use, while editing: kept in place, its content replaced by why.
+.nb-widget-unavailable {
+    margin: 0;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 96px;
+    text-align: center;
+    font-size: t.$font-size-sm;
+    color: t.$text-muted;
+    border: 1px dashed $nb-border-strong;
+    border-radius: t.$border-radius-md;
+}
+
+.nb-weather-hour-time {
+    font-size: 11px;
+    color: t.$text-muted;
+    font-variant-numeric: tabular-nums;
+}
+.nb-weather-hour-temp {
+    font-size: 13px;
+    font-weight: t.$font-weight-semibold;
+    color: t.$text-primary;
+    font-variant-numeric: tabular-nums;
+}
+
+// ---------- group widget ----------
+.nb-group {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    // Plain border like every other widget; the group's colour stays on the mark beside its name.
+}
+.nb-group--gone {
+    padding: 18px;
+    color: t.$text-muted;
+    font-size: t.$font-size-base;
+}
+.nb-group-head {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-10;
+    padding: 10px 12px;
+    border-bottom: 1px solid $nb-line;
+    min-width: 0;
+}
+.nb-group-mark {
+    width: 28px;
+    height: 28px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    color: var(--nb-group-color);
+    background: color-mix(in srgb, var(--nb-group-color) 22%, transparent);
+}
+.nb-group-name {
+    flex: 1;
+    min-width: 0;
+
+    b {
+        display: block;
+        font-size: t.$font-size-md;
+        font-weight: t.$font-weight-bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    small {
+        display: block;
+        color: t.$text-muted;
+        font-size: t.$font-size-sm;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+.nb-vis {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 7px;
+    font-size: 11px;
+    color: t.$text-tertiary;
+    border: 1px solid $nb-line;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+// A group draws like a phone folder: its items as app icons in a grid that scrolls.
+.nb-folder {
+    flex: 1 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    // Rows size to their content: every label is one line, so icons line up and a timer's row is just
+    // its switch taller. (A min-height on the cell would become the row's minimum and win once the
+    // folder scrolls - measured: the row stayed 96px under a 110px cell - so none is set.)
+    grid-auto-rows: min-content;
+    row-gap: 4px;
+    column-gap: 4px;
+    align-content: start;
+    padding: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+// In a one-column folder the visibility chip keeps only its icon; the word is in its tooltip.
+.nb-span-1 .nb-vis-text {
+    display: none;
+}
+.nb-group-caption {
+    color: t.$text-tertiary;
+}
+.nb-group-actions {
+    flex-shrink: 0;
+    display: inline-flex;
+    gap: 2px;
+}
+.nb-group-empty {
+    @include nb-reset-button;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px 12px;
+    text-align: center;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: t.$text-muted;
+    @include nb-focus-ring;
+
+    &:hover {
+        color: t.$text-secondary;
+    }
+}
+.nb-app-icon--ghost {
+    font-size: 22px;
+    color: t.$text-muted;
+    background: transparent;
+    border: 1px dashed $nb-border-strong;
+}
+.nb-item-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 18px;
+    height: 18px;
+    color: t.$text-secondary;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+// ---------- widget panel ----------
+.nb-panel {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: t.$bg-panel;
+    border-left: 1px solid $nb-line;
+}
+.nb-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 10px 14px;
+    border-bottom: 1px solid $nb-line;
+
+    h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: t.$font-weight-semibold;
+    }
+}
+.nb-panel-target {
+    margin: 0;
+    padding: 10px 14px;
+    font-size: t.$font-size-sm;
+    line-height: t.$line-height-normal;
+    color: t.$text-tertiary;
+    border-bottom: 1px solid $nb-line;
+
+    b {
+        color: t.$text-primary;
+    }
+}
+.nb-panel-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    margin: 10px 10px 0;
+    padding: 0 8px;
+    color: t.$text-disabled;
+    background: t.$bg-elevated;
+    border: 1px solid transparent;
+    border-radius: t.$border-radius-base;
+
+    &:focus-within {
+        border-color: $nb-accent;
+    }
+}
+.nb-panel-search-icon {
+    display: flex;
+    flex-shrink: 0;
+    color: t.$text-disabled;
+}
+.nb-panel-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    font-family: t.$font-family-pretendard;
+    font-size: 12px;
+    color: t.$text-primary;
+    background: transparent;
+    border: none;
+    outline: none;
+
+    &::placeholder {
+        color: t.$text-disabled;
+    }
+}
+.nb-panel-search-clear {
+    @include nb-reset-button;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: t.$text-disabled;
+    border-radius: 2px;
+
+    &:hover {
+        color: t.$text-primary;
+    }
+}
+.nb-panel-body {
+    flex: 1;
+    // Without this the list never shrinks below its content and pushes the panel's head out of view.
+    min-height: 0;
+    padding: 10px 10px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-16;
+}
+.nb-panel-cat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: t.$text-muted;
+
+    .nb-link-btn {
+        text-transform: none;
+        letter-spacing: 0;
+    }
+}
+.nb-panel-item {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: t.$spacing-10;
+    padding: 8px;
+    margin-bottom: 6px;
+    background: t.$bg-elevated;
+    border: 1px solid $nb-line;
+    border-radius: t.$border-radius-md;
+    cursor: grab;
+
+    &:hover {
+        border-color: $nb-border-strong;
+    }
+    &.is-placed {
+        opacity: 0.5;
+        cursor: default;
+    }
+    &.is-section {
+        border-style: dashed;
+    }
+}
+.nb-panel-icon {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    background: t.$bg-hover;
+    color: t.$text-tertiary;
+
+    svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+.nb-panel-text {
+    min-width: 0;
+
+    b {
+        display: block;
+        font-size: t.$font-size-base;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    small {
+        display: block;
+        font-size: 11.5px;
+        line-height: 1.4;
+        color: t.$text-tertiary;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+.nb-panel-cat--toggle {
+    @include nb-reset-button;
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 4px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: t.$text-tertiary;
+    border-radius: t.$border-radius-sm;
+    @include nb-focus-ring;
+
+    &:hover {
+        color: t.$text-primary;
+        background: t.$bg-hover;
+    }
+}
+.nb-panel-cat-row {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    margin-bottom: 8px;
+
+    .nb-panel-cat--toggle {
+        flex: 1;
+        margin-bottom: 0;
+    }
+}
+.nb-chevron {
+    display: inline-block;
+    width: 12px;
+}
+.nb-panel-count {
+    font-variant-numeric: tabular-nums;
+    color: t.$text-muted;
+    letter-spacing: 0;
+}
+
+// One shortcut widget: a single app icon in a tile, its kind and detail underneath.
+.nb-item-widget {
+    height: 100%;
+    min-height: 150px;
+    padding: 14px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: border-color t.$transition-duration-fast;
+
+    &:hover {
+        border-color: $nb-border-strong;
+    }
+}
+.nb-item-widget-detail {
+    max-width: 100%;
+    font-size: 11.5px;
+    color: t.$text-tertiary;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    .is-missing & {
+        color: #ffdc72;
+    }
+}
+
+// ---------- app icons (folder items and single shortcuts) ----------
+.nb-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+.nb-app-btn {
+    @include nb-reset-button;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 2px;
+    border-radius: t.$border-radius-md;
+    text-align: center;
+    @include nb-focus-ring;
+
+    &:hover .nb-app-icon {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+    }
+}
+.nb-app-icon {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    color: var(--nb-app-color, #9a9a9a);
+    // A neutral tile, the same for every kind: colour comes only from the item's own icon (the
+    // explorer's colours), so a row of mixed items reads calm instead of as a row of coloured blocks.
+    background: t.$bg-input-dark;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: transform t.$transition-duration-fast, box-shadow t.$transition-duration-fast;
+
+    .nb-item-icon,
+    .nb-item-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+}
+.nb-app--lg .nb-app-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 17px;
+
+    .nb-item-icon,
+    .nb-item-icon svg {
+        width: 32px;
+        height: 32px;
+    }
+}
+.nb-app-label {
+    max-width: 100%;
+    font-size: 11.5px;
+    line-height: 1.3;
+    color: t.$text-secondary;
+    // One line, like a home-screen label: every icon in a row is the same height, so a timer's
+    // switch sits at the same place whatever the name's length. The full name is in the tooltip.
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nb-app--lg .nb-app-label {
+    font-size: 13.5px;
+    font-weight: t.$font-weight-semibold;
+    color: t.$text-primary;
+}
+.nb-app-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: t.$font-weight-bold;
+    color: #1e1e1e;
+    background: #ffdc72;
+    border-radius: 50%;
+}
+.nb-app.is-missing,
+.nb-item-widget.is-missing {
+    .nb-app-icon {
+        filter: grayscale(1);
+        opacity: 0.5;
+    }
+    .nb-app-badge {
+        filter: none;
+    }
+    .nb-app-label {
+        color: t.$text-muted;
+        text-decoration: line-through;
+    }
+}
+.nb-timer-switch {
+    flex: none;
+    display: inline-flex;
+}
+.nb-app-extra {
+    display: flex;
+    justify-content: center;
+    transform: scale(0.85);
+    margin-top: -2px;
+}
+.nb-app--add {
+    @include nb-reset-button;
+    padding: 4px 2px;
+    border-radius: t.$border-radius-md;
+    @include nb-focus-ring;
+
+    .nb-app-icon {
+        font-size: 22px;
+        color: t.$text-muted;
+        background: transparent;
+        border: 1px dashed $nb-border-strong;
+    }
+    .nb-app-label {
+        color: t.$text-muted;
+    }
+    &:hover .nb-app-icon {
+        color: t.$text-primary;
+        border-color: t.$text-tertiary;
+    }
+}
+
+.nb-panel-placed {
+    font-size: 11px;
+    color: t.$text-muted;
+}
+
+// ---------- dialogs (rendered in a portal, so not under .new-board) ----------
+.nb-modal {
+    .nb-form {
+        display: flex;
+        flex-direction: column;
+        gap: t.$spacing-16;
+        min-width: 0;
+    }
+}
+.nb-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+
+    > span:first-child {
+        font-size: 12.5px;
+        color: t.$text-tertiary;
+    }
+}
+.nb-input {
+    width: 100%;
+    height: 30px;
+    padding: 0 10px;
+    font: inherit;
+    font-family: t.$font-family-pretendard;
+    font-size: t.$font-size-base;
+    color: t.$text-primary;
+    // Same field as the DB explorer's search: an elevated fill, no border until focused.
+    background: t.$bg-elevated;
+    border: 1px solid transparent;
+    border-radius: t.$border-radius-base;
+
+    &::placeholder {
+        color: t.$text-disabled;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: $nb-accent;
+    }
+    &[aria-invalid='true'] {
+        border-color: t.$error-light;
+    }
+}
+.nb-modal .nb-input {
+    // Dialogs sit on #2a2a2a, so the field steps one shade lighter than it does on a panel.
+    background: t.$bg-input-dark;
+}
+.nb-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: t.$spacing-8;
+}
+.nb-swatch {
+    @include nb-reset-button;
+    width: 26px;
+    height: 26px;
+    border-radius: 50% !important;
+    border: 2px solid transparent;
+    @include nb-focus-ring;
+
+    &[aria-checked='true'] {
+        border-color: t.$text-primary;
+        box-shadow: inset 0 0 0 2px t.$bg-secondary;
+    }
+}
+.nb-radio {
+    display: flex;
+    gap: t.$spacing-10;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border: 1px solid $nb-line;
+    border-radius: t.$border-radius-base;
+    cursor: pointer;
+
+    &.is-checked {
+        border-color: $nb-accent;
+        background: rgba(0, 117, 226, 0.08);
+    }
+    input {
+        margin-top: 3px;
+        accent-color: $nb-accent;
+    }
+    b {
+        display: block;
+        font-size: 13.5px;
+    }
+    small {
+        color: t.$text-tertiary;
+        font-size: t.$font-size-sm;
+        line-height: t.$line-height-normal;
+    }
+}
+.nb-seg {
+    display: inline-flex;
+    align-self: flex-start;
+    gap: 2px;
+    padding: 3px;
+    background: t.$bg-elevated;
+    border: 1px solid $nb-line;
+    border-radius: t.$border-radius-md;
+
+    button {
+        @include nb-reset-button;
+        padding: 5px 12px;
+        font-size: t.$font-size-base;
+        color: t.$text-tertiary;
+        border-radius: t.$border-radius-base;
+        @include nb-focus-ring;
+
+        &[aria-checked='true'] {
+            background: t.$primary-base;
+            color: #fff;
+        }
+    }
+}
+.nb-check {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    font-size: t.$font-size-base;
+    color: t.$text-secondary;
+
+    input {
+        accent-color: $nb-accent;
+    }
+}
+.nb-chosen {
+    font-size: t.$font-size-base;
+    color: t.$text-primary;
+}
+.nb-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid $nb-line;
+    border-radius: t.$border-radius-base;
+    overflow: hidden;
+}
+.nb-list-row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: t.$spacing-10;
+    padding: 7px 12px;
+    font-size: t.$font-size-base;
+    color: t.$text-secondary;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+    &:last-child {
+        border-bottom: 0;
+    }
+    &.is-missing .nb-list-name {
+        text-decoration: line-through;
+        color: t.$text-muted;
+    }
+}
+.nb-list-pick {
+    @include nb-reset-button;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+    &:hover {
+        background: t.$bg-hover;
+    }
+}
+.nb-list-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+
+    small {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: $nb-mono;
+        font-size: 11px;
+        color: t.$text-muted;
+    }
+}
+.nb-list-side {
+    font-size: t.$font-size-sm;
+    color: t.$text-muted;
+    white-space: nowrap;
+}
+.nb-picker-row {
+    grid-template-columns: 16px 18px minmax(0, 1fr) auto;
+    cursor: pointer;
+
+    &:hover {
+        background: t.$bg-hover;
+    }
+    &.is-in {
+        cursor: default;
+        color: t.$text-muted;
+    }
+    input {
+        margin: 0;
+        accent-color: $nb-accent;
+    }
+}
+.nb-picker-list {
+    // Fixed, not a maximum: tabs hold very different numbers of items, and the dialog must not
+    // jump in height as the user moves between them.
+    height: 320px;
+    overflow-y: auto;
+
+    > .nb-empty {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+.nb-folder-link {
+    @include nb-reset-button;
+    color: t.$text-primary;
+    border-radius: t.$border-radius-sm;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+.nb-picker-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    border-bottom: 1px solid $nb-line;
+
+    button {
+        @include nb-reset-button;
+        padding: 7px 9px;
+        font-size: 12.5px;
+        color: t.$text-tertiary;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        @include nb-focus-ring;
+
+        &[aria-selected='true'] {
+            color: t.$text-primary;
+            border-bottom-color: $nb-accent;
+        }
+    }
+}
+.nb-crumbs {
+    height: 18px;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: t.$font-size-sm;
+    color: t.$text-muted;
+
+    button {
+        @include nb-reset-button;
+        color: $nb-accent;
+        border-radius: t.$border-radius-sm;
+        @include nb-focus-ring;
+    }
+    span {
+        display: inline-flex;
+        gap: 4px;
+    }
+}
+.nb-picker-count {
+    color: t.$text-muted;
+}
+.nb-empty {
+    margin: 0;
+    padding: 18px 12px;
+    text-align: center;
+    font-size: 12.5px;
+    color: t.$text-muted;
+    line-height: 1.5;
+}
+.nb-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: t.$spacing-10;
+    padding: 10px 12px;
+    font-size: t.$font-size-base;
+    color: t.$text-secondary;
+    background: rgba(250, 100, 100, 0.07);
+    border: 1px solid rgba(250, 100, 100, 0.4);
+    border-radius: t.$border-radius-base;
+}
+.nb-confirm-actions {
+    display: inline-flex;
+    gap: t.$spacing-8;
+}
+.nb-footer-note {
+    margin-right: auto;
+    font-size: 12.5px;
+    color: t.$text-tertiary;
+}
+
+@media (max-width: 1100px) {
+    .new-board-workspace.has-panel {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .nb-panel {
+        position: static;
+        max-height: none;
+        border-left: 0;
+        border-top: 1px solid $nb-line;
+    }
+}
+
 @media (max-width: 900px) {
+    // Two columns: quarter widgets pair up, anything wider takes the row.
+    .nb-section-body {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .nb-node.nb-span-1 {
+        grid-column: span 1;
+    }
+    .nb-node.nb-span-2,
+    .nb-node.nb-span-3,
+    .nb-node.nb-span-4 {
+        grid-column: span 2;
+    }
     .pulse-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -604,13 +2533,15 @@ $nb-fog-duration: 0.25s;
     .new-board-shell-cards {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .new-board-split,
-    .new-board-split.new-board-split--returning {
-        grid-template-columns: minmax(0, 1fr);
-    }
 }
 
 @media (max-width: 560px) {
+    .nb-section-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .nb-node[class*='nb-span-'] {
+        grid-column: span 1;
+    }
     .new-board-inner {
         padding: t.$spacing-16 t.$spacing-16 t.$spacing-32;
     }
@@ -627,11 +2558,26 @@ $nb-fog-duration: 0.25s;
         transition: none;
         transform: none;
     }
-    .new-board-shell-cursor.is-blinking {
+    .new-board-shell-cursor.is-blinking,
+    .nb-clock-colon {
         animation: none;
     }
     .new-board-card-preview > *,
     .new-board-shell-term {
         transition: none;
+    }
+}
+
+// Timer switches (design-system Page.Switch) take the widgets' tone instead of the app blue. The
+// module's class names keep their source name, hence the attribute match.
+.new-board,
+.nb-panel {
+    input[class*='page-switch-input']:checked + label[class*='page-switch-label'] {
+        background: $nb-tone;
+        border-color: $nb-tone;
+    }
+    input[class*='page-switch-input']:checked + label[class*='page-switch-label']:hover {
+        background: $nb-tone-hover;
+        border-color: $nb-tone-hover;
     }
 }

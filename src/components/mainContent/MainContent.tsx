@@ -4,6 +4,8 @@ import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
+import LegacyNewBoard from '../newBoard/legacy';
+import { useExperiment } from '@/hooks/useExperiment';
 import TagAnalyzer from '@/components/tagAnalyzer/application/TagAnalyzer';
 import type { BoardInfo } from '@/components/tagAnalyzer/board/boardModel';
 import { Button, Tabs } from '@/design-system/components';
@@ -65,6 +67,7 @@ const DEFAULT_CONTEXT_MENU_STATE = {
 const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
+    const { getExperiment } = useExperiment();
     const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
     const [sIsSaveModal, setIsSaveModal] = useState<boolean>(false);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
@@ -403,14 +406,18 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     {sBoardList.map((aItem) => {
                         return (
                             <Tabs.Panel key={aItem.id} tabId={aItem.id}>
-                                {checkExtension(aItem.type, 'new') && (
-                                    <NewBoard
-                                        pExtentionList={pExtentionList}
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pGetInfo={pGetInfo}
-                                        setIsOpenModal={setIsOpenModal}
-                                    />
-                                )}
+                                {/* The widget board New tab is still experimental; without the experiment flag the original one shows. */}
+                                {checkExtension(aItem.type, 'new') &&
+                                    (getExperiment() ? (
+                                        <NewBoard
+                                            pExtentionList={pExtentionList}
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pGetInfo={pGetInfo}
+                                            setIsOpenModal={setIsOpenModal}
+                                        />
+                                    ) : (
+                                        <LegacyNewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} />
+                                    ))}
                                 {checkExtension(aItem.type, 'sql') && (
                                     <Sql
                                         pIsActiveTab={aItem.id === sSelectedTab}

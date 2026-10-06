@@ -42,7 +42,7 @@ const formatValue = (aValue: number, aDecimals: number) => aValue.toLocaleString
 /**
  * The server's own metrics from `_NEO_STATZ`, so the first screen after login already has live
  * charts on it. Polls once a minute (the table's own interval) while this New tab is the selected
- * one and the browser tab is visible. Renders nothing when the metrics cannot be read.
+ * one and the browser tab is visible. Says so when the metrics cannot be read.
  */
 export const ServerPulse = ({ pIsActive, pIsOpeningDashboard = false, pOnOpenDashboard }: { pIsActive: boolean; pIsOpeningDashboard?: boolean; pOnOpenDashboard: () => void }) => {
     const [sPulse, setPulse] = useState<ServerPulseData | undefined | null>(null);
@@ -64,18 +64,12 @@ export const ServerPulse = ({ pIsActive, pIsOpeningDashboard = false, pOnOpenDas
         return () => window.clearInterval(sTimer);
     }, [pIsActive, load]);
 
-    if (sPulse === undefined) return null;
+    if (sPulse === undefined) return <p className="nb-empty-line">Server metrics are not available for this account.</p>;
 
     const sLatest = sPulse ? Math.max(0, ...PULSE_METRICS.map((aMetric) => sPulse.series[aMetric.name]?.at(-1)?.time ?? 0)) : 0;
 
     return (
-        <section className="new-board-section" data-testid="new-board-server-pulse">
-            <div className="new-board-section-head">
-                <h2>Server pulse</h2>
-                <small>
-                    <code>_NEO_STATZ</code> · every minute · last 1 hour{sLatest ? ` · as of ${moment(sLatest).format('HH:mm')}` : ''}
-                </small>
-            </div>
+        <div data-testid="new-board-server-pulse">
             <div className="pulse-grid">
                 {PULSE_METRICS.map((aMetric) => {
                     const sPoints = sPulse?.series[aMetric.name] ?? [];
@@ -114,6 +108,7 @@ export const ServerPulse = ({ pIsActive, pIsOpeningDashboard = false, pOnOpenDas
                     </button>
                 </div>
             </div>
-        </section>
+            {sLatest ? <p className="pulse-asof">Last reading {moment(sLatest).format('HH:mm')}</p> : null}
+        </div>
     );
 };

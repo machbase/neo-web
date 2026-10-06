@@ -14,6 +14,8 @@ export interface StarterTemplate {
     snippet: string;
     /** Fields that turn the current New tab into the example; the caller keeps the tab id. Absent for the neo_statz dashboard, which is loaded from the server. */
     build?: () => Record<string, any>;
+    /** Reads `_NEO_STATZ`, so it is left out for an account that cannot (see widgetAccess). */
+    needsStatz?: boolean;
 }
 
 /**
@@ -55,6 +57,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
         title: 'Server metrics dashboard',
         summary: 'CPU, memory, HTTP, DB pool, appends and rollups in 15 live panels',
         snippet: 'neo_statz.dsh · _NEO_STATZ · last 1 hour',
+        needsStatz: true,
     },
     {
         id: 'cpu-sql',
@@ -62,6 +65,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
         summary: 'Runs right away. Open the CHART tab to plot it',
         snippet: `SELECT TIME, VALUE FROM _NEO_STATZ\nWHERE NAME = 'ps:cpu_percent' AND TIME > NOW - 1h`,
         build: () => ({ type: 'sql', name: 'server-cpu.sql', path: '', code: CPU_SQL, savedCode: false, autoRun: true }),
+        needsStatz: true,
     },
     {
         id: 'wave-tql',

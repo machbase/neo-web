@@ -1,45 +1,28 @@
-import { getTutorial, postFileList } from '@/api/repository/api';
-import { gBoardList, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
+import { getTutorial } from '@/api/repository/api';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { binaryCodeEncodeBase64, getId, isImage } from '@/utils';
 import icons from '@/utils/icons';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { VscCloudDownload } from 'react-icons/vsc';
 import { Loader } from '../../loader';
-import { gFileTree } from '@/recoil/fileTree';
-import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 import { Toast } from '@/design-system/components';
 import { Button, Side } from '@/design-system/components';
-
-type REFERENCE_ITEM = {
-    title: string;
-    address: string;
-    type: string;
-    target?: string;
-};
-const SUPPORT_QUICK_INSTALL_LIST = ['Tutorials', 'Demo web app', 'Education'];
+import { isQuickInstallable, openReferenceUrl, REFERENCE_ITEM, useQuickInstall } from './referenceActions';
 
 const RefList = ({ pValue }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const [sFileTree, setFileTree] = useRecoilState(gFileTree);
-    const [sProcessingList, setProcessingList] = useState<string[]>([]);
-    const quickInstallQueueRef = useRef<Promise<void>>(Promise.resolve());
-    const fileTreeRef = useRef(sFileTree);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
-    const setSelectedExtension = useSetRecoilState<string>(gSelectedExtension);
-
-    useEffect(() => {
-        fileTreeRef.current = sFileTree;
-    }, [sFileTree]);
+    const { install, isInstalling } = useQuickInstall();
 
     const openReference = async (pValue: any) => {
         const sId = getId();
         let sTmpBoard: any = { id: sId, name: pValue.title, type: pValue.type, path: '', savedCode: false, code: '' };
         if (pValue.type === 'url') {
-            window.open(pValue.address, pValue.target);
+            openReferenceUrl(pValue);
             return;
         } else {
             // Every board opened from here is tagged _CHEAT_SHEET, so re-clicking an entry focuses the tab
@@ -115,44 +98,6 @@ const RefList = ({ pValue }: any) => {
             setSelectedTab(sId);
         }
     };
-    const checkQuickInstall = (aName?: string): boolean => {
-        let sResult = false;
-        SUPPORT_QUICK_INSTALL_LIST.forEach((supItem: string) => {
-            if (supItem?.toUpperCase() === aName?.toUpperCase()) sResult = true;
-        });
-        return sResult;
-    };
-
-    const FetchQuickInstall = async (aFileNm: string, aPayload: { url: string; command: string }) => {
-        try {
-            const sResult: any = await postFileList(aPayload, `/${aFileNm}`, '');
-            if (sResult && sResult?.success) {
-                quickInstallQueueRef.current = quickInstallQueueRef.current.then(async () => {
-                    const currentFileTree = fileTreeRef.current;
-                    const sDrillRes = await TreeFetchDrilling(currentFileTree, `/${aFileNm}`);
-                    if (sDrillRes?.tree) {
-                        setFileTree(sDrillRes.tree);
-                        fileTreeRef.current = sDrillRes.tree;
-                    }
-                });
-                await quickInstallQueueRef.current;
-                setSelectedExtension('EXPLORER');
-                Toast.success(`Creating in ${aFileNm} folder`);
-            }
-        } catch (error) {
-            Toast.error(`Quick install failed: ${error}`);
-        } finally {
-            setProcessingList((prev) => prev.filter((item) => item !== aFileNm));
-        }
-    };
-    const handleQuickInstall = async (aFileNm: string, aPayload: { url: string; command: string }) => {
-        setProcessingList((prev) => [...prev, aFileNm]);
-        await FetchQuickInstall(aFileNm, aPayload);
-    };
-    const checkProcessing = (aItem: REFERENCE_ITEM): boolean => {
-        return sProcessingList?.some((item) => item === aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1));
-    };
-
     return (
         <>
             <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
@@ -167,9 +112,9 @@ const RefList = ({ pValue }: any) => {
                                     <Side.ItemIcon>{icons(aItem?.type)}</Side.ItemIcon>
                                     <Side.ItemText>{aItem?.title}</Side.ItemText>
                                 </Side.ItemContent>
-                                {checkQuickInstall(aItem?.title) ? (
+                                {isQuickInstallable(aItem?.title) ? (
                                     <Side.ItemAction>
-                                        <QuickInstall pItem={aItem} pIsProcessing={checkProcessing(aItem)} pQuickInstall={handleQuickInstall} />
+                                        <QuickInstall pItem={aItem} pIsProcessing={isInstalling(aItem)} pQuickInstall={install} />
                                     </Side.ItemAction>
                                 ) : null}
                             </Side.Item>
@@ -182,21 +127,11 @@ const RefList = ({ pValue }: any) => {
 };
 export default RefList;
 
-const QuickInstall = ({
-    pItem,
-    pIsProcessing,
-    pQuickInstall,
-}: {
-    pItem: REFERENCE_ITEM;
-    pIsProcessing: boolean;
-    pQuickInstall: (aFileNm: string, aPayload: { url: string; command: string }) => Promise<void>;
-}) => {
+const QuickInstall = ({ pItem, pIsProcessing, pQuickInstall }: { pItem: REFERENCE_ITEM; pIsProcessing: boolean; pQuickInstall: (aItem: REFERENCE_ITEM) => Promise<void> }) => {
     const handleQuickInstall = async (e: React.MouseEvent<HTMLDivElement>, aItem: REFERENCE_ITEM) => {
         if (pIsProcessing) return;
         e.stopPropagation();
-        const lastPath = aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1);
-        const sPaylod = { url: aItem?.address, command: 'clone' };
-        await pQuickInstall(lastPath, sPaylod);
+        await pQuickInstall(aItem);
     };
 
     return (
