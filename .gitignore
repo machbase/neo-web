@@ -37,14 +37,11 @@ learn/
 src/components/tagAnalyzer/ARCHITECTURE.md
 coverage/cobertura-coverage.xml
 
-# Tests are maintained in a separate repository
-*.test.*
-*.spec.*
-/__mocks__/
+# E2E and integration tests live in neo-web-regress and are copied into tests/ and test_config/
+# to run. Unit and component tests stay beside the source (src/**/*.test.ts(x)) and are committed.
 /tests/
 /playwright.config.ts
 /playwright/.auth/
-/setupTests.ts
 /test_config/
 /test_runner/
 /test-results*/
