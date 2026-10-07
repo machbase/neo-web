@@ -136,3 +136,9 @@ it('renders nothing until the runtime arrives', () => {
     expect(container.firstChild).toBeNull();
     expect(init).not.toHaveBeenCalled();
 });
+
+it('forwards data-testid to the element the chart is created on', () => {
+    const { getByTestId } = render(<EChart option={OPTION_A} data-testid="viewport-surface" />);
+    const host = getByTestId('viewport-surface');
+    expect(init).toHaveBeenCalledWith(host, undefined, undefined);
+});

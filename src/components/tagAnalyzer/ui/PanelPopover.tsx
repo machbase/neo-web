@@ -127,12 +127,25 @@ export default function PanelPopover({
                 onClose();
             }
         };
+        // Capture-phase scroll also fires for scrolling inside the popover, e.g. a text input
+        // scrolling its caret into view. Only a scroll outside it should close the popover.
+        const handleScroll = (event: Event): void => {
+            const eventTarget = event.target;
+            if (
+                popoverRef.current &&
+                eventTarget instanceof Node &&
+                popoverRef.current.contains(eventTarget)
+            ) {
+                return;
+            }
+            onClose();
+        };
         const timeoutId = window.setTimeout(() => {
             document.addEventListener('mousedown', handleClickOutside);
         }, 0);
         document.addEventListener('keydown', handleEscKey);
         if (closeOnScroll) {
-            window.addEventListener('scroll', onClose, true);
+            window.addEventListener('scroll', handleScroll, true);
         }
 
         return () => {
@@ -141,7 +154,7 @@ export default function PanelPopover({
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleEscKey);
             if (closeOnScroll) {
-                window.removeEventListener('scroll', onClose, true);
+                window.removeEventListener('scroll', handleScroll, true);
             }
         };
     }, [closeOnScroll, onClose, outsideCloseIgnoreSelector]);

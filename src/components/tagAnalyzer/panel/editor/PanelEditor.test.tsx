@@ -849,3 +849,36 @@ describe('PanelEditor chart range synchronization', () => {
 function mainRangeSection() {
     return within(screen.getByTestId('editor-main-range'));
 }
+
+describe('PanelEditor data tab', () => {
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    it('keeps both colors when two series are recolored within the picker debounce', () => {
+        jest.useFakeTimers();
+        const second: PanelSeriesDefinition = { ...TIME_SERIES, key: 'second-series', sourceTagName: 'TAG_C' };
+        const apply = jest.fn<void, [PanelInfo]>();
+        renderEditor(createNewPanelInfo([TIME_SERIES, second], 'Panel', 'Line'), apply);
+        fireEvent.click(screen.getByTestId('editor-tab-data'));
+
+        // The picker reports a swatch click 100ms later, so the second click lands before the
+        // first change is in the draft.
+        const pickSwatch = (seriesKey: string, color: string) => {
+            const series = within(screen.getByTestId(`series-${encodeURIComponent(seriesKey)}`));
+            fireEvent.click(series.getByTestId('swatch'));
+            fireEvent.click(within(screen.getByTestId('color-picker-popover')).getByTitle(color));
+        };
+        pickSwatch(TIME_SERIES.key, '#F44E3B');
+        pickSwatch(second.key, '#009CE0');
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        const colors = Object.fromEntries(
+            apply.mock.calls[0][0].query.tagSet.map((series) => [series.key, series.color]),
+        );
+        expect(colors).toEqual({ [TIME_SERIES.key]: '#f44e3b', [second.key]: '#009ce0' });
+    });
+});

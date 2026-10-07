@@ -28,7 +28,9 @@ export default function EditorDataTab({
     pQueryDraft: PanelInfo['query'];
     pRollupTableList: RollupTableMap;
     pLockedAxisKind: AxisKind | undefined;
-    pOnChangeQueryDraft: (queryDraft: PanelInfo['query']) => void;
+    pOnChangeQueryDraft: (
+        update: (previous: PanelInfo['query']) => PanelInfo['query'],
+    ) => void;
     pIsActive: boolean;
 }) {
     const [sSeriesDraft, setSeriesDraft] = useState<
@@ -44,8 +46,13 @@ export default function EditorDataTab({
     }, [pIsActive]);
     if (!pIsActive) return null;
 
-    const setTagSet = (tagSet: PanelSeriesDefinition[]) => {
-        pOnChangeQueryDraft({ ...pQueryDraft, tagSet });
+    // Every change goes through an updater on the latest draft. The color picker reports its
+    // change 100ms late, so a change built from this render's pQueryDraft could overwrite an
+    // edit made in the meantime.
+    const updateTagSet = (
+        update: (tagSet: PanelSeriesDefinition[]) => PanelSeriesDefinition[],
+    ) => {
+        pOnChangeQueryDraft((query) => ({ ...query, tagSet: update(query.tagSet) }));
     };
 
     function closeSeriesModal(): void {
@@ -64,21 +71,23 @@ export default function EditorDataTab({
             setSeriesFooterMessage(X_AXIS_KIND_CHANGE_WARNING);
             return;
         }
-        setTagSet(sSeriesDraft);
+        updateTagSet(() => sSeriesDraft);
         closeSeriesModal();
     }
 
     return (
         <>
             {pQueryDraft.tagSet.map((item, seriesIndex) => {
-                const updateItem = (nextItem: PanelSeriesDefinition) =>
-                    setTagSet(
-                        pQueryDraft.tagSet.map((series) =>
-                            series.key === item.key ? nextItem : series,
+                const updateItem = (
+                    update: (series: PanelSeriesDefinition) => PanelSeriesDefinition,
+                ) =>
+                    updateTagSet((tagSet) =>
+                        tagSet.map((series) =>
+                            series.key === item.key ? update(series) : series,
                         ),
                     );
                 const patchItem = (patch: Partial<PanelSeriesDefinition>) =>
-                    updateItem({ ...item, ...patch });
+                    updateItem((series) => ({ ...series, ...patch }));
 
                 return (
                     <Surface
@@ -119,7 +128,7 @@ export default function EditorDataTab({
                             <Field label="Calculation mode" className={styles.editorNarrowControl}>
                                 <SeriesCalculationModeField
                                     value={item.calculationMode}
-                                    onChange={(mode) => updateItem(updatePanelSeriesCalculationMode(item, mode))}
+                                    onChange={(mode) => updateItem((series) => updatePanelSeriesCalculationMode(series, mode))}
                                     className={controls.control}
                                 />
                             </Field>
@@ -143,8 +152,8 @@ export default function EditorDataTab({
                                         <Close size={16} color="#f8f8f8" />
                                     }
                                     onClick={() =>
-                                        setTagSet(
-                                            pQueryDraft.tagSet.filter((tag) => tag.key !== item.key),
+                                        updateTagSet((tagSet) =>
+                                            tagSet.filter((tag) => tag.key !== item.key),
                                         )
                                     }
                                 />

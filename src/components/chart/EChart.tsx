@@ -15,6 +15,8 @@ export type EChartProps = {
     opts?: EChartsInitOpts;
     style?: CSSProperties;
     className?: string;
+    /** Forwarded to the host element. JSX accepts any data-* prop on a component without a type error, so it must be listed to reach the DOM. */
+    'data-testid'?: string;
 };
 
 /**
@@ -44,6 +46,7 @@ export function EChart({
     opts,
     style,
     className,
+    'data-testid': testId,
 }: EChartProps) {
     const { echarts } = useEcharts();
     const hostRef = useRef<HTMLDivElement | null>(null);
@@ -142,7 +145,7 @@ export function EChart({
     }, [chart]);
 
     if (!echarts) return null;
-    return <div ref={hostRef} className={className} style={style} />;
+    return <div ref={hostRef} className={className} style={style} data-testid={testId} />;
 }
 
 export default EChart;
