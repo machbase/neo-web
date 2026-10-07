@@ -134,11 +134,23 @@ export default function PanelEditor({
         setAppliedEditorConfigKey(sEditorConfigKey);
     };
 
+    // Accepts an updater as well as a value: a tab whose change can arrive late (a debounced
+    // color pick) must build on the latest draft, not the one it rendered with.
     function updateEditorDraft<K extends keyof PanelEditorDraft>(
         field: K,
-    ): (value: PanelEditorDraft[K]) => void {
+    ): (
+        value:
+            | PanelEditorDraft[K]
+            | ((previous: PanelEditorDraft[K]) => PanelEditorDraft[K]),
+    ) => void {
         return (value) =>
-            setEditorDraft((draft) => ({ ...draft, [field]: value }));
+            setEditorDraft((draft) => ({
+                ...draft,
+                [field]:
+                    typeof value === 'function'
+                        ? (value as (previous: PanelEditorDraft[K]) => PanelEditorDraft[K])(draft[field])
+                        : value,
+            }));
     }
 
     function updateTagSet(tagSet: PanelInfo['query']['tagSet']): void {
