@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { recordRecentFile } from '@/utils/recentFiles';
 import { getFileList, postFileList } from '@/api/repository/api';
 import { gFileTree, gRecentModalPath } from '@/recoil/fileTree';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
@@ -205,6 +206,7 @@ export const SaveModal = (props: SaveModalProps) => {
                 if (sResult.success) {
                     const sExist = getExistBoard(sDupFile);
                     const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+                    recordRecentFile({ name: sFileName, path: sPath });
                     if (sExist) {
                         setBoardList(
                             sBoardList
@@ -250,6 +252,7 @@ export const SaveModal = (props: SaveModalProps) => {
         setModalPath(sPath);
         if (sResult.success) {
             handleClose();
+            recordRecentFile({ name: sFileName, path: sPath });
             const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
             setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
             setBoardList(

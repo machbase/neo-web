@@ -1,27 +1,15 @@
-import { getReferenceList } from '@/api/repository/api';
 import { useEffect, useState } from 'react';
 import RefList from './RefeList';
 import { Side } from '@/design-system/components';
-
-const EDUCATION = {
-    type: 'url',
-    title: 'Education',
-    address: 'https://github.com/machbase/education',
-};
+import { fetchReferences } from './referenceActions';
 
 export const ReferenceSide = () => {
     const [sReferences, setReferences] = useState<any>();
     const init = async () => {
         try {
-            const sData = await getReferenceList();
-            sData?.data?.refs?.forEach((ref: any) => {
-                if (ref?.label?.toUpperCase() === 'REFERENCES') {
-                    const sAlreadyExistEdu = ref?.items.find((item: any) => item?.address === EDUCATION.address);
-                    if (!sAlreadyExistEdu) ref?.items?.push(EDUCATION);
-                }
-            });
-            setReferences(sData?.data?.refs);
-        } catch (err) {
+            setReferences(await fetchReferences());
+        } catch {
+            // The panel stays empty when the list cannot be read.
         }
     };
 

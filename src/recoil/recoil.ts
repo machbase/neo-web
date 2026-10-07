@@ -17,6 +17,8 @@ export interface GBoardListType {
     dashboard? : any,
     refreshKey? : any,
     mode?: any,
+    /** Set by the New tab's examples: the SQL/TQL editor runs the code once when it first mounts, then clears it. */
+    autoRun?: boolean,
     
 }
 

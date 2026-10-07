@@ -333,6 +333,13 @@ const Sql = ({
         setIsTimeZoneModal(false);
     };
 
+    // A tab opened from a New-tab example runs once on arrival, so its result is already showing.
+    useEffect(() => {
+        if (!pInfo.autoRun) return;
+        setBoardList((aPrev) => aPrev.map((aBoard) => (aBoard.id === pInfo.id ? { ...aBoard, autoRun: false } : aBoard)));
+        sqlMultiLineParser();
+    }, []);
+
     useEffect(() => {
         if (sMoreResult) {
             fetchMoreResult();
@@ -377,6 +384,7 @@ const Sql = ({
             <Page pRef={sSaveCommand}>
                 <SplitPane
                     sashRender={() => <></>}
+                    className="split-pane--below-header"
                     split={isVertical ? 'vertical' : 'horizontal'}
                     onDragEnd={() => pSetDragStat(false)}
                     onDragStart={() => pSetDragStat(true)}

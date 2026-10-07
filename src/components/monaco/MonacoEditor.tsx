@@ -50,6 +50,8 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         fontSize: 14,
         fontFamily: 'D2Coding',
         scrollBeyondLastLine: false,
+        // The ruler's 1px left border runs right beside the split-pane line next to the editor.
+        overviewRulerBorder: false,
         readOnly: pIsReadOnly,
         hover: {
             enabled: !pIsReadOnly,
