@@ -7,6 +7,7 @@ import {
     TreeFolder,
 } from '@/assets/icons/Icon';
 import {
+    Alert,
     Button,
     FileListHeader,
     Input,
@@ -18,7 +19,9 @@ import {
     elapsedTime,
     extractionExtension,
 } from '@/utils';
-import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
+import { validateName } from '@/utils/fileName';
+import { resolveOverwrite, savedNameOf } from '@/utils/fileExistence';
+import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import icons from '@/utils/icons';
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { tazFileApi, type FileListItem } from './tazFileApi';
@@ -35,7 +38,7 @@ export function SaveAsModal({
     initialDirectoryPath: string;
     initialFileName: string;
     onClose: () => void;
-    onSaveAs: (directoryPath: string, fileName: string) => Promise<boolean>;
+    onSaveAs: (directoryPath: string, fileName: string, overwritten?: boolean) => Promise<boolean>;
 }) {
     const sInitialDirectory = useRef(
         normalizeDirectoryPath(initialDirectoryPath || '/')
@@ -52,6 +55,8 @@ export function SaveAsModal({
     const [sIsDirectoryLoading, setIsDirectoryLoading] = useState(true);
     const [sIsSaving, setIsSaving] = useState(false);
     const sDirectoryRequestIdRef = useRef(0);
+    const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
+    const [sSaveError, setSaveError] = useState<string | undefined>(undefined);
 
     const openDirectory = useCallback(async (
         directorySegments: string[],
@@ -125,6 +130,7 @@ export function SaveAsModal({
 
     async function handleSave() {
         if (
+            sIsSaving ||
             sIsDirectoryLoading ||
             !sFileList ||
             !isValidTazFileName(sSaveFileName)
@@ -132,22 +138,23 @@ export function SaveAsModal({
             return;
         }
 
-        const sExistingFile = sFileList.find(
-            (fileItem) =>
-                fileItem.type !== 'dir' && fileItem.name === sSaveFileName,
-        );
-        if (
-            sExistingFile &&
-            !window.confirm('Do you want to overwrite it?')
-        ) {
-            return;
-        }
-
         const sDirectoryPath = buildDirectoryPath(sSelectedDir);
 
+        // Busy BEFORE the re-query: a second click while the lookup/confirm is pending must not start a second save.
         setIsSaving(true);
         try {
-            const sDidSave = await onSaveAs(sDirectoryPath, sSaveFileName);
+            // shared check: unfiltered re-query right before saving (the listed folder may have changed since), case-insensitive name, ConfirmModal
+            setSaveError(undefined);
+            const sDecision = await resolveOverwrite(sDirectoryPath, sSaveFileName, askOverwrite);
+            if (sDecision.status === 'folder' || sDecision.status === 'failed') {
+                // in-modal error (r13), like FileModal
+                setSaveError(sDecision.reason);
+                return;
+            }
+            if (sDecision.status === 'cancel') return;
+
+            // r13: an overwrite keeps the server's real name — onSaveAs (POST, tab name) gets it, not the typed one
+            const sDidSave = await onSaveAs(sDirectoryPath, savedNameOf(sDecision, sSaveFileName), sDecision.status === 'confirmed');
 
             if (!sDidSave) {
                 return;
@@ -246,6 +253,11 @@ export function SaveAsModal({
                     ))}
                 </Stack>
             </Modal.Body>
+            {sSaveError ? (
+                <div data-testid="tag-analyzer-save-as-error">
+                    <Alert variant="error" message={sSaveError} />
+                </div>
+            ) : null}
             <Modal.Footer style={{ justifyContent: 'space-between' }}>
                 <Inline className="taz-save-as-modal__column">
                     <Input
@@ -273,6 +285,7 @@ export function SaveAsModal({
                     </Modal.Confirm>
                 </Button.Group>
             </Modal.Footer>
+            {sOverwritePrompt}
         </Modal.Root>
     );
 }
@@ -288,8 +301,7 @@ function buildDirectoryPath(directorySegments: string[]): string {
 }
 
 function isValidTazFileName(fileName: string): boolean {
-    return FileNameAndExtensionValidator(fileName) &&
-        extractionExtension(fileName) === 'taz';
+    return validateName(fileName, { kind: 'file', type: 'taz' }).ok;
 }
 
 function normalizeDirectoryPath(directoryPath: string): string {

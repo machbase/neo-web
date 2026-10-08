@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, FolderOpen, Home, TreeFolder, Play } from '@/assets/icons/Icon';
 import { elapsedSize, elapsedTime } from '@/utils';
-import { getFileList } from '@/api/repository/api';
+import { getTypedFileList } from '@/utils/fileExistence';
 import { useRecoilState } from 'recoil';
 import { gRecentModalPath } from '@/recoil/fileTree';
 import icons from '@/utils/icons';
@@ -17,7 +17,7 @@ export const SelectFileBtn = ({ btnTxt, pType, pCallback }: { pType: string; btn
     const [sDeletePath, setDeletePath] = useState<string[]>([]);
 
     const getFiles = async () => {
-        const sData = await getFileList(`?filter=*.${pType}`, sSelectedDir.join('/'), '');
+        const sData = await getTypedFileList(pType, sSelectedDir.join('/'));
         setFileList(sData.data?.children ?? []);
     };
     const handleSave = () => {

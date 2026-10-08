@@ -8,6 +8,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Button, Page, Toast } from '@/design-system/components';
 import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/tazFormat';
 import { loadBoardFromFile } from '@/components/side/FileExplorer/loadBoardFromFile';
+import { OPENABLE_EXTENSIONS, OPEN_FILE_ACCEPT, parseOpenedFile } from './openFileContent';
 import { RecentFile, recordRecentFile, removeRecentFile, useRecentFiles } from '@/utils/recentFiles';
 import { BoardPreview } from './BoardPreview';
 import { ServerPulse } from './ServerPulse';
@@ -63,8 +64,6 @@ const CARD_INFO: Record<string, { title: string; description: string }> = {
 };
 const CARD_ORDER = ['dsh', 'sql', 'tql', 'taz', 'wrk'];
 
-const OPENABLE_EXTENSIONS = ['wrk', 'sql', 'tql', 'taz', 'dsh', 'json', 'csv', 'md', 'txt'];
-const FILE_INPUT_ACCEPT = '.wrk,.sql,.tql,.taz,.dsh';
 
 const TERM_ICONS = ['console-network-outline', 'console-network', 'database-outline', 'database', 'console-line', 'powershell', 'monitor', 'monitor-small', 'laptop', 'fish', 'console'];
 
@@ -87,11 +86,12 @@ const NewBoard = (props: NewBoardProps) => {
     };
 
     const readFile = async (aItem: any) => {
-        return (await new Promise((resolve) => {
+        return (await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = async (e: any) => {
                 resolve(e.target.result);
             };
+            reader.onerror = () => reject(reader.error ?? new Error('Failed to read the file.'));
             reader.readAsText(aItem);
         })) as string;
     };
@@ -103,22 +103,28 @@ const NewBoard = (props: NewBoardProps) => {
             Toast.error(`Cannot open .${extension} files here. Use ${OPENABLE_EXTENSIONS.map((aExt) => '.' + aExt).join(' ')}.`);
             return;
         }
-        uploadFile(aFile, await readFile(aFile));
+        let sText: string;
+        try {
+            sText = await readFile(aFile);
+        } catch (aError) {
+            Toast.error(aError instanceof Error ? aError.message : 'Failed to read the file.', { testId: 'new-board-open-file-error-toast' });
+            return;
+        }
+        uploadFile(aFile, sText);
     };
 
     const uploadFile = (aFileInfo: File, aFileValue: string) => {
         const sTypeOption = extractionExtension(aFileInfo.name);
-
-        if (sTypeOption === 'taz' || sTypeOption === 'dsh') {
-            setBoardList(
-                sBoardList.map((aItem: any) => {
-                    return aItem.id === sSelectedTab ? { ...JSON.parse(aFileValue), id: aItem.id } : aItem;
-                })
-            );
-        } else if (sTypeOption === 'sql' || sTypeOption === 'tql' || sTypeOption === 'json' || sTypeOption === 'csv' || sTypeOption === 'md' || sTypeOption === 'txt') {
-            replaceCurrentTab({ name: aFileInfo.name, code: aFileValue, type: sTypeOption });
-        } else if (sTypeOption === 'wrk') {
-            replaceCurrentTab({ name: aFileInfo.name, sheet: JSON.parse(aFileValue).data, type: sTypeOption });
+        const sOpened = parseOpenedFile(sTypeOption, aFileValue, aFileInfo.name, sSelectedTab);
+        if (!sOpened.ok) {
+            Toast.error(sOpened.error, { testId: 'new-board-open-file-error-toast' });
+            return;
+        }
+        if (sOpened.mode === 'replace') {
+            // dsh/taz: replace the whole tab object so the previous tab's code/sheet do not linger
+            setBoardList(sBoardList.map((aItem: any) => (aItem.id === sSelectedTab ? { ...sOpened.board, id: aItem.id } : aItem)));
+        } else {
+            replaceCurrentTab(sOpened.fields);
         }
     };
 
@@ -194,6 +200,11 @@ const NewBoard = (props: NewBoardProps) => {
         }
         const sLoaded = await loadBoardFromFile(aFile, sSelectedTab);
         if (sLoaded.error !== undefined) {
+            if (sLoaded.invalid) {
+                // the file is there but damaged: keep it in Recent so the user can fix and retry
+                Toast.error(`${aFile.path}${aFile.name} is damaged and cannot be opened: ${sLoaded.error}`, { testId: 'new-board-open-file-error-toast' });
+                return;
+            }
             Toast.error(`Could not open ${aFile.path}${aFile.name}: ${sLoaded.error}. It was removed from Recent.`);
             removeRecentFile(aFile);
             return;
@@ -372,8 +383,9 @@ const NewBoard = (props: NewBoardProps) => {
                     ref={sFileInput}
                     tabIndex={-1}
                     className="new-board-file-input"
+                    data-testid="new-board-open-file-input"
                     type="file"
-                    accept={FILE_INPUT_ACCEPT}
+                    accept={OPEN_FILE_ACCEPT}
                     onChange={(aEvent) => {
                         handleChange(aEvent.target.files?.[0]);
                         aEvent.target.value = '';
@@ -420,7 +432,7 @@ const NewBoard = (props: NewBoardProps) => {
                 sRecentFiles.slice(0, aSize === 1 ? 4 : undefined).map((aFile) => {
                     const sExt = extractionExtension(aFile.name);
                     return (
-                        <button type="button" key={aFile.path + aFile.name} className="new-board-recent-item" onClick={() => openRecent(aFile)}>
+                        <button type="button" key={aFile.path + aFile.name} className="new-board-recent-item" data-testid={`recent-${encodeURIComponent(aFile.path + aFile.name)}`} onClick={() => openRecent(aFile)}>
                             <span className="new-board-recent-icon">{icons(sExt)}</span>
                             <span className="new-board-recent-name">
                                 {aFile.name}
@@ -562,7 +574,7 @@ const NewBoard = (props: NewBoardProps) => {
                             <div className="new-board-drop-overlay" aria-hidden="true">
                                 <div>
                                     <b>Drop to open</b>
-                                    <span>{FILE_INPUT_ACCEPT.split(',').join('  ')}</span>
+                                    <span>{OPEN_FILE_ACCEPT.split(',').join('  ')}</span>
                                 </div>
                             </div>
                         ) : null}

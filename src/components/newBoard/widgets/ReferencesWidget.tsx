@@ -31,7 +31,7 @@ const hostOf = (aAddress: string) => {
  */
 export const ReferencesWidget = ({ pLabel }: { pLabel: ReferenceListLabel }) => {
     const [sState, setState] = useState<{ status: 'loading' } | { status: 'ready'; items: REFERENCE_ITEM[] } | { status: 'error' }>({ status: 'loading' });
-    const { install, isInstalling } = useQuickInstall();
+    const { install, isInstalling, prompt: sClonePrompt } = useQuickInstall();
 
     useEffect(() => {
         let sAlive = true;
@@ -72,6 +72,7 @@ export const ReferencesWidget = ({ pLabel }: { pLabel: ReferenceListLabel }) => 
                             className="nb-icon-btn nb-ref-install"
                             title={`Quick install: clone ${aItem.title} into the server's files`}
                             aria-label={`Quick install ${aItem.title}`}
+                            data-testid={`quick-install-${encodeURIComponent(aItem.address)}`}
                             disabled={isInstalling(aItem)}
                             onClick={() => install(aItem)}
                         >
@@ -80,6 +81,7 @@ export const ReferencesWidget = ({ pLabel }: { pLabel: ReferenceListLabel }) => 
                     ) : null}
                 </div>
             ))}
+            {sClonePrompt}
         </div>
     );
 };

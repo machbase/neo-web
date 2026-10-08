@@ -1,4 +1,5 @@
 import { getFiles } from '@/api/repository/fileTree';
+import { toDshPath } from '@/utils/filePath';
 import Panel from '@/components/dashboard/panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -40,7 +41,7 @@ const DashboardView = () => {
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
-        const sResult: any = await getFiles('/' + aFileName + '.dsh');
+        const sResult: any = await getFiles('/' + toDshPath(aFileName));
         if (typeof sResult === 'string') {
             const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
             await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);

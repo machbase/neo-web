@@ -105,7 +105,7 @@ describe('useBoardSave', () => {
 
         expect(didSave).toBe(true);
         expect(applySaveResult).toHaveBeenCalledWith(savedBoard);
-        expect(onSavedBoard).toHaveBeenCalledWith(savedBoard);
+        expect(onSavedBoard).toHaveBeenCalledWith(savedBoard, { overwritten: false });
         expect(onFileSaved).not.toHaveBeenCalled();
         expect(successToast).toHaveBeenCalledWith(
             'TAZ file saved successfully.',

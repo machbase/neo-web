@@ -8,7 +8,8 @@ import ShellMenu from './ShellMenu';
 import { TbParachute } from '@/assets/icons/Icon';
 import { extractionExtension } from '@/utils';
 import { useMemo, useState } from 'react';
-import { Page } from '@/design-system/components';
+import { Page, Toast } from '@/design-system/components';
+import { OPEN_FILE_ACCEPT, parseOpenedFile } from '../openFileContent';
 import { TAZ_FORMAT_VERSION } from '@/components/tagAnalyzer/persistence/tazFormat';
 
 interface NewBoardProps {
@@ -25,11 +26,12 @@ const NewBoard = (props: NewBoardProps) => {
     const [sShellList] = useRecoilState<any>(gShellList);
 
     const readFile = async (aItem: any) => {
-        return (await new Promise((resolve) => {
+        return (await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = async (e: any) => {
                 resolve(e.target.result);
             };
+            reader.onerror = () => reject(reader.error ?? new Error('Failed to read the file.'));
             reader.readAsText(aItem);
         })) as string;
     };
@@ -48,33 +50,31 @@ const NewBoard = (props: NewBoardProps) => {
             extension === 'md' ||
             extension === 'txt'
         ) {
-            const sResult: string = await readFile(sFile);
+            let sResult: string;
+            try {
+                sResult = await readFile(sFile);
+            } catch (aError) {
+                Toast.error(aError instanceof Error ? aError.message : 'Failed to read the file.', { testId: 'new-board-open-file-error-toast' });
+                return;
+            }
             uploadFile(sFile, sResult);
         }
     };
 
     const uploadFile = (aFileInfo: any, aFileValue: string) => {
         const sTypeOption = extractionExtension(aFileInfo.name);
-
-        if (sTypeOption === 'taz' || sTypeOption === 'dsh') {
-            setBoardList(
-                sBoardList.map((aItem: any) => {
-                    return aItem.id === sSelectedTab ? { ...JSON.parse(aFileValue), id: aItem.id } : aItem;
-                })
-            );
-        } else if (sTypeOption === 'sql' || sTypeOption === 'tql' || sTypeOption === 'json' || sTypeOption === 'csv' || sTypeOption === 'md' || sTypeOption === 'txt') {
-            setBoardList(
-                sBoardList.map((aItem: any) => {
-                    return aItem.id === sSelectedTab ? { ...aItem, name: aFileInfo.name, code: aFileValue, type: sTypeOption } : aItem;
-                })
-            );
-        } else if (sTypeOption === 'wrk') {
-            setBoardList(
-                sBoardList.map((aItem: any) => {
-                    return aItem.id === sSelectedTab ? { ...aItem, name: aFileInfo.name, sheet: JSON.parse(aFileValue).data, type: sTypeOption } : aItem;
-                })
-            );
+        const sOpened = parseOpenedFile(sTypeOption, aFileValue, aFileInfo.name, sSelectedTab);
+        if (!sOpened.ok) {
+            Toast.error(sOpened.error, { testId: 'new-board-open-file-error-toast' });
+            return;
         }
+        setBoardList(
+            sBoardList.map((aItem: any) => {
+                if (aItem.id !== sSelectedTab) return aItem;
+                // dsh/taz replace the whole tab; text/wrk merge into it
+                return sOpened.mode === 'replace' ? { ...sOpened.board, id: aItem.id } : { ...aItem, ...sOpened.fields };
+            })
+        );
     };
 
     const setIcon = (aType: any) => {
@@ -208,7 +208,7 @@ const NewBoard = (props: NewBoardProps) => {
                             onDrop={(aEvent: any) => updateFile(aEvent, 'drag')}
                             style={{ position: 'relative' }}
                         >
-                            <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept=".wrk,.sql,.tql,.taz,.dsh" className="uploader" type="file" />
+                            <input onChange={(aEvent: any) => updateFile(aEvent, 'click')} accept={OPEN_FILE_ACCEPT} className="uploader" type="file" />
                             {defaultMenuStyleDiv(<TbParachute />, sFileUploadStyle ? 'Drop here' : 'Drop & Open')}
                         </label>
                     </div>

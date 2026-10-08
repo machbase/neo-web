@@ -1,31 +1,14 @@
 import { getId } from '.';
-import { getExtensionOnly } from './fileNameUtils';
 
-export const FileType = ['sql', 'tql', 'json', 'csv', 'md', 'txt', 'wrk', 'taz', 'dsh', 'html', 'css', 'js'];
-// validator file name n extension
-export const FileNameAndExtensionValidator = (aTxt: string): boolean => {
-    const WithExtensionRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9_-\\s\\.]+\\.{1}(${FileType.join('|')}){1}$`, 'gm');
-    
-    return WithExtensionRegExp.test(aTxt);
-};
-// validator file name
-export const FileNameValidator = (aTxt: string): boolean => {
-    if (aTxt.startsWith('.')) return false;
-    const FileRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9\\-\\_\\(\\)\\s\\.]*$`, 'gm');
-    return FileRegExp.test(aTxt);
-};
-// validator path root '/'
-export const PathRootValidator = (aTxt: string): boolean => {
-    if (aTxt.includes('..') || aTxt.includes('./')) return false;
-    const DoubleSlash = new RegExp(`//`);
-    // Use a non-global, fully anchored regex to avoid stateful .test issues
-    const BaseRegExp = new RegExp(`^[ㄱ-ㅎㅏ-ㅣ가-힣a-zA-Z0-9]*$`);
-    const FileRegExp = aTxt.split('/').every((aItem) => {
-        if (aItem.includes('.')) return BaseRegExp.test(getExtensionOnly(aItem));
-        else return FileNameValidator(aItem);
-    });
-    return FileRegExp && !DoubleSlash.test(aTxt);
-};
+import { FileType, isTypingName, isTypingPath, validateName } from './fileName';
+
+// Thin wrappers over src/utils/fileName.ts (the single name rule) for existing importers.
+export { FileType };
+export const FileNameAndExtensionValidator = (aTxt: string): boolean => validateName(aTxt, { kind: 'file' }).ok;
+export const isAllowedFileNameInput = (aTxt: string): boolean => isTypingName(aTxt);
+export const FileNameValidator = (aTxt: string): boolean => validateName(aTxt, { kind: 'folder' }).ok;
+// input-time path check
+export const PathRootValidator = (aTxt: string): boolean => isTypingPath(aTxt);
 
 // WRK
 export const FileWrkDfltVal = {

@@ -5,14 +5,19 @@ import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParse
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
-import { binaryCodeEncodeBase64, extractionExtension, isImage } from '@/utils';
+import { extractionExtension } from '@/utils';
 import { getFileNameAndExtension, getFileNameOnly } from '@/utils/fileNameUtils';
 import { BiDownload } from '@/assets/icons/Icon';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 import useThrottle from '@/hooks/useThrottle';
 import { moveFile } from '@/api/repository/fileTree';
-import { FileNameValidator } from '@/utils/FileExtansion';
+import { resolveCloneTarget } from '@/utils/fileExistence';
+import { useClonePrompt } from '@/components/modal/useOverwritePrompt';
+import { isTypingName, validateName } from '@/utils/fileName';
+import { computeMovedBoardPath, isInDropSection, isMultiSelectClick } from './fileTreePath';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
+import { Toast } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
 import { EXTENSION_SET } from '@/utils/constants';
 import { Input } from '@/design-system/components';
@@ -42,7 +47,7 @@ export const FileTree = (props: FileTreeProps) => {
     const [sKeyItem, setKeyItem] = useState<string>('');
     const [sDragOverItem, setDragOverItem] = useState<string>('');
     const HandleRootClick = (e: any) => {
-        if (e.metakey || e.ctrlKey) return;
+        if (isMultiSelectClick(e)) return;
         setKeyItem('');
         setDeleteFileList(undefined);
         setEnterItem(null);
@@ -249,7 +254,9 @@ export const FileTree = (props: FileTreeProps) => {
         const sOldName = aFile.path + aFile.name;
         const sCurName = aFile.path + aName + sExpand;
         const sRenameResult: any = await moveFile(sOldName, sCurName);
-        if (sRenameResult.success || (isImage(aFile.name) && binaryCodeEncodeBase64(sRenameResult))) props.onRename(aFile, aName + sExpand);
+        const sFailure = getFileRequestFailure(sRenameResult, 'Failed to rename.');
+        if (!sFailure) props.onRename(aFile, aName + sExpand);
+        else Toast.error(sFailure.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-rename' });
     };
     const handleDragOver: any = () => {
         const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
@@ -293,13 +300,17 @@ export const FileTree = (props: FileTreeProps) => {
 
             (async () => {
                 const moveResult: any = [];
+                const sFailReasons: string[] = [];
 
                 for (const aItem of sParsedList) {
                     const sOldPath = aItem.path + aItem.name;
                     const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
                     const aResult: any = await moveFile(sOldPath, sDestinationPath);
-                    if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) moveResult.push(aItem);
+                    const sFailure = getFileRequestFailure(aResult, 'Failed to move.');
+                    if (!sFailure) moveResult.push(aItem);
+                    else sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
                 }
+                if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-move' });
                 if (moveResult.length > 0) {
                     let sTestRoot = JSON.parse(JSON.stringify(sFileTree));
                     // remove
@@ -334,15 +345,14 @@ export const FileTree = (props: FileTreeProps) => {
                         moveResult.map((fItem: any) => {
                             if (aBoard.name === fItem.name && aBoard.path === fItem.path) {
                                 updateBoardList[aIdx] = { ...aBoard, path: sAddTargetPath };
-                            } else if (aBoard.path.includes(fItem.path + fItem.name + '/')) {
-                                const sNewPath = aBoard.path.replace(
-                                    fItem.path + fItem.name + '/',
-                                    sIsDropZone ? '/' + fItem.name + '/' : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/' + fItem.name + '/')
-                                );
-                                updateBoardList[aIdx] = {
-                                    ...aBoard,
-                                    path: sNewPath,
-                                };
+                            } else {
+                                const sNewPath = computeMovedBoardPath(aBoard.path, fItem, sAddTargetPath);
+                                if (sNewPath !== null) {
+                                    updateBoardList[aIdx] = {
+                                        ...aBoard,
+                                        path: sNewPath,
+                                    };
+                                }
                             }
                         });
                     });
@@ -355,7 +365,7 @@ export const FileTree = (props: FileTreeProps) => {
     }, [sIsDnd]);
 
     return (
-        <div tabIndex={-1} onBlur={() => setKeyItem('')} onKeyDown={handleKeyDown} onClick={HandleRootClick}>
+        <div tabIndex={-1} onBlur={() => setKeyItem('')} onKeyDown={handleKeyDown} onClick={HandleRootClick} data-testid="file-tree">
             <div ref={sTreeRef}>
                 <SubTree
                     directory={props.rootDir}
@@ -487,21 +497,32 @@ const SubTree = (props: SubTreeProps) => {
     );
 };
 
-const handleGit = async (aFile: FileTreeType, aRefreshCallback: any, e?: React.MouseEvent) => {
+export const handleGit = async (aFile: FileTreeType, aRefreshCallback: any, e?: React.MouseEvent, aAskClone?: (aName: string) => Promise<boolean>) => {
     if (e) e.stopPropagation();
 
     switch (aFile.virtual) {
         case true:
             {
+                // r15: the same rule as every clone entry point — a same-name folder in the PARENT listing
+                // (case-insensitive, the virtual item itself excluded) is asked about; a same-name file is an error.
+                const sDecision = await resolveCloneTarget(aFile.path, aFile.name, aAskClone ?? (() => Promise.resolve(false)));
+                if (sDecision.status === 'failed' || sDecision.status === 'file') {
+                    Toast.error(sDecision.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-clone' });
+                    return;
+                }
+                if (sDecision.status === 'cancel') return;
+                const sName = sDecision.status === 'confirmed' ? sDecision.existingName : aFile.name;
                 const sPayload: { url: string; command: string } = { url: aFile.gitUrl as string, command: 'clone' };
-                const sPath = (aFile.path + aFile.name)
+                const sPath = (aFile.path + sName)
                     .split('/')
                     .filter((aDir: string) => aDir)
                     .join('/');
                 const sResult: any = await postFileList(sPayload, sPath, '');
-                if (sResult && sResult.success) {
+                const sFailure = getFileRequestFailure(sResult, 'Clone failed.');
+                if (!sFailure) {
                     aRefreshCallback();
                 } else {
+                    Toast.error(sFailure.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-clone' });
                 }
             }
             break;
@@ -510,7 +531,8 @@ const handleGit = async (aFile: FileTreeType, aRefreshCallback: any, e?: React.M
     }
 };
 
-const GitIcon = (aFile: FileTreeType, aRefreshCallback: any) => {
+export const GitIcon = ({ aFile, aRefreshCallback }: { aFile: FileTreeType; aRefreshCallback: any }) => {
+    const { ask: askClone, prompt: sClonePrompt } = useClonePrompt();
     const GitDiv = styled.div`
         display: flex;
         width: 18px;
@@ -536,9 +558,17 @@ const GitIcon = (aFile: FileTreeType, aRefreshCallback: any) => {
     };
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', marginRight: '16px', width: '22px', height: '22px' }} onClick={(e) => handleGit(aFile, aRefreshCallback, e)}>
-            {GitStatusIcon()}
-        </div>
+        <>
+            <div data-testid="git-clone" style={{ display: 'flex', alignItems: 'center', marginRight: '16px', width: '22px', height: '22px' }} onClick={(e) => handleGit(aFile, aRefreshCallback, e, askClone)}>
+                {GitStatusIcon()}
+            </div>
+            {/* the dialog is portaled, but React events still bubble through this tree row: keep its clicks here */}
+            {sClonePrompt ? (
+                <span onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+                    {sClonePrompt}
+                </span>
+            ) : null}
+        </>
     );
 };
 
@@ -659,26 +689,9 @@ const FileDiv = ({
             } else return false;
         } else return false;
     };
-    const checkDndSection = (aFile: any): boolean => {
-        if (pEnterItem) {
-            if (pEnterItem.type === 0 && pEnterItem.parentId === '0') return true;
-            const DirExp = new RegExp(`^${pEnterItem.path + pEnterItem.name + '/'}?`);
-            const sParentPath = pEnterItem.path
-                .split('/')
-                .filter((aItem: any) => aItem !== pEnterItem.parentId)
-                .join('/');
-            const FileExp = new RegExp(`^${sParentPath}?`);
-            if (
-                DirExp.test(aFile.path) ||
-                pEnterItem === aFile ||
-                (pEnterItem.type === 0 && FileExp.test(aFile.path) && (pEnterItem.parentId === aFile.id || aFile.path.includes(pEnterItem.parentId)))
-            ) {
-                return true;
-            } else return false;
-        } else return false;
-    };
+    const checkDndSection = (aFile: any): boolean => isInDropSection(pEnterItem, aFile);
     const handleClick = (e: any) => {
-        if (e.metakey || e.ctrlKey) return;
+        if (isMultiSelectClick(e)) return;
         e.stopPropagation();
         onSetDndTargetList(null);
         onSetEnterItem(null);
@@ -691,7 +704,7 @@ const FileDiv = ({
         if (e.code === 'Enter') {
             e.stopPropagation();
             if (sName && sName.length > 0) {
-                if (FileNameValidator(sName)) onRename(file, sName);
+                if (validateName(sName, { kind: 'folder' }).ok) onRename(file, sName);
                 resetRenameValue();
             }
         }
@@ -703,7 +716,7 @@ const FileDiv = ({
     };
     const handleBlur = () => {
         if (sName && sName.length > 0) {
-            if (FileNameValidator(sName)) onRename(file, sName);
+            if (validateName(sName, { kind: 'folder' }).ok) onRename(file, sName);
             resetRenameValue();
         } else resetRenameValue();
     };
@@ -733,6 +746,7 @@ const FileDiv = ({
         >
             <Div
                 data-testid={`file-tree-item-${encodeURIComponent(`${file.path}${file.name}`)}`}
+                data-selected={checkDndItem(file) ? 'true' : 'false'}
                 depth={depth}
                 isDndItem={checkDndItem(file)}
                 isDndSection={checkDndSection(file)}
@@ -760,8 +774,9 @@ const FileDiv = ({
                                 autoFocus
                                 type="text"
                                 size="sm"
+                                data-testid="rename-input"
                                 value={sName}
-                                onChange={(e) => (FileNameValidator(e.target.value) ? setName(e.target.value) : null)}
+                                onChange={(e) => (isTypingName(e.target.value) ? setName(e.target.value) : null)}
                                 onFocus={(e) => e.target.setSelectionRange(0, sName.length)}
                                 onBlur={handleBlur}
                             />
@@ -770,7 +785,7 @@ const FileDiv = ({
                         <FileNameWithTooltip file={file} />
                     )}
                 </div>
-                {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? GitIcon(file as FileTreeType, onRefresh) : null}
+                {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? <GitIcon aFile={file as FileTreeType} aRefreshCallback={onRefresh} /> : null}
             </Div>
         </div>
     );

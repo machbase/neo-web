@@ -6,13 +6,13 @@ import { fetchQuery } from '@/api/repository/database';
 import { findDatabaseByName, LEGACY_DATABASE } from '@/utils/currentDatabaseState';
 import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
 import type { BackupRequest } from '@/components/database/backup/backupPayload';
+import { buildFilesUrl } from '@/utils/filePath';
 
-const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 
 const getFileList = (aFilter: string, aDir: string, aName: string) => {
     return request({
         method: 'GET',
-        url: normalizePath(`/api/files/${aDir}${aName ? '/' + aName : ''}${aFilter}`),
+        url: buildFilesUrl(aName ? `${aDir}/${aName}` : aDir, aFilter),
     });
 };
 const getReferenceList = () => {
@@ -25,14 +25,14 @@ const getReferenceList = () => {
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
     return request({
         method: 'POST',
-        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+        url: buildFilesUrl(`${aDir}/${aFileName}`),
         data: aContents,
     });
 };
 const deleteFileList = (aDir: string, aFileName: string) => {
     return request({
         method: 'DELETE',
-        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+        url: buildFilesUrl(`${aDir}/${aFileName}`),
     });
 };
 

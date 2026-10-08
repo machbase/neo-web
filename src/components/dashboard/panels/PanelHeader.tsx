@@ -24,6 +24,7 @@ import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryPars
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
+import { toDshPath } from '@/utils/filePath';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { createTagAnalyzerColumnInfoFromDashboardBlock, hasTagAnalyzerEligibleBlock, isTagAnalyzerEligibleBlock } from '@/utils/tagAnalyzerFields';
 import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/application/adapters';
@@ -389,7 +390,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     //     window.open(currentUrl + queryString, '_blank', 'width=1200,height=800');
     // };
     const handleChildBoard = () => {
-        const currentUrl = `${window.location.origin + '/web/ui/board/' + pPanelInfo?.chartOptions?.childBoard?.split('.')[0]}`;
+        // the share-link rule (r13): the child board's real file name, not split('.')[0] (cut `v1.2.dsh`, broke `X.DSH`)
+        const sChildBoard: string = pPanelInfo?.chartOptions?.childBoard ?? '';
+        // r15: no child board set → no link (was '.../board/undefined', would become '.../board/.dsh')
+        if (!sChildBoard.trim()) return;
+        const currentUrl = `${window.location.origin + '/web/ui/board/' + toDshPath(sChildBoard)}`;
         // window.open(currentUrl, '_blank', 'width=1200,height=800');
         window.open(currentUrl);
     };

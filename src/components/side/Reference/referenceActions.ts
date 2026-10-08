@@ -5,6 +5,9 @@ import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { Toast } from '@/design-system/components';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
+import { nameFromUrl, type NameFromUrl } from '@/utils/fileName';
+import { resolveCloneTarget } from '@/utils/fileExistence';
+import { useClonePrompt } from '@/components/modal/useOverwritePrompt';
 
 /**
  * The reference lists (docs, SDKs, cheat sheets ...) the server serves at /api/refs, and what their
@@ -30,8 +33,13 @@ const SUPPORT_QUICK_INSTALL_LIST = ['Tutorials', 'Demo web app', 'Education'];
 
 export const isQuickInstallable = (aTitle?: string) => SUPPORT_QUICK_INSTALL_LIST.some((aItem) => aItem.toUpperCase() === aTitle?.toUpperCase());
 
-/** The folder a quick install creates: the repository's last path part. */
-export const quickInstallFolder = (aItem: REFERENCE_ITEM) => aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1);
+/**
+ * The folder a quick install creates: the same URL->name rule as Git clone (nameFromUrl kind 'repo' -
+ * decoded once, trailing repo suffix stripped, query/fragment ignored, validated). The verdict is returned as is:
+ * `{ok:false, reason}` when the address gives no valid name.
+ */
+export const quickInstallFolder = (aItem: REFERENCE_ITEM): NameFromUrl => nameFromUrl(aItem?.address ?? '', { kind: 'repo' });
+
 
 /** The server's lists, with Education added to REFERENCES (the server does not list it). */
 export const fetchReferences = async (): Promise<REFERENCE_GROUP[]> => {
@@ -49,6 +57,8 @@ export const openReferenceUrl = (aItem: REFERENCE_ITEM) => window.open(aItem.add
 /**
  * Clones an entry's repository into a folder of the server's files, then shows it in the explorer.
  * Installs run one after another so their file tree refreshes do not overwrite each other.
+ * An existing same-name folder is replaced by the clone (server behaviour), so it is asked about first (r14):
+ * callers render the returned `prompt` (the clone ConfirmModal) and nothing else.
  */
 export const useQuickInstall = () => {
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
@@ -56,20 +66,34 @@ export const useQuickInstall = () => {
     const [sProcessingList, setProcessingList] = useState<string[]>([]);
     const quickInstallQueueRef = useRef<Promise<void>>(Promise.resolve());
     const fileTreeRef = useRef(sFileTree);
+    const { ask: askClone, prompt } = useClonePrompt();
 
     useEffect(() => {
         fileTreeRef.current = sFileTree;
     }, [sFileTree]);
 
     const install = async (aItem: REFERENCE_ITEM) => {
-        const sFolder = quickInstallFolder(aItem);
+        const sRepo = quickInstallFolder(aItem);
+        if (!sRepo.ok) {
+            Toast.error(`Quick install failed: ${sRepo.reason}`);
+            return;
+        }
+        const sFolder = sRepo.name;
         if (sProcessingList.includes(sFolder)) return;
         setProcessingList((prev) => [...prev, sFolder]);
         try {
-            const sResult: any = await postFileList({ url: aItem?.address, command: 'clone' }, `/${sFolder}`, '');
+            // shared clone check (unfiltered re-query, case-insensitive): an existing folder is asked about, a file blocks
+            const sDecision = await resolveCloneTarget('/', sFolder, askClone);
+            if (sDecision.status === 'cancel') return;
+            if (sDecision.status === 'file' || sDecision.status === 'failed') {
+                Toast.error(`Quick install failed: ${sDecision.reason}`);
+                return;
+            }
+            const sTarget = sDecision.status === 'confirmed' ? sDecision.existingName : sFolder;
+            const sResult: any = await postFileList({ url: aItem?.address, command: 'clone' }, `/${sTarget}`, '');
             if (sResult && sResult?.success) {
                 quickInstallQueueRef.current = quickInstallQueueRef.current.then(async () => {
-                    const sDrillRes = await TreeFetchDrilling(fileTreeRef.current, `/${sFolder}`);
+                    const sDrillRes = await TreeFetchDrilling(fileTreeRef.current, `/${sTarget}`);
                     if (sDrillRes?.tree) {
                         setFileTree(sDrillRes.tree);
                         fileTreeRef.current = sDrillRes.tree;
@@ -77,7 +101,7 @@ export const useQuickInstall = () => {
                 });
                 await quickInstallQueueRef.current;
                 setSelectedExtension('EXPLORER');
-                Toast.success(`Creating in ${sFolder} folder`);
+                Toast.success(`Creating in ${sTarget} folder`);
             }
         } catch (error) {
             Toast.error(`Quick install failed: ${error}`);
@@ -86,5 +110,10 @@ export const useQuickInstall = () => {
         }
     };
 
-    return { install, isInstalling: (aItem: REFERENCE_ITEM) => sProcessingList.includes(quickInstallFolder(aItem)) };
+    const isInstalling = (aItem: REFERENCE_ITEM) => {
+        const sRepo = quickInstallFolder(aItem);
+        return sRepo.ok && sProcessingList.includes(sRepo.name);
+    };
+
+    return { install, isInstalling, prompt };
 };

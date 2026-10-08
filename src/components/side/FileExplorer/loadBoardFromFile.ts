@@ -3,12 +3,15 @@ import { getFiles } from '@/api/repository/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
+import { validateBoardContent } from '@/components/newBoard/openFileContent';
 
 const hasOwn = (aValue: unknown, aKey: string) => typeof aValue === 'object' && aValue !== null && Object.prototype.hasOwnProperty.call(aValue, aKey);
 
-// `transport` marks a request that never got a server answer. The request layer has already
-// reported it, so the explorer stays quiet on it as it always has.
-export type LoadBoardResult = { board: any; error?: undefined } | { board?: undefined; error: string; transport?: boolean };
+// `transport` marks a request that never got a server answer. The request layer resolves (never
+// rejects) and does NOT toast a network failure, so callers must report it themselves.
+// `invalid` marks a file that exists but whose content is corrupt or not a board of its type, so
+// callers can tell it apart from a missing file (keep it in Recent, say it is damaged).
+export type LoadBoardResult = { board: any; error?: undefined } | { board?: undefined; error: string; transport?: boolean; invalid?: boolean };
 
 /**
  * Read a saved file and turn it into a tab (board) the way the file explorer opens it.
@@ -35,34 +38,53 @@ export const loadBoardFromFile = async (aFile: { name: string; path: string; id?
     }
 
     let sTmpBoard: any = { id: aBoardId, name: aFile.name, type: sFileExtension, path: aFile.path, savedCode: sContentResult, code: '' };
+    if (sFileExtension === 'wrk' || sFileExtension === 'dsh') {
+        // Parse and shape-check first (same required keys as the New tab), so a corrupt or
+        // structurally wrong board becomes `{error}` instead of a throw or a broken tab.
+        try {
+            const sParsed = typeof sContentResult === 'string' ? JSON.parse(sContentResult) : sContentResult;
+            const sShapeError = validateBoardContent(sFileExtension, sParsed);
+            if (sShapeError) return { error: sShapeError, invalid: true };
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : `Failed to load ${sFileExtension.toUpperCase()} file.`, invalid: true };
+        }
+    }
     if (sFileExtension === 'wrk') {
-        const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
-        if (sTmpData.data) {
-            sTmpBoard.sheet = sTmpData.data;
-            sTmpBoard.savedCode = JSON.stringify(sTmpData.data);
-        } else if (sTmpData.sheet) {
-            sTmpBoard.sheet = sTmpData.sheet;
-            sTmpBoard.savedCode = JSON.stringify(sTmpData.sheet);
-        } else {
-            sTmpBoard.sheet = sTmpData;
-            sTmpBoard.savedCode = JSON.stringify(sTmpData);
+        try {
+            const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
+            if (sTmpData.data) {
+                sTmpBoard.sheet = sTmpData.data;
+                sTmpBoard.savedCode = JSON.stringify(sTmpData.data);
+            } else if (sTmpData.sheet) {
+                sTmpBoard.sheet = sTmpData.sheet;
+                sTmpBoard.savedCode = JSON.stringify(sTmpData.sheet);
+            } else {
+                sTmpBoard.sheet = sTmpData;
+                sTmpBoard.savedCode = JSON.stringify(sTmpData);
+            }
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : 'Failed to load WRK file.', invalid: true };
         }
     } else if (sFileExtension === 'dsh') {
-        const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
-        sTmpBoard = {
-            ...sTmpData,
-            id: sTmpBoard.id,
-            name: sTmpBoard.name,
-            type: sFileExtension,
-            path: sTmpBoard.path,
-            savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
-        };
+        try {
+            const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
+            sTmpBoard = {
+                ...sTmpData,
+                id: sTmpBoard.id,
+                name: sTmpBoard.name,
+                type: sFileExtension,
+                path: sTmpBoard.path,
+                savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
+            };
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : 'Failed to load DSH file.', invalid: true };
+        }
     } else if (sFileExtension === 'taz') {
         try {
             const sParsedTaz = typeof sContentResult === 'string' ? JSON.parse(sContentResult) : sContentResult;
             sTmpBoard = loadTazBoard(sParsedTaz, aBoardId, aFile.name, aFile.path);
         } catch (error) {
-            return { error: error instanceof Error ? error.message : 'Failed to load TAZ file.' };
+            return { error: error instanceof Error ? error.message : 'Failed to load TAZ file.', invalid: true };
         }
     } else if (isImage(sId)) {
         const base64 = binaryCodeEncodeBase64(sContentResult);

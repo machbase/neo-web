@@ -65,6 +65,11 @@ export const useOpenGroupItem = () => {
                 const sLoaded = await loadBoardFromFile({ name, path }, sId);
                 if (sLoaded.error !== undefined) {
                     if (sLoaded.transport) return true;
+                    if (sLoaded.invalid) {
+                        // exists but damaged: do not mark it missing
+                        Toast.error(`${KIND_LABELS[aItem.kind].one} "${aItem.label}" is damaged and cannot be opened: ${sLoaded.error}`, { id: 'group-item-open' });
+                        return true;
+                    }
                     return notFound();
                 }
                 setBoardList((aList: any[]) => [...aList, sLoaded.board]);

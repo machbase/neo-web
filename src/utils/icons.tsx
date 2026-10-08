@@ -181,6 +181,8 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'DataViewer':
             return <MaterialIcon name="query_stats" size={14} />;
         default:
+            // extensions are case-insensitive (the server saves `X.SQL` as a sql file), so retry lower-cased
+            if (aType && aType !== aType.toLowerCase()) return icons(aType.toLowerCase(), aIsHome);
             return <VscSymbolFile color="gray" />;
     }
 };
