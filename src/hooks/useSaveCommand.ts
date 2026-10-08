@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
+import { getWindowOs } from '@/utils/utils';
 
-const sIsWin = window.navigator.platform.includes('Win');
+// Ctrl+S everywhere except macOS (Cmd+S), so Linux saves with Ctrl+S too.
+const sIsWin = getWindowOs();
 
 const useSaveCommand = (Callback: () => void) => {
     const handleDownKeyWin = (e: KeyboardEvent): void => {
