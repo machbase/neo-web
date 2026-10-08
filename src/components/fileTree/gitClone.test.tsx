@@ -53,11 +53,11 @@ describe('handleGit (virtual folder clone) — parent listing rule', () => {
         expect(postFileList).not.toHaveBeenCalled();
         expect(sRefresh).not.toHaveBeenCalled();
     });
-    it('real same-name folder: confirm → 1 clone POST to the existing real name', async () => {
+    it('real same-name folder: confirm → 1 clone POST under the item\'s own name (r20 M1)', async () => {
         (getFiles as jest.Mock).mockResolvedValue(realFolder);
         await handleGit(VIRTUAL, jest.fn(), undefined, () => Promise.resolve(true));
         expect(postFileList).toHaveBeenCalledTimes(1);
-        expect((postFileList as jest.Mock).mock.calls[0]).toEqual([{ url: VIRTUAL.gitUrl, command: 'clone' }, 'Neo-Apps', '']);
+        expect((postFileList as jest.Mock).mock.calls[0]).toEqual([{ url: VIRTUAL.gitUrl, command: 'clone' }, 'neo-apps', '']);
     });
     it('same-name file: toast, 0 POST', async () => {
         (getFiles as jest.Mock).mockResolvedValue(sameFile);

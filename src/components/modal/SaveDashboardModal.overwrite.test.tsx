@@ -103,7 +103,7 @@ describe('SaveDashboardModal — shared overwrite check', () => {
         expect(postFileList).not.toHaveBeenCalled();
     });
 
-    it('existingName (r13): x.tql typed over X.TQL → POST uses X.TQL and the tab open on X.TQL gets the new content', async () => {
+    it('r20 M1: x.tql typed over X.TQL → POST uses the TYPED x.tql; the tab open on X.TQL (confirmed) gets the new content and the typed name', async () => {
         const sOnFile = { id: 'a', name: 'X.TQL', path: '/', type: 'tql', code: 'old', savedCode: 'old' };
         const sCurrentDash = { id: 'd', name: 'board.dsh', path: '/', type: 'dsh', code: '' };
         let sBoards: any[] = [];
@@ -123,10 +123,10 @@ describe('SaveDashboardModal — shared overwrite check', () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
         await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
-        expect((postFileList as jest.Mock).mock.calls[0][2]).toBe('X.TQL');
+        expect((postFileList as jest.Mock).mock.calls[0][2]).toBe('x.tql');
         const sPosted = (postFileList as jest.Mock).mock.calls[0][0];
         // .tql export: the tab on the target file is updated (not closed), the dashboard tab untouched
-        await waitFor(() => expect(sBoards.find((aB) => aB.id === 'a')).toMatchObject({ code: sPosted, savedCode: sPosted }));
+        await waitFor(() => expect(sBoards.find((aB) => aB.id === 'a')).toMatchObject({ name: 'x.tql', code: sPosted, savedCode: sPosted }));
         expect(sBoards.map((aB) => aB.id)).toEqual(['d', 'a']);
         expect(sBoards.find((aB) => aB.id === 'd')).toEqual(sCurrentDash);
     });

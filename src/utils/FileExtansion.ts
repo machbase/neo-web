@@ -1,15 +1,6 @@
 import { getId } from '.';
 
-import { FileType, isTypingName, isTypingPath, validateName } from './fileName';
-
-// Thin wrappers over src/utils/fileName.ts (the single name rule) for existing importers.
-export { FileType };
-export const FileNameAndExtensionValidator = (aTxt: string): boolean => validateName(aTxt, { kind: 'file' }).ok;
-export const isAllowedFileNameInput = (aTxt: string): boolean => isTypingName(aTxt);
-export const FileNameValidator = (aTxt: string): boolean => validateName(aTxt, { kind: 'folder' }).ok;
-// input-time path check
-export const PathRootValidator = (aTxt: string): boolean => isTypingPath(aTxt);
-
+// Default contents of a new .wrk / .taz / .dsh file (New file). The name rule lives in src/utils/fileName.ts.
 // WRK
 export const FileWrkDfltVal = {
     data: [

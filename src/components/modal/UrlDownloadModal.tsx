@@ -1,4 +1,6 @@
-import { useRecoilValue } from 'recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { gBoardList } from '@/recoil/recoil';
+import { afterOverwrite, tabFromWrittenContent } from '@/utils/boardAfterOverwrite';
 import { gRecentDirectory } from '@/recoil/fileTree';
 import { Close } from '@/assets/icons/Icon';
 import { TextButton } from '../buttons/TextButton';
@@ -8,7 +10,8 @@ import './UrlDownloadModal.scss';
 import { postFileList } from '@/api/repository/api';
 import { getFileNameAndExtension } from '@/utils/fileNameUtils';
 import { RASTER_IMAGE_EXTENSIONS, SERVER_FILE_EXTENSIONS, nameFromUrl } from '@/utils/fileName';
-import { resolveOverwrite, savedNameOf } from '@/utils/fileExistence';
+import { resolveOverwrite } from '@/utils/fileExistence';
+import { toDirPath } from '@/utils/filePath';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import { getFileRequestFailure } from '@/utils/fileRequestResult';
 
@@ -37,6 +40,7 @@ export const UrlDownloadModal = (props: FolderModalProps) => {
     const sInputRef = useRef<HTMLInputElement>(null);
     const [sNameError, setNameError] = useState<string | undefined>(undefined);
     const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
+    const setBoardList = useSetRecoilState(gBoardList);
     // const [sValResult, setValResut] = useState<boolean>(true);
 
     const handleClose = () => {
@@ -69,7 +73,6 @@ export const UrlDownloadModal = (props: FolderModalProps) => {
             setIsLoad(() => false);
             return;
         }
-        // r13: an overwrite writes the existing file under its real name
         let sDownloadRes: Response;
         let sPayload: any = undefined;
         try {
@@ -89,7 +92,8 @@ export const UrlDownloadModal = (props: FolderModalProps) => {
             setIsLoad(() => false);
             return;
         }
-        const sResult: any = await postFileList(sPayload, sRecentDirectory, savedNameOf(sDecision, sFile.name));
+        // r20 M1: written under the URL's name; the server's file system decides about a case-only difference
+        const sResult: any = await postFileList(sPayload, sRecentDirectory, sFile.name);
         // an image URL makes the interceptor ask for responseType 'arraybuffer' (POST too), so a successful image
         // upload answers with an ArrayBuffer, not {success:true} — judge with the shared helper
         const sFailure = getFileRequestFailure(sResult, 'Failed to save the downloaded file.');
@@ -98,6 +102,9 @@ export const UrlDownloadModal = (props: FolderModalProps) => {
             setNameError(`* ${sFailure.reason}`);
             return;
         }
+        // r20 M3: a tab open on the overwritten file shows the downloaded text, or is closed for binary content
+        const sDirPath = toDirPath(sRecentDirectory as string);
+        setBoardList((aTabs: any[]) => afterOverwrite(aTabs, { path: sDirPath, name: sFile.name, confirmed: sDecision.status === 'confirmed' }, tabFromWrittenContent(sPayload, sFile.name)));
         pCallback();
         handleClose();
     };

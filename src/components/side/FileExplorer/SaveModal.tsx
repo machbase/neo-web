@@ -16,7 +16,7 @@ import icons from '@/utils/icons';
 import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { validateName } from '@/utils/fileName';
-import { getTypedFileList, resolveOverwrite as resolveTargetOverwrite, savedNameOf, type OverwriteDecision } from '@/utils/fileExistence';
+import { getTypedFileList, resolveOverwrite, type OverwriteDecision } from '@/utils/fileExistence';
 import { afterOverwrite } from '@/utils/boardAfterOverwrite';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import { Alert, Button, Input, Modal, FileListHeader } from '@/design-system/components';
@@ -169,9 +169,9 @@ export const SaveModal = (props: SaveModalProps) => {
     // No "tab's own file" exception (r12): Save As onto the tab's own file asks too. Only the plain Save of an
     // already-saved tab (MainContent direct save, no dialog) writes without a question.
     // A failed lookup / folder conflict is shown inside this dialog (r13), not as a toast.
-    const resolveOverwrite = async (aPath: string, aFileName: string): Promise<OverwriteDecision> => {
+    const checkSaveTarget = async (aPath: string, aFileName: string): Promise<OverwriteDecision> => {
         setSaveError(undefined);
-        const sDecision = await resolveTargetOverwrite(aPath, aFileName, askOverwrite);
+        const sDecision = await resolveOverwrite(aPath, aFileName, askOverwrite);
         if (sDecision.status === 'folder' || sDecision.status === 'failed') setSaveError(sDecision.reason);
         return sDecision;
     };
@@ -186,10 +186,10 @@ export const SaveModal = (props: SaveModalProps) => {
             return;
         }
 
-        const sDecision = await resolveOverwrite(sPath, sSaveFileName);
+        const sDecision = await checkSaveTarget(sPath, sSaveFileName);
         if (sDecision.status !== 'none' && sDecision.status !== 'confirmed') return;
-        // r13: after an overwrite confirm the file keeps the server's real name — POST, tab and Recent all use it
-        const sFileName = savedNameOf(sDecision, sSaveFileName);
+        // r20 M1: written under the name the user typed — POST, tab and Recent; the server's file system decides the case
+        const sFileName = sSaveFileName;
         // r13: the tab being saved stays (updated); only OTHER tabs open on the overwritten file are closed
         const applyTabs = (aUpdate: (aTab: any) => any) =>
             setBoardList(afterOverwrite(sBoardList as any[], { path: sPath, name: sFileName, currentTabId: sSelectedTab, confirmed: sDecision.status === 'confirmed' }, aUpdate));
@@ -421,7 +421,7 @@ export const SaveModal = (props: SaveModalProps) => {
 
     return (
         <>
-            <Modal.Root isOpen={true} onClose={handleClose} size="md">
+            <Modal.Root isOpen={true} onClose={handleClose} size="md" data-testid="file-save-dialog">
                 <Modal.Header>
                     <Modal.Title>
                         {pIsSave ? <Save /> : <FolderOpen />}
@@ -506,6 +506,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                 return (
                                     <div
                                         key={aItem.name + aIdx}
+                                        data-testid={`row-${encodeURIComponent(aItem.name)}`}
                                         className={`save-modal__file-row ${isSelected ? 'save-modal__file-row--selected' : ''}`}
                                         onContextMenu={(aEvent) => onContextMenu(aEvent, aItem)}
                                         onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
@@ -541,6 +542,7 @@ export const SaveModal = (props: SaveModalProps) => {
                     {pIsSave ? (
                         <div className="save-modal__footer-input">
                             <Input
+                                data-testid="file-name-input"
                                 label="File name"
                                 labelPosition="left"
                                 value={sSaveFileName}
@@ -553,6 +555,7 @@ export const SaveModal = (props: SaveModalProps) => {
                     ) : null}
                     <Button.Group>
                         <Modal.Confirm
+                            data-testid="apply"
                             disabled={pIsSave && !sIsValidSaveName}
                             onClick={
                                 sIsValidSaveName && pIsSave

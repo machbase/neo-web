@@ -33,15 +33,14 @@ const setup = (aTabs: any[]) => {
 
 const sTabs = [tab('cur', 'mine.taz', '/'), tab('stale', 'b.taz', '/d/'), tab('caseOnly', 'B.TAZ', '/d/'), tab('elsewhere', 'b.taz', '/x/')];
 
-it('confirmed overwrite: keeps the saving tab, closes the other tab on the exact file, leaves case-different and other-path tabs', async () => {
+it('confirmed overwrite (r20): keeps the saving tab, closes other tabs on the confirmed file (case-insensitive name, same path), leaves other-path tabs', async () => {
     const { result } = setup(sTabs);
     await act(async () => {
-        // onSaveAs got the server's real name 'b.taz' (SaveAsModal existingName) and saved into /d/ after a confirm
+        // onSaveAs got the TYPED name 'b.taz' (r20) and saved into /d/ after a confirm
         result.current.app.updateSavedBoard({ ...sTabs[0], name: 'b.taz', path: '/d/' }, { overwritten: true });
     });
     expect(result.current.boards.map((aB) => [aB.id, aB.name, aB.path])).toEqual([
         ['cur', 'b.taz', '/d/'],
-        ['caseOnly', 'B.TAZ', '/d/'],
         ['elsewhere', 'b.taz', '/x/'],
     ]);
 });

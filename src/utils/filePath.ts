@@ -12,6 +12,12 @@ export const encodeFilePath = (aPath: string): string => {
     return '/' + sBody + (sTrailing ? '/' : '');
 };
 
+/** A folder path in the form tabs and listings use: leading and trailing '/' (`d` → `/d/`, `/` stays `/`). */
+export const toDirPath = (aDir: string): string => {
+    const sDir = (aDir ?? '').endsWith('/') ? aDir : (aDir ?? '') + '/';
+    return sDir.startsWith('/') ? sDir : '/' + sDir;
+};
+
 /**
  * Build a /api/files URL. The path is segment-encoded (see encodeFilePath); `aQuery` (e.g. `?filter=*.sql`,
  * `?recursive=true`) is appended as-is, because encoding it would turn '?' into %3F and make it part of the name.

@@ -148,7 +148,7 @@ describe('SaveModal — overwrite check', () => {
         expect(postFileList).not.toHaveBeenCalled();
     });
 
-    it('existingName (r13): A.sql typed, a.sql there → POST, tab and Recent use a.sql; the other tab on a.sql closes', async () => {
+    it('r20 M1: A.sql typed, a.sql there → asked about a.sql; POST, tab and Recent use the TYPED A.sql; the other tab on a.sql (confirmed) closes', async () => {
         const { recordRecentFile } = jest.requireMock('@/utils/recentFiles');
         const { TreeFetchDrilling } = jest.requireMock('@/utils/UpdateTree');
         const sOtherOnFile = { ...SQL_TAB, id: 't9', name: 'a.sql', path: '/' };
@@ -163,11 +163,11 @@ describe('SaveModal — overwrite check', () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
         await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
-        expect((postFileList as jest.Mock).mock.calls[0][2]).toBe('a.sql');
-        expect(recordRecentFile).toHaveBeenCalledWith({ name: 'a.sql', path: '/' });
-        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/a.sql', true);
+        expect((postFileList as jest.Mock).mock.calls[0][2]).toBe('A.sql');
+        expect(recordRecentFile).toHaveBeenCalledWith({ name: 'A.sql', path: '/' });
+        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/A.sql', true);
         await waitFor(() => expect(sLatestBoards.map((aB) => aB.id)).toEqual(['t1']));
-        expect(sLatestBoards[0]).toMatchObject({ name: 'a.sql', path: '/' });
+        expect(sLatestBoards[0]).toMatchObject({ name: 'A.sql', path: '/' });
     });
 
     it('confirmed dsh overwrite shares the general post-processing: savedCode = JSON.stringify(dashboard) (r13)', async () => {
@@ -185,7 +185,7 @@ describe('SaveModal — overwrite check', () => {
         await waitFor(() => expect(sLatestBoards[0].savedCode).toBe(JSON.stringify(sDash)));
     });
 
-    it('taz branch uses the real name too and keeps the tab (r13)', async () => {
+    it('taz branch saves under the TYPED name too (r20 M1) and keeps the tab', async () => {
         const sTazTab = { ...SQL_TAB, id: 'z1', type: 'taz', name: 'mine.taz', path: '/' };
         mockListing([], [{ name: 'other.taz', type: '.taz' }]);
         (saveTazBoard as jest.Mock).mockImplementation((aB: any) => Promise.resolve({ ...aB }));
@@ -198,8 +198,8 @@ describe('SaveModal — overwrite check', () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
         await waitFor(() => expect(saveTazBoard).toHaveBeenCalledTimes(1));
-        expect((saveTazBoard as jest.Mock).mock.calls[0][0]).toMatchObject({ name: 'other.taz', path: '/' });
-        await waitFor(() => expect(sLatestBoards.map((aB) => [aB.id, aB.name])).toEqual([['z1', 'other.taz']]));
+        expect((saveTazBoard as jest.Mock).mock.calls[0][0]).toMatchObject({ name: 'OTHER.taz', path: '/' });
+        await waitFor(() => expect(sLatestBoards.map((aB) => [aB.id, aB.name])).toEqual([['z1', 'OTHER.taz']]));
     });
 
     it('asks (ConfirmModal) for a same-named file the filtered cache does not show', async () => {

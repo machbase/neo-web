@@ -19,8 +19,8 @@ import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { validateName } from '@/utils/fileName';
-import { getTypedFileList, resolveOverwrite, savedNameOf } from '@/utils/fileExistence';
-import { afterOverwrite } from '@/utils/boardAfterOverwrite';
+import { getTypedFileList, resolveOverwrite } from '@/utils/fileExistence';
+import { afterOverwrite, tabFromWrittenContent } from '@/utils/boardAfterOverwrite';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
@@ -231,8 +231,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             return;
         }
         if (sDecision.status === 'cancel') return;
-        // r13: an overwrite keeps the server's real name ('A.tql' typed, 'a.tql' there → 'a.tql')
-        const sFileName = savedNameOf(sDecision, sSaveFileName);
+        // r20 M1: written under the typed name; the server's file system decides about a case-only difference
+        const sFileName = sSaveFileName;
 
         const sResult: any = await postFileList(sPayload, sSelectedDir.join('/'), sFileName);
 
@@ -240,10 +240,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             handleClose();
             updateFileTree('/');
             // .tql export: the current tab is the dashboard, not the file. After a confirmed overwrite one tab open on
-            // the target file (exact real name + path) gets the new content and the others are closed (r15)
-            setBoardList((preV: any) =>
-                afterOverwrite(preV, { path: sDir, name: sFileName, confirmed: sDecision.status === 'confirmed' }, (aItem: any) => ({ ...aItem, code: sPayload, savedCode: sPayload }))
-            );
+            // the target file gets the new content and the others are closed (r15) — the same helper as every dialog
+            setBoardList((preV: any) => afterOverwrite(preV, { path: sDir, name: sFileName, confirmed: sDecision.status === 'confirmed' }, tabFromWrittenContent(sPayload, sFileName)));
         }
     };
 

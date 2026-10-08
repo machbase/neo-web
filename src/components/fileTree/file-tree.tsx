@@ -511,7 +511,8 @@ export const handleGit = async (aFile: FileTreeType, aRefreshCallback: any, e?: 
                     return;
                 }
                 if (sDecision.status === 'cancel') return;
-                const sName = sDecision.status === 'confirmed' ? sDecision.existingName : aFile.name;
+                // r20 M1: cloned under the item's own name, even after a case-insensitive match was confirmed
+                const sName = aFile.name;
                 const sPayload: { url: string; command: string } = { url: aFile.gitUrl as string, command: 'clone' };
                 const sPath = (aFile.path + sName)
                     .split('/')

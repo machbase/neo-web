@@ -32,7 +32,9 @@ export const OpenFileBtn = ({
         if (!pFileInfo.path) return;
         pErrorCallback && pErrorCallback(undefined);
         const sSplitPath = pFileInfo.path.split('/').filter((aPath: string) => aPath !== '');
-        const sFileName = sSplitPath.at(-1)?.includes(`.${pType}`) ? sSplitPath.at(-1) : '';
+        // extension compared case-insensitively on the last segment (r20 M4): `X.TQL` opens like `x.tql`, `a.tqlx` does not
+        const sLast: string = sSplitPath.at(-1) ?? '';
+        const sFileName = extractionExtension(sLast) === pType.replace(/^\./, '').toLowerCase() ? sLast : '';
         const sFilePath = ('/' + sSplitPath.slice(0, sSplitPath.length - 1).join('/') + '/').replaceAll('//', '/');
         const sTmpId = getId();
 

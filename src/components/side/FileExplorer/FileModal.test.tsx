@@ -2,8 +2,9 @@
 // already existed silently replaced its content with the default payload (issue-1544 High1).
 
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
-import { RecoilRoot } from 'recoil';
+import { RecoilRoot, useRecoilValue } from 'recoil';
 import { FileModal } from './FileModal';
+import { gBoardList } from '@/recoil/recoil';
 import { postFileList } from '@/api/repository/api';
 import { getFiles } from '@/api/repository/fileTree';
 import { gRecentDirectory } from '@/recoil/fileTree';
@@ -20,11 +21,23 @@ jest.mock('@/utils/UpdateTree', () => ({
 
 const parent = (aChildren: { name: string; isDir: boolean }[]) => ({ success: true, data: { isDir: true, name: '/', children: aChildren } });
 
-const renderModal = (aPath: string) => {
+let sBoards: any[] = [];
+const BoardProbe = () => {
+    sBoards = useRecoilValue(gBoardList) as any[];
+    return null;
+};
+
+const renderModal = (aPath: string, aTabs?: any[]) => {
     const setIsOpen = jest.fn();
     render(
-        <RecoilRoot initializeState={({ set }) => set(gRecentDirectory, aPath)}>
+        <RecoilRoot
+            initializeState={({ set }) => {
+                set(gRecentDirectory, aPath);
+                if (aTabs) set(gBoardList, aTabs as any);
+            }}
+        >
             <FileModal setIsOpen={setIsOpen} />
+            <BoardProbe />
         </RecoilRoot>
     );
     return setIsOpen;
@@ -79,21 +92,22 @@ describe('FileModal — existing name', () => {
         expect(postFileList).not.toHaveBeenCalled();
     });
 
-    it('existingName (r13): A.sql typed, a.sql there → after OK the POST and tree drill use a.sql', async () => {
+    it('r20 M1: A.sql typed, a.sql there → asked about a.sql, after OK the POST and tree drill use the TYPED A.sql', async () => {
         const { TreeFetchDrilling } = jest.requireMock('@/utils/UpdateTree');
         (getFiles as jest.Mock).mockResolvedValue(parent([{ name: 'a.sql', isDir: false }]));
         renderModal('/A.sql');
         await clickOk();
         const sDialog = await screen.findByTestId('file-overwrite-dialog');
+        expect(sDialog).toHaveTextContent("A file named 'a.sql' already exists.");
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
         await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
-        expect((postFileList as jest.Mock).mock.calls[0][2]).toBe('a.sql');
-        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/a.sql', true);
+        expect((postFileList as jest.Mock).mock.calls[0][2]).toBe('A.sql');
+        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/A.sql', true);
     });
 
-    it('existingName in a sub folder (r15): /sub/A.sql typed, a.sql there → POST dir sub + a.sql, tree drill /sub/a.sql', async () => {
+    it('r20 M1 in a sub folder: /sub/A.sql typed, a.sql there → POST dir sub + A.sql, tree drill /sub/A.sql', async () => {
         const { TreeFetchDrilling } = jest.requireMock('@/utils/UpdateTree');
         (getFiles as jest.Mock).mockResolvedValue(parent([{ name: 'a.sql', isDir: false }]));
         renderModal('/sub/A.sql');
@@ -104,9 +118,52 @@ describe('FileModal — existing name', () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
         await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
-        expect((postFileList as jest.Mock).mock.calls[0].slice(1)).toEqual(['sub', 'a.sql']);
-        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/sub/a.sql', true);
-        expect(TreeFetchDrilling).not.toHaveBeenCalledWith(expect.anything(), '/sub/A.sql', true);
+        expect((postFileList as jest.Mock).mock.calls[0].slice(1)).toEqual(['sub', 'A.sql']);
+        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/sub/A.sql', true);
+    });
+
+    it('r20 M3: after a confirmed overwrite the tab open on that file shows the written (empty) content; a tab on another file is untouched', async () => {
+        (getFiles as jest.Mock).mockResolvedValue(parent([{ name: 'a.sql', isDir: false }]));
+        renderModal('/a.sql', [
+            { id: 'onFile', name: 'a.sql', path: '/', type: 'sql', code: 'old edits', savedCode: 'old' },
+            { id: 'other', name: 'b.sql', path: '/', type: 'sql', code: 'b', savedCode: 'b' },
+        ]);
+        await clickOk();
+        const sDialog = await screen.findByTestId('file-overwrite-dialog');
+        await act(async () => {
+            fireEvent.click(within(sDialog).getByTestId('confirm'));
+        });
+        await waitFor(() => expect(sBoards.find((aT) => aT.id === 'onFile')?.savedCode).toBe(''));
+        expect(sBoards.find((aT) => aT.id === 'onFile')).toMatchObject({ code: '', savedCode: '' });
+        expect(sBoards.find((aT) => aT.id === 'other')).toMatchObject({ code: 'b', savedCode: 'b' });
+    });
+
+    it('r20 M3: a board tab (.dsh) on the overwritten file is closed (its model is not code)', async () => {
+        (getFiles as jest.Mock).mockResolvedValue(parent([{ name: 'b.dsh', isDir: false }]));
+        renderModal('/b.dsh', [{ id: 'dsh', name: 'b.dsh', path: '/', type: 'dsh', dashboard: {} }]);
+        await clickOk();
+        const sDialog = await screen.findByTestId('file-overwrite-dialog');
+        await act(async () => {
+            fireEvent.click(within(sDialog).getByTestId('confirm'));
+        });
+        await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(sBoards.find((aT) => aT.id === 'dsh')).toBeUndefined());
+    });
+
+    it('r20 M3: a new file (no question) leaves a same-name tab alone', async () => {
+        (getFiles as jest.Mock).mockResolvedValue(parent([]));
+        const setIsOpen = renderModal('/a.sql', [{ id: 'stale', name: 'a.sql', path: '/', type: 'sql', code: 'unsaved', savedCode: 'x' }]);
+        await clickOk();
+        await waitFor(() => expect(setIsOpen).toHaveBeenCalledWith(false));
+        expect(sBoards.find((aT) => aT.id === 'stale')).toMatchObject({ code: 'unsaved', savedCode: 'x' });
+    });
+
+    it('a missing parent folder is reported in the dialog, no POST', async () => {
+        (getFiles as jest.Mock).mockResolvedValue({ status: 404, headers: {}, data: { success: false, reason: 'stat: no such file or directory' } });
+        renderModal('/nope/a.sql');
+        await clickOk();
+        expect(await screen.findByTestId('file-new-error')).toHaveTextContent("The folder '/nope/' does not exist.");
+        expect(postFileList).not.toHaveBeenCalled();
     });
 
     it('a failed parent lookup shows the server reason inside the dialog (r13)', async () => {

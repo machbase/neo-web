@@ -89,7 +89,8 @@ export const useQuickInstall = () => {
                 Toast.error(`Quick install failed: ${sDecision.reason}`);
                 return;
             }
-            const sTarget = sDecision.status === 'confirmed' ? sDecision.existingName : sFolder;
+            // r20 M1: cloned under the name derived from the URL, even after a case-insensitive match was confirmed
+            const sTarget = sFolder;
             const sResult: any = await postFileList({ url: aItem?.address, command: 'clone' }, `/${sTarget}`, '');
             if (sResult && sResult?.success) {
                 quickInstallQueueRef.current = quickInstallQueueRef.current.then(async () => {

@@ -105,16 +105,17 @@ describe('tagAnalyzer SaveAsModal — shared overwrite check', () => {
         expect(sOnSaveAs).not.toHaveBeenCalled();
     });
 
-    it('existingName (r13): B.taz typed over b.TAZ → onSaveAs receives the real name b.TAZ', async () => {
+    it('r20 M1: B.taz typed over b.TAZ → asked about b.TAZ, onSaveAs receives the TYPED name B.taz', async () => {
         const sOnSaveAs = jest.fn().mockResolvedValue(true);
         renderSaveAs(sOnSaveAs);
         await typeAndSave('B.taz');
         const sDialog = await screen.findByTestId('file-overwrite-dialog');
+        expect(sDialog).toHaveTextContent("A file named 'b.TAZ' already exists.");
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
-        await waitFor(() => expect(sOnSaveAs).toHaveBeenCalledWith('/d/', 'b.TAZ', true));
-        expect(sOnSaveAs).not.toHaveBeenCalledWith('/d/', 'B.taz', expect.anything());
+        await waitFor(() => expect(sOnSaveAs).toHaveBeenCalledWith('/d/', 'B.taz', true));
+        expect(sOnSaveAs).not.toHaveBeenCalledWith('/d/', 'b.TAZ', expect.anything());
     });
 });
 

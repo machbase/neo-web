@@ -20,7 +20,7 @@ import {
     extractionExtension,
 } from '@/utils';
 import { validateName } from '@/utils/fileName';
-import { resolveOverwrite, savedNameOf } from '@/utils/fileExistence';
+import { resolveOverwrite } from '@/utils/fileExistence';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import icons from '@/utils/icons';
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
@@ -153,8 +153,8 @@ export function SaveAsModal({
             }
             if (sDecision.status === 'cancel') return;
 
-            // r13: an overwrite keeps the server's real name — onSaveAs (POST, tab name) gets it, not the typed one
-            const sDidSave = await onSaveAs(sDirectoryPath, savedNameOf(sDecision, sSaveFileName), sDecision.status === 'confirmed');
+            // r20 M1: saved under the typed name (POST, tab name); the server's file system decides about a case-only difference
+            const sDidSave = await onSaveAs(sDirectoryPath, sSaveFileName, sDecision.status === 'confirmed');
 
             if (!sDidSave) {
                 return;

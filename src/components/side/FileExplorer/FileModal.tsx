@@ -1,16 +1,17 @@
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { useState, useEffect, useRef } from 'react';
 import { postFileList } from '@/api/repository/api';
-import { getFiles } from '@/api/repository/fileTree';
 import useDebounce from '@/hooks/useDebounce';
 import { FileTazDfltVal, FileDshDfltVal, FileWrkDfltVal } from '@/utils/FileExtansion';
 import { isTypingPath, validatePath } from '@/utils/fileName';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { extractionExtension } from '@/utils';
 import { Alert, FileListHeader, Input, Modal, Page } from '@/design-system/components';
-import { findExistingEntry, overwriteMessage } from '@/utils/fileExistence';
-import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { resolveOverwrite } from '@/utils/fileExistence';
+import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
+import { afterOverwrite, tabFromWrittenContent } from '@/utils/boardAfterOverwrite';
+import { gBoardList } from '@/recoil/recoil';
 import { getFileRequestFailure } from '@/utils/fileRequestResult';
 
 export interface FileModalProps {
@@ -25,7 +26,9 @@ export const FileModal = (props: FileModalProps) => {
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sInputRef = useRef<HTMLInputElement>(null);
     const [sErrorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-    const [sPendingOverwrite, setPendingOverwrite] = useState<{ payload: any; dir: string; name: string; existing: string } | null>(null);
+    const setBoardList = useSetRecoilState(gBoardList);
+    const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
+    const [sIsSaving, setIsSaving] = useState<boolean>(false);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -54,50 +57,36 @@ export const FileModal = (props: FileModalProps) => {
         // Backend expects directory without leading slash (consistent with other callers)
         const sDir = sDirRaw === '/' ? '/' : sDirRaw.replace(/^\/+/, '');
         const sName = sFilePath.slice(lastSlashIdx + 1);
-        // Preflight: ensure parent path exists and is a directory
-        const checkPath = sDir === '/' ? '/' : `/${sDir}/`;
-        const sParentInfo: any = await getFiles(checkPath);
-        if (!sParentInfo || !sParentInfo.success || !sParentInfo.data?.isDir) {
-            // in-modal error (r13): say why instead of the generic "check name and path"
-            const sFailure = getFileRequestFailure(sParentInfo, `The folder '${checkPath}' does not exist.`);
-            setErrorMessage(sFailure ? sFailure.reason : `'${checkPath}' is not a folder.`);
-            setValResut(false);
-            return;
-        }
-
-        // The server POST overwrites. Judge existence from the children we already fetched.
-        const sExisting = findExistingEntry(sParentInfo.data?.children, sName);
-        if (sExisting?.isDir) {
-            setErrorMessage(`A folder named '${sExisting.name}' already exists.`);
-            setValResut(false);
-            return;
-        }
-        if (sExisting) {
-            setPendingOverwrite({ payload: sPayload, dir: sDir, name: sName, existing: sExisting.name });
-            return;
-        }
-        await postFile(sPayload, sDir, sName);
-    };
-
-    const postFile = async (sPayload: any, sDir: string, sName: string) => {
-        const sResult: any = await postFileList(sPayload, sDir, sName);
-        if (sResult && sResult.success) {
-            // sName is the server's real name after an overwrite confirm (r13), so drill to that entry
-            const sDrillRes = await TreeFetchDrilling(sFileTree, (sDir === '/' ? '/' : `/${sDir}/`) + sName, true);
+        const sDirPath = sDir === '/' ? '/' : `/${sDir}/`;
+        if (sIsSaving) return;
+        setIsSaving(true);
+        try {
+            // the shared check of every save/create dialog (r20 M2): unfiltered re-query, missing / non-folder parent,
+            // case-insensitive name → overwrite ConfirmModal; problems shown in this modal
+            const sDecision = await resolveOverwrite(sDirPath, sName, askOverwrite);
+            if (sDecision.status === 'folder' || sDecision.status === 'failed') {
+                setErrorMessage(sDecision.reason);
+                setValResut(false);
+                return;
+            }
+            if (sDecision.status === 'cancel') return;
+            // r20 M1: written under the name the user typed (the server's file system decides the case)
+            const sResult: any = await postFileList(sPayload, sDir, sName);
+            const sFailure = getFileRequestFailure(sResult, 'Failed to create the file.');
+            if (sFailure) {
+                // the server's reason instead of the generic "check name and path"
+                setErrorMessage(sFailure.reason);
+                setValResut(false);
+                return;
+            }
+            // r20 M3: a tab open on the overwritten file shows what was written (or is closed) — same helper as every dialog
+            setBoardList((aTabs: any[]) => afterOverwrite(aTabs, { path: sDirPath, name: sName, confirmed: sDecision.status === 'confirmed' }, tabFromWrittenContent(sPayload, sName)));
+            const sDrillRes = await TreeFetchDrilling(sFileTree, sDirPath + sName, true);
             setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
             handleClose();
-        } else {
-            // the server's reason instead of the generic "check name and path"
-            setErrorMessage(getFileRequestFailure(sResult, 'Failed to create the file.')?.reason);
-            setValResut(false);
+        } finally {
+            setIsSaving(false);
         }
-    };
-
-    const handleConfirmOverwrite = async () => {
-        const sPending = sPendingOverwrite;
-        setPendingOverwrite(null);
-        // overwrite the file that is there under its real name (r13): 'A.sql' typed, 'a.sql' exists → 'a.sql'
-        if (sPending) await postFile(sPending.payload, sPending.dir, sPending.existing);
     };
 
     const handlefileName = () => {
@@ -160,14 +149,7 @@ export const FileModal = (props: FileModalProps) => {
                 </Modal.Confirm>
                 <Modal.Cancel onClick={handleClose}>Cancel</Modal.Cancel>
             </Modal.Footer>
-            {sPendingOverwrite ? (
-                <ConfirmModal
-                    data-testid="file-overwrite-dialog"
-                    setIsOpen={() => setPendingOverwrite(null)}
-                    pContents={<div className="body-content">{overwriteMessage(sPendingOverwrite.existing)}</div>}
-                    pCallback={handleConfirmOverwrite}
-                />
-            ) : null}
+            {sOverwritePrompt}
         </Modal.Root>
     );
 };

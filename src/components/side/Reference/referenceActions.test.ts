@@ -94,14 +94,14 @@ describe('useQuickInstall — install', () => {
         expect(Toast.error).not.toHaveBeenCalled();
     });
 
-    it('existing folder → confirm → 1 clone POST into the real folder name', async () => {
+    it('existing folder → confirm → 1 clone POST under the name from the URL (r20 M1 — the server FS decides)', async () => {
         const { sDialog, sDone } = await installOntoExisting();
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
             await sDone;
         });
         expect(postFileList).toHaveBeenCalledTimes(1);
-        expect((postFileList as jest.Mock).mock.calls[0]).toEqual([{ url: 'https://github.com/machbase/education', command: 'clone' }, '/Education', '']);
+        expect((postFileList as jest.Mock).mock.calls[0]).toEqual([{ url: 'https://github.com/machbase/education', command: 'clone' }, '/education', '']);
     });
 
     it('a same-name FILE blocks with a toast (no dialog, no POST)', async () => {

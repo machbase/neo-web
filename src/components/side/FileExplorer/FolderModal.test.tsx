@@ -72,14 +72,14 @@ describe('FolderModal — existing name', () => {
         expect(postFileList).not.toHaveBeenCalled();
     });
 
-    it('clone onto an existing folder: confirm → 1 clone POST into the real folder name', async () => {
+    it('clone onto an existing folder: confirm → 1 clone POST under the TYPED name (r20 M1 — the server FS decides)', async () => {
         const sDialog = await cloneOntoExisting();
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
         await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
         expect((postFileList as jest.Mock).mock.calls[0][0]).toEqual({ url: 'https://example.com/x/repo.git', command: 'clone' });
-        expect((postFileList as jest.Mock).mock.calls[0][1]).toBe('/Repo');
+        expect((postFileList as jest.Mock).mock.calls[0][1]).toBe('/repo');
     });
 
     it('clone onto an existing FILE of that name is blocked (no dialog, no POST)', async () => {
@@ -95,13 +95,24 @@ describe('FolderModal — existing name', () => {
         expect(postFileList).not.toHaveBeenCalled();
     });
 
-    it('plain New folder onto an existing folder still blocks (case-insensitive, no dialog)', async () => {
+    it('plain New folder: the EXACT same name blocks (no dialog, no POST)', async () => {
         (getFiles as jest.Mock).mockResolvedValue({ success: true, data: { isDir: true, children: [{ name: 'Docs', isDir: true }] } });
-        renderModal('/docs');
+        renderModal('/Docs');
         await clickOk();
         expect(await screen.findByTestId('folder-new-error')).toHaveTextContent("'Docs' already exists.");
         expect(screen.queryByTestId('clone-replace-dialog')).toBeNull();
         expect(postFileList).not.toHaveBeenCalled();
+    });
+
+    it('r20 M1: plain New folder with a case-only difference is POSTed; the server refusal (macOS/Windows) is shown', async () => {
+        (getFiles as jest.Mock).mockResolvedValue({ success: true, data: { isDir: true, children: [{ name: 'Docs', isDir: true }] } });
+        (postFileList as jest.Mock).mockResolvedValue({ status: 500, headers: {}, data: { success: false, reason: 'mkdir /data/docs: file exists' } });
+        renderModal('/docs');
+        await clickOk();
+        await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
+        expect((postFileList as jest.Mock).mock.calls[0][1]).toBe('/docs');
+        expect(await screen.findByTestId('folder-new-error')).toHaveTextContent('mkdir /data/docs: file exists');
+        expect(screen.queryByTestId('clone-replace-dialog')).toBeNull();
     });
 
     it('posts a new folder', async () => {
@@ -123,7 +134,7 @@ describe('FolderModal — existing name', () => {
         expect(setIsOpen).not.toHaveBeenCalledWith(false);
     });
 
-    it('does not POST and shows an error when the parent folder is missing (404)', async () => {
+    it('plain New folder: does not POST and shows an error when the parent folder is missing (404)', async () => {
         (getFiles as jest.Mock).mockResolvedValue({ status: 404, headers: {}, data: { success: false, reason: 'not found' } });
         renderModal('/a/b/c');
         await clickOk();
@@ -151,6 +162,27 @@ describe('FolderModal — existing name', () => {
         expect(screen.getByTestId('folder-new-path-input')).toHaveValue('/');
         await clickOk();
         expect(postFileList).not.toHaveBeenCalled();
+    });
+});
+
+describe('FolderModal — clone into a missing parent (r20 L1)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (postFileList as jest.Mock).mockResolvedValue({ success: true });
+    });
+
+    it('a 404 parent does not block the clone: the clone POST creates the missing folders (measured: /a/b/edu with no /a → 200)', async () => {
+        (getFiles as jest.Mock).mockResolvedValue({ status: 404, headers: {}, data: { success: false, reason: 'stat /a/b: no such file or directory' } });
+        renderModal('/', true);
+        fireEvent.change(screen.getByTestId('folder-new-git-url-input'), { target: { value: 'https://github.com/machbase/education' } });
+        await act(async () => {
+            await new Promise((r) => setTimeout(r, 300));
+        });
+        fireEvent.change(screen.getByTestId('folder-new-path-input'), { target: { value: '/a/b/edu' } });
+        await clickOk();
+        await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
+        expect(getFiles).toHaveBeenCalledWith('/a/b/');
+        expect((postFileList as jest.Mock).mock.calls[0].slice(0, 2)).toEqual([{ url: 'https://github.com/machbase/education', command: 'clone' }, '/a/b/edu']);
     });
 });
 

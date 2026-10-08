@@ -1,7 +1,8 @@
 // UrlDownloadModal takes the file name from the URL's last segment. That segment is already percent-encoded,
 // and the /api/files builder encodes once more — so it must be decoded once first (issue-1544 r6).
 import { render, screen, fireEvent, act, within, waitFor } from '@testing-library/react';
-import { RecoilRoot } from 'recoil';
+import { RecoilRoot, useRecoilValue } from 'recoil';
+import { gBoardList } from '@/recoil/recoil';
 import { UrlDownloadModal } from './UrlDownloadModal';
 import * as api from '@/api/repository/api';
 import request from '@/api/core';
@@ -9,15 +10,30 @@ import { gRecentDirectory } from '@/recoil/fileTree';
 
 jest.mock('@/api/core', () => ({
     __esModule: true,
-    default: jest.fn(() => Promise.resolve({ success: true })),
+    // GET of the target folder answers an (empty) folder listing, every other request succeeds
+    default: jest.fn((aReq: any) => Promise.resolve(aReq?.method === 'GET' ? { success: true, data: { isDir: true, children: [] } } : { success: true })),
 }));
 
-const renderModal = () => {
+const okRequest = (aReq: any) => Promise.resolve(aReq?.method === 'GET' ? { success: true, data: { isDir: true, children: [] } } : { success: true });
+
+let sBoards: any[] = [];
+const BoardProbe = () => {
+    sBoards = useRecoilValue(gBoardList) as any[];
+    return null;
+};
+
+const renderModal = (aTabs?: any[]) => {
     const setIsOpen = jest.fn();
     const pCallback = jest.fn();
     render(
-        <RecoilRoot initializeState={({ set }) => set(gRecentDirectory, '/d/')}>
+        <RecoilRoot
+            initializeState={({ set }) => {
+                set(gRecentDirectory, '/d/');
+                if (aTabs) set(gBoardList, aTabs as any);
+            }}
+        >
             <UrlDownloadModal setIsOpen={setIsOpen} pCallback={pCallback} />
+            <BoardProbe />
         </RecoilRoot>
     );
     return { setIsOpen, pCallback };
@@ -35,6 +51,8 @@ describe('UrlDownloadModal — file name from url', () => {
     let sPostSpy: jest.SpyInstance;
     beforeEach(() => {
         (request as unknown as jest.Mock).mockClear();
+        // a test that fails half-way must not leak its request mock into the next ones
+        (request as unknown as jest.Mock).mockImplementation(okRequest);
         sFetch = jest.fn(() => Promise.resolve({ status: 200, text: () => Promise.resolve('a,b\n1,2'), json: () => Promise.resolve({}) }));
         (global as any).fetch = sFetch;
         sPostSpy = jest.spyOn(api, 'postFileList');
@@ -77,22 +95,56 @@ describe('UrlDownloadModal — file name from url', () => {
         });
         expect(sFetch).not.toHaveBeenCalled();
         expect(sPostSpy).not.toHaveBeenCalled();
-        (request as unknown as jest.Mock).mockImplementation(() => Promise.resolve({ success: true }));
+        (request as unknown as jest.Mock).mockImplementation(okRequest);
     });
 
-    it('existingName (r13): data.csv from the url over data.CSV → after OK the POST writes data.CSV', async () => {
+    it('r20 M1: data.csv from the url over data.CSV → asked about data.CSV, after OK the POST writes the URL name data.csv', async () => {
         (request as unknown as jest.Mock).mockImplementation((aReq: any) =>
             Promise.resolve(aReq.method === 'GET' ? { success: true, data: { isDir: true, children: [{ name: 'data.CSV', isDir: false }] } } : { success: true })
         );
         renderModal();
         await download('https://h/x/data.csv');
         const sDialog = await screen.findByTestId('file-overwrite-dialog');
+        expect(sDialog).toHaveTextContent("A file named 'data.CSV' already exists.");
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
         await waitFor(() => expect(sPostSpy).toHaveBeenCalledTimes(1));
-        expect(sPostSpy.mock.calls[0][2]).toBe('data.CSV');
-        (request as unknown as jest.Mock).mockImplementation(() => Promise.resolve({ success: true }));
+        expect(sPostSpy.mock.calls[0][2]).toBe('data.csv');
+        (request as unknown as jest.Mock).mockImplementation(okRequest);
+    });
+
+    it('r20 M3: after a confirmed overwrite the tab open on that file shows the downloaded text', async () => {
+        (request as unknown as jest.Mock).mockImplementation((aReq: any) =>
+            Promise.resolve(aReq.method === 'GET' ? { success: true, data: { isDir: true, children: [{ name: 'data.csv', isDir: false }] } } : { success: true })
+        );
+        renderModal([
+            { id: 'onFile', name: 'data.csv', path: '/d/', type: 'csv', code: 'old', savedCode: 'old' },
+            { id: 'other', name: 'data.csv', path: '/x/', type: 'csv', code: 'x', savedCode: 'x' },
+        ]);
+        await download('https://h/x/data.csv');
+        const sDialog = await screen.findByTestId('file-overwrite-dialog');
+        await act(async () => {
+            fireEvent.click(within(sDialog).getByTestId('confirm'));
+        });
+        await waitFor(() => expect(sBoards.find((aT) => aT.id === 'onFile')).toMatchObject({ code: 'a,b\n1,2', savedCode: 'a,b\n1,2' }));
+        expect(sBoards.find((aT) => aT.id === 'other')).toMatchObject({ code: 'x', savedCode: 'x' });
+        (request as unknown as jest.Mock).mockImplementation(okRequest);
+    });
+
+    it('r20 M3: binary content (image) closes the tab open on the overwritten file', async () => {
+        sFetch.mockImplementation(() => Promise.resolve({ status: 200, arrayBuffer: () => Promise.resolve(new ArrayBuffer(4)), text: () => Promise.resolve(''), json: () => Promise.resolve({}) }));
+        (request as unknown as jest.Mock).mockImplementation((aReq: any) =>
+            Promise.resolve(aReq.method === 'GET' ? { success: true, data: { isDir: true, children: [{ name: 'p.png', isDir: false }] } } : new ArrayBuffer(0))
+        );
+        renderModal([{ id: 'img', name: 'p.png', path: '/d/', type: 'png', code: 'b64', savedCode: 'b64' }]);
+        await download('https://h/p.png');
+        const sDialog = await screen.findByTestId('file-overwrite-dialog');
+        await act(async () => {
+            fireEvent.click(within(sDialog).getByTestId('confirm'));
+        });
+        await waitFor(() => expect(sBoards.find((aT) => aT.id === 'img')).toBeUndefined());
+        (request as unknown as jest.Mock).mockImplementation(okRequest);
     });
 
     it('a failed lookup downloads nothing and shows the reason', async () => {
@@ -104,7 +156,7 @@ describe('UrlDownloadModal — file name from url', () => {
         expect(screen.getByTestId('url-download-error')).toHaveTextContent('lookup failed');
         expect(sFetch).not.toHaveBeenCalled();
         expect(sPostSpy).not.toHaveBeenCalled();
-        (request as unknown as jest.Mock).mockImplementation(() => Promise.resolve({ success: true }));
+        (request as unknown as jest.Mock).mockImplementation(okRequest);
     });
 
     // r17: the allowed extensions are the ones the server stores as files (SERVER_FILE_EXTENSIONS, measured), not FileType
@@ -149,12 +201,12 @@ describe('UrlDownloadModal — file name from url', () => {
         it('img.PNG: the POST answers with an ArrayBuffer (interceptor responseType) → still success: callback + close', async () => {
             sFetch = realisticFetch();
             (global as any).fetch = sFetch;
-            (request as unknown as jest.Mock).mockImplementation((aReq: any) => Promise.resolve(aReq.method === 'POST' ? new ArrayBuffer(16) : { success: true }));
+            (request as unknown as jest.Mock).mockImplementation((aReq: any) => (aReq.method === 'POST' ? Promise.resolve(new ArrayBuffer(16)) : okRequest(aReq)));
             const { pCallback, setIsOpen } = renderModal();
             await download('https://h/img.PNG');
             await waitFor(() => expect(pCallback).toHaveBeenCalledTimes(1));
             expect(setIsOpen).toHaveBeenCalledWith(false);
-            (request as unknown as jest.Mock).mockImplementation(() => Promise.resolve({ success: true }));
+            (request as unknown as jest.Mock).mockImplementation(okRequest);
         });
 
         it('a non-200 download shows an error and POSTs nothing (r18: it used to end silently)', async () => {
@@ -169,13 +221,13 @@ describe('UrlDownloadModal — file name from url', () => {
 
         it('a failed POST shows the server reason', async () => {
             (request as unknown as jest.Mock).mockImplementation((aReq: any) =>
-                Promise.resolve(aReq.method === 'POST' ? { status: 500, headers: {}, data: { success: false, reason: 'disk full' } } : { success: true })
+                aReq.method === 'POST' ? Promise.resolve({ status: 500, headers: {}, data: { success: false, reason: 'disk full' } }) : okRequest(aReq)
             );
             const { pCallback } = renderModal();
             await download('https://h/data.csv');
             expect(await screen.findByTestId('url-download-error')).toHaveTextContent('disk full');
             expect(pCallback).not.toHaveBeenCalled();
-            (request as unknown as jest.Mock).mockImplementation(() => Promise.resolve({ success: true }));
+            (request as unknown as jest.Mock).mockImplementation(okRequest);
         });
 
         it('x.ipynb (a JSON document) is downloaded', async () => {

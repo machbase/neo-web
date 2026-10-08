@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { postFileList } from '@/api/repository/api';
 import useDebounce from '@/hooks/useDebounce';
 import { isTypingPath, nameFromUrl, validatePath } from '@/utils/fileName';
-import { checkTargetExists } from '@/utils/fileExistence';
+import { resolveCloneTarget, resolveNewFolder } from '@/utils/fileExistence';
 import { useClonePrompt } from '@/components/modal/useOverwritePrompt';
 import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
@@ -44,41 +44,38 @@ export const FolderModal = (props: FolderModalProps) => {
             return;
         }
         const sSegments = sFolderPath.split('/').filter((aSeg) => aSeg !== '');
-        setIsLoad(true);
-        // The server POST does not tell "created" from "already there": check the parent first.
-        // The server does not create intermediate folders (measured: 500 `mkdir ...: no such file or directory`),
-        // so a missing parent (404) — or any failed lookup — stops here without a POST.
         const sTargetName = sSegments[sSegments.length - 1];
         const sParentDir = '/' + sSegments.slice(0, -1).join('/') + (sSegments.length > 1 ? '/' : '');
-        const { entry: sExisting, response: sParentRes } = await checkTargetExists(sParentDir, sTargetName);
-        const sParentFailure = getFileRequestFailure(sParentRes, 'Failed to read the parent folder.');
-        if (sParentFailure) {
-            setErrorMessage(sParentRes?.status === 404 ? `Parent folder '${sParentDir}' does not exist.` : sParentFailure.reason);
-            setValResut(false);
-            setIsLoad(false);
-            return;
-        }
-        let sTargetPath = sFolderPath;
-        // Plain New folder: the server refuses an existing name (500), so block in the modal.
-        // Clone (r14): the server REPLACES the existing folder's contents (measured), so ask first.
-        if (sExisting && (!pIsGit || !sExisting.isDir)) {
-            setErrorMessage(`'${sExisting.name}' already exists.`);
-            setValResut(false);
-            setIsLoad(false);
-            return;
-        }
-        if (sExisting) {
-            if (!(await askClone(sExisting.name))) {
+        // r20: POSTed under the typed path; the server's file system decides about a case-only difference
+        const sTargetPath = sFolderPath;
+        setIsLoad(true);
+        if (pIsGit) {
+            // the shared clone check of every clone entry point (r20 M2): a same-name folder (case-insensitive) asks
+            // the clone-replaces question, a same-name file / failed lookup is shown here. A missing parent is fine:
+            // the clone POST creates it (measured).
+            const sDecision = await resolveCloneTarget(sParentDir, sTargetName, askClone);
+            if (sDecision.status === 'file' || sDecision.status === 'failed') {
+                setErrorMessage(sDecision.reason);
+                setValResut(false);
                 setIsLoad(false);
                 return;
             }
-            // clone into the folder that is there, under its real name
-            sTargetPath = sParentDir + sExisting.name;
-        }
-        if (pIsGit) {
-            if (sGitUrl) sPayload = { url: sGitUrl, command: 'clone' };
-            else sPayload = undefined;
+            if (sDecision.status === 'cancel') {
+                setIsLoad(false);
+                return;
+            }
+            sPayload = sGitUrl ? { url: sGitUrl, command: 'clone' } : undefined;
         } else {
+            // plain New folder (r20): blocked only on the EXACT same name; a case-only difference goes to the server,
+            // whose refusal (macOS/Windows 500 `mkdir ...: file exists`) is shown below. Missing parent → error (mkdir
+            // does not create intermediate folders, measured).
+            const sDecision = await resolveNewFolder(sParentDir, sTargetName);
+            if (sDecision.status !== 'none') {
+                setErrorMessage(sDecision.reason);
+                setValResut(false);
+                setIsLoad(false);
+                return;
+            }
             sPayload = undefined;
         }
         const sResult: any = await postFileList(sPayload, sTargetPath, '');

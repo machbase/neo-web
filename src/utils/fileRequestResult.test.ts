@@ -30,3 +30,16 @@ describe('getFileRequestFailure', () => {
         expect(getFileRequestFailure('SELECT 1')).toBeNull();
     });
 });
+
+describe('getFileRequestFailure — ArrayBuffer error body (r20 L5)', () => {
+    it('an image-path error body arriving as bytes is decoded for the server reason', () => {
+        const sBytes = new TextEncoder().encode('{"success":false,"reason":"mkdir /x/a.png: file exists"}');
+        const sRes = { status: 500, statusText: 'Internal Server Error', headers: {}, data: sBytes.buffer.slice(sBytes.byteOffset, sBytes.byteOffset + sBytes.byteLength) };
+        expect(getFileRequestFailure(sRes)).toEqual({ reason: 'mkdir /x/a.png: file exists', transport: false });
+    });
+    it('a non-JSON byte body falls back to statusText', () => {
+        const sBytes = new TextEncoder().encode('oops');
+        const sRes = { status: 502, statusText: 'Bad Gateway', headers: {}, data: sBytes.buffer.slice(0, sBytes.byteLength) };
+        expect(getFileRequestFailure(sRes)).toEqual({ reason: 'Bad Gateway', transport: false });
+    });
+});
