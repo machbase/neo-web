@@ -403,7 +403,7 @@ export default function Board({
 type BoardProps = {
     info: BoardInfo;
     isActiveTab: boolean;
-    onSavedBoard: (savedBoard: BoardInfo) => void;
+    onSavedBoard: (savedBoard: BoardInfo, opts: { overwritten: boolean }) => void;
     onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
     rollupTableList: RollupTableMap;
 };

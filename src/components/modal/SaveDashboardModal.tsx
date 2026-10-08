@@ -3,8 +3,8 @@ import { getFileList, postFileList } from '@/api/repository/api';
 import { gFileTree } from '@/recoil/fileTree';
 import './SaveDashboardModal.scss';
 import { gBoardList, gRollupTableList } from '@/recoil/recoil';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { extractionExtension, elapsedTime, elapsedSize } from '@/utils';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { elapsedTime, elapsedSize, extractionExtension } from '@/utils';
 import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
 import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
 import { Menu } from '@/components/contextMenu/Menu';
@@ -18,12 +18,15 @@ import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryPars
 import { DashboardChartOptionParser } from '@/utils/DashboardChartOptionParser';
 import { DashboardChartCodeParser } from '@/utils/DashboardChartCodeParser';
 import { chartTypeConverter } from '@/utils/eChartHelper';
-import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
+import { validateName } from '@/utils/fileName';
+import { getTypedFileList, resolveOverwrite } from '@/utils/fileExistence';
+import { afterOverwrite, tabFromWrittenContent } from '@/utils/boardAfterOverwrite';
+import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
-import { Button, Modal, Input, FileListHeader, Dropdown } from '@/design-system/components';
+import { Alert, Button, Modal, Input, FileListHeader, Dropdown } from '@/design-system/components';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
@@ -51,7 +54,9 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const [sOutput, setOutput] = useState<'CHART' | 'DATA(JSON)' | 'DATA(CSV)'>('CHART');
     const [sBlockList, setBlockList] = useState<any>([]);
     const [sSelectedBlock, setSelectedBlock] = useState<any>({ idx: 0, name: '', value: '' });
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const setBoardList = useSetRecoilState(gBoardList);
+    const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
+    const [sSaveError, setSaveError] = useState<string | undefined>(undefined);
 
     const defaultMinMax = () => {
         const now = Date.now();
@@ -138,7 +143,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
 
     const getFiles = async (aType: string, aPathArr?: any) => {
-        const sData = await getFileList(`?filter=*.${aType}`, aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
+        // r19: type filter applied client-side, case-insensitive (the server ?filter= drops `X.TQL`)
+        const sData = await getTypedFileList(aType, aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'));
         setFileList(sData.data?.children ?? []);
         setFilterFileList(sData.data.children ?? []);
     };
@@ -194,13 +200,15 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             deletePath = [];
             setDeletePath([]);
         }
-        if (aName && !aName.endsWith(`.${sFileType}`)) {
+        // extension compared via extractionExtension (lower-case): `X.TQL` is a file, not a folder to enter
+        const sIsTypeFile = !!sFileType && extractionExtension(aName) === sFileType.toLowerCase();
+        if (aName && !sIsTypeFile) {
             currentPath.push(aName);
             setSelectedDir([...currentPath]);
             if (deletePath.length > 0) {
                 deletePath.pop();
                 setDeletePath(deletePath);
-                const sData = await getFileList(`?filter=*.${sFileType}`, currentPath.join('/'), '');
+                const sData = await getTypedFileList(sFileType, currentPath.join('/'));
                 setFileList(sData.data?.children ?? []);
                 setFilterFileList(sData.data.children ?? []);
             } else {
@@ -213,28 +221,27 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         let sPayload: any = undefined;
         if (sOutput === 'CHART') sPayload = await GetSaveChartText();
         else sPayload = await GetSaveDataText();
-        const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sSaveFileName);
-
-        if (sDupFile) {
-            const sConfirm = confirm('Do you want to overwrite it?');
-            if (!sConfirm) return;
+        // shared check: unfiltered re-query right before saving (the listed folder may have changed since), case-insensitive name, ConfirmModal
+        const sDir = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+        setSaveError(undefined);
+        const sDecision = await resolveOverwrite(sDir, sSaveFileName, askOverwrite);
+        if (sDecision.status === 'folder' || sDecision.status === 'failed') {
+            // in-modal error (r13), like FileModal
+            setSaveError(sDecision.reason);
+            return;
         }
+        if (sDecision.status === 'cancel') return;
+        // r20 M1: written under the typed name; the server's file system decides about a case-only difference
+        const sFileName = sSaveFileName;
 
-        const sResult: any = await postFileList(sPayload, sSelectedDir.join('/'), sSaveFileName);
+        const sResult: any = await postFileList(sPayload, sSelectedDir.join('/'), sFileName);
 
         if (sResult.success) {
             handleClose();
             updateFileTree('/');
-            let sIsOpenFile: any = sBoardList.find((aBoard: any) => aBoard.name === sSaveFileName);
-            if (sIsOpenFile) sIsOpenFile = { ...sIsOpenFile, code: sPayload, savedCode: sPayload };
-
-            setBoardList((preV: any) =>
-                preV.map((aItem: any) => {
-                    if (aItem.name === sSaveFileName) {
-                        return sIsOpenFile;
-                    } else return aItem;
-                })
-            );
+            // .tql export: the current tab is the dashboard, not the file. After a confirmed overwrite one tab open on
+            // the target file gets the new content and the others are closed (r15) — the same helper as every dialog
+            setBoardList((preV: any) => afterOverwrite(preV, { path: sDir, name: sFileName, confirmed: sDecision.status === 'confirmed' }, tabFromWrittenContent(sPayload, sFileName)));
         }
     };
 
@@ -316,7 +323,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     const deleteFile = async () => {
         const sConfirm = confirm(`Do you want to delete this file (${sSelectedFile?.name})?`);
         if (sConfirm && sSelectedFile !== undefined) {
-            const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name);
+            const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name, { recursive: false });
             if (sResult.reason === 'success') {
                 getFiles(sFileType);
                 const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
@@ -352,6 +359,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         setFileType('tql');
         getFiles('tql');
     }, []);
+
+    const sIsValidSaveName = validateName(sSaveFileName, { kind: 'file', type: sFileType }).ok;
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
@@ -467,6 +476,11 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 </Modal.Body>
 
                 {/* Footer */}
+                {sSaveError ? (
+                    <div data-testid="save-dashboard-error">
+                        <Alert variant="error" message={sSaveError} />
+                    </div>
+                ) : null}
                 <Modal.Footer style={{ flexDirection: 'column', gap: '16px' }}>
                     <div className="save-dashboard-modal__options">
                         <div className="save-dashboard-modal__option-group">
@@ -508,14 +522,15 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                     </div>
                     <Button.Group style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
                         <Modal.Confirm
-                            disabled={!(FileNameAndExtensionValidator(sSaveFileName) && sSaveFileName.endsWith(`.${sFileType}`))}
-                            onClick={FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType ? saveFile : () => null}
+                            disabled={!sIsValidSaveName}
+                            onClick={sIsValidSaveName ? saveFile : () => null}
                         >
                             OK
                         </Modal.Confirm>
                         <Modal.Cancel>Cancel</Modal.Cancel>
                     </Button.Group>
                 </Modal.Footer>
+                {sOverwritePrompt}
             </Modal.Root>
 
             {/* Context Menu */}

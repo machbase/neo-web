@@ -19,6 +19,7 @@ import { executeQuery, fetchBlockTimeMinMax } from '../../api/repository/machiot
 import { pickBlockNameFilterValue, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
+import { toDshPath } from '@/utils/filePath';
 import { VariableHeader } from '../variable/VariableHeader';
 import { VARIABLE_TYPE } from '../variable';
 import { IoMdOptions } from 'react-icons/io';
@@ -54,7 +55,8 @@ const DashboardView = () => {
         if (!aFileName) return;
         try {
             const cleanFileName = aFileName.replace('board/', '');
-            const response = await fetch(`/db/tql/${cleanFileName}.dsh`);
+            // share links (/web/ui/board/...) land here: real file name now, old extension-less links still work
+            const response = await fetch(`/db/tql/${toDshPath(cleanFileName)}`);
             if (response.ok) {
                 const sResult = await response.text();
                 const sParsedRes = CheckDataCompatibility(sResult, 'dsh');

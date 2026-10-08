@@ -129,3 +129,30 @@ describe('PanelHeader Tag Analyzer entry', () => {
         expect(screen.getByRole('button', { name: 'Show Taganalyzer' })).toBeInTheDocument();
     });
 });
+
+// issue-1544 r13: the child board link goes through the one share-link rule (toDshPath), like ShareModal —
+// split('.')[0] cut `v1.2.dsh` to `v1` and rebuilt `X.DSH` as `X.dsh` in the view.
+describe('PanelHeader child board link (share-link rule)', () => {
+    test.each([
+        ['d/X.DSH', '/web/ui/board/d/X.DSH'],
+        ['v1.2.dsh', '/web/ui/board/v1.2.dsh'],
+        ['d/old', '/web/ui/board/d/old.dsh'],
+    ])('childBoard %s → %s', (childBoard, expected) => {
+        const sOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
+        const { container } = renderHeader(createPanel([createBlock()], { type: 'Video', chartOptions: { childBoard, source: {} } }));
+        openPanelMenu(container);
+        fireEvent.click(screen.getByRole('button', { name: 'Child board' }));
+        expect(sOpen).toHaveBeenCalledWith(window.location.origin + expected);
+        sOpen.mockRestore();
+    });
+
+    // r15: an empty child board made '.../board/undefined' (before) / '.../board/.dsh' (toDshPath) — no link at all now
+    test.each([[''], ['  '], [undefined]])('childBoard %p → no window opened', (childBoard) => {
+        const sOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
+        const { container } = renderHeader(createPanel([createBlock()], { type: 'Video', chartOptions: { childBoard, source: {} } }));
+        openPanelMenu(container);
+        fireEvent.click(screen.getByRole('button', { name: 'Child board' }));
+        expect(sOpen).not.toHaveBeenCalled();
+        sOpen.mockRestore();
+    });
+});

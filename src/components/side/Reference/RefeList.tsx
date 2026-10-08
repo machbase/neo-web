@@ -16,7 +16,7 @@ const RefList = ({ pValue }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
-    const { install, isInstalling } = useQuickInstall();
+    const { install, isInstalling, prompt: sClonePrompt } = useQuickInstall();
 
     const openReference = async (pValue: any) => {
         const sId = getId();
@@ -122,6 +122,7 @@ const RefList = ({ pValue }: any) => {
                     })}
                 </Side.List>
             )}
+            {sClonePrompt}
         </>
     );
 };
@@ -140,6 +141,7 @@ const QuickInstall = ({ pItem, pIsProcessing, pQuickInstall }: { pItem: REFERENC
             variant="ghost"
             isToolTip
             toolTipContent="Quick install"
+            data-testid={`quick-install-${encodeURIComponent(pItem.address)}`}
             icon={pIsProcessing ? <Loader width="14px" height="14px" /> : <VscCloudDownload size={16} />}
             onClick={(e: any) => handleQuickInstall(e, pItem)}
         />

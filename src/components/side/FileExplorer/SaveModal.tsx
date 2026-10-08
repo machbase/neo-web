@@ -15,8 +15,11 @@ import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLef
 import icons from '@/utils/icons';
 import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
-import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
-import { Button, Input, Modal, FileListHeader } from '@/design-system/components';
+import { validateName } from '@/utils/fileName';
+import { getTypedFileList, resolveOverwrite, type OverwriteDecision } from '@/utils/fileExistence';
+import { afterOverwrite } from '@/utils/boardAfterOverwrite';
+import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
+import { Alert, Button, Input, Modal, FileListHeader } from '@/design-system/components';
 import {
     loadTazBoard,
     saveTazBoard,
@@ -50,6 +53,8 @@ export const SaveModal = (props: SaveModalProps) => {
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sSelectedBoard = useRecoilValue(gSelectedBoard);
     const [sModalPath, setModalPath] = useRecoilState(gRecentModalPath);
+    const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
+    const [sSaveError, setSaveError] = useState<string | undefined>(undefined);
 
     const sCheckType = (aValue: string) =>
         aValue === 'sql' ||
@@ -83,7 +88,9 @@ export const SaveModal = (props: SaveModalProps) => {
     };
 
     const getFiles = async (aType: string, aPathArr?: any) => {
-        const sData = await getFileList(pIsSave ? `?filter=*.${aType}` : '', aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
+        const sDir = aPathArr ? aPathArr.join('/') : sSelectedDir.join('/');
+        // r19: type filter applied client-side, case-insensitive (the server ?filter= drops `X.SQL`)
+        const sData = pIsSave ? await getTypedFileList(aType, sDir) : await getFileList('', sDir, '');
         setFileList(sData.data?.children ?? []);
         setFilterFileList(sData.data?.children ?? []);
     };
@@ -142,13 +149,15 @@ export const SaveModal = (props: SaveModalProps) => {
             deletePath = [];
             setDeletePath([]);
         }
-        if (aName && !aName.endsWith(`.${sFileType}`)) {
+        // extension compared via extractionExtension (lower-case): `X.SQL` is a file, not a folder to enter
+        const sIsTypeFile = !!sFileType && extractionExtension(aName) === sFileType.toLowerCase();
+        if (aName && !sIsTypeFile) {
             currentPath.push(aName);
             setSelectedDir([...currentPath]);
             if (deletePath.length > 0) {
                 deletePath.pop();
                 setDeletePath(deletePath);
-                const sData = await getFileList(pIsSave ? `?filter=*.${sFileType}` : '', currentPath.join('/'), '');
+                const sData = pIsSave ? await getTypedFileList(sFileType, currentPath.join('/')) : await getFileList('', currentPath.join('/'), '');
                 setFileList(sData.data?.children ?? []);
                 setFilterFileList(sData.data.children ?? []);
             } else {
@@ -157,24 +166,35 @@ export const SaveModal = (props: SaveModalProps) => {
         }
     };
 
+    // No "tab's own file" exception (r12): Save As onto the tab's own file asks too. Only the plain Save of an
+    // already-saved tab (MainContent direct save, no dialog) writes without a question.
+    // A failed lookup / folder conflict is shown inside this dialog (r13), not as a toast.
+    const checkSaveTarget = async (aPath: string, aFileName: string): Promise<OverwriteDecision> => {
+        setSaveError(undefined);
+        const sDecision = await resolveOverwrite(aPath, aFileName, askOverwrite);
+        if (sDecision.status === 'folder' || sDecision.status === 'failed') setSaveError(sDecision.reason);
+        return sDecision;
+    };
+
     const saveFile = async () => {
-        const sFileName = sSaveFileName;
         const sTab = sBoardList.find((aItem) => aItem.id === sSelectedTab);
-        const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sFileName);
         const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'dsh' ? sTab : sTab?.code;
+        const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+
+        if (sFileType === 'taz' && !sTab) {
+            Toast.error('No TAZ tab is selected.');
+            return;
+        }
+
+        const sDecision = await checkSaveTarget(sPath, sSaveFileName);
+        if (sDecision.status !== 'none' && sDecision.status !== 'confirmed') return;
+        // r20 M1: written under the name the user typed — POST, tab and Recent; the server's file system decides the case
+        const sFileName = sSaveFileName;
+        // r13: the tab being saved stays (updated); only OTHER tabs open on the overwritten file are closed
+        const applyTabs = (aUpdate: (aTab: any) => any) =>
+            setBoardList(afterOverwrite(sBoardList as any[], { path: sPath, name: sFileName, currentTabId: sSelectedTab, confirmed: sDecision.status === 'confirmed' }, aUpdate));
 
         if (sFileType === 'taz') {
-            if (!sTab) {
-                Toast.error('No TAZ tab is selected.');
-                return;
-            }
-
-            const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-            if (sDupFile && sTab?.name !== sFileName) {
-                const sConfirm = confirm('Do you want to overwrite it?');
-                if (!sConfirm) return;
-            }
-
             const sBoardToSave: BoardInfo = {
                 ...(sTab as unknown as BoardInfo),
                 name: sFileName,
@@ -186,68 +206,14 @@ export const SaveModal = (props: SaveModalProps) => {
                 handleClose();
                 const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
                 setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
-                setBoardList(
-                    sBoardList.map((aItem: any) =>
-                        aItem.id === sSelectedTab
-                            ? sSavedBoard
-                            : aItem,
-                    ),
-                );
+                applyTabs(() => sSavedBoard);
             } else {
                 Toast.error('Failed to save TAZ file. Please try again.');
             }
             return;
         }
 
-        if (sDupFile && sTab?.name !== sFileName) {
-            const sConfirm = confirm('Do you want to overwrite it?');
-            if (sConfirm) {
-                const sResult: any = await postFileList(sSaveData, sSelectedDir.join('/'), sFileName);
-                if (sResult.success) {
-                    const sExist = getExistBoard(sDupFile);
-                    const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-                    recordRecentFile({ name: sFileName, path: sPath });
-                    if (sExist) {
-                        setBoardList(
-                            sBoardList
-                                .filter((aItem) => aItem.name !== sFileName && aItem.path !== sPath)
-                                .map((aItem: any) => {
-                                    if (aItem.id === sSelectedTab) {
-                                        const sSaveData = {
-                                            ...aItem,
-                                            name: sFileName,
-                                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
-                                            path: sPath,
-                                        };
-                                        return sSaveData;
-                                    } else {
-                                        return aItem;
-                                    }
-                                })
-                        );
-                    } else {
-                        setBoardList(
-                            sBoardList.map((aItem: any) => {
-                                if (aItem.id === sSelectedTab) {
-                                    const sSaveData = {
-                                        ...aItem,
-                                        name: sFileName,
-                                        savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
-                                        path: sPath,
-                                    };
-                                    return sSaveData;
-                                } else {
-                                    return aItem;
-                                }
-                            })
-                        );
-                    }
-                    handleClose();
-                }
-                return;
-            } else return;
-        }
-        const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
+        // one post-processing for a new file and a confirmed overwrite (r13)
         const sResult: any = await postFileList(sSaveData, sPath, sFileName);
         setModalPath(sPath);
         if (sResult.success) {
@@ -255,26 +221,12 @@ export const SaveModal = (props: SaveModalProps) => {
             recordRecentFile({ name: sFileName, path: sPath });
             const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
             setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
-            setBoardList(
-                sBoardList.map((aItem: any) => {
-                    if (aItem.id === sSelectedTab) {
-                        const sSaveData = {
-                            ...aItem,
-                            name: sFileName,
-                            savedCode:
-                                sFileType === 'wrk'
-                                    ? JSON.stringify(aItem.sheet)
-                                    : sFileType === 'dsh'
-                                    ? JSON.stringify(aItem.dashboard)
-                                    : aItem.code,
-                            path: sPath,
-                        };
-                        return sSaveData;
-                    } else {
-                        return aItem;
-                    }
-                })
-            );
+            applyTabs((aItem: any) => ({
+                ...aItem,
+                name: sFileName,
+                savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'dsh' ? JSON.stringify(aItem.dashboard) : aItem.code,
+                path: sPath,
+            }));
         }
     };
 
@@ -437,7 +389,7 @@ export const SaveModal = (props: SaveModalProps) => {
     const deleteFile = async () => {
         const sConfirm = confirm(`Do you want to delete this file (${sSelectedFile?.name})?`);
         if (sConfirm && sSelectedFile !== undefined) {
-            const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name);
+            const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name, { recursive: false });
             if (sResult.reason === 'success') {
                 getFiles(sFileType);
                 const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
@@ -464,9 +416,12 @@ export const SaveModal = (props: SaveModalProps) => {
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
 
+    // one name rule (src/utils/fileName.ts): extension compared case-insensitively inside validateName
+    const sIsValidSaveName = validateName(sSaveFileName, { kind: 'file', type: sFileType }).ok;
+
     return (
         <>
-            <Modal.Root isOpen={true} onClose={handleClose} size="md">
+            <Modal.Root isOpen={true} onClose={handleClose} size="md" data-testid="file-save-dialog">
                 <Modal.Header>
                     <Modal.Title>
                         {pIsSave ? <Save /> : <FolderOpen />}
@@ -551,6 +506,7 @@ export const SaveModal = (props: SaveModalProps) => {
                                 return (
                                     <div
                                         key={aItem.name + aIdx}
+                                        data-testid={`row-${encodeURIComponent(aItem.name)}`}
                                         className={`save-modal__file-row ${isSelected ? 'save-modal__file-row--selected' : ''}`}
                                         onContextMenu={(aEvent) => onContextMenu(aEvent, aItem)}
                                         onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
@@ -575,26 +531,34 @@ export const SaveModal = (props: SaveModalProps) => {
                     </div>
                 </Modal.Body>
 
+                {sSaveError ? (
+                    <div data-testid="save-modal-error">
+                        <Alert variant="error" message={sSaveError} />
+                    </div>
+                ) : null}
+
                 {/* Footer */}
                 <Modal.Footer style={{ justifyContent: 'space-between' }}>
                     {pIsSave ? (
                         <div className="save-modal__footer-input">
                             <Input
+                                data-testid="file-name-input"
                                 label="File name"
                                 labelPosition="left"
                                 value={sSaveFileName}
                                 onChange={changeSaveFileName}
                                 onKeyDown={(e: any) =>
-                                    FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType && pIsSave ? EnterCallback(e, saveFile) : null
+                                    sIsValidSaveName && pIsSave ? EnterCallback(e, saveFile) : null
                                 }
                             />
                         </div>
                     ) : null}
                     <Button.Group>
                         <Modal.Confirm
-                            disabled={pIsSave && !(FileNameAndExtensionValidator(sSaveFileName) && sSaveFileName.endsWith(`.${sFileType}`))}
+                            data-testid="apply"
+                            disabled={pIsSave && !sIsValidSaveName}
                             onClick={
-                                FileNameAndExtensionValidator(sSaveFileName) && extractionExtension(sSaveFileName) === sFileType && pIsSave
+                                sIsValidSaveName && pIsSave
                                     ? saveFile
                                     : () => openFile(sSelectedFile)
                             }
@@ -604,6 +568,7 @@ export const SaveModal = (props: SaveModalProps) => {
                         <Modal.Cancel>Cancel</Modal.Cancel>
                     </Button.Group>
                 </Modal.Footer>
+                {sOverwritePrompt}
             </Modal.Root>
 
             {/* Context Menu */}

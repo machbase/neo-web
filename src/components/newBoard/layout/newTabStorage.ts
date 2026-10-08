@@ -2,6 +2,7 @@ import axios from 'axios';
 import request from '@/api/core';
 import { postFileList } from '@/api/repository/api';
 import { getUserName } from '@/utils';
+import { buildFilesUrl } from '@/utils/filePath';
 
 /**
  * New tab settings live as JSON files in a hidden folder of the server's file root. The file API
@@ -24,7 +25,7 @@ const isErrorResponse = (aResult: any) => !!aResult && typeof aResult === 'objec
 const reasonOf = (aResult: any) => aResult?.data?.reason ?? aResult?.reason ?? aResult?.message ?? 'Unknown error';
 
 export const readJsonFile = async <T = unknown>(aName: string): Promise<ReadResult<T>> => {
-    const sResult: any = await request({ method: 'GET', url: `/api/files${NEW_TAB_DIR}/${aName}` });
+    const sResult: any = await request({ method: 'GET', url: buildFilesUrl(`${NEW_TAB_DIR}/${aName}`) });
     if (axios.isAxiosError(sResult)) return { status: 'error', reason: reasonOf(sResult) };
     if (isErrorResponse(sResult)) return sResult.status === 404 ? { status: 'missing' } : { status: 'error', reason: reasonOf(sResult) };
     if (typeof sResult === 'string') {

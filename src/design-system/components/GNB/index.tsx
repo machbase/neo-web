@@ -87,7 +87,7 @@ const GNBItem = ({ id, label, icon, onClick, className, badge }: GNBItemProps) =
 
     return (
         <div className={wrapperClasses} data-tooltip-id={GNB_TOOLTIP_ID} data-tooltip-content={label}>
-            <Button variant="ghost" size="icon" className={styles.gnb__item} onClick={handleClick} aria-label={label} aria-current={isSelected ? 'page' : undefined}>
+            <Button variant="ghost" size="icon" className={styles.gnb__item} data-testid={`gnb-item-${encodeURIComponent(id)}`} onClick={handleClick} aria-label={label} aria-current={isSelected ? 'page' : undefined}>
                 <span className={styles.gnb__item__icon}>{icon}</span>
                 {badge && <span className={styles.gnb__item__badge}>{badge}</span>}
             </Button>

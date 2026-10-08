@@ -41,7 +41,8 @@ export function useBoardSave({
         if (signal.aborted) return false;
 
         applySaveResult(savedBoard);
-        onSavedBoard(savedBoard);
+        // r15: other tabs on the file are closed only after a confirmed overwrite (Save As), never on Ctrl+S
+        onSavedBoard(savedBoard, { overwritten: !!destination?.overwritten });
         Toast.success(SAVE_SUCCESS_MESSAGE, {
             testId: 'tag-analyzer-save-success-toast',
         });
@@ -90,8 +91,8 @@ export function useBoardSave({
     }, [isActive, save]);
 
     const saveAs = useCallback(
-        (directoryPath: string, fileName: string) =>
-            save({ directoryPath, fileName }),
+        (directoryPath: string, fileName: string, overwritten?: boolean) =>
+            save({ directoryPath, fileName, overwritten }),
         [save],
     );
     const openSaveAs = useCallback(() => setIsSaveAsOpen(true), []);
@@ -117,12 +118,13 @@ const FILE_TREE_REFRESH_ERROR_MESSAGE =
 type SaveDestination = {
     directoryPath: string;
     fileName: string;
+    overwritten?: boolean;
 };
 
 type UseBoardSaveParams = {
     board: BoardInfo;
     isActive: boolean;
     applySaveResult: (savedBoard: BoardInfo) => void;
-    onSavedBoard: (savedBoard: BoardInfo) => void;
+    onSavedBoard: (savedBoard: BoardInfo, opts: { overwritten: boolean }) => void;
     onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
 };

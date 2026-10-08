@@ -1,13 +1,18 @@
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gFileTree, gRecentDirectory } from '@/recoil/fileTree';
 import { useState, useEffect, useRef } from 'react';
 import { postFileList } from '@/api/repository/api';
-import { getFiles } from '@/api/repository/fileTree';
 import useDebounce from '@/hooks/useDebounce';
-import { FileNameAndExtensionValidator, FileTazDfltVal, FileDshDfltVal, FileWrkDfltVal, PathRootValidator } from '@/utils/FileExtansion';
+import { FileTazDfltVal, FileDshDfltVal, FileWrkDfltVal } from '@/utils/FileExtansion';
+import { isTypingPath, validatePath } from '@/utils/fileName';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
-import { getFileNameAndExtension } from '@/utils/fileNameUtils';
+import { extractionExtension } from '@/utils';
 import { Alert, FileListHeader, Input, Modal, Page } from '@/design-system/components';
+import { resolveOverwrite } from '@/utils/fileExistence';
+import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
+import { afterOverwrite, tabFromWrittenContent } from '@/utils/boardAfterOverwrite';
+import { gBoardList } from '@/recoil/recoil';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 
 export interface FileModalProps {
     setIsOpen: any;
@@ -20,6 +25,10 @@ export const FileModal = (props: FileModalProps) => {
     const [sValResult, setValResut] = useState<boolean>(true);
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sInputRef = useRef<HTMLInputElement>(null);
+    const [sErrorMessage, setErrorMessage] = useState<string | undefined>(undefined);
+    const setBoardList = useSetRecoilState(gBoardList);
+    const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
+    const [sIsSaving, setIsSaving] = useState<boolean>(false);
 
     const handleClose = () => {
         setIsOpen(false);
@@ -27,14 +36,20 @@ export const FileModal = (props: FileModalProps) => {
 
     const handleSave = async () => {
         if (!sFilePath || sFilePath === '') return;
-        const fullFileName = sFilePath.split('/').at(-1) as string;
-        const { extension } = getFileNameAndExtension(fullFileName);
-        const parsedExtension = extension.toLowerCase();
+        // Re-validate synchronously: during the 200ms debounce sValResult is still the initial true.
+        const sVerdict = validatePath(sFilePath, { kind: 'file' });
+        if (!sVerdict.ok) {
+            setErrorMessage(sVerdict.reason);
+            setValResut(false);
+            return;
+        }
+        // extractionExtension is already lower-case: `X.DSH` gets the dashboard default like `x.dsh`
+        const sExt = extractionExtension(sFilePath.split('/').at(-1) as string);
         let sPayload: any = undefined;
 
-        if (parsedExtension.includes('wrk')) sPayload = FileWrkDfltVal;
-        if (parsedExtension.includes('taz')) sPayload = FileTazDfltVal;
-        if (parsedExtension.includes('dsh')) sPayload = FileDshDfltVal;
+        if (sExt === 'wrk') sPayload = FileWrkDfltVal;
+        if (sExt === 'taz') sPayload = FileTazDfltVal;
+        if (sExt === 'dsh') sPayload = FileDshDfltVal;
 
         // Split into directory and file name to avoid backend routing/validation issues
         const lastSlashIdx = sFilePath.lastIndexOf('/');
@@ -42,26 +57,42 @@ export const FileModal = (props: FileModalProps) => {
         // Backend expects directory without leading slash (consistent with other callers)
         const sDir = sDirRaw === '/' ? '/' : sDirRaw.replace(/^\/+/, '');
         const sName = sFilePath.slice(lastSlashIdx + 1);
-        // Preflight: ensure parent path exists and is a directory
-        const checkPath = sDir === '/' ? '/' : `/${sDir}/`;
-        const sParentInfo: any = await getFiles(checkPath);
-        if (!sParentInfo || !sParentInfo.success || !sParentInfo.data?.isDir) {
-            setValResut(false);
-            return;
-        }
-
-        const sResult: any = await postFileList(sPayload, sDir, sName);
-        if (sResult && sResult.success) {
-            const sDrillRes = await TreeFetchDrilling(sFileTree, sFilePath, true);
+        const sDirPath = sDir === '/' ? '/' : `/${sDir}/`;
+        if (sIsSaving) return;
+        setIsSaving(true);
+        try {
+            // the shared check of every save/create dialog (r20 M2): unfiltered re-query, missing / non-folder parent,
+            // case-insensitive name → overwrite ConfirmModal; problems shown in this modal
+            const sDecision = await resolveOverwrite(sDirPath, sName, askOverwrite);
+            if (sDecision.status === 'folder' || sDecision.status === 'failed') {
+                setErrorMessage(sDecision.reason);
+                setValResut(false);
+                return;
+            }
+            if (sDecision.status === 'cancel') return;
+            // r20 M1: written under the name the user typed (the server's file system decides the case)
+            const sResult: any = await postFileList(sPayload, sDir, sName);
+            const sFailure = getFileRequestFailure(sResult, 'Failed to create the file.');
+            if (sFailure) {
+                // the server's reason instead of the generic "check name and path"
+                setErrorMessage(sFailure.reason);
+                setValResut(false);
+                return;
+            }
+            // r20 M3: a tab open on the overwritten file shows what was written (or is closed) — same helper as every dialog
+            setBoardList((aTabs: any[]) => afterOverwrite(aTabs, { path: sDirPath, name: sName, confirmed: sDecision.status === 'confirmed' }, tabFromWrittenContent(sPayload, sName)));
+            const sDrillRes = await TreeFetchDrilling(sFileTree, sDirPath + sName, true);
             setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
             handleClose();
-        } else {
-            setValResut(false);
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const handlefileName = () => {
-        setValResut(FileNameAndExtensionValidator((sFilePath.split('/').at(-1) as string).toLowerCase()));
+        const sVerdict = validatePath(sFilePath, { kind: 'file' });
+        setErrorMessage(sVerdict.ok ? undefined : sVerdict.reason);
+        setValResut(sVerdict.ok);
     };
 
     const handleEnter = (e: any) => {
@@ -75,8 +106,7 @@ export const FileModal = (props: FileModalProps) => {
     const pathHandler = (e: any) => {
         if (e.target.value === '') return setFilePath('/');
         if (!e.nativeEvent.data && sFilePath === '/') return;
-        if (!PathRootValidator(e.target.value)) return;
-        if (e.target.value[0] !== '/') return;
+        if (!isTypingPath(e.target.value)) return;
 
         setFilePath(e.target.value);
     };
@@ -96,7 +126,7 @@ export const FileModal = (props: FileModalProps) => {
     }, []);
 
     return (
-        <Modal.Root isOpen={true} onClose={handleClose} size="md" style={{ height: 'auto' }}>
+        <Modal.Root isOpen={true} onClose={handleClose} size="md" style={{ height: 'auto' }} data-testid="file-new-dialog">
             <Modal.Header>
                 <Modal.Title>New File</Modal.Title>
                 <Modal.Close />
@@ -106,15 +136,20 @@ export const FileModal = (props: FileModalProps) => {
                 <FileListHeader columns={[sFilePath]} />
             </Page>
             <Modal.Body>
-                <Input label="Name" onChange={pathHandler} value={sFilePath} onKeyDown={handleEnter} />
-                {sValResult ? null : <Alert variant="error" message={`Please check name and path.`} />}
+                <Input label="Name" data-testid="file-new-path-input" onChange={pathHandler} value={sFilePath} onKeyDown={handleEnter} />
+                {sValResult ? null : (
+                    <div data-testid="file-new-error">
+                        <Alert variant="error" message={sErrorMessage ?? `Please check name and path.`} />
+                    </div>
+                )}
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Confirm onClick={handleSave} disabled={!sValResult} loading={false}>
+                <Modal.Confirm data-testid="file-new-confirm" onClick={handleSave} disabled={!sValResult} loading={false}>
                     OK
                 </Modal.Confirm>
                 <Modal.Cancel onClick={handleClose}>Cancel</Modal.Cancel>
             </Modal.Footer>
+            {sOverwritePrompt}
         </Modal.Root>
     );
 };

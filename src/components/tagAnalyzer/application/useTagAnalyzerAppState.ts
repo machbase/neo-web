@@ -4,6 +4,7 @@ import { Toast } from '@/design-system/components';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { gFileTree } from '@/recoil/fileTree';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { afterOverwrite } from '@/utils/boardAfterOverwrite';
 import type { BoardInfo } from '../board/boardModel';
 import { tableMetadataApi } from '../api/tableMetadataApi';
 import type { RollupTableMap } from '../api/rollupMetadata';
@@ -30,12 +31,19 @@ export function useTagAnalyzerAppState(info: BoardInfo) {
     }, [info.loadWarning]);
 
     const updateSavedBoard = useCallback(
-        (savedBoard: BoardInfo): void => {
+        (savedBoard: BoardInfo, opts?: { overwritten: boolean }): void => {
+            // r13/r15: keep/update this tab; close OTHER tabs open on the written file (exact real name + path)
+            // only after a confirmed overwrite
             updateBoardList((boards) =>
-                boards.map((board) =>
-                    board.id === savedBoard.id
-                        ? { ...board, ...savedBoard }
-                        : board,
+                afterOverwrite(
+                    boards,
+                    {
+                        path: savedBoard.path,
+                        name: savedBoard.name,
+                        currentTabId: savedBoard.id,
+                        confirmed: !!opts?.overwritten,
+                    },
+                    (board) => ({ ...board, ...savedBoard }),
                 ),
             );
         },

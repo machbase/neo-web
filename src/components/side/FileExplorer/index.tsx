@@ -1,6 +1,7 @@
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gCopyFileTree, gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDirectory, gRenameFile, gReplaceTree } from '@/recoil/fileTree';
-import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
+import { getId, isImage, extractionExtension } from '@/utils';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { useState } from 'react';
 import { Delete, Download, Update, Rename, TbFolderPlus, TbCloudDown, MdRefresh, VscNewFile } from '@/assets/icons/Icon';
 import { useRecoilState, useSetRecoilState } from 'recoil';
@@ -109,10 +110,17 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
     }
     const getFileTree = async () => {
         setLoadFileTree(true);
-        const sReturn = await getFiles('/');
-        if (sReturn && sReturn?.data) {
+        try {
+            const sReturn: any = await getFiles('/');
+            const sFailure = getFileRequestFailure(sReturn, 'Failed to load the file tree.');
+            if (sFailure || !sReturn?.data) {
+                // keep the previous tree; tell the user why
+                Toast.error(sFailure?.reason ?? 'Failed to load the file tree.', { testId: 'file-explorer-error-toast', id: 'file-explorer-refresh' });
+                return;
+            }
             const sParedData = fileTreeParser(sReturn.data, '/', 0, '0');
             setFileTree(JSON.parse(JSON.stringify(sParedData)));
+        } finally {
             setLoadFileTree(false);
         }
     };
@@ -126,7 +134,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
         } else {
             const sLoaded = await loadBoardFromFile(file, sTmpId);
             if (sLoaded.error !== undefined) {
-                if (!sLoaded.transport) Toast.error(sLoaded.error);
+                Toast.error(sLoaded.error, { testId: 'file-explorer-error-toast', id: 'file-explorer-open' });
                 return;
             }
 
@@ -151,7 +159,9 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
             if (aIsOpen) {
                 sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
-                if (!sReturn?.success) {
+                const sFailure = getFileRequestFailure(sReturn, 'Failed to open the folder.');
+                if (sFailure || !sReturn?.success) {
+                    Toast.error(sFailure?.reason ?? 'Failed to open the folder.', { testId: 'file-explorer-error-toast', id: 'file-explorer-fetch-dir' });
                     setIsFetch(false);
                     return;
                 }
@@ -213,23 +223,28 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
     const multiDelete = async (aDelList: any) => {
         const sReslutList: any = [];
+        const sFailReasons: string[] = [];
         for (const aItem of aDelList) {
-            const aResult: any = await deleteContextFile(aItem.path, aItem.query);
-            if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) {
+            if (!aItem || !aItem.path || !aItem.name) continue;
+            const aResult: any = await deleteContextFile(aItem.path, aItem.name, { recursive: !!aItem.recursive });
+            const sFailure = getFileRequestFailure(aResult, 'Failed to delete.');
+            if (!sFailure) {
                 sReslutList.push(aItem);
                 DeleteFileTree(aItem);
             } else {
+                sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
                 setConsoleList((prev: any) => [
                     ...prev,
                     {
                         timestamp: new Date().getTime(),
                         level: 'ERROR',
                         task: '',
-                        message: aResult.data.reason,
+                        message: sFailure.reason,
                     },
                 ]);
             }
         }
+        if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-delete' });
         if (sReslutList && sReslutList.length > 0) {
             let updateBoardList: any = JSON.parse(JSON.stringify(sBoardList));
             sReslutList.map((aResult: any) => {
@@ -254,30 +269,32 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
     const handleDeleteFile = async (isRecursive: boolean) => {
         if (sDeleteFileList && (sDeleteFileList as any).length > 0) {
-            const sRecursivePath: any = { path: undefined, query: undefined };
             const sDeleteList = JSON.parse(JSON.stringify(sDeleteFileList)).map((aDelFile: any) => {
                 return {
                     path: aDelFile.path,
-                    query: isRecursive && aDelFile.type === 1 ? aDelFile.name + '?recursive=true' : aDelFile.name,
                     name: aDelFile.name,
+                    recursive: isRecursive && aDelFile.type === 1,
                     type: aDelFile.type,
                     depth: aDelFile.depth,
                 };
             });
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
-                sRecursivePath.path = selectedContextFile.path;
-                if (isRecursive && selectedContextFile.type === 1) sRecursivePath.query = selectedContextFile.name + '?recursive=true';
-                else sRecursivePath.query = selectedContextFile.name;
+                const sContextItem = {
+                    path: selectedContextFile.path,
+                    name: selectedContextFile.name,
+                    recursive: isRecursive && selectedContextFile.type === 1,
+                    type: selectedContextFile.type,
+                    depth: selectedContextFile.depth,
+                };
+                if (!sDeleteList.some((aItem: any) => aItem.path === sContextItem.path && aItem.name === sContextItem.name)) sDeleteList.push(sContextItem);
             }
-
-            if (!sDeleteList.some((aItem: any) => aItem.path === sRecursivePath.path && aItem.query === sRecursivePath.query)) sDeleteList.push(sRecursivePath);
             setDeleteFileList(undefined);
             multiDelete(sDeleteList);
         } else {
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
-                const sRecursivePath = isRecursive ? selectedContextFile.name + '?recursive=true' : selectedContextFile.name;
-                const sResult: any = await deleteContextFile(selectedContextFile.path, sRecursivePath);
-                if (sResult.reason === 'success' || (isImage(selectedContextFile.name) && binaryCodeEncodeBase64(sResult))) {
+                const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name, { recursive: isRecursive });
+                const sFailure = getFileRequestFailure(sResult, 'Failed to delete.');
+                if (!sFailure) {
                     const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
                     let updateBoardList: any = [];
                     if (selectedContextFile.type === 0) {
@@ -307,9 +324,10 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                             timestamp: new Date().getTime(),
                             level: 'ERROR',
                             task: '',
-                            message: sResult.data.reason,
+                            message: sFailure.reason,
                         },
                     ]);
+                    Toast.error(sFailure.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-delete' });
                 }
             }
         }
@@ -343,6 +361,8 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                 );
                 ReplaceTree({ ...selectedContextFile, dirs: sParsedTree.dirs, files: sParsedTree.files, isOpen: true });
             } else {
+                const sFailure = getFileRequestFailure(sResult, 'Pull failed.');
+                Toast.error(sFailure?.reason ?? 'Pull failed.', { testId: 'file-explorer-error-toast', id: 'file-explorer-pull' });
             }
             closeContextMenu();
         }
@@ -413,12 +433,13 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                     <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
                         <span>EXPLORER</span>
                         <Button.Group style={{ paddingTop: '3px' }}>
-                            <Button size="side" variant="ghost" isToolTip toolTipContent="New file" icon={<VscNewFile size={13} />} onClick={(aEvent: any) => handleFile(aEvent)} />
+                            <Button size="side" variant="ghost" isToolTip toolTipContent="New file" data-testid="file-explorer-new-file" icon={<VscNewFile size={13} />} onClick={(aEvent: any) => handleFile(aEvent)} />
                             <Button
                                 size="side"
                                 variant="ghost"
                                 isToolTip
                                 toolTipContent="New folder"
+                                data-testid="file-explorer-new-folder"
                                 icon={<TbFolderPlus size={14} />}
                                 onClick={(aEvent: any) => handleFolder(true, aEvent, false)}
                             />
@@ -427,10 +448,11 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                                 variant="ghost"
                                 isToolTip
                                 toolTipContent="Git clone"
+                                data-testid="file-explorer-git-clone"
                                 icon={<TbCloudDown size={14} />}
                                 onClick={(aEvent: any) => handleFolder(true, aEvent, true)}
                             />
-                            <Button size="side" variant="ghost" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={14} />} onClick={(e: any) => handleRefresh(e)} />
+                            <Button size="side" variant="ghost" isToolTip toolTipContent="Refresh" data-testid="file-explorer-refresh" icon={<MdRefresh size={14} />} onClick={(e: any) => handleRefresh(e)} />
                         </Button.Group>
                     </Side.Collapse>
                     {sCollapseTree &&
@@ -453,15 +475,15 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                                 <ContextMenu isOpen={sIsContextMenu} position={sMenuPosition} onClose={closeContextMenu} data-testid="file-context-menu">
                                     {(selectedContextFile as any)?.type === 1 && !(selectedContextFile as any)?.virtual ? (
                                         <>
-                                            <ContextMenu.Item onClick={(aEvent: any) => handleFile(aEvent)}>
+                                            <ContextMenu.Item onClick={(aEvent: any) => handleFile(aEvent)} data-testid="new-file">
                                                 <VscNewFile size={12} />
                                                 <span>New File...</span>
                                             </ContextMenu.Item>
-                                            <ContextMenu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, false)}>
+                                            <ContextMenu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, false)} data-testid="new-folder">
                                                 <TbFolderPlus size={12} />
                                                 <span>New Folder...</span>
                                             </ContextMenu.Item>
-                                            <ContextMenu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, true)}>
+                                            <ContextMenu.Item onClick={(aEvent: any) => handleFolder(true, aEvent, true)} data-testid="git-clone">
                                                 <TbCloudDown size={12} />
                                                 <span>Git Clone...</span>
                                             </ContextMenu.Item>
@@ -470,20 +492,20 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                                     {(selectedContextFile as any)?.type === 0 &&
                                         !isImage((selectedContextFile as any).name as string) &&
                                         EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id)) && (
-                                            <ContextMenu.Item onClick={handleCopy}>
+                                            <ContextMenu.Item onClick={handleCopy} data-testid="duplicate">
                                                 <VscCopy />
                                                 <span>Duplicate</span>
                                             </ContextMenu.Item>
                                         )}
                                     {!(selectedContextFile as any)?.readOnly &&
                                         ((selectedContextFile as any)?.type === 1 || EXTENSION_SET.has(extractionExtension((selectedContextFile as any)?.id))) && (
-                                            <ContextMenu.Item onClick={handleRename}>
+                                            <ContextMenu.Item onClick={handleRename} data-testid="rename">
                                                 <Rename />
                                                 <span>Rename</span>
                                             </ContextMenu.Item>
                                         )}
                                     {(selectedContextFile as any)?.gitClone ? (
-                                        <ContextMenu.Item onClick={updateGitFolder}>
+                                        <ContextMenu.Item onClick={updateGitFolder} data-testid="update">
                                             <Update />
                                             <span>Update</span>
                                         </ContextMenu.Item>

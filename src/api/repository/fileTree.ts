@@ -1,28 +1,26 @@
 import { ResFileListType } from '@/utils/fileTreeParser';
+import { buildFilesUrl } from '@/utils/filePath';
 import request from '../core';
 import { AxiosResponse } from 'axios';
 
-const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
-
 export const getFiles = (aPath: string): Promise<AxiosResponse<ResFileListType>> => {
-    const sRegExp = new RegExp(/[/]*[/]/, 'g');
     return request({
         method: 'GET',
-        url: `/api/files${aPath.replaceAll(sRegExp, '/')}`,
+        url: buildFilesUrl(aPath),
     });
 };
 
-export const deleteFile = (aDir: string, aFileName: string) => {
+export const deleteFile = (aDir: string, aFileName: string, aOpts?: { recursive?: boolean }) => {
     return request({
         method: 'DELETE',
-        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+        url: buildFilesUrl(`/${aDir}/${aFileName}`, aOpts?.recursive ? '?recursive=true' : undefined),
     });
 };
 
 export const moveFile = (aPath: string, aDestinationPath: string) => {
     return request({
         method: 'PUT',
-        url: `/api/files${aPath}`,
+        url: buildFilesUrl(aPath),
         data: { destination: `${aDestinationPath}` },
     });
 };

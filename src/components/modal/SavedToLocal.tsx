@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save } from '@/assets/icons/Icon';
-import { FileNameValidator } from '@/utils/FileExtansion';
+import { validateName } from '@/utils/fileName';
 import { SavedToCSV } from '@/utils/SaveLocal';
 import { Modal } from '@/design-system/components/Modal';
 import { Input } from '@/design-system/components/Input';
@@ -49,7 +49,7 @@ export const SavedToLocalModal = (props: SaveDashboardModalProps) => {
                 <Input data-testid="file-name" label="File Name" labelPosition="left" autoFocus onChange={changeSaveFileName} value={sSaveFileName} fullWidth placeholder="Enter file name" />
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Confirm data-testid="confirm" onClick={saveFile} disabled={!FileNameValidator(sSaveFileName) || sSaveFileName === ''}>
+                <Modal.Confirm data-testid="confirm" onClick={saveFile} disabled={!validateName(sSaveFileName, { kind: 'folder' }).ok}>
                     OK
                 </Modal.Confirm>
                 <Modal.Cancel data-testid="cancel">Cancel</Modal.Cancel>

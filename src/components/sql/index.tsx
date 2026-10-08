@@ -425,7 +425,7 @@ const Sql = ({
                                 <span className="editor-header-divider" />
                                 <Button.Group>
                                     <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
-                                    <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => setIsSaveModal(true)} />
+                                    <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" data-testid="sql-save-as" icon={<SaveAs size={16} />} onClick={() => setIsSaveModal(true)} />
                                 </Button.Group>
                             </div>
                         </Page.Header>

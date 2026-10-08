@@ -1,4 +1,5 @@
-import { getFileList, postFileList } from '@/api/repository/api';
+import { postFileList } from '@/api/repository/api';
+import { getTypedFileList } from '@/utils/fileExistence';
 import { isPlainObject } from '../objectGuards';
 
 export type FileListItem = {
@@ -20,18 +21,18 @@ type SaveTazFileParams = {
     fileName: string;
 };
 
-const TAZ_FILE_FILTER = '?filter=*.taz';
+// r19: `.taz` filtering is client-side and case-insensitive (the server `?filter=*.taz` drops `B.TAZ`)
+const TAZ_FILE_TYPE = 'taz';
 
 async function fetchTazFileList(
     directorySegments: string[],
 ): Promise<FileListItem[]> {
-    const response = await getFileList(
-        TAZ_FILE_FILTER,
+    const response = await getTypedFileList(
+        TAZ_FILE_TYPE,
         directorySegments.join('/'),
-        '',
     );
 
-    return (response.data?.children ?? []) as FileListItem[];
+    return (response?.data?.children ?? []) as FileListItem[];
 }
 
 async function saveTazFile({
