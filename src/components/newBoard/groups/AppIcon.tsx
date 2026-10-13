@@ -1,4 +1,4 @@
-import { GroupItem } from './groupModel';
+import { GroupItem, itemKey } from './groupModel';
 import { KIND_LABELS } from './groupResources';
 import { GroupItemIcon } from './GroupItemIcon';
 import { TimerSwitch } from './TimerSwitch';
@@ -24,8 +24,8 @@ export const AppIcon = ({ pItem, pMissing = false, pDetail, pActive, pOnOpen, pS
         ? `${sKind?.one ?? 'Item'} "${pItem.label}" was not found. Edit the group to remove it.`
         : [`${sKind?.action ?? 'Open'} ${pItem.label}`, pDetail || (pItem.kind === 'file' || pItem.kind === 'folder' ? pItem.ref : sKind?.one)].filter(Boolean).join('\n');
     return (
-        <div className={`nb-app nb-app--${pSize}${pMissing ? ' is-missing' : ''}`} data-testid="new-board-app">
-            <button type="button" className="nb-app-btn" title={sTitle} onClick={pOnOpen}>
+        <div className={`nb-app nb-app--${pSize}${pMissing ? ' is-missing' : ''}`} data-testid={`app-${encodeURIComponent(itemKey(pItem))}`}>
+            <button type="button" className="nb-app-btn" data-testid="open" title={sTitle} onClick={pOnOpen}>
                 <span className="nb-app-icon" style={{ ['--nb-app-color' as string]: appColor(pItem) }}>
                     <GroupItemIcon pKind={pItem.kind} pRef={pItem.ref} />
                     {pMissing ? (

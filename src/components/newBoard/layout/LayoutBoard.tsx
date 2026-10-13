@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Component, Fragment, ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
     clampSectionHeight,
     createSection,
@@ -19,6 +19,7 @@ import {
     WidgetSize,
 } from './layoutModel';
 import { getLayoutDrag, setLayoutDrag } from './layoutDrag';
+import { besideSections, leastSavedHeight, packRows, ROW_GAP, shapeOf, widgetRowHeight } from './rowModel';
 
 
 // React 18 has no `inert` prop. While editing, a widget's own buttons must not open anything, and
@@ -40,20 +41,6 @@ const EDIT_NEST_PAD = 10 + 12;
 
 const endsWithSection = (aSection: SectionNode) => packRows(aSection).at(-1)?.some((aNode) => aNode.kind === 'section') ?? false;
 
-/** A section's children in grid rows: packed in order, a node that does not fit starts the next row. */
-const packRows = (aSection: SectionNode): LayoutNode[][] => {
-    const sRows: LayoutNode[][] = [];
-    let sUsed = ROW_COLUMNS;
-    aSection.children.forEach((aChild) => {
-        if (sUsed + aChild.size > ROW_COLUMNS) {
-            sRows.push([]);
-            sUsed = 0;
-        }
-        sUsed += aChild.size;
-        sRows[sRows.length - 1].push(aChild);
-    });
-    return sRows;
-};
 
 /**
  * How much taller section `aSection` is while editing than once saved: each row holding a widget gets
@@ -63,8 +50,11 @@ const packRows = (aSection: SectionNode): LayoutNode[][] => {
 const editExtra = (aSection: SectionNode): number =>
     (endsWithSection(aSection) ? EDIT_FOOT_ROOM : 0) +
     packRows(aSection).reduce(
+        // A widget's bar room and a nested section's own growth sit side by side in a row, not on top
+        // of each other: the row grows by the larger (summed, a section holding both was a bar's room
+        // short of what it needs, and a drag could take it below its nested section).
         (aSum, aRow) =>
-            aSum + (aRow.some((aNode) => aNode.kind === 'widget') ? EDIT_BAR_ROOM : 0) + Math.max(0, ...aRow.map((aNode) => (aNode.kind === 'section' ? editExtra(aNode) + EDIT_NEST_PAD : 0))),
+            aSum + Math.max(aRow.some((aNode) => aNode.kind === 'widget') ? EDIT_BAR_ROOM : 0, ...aRow.map((aNode) => (aNode.kind === 'section' ? editExtra(aNode) + EDIT_NEST_PAD : 0))),
         0
     );
 
@@ -75,10 +65,61 @@ const editExtra = (aSection: SectionNode): number =>
  * could not grow into space left under the sections below it, and one without a set height was
  * squeezed until its own sections spilled out.)
  */
-const rowTracks = (aSection: SectionNode) =>
-    packRows(aSection)
-        .map((aRow) => (aRow.some((aNode) => aNode.kind === 'section') ? 'auto' : 'minmax(0, 1fr)'))
-        .join(' ');
+const rowTracks = (aSection: SectionNode, aHeight: number) => {
+    const sRows = packRows(aSection);
+    // A row of widgets keeps the least a widget may be, so a nested section taller than its share
+    // (one without a height, on a narrower window) gives way and scrolls instead of squeezing the
+    // widgets to a sliver. A section saved shorter than its rows need still shares what it has.
+    const sShare = Math.floor((aHeight - ROW_GAP * Math.max(0, sRows.length - 1)) / Math.max(1, sRows.length));
+    const sLeast = Math.max(0, Math.min(SECTION_MIN_HEIGHT, sShare));
+    return sRows.map((aRow) => (aRow.some((aNode) => aNode.kind === 'section') ? 'auto' : `minmax(${sLeast}px, 1fr)`)).join(' ');
+};
+
+/**
+ * The drag preview: a copy of the dragged node alone. Chrome's own preview of a nested node took a
+ * box around it that showed parts of the sections it sits in. The copy goes inside the board, so
+ * the board's styles still apply to it, and is removed once the browser has taken its picture.
+ */
+const setDragPreview = (aEvent: React.DragEvent, aNode: HTMLElement, aHost: HTMLElement | null) => {
+    if (!aHost || typeof aEvent.dataTransfer.setDragImage !== 'function') return;
+    const sRect = aNode.getBoundingClientRect();
+    const sCopy = aNode.cloneNode(true) as HTMLElement;
+    sCopy.className = sCopy.className.replace(/\s*is-(dragging|drop-[\w-]+)/g, '');
+    sCopy.style.margin = '0';
+    sCopy.style.width = '100%';
+    sCopy.style.height = '100%';
+    const sCanvases = aNode.querySelectorAll('canvas');
+    sCopy.querySelectorAll('canvas').forEach((aCanvas, aIndex) => aCanvas.getContext('2d')?.drawImage(sCanvases[aIndex], 0, 0));
+    // Room for the node's own outline, which is drawn outside its box.
+    const sPad = 4;
+    const sWrap = document.createElement('div');
+    sWrap.className = 'nb-drag-preview';
+    // A section has no background of its own; take what shows behind it so the preview is not see-through.
+    let sBackground = 'transparent';
+    for (let sEl: HTMLElement | null = aNode; sEl && sBackground === 'transparent'; sEl = sEl.parentElement) {
+        const sColor = getComputedStyle(sEl).backgroundColor;
+        if (sColor && sColor !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(sColor)) sBackground = sColor;
+    }
+    sWrap.style.background = sBackground;
+    Object.assign(sWrap.style, {
+        position: 'fixed',
+        left: '-10000px',
+        top: '0',
+        width: `${sRect.width + sPad * 2}px`,
+        height: `${sRect.height + sPad * 2}px`,
+        padding: `${sPad}px`,
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        pointerEvents: 'none',
+    });
+    sWrap.appendChild(sCopy);
+    aHost.appendChild(sWrap);
+    aEvent.dataTransfer.setDragImage(sWrap, aEvent.clientX - sRect.left + sPad, aEvent.clientY - sRect.top + sPad);
+    setTimeout(() => sWrap.remove());
+};
+
+/** Below this the sections' bodies drop to two and one columns (index.scss). */
+const NARROW_QUERY = '(max-width: 900px)';
 
 /** How close to the top or bottom of the board a drag must come to scroll it, and how fast at the edge. */
 const AUTO_SCROLL_EDGE = 72;
@@ -109,6 +150,9 @@ const useDragAutoScroll = (aOn: boolean, aRootRef: React.RefObject<HTMLElement>)
             const sRect = sScroller.getBoundingClientRect();
             const sTop = sY - sRect.top;
             const sBottom = sRect.bottom - sY;
+            // Only near an edge inside the board: a pointer past it (over the panel under the board on a
+            // narrow window) counted as at the edge and ran the board to its end.
+            if (sTop < 0 || sBottom < 0) return;
             if (sTop < AUTO_SCROLL_EDGE) sScroller.scrollTop -= Math.ceil(AUTO_SCROLL_MAX_STEP * (1 - Math.max(0, sTop) / AUTO_SCROLL_EDGE));
             else if (sBottom < AUTO_SCROLL_EDGE) sScroller.scrollTop += Math.ceil(AUTO_SCROLL_MAX_STEP * (1 - Math.max(0, sBottom) / AUTO_SCROLL_EDGE));
         };
@@ -143,7 +187,8 @@ interface LayoutBoardProps {
     pEditing: boolean;
     pSelectedId?: string;
     pOnSelect: (aId: string | undefined) => void;
-    pOnChange: (aNodes: SectionNode[]) => void;
+    /** `automatic`: a change the board made by itself (fitting heights), not an edit of the user's. */
+    pOnChange: (aNodes: SectionNode[], aOptions?: { automatic?: boolean }) => void;
     pOnRemove: (aId: string) => void;
     pOnRefused: (aReason: string) => void;
     pRenderWidget: (aNode: WidgetNode) => React.ReactNode;
@@ -158,9 +203,25 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
     const [sDropMark, setDropMark] = useState<string | undefined>(undefined);
     // Height while a section's bottom edge is being dragged; written to the layout on release.
     // `holders`: sections with a set height that grow along when this one outgrows them.
+    /** The node whose "⋯" menu is open (only shown when its controls are too narrow to sit in one row). */
+    const [sMoreId, setMoreId] = useState<string | undefined>(undefined);
+    /** Which way the open menu runs: from a button in the left half of the board, to the right. */
+    const [sMoreStart, setMoreStart] = useState(false);
+    /** The node being dragged on the board, outlined in the accent colour until it is dropped. */
+    const [sDraggingId, setDraggingId] = useState<string | undefined>(undefined);
     const [sLive, setLive] = useState<{ id: string; height: number; holders: { id: string; height: number }[] } | undefined>(undefined);
     const sRootRef = useRef<HTMLDivElement>(null);
     useDragAutoScroll(pEditing, sRootRef);
+
+    useEffect(() => {
+        if (!pEditing) setMoreId(undefined);
+        if (!sMoreId || !pEditing) return;
+        const close = (aEvent: PointerEvent) => {
+            if (!(aEvent.target as HTMLElement).closest?.('.nb-ctl-more.is-open')) setMoreId(undefined);
+        };
+        document.addEventListener('pointerdown', close, true);
+        return () => document.removeEventListener('pointerdown', close, true);
+    }, [sMoreId, pEditing]);
 
     /** The body a resize handle sits on (both live in the section's frame). */
     const bodyOf = (aHandle: HTMLElement) => aHandle.parentElement?.querySelector(':scope > .nb-section-body') as HTMLElement | null;
@@ -179,7 +240,10 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         const sRows = new Map<number, number>();
         [...aBody.children].forEach((aEl) => {
             if (!aEl.classList.contains('nb-node')) return;
-            const sTop = Math.round(aEl.getBoundingClientRect().top);
+            // From the top of its margin: while editing a widget sits lower than a section in the same
+            // row (room for its control bar), and it was counted as a row of its own, so a section
+            // holding both grew by a whole row on any edit and could not be made shorter.
+            const sTop = Math.round(aEl.getBoundingClientRect().top - (parseFloat(getComputedStyle(aEl).marginTop) || 0));
             const sInner = aEl.querySelector(':scope > .nb-section') as HTMLElement | null;
             const sNeed = sInner ? sInner.getBoundingClientRect().height : SECTION_MIN_HEIGHT + (pEditing ? EDIT_BAR_ROOM : 0);
             sRows.set(sTop, Math.max(sRows.get(sTop) ?? 0, sNeed));
@@ -204,8 +268,11 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             const sNode = sSection.closest('.nb-node') as HTMLElement | null;
             const sParent = sNode?.parentElement;
             if (!aBody || !sNode || !sParent?.classList.contains('nb-section-body')) return Infinity;
-            sSlack += Math.max(0, sNode.offsetHeight - sSection.offsetHeight);
+            // In the holder itself the space its row leaves beside this section (a taller widget next
+            // to it) is already in what usedHeight leaves free, which counts the section, not the row:
+            // added again, the room came out that much too big and the holder grew that much too little.
             if (sParent.classList.contains('has-height')) return Math.max(SECTION_MIN_HEIGHT, Math.floor(aBody.offsetHeight + sSlack + sParent.clientHeight - usedHeight(sParent)));
+            sSlack += Math.max(0, sNode.offsetHeight - sSection.offsetHeight);
             sSection = sParent.closest('.nb-section') as HTMLElement | null;
         }
         return Infinity;
@@ -265,8 +332,76 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         };
     };
 
-    const commitResize = (aId: string, aSize: Resize) =>
-        pOnChange(updateNode(aSize.holders.reduce((aNodes, aHolder) => updateNode(aNodes, aHolder.id, { height: aHolder.height }), pNodes), aId, { height: aSize.height }));
+    const commitResize = (aId: string, aSize: Resize, aAutomatic = false) =>
+        pOnChange(
+            updateNode(aSize.holders.reduce((aNodes, aHolder) => updateNode(aNodes, aHolder.id, { height: aHolder.height }), pNodes), aId, { height: aSize.height }),
+            aAutomatic ? { automatic: true } : undefined
+        );
+
+    /** The board's shape when it was last fitted, and whether a change to it is still being fitted. */
+    const sFittedShape = useRef<string | undefined>(undefined);
+    const sFitting = useRef(false);
+    /** Whether the window is narrow enough for sections to drop below four columns (index.scss, 900px). */
+    const [sNarrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches);
+    useEffect(() => {
+        const sQuery = window.matchMedia(NARROW_QUERY);
+        const onChange = () => setNarrow(sQuery.matches);
+        sQuery.addEventListener('change', onChange);
+        return () => sQuery.removeEventListener('change', onChange);
+    }, []);
+
+    /**
+     * After something is added, moved or resized in columns, a section of set height grows when what
+     * it now holds needs more room than it has, the same way a resize grows it (and the sections
+     * holding it). Without this, adding a section under a widget squeezed the widget's row, down to
+     * nothing, and the two drew over each other. Innermost first, one section per render; the next
+     * render fits whatever that one moved. Opening Customize changes nothing.
+     *
+     * Saved heights are for four columns. Laid out in four, the drawn rows are measured (they know how
+     * tall widgets and nested sections really are); in fewer (a narrow window) the drawn rows are not
+     * the saved ones, so the layout's own least height is used, and the change stays pending until
+     * the window is wide again, when the drawn rows are checked once more.
+     */
+    useLayoutEffect(() => {
+        if (!pEditing) {
+            sFittedShape.current = undefined;
+            sFitting.current = false;
+            return;
+        }
+        const sShape = shapeOf(pNodes);
+        if (sFittedShape.current === undefined) sFittedShape.current = sShape;
+        else if (sShape !== sFittedShape.current) {
+            sFittedShape.current = sShape;
+            sFitting.current = true;
+        }
+        // While a resize is dragged the drawn heights are not the saved ones yet.
+        if (!sFitting.current || sLive || !sRootRef.current) return;
+        const heightOf = (aId: string) => {
+            const sFound = findNode(pNodes, aId)?.node;
+            return sFound?.kind === 'section' ? sFound.height : undefined;
+        };
+        const sBodies = [...sRootRef.current.querySelectorAll<HTMLElement>('.nb-section-body.has-height')].reverse();
+        for (const sBody of sBodies) {
+            const sId = (sBody.closest('.nb-section') as HTMLElement | null)?.dataset.sectionId;
+            const sNode = sId ? findNode(pNodes, sId)?.node : undefined;
+            if (sNode?.kind !== 'section' || !sNode.height) continue;
+            if (getComputedStyle(sBody).gridTemplateColumns.split(' ').length !== ROW_COLUMNS) {
+                const sLeast = clampSectionHeight(leastSavedHeight(sNode));
+                if (sLeast <= sNode.height) continue;
+                pOnChange(updateNode(pNodes, sNode.id, { height: sLeast }), { automatic: true });
+                return;
+            }
+            if (Math.ceil(usedHeight(sBody)) - sBody.clientHeight <= 1) continue;
+            const sSize = resizePlan(sNode, sBody).at(leastFor(sBody) - editExtra(sNode));
+            // At the height cap nothing changes, and committing anyway would render forever.
+            if (sSize.height === sNode.height && sSize.holders.every((aHolder) => heightOf(aHolder.id) === aHolder.height)) continue;
+            commitResize(sNode.id, sSize, true);
+            return;
+        }
+        // Fitted from the layout alone: check the drawn rows once the window is wide again.
+        sFitting.current = sNarrow;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pNodes, pEditing, sLive, sNarrow]);
 
     const startResize = (aEvent: React.PointerEvent<HTMLElement>, aNode: SectionNode) => {
         if (aEvent.button !== 0) return;
@@ -300,6 +435,8 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         const sPayload = getLayoutDrag();
         setLayoutDrag(undefined);
         setDropMark(undefined);
+        // A node moved into another section is mounted anew, so its dragend never reaches the board.
+        setDraggingId(undefined);
         if (!sPayload) return;
         const sNode = sPayload.from === 'board' ? undefined : sPayload.create();
         const sId = sNode?.id ?? (sPayload.from === 'board' ? sPayload.id : '');
@@ -348,11 +485,28 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         return { index: sRow === sRows[sRows.length - 1] ? undefined : sRow.last + 1, room: sRoom > 0 ? sRoom : undefined };
     };
 
+    /**
+     * Whether `aId` is the node being dragged on the board or inside it: a section cannot go into
+     * itself, so nothing there is offered as a place (the drop used to be refused only once made).
+     */
+    const insideDragged = (aId: string | undefined) => {
+        const sPayload = getLayoutDrag();
+        if (sPayload?.from !== 'board' || !aId) return false;
+        const sDragged = findNode(pNodes, sPayload.id)?.node;
+        return !!sDragged && (sDragged.id === aId || (sDragged.kind === 'section' && !!findNode(sDragged.children, aId)));
+    };
+    /** Over a place the dragged node cannot go: no drop allowed, and no place shown (nor one further out). */
+    const refuseOver = (aEvent: React.DragEvent) => {
+        aEvent.stopPropagation();
+        if (sDropMark !== undefined) setDropMark(undefined);
+    };
+
     const dropProps = (aMark: string, aParentId: string | undefined, aIndex: number | undefined, aSection?: SectionNode) =>
         pEditing
             ? {
                   onDragOver: (aEvent: React.DragEvent) => {
                       if (!getLayoutDrag()) return;
+                      if (insideDragged(aParentId)) return refuseOver(aEvent);
                       aEvent.preventDefault();
                       aEvent.stopPropagation();
                       if (sDropMark !== aMark) setDropMark(aMark);
@@ -386,6 +540,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             ? {
                   onDragOver: (aEvent: React.DragEvent) => {
                       if (!getLayoutDrag()) return;
+                      if (insideDragged(aNodeId)) return refuseOver(aEvent);
                       aEvent.preventDefault();
                       aEvent.stopPropagation();
                       const { side, axis } = sideOf(aEvent);
@@ -401,20 +556,44 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             : {};
     };
 
+    /**
+     * A press in a field (a section title) selects its text. The nodes around it are draggable, and
+     * the browser starts a drag from the nearest one (the drag's target is that node, not the field),
+     * so the section moved instead; they stop being draggable until the press ends.
+     */
+    const holdDragInField = (aEvent: React.PointerEvent) => {
+        const sField = (aEvent.target as HTMLElement).closest('input, textarea');
+        if (!sField) return;
+        const sHeld: HTMLElement[] = [];
+        for (let sEl = sField.closest<HTMLElement>('[draggable="true"]'); sEl; sEl = sEl.parentElement?.closest<HTMLElement>('[draggable="true"]') ?? null) {
+            sEl.draggable = false;
+            sHeld.push(sEl);
+        }
+        const release = () => {
+            sHeld.forEach((aEl) => (aEl.draggable = true));
+            window.removeEventListener('pointerup', release, true);
+            window.removeEventListener('pointercancel', release, true);
+        };
+        window.addEventListener('pointerup', release, true);
+        window.addEventListener('pointercancel', release, true);
+    };
+
     const dragProps = (aId: string) =>
         pEditing
             ? {
                   draggable: true,
                   onDragStart: (aEvent: React.DragEvent) => {
-                      if ((aEvent.target as HTMLElement).closest('input')) return;
                       aEvent.stopPropagation();
                       setLayoutDrag({ from: 'board', id: aId });
+                      setDraggingId(aId);
                       aEvent.dataTransfer.effectAllowed = 'move';
                       aEvent.dataTransfer.setData('text/plain', aId);
+                      setDragPreview(aEvent, aEvent.currentTarget as HTMLElement, sRootRef.current);
                   },
                   onDragEnd: () => {
                       setLayoutDrag(undefined);
                       setDropMark(undefined);
+                      setDraggingId(undefined);
                   },
               }
             : {};
@@ -426,6 +605,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                     <button
                         type="button"
                         key={aSize}
+                        data-testid={`size-${aSize}`}
                         aria-pressed={aNode.size === aSize}
                         title={SIZE_TITLES[aSize]}
                         onClick={() => pOnChange(updateNode(pNodes, aNode.id, { size: aSize }))}
@@ -436,8 +616,76 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             </span>
         ) : null;
 
-    const removeButton = (aNode: LayoutNode, aLabel: string) => (
-        <button type="button" className="nb-icon-btn nb-remove" aria-label={`Remove ${aLabel}`} title={aNode.kind === 'section' ? 'Remove this section and what is in it' : 'Remove from the New tab'} onClick={() => pOnRemove(aNode.id)}>
+    /**
+     * Controls that fold into a "⋯" menu when the node is too narrow for one row (a container query in
+     * index.scss decides). Wide enough, the wrappers are `display: contents` and the controls sit inline.
+     */
+    const moreMenu = (aNode: LayoutNode, aLabel: string, aContent: React.ReactNode) => (
+        <span
+            className={`nb-ctl-more${sMoreId === aNode.id ? ' is-open' : ''}${sMoreStart ? ' is-align-start' : ''}`}
+            // The menu closes on Escape (focus back on its button), once something in it is chosen,
+            // and when focus moves out of it; it stayed open behind dialogs and came back later.
+            onKeyDown={(aEvent) => {
+                if (aEvent.key !== 'Escape' || sMoreId !== aNode.id) return;
+                aEvent.stopPropagation();
+                setMoreId(undefined);
+                (aEvent.currentTarget.querySelector('.nb-ctl-more-btn') as HTMLElement | null)?.focus();
+            }}
+            onBlur={(aEvent) => {
+                if (sMoreId === aNode.id && !aEvent.currentTarget.contains(aEvent.relatedTarget as Node | null)) setMoreId(undefined);
+            }}
+        >
+            <button
+                type="button"
+                className="nb-icon-btn nb-ctl-more-btn"
+                data-testid="more"
+                aria-label={`More for ${aLabel}`}
+                aria-expanded={sMoreId === aNode.id}
+                title="Size and settings"
+                onClick={(aEvent) => {
+                    const sButton = aEvent.currentTarget.getBoundingClientRect();
+                    const sBoard = sRootRef.current?.getBoundingClientRect();
+                    setMoreStart(!!sBoard && sButton.left + sButton.width / 2 < sBoard.left + sBoard.width / 2);
+                    setMoreId((aPrev) => (aPrev === aNode.id ? undefined : aNode.id));
+                }}
+            >
+                ⋯
+            </button>
+            <span
+                className="nb-ctl-extra"
+                data-testid="more-menu"
+                // A press on the menu's own padding is not a click outside: it keeps focus (so the menu
+                // does not close on blur) and does not select the section underneath.
+                onMouseDown={(aEvent) => {
+                    if (!(aEvent.target as HTMLElement).closest('button')) aEvent.preventDefault();
+                }}
+                onClick={(aEvent) => {
+                    aEvent.stopPropagation();
+                    const sChosen = (aEvent.target as HTMLElement).closest('button');
+                    if (!sChosen) return;
+                    // Choosing closes the menu, which hides what was chosen: focus goes to the menu's
+                    // button, or to the chosen control if the bar no longer folds (a wider size).
+                    const sMore = aEvent.currentTarget.parentElement?.querySelector('.nb-ctl-more-btn') as HTMLElement | null;
+                    const sMenu = aEvent.currentTarget;
+                    setMoreId(undefined);
+                    requestAnimationFrame(() => {
+                        // A choice that opened a dialog (settings) has moved focus into it; leave it there.
+                        const sNow = document.activeElement;
+                        if (sNow && sNow !== document.body && !sMenu.contains(sNow)) return;
+                        if (sMore?.isConnected && sMore.getClientRects().length) sMore.focus();
+                        else if (sChosen.isConnected && sChosen.getClientRects().length) sChosen.focus();
+                    });
+                }}
+            >
+                {aContent}
+                {/* Shown only when the row is too narrow for the remove button beside the menu. */}
+                <span className="nb-ctl-menu-only">{removeButton(aNode, aLabel, 'menu-remove')}</span>
+            </span>
+        </span>
+    );
+
+    const removeButton = (aNode: LayoutNode, aLabel: string, aTestId = 'remove') => (
+        <button type="button" className="nb-icon-btn nb-remove" data-testid={aTestId} aria-label={`Remove ${aLabel}`} title={aNode.kind === 'section' ? 'Remove this section and what is in it' : 'Remove from the New tab'} onClick={() => pOnRemove(aNode.id)}>
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
                 <path d="M1.5 5h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
@@ -447,44 +695,57 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
     const renderNode = (aNode: LayoutNode, aParent: SectionNode | undefined, aIndex: number, aDepth: number): React.ReactNode => {
         // `before:x:id`, `after:y:id` ... while something is dragged over this node.
         const sDropSide = sDropMark?.endsWith(`:${aNode.id}`) ? sDropMark.split(':').slice(0, 2).join('-') : '';
-        const sDropClass = sDropSide ? ` is-drop-${sDropSide}` : '';
+        const sDropClass = (sDropSide ? ` is-drop-${sDropSide}` : '') + (sDraggingId === aNode.id ? ' is-dragging' : '');
         const sSizeClass = aDepth === 0 ? 4 : aNode.size;
 
         if (aNode.kind === 'widget') {
             const sLabel = pWidgetLabel(aNode);
             const sSizes = widgetSizes(aNode.type);
             const sUnavailable = pEditing ? pUnavailable?.(aNode) : undefined;
+            // Beside nested sections in a section of set height: how tall they make its row (index.scss
+            // uses it once the window is too narrow for four columns).
+            const sBeside = aParent?.height ? besideSections(aParent).get(aNode.id) : undefined;
             return (
                 <div
                     key={aNode.id}
-                    className={`nb-node nb-span-${sSizeClass} nb-widget${sDropClass}${sUnavailable ? ' is-unavailable' : ''}`}
-                    data-testid={`new-board-widget-${aNode.type}`}
+                    className={`nb-node nb-span-${sSizeClass} nb-widget${sDropClass}${sUnavailable ? ' is-unavailable' : ''}${sBeside ? ' is-beside-section' : ''}`}
+                    style={sBeside ? { ['--nb-row-min' as string]: `${sBeside}px` } : undefined}
+                    data-testid={`widget-${encodeURIComponent(aNode.id)}`}
+                    data-widget-type={aNode.type}
                     {...dragProps(aNode.id)}
                     {...nodeDropProps(aNode.id, aParent?.id, aIndex)}
                 >
                     {pEditing ? (
-                        <span className="nb-widget-ctl">
-                            <span className="nb-grip" title="Drag onto another widget to put it before that one" aria-hidden="true">
+                        <span className="nb-widget-ctl" data-testid="bar">
+                            <span className="nb-grip" data-testid="grip" title="Drag onto another widget to put it before that one" aria-hidden="true">
                                 ⋮⋮
                             </span>
                             <span className="nb-widget-label">{sLabel}</span>
-                            <button type="button" className="nb-icon-btn" aria-label={`Move ${sLabel} earlier`} title="Move earlier in this section" onClick={() => apply(shiftNode(pNodes, aNode.id, -1))}>
+                            <button type="button" className="nb-icon-btn nb-move" data-testid="move-earlier" aria-label={`Move ${sLabel} earlier`} title="Move earlier in this section" onClick={() => apply(shiftNode(pNodes, aNode.id, -1))}>
                                 ←
                             </button>
-                            <button type="button" className="nb-icon-btn" aria-label={`Move ${sLabel} later`} title="Move later in this section" onClick={() => apply(shiftNode(pNodes, aNode.id, 1))}>
+                            <button type="button" className="nb-icon-btn nb-move" data-testid="move-later" aria-label={`Move ${sLabel} later`} title="Move later in this section" onClick={() => apply(shiftNode(pNodes, aNode.id, 1))}>
                                 →
                             </button>
-                            {sizeControl(aNode, sSizes)}
-                            {pOnConfigure && CONFIGURABLE.has(aNode.type) ? (
-                                <button type="button" className="nb-icon-btn" aria-label={`Settings for ${sLabel}`} title="Settings" onClick={() => pOnConfigure(aNode)}>
-                                    ⚙
-                                </button>
-                            ) : null}
+                            {sSizes.length > 1 || (pOnConfigure && CONFIGURABLE.has(aNode.type))
+                                ? moreMenu(
+                                      aNode,
+                                      sLabel,
+                                      <>
+                                          {sizeControl(aNode, sSizes)}
+                                          {pOnConfigure && CONFIGURABLE.has(aNode.type) ? (
+                                              <button type="button" className="nb-icon-btn" data-testid="settings" aria-label={`Settings for ${sLabel}`} title="Settings" onClick={() => pOnConfigure(aNode)}>
+                                                  ⚙
+                                              </button>
+                                          ) : null}
+                                      </>
+                                  )
+                                : null}
                             {removeButton(aNode, sLabel)}
                         </span>
                     ) : null}
                     <div className="nb-widget-body" ref={(aEl) => setInert(aEl, pEditing)}>
-                        {sUnavailable ? <p className="nb-widget-unavailable">Not shown to this account. {sUnavailable}.</p> : pRenderWidget(aNode)}
+                        {sUnavailable ? <p className="nb-widget-unavailable">Not shown to this account. {sUnavailable}.</p> : <WidgetBoundary>{pRenderWidget(aNode)}</WidgetBoundary>}
                     </div>
                 </div>
             );
@@ -497,7 +758,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             <div key={aNode.id} className={`nb-node nb-span-${sSizeClass}${sDropClass}`} {...dragProps(aNode.id)} {...nodeDropProps(aNode.id, aParent?.id, aIndex)}>
                 <section
                     className={`nb-section nb-depth-${Math.min(aDepth, 2)}${aNode.title || pEditing ? '' : ' is-untitled'}${sSelected ? ' is-selected' : ''}${sHeight ? ' has-own-height' : ''}${sDropMark === `end:${aNode.id}` ? ' is-drop-into' : ''}`}
-                    data-testid="new-board-section"
+                    data-testid={`section-${encodeURIComponent(aNode.id)}`}
                     data-section-id={aNode.id}
                     aria-label={aNode.title || undefined}
                     onClick={
@@ -509,14 +770,15 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                             : undefined
                     }
                 >
-                    <div className="nb-section-head">
+                    <div className="nb-section-head" data-testid="head">
                         {pEditing ? (
                             <>
-                                <span className="nb-grip" title="Drag to move this section" aria-hidden="true">
+                                <span className="nb-grip" data-testid="grip" title="Drag to move this section" aria-hidden="true">
                                     ⋮⋮
                                 </span>
                                 <input
                                     className="nb-section-title-input"
+                                    data-testid="title"
                                     aria-label="Section title"
                                     value={aNode.title}
                                     placeholder="Untitled section"
@@ -532,11 +794,11 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                             {!pEditing && aNode.note ? <small>{aNode.note}</small> : null}
                             {pEditing ? (
                                 <span className="nb-section-ctl">
-                                    {aDepth > 0 ? sizeControl(aNode, SECTION_SIZES) : null}
-                                    <button type="button" className="nb-icon-btn" aria-label={`Move ${sLabel} up`} title="Move up" onClick={() => apply(shiftNode(pNodes, aNode.id, -1))}>
+                                    {aDepth > 0 ? moreMenu(aNode, sLabel, sizeControl(aNode, SECTION_SIZES)) : null}
+                                    <button type="button" className="nb-icon-btn nb-move" data-testid="move-up" aria-label={`Move ${sLabel} up`} title="Move up" onClick={() => apply(shiftNode(pNodes, aNode.id, -1))}>
                                         ↑
                                     </button>
-                                    <button type="button" className="nb-icon-btn" aria-label={`Move ${sLabel} down`} title="Move down" onClick={() => apply(shiftNode(pNodes, aNode.id, 1))}>
+                                    <button type="button" className="nb-icon-btn nb-move" data-testid="move-down" aria-label={`Move ${sLabel} down`} title="Move down" onClick={() => apply(shiftNode(pNodes, aNode.id, 1))}>
                                         ↓
                                     </button>
                                     {removeButton(aNode, sLabel)}
@@ -550,8 +812,9 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                         drop zone, which made sections taller while editing than once saved. */}
                     <div className="nb-section-frame">
                         <div
+                            data-testid="body"
                             className={`nb-section-body${sHeight ? ' has-height' : ''}${aNode.children.length ? '' : ' is-empty'}${endsWithSection(aNode) ? ' ends-with-section' : ''}`}
-                            style={sHeight ? { height: sHeight + (pEditing ? editExtra(aNode) : 0), gridTemplateRows: rowTracks(aNode) } : undefined}
+                            style={sHeight ? { height: sHeight + (pEditing ? editExtra(aNode) : 0), gridTemplateRows: rowTracks(aNode, sHeight), ['--nb-row-h' as string]: `${widgetRowHeight(aNode, sHeight)}px` } : undefined}
                             data-empty-hint={pEditing && !aNode.children.length ? 'Empty section. Drop a widget here, or select it and press + in the panel.' : undefined}
                             {...dropProps(`end:${aNode.id}`, aNode.id, undefined, aNode)}
                         >
@@ -560,6 +823,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                         {pEditing ? (
                             <div
                                 className={`nb-section-resize${sLive?.id === aNode.id ? ' is-dragging' : ''}`}
+                                data-testid="resize"
                                 role="separator"
                                 aria-orientation="horizontal"
                                 aria-label={`Height of ${sLabel}`}
@@ -587,7 +851,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
 
     const insertBar = (aIndex: number) =>
         pEditing ? (
-            <div key={`bar-${aIndex}`} className={`nb-insert${sDropMark === `root:${aIndex}` ? ' is-over' : ''}`} {...dropProps(`root:${aIndex}`, undefined, aIndex)}>
+            <div key={`bar-${aIndex}`} className={`nb-insert${sDropMark === `root:${aIndex}` ? ' is-over' : ''}`} data-testid="new-board-insert-bar" {...dropProps(`root:${aIndex}`, undefined, aIndex)}>
                 <button
                     type="button"
                     className="nb-insert-btn"
@@ -608,9 +872,26 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         ) : null;
 
     return (
-        <div ref={sRootRef} className={`nb-board${pEditing ? ' is-editing' : ''}`}>
+        <div ref={sRootRef} className={`nb-board${pEditing ? ' is-editing' : ''}`} data-testid="board" onPointerDownCapture={pEditing ? holdDragInField : undefined}>
             {insertBar(0)}
-            {pNodes.map((aNode, aIndex) => [renderNode(aNode, undefined, aIndex, 0), insertBar(aIndex + 1)])}
+            {/* Keyed by the section, so moving one moves its widgets (and focus) with it instead of rebuilding them. */}
+            {pNodes.map((aNode, aIndex) => (
+                <Fragment key={aNode.id}>
+                    {renderNode(aNode, undefined, aIndex, 0)}
+                    {insertBar(aIndex + 1)}
+                </Fragment>
+            ))}
         </div>
     );
 };
+
+/** One widget that fails to draw shows a note in its own tile; the board and the app keep going. */
+class WidgetBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+    state = { failed: false };
+    static getDerivedStateFromError() {
+        return { failed: true };
+    }
+    render() {
+        return this.state.failed ? <p className="nb-widget-unavailable" data-testid="widget-failed">This widget could not be shown. Check its settings, or remove it.</p> : this.props.children;
+    }
+}

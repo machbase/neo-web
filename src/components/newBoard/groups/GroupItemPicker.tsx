@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '@/design-system/components';
 import { Group, GROUP_KIND_ORDER, GroupItem, GroupItemKind, itemKey } from './groupModel';
 import { DirEntry, KIND_LABELS, listDirectory, listResources, ResourceEntry } from './groupResources';
 import { GroupItemIcon } from './GroupItemIcon';
+import { useDialogFocus } from '../useDialogFocus';
 
 type Tab = Exclude<GroupItemKind, 'folder'>;
 const TABS: Tab[] = GROUP_KIND_ORDER.filter((aKind): aKind is Tab => aKind !== 'folder');
@@ -16,6 +17,13 @@ interface GroupItemPickerProps {
 
 /** Choose shortcuts for a group: files and folders are browsed a folder at a time, every other kind is one searchable list. */
 export const GroupItemPicker = ({ pGroup, pOnAdd, pOnClose }: GroupItemPickerProps) => {
+    useDialogFocus('new-board-group-picker');
+    const sSearchRef = useRef<HTMLInputElement>(null);
+    /** Opening a folder replaces the row that had focus; focus goes to the search of the new folder. */
+    const openFolder = (aDir: string) => {
+        setDir(aDir);
+        sSearchRef.current?.focus();
+    };
     const [sTab, setTab] = useState<Tab>('file');
     const [sQuery, setQuery] = useState('');
     const [sDir, setDir] = useState('/');
@@ -95,14 +103,18 @@ export const GroupItemPicker = ({ pGroup, pOnAdd, pOnClose }: GroupItemPickerPro
                         </div>
                         {/* One fixed-height line on every tab, so switching tabs never moves the dialog. */}
                         {sTab === 'file' ? (
-                            <nav className="nb-crumbs" aria-label="Folder">
-                                <button type="button" onClick={() => setDir('/')}>
+                            <nav className="nb-crumbs" aria-label="Folder" data-testid="crumbs">
+                                <button type="button" data-testid="crumb-root" onClick={() => setDir('/')}>
                                     Files
                                 </button>
                                 {sCrumbs.map((aPart, aIndex) => (
                                     <span key={aIndex}>
                                         <span aria-hidden="true">/</span>
-                                        <button type="button" onClick={() => setDir('/' + sCrumbs.slice(0, aIndex + 1).join('/') + '/')}>
+                                        <button
+                                            type="button"
+                                            data-testid={`crumb-${encodeURIComponent('/' + sCrumbs.slice(0, aIndex + 1).join('/') + '/')}`}
+                                            onClick={() => setDir('/' + sCrumbs.slice(0, aIndex + 1).join('/') + '/')}
+                                        >
                                             {aPart}
                                         </button>
                                     </span>
@@ -119,6 +131,17 @@ export const GroupItemPicker = ({ pGroup, pOnAdd, pOnClose }: GroupItemPickerPro
                             value={sQuery}
                             placeholder={sTab === 'file' ? 'Filter this folder' : `Search ${KIND_LABELS[sTab].many.toLowerCase()}`}
                             onChange={(aEvent) => setQuery(aEvent.target.value)}
+                            onKeyDown={(aEvent) => {
+                                // Escape clears the search first (as in the widget panel) and goes no further, so the
+                                // dialog stays open with what was picked. An empty search lets it close.
+                                if (aEvent.key === 'Escape' && sQuery) {
+                                    aEvent.stopPropagation();
+                                    setQuery('');
+                                }
+                            }}
+                            ref={sSearchRef}
+                            autoFocus
+                            data-testid="search"
                             aria-label="Search"
                         />
                         <div className="nb-list nb-picker-list" role="listbox" aria-multiselectable="true">
@@ -132,11 +155,11 @@ export const GroupItemPicker = ({ pGroup, pOnAdd, pOnClose }: GroupItemPickerPro
                                 const sAlready = sInGroup.has(sKey);
                                 const sChecked = sAlready || sChosen.has(sKey);
                                 return (
-                                    <div key={sKey} className={`nb-list-row nb-picker-row${sAlready ? ' is-in' : ''}`} role="option" aria-selected={sChecked}>
-                                        <input type="checkbox" aria-label={`Select ${aRow.label}`} checked={sChecked} disabled={sAlready} onChange={() => toggle(aRow)} />
+                                    <div key={sKey} className={`nb-list-row nb-picker-row${sAlready ? ' is-in' : ''}`} role="option" aria-selected={sChecked} data-testid={`row-${encodeURIComponent(sKey)}`}>
+                                        <input type="checkbox" data-testid="select" aria-label={`Select ${aRow.label}`} checked={sChecked} disabled={sAlready} onChange={() => toggle(aRow)} />
                                         <GroupItemIcon pKind={aRow.kind} pRef={aRow.ref} />
                                         {aRow.kind === 'folder' ? (
-                                            <button type="button" className="nb-list-name nb-folder-link" title="Open this folder" onClick={() => setDir(aRow.ref + '/')}>
+                                            <button type="button" className="nb-list-name nb-folder-link" data-testid="open-folder" title="Open this folder" onClick={() => openFolder(aRow.ref + '/')}>
                                                 {aRow.label}/
                                             </button>
                                         ) : (

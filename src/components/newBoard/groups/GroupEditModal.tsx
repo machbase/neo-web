@@ -4,6 +4,7 @@ import { accountKey } from '../layout/newTabStorage';
 import { Group, GROUP_CAPTION_MAX, GROUP_COLORS, GroupItem, GroupVisibility, itemKey, newGroupId } from './groupModel';
 import { KIND_LABELS } from './groupResources';
 import { GroupItemIcon } from './GroupItemIcon';
+import { useDialogFocus } from '../useDialogFocus';
 
 interface GroupEditModalProps {
     /** Undefined creates a new group. */
@@ -23,7 +24,7 @@ export const GroupEditModal = ({ pGroup, pMissing, pDefaultColor, pOnSave, pOnDe
     const [sItems, setItems] = useState<GroupItem[]>(pGroup?.items ?? []);
     const [sConfirmDelete, setConfirmDelete] = useState(false);
     const [sBusy, setBusy] = useState(false);
-    const sMissingItems = sItems.filter((aItem) => pMissing?.has(itemKey(aItem)));
+    useDialogFocus('new-board-group-modal');
 
     const save = async () => {
         if (!sName.trim() || sBusy) return;
@@ -56,7 +57,7 @@ export const GroupEditModal = ({ pGroup, pMissing, pDefaultColor, pOnSave, pOnDe
                     <div className="nb-form">
                         <label className="nb-field">
                             <span>Name</span>
-                            <input className="nb-input" type="text" autoFocus maxLength={40} value={sName} placeholder="e.g. Plant A monitoring" onChange={(aEvent) => setName(aEvent.target.value)} />
+                            <input className="nb-input" data-testid="name" type="text" autoFocus maxLength={40} value={sName} placeholder="e.g. Plant A monitoring" onChange={(aEvent) => setName(aEvent.target.value)} />
                         </label>
                         <label className="nb-field">
                             <span>
@@ -64,6 +65,7 @@ export const GroupEditModal = ({ pGroup, pMissing, pDefaultColor, pOnSave, pOnDe
                             </span>
                             <input
                                 className="nb-input"
+                                data-testid="caption"
                                 type="text"
                                 maxLength={GROUP_CAPTION_MAX}
                                 value={sCaption}
@@ -91,38 +93,60 @@ export const GroupEditModal = ({ pGroup, pMissing, pDefaultColor, pOnSave, pOnDe
                         <div className="nb-field" role="radiogroup" aria-label="Who can see it">
                             <span>Who can see it</span>
                             <label className={`nb-radio${sVisibility === 'private' ? ' is-checked' : ''}`}>
-                                <input type="radio" name="nb-group-visibility" checked={sVisibility === 'private'} onChange={() => setVisibility('private')} />
+                                <input type="radio" name="nb-group-visibility" data-testid="visibility-private" checked={sVisibility === 'private'} onChange={() => setVisibility('private')} />
                                 <span>
                                     <b>Only me</b>
                                     <small>Shown to the account you are signed in with ({accountKey()}).</small>
                                 </span>
                             </label>
                             <label className={`nb-radio${sVisibility === 'shared' ? ' is-checked' : ''}`}>
-                                <input type="radio" name="nb-group-visibility" checked={sVisibility === 'shared'} onChange={() => setVisibility('shared')} />
+                                <input type="radio" name="nb-group-visibility" data-testid="visibility-shared" checked={sVisibility === 'shared'} onChange={() => setVisibility('shared')} />
                                 <span>
                                     <b>Everyone on this server</b>
                                     <small>Every account can add it to their New tab, and change it.</small>
                                 </span>
                             </label>
                         </div>
-                        {sMissingItems.length ? (
+                        {/* Every shortcut can be taken out here (before, only ones not found could); the thing itself stays where it is. */}
+                        {sItems.length ? (
                             <div className="nb-field">
-                                <span>Shortcuts not found</span>
-                                <div className="nb-list">
-                                    {sMissingItems.map((aItem) => (
-                                        <div className="nb-list-row is-missing" key={itemKey(aItem)}>
-                                            <GroupItemIcon pKind={aItem.kind} pRef={aItem.ref} />
-                                            <span className="nb-list-name">
-                                                {aItem.label}
-                                                <small>
-                                                    {KIND_LABELS[aItem.kind].one} · {aItem.ref}
-                                                </small>
-                                            </span>
-                                            <Button size="sm" variant="ghost" onClick={() => setItems((aList) => aList.filter((aOld) => itemKey(aOld) !== itemKey(aItem)))}>
-                                                Remove
-                                            </Button>
-                                        </div>
-                                    ))}
+                                <span>
+                                    Shortcuts <small className="nb-muted">removing one leaves the item itself where it is</small>
+                                </span>
+                                <div className="nb-list nb-list--scroll" data-testid="items">
+                                    {sItems.map((aItem) => {
+                                        const sMissing = !!pMissing?.has(itemKey(aItem));
+                                        return (
+                                            <div className={`nb-list-row${sMissing ? ' is-missing' : ''}`} key={itemKey(aItem)} data-testid={`item-${encodeURIComponent(itemKey(aItem))}`}>
+                                                <GroupItemIcon pKind={aItem.kind} pRef={aItem.ref} />
+                                                <span className="nb-list-name">
+                                                    {aItem.label}
+                                                    <small>
+                                                        {sMissing ? 'Not found · ' : ''}
+                                                        {KIND_LABELS[aItem.kind].one} · {aItem.ref}
+                                                    </small>
+                                                </span>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    data-testid="remove"
+                                                    aria-label={`Remove ${aItem.label} from the group`}
+                                                    onClick={(aEvent) => {
+                                                        // The row goes with its button: focus moves to the next row's Remove (or the last one's).
+                                                        const sList = aEvent.currentTarget.closest('[data-testid="items"]');
+                                                        const sAt = sItems.findIndex((aOld) => itemKey(aOld) === itemKey(aItem));
+                                                        setItems((aList) => aList.filter((aOld) => itemKey(aOld) !== itemKey(aItem)));
+                                                        requestAnimationFrame(() => {
+                                                            const sButtons = sList?.querySelectorAll<HTMLElement>('[data-testid="remove"]');
+                                                            sButtons?.[Math.min(sAt, sButtons.length - 1)]?.focus();
+                                                        });
+                                                    }}
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ) : null}

@@ -276,6 +276,37 @@ const WIDGET_TYPES = new Set<string>([...Object.keys(BUILTIN_WIDGETS), 'group', 
  * types, malformed nodes and anything nested past the limit are dropped rather than crashing the tab.
  * Returns undefined when nothing usable is left, so the caller falls back to the default.
  */
+const pick = <T,>(aValue: unknown, aAllowed: readonly T[]) => (aAllowed.includes(aValue as T) ? { value: aValue as T } : undefined);
+const finite = (aValue: unknown) => typeof aValue === 'number' && Number.isFinite(aValue);
+
+/**
+ * A widget's settings as the widget expects them: fields of the wrong type (written by hand or by
+ * another build) are dropped, so the widget falls back to its default for them instead of failing.
+ */
+const cleanSettings = (aType: string, aRaw: Record<string, any>): Record<string, unknown> => {
+    const sOut: Record<string, unknown> = {};
+    const keep = (aKey: string, aOk: boolean) => aOk && (sOut[aKey] = aRaw[aKey]);
+    switch (aType) {
+        case 'clock':
+            keep('style', !!pick(aRaw.style, ['analog', 'digital'] as const));
+            keep('timeZone', typeof aRaw.timeZone === 'string');
+            keep('label', typeof aRaw.label === 'string');
+            keep('hour12', typeof aRaw.hour12 === 'boolean');
+            return sOut;
+        case 'calendar':
+            keep('weekStart', !!pick(aRaw.weekStart, ['sun', 'mon'] as const));
+            return sOut;
+        case 'weather': {
+            const sPlace = aRaw.place;
+            keep('place', !!sPlace && typeof sPlace.name === 'string' && finite(sPlace.latitude) && finite(sPlace.longitude) && (sPlace.country === undefined || typeof sPlace.country === 'string'));
+            keep('unit', !!pick(aRaw.unit, ['c', 'f'] as const));
+            return sOut;
+        }
+        default:
+            return aRaw;
+    }
+};
+
 export const parseLayout = (aRaw: unknown): SectionNode[] | undefined => {
     const sNodes = (aRaw as any)?.nodes;
     if (!Array.isArray(sNodes)) return undefined;
@@ -308,7 +339,7 @@ export const parseLayout = (aRaw: unknown): SectionNode[] | undefined => {
                 type: aNode.type,
                 size: sAllowed.includes(sSize) ? sSize : [...sAllowed].reverse().find((aOne) => aOne <= sSize) ?? sAllowed[0],
                 ...(aNode.type === 'group' ? { groupId: aNode.groupId } : {}),
-                ...(aNode.settings && typeof aNode.settings === 'object' && !Array.isArray(aNode.settings) ? { settings: aNode.settings } : {}),
+                ...(aNode.settings && typeof aNode.settings === 'object' && !Array.isArray(aNode.settings) ? { settings: cleanSettings(aNode.type, aNode.settings) } : {}),
             };
         }
         return undefined;

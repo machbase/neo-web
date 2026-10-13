@@ -51,4 +51,31 @@ describe('useNewTabLayout across accounts', () => {
         expect(mockWrite).toHaveBeenCalledWith(expect.any(String), expect.any(String), 'layout.KEV.json');
         expect(mockWrite).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), 'layout.SYS.json');
     });
+
+    // NEWTAB-SAVE-002 / SAVE-005: an unreadable layout is never saved over, and a failed write
+    // leaves the saved layout showing.
+    test('refuses to save over a layout it could not read, and shows a layout only once written', async () => {
+        mockUser.mockReturnValue('sys');
+        mockRequest.mockResolvedValueOnce({ status: 500, headers: {}, config: {}, data: { reason: 'temporarily unavailable' } });
+        const { result } = renderHook(() => useNewTabLayout(), { wrapper: RecoilRoot });
+        await waitFor(() => expect(result.current.loadError).toBe('temporarily unavailable'));
+        let sSaved: boolean | undefined;
+        await act(async () => {
+            sSaved = await result.current.save(result.current.nodes);
+        });
+        expect(sSaved).toBe(false);
+        expect(mockWrite).not.toHaveBeenCalled();
+
+        await act(async () => {
+            await result.current.refresh();
+        });
+        expect(result.current.loadError).toBeUndefined();
+        expect(result.current.nodes.map((aNode) => aNode.title)).toEqual(['SYS ONLY']);
+        mockWrite.mockResolvedValueOnce({ success: false, reason: 'disk full' });
+        await act(async () => {
+            sSaved = await result.current.save([]);
+        });
+        expect(sSaved).toBe(false);
+        expect(result.current.nodes.map((aNode) => aNode.title)).toEqual(['SYS ONLY']);
+    });
 });

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { WidgetSize } from '../layout/layoutModel';
 import { Group, GroupItem, itemKey } from './groupModel';
 import { findMissingItems } from './groupResources';
@@ -14,6 +15,8 @@ const FOLDER_PADDING = 10;
 
 interface GroupWidgetProps {
     pGroup?: Group;
+    /** Some groups could not be read, so a group not found is unknown rather than deleted. */
+    pPartial?: boolean;
     pSize: WidgetSize;
     pActive: boolean;
     pOnEdit: (aGroup: Group, aMissing: Set<string>) => void;
@@ -42,9 +45,64 @@ export const GroupGlyph = () => (
     </svg>
 );
 
-export const GroupWidget = ({ pGroup, pSize, pActive, pOnEdit, pOnAddItems }: GroupWidgetProps) => {
+export const GroupWidget = ({ pGroup, pPartial, pSize, pActive, pOnEdit, pOnAddItems }: GroupWidgetProps) => {
     const openItem = useOpenGroupItem();
     const [sMissing, setMissing] = useState<Set<string>>(new Set());
+    /** The folded actions' menu (a tile too narrow for + and ⋯ side by side shows one ⋯; index.scss decides). */
+    // Where the menu opens: under its button, drawn on the page (a portal) so a short tile, which
+    // scrolls its content, does not cut it off.
+    const [sMenuAt, setMenuAt] = useState<{ top: number; right: number } | undefined>(undefined);
+    const sMenuOpen = !!sMenuAt;
+    const sMoreRef = useRef<HTMLSpanElement>(null);
+    const sMenuRef = useRef<HTMLSpanElement>(null);
+    const moreButton = () => sMoreRef.current?.querySelector<HTMLElement>('.nb-group-more-btn') ?? null;
+    const closeMenu = (aRefocus = false) => {
+        setMenuAt(undefined);
+        if (aRefocus) moreButton()?.focus();
+    };
+    const toggleMenu = () => {
+        if (sMenuOpen) return closeMenu();
+        const sRect = moreButton()?.getBoundingClientRect();
+        if (sRect) setMenuAt({ top: sRect.bottom + 4, right: window.innerWidth - sRect.right });
+    };
+    /** A choice opens a dialog; focus is put back on ⋯ first, so the dialog gives it back there. */
+    const choose = (aAction: () => void) => {
+        closeMenu(true);
+        aAction();
+    };
+
+    useEffect(() => {
+        if (!sMenuOpen) return;
+        const close = (aEvent: Event) => {
+            const sTarget = aEvent.target as Node;
+            if (!sMoreRef.current?.contains(sTarget) && !sMenuRef.current?.contains(sTarget)) setMenuAt(undefined);
+        };
+        // Fixed on the page, it follows its button while the board scrolls (or the tile scrolls the
+        // button into view on focus), and closes once the button is out of sight.
+        const follow = () => {
+            const sButton = moreButton();
+            const sRect = sButton?.getBoundingClientRect();
+            // Closed once its button cannot be seen: hidden (a wider tile), scrolled out of the board or
+            // of a nested section, or under the page header.
+            const sSeen = !!sRect && sRect.width > 0 && sButton!.contains(document.elementFromPoint(sRect.left + sRect.width / 2, sRect.top + sRect.height / 2));
+            if (!sSeen) return setMenuAt(undefined);
+            setMenuAt({ top: sRect.bottom + 4, right: window.innerWidth - sRect.right });
+        };
+        document.addEventListener('pointerdown', close, true);
+        window.addEventListener('scroll', follow, true);
+        window.addEventListener('resize', follow);
+        // A tile that gets wide enough hides ⋯ (index.scss) without any resize of the window itself.
+        const sButton = moreButton();
+        const sWatch = typeof ResizeObserver !== 'undefined' && sButton ? new ResizeObserver(follow) : undefined;
+        if (sWatch && sButton) sWatch.observe(sButton);
+        sMenuRef.current?.querySelector<HTMLElement>('button')?.focus();
+        return () => {
+            document.removeEventListener('pointerdown', close, true);
+            window.removeEventListener('scroll', follow, true);
+            window.removeEventListener('resize', follow);
+            sWatch?.disconnect();
+        };
+    }, [sMenuOpen]);
     const sItemsKey = pGroup?.items.map(itemKey).join('|') ?? '';
 
     // Check the shortcuts against the server whenever the group changes or the tab comes back.
@@ -58,6 +116,13 @@ export const GroupWidget = ({ pGroup, pSize, pActive, pOnEdit, pOnAddItems }: Gr
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sItemsKey, pActive]);
 
+    if (!pGroup && pPartial) {
+        return (
+            <div className="nb-tile nb-group nb-group--gone" data-testid="new-board-group-unread">
+                This group could not be read right now. Reload the page to try again.
+            </div>
+        );
+    }
     if (!pGroup) {
         return <div className="nb-tile nb-group nb-group--gone">This group was deleted.</div>;
     }
@@ -98,6 +163,53 @@ export const GroupWidget = ({ pGroup, pSize, pActive, pOnEdit, pOnAddItems }: Gr
                     <button type="button" className="nb-icon-btn" title="Edit group" aria-label={`Edit ${pGroup.name}`} data-testid="new-board-group-edit" onClick={() => pOnEdit(pGroup, sMissing)}>
                         ⋯
                     </button>
+                </span>
+                <span ref={sMoreRef} className={`nb-group-more${sMenuOpen ? ' is-open' : ''}`}>
+                    <button
+                        type="button"
+                        className="nb-icon-btn nb-group-more-btn"
+                        title="Group actions"
+                        aria-label={`Actions for ${pGroup.name}`}
+                        aria-haspopup="menu"
+                        aria-expanded={sMenuOpen}
+                        data-testid="new-board-group-more"
+                        onClick={toggleMenu}
+                    >
+                        ⋯
+                    </button>
+                    {sMenuAt
+                        ? createPortal(
+                              <span
+                                  ref={sMenuRef}
+                                  className="nb-group-menu"
+                                  role="menu"
+                                  aria-label={`Actions for ${pGroup.name}`}
+                                  data-testid="new-board-group-menu"
+                                  style={{ position: 'fixed', top: sMenuAt.top, right: sMenuAt.right }}
+                                  onKeyDown={(aEvent) => {
+                                      if (aEvent.key === 'Escape' || aEvent.key === 'Tab') {
+                                          aEvent.preventDefault();
+                                          aEvent.stopPropagation();
+                                          closeMenu(true);
+                                          return;
+                                      }
+                                      if (aEvent.key !== 'ArrowDown' && aEvent.key !== 'ArrowUp') return;
+                                      aEvent.preventDefault();
+                                      const sItems = [...aEvent.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+                                      const sAt = sItems.indexOf(document.activeElement as HTMLElement);
+                                      sItems[(sAt + (aEvent.key === 'ArrowDown' ? 1 : -1) + sItems.length) % sItems.length]?.focus();
+                                  }}
+                              >
+                                  <button type="button" role="menuitem" data-testid="new-board-group-add" onClick={() => choose(() => pOnAddItems(pGroup))}>
+                                      Add items
+                                  </button>
+                                  <button type="button" role="menuitem" data-testid="new-board-group-edit" onClick={() => choose(() => pOnEdit(pGroup, sMissing))}>
+                                      Edit group
+                                  </button>
+                              </span>,
+                              document.body
+                          )
+                        : null}
                 </span>
             </div>
             {pGroup.items.length ? (

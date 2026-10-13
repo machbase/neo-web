@@ -17,7 +17,7 @@ import { useOpenShellCreate } from '@/components/side/Shell/useOpenShellCreate';
 import { loadNeoStatzDashboard, NEO_STATZ_DASHBOARD, STARTER_TEMPLATES, StarterTemplate } from './starterTemplates';
 import { LayoutBoard } from './layout/LayoutBoard';
 import { WidgetPanel } from './layout/WidgetPanel';
-import { useNewTabLayout } from './layout/useNewTabLayout';
+import { LAYOUT_TOAST_POSITION, useNewTabLayout } from './layout/useNewTabLayout';
 import {
     BUILTIN_WIDGETS,
     createDefaultLayout,
@@ -30,6 +30,7 @@ import {
     removeGroupWidgets,
     removeNode,
     SectionNode,
+    serializeLayout,
     updateNode,
     WidgetNode,
     WidgetSize,
@@ -80,10 +81,14 @@ const NewBoard = (props: NewBoardProps) => {
     const sRecentFiles = useRecentFiles();
     const openShellCreate = useOpenShellCreate();
 
-    /** Turn this New tab into something else, keeping its id. */
-    const replaceCurrentTab = (aFields: Record<string, any>) => {
-        setBoardList(sBoardList.map((aItem: any) => (aItem.id === sSelectedTab ? { ...aItem, ...aFields, id: aItem.id } : aItem)));
+    /**
+     * Turn this New tab into something else, keeping its id. Applied to the tab list as it is then: a
+     * file read or loaded meanwhile must not write back the list from before, dropping tabs opened since.
+     */
+    const replaceTab = (aTabId: string, aBoard: (aItem: any) => any) => {
+        setBoardList((aPrev: any[]) => aPrev.map((aItem: any) => (aItem.id === aTabId ? aBoard(aItem) : aItem)));
     };
+    const replaceCurrentTab = (aFields: Record<string, any>) => replaceTab(sSelectedTab, (aItem) => ({ ...aItem, ...aFields, id: aItem.id }));
 
     const readFile = async (aItem: any) => {
         return (await new Promise((resolve, reject) => {
@@ -122,7 +127,7 @@ const NewBoard = (props: NewBoardProps) => {
         }
         if (sOpened.mode === 'replace') {
             // dsh/taz: replace the whole tab object so the previous tab's code/sheet do not linger
-            setBoardList(sBoardList.map((aItem: any) => (aItem.id === sSelectedTab ? { ...sOpened.board, id: aItem.id } : aItem)));
+            replaceTab(sSelectedTab, (aItem) => ({ ...sOpened.board, id: aItem.id }));
         } else {
             replaceCurrentTab(sOpened.fields);
         }
@@ -181,7 +186,7 @@ const NewBoard = (props: NewBoardProps) => {
         setIsLoadingStatz(true);
         try {
             const sBoard = await loadNeoStatzDashboard();
-            setBoardList((aPrev: any[]) => aPrev.map((aItem: any) => (aItem.id === sSelectedTab ? { ...sBoard, id: aItem.id } : aItem)));
+            replaceTab(sSelectedTab, (aItem) => ({ ...sBoard, id: aItem.id }));
         } catch (aError) {
             Toast.error(`Could not open the neo_statz dashboard: ${aError instanceof Error ? aError.message : String(aError)}`);
         } finally {
@@ -198,7 +203,8 @@ const NewBoard = (props: NewBoardProps) => {
             setSelectedTab(sOpenTab.id);
             return;
         }
-        const sLoaded = await loadBoardFromFile(aFile, sSelectedTab);
+        const sTabId = sSelectedTab;
+        const sLoaded = await loadBoardFromFile(aFile, sTabId);
         if (sLoaded.error !== undefined) {
             if (sLoaded.invalid) {
                 // the file is there but damaged: keep it in Recent so the user can fix and retry
@@ -211,7 +217,7 @@ const NewBoard = (props: NewBoardProps) => {
         }
         pGetInfo?.();
         recordRecentFile(aFile);
-        setBoardList(sBoardList.map((aItem: any) => (aItem.id === sSelectedTab ? sLoaded.board : aItem)));
+        replaceTab(sTabId, () => sLoaded.board);
     };
 
     const { sCreateItems, sShellItems } = useMemo(() => {
@@ -248,9 +254,9 @@ const NewBoard = (props: NewBoardProps) => {
     };
 
     // ---------- widget board ----------
-    const { nodes: sSavedNodes, save: saveLayout } = useNewTabLayout();
+    const { nodes: sSavedNodes, save: saveLayout, refresh: refreshLayout, loadError: sLayoutError } = useNewTabLayout();
     const sStatz = useStatzAccess();
-    const { groups: sGroups, saveGroup, deleteGroup } = useNewTabGroups();
+    const { groups: sGroups, isPartial: sGroupsPartial, saveGroup, deleteGroup } = useNewTabGroups();
     const [sEditing, setEditing] = useState(false);
     const [sDraft, setDraft] = useState<SectionNode[]>(sSavedNodes);
     const [sSelectedSection, setSelectedSection] = useState<string | undefined>(undefined);
@@ -259,27 +265,59 @@ const NewBoard = (props: NewBoardProps) => {
     const [sGroupModal, setGroupModal] = useState<{ group?: Group; missing?: Set<string> } | undefined>(undefined);
     const [sPickerGroup, setPickerGroup] = useState<Group | undefined>(undefined);
     const [sSettingsNode, setSettingsNode] = useState<WidgetNode | undefined>(undefined);
+    const [sBusy, setBusy] = useState<'opening' | 'saving' | undefined>(undefined);
+    /** The layout Customize started from; Done with nothing changed writes nothing. */
+    const sDraftBase = useRef<SectionNode[]>([]);
     const sNodes = sEditing ? sDraft : sSavedNodes;
 
-    const startEditing = () => {
-        setDraft(sSavedNodes);
+    /**
+     * Customize edits the layout as the server has it now, not as this page read it: another window
+     * may have saved since, and Done here would put back what it changed.
+     */
+    const startEditing = async () => {
+        if (sBusy) return;
+        setBusy('opening');
+        const sRead = await refreshLayout();
+        setBusy(undefined);
+        if (!sRead.ok) {
+            Toast.error(`Could not read your saved New tab: ${sRead.reason}. Customize once it can be read, so it is not saved over.`, { id: 'new-tab-layout-save', position: LAYOUT_TOAST_POSITION });
+            return;
+        }
+        sDraftBase.current = sRead.nodes;
+        setDraft(sRead.nodes);
         setSelectedSection(undefined);
         setUndo(undefined);
         setPanelOpen(true);
         setEditing(true);
     };
+    /** A failed save keeps Customize open with the draft, to try again or cancel. */
     const finishEditing = async () => {
-        if (await saveLayout(sDraft)) Toast.success('New tab saved', { id: 'new-tab-layout-save' });
+        if (sBusy) return;
+        const sChanged = JSON.stringify(serializeLayout(sDraft)) !== JSON.stringify(serializeLayout(sDraftBase.current));
+        if (sChanged) {
+            setBusy('saving');
+            const sSaved = await saveLayout(sDraft);
+            setBusy(undefined);
+            if (!sSaved) return;
+            Toast.success('New tab saved', { id: 'new-tab-layout-save', position: LAYOUT_TOAST_POSITION });
+        }
         setEditing(false);
         setUndo(undefined);
     };
-    const changeDraft = (aNodes: SectionNode[], aUndoMessage?: string) => {
+    /**
+     * A removal (or Reset) can be undone until the next edit: any other change ends the chance, so an
+     * Undo never takes later edits with it. Heights the board fits by itself are not an edit.
+     */
+    const changeDraft = (aNodes: SectionNode[], aUndoMessage?: string, aAutomatic = false) => {
         if (aUndoMessage) setUndo({ message: aUndoMessage, nodes: sDraft });
+        else if (!aAutomatic) setUndo(undefined);
+        // A selected section that is gone (removed, or replaced by Reset) is no longer where + adds.
+        if (sSelectedSection && !findNode(aNodes, sSelectedSection)) setSelectedSection(undefined);
         setDraft(aNodes);
     };
 
     const widgetLabel = (aNode: WidgetNode) => {
-        if (aNode.type === 'group') return sGroups.find((aGroup) => aGroup.id === aNode.groupId)?.name ?? 'Deleted group';
+        if (aNode.type === 'group') return sGroups.find((aGroup) => aGroup.id === aNode.groupId)?.name ?? (sGroupsPartial ? 'Group' : 'Deleted group');
         if (aNode.type === 'clock') return String((aNode.settings as ClockSettings | undefined)?.label || (aNode.settings as ClockSettings | undefined)?.timeZone || 'Clock');
         // if (aNode.type === 'weather') return String((aNode.settings as WeatherSettings | undefined)?.place?.name ?? 'Weather');
         if (aNode.type === 'item') return isItemSettings(aNode.settings) ? aNode.settings.label : 'Shortcut';
@@ -301,11 +339,17 @@ const NewBoard = (props: NewBoardProps) => {
         if (!sResult.ok) return Toast.error(sResult.reason, { id: 'new-tab-layout-refused' });
         changeDraft(sResult.nodes);
         if (sNode.kind === 'section') setSelectedSection(sNode.id);
+        // Into a section scrolled out of view, the new widget would land unseen: bring it into view.
+        requestAnimationFrame(() =>
+            document
+                .querySelector(`[data-testid="${sNode.kind === 'section' ? 'section' : 'widget'}-${encodeURIComponent(sNode.id)}"]`)
+                ?.scrollIntoView({ block: 'nearest' })
+        );
     };
 
     /** Widget options change the saved layout directly when not editing (e.g. a weather widget's first place). */
     const saveWidgetSettings = (aNode: WidgetNode, aSettings: Record<string, unknown>) => {
-        if (sEditing) setDraft(updateNode(sDraft, aNode.id, { settings: aSettings }));
+        if (sEditing) changeDraft(updateNode(sDraft, aNode.id, { settings: aSettings }));
         else saveLayout(updateNode(sSavedNodes, aNode.id, { settings: aSettings }));
     };
 
@@ -316,7 +360,7 @@ const NewBoard = (props: NewBoardProps) => {
             // A group made from the panel lands where widgets would, and is ready for items.
             const sResult = insertNode(sEditing ? sDraft : sSavedNodes, createWidget('group', 2, aGroup.id), sEditing ? sSelectedSection : undefined);
             if (sResult.ok) {
-                if (sEditing) setDraft(sResult.nodes);
+                if (sEditing) changeDraft(sResult.nodes);
                 else saveLayout(sResult.nodes);
             }
             setPickerGroup(aGroup);
@@ -327,7 +371,7 @@ const NewBoard = (props: NewBoardProps) => {
         const sOk = await deleteGroup(aGroup);
         if (sOk) {
             saveLayout(removeGroupWidgets(sSavedNodes, aGroup.id));
-            if (sEditing) setDraft(removeGroupWidgets(sDraft, aGroup.id));
+            if (sEditing) changeDraft(removeGroupWidgets(sDraft, aGroup.id));
             Toast.success(`Deleted ${aGroup.name}`, { id: 'new-tab-group-save' });
         }
         return sOk;
@@ -474,6 +518,7 @@ const NewBoard = (props: NewBoardProps) => {
                 return (
                     <GroupWidget
                         pGroup={sGroups.find((aGroup) => aGroup.id === aNode.groupId)}
+                        pPartial={sGroupsPartial}
                         pSize={aNode.size}
                         pActive={pIsActiveTab}
                         pOnEdit={(aGroup, aMissing) => setGroupModal({ group: aGroup, missing: aMissing })}
@@ -505,12 +550,12 @@ const NewBoard = (props: NewBoardProps) => {
                         <Button size="sm" variant="secondary" data-testid="new-board-cancel" onClick={() => setEditing(false)}>
                             Cancel
                         </Button>
-                        <Button size="sm" variant="primary" data-testid="new-board-done" onClick={finishEditing}>
+                        <Button size="sm" variant="primary" data-testid="new-board-done" onClick={finishEditing} loading={sBusy === 'saving'}>
                             Done
                         </Button>
                     </span>
                 ) : (
-                    <Button size="sm" variant="secondary" data-testid="new-board-customize" onClick={startEditing} icon={<CustomizeIcon />}>
+                    <Button size="sm" variant="secondary" data-testid="new-board-customize" onClick={startEditing} loading={sBusy === 'opening'} icon={<CustomizeIcon />}>
                         Customize
                     </Button>
                 )}
@@ -518,7 +563,7 @@ const NewBoard = (props: NewBoardProps) => {
             <Page.Body>
                 <div className={`new-board-workspace${sEditing && sPanelOpen ? ' has-panel' : ''}`}>
                     <div
-                        className={`new-board${sEditing ? ' is-editing' : ''}`}
+                        className={`new-board${sEditing ? ' is-editing' : ''}${sEditing && sUndo ? ' has-undo' : ''}`}
                         data-testid="new-board"
                         onDragEnter={sEditing ? undefined : handleDragEnter}
                         onDragOver={sEditing ? undefined : handleDragOver}
@@ -527,27 +572,17 @@ const NewBoard = (props: NewBoardProps) => {
                         onClick={sEditing ? () => setSelectedSection(undefined) : undefined}
                     >
                         <div className="new-board-inner">
+                            {sLayoutError && !sEditing ? (
+                                <div className="nb-notice" role="alert" data-testid="new-board-layout-error">
+                                    <span>Your saved New tab could not be read ({sLayoutError}). Nothing is saved over it until it can be.</span>
+                                    <Button size="sm" variant="secondary" onClick={() => refreshLayout()}>
+                                        Try again
+                                    </Button>
+                                </div>
+                            ) : null}
                             {sEditing ? (
-                                <div className="nb-editbar" role="status">
-                                    {sUndo ? (
-                                        <>
-                                            <span>{sUndo.message}</span>
-                                            <button
-                                                type="button"
-                                                className="nb-link-btn"
-                                                data-testid="new-board-undo"
-                                                onClick={(aEvent) => {
-                                                    aEvent.stopPropagation();
-                                                    setDraft(sUndo.nodes);
-                                                    setUndo(undefined);
-                                                }}
-                                            >
-                                                Undo
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <span>Select a section to add widgets into it. Move sections with ⋮⋮ or ↑ ↓ and widgets with ⋮⋮ or ← →. 1–4 sets how many of the row's four columns a widget takes; drag a section's bottom edge to change its height.</span>
-                                    )}
+                                <div className="nb-editbar" role="status" data-testid="new-board-editbar">
+                                    <span>Select a section to add widgets into it. Move sections with ⋮⋮ or ↑ ↓ and widgets with ⋮⋮ or ← →. 1–4 sets how many of the row's four columns a widget takes<span className="nb-editbar-resize" data-testid="resize-hint">; drag a section's bottom edge to change its height</span>.</span>
                                 </div>
                             ) : null}
                             <LayoutBoard
@@ -555,7 +590,7 @@ const NewBoard = (props: NewBoardProps) => {
                                 pEditing={sEditing}
                                 pSelectedId={sSelectedSection}
                                 pOnSelect={setSelectedSection}
-                                pOnChange={(aNodes) => changeDraft(aNodes)}
+                                pOnChange={(aNodes, aOptions) => changeDraft(aNodes, undefined, aOptions?.automatic)}
                                 pOnRemove={removeFromDraft}
                                 pOnRefused={(aReason) => Toast.error(aReason, { id: 'new-tab-layout-refused' })}
                                 pRenderWidget={renderWidget}
@@ -570,6 +605,32 @@ const NewBoard = (props: NewBoardProps) => {
                             ) : null}
                         </div>
 
+                        {/* Floats at the bottom of the visible board, so a removal far down the page still shows its Undo. */}
+                        {sEditing && sUndo ? (
+                            <div className="nb-undo-dock">
+                                <div className="nb-undo-toast" role="status" data-testid="new-board-undo-toast" onClick={(aEvent) => aEvent.stopPropagation()}>
+                                    <span>{sUndo.message}</span>
+                                    <button
+                                        type="button"
+                                        className="nb-link-btn"
+                                        data-testid="new-board-undo"
+                                        onClick={() => {
+                                            // Through the same check as any other change: a section selected since
+                                            // (in the layout being undone) is gone, so + adds at the bottom again.
+                                            if (sSelectedSection && !findNode(sUndo.nodes, sSelectedSection)) setSelectedSection(undefined);
+                                            setDraft(sUndo.nodes);
+                                            setUndo(undefined);
+                                        }}
+                                    >
+                                        Undo
+                                    </button>
+                                    <button type="button" className="nb-icon-btn" aria-label="Dismiss" title="Dismiss" data-testid="new-board-undo-dismiss" onClick={() => setUndo(undefined)}>
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+                        ) : null}
+
                         {sIsDragging ? (
                             <div className="new-board-drop-overlay" aria-hidden="true">
                                 <div>
@@ -583,6 +644,7 @@ const NewBoard = (props: NewBoardProps) => {
                         <WidgetPanel
                             pNodes={sDraft}
                             pGroups={sGroups}
+                            pGroupsPartial={sGroupsPartial}
                             pTargetLabel={sTargetLabel}
                             pOnAdd={addFromPanel}
                             pOnNewGroup={() => setGroupModal({})}
