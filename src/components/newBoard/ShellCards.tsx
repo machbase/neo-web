@@ -36,7 +36,7 @@ export const ShellCards = ({ pShells, pRenderIcon, pOnOpen, pOnCreate }: ShellCa
                         type="button"
                         key={aShell.id}
                         className="new-board-shell-card"
-                        data-testid={`new-board-${aShell.type}`}
+                        data-testid={`new-board-shell-${encodeURIComponent(String(aShell.id))}`}
                         onClick={(aEvent) => pOnOpen(aEvent, aShell)}
                         onMouseEnter={() => setHovered(aShell.id)}
                         onMouseLeave={() => setHovered(undefined)}

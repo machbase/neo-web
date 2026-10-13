@@ -156,6 +156,27 @@ describe('parseLayout', () => {
         expect(sParsed?.[0].children.map((aChild) => aChild.size)).toEqual([1, 2, 4, 1]);
     });
 
+    // NEWTAB-VIEW-003: a clock label saved as an object crashed the whole app at sign-in.
+    it('drops widget settings of the wrong type and keeps the right ones', () => {
+        const sParsed = parseLayout({
+            nodes: [
+                {
+                    kind: 'section',
+                    children: [
+                        { kind: 'widget', type: 'clock', settings: { label: { text: 'Plant B' }, timeZone: 'Asia/Seoul', style: 'sundial', hour12: 'yes' } },
+                        { kind: 'widget', type: 'clock', settings: { label: 'Plant B', style: 'digital', hour12: true } },
+                        { kind: 'widget', type: 'calendar', settings: { weekStart: 1 } },
+                    ],
+                },
+            ],
+        });
+        expect(sParsed?.[0].children.map((aChild) => (aChild.kind === 'widget' ? aChild.settings : undefined))).toEqual([
+            { timeZone: 'Asia/Seoul' },
+            { label: 'Plant B', style: 'digital', hour12: true },
+            {},
+        ]);
+    });
+
     it('reads back what it wrote', () => {
         const sNodes = createDefaultLayout();
         expect(parseLayout(JSON.parse(JSON.stringify(serializeLayout(sNodes))))).toEqual(sNodes);

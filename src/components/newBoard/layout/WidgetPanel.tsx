@@ -78,6 +78,8 @@ const BUILTIN_ICON: Record<'pulse' | 'create' | 'shells' | 'examples' | 'recent'
 };
 
 interface WidgetPanelProps {
+    /** Some groups could not be read: say so rather than "No groups yet". */
+    pGroupsPartial?: boolean;
     pNodes: SectionNode[];
     pGroups: Group[];
     pTargetLabel?: string;
@@ -94,7 +96,7 @@ const RESOURCE_KINDS: Exclude<GroupItemKind, 'file' | 'folder'>[] = ['package', 
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 type ResourceList = { status: 'loading' } | { status: 'ready'; entries: ResourceEntry[] } | { status: 'error'; reason: string };
 
-export const WidgetPanel = ({ pNodes, pGroups, pTargetLabel, pOnAdd, pOnNewGroup, pOnClose, pUnavailable }: WidgetPanelProps) => {
+export const WidgetPanel = ({ pNodes, pGroups, pGroupsPartial, pTargetLabel, pOnAdd, pOnNewGroup, pOnClose, pUnavailable }: WidgetPanelProps) => {
     const [sQuery, setQuery] = useState('');
     const sPlaced = useMemo(() => placedWidgetKeys(pNodes), [pNodes]);
     const [sOpenKinds, setOpenKinds] = useState<Set<ResourceKind>>(new Set());
@@ -195,7 +197,7 @@ export const WidgetPanel = ({ pNodes, pGroups, pTargetLabel, pOnAdd, pOnNewGroup
             ) : aEntry.placed ? (
                 <span className="nb-panel-placed">On page</span>
             ) : (
-                <button type="button" className="nb-icon-btn nb-panel-add" aria-label={`Add ${aEntry.title}`} title={pTargetLabel ? `Add to ${pTargetLabel}` : 'Add as a new section at the bottom'} onClick={() => pOnAdd(aEntry.create)}>
+                <button type="button" className="nb-icon-btn nb-panel-add" data-testid="add" aria-label={`Add ${aEntry.title}`} title={pTargetLabel ? `Add to ${pTargetLabel}` : 'Add as a new section at the bottom'} onClick={() => pOnAdd(aEntry.create)}>
                     +
                 </button>
             )}
@@ -203,7 +205,6 @@ export const WidgetPanel = ({ pNodes, pGroups, pTargetLabel, pOnAdd, pOnNewGroup
     );
 
     const sGroupsShown = filter(sGroupEntries);
-
     const resourceEntry = (aEntry: ResourceEntry): PanelEntry => ({
         id: `item:${aEntry.kind}:${aEntry.ref}`,
         title: aEntry.label,
@@ -212,6 +213,17 @@ export const WidgetPanel = ({ pNodes, pGroups, pTargetLabel, pOnAdd, pOnNewGroup
         placed: sPlaced.has(`item:${aEntry.kind}:${aEntry.ref}`),
         create: () => createWidget('item', 1, undefined, { kind: aEntry.kind, ref: aEntry.ref, label: aEntry.label }),
     });
+
+    // Said only once every list has answered, so it never shows while matches may still arrive.
+    const sNothingFound =
+        sTermActive &&
+        !'section'.includes(sTerm) &&
+        !sGroupsShown.length &&
+        !filter([...sBuiltins, ...sTime]).length &&
+        RESOURCE_KINDS.every((aKind) => {
+            const sList = sLists[aKind];
+            return sList?.status === 'ready' && !filter(sList.entries.map(resourceEntry)).length;
+        });
 
     const resourceGroup = (aKind: ResourceKind) => {
         const sList = sLists[aKind];
@@ -305,20 +317,27 @@ export const WidgetPanel = ({ pNodes, pGroups, pTargetLabel, pOnAdd, pOnNewGroup
                         {entry({ id: 'section', title: 'Section', description: 'A row with a title. Put widgets or other sections inside.', icon: <SectionIcon />, placed: false, create: () => createSection() }, ' is-section')}
                     </div>
                 ) : null}
-                <div className="nb-panel-group">
-                    <div className="nb-panel-cat-row">
-                        {sectionToggle('groups', 'Groups', pGroups.length)}
-                        <button type="button" className="nb-link-btn" data-testid="new-board-new-group" onClick={pOnNewGroup}>
-                            + New group
-                        </button>
+                {/* While searching, Groups is left out when no group matches, like every other heading. */}
+                {!sTermActive || sGroupsShown.length ? (
+                    <div className="nb-panel-group">
+                        <div className="nb-panel-cat-row">
+                            {sectionToggle('groups', 'Groups', pGroups.length)}
+                            <button type="button" className="nb-link-btn" data-testid="new-board-new-group" onClick={pOnNewGroup}>
+                                + New group
+                            </button>
+                        </div>
+                        {isOpen('groups') ? (
+                            <>
+                                {sGroupsShown.map((aEntry) => entry(aEntry))}
+                                {pGroupsPartial ? (
+                                    <p className="nb-empty" data-testid="new-board-panel-groups-unread">Some groups could not be read right now. Reload the page to try again.</p>
+                                ) : !pGroups.length ? (
+                                    <p className="nb-empty">No groups yet. A group collects shortcuts to files, folders, packages, timers and more.</p>
+                                ) : null}
+                            </>
+                        ) : null}
                     </div>
-                    {isOpen('groups') ? (
-                        <>
-                            {sGroupsShown.map((aEntry) => entry(aEntry))}
-                            {!pGroups.length ? <p className="nb-empty">No groups yet. A group collects shortcuts to files, folders, packages, timers and more.</p> : null}
-                        </>
-                    ) : null}
-                </div>
+                ) : null}
                 {filter([...sBuiltins, ...sTime]).length ? (
                     <div className="nb-panel-group">
                         {sectionToggle('builtin', 'Built-in', sBuiltins.length + sTime.length)}
@@ -326,6 +345,11 @@ export const WidgetPanel = ({ pNodes, pGroups, pTargetLabel, pOnAdd, pOnNewGroup
                     </div>
                 ) : null}
                 {RESOURCE_KINDS.map(resourceGroup)}
+                {sNothingFound ? (
+                    <p className="nb-empty" data-testid="new-board-panel-no-match">
+                        Nothing matches “{sQuery.trim()}”.
+                    </p>
+                ) : null}
             </div>
         </aside>
     );

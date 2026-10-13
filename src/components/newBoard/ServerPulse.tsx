@@ -75,12 +75,12 @@ export const ServerPulse = ({ pIsActive, pIsOpeningDashboard = false, pOnOpenDas
                     const sPoints = sPulse?.series[aMetric.name] ?? [];
                     const sLast = sPoints.at(-1);
                     return (
-                        <div className="pulse-tile" key={aMetric.name}>
+                        <div className="pulse-tile" key={aMetric.name} data-testid={`pulse-${encodeURIComponent(aMetric.name)}`}>
                             <div className="pulse-key">
-                                <span>{aMetric.label}</span>
+                                <span data-testid="label">{aMetric.label}</span>
                                 <code title={aMetric.name}>{aMetric.name}</code>
                             </div>
-                            <div className="pulse-value">
+                            <div className="pulse-value" data-testid="value">
                                 {sLast ? formatValue(sLast.value, aMetric.decimals) : sPulse ? '–' : '…'}
                                 {sLast && aMetric.unit ? <span>{aMetric.unit}</span> : null}
                             </div>
@@ -88,9 +88,9 @@ export const ServerPulse = ({ pIsActive, pIsOpeningDashboard = false, pOnOpenDas
                         </div>
                     );
                 })}
-                <div className="pulse-tile pulse-tile--cta">
+                <div className="pulse-tile pulse-tile--cta" data-testid="pulse-recorded">
                     <div className="pulse-key">
-                        <span>Recorded so far</span>
+                        <span data-testid="label">Recorded so far</span>
                     </div>
                     <div className="pulse-value pulse-value--small">
                         {sPulse ? sPulse.metricCount : '…'}

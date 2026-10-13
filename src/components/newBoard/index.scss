@@ -126,7 +126,18 @@ $nb-fog-duration: 0.25s;
     font-size: t.$font-size-sm;
     color: t.$text-tertiary;
 
+    // The label stays on one line, so every tile's value starts at the same height; the metric's
+    // source name beside it gives way first. (It wrapped, mid-word, as "Rows / appende / d" and
+    // pushed that tile's value down.)
+    > span {
+        flex: none;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     code {
+        flex: 0 1 auto;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -275,9 +286,18 @@ $nb-fog-duration: 0.25s;
     color: t.$text-primary;
 }
 
+// A narrow card puts its extension badge on the next line rather than breaking the name mid-word
+// ("Dashbo / ard"); a name too long for the card even alone ends in "…".
+.new-board-card-title {
+    flex-wrap: wrap;
+    row-gap: 2px;
+}
 .new-board-card-name {
-    flex: 1;
-    min-width: 0;
+    flex: 1 0 auto;
+    max-width: calc(100% - 24px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .new-board-card-type-icon {
@@ -604,6 +624,66 @@ $nb-fog-duration: 0.25s;
     border-radius: t.$border-radius-md;
 }
 
+// The saved layout could not be read: said once above the board, which shows the default meanwhile.
+.nb-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: t.$spacing-10;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    color: t.$text-secondary;
+    border: 1px solid rgba(252, 118, 118, 0.45);
+    background: rgba(252, 118, 118, 0.08);
+    border-radius: t.$border-radius-md;
+}
+
+// The Undo of a removal floats at the bottom of the visible board (sticky in the board's scroll), so
+// it shows wherever on the page the removal was; the bar above the board scrolls away.
+.nb-undo-dock {
+    position: sticky;
+    bottom: 16px;
+    z-index: 20;
+    height: 0;
+    display: flex;
+    justify-content: center;
+    // The toast keeps its own height; stretched to this zero-height row it shrank to its padding.
+    align-items: flex-start;
+    pointer-events: none;
+}
+// Room under the board for the Undo toast, so scrolled to the end it does not cover the last "+ Add section here"
+// (nor the drop place around it).
+.new-board.has-undo > .new-board-inner {
+    padding-bottom: 72px;
+}
+.nb-undo-toast {
+    transform: translateY(-100%);
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-10;
+    max-width: calc(100% - 32px);
+    padding: 6px 6px 6px 14px;
+    font-size: 12.5px;
+    color: t.$text-secondary;
+    background: #2b2b2b;
+    border: 1px solid $nb-line;
+    border-radius: t.$border-radius-md;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+
+    > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .nb-icon-btn {
+        width: 24px;
+        height: 24px;
+    }
+}
+
 .nb-board {
     display: flex;
     flex-direction: column;
@@ -652,15 +732,18 @@ $nb-fog-duration: 0.25s;
                 overflow-y: auto;
             }
         }
-        .nb-folder {
+        // Only this section's own widgets give way to its height. A nested section without a height of
+        // its own sizes to its content: these reached into it too, so making the outer section taller
+        // collapsed it (a group's shortcuts to a 20px strip, a calendar to its header).
+        > .nb-node > .nb-widget-body .nb-folder {
             flex: 1 1 0 !important;
             height: auto !important;
             min-height: 0;
         }
-        .nb-clock,
-        .nb-weather,
-        .nb-calendar,
-        .nb-item-widget {
+        > .nb-node > .nb-widget-body .nb-clock,
+        > .nb-node > .nb-widget-body .nb-weather,
+        > .nb-node > .nb-widget-body .nb-calendar,
+        > .nb-node > .nb-widget-body .nb-item-widget {
             min-height: 0;
         }
     }
@@ -715,6 +798,9 @@ $nb-fog-duration: 0.25s;
     flex-direction: column;
 }
 .nb-widget-body {
+    // Widgets lay out by the room they really have (see the @container rules): a size is a share of
+    // the section the widget sits in, so a "half" widget in a narrow nested section can be tiny.
+    container: nb-widget / inline-size;
     flex: 1;
     min-height: 0;
     display: flex;
@@ -776,10 +862,138 @@ $nb-fog-duration: 0.25s;
     }
 }
 
+// While editing, the title input gives way instead of the controls.
+.nb-section-side:has(> .nb-section-ctl) {
+    flex: none;
+}
+
 .nb-section-ctl {
     display: inline-flex;
+    flex: none;
     align-items: center;
     gap: 2px;
+}
+
+// Edit controls that fold away when their row is too narrow (see the container queries below). Wide
+// enough, both wrappers are `display: contents` so the controls sit inline as before.
+.nb-ctl-more,
+.nb-ctl-extra {
+    display: contents;
+}
+.nb-ctl-more-btn.nb-icon-btn {
+    display: none;
+}
+.nb-ctl-menu-only {
+    display: none;
+}
+
+// Narrower still: the remove button goes into the menu too.
+@mixin nb-ctl-folded-tight {
+    > .nb-remove {
+        display: none;
+    }
+    .nb-ctl-menu-only {
+        display: contents;
+    }
+}
+
+@mixin nb-ctl-folded {
+    .nb-ctl-more {
+        position: relative;
+        display: inline-flex;
+    }
+    .nb-ctl-more-btn.nb-icon-btn {
+        display: inline-grid;
+    }
+    .nb-ctl-extra {
+        display: none;
+    }
+    .nb-ctl-more.is-open .nb-ctl-extra {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px;
+        background: rgba(30, 30, 30, 0.96);
+        border: 1px solid $nb-line;
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+    // Opened from the left half of the board, the menu runs right, so it never leaves the board.
+    .nb-ctl-more.is-open.is-align-start .nb-ctl-extra {
+        right: auto;
+        left: 0;
+    }
+}
+
+.nb-section-head,
+.nb-widget-ctl {
+    container-type: inline-size;
+}
+
+// Section head: drop the up/down arrows first (dragging still moves), then fold the sizes into "⋯".
+@container (max-width: 300px) {
+    .nb-section-ctl .nb-move {
+        display: none;
+    }
+}
+@container (max-width: 220px) {
+    .nb-section-ctl {
+        @include nb-ctl-folded;
+    }
+}
+// A section this narrow (a small one nested in a small one) keeps only its grip, a short title and
+// the menu; below that the title goes too. The controls spilled out under the next widget before.
+@container (max-width: 160px) {
+    .nb-section-ctl {
+        @include nb-ctl-folded-tight;
+    }
+    .nb-section-title-input {
+        min-width: 24px;
+    }
+}
+@container (max-width: 100px) {
+    .nb-section-title-input {
+        display: none;
+    }
+}
+@container (max-width: 60px) {
+    .nb-section-head > .nb-grip {
+        display: none;
+    }
+}
+
+// Widget toolbar: the same order, at the widths its fewer controls need.
+@container (max-width: 210px) {
+    .nb-widget-ctl .nb-move {
+        display: none;
+    }
+}
+@container (max-width: 160px) {
+    .nb-widget-ctl {
+        @include nb-ctl-folded;
+    }
+}
+// Smaller still: the name and then the grip go (the widget itself drags), the remove button joins the menu.
+@container (max-width: 110px) {
+    .nb-widget-ctl {
+        @include nb-ctl-folded-tight;
+    }
+    .nb-widget-ctl .nb-widget-label {
+        display: none;
+    }
+}
+@container (max-width: 60px) {
+    .nb-widget-ctl .nb-grip {
+        display: none;
+    }
+}
+// However small the widget, the bar keeps room for its menu button (it overhangs a tiny widget).
+.nb-board.is-editing .nb-widget-ctl {
+    min-width: 32px;
 }
 
 .nb-icon-btn {
@@ -851,13 +1065,21 @@ $nb-fog-duration: 0.25s;
         outline-offset: 0;
         padding: 10px 12px 12px;
     }
+    // Hover lightens the outline of the innermost section or widget under the pointer only, so the
+    // sections around it stay as they are. `:where` keeps it below the selected, drop and drag outlines.
+    .nb-section:where(:hover:not(:has(.nb-node:hover))) {
+        outline-color: rgba(255, 255, 255, 0.55);
+    }
     .nb-section.is-selected {
         outline: 2px solid $nb-accent;
     }
     // A nested body may scroll once saved, but while editing it must not clip the control bars that
-    // sit above its first row.
+    // sit above its first row. Only its bottom is cut, just past its own padding, though: content
+    // taller than its row painted over the sections below (it scrolls there once saved). The sides stay
+    // open for menus that run sideways, and the bottom keeps room for a drop bar under the last row.
     .nb-section-body.has-height > .nb-node > .nb-section > .nb-section-frame > .nb-section-body {
         overflow: visible;
+        clip-path: inset(-40px -9999px -10px -9999px);
     }
     // Keeps a last nested section's resize handle clear of this section's (EDIT_FOOT_ROOM).
     .nb-section-body.ends-with-section {
@@ -893,18 +1115,23 @@ $nb-fog-duration: 0.25s;
         transition: opacity t.$transition-duration-fast;
     }
     .nb-widget:hover > .nb-widget-ctl,
-    .nb-widget:focus-within > .nb-widget-ctl {
+    .nb-widget:focus-within > .nb-widget-ctl,
+    // And while its menu is open: on the way into a menu wider than the bar the pointer leaves the
+    // widget, which hid the bar (and its menu) under it.
+    .nb-widget > .nb-widget-ctl:has(.nb-ctl-more.is-open) {
         opacity: 1;
         pointer-events: auto;
     }
-    // An invisible strip over the 2px between bar and widget, so moving up to the bar keeps it open.
+    // An invisible strip from the bar down into the widget, so moving up to the bar keeps it open.
+    // It reaches past the widget's top edge: sized to the gap alone (6px), a shorter bar (one with
+    // fewer size buttons) left a 1px seam where the hover dropped and the bar closed.
     .nb-widget-ctl::after {
         content: '';
         position: absolute;
         left: 0;
         right: 0;
         top: 100%;
-        height: 6px;
+        height: 14px;
     }
     // Each row of widgets gets 18px above it for the control bars, which sit in that room plus the
     // 12px gap, clear of the widget. A section with a set height grows by the same room while editing
@@ -915,6 +1142,14 @@ $nb-fog-duration: 0.25s;
         outline-offset: 3px;
         border-radius: t.$border-radius-md;
         cursor: grab;
+    }
+    .nb-widget:hover {
+        outline-color: rgba(255, 255, 255, 0.55);
+    }
+    // The node being dragged keeps an accent outline until it is dropped.
+    .nb-widget.is-dragging,
+    .nb-node.is-dragging > .nb-section {
+        outline: 2px solid $nb-accent;
     }
     .nb-widget-body {
         opacity: 0.85;
@@ -965,7 +1200,9 @@ $nb-fog-duration: 0.25s;
     position: absolute;
     left: 50%;
     bottom: -15px;
-    z-index: 2;
+    // Above a widget bar (z-index 3): the bar of a widget in the row below reaches up over this
+    // handle, and a press on the handle dragged the widget instead.
+    z-index: 4;
     width: 88px;
     height: 14px;
     transform: translateX(-50%);
@@ -1002,6 +1239,8 @@ $nb-fog-duration: 0.25s;
 }
 
 .nb-grip {
+    flex: none;
+    white-space: nowrap;
     color: t.$text-muted;
     cursor: grab;
     font-size: 13px;
@@ -1010,9 +1249,10 @@ $nb-fog-duration: 0.25s;
 }
 
 .nb-section-title-input {
-    width: 240px;
-    max-width: 50%;
-    min-width: 0;
+    // Up to 240px, giving way to the controls on the right before they would spill out of the head.
+    flex: 0 1 240px;
+    width: 0;
+    min-width: 48px;
     height: 20px;
     padding: 0 4px;
     margin-left: -5px;
@@ -1170,18 +1410,86 @@ $nb-fog-duration: 0.25s;
     color: t.$error-light !important;
 }
 
-// Built-in widgets laid out for fewer columns.
-.nb-span-2 .pulse-grid,
-.nb-span-2 .new-board-cards,
-.nb-span-2 .new-board-shell-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+// Built-in widgets laid out for fewer columns. Only the widget's own size counts (`>`): matching any
+// ancestor section's size gave a widget the layout of the section around it.
+.nb-widget.nb-span-2 > .nb-widget-body {
+    .pulse-grid,
+    .new-board-cards,
+    .new-board-shell-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
-.nb-span-3 .new-board-shell-cards {
+.nb-widget.nb-span-3 > .nb-widget-body .new-board-shell-cards {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.nb-span-1 .new-board-cards,
-.nb-span-1 .new-board-shell-cards {
-    grid-template-columns: minmax(0, 1fr);
+.nb-widget.nb-span-1 > .nb-widget-body {
+    .new-board-cards,
+    .new-board-shell-cards {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+// And by the room it really has, for a widget in a narrow nested section. (`.nb-widget.nb-node`
+// matches the size rules above in weight, so these, coming later, win.)
+@container nb-widget (max-width: 600px) {
+    .nb-widget.nb-node > .nb-widget-body {
+        .pulse-grid,
+        .new-board-cards,
+        .new-board-shell-cards {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+}
+@container nb-widget (max-width: 320px) {
+    .nb-widget.nb-node > .nb-widget-body {
+        .pulse-grid,
+        .new-board-cards,
+        .new-board-shell-cards {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+}
+// Clock and calendar extras give way in a narrow widget, before the time and the date do.
+@container nb-widget (max-width: 120px) {
+    .nb-widget-body .nb-clock-offset {
+        display: none;
+    }
+}
+// A month of seven columns needs about 160px; narrower, the calendar shows today only (and the
+// month arrows, with no month to page, give their room to the weekday and month names).
+// Not quite room for the day, its names and the month arrows on one line: the arrows wrap under
+// them (to the right), so "Tuesday" and "October 2026" stay whole instead of "TUE…" and "Octo…".
+@container nb-widget (max-width: 240px) {
+    .nb-widget-body .nb-calendar-head {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+    .nb-widget-body .nb-calendar-nav {
+        margin-left: auto;
+    }
+}
+@container nb-widget (max-width: 160px) {
+    .nb-widget-body .nb-calendar-grid,
+    .nb-widget-body .nb-calendar-nav {
+        display: none;
+    }
+}
+@container nb-widget (max-width: 80px) {
+    .nb-widget-body .nb-clock-sec {
+        display: none;
+    }
+}
+// A pulse tile this narrow (one column of a narrow widget): a smaller number, never split (it broke
+// mid-number, "103,14 / 0"); only the unit may drop to the next line.
+@container nb-widget (max-width: 200px) {
+    .pulse-value {
+        font-size: max(14px, 13cqi);
+        overflow-wrap: normal;
+        word-break: keep-all;
+
+        span {
+            display: inline-block;
+        }
+    }
 }
 
 // ---------- clock / calendar / weather ----------
@@ -1210,6 +1518,8 @@ $nb-fog-duration: 0.25s;
     height: 124px;
     min-height: 48px;
     width: auto;
+    // Nor does it overhang a narrow tile; the drawing keeps its proportions inside the box.
+    max-width: 100%;
     aspect-ratio: 1;
     margin: auto 0 10px;
 }
@@ -1261,8 +1571,10 @@ $nb-fog-duration: 0.25s;
 .nb-clock-digits {
     display: flex;
     align-items: baseline;
+    white-space: nowrap;
     font-family: $nb-mono;
-    font-size: 44px;
+    // Up to 44px, smaller in a narrow widget (cqi: the widget's own width) so the time stays on one line.
+    font-size: min(44px, 22cqi);
     font-weight: t.$font-weight-semibold;
     line-height: 1;
     color: t.$text-primary;
@@ -1275,7 +1587,7 @@ $nb-fog-duration: 0.25s;
 }
 .nb-clock-sec {
     margin-left: 8px;
-    font-size: 16px;
+    font-size: min(16px, 9cqi);
     color: t.$text-muted;
     letter-spacing: 0;
 }
@@ -1304,6 +1616,9 @@ $nb-fog-duration: 0.25s;
     min-width: 0;
 }
 .nb-calendar-bigday {
+    // The day stays one number: in a narrow tile the month beside it gives way instead.
+    flex: none;
+    white-space: nowrap;
     font-size: 30px;
     font-weight: t.$font-weight-bold;
     line-height: 1;
@@ -1318,6 +1633,9 @@ $nb-fog-duration: 0.25s;
     line-height: 1.25;
 }
 .nb-calendar-weekname {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 11px;
     font-weight: t.$font-weight-semibold;
     letter-spacing: 0.06em;
@@ -1499,7 +1817,9 @@ $nb-fog-duration: 0.25s;
 .nb-weather-hours {
     display: none;
 }
-.nb-span-2 {
+// The wide clock / calendar: a half-row widget of its own, when it really has the room for it.
+@container nb-widget (min-width: 420px) {
+.nb-widget.nb-span-2 > .nb-widget-body {
     .nb-clock--analog {
         display: grid;
         grid-template-columns: auto minmax(0, auto);
@@ -1589,11 +1909,12 @@ $nb-fog-duration: 0.25s;
         }
     }
 }
+}
 // References / SDK: the server's link lists. Links flow into as many columns as fit (one in a
 // one-column widget), each a title over its site.
 .nb-refs {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
     align-content: start;
     gap: 2px 8px;
     padding: 8px;
@@ -1770,8 +2091,13 @@ $nb-fog-duration: 0.25s;
     overscroll-behavior: contain;
 }
 // In a one-column folder the visibility chip keeps only its icon; the word is in its tooltip.
-.nb-span-1 .nb-vis-text {
+.nb-widget.nb-span-1 > .nb-widget-body .nb-vis-text {
     display: none;
+}
+@container nb-widget (max-width: 320px) {
+    .nb-vis-text {
+        display: none;
+    }
 }
 .nb-group-caption {
     color: t.$text-tertiary;
@@ -1780,6 +2106,53 @@ $nb-fog-duration: 0.25s;
     flex-shrink: 0;
     display: inline-flex;
     gap: 2px;
+}
+// Too narrow for + and ⋯ side by side (they were pushed out of the tile and cut off): one ⋯ whose
+// menu holds both, opening down inside the tile.
+.nb-group-more {
+    display: none;
+    position: relative;
+    flex-shrink: 0;
+}
+.nb-group-menu {
+    // Placed by GroupWidget (fixed, under its button) on the page itself.
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    min-width: 112px;
+    padding: 4px;
+    background: #2b2b2b;
+    border: 1px solid $nb-line;
+    border-radius: t.$border-radius-md;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+
+    button {
+        @include nb-reset-button;
+        padding: 6px 10px;
+        text-align: left;
+        white-space: nowrap;
+        font-size: 12.5px;
+        color: t.$text-secondary;
+        border-radius: t.$border-radius-sm;
+        @include nb-focus-ring;
+
+        &:hover {
+            color: t.$text-primary;
+            background: rgba(255, 255, 255, 0.06);
+        }
+    }
+}
+@container nb-widget (max-width: 220px) {
+    .nb-group-actions {
+        display: none;
+    }
+    .nb-group-more {
+        display: inline-flex;
+    }
+    .nb-group-head {
+        gap: t.$spacing-6;
+        padding-inline: 8px;
+    }
 }
 .nb-group-empty {
     @include nb-reset-button;
@@ -2040,6 +2413,11 @@ $nb-fog-duration: 0.25s;
     gap: 6px;
     transition: border-color t.$transition-duration-fast;
 
+    // Centred children size to their content; held to the tile, a long label ellipsizes instead.
+    > .nb-app {
+        max-width: 100%;
+    }
+
     &:hover {
         border-color: $nb-border-strong;
     }
@@ -2218,8 +2596,10 @@ $nb-fog-duration: 0.25s;
     }
 }
 .nb-input {
+    // Padding and border inside the 100%, so the field lines up with the rest of the form.
+    box-sizing: border-box;
     width: 100%;
-    height: 30px;
+    height: 32px;
     padding: 0 10px;
     font: inherit;
     font-family: t.$font-family-pretendard;
@@ -2336,6 +2716,11 @@ $nb-fog-duration: 0.25s;
     border-radius: t.$border-radius-base;
     overflow: hidden;
 }
+// A long group's shortcuts scroll inside the dialog instead of pushing its buttons off the screen.
+.nb-list--scroll {
+    max-height: 240px;
+    overflow-y: auto;
+}
 .nb-list-row {
     display: grid;
     grid-template-columns: 18px minmax(0, 1fr) auto;
@@ -2425,12 +2810,17 @@ $nb-fog-duration: 0.25s;
 }
 .nb-picker-tabs {
     display: flex;
-    flex-wrap: wrap;
+    // One row that scrolls sideways on a narrow window, instead of a second row of one tab.
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
     gap: 2px;
     border-bottom: 1px solid $nb-line;
 
     button {
         @include nb-reset-button;
+        flex: none;
+        white-space: nowrap;
         padding: 7px 9px;
         font-size: 12.5px;
         color: t.$text-tertiary;
@@ -2448,14 +2838,36 @@ $nb-fog-duration: 0.25s;
     height: 18px;
     margin: 0;
     display: flex;
-    flex-wrap: wrap;
+    // One line, as the fixed height promises: a deep or long path wrapped onto the search box and the list.
+    flex-wrap: nowrap;
+    overflow: hidden;
     align-items: center;
     gap: 4px;
     font-size: t.$font-size-sm;
     color: t.$text-muted;
+    white-space: nowrap;
 
+    // Folders between the root and the current one share what room is left equally, none wider than
+    // its name and none narrower than a few letters (short names stay whole; long ones ellipsize).
+    // The current folder takes up to half the line; the root ("Files") is always whole.
+    > * {
+        flex: 1 1 0;
+        min-width: 3em;
+        max-width: max-content;
+    }
+    > :first-child {
+        flex: none;
+        min-width: auto;
+    }
+    > :last-child {
+        flex: 0 1 auto;
+        max-width: 50%;
+    }
     button {
         @include nb-reset-button;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
         color: $nb-accent;
         border-radius: t.$border-radius-sm;
         @include nb-focus-ring;
@@ -2463,6 +2875,11 @@ $nb-fog-duration: 0.25s;
     span {
         display: inline-flex;
         gap: 4px;
+        min-width: 0;
+
+        > [aria-hidden] {
+            flex: none;
+        }
     }
 }
 .nb-picker-count {
@@ -2502,12 +2919,29 @@ $nb-fog-duration: 0.25s;
 @media (max-width: 1100px) {
     .new-board-workspace.has-panel {
         grid-template-columns: minmax(0, 1fr);
+        // The panel goes under the board. They shared the height evenly, which left the board (with
+        // the hint above it) one section head tall at 1024 x 768; the board gets the larger share.
+        grid-template-rows: minmax(0, 3fr) minmax(min(200px, 45%), 2fr);
     }
+    // In that short strip the panel scrolls as a whole (its head and help text included), with the
+    // search held at the top: a fixed head left a list a few dozen pixels tall on a short window.
     .nb-panel {
         position: static;
         max-height: none;
         border-left: 0;
         border-top: 1px solid $nb-line;
+        overflow-y: auto;
+    }
+    .nb-panel-body {
+        flex: none;
+        overflow: visible;
+    }
+    .nb-panel-search {
+        position: sticky;
+        top: 10px;
+        z-index: 1;
+        flex: none;
+        box-shadow: 0 0 0 10px t.$bg-panel;
     }
 }
 
@@ -2515,6 +2949,31 @@ $nb-fog-duration: 0.25s;
     // Two columns: quarter widgets pair up, anything wider takes the row.
     .nb-section-body {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    // A set height is for the four-column rows. With fewer columns the same widgets take more rows,
+    // and sharing that height cut every one of them; instead the section grows and each widget keeps
+    // the height its row had at four columns (--nb-row-h, worked out in LayoutBoard), scrolling inside
+    // as at full width. Applies to the 560px layout too.
+    .nb-section-body.has-height {
+        height: auto !important;
+        grid-template-rows: none !important;
+        grid-auto-rows: auto;
+        overflow: visible;
+    }
+    .nb-section-body.has-height > .nb-widget {
+        height: var(--nb-row-h);
+    }
+    // A widget that shared its row with nested sections was as tall as the tallest of them or its own
+    // content, whichever is more (the row sized to fit both); it stays so.
+    .nb-section-body.has-height > .nb-widget.is-beside-section {
+        height: auto;
+        min-height: var(--nb-row-min);
+    }
+    // Heights are not applied here, so nothing to drag (nor a hint about it): a handle measured the
+    // reflowed rows and saved a four-column height several times too tall.
+    .nb-section-resize,
+    .nb-editbar-resize {
+        display: none;
     }
     .nb-node.nb-span-1 {
         grid-column: span 1;

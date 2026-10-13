@@ -188,8 +188,8 @@ export const CalendarWidget = ({ pSettings, pActive }: { pSettings?: CalendarSet
                 <span className="nb-calendar-today" aria-label={`Today is ${sWeekday}, ${sNow.toDateString()}`}>
                     <span className="nb-calendar-bigday">{sNow.getDate()}</span>
                     <span className="nb-calendar-when">
-                        <span className="nb-calendar-weekname">{sWeekday}</span>
-                        <span className="nb-calendar-month">{sTitle}</span>
+                        <span className="nb-calendar-weekname" data-testid="weekday">{sWeekday}</span>
+                        <span className="nb-calendar-month" data-testid="month">{sTitle}</span>
                     </span>
                 </span>
                 <span className="nb-calendar-nav">

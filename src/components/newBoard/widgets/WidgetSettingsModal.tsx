@@ -1,18 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Modal } from '@/design-system/components';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Combobox, ComboboxOption, Modal } from '@/design-system/components';
+import { VscChevronDown } from 'react-icons/vsc';
 import { WidgetNode } from '../layout/layoutModel';
 import { CalendarSettings, ClockSettings } from './TimeWidgets';
 import { isValidTimeZone } from './timeZone';
 import { WeatherSettings } from './WeatherWidget';
 import { PlaceResult, searchPlaces } from './weatherApi';
+import { useDialogFocus } from '../useDialogFocus';
 
+/** The browser's zones, with UTC first: Chromium's list leaves out UTC (and every Etc/ zone). */
 const zoneList = (): string[] => {
+    let sZones: string[] = [];
     try {
-        return (Intl as any).supportedValuesOf?.('timeZone') ?? [];
+        sZones = (Intl as any).supportedValuesOf?.('timeZone') ?? [];
     } catch {
-        return [];
+        // No list: only UTC and the browser's own zone to choose from.
     }
+    return ['UTC', ...sZones.filter((aZone) => aZone !== 'UTC')];
 };
+
+/** The Combobox needs a value for "no zone set"; it stands for the browser's own time zone. */
+const BROWSER_ZONE = '__browser__';
 
 interface Props {
     pNode: WidgetNode;
@@ -23,8 +31,20 @@ interface Props {
 /** Options for the widgets that have any: clock, weather and calendar. */
 export const WidgetSettingsModal = ({ pNode, pOnSave, pOnClose }: Props) => {
     const [sSettings, setSettings] = useState<Record<string, any>>(pNode.settings ?? {});
+    const sListOpenOnEscape = useRef(false);
+    useDialogFocus('new-board-widget-settings');
     const set = (aPatch: Record<string, unknown>) => setSettings((aPrev) => ({ ...aPrev, ...aPatch }));
     const sZones = useMemo(zoneList, []);
+    const sZoneOptions = useMemo<ComboboxOption[]>(() => {
+        const sSaved = sSettings.timeZone as string | undefined;
+        // A saved zone the list leaves out (an alias such as Asia/Calcutta) still shows as chosen.
+        const sAll = sSaved && !sZones.includes(sSaved) ? [sSaved, ...sZones] : sZones;
+        return [
+            { value: BROWSER_ZONE, label: "This browser's time zone", testId: 'zone-browser' },
+            ...sAll.map((aZone) => ({ value: aZone, label: aZone, testId: `zone-${encodeURIComponent(aZone)}` })),
+        ];
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sZones]);
 
     // Weather place search, debounced.
     const [sQuery, setQuery] = useState('');
@@ -70,35 +90,48 @@ export const WidgetSettingsModal = ({ pNode, pOnSave, pOnClose }: Props) => {
                                     <span>Style</span>
                                     <div className="nb-seg">
                                         {(['analog', 'digital'] as const).map((aStyle) => (
-                                            <button type="button" key={aStyle} role="radio" aria-checked={((sSettings as ClockSettings).style ?? 'analog') === aStyle} onClick={() => set({ style: aStyle })}>
+                                            <button type="button" key={aStyle} data-testid={`style-${aStyle}`} role="radio" aria-checked={((sSettings as ClockSettings).style ?? 'analog') === aStyle} onClick={() => set({ style: aStyle })}>
                                                 {aStyle === 'analog' ? 'Analog' : 'Digital'}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-                                <label className="nb-field">
+                                <div
+                                    className="nb-field"
+                                    data-testid="time-zone"
+                                    // Escape with the zone list open closes the list only; the dialog listens on the
+                                    // document, so the key stops here. Read before the list handles it and closes.
+                                    onKeyDownCapture={(aEvent) => {
+                                        sListOpenOnEscape.current = aEvent.key === 'Escape' && (aEvent.target as HTMLElement).getAttribute('aria-expanded') === 'true';
+                                    }}
+                                    onKeyDown={(aEvent) => {
+                                        if (sListOpenOnEscape.current) aEvent.stopPropagation();
+                                    }}
+                                >
                                     <span>Time zone</span>
-                                    <input
-                                        className="nb-input"
-                                        list="nb-time-zones"
-                                        value={sSettings.timeZone ?? ''}
-                                        placeholder="This browser's time zone"
-                                        aria-invalid={sZoneInvalid}
-                                        onChange={(aEvent) => set({ timeZone: aEvent.target.value })}
-                                    />
-                                    <datalist id="nb-time-zones">
-                                        {sZones.map((aZone) => (
-                                            <option key={aZone} value={aZone} />
-                                        ))}
-                                    </datalist>
+                                    {/* The app's own combobox, as the worksheet's time zone uses, instead of the browser's datalist. */}
+                                    <Combobox.Root
+                                        fullWidth
+                                        options={sZoneOptions}
+                                        value={sSettings.timeZone || BROWSER_ZONE}
+                                        onChange={(aValue) => set({ timeZone: aValue === BROWSER_ZONE ? undefined : aValue })}
+                                        // The list clears the field while it is open; the chosen zone stays readable in it.
+                                        placeholder={sSettings.timeZone || "This browser's time zone"}
+                                    >
+                                        <Combobox.Input data-testid="time-zone-input" />
+                                        <Combobox.Trigger icon={<VscChevronDown size={14} />} />
+                                        <Combobox.Dropdown>
+                                            <Combobox.List />
+                                        </Combobox.Dropdown>
+                                    </Combobox.Root>
                                     {sZoneInvalid ? <small className="nb-error-text">Not a time zone. Pick one from the list, e.g. Europe/Berlin.</small> : null}
-                                </label>
+                                </div>
                                 <label className="nb-field">
                                     <span>Label</span>
-                                    <input className="nb-input" maxLength={30} value={sSettings.label ?? ''} placeholder="Shown under the clock, e.g. Plant B" onChange={(aEvent) => set({ label: aEvent.target.value })} />
+                                    <input className="nb-input" data-testid="label" maxLength={30} value={sSettings.label ?? ''} placeholder="Shown under the clock, e.g. Plant B" onChange={(aEvent) => set({ label: aEvent.target.value })} />
                                 </label>
                                 <label className="nb-check">
-                                    <input type="checkbox" checked={!!sSettings.hour12} onChange={(aEvent) => set({ hour12: aEvent.target.checked })} />
+                                    <input type="checkbox" data-testid="hour12" checked={!!sSettings.hour12} onChange={(aEvent) => set({ hour12: aEvent.target.checked })} />
                                     12-hour time (digital)
                                 </label>
                             </>
