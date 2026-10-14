@@ -65,7 +65,7 @@ export const CreateBridge = () => {
     };
 
     return (
-        <Page pRef={sBodyRef}>
+        <Page pRef={sBodyRef} data-testid="bridge-create">
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
                     <Page.Header />
@@ -77,7 +77,7 @@ export const CreateBridge = () => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
-                            <Page.Input pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
+                            <Page.Input data-testid="bridge-name" pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
@@ -88,7 +88,7 @@ export const CreateBridge = () => {
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.Selector
-                                pList={SELECTE_TYPE.map((type) => {
+                                data-testid="bridge-type" pList={SELECTE_TYPE.map((type) => {
                                     return { name: type, data: type };
                                 })}
                                 pSelectedItem={sCreatePayload.type}
@@ -103,10 +103,10 @@ export const CreateBridge = () => {
                                     <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
-                            <Page.Input pValue={sCreatePayload.path} pWidth={'400px'} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)} />
+                            <Page.Input data-testid="bridge-path" pValue={sCreatePayload.path} pWidth={'400px'} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)} />
                         </Page.ContentBlock>
                         <Page.ContentBlock>
-                            <Page.TextButton pText="Create" pType="CREATE" pCallback={createItem} />
+                            <Page.TextButton data-testid="bridge-create-submit" pText="Create" pType="CREATE" pCallback={createItem} />
                         </Page.ContentBlock>
 
                         {sResErrMessage && (

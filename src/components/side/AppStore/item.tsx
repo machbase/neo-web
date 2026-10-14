@@ -584,6 +584,7 @@ export const AppList = ({ pList, pStatus }: { pList: APP_INFO[] | string[]; pSta
                     !isStray && (sActivePkgView === aItem?.name || sSelectedAppViewName === aItem?.name || sSelectedAppName === aItem?.name);
                 return (
                     <div
+                        data-testid={`package-item-${encodeURIComponent(aItem.name)}`}
                         key={'pStatus-' + aIdx}
                         // No handler at all rather than a no-op one: it is also what
                         // `.app-store-row--static` keys off to drop the pointer cursor

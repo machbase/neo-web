@@ -143,13 +143,13 @@ export const TimerSide = () => {
     }, []);
 
     return (
-        <Side.Container>
+        <Side.Container data-testid="timer-side">
             <Side.Section>
                 <Side.Collapse pCallback={handleCollapse} pCollapseState={sIsCollapse}>
                     <span>TIMER</span>
                     <Button.Group>
-                        <Button size="side" variant="ghost" icon={<GoPlus size={16} />} isToolTip toolTipContent="New timer" onClick={handleCreate} />
-                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={handleRefresh} />
+                        <Button size="side" variant="ghost" icon={<GoPlus size={16} />} isToolTip data-testid="timer-new" toolTipContent="New timer" onClick={handleCreate} />
+                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip data-testid="timer-refresh" toolTipContent="Refresh" onClick={handleRefresh} />
                     </Button.Group>
                 </Side.Collapse>
 
@@ -160,10 +160,10 @@ export const TimerSide = () => {
                             sTimerList.map((aItem) => {
                                 const isActive = sActiveTimer === aItem.id;
                                 return (
-                                    <Side.Item key={aItem.id} onClick={() => openInfo(aItem)} active={isActive}>
+                                    <Side.Item key={aItem.id} data-testid={`timer-item-${encodeURIComponent(aItem.name)}`} onClick={() => openInfo(aItem)} active={isActive}>
                                         <Side.ItemContent>
                                             <Side.ItemIcon>{icons('timer')}</Side.ItemIcon>
-                                            <Side.ItemText>{aItem.name}</Side.ItemText>
+                                            <Side.ItemText><span data-testid={`timer-item-id-${aItem.id}`}>{aItem.name}</span></Side.ItemText>
                                         </Side.ItemContent>
                                         <Side.ItemAction>
                                             <Page.Switch

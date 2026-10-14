@@ -234,7 +234,17 @@ const RollupPredicateCell = ({ row, columns }: { row: (string | number)[]; colum
     );
 };
 
-export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab: boolean }) => {
+type DBTablePageProps = { pCode: any; pIsActiveTab: boolean };
+
+// The tab is reused, but each table owns its loaded metadata. A late request
+// from the previous table must not write into the next table's state.
+export const DBTablePage = (props: DBTablePageProps) => {
+    const info = props.pCode?.code?.tableInfo;
+    const identity = info ? `${info[E_TABLE_INFO.DB_ID]}:${info[E_TABLE_INFO.TB_ID]}` : 'none';
+    return <DBTableContent key={identity} {...props} />;
+};
+
+const DBTableContent = ({ pCode, pIsActiveTab }: DBTablePageProps) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sLastFetchTime, setLastFetchTime] = useState<string>('');
@@ -870,7 +880,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     }, []);
 
     return (
-        <Page pRef={sBodyRef}>
+        <Page data-testid="db-table-detail" pRef={sBodyRef}>
             <SplitPane
                 sashRender={() => Resizer()}
                 split={isVertical ? 'vertical' : 'horizontal'}

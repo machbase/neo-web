@@ -89,7 +89,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
         } else {
             // toast, not inline: the delete happens from a confirm modal, and on success this board
             // is torn down entirely — there is no reliable place left to render an inline error
-            Toast.error(resMessage(sRes, `Failed to delete shell '${sPayload.label}'`), { id: 'shell-delete' });
+            Toast.error(resMessage(sRes, `Failed to delete shell '${sPayload.label}'`), { id: 'shell-delete', testId: 'shell-delete-error-toast' });
         }
         setIsDeleteModal(false);
     };
@@ -302,7 +302,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
     return (
         <>
             {sPayload && sActiveShellName !== '' && (
-                <Page>
+                <Page data-testid="shell-form">
                     <SplitPane
                         sashRender={() => Resizer()}
                         split={'vertical'}
@@ -333,7 +333,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) =>
                                             handlePayload('label', event)
                                         }
-                                        pValue={sPayload.label}
+                                        data-testid="shell-name" pValue={sPayload.label}
                                         pMaxLen={16}
                                         pAutoFocus
                                     />
@@ -361,7 +361,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                         pCallback={(event: React.FormEvent<HTMLInputElement>) =>
                                             handlePayload('command', event)
                                         }
-                                        pValue={sPayload.command}
+                                        data-testid="shell-command" pValue={sPayload.command}
                                         pWidth={'400px'}
                                         pPlaceholder="/bin/bash"
                                     />
@@ -407,7 +407,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                             <>
                                                 <Page.DpRow>
                                                     <Page.TextButton
-                                                        pText="Create"
+                                                        data-testid="shell-create-submit" pText="Create"
                                                         pType="CREATE"
                                                         pCallback={createShell}
                                                     />
@@ -421,7 +421,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                                 <Page.DpRowBetween>
                                                     <Page.DpRow>
                                                         <Page.TextButton
-                                                            pText="Delete"
+                                                            data-testid="shell-delete" pText="Delete"
                                                             pType="DELETE"
                                                             pCallback={handleDelete}
                                                         />
@@ -481,7 +481,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                 </Page>
             )}
             {sIsDeleteModal && (
-                <ConfirmModal
+                <ConfirmModal data-testid="shell-delete-dialog"
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
                     pCallback={deleteShell}

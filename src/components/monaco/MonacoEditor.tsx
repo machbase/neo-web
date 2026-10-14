@@ -147,7 +147,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     };
 
     return (
-        <div ref={monacoRef} style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)} onClick={selectionLine}>
+        <div data-testid="monaco-editor" ref={monacoRef} style={{ width: '100%', height: '100%' }} onFocus={() => applyRunCode(pText)} onClick={selectionLine}>
             <Editor height="100%" width="100%" language={sCurrentLang} value={pText} theme="my-theme" onChange={onChange} onMount={handleMount} options={monacoOptions} />
         </div>
     );

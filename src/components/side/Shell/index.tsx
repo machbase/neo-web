@@ -84,7 +84,7 @@ export const ShellSide = () => {
     }, []);
 
     return (
-        <Side.Container>
+        <Side.Container data-testid="shell-side">
             <Side.Section>
                 <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
                     <span>SHELL</span>
@@ -94,10 +94,10 @@ export const ShellSide = () => {
                             variant="ghost"
                             icon={<GoPlus size={16} />}
                             isToolTip
-                            toolTipContent="New shell"
+                            data-testid="shell-new" toolTipContent="New shell"
                             onClick={(aEvent: MouseEvent) => handleCreateShell(aEvent)}
                         />
-                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={(aEvent: MouseEvent) => shellList(aEvent)} />
+                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip data-testid="shell-refresh" toolTipContent="Refresh" onClick={(aEvent: MouseEvent) => shellList(aEvent)} />
                     </Button.Group>
                 </Side.Collapse>
 
@@ -107,7 +107,7 @@ export const ShellSide = () => {
                             getShowShellList.length !== 0 &&
                             getShowShellList.map((aShell: any, aIdx: number) => {
                                 return (
-                                    <Side.Item key={aIdx} onClick={() => openShell(aShell)}>
+                                    <Side.Item key={aIdx} data-testid={`shell-item-${encodeURIComponent(aShell.label)}`} onClick={() => openShell(aShell)}>
                                         <Side.ItemContent>
                                             <Side.ItemIcon>{icons(aShell.icon)}</Side.ItemIcon>
                                             <Side.ItemText>{aShell.label}</Side.ItemText>

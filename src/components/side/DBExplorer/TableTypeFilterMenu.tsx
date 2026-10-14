@@ -27,7 +27,7 @@ export const TableTypeFilterMenu = ({ pIsOpen, pPosition, pDbName, pOptions, pOn
 
     return (
         <Popover isOpen={pIsOpen} position={pPosition} onClose={pOnClose} closeOnOutsideClick closeOnEscape closeOnScroll={false}>
-            <div className="db-explorer-type-menu" onClick={(aEvent) => aEvent.stopPropagation()} onContextMenu={(aEvent) => aEvent.preventDefault()}>
+            <div data-testid="db-explorer-type-menu" className="db-explorer-type-menu" onClick={(aEvent) => aEvent.stopPropagation()} onContextMenu={(aEvent) => aEvent.preventDefault()}>
                 <div className="db-explorer-type-menu-head">
                     <span className="db-explorer-type-menu-title" title={pDbName}>
                         TABLE TYPES
@@ -51,6 +51,7 @@ export const TableTypeFilterMenu = ({ pIsOpen, pPosition, pDbName, pOptions, pOn
                             <button
                                 type="button"
                                 key={`${pDbName}-type-${aOption.type}`}
+                                data-testid={`type-${aOption.type}`}
                                 className={`db-explorer-type-menu-row ${aOption.checked ? 'is-checked' : ''} ${aOption.disabled ? 'is-dim' : ''}`}
                                 disabled={sLocked}
                                 aria-pressed={aOption.checked}

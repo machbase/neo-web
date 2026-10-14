@@ -132,7 +132,7 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
     const Resizer = () => <SashContent className={`security-key-sash-style`} />;
 
     return (
-        <Page pRef={sBodyRef}>
+        <Page pRef={sBodyRef} data-testid="certificate-create">
             <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
                     <Page.Header />
@@ -155,7 +155,7 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
                             <Page.ContentDesc>{`starts with a lowercase letter · a-z 0-9 _ . @ - only · max ${NAME_MAX}`}</Page.ContentDesc>
                             <Page.Input
                                 pAutoFocus
-                                pValue={sName}
+                                data-testid="certificate-name" pValue={sName}
                                 pMaxLen={NAME_MAX}
                                 pPlaceholder="edge-gw-02"
                                 pCallback={(aEvent: React.FormEvent<HTMLInputElement>) => handlePayload('name', (aEvent.target as HTMLInputElement).value)}
@@ -210,7 +210,7 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
-                            <Page.TextButton pText="Generate certificate" pWidth="150px" pType="CREATE" pIsDisable={!sCanSubmit} pCallback={createKey} />
+                            <Page.TextButton data-testid="certificate-create-submit" pText="Generate certificate" pWidth="150px" pType="CREATE" pIsDisable={!sCanSubmit} pCallback={createKey} />
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>

@@ -76,7 +76,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         } else {
             // the confirm modal closes either way, so a failure has to speak for itself — the list
             // simply staying put reads as "nothing happened"
-            Toast.error(resMessage(sRes, `Failed to delete bridge '${pCode.name}'`), { id: 'bridge-delete' });
+            Toast.error(resMessage(sRes, `Failed to delete bridge '${pCode.name}'`), { id: 'bridge-delete', testId: 'bridge-delete-error-toast' });
         }
         setIsDeleteModal(false);
     };
@@ -186,7 +186,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
         <>
             {/* Show info */}
             {sPayload && sActiveName !== '' && (
-                <Page pRef={sBodyRef}>
+                <Page pRef={sBodyRef} data-testid="bridge-detail">
                     <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
@@ -207,8 +207,8 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>bridge connection</Page.ContentTitle>
                                     <div style={{ marginTop: '8px' }}>
-                                        <Page.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} pIsDisable={sPayload?.childs?.length > 0} />
-                                        <Page.TextButton pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
+                                        <Page.TextButton data-testid="bridge-delete" pText="Delete" pType="DELETE" pCallback={handleDelete} pIsDisable={sPayload?.childs?.length > 0} />
+                                        <Page.TextButton data-testid="bridge-test" pText="Test" pType="CREATE" pCallback={() => handleCommand('test')} />
                                         {SUBSCRIBER_TYPE.includes(sPayload.type) && (
                                             <Page.TextButton pWidth="120px" pText="New subscriber" pType="CREATE" pCallback={handleNewSubr} />
                                         )}
@@ -286,7 +286,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
             {/* Show create */}
             {!sActiveName && <CreateBridge />}
             {sIsDeleteModal && (
-                <ConfirmModal
+                <ConfirmModal data-testid="bridge-delete-dialog"
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
                     pCallback={deleteItem}

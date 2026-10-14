@@ -29,7 +29,7 @@ export const BridgeSide = () => {
         } else {
             // keep whatever the tree already shows: blanking it on a transport failure looks
             // exactly like "every bridge was deleted"
-            Toast.error(resMessage(sResBridge, 'Failed to load bridges'), { id: 'bridge-list' });
+            Toast.error(resMessage(sResBridge, 'Failed to load bridges'), { id: 'bridge-list', testId: 'bridge-list-error-toast' });
         }
     };
     const checkExistTab = (aType: string) => {
@@ -176,13 +176,13 @@ export const BridgeSide = () => {
     }, []);
 
     return (
-        <Side.Container>
+        <Side.Container data-testid="bridge-side">
             <Side.Section>
                 <Side.Collapse pCallback={handleCollapse} pCollapseState={sIsCollapse}>
                     <span>BRIDGE</span>
                     <Button.Group>
-                        <Button size="side" variant="ghost" icon={<GoPlus size={16} />} isToolTip toolTipContent="New bridge" onClick={handleCreate} />
-                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={handleRefresh} />
+                        <Button size="side" variant="ghost" icon={<GoPlus size={16} />} isToolTip data-testid="bridge-new" toolTipContent="New bridge" onClick={handleCreate} />
+                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip data-testid="bridge-refresh" toolTipContent="Refresh" onClick={handleRefresh} />
                     </Button.Group>
                 </Side.Collapse>
 
@@ -193,7 +193,7 @@ export const BridgeSide = () => {
                             sBridge.map((aItem, aIdx: number) => {
                                 return (
                                     <Side.Box key={aIdx}>
-                                        <Side.Item onClick={() => openBridgeInfo(aItem)} active={sActiveName === aItem?.name}>
+                                        <Side.Item onClick={() => openBridgeInfo(aItem)} data-testid={`bridge-item-${encodeURIComponent(aItem.name)}`} active={sActiveName === aItem?.name}>
                                             <Side.ItemContent>
                                                 <Side.ItemIcon style={{ width: '16px' }}>
                                                     {icons(SUBSCRIBER_TYPE.includes(aItem?.type) ? ((aItem?.type as any) === 'mqtt' ? 'bridge-mqtt' : 'bridge-nats') : 'bridge-db')}

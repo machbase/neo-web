@@ -60,7 +60,7 @@ export const CatalogSearchBand = ({ pValue, onChange, onEnter }: CatalogSearchBa
     if (!isExpanded) {
         return (
             <div className="catalog-search-band" onMouseEnter={() => setOpened(true)}>
-                <button type="button" className="catalog-search-band-trigger" onClick={expandAndFocus} aria-label="Search packages">
+                <button type="button" className="catalog-search-band-trigger" onClick={expandAndFocus} data-testid="packages-search-toggle" aria-label="Search packages">
                     <VscSearch size={13} aria-hidden="true" />
                     <span className="catalog-search-band-hint">Search</span>
                 </button>
@@ -72,7 +72,7 @@ export const CatalogSearchBand = ({ pValue, onChange, onEnter }: CatalogSearchBa
         <div className="catalog-search-band catalog-search-band--open" onMouseLeave={collapseIfIdle}>
             <VscSearch size={13} className="catalog-search-band-icon" aria-hidden="true" />
             <input
-                ref={inputRef}
+                data-testid="packages-search" ref={inputRef}
                 type="text"
                 className="catalog-search-band-input"
                 placeholder="Search"

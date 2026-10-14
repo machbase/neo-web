@@ -208,6 +208,7 @@ export const AppStoreSide = () => {
 
     return (
         <Side.Container
+            data-testid="packages-side"
             style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}
         >
             {/* ONE CONTENT AREA, SWITCHED BY THE PILL BAR.
