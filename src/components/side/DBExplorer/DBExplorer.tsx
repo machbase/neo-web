@@ -333,7 +333,7 @@ export const DBExplorer = () => {
                     pOnClearFilters={() => setTypeFilters(clearAllTypeFilters())}
                 />
             </div>
-            <Side.Container splitSizes={sSideSizes} onSplitChange={setSideSizes}>
+            <Side.Container data-testid="db-explorer-side" splitSizes={sSideSizes} onSplitChange={setSideSizes}>
                 <Side.Section>
                     <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
                         <span>DB EXPLORER</span>
@@ -369,7 +369,7 @@ export const DBExplorer = () => {
                                 isToolTip
                                 toolTipContent="Refresh"
                                 onClick={(aEvent: any) => init(aEvent)}
-                                aria-label="Refresh"
+                                data-testid="db-explorer-refresh" aria-label="Refresh"
                             />
                         </Button.Group>
                     </Side.Collapse>

@@ -2,13 +2,14 @@ import { getTutorial } from '@/api/repository/api';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { binaryCodeEncodeBase64, getId, isImage } from '@/utils';
 import icons from '@/utils/icons';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { VscCloudDownload } from 'react-icons/vsc';
 import { Loader } from '../../loader';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 import { Toast } from '@/design-system/components';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { Button, Side } from '@/design-system/components';
 import { isQuickInstallable, openReferenceUrl, REFERENCE_ITEM, useQuickInstall } from './referenceActions';
 
@@ -17,6 +18,7 @@ const RefList = ({ pValue }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
     const { install, isInstalling, prompt: sClonePrompt } = useQuickInstall();
+    const sLoadingReferences = useRef(new Set<string>());
 
     const openReference = async (pValue: any) => {
         const sId = getId();
@@ -34,68 +36,80 @@ const RefList = ({ pValue }: any) => {
                 setSelectedTab(sAlreadyExist.id);
                 return;
             }
-            const sContentResult: any = await getTutorial(pValue.address);
-            // References are served from /web/tutorials, not /web/api/files, so the raw-text
-            // transformResponse in api/core does not apply and axios has already JSON.parse'd the body.
-            // The .dsh/.taz loaders below are the file explorer's, which take the file as a string.
-            const sRawContent = typeof sContentResult === 'string' ? sContentResult : JSON.stringify(sContentResult);
-            if (pValue.type === 'wrk') {
-                setBoardList([
-                    ...sBoardList,
-                    {
-                        id: sId,
-                        type: pValue.type,
-                        name: pValue.title,
-                        code: '',
-                        _CHEAT_SHEET: true,
-                        panels: [],
-                        path: '',
-                        sheet: sContentResult.data,
-                        savedCode: JSON.stringify(sContentResult.data),
-                        range_bgn: '',
-                        range_end: '',
-                    },
-                ]);
-                setSelectedTab(sId);
-                return;
-            } else if (isImage(pValue.title + '.' + pValue.type)) {
-                const base64 = binaryCodeEncodeBase64(sContentResult);
-                const updateBoard = {
-                    ...sTmpBoard,
-                    code: base64,
-                    savedCode: base64,
-                    type: pValue.type,
-                    _CHEAT_SHEET: true,
-                };
-
-                sTmpBoard = updateBoard;
-
-                setBoardList([...sBoardList, sTmpBoard]);
-            } else if (pValue.type === 'dsh') {
-                // A .dsh stores the whole board object, and Dashboard dereferences pInfo.dashboard during
-                // render — without the file's `dashboard` the tab throws before it paints. Run the same
-                // migration the file explorer runs (variables/distanceRange backfill, panel validate &
-                // repair, version stamp), then re-apply the tab's own identity: the file carries its own
-                // id/name/path ('NEO_STATZ.dsh', '/'), which would otherwise leave setSelectedTab pointing
-                // at a stale id and Save writing back to the file's original path.
-                const sTmpData: any = CheckDataCompatibility(sRawContent, 'dsh');
-                sTmpBoard = { ...sTmpData, id: sId, type: pValue.type, name: pValue.title, path: '', savedCode: JSON.stringify(JSON.parse(sRawContent).dashboard), _CHEAT_SHEET: true };
-                setBoardList([...sBoardList, sTmpBoard]);
-            } else if (pValue.type === 'taz') {
-                try {
-                    sTmpBoard = { ...loadTazBoard(JSON.parse(sRawContent), sId, pValue.title, ''), _CHEAT_SHEET: true };
-                } catch (error) {
-                    Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
+            // Repeated clicks share the in-flight open instead of adding another tab.
+            if (sLoadingReferences.current.has(pValue.address)) return;
+            sLoadingReferences.current.add(pValue.address);
+            try {
+                const sContentResult: any = await getTutorial(pValue.address);
+                const sFailure = getFileRequestFailure(sContentResult, 'Failed to load reference.');
+                if (sFailure) {
+                    Toast.error(sFailure.reason, { testId: 'reference-error-toast', id: 'reference-open' });
                     return;
                 }
-                setBoardList([...sBoardList, sTmpBoard]);
-            } else {
-                setBoardList([
-                    ...sBoardList,
-                    { id: sId, type: pValue.type, name: pValue.title, code: sContentResult, path: '', panels: [], sheet: [], savedCode: false, range_bgn: '', range_end: '', _CHEAT_SHEET: true },
-                ]);
+                // References are served from /web/tutorials, not /web/api/files, so the raw-text
+                // transformResponse in api/core does not apply and axios has already JSON.parse'd the body.
+                // The .dsh/.taz loaders below are the file explorer's, which take the file as a string.
+                const sRawContent = typeof sContentResult === 'string' ? sContentResult : JSON.stringify(sContentResult);
+                if (pValue.type === 'wrk') {
+                    setBoardList((boards: any[]) => [
+                        ...boards,
+                        {
+                            id: sId,
+                            type: pValue.type,
+                            name: pValue.title,
+                            code: '',
+                            _CHEAT_SHEET: true,
+                            panels: [],
+                            path: '',
+                            sheet: sContentResult.data,
+                            savedCode: JSON.stringify(sContentResult.data),
+                            range_bgn: '',
+                            range_end: '',
+                        },
+                    ]);
+                    setSelectedTab(sId);
+                    return;
+                } else if (isImage(pValue.title + '.' + pValue.type)) {
+                    const base64 = binaryCodeEncodeBase64(sContentResult);
+                    const updateBoard = {
+                        ...sTmpBoard,
+                        code: base64,
+                        savedCode: base64,
+                        type: pValue.type,
+                        _CHEAT_SHEET: true,
+                    };
+
+                    sTmpBoard = updateBoard;
+
+                    setBoardList((boards: any[]) => [...boards, sTmpBoard]);
+                } else if (pValue.type === 'dsh') {
+                    // A .dsh stores the whole board object, and Dashboard dereferences pInfo.dashboard during
+                    // render — without the file's `dashboard` the tab throws before it paints. Run the same
+                    // migration the file explorer runs (variables/distanceRange backfill, panel validate &
+                    // repair, version stamp), then re-apply the tab's own identity: the file carries its own
+                    // id/name/path ('NEO_STATZ.dsh', '/'), which would otherwise leave setSelectedTab pointing
+                    // at a stale id and Save writing back to the file's original path.
+                    const sTmpData: any = CheckDataCompatibility(sRawContent, 'dsh');
+                    sTmpBoard = { ...sTmpData, id: sId, type: pValue.type, name: pValue.title, path: '', savedCode: JSON.stringify(JSON.parse(sRawContent).dashboard), _CHEAT_SHEET: true };
+                    setBoardList((boards: any[]) => [...boards, sTmpBoard]);
+                } else if (pValue.type === 'taz') {
+                    try {
+                        sTmpBoard = { ...loadTazBoard(JSON.parse(sRawContent), sId, pValue.title, ''), _CHEAT_SHEET: true };
+                    } catch (error) {
+                        Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
+                        return;
+                    }
+                    setBoardList((boards: any[]) => [...boards, sTmpBoard]);
+                } else {
+                    setBoardList((boards: any[]) => [
+                        ...boards,
+                        { id: sId, type: pValue.type, name: pValue.title, code: sContentResult, path: '', panels: [], sheet: [], savedCode: false, range_bgn: '', range_end: '', _CHEAT_SHEET: true },
+                    ]);
+                }
+                setSelectedTab(sId);
+            } finally {
+                sLoadingReferences.current.delete(pValue.address);
             }
-            setSelectedTab(sId);
         }
     };
     return (
@@ -107,7 +121,7 @@ const RefList = ({ pValue }: any) => {
                 <Side.List>
                     {pValue.items.map((aItem: REFERENCE_ITEM, aIdx: number) => {
                         return (
-                            <Side.Item key={aIdx} onClick={() => openReference(aItem)}>
+                            <Side.Item data-testid={`reference-item-${encodeURIComponent(aItem.address)}`} key={aIdx} onClick={() => openReference(aItem)}>
                                 <Side.ItemContent>
                                     <Side.ItemIcon>{icons(aItem?.type)}</Side.ItemIcon>
                                     <Side.ItemText>{aItem?.title}</Side.ItemText>

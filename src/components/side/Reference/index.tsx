@@ -18,7 +18,7 @@ export const ReferenceSide = () => {
     }, []);
 
     return (
-        <Side.Container>
+        <Side.Container data-testid="reference-side">
             {sReferences &&
                 sReferences.length !== 0 &&
                 sReferences.map((aItem: any, aIdx: number) => {

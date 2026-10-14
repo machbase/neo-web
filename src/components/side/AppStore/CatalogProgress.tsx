@@ -20,4 +20,4 @@ export interface CatalogProgressProps {
 }
 
 export const CatalogProgress = ({ pLoading }: CatalogProgressProps) =>
-    pLoading ? <div className="app-store-catalog-progress" role="progressbar" aria-label="Loading catalog" /> : null;
+    pLoading ? <div data-testid="catalog-progress" className="app-store-catalog-progress" role="progressbar" aria-label="Loading catalog" /> : null;

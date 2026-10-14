@@ -54,7 +54,7 @@ export const ExplorerSearchBar = ({
                     value={pQuery}
                     spellCheck={false}
                     autoComplete="off"
-                    placeholder="Search tables"
+                    data-testid="db-explorer-search" placeholder="Search tables"
                     aria-label="Search databases, users and tables"
                     onChange={(aEvent) => pOnQueryChange(aEvent.target.value)}
                     onKeyDown={handleKeyDown}
@@ -64,7 +64,7 @@ export const ExplorerSearchBar = ({
                         <span className="db-explorer-search-count">
                             {formatCount(pMatched)}/{formatCount(pTotal)}
                         </span>
-                        <button type="button" className="db-explorer-search-clear" aria-label="Clear search" onClick={() => pOnQueryChange('')}>
+                        <button type="button" className="db-explorer-search-clear" data-testid="db-explorer-search-clear" aria-label="Clear search" onClick={() => pOnQueryChange('')}>
                             <Close size={12} />
                         </button>
                     </>
@@ -78,7 +78,7 @@ export const ExplorerSearchBar = ({
                     <span className="db-explorer-filter-summary-text">
                         {pFilteredDbCount} {pFilteredDbCount === 1 ? 'filter' : 'filters'} · {formatCount(pFilteredShown)}/{formatCount(pFilteredTotal)} shown
                     </span>
-                    <button type="button" className="db-explorer-inline-link" onClick={pOnClearFilters}>
+                    <button type="button" data-testid="db-explorer-clear-filters" className="db-explorer-inline-link" onClick={pOnClearFilters}>
                         Clear all
                     </button>
                 </div>

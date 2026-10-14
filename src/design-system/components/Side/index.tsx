@@ -18,6 +18,7 @@ export interface SideVersionProps {
 }
 
 export interface SideContainerProps {
+    'data-testid'?: string;
     children: React.ReactNode;
     style?: React.CSSProperties;
     splitSizes?: number[];
@@ -47,6 +48,7 @@ export interface SideListProps {
 }
 
 export interface SideItemProps {
+    'data-testid'?: string;
     children: React.ReactNode;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
     onContextMenu?: (e: React.MouseEvent<HTMLDivElement>) => void;
@@ -154,7 +156,7 @@ const SideVersion = ({ pServer, pNeoUpdateStatus }: SideVersionProps) => {
     );
 };
 
-const SideContainer = ({ children, style, splitSizes, onSplitChange, defaultSplitSizes }: SideContainerProps) => {
+const SideContainer = ({ 'data-testid': testId, children, style, splitSizes, onSplitChange, defaultSplitSizes }: SideContainerProps) => {
     // Only count direct Side.Section children
     const sections = Children.toArray(children).filter((child) => {
         return isValidElement(child) && (child.type as any) === SideSection;
@@ -187,7 +189,7 @@ const SideContainer = ({ children, style, splitSizes, onSplitChange, defaultSpli
 
     if (hasSplitPane) {
         return (
-            <div className={styles.sideContainer} style={{ ...style }}>
+            <div data-testid={testId} className={styles.sideContainer} style={{ ...style }}>
                 <SplitPane className="split-body" sashRender={() => <></>} split="horizontal" sizes={splitSizes || sizes} onChange={handleSizeChange}>
                     {sections.map((section, idx) => (
                         <Pane key={idx} minSize={22}>
@@ -200,7 +202,7 @@ const SideContainer = ({ children, style, splitSizes, onSplitChange, defaultSpli
     }
 
     return (
-        <div className={styles.sideContainer} style={{ ...style }}>
+        <div data-testid={testId} className={styles.sideContainer} style={{ ...style }}>
             {children}
         </div>
     );
@@ -233,7 +235,7 @@ const SideList = ({ children }: SideListProps) => {
     return <div style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto' }}>{children}</div>;
 };
 
-const SideItem = ({ children, onClick, onContextMenu, onMouseEnter, onMouseLeave, active, className, paddingLeft, style, tooltip, tooltipPlace = 'top-end' }: SideItemProps) => {
+const SideItem = ({ 'data-testid': testId, children, onClick, onContextMenu, onMouseEnter, onMouseLeave, active, className, paddingLeft, style, tooltip, tooltipPlace = 'top-end' }: SideItemProps) => {
     const customStyle = paddingLeft !== undefined ? { ...style, paddingLeft: `${paddingLeft}px` } : style;
 
     // Only generate tooltipId once when component mounts
@@ -244,6 +246,7 @@ const SideItem = ({ children, onClick, onContextMenu, onMouseEnter, onMouseLeave
     if (!tooltip) {
         return (
             <div
+                data-testid={testId}
                 className={`${styles.sideItem} ${active ? styles.active : ''} ${className || ''}`}
                 onClick={onClick}
                 onContextMenu={onContextMenu}
@@ -259,6 +262,7 @@ const SideItem = ({ children, onClick, onContextMenu, onMouseEnter, onMouseLeave
     return (
         <>
             <div
+                data-testid={testId}
                 className={`${styles.sideItem} ${active ? styles.active : ''} ${className || ''} tooltip-${tooltipId}`}
                 onClick={onClick}
                 onContextMenu={onContextMenu}

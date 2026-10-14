@@ -27,14 +27,14 @@ export const EditTimer = () => {
 
     /** create timer */
     const createTimer = async () => {
-        // `timer.add` now rejects a duplicate name and a command whose tql file is missing — both
-        // arrive as plain `reason` text, and nothing is stored when they do.
+        // Validation errors (such as a missing TQL file) arrive as plain `reason` text.
+        // Names are not identities: Neo v8.7.1 can store equal names under different IDs.
         const sRes = await genTimer(sCreatePayload, sCreateName);
         if (sRes?.success) {
             setResErrMessage(undefined);
             Toast.success(`Timer '${sCreateName}' created`, { id: 'timer-create' });
         } else {
-            // failure stays inline: duplicate name / missing tql file both need a form edit
+            // failure stays inline so the invalid field can be corrected in the form
             setResErrMessage(resMessage(sRes, 'Failed to create timer'));
         }
 
@@ -108,7 +108,7 @@ export const EditTimer = () => {
     }, [sBodyRef]);
 
     return (
-        <Page pRef={sBodyRef}>
+        <Page pRef={sBodyRef} data-testid="timer-create">
             <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
                     <Page.Header />
@@ -121,7 +121,7 @@ export const EditTimer = () => {
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>Task’s name</Page.ContentDesc>
-                            <Page.Input pAutoFocus pValue={sCreateName} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
+                            <Page.Input pAutoFocus data-testid="timer-name" pValue={sCreateName} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
@@ -146,7 +146,7 @@ export const EditTimer = () => {
                                 <span style={{ marginLeft: '8px', color: 'dodgerblue', fontSize: '12px' }}>Check the example on the right</span>
                             </Page.ContentDesc>
                             <Page.Input
-                                pValue={sCreatePayload.schedule}
+                                data-testid="timer-schedule" pValue={sCreatePayload.schedule}
                                 pWidth={'400px'}
                                 pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)}
                             />
@@ -161,7 +161,7 @@ export const EditTimer = () => {
                             </Page.DpRow>
                             <Page.ContentDesc>The tql script as a task</Page.ContentDesc>
                             <Page.DpRow>
-                                <Page.Input pValue={sCreatePayload.path} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)} />
+                                <Page.Input data-testid="timer-path" pValue={sCreatePayload.path} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)} />
                                 <Button.Group>
                                     <div />
                                     <SelectFileBtn pType="tql" pCallback={(aKey: string) => handlePayload('path', { target: { value: aKey } } as any)} />
@@ -172,7 +172,7 @@ export const EditTimer = () => {
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
-                            <Page.TextButton pText="Create" pType="CREATE" pCallback={createTimer} />
+                            <Page.TextButton data-testid="timer-create-submit" pText="Create" pType="CREATE" pCallback={createTimer} />
                         </Page.ContentBlock>
 
                         {sResErrMessage && (

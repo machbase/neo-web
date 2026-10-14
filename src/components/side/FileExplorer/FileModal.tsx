@@ -147,7 +147,7 @@ export const FileModal = (props: FileModalProps) => {
                 <Modal.Confirm data-testid="file-new-confirm" onClick={handleSave} disabled={!sValResult} loading={false}>
                     OK
                 </Modal.Confirm>
-                <Modal.Cancel onClick={handleClose}>Cancel</Modal.Cancel>
+                <Modal.Cancel data-testid="file-new-cancel" onClick={handleClose}>Cancel</Modal.Cancel>
             </Modal.Footer>
             {sOverwritePrompt}
         </Modal.Root>

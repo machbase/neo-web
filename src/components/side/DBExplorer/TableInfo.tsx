@@ -366,7 +366,7 @@ export const TableInfo = ({
         <>
             {/* DB */}
             {pValue && pValue.dbName && (
-                <Side.Item onClick={() => setCollapseTree(!sCollapseTree)}>
+                <Side.Item data-testid={`db-node-${encodeURIComponent(pValue.dbName)}`} onClick={() => setCollapseTree(!sCollapseTree)}>
                     <Side.ItemContent>
                         <Side.ItemArrow isOpen={sIsExpanded} />
                         <Side.ItemIcon>
@@ -381,6 +381,7 @@ export const TableInfo = ({
                             <button
                                 type="button"
                                 className={`db-explorer-filter-trigger ${sHasFilter ? 'is-active' : ''}`}
+                                data-testid="type-filter"
                                 aria-label={sHasFilter ? `Table type filter (${sSelectedCount} selected)` : 'Filter table types'}
                                 aria-haspopup="true"
                                 aria-expanded={sFilterMenu.open}
@@ -608,6 +609,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     return (
         <>
             <Side.Item
+                data-testid={`db-table-${encodeURIComponent([props.pTable[E_TABLE_INFO.DB_NM], props.pTable[E_TABLE_INFO.USER_NM], props.pTable[E_TABLE_INFO.TB_NM]].join("."))}`}
                 className="db-explorer-row"
                 paddingLeft={40}
                 onClick={handleTableDetail}

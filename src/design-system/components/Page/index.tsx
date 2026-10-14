@@ -614,6 +614,7 @@ const Checkbox = ({ pCallback, pValue, pDisable, label }: { pCallback?: (value: 
     );
 };
 const Selector = <T,>({
+    'data-testid': testId,
     pList,
     pSelectedItem,
     pCallback,
@@ -630,6 +631,7 @@ const Selector = <T,>({
      * `hint` is the reason, shown beside the option — the place someone actually looks when a row
      * will not take a click.
      */
+    'data-testid'?: string;
     pList: { name: string; data: T; disabled?: boolean; hint?: string }[];
     pSelectedItem: any;
     pCallback: (eTarget: T) => void;
@@ -654,8 +656,8 @@ const Selector = <T,>({
     useOutsideClick(selectorRef, () => setIsOpen(false));
 
     const selectorContent = (
-        <div ref={selectorRef} className={styles['page-selector-wrapper']} style={{ width: 'auto', maxWidth: pWidth, textTransform: capitalize ? 'capitalize' : 'none' }}>
-            <div className={[styles['page-selector-header'], sIsOpen && styles['page-selector-header--open']].filter(Boolean).join(' ')} onClick={handleOpen}>
+        <div data-testid={testId} ref={selectorRef} className={styles['page-selector-wrapper']} style={{ width: 'auto', maxWidth: pWidth, textTransform: capitalize ? 'capitalize' : 'none' }}>
+            <div data-testid={testId ? "trigger" : undefined} className={[styles['page-selector-header'], sIsOpen && styles['page-selector-header--open']].filter(Boolean).join(' ')} onClick={handleOpen}>
                 <span>{pSelectedItem}</span>
                 <ArrowDown />
             </div>
@@ -664,6 +666,7 @@ const Selector = <T,>({
                     {pList.map((pItem, aIdx: number) => {
                         return (
                             <div
+                                data-testid={testId ? `option-${encodeURIComponent(String(pItem.data))}` : undefined}
                                 key={pItem.name + aIdx + ''}
                                 className={[
                                     styles['page-selector-body-item'],

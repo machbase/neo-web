@@ -76,7 +76,7 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
     const Resizer = () => <SashContent className={`security-key-sash-style`} />;
 
     return (
-        <Page>
+        <Page data-testid="token-create">
             <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 <Pane minSize={400}>
                     <Page.Header />
@@ -99,7 +99,7 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
                             <Page.ContentDesc>label only — spaces, uppercase and non-ASCII allowed, duplicates permitted</Page.ContentDesc>
                             <Page.Input
                                 pAutoFocus
-                                pValue={sName}
+                                data-testid="token-name" pValue={sName}
                                 pPlaceholder="dashboard"
                                 pCallback={(aEvent: React.FormEvent<HTMLInputElement>) => {
                                     setName((aEvent.target as HTMLInputElement).value);
@@ -142,7 +142,7 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
-                            <Page.TextButton pText="Issue token" pWidth="110px" pType="CREATE" pIsDisable={!sCanSubmit} pCallback={issueToken} />
+                            <Page.TextButton data-testid="token-create-submit" pText="Issue token" pWidth="110px" pType="CREATE" pIsDisable={!sCanSubmit} pCallback={issueToken} />
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>

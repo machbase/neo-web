@@ -268,7 +268,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
 
     return (
         <>
-            <Page>
+            <Page data-testid="worksheet">
                 <Page.Header>
                     <Button
                         size="sm"

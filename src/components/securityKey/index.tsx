@@ -76,7 +76,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
     return (
         <>
             {sHasSelection && (
-                <Page>
+                <Page data-testid="certificate-detail">
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
@@ -93,7 +93,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
                                         </div>
                                         <div className={styles.actions}>
                                             {/* <Page.TextButton pText="Reissue" pWidth="80px" pType="CREATE" mr="0px" mb="0px" pCallback={handleReissue} /> */}
-                                            <Page.TextButton pText="Delete" pWidth="70px" pType="DELETE" mr="0px" mb="0px" pCallback={handleDelete} />
+                                            <Page.TextButton data-testid="certificate-delete" pText="Delete" pWidth="70px" pType="DELETE" mr="0px" mb="0px" pCallback={handleDelete} />
                                         </div>
                                     </div>
                                 </Page.ContentBlock>
@@ -152,7 +152,7 @@ export const SecurityKey = ({ pCode }: { pCode: KeyItemType & { reissueName?: st
             )}
             {!sHasSelection && <CreateKey pInitialName={pCode?.reissueName} />}
             {sIsDeleteModal && (
-                <ConfirmModal
+                <ConfirmModal data-testid="certificate-delete-dialog"
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
                     pCallback={deleteKey}

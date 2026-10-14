@@ -99,7 +99,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
     };
-    const getReadme = async () => {
+    const getReadme = async (isCurrent: () => boolean) => {
         setReadme(undefined);
         setReadmeError(undefined);
 
@@ -117,6 +117,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         // right there on disk.
         if (pCode?.app?.installed_frontend && appName) {
             const local = await readLocalReadme(appName);
+            if (!isCurrent()) return;
             if (local) {
                 // NO relative-image rewriting here. The rewrite below points images at
                 // raw.githubusercontent; a local README's relative links already
@@ -141,6 +142,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         const sFullPath = `${sFullName}/${sBranch}/README.md`;
         try {
             const res: any = await getPkgMarkdown(sFullPath);
+            if (!isCurrent()) return;
             if (res && String(res)) {
                 const regex = new RegExp(/([/|\w||-])*\.(?:jpg|gif|png)/, 'gm');
                 const ImgNameRegex = new RegExp(/(!\[\w*\])/, 'gm');
@@ -164,12 +166,15 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                 setReadmeError(res?.data?.reason ?? res?.statusText ?? 'README is empty.');
             }
         } catch (e: any) {
+            if (!isCurrent()) return;
             setReadmeError(e?.message ?? 'Failed to load README.');
         }
     };
     useEffect(() => {
-        getReadme();
+        let active = true;
+        getReadme(() => active);
         setCommandResLog(undefined);
+        return () => { active = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pCode]);
 
@@ -188,7 +193,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
 
     return (
         <>
-            <Page>
+            <Page data-testid="package-detail">
                 <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                     <Pane minSize={400}>
                         <Page.Header />

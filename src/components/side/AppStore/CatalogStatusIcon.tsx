@@ -65,6 +65,7 @@ export const CatalogStatusIcon = ({ pStatus, pEntryCount }: CatalogStatusIconPro
 
     return (
         <span
+            data-testid="catalog-status"
             className={`app-store-catalog-status app-store-catalog-status--${state}`}
             role="status"
             aria-label={CATALOG_STATUS_LABEL[state]}
