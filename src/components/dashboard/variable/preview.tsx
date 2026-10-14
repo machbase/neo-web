@@ -14,6 +14,7 @@ export const VariablePreview = ({ pBoardInfo, callback }: { pBoardInfo: any; cal
                             <div
                                 className={`board-header-variable-preview-item-${idx} board-header-variable-preview-item`}
                                 key={'board-variable-item-' + idx.toString()}
+                                data-testid={`variable-chip-${encodeURIComponent(variable.id)}`}
                                 onClick={() => callback(variable.id)}
                             >
                                 <div className="board-header-variable-preview-item-key">{variable.use.value}</div>

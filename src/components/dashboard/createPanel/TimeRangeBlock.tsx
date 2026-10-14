@@ -82,8 +82,8 @@ export const TimeRangeBlock = ({ pPanelOption, pSetPanelOption, pEnableLastToNow
                             onChange={(value: string) => setUseTimePicker('refresh', value)}
                             placeholder="Select refresh time"
                         >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
+                            <Dropdown.Trigger data-testid="refresh" />
+                            <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                 <Dropdown.List />
                             </Dropdown.Menu>
                         </Dropdown.Root>
@@ -92,6 +92,7 @@ export const TimeRangeBlock = ({ pPanelOption, pSetPanelOption, pEnableLastToNow
                     <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                         <DatePicker
                             pLabel="From"
+                            pTestId="from"
                             pTopPixel={32}
                             pTimeValue={pPanelOption.timeRange.start ?? ''}
                             onChange={(date: any) => handleTime('start', date.target.value)}
@@ -101,6 +102,7 @@ export const TimeRangeBlock = ({ pPanelOption, pSetPanelOption, pEnableLastToNow
                     <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                         <DatePicker
                             pLabel="To"
+                            pTestId="to"
                             pTopPixel={32}
                             pTimeValue={pPanelOption.timeRange.end ?? ''}
                             onChange={(date: any) => handleTime('end', date.target.value)}
@@ -109,7 +111,7 @@ export const TimeRangeBlock = ({ pPanelOption, pSetPanelOption, pEnableLastToNow
                     </Page.ContentBlock>
                     <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                         <Page.DpRow style={{ justifyContent: 'end' }}>
-                            <Button variant="ghost" onClick={() => handleTime('', '')}>
+                            <Button variant="ghost" onClick={() => handleTime('', '')} data-testid="clear">
                                 <VscTrash size={16} />
                                 <span>Clear</span>
                             </Button>

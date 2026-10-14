@@ -656,10 +656,10 @@ const LineChart = ({
     }, sSetIntervalTime());
 
     return (
-        <div ref={ChartRef} className={`chart-form ${sIsError ? 'chart-message-error' : 'chart-message-success'} ${!pIsHeader ? 'chart-non-header' : ''}`}>
-            {sIsLoading && !sIsChartData ? <div className="loading">Loading...</div> : null}
-            {!sIsLoading && sIsError && sIsMessage ? <div>{sIsMessage}</div> : null}
-            {!sIsLoading && !sIsError && !sIsChartData && !sTqlData ? <div>{sIsMessage}</div> : null}
+        <div ref={ChartRef} className={`chart-form ${sIsError ? 'chart-message-error' : 'chart-message-success'} ${!pIsHeader ? 'chart-non-header' : ''}`} data-testid="chart">
+            {sIsLoading && !sIsChartData ? <div className="loading" data-testid="chart-loading">Loading...</div> : null}
+            {!sIsLoading && sIsError && sIsMessage ? <div data-testid="chart-error">{sIsMessage}</div> : null}
+            {!sIsLoading && !sIsError && !sIsChartData && !sTqlData ? <div data-testid="chart-message">{sIsMessage}</div> : null}
             {!sIsError && sChartData && sIsChartData && sTqlResultType === TqlResType.VISUAL ? (
                 <ShowVisualization
                     pLoopMode={pLoopMode}
@@ -679,7 +679,7 @@ const LineChart = ({
                 />
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
-                <div key={sSinkRenderKey} className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
+                <div key={sSinkRenderKey} className="dashboard-tql-panel-sink-wrap" data-testid="tql-sink" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
                     {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: [] }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}

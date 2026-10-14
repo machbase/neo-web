@@ -84,6 +84,7 @@ export const VariableHeader = ({
                                     options={variable.valueList.map((value) => ({
                                         label: value.value,
                                         value: value.value,
+                                        testId: `variable-option-${encodeURIComponent(value.value)}`,
                                     }))}
                                     value={variable.use.value}
                                     onChange={(value) => {
@@ -93,7 +94,7 @@ export const VariableHeader = ({
                                     label={variable.label}
                                     labelPosition="left"
                                 >
-                                    <Dropdown.Trigger />
+                                    <Dropdown.Trigger data-testid={`variable-${encodeURIComponent(variable.id)}`} />
                                     <Dropdown.Menu>
                                         <Dropdown.List />
                                     </Dropdown.Menu>
@@ -103,7 +104,7 @@ export const VariableHeader = ({
                     else return null;
                 })}
             <Page.ContentBlock pHoverNone style={{ padding: '12px 0 0 0' }}>
-                <Button variant="primary" onClick={updateVariableCode} style={{ width: '100%' }}>
+                <Button variant="primary" onClick={updateVariableCode} style={{ width: '100%' }} data-testid="variables-apply">
                     Apply
                 </Button>
             </Page.ContentBlock>

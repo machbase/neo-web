@@ -54,24 +54,26 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
 
     return (
         <div className="text-options-wrap">
-            <Page.Collapse title="Tooltip">
+            <Page.Collapse title="Tooltip" data-testid="tooltip-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0, gap: '8px', display: 'flex', flexDirection: 'column' }}>
                     <Checkbox
                         size="sm"
                         label="Time"
                         defaultChecked={pPanelOption.chartOptions?.tooltipTime ?? false}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'tooltipTime')}
+                        data-testid="time"
                     />
                     <Checkbox
                         size="sm"
                         label="Latitude, Longitude"
                         defaultChecked={pPanelOption.chartOptions?.tooltipCoor ?? false}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'tooltipCoor')}
+                        data-testid="latitude-longitude"
                     />
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />
-            <Page.Collapse title="Interval">
+            <Page.Collapse title="Interval" data-testid="interval-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Dropdown.Root
                         label="Type"
@@ -80,8 +82,8 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                         onChange={(value: string) => HandleOption({ target: { value } }, 'intervalType')}
                         fullWidth
                     >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
+                        <Dropdown.Trigger data-testid="type" />
+                        <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                             <Dropdown.List />
                         </Dropdown.Menu>
                     </Dropdown.Root>
@@ -92,24 +94,26 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                         placeholder="auto"
                         value={pPanelOption.chartOptions.intervalValue ?? ''}
                         onChange={(aEvent) => HandleOption(aEvent, 'intervalValue')}
+                        data-testid="value"
                     />
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />
-            <Page.Collapse title="Map option">
+            <Page.Collapse title="Map option" data-testid="map-option-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Checkbox
                         size="sm"
                         label="Use zoom control"
                         defaultChecked={pPanelOption.chartOptions?.useZoomControl ?? false}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'useZoomControl')}
+                        data-testid="use-zoom-control"
                     />
                     <Page.Divi />
-                    <Page.Collapse pTrigger="Series">
+                    <Page.Collapse pTrigger="Series" data-testid="series-section">
                         <Page.ContentBlock pHoverNone style={{ display: 'flex', padding: 0, gap: '4px', flexFlow: 'wrap' }}>
                             {pPanelOption.blockList.map((block: any, idx: number) => {
                                 return (
-                                    <div key={block.id + 'opt-coor'} style={{ border: 'solid 1px #777777', borderRadius: '5px', width: '100%' }}>
+                                    <div key={block.id + 'opt-coor'} style={{ border: 'solid 1px #777777', borderRadius: '5px', width: '100%' }} data-testid={`marker-${encodeURIComponent(block.id)}`}>
                                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                                             <Dropdown.Root
                                                 label="Latitude"
@@ -121,8 +125,8 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                                 }}
                                                 fullWidth
                                             >
-                                                <Dropdown.Trigger />
-                                                <Dropdown.Menu>
+                                                <Dropdown.Trigger data-testid="latitude" />
+                                                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                                     <Dropdown.List />
                                                 </Dropdown.Menu>
                                             </Dropdown.Root>
@@ -136,8 +140,8 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                                 }}
                                                 fullWidth
                                             >
-                                                <Dropdown.Trigger />
-                                                <Dropdown.Menu>
+                                                <Dropdown.Trigger data-testid="longitude" />
+                                                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                                     <Dropdown.List />
                                                 </Dropdown.Menu>
                                             </Dropdown.Root>
@@ -154,8 +158,8 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                                 onChange={(value: string) => HandleOption({ target: { value, name: 'customSelect' } }, 'marker', idx)}
                                                 fullWidth
                                             >
-                                                <Dropdown.Trigger />
-                                                <Dropdown.Menu>
+                                                <Dropdown.Trigger data-testid="marker-shape" />
+                                                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                                     <Dropdown.List />
                                                 </Dropdown.Menu>
                                             </Dropdown.Root>
@@ -166,6 +170,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                                                     fullWidth
                                                     value={pPanelOption.chartOptions.marker?.[idx]?.radius ?? 30}
                                                     onChange={(aEvent) => HandleOption(aEvent, 'marker', idx)}
+                                                    data-testid="marker-radius"
                                                 />
                                             )}
                                         </Page.ContentBlock>

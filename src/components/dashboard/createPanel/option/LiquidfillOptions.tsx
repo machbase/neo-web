@@ -41,9 +41,9 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     <HierarchicalCombobox.List emptyMessage="No units available" />
                 </HierarchicalCombobox.Menu>
             </HierarchicalCombobox.Root>
-            <Input label="Decimals" type="number" fullWidth value={pPanelOption.chartOptions?.digit ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'digit')} />
-            <Input label="Min" type="number" fullWidth value={pPanelOption.chartOptions?.minData ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'minData')} />
-            <Input label="Max" type="number" fullWidth value={pPanelOption.chartOptions?.maxData ?? 100} onChange={(aEvent: any) => HandleOption(aEvent, 'maxData')} />
+            <Input label="Decimals" type="number" fullWidth value={pPanelOption.chartOptions?.digit ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'digit')} data-testid="decimals" />
+            <Input label="Min" type="number" fullWidth value={pPanelOption.chartOptions?.minData ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'minData')} data-testid="min" />
+            <Input label="Max" type="number" fullWidth value={pPanelOption.chartOptions?.maxData ?? 100} onChange={(aEvent: any) => HandleOption(aEvent, 'maxData')} data-testid="max" />
             <Page.Divi />
             <Dropdown.Root
                 label="Shape"
@@ -52,13 +52,13 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                 onChange={(value: string) => HandleOption({ target: { value } }, 'shape')}
                 fullWidth
             >
-                <Dropdown.Trigger />
-                <Dropdown.Menu>
+                <Dropdown.Trigger data-testid="shape" />
+                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                     <Dropdown.List />
                 </Dropdown.Menu>
             </Dropdown.Root>
-            <Input label="Font size" type="number" fullWidth value={pPanelOption.chartOptions?.fontSize ?? 50} onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')} />
-            <Input label="Wave amplitude" type="number" fullWidth value={pPanelOption.chartOptions?.amplitude ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'amplitude')} />
+            <Input label="Font size" type="number" fullWidth value={pPanelOption.chartOptions?.fontSize ?? 50} onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')} data-testid="font-size" />
+            <Input label="Wave amplitude" type="number" fullWidth value={pPanelOption.chartOptions?.amplitude ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'amplitude')} data-testid="wave-amplitude" />
             <Page.Divi />
             <Page.DpRow style={{ display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'start', alignItems: 'start', flex: 1, width: '100%' }}>
                 <Page.DpRow style={{ gap: '8px' }}>
@@ -73,12 +73,14 @@ export const LiquidfillOptions = (props: LiquidfillOptionProps) => {
                     label="Wave animation"
                     defaultChecked={pPanelOption.chartOptions?.waveAnimation ?? false}
                     onChange={(aEvent: any) => HandleOption({ target: { value: aEvent.target.checked } }, 'waveAnimation')}
+                    data-testid="wave-animation"
                 />
                 <Checkbox
                     size="sm"
                     label="Outline"
                     defaultChecked={pPanelOption.chartOptions?.isOutline ?? false}
                     onChange={(aEvent: any) => HandleOption({ target: { value: aEvent.target.checked } }, 'isOutline')}
+                    data-testid="outline"
                 />
             </Page.DpRow>
         </>

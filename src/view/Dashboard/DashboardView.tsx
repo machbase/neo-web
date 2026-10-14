@@ -213,15 +213,17 @@ const DashboardView = () => {
 
     return sNotfound ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
-            <span>404 not found file name</span>
+            <span data-testid="dashboard-not-found">404 not found file name</span>
         </div>
     ) : (
         <>
-            <Page style={{ width: '100vw', height: '100vh' }}>
+            <Page style={{ width: '100vw', height: '100vh' }} data-testid="view-dashboard-board">
                 <Page.Header>
                     <Button.Group>
                         <Page.DpRow style={{ display: 'flex', flex: 1, textWrap: 'nowrap' }}>
-                            <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }}>{sBoardInformation?.dashboard?.title || ''}</span>
+                            <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }} data-testid="title">
+                                {sBoardInformation?.dashboard?.title || ''}
+                            </span>
                         </Page.DpRow>
                         {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
                             <>
@@ -233,9 +235,9 @@ const DashboardView = () => {
                         )}
                     </Button.Group>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
-                        <Button variant="ghost" size="icon" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} />
-                        <Button size="sm" variant="ghost" onClick={() => setIsTimeRangeModal(true)}>
+                        <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" data-testid="refresh" />
+                        <Button variant="ghost" size="icon" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} data-testid="shift-backward" />
+                        <Button size="sm" variant="ghost" onClick={() => setIsTimeRangeModal(true)} data-testid="time-range">
                             <Calendar style={{ paddingRight: '8px' }} />
                             {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
                                 <>
@@ -253,7 +255,7 @@ const DashboardView = () => {
                                 <span>Time range not set</span>
                             )}
                         </Button>
-                        <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
+                        <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} data-testid="shift-forward" />
                         <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
                         <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                     </div>
@@ -277,6 +279,7 @@ const DashboardView = () => {
                                 return (
                                     <div
                                         key={aItem.id}
+                                        data-testid={`panel-${encodeURIComponent(aItem.id)}`}
                                         data-grid={{
                                             x: sIsMobile ? 0 : aItem.x,
                                             y: aItem.y,

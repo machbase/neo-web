@@ -29,6 +29,7 @@ export type BadgeProps = {
     toolTipPlace?: TooltipPlace;
     /** Tooltip max width */
     toolTipMaxWidth?: number;
+    'data-testid'?: string;
 };
 
 export const Badge = ({
@@ -43,6 +44,7 @@ export const Badge = ({
     toolTipContent,
     toolTipPlace = 'top',
     toolTipMaxWidth,
+    'data-testid': testId,
 }: BadgeProps) => {
     const badgeClasses = [
         styles.badge,
@@ -60,7 +62,7 @@ export const Badge = ({
 
     return (
         <>
-            <div className={`${badgeClasses}${isToolTip ? ` tooltip-${tooltipId}` : ''}`} style={style}>
+            <div className={`${badgeClasses}${isToolTip ? ` tooltip-${tooltipId}` : ''}`} style={style} data-testid={testId}>
                 {showDot && (
                     <span
                         className={styles.dot}

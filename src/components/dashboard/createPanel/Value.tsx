@@ -46,7 +46,7 @@ const Value = ({
     };
 
     return (
-        <div className={fieldStyles['field-stack']} style={FIELD_STACK_STYLE}>
+        <div className={fieldStyles['field-stack']} style={FIELD_STACK_STYLE} data-testid={`value-row-${encodeURIComponent(pValue.id)}`}>
             {!pHideValueFieldRow && (
                 <Page.DpRow style={FIELD_ROW_STYLE}>
                     <div className={fieldStyles['align-spacer']} style={FIELD_ALIGN_SPACER_STYLE} />
@@ -57,11 +57,11 @@ const Value = ({
                                 {pPanelOption.type === 'Geomap' ? (
                                     pIdx === pBlockInfo.values.length - 1 ? (
                                         <>
-                                            {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />}
-                                            <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={pAddValue} />
+                                            {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} data-testid="remove-value" />}
+                                            <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={pAddValue} data-testid="add-value" />
                                         </>
                                     ) : (
-                                        <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />
+                                        <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} data-testid="remove-value" />
                                     )
                                 ) : (
                                     <></>
@@ -71,6 +71,8 @@ const Value = ({
                         labelPosition="left"
                         labelAlign="right"
                         type="text"
+                        data-testid="value-field"
+                        menuTestId="dashboard-panel-editor-select-menu"
                         options={pColumnList.map((aItem: any) => ({ label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0], value: aItem[0] }))}
                         value={sValueField}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
@@ -99,6 +101,7 @@ const Value = ({
                             }}
                             size="md"
                             style={FIELD_STYLE}
+                            data-testid="json-key" menuTestId="dashboard-panel-editor-select-menu"
                         />
                     ) : null}
                 </Page.DpRow>
@@ -117,6 +120,7 @@ const Value = ({
                     disabled={pPanelOption.type === 'Geomap' && pIdx > 0}
                     size="md"
                     style={FIELD_STYLE}
+                    data-testid="aggregator" menuTestId="dashboard-panel-editor-select-menu"
                 />
                 {SEPARATE_DIFF && (
                     <InputSelect
@@ -131,6 +135,7 @@ const Value = ({
                         onSelectChange={(value: string) => pChangeValueOption('diff', { target: { value } }, pValue.id, 'values')}
                         size="md"
                         style={FIELD_STYLE}
+                        data-testid="diff" menuTestId="dashboard-panel-editor-select-menu"
                     />
                 )}
                 <DSInput
@@ -142,6 +147,7 @@ const Value = ({
                     onChange={(aEvent: any) => pChangeValueOption('alias', aEvent, pValue.id, 'values')}
                     size="md"
                     style={FIELD_STYLE}
+                    data-testid="alias"
                 />
             </Page.DpRow>
         </div>

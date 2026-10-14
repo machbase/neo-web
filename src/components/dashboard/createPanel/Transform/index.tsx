@@ -99,6 +99,7 @@ export const Transform = ({
                       }),
                 color: block.color,
                 idx: idx,
+                testId: `series-${encodeURIComponent(block.id)}`,
             })) ?? []
         );
     }, [pPanelOption?.blockList]);
@@ -153,7 +154,7 @@ const TransformBlock = ({
                 end: '',
             });
             if (sParsedVasParsedFormula.match(VARIABLE_REGEX)) {
-                Toast.error('Please check the entered formula.');
+                Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
                 return handleItem('valid', false);
             }
             sMapValue = sParsedVasParsedFormula;
@@ -166,14 +167,17 @@ const TransformBlock = ({
             const sink = TQL.SINK._JSON();
             const sResult: any = await getTqlChart(`${src}\n${map}\n${sink}`);
             if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) {
-                Toast.error('Please check the entered formula.');
+                Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
                 handleItem('valid', false);
             } else handleItem('valid', true);
         } else handleItem('valid', false);
     };
 
     return (
-        <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
+        <Page
+            style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}
+            data-testid={`transform-${encodeURIComponent(pTransformItem.id)}`}
+        >
             <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
                 <Page.DpRow style={{ gap: '4px', justifyContent: 'space-between', alignItems: 'center' }}>
                     <DSInput
@@ -184,25 +188,28 @@ const TransformBlock = ({
                         onChange={(e) => handleItem('alias', e.target.value)}
                         size="md"
                         style={{ width: '175px', height: '26px' }}
+                        data-testid="alias"
                     />
                     <Button.Group>
-                        <Button size="side" variant="ghost" icon={<RxQuestionMark />} onClick={handleModal} />
+                        <Button size="side" variant="ghost" icon={<RxQuestionMark />} onClick={handleModal} data-testid="help" />
                         <Button
                             size="side"
                             variant="ghost"
                             disabled={pBlockCount.addable ? false : pTransformItem?.isVisible ? false : true}
                             icon={pTransformItem?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
                             onClick={() => handleItem('isVisible', !pTransformItem?.isVisible)}
+                            data-testid="visibility-toggle"
                             isToolTip
                             toolTipContent={pTransformItem?.isVisible ? 'Visible' : 'Invisible'}
                         />
                         <ColorPicker
                             color={pTransformItem.color}
                             onChange={(color: string) => handleItem('color', color)}
+                            data-testid="color"
                             disabled={chartTypeConverter(pChartType) === E_CHART_TYPE.TEXT}
                             tooltipContent="Color"
                         />
-                        <Button size="side" variant="ghost" icon={<Close size={16} />} onClick={handleBlock} />
+                        <Button size="side" variant="ghost" icon={<Close size={16} />} onClick={handleBlock} data-testid="delete" />
                     </Button.Group>
                 </Page.DpRow>
             </Page.ContentBlock>
@@ -213,6 +220,8 @@ const TransformBlock = ({
                     selectedList={pTransformItem.selectedBlockIdxList ?? []}
                     list={pQueryBlockList}
                     onChange={(aItem) => handleItem('selectBlockIdx', aItem)}
+                    data-testid="series-select"
+                    menuTestId="dashboard-panel-editor-series-menu"
                 />
             </Page.ContentBlock>
             <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
@@ -222,7 +231,7 @@ const TransformBlock = ({
                             <span style={{ fontSize: '13px', width: '40px', paddingTop: '8px', display: 'flex', gap: '4px', alignItems: 'start' }}>
                                 Formula
                                 {pTransformItem.valid !== undefined && !pTransformItem.valid && (
-                                    <div style={{ marginTop: '3px' }}>
+                                    <div style={{ marginTop: '3px' }} data-testid="formula-invalid">
                                         <BadgeStatus />
                                         <Tooltip
                                             className="tooltip-transform"
@@ -241,6 +250,7 @@ const TransformBlock = ({
                     defaultValue={pTransformItem.value}
                     onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => handleItem('value', event.target.value)}
                     onBlur={handleFormula}
+                    data-testid="formula"
                     fullWidth
                     size="sm"
                     resize="vertical"
@@ -251,7 +261,19 @@ const TransformBlock = ({
     );
 };
 const TransformAddBlock = ({ isDisable, callback }: { isDisable: boolean; callback: () => void }) => {
-    return <Button variant="secondary" fullWidth shadow autoFocus={false} disabled={isDisable} icon={<PlusCircle />} onClick={callback} style={{ height: '60px' }} />;
+    return (
+        <Button
+            variant="secondary"
+            fullWidth
+            shadow
+            autoFocus={false}
+            disabled={isDisable}
+            icon={<PlusCircle />}
+            onClick={callback}
+            style={{ height: '60px' }}
+            data-testid="add-transform"
+        />
+    );
 };
 const TrxHelpModal = ({ callback }: { callback: () => void }) => {
     const handleLink = () => {

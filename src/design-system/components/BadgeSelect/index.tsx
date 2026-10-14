@@ -9,6 +9,8 @@ export type BadgeSelectItem = {
     color: string;
     idx: number;
     label?: string;
+    /** Test ID of this item's button in the open list, from a stable key of the item. */
+    testId?: string;
 };
 
 type BadgeSelectItemProps = {
@@ -39,6 +41,10 @@ export type BadgeSelectProps = {
     fullWidth?: boolean;
     style?: React.CSSProperties;
     className?: string;
+    /** Test ID of the clickable selection box. */
+    'data-testid'?: string;
+    /** Test ID of the portaled item list. */
+    menuTestId?: string;
 };
 
 export const BadgeSelect = ({
@@ -52,6 +58,8 @@ export const BadgeSelect = ({
     fullWidth = false,
     style,
     className,
+    'data-testid': testId,
+    menuTestId,
 }: BadgeSelectProps) => {
     const selectorRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -193,6 +201,7 @@ export const BadgeSelect = ({
         <div
             ref={dropdownRef}
             className={styles.dropdown}
+            data-testid={menuTestId}
             style={{
                 position: 'fixed',
                 ...(position.showAbove
@@ -213,6 +222,7 @@ export const BadgeSelect = ({
                         <button
                             className={`badge-select-tooltip-${idx} ${styles.dropdownItem} ${selectedList?.includes(item.idx) ? styles.activeItem : ''}`}
                             onClick={() => handleClick(item)}
+                            data-testid={item.testId}
                             style={{ boxShadow: `inset 4px 0 0 0 ${item.color}` }}
                         >
                             {item.label ? (
@@ -231,7 +241,7 @@ export const BadgeSelect = ({
 
     const selectElement = (
         <div ref={selectorRef} className={selectClasses} id={badgeSelectId}>
-            <div className={selectedBoxClasses} onClick={handleToggle}>
+            <div className={selectedBoxClasses} onClick={handleToggle} data-testid={testId}>
                 <div className={styles.selectedItems}>
                     {selectedItems.length > 0 ? (
                         selectedItems.map((item, idx) => <BadgeSelectItem key={`${item.name}-${item.idx}-${idx}`} item={item} />)

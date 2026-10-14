@@ -10,20 +10,21 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
     const sOperator = normalizeFilterOperator(pFilterInfo.operator);
 
     return (
-        <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+        <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }} data-testid={`filter-${encodeURIComponent(pFilterInfo.id)}`}>
             {pFilterInfo.useTyping ? (
                 <div style={{ flex: 1, minWidth: '160px', maxWidth: '456px' }}>
                     <DSInput
+                        data-testid="typing-value"
                         label={
                             <>
                                 Filter
                                 {pIdx === pBlockInfo.filter.length - 1 ? (
                                     <>
-                                        {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />}
-                                        <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={() => pAddFilter()} />
+                                        {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} data-testid="remove" />}
+                                        <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={() => pAddFilter()} data-testid="add-filter" />
                                     </>
                                 ) : (
-                                    <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />
+                                    <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} data-testid="remove" />
                                 )}
                             </>
                         }
@@ -39,16 +40,18 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
             ) : (
                 <>
                     <InputSelect
+                        data-testid="column"
+                        menuTestId="dashboard-panel-editor-select-menu"
                         label={
                             <>
                                 Filter
                                 {pIdx === pBlockInfo.filter.length - 1 ? (
                                     <>
-                                        {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />}
-                                        <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={() => pAddFilter()} />
+                                        {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} data-testid="remove" />}
+                                        <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={() => pAddFilter()} data-testid="add-filter" />
                                     </>
                                 ) : (
-                                    <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} />
+                                    <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveFilter(pFilterInfo.id)} data-testid="remove" />
                                 )}
                             </>
                         }
@@ -67,6 +70,8 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
 
                     <InputSelect
                         type="text"
+                        data-testid="operator"
+                        menuTestId="dashboard-panel-editor-select-menu"
                         options={FILTER_OPERATORS.map((opt: string) => ({ label: opt, value: opt }))}
                         value={sOperator}
                         onChange={(aEvent: any) => pChangeValueOption('operator', aEvent, pFilterInfo.id, 'filter')}
@@ -78,6 +83,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
 
                     <DSInput
                         type="text"
+                        data-testid="value"
                         value={pFilterInfo.value}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
                         size="md"
@@ -94,6 +100,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                 variant={pFilterInfo.useTyping ? 'primary' : 'ghost'}
                 icon={<GoPencil size={14} />}
                 onClick={() => pChangeValueOption('useTyping', { target: { value: !pFilterInfo.useTyping } }, pFilterInfo.id, 'filter')}
+                data-testid="typing-toggle"
                 isToolTip
                 toolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
             />
