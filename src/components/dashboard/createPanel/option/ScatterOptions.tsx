@@ -28,6 +28,7 @@ export const ScatterOptions = (props: ScatterOptionProps) => {
                 label="Large data mode"
                 defaultChecked={pPanelOption.chartOptions?.isLarge ?? false}
                 onChange={(aEvent: any) => handleScatterOption(aEvent, 'isLarge', true)}
+                data-testid="large-data-mode"
             />
             <Page.Divi />
             <Page.ContentDesc>Symbol</Page.ContentDesc>
@@ -39,12 +40,12 @@ export const ScatterOptions = (props: ScatterOptionProps) => {
                 onChange={(value: string) => handleScatterOption({ target: { value } }, 'symbol', false)}
                 fullWidth
             >
-                <Dropdown.Trigger />
-                <Dropdown.Menu>
+                <Dropdown.Trigger data-testid="type" />
+                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                     <Dropdown.List />
                 </Dropdown.Menu>
             </Dropdown.Root>
-            <Input label="Size" type="text" fullWidth value={pPanelOption.chartOptions?.symbolSize} onChange={(aEvent: any) => handleScatterOption(aEvent, 'symbolSize', false)} />
+            <Input label="Size" type="text" fullWidth value={pPanelOption.chartOptions?.symbolSize} onChange={(aEvent: any) => handleScatterOption(aEvent, 'symbolSize', false)} data-testid="size" />
         </>
     );
 };

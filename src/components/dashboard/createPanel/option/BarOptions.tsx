@@ -24,11 +24,11 @@ export const BarOptions = (props: BarOptionProps) => {
 
     return (
         <div>
-            <Checkbox size="sm" label="Stack mode" defaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isStack', true)} />
+            <Checkbox size="sm" label="Stack mode" defaultChecked={pPanelOption.chartOptions?.isStack ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isStack', true)} data-testid="stack-mode" />
             <div style={{ height: '10px' }} />
-            <Checkbox size="sm" label="Large data mode" defaultChecked={pPanelOption.chartOptions?.isLarge ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isLarge', true)} />
+            <Checkbox size="sm" label="Large data mode" defaultChecked={pPanelOption.chartOptions?.isLarge ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isLarge', true)} data-testid="large-data-mode" />
             <Page.Divi />
-            <Checkbox size="sm" label="Polar mode" defaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} />
+            <Checkbox size="sm" label="Polar mode" defaultChecked={pPanelOption.chartOptions?.isPolar ?? false} onChange={(aEvent: any) => handleBarOption(aEvent, 'isPolar', true)} data-testid="polar-mode" />
             <div style={{ height: '10px' }} />
             <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                 <Input
@@ -38,6 +38,7 @@ export const BarOptions = (props: BarOptionProps) => {
                     disabled={!pPanelOption.chartOptions?.isPolar}
                     value={pPanelOption.chartOptions?.maxValue}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'maxValue', false)}
+                    data-testid="max"
                 />
                 <Input
                     label="Start angle"
@@ -46,6 +47,7 @@ export const BarOptions = (props: BarOptionProps) => {
                     disabled={!pPanelOption.chartOptions?.isPolar}
                     value={pPanelOption.chartOptions?.startAngle}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'startAngle', false)}
+                    data-testid="start-angle"
                 />
                 <Input
                     label="Radius"
@@ -54,6 +56,7 @@ export const BarOptions = (props: BarOptionProps) => {
                     disabled={!pPanelOption.chartOptions?.isPolar}
                     value={pPanelOption.chartOptions?.polarRadius}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'polarRadius', false)}
+                    data-testid="radius"
                 />
                 <Input
                     label="Polar size"
@@ -62,6 +65,7 @@ export const BarOptions = (props: BarOptionProps) => {
                     disabled={!pPanelOption.chartOptions?.isPolar}
                     value={pPanelOption.chartOptions?.polarSize}
                     onChange={(aEvent: any) => handleBarOption(aEvent, 'polarSize', false)}
+                    data-testid="polar-size"
                 />
                 <Dropdown.Root
                     label="Polar axis"
@@ -71,8 +75,8 @@ export const BarOptions = (props: BarOptionProps) => {
                     fullWidth
                     disabled={!pPanelOption.chartOptions?.isPolar}
                 >
-                    <Dropdown.Trigger />
-                    <Dropdown.Menu>
+                    <Dropdown.Trigger data-testid="polar-axis" />
+                    <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                         <Dropdown.List />
                     </Dropdown.Menu>
                 </Dropdown.Root>

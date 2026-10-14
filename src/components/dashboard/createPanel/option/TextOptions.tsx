@@ -136,7 +136,7 @@ export const TextOptions = (props: ChartOptionProps) => {
 
     return (
         <>
-            <Page.Collapse title="Text option">
+            <Page.Collapse title="Text option" data-testid="text-option-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <HierarchicalCombobox.Root label="Unit" value={pPanelOption?.chartOptions?.unit?.id ?? ''} categories={UNITS} onChange={(value) => HandleOption(value, 'unit')}>
                         <HierarchicalCombobox.Input />
@@ -144,16 +144,17 @@ export const TextOptions = (props: ChartOptionProps) => {
                             <HierarchicalCombobox.List emptyMessage="No units available" />
                         </HierarchicalCombobox.Menu>
                     </HierarchicalCombobox.Root>
-                    <Input label="Decimals" type="number" fullWidth value={pPanelOption.chartOptions?.digit ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'digit')} />
+                    <Input label="Decimals" type="number" fullWidth value={pPanelOption.chartOptions?.digit ?? 0} onChange={(aEvent: any) => HandleOption(aEvent, 'digit')} data-testid="decimals" />
                     <Input
                         label="Font size"
                         type="number"
                         fullWidth
                         value={pPanelOption.chartOptions?.fontSize ?? 50}
                         onChange={(aEvent: any) => HandleOption(aEvent, 'fontSize')}
+                        data-testid="font-size"
                     />
                     <Page.Divi />
-                    <Page.Collapse title="Color" size="sm">
+                    <Page.Collapse title="Color" size="sm" data-testid="color-section">
                         <Page.ContentBlock style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }} pHoverNone>
                             {pPanelOption.chartOptions?.color.map((aAxisColor: any, aIdx: number) => {
                                 if (aIdx === 0)
@@ -191,7 +192,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />
-            <Page.Collapse title="Chart option">
+            <Page.Collapse title="Chart option" data-testid="chart-option-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0, gap: '8px', display: 'flex', flexDirection: 'column' }}>
                     <Dropdown.Root
                         label="Type"
@@ -200,8 +201,8 @@ export const TextOptions = (props: ChartOptionProps) => {
                         onChange={(value: string) => HandleOption({ target: { value } }, 'chartType')}
                         fullWidth
                     >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
+                        <Dropdown.Trigger data-testid="type" />
+                        <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                             <Dropdown.List />
                         </Dropdown.Menu>
                     </Dropdown.Root>
@@ -214,6 +215,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                             max={1}
                             value={pPanelOption.chartOptions?.fillOpacity}
                             onChange={(aEvent: any) => HandleOption(aEvent, 'fillOpacity')}
+                            data-testid="chart-opacity"
                         />
                     )}
                     {pPanelOption.chartOptions?.chartType !== 'bar' && (
@@ -223,6 +225,7 @@ export const TextOptions = (props: ChartOptionProps) => {
                             fullWidth
                             value={pPanelOption.chartOptions?.symbolSize}
                             onChange={(aEvent: any) => HandleOption(aEvent, 'symbolSize')}
+                            data-testid="symbol-size"
                         />
                     )}
                     <Page.DpRow style={{ gap: '8px' }}>

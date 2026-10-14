@@ -123,9 +123,9 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
 
     return (
         <>
-            <Page.Collapse pTrigger="Panel option" pInitOpen>
+            <Page.Collapse pTrigger="Panel option" pInitOpen data-testid="panel-option-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                    <Input label="Title" type="text" fullWidth value={pPanelOption.title} onChange={(aEvent: any) => handleTitle(aEvent)} />
+                    <Input label="Title" type="text" fullWidth value={pPanelOption.title} onChange={(aEvent: any) => handleTitle(aEvent)} data-testid="title" />
                     <Page.Space />
                     <Dropdown.Root
                         label="Theme"
@@ -134,8 +134,8 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
                         onChange={(value: string) => handleCustomOption(value, 'theme')}
                         fullWidth
                     >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
+                        <Dropdown.Trigger data-testid="theme" />
+                        <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                             <Dropdown.List />
                         </Dropdown.Menu>
                     </Dropdown.Root>
@@ -144,7 +144,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
             <Page.Divi />
 
             {/* DEPENDENT */}
-            <Page.Collapse title="Dependent option">
+            <Page.Collapse title="Dependent option" data-testid="dependent-option-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentDesc>Linked synchronized charts</Page.ContentDesc>
                     <Page.Space />
@@ -197,7 +197,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
             <Page.Divi />
 
             {/* CHILD BOARD */}
-            <Page.Collapse title="Child dashboard">
+            <Page.Collapse title="Child dashboard" data-testid="child-dashboard-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.DpRow style={{ gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <Input
@@ -208,6 +208,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
                             value={pPanelOption.chartOptions?.childBoard ?? ''}
                             onChange={(aEvent: any) => handleChildBoard(aEvent.target.value)}
                             size="md"
+                            data-testid="path"
                         />
                         <SelectFileBtn pType="dsh" pCallback={(aPath: string) => handleChildBoard(aPath)} />
                         <OpenFileBtn pType="dsh" pFileInfo={{ path: pPanelOption.chartOptions?.childBoard ?? '' }} />

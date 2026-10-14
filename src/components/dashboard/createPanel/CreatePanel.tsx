@@ -96,7 +96,7 @@ const CreatePanel = ({
             } else {
                 sStart = moment(sPanelOption.timeRange.start).unix() * 1000;
                 if (sStart < 0 || isNaN(sStart)) {
-                    Toast.error('Please check the entered time.');
+                    Toast.error('Please check the entered time.', { testId: 'dashboard-panel-editor-toast' });
                     return;
                 }
             }
@@ -105,7 +105,7 @@ const CreatePanel = ({
             } else {
                 sEnd = moment(sPanelOption.timeRange.end).unix() * 1000;
                 if (sEnd < 0 || isNaN(sEnd)) {
-                    Toast.error('Please check the entered time.');
+                    Toast.error('Please check the entered time.', { testId: 'dashboard-panel-editor-toast' });
                     return;
                 }
             }
@@ -267,7 +267,7 @@ const CreatePanel = ({
         if (aPanelInfo?.transformBlockList && aPanelInfo.transformBlockList.length > 0) {
             for (const transformBlock of aPanelInfo.transformBlockList) {
                 if (!transformBlock.alias || transformBlock.alias.trim() === '') {
-                    Toast.error('Transform alias cannot be empty. Please enter an alias for all transform blocks.');
+                    Toast.error('Transform alias cannot be empty. Please enter an alias for all transform blocks.', { testId: 'dashboard-panel-editor-toast' });
                     return false;
                 }
             }
@@ -283,7 +283,7 @@ const CreatePanel = ({
         }
 
         setMissingTagBlockId(sMissingBlockId ?? null);
-        Toast.error(message);
+        Toast.error(message, { testId: 'dashboard-panel-editor-toast' });
         return false;
     };
 
@@ -294,7 +294,7 @@ const CreatePanel = ({
     const validateTimeField = (aPanelInfo: any) => {
         const sMessage = getTimeFieldValidationMessage(aPanelInfo);
         if (!sMessage) return true;
-        Toast.error(sMessage);
+        Toast.error(sMessage, { testId: 'dashboard-panel-editor-toast' });
         return false;
     };
 
@@ -305,7 +305,7 @@ const CreatePanel = ({
     const validateValueField = (aPanelInfo: any) => {
         const sMessage = getValueFieldValidationMessage(aPanelInfo);
         if (!sMessage) return true;
-        Toast.error(sMessage);
+        Toast.error(sMessage, { testId: 'dashboard-panel-editor-toast' });
         return false;
     };
 
@@ -343,7 +343,7 @@ const CreatePanel = ({
                 } else {
                     sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
                     if (sStart < 0 || isNaN(sStart)) {
-                        Toast.error('Please check the entered time.');
+                        Toast.error('Please check the entered time.', { testId: 'dashboard-panel-editor-toast' });
                         return;
                     }
                 }
@@ -352,7 +352,7 @@ const CreatePanel = ({
                 } else {
                     sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
                     if (sEnd < 0 || isNaN(sEnd)) {
-                        Toast.error('Please check the entered time.');
+                        Toast.error('Please check the entered time.', { testId: 'dashboard-panel-editor-toast' });
                         return;
                     }
                 }
@@ -378,7 +378,7 @@ const CreatePanel = ({
                 } else {
                     sStart = moment(sTmpPanelOption.timeRange.start).unix() * 1000;
                     if (sStart < 0 || isNaN(sStart)) {
-                        Toast.error('Please check the entered time.');
+                        Toast.error('Please check the entered time.', { testId: 'dashboard-panel-editor-toast' });
                         return;
                     }
                 }
@@ -387,7 +387,7 @@ const CreatePanel = ({
                 } else {
                     sEnd = moment(sTmpPanelOption.timeRange.end).unix() * 1000;
                     if (sEnd < 0 || isNaN(sEnd)) {
-                        Toast.error('Please check the entered time.');
+                        Toast.error('Please check the entered time.', { testId: 'dashboard-panel-editor-toast' });
                         return;
                     }
                 }
@@ -532,10 +532,10 @@ const CreatePanel = ({
 
     return (
         <>
-        <Page style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999 }}>
+        <Page style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999 }} data-testid="dashboard-panel-editor">
             <Page.Header>
                 <Page.DpRow>
-                    <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={handleDiscard} />
+                    <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={handleDiscard} data-testid="back" />
                     Create panel
                 </Page.DpRow>
                 <Page.DpRow>
@@ -549,9 +549,9 @@ const CreatePanel = ({
                     />
                     <Page.Divi direction={'vertical'} />
                     <Page.DpRow>
-                        <Page.TextButton pText="Discard" pType="DELETE" pCallback={handleDiscard} pWidth="75px" mb="0px" mr="4px" />
-                        <Page.TextButton pText={handlePreviewText()} pType="STATUS" pCallback={() => applyPanel()} pWidth="75px" mb="0px" mr="4px" />
-                        <Page.TextButton pText="Save" pType="CREATE" pCallback={pType === 'create' ? () => addPanel() : () => editPanel()} pWidth="65px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Discard" pType="DELETE" pCallback={handleDiscard} pWidth="75px" mb="0px" mr="4px" data-testid="discard" />
+                        <Page.TextButton pText={handlePreviewText()} pType="STATUS" pCallback={() => applyPanel()} pWidth="75px" mb="0px" mr="4px" data-testid="apply" />
+                        <Page.TextButton pText="Save" pType="CREATE" pCallback={pType === 'create' ? () => addPanel() : () => editPanel()} pWidth="65px" mb="0px" mr="4px" data-testid="save" />
                     </Page.DpRow>
                 </Page.DpRow>
             </Page.Header>

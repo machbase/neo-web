@@ -6,7 +6,7 @@ import { ChartThemeList } from '@/utils/constants';
 export const TqlOptions = () => {
     return (
         <div>
-            <Page.Collapse title="Theme" pInitOpen>
+            <Page.Collapse title="Theme" pInitOpen data-testid="theme-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentDesc>Set the chart theme inside the TQL file with theme("...").</Page.ContentDesc>
                     <Page.Space />
@@ -22,7 +22,7 @@ export const TqlOptions = () => {
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />
-            <Page.Collapse title="Parameter variables">
+            <Page.Collapse title="Parameter variables" data-testid="parameter-variables-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentText pContent="Time range" />
                     <Page.Space />
@@ -47,7 +47,7 @@ export const TqlOptions = () => {
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />
-            <Page.Collapse title="Plugins">
+            <Page.Collapse title="Plugins" data-testid="plugins-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentDesc>For charts that use plugin, need to add the plugin to tql file.</Page.ContentDesc>
                     <Page.Space />

@@ -353,7 +353,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         if (aKey === 'use' && aData?.target?.value === true) {
             const checkDiff = allowFullTyping();
             if (!checkDiff) {
-                Toast.error('Full typing is not available when using Diff aggregator.');
+                Toast.error('Full typing is not available when using Diff aggregator.', { testId: 'dashboard-panel-editor-toast' });
                 return;
             }
         }
@@ -404,7 +404,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 (aOther: any) => aOther.id !== pBlockInfo.id && aOther.table && aOther.table !== '' && isNumericBaseTimeBlock(aOther) !== sNewIsDistance
             );
             if (sHasMismatch) {
-                Toast.error(MIXED_X_AXIS_KIND_WARNING);
+                Toast.error(MIXED_X_AXIS_KIND_WARNING, { testId: 'dashboard-panel-editor-toast' });
                 return;
             }
             pSetPanelOption((aPrev: any) => {
@@ -672,7 +672,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             setOption('isValidMath', true);
         } else {
             setOption('isValidMath', false);
-            Toast.error('Please check the entered formula.');
+            Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
             setIsMath(false);
         }
     };
@@ -848,7 +848,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         if (sQuery === '') return setIsValidCustomQuery(true);
         const sResult: any = await getTqlChart(`SQL("${sQuery}")\nJSON()`, 'dsh');
         if (!sResult?.data?.success) {
-            Toast.error('Please check the entered formula.');
+            Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
             setIsValidCustomQuery(false);
             return;
         }
@@ -871,7 +871,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
 
     return (
         <>
-            <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
+            <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }} data-testid={`series-block-${encodeURIComponent(pBlockInfo.id)}`}>
                 {/* TABLE */}
                 <Page.ContentBlock style={{ padding: '4px', ...FIELD_STACK_STYLE }} pHoverNone>
                     <Page.DpRow style={{ width: '100%', justifyContent: 'end', paddingBottom: '8px' }}>
@@ -883,6 +883,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 active={pBlockInfo.customFullTyping.use}
                                 disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar')}
                                 icon={<GoPencil size={14} />}
+                                data-testid="full-typing-toggle"
                                 onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
                                 aria-label={pBlockInfo.customFullTyping.use ? 'Switch to selecting' : 'Switch to typing'}
                                 isToolTip
@@ -913,6 +914,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         </div>
                                     }
                                     onClick={handleFormulaIconBtn}
+                                    data-testid="formula-toggle"
                                     isToolTip
                                     toolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 />
@@ -920,6 +922,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     createPortal(
                                         <div
                                             className="math-typing-wrap"
+                                            data-testid="dashboard-panel-editor-formula"
                                             style={{
                                                 width: '200px',
                                                 height: '26px',
@@ -944,6 +947,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                                 value={pBlockInfo?.math}
                                                 placeholder={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'value * 1.0' : ''}
                                                 onChange={(e) => changedOption('math', e)}
+                                                data-testid="formula-input"
                                                 size="sm"
                                                 style={{ width: '200px', height: '26px' }}
                                             />
@@ -957,12 +961,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 disabled={pBlockCount.addable ? false : pBlockInfo?.isVisible ? false : true}
                                 icon={pBlockInfo?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
                                 onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
+                                data-testid="visibility-toggle"
                                 isToolTip
                                 toolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
                             />
                             <ColorPicker
                                 color={pBlockInfo.color}
                                 onChange={(color: string) => setOption('color', color)}
+                                data-testid="color"
                                 disabled={
                                     chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
                                     (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
@@ -975,6 +981,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 disabled={!isCollapsibleTableType(sSelectedTableType) || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
                                 icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
                                 onClick={isCollapsibleTableType(sSelectedTableType) ? () => HandleFold() : () => {}}
+                                data-testid="fold-toggle"
                                 isToolTip
                                 toolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             />
@@ -984,6 +991,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 disabled={pPanelOption.blockList.length === 1 || checkTransformDataUsage()}
                                 icon={<Close size={16} />}
                                 onClick={pPanelOption.blockList.length !== 1 ? () => deleteSeries() : () => {}}
+                                data-testid="delete"
                                 isToolTip
                                 toolTipContent="Delete"
                             />
@@ -1002,12 +1010,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                                 variant="ghost"
                                                 icon={<Refresh size={12} />}
                                                 onClick={HandleTable}
+                                                data-testid="table-refresh"
                                                 disabled={sIsLoadingRollup}
                                                 style={{ marginLeft: '4px' }}
                                             />
                                         </>
                                     }
                                     options={getTableList}
+                                    data-testid="table"
+                                    menuTestId="dashboard-panel-editor-select-menu"
                                     value={pBlockInfo.table}
                                     onInputChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customInput' } })}
                                     onSelectChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customSelect' } })}
@@ -1017,6 +1028,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     <>
                                         <InputSelect
                                             label="Value field"
+                                            data-testid="value-field"
+                                            menuTestId="dashboard-panel-editor-select-menu"
                                             labelPosition="left"
                                             labelAlign="right"
                                             type="text"
@@ -1037,6 +1050,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                         {sPrimaryJsonColumn ? (
                                             <InputSelect
                                                 label="JSON key"
+                                                data-testid="json-key"
+                                                menuTestId="dashboard-panel-editor-select-menu"
                                                 labelPosition="left"
                                                 labelAlign="right"
                                                 type="text"
@@ -1057,6 +1072,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 ) : (
                                     <InputSelect
                                         label="Time field"
+                                        data-testid="time-field"
+                                        menuTestId="dashboard-panel-editor-select-menu"
                                         labelPosition="left"
                                         labelAlign="right"
                                         type="text"
@@ -1081,6 +1098,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 placeholder={FULL_TYPING_QUERY_PLACEHOLDER}
                                 value={pBlockInfo.customFullTyping.text}
                                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => changedOptionFullTyping('text', event)}
+                                data-testid="full-typing-sql"
                                 onFocus={(e) => e.target.setSelectionRange(0, pBlockInfo?.customFullTyping?.text?.length)}
                                 autoFocus
                                 fullWidth
@@ -1088,7 +1106,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 resize="vertical"
                             />
                             {!sIsValidCustomQuery && (
-                                <div style={{ display: 'flex', justifyContent: 'end', position: 'absolute', top: '-4px', right: '0px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'end', position: 'absolute', top: '-4px', right: '0px' }} data-testid="full-typing-invalid">
                                     <BadgeStatus />
                                 </div>
                             )}
@@ -1101,10 +1119,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     label={
                                         <>
                                             Table
-                                            <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} style={{ marginLeft: '4px' }} />
+                                            <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} style={{ marginLeft: '4px' }} data-testid="table-refresh" />
                                         </>
                                     }
                                     options={getTableList}
+                                    data-testid="table"
+                                    menuTestId="dashboard-panel-editor-select-menu"
                                     value={pBlockInfo.table}
                                     onInputChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customInput' } })}
                                     onSelectChange={(aValue: string) => changedOption('table', { target: { value: aValue, name: 'customSelect' } })}
@@ -1114,6 +1134,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 {sSelectedTableType !== 'vir_tag' ? (
                                     <InputSelect
                                         label="Time field"
+                                        data-testid="time-field"
+                                        menuTestId="dashboard-panel-editor-select-menu"
                                         labelPosition="left"
                                         labelAlign="right"
                                         type="text"
@@ -1135,6 +1157,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     <div className={fieldStyles['align-spacer']} style={FIELD_ALIGN_SPACER_STYLE} />
                                     <InputSelect
                                         label="Value field"
+                                        data-testid="value-field"
+                                        menuTestId="dashboard-panel-editor-select-menu"
                                         labelPosition="left"
                                         labelAlign="right"
                                         type="text"
@@ -1154,6 +1178,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     {getJsonColumnFromValue(pBlockInfo.value) ? (
                                         <InputSelect
                                             label="JSON key"
+                                            data-testid="json-key"
+                                            menuTestId="dashboard-panel-editor-select-menu"
                                             labelPosition="left"
                                             labelAlign="right"
                                             type="text"
@@ -1177,6 +1203,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     (!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                         <DSInput
                                             ref={sTagInputRef}
+                                            data-testid="tag"
                                             label="Tag"
                                             labelPosition="left"
                                             labelAlign="right"
@@ -1186,11 +1213,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                             error={sHasMissingTag ? 'Please select tag.' : undefined}
                                             size="md"
                                             style={FIELD_STYLE}
-                                            rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
+                                            rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} data-testid="tag-picker-open" />}
                                         />
                                     ) : (
                                         <DSInput
                                             ref={sTagInputRef}
+                                            data-testid="tag"
                                             style={FIELD_STYLE}
                                             size="md"
                                             label="Tag"
@@ -1204,6 +1232,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     ))}
                                 <InputSelect
                                     label="Aggregator"
+                                    data-testid="aggregator"
+                                    menuTestId="dashboard-panel-editor-select-menu"
                                     labelPosition="left"
                                     labelAlign="right"
                                     type="text"
@@ -1218,6 +1248,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 {SEPARATE_DIFF && (
                                     <InputSelect
                                         label="Diff"
+                                        data-testid="diff"
+                                        menuTestId="dashboard-panel-editor-select-menu"
                                         labelPosition="left"
                                         labelAlign="right"
                                         type="text"
@@ -1232,6 +1264,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 )}
                                 <DSInput
                                     label="Alias"
+                                    data-testid="alias"
                                     labelPosition="left"
                                     labelAlign="right"
                                     type="text"

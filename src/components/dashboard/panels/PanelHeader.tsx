@@ -15,6 +15,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { VariableParserForTql } from '@/utils/DashboardQueryParser';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
+import { postFileList } from '@/api/repository/api';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
@@ -147,7 +148,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             setBoardList((aPrev: any) => [...aPrev, sTazBoard]);
             setSelectedTab(sTazBoard.id);
         } else {
-            Toast.error('Cannot view taganalyzer because there is no tag. (Custom tags are not supported in the TagAnalyzer)');
+            Toast.error('Cannot view taganalyzer because there is no tag. (Custom tags are not supported in the TagAnalyzer)', { testId: 'dashboard-panel-toast' });
         }
     };
     const HandleDownload = () => {
@@ -251,14 +252,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             const sBlockList = sAliasList as any[];
 
             if (sBlockList.length === 0) {
-                Toast.error('No data blocks found to download');
+                Toast.error('No data blocks found to download', { testId: 'dashboard-panel-toast' });
                 return;
             }
 
             const blocksToDownload = Array.from({ length: sBlockList.length }, (_, index) => index).filter((index) => sBlockList?.[index]?.useQuery === true);
 
             if (blocksToDownload.length === 0) {
-                Toast.error('No data blocks found to download');
+                Toast.error('No data blocks found to download', { testId: 'dashboard-panel-toast' });
                 return;
             }
 
@@ -309,8 +310,19 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             const filename = `${datePrefix}_${titlePart}`;
             sqlOriginDataDownloader(downloadUrl, DOWNLOADER_EXTENSION.CSV, filename);
         } catch (error) {
-            Toast.error('Download failed. Please try again.');
+            Toast.error('Download failed. Please try again.', { testId: 'dashboard-panel-toast' });
         }
+    };
+    // Writes a panel-menu change to the board's file, as saving a panel does; a board that has no
+    // file yet only keeps the change and stays unsaved.
+    const savePanelList = (aUpdatePanels: (aPanels: any[]) => any[]) => {
+        const sBoard: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        if (!sBoard) return;
+        const sDashboard = { ...sBoard.dashboard, panels: aUpdatePanels(sBoard.dashboard.panels) };
+        const sHasFile = sBoard.path !== '';
+        const sSaveTarget = sHasFile ? { ...sBoard, dashboard: sDashboard, savedCode: JSON.stringify(sDashboard) } : { ...sBoard, dashboard: sDashboard };
+        setBoardList(sBoardList.map((aItem) => (aItem.id === pBoardInfo.id ? sSaveTarget : aItem)));
+        if (sHasFile) postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
     };
     const handleCopyPanel = (aPanelInfo: any) => {
         // The copy keeps the source's x/y/w/h and goes right after it in the panel list, so the
@@ -318,22 +330,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         // (0, 0) here sent every copy to the left column instead - see insertPanelAfterSource.
         const sTmpPanel = JSON.parse(JSON.stringify(aPanelInfo));
         sTmpPanel.id = generateUUID();
-        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
-        const sTabList = sBoardList.map((aItem) => {
-            if (aItem.id === pBoardInfo.id) {
-                const sTmpDashboard = {
-                    ...aItem.dashboard,
-                    panels: insertPanelAfterSource(aItem.dashboard.panels, aPanelInfo.id, sTmpPanel),
-                };
-                sSaveTarget = {
-                    ...aItem,
-                    dashboard: sTmpDashboard,
-                    savedCode: JSON.stringify(sTmpDashboard),
-                };
-                return sSaveTarget;
-            } else return aItem;
-        });
-        setBoardList(() => sTabList);
+        savePanelList((aPanels) => insertPanelAfterSource(aPanels, aPanelInfo.id, sTmpPanel));
     };
     const handleGeomapZoom = () => {
         const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
@@ -362,26 +359,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const handleVideoSyncOpt = () => {
         const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
         sTmpPanel.chartOptions.source.enableSync = !sTmpPanel.chartOptions.source.enableSync;
-        // sTmpPanel.id = generateUUID();
-        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
-        const sTabList = sBoardList.map((aItem) => {
-            if (aItem.id === pBoardInfo.id) {
-                const sTmpDashboard = {
-                    ...aItem.dashboard,
-                    panels: aItem.dashboard.panels.map((aPanel: any) => {
-                        if (aPanel.id === pPanelInfo.id) return sTmpPanel;
-                        else return aPanel;
-                    }),
-                };
-                sSaveTarget = {
-                    ...aItem,
-                    dashboard: sTmpDashboard,
-                    savedCode: JSON.stringify(sTmpDashboard),
-                };
-                return sSaveTarget;
-            } else return aItem;
-        });
-        setBoardList(() => sTabList);
+        savePanelList((aPanels) => aPanels.map((aPanel: any) => (aPanel.id === pPanelInfo.id ? sTmpPanel : aPanel)));
     };
     // Opens a new window only for panels that have dependency with video panel
     // const handleDetailBoard = () => {
@@ -403,7 +381,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         <>
             {!pIsView && (
                 // <div className={`draggable-panel-header ${pIsHeader || pType !== undefined ? 'display-none' : ''}`}>
-                <div className={`draggable-panel-header ${pType !== undefined ? 'display-none' : ''}`}>
+                <div className={`draggable-panel-header ${pType !== undefined ? 'display-none' : ''}`} data-testid="toolbar">
                     {/* The panel's own refresh interval, in the same countdown ring the board header
                         uses and with the same menu — until now the setting existed only inside the
                         panel editor, so a panel refreshing on its own schedule looked identical to one
@@ -417,6 +395,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 pInk={ChartThemeTextColor[(pResolvedTheme ?? pPanelInfo.theme) as ChartTheme]}
                                 pCycleId={pRefreshCycleId}
                                 pTitle={`Panel auto refresh: ${sPanelRefresh}`}
+                                pMenuTestIdPrefix="dashboard-panel-"
                             />
                         </div>
                     )}
@@ -426,6 +405,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Button
                                     size="side"
                                     variant="ghost"
+                                    data-testid="menu-trigger"
                                     icon={
                                         <GoGrabber
                                             size={20}
@@ -440,13 +420,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     }
                                 />
                             </Menu.Trigger>
-                            <Menu.Content>
-                                <Menu.Item onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
+                            <Menu.Content data-testid="dashboard-panel-menu">
+                                <Menu.Item data-testid="setting" onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
                                     Setting
                                 </Menu.Item>
                                 {pPanelInfo.type === 'Video' ? (
                                     <>
                                         <Menu.Item
+                                            data-testid="sync"
                                             onClick={handleVideoSyncOpt}
                                             icon={<VscSync size={16} />}
                                             rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => {}} />}
@@ -456,37 +437,37 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                         {/* <Menu.Item onClick={handleDetailBoard} icon={<VscMultipleWindows size={16} />}>
                                             Detail board
                                         </Menu.Item> */}
-                                        <Menu.Item onClick={handleChildBoard} icon={<VscMultipleWindows size={16} />}>
+                                        <Menu.Item data-testid="child-board" onClick={handleChildBoard} icon={<VscMultipleWindows size={16} />}>
                                             Child board
                                         </Menu.Item>
-                                        <Menu.Item onClick={pOnFullscreen} icon={<VscScreenFull />}>
+                                        <Menu.Item data-testid="fullscreen" onClick={pOnFullscreen} icon={<VscScreenFull />}>
                                             Fullscreen
                                         </Menu.Item>
                                     </>
                                 ) : null}
                                 {pPanelInfo.type === 'Geomap' && (
-                                    <Menu.Item onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
+                                    <Menu.Item data-testid="geomap-zoom" onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
                                         Use zoom control
                                     </Menu.Item>
                                 )}
-                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
+                                <Menu.Item data-testid="duplicate" onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
                                     Duplicate
                                 </Menu.Item>
                                 {sCanShowTagAnalyzer && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
-                                    <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
+                                    <Menu.Item data-testid="tag-analyzer" onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
                                         Show Taganalyzer
                                     </Menu.Item>
                                 )}
                                 {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
-                                    <Menu.Item onClick={HandleDataDownload} icon={<Download />}>
+                                    <Menu.Item data-testid="download-data" onClick={HandleDataDownload} icon={<Download />}>
                                         Download data
                                     </Menu.Item>
                                 )}
-                                <Menu.Item onClick={handleDelete} icon={<Delete />}>
+                                <Menu.Item data-testid="delete" onClick={handleDelete} icon={<Delete />}>
                                     Delete
                                 </Menu.Item>
                                 {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
-                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                    <Menu.Item data-testid="save-to-tql" onClick={HandleDownload} icon={<VscGraphScatter />}>
                                         Save to tql
                                     </Menu.Item>
                                 )}
@@ -499,6 +480,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${(pResolvedTheme ?? pPanelInfo.theme) !== 'dark' ? ' panel-theme-white' : ''}${
                     pType === undefined ? ' cursor-grab' : ''
                 }`}
+                data-testid="header"
             >
                 {/* <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div> */}
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>
@@ -509,6 +491,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                         data-tooltip-place="bottom"
                         className={`panel-header-time-range${!pPanelInfo.useCustomTime && !pPanelInfo.useCustomDistance ? ' display-none' : ''}`}
                         id={sHeaderId}
+                        data-testid="custom-range-dot"
                     >
                         <VscRecord color="#339900" />
                         <Tooltip
@@ -542,6 +525,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode
+                    data-testid="dashboard-panel-delete-confirm"
                     setIsOpen={setIsDeleteModal}
                     pCallback={handleDeleteOnMenu}
                     pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}

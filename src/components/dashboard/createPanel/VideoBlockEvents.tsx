@@ -27,8 +27,8 @@ export const VideoBlockEvents = ({ cameraList, sourceInfo, isLoadingCameras, onC
                 disabled={isLoadingCameras}
                 style={{ width: '200px' }}
             >
-                <Dropdown.Trigger />
-                <Dropdown.Menu>
+                <Dropdown.Trigger data-testid="camera" />
+                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                     <Dropdown.List />
                 </Dropdown.Menu>
             </Dropdown.Root>

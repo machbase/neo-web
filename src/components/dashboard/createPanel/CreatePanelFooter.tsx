@@ -103,23 +103,23 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                 <>
                     <Page.TabContainer>
                         <Page.TabList>
-                            <Page.TabItem active={sTab === 'Series'} onClick={() => setTab('Series')} badge={getBlockCount.query}>
+                            <Page.TabItem active={sTab === 'Series'} onClick={() => setTab('Series')} badge={getBlockCount.query} data-testid="tab-series">
                                 Series
                             </Page.TabItem>
                             {CheckAllowedTransformChartType(chartTypeConverter(pPanelOption.type) as ChartType) && (
-                                <Page.TabItem active={sTab === 'Transform'} onClick={() => setTab('Transform')} badge={getBlockCount.trx}>
+                                <Page.TabItem active={sTab === 'Transform'} onClick={() => setTab('Transform')} badge={getBlockCount.trx} data-testid="tab-transform">
                                     Transform
                                 </Page.TabItem>
                             )}
                             {pTableList.length !== 0 && (
-                                <Page.TabItem active={sTab === 'Time'} onClick={() => setTab('Time')}>
+                                <Page.TabItem active={sTab === 'Time'} onClick={() => setTab('Time')} data-testid="tab-range">
                                     {isDistancePanel ? 'Distance' : 'Time'}
                                 </Page.TabItem>
                             )}
                         </Page.TabList>
                         <Page.TabInfo>
                             <span>Total</span>
-                            <span className="page-tab-badge" style={{ width: '36px' }}>{`${getBlockCount.total} / ${getBlockCount.limit}`}</span>
+                            <span className="page-tab-badge" style={{ width: '36px' }} data-testid="block-total">{`${getBlockCount.total} / ${getBlockCount.limit}`}</span>
                         </Page.TabInfo>
                     </Page.TabContainer>
                     <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid #b8c8da41', padding: '6px', gap: '8px' }}>
@@ -153,6 +153,7 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                                         disabled={!getBlockCount.addable}
                                         icon={<PlusCircle size={16} />}
                                         onClick={HandleAddBlock}
+                                        data-testid="add-series"
                                         style={{ height: '60px' }}
                                     />
                                 ) : (

@@ -411,7 +411,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
 
     return (
         <div className="tql-form">
-            {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} />}
+            {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} data-testid="text-value" />}
             {pPanelType === 'Geomap' && (
                 <div className={'geomap-panel-title'} style={{ color: pTitle?.color && pTitle.color !== '' ? pTitle?.color : '#000000' }}>
                     {pTitle?.title}
@@ -422,11 +422,11 @@ export const ShowVisualization = (props: ShowChartProps) => {
                 pData?.cssAssets?.map((cssAsset: string, idx: number) => {
                     return <link key={`css-asset-${idx?.toString()}`} rel="stylesheet" href={cssAsset} />;
                 })}
-            {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && <div className="chart_container" ref={wrapRef} />}
+            {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && <div className="chart_container" ref={wrapRef} data-testid="chart-host" />}
             {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && (
                 <>
                     <style>.leaflet-tile-pane{`{-webkit-filter: grayscale(${pData?.style?.grayscale}%); filter: grayscale(${pData?.style?.grayscale}%);}`}</style>
-                    <div id="map_container" className="map_container" ref={wrapRef} />
+                    <div id="map_container" className="map_container" ref={wrapRef} data-testid="geomap-host" />
                 </>
             )}
         </div>

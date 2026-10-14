@@ -43,7 +43,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
     return (
         <>
             <Page.Divi />
-            <Page.Collapse pTrigger="Panel option" pInitOpen>
+            <Page.Collapse pTrigger="Panel option" pInitOpen data-testid="panel-option-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Input
                         label={
@@ -58,6 +58,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         fullWidth
                         value={pPanelOption.title}
                         onChange={(aEvent: any) => handleTitle(aEvent)}
+                        data-testid="title"
                     />
                     <Dropdown.Root
                         label="Theme"
@@ -66,8 +67,8 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         onChange={(value: string) => handleCustomOption(value, 'theme')}
                         fullWidth
                     >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
+                        <Dropdown.Trigger data-testid="theme" />
+                        <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                             <Dropdown.List />
                         </Dropdown.Menu>
                     </Dropdown.Root>
@@ -77,13 +78,14 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
             {pPanelOption?.type !== 'Text' && pPanelOption?.type !== 'Geomap' && (
                 <>
                     <Page.Divi />
-                    <Page.Collapse pTrigger="Legend">
+                    <Page.Collapse pTrigger="Legend" data-testid="legend-section">
                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                             <Checkbox
                                 size="sm"
                                 label="Show legend"
                                 defaultChecked={pPanelOption.commonOptions.isLegend}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isLegend')}
+                                data-testid="show-legend"
                             />
                             <Dropdown.Root
                                 label="Vertical"
@@ -93,8 +95,8 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 disabled={!pPanelOption.commonOptions.isLegend}
                                 fullWidth
                             >
-                                <Dropdown.Trigger />
-                                <Dropdown.Menu>
+                                <Dropdown.Trigger data-testid="vertical" />
+                                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
@@ -106,8 +108,8 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 disabled={!pPanelOption.commonOptions.isLegend}
                                 fullWidth
                             >
-                                <Dropdown.Trigger />
-                                <Dropdown.Menu>
+                                <Dropdown.Trigger data-testid="horizontal" />
+                                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
@@ -119,15 +121,15 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 disabled={!pPanelOption.commonOptions.isLegend}
                                 fullWidth
                             >
-                                <Dropdown.Trigger />
-                                <Dropdown.Menu>
+                                <Dropdown.Trigger data-testid="alignment-type" />
+                                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
                         </Page.ContentBlock>
                     </Page.Collapse>
                     <Page.Divi />
-                    <Page.Collapse pTrigger="Panel padding">
+                    <Page.Collapse pTrigger="Panel padding" data-testid="panel-padding-section">
                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                             <Input
                                 label="Top"
@@ -135,6 +137,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 fullWidth
                                 value={pPanelOption.commonOptions.gridTop}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridTop')}
+                                data-testid="top"
                             />
                             <Input
                                 label="Bottom"
@@ -142,6 +145,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 fullWidth
                                 value={pPanelOption.commonOptions.gridBottom}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridBottom')}
+                                data-testid="bottom"
                             />
                             <Input
                                 label="Left"
@@ -149,6 +153,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 fullWidth
                                 value={pPanelOption.commonOptions.gridLeft}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridLeft')}
+                                data-testid="left"
                             />
                             <Input
                                 label="Right"
@@ -156,17 +161,19 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 fullWidth
                                 value={pPanelOption.commonOptions.gridRight}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.value, 'gridRight')}
+                                data-testid="right"
                             />
                         </Page.ContentBlock>
                     </Page.Collapse>
                     <Page.Divi />
-                    <Page.Collapse pTrigger="Tooltip">
+                    <Page.Collapse pTrigger="Tooltip" data-testid="tooltip-section">
                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                             <Checkbox
                                 size="sm"
                                 label="Show tooltip"
                                 defaultChecked={pPanelOption.commonOptions.isTooltip}
                                 onChange={(aEvent: any) => handleCommonOption(aEvent.target.checked, 'isTooltip')}
+                                data-testid="show-tooltip"
                             />
                             <Dropdown.Root
                                 label="Type"
@@ -176,8 +183,8 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 disabled={!pPanelOption.commonOptions.isTooltip}
                                 fullWidth
                             >
-                                <Dropdown.Trigger />
-                                <Dropdown.Menu>
+                                <Dropdown.Trigger data-testid="type" />
+                                <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
@@ -200,6 +207,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                                 disabled={!pPanelOption.commonOptions.isTooltip}
                                 value={pPanelOption.commonOptions?.tooltipDecimals ?? ''}
                                 onChange={(aEvent) => handleCommonOption(aEvent.target.value, 'tooltipDecimals')}
+                                data-testid="decimals"
                             />
                         </Page.ContentBlock>
                     </Page.Collapse>

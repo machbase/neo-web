@@ -56,6 +56,8 @@ interface CommonTableBaseProps {
     activeRow?: boolean;
     onRowSelect?: (row: string[]) => void;
     onRowDelete?: (row: string[]) => void;
+    /** Test ID for a body row, from a stable key in the row (not its index). */
+    getRowTestId?: (row: any[]) => string | undefined;
     onRowAction?: (row: string[]) => void;
     hideRowAction?: boolean;
     // Editable

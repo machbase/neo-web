@@ -70,11 +70,11 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                     <HierarchicalCombobox.List emptyMessage="No units available" />
                 </HierarchicalCombobox.Menu>
             </HierarchicalCombobox.Root>
-            <Input label="Decimal" type="number" fullWidth value={pPanelOption.chartOptions?.digit} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'digit')} />
-            <Input label="Min" type="number" fullWidth value={pPanelOption.chartOptions?.min} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'min')} />
-            <Input label="Max" type="number" fullWidth value={pPanelOption.chartOptions?.max} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'max')} />
+            <Input label="Decimal" type="number" fullWidth value={pPanelOption.chartOptions?.digit} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'digit')} data-testid="decimal" />
+            <Input label="Min" type="number" fullWidth value={pPanelOption.chartOptions?.min} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'min')} data-testid="min" />
+            <Input label="Max" type="number" fullWidth value={pPanelOption.chartOptions?.max} onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'max')} data-testid="max" />
             <Page.Divi />
-            <Page.Collapse title="Axis">
+            <Page.Collapse title="Axis" data-testid="axis-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <Input
                         label="Label distance"
@@ -82,18 +82,21 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         fullWidth
                         value={pPanelOption.chartOptions?.axisLabelDistance}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'axisLabelDistance')}
+                        data-testid="label-distance"
                     />
                     <Checkbox
                         size="sm"
                         label="Show axis tick"
                         defaultChecked={pPanelOption.chartOptions?.isAxisTick ?? false}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisTick')}
+                        data-testid="show-axis-tick"
                     />
                     <Checkbox
                         size="sm"
                         label="Setting line colors (0 ~ 1)"
                         defaultChecked={pPanelOption.chartOptions?.isAxisLineStyleColor ?? false}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAxisLineStyleColor')}
+                        data-testid="line-colors"
                     />
                     {pPanelOption.chartOptions?.isAxisLineStyleColor && (
                         <>
@@ -117,13 +120,14 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />
-            <Page.Collapse title="Anchor">
+            <Page.Collapse title="Anchor" data-testid="anchor-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Checkbox
                         size="sm"
                         label="Show anchor"
                         defaultChecked={pPanelOption.chartOptions?.isAnchor ?? false}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'isAnchor')}
+                        data-testid="show-anchor"
                     />
                     <Input
                         label="Size"
@@ -132,11 +136,12 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         disabled={!pPanelOption.chartOptions?.isAnchor}
                         value={pPanelOption.chartOptions?.anchorSize}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'anchorSize')}
+                        data-testid="size"
                     />
                 </Page.ContentBlock>
             </Page.Collapse>
             <Page.Divi />
-            <Page.Collapse title="Display value">
+            <Page.Collapse title="Display value" data-testid="display-value-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <Input
                         label="Font size"
@@ -144,6 +149,7 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         fullWidth
                         value={pPanelOption.chartOptions?.valueFontSize}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'valueFontSize')}
+                        data-testid="font-size"
                     />
                     <Input
                         label="Offset form center"
@@ -151,12 +157,14 @@ export const GaugeOptions = (props: GaugeOptionProps) => {
                         fullWidth
                         value={pPanelOption.chartOptions?.alignCenter}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.value, 'alignCenter')}
+                        data-testid="value-offset"
                     />
                     <Checkbox
                         size="sm"
                         label="Active animation"
                         defaultChecked={pPanelOption.chartOptions?.valueAnimation ?? false}
                         onChange={(aEvent: any) => handleGaugeOption(aEvent.target.checked, 'valueAnimation')}
+                        data-testid="active-animation"
                     />
                 </Page.ContentBlock>
             </Page.Collapse>

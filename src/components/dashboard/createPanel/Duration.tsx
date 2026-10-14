@@ -29,6 +29,7 @@ export const Duration = ({ pBlockInfo, pSetPanelOption }: { pBlockInfo: any; pSe
                         onChange={(aEvent: any) => handleOption(aEvent, 'from')}
                         size="md"
                         style={{ width: '160px' }}
+                        data-testid="duration-from"
                     />
                     <DSInput
                         label="Duration To"
@@ -39,6 +40,7 @@ export const Duration = ({ pBlockInfo, pSetPanelOption }: { pBlockInfo: any; pSe
                         onChange={(aEvent: any) => handleOption(aEvent, 'to')}
                         size="md"
                         style={{ width: '160px' }}
+                        data-testid="duration-to"
                     />
                 </Page.DpRow>
             </Page.ContentBlock>

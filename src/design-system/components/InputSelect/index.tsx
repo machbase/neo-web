@@ -116,6 +116,8 @@ export interface InputSelectProps extends Omit<React.InputHTMLAttributes<HTMLInp
     menuWidth?: 'trigger' | 'auto';
     /** Ceiling for `menuWidth="auto"`. */
     menuMaxWidth?: number;
+    /** Test ID of the portaled option menu; its options are `option-<encoded value>`. */
+    menuTestId?: string;
 }
 
 /**
@@ -157,6 +159,7 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
             searchPlaceholder = 'Search...',
             menuWidth = 'trigger',
             menuMaxWidth = DEFAULT_MENU_MAX_WIDTH,
+            menuTestId,
             className,
             disabled,
             id,
@@ -484,6 +487,7 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
                             <div
                                 ref={menuRef}
                                 className={`${styles['input-select-menu']} scrollbar-dark`}
+                                data-testid={menuTestId}
                                 style={{
                                     position: 'fixed',
                                     ...(position.showAbove
@@ -530,6 +534,7 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
                                                     optionRefs.current[index] = element;
                                                 }}
                                                 id={getOptionId(index)}
+                                                data-testid={`option-${encodeURIComponent(option.value)}`}
                                                 className={`${styles['input-select-option']} ${isSelected ? styles['input-select-option--selected'] : ''} ${
                                                     isFocused ? styles['input-select-option--focused'] : ''
                                                 } ${option.disabled ? styles['input-select-option--disabled'] : ''}`}

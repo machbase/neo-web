@@ -760,6 +760,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             <div
                 id={PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)}
                 className={`video-panel ${isFullscreen ? 'fullscreen' : ''}`}
+                data-testid="video-panel"
                 ref={containerRef}
                 style={
                     {
@@ -774,7 +775,9 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 <header className="panel-header">
                     <div className="header-left">
                         <MdVideocam className="panel-icon" size={18} />
-                        <span className="panel-title">{pPanelInfo.title || 'Video 1'}</span>
+                        <span className="panel-title" data-testid="title">
+                            {pPanelInfo.title || 'Video 1'}
+                        </span>
                     </div>
                     <div className="header-right">
                         {showEventControl && (
@@ -791,11 +794,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             </div>
                         )}
                         {liveMode.isLive ? (
-                            <Badge variant="error" showDot size="md">
+                            <Badge variant="error" showDot size="md" data-testid="live-badge">
                                 Live
                             </Badge>
                         ) : syncEnabled ? (
-                            <Badge variant="warning" showDot size="md">
+                            <Badge variant="warning" showDot size="md" data-testid="sync-badge">
                                 SYNC
                             </Badge>
                         ) : null}

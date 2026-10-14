@@ -19,6 +19,10 @@ export interface ConfirmableSelectProps {
     pIsDisabled?: boolean;
     pNoneValue?: string;
     pIsToolTip?: boolean;
+    /** Test ID of the trigger; options are `option-<encoded value>` inside `menuTestId`. */
+    'data-testid'?: string;
+    menuTestId?: string;
+    confirmTestId?: string;
 }
 
 export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
@@ -33,16 +37,23 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
         pConfirmTrigger,
         pConfirmMessage,
         pUseConfirmRule,
+        'data-testid': testId,
+        menuTestId,
+        confirmTestId,
     } = props;
 
     const [pendingValue, setPendingValue] = useState<string>('');
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState<boolean>(false);
     const [pendingIdx, setPendingIdx] = useState<number>(-1);
+    // The dropdown shows a pick as soon as it is made; a cancelled pick has to be undone by
+    // remounting it on the value that stayed.
+    const [sDropdownKey, setDropdownKey] = useState<number>(0);
 
     // Convert string options to DropdownOption format
     const dropdownOptions: DropdownOption[] = pOptions.map((option) => ({
         label: option,
         value: option,
+        testId: `option-${encodeURIComponent(option)}`,
     }));
 
     const handleSelect = (value: string) => {
@@ -77,9 +88,18 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
         setPendingIdx(-1);
     };
 
+    const handleConfirmModalOpen = (aIsOpen: boolean) => {
+        setIsConfirmModalOpen(aIsOpen);
+        if (aIsOpen) return;
+        setPendingValue('');
+        setPendingIdx(-1);
+        setDropdownKey((aKey) => aKey + 1);
+    };
+
     return (
         <>
             <Dropdown.Root
+                key={sDropdownKey}
                 options={dropdownOptions}
                 value={pValue}
                 onChange={handleSelect}
@@ -87,8 +107,8 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
                 disabled={pIsDisabled}
                 fullWidth={pIsFullWidth}
             >
-                <Dropdown.Trigger />
-                <Dropdown.Menu>
+                <Dropdown.Trigger data-testid={testId} />
+                <Dropdown.Menu data-testid={menuTestId}>
                     <Dropdown.List>
                         {(option, index) =>
                             pIsToolTip ? (
@@ -110,7 +130,8 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
             {isConfirmModalOpen && (
                 <ConfirmModal
                     pIsDarkMode
-                    setIsOpen={setIsConfirmModalOpen}
+                    data-testid={confirmTestId}
+                    setIsOpen={handleConfirmModalOpen}
                     pCallback={handleConfirm}
                     pContents={
                         <div className="body-content">

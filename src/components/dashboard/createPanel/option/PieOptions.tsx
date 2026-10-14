@@ -28,12 +28,14 @@ export const PieOptions = (props: PieOptionProps) => {
                 fullWidth
                 value={pPanelOption.chartOptions?.doughnutRatio ?? 0}
                 onChange={(aEvent: any) => handlePieOption(aEvent, 'doughnutRatio', false)}
+                data-testid="doughnut-ratio"
             />
             <Checkbox
                 size="sm"
                 label="Nightingale mode"
                 defaultChecked={pPanelOption.chartOptions?.roseType ?? false}
                 onChange={(aEvent: any) => handlePieOption(aEvent, 'roseType', true)}
+                data-testid="nightingale-mode"
             />
         </Page.DpRow>
     );

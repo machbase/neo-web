@@ -48,7 +48,7 @@ const Panel = ({
     };
 
     return (
-        <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
+        <div className="panel-wrap" data-testid="wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
             <PanelHeader
                 pRefreshCycleId={sRefreshCycleId}
                 pRefreshCount={sRefreshCount}

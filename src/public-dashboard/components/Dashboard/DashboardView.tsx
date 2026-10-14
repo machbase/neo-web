@@ -334,15 +334,17 @@ const DashboardView = () => {
 
     return sNotfound ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
-            <span>404 not found file name</span>
+            <span data-testid="dashboard-not-found">404 not found file name</span>
         </div>
     ) : (
         <>
-            <Page style={{ width: '100vw', height: '100vh' }}>
+            <Page style={{ width: '100vw', height: '100vh' }} data-testid="public-dashboard-board">
                 <Page.Header>
                     <Button.Group>
                         <Page.DpRow style={{ display: 'flex', flex: 1, textWrap: 'nowrap' }}>
-                            <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }}>{sBoardInformation?.dashboard?.title || ''}</span>
+                            <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }} data-testid="title">
+                                {sBoardInformation?.dashboard?.title || ''}
+                            </span>
                         </Page.DpRow>
                         {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
                             <>
@@ -355,7 +357,7 @@ const DashboardView = () => {
                     </Button.Group>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <Button variant="ghost" size="icon" icon={<Share size={16} />} onClick={() => setIsShareModal(true)} isToolTip toolTipContent="Share" />
-                        <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
+                        <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" data-testid="refresh" />
                         {/* Both axes, as in the dashboard: a distance board could be read here but its
                             window could not be moved or edited, because the header only ever offered
                             the time one. */}
@@ -389,6 +391,7 @@ const DashboardView = () => {
                                 return (
                                     <div
                                         key={aItem.id}
+                                        data-testid={`panel-${encodeURIComponent(aItem.id)}`}
                                         data-grid={{
                                             x: sIsMobile ? 0 : aItem.x,
                                             y: aItem.y,

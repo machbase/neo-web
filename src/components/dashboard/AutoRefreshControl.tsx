@@ -58,6 +58,8 @@ interface AutoRefreshControlProps {
     pInk?: string;
     /** Tooltip text for the trigger. Defaults to the aria-label. */
     pTitle?: string;
+    /** Prefix for the portaled menu's test ID, so a panel's menu is told apart from the board's. */
+    pMenuTestIdPrefix?: string;
 }
 
 /**
@@ -78,7 +80,7 @@ const withAlpha = (aColor: string, aAlpha: number) => {
     return `rgba(${sR}, ${sG}, ${sB}, ${aAlpha})`;
 };
 
-const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId, pCompact = false, pInk, pTitle }: AutoRefreshControlProps) => {
+const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId, pCompact = false, pInk, pTitle, pMenuTestIdPrefix = '' }: AutoRefreshControlProps) => {
     const [sOpen, setOpen] = useState<boolean>(false);
     // Menu is right-anchored to the trigger; { top, right } are viewport coords for the fixed portal.
     const [sPos, setPos] = useState<{ top: number; right: number } | null>(null);
@@ -145,6 +147,7 @@ const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId, pC
             <button
                 ref={sTriggerRef}
                 type="button"
+                data-testid="auto-refresh"
                 className={`${styles.control} ${pReadOnly ? styles.controlReadOnly : ''} ${pCompact ? styles.controlCompact : ''}`}
                 title={pTitle ?? 'Auto refresh'}
                 aria-haspopup={pReadOnly ? undefined : 'menu'}
@@ -186,7 +189,7 @@ const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId, pC
                 sOpen &&
                 sPos &&
                 createPortal(
-                    <div ref={sMenuRef} className={styles.menu} role="menu" style={{ top: sPos.top, right: sPos.right }}>
+                    <div ref={sMenuRef} className={styles.menu} role="menu" style={{ top: sPos.top, right: sPos.right }} data-testid={`${pMenuTestIdPrefix}auto-refresh-menu`}>
                         <div className={styles.menuHeader}>AUTO-REFRESH</div>
                         {AUTO_REFRESH_OPTIONS.map((aItem) => {
                             const sSelected = aItem.value === sCurrent.value;
@@ -196,6 +199,7 @@ const AutoRefreshControl = ({ pValue, pOnChange, pReadOnly = false, pCycleId, pC
                                     key={aItem.value}
                                     className={`${styles.menuItem} ${sSelected ? styles.menuItemActive : ''}`}
                                     role="menuitem"
+                                    data-testid={`option-${encodeURIComponent(aItem.value)}`}
                                     onClick={() => handleSelect(aItem.value)}
                                 >
                                     <span>{aItem.value}</span>

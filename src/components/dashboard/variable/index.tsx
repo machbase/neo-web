@@ -127,7 +127,8 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                 if (sUpdateVariable.data.id === varInfo.id) {
                     const tmpValue = sUpdateVariable.data.valueList?.filter((value) => value.id === sUpdateVariable.data.use.id);
                     if (tmpValue?.length > 0) return { ...sUpdateVariable.data, key: variableNmValidator(sUpdateVariable.data.key), use: tmpValue[0] };
-                    else return { ...sUpdateVariable.data, use: sUpdateVariable.data.valueList[0] };
+                    // The selected value was removed in this edit: fall back to the first one, still saving a wrapped name.
+                    else return { ...sUpdateVariable.data, key: variableNmValidator(sUpdateVariable.data.key), use: sUpdateVariable.data.valueList[0] };
                 } else return varInfo;
             });
         }
@@ -161,39 +162,34 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
         });
     };
     const handleVariableDelete = (item: any[]) => {
-        const tmpVarList = pBoardInfo?.dashboard?.variables?.filter((varInfo: VARIABLE_TYPE) => item.at(-1).id !== varInfo.id);
+        const sVariable = findRowVariable(item);
+        if (!sVariable) return;
+        const tmpVarList = pBoardInfo?.dashboard?.variables?.filter((varInfo: VARIABLE_TYPE) => sVariable.id !== varInfo.id);
         updateVariableCode(tmpVarList ?? []);
         setUpdateVariable(DEFAULT_VARIABLE);
     };
     const handleVariableRowSelect = (item: any[]) => {
+        const sVariable = findRowVariable(item);
+        if (!sVariable) return;
         setUpdateVariable({
             open: true,
             mode: 'EDIT',
             data: {
-                id: item.at(-1).id,
-                label: item.at(-1).label,
+                id: sVariable.id,
+                label: sVariable.label,
                 type: 'SELECT',
-                key: item.at(-1).key,
-                use: item.at(-1).use,
-                valueList: item.at(-1).valueList,
+                key: sVariable.key,
+                use: sVariable.use,
+                valueList: sVariable.valueList,
             },
         });
     };
-    const tableFormatVariableList = (): any[][] => {
-        const result: any[][] = [];
-
-        pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
-            const child =
-                varInfo.valueList?.length > 0
-                    ? varInfo.valueList.map((valueInfo: VARIABLE_ITEM_TYPE) => {
-                          return valueInfo.value;
-                      })
-                    : [];
-            result.push([varInfo.label, varInfo.key, child?.join(', '), varInfo]);
-        });
-
-        return result;
-    };
+    // Rows hold only the shown cells; the variable behind each row is looked up by the row itself.
+    const sVariableRows: { row: string[]; variable: VARIABLE_TYPE }[] = (pBoardInfo?.dashboard?.variables ?? []).map((varInfo: VARIABLE_TYPE) => {
+        const child = varInfo.valueList?.length > 0 ? varInfo.valueList.map((valueInfo: VARIABLE_ITEM_TYPE) => valueInfo.value) : [];
+        return { row: [varInfo.label, varInfo.key, child.join(', ')], variable: varInfo };
+    });
+    const findRowVariable = (aRow: any[]): VARIABLE_TYPE | undefined => sVariableRows.find((aItem) => aItem.row === aRow)?.variable;
     // const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
     //     const tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
     //         if (variable.id === varInfo.id) {
@@ -311,12 +307,12 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
         }
     }, [sBodyRef]);
     return (
-        <Page pRef={sBodyRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 9999 }}>
+        <Page pRef={sBodyRef} style={{ position: 'absolute', top: 0, left: 0, zIndex: 9999 }} data-testid="dashboard-variable-editor">
             <SplitPane split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                 {/* VARIABLES */}
                 <Pane minSize={400}>
                     <Page.Header>
-                        <Button size="icon" variant="ghost" icon={<IoArrowBackOutline size={16} />} onClick={handleClose} />
+                        <Button size="icon" variant="ghost" icon={<IoArrowBackOutline size={16} />} onClick={handleClose} data-testid="back" />
                     </Page.Header>
                     <Page.Body>
                         <Page.ContentBlock>
@@ -346,10 +342,10 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                             <Page.DpRowBetween>
                                 <div />
                                 <Page.DpRow>
-                                    <Page.TextButton pText={'Export'} pType="COPY" pCallback={handleExport} pWidth="80px" />
+                                    <Page.TextButton pText={'Export'} pType="COPY" pCallback={handleExport} pWidth="80px" data-testid="export" />
                                     <div className="variable-export-wrapper">
-                                        <Page.TextButton pText={'Import'} pType="COPY" pCallback={handleFileButtonWrapperClick} pWidth="80px" />
-                                        <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} />
+                                        <Page.TextButton pText={'Import'} pType="COPY" pCallback={handleFileButtonWrapperClick} pWidth="80px" data-testid="import" />
+                                        <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} data-testid="import-input" />
                                     </div>
                                 </Page.DpRow>
                             </Page.DpRowBetween>
@@ -357,15 +353,16 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                 activeRow
                                 data={{
                                     columns: ['LABEL', 'VARIABLE NAME', 'VALUE'],
-                                    rows: tableFormatVariableList(),
+                                    rows: sVariableRows.map((aItem) => aItem.row),
                                 }}
                                 onRowSelect={handleVariableRowSelect}
+                                getRowTestId={(aRow) => `variable-${encodeURIComponent(findRowVariable(aRow)?.id ?? '')}`}
                                 onRowDelete={handleVariableDelete}
                             />
                         </Page.ContentBlock>
                         {!sUpdateVariable.open && (
                             <Page.ContentBlock>
-                                <Page.TextButton pText={'+ New variable'} pType={'CREATE'} pCallback={handleResetUpdateVariable} pWidth="120px" />
+                                <Page.TextButton pText={'+ New variable'} pType={'CREATE'} pCallback={handleResetUpdateVariable} pWidth="120px" data-testid="new-variable" />
                             </Page.ContentBlock>
                         )}
                         {sUpdateVariable.open && (
@@ -387,14 +384,14 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>Label</Page.ContentTitle>
                                     <Page.ContentDesc>Label is a descriptive name that helps you identify the variable.</Page.ContentDesc>
-                                    <Page.Input pValue={sUpdateVariable.data.label} pCallback={(item) => handleVarOpt('label', item)} />
+                                    <Page.Input pValue={sUpdateVariable.data.label} pCallback={(item) => handleVarOpt('label', item)} data-testid="label-input" />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>Variable name</Page.ContentTitle>
                                     <Page.ContentDesc>{`Variables in this system follow a specific syntax format to ensure consistency and ease of use.`}</Page.ContentDesc>
                                     <Page.ContentDesc>{`The syntax for defining a variable is as follows:`}</Page.ContentDesc>
                                     <Page.ContentDesc>{`ex) {{VARIABLE_NAME}}`}</Page.ContentDesc>
-                                    <Page.Input pValue={sUpdateVariable.data.key} pCallback={(item) => handleVarOpt('key', item)} />
+                                    <Page.Input pValue={sUpdateVariable.data.key} pCallback={(item) => handleVarOpt('key', item)} data-testid="name-input" />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
                                     <Page.ContentTitle>Value</Page.ContentTitle>
@@ -402,13 +399,13 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                     <Page.ContentDesc>The options are stored in a list and can be accessed or modified as needed.</Page.ContentDesc>
                                     {sUpdateVariable.data.valueList.map((valueDetail: VARIABLE_ITEM_TYPE, idx: number) => {
                                         return (
-                                            <Page.DpRow key={`variable-value-${idx.toString()}`} style={{ gap: '4px' }}>
-                                                <Page.Input pValue={valueDetail.value} pCallback={(item) => handleVarOpt('value', item, idx)} />
+                                            <Page.DpRow key={`variable-value-${idx.toString()}`} style={{ gap: '4px' }} data-testid={`value-${encodeURIComponent(valueDetail.id)}`}>
+                                                <Page.Input pValue={valueDetail.value} pCallback={(item) => handleVarOpt('value', item, idx)} data-testid="value-input" />
                                                 {sUpdateVariable.data.valueList.length > 1 ? (
-                                                    <Button size="sm" variant="ghost" icon={<Close size={16} />} onClick={() => handleValue('DELETE', idx)} />
+                                                    <Button size="sm" variant="ghost" icon={<Close size={16} />} onClick={() => handleValue('DELETE', idx)} data-testid="delete-value" />
                                                 ) : null}
                                                 {sUpdateVariable.data.valueList.length === idx + 1 ? (
-                                                    <Button size="sm" variant="ghost" icon={<PlusCircle size={16} />} onClick={() => handleValue('CREATE', idx)} />
+                                                    <Button size="sm" variant="ghost" icon={<PlusCircle size={16} />} onClick={() => handleValue('CREATE', idx)} data-testid="add-value" />
                                                 ) : null}
                                             </Page.DpRow>
                                         );
@@ -416,8 +413,8 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
                                     <Page.DpRow>
-                                        <Page.TextButton pText={'Cancel'} pType="DELETE" pCallback={handleResetUpdateVariable} pWidth="80px" />
-                                        <Page.TextButton pText={'Save'} pType="CREATE" pCallback={handleUpdateVarOrigin} pWidth="80px" />
+                                        <Page.TextButton pText={'Cancel'} pType="DELETE" pCallback={handleResetUpdateVariable} pWidth="80px" data-testid="cancel" />
+                                        <Page.TextButton pText={'Save'} pType="CREATE" pCallback={handleUpdateVarOrigin} pWidth="80px" data-testid="save" />
                                     </Page.DpRow>
                                 </Page.ContentBlock>
                             </>

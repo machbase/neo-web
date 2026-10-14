@@ -137,6 +137,7 @@ const CommonTable = (props: CommonTableProps) => {
         activeRow = false,
         onRowSelect,
         onRowDelete,
+        getRowTestId,
         onRowAction,
         hideRowAction = false,
         editable = false,
@@ -604,7 +605,7 @@ const CommonTable = (props: CommonTableProps) => {
                                 );
                             })}
                             {onRowDelete && (
-                                <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} onClick={(e) => handleDelete(e, rowList)}>
+                                <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} data-testid="delete" onClick={(e) => handleDelete(e, rowList)}>
                                     <MdDelete />
                                 </td>
                             )}
@@ -635,6 +636,7 @@ const CommonTable = (props: CommonTableProps) => {
                             return (
                                 <tr
                                     {...props}
+                                    data-testid={getRowTestId?.(rowList)}
                                     className={activeRow ? checkActiveRow(rowList, rowIdx) : getRowClass(rowIdx)}
                                     onClick={activeRow ? (e) => handleRowClick(e, rowList) : undefined}
                                 />
@@ -721,6 +723,7 @@ const CommonTable = (props: CommonTableProps) => {
                               return (
                                   <tr
                                       key={'tbody-row' + rowIdx}
+                                      data-testid={getRowTestId?.(rowList)}
                                       className={activeRow ? checkActiveRow(rowList, rowIdx) : getResultRowClass(rowIdx)}
                                       onClick={activeRow ? (e) => handleRowClick(e, rowList) : undefined}
                                   >
@@ -765,7 +768,7 @@ const CommonTable = (props: CommonTableProps) => {
                                       })}
                                       {/* Delete action */}
                                       {onRowDelete && (
-                                          <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} onClick={(e) => handleDelete(e, rowList)}>
+                                          <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} data-testid="delete" onClick={(e) => handleDelete(e, rowList)}>
                                               <MdDelete />
                                           </td>
                                       )}

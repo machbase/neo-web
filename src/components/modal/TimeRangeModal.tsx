@@ -220,7 +220,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         // Distance tab → write the kind-separated dashboard.distanceRange (numeric start/end).
         if (sTab === 'distance') {
             if (sDistNotice) {
-                Toast.error(sDistNotice);
+                Toast.error(sDistNotice, { testId: 'time-range-error-toast' });
                 return;
             }
             // Only two coordinates can be put in order; an anchored pair is already ordered by what
@@ -250,7 +250,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         } else {
             sStart = moment(sStartTime).unix() * 1000;
             if ((!pAllowNegativeTime && sStart < 0) || isNaN(sStart)) {
-                Toast.error('Please check the entered time.');
+                Toast.error('Please check the entered time.', { testId: 'time-range-error-toast' });
                 return;
             }
         }
@@ -259,7 +259,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         } else {
             sEnd = moment(sEndTime).unix() * 1000;
             if ((!pAllowNegativeTime && sEnd < 0) || isNaN(sEnd)) {
-                Toast.error('Please check the entered time.');
+                Toast.error('Please check the entered time.', { testId: 'time-range-error-toast' });
                 return;
             }
         }

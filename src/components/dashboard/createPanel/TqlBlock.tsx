@@ -45,6 +45,7 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                                 onChange={(aEvent: any) => ChangeOption('path', aEvent)}
                                 size="md"
                                 style={{ width: '250px' }}
+                                data-testid="tql-path"
                             />
                             <SelectFileBtn pType="tql" pCallback={handleTql} />
                             <OpenFileBtn pType="tql" pFileInfo={pPanelOption.tqlInfo} btnHeight="26px" />
