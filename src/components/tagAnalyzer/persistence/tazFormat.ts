@@ -310,8 +310,18 @@ export function encodeTazBoard(
         version: getTazFormatVersion(boardInfo),
         boardTimeRange: { ...boardInfo.boardTimeRange },
         boardNumericRange: { ...boardInfo.boardNumericRange },
-        panels: boardInfo.panels.map(mapPanelToPersistedTaz),
+        panels: withUnreadablePanels(boardInfo.panels.map(mapPanelToPersistedTaz), boardInfo.unreadablePanels),
     };
+}
+
+/** Puts panels the loader could not read back where they were, unchanged (#1547). */
+function withUnreadablePanels<T>(panels: T[], unreadablePanels: BoardInfo['unreadablePanels']): T[] {
+    if (!unreadablePanels?.length) return panels;
+    const sPanels: unknown[] = [...panels];
+    [...unreadablePanels]
+        .sort((a, b) => a.index - b.index)
+        .forEach((unreadable) => sPanels.splice(Math.min(unreadable.index, sPanels.length), 0, unreadable.raw));
+    return sPanels as T[];
 }
 
 // -------------------- Local --------------------

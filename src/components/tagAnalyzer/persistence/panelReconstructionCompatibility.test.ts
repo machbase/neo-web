@@ -6,6 +6,13 @@ function loadTestBoard(document: unknown) {
     return loadTazBoard(document, 'board', 'board.taz', '/');
 }
 
+// #1547: strict validation still rejects the panel, but only the panel — the board opens and keeps it
+// as saved, to be written back unchanged.
+function expectPanelKeptUnread(board: ReturnType<typeof loadTestBoard>, message: string) {
+    expect(board.panels).toEqual([]);
+    expect(board.unreadablePanels).toEqual([expect.objectContaining({ index: 0, error: expect.stringContaining(message) })]);
+}
+
 function createSeries() {
     return {
         key: 'series-1',
@@ -216,9 +223,7 @@ describe('persisted panel reconstruction compatibility', () => {
         }];
         const panel = version === TazVersion.V210 ? createV210Panel(tagSet) : createV204Panel(tagSet);
 
-        expect(() => loadTestBoard({ version, panels: [panel] })).toThrow(
-            'Datetime and numeric x-axis series cannot be mixed in one chart.',
-        );
+        expectPanelKeptUnread(loadTestBoard({ version, panels: [panel] }), 'Datetime and numeric x-axis series cannot be mixed in one chart.');
     });
 
     it('preserves the first panel key and regenerates duplicate or blank keys without dropping panels', () => {
@@ -250,6 +255,6 @@ describe('persisted panel reconstruction compatibility', () => {
         const series = { ...createSeries(), table: 'historical table' };
         const panel = version === TazVersion.V210 ? createV210Panel([series]) : createV204Panel([series]);
 
-        expect(() => loadTestBoard({ version, panels: [panel] })).toThrow('panel series structure.');
+        expectPanelKeptUnread(loadTestBoard({ version, panels: [panel] }), 'panel series structure.');
     });
 });

@@ -14,6 +14,13 @@ function loadTestBoard(document: unknown) {
     return loadTazBoard(document, 'board', 'board.taz', '/');
 }
 
+// #1547: strict validation still rejects the panel, but only the panel — the board opens and keeps it
+// as saved, to be written back unchanged.
+function expectPanelKeptUnread(board: ReturnType<typeof loadTestBoard>, message: string) {
+    expect(board.panels).toEqual([]);
+    expect(board.unreadablePanels).toEqual([expect.objectContaining({ index: 0, error: expect.stringContaining(message) })]);
+}
+
 const NUMERIC_SERIES: PanelSeriesDefinition = {
     key: 'numeric-series',
     table: 'TAG',
@@ -211,9 +218,7 @@ describe('TagAnalyzer persistence version dispatch', () => {
                 sampleCount,
             };
 
-            expect(() => loadTestBoard(encoded)).toThrow(
-                'display.mainChartSampling.sampleCount',
-            );
+            expectPanelKeptUnread(loadTestBoard(encoded), 'display.mainChartSampling.sampleCount');
         },
     );
 
@@ -233,7 +238,17 @@ describe('TagAnalyzer persistence version dispatch', () => {
         [TazVersion.V203, 'Invalid TagAnalyzer .taz 2.0.3 panel structure.'],
         [TazVersion.V200, 'Invalid TagAnalyzer .taz 2.0.0 panel structure.'],
     ])('rejects a malformed %s panel', (version, message) => {
-        expect(() => loadTestBoard({ version, panels: [{}] })).toThrow(message);
+        expectPanelKeptUnread(loadTestBoard({ version, panels: [{}] }), message);
+    });
+
+    it('opens the rest of the board and writes a rejected panel back where it was', () => {
+        const good = encodePanel().panels[0];
+        const board = loadTestBoard({ version: TazVersion.V210, panels: [good, {}, good] });
+
+        expect(board.panels).toHaveLength(2);
+        expect(board.unreadablePanels).toEqual([expect.objectContaining({ index: 1, raw: {} })]);
+        expect(encodeTazBoard(board).panels[1]).toEqual({});
+        expect(encodeTazBoard(board).panels).toHaveLength(3);
     });
 
     it('retains the legacy repair path that drops an unrepairable panel', () => {

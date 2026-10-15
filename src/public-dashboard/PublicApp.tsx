@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { fetchRollupVersion, getRollupTableList } from './api/repository/machiot';
 import { gRollupTableList } from './recoil/recoil';
+import { ErrorBoundary } from '@/design-system/components';
 
 const PublicAppContent = () => {
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -30,7 +31,12 @@ const PublicAppContent = () => {
 
     return (
         <div id="public-app-root">
-            <PublicRoutes />
+            {/* Stops a failure here at the public view instead of the app-wide screen, whose "Go to Login"
+                means nothing to someone opening a shared link and signs out a viewer who is logged in.
+                The card gets the viewport: the root here only takes its content's width. */}
+            <ErrorBoundary name="region:public-board" variant="region" fallbackStyle={{ width: '100vw', height: '100vh' }}>
+                <PublicRoutes />
+            </ErrorBoundary>
         </div>
     );
 };

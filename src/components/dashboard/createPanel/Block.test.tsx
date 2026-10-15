@@ -108,6 +108,43 @@ describe('Block full typing mode', () => {
     });
 });
 
+describe('Block column load', () => {
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    // The columns arrive after the user may already have typed into the block (a new series' tag).
+    const columnUpdate = async (setPanelOption: jest.Mock) => {
+        await waitFor(() => expect(setPanelOption.mock.calls.some(([aUpdate]) => typeof aUpdate === 'function')).toBe(true));
+        return setPanelOption.mock.calls.map(([aUpdate]) => aUpdate).filter((aUpdate) => typeof aUpdate === 'function').at(-1);
+    };
+
+    test('keeps what was typed while the columns were loading', async () => {
+        jest.mocked(getTableInfo).mockResolvedValue({ data: { rows: TABLE_ROWS } } as any);
+        const setPanelOption = jest.fn();
+        renderBlock({ tableInfo: [], tag: '' }, TABLE_LIST, 'Line', setPanelOption);
+
+        const update = await columnUpdate(setPanelOption);
+        const typed = createBlockInfo({ tableInfo: [], tag: 'typed-tag' });
+        const next = update({ type: 'Line', blockList: [typed], transformBlockList: [] });
+
+        expect(next.blockList[0].tag).toBe('typed-tag');
+        expect(next.blockList[0].tableInfo).toEqual(TABLE_ROWS);
+    });
+
+    test('leaves a block that moved to another table meanwhile alone', async () => {
+        jest.mocked(getTableInfo).mockResolvedValue({ data: { rows: TABLE_ROWS } } as any);
+        const setPanelOption = jest.fn();
+        renderBlock({ tableInfo: [], tag: '' }, TABLE_LIST, 'Line', setPanelOption);
+
+        const update = await columnUpdate(setPanelOption);
+        const moved = createBlockInfo({ table: 'OTHER', tableInfo: [] });
+        const next = update({ type: 'Line', blockList: [moved], transformBlockList: [] });
+
+        expect(next.blockList[0]).toBe(moved);
+    });
+});
+
 const getTableRow = () => {
     const row = screen.getByText('Table').closest('.page-dp-row');
     expect(row).not.toBeNull();

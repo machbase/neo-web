@@ -62,6 +62,14 @@ export function useBoardState(boardInfo: BoardInfo) {
                 ),
             }, current);
         }),
+        // A panel the loader could not read, removed from its error card (#1547).
+        removeUnreadablePanel: (index: number) => setState((current) => ({
+            ...current,
+            info: {
+                ...current.info,
+                unreadablePanels: current.info.unreadablePanels?.filter((panel) => panel.index !== index),
+            },
+        })),
         setPanelOverlapSelected: (
             panelKey: string,
             isSelected: boolean,
@@ -177,13 +185,14 @@ function mergeSavedBoardMetadata(
     currentInfo: BoardInfo,
     savedInfo: BoardInfo,
 ): BoardInfo {
-    const { panels, boardTimeRange, boardNumericRange } = currentInfo;
+    const { panels, boardTimeRange, boardNumericRange, unreadablePanels } = currentInfo;
 
     return {
         ...savedInfo,
         panels,
         boardTimeRange,
         boardNumericRange,
+        unreadablePanels,
     };
 }
 

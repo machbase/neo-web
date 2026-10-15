@@ -16,7 +16,7 @@ import { DB_EXPLORER_CONTEXT_MENU_TYPE, DBExplorerContextMenu, E_DB_DDL, TABLE_C
 import { buildDatabaseNodeList, buildDropObjectQuery, buildQualifiedTableName, CheckTableFlag, filterVisibleTableRows, E_TABLE_INFO, E_TABLE_TYPE, parseTablePrivilege } from './utils';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
-import { Toast } from '@/design-system/components';
+import { Toast, ErrorBoundary } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Side, Checkbox } from '@/design-system/components';
 import { ExplorerSearchBar } from './ExplorerSearchBar';
@@ -383,9 +383,10 @@ export const DBExplorer = () => {
                             !(sView.hasQuery && sView.matchedTotal === 0) &&
                             sView.dbList.map((aDB: any, aIdx: number) => {
                                 return (
+                                    // Each database, user and table row keeps its own failure (#1547).
+                                    <ErrorBoundary key={aIdx} name={`db-row:${aDB?.dbName ?? aIdx}`} variant="inline" resetKeys={[aDB]} fallbackStyle={{ height: 22 }}>
                                     <TableInfo
                                         pShowHiddenObj={true}
-                                        key={aIdx}
                                         pValue={aDB}
                                         pRefresh={sRefresh}
                                         pUpdate={init}
@@ -397,6 +398,7 @@ export const DBExplorer = () => {
                                         pOnSelectAllTypes={handleSelectAllTypes}
                                         pOnClearTypes={handleClearTypes}
                                     />
+                                    </ErrorBoundary>
                                 );
                             })}
                         {/* The section header stays, so the panel never looks dead — only the

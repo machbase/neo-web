@@ -2,6 +2,7 @@ import { prepareSeriesDefinitions } from '../seriesModel';
 import type { RangeState } from '../panel/rangeControl/rangeControlModel';
 import { validateAndRepairTazPanel } from '@/utils/panelValidator';
 import type { BoardRestoreInput } from '../board/boardReconstruction';
+import type { UnreadableTazPanel } from '../board/boardModel';
 import { asRecord, isFiniteNumber, isPlainObject } from '../objectGuards';
 import type {
     PanelAxisThreshold,
@@ -43,9 +44,24 @@ import {
 export function parseTazDocument(boardInfo: unknown): BoardRestoreInput {
     const sBoardInfo = assertLoadedTazBoardData(boardInfo);
     const sVersion = normalizePersistedTazVersion(sBoardInfo.version);
-    const sPanels = sBoardInfo.panels
-        .flatMap((panel) => repairLegacyPanelIfNeeded(panel, sVersion))
-        .map(normalizeTazPanelSeriesCompatibility);
+    // One panel at a time (#1547): a panel that cannot be decoded is kept as it was in the file and the
+    // rest of the board still opens. It used to throw here and refuse the whole file.
+    const sPanels: PanelRestoreInput[] = [];
+    const sUnreadablePanels: UnreadableTazPanel[] = [];
+    sBoardInfo.panels.forEach((panel, index) => {
+        const sOriginal: unknown = JSON.parse(JSON.stringify(panel ?? null));
+        try {
+            sPanels.push(
+                ...repairLegacyPanelIfNeeded(panel, sVersion)
+                    .map(normalizeTazPanelSeriesCompatibility)
+                    .map((panelInfo) => decodePanelTazByVersion(panelInfo, sVersion)),
+            );
+        } catch (error) {
+            const sError = error instanceof Error ? error.message : String(error);
+            console.error('[TazLoad]', `panel ${index + 1} kept as saved: ${sError}`);
+            sUnreadablePanels.push({ index, raw: sOriginal, error: sError });
+        }
+    });
     const sBoardTimeRange = normalizePersistedBoardRange(
         sBoardInfo.boardTimeRange ??
             createTimeRangeInputFromStoredValues(
@@ -67,9 +83,8 @@ export function parseTazDocument(boardInfo: unknown): BoardRestoreInput {
         name: normalizeLoadedString(sBoardInfo.name),
         path: normalizeLoadedString(sBoardInfo.path),
         code: sBoardInfo.code ?? '',
-        panels: sPanels.map((panelInfo) =>
-            decodePanelTazByVersion(panelInfo, sVersion),
-        ),
+        panels: sPanels,
+        ...(sUnreadablePanels.length > 0 ? { unreadablePanels: sUnreadablePanels } : {}),
         savedCode:
             typeof sBoardInfo.savedCode === 'string'
                 ? sBoardInfo.savedCode

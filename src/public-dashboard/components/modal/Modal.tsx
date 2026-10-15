@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import './Modal.scss';
+import { ErrorBoundary } from '../../../design-system/components/ErrorBoundary';
 import useEsc from '../../hooks/useEsc';
 interface ChildProps {
     children: React.ReactNode;
@@ -40,7 +41,10 @@ export const Modal = (props: ModalProps) => {
     return (
         <div className="modal-overlay" onClick={handleClose}>
             <div ref={ModalRef} className={`modal ${className} ${pIsDarkMode ? 'modal-theme-dark' : 'modal-theme-white'}`}>
-                {children}
+                {/* A dialog that fails to render keeps its failure inside the dialog (#1547). */}
+                <ErrorBoundary name={`dialog:${className || 'modal'}`} variant="unit" actions={onOutSideClose ? [{ label: 'Close', testId: 'close-dialog', onClick: onOutSideClose }] : []}>
+                    {children}
+                </ErrorBoundary>
             </div>
         </div>
     );

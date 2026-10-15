@@ -8,15 +8,38 @@ function getDefault(def: RequiredKeyDef): any {
     return undefined;
 }
 
+const shapeOf = (aValue: unknown): 'array' | 'object' | 'other' => (Array.isArray(aValue) ? 'array' : aValue !== null && typeof aValue === 'object' ? 'object' : 'other');
+
 function repairKeys(target: any, defs: RequiredKeyDef[], repairedKeys: string[], errors: string[]): void {
     for (const def of defs) {
-        if (target[def.key] === undefined || target[def.key] === null) {
+        const value = target[def.key];
+        if (value === undefined || value === null) {
             const defaultVal = getDefault(def);
             if (defaultVal === undefined) {
                 errors.push(`Missing required field with no default: ${def.key}`);
             } else {
                 target[def.key] = defaultVal;
                 repairedKeys.push(def.key);
+            }
+            continue;
+        }
+        // A value of the wrong shape is no value at all to the code that reads it (`timeRange: "Off"`,
+        // `blockList: {}`): it crashed the panel, and editing the panel never touched it (#1547). Primitive
+        // keys are left alone — a string where a number belongs can still work and is not ours to judge.
+        const defaultVal = getDefault(def);
+        const defaultShape = shapeOf(defaultVal);
+        if (defaultShape === 'other') continue;
+        if (shapeOf(value) !== defaultShape) {
+            target[def.key] = defaultVal;
+            repairedKeys.push(`${def.key} (shape)`);
+        } else if (defaultShape === 'object' && def.default !== undefined) {
+            // Fixed-shape records (time/distance range, TQL info) also need every field they are read by.
+            // Option bags built by a factory are not filled: a missing option there has a meaning today.
+            for (const subKey of Object.keys(defaultVal)) {
+                if (value[subKey] === undefined || value[subKey] === null) {
+                    value[subKey] = defaultVal[subKey];
+                    repairedKeys.push(`${def.key}.${subKey}`);
+                }
             }
         }
     }

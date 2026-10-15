@@ -407,10 +407,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                 Toast.error(MIXED_X_AXIS_KIND_WARNING, { testId: 'dashboard-panel-editor-toast' });
                 return;
             }
+            // Applied to the block as it is now, not as it was when the request went out: anything
+            // typed while the columns were loading (a tag, an alias) stays. A block that has moved to
+            // another table meanwhile keeps its own columns.
             pSetPanelOption((aPrev: any) => {
                 return {
                     ...aPrev,
-                    blockList: aPrev.blockList.map((aItem: any) => (aItem.id === pBlockInfo.id ? sRepairedBlock : aItem)),
+                    blockList: aPrev.blockList.map((aItem: any) =>
+                        aItem.id === pBlockInfo.id && aItem.table === aTable
+                            ? { ...repairDashboardBlockForTableColumns(aItem, sVisibleRows, sTableType), tableInfo: sData.data.rows }
+                            : aItem
+                    ),
                 };
             });
             setColumnList(sData.data.rows);

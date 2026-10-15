@@ -5,7 +5,7 @@ import { Save, SaveAs, BiSolidEdit, Play, MdLink } from '@/assets/icons/Icon';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, ErrorBoundary } from '@/design-system/components';
 
 type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html' | 'javascript' | 'jsh';
 
@@ -93,7 +93,12 @@ export const TextExtension = (props: TextExtensionProps) => {
                 {!sIsPreview ? (
                     <MonacoEditor pIsActiveTab={pIsActiveTab} pText={sText} pLang={sCurrentLang} onSelectLine={() => null} onChange={handleChangeText} onRunCode={() => null} />
                 ) : null}
-                {pLang === 'markdown' && sIsPreview ? <Markdown pIdx={1} pContents={sText} pType="mrk" /> : null}
+                {pLang === 'markdown' && sIsPreview ? (
+                    // A preview that cannot be shown keeps the header, so the editor is one click away.
+                    <ErrorBoundary name="tab-result:md-preview" variant="region" resetKeys={[sText]}>
+                        <Markdown pIdx={1} pContents={sText} pType="mrk" />
+                    </ErrorBoundary>
+                ) : null}
             </Page.Body>
         </Page>
     );

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { SplitPane, Pane, Page, Tabs, Button } from '@/design-system/components';
+import { ErrorBoundary, SplitPane, Pane, Page, Tabs, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -232,100 +232,104 @@ const Tql = (props: TqlProps) => {
                     </Page.Body>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }} minSize={50}>
-                    <Page.Header>
-                        <Tabs.Root selectedTab="RESULT" onTabSelect={() => {}}>
-                            <Tabs.Header variant="sub">
-                                <Tabs.List>
-                                    <Tabs.Item value="RESULT" variant="sub">
-                                        {sResultType === 'text' || sResultType === 'ndjson' ? <AiOutlineFileDone size={12} /> : null}
-                                        {sResultType === 'mrk' ? <AiOutlineFileMarkdown size={12} /> : null}
-                                        {sResultType === 'csv' ? <PiFileCsvThin size={12} /> : null}
-                                        {sResultType === 'html' ? <BarChart size={12} /> : null}
-                                        <span>RESULT</span>
-                                    </Tabs.Item>
-                                </Tabs.List>
-                            </Tabs.Header>
-                        </Tabs.Root>
-                        <Button.Group>
-                            {sResultType === 'text' && sTextField !== '' && !sLoadState ? (
+                    {/* The result side on its own: a result that cannot be shown no longer takes the query editor with
+                        it, so the query can be fixed and run again — the next result is shown afresh. */}
+                    <ErrorBoundary name="tab-result:tql" variant="region" resetKeys={[sResultType, sTextField, sCsv, sMarkdown, sVisualData]}>
+                        <Page.Header>
+                            <Tabs.Root selectedTab="RESULT" onTabSelect={() => {}}>
+                                <Tabs.Header variant="sub">
+                                    <Tabs.List>
+                                        <Tabs.Item value="RESULT" variant="sub">
+                                            {sResultType === 'text' || sResultType === 'ndjson' ? <AiOutlineFileDone size={12} /> : null}
+                                            {sResultType === 'mrk' ? <AiOutlineFileMarkdown size={12} /> : null}
+                                            {sResultType === 'csv' ? <PiFileCsvThin size={12} /> : null}
+                                            {sResultType === 'html' ? <BarChart size={12} /> : null}
+                                            <span>RESULT</span>
+                                        </Tabs.Item>
+                                    </Tabs.List>
+                                </Tabs.Header>
+                            </Tabs.Root>
+                            <Button.Group>
+                                {sResultType === 'text' && sTextField !== '' && !sLoadState ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        isToolTip
+                                        toolTipContent="JSON format"
+                                        icon={<VscJson size={16} />}
+                                        active={sIsPrettier}
+                                        onClick={() => setIsPrettier(!sIsPrettier)}
+                                        aria-label="JSON format"
+                                    />
+                                ) : null}
+                                {sResultType === 'csv' && sCsv.length > 0 ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        isToolTip
+                                        toolTipContent={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                        icon={sIsHeader ? <TableHeader size={16} /> : <TableNotHeader size={16} />}
+                                        active={sIsHeader}
+                                        onClick={() => handleChangeHeader(sCsv)}
+                                        aria-label={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                    />
+                                ) : null}
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     isToolTip
-                                    toolTipContent="JSON format"
-                                    icon={<VscJson size={16} />}
-                                    active={sIsPrettier}
-                                    onClick={() => setIsPrettier(!sIsPrettier)}
-                                    aria-label="JSON format"
+                                    toolTipContent="Vertical"
+                                    icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                    active={isVertical}
+                                    onClick={handleSplitVertical}
+                                    aria-label="Vertical"
                                 />
-                            ) : null}
-                            {sResultType === 'csv' && sCsv.length > 0 ? (
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     isToolTip
-                                    toolTipContent={`${sIsHeader ? 'Hide' : 'Show'} header`}
-                                    icon={sIsHeader ? <TableHeader size={16} /> : <TableNotHeader size={16} />}
-                                    active={sIsHeader}
-                                    onClick={() => handleChangeHeader(sCsv)}
-                                    aria-label={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                    toolTipContent="Horizontal"
+                                    icon={<LuFlipVertical size={16} />}
+                                    active={!isVertical}
+                                    onClick={handleSplitHorizontal}
+                                    aria-label="Horizontal"
                                 />
+                            </Button.Group>
+                        </Page.Header>
+                        <Page.Body style={{ padding: '2px 4px' }}>
+                            {sResultType === 'csv' ? (
+                                sCsv.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
+                                ) : (
+                                    <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} />
+                                )
                             ) : null}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                isToolTip
-                                toolTipContent="Vertical"
-                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
-                                active={isVertical}
-                                onClick={handleSplitVertical}
-                                aria-label="Vertical"
-                            />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                isToolTip
-                                toolTipContent="Horizontal"
-                                icon={<LuFlipVertical size={16} />}
-                                active={!isVertical}
-                                onClick={handleSplitHorizontal}
-                                aria-label="Horizontal"
-                            />
-                        </Button.Group>
-                    </Page.Header>
-                    <Page.Body style={{ padding: '2px 4px' }}>
-                        {sResultType === 'csv' ? (
-                            sCsv.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
-                            ) : (
-                                <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} />
-                            )
-                        ) : null}
-                        {sResultType === 'text' && sTextField ? (
-                            sIsPrettier && isValidJSON(sTextField) ? (
-                                <pre className="tql-result-text-pre">{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
-                            ) : (
-                                <div style={{ margin: '-2px -4px', padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                    <pre className="tql-result-text-pre">{sTextField}</pre>
-                                    {sLoadState && (
-                                        <div style={{ marginLeft: '4px' }}>
-                                            <Loader width="12px" height="12px" borderRadius="90%" />
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        ) : null}
-                        {sResultType === 'ndjson' &&
-                            (sTextField && String(sTextField).trim() !== '' ? (
-                                <pre>{sTextField}</pre>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
-                            ))}
-                        {/* Map & Chart */}
-                        {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
-                        {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
-                        {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
-                    </Page.Body>
+                            {sResultType === 'text' && sTextField ? (
+                                sIsPrettier && isValidJSON(sTextField) ? (
+                                    <pre className="tql-result-text-pre">{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
+                                ) : (
+                                    <div style={{ margin: '-2px -4px', padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                        <pre className="tql-result-text-pre">{sTextField}</pre>
+                                        {sLoadState && (
+                                            <div style={{ marginLeft: '4px' }}>
+                                                <Loader width="12px" height="12px" borderRadius="90%" />
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            ) : null}
+                            {sResultType === 'ndjson' &&
+                                (sTextField && String(sTextField).trim() !== '' ? (
+                                    <pre>{sTextField}</pre>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
+                                ))}
+                            {/* Map & Chart */}
+                            {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
+                            {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
+                            {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
+                        </Page.Body>
+                    </ErrorBoundary>
                 </Pane>
             </SplitPane>
         </Page>
