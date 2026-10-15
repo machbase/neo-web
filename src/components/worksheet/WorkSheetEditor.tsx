@@ -10,7 +10,7 @@ import { isKnownDatabase } from '@/components/database/targetDatabase';
 import { CommonTable } from '@/design-system/components';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
-import { Button, DragHandle, Menu, Page } from '@/design-system/components';
+import { Button, DragHandle, ErrorBoundary, Menu, Page } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
@@ -159,7 +159,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === undefined) return;
         if (sMonacoLanguage === undefined) return;
         const sCopyWorkSheets = JSON.parse(JSON.stringify(pWorkSheets));
-        const sIndex = sCopyWorkSheets.findIndex((aSheet: any) => aSheet.id === pData.id);
+        const sIndex = sCopyWorkSheets.findIndex((aSheet: any) => aSheet?.id === pData.id);
         const sPayload: any = {
             id: pData.id ?? getId(),
             contents: sText,
@@ -741,7 +741,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
 
     return (
-        <div className="worksheet-editor-wrapper">
+        <div className="worksheet-editor-wrapper" data-testid={`cell-${encodeURIComponent(String(pData?.id ?? pIdx))}`}>
             <div ref={wrkEditorRef} className="worksheet-editor">
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
                     <div ref={worksheetContentRef} className={`worksheet-content`} style={{ display: !sCollapse ? 'block' : 'none' }}>
@@ -853,8 +853,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 </div>
                 <DragHandle onMouseDown={initValue} onMouseMove={resize} onMouseUp={setHeight} style={{ visibility: sCollapse ? 'hidden' : 'visible' }} />
                 {sShouldRenderResult && (
-                    <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
-                        {Result()}
+                    <div data-testid="result" style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                        {/* The result on its own: one that cannot be shown leaves the cell's editor in place, and the
+                            next run shows its result afresh. */}
+                        <ErrorBoundary
+                            name={`wrk-result:${pData.id ?? pIdx}`}
+                            variant="unit"
+                            resetKeys={[sSelectedLang, sResultContentType, sSql, sSqlReason, sMarkdown, sShellResult, sTqlResultType, sTqlTextResult, sTqlVisualData, sTqlMarkdown, sTqlCsv]}
+                        >
+                            {Result()}
+                        </ErrorBoundary>
                         <div style={{ margin: '1rem 0 1rem 24px' }}>
                             <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
                         </div>

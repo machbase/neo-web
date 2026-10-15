@@ -33,7 +33,14 @@ describe('parseOpenedFile', () => {
         expect(sOut.board.name).toBe('board.dsh');
         expect(sOut.board.path).toBe('');
         expect(sOut.board.type).toBe('dsh');
-        expect(sOut.board.dashboard).toEqual({ panels: [] });
+        // the content is kept; the File Explorer's repair adds the missing defaults (#1547)
+        expect(sOut.board.dashboard).toMatchObject({ panels: [] });
+    });
+
+    it('repairs a .dsh saved without a board timeRange instead of opening it raw (#1547)', () => {
+        const sOut = parseOpenedFile('dsh', JSON.stringify({ dashboard: { panels: [] } }), 'b.dsh', 'id1');
+        if (!sOut.ok || sOut.mode !== 'replace') throw new Error('expected a replace result');
+        expect(sOut.board.dashboard.timeRange).toEqual({ start: 'now-3h', end: 'now', refresh: 'Off' });
     });
 
     it('a dsh replacement carries no leftover code from a previous sql tab', () => {

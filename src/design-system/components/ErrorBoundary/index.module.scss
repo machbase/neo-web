@@ -1,0 +1,101 @@
+@use '@/design-system/tokens' as t;
+
+.fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: t.$spacing-8;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: t.$spacing-16;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-align: center;
+    color: t.$text-secondary;
+
+    &--region,
+    &--tab {
+        background-color: #1e1e1e;
+    }
+
+    &--unit {
+        padding: t.$spacing-8;
+        gap: t.$spacing-6;
+        background-color: rgba(220, 53, 69, 0.08);
+        border: 1px dashed rgba(220, 53, 69, 0.4);
+    }
+
+    &__title {
+        color: t.$text-primary;
+        font-size: t.$font-size-md;
+    }
+
+    &--unit &__title {
+        font-size: t.$font-size-base;
+    }
+
+    &__message {
+        max-width: 560px;
+        color: t.$text-tertiary;
+        font-size: t.$font-size-sm;
+        word-break: break-word;
+        // A panel can be a few rows tall — never let the message push the buttons out of it.
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: t.$spacing-8;
+    }
+}
+
+// A narrow slot opts in by being a size container itself (the 52px GNB column does) — then the card
+// keeps only its buttons. Not set on the card: inline-size containment stops it sizing from its
+// content, and in a shrink-to-fit parent (the public view's root) it collapsed to a sliver.
+@container (max-width: 120px) {
+    .fallback__title,
+    .fallback__message {
+        display: none;
+    }
+}
+
+// One row-sized item (a tab, a tree row, a log line): stays on its line so the rows around it do not move.
+.inline {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    min-width: 0;
+    height: 100%;
+    padding: 0 t.$spacing-6;
+    box-sizing: border-box;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: t.$font-size-sm;
+    color: t.$text-secondary;
+    background-color: rgba(220, 53, 69, 0.08);
+    border: 1px dashed rgba(220, 53, 69, 0.4);
+
+    &__title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__action {
+        flex: none;
+        padding: 0 t.$spacing-4;
+        border: none;
+        border-radius: 0;
+        background: none;
+        color: t.$text-primary;
+        font-size: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+}

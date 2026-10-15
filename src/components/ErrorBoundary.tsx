@@ -28,8 +28,13 @@ class ErrorBoundary extends Component<Props, State> {
         window.location.href = '/web/ui/login';
     };
 
+    // Re-rendering in place brought the same state straight back, and with it the same error.
+    // Errors inside a tab, panel or side panel stop at their own boundary; one that reaches this
+    // far needs a fresh load. Home's "leave site?" guard outlives its unmount; the work it guarded is
+    // already gone, so it would only stand between the user and the reload.
     handleRetry = () => {
-        this.setState({ hasError: false, error: null });
+        window.onbeforeunload = null;
+        window.location.reload();
     };
 
     handleHardReload = () => {

@@ -1,6 +1,7 @@
 import type { RangeState, ResolvedRangeState } from '../panel/rangeControl/rangeControlModel';
 import './Board.scss';
 import {
+    type ReactNode,
     useCallback,
     useEffect,
     useRef,
@@ -16,16 +17,17 @@ import {
     MdOutlineStackedLineChart,
     LuTimerReset,
 } from '@/assets/icons/Icon';
-import { Button, Page, Toast } from '@/design-system/components';
+import { Button, ErrorBoundary, ErrorCard, Page, Toast } from '@/design-system/components';
 import RangeChips from '@/components/dashboard/RangeChips';
 import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import Panel from '../panel/Panel';
 import { HelpModal } from './HelpModal';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import OverlapModal from '../overlap/OverlapModal';
 import { CreatePanelModal } from '../panel/CreatePanelModal';
 import { SaveAsModal } from '../persistence/SaveAsModal';
 import { useBoardSave } from './useBoardSave';
-import type { BoardInfo } from './boardModel';
+import type { BoardInfo, UnreadableTazPanel } from './boardModel';
 import type { PanelInfo } from '../panel/panelModel';
 import { getSeriesListAxisKind } from '../seriesModel';
 import type { RollupTableMap } from '../api/rollupMetadata';
@@ -54,6 +56,9 @@ export default function Board({
         number | undefined
     >(undefined);
     const [sIsNewPanelModalOpen, setIsNewPanelModalOpen] = useState(false);
+    // Delete asked from a panel's error card — the panel's own delete button went down with it.
+    const [sDeletePanelKey, setDeletePanelKey] = useState<string | undefined>(undefined);
+    const [sDeleteUnreadableIndex, setDeleteUnreadableIndex] = useState<number | undefined>(undefined);
     const [sBoardRangeKind, setBoardRangeKind] = useState<AxisKind>(() =>
         getInitialBoardRangeKind(info),
     );
@@ -80,6 +85,7 @@ export default function Board({
             applyPanelInfo,
             appendPanel,
             removePanel,
+            removeUnreadablePanel,
             setPanelOverlapSelected,
             setPanelRange,
             applySaveResult,
@@ -285,6 +291,8 @@ export default function Board({
                         </Text>
                     )}
                     <Button.Group className="tag-analyzer-board-header__actions">
+                        {/* The range display keeps its own failure (#1547); the panels and Save stay usable. */}
+                        <ErrorBoundary name="taz-header:range" variant="inline" resetKeys={[sRangeChipsBoardInfo]}>
                         <RangeChips
                             pBoardInfo={sRangeChipsBoardInfo}
                             pOnShiftTime={(direction) => shiftBoardRange('time', direction)}
@@ -298,6 +306,7 @@ export default function Board({
                                 setBoardRangeModalOpenedAt(Date.now());
                             }}
                         />
+                        </ErrorBoundary>
                         {sHeaderActions.map(({ key, ...buttonProps }) => (
                             <Button
                                 key={key}
@@ -311,24 +320,45 @@ export default function Board({
                 </Inline>
             </Page.Header>
             <Page.Body>
-                {sPanels.map((sPanelInfo) => (
-                    <Page.ContentBlock key={sPanelInfo.key} pHoverNone>
-                        <Panel
-                            panelInfo={sPanelInfo}
-                            rangeState={sPanelRanges[sPanelInfo.key]}
-                            broadcastRequests={sPanelBroadcastRequests}
-                            isActive={isActiveTab}
-                            hasUnsavedBoardChanges={boardSave.hasUnsavedChanges}
-                            rollupTableList={rollupTableList}
-                            onPanelRangeStateChange={setPanelRange}
-                            onBroadcastError={reportBroadcastError}
-                            onApplyPanelInfo={applyPanelInfo}
-                            onSetGlobalRange={handleSetGlobalRange}
-                            onDeletePanel={removePanel}
-                            onToggleOverlap={overlap.togglePanelOverlap}
-                        />
-                    </Page.ContentBlock>
-                ))}
+                {withUnreadableCards(
+                    sPanels.map((sPanelInfo) => (
+                        <Page.ContentBlock key={sPanelInfo.key} pHoverNone>
+                            <ErrorBoundary
+                                name={`taz-panel:${sPanelInfo.key}`}
+                                variant="unit"
+                                resetKeys={[sPanelInfo]}
+                                actions={[{ label: 'Delete panel', testId: 'delete-panel', onClick: () => setDeletePanelKey(sPanelInfo.key) }]}
+                            >
+                                <Panel
+                                    panelInfo={sPanelInfo}
+                                    rangeState={sPanelRanges[sPanelInfo.key]}
+                                    broadcastRequests={sPanelBroadcastRequests}
+                                    isActive={isActiveTab}
+                                    hasUnsavedBoardChanges={boardSave.hasUnsavedChanges}
+                                    rollupTableList={rollupTableList}
+                                    onPanelRangeStateChange={setPanelRange}
+                                    onBroadcastError={reportBroadcastError}
+                                    onApplyPanelInfo={applyPanelInfo}
+                                    onSetGlobalRange={handleSetGlobalRange}
+                                    onDeletePanel={removePanel}
+                                    onToggleOverlap={overlap.togglePanelOverlap}
+                                />
+                            </ErrorBoundary>
+                        </Page.ContentBlock>
+                    )),
+                    sBoardInfo.unreadablePanels,
+                    (aUnreadable) => (
+                        <Page.ContentBlock key={`unreadable-${aUnreadable.index}`} pHoverNone>
+                            <ErrorCard
+                                name={`taz-panel:unreadable-${aUnreadable.index}`}
+                                variant="unit"
+                                title="Can't load this panel."
+                                message={`Its saved settings can't be read, so it can't be shown or edited here. Delete it, or fix it in the file. (${aUnreadable.error})`}
+                                actions={[{ label: 'Delete panel', testId: 'delete-panel', onClick: () => setDeleteUnreadableIndex(aUnreadable.index) }]}
+                            />
+                        </Page.ContentBlock>
+                    ),
+                )}
                 <Page.ContentBlock pHoverNone>
                     <Button
                         data-testid="create-panel-button"
@@ -350,6 +380,30 @@ export default function Board({
                     )}
                 </Page.ContentBlock>
             </Page.Body>
+            {sDeleteUnreadableIndex !== undefined && (
+                <ConfirmModal
+                    data-testid="tag-analyzer-delete-panel-dialog"
+                    pIsDarkMode
+                    setIsOpen={() => setDeleteUnreadableIndex(undefined)}
+                    pCallback={() => {
+                        removeUnreadablePanel(sDeleteUnreadableIndex);
+                        setDeleteUnreadableIndex(undefined);
+                    }}
+                    pContents={<div className="body-content">Do you want to delete this panel?</div>}
+                />
+            )}
+            {sDeletePanelKey !== undefined && (
+                <ConfirmModal
+                    data-testid="tag-analyzer-delete-panel-dialog"
+                    pIsDarkMode
+                    setIsOpen={() => setDeletePanelKey(undefined)}
+                    pCallback={() => {
+                        removePanel(sDeletePanelKey);
+                        setDeletePanelKey(undefined);
+                    }}
+                    pContents={<div className="body-content">Do you want to delete this panel?</div>}
+                />
+            )}
             {sIsHelpModalOpen && (
                 <HelpModal
                     onClose={() => setIsHelpModalOpen(false)}
@@ -475,4 +529,18 @@ function createBoardRangeEditorReference(
         : { start: 0, end: Number.MAX_SAFE_INTEGER };
 
     return { currentRange: range, fullRange: range };
+}
+
+/** The panel cards with the cards of unreadable panels put back at their place in the file (#1547). */
+function withUnreadableCards(
+    cards: ReactNode[],
+    unreadablePanels: UnreadableTazPanel[] | undefined,
+    renderUnreadable: (panel: UnreadableTazPanel) => ReactNode,
+): ReactNode[] {
+    if (!unreadablePanels?.length) return cards;
+    const sCards = [...cards];
+    [...unreadablePanels]
+        .sort((a, b) => a.index - b.index)
+        .forEach((panel) => sCards.splice(Math.min(panel.index, sCards.length), 0, renderUnreadable(panel)));
+    return sCards;
 }

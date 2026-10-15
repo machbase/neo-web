@@ -8,6 +8,7 @@ import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/rec
 import { extractionExtension } from '@/utils';
 import { getFileNameAndExtension, getFileNameOnly } from '@/utils/fileNameUtils';
 import { BiDownload } from '@/assets/icons/Icon';
+import { ErrorBoundary } from '@/design-system/components/ErrorBoundary';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 import useThrottle from '@/hooks/useThrottle';
@@ -436,6 +437,8 @@ interface SubTreeProps {
     onDragOver: (key: string) => void;
 }
 
+const ROW_FALLBACK = { height: 22 };
+
 const SubTree = (props: SubTreeProps) => {
     const [sDir, setDir] = useState([...props.directory.dirs]);
     const [sFile, setFile] = useState([...props.directory.files]);
@@ -447,7 +450,8 @@ const SubTree = (props: SubTreeProps) => {
         <>
             {sDir.length > 0 ? (
                 sDir.sort(sortDir).map((dir, idx: number) => (
-                    <React.Fragment key={'' + dir.depth + dir.id + idx.toString()}>
+                    // One row that cannot be drawn stays one row (#1547); the rest of the tree is still there.
+                    <ErrorBoundary key={'' + dir.depth + dir.id + idx.toString()} name={`file-row:${dir.path ?? ''}${dir.name ?? ''}`} variant="inline" resetKeys={[dir]} fallbackStyle={ROW_FALLBACK}>
                         <DirDiv
                             directory={dir}
                             selectedFile={props.selectedFile}
@@ -465,14 +469,14 @@ const SubTree = (props: SubTreeProps) => {
                             onDragOver={props.onDragOver}
                             pIsDropzone={props.sIsDropzone}
                         />
-                    </React.Fragment>
+                    </ErrorBoundary>
                 ))
             ) : (
                 <></>
             )}
             {sFile.length > 0 ? (
                 sFile.sort(sortFile).map((file, idx: number) => (
-                    <React.Fragment key={'' + file.depth + file.id + idx.toString()}>
+                    <ErrorBoundary key={'' + file.depth + file.id + idx.toString()} name={`file-row:${file.path ?? ''}${file.name ?? ''}`} variant="inline" resetKeys={[file]} fallbackStyle={ROW_FALLBACK}>
                         <FileDiv
                             file={file}
                             selectedFile={props.selectedFile}
@@ -488,7 +492,7 @@ const SubTree = (props: SubTreeProps) => {
                             onDragOver={props.onDragOver}
                             pIsDropzone={props.sIsDropzone}
                         />
-                    </React.Fragment>
+                    </ErrorBoundary>
                 ))
             ) : (
                 <></>

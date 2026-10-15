@@ -1,4 +1,5 @@
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
+import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 
 export const TEXT_OPEN_EXTENSIONS = ['sql', 'tql', 'json', 'csv', 'md', 'txt'];
 
@@ -60,6 +61,15 @@ export const parseOpenedFile = (aExt: string, aText: string, aFileName: string, 
     const sShapeError = validateBoardContent(aExt, sParsed.value);
     if (sShapeError) return { ok: false, error: sShapeError };
 
-    if (aExt === 'dsh') return { ok: true, mode: 'replace', board: { ...sParsed.value, id: aId, name: aFileName, type: 'dsh', path: '' } };
+    // Same repair the File Explorer applies (loadBoardFromFile) — opened raw, a board missing keys
+    // such as `dashboard.timeRange` crashed on its first render (#1547). A panel it cannot repair is
+    // kept as saved; only a board it cannot read at all is refused, as the File Explorer refuses it.
+    if (aExt === 'dsh') {
+        try {
+            return { ok: true, mode: 'replace', board: { ...CheckDataCompatibility(aText, 'dsh'), id: aId, name: aFileName, type: 'dsh', path: '' } };
+        } catch (aError) {
+            return { ok: false, error: aError instanceof Error ? aError.message : 'Failed to load DSH file.' };
+        }
+    }
     return { ok: true, mode: 'merge', fields: { name: aFileName, sheet: sParsed.value.data, type: 'wrk' } };
 };

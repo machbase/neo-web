@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { SplitPane, Pane, Page, Tabs } from '@/design-system/components';
+import { ErrorBoundary, SplitPane, Pane, Page, Tabs } from '@/design-system/components';
 import RESULT from './result';
 import CHART from '@/components/chart';
 import { gBoardList, GBoardListType } from '@/recoil/recoil';
@@ -441,111 +441,115 @@ const Sql = ({
                         </Page.Body>
                     </Pane>
                     <Pane style={{ overflow: 'initial' }} minSize={50}>
-                        <Page.Header>
-                            <Tabs.Root
-                                selectedTab={sSelectedSubTab}
-                                onTabSelect={(tab) => {
-                                    const tabValue = tab.id as 'RESULT' | 'CHART';
-                                    setSelectedSubTab(tabValue);
-                                }}
-                            >
-                                <Tabs.Header variant="sub">
-                                    <Tabs.List onWheel={handleMouseWheel}>
-                                        {sSqlTabList.map((aTab: SqlTabType) => {
-                                            return (
-                                                <Tabs.Item key={aTab} value={aTab} variant="sub">
-                                                    {getSubTabIcon(aTab)}
-                                                    <span>{aTab}</span>
-                                                </Tabs.Item>
-                                            );
-                                        })}
-                                    </Tabs.List>
-                                </Tabs.Header>
-                            </Tabs.Root>
-                            <Button.Group>
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    isToolTip
-                                    toolTipContent={`${sShowRowNumber ? 'Hide' : 'Show'} row number`}
-                                    icon={sShowRowNumber ? <RowNumberOn size={16} /> : <RowNumberOff size={16} />}
-                                    active={sShowRowNumber}
-                                    onClick={() => setShowRowNumber((prev) => !prev)}
-                                    aria-label={`${sShowRowNumber ? 'Hide' : 'Show'} row number`}
-                                />
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    disabled={!sOldFetchTxt || !sSqlResponseData || (sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)}
-                                    isToolTip
-                                    toolTipContent="Download CSV"
-                                    icon={<Download size={16} />}
-                                    onClick={handleDownloadCSV}
-                                />
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    isToolTip
-                                    toolTipContent="Vertical"
-                                    icon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} size={16} />}
-                                    active={isVertical}
-                                    onClick={handleSplitVertical}
-                                />
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    isToolTip
-                                    toolTipContent="Horizontal"
-                                    icon={<LuFlipVertical size={16} />}
-                                    active={!isVertical}
-                                    onClick={handleSplitHorizontal}
-                                />
-                            </Button.Group>
-                        </Page.Header>
-                        <Page.Body>
-                            {sSelectedSubTab === 'RESULT' ? (
-                                <div className="sql-result-body">
-                                    {/* `-- env:` directives the splitter rejected: a banner above the body, so a successful result stays visible. */}
-                                    {sEnvWarnLog ? <div className="sql-env-warn-body">{sEnvWarnLog}</div> : null}
-                                    <div className="sql-result-body-content">
-                                        {sErrLog ? (
-                                            <div className={sDbNotFound ? 'sql-error-body sql-error-body--db-not-found' : 'sql-error-body'} style={{ padding: '0 1rem' }}>
-                                                {sErrLog}
-                                            </div>
-                                        ) : sTextField ? (
-                                            <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                                <span>{sTextField}</span>
-                                                {sProcessing && (
-                                                    <div style={{ marginLeft: '4px' }}>
-                                                        <Loader width="12px" height="12px" borderRadius="90%" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <RESULT
-                                                pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
-                                                pSqlResponseData={sSqlResponseData}
-                                                pShowRowNumber={sShowRowNumber}
-                                                pExcludeRowNumberFromSelection={true}
-                                                onMoreResult={() => onMoreResult()}
-                                                pHelpTxt={sOldFetchTxt?.text ?? ''}
-                                            />
-                                        )}
+                        {/* The result side on its own: a result that cannot be shown no longer takes the query editor with
+                            it, so the query can be fixed and run again — the next result is shown afresh. */}
+                        <ErrorBoundary name="tab-result:sql" variant="region" resetKeys={[sSqlResponseData, sTextField, sErrLog, sChartQueryList, sSelectedSubTab]}>
+                            <Page.Header>
+                                <Tabs.Root
+                                    selectedTab={sSelectedSubTab}
+                                    onTabSelect={(tab) => {
+                                        const tabValue = tab.id as 'RESULT' | 'CHART';
+                                        setSelectedSubTab(tabValue);
+                                    }}
+                                >
+                                    <Tabs.Header variant="sub">
+                                        <Tabs.List onWheel={handleMouseWheel}>
+                                            {sSqlTabList.map((aTab: SqlTabType) => {
+                                                return (
+                                                    <Tabs.Item key={aTab} value={aTab} variant="sub">
+                                                        {getSubTabIcon(aTab)}
+                                                        <span>{aTab}</span>
+                                                    </Tabs.Item>
+                                                );
+                                            })}
+                                        </Tabs.List>
+                                    </Tabs.Header>
+                                </Tabs.Root>
+                                <Button.Group>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent={`${sShowRowNumber ? 'Hide' : 'Show'} row number`}
+                                        icon={sShowRowNumber ? <RowNumberOn size={16} /> : <RowNumberOff size={16} />}
+                                        active={sShowRowNumber}
+                                        onClick={() => setShowRowNumber((prev) => !prev)}
+                                        aria-label={`${sShowRowNumber ? 'Hide' : 'Show'} row number`}
+                                    />
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        disabled={!sOldFetchTxt || !sSqlResponseData || (sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)}
+                                        isToolTip
+                                        toolTipContent="Download CSV"
+                                        icon={<Download size={16} />}
+                                        onClick={handleDownloadCSV}
+                                    />
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Vertical"
+                                        icon={<LuFlipVertical style={{ transform: 'rotate(90deg)' }} size={16} />}
+                                        active={isVertical}
+                                        onClick={handleSplitVertical}
+                                    />
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent="Horizontal"
+                                        icon={<LuFlipVertical size={16} />}
+                                        active={!isVertical}
+                                        onClick={handleSplitHorizontal}
+                                    />
+                                </Button.Group>
+                            </Page.Header>
+                            <Page.Body>
+                                {sSelectedSubTab === 'RESULT' ? (
+                                    <div className="sql-result-body">
+                                        {/* `-- env:` directives the splitter rejected: a banner above the body, so a successful result stays visible. */}
+                                        {sEnvWarnLog ? <div className="sql-env-warn-body">{sEnvWarnLog}</div> : null}
+                                        <div className="sql-result-body-content">
+                                            {sErrLog ? (
+                                                <div className={sDbNotFound ? 'sql-error-body sql-error-body--db-not-found' : 'sql-error-body'} style={{ padding: '0 1rem' }}>
+                                                    {sErrLog}
+                                                </div>
+                                            ) : sTextField ? (
+                                                <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                                    <span>{sTextField}</span>
+                                                    {sProcessing && (
+                                                        <div style={{ marginLeft: '4px' }}>
+                                                            <Loader width="12px" height="12px" borderRadius="90%" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <RESULT
+                                                    pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
+                                                    pSqlResponseData={sSqlResponseData}
+                                                    pShowRowNumber={sShowRowNumber}
+                                                    pExcludeRowNumberFromSelection={true}
+                                                    onMoreResult={() => onMoreResult()}
+                                                    pHelpTxt={sOldFetchTxt?.text ?? ''}
+                                                />
+                                            )}
+                                        </div>
+                                        {/* Which database these rows came from — the chip leaves no trace in the worksheet, so this is the record. */}
+                                        {!sErrLog && !sTextField && sSqlResponseData ? <div className="sql-result-meta">{sResultMeta}</div> : null}
                                     </div>
-                                    {/* Which database these rows came from — the chip leaves no trace in the worksheet, so this is the record. */}
-                                    {!sErrLog && !sTextField && sSqlResponseData ? <div className="sql-result-meta">{sResultMeta}</div> : null}
-                                </div>
-                            ) : null}
+                                ) : null}
 
-                            <CHART
-                                pQueryList={sChartQueryListForDraw}
-                                pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
-                                pChartAixsList={sChartAxisList}
-                                pIsVertical={isVertical}
-                                pSqlQueryTxt={getTargetQuery}
-                                pSizes={sizes}
-                            />
-                        </Page.Body>
+                                <CHART
+                                    pQueryList={sChartQueryListForDraw}
+                                    pDisplay={sSelectedSubTab === 'CHART' ? '' : 'none'}
+                                    pChartAixsList={sChartAxisList}
+                                    pIsVertical={isVertical}
+                                    pSqlQueryTxt={getTargetQuery}
+                                    pSizes={sizes}
+                                />
+                            </Page.Body>
+                        </ErrorBoundary>
                     </Pane>
                 </SplitPane>
             </Page>

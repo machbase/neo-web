@@ -1,5 +1,5 @@
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
-import { SplitPane, Pane, Page, Button } from '@/design-system/components';
+import { SplitPane, Pane, Page, Button, ErrorBoundary } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFooter from './CreatePanelFooter';
@@ -564,7 +564,7 @@ const CreatePanel = ({
                     sizes={sSideSizes}
                     onChange={setSideSizes}
                 >
-                    <Pane maxSize="80%" minSize="500px">
+                    <Pane maxSize="80%" minSize="500px" boundaryName="panel-editor:main">
                         <SplitPane
                             onDragEnd={() => setInsetDraging(false)}
                             onDragStart={() => setInsetDraging(true)}
@@ -573,21 +573,26 @@ const CreatePanel = ({
                             sizes={sBottomSizes}
                             onChange={setBottomSizes}
                         >
-                            <Pane minSize="20%">
+                            <Pane minSize="20%" boundaryName="panel-editor:preview">
                                 {sAppliedPanelOption.id && (
-                                    <CreatePanelBody
-                                        pLoopMode={pLoopMode}
-                                        pBoardInfo={pBoardInfo}
-                                        pType={pType}
-                                        pInsetDraging={sInsetDraging}
-                                        pPanelInfo={sAppliedPanelOption}
-                                        pModifyState={pModifyState}
-                                        pSetModifyState={pSetModifyState}
-                                        pBoardTimeMinMax={(pType === 'create' && !pBoardTimeMinMax) || sIsPreview ? sCreateModeTimeMinMax : pBoardTimeMinMax}
-                                    />
+                                    // The preview renders the same options as the board panel, so a panel that fails
+                                    // to render fails here too. Kept apart from the settings below it, which are how
+                                    // that panel gets fixed; the next Apply tries the preview again.
+                                    <ErrorBoundary name={`dsh-panel-preview:${sAppliedPanelOption.id}`} variant="unit" resetKeys={[sAppliedPanelOption]}>
+                                        <CreatePanelBody
+                                            pLoopMode={pLoopMode}
+                                            pBoardInfo={pBoardInfo}
+                                            pType={pType}
+                                            pInsetDraging={sInsetDraging}
+                                            pPanelInfo={sAppliedPanelOption}
+                                            pModifyState={pModifyState}
+                                            pSetModifyState={pSetModifyState}
+                                            pBoardTimeMinMax={(pType === 'create' && !pBoardTimeMinMax) || sIsPreview ? sCreateModeTimeMinMax : pBoardTimeMinMax}
+                                        />
+                                    </ErrorBoundary>
                                 )}
                             </Pane>
-                            <Pane minSize="10%">
+                            <Pane minSize="10%" boundaryName="panel-editor:series">
                                 {sPanelOption.id && (
                                     <CreatePanelFooter
                                         pType={pType}
@@ -602,7 +607,7 @@ const CreatePanel = ({
                             </Pane>
                         </SplitPane>
                     </Pane>
-                    <Pane>{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} pBoardInfo={pBoardInfo} />}</Pane>
+                    <Pane boundaryName="panel-editor:options">{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} pBoardInfo={pBoardInfo} />}</Pane>
                 </SplitPane>
             </Page.Body>
         </Page>

@@ -32,6 +32,16 @@ export type BoardInfo = {
     savedCode: string | false;
     version?: string;
     loadWarning?: string;
+    /** Panels in the file that could not be read (#1547): shown as error cards, written back unchanged on save. */
+    unreadablePanels?: UnreadableTazPanel[];
+};
+
+/** A saved panel the loader could not decode, kept exactly as it was in the file. */
+export type UnreadableTazPanel = {
+    /** Its position in the file's panel list, where it is written back. */
+    index: number;
+    raw: unknown;
+    error: string;
 };
 
 export function createDefaultTazBoard(

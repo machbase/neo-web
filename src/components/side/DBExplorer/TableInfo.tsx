@@ -8,7 +8,7 @@ import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Loader } from '@/components/loader';
-import { Toast } from '@/design-system/components';
+import { ErrorBoundary, Toast } from '@/design-system/components';
 import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -448,8 +448,8 @@ export const TableInfo = ({
                 sIsExpanded &&
                 pValue.userList.map((aUser: { userName: string; total: number; tableList: any }) => {
                     return (
+                        <ErrorBoundary key={aUser.userName + '-user'} name={`db-row:${pValue.dbName}:${aUser.userName}`} variant="inline" resetKeys={[aUser]} fallbackStyle={{ height: 22 }}>
                         <UserDiv
-                            key={aUser.userName + '-user'}
                             pShowUserIcon={pValue.userList.length > 1}
                             pUserData={aUser}
                             pShowHiddenObj={pShowHiddenObj}
@@ -459,6 +459,7 @@ export const TableInfo = ({
                             pContextMenu={pContextMenu}
                             pQuery={sNormalizedQuery}
                         />
+                        </ErrorBoundary>
                     );
                 })}
         </>
@@ -514,6 +515,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                     return (
                                         <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
                                             {sUserName && (
+                                                <ErrorBoundary name={`db-row:${sUserName}:${aTable[3] ?? bIdx}`} variant="inline" resetKeys={[aTable]} fallbackStyle={{ height: 22 }}>
                                                 <TableDiv
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
@@ -528,6 +530,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     pContextMenu={props.pContextMenu}
                                                     pQuery={sQuery}
                                                 />
+                                                </ErrorBoundary>
                                             )}
                                         </div>
                                     );
