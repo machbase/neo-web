@@ -138,6 +138,7 @@ const CommonTable = (props: CommonTableProps) => {
         onRowSelect,
         onRowDelete,
         getRowTestId,
+        getCellTestId,
         onRowAction,
         hideRowAction = false,
         editable = false,
@@ -356,7 +357,7 @@ const CommonTable = (props: CommonTableProps) => {
                                         // round-trip — editing it would save the flattened string back.
                                         const editableCell = !isObject(cellData);
                                         return (
-                                            <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined}>
+                                            <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                 {data?.columns?.[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx && editableCell ? (
                                                     <Page.Input
                                                         pAutoFocus={cellIdx === 1}
@@ -592,7 +593,7 @@ const CommonTable = (props: CommonTableProps) => {
                                 const renderer = getCellRenderer(data?.columns?.[rIdx]);
                                 const numeric = shouldAlignNumeric(data?.types?.[rIdx], cellData);
                                 return (
-                                    <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()}>
+                                    <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} data-testid={getCellTestId?.(data?.columns?.[rIdx])}>
                                         {renderer ? (
                                             renderer(rowList)
                                         ) : (
@@ -750,7 +751,7 @@ const CommonTable = (props: CommonTableProps) => {
                                           if (renderer) {
                                               const numericRenderer = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                               return (
-                                                  <td className={['result-table-item', numericRenderer ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} style={wrapStyle}>
+                                                  <td className={['result-table-item', numericRenderer ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} style={wrapStyle} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                       {renderer(rowList)}
                                                   </td>
                                               );
@@ -758,7 +759,7 @@ const CommonTable = (props: CommonTableProps) => {
 
                                           const numeric = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                           return (
-                                              <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle}>
+                                              <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                   <div className={styles['cell-content']}>
                                                       {renderCellText(cellData)}
                                                       {renderCellCopy(cellData, cellIdx)}

@@ -67,6 +67,16 @@ const entriesOf = (value: object): (readonly [string, unknown])[] =>
         ? value.map((item, index) => [String(index), item] as const)
         : Object.entries(value as Record<string, unknown>);
 
+/**
+ * How far down the tree is built. A branch this deep is listed but not opened.
+ *
+ * A JSON column stores a document 16,000 levels deep without complaint, and `walk` recursed once per
+ * level: the call stack ran out a few thousand levels down (measured: Chrome ~3,750, Firefox
+ * ~5,840). Every level also lengthens the path of the level below, so the cost grew with the square
+ * of the depth well before that. Nothing chartable lives this deep.
+ */
+export const JSON_KEY_TREE_MAX_DEPTH = 100;
+
 /** What a branch holds, said in the row rather than left to be counted by opening it. */
 const branchPreview = (value: object, count: number) => `${Array.isArray(value) ? 'array' : 'object'} · ${count}`;
 
@@ -131,6 +141,7 @@ export const buildJsonKeyTree = (document: unknown, rootLabel = 'VALUE'): JsonKe
                 preview: branchPreview(value as object, entries.length),
                 childCount: entries.length,
             });
+            if (depth >= JSON_KEY_TREE_MAX_DEPTH) return;
             for (const [key, child] of entries) {
                 const childPath = `${prefix}${jsonPathSegment(key)}`;
                 walk(child, childPath, displayJsonPathLabel(childPath), dotted, key, depth + 1);

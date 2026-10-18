@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import './Table.scss';
 import { Button, CommonTable, ContextMenu, Modal } from '@/design-system/components';
 import { Copy, Monitor, VscJson } from '@/assets/icons/Icon';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
+import { JSON_TOO_DEEP_TO_FORMAT, stringifyJsonSafely } from '@/utils/safeJson';
 
 const parseStructuredJSON = (s: string): unknown | undefined => {
     try {
@@ -26,6 +27,14 @@ export const Table = (props: TableProps) => {
     const [sIsShowContent, setIsShowContent] = useState<boolean>(false);
     const [sIsJsonView, setIsJsonView] = useState<boolean>(false);
 
+    // Printed once per selected cell. A cell can hold JSON nested too deeply to print back; then the
+    // JSON view is unavailable — its button says why — and the cell's own text is what the modal shows.
+    const { sIsJsonCell, sPrettyJson } = useMemo(() => {
+        const sParsed = parseStructuredJSON(sCellValue);
+        return sParsed === undefined ? { sIsJsonCell: false, sPrettyJson: undefined } : { sIsJsonCell: true, sPrettyJson: stringifyJsonSafely(sParsed, 4) };
+    }, [sCellValue]);
+    const sCanFormatJson = sPrettyJson !== undefined;
+
     const handleContextMenu = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
         const cellText = target.closest('td')?.textContent?.trim() || '';
@@ -42,7 +51,7 @@ export const Table = (props: TableProps) => {
     };
 
     const showFullContent = () => {
-        setIsJsonView(parseStructuredJSON(sCellValue) !== undefined);
+        setIsJsonView(sCanFormatJson);
         setIsShowContent(true);
         closeContextMenu();
     };
@@ -58,23 +67,21 @@ export const Table = (props: TableProps) => {
         closeContextMenu();
     };
 
-    const sParsedJson = parseStructuredJSON(sCellValue);
-    const sCanFormatJson = sParsedJson !== undefined;
-
     return (
-        <div className="table-wrapper" style={{ height: '100%' }} onContextMenu={handleContextMenu}>
-            <CommonTable data={{ columns: headers as string[] ?? [], rows: items }} showRowNumber showCopyButton cellWidthFix style={{ height: '100%' }} />
-            <ContextMenu isOpen={sIsContextMenu} position={{ x: sMenuX, y: sMenuY }} onClose={closeContextMenu}>
-                <ContextMenu.Item onClick={showFullContent}>
+        <div className="table-wrapper" style={{ height: '100%' }} onContextMenu={handleContextMenu} data-testid="tql-result-table">
+            <CommonTable data={{ columns: headers as string[] ?? [], rows: items }} showRowNumber showCopyButton cellWidthFix style={{ height: '100%' }} getCellTestId={(aColumn) => `cell-${encodeURIComponent(aColumn ?? '')}`} />
+            <ContextMenu isOpen={sIsContextMenu} position={{ x: sMenuX, y: sMenuY }} onClose={closeContextMenu} data-testid="tql-cell-menu">
+                <ContextMenu.Item onClick={showFullContent} data-testid="show-full-contents">
                     <Monitor />
                     <span>Show full contents</span>
                 </ContextMenu.Item>
-                <ContextMenu.Item onClick={() => handleCopy(sCellValue)}>
+                <ContextMenu.Item onClick={() => handleCopy(sCellValue)} data-testid="copy">
                     <Copy />
                     <span>Copy</span>
                 </ContextMenu.Item>
             </ContextMenu>
             <Modal.Root
+                data-testid="tql-cell-content"
                 isOpen={sIsShowContent}
                 onClose={closeShowContent}
                 size="fit"
@@ -83,16 +90,18 @@ export const Table = (props: TableProps) => {
                 <Modal.Header>
                     <Modal.Title>Show content</Modal.Title>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {sCanFormatJson ? (
+                        {sIsJsonCell ? (
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 isToolTip
-                                toolTipContent="JSON format"
+                                toolTipContent={sCanFormatJson ? 'JSON format' : JSON_TOO_DEEP_TO_FORMAT}
                                 icon={<VscJson size={16} />}
                                 active={sIsJsonView}
+                                disabled={!sCanFormatJson}
                                 onClick={() => setIsJsonView((aPrev) => !aPrev)}
                                 aria-label="JSON format"
+                                data-testid="json-format"
                             />
                         ) : null}
                         <Modal.Close />
@@ -101,11 +110,11 @@ export const Table = (props: TableProps) => {
                 <Modal.Body>
                     <Modal.Content>
                         {sIsJsonView && sCanFormatJson ? (
-                            <pre style={{ fontSize: '13px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                                {JSON.stringify(sParsedJson, null, 4)}
+                            <pre data-testid="content" style={{ fontSize: '13px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                {sPrettyJson}
                             </pre>
                         ) : (
-                            <div style={{ fontSize: '13px', lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{sCellValue}</div>
+                            <div data-testid="content" style={{ fontSize: '13px', lineHeight: 1.5, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{sCellValue}</div>
                         )}
                     </Modal.Content>
                 </Modal.Body>

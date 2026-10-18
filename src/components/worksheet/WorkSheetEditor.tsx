@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useAbortController } from '@/hooks/useAbortController';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
+import { stringifyJsonSafely } from '@/utils/safeJson';
 import { envDirectiveWarning, sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { applyTargetDatabase } from '@/utils/sqlTargetDatabase';
 import { isKnownDatabase } from '@/components/database/targetDatabase';
@@ -97,6 +98,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sSelectedLang, setSelectedLang] = useState<Lang | undefined>(undefined);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
+    // Undefined when the result is not JSON, or is JSON nested too deeply to print back — the raw
+    // text is shown either way.
+    const sTqlPrettyText = useMemo(() => (isValidJSON(sTqlTextResult) ? stringifyJsonSafely(JSON.parse(sTqlTextResult), 4) : undefined), [sTqlTextResult]);
     const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
     const [sTqlVisualData, setTqlVisualData] = useState<string>('');
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
@@ -461,7 +465,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
         try {
             const sResult: any = await getTqlChart(aText, undefined, signal);
-            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data, text: sResult?.request?.response });
 
             if (parsedStatus) {
                 if (pAllRunCodeStatus) pAllRunCodeCallback(true);
@@ -607,8 +611,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     : null}
                 {sTqlResultType === 'text' ? (
                     sTqlTextResult ? (
-                        isValidJSON(sTqlTextResult) ? (
-                            <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre>
+                        sTqlPrettyText !== undefined ? (
+                            <pre>{sTqlPrettyText}</pre>
                         ) : (
                             <div className="result-worksheet-pre">
                                 <pre>{sTqlTextResult}</pre>

@@ -2,6 +2,7 @@ import { parseManualJsonPath } from '@/utils/manualJsonPath';
 import { normalizeJsonPath } from '@/utils/dashboardJsonValue';
 import { jsonKeyPathLabel, jsonKeyPathToSql } from '@/utils/jsonKeyCatalog';
 import {
+    JSON_KEY_TREE_MAX_DEPTH,
     buildJsonKeyTree,
     filterJsonKeyTree,
     jsonKeyDocumentHasKeys,
@@ -55,6 +56,21 @@ describe('buildJsonKeyTree', () => {
         const deep = nodes.find((node) => node.label === 'deep');
         expect(deep).toMatchObject({ path: '[pos][z][deep]', depth: 2, leaf: true });
         expect(jsonKeyPathToSql(deep!.path)).toBe('$[pos][z][deep]');
+    });
+
+    // A JSON column stores a document 16,000 levels deep; walking all of it overflowed the stack.
+    it('lists a branch at the depth limit without opening it', () => {
+        const sDepth = 16000;
+        const sNodes = buildJsonKeyTree('['.repeat(sDepth) + '1' + ']'.repeat(sDepth));
+
+        expect(sNodes).toHaveLength(JSON_KEY_TREE_MAX_DEPTH + 1);
+        expect(sNodes.at(-1)).toMatchObject({ depth: JSON_KEY_TREE_MAX_DEPTH, leaf: false, childCount: 1, preview: 'array · 1' });
+        expect(sNodes.every((node) => !node.leaf)).toBe(true);
+    });
+
+    it('still reaches a leaf right at the depth limit', () => {
+        const sNodes = buildJsonKeyTree('['.repeat(JSON_KEY_TREE_MAX_DEPTH + 1) + '1' + ']'.repeat(JSON_KEY_TREE_MAX_DEPTH + 1));
+        expect(sNodes.at(-1)).toMatchObject({ depth: JSON_KEY_TREE_MAX_DEPTH, leaf: true, preview: '1' });
     });
 
     // The tree is parsed from the row the user opened, so every position in it is a real path.

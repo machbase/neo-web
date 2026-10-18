@@ -69,7 +69,7 @@ describe('loadBoardFromFile — corrupt boards', () => {
 
     it('requests the encoded-ready raw path', async () => {
         await open('a.sql', 'SELECT 1');
-        expect(getFiles).toHaveBeenCalledWith('/d/a.sql');
+        expect(getFiles).toHaveBeenCalledWith('/d/a.sql', { rawText: true });
     });
 });
 
@@ -97,5 +97,28 @@ describe('loadBoardFromFile — server-only extensions (download set)', () => {
         const sExt = aName.split('.').at(-1) as string;
         expect(sOut.board).toMatchObject({ id: 'board-1', name: aName, path: '/d/', type: sExt, code: aContent });
         expect(EXTENSION_SET.has(sExt)).toBe(false);
+    });
+});
+
+// #1553: a tab shows the file's own text. Parsing it into an object first meant serializing it back,
+// which lost the file's layout and overflowed the call stack on a deeply nested document.
+describe('loadBoardFromFile — file text as stored', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('asks for the body as raw text', async () => {
+        await open('x.json', '{}');
+        expect(getFiles).toHaveBeenCalledWith('/d/x.json', { rawText: true });
+    });
+
+    it('opens a .json with its own layout untouched', async () => {
+        const sText = '{\n  "a": [ 1.0, 2 ],\n\t"b": {}\n}\n';
+        const sOut = await open('x.json', sText);
+        expect(sOut.board).toMatchObject({ code: sText, savedCode: sText, type: 'json' });
+    });
+
+    it('opens a deeply nested .json as its text', async () => {
+        const sText = '['.repeat(8000) + ']'.repeat(8000);
+        const sOut = await open('deep.json', sText);
+        expect(sOut.board?.code).toBe(sText);
     });
 });

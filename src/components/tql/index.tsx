@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { ErrorBoundary, SplitPane, Pane, Page, Tabs, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
@@ -8,6 +8,7 @@ import { Table } from './Table';
 import './index.scss';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
+import { JSON_TOO_DEEP_TO_FORMAT, stringifyJsonSafely } from '@/utils/safeJson';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import {
     AiOutlineFileDone,
@@ -55,6 +56,13 @@ const Tql = (props: TqlProps) => {
     const [sResultType, setResultType] = useState<string>('text');
     const [sTextField, setTextField] = useState<string>('');
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
+    // Whether the result is JSON, and its indented form — undefined when it is nested too deeply to
+    // print back. Such a result is shown as received, and the format button says why it cannot help.
+    const { sIsJsonText, sPrettyText } = useMemo(() => {
+        if (!isValidJSON(sTextField)) return { sIsJsonText: false, sPrettyText: undefined };
+        return { sIsJsonText: true, sPrettyText: stringifyJsonSafely(JSON.parse(sTextField), 4) };
+    }, [sTextField]);
+    const sCannotFormatJson = sIsJsonText && sPrettyText === undefined;
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const setConsoleList = useSetRecoilState<any>(gWsLog);
@@ -104,7 +112,7 @@ const Tql = (props: TqlProps) => {
         try {
             const sResult: any = await getTqlChart(aText, undefined, signal);
 
-            const { parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.TQL, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+            const { parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.TQL, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data, text: sResult?.request?.response });
 
             setResultType(parsedType);
             if (parsedType === TqlResType.VISUAL) {
@@ -201,6 +209,7 @@ const Tql = (props: TqlProps) => {
                             toolTipContent={sLoadState ? 'Stop code' : 'Run code'}
                             icon={sLoadState ? <FaStop size={14} /> : <Play size={16} />}
                             onClick={() => (sLoadState ? abort() : getTqlData(sText))}
+                            data-testid="tql-run"
                             aria-label={sLoadState ? 'Stop code' : 'Run code'}
                         />
                         <Button.Group>
@@ -255,11 +264,13 @@ const Tql = (props: TqlProps) => {
                                         variant="ghost"
                                         size="icon"
                                         isToolTip
-                                        toolTipContent="JSON format"
+                                        toolTipContent={sCannotFormatJson ? JSON_TOO_DEEP_TO_FORMAT : 'JSON format'}
                                         icon={<VscJson size={16} />}
-                                        active={sIsPrettier}
+                                        active={sIsPrettier && !sCannotFormatJson}
+                                        disabled={sCannotFormatJson}
                                         onClick={() => setIsPrettier(!sIsPrettier)}
                                         aria-label="JSON format"
+                                        data-testid="tql-json-format"
                                     />
                                 ) : null}
                                 {sResultType === 'csv' && sCsv.length > 0 ? (
@@ -305,11 +316,11 @@ const Tql = (props: TqlProps) => {
                                 )
                             ) : null}
                             {sResultType === 'text' && sTextField ? (
-                                sIsPrettier && isValidJSON(sTextField) ? (
-                                    <pre className="tql-result-text-pre">{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
+                                sIsPrettier && sPrettyText !== undefined ? (
+                                    <pre className="tql-result-text-pre" data-testid="tql-result-text">{sPrettyText}</pre>
                                 ) : (
                                     <div style={{ margin: '-2px -4px', padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                        <pre className="tql-result-text-pre">{sTextField}</pre>
+                                        <pre className="tql-result-text-pre" data-testid="tql-result-text">{sTextField}</pre>
                                         {sLoadState && (
                                             <div style={{ marginLeft: '4px' }}>
                                                 <Loader width="12px" height="12px" borderRadius="90%" />

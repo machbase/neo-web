@@ -208,6 +208,7 @@ CHART(
                         status: result?.status,
                         headers: result?.headers,
                         data: result?.data,
+                        text: result?.request?.response,
                     });
 
                     if (parsedType === TqlResType.VISUAL) {

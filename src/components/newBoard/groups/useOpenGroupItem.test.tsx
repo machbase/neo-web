@@ -83,7 +83,7 @@ describe('useOpenGroupItem — damaged .taz through the real loader', () => {
         await act(async () => {
             sOk = await result.current({ kind: 'file' as const, ref: '/d/broken.taz', label: 'broken.taz' });
         });
-        expect(getFiles).toHaveBeenCalledWith('/d/broken.taz');
+        expect(getFiles).toHaveBeenCalledWith('/d/broken.taz', { rawText: true });
         expect(sOk).toBe(true);
         const sMessage = (Toast.error as jest.Mock).mock.calls[0][0];
         expect(sMessage).toContain('damaged');

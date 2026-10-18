@@ -6,7 +6,7 @@ import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import { subscribeTimeRangeChange, unsubscribeTimeRangeChange, TimeRangeEvent, getVideoPanelStateForChart } from '@/hooks/useVideoSync';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     DashboardQueryParser,
     // DashboardHasValueQueryParser,
@@ -27,6 +27,7 @@ import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { isValidJSON } from '@/utils';
+import { stringifyJsonSafely } from '@/utils/safeJson';
 import { CommonTable } from '@/design-system/components';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
@@ -65,6 +66,12 @@ const LineChart = ({
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
     const [sTqlData, setTqlData] = useState<any>(undefined);
+    // Undefined unless a TEXT result is JSON that can be printed back — too deeply nested JSON falls
+    // back to the raw text, same as a result that is not JSON at all.
+    const sTqlPrettyText = useMemo(
+        () => (sTqlResultType === TqlResType.TEXT && sTqlData && isValidJSON(sTqlData) ? stringifyJsonSafely(JSON.parse(sTqlData), 4) : undefined),
+        [sTqlResultType, sTqlData]
+    );
     // markdown/text/csv/ndjson sink results are strings, so when a response is byte-identical to the
     // previous one React bails out of the state update and no re-render happens at all — Refresh and
     // resize leave the panel visually untouched. Chart results are fresh objects every time, which is
@@ -252,7 +259,7 @@ const LineChart = ({
             // would read the board's frozen snapshot again and hand the TQL file stale $from_/$to_.
             const sTqlTimeRange = aSelfRefresh ? { start: sStartTime, end: sEndTime } : calculateTimeRange();
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, sTqlTimeRange, sIntervalInfo, pBoardInfo.dashboard.variables));
-            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.DSH, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.DSH, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data, text: sResult?.request?.response });
 
             setTqlResultType(parsedType);
             setIsError(!parsedStatus);
@@ -685,8 +692,8 @@ const LineChart = ({
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
                     {sTqlResultType === TqlResType.NDJSON ? <pre>{sTqlData}</pre> : null}
                     {sTqlResultType === TqlResType.TEXT && sTqlData ? (
-                        isValidJSON(sTqlData) ? (
-                            <pre>{JSON.stringify(JSON.parse(sTqlData), null, 4)}</pre>
+                        sTqlPrettyText !== undefined ? (
+                            <pre>{sTqlPrettyText}</pre>
                         ) : (
                             <div className="dashboard-tql-panel-sink-pre">
                                 <pre>{sTqlData}</pre>

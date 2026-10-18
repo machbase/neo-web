@@ -400,6 +400,7 @@ const Sql = ({
                                 toolTipContent={sProcessing ? 'Stop code' : 'Run code'}
                                 icon={sProcessing ? <FaStop size={14} /> : <Play size={16} />}
                                 onClick={() => (sProcessing ? abort() : checkCtrl())}
+                                data-testid="sql-run"
                             />
                             <div className="editor-header-actions">
                                 <Button.Group>

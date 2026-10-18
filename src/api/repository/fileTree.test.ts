@@ -21,6 +21,13 @@ describe('fileTree repository URLs', () => {
         await getFiles('/');
         expect(lastCall().url).toBe('/api/files/');
     });
+    // #1553: without this axios parses a JSON-looking body into an object, which has to be serialized
+    // back to be shown — losing the file's own layout, and overflowing the stack when deeply nested.
+    it('getFiles with rawText hands the body back exactly as received', async () => {
+        await getFiles('/d/x.json', { rawText: true });
+        const sText = '[ \n  1.0 ]';
+        expect(lastCall().transformResponse.map((aFn: (aData: unknown) => unknown) => aFn(sText))).toEqual([sText]);
+    });
     it('moveFile encodes the url but not the destination body', async () => {
         await moveFile('/a#/x.sql', '/b#/x.sql');
         expect(lastCall()).toEqual({ method: 'PUT', url: '/api/files/a%23/x.sql', data: { destination: '/b#/x.sql' } });

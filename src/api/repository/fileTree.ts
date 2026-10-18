@@ -3,10 +3,17 @@ import { buildFilesUrl } from '@/utils/filePath';
 import request from '../core';
 import { AxiosResponse } from 'axios';
 
-export const getFiles = (aPath: string): Promise<AxiosResponse<ResFileListType>> => {
+/**
+ * `rawText` returns the body exactly as stored. Without it axios turns any body that looks like JSON
+ * into an object — a `.json`, or a `.txt` that happens to hold JSON — and showing it again means
+ * serializing it back: the file's own layout is lost, and a document a few thousand levels deep
+ * overflows the call stack doing so (#1553).
+ */
+export const getFiles = (aPath: string, aOptions?: { rawText?: boolean }): Promise<AxiosResponse<ResFileListType>> => {
     return request({
         method: 'GET',
         url: buildFilesUrl(aPath),
+        ...(aOptions?.rawText ? { transformResponse: [(aData: unknown) => aData] } : {}),
     });
 };
 

@@ -42,3 +42,23 @@ describe('DetermineTqlResultType — worksheet JSON (WRK)', () => {
         expect(parsedData).toBe('done');
     });
 });
+
+// machbase/neo #1553 — the body arrives parsed, and printing it back overflows the call stack when it
+// is nested deeply enough (Firefox does so unindented at ~3,770 levels; Node's V8 here at 8,000). The
+// body as the server sent it is the same text, so it is used instead of failing.
+describe('DetermineTqlResultType — body too deeply nested to print back', () => {
+    const jsonHeaders = { 'content-type': 'application/json' };
+    const sText = '{"data":{"columns":["column0"],"types":["any"],"rows":[' + '['.repeat(8000) + ']'.repeat(8000) + ']},"success":true}';
+    const sData = () => JSON.parse(sText);
+
+    test.each([E_TQL_SCR.TQL, E_TQL_SCR.WRK, E_TQL_SCR.DSH])('%s answers the body as received', (aType) => {
+        expect(() => JSON.stringify(sData())).toThrow();
+        const { parsedType, parsedData } = DetermineTqlResultType(aType, { status: 200, headers: jsonHeaders, data: sData(), text: sText });
+        expect(parsedType).toBe(TqlResType.TEXT);
+        expect(parsedData).toBe(sText);
+    });
+
+    test('without the body text the failure surfaces as before', () => {
+        expect(() => DetermineTqlResultType(E_TQL_SCR.TQL, { status: 200, headers: jsonHeaders, data: sData() })).toThrow();
+    });
+});

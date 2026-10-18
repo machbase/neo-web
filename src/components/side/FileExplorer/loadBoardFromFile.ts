@@ -22,7 +22,8 @@ export type LoadBoardResult = { board: any; error?: undefined } | { board?: unde
  */
 export const loadBoardFromFile = async (aFile: { name: string; path: string; id?: string }, aBoardId: string = getId()): Promise<LoadBoardResult> => {
     const sId = aFile.id ?? aFile.name;
-    const sContentResult: any = await getFiles(`${aFile.path}${aFile.name}`);
+    // As stored: the tab shows and saves the file's own text, never a re-serialized copy of it.
+    const sContentResult: any = await getFiles(`${aFile.path}${aFile.name}`, { rawText: true });
     const sFileExtension = extractionExtension(sId);
     if (axios.isAxiosError(sContentResult)) return { error: sContentResult.message || 'Failed to open the file.', transport: true };
     if (hasOwn(sContentResult, 'headers') || hasOwn(sContentResult, 'reason') || hasOwn(sContentResult?.data, 'reason')) {
