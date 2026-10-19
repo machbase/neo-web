@@ -18,6 +18,7 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
+import { tqlString } from '@/utils/queryText';
 
 export interface PanelDataDownloadModalProps {
     setIsOpen: any;
@@ -147,7 +148,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
 
         if (CheckObjectKey(sTargetItem, 'trx')) {
             sResult = processedSql + '\n' + sOutputStr;
-        } else sResult = `SQL("${processedSql}")\n` + sOutputStr;
+        } else sResult = `SQL(${tqlString(processedSql)})\n` + sOutputStr;
         return sResult;
     };
 

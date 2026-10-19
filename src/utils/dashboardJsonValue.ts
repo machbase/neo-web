@@ -1,3 +1,6 @@
+import { sqlString } from './queryText';
+import { toSqlColumnName } from './dashboardSqlName';
+
 export const JSON_COLUMN_TYPE = 61;
 
 export const isJsonTypeColumn = (aType: number) => aType === JSON_COLUMN_TYPE;
@@ -150,9 +153,6 @@ export const jsonPathToSqlPath = (aPath: string) => {
     return sPath ? `$${sPath}` : '';
 };
 
-/** Escape a JSONPath only after it has been placed inside a Machbase SQL string. */
-export const escapeJsonPathSqlString = (path: string) => path.replace(/\\/g, '\\\\').replace(/'/g, "''");
-
 export const formatJsonValueField = (aColumn: string, aPath: string) => {
     const sPath = normalizeJsonPath(aPath);
     return sPath ? `${aColumn}->$${sPath}` : aColumn;
@@ -176,21 +176,25 @@ export const normalizeJsonValueField = (aValue: string) => {
     return formatJsonValueField(sParsed.column, sParsed.path);
 };
 
-export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
+const resolveJsonValueField = (aValue: string, aJsonKey?: string) => {
     const sParsed = parseJsonValueField(aValue);
-    const sColumn = sParsed?.column ?? aValue;
-    const sPath = normalizeJsonPath(aJsonKey || sParsed?.path || '');
-    if (!sColumn || !sPath) return sColumn;
+    return { column: sParsed?.column ?? aValue, path: normalizeJsonPath(aJsonKey || sParsed?.path || '') };
+};
 
-    return `${sColumn}->'${escapeJsonPathSqlString(jsonPathToSqlPath(sPath))}'`;
+/** `aValue` is a raw column name (or a stored `column->$path` field); the column is quoted here. */
+export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
+    const { column: sColumn, path: sPath } = resolveJsonValueField(aValue, aJsonKey);
+    if (!sColumn || !sPath) return toSqlColumnName(sColumn);
+
+    return `${toSqlColumnName(sColumn)}->${sqlString(jsonPathToSqlPath(sPath))}`;
 };
 
 export const toSqlValueExpression = (aValue: string, aJsonKey?: string) => jsonValueFieldToSql(aValue, aJsonKey);
 
 export const jsonValueFieldToNumericSql = (aValue: string, aJsonKey?: string) => {
-    const sSqlValue = jsonValueFieldToSql(aValue, aJsonKey);
-    if (sSqlValue === aValue) return aValue;
-    return `TO_NUMBER_SAFE(${sSqlValue})`;
+    const { column: sColumn, path: sPath } = resolveJsonValueField(aValue, aJsonKey);
+    if (!sColumn || !sPath) return toSqlColumnName(sColumn);
+    return `TO_NUMBER_SAFE(${jsonValueFieldToSql(aValue, aJsonKey)})`;
 };
 
 const JSON_NUMERIC_AGGREGATOR_LIST = ['sum', 'min', 'max', 'avg', 'sumsq', 'stddev', 'stddev_pop', 'stddev (pop)', 'variance', 'var_pop', 'variance (pop)'];

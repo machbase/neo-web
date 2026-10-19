@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import { sqlQueryUrl } from '@/utils/queryText';
 import { getErrorMessageFromValue } from '../errorMessage';
 import { isPlainObject } from '../objectGuards';
 
@@ -10,7 +11,7 @@ export type QueryResponse = {
 export function requestSqlQuery(sql: string, signal?: AbortSignal): Promise<unknown> {
     return request({
         method: 'GET',
-        url: `/api/query?q=${encodeURIComponent(sql)}`,
+        url: sqlQueryUrl(sql),
         ...(signal ? { signal } : {}),
     });
 }

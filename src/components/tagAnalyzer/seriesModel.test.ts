@@ -38,14 +38,19 @@ describe('createPanelSeriesDefinition', () => {
         expect(createPanelSeriesDefinition(INPUT).alias).toBe('sensor / VALUE (MACHBASEDB.SYS.TAG)');
     });
 
-    it('rejects an invalid table name', () => {
-        expect(() => createPanelSeriesDefinition({ ...INPUT, table: 'SYS.TAG;DROP' }))
-            .toThrow('SQL table name contains unsupported characters: SYS.TAG;DROP');
+    it('keeps a non-plain table name raw for the SQL builders to quote', () => {
+        expect(createPanelSeriesDefinition({ ...INPUT, table: 'MACHBASEDB.SYS.Q-1545' }).table)
+            .toBe('MACHBASEDB.SYS.Q-1545');
     });
 
-    it.each(['name', 'time', 'value'] as const)('rejects an invalid %s column', (column) => {
+    it('rejects a table name with an empty part', () => {
+        expect(() => createPanelSeriesDefinition({ ...INPUT, table: 'SYS..TAG' }))
+            .toThrow('SQL table name is missing a name: SYS..TAG');
+    });
+
+    it.each(['name', 'time', 'value'] as const)('rejects an empty %s column', (column) => {
         expect(() => createPanelSeriesDefinition({
-            ...INPUT, columns: { ...INPUT.columns, [column]: 'INVALID()' },
-        })).toThrow('contains unsupported characters: INVALID()');
+            ...INPUT, columns: { ...INPUT.columns, [column]: '' },
+        })).toThrow('is missing a name');
     });
 });

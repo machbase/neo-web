@@ -1,4 +1,5 @@
 import { fetchQuery } from '@/api/repository/database';
+import { sqlString } from '@/utils/queryText';
 
 /**
  * The server's own runtime metrics: machbase-neo writes one row per metric per minute into this
@@ -47,7 +48,7 @@ export const toEpochMs = (aTime: unknown): number => {
 };
 
 export const buildPulseSeriesQuery = (aMetrics: ServerMetric[] = PULSE_METRICS) =>
-    `SELECT NAME, TIME, VALUE FROM ${STATZ_TABLE} WHERE NAME IN (${aMetrics.map((aMetric) => `'${aMetric.name}'`).join(', ')}) AND TIME > NOW - ${PULSE_WINDOW} ORDER BY TIME`;
+    `SELECT NAME, TIME, VALUE FROM ${STATZ_TABLE} WHERE NAME IN (${aMetrics.map((aMetric) => sqlString(aMetric.name)).join(', ')}) AND TIME > NOW - ${PULSE_WINDOW} ORDER BY TIME`;
 
 export const parsePulseRows = (aRows: unknown[][] = [], aMetrics: ServerMetric[] = PULSE_METRICS): Record<string, MetricPoint[]> => {
     const sSeries: Record<string, MetricPoint[]> = Object.fromEntries(aMetrics.map((aMetric) => [aMetric.name, []]));

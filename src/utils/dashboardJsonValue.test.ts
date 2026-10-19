@@ -145,7 +145,7 @@ describe('paths whose keys carry bracket syntax', () => {
         const paths = extractJsonPathsFromSamples([JSON.stringify(Object.fromEntries(keys.map((key) => [key, 42])))]);
         expect(paths.map(getJsonPathSegments)).toEqual(keys.map((key) => [key]));
         expect(paths).toEqual(['["a\'b"]', '[a"b]', "['a]b']", "['a\\b']", '[a\'"b]']);
-        expect(jsonValueFieldToSql('VALUE', paths[3])).toBe("VALUE->'$[''a\\\\b'']'");
+        expect(jsonValueFieldToSql('VALUE', paths[3])).toBe("VALUE->('$[''a' || RTRIM('\\\\ ') || 'b'']')");
     });
 
     it('reports keys that Machbase cannot address', () => {

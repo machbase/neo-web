@@ -32,6 +32,7 @@ import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/ap
 import { qualifyTableName } from '@/utils/qualifiedTableName';
 import { insertPanelAfterSource } from '@/utils/dashboardPanelLayout';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
+import { tqlString } from '@/utils/queryText';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -239,9 +240,9 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             : `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')`;
 
         if (CheckObjectKey(sTargetItem, 'trx')) {
-            sResult = processedSql + '\n' + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
+            sResult = processedSql + '\n' + `PUSHVALUE(0, ${tqlString(tagName)}, 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
         } else {
-            sResult = `SQL("${processedSql}")\n` + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
+            sResult = `SQL(${tqlString(processedSql)})\n` + `PUSHVALUE(0, ${tqlString(tagName)}, 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
         }
         return sResult;
     };

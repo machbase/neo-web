@@ -11,6 +11,7 @@ import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlRe
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import type { CameraInfo } from '@/api/repository/mediaSvr';
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
+import { sqlIdentifierPath, sqlString, tqlString } from '@/utils/queryText';
 
 
 export interface EventSyncChartProps {
@@ -153,10 +154,9 @@ export const EventSyncChart = ({
 
                 // Build SQL query per detect_object (reference: DashboardChartCodeParser)
                 const queryList = detectObjects.map((obj, idx) => ({
-                    query: `SQL("SELECT TO_TIMESTAMP(time)/1000000 as TIME, value FROM ${table} WHERE IDENT = '${obj.replace(
-                        /'/g,
-                        "''"
-                    )}' AND CAMERA_ID='${cameraId}' AND time BETWEEN ${startNs} AND ${endNs}")\nJSON()`,
+                    query: `SQL(${tqlString(
+                        `SELECT TO_TIMESTAMP(time)/1000000 as TIME, value FROM ${sqlIdentifierPath(table)} WHERE IDENT = ${sqlString(obj)} AND CAMERA_ID=${sqlString(cameraId)} AND time BETWEEN ${startNs} AND ${endNs}`
+                    )})\nJSON()`,
                     idx,
                     alias: obj,
                 }));

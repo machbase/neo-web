@@ -6,13 +6,12 @@ import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { parseFiniteNumber } from '../objectGuards';
 import {
+    assertSqlIdentifierPath,
     hasMixedXAxisValueKinds,
     isNumericBaseTimeSourceColumns,
-    parseSqlIdentifierPath,
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
-    type SqlIdentifierPath,
     type ValidatedPanelSeriesSourceColumns,
 } from '../seriesModel';
 import {
@@ -188,7 +187,7 @@ async function fetchRawSeriesRowsByQuery(
         seriesList,
         signal,
         async (series) => {
-            const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
+            const tableName: string = assertSqlIdentifierPath(
                 addAdminSchemaIfNeeded(series.table),
                 'SQL table name',
             );
@@ -282,7 +281,7 @@ async function fetchCalculatedSeriesData(
 ): Promise<PanelSeriesFetchResult> {
     const columns: ValidatedPanelSeriesSourceColumns =
         await validateSeriesSchema(series.table, series.sourceColumns, options?.signal);
-    const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
+    const tableName: string = assertSqlIdentifierPath(
         addAdminSchemaIfNeeded(series.table),
         'SQL table name',
     );
@@ -355,7 +354,7 @@ function keepLeadingCalculatedBucketInRange(
 
 async function fetchCalculatedSeriesEdgeRows(
     series: PanelSeriesDefinition,
-    tableName: SqlIdentifierPath,
+    tableName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     timeRange: AxisRange,
     interval: IntervalOption,
@@ -568,7 +567,7 @@ async function fetchSeriesFullRange(
                 throw new Error('Series tag is missing.');
             }
 
-            const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
+            const tableName: string = assertSqlIdentifierPath(
                 series.table,
                 'SQL table name',
             );

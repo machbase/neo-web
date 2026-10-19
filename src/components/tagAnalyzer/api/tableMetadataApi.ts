@@ -15,7 +15,7 @@ import { parseDashboardTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { extractJsonPathsFromSamples } from '@/utils/dashboardJsonValue';
 import { isPlainObject, parseFiniteNumber } from '../objectGuards';
-import { parseSqlIdentifierPath } from '../seriesModel';
+import { sqlContains, sqlIdentifier, sqlIdentifierPath, sqlString } from '@/utils/queryText';
 import type { RollupDefinition, RollupTableMap } from './rollupMetadata';
 import {
     getUnknownErrorMessage,
@@ -23,10 +23,7 @@ import {
     requestSqlQuery,
     type QueryResponse,
 } from './machbaseClient';
-import {
-    buildSqlStringLiteral,
-    joinSqlLines,
-} from './sql';
+import { joinSqlLines } from './sql';
 
 export type TableColumn = {
     arrayMetadata?: ArrayColumnMetadata;
@@ -271,16 +268,10 @@ async function fetchTags(
     metaTableNameParts.pop();
     metaTableNameParts.push(metaTableBaseName);
 
-    const qualifiedMetaTableName: string = parseSqlIdentifierPath(
-        metaTableNameParts.join('.'),
-        'SQL metadata table name',
-    );
-    const tagColumn: string = parseSqlIdentifierPath(
-        tagColumnName,
-        'SQL tag column',
-    );
+    const qualifiedMetaTableName: string = sqlIdentifierPath(...metaTableNameParts);
+    const tagColumn: string = sqlIdentifier(tagColumnName);
     const whereSql: string = searchText
-        ? `WHERE ${tagColumn} LIKE ${buildSqlStringLiteral(`%${searchText}%`)}`
+        ? `WHERE ${tagColumn} LIKE ${sqlContains(searchText)}`
         : '';
     const safePageSize: number = Math.max(1, Math.floor(pageSize));
     const offset: number =
@@ -474,15 +465,10 @@ function resolveTableColumnsTarget(tableName: string): TableColumnsTarget {
         databaseIdQuery: isCurrentDatabase
             ? String(getCurrentDatabaseId())
             : hasLogicalDatabases()
-                ? `(SELECT DATABASE_ID FROM V$DATABASES WHERE NAME = ${buildSqlStringLiteral(tableParts[0])})`
-                : `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${buildSqlStringLiteral(tableParts[0])})`,
-        tableName: parseSqlIdentifierPath(
-            tableParts.at(-1) ?? '',
-            'SQL table name',
-        ),
-        userName: hasUserName
-            ? parseSqlIdentifierPath(userName, 'SQL user name')
-            : ADMIN_ID.toUpperCase(),
+                ? `(SELECT DATABASE_ID FROM V$DATABASES WHERE NAME = ${sqlString(tableParts[0])})`
+                : `(SELECT BACKUP_TBSID FROM V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${sqlString(tableParts[0])})`,
+        tableName: tableParts.at(-1) ?? '',
+        userName: hasUserName ? userName : ADMIN_ID.toUpperCase(),
     };
 }
 
@@ -497,9 +483,9 @@ function buildTableColumnsSql(target: TableColumnsTarget): string {
         'WHERE SYSTEM_TABLES.DATABASE_ID = SYSTEM_COLUMNS.DATABASE_ID',
         '  AND SYSTEM_TABLES.ID = SYSTEM_COLUMNS.TABLE_ID',
         '  AND SYSTEM_TABLES.USER_ID = SYSTEM_USERS.USER_ID',
-        `  AND SYSTEM_USERS.NAME = UPPER(${buildSqlStringLiteral(target.userName)})`,
+        `  AND SYSTEM_USERS.NAME = UPPER(${sqlString(target.userName)})`,
         `  AND SYSTEM_COLUMNS.DATABASE_ID = ${target.databaseIdQuery}`,
-        `  AND SYSTEM_TABLES.NAME = ${buildSqlStringLiteral(target.tableName)}`,
+        `  AND SYSTEM_TABLES.NAME = ${sqlString(target.tableName)}`,
         "  AND SYSTEM_COLUMNS.NAME <> '_RID'",
         'ORDER BY SYSTEM_COLUMNS.ID',
     ]);

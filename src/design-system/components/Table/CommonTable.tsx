@@ -343,6 +343,7 @@ const CommonTable = (props: CommonTableProps) => {
                             {data.rows.map((rowList: any, rowIdx: number) => (
                                 <tr
                                     key={'tbody-row-' + rowList[0] + rowIdx}
+                                    data-testid={getRowTestId?.(rowList)}
                                     className={getRowClass(rowIdx)}
                                     tabIndex={0}
                                     onDoubleClick={(e) => handleMod(e, rowList, rowIdx)}
@@ -360,6 +361,7 @@ const CommonTable = (props: CommonTableProps) => {
                                             <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                 {data?.columns?.[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx && editableCell ? (
                                                     <Page.Input
+                                                        data-testid={`input-${encodeURIComponent(String(data?.columns?.[cellIdx] ?? ''))}`}
                                                         pAutoFocus={cellIdx === 1}
                                                         pValue={modInfo?.modAfterInfo?.row?.[cellIdx] ?? ''}
                                                         pWidth={'100%'}
@@ -381,6 +383,7 @@ const CommonTable = (props: CommonTableProps) => {
                                                 {v$Callback && <td />}
                                                 <td>
                                                     <Button
+                                                        data-testid="save"
                                                         tabIndex={0}
                                                         size="side"
                                                         variant="ghost"
@@ -415,6 +418,7 @@ const CommonTable = (props: CommonTableProps) => {
                                                 {editable && (
                                                     <td>
                                                         <Button
+                                                            data-testid="edit"
                                                             size="side"
                                                             variant="ghost"
                                                             icon={<BiEdit width={16} height={16} />}
@@ -428,6 +432,7 @@ const CommonTable = (props: CommonTableProps) => {
                                         (modInfo.modBeforeInfo.rowIdx === rowIdx ? (
                                             <td>
                                                 <Button
+                                                    data-testid="cancel"
                                                     size="side"
                                                     variant="ghost"
                                                     icon={<GiCancel width={16} height={16} />}
@@ -440,6 +445,7 @@ const CommonTable = (props: CommonTableProps) => {
                                             editable && (
                                                 <td>
                                                     <Button
+                                                        data-testid="delete"
                                                         size="side"
                                                         variant="ghost"
                                                         icon={<MdDelete width={16} height={16} />}

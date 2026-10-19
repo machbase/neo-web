@@ -7,6 +7,7 @@ import { findDatabaseByName, LEGACY_DATABASE } from '@/utils/currentDatabaseStat
 import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
 import type { BackupRequest } from '@/components/database/backup/backupPayload';
 import { buildFilesUrl } from '@/utils/filePath';
+import { sqlIdentifierPath, sqlQueryUrl, sqlString } from '@/utils/queryText';
 
 
 const getFileList = (aFilter: string, aDir: string, aName: string) => {
@@ -108,7 +109,7 @@ export const getConnectableDatabases = async (): Promise<string[] | undefined> =
     // Pre-v8.7 servers have one database and no database-level grants to read.
     if (sDb.id === LEGACY_DATABASE.id) return undefined;
     const sUser = getUserName()?.toUpperCase();
-    const sSql = `select DB_NAME from M$SYS_USER_ACCESS where USER_NAME = '${sUser}' and TABLE_NAME is NULL and BITAND(PRIV, ${DATABASE_PERMISSION.CONNECT}) = ${DATABASE_PERMISSION.CONNECT}`;
+    const sSql = `select DB_NAME from M$SYS_USER_ACCESS where USER_NAME = ${sqlString(sUser)} and TABLE_NAME is NULL and BITAND(PRIV, ${DATABASE_PERMISSION.CONNECT}) = ${DATABASE_PERMISSION.CONNECT}`;
     const { svrState, svrData } = await fetchQuery(sSql);
     if (!svrState) return undefined;
     return (svrData?.rows ?? []).map((aRow: any[]) => String(aRow[0] ?? '')).filter(Boolean);
@@ -132,7 +133,8 @@ const getTableList = async () => {
         ? 'a.DATABASE_NAME'
         : `case a.DATABASE_ID when -1 then 'MACHBASEDB' else d.MOUNTDB end`;
     const sMountJoin = sHasLogicalDb ? '' : ' left join V$STORAGE_MOUNT_DATABASES d on a.DATABASE_ID = d.BACKUP_TBSID';
-    let queryString;
+    const sUserName = sqlString(U_NAME?.toUpperCase());
+    let sSql;
     if (!isCurUserEqualAdmin())
     {
         // Four separate v8.7 changes meet in this one statement, and fixing fewer than all of
@@ -148,19 +150,19 @@ const getTableList = async () => {
         const sGrantJoin = sHasLogicalDb
             ? `ua.DB_NAME = dl.DB_NAME AND ua.OWNER_NAME = dl.USER_NAME AND ua.TABLE_NAME = dl.TABLE_NAME`
             : `ua.TABLE_NAME = dl.DB_NAME || '.' || dl.USER_NAME || '.' || dl.TABLE_NAME`;
-        queryString = `/api/query?q=SELECT ${sDbNameExpr} as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID , ${sPrivPlaceholder} as priv from M$SYS_TABLES a${sMountJoin} left join m$sys_users u on u.user_id=a.user_id where u.name='${U_NAME.toUpperCase()}'${sOwnScope} union all SELECT dl.*, ua.priv from M$SYS_USER_ACCESS ua, (SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID) dl WHERE ${sGrantJoin} AND dl.USER_NAME <> '${U_NAME?.toUpperCase()}' and ua.USER_NAME = '${U_NAME?.toUpperCase()}' order by dl.TABLE_NAME`;
+        sSql = `SELECT ${sDbNameExpr} as DB_NAME, u.name as USER_NAME, a.ID as TABLE_ID, a.NAME as TABLE_NAME, a.TYPE as TABLE_TYPE, a.FLAG as TABLE_FLAG, a.DATABASE_ID as DBID , ${sPrivPlaceholder} as priv from M$SYS_TABLES a${sMountJoin} left join m$sys_users u on u.user_id=a.user_id where u.name=${sUserName}${sOwnScope} union all SELECT dl.*, ua.priv from M$SYS_USER_ACCESS ua, (SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID) dl WHERE ${sGrantJoin} AND dl.USER_NAME <> ${sUserName} and ua.USER_NAME = ${sUserName} order by dl.TABLE_NAME`;
     }
     else
         // Admins take the same DB_NAME source; the mount join left this column NULL for all 58
         // rows on v8.7, which is what the tree rendered as an empty database name.
-        queryString = `/api/query?q=SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID, '' as priv from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID order by j.NAME`;
+        sSql = `SELECT j.DB_NAME as DB_NAME, u.NAME as USER_NAME, j.ID as TABLE_ID, j.NAME as TABLE_NAME, j.TYPE as TABLE_TYPE, j.FLAG as TABLE_FLAG, j.DBID as DBID, '' as priv from M$SYS_USERS u, (select a.NAME as NAME, a.ID as ID, a.USER_ID as USER_ID, a.TYPE as TYPE, a.FLAG as FLAG, a.DATABASE_ID as DBID, ${sDbNameExpr} as DB_NAME from M$SYS_TABLES a${sMountJoin}) as j where u.USER_ID = j.USER_ID order by j.NAME`;
     return await request({
         method: 'GET',
-        url: queryString,
+        url: sqlQueryUrl(sSql),
     });
 };
 const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
-    const queryString = `/api/query?q=select name, type, length, id, flag from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
+    const queryString = sqlQueryUrl(`select name, type, length, id, flag from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`);
     return await request({
         method: 'GET',
         url: queryString,
@@ -177,21 +179,23 @@ const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
  * `DATABASE_ID = ...` filter does not help — it constrains v$columns, not the subquery.
  */
 export const getVirtualTableInfo = async (aDataBaseId: string, aTableName: string, aUserName: string) => {
-    const queryString = `/api/query?q=select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = '${aTableName}' and DATABASE_ID = ${aDataBaseId} and user_ID = (select USER_ID from M$sys_users where name = '${aUserName}')) ORDER BY ID`;
+    const queryString = sqlQueryUrl(
+        `select * from v$columns WHERE DATABASE_ID = ${aDataBaseId} AND ID > 0 AND ID < 65534 AND TABLE_ID = (select ID from v$tables where name = ${sqlString(aTableName)} and DATABASE_ID = ${aDataBaseId} and user_ID = (select USER_ID from M$sys_users where name = ${sqlString(aUserName)})) ORDER BY ID`
+    );
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
 const getColumnIndexInfo = async (aDataBaseId: string, aTableId: string) => {
-    const queryString = `/api/query?q=select c.name as col_name, i.name as index_name, i.type as index_type from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${aDataBaseId} and c.table_id=${aTableId}`;
+    const queryString = sqlQueryUrl(`select c.name as col_name, i.name as index_name, i.type as index_type from m$sys_index_columns c inner join m$sys_indexes i on c.database_id=i.database_id and c.table_id=i.table_id and c.index_id=i.id where c.database_id=${aDataBaseId} and c.table_id=${aTableId}`);
     return await request({
         method: 'GET',
         url: queryString,
     });
 };
 export const getRecordCount = (aTableName: string, aUserName: string) => {
-    const queryString = `/api/query?q=select count(*) from ${aUserName}.${aTableName}`;
+    const queryString = sqlQueryUrl(`select count(*) from ${sqlIdentifierPath(aUserName, aTableName)}`);
     return request({
         method: 'GET',
         url: queryString,

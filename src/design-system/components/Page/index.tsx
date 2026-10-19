@@ -204,9 +204,9 @@ const ContentTitle = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const ContentDesc = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => {
+const ContentDesc = ({ children, style, 'data-testid': testId }: { children: React.ReactNode; style?: React.CSSProperties; 'data-testid'?: string }) => {
     return (
-        <div className={styles['page-content-block-desc']} style={style}>
+        <div className={styles['page-content-block-desc']} style={style} data-testid={testId}>
             <span>{children}</span>
         </div>
     );

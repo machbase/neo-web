@@ -1,6 +1,7 @@
 import { isNumericBaseTimeBlock } from './timeFieldColumns';
 import { isMountedTableName } from './qualifiedTableName';
 import { isTaglessTableType } from './dashboardTableKind';
+import { toSqlColumnName, toSqlTableName } from './dashboardSqlName';
 
 /**
  * Blocks whose time extent has to be read by scanning the table itself.
@@ -103,17 +104,17 @@ export const hasResolvedTimeRange = (aStart: any, aEnd: any) => {
 
 const combineTableUser = (aTargetInfo: any) => {
     if (!aTargetInfo?.table) return '';
-    return aTargetInfo.table.includes('.') ? aTargetInfo.table : `${aTargetInfo.userName}.${aTargetInfo.table}`;
+    return toSqlTableName(aTargetInfo.table.includes('.') ? aTargetInfo.table : `${aTargetInfo.userName}.${aTargetInfo.table}`);
 };
 
 export const createTableScanTimeMinMaxQuery = (aTargetInfo: any) => {
     if (!isTableScanTimeMinMaxTarget(aTargetInfo)) return undefined;
-    const sTime = aTargetInfo.time;
+    const sTime = toSqlColumnName(aTargetInfo.time);
     return `select min(${sTime}) as min_time, max(${sTime}) as max_time from ${combineTableUser(aTargetInfo)}`;
 };
 
 export const createLogTimeMinMaxQuery = (aTargetInfo: any) => {
     if (!aTargetInfo?.time) return undefined;
-    const sTime = aTargetInfo.time;
+    const sTime = toSqlColumnName(aTargetInfo.time);
     return `select min(${sTime}) as min_time, max(${sTime}) as max_time from ${combineTableUser(aTargetInfo)}`;
 };

@@ -1,4 +1,5 @@
 import { hasLogicalDatabases } from '@/utils/currentDatabaseState';
+import { sqlContains, sqlIdentifier, sqlIdentifierPath, sqlString } from '@/utils/queryText';
 import { fetchQuery, fetchTqlWithoutConsole } from './database';
 
 export const HIERARCHY_RESERVED_NAME = '__machbase_hierarchy__';
@@ -91,13 +92,9 @@ export type HierarchyParseResult = {
 export const HIERARCHY_PAGE_SIZE = 50;
 const PAGE_SIZE = HIERARCHY_PAGE_SIZE;
 
-export const escapeSqlString = (value: string) => String(value ?? '').replace(/'/g, "''");
+const metadataTable = (tableName: string) => `${sqlIdentifierPath(tableName)} METADATA`;
 
-const quoteSql = (value: string) => `'${escapeSqlString(value)}'`;
-
-const metadataTable = (tableName: string) => `${tableName} METADATA`;
-
-const assertSafeIdentifier = (value: string) => {
+const assertSafeJsonKey = (value: string) => {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(value)) throw new Error(`Unsafe SQL identifier: ${value}`);
     return value;
 };
@@ -118,14 +115,14 @@ const hashIdentifier = (value: string) => {
 
 const jsonPath = (key: string) => `$.${key}`;
 
-const jsonValueExpr = (jsonColumn: string, key: string) => `${jsonColumn}->'${jsonPath(key)}'`;
+const jsonValueExpr = (jsonColumn: string, key: string) => `${sqlIdentifier(jsonColumn)}->${sqlString(jsonPath(key))}`;
 
 const jsonAlias = (key: string) => `H_${key.replace(/[^A-Za-z0-9_]/g, '_').toUpperCase()}`;
 
 const pathConditions = (jsonColumn: string, path: HierarchyPathItem[]) =>
-    path.map((item) => `${jsonValueExpr(jsonColumn, item.key)} = ${quoteSql(item.value)}`);
+    path.map((item) => `${jsonValueExpr(jsonColumn, item.key)} = ${sqlString(item.value)}`);
 
-const baseWhere = (nameColumn: string) => [`${nameColumn} <> ${quoteSql(HIERARCHY_RESERVED_NAME)}`];
+const baseWhere = (nameColumn: string) => [`${sqlIdentifier(nameColumn)} <> ${sqlString(HIERARCHY_RESERVED_NAME)}`];
 
 const buildWhereClause = (conditions: string[]) =>
     conditions.length > 0 ? ` where ${conditions.join(' and ')}` : '';
@@ -135,12 +132,12 @@ const buildWhereClause = (conditions: string[]) =>
 const limitClause = (page?: number) =>
     page === undefined ? '' : ` limit ${page * PAGE_SIZE}, ${PAGE_SIZE}`;
 
-const writableJsonExpr = (jsonColumn: string) => `nvl(${jsonColumn}, '{}')`;
+const writableJsonExpr = (jsonColumn: string) => `nvl(${sqlIdentifier(jsonColumn)}, '{}')`;
 
 const nestedJsonSet = (jsonColumn: string, values: HierarchyPathItem[]) =>
     values.reduce(
         (expr, item) =>
-            `json_set(${expr}, ${quoteSql(jsonPath(item.key))}, ${quoteSql(item.value)})`,
+            `json_set(${expr}, ${sqlString(jsonPath(item.key))}, ${sqlString(item.value)})`,
         writableJsonExpr(jsonColumn),
     );
 
@@ -148,24 +145,24 @@ const nestedJsonSet = (jsonColumn: string, values: HierarchyPathItem[]) =>
 // the value column is chosen by the user at creation (not fixed to ASSET), so we neither assume its
 // name nor depend on the caller pre-classifying which columns are JSON — we inspect the cells.
 export const buildScanHierarchyMetadataSql = ({ tableName, nameColumn }: HierarchyQueryConfig) =>
-    `select * from ${metadataTable(tableName)} where ${nameColumn} = ${quoteSql(HIERARCHY_RESERVED_NAME)}`;
+    `select * from ${metadataTable(tableName)} where ${sqlIdentifier(nameColumn)} = ${sqlString(HIERARCHY_RESERVED_NAME)}`;
 
 export const buildCreateHierarchyTemplateSql = (
     { tableName, nameColumn, jsonColumn }: HierarchyQueryConfig,
     template: HierarchyTemplate | HierarchyDocument = DEFAULT_HIERARCHY_TEMPLATE,
 ) =>
-    `insert into ${metadataTable(tableName)} (${nameColumn}, ${jsonColumn}) values (${quoteSql(HIERARCHY_RESERVED_NAME)}, ${quoteSql(JSON.stringify(template))})`;
+    `insert into ${metadataTable(tableName)} (${sqlIdentifier(nameColumn)}, ${sqlIdentifier(jsonColumn)}) values (${sqlString(HIERARCHY_RESERVED_NAME)}, ${sqlString(JSON.stringify(template))})`;
 
 export const buildUpdateHierarchyTemplateSql = (
     { tableName, nameColumn, jsonColumn }: HierarchyQueryConfig,
     template: HierarchyTemplate | HierarchyDocument,
 ) =>
-    `update ${metadataTable(tableName)} set ${jsonColumn} = ${quoteSql(JSON.stringify(template))} where ${nameColumn} = ${quoteSql(HIERARCHY_RESERVED_NAME)}`;
+    `update ${metadataTable(tableName)} set ${sqlIdentifier(jsonColumn)} = ${sqlString(JSON.stringify(template))} where ${sqlIdentifier(nameColumn)} = ${sqlString(HIERARCHY_RESERVED_NAME)}`;
 
 export const buildCreateJsonMetadataColumnSql = (
     tableName: string,
     columnName = DEFAULT_HIERARCHY_JSON_COLUMN,
-) => `ALTER TABLE ${tableName} METADATA ADD COLUMN (${assertSafeIdentifier(columnName)} JSON)`;
+) => `ALTER TABLE ${metadataTable(tableName)} ADD COLUMN (${sqlIdentifier(columnName)} JSON)`;
 
 // machbase JSON-path metadata index (verified: issue #1351 server-validated + machbase docs):
 //   CREATE INDEX <idx> ON <table> METADATA (<jsonColumn>->'$.<key>')   /   DROP INDEX <idx>
@@ -175,7 +172,7 @@ export const buildHierarchyIndexName = (
     { tableName, jsonColumn }: HierarchyQueryConfig,
     key: string,
 ) => {
-    assertSafeIdentifier(key); // schema keys are validated upstream; reject anything unsafe for the indexed JSON path
+    assertSafeJsonKey(key); // schema keys are validated upstream; reject anything unsafe for the indexed JSON path
     const raw = `HIDX_${sanitizeIdentifierPart(tableName)}_${sanitizeIdentifierPart(jsonColumn)}_${sanitizeIdentifierPart(key)}`;
     const name =
         raw.length <= MAX_IDENTIFIER_LENGTH
@@ -184,14 +181,14 @@ export const buildHierarchyIndexName = (
                   0,
                   MAX_IDENTIFIER_LENGTH,
               );
-    return assertSafeIdentifier(name);
+    return name;
 };
 
 export const buildCreateJsonPathIndexSql = (config: HierarchyQueryConfig, key: string) =>
-    `CREATE INDEX ${buildHierarchyIndexName(config, key)} ON ${config.tableName} METADATA (${jsonValueExpr(config.jsonColumn, key)})`;
+    `CREATE INDEX ${sqlIdentifier(buildHierarchyIndexName(config, key))} ON ${metadataTable(config.tableName)} (${jsonValueExpr(config.jsonColumn, key)})`;
 
 export const buildDropJsonPathIndexSql = (config: HierarchyQueryConfig, key: string) =>
-    `DROP INDEX ${buildHierarchyIndexName(config, key)}`;
+    `DROP INDEX ${sqlIdentifier(buildHierarchyIndexName(config, key))}`;
 
 const getHierarchyDatabaseName = (tableName: string) => {
     const parts = String(tableName ?? '')
@@ -211,7 +208,7 @@ export const buildGetHierarchyChildrenSql = (
         .concat(`${jsonValueExpr(config.jsonColumn, childKey)} as VALUE`);
     const innerSql = `select ${aliasSelects.join(', ')} from ${metadataTable(config.tableName)}${buildWhereClause(baseWhere(config.nameColumn))}`;
     const conditions = parentPath
-        .map((item) => `${jsonAlias(item.key)} = ${quoteSql(item.value)}`)
+        .map((item) => `${jsonAlias(item.key)} = ${sqlString(item.value)}`)
         .concat(['VALUE is not null', 'length(VALUE) > 0']);
 
     return `select VALUE, count(*) as COUNT from (${innerSql})${buildWhereClause(conditions)} group by VALUE order by VALUE`;
@@ -224,10 +221,11 @@ export const buildGetHierarchyTagsSql = (
 ) => {
     const columns = [config.nameColumn, config.jsonColumn, config.specColumn]
         .filter(Boolean)
+        .map(sqlIdentifier)
         .join(', ');
     const conditions = baseWhere(config.nameColumn).concat(pathConditions(config.jsonColumn, path));
 
-    return `select ${columns} from ${metadataTable(config.tableName)}${buildWhereClause(conditions)} order by ${config.nameColumn}${limitClause(page)}`;
+    return `select ${columns} from ${metadataTable(config.tableName)}${buildWhereClause(conditions)} order by ${sqlIdentifier(config.nameColumn)}${limitClause(page)}`;
 };
 
 export const buildGetDirectHierarchyTagsSql = (
@@ -237,6 +235,7 @@ export const buildGetDirectHierarchyTagsSql = (
 ) => {
     const columns = [config.nameColumn, config.jsonColumn, config.specColumn]
         .filter(Boolean)
+        .map(sqlIdentifier)
         .join(', ');
     const nextKey = schema[path.length];
     const conditions = baseWhere(config.nameColumn).concat(pathConditions(config.jsonColumn, path));
@@ -245,7 +244,7 @@ export const buildGetDirectHierarchyTagsSql = (
             `(${jsonValueExpr(config.jsonColumn, nextKey)} is null or length(${jsonValueExpr(config.jsonColumn, nextKey)}) = 0)`,
         );
 
-    return `select ${columns} from ${metadataTable(config.tableName)}${buildWhereClause(conditions)} order by ${config.nameColumn}`;
+    return `select ${columns} from ${metadataTable(config.tableName)}${buildWhereClause(conditions)} order by ${sqlIdentifier(config.nameColumn)}`;
 };
 
 export const buildGetHierarchyTagCountSql = (
@@ -293,7 +292,7 @@ const buildUnassignedAliasCondition = (keySpec: HierarchyKeySpec) => {
 };
 
 const buildUnassignedSourceSql = (config: HierarchyQueryConfig, keySpec: HierarchyKeySpec) => {
-    const columns = [config.nameColumn, config.jsonColumn, config.specColumn].filter(Boolean);
+    const columns = [config.nameColumn, config.jsonColumn, config.specColumn].filter(Boolean).map(sqlIdentifier);
     const keys = uniqueKeysFromSpec(keySpec);
     const aliasSelects = keys.map(
         (key) => `${jsonValueExpr(config.jsonColumn, key)} as ${jsonAlias(key)}`,
@@ -308,10 +307,11 @@ export const buildGetUnassignedTagsSql = (
 ) => {
     const columns = [config.nameColumn, config.jsonColumn, config.specColumn]
         .filter(Boolean)
+        .map(sqlIdentifier)
         .join(', ');
     const innerSql = buildUnassignedSourceSql(config, keySpec);
 
-    return `select ${columns} from (${innerSql})${buildWhereClause([buildUnassignedAliasCondition(keySpec)])} order by ${config.nameColumn}`;
+    return `select ${columns} from (${innerSql})${buildWhereClause([buildUnassignedAliasCondition(keySpec)])} order by ${sqlIdentifier(config.nameColumn)}`;
 };
 
 export const buildGetUnassignedTagCountSql = (
@@ -328,11 +328,11 @@ export const buildAttachTagsSql = (
     tagNames: string[],
     targetPath: HierarchyPathItem[],
 ) => {
-    const tagList = tagNames.map(quoteSql).join(', ');
+    const tagList = tagNames.map(sqlString).join(', ');
 
-    return `update ${metadataTable(config.tableName)} set ${config.jsonColumn} = ${nestedJsonSet(config.jsonColumn, targetPath)} where ${
-        config.nameColumn
-    } in (${tagList}) and ${config.nameColumn} <> ${quoteSql(HIERARCHY_RESERVED_NAME)}`;
+    return `update ${metadataTable(config.tableName)} set ${sqlIdentifier(config.jsonColumn)} = ${nestedJsonSet(config.jsonColumn, targetPath)} where ${sqlIdentifier(
+        config.nameColumn,
+    )} in (${tagList}) and ${sqlIdentifier(config.nameColumn)} <> ${sqlString(HIERARCHY_RESERVED_NAME)}`;
 };
 
 export const buildMoveTagsToHierarchyPathSql = (
@@ -352,12 +352,12 @@ export const buildDetachTagsSql = (
     tagNames: string[],
     keys: string[],
 ) => {
-    const tagList = tagNames.map(quoteSql).join(', ');
+    const tagList = tagNames.map(sqlString).join(', ');
     const emptyPath = keys.map((key) => ({ key, value: '' }));
 
-    return `update ${metadataTable(config.tableName)} set ${config.jsonColumn} = ${nestedJsonSet(config.jsonColumn, emptyPath)} where ${
-        config.nameColumn
-    } in (${tagList}) and ${config.nameColumn} <> ${quoteSql(HIERARCHY_RESERVED_NAME)}`;
+    return `update ${metadataTable(config.tableName)} set ${sqlIdentifier(config.jsonColumn)} = ${nestedJsonSet(config.jsonColumn, emptyPath)} where ${sqlIdentifier(
+        config.nameColumn,
+    )} in (${tagList}) and ${sqlIdentifier(config.nameColumn)} <> ${sqlString(HIERARCHY_RESERVED_NAME)}`;
 };
 
 export const buildRenameHierarchyValueSql = (
@@ -370,9 +370,9 @@ export const buildRenameHierarchyValueSql = (
     const parentPath = path.filter((item) => item.key !== key);
     const conditions = baseWhere(config.nameColumn)
         .concat(pathConditions(config.jsonColumn, parentPath))
-        .concat([`${jsonValueExpr(config.jsonColumn, key)} = ${quoteSql(oldValue)}`]);
+        .concat([`${jsonValueExpr(config.jsonColumn, key)} = ${sqlString(oldValue)}`]);
 
-    return `update ${metadataTable(config.tableName)} set ${config.jsonColumn} = json_set(${config.jsonColumn}, ${quoteSql(jsonPath(key))}, ${quoteSql(
+    return `update ${metadataTable(config.tableName)} set ${sqlIdentifier(config.jsonColumn)} = json_set(${sqlIdentifier(config.jsonColumn)}, ${sqlString(jsonPath(key))}, ${sqlString(
         newValue,
     )})${buildWhereClause(conditions)}`;
 };
@@ -827,7 +827,7 @@ const buildDocumentUnassignedAliasCondition = (document: HierarchyDocument) => {
         const nextKey = document.schema[path.length];
         const pathMatches = path.map((item) => {
             const alias = jsonAlias(item.key);
-            return `${alias} is not null and length(${alias}) > 0 and ${alias} = ${quoteSql(item.value)}`;
+            return `${alias} is not null and length(${alias}) > 0 and ${alias} = ${sqlString(item.value)}`;
         });
         const nextIsEmpty = nextKey
             ? [`(${jsonAlias(nextKey)} is null or length(${jsonAlias(nextKey)}) = 0)`]
@@ -845,7 +845,7 @@ const buildDocumentUnassignedSourceSql = (
     config: HierarchyQueryConfig,
     document: HierarchyDocument,
 ) => {
-    const columns = [config.nameColumn, config.jsonColumn, config.specColumn].filter(Boolean);
+    const columns = [config.nameColumn, config.jsonColumn, config.specColumn].filter(Boolean).map(sqlIdentifier);
     const aliasSelects = document.schema.map(
         (key) => `${jsonValueExpr(config.jsonColumn, key)} as ${jsonAlias(key)}`,
     );
@@ -857,7 +857,7 @@ const buildDocumentUnassignedSourceSql = (
 // reflect the full result set (not just loaded pages). Empty search ⇒ no condition.
 const nameLikeCondition = (nameColumn: string, search?: string) => {
     const term = (search ?? '').trim();
-    return term ? `${nameColumn} LIKE '%${escapeSqlString(term)}%'` : '';
+    return term ? `${sqlIdentifier(nameColumn)} LIKE ${sqlContains(term)}` : '';
 };
 
 export const buildGetUnassignedTagsByDocumentSql = (
@@ -868,6 +868,7 @@ export const buildGetUnassignedTagsByDocumentSql = (
 ) => {
     const columns = [config.nameColumn, config.jsonColumn, config.specColumn]
         .filter(Boolean)
+        .map(sqlIdentifier)
         .join(', ');
     const innerSql = buildDocumentUnassignedSourceSql(config, document);
     const conditions = [
@@ -875,7 +876,7 @@ export const buildGetUnassignedTagsByDocumentSql = (
         nameLikeCondition(config.nameColumn, search),
     ].filter(Boolean);
 
-    return `select ${columns} from (${innerSql})${buildWhereClause(conditions)} order by ${config.nameColumn}${limitClause(page)}`;
+    return `select ${columns} from (${innerSql})${buildWhereClause(conditions)} order by ${sqlIdentifier(config.nameColumn)}${limitClause(page)}`;
 };
 
 export const buildGetUnassignedTagCountByDocumentSql = (
