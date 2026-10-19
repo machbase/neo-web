@@ -346,8 +346,7 @@ export const TagHierarchyPage = ({
     const mActiveDetailTab: DetailTab = mVisibleDetailTabs.includes(sActiveTab)
         ? sActiveTab
         : 'tags';
-    // Mirrors the repository's assertSafeIdentifier rule so we only enable Create for a name the
-    // ALTER TABLE … ADD COLUMN statement will accept.
+    // Create is offered for plain column names only, the same rule the schema keys follow.
     const isValidColumnName = /^[A-Za-z_][A-Za-z0-9_]*$/.test(sNewColumnName.trim());
     // An empty schema is an error state the user must fix, so the SCHEMA editor is forced open then;
     // otherwise it respects the user's manual collapse/expand toggle.

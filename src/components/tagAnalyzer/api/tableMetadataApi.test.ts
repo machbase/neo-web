@@ -93,3 +93,39 @@ describe('tableMetadataApi.fetchTableColumns', () => {
         expect(sql).not.toContain('V$STORAGE_MOUNT_DATABASES');
     });
 });
+
+describe('tableMetadataApi query text', () => {
+    const requestedSql = (call: number) => decodeURIComponent(String(mockedRequest.mock.calls[call][0].url).replace('/api/query?q=', ''));
+
+    beforeEach(() => {
+        resetCurrentDatabase();
+        mockedRequest.mockReset();
+        mockedRequest.mockResolvedValue({ success: true, data: { rows: [], columns: [] } });
+    });
+
+    afterEach(() => resetCurrentDatabase());
+
+    it('searches tags with `_` and `%` taken literally', async () => {
+        await tableMetadataApi.fetchTags('MACHBASEDB.SYS.TAG', 'NAME', 'p_0', 1, 10);
+        expect(requestedSql(0)).toBe(String.raw`SELECT NAME
+FROM MACHBASEDB.SYS._TAG_META
+WHERE NAME LIKE ('%p' || RTRIM('\\ ') || '_0%')
+ORDER BY NAME
+LIMIT 0, 10`);
+
+        await tableMetadataApi.fetchTags('MACHBASEDB.SYS.TAG', 'NAME', '100%', 1, 10);
+        expect(requestedSql(2)).toContain(String.raw`WHERE NAME LIKE ('%100' || RTRIM('\\ ') || '%%')`);
+    });
+
+    it('quotes a non-plain table and tag column', async () => {
+        await tableMetadataApi.fetchTags('MACHBASEDB.SYS.Q-1545', 'tag name', "o'brien", 1, 10);
+        expect(requestedSql(0)).toContain('FROM MACHBASEDB.SYS."_Q-1545_META"');
+        expect(requestedSql(0)).toContain(`WHERE "tag name" LIKE '%o''brien%'`);
+    });
+
+    it('looks columns up by the raw names', async () => {
+        await tableMetadataApi.fetchTableColumns("MACHBASEDB.o'brien.Q-1545");
+        expect(requestedSql(0)).toContain("AND SYSTEM_USERS.NAME = UPPER('o''brien')");
+        expect(requestedSql(0)).toContain("AND SYSTEM_TABLES.NAME = 'Q-1545'");
+    });
+});

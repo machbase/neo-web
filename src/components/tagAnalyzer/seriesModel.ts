@@ -6,25 +6,19 @@ import type { AxisKind } from './rangeExpression/rangeModel';
 // Shared series definitions and pure rules. Session metadata and UI options live with their consumers.
 export const X_AXIS_KIND_CHANGE_WARNING = 'The panel x-axis type cannot be changed.';
 
-export type SqlIdentifierPath = string & {
-    readonly [SQL_IDENTIFIER_PATH_BRAND]: true;
-};
-
-export function parseSqlIdentifierPath(
+/**
+ * A catalogue name as stored (`db.user.table`, or a column), checked to have no empty part.
+ * It stays raw: the SQL builders quote it where it is written into a statement.
+ */
+export function assertSqlIdentifierPath(
     identifierPath: string,
     label = 'SQL identifier',
-): SqlIdentifierPath {
-    if (
-        identifierPath
-            .split('.')
-            .some((segment) => !SQL_IDENTIFIER_SEGMENT_PATTERN.test(segment))
-    ) {
-        throw new Error(
-            `${label} contains unsupported characters: ${identifierPath}`,
-        );
+): string {
+    if (identifierPath.split('.').some((segment) => segment.trim() === '')) {
+        throw new Error(`${label} is missing a name: ${identifierPath}`);
     }
 
-    return identifierPath as SqlIdentifierPath;
+    return identifierPath;
 }
 
 export const PANEL_TAG_LIMIT = 12;
@@ -43,9 +37,9 @@ export type PanelSeriesSourceColumns = {
 
 export type ValidatedPanelSeriesSourceColumns = {
     arrayMetadata?: ArrayColumnMetadata;
-    name: SqlIdentifierPath;
-    time: SqlIdentifierPath;
-    value: SqlIdentifierPath;
+    name: string;
+    time: string;
+    value: string;
     jsonKey?: string;
     arrayIndex?: number;
     /** Known DB ARRAY type; legacy scalar/JSON columns leave this absent. */
@@ -67,9 +61,9 @@ export function validatePanelSeriesSourceColumns(
     }
     return {
         ...columns,
-        name: parseSqlIdentifierPath(columns.name, 'SQL tag name column'),
-        time: parseSqlIdentifierPath(columns.time, 'SQL time column'),
-        value: parseSqlIdentifierPath(columns.value, 'SQL value column'),
+        name: assertSqlIdentifierPath(columns.name, 'SQL tag name column'),
+        time: assertSqlIdentifierPath(columns.time, 'SQL time column'),
+        value: assertSqlIdentifierPath(columns.value, 'SQL value column'),
     };
 }
 
@@ -108,7 +102,7 @@ export function assertValidPanelSeriesIdentifiers(
         sourceColumns: PanelSeriesSourceColumns;
     },
 ): void {
-    parseSqlIdentifierPath(series.table, 'SQL table name');
+    assertSqlIdentifierPath(series.table, 'SQL table name');
     validatePanelSeriesSourceColumns(series.sourceColumns);
 }
 
@@ -332,10 +326,6 @@ export function prepareSeriesDefinitions(
 }
 
 // -------------------- Local --------------------
-
-const SQL_IDENTIFIER_SEGMENT_PATTERN: RegExp = /^[A-Za-z_][A-Za-z0-9_$]*$/;
-
-declare const SQL_IDENTIFIER_PATH_BRAND: unique symbol;
 
 const PANEL_SERIES_CALCULATION_MODES = Object.values(PanelSeriesCalculationMode);
 

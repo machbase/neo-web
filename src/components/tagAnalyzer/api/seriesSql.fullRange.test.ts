@@ -1,5 +1,5 @@
 import { buildSeriesFullRangeSql } from './seriesSql';
-import { parseSqlIdentifierPath, validatePanelSeriesSourceColumns } from '../seriesModel';
+import { validatePanelSeriesSourceColumns } from '../seriesModel';
 import { resetCurrentDatabase, setCurrentDatabase, setDatabases } from '@/utils/currentDatabaseState';
 
 const timeColumns = validatePanelSeriesSourceColumns({ name: 'NAME', time: 'TIME', value: 'VALUE' });
@@ -9,7 +9,7 @@ const distanceColumns = validatePanelSeriesSourceColumns({ name: 'NAME', time: '
 const baseDistanceColumns = validatePanelSeriesSourceColumns({ name: 'NAME', time: 'ODOMETER_M', value: 'VALUE', timeBaseTime: true, timeType: 20 } as any);
 
 const rangeSql = (aTable: string, aColumns = timeColumns) =>
-    buildSeriesFullRangeSql(parseSqlIdentifierPath(aTable), 'TAG_01', aColumns).join('\n');
+    buildSeriesFullRangeSql(aTable, 'TAG_01', aColumns).join('\n');
 
 /**
  * The statistics view is the session database's fast path, and only its own.
@@ -84,7 +84,7 @@ describe('buildSeriesFullRangeSql reads the statistics view only in the session 
 
     test('a base distance column never reads the statistics view', () => {
         const sQueries = buildSeriesFullRangeSql(
-            parseSqlIdentifierPath('MACHBASEDB.SYS.ATABLE'),
+            'MACHBASEDB.SYS.ATABLE',
             'TAG_01',
             baseDistanceColumns,
         );
@@ -98,7 +98,7 @@ describe('buildSeriesFullRangeSql reads the statistics view only in the session 
     });
 
     test('forceSourceTable bypasses the time statistics view after a failed request', () => {
-        const sSql = buildSeriesFullRangeSql(parseSqlIdentifierPath('MACHBASEDB.SYS.ATABLE'), 'TAG_01', timeColumns, { forceSourceTable: true }).join('\n');
+        const sSql = buildSeriesFullRangeSql('MACHBASEDB.SYS.ATABLE', 'TAG_01', timeColumns, { forceSourceTable: true }).join('\n');
         expect(sSql).toContain('FROM MACHBASEDB.SYS.ATABLE');
         expect(sSql).not.toContain('V$');
         expect(sSql).toContain('MIN(TIME)');

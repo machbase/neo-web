@@ -1,4 +1,5 @@
 import TQL from '../TqlGenerator';
+import { tqlString } from '@/utils/queryText';
 import { TransformBlockType } from '../../type/transform';
 import { ChartType, E_CHART_TYPE } from '../../type/eChart';
 import { DSH_CHART_NAME_VALUE_SCRIPT_MODULE, DSH_CHART_TIME_VALUE_SCRIPT_MODULE, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE } from '../TqlGenerator/constants';
@@ -110,11 +111,11 @@ const TRX_TIME_VALUE_PARSER = (trxList: TrxParsedBlockType[], aIsSave: boolean) 
         const sPopvalue: number[] = [];
 
         tmpTrxBlock.block.map((aTrx, aIdx: number) => {
-            if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql && aTrx.tql !== '' ? '\n' + aTrx.tql : ''}`;
+            if (aIdx === 0) sQuery += `SQL(${tqlString(aTrx.sql)})${aTrx.tql && aTrx.tql !== '' ? '\n' + aTrx.tql : ''}`;
             else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
-                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON()), {
+                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify(`SQL(${tqlString(aTrx.sql)})\n` + TQL.SINK._JSON()), {
                         isSave: aIsSave,
                     })}`,
                 });
@@ -149,11 +150,11 @@ const TRX_VALUE_VALUE_PARSER = (trxList: TrxParsedBlockType[], aV_V_X_AXIS: stri
         });
 
         tmpTrxBlock.block.map((aTrx, aIdx: number) => {
-            if (aIdx === 0) sQuery += `SQL("${aTrx.sql}")${aTrx.tql && aTrx.tql !== '' ? '\n' + aTrx.tql : ''}${sInjectionScript ? '\n' + sInjectionScript : ''}`;
+            if (aIdx === 0) sQuery += `SQL(${tqlString(aTrx.sql)})${aTrx.tql && aTrx.tql !== '' ? '\n' + aTrx.tql : ''}${sInjectionScript ? '\n' + sInjectionScript : ''}`;
             else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_TIME_VALUE_SCRIPT_MODULE.MAIN,
-                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + TQL.SINK._JSON()), {
+                    init: `${DSH_CHART_TIME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify(`SQL(${tqlString(aTrx.sql)})\n` + TQL.SINK._JSON()), {
                         isSave: aIsSave,
                     })}`,
                 });
@@ -194,7 +195,7 @@ const TRX_NAME_VALUE_PARSER = (trxList: TrxParsedBlockType[], aIsSave: boolean) 
             } else {
                 sQuery += TQL.MAP.SCRIPT('JS', {
                     main: DSH_CHART_NAME_VALUE_SCRIPT_MODULE.MAIN,
-                    init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify('SQL("' + aTrx.sql + '")\n' + aTrx.tql + TQL.SINK._JSON()), {
+                    init: `${DSH_CHART_NAME_VALUE_SCRIPT_MODULE.INIT}${TQL.MAP.SCRIPT.RequestDoQuick(JSON.stringify(`SQL(${tqlString(aTrx.sql)})\n` + aTrx.tql + TQL.SINK._JSON()), {
                         isSave: aIsSave,
                     })}`,
                 });
@@ -202,7 +203,7 @@ const TRX_NAME_VALUE_PARSER = (trxList: TrxParsedBlockType[], aIsSave: boolean) 
             }
             sMapvalue = sMapvalue.replaceAll(new RegExp(`\\b${TRX_REPLACE_LIST[aTrx.idx]}\\b`, 'g'), `value(${aIdx})`);
         });
-        sQuery += '\n' + TQL.MAP.MAPVALUE(0, `dict("name", "${tmpTrxBlock.alias}", "value", (${sMapvalue}))`);
+        sQuery += '\n' + TQL.MAP.MAPVALUE(0, `dict("name", ${tqlString(tmpTrxBlock.alias)}, "value", (${sMapvalue}))`);
         return {
             trx: true,
             useQuery: tmpTrxBlock.isVisible,

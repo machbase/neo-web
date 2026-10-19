@@ -58,6 +58,7 @@ import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { MIXED_X_AXIS_KIND_WARNING } from '@/components/tagAnalyzer/seriesModel';
 import { isMountedTableName, matchesQualifiedName, qualifySiblingObject } from '@/utils/qualifiedTableName';
 import { isMountedDatabase } from '@/utils/currentDatabaseState';
+import { sqlString, tqlString } from '@/utils/queryText';
 
 /**
  * The `V$<TABLE>_STAT` view that belongs to a table-list row.
@@ -491,7 +492,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                               return { ...bItem, operator: sOperator, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
-                                          const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
+                                          const sValue = sUseQuote ? bItem.value.split(',').map(sqlString).join(',') : bItem.value;
                                           const sTypingValue = sOperator === 'in' ? `${bItem.column} ${sOperator} (${sValue})` : `${bItem.column} ${sOperator} ${sValue}`;
                                           return { ...bItem, operator: sOperator, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }
@@ -626,7 +627,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                     useFilter: pBlockInfo.tag !== '' ? true : false,
                     operator: 'in',
                     value: pBlockInfo.tag && pBlockInfo.tag !== '' ? pBlockInfo.tag : '',
-                    typingValue: pBlockInfo.tag !== '' ? `${sChangedBlockInfo.name} in ("${pBlockInfo.tag}")` : '',
+                    typingValue: pBlockInfo.tag !== '' ? `${sChangedBlockInfo.name} in (${sqlString(pBlockInfo.tag)})` : '',
                 },
             ];
         }
@@ -853,7 +854,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             end: '1700000000',
         });
         if (sQuery === '') return setIsValidCustomQuery(true);
-        const sResult: any = await getTqlChart(`SQL("${sQuery}")\nJSON()`, 'dsh');
+        const sResult: any = await getTqlChart(`SQL(${tqlString(sQuery)})\nJSON()`, 'dsh');
         if (!sResult?.data?.success) {
             Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
             setIsValidCustomQuery(false);

@@ -27,6 +27,7 @@ import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { Alert, Button, Modal, Input, FileListHeader, Dropdown } from '@/design-system/components';
+import { tqlString } from '@/utils/queryText';
 
 export interface SaveDashboardModalProps {
     setIsOpen: any;
@@ -130,7 +131,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
         let sResult = '';
         if (CheckObjectKey(sTargetItem, 'trx')) {
             sResult = sTargetItem.sql + '\n' + sOutputStr;
-        } else sResult = `SQL("${sTargetItem.sql}")\n` + sOutputStr;
+        } else sResult = `SQL(${tqlString(sTargetItem.sql)})\n` + sOutputStr;
         return sResult;
     };
     const SetBlockAliasList = async () => {

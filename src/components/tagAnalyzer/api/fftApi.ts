@@ -2,20 +2,16 @@ import { validateSeriesSchema } from './seriesSchemaValidation';
 import { getTqlChart } from '@/api/repository/machiot';
 import { seriesValueSql } from './seriesValueSql';
 import { asRecord } from '../objectGuards';
+import { sqlIdentifier, sqlIdentifierPath, sqlString, tqlString } from '@/utils/queryText';
 import {
+    assertSqlIdentifierPath,
     isNumericBaseTimeSourceColumns,
-    parseSqlIdentifierPath,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
-    type SqlIdentifierPath,
     type ValidatedPanelSeriesSourceColumns,
 } from '../seriesModel';
 import type { AxisRange } from '../rangeExpression/rangeModel';
-import {
-    buildSqlStringLiteral,
-    buildTqlDoubleQuotedString,
-    buildTimeRangeConditionSql,
-} from './sql';
+import { buildTimeRangeConditionSql } from './sql';
 
 export type FftChartData = {
     [key: string]: unknown;
@@ -85,7 +81,7 @@ async function fetchFftChartData(
               value: configuredColumns.value.toLowerCase(),
           }
         : configuredColumns;
-    const tableName: SqlIdentifierPath = parseSqlIdentifierPath(series.table, 'SQL table name');
+    const tableName: string = assertSqlIdentifierPath(series.table, 'SQL table name');
     const columns: ValidatedPanelSeriesSourceColumns =
         await validateSeriesSchema(series.table, sourceColumns, signal);
     const sql: string = buildFftSql(tableName, series.sourceTagName, columns, timeRange);
@@ -95,7 +91,7 @@ async function fetchFftChartData(
 
     return parseFftChartData(
         await getTqlChart(
-            `SQL(${buildTqlDoubleQuotedString(sql)})\n${chartTql}`,
+            `SQL(${tqlString(sql)})\n${chartTql}`,
             undefined,
             signal,
         ),
@@ -107,19 +103,19 @@ function buildFftFrequencyArguments(minHz: number, maxHz: number): string {
 }
 
 function buildFftSql(
-    tableName: SqlIdentifierPath,
+    tableName: string,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     timeRange: AxisRange,
 ): string {
     const usesNumericTime: boolean = isNumericBaseTimeSourceColumns(columns);
-    const timeColumn: SqlIdentifierPath = columns.time;
+    const timeColumn: string = sqlIdentifier(columns.time);
 
     return [
         `SELECT ${timeColumn}, ${seriesValueSql(columns)}`,
-        `FROM ${tableName}`,
-        `WHERE ${columns.name} IN (${buildSqlStringLiteral(tagName)})`,
-        `AND ${buildTimeRangeConditionSql(columns.time, timeRange, usesNumericTime)}`,
+        `FROM ${sqlIdentifierPath(tableName)}`,
+        `WHERE ${sqlIdentifier(columns.name)} IN (${sqlString(tagName)})`,
+        `AND ${buildTimeRangeConditionSql(timeColumn, timeRange, usesNumericTime)}`,
         `ORDER BY ${timeColumn}`,
     ].join(' ');
 }

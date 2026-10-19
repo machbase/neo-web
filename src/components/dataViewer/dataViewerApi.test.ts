@@ -747,16 +747,14 @@ describe('data viewer API distance base', () => {
             expect(bounds).toEqual({ min: 1782000000000000000, max: 1782000000000001000 });
         });
 
-        test('a single tag uses equality, and the base column name is validated as an identifier', async () => {
+        test('a single tag uses equality, and the base column name is quoted as an identifier', async () => {
             mockedFetchQuery.mockResolvedValue(boundsRow('0', '999990'));
 
             await queryTagBaseColumnBounds({ ...table, names: ['SENSOR_01'], baseColumn: 'ODOMETER_M; drop table DISTANCE_SENSOR--' });
 
             const sql = String(mockedFetchQuery.mock.calls[0][0]);
             expect(sql).toContain("where NAME = 'SENSOR_01'");
-            expect(sql).not.toContain('drop table');
-            // A rejected identifier falls back to the default base column rather than being emitted.
-            expect(sql).toContain('select min(TIME) as mn, max(TIME) as mx');
+            expect(sql).toContain('select min("ODOMETER_M; drop table DISTANCE_SENSOR--") as mn, max("ODOMETER_M; drop table DISTANCE_SENSOR--") as mx');
         });
 
         // Every one of these is "no extent", not an error: the editor drops the slider and keeps
@@ -988,7 +986,7 @@ describe('queryTagJsonKeyData', () => {
     test('escapes a backslash only when the path enters a SQL string', async () => {
         await queryTagJsonKeyData({ ...params, paths: ["['a\\b']"] });
 
-        expect(mockedFetchTql.mock.calls[0][0]).toContain("VALUE->'$[''a\\\\b'']' as JV0");
+        expect(mockedFetchTql.mock.calls[0][0]).toContain("VALUE->('$[''a' || RTRIM('\\\\ ') || 'b'']') as JV0");
     });
 
     // A JSON document that is a bare value has no key to project out of it, so the column is taken
@@ -1029,5 +1027,41 @@ describe('queryTagJsonKeyData', () => {
         mockedFetchTql.mockResolvedValue({ svrState: false, svrData: null, svrReason: 'Error in json load.' } as any);
 
         await expect(queryTagJsonKeyData({ ...params, paths: ['[a]'] })).rejects.toThrow('Error in json load.');
+    });
+});
+
+describe('data viewer API query text', () => {
+    beforeEach(() => {
+        mockedFetchQuery.mockReset();
+        mockedFetchQuery.mockResolvedValue({ svrState: true, svrData: { columns: ['TIME', 'NAME', 'VALUE'], rows: [] }, svrReason: '' });
+    });
+
+    const lastSql = () => String(mockedFetchQuery.mock.calls.at(-1)?.[0]);
+
+    test('ordinary names and values produce the same statement as before', async () => {
+        await queryTagChartData({ dbName: 'MACHBASEDB', userName: 'SYS', tableName: 'TAG', names: ['sensor.a', 'sensor.b'] });
+        expect(lastSql()).toBe("select TIME as time, NAME as name, VALUE as value from MACHBASEDB.SYS.TAG where NAME in ('sensor.a', 'sensor.b') order by TIME asc");
+    });
+
+    test('tag names with quotes and backslashes are written as SQL values', async () => {
+        await queryTagChartData({ dbName: 'MACHBASEDB', userName: 'SYS', tableName: 'TAG', names: ["o'brien", 'tail\\', 'q"t'] });
+        expect(lastSql()).toContain(String.raw`where NAME in ('o''brien', ('tail' || RTRIM('\\ ')), 'q"t')`);
+    });
+
+    test('a non-plain table, meta table, stat view and column are double-quoted', async () => {
+        await queryTagChartData({ dbName: 'MACHBASEDB', userName: 'SYS', tableName: 'Q-1545', names: ['p_0'], valueColumn: 'my value' });
+        expect(lastSql()).toBe("select TIME as time, NAME as name, \"my value\" as value from MACHBASEDB.SYS.\"Q-1545\" where NAME = 'p_0' order by TIME asc");
+
+        await listTableTags({ dbName: 'MACHBASEDB', userName: 'SYS', tableName: 'Q-1545' });
+        expect(lastSql()).toBe('select * from MACHBASEDB.SYS."_Q-1545_META" where NAME is not null order by _id asc limit 10000');
+
+        await queryTagBoundaryTime({ dbName: 'MACHBASEDB', userName: 'SYS', tableName: 'Q-1545', names: ["o'brien"], direction: 'latest' });
+        expect(String(mockedFetchQuery.mock.calls.at(-2)?.[0])).toContain("from MACHBASEDB.SYS.\"V$Q-1545_STAT\" where NAME in ('o''brien')");
+    });
+
+    test('catalogue lookups carry the raw names as literals', async () => {
+        await listTableColumns({ dbName: 'MACHBASEDB', userName: "o'brien", tableName: 'Q-1545' });
+        expect(lastSql()).toContain("AND MU.NAME = UPPER('o''brien')");
+        expect(lastSql()).toContain("AND MT.NAME = 'Q-1545'");
     });
 });

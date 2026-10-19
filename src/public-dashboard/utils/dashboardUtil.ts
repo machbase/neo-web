@@ -1,4 +1,5 @@
 import { getId } from '.';
+import { tqlString } from '@/utils/queryText';
 import {
     DefaultBarChartOption,
     DefaultLineChartOption,
@@ -455,7 +456,7 @@ export const createMapValueForTag = (aTags: any, aIsStack: boolean) => {
     for (let i = 0; i < sTagNum; i++) {
         // when select name, time, value
         // time, name , value
-        sMapValueString += `MAPVALUE(${i + 3}, value(1) == '${aTags[i]}' ? value(2) : NULL)\n`;
+        sMapValueString += `MAPVALUE(${i + 3}, value(1) == ${tqlString(aTags[i])} ? value(2) : NULL)\n`;
     }
     sResultString = sMapValueString + `POPVALUE(1, 2)\n`;
     if (aIsStack) {

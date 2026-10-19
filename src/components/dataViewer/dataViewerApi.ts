@@ -1,7 +1,7 @@
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { getCurrentDatabaseId, getCurrentDatabaseName, hasLogicalDatabases } from '@/utils/currentDatabaseState';
 import { jsonKeyPathToSql } from '@/utils/jsonKeyCatalog';
-import { escapeJsonPathSqlString } from '@/utils/dashboardJsonValue';
+import { sqlIdentifier, sqlIdentifierPath, sqlString } from '@/utils/queryText';
 import { SQL_BASE_LIMIT } from '@/utils/sqlFormatter';
 import { buildTagStatExtentSelect, tagStatAxisColumns } from '@/utils/tagStatColumns';
 import { parseDataViewerDistanceValue, type DataViewerBaseKind } from './dataViewerModel';
@@ -60,11 +60,8 @@ const DEFAULT_TAG_COLUMN = 'NAME';
 // TO_TIMESTAMP would be handed a string it cannot parse.
 const isUnresolvedRangeToken = (value: string) => value.startsWith('last') || value.startsWith('now');
 
-const escapeSqlString = (value: string) => value.replace(/'/g, "''");
-const normalizeIdentifier = (value: string | undefined, fallback: string) => {
-    const next = value?.trim() || fallback;
-    return /^[A-Za-z_][A-Za-z0-9_$]*$/.test(next) ? next : fallback;
-};
+const columnName = (value: string | undefined, fallback: string) => value?.trim() || fallback;
+const normalizeIdentifier = (value: string | undefined, fallback: string) => sqlIdentifier(columnName(value, fallback));
 const formatMachbaseTimestamp = (value: string) => {
     const text = String(value || '').trim();
     if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(text)) return text;
@@ -88,14 +85,14 @@ const buildTimeLiteral = (value: string | number, timeUnit?: ArrayTimeUnit) => {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return `FROM_TIMESTAMP(${millisecondsToNanoseconds(value)})`;
     }
-    return `TO_TIMESTAMP('${escapeSqlString(formatMachbaseTimestamp(String(value)))}')`;
+    return `TO_TIMESTAMP(${sqlString(formatMachbaseTimestamp(String(value)))})`;
 };
 
-export const buildQualifiedTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}.${tableName}`;
-export const buildQualifiedMetaTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}._${tableName}_META`;
+export const buildQualifiedTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => sqlIdentifierPath(dbName, userName, tableName);
+export const buildQualifiedMetaTableName = ({ dbName, userName, tableName }: DataViewerTableParams) => sqlIdentifierPath(dbName, userName, `_${tableName}_META`);
 // Machbase publishes per-tag statistics (ROW_COUNT, MIN_TIME, MAX_TIME, ...) in a view named after
 // the tag table. Used to resolve time-range boundaries without scanning the table.
-export const buildQualifiedTagStatViewName = ({ dbName, userName, tableName }: DataViewerTableParams) => `${dbName}.${userName}.V$${tableName}_STAT`;
+export const buildQualifiedTagStatViewName = ({ dbName, userName, tableName }: DataViewerTableParams) => sqlIdentifierPath(dbName, userName, `V$${tableName}_STAT`);
 
 /** Alias prefix for a projected json value. Uppercase so it survives identifier folding. */
 const JSON_VALUE_ALIAS = 'JV';
@@ -173,7 +170,7 @@ const normalizeAssetHierarchy = (row: Record<string, unknown>): DataViewerAssetH
 // having already accepted it is what makes that safe: the only thing interpolated here is a JS number
 // re-serialised by `String`, so there is no string for a quote to escape out of. An edge that does not
 // parse yields `null` and the caller drops that bound entirely rather than passing the raw text
-// through — the reason `escapeSqlString` is deliberately absent from this path.
+// through — the reason `sqlString` is deliberately absent from this path.
 const buildDistanceLiteral = (value: unknown) => {
     const numeric = parseDataViewerDistanceValue(value);
     return numeric === null ? null : String(numeric);
@@ -203,8 +200,8 @@ const buildTagDataWhere = ({
         .filter(Boolean);
     const where =
         normalizedNames.length > 1
-            ? [`${tagColumnExpr} in (${normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ')})`]
-            : [`${tagColumnExpr} = '${escapeSqlString(normalizedNames[0] || '')}'`];
+            ? [`${tagColumnExpr} in (${normalizedNames.map(sqlString).join(', ')})`]
+            : [`${tagColumnExpr} = ${sqlString(normalizedNames[0] || '')}`];
 
     // A distance base column is a DOUBLE, not a DATETIME. `TO_TIMESTAMP` against it compares an
     // odometer reading to an epoch and matches nothing, so the whole time pipeline — the relative
@@ -290,12 +287,12 @@ const buildTagDataCursor = ({
     // but the same rows. Emitting the unparsable value instead would either error out or, worse,
     // silently match nothing.
     if (timeSql === null) return undefined;
-    const escapedName = escapeSqlString(cursorName || '');
+    const nameSql = sqlString(cursorName || '');
 
     // The keyset stays a (base, name) pair on both axes: strictly past the anchor on the base column,
     // or level with it and past the anchor on the tag name. Only the literal changes.
     return {
-        where: `(${timeColumnExpr} ${timeOp} ${timeSql} or (${timeColumnExpr} = ${timeSql} and ${tagColumnExpr} ${nameOp} '${escapedName}'))`,
+        where: `(${timeColumnExpr} ${timeOp} ${timeSql} or (${timeColumnExpr} = ${timeSql} and ${tagColumnExpr} ${nameOp} ${nameSql}))`,
         orderTime,
         orderName,
         reverseRows,
@@ -304,8 +301,8 @@ const buildTagDataCursor = ({
 
 export async function listTableTags(params: DataViewerTableParams & { tagColumn?: string }): Promise<DataViewerTagList> {
     const metaTable = buildQualifiedMetaTableName(params);
-    const tagColumn = normalizeIdentifier(params.tagColumn, 'NAME');
-    const { svrState, svrData, svrReason } = await fetchQuery(`select * from ${metaTable} where ${tagColumn} is not null order by _id asc limit 10000`);
+    const tagColumn = columnName(params.tagColumn, 'NAME');
+    const { svrState, svrData, svrReason } = await fetchQuery(`select * from ${metaTable} where ${sqlIdentifier(tagColumn)} is not null order by _id asc limit 10000`);
     if (!svrState) throw new Error(svrReason || 'Failed to load tags');
 
     let assetHierarchy: DataViewerAssetHierarchy | undefined;
@@ -352,8 +349,8 @@ const buildDatabaseIdExpression = (dbName: string) => {
     // that points somewhere else has to be resolved, through V$DATABASES on v8.7 and through
     // the mounted-backup catalogue on the older servers that had no logical databases.
     if (!name || name.toUpperCase() === getCurrentDatabaseName().toUpperCase()) return String(getCurrentDatabaseId());
-    if (hasLogicalDatabases()) return `(select DATABASE_ID from V$DATABASES WHERE NAME = '${escapeSqlString(name)}')`;
-    return `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${escapeSqlString(name)}')`;
+    if (hasLogicalDatabases()) return `(select DATABASE_ID from V$DATABASES WHERE NAME = ${sqlString(name)})`;
+    return `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${sqlString(name)})`;
 };
 
 /**
@@ -373,9 +370,9 @@ export async function listTableColumns({ dbName, userName, tableName }: DataView
         'SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG',
         'FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU',
         'WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID',
-        `AND MU.NAME = UPPER('${escapeSqlString(String(userName ?? ''))}')`,
+        `AND MU.NAME = UPPER(${sqlString(userName)})`,
         `AND MC.DATABASE_ID = ${buildDatabaseIdExpression(dbName)}`,
-        `AND MT.NAME = '${escapeSqlString(String(tableName ?? ''))}'`,
+        `AND MT.NAME = ${sqlString(tableName)}`,
         "AND MC.NAME <> '_RID'",
         'ORDER BY MC.ID',
     ].join(' ');
@@ -506,7 +503,7 @@ export async function queryTagJsonKeyData({
     const projections = keyPaths
         .map((path, index) => {
             const sqlPath = jsonKeyPathToSql(path);
-            const expression = sqlPath ? `${valueColumnExpr}->'${escapeJsonPathSqlString(sqlPath)}'` : valueColumnExpr;
+            const expression = sqlPath ? `${valueColumnExpr}->${sqlString(sqlPath)}` : valueColumnExpr;
             return `${expression} as ${JSON_VALUE_ALIAS}${index}`;
         })
         .join(', ');
@@ -543,7 +540,7 @@ export type ArrayElementQuery = DataViewerTableParams & {
 
 function assertArrayQueryIdentifiers(query: DataViewerTableParams & { tagColumn?: string; timeColumn?: string; valueColumn?: string }) {
     for (const value of [query.dbName, query.userName, query.tableName, query.tagColumn ?? 'NAME', query.timeColumn ?? 'TIME', query.valueColumn ?? 'VALUE']) {
-        if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(value)) throw new Error('Invalid ARRAY query identifier.');
+        if (!String(value ?? '').trim()) throw new Error('Invalid ARRAY query identifier.');
     }
 }
 
@@ -642,8 +639,8 @@ export async function queryTagBoundaryTime({
         .filter(Boolean);
     const tagCondition =
         normalizedNames.length > 1
-            ? `${tagColumnExpr} in (${normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ')})`
-            : `${tagColumnExpr} = '${escapeSqlString(normalizedNames[0] || '')}'`;
+            ? `${tagColumnExpr} in (${normalizedNames.map(sqlString).join(', ')})`
+            : `${tagColumnExpr} = ${sqlString(normalizedNames[0] || '')}`;
     const order = direction === 'latest' ? 'desc' : 'asc';
 
     // This is the one query that cannot carry a time predicate — it is what finds the boundary the
@@ -671,7 +668,7 @@ export async function queryTagBoundaryTime({
         const statView = buildQualifiedTagStatViewName({ dbName, userName, tableName });
         const timeAxis = tagStatAxisColumns('time');
         const statColumn = direction === 'latest' ? `max(${timeAxis.max})` : `min(${timeAxis.min})`;
-        const statSql = `select ${statColumn} as time from ${statView} where NAME in (${normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ')})`;
+        const statSql = `select ${statColumn} as time from ${statView} where NAME in (${normalizedNames.map(sqlString).join(', ')})`;
         const stat = await (preserveArrayNumbers ? fetchQuery(statSql, true) : fetchQuery(statSql)).catch(() => ({ svrState: false, svrData: undefined, svrReason: '' }));
         if (stat.svrState) {
             const statTime = normalizeRows(stat.svrData)[0]?.time;
@@ -743,8 +740,8 @@ export async function queryTagBaseColumnBounds({
     // describe tags the user is not looking at.
     if (normalizedNames.length === 0) return null;
 
-    const nameList = normalizedNames.map((name) => `'${escapeSqlString(name)}'`).join(', ');
-    const tagCondition = normalizedNames.length > 1 ? `${tagColumnExpr} in (${nameList})` : `${tagColumnExpr} = '${escapeSqlString(normalizedNames[0])}'`;
+    const nameList = normalizedNames.map(sqlString).join(', ');
+    const tagCondition = normalizedNames.length > 1 ? `${tagColumnExpr} in (${nameList})` : `${tagColumnExpr} = ${sqlString(normalizedNames[0])}`;
 
     // The stat view keys its rows by `NAME`, so a table with any other tag column is one it cannot be
     // asked about at all.

@@ -9,11 +9,10 @@ import {
     buildDateBinTimeExpression,
     buildRollupTimeExpression,
 } from '@/utils/rollupQueryBuilder';
+import { sqlIdentifier, sqlIdentifierPath, sqlString } from '@/utils/queryText';
 import {
     PanelSeriesCalculationMode,
     isNumericBaseTimeSourceColumns,
-    parseSqlIdentifierPath,
-    type SqlIdentifierPath,
     type ValidatedPanelSeriesSourceColumns,
 } from '../seriesModel';
 import {
@@ -23,7 +22,6 @@ import {
 } from '../rangeExpression/intervalResolver';
 import type { AxisRange } from '../rangeExpression/rangeModel';
 import {
-    buildSqlStringLiteral,
     buildTimeRangeConditionSql,
     indentSql,
     joinSqlLines,
@@ -37,7 +35,7 @@ export type RollupMode = 'standard' | 'base-json';
 export const RAW_SERIES_ROW_LIMIT = 20000;
 
 export function buildCalculatedSeriesSql(
-    tableName: SqlIdentifierPath,
+    tableName: string,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     timeRange: AxisRange,
@@ -48,11 +46,12 @@ export function buildCalculatedSeriesSql(
     numericBucketWidth?: number,
 ): string {
     const usesNumericTime: boolean = isNumericBaseTimeSourceColumns(columns);
+    const timeColumnSql: string = sqlIdentifier(columns.time);
     let bucketTimeSql: string;
 
     if (rollupMode !== undefined) {
         bucketTimeSql = buildRollupTimeExpression(
-            columns.time,
+            timeColumnSql,
             interval.IntervalType,
             interval.IntervalValue,
         );
@@ -63,20 +62,20 @@ export function buildCalculatedSeriesSql(
                 timeRange.end - startTime,
                 rowLimit,
             );
-        bucketTimeSql = columns.time;
+        bucketTimeSql = timeColumnSql;
         if (bucketSize > 0) {
-            bucketTimeSql = `TRUNC((${columns.time} - ${startTime}) / ${bucketSize}, 0) * ${bucketSize} + ${startTime}`;
+            bucketTimeSql = `TRUNC((${timeColumnSql} - ${startTime}) / ${bucketSize}, 0) * ${bucketSize} + ${startTime}`;
         }
     } else {
         bucketTimeSql = buildDateBinTimeExpression(
-            columns.time,
+            timeColumnSql,
             interval.IntervalType,
             interval.IntervalValue,
         );
     }
 
     const sourceValueSql: string = rollupMode === 'base-json'
-        ? columns.value
+        ? sqlIdentifier(columns.value)
         : seriesValueSql(columns, calculationMode);
     const outputTimeSql: string = usesNumericTime
         ? 'mTime'
@@ -95,7 +94,7 @@ export function buildCalculatedSeriesSql(
             break;
         case PanelSeriesCalculationMode.First:
         case PanelSeriesCalculationMode.Last:
-            aggregateSql = `${calculationMode}(${columns.time}, ${sourceValueSql}) AS mValue`;
+            aggregateSql = `${calculationMode}(${timeColumnSql}, ${sourceValueSql}) AS mValue`;
             break;
         default:
             aggregateSql = `${calculationMode}(${sourceValueSql}) AS mValue`;
@@ -122,10 +121,10 @@ export function buildCalculatedSeriesSql(
     const groupedQuerySql: string = joinSqlLines([
         `SELECT ${bucketTimeSql} AS mTime,`,
         indentSql(aggregateSql),
-        `FROM ${tableName}`,
-        `WHERE ${columns.name} = ${buildSqlStringLiteral(tagName)}`,
+        `FROM ${sqlIdentifierPath(tableName)}`,
+        `WHERE ${sqlIdentifier(columns.name)} = ${sqlString(tagName)}`,
         `  AND ${buildTimeRangeConditionSql(
-            columns.time,
+            timeColumnSql,
             timeRange,
             usesNumericTime,
         )}`,
@@ -145,15 +144,16 @@ export function buildCalculatedSeriesSql(
 }
 
 export function buildCalculatedSeriesBoundaryBucketSql(
-    tableName: SqlIdentifierPath,
+    tableName: string,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     boundaryTime: number,
     direction: 'before' | 'after',
     interval: IntervalOption,
 ): string {
+    const timeColumnSql: string = sqlIdentifier(columns.time);
     const bucketTimeSql: string = buildDateBinTimeExpression(
-        columns.time,
+        timeColumnSql,
         interval.IntervalType,
         interval.IntervalValue,
     );
@@ -169,9 +169,9 @@ export function buildCalculatedSeriesBoundaryBucketSql(
     );
     const intervalNanoseconds: bigint =
         BigInt(intervalMs) * BigInt(NANOSECONDS_PER_MILLISECOND);
-    const hintTableName: string = tableName.slice(
+    const hintTableName: string = sqlIdentifier(tableName.slice(
         tableName.lastIndexOf('.') + 1,
-    );
+    ));
     const isBefore: boolean = direction === 'before';
     // The bucket containing the right endpoint is already part of the main query.
     const boundarySql: string = isBefore
@@ -180,15 +180,15 @@ export function buildCalculatedSeriesBoundaryBucketSql(
 
     return joinSqlLines([
         `SELECT /*+ ${isBefore ? 'SCAN_BACKWARD' : 'SCAN_FORWARD'}(${hintTableName}) */ ${toQueryResultMillisecondsSql(bucketTimeSql)} AS mTime`,
-        `FROM ${tableName}`,
-        `WHERE ${columns.name} = ${buildSqlStringLiteral(tagName)}`,
-        `  AND ${columns.time} ${isBefore ? '<' : '>='} ${boundarySql}`,
+        `FROM ${sqlIdentifierPath(tableName)}`,
+        `WHERE ${sqlIdentifier(columns.name)} = ${sqlString(tagName)}`,
+        `  AND ${timeColumnSql} ${isBefore ? '<' : '>='} ${boundarySql}`,
         'LIMIT 1',
     ]);
 }
 
 export function buildRawSeriesSql(
-    tableName: SqlIdentifierPath,
+    tableName: string,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     timeRange: AxisRange,
@@ -208,7 +208,7 @@ export function buildRawSeriesSql(
     const inRangeQuerySql: string = joinSqlLines([
         `SELECT /*+ ${samplingHint}SCAN_FORWARD(${context.hintTableName}) */ ${context.selectBodySql}`,
         `  AND ${buildTimeRangeConditionSql(
-            columns.time,
+            sqlIdentifier(columns.time),
             timeRange,
             context.usesNumericTime,
         )}`,
@@ -276,7 +276,7 @@ export function usesTagStatViewForFullRange(
  * request fails. Numeric BASE DISTANCE ranges already use that form directly.
  */
 export function buildSeriesFullRangeSql(
-    tableName: SqlIdentifierPath,
+    tableName: string,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     options: { forceSourceTable?: boolean } = {},
@@ -297,11 +297,8 @@ export function buildSeriesFullRangeSql(
             return `V$${sMatch ? sMatch[1] : aName}_STAT`;
         });
     }
-    const queryTableName: SqlIdentifierPath = parseSqlIdentifierPath(
-        targetTableName,
-        'SQL table name',
-    );
-    const tagNameSql: string = buildSqlStringLiteral(tagName);
+    const queryTableName: string = sqlIdentifierPath(targetTableName);
+    const tagNameSql: string = sqlString(tagName);
 
     if (!usesSourceTable) {
         // Aggregated: the view answers one row per tag, and on a cluster one row per warehouse per
@@ -313,8 +310,8 @@ export function buildSeriesFullRangeSql(
         ])];
     }
 
-    const timeColumn: SqlIdentifierPath = columns.time;
-    const tagColumn: SqlIdentifierPath = columns.name;
+    const timeColumn: string = sqlIdentifier(columns.time);
+    const tagColumn: string = sqlIdentifier(columns.name);
     if (usesNumericTime) {
         return [
             buildSeriesBoundarySql(
@@ -355,7 +352,7 @@ type RawSeriesSqlContext = {
 };
 
 function createRawSeriesSqlContext(
-    tableName: SqlIdentifierPath,
+    tableName: string,
     tagName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     timeRange: AxisRange,
@@ -363,16 +360,17 @@ function createRawSeriesSqlContext(
 ): RawSeriesSqlContext {
     const usesNumericTime: boolean =
         isNumericBaseTimeSourceColumns(columns);
+    const timeColumnSql: string = sqlIdentifier(columns.time);
     const outputTimeSql: string = usesNumericTime
-        ? columns.time
-        : toQueryResultMillisecondsSql(columns.time);
+        ? timeColumnSql
+        : toQueryResultMillisecondsSql(timeColumnSql);
     const outputValueSql: string = seriesValueSql(columns);
-    const hintTableName: string = tableName.slice(tableName.lastIndexOf('.') + 1);
+    const hintTableName: string = sqlIdentifier(tableName.slice(tableName.lastIndexOf('.') + 1));
     const selectBodySql: string = joinSqlLines([
         `${outputTimeSql} AS mTime,`,
         `    ${outputValueSql} AS mValue`,
-        `FROM ${tableName}`,
-        `WHERE ${columns.name} = ${buildSqlStringLiteral(tagName)}`,
+        `FROM ${sqlIdentifierPath(tableName)}`,
+        `WHERE ${sqlIdentifier(columns.name)} = ${sqlString(tagName)}`,
     ]);
     const startTimeSql: string = toQueryTimeLiteralSql(
         timeRange.start,
@@ -391,21 +389,21 @@ function createRawSeriesSqlContext(
         forwardOrderBySql,
         beforeQuerySql: joinSqlLines([
             `SELECT /*+ SCAN_BACKWARD(${hintTableName}) */ ${selectBodySql}`,
-            `  AND ${columns.time} < ${startTimeSql}`,
+            `  AND ${timeColumnSql} < ${startTimeSql}`,
             'LIMIT 1',
         ]),
         afterQuerySql: joinSqlLines([
             `SELECT /*+ SCAN_FORWARD(${hintTableName}) */ ${selectBodySql}`,
-            `  AND ${columns.time} > ${endTimeSql}`,
+            `  AND ${timeColumnSql} > ${endTimeSql}`,
             'LIMIT 1',
         ]),
     };
 }
 
 function buildSeriesBoundarySql(
-    tableName: SqlIdentifierPath,
-    timeColumn: SqlIdentifierPath,
-    tagColumn: SqlIdentifierPath,
+    tableName: string,
+    timeColumn: string,
+    tagColumn: string,
     tagNameSql: string,
     sortDirection: 'ASC' | 'DESC',
 ): string {

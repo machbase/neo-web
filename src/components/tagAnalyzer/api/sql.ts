@@ -1,15 +1,6 @@
 import type { AxisRange } from '../rangeExpression/rangeModel';
-import type { SqlIdentifierPath } from '../seriesModel';
 
 export const NANOSECONDS_PER_MILLISECOND = 1000000;
-
-export function buildSqlStringLiteral(value: string | number): string {
-    return `'${String(value).replace(/'/g, "''")}'`;
-}
-
-export function buildTqlDoubleQuotedString(value: string): string {
-    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-}
 
 export function joinSqlLines(lines: string[]): string {
     return lines
@@ -34,11 +25,11 @@ export function toQueryTimeLiteralSql(
 }
 
 export function buildTimeRangeConditionSql(
-    timeColumn: SqlIdentifierPath,
+    timeColumnSql: string,
     timeRange: AxisRange,
     usesNumericTime: boolean,
 ): string {
-    return `${timeColumn} BETWEEN ${toQueryTimeLiteralSql(
+    return `${timeColumnSql} BETWEEN ${toQueryTimeLiteralSql(
         timeRange.start,
         usesNumericTime,
     )} AND ${toQueryTimeLiteralSql(timeRange.end, usesNumericTime)}`;

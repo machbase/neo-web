@@ -1,6 +1,8 @@
 import { isCountAllAggregator } from '@/utils/aggregatorConstants';
 import { toSqlValueExpression, toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import { isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
+import { toSqlColumnName, toSqlTableName } from '@/utils/dashboardSqlName';
+import { sqlString } from '@/utils/queryText';
 
 const ADMIN_ID = 'SYS';
 
@@ -40,9 +42,12 @@ export const normalizeFullTypingOption = (option: Partial<FullTypingOption> | un
 });
 
 export const buildFullTypingQuery = (blockInfo: any) => {
-    const tableName = blockInfo?.customTable || `${blockInfo.table}`.match(/\{\{.*\}\}/) ? blockInfo.table : blockInfo.table.split('.').length === 1 ? `${ADMIN_ID}.${blockInfo.table}` : blockInfo.table;
-    const nameColumn = blockInfo?.name ?? '';
-    const timeColumn = blockInfo?.time ?? '';
+    const tableName = toSqlTableName(
+        blockInfo?.customTable || `${blockInfo.table}`.match(/\{\{.*\}\}/) ? blockInfo.table : blockInfo.table.split('.').length === 1 ? `${ADMIN_ID}.${blockInfo.table}` : blockInfo.table
+    );
+    const nameColumn = toSqlColumnName(blockInfo?.name ?? '');
+    const rawTimeColumn = blockInfo?.time ?? '';
+    const timeColumn = toSqlColumnName(rawTimeColumn);
     let useAgg =
         blockInfo?.aggregator !== '' && blockInfo?.aggregator?.toUpperCase() !== 'VALUE' && blockInfo?.aggregator?.toUpperCase() !== 'NONE';
     let useCountAll = isCountAllAggregator(blockInfo?.aggregator ?? '');
@@ -67,11 +72,12 @@ export const buildFullTypingQuery = (blockInfo: any) => {
             if (filter.useTyping) return filter.typingValue;
 
             const useQuote = blockInfo.tableInfo.find((tableInfo: any) => tableInfo[0] === filter.column)?.[1] === 5;
-            const value = useQuote ? `'${filter.value.includes(',') ? filter.value.split(',').join("','") : filter.value}'` : filter.value;
-            return filter.column === 'NAME' && filter.operator === 'in' ? `${filter.column} ${filter.operator} (${value})` : `${filter.column} ${filter.operator} ${value}`;
+            const value = useQuote ? filter.value.split(',').map(sqlString).join(',') : filter.value;
+            const column = toSqlColumnName(filter.column);
+            return filter.column === 'NAME' && filter.operator === 'in' ? `${column} ${filter.operator} (${value})` : `${column} ${filter.operator} ${value}`;
         });
     } else if (blockInfo?.tag !== '') {
-        whereClauses = [`${nameColumn} IN ('${blockInfo?.tag}')`];
+        whereClauses = [`${nameColumn} IN (${sqlString(blockInfo?.tag)})`];
     }
 
     const sqlValueExpression = valueColumn ? toSqlValueExpression(String(valueColumn), jsonKey) : valueColumn;
@@ -87,7 +93,7 @@ export const buildFullTypingQuery = (blockInfo: any) => {
         useAgg = true;
     }
 
-    const useNumericBaseTime = isNonDateTimeBaseTimeColumn(blockInfo?.tableInfo, timeColumn);
+    const useNumericBaseTime = isNonDateTimeBaseTimeColumn(blockInfo?.tableInfo, rawTimeColumn);
     const timeValueExpression = useNumericBaseTime ? buildNumericBaseTimeBucketExpression(timeColumn) : buildDateBinCaseExpression(timeColumn);
     const timeRangeExpression = useNumericBaseTime ? `${timeColumn} BETWEEN {{from_ns}} AND {{to_ns}}` : `${timeColumn} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}})`;
     const whereExpression = `(${timeRangeExpression})${whereClauses.length > 0 ? ' AND ' + whereClauses.join(' AND ') : ''}`;

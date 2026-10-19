@@ -22,7 +22,6 @@ import {
     canOutdentHierarchyValueNode,
     canRemoveHierarchySchemaKey,
     canRemoveHierarchyValueNode,
-    escapeSqlString,
     dropJsonPathIndex,
     hierarchyValueSubtreeHeight,
     indentHierarchyValueNode,
@@ -97,8 +96,19 @@ const document: HierarchyDocument = {
 };
 
 describe('tagHierarchy SQL builders', () => {
-    test('escapes SQL string literals', () => {
-        expect(escapeSqlString("Factory '01'")).toBe("Factory ''01''");
+    test('writes path values as SQL values, backslashes included', () => {
+        const sql = buildGetHierarchyTagsSql(config, [{ key: 'city', value: "Factory '01' tail\\" }]);
+        expect(sql).toContain(String.raw`ASSET->'$.city' = ('Factory ''01'' tail' || RTRIM('\\ '))`);
+    });
+
+    test('double-quotes non-plain table and column names', () => {
+        const quotedConfig: HierarchyQueryConfig = { tableName: 'MACHBASEDB.SYS.Q-1545', nameColumn: 'NAME', jsonColumn: 'my asset' };
+        expect(buildGetHierarchyTagsSql(quotedConfig, [{ key: 'city', value: 'q"t' }])).toBe(
+            `select NAME, "my asset" from MACHBASEDB.SYS."Q-1545" METADATA where NAME <> '__machbase_hierarchy__' and "my asset"->'$.city' = 'q"t' order by NAME`,
+        );
+        expect(buildCreateJsonMetadataColumnSql('MACHBASEDB.SYS.Q-1545', 'my asset')).toBe(
+            'ALTER TABLE MACHBASEDB.SYS."Q-1545" METADATA ADD COLUMN ("my asset" JSON)',
+        );
     });
 
     test('builds lazy child lookup SQL', () => {
@@ -151,6 +161,10 @@ describe('tagHierarchy SQL builders', () => {
         const sql = buildGetUnassignedTagsByDocumentSql(config, document, "Bar'n");
         // Contains-match with the single quote escaped; combined onto the existing where via "and".
         expect(sql).toContain("and NAME LIKE '%Bar''n%'");
+        // `_` and `%` are matched as typed, not as wildcards.
+        expect(buildGetUnassignedTagsByDocumentSql(config, document, 'p_0')).toContain(String.raw`and NAME LIKE ('%p' || RTRIM('\\ ') || '_0%')`);
+        expect(buildGetUnassignedTagsByDocumentSql(config, document, '100%')).toContain(String.raw`and NAME LIKE ('%100' || RTRIM('\\ ') || '%%')`);
+        expect(buildGetUnassignedTagsByDocumentSql(config, document, 'tail\\')).toContain(String.raw`and NAME LIKE ('%tail' || RTRIM('\\\\ ') || '%')`);
         // No/blank search ⇒ no LIKE clause.
         expect(buildGetUnassignedTagsByDocumentSql(config, document)).not.toContain('LIKE');
         expect(buildGetUnassignedTagsByDocumentSql(config, document, '   ')).not.toContain('LIKE');

@@ -251,8 +251,17 @@ describe('persisted panel reconstruction compatibility', () => {
         expect(loaded.alias).toBe('TAG_A / VALUE (historical table)');
     });
 
-    it.each([TazVersion.V204, TazVersion.V210])('retains strict identifier validation in %s', (version) => {
+    it.each([TazVersion.V204, TazVersion.V210])('loads a non-plain table name in %s', (version) => {
         const series = { ...createSeries(), table: 'historical table' };
+        const panel = version === TazVersion.V210 ? createV210Panel([series]) : createV204Panel([series]);
+        const board = loadTestBoard({ version, panels: [panel] });
+
+        expect(board.unreadablePanels ?? []).toEqual([]);
+        expect(board.panels[0].query.tagSet[0].table).toBe('historical table');
+    });
+
+    it.each([TazVersion.V204, TazVersion.V210])('keeps a table name with an empty part unread in %s', (version) => {
+        const series = { ...createSeries(), table: 'SYS..TAG' };
         const panel = version === TazVersion.V210 ? createV210Panel([series]) : createV204Panel([series]);
 
         expectPanelKeptUnread(loadTestBoard({ version, panels: [panel] }), 'panel series structure.');

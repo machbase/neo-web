@@ -72,7 +72,7 @@ const tqlSingleQuoted = (aValue: string) => `'${String(aValue ?? '').replace(/\\
  * turning a tag named `007` into the number 7.
  *
  * A key lands in argument position rather than inside a literal, so anything that is not a
- * plain identifier is dropped rather than quoted — the same rule `use()` follows.
+ * plain identifier is dropped rather than quoted.
  */
 const namedArguments = (aNamed?: Record<string, string>) =>
     Object.entries(aNamed ?? {})
@@ -110,8 +110,8 @@ const resolveOutputOptions = (env: SqlStatementEnv | undefined, aTimeFormat: str
  * @argument env        SqlStatementEnv; // the `-- env:` directives the splitter parsed
  */
 export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string, aTimezone: string, aTake: number | undefined = SQL_BASE_LIMIT, env?: SqlStatementEnv) => {
-    const bridgeText = env?.bridge ? `bridge('${env.bridge}'),` : '';
-    const useText = env?.use ? `use('${env.use}'),` : '';
+    const bridgeText = env?.bridge ? `bridge(${tqlSingleQuoted(env.bridge)}),` : '';
+    const useText = env?.use ? `use(${tqlSingleQuoted(env.use)}),` : '';
     // The resolved format still goes through `toJsonSinkTimeFormat` below, not just the toolbar's:
     // a statement asking for `-- env: timeformat=ns` needs `ns.str` for exactly the reason the
     // toolbar does. Skipping it would not misformat the timestamps, it would silently round them.
@@ -151,8 +151,8 @@ export const sqlSheetFormatter = ({
     aTimeFormat: string;
     aTimeZone: string;
 }) => {
-    const bridgeText = env?.bridge ? `bridge('${env.bridge}'),` : '';
-    const useText = env?.use ? `use('${env.use}'),` : '';
+    const bridgeText = env?.bridge ? `bridge(${tqlSingleQuoted(env.bridge)}),` : '';
+    const useText = env?.use ? `use(${tqlSingleQuoted(env.use)}),` : '';
     const sOutput = resolveOutputOptions(env, aTimeFormat, aTimeZone);
     // No `.str` rewrite here: that trick exists because JSON.parse rounds a number past
     // Number.MAX_SAFE_INTEGER, and MARKDOWN renders text.
@@ -280,8 +280,8 @@ export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: str
         })
         .filter((aItem: any) => aItem);
 
-    const bridgeText = env?.bridge ? `bridge('${env.bridge}'),` : '';
-    const useText = env?.use ? `use('${env.use}'),` : '';
+    const bridgeText = env?.bridge ? `bridge(${tqlSingleQuoted(env.bridge)}),` : '';
+    const useText = env?.use ? `use(${tqlSingleQuoted(env.use)}),` : '';
 
     return (
         'SQL(' +
