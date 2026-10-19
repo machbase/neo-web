@@ -24,7 +24,8 @@ const isolatePanes = (aChildren: ReactNode) =>
               if (!isValidElement(aChild)) return aChild;
               const sName = (aChild.props as PaneProps).boundaryName ?? `pane:${aIdx}`;
               if (aChild.type === PaneLib) {
-                  return cloneElement(aChild, undefined, <ErrorBoundary name={sName} variant="region">{(aChild.props as PaneProps).children}</ErrorBoundary>);
+                  // The panes become an array here, so each needs a key like the wrapped children below.
+                  return cloneElement(aChild, { key: aChild.key ?? aIdx }, <ErrorBoundary name={sName} variant="region">{(aChild.props as PaneProps).children}</ErrorBoundary>);
               }
               return (
                   <ErrorBoundary key={aChild.key ?? aIdx} name={sName} variant="region">
