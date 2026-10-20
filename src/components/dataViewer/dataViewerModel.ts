@@ -1,4 +1,5 @@
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
+import { arrayTimestampNanoseconds, type ArrayTimeUnit } from './arrayTimestamp';
 import { getCurrentDatabaseId, normalizeDatabaseId } from '@/utils/currentDatabaseState';
 import { DATETIME_COLUMN_TYPE, getDefaultTimeFieldColumn, isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import {
@@ -518,11 +519,11 @@ function getRawRowValueValue(row: unknown) {
 export type DataViewerRawPageBounds = {
     pageStart: { time: string | number; name: string };
     pageEnd: { time: string | number; name: string };
-    pageBounds: { from: string | number; to: string | number };
+    pageBounds: { from: string | number; to: string | number; timeUnit?: ArrayTimeUnit };
 };
 
 export type DataViewerRawPageRequest =
-    | { page: number; from: string | number; to: string | number; boundedRange: true; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
+    | { page: number; from: string | number; to: string | number; timeUnit?: ArrayTimeUnit; boundedRange: true; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
     | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide?: undefined; cursorTime?: undefined; cursorName?: undefined; cursorOffset?: undefined }
     | { page: number; from?: undefined; to?: undefined; boundedRange?: undefined; cursorSide: 'next' | 'prev'; cursorTime: string | number; cursorName: string; cursorOffset: number };
 
@@ -535,8 +536,19 @@ export type DataViewerRawPageRequest =
  * a page move that silently returns nothing. The field is still called `time` because it is the
  * base-column position in the row, whatever the base column happens to measure.
  */
-export function buildDataViewerRawPageBounds(rows: unknown[] = [], baseKind: DataViewerBaseKind = 'time'): DataViewerRawPageBounds | null {
+export function buildDataViewerRawPageBounds(rows: unknown[] = [], baseKind: DataViewerBaseKind = 'time', timeUnit?: ArrayTimeUnit): DataViewerRawPageBounds | null {
     if (!Array.isArray(rows) || rows.length === 0) return null;
+
+    if (baseKind === 'time' && timeUnit === 'ns') {
+        const normalized = rows.map((row) => ({
+            time: arrayTimestampNanoseconds(getRawRowTimeValue(row)),
+            name: String(getRawRowNameValue(row) ?? ''),
+        }));
+        const min = normalized.reduce((value, row) => row.time < value ? row.time : value, normalized[0].time);
+        const max = normalized.reduce((value, row) => row.time > value ? row.time : value, normalized[0].time);
+        const edge = (row: typeof normalized[number]) => ({ time: String(row.time), name: row.name });
+        return { pageStart: edge(normalized[0]), pageEnd: edge(normalized[normalized.length - 1]), pageBounds: { from: String(min), to: String(max), timeUnit } };
+    }
 
     const distance = baseKind === 'distance';
     const toSortKey = (value: unknown) => {
@@ -607,6 +619,7 @@ export function buildDataViewerRawPageRequest({
             page,
             from: currentBounds.pageBounds.from,
             to: currentBounds.pageBounds.to,
+            ...(currentBounds.pageBounds.timeUnit ? { timeUnit: currentBounds.pageBounds.timeUnit } : {}),
             boundedRange: true,
         };
     }
@@ -995,14 +1008,22 @@ function normalizeDataViewerTagAnalyzerRangeValue(value: unknown, keyPrefix: 'st
         const time = value.getTime();
         return Number.isFinite(time) ? { [`${keyPrefix}EpochMs`]: time } : {};
     }
+    // Through `toEpochMs`, not raw. A base value read straight off the wire is epoch NANOSECONDS —
+    // Machbase returns a DATETIME that way — and 1.787e18 is past `Date`'s +-8.64e15 limit, so the
+    // board opened on the literal string "Invalid date~Invalid date" and drew a window nobody asked
+    // for. Nothing rejected it on the way: both edges were finite and `end > start` held, so every
+    // guard on both sides passed. This is the one converter in this file that was skipping the
+    // normalisation the chart's own axis has always applied.
     if (typeof value === 'number') {
-        return Number.isFinite(value) ? { [`${keyPrefix}EpochMs`]: value } : {};
+        const time = toEpochMs(value);
+        return Number.isFinite(time) ? { [`${keyPrefix}EpochMs`]: time } : {};
     }
 
     const text = String(value ?? '').trim();
     if (!text) return {};
 
-    const parsed = Date.parse(text);
+    // A numeric string is the same value wearing quotes, so it takes the same road.
+    const parsed = toEpochMs(text);
     if (!Number.isFinite(parsed)) return {};
     return { [`${keyPrefix}EpochMs`]: parsed };
 }
@@ -1044,6 +1065,19 @@ export function buildDataViewerTagAnalyzerRange(
     return {
         ...start,
         ...end,
+    };
+}
+
+/** Keep the JSON detail's displayed milliseconds through the Tag Analyzer board adapter. */
+export function buildDataViewerJsonKeyTagAnalyzerRange(
+    window: { from?: string | number; to?: string | number },
+    baseKind: DataViewerBaseKind = 'time',
+) {
+    const range = buildDataViewerTagAnalyzerRange(window, baseKind);
+    if (!range || baseKind === 'distance' || !('startEpochMs' in range) || !('endEpochMs' in range)) return range;
+    return {
+        startIso: new Date(range.startEpochMs).toISOString(),
+        endIso: new Date(range.endEpochMs).toISOString(),
     };
 }
 
@@ -1143,6 +1177,16 @@ const PANEL_NAVIGATOR_GRID_SIDE = 58;
 const PANEL_SLIDER_HEIGHT = 26;
 const PANEL_MAIN_TOP_WITH_LEGEND = 40;
 const PANEL_MAIN_HEIGHT = 178;
+/**
+ * What the panel keeps below the plot: the x-axis labels, the zoom controls and the navigator.
+ *
+ * The plot is anchored to the top and the navigator to the bottom, so on a container taller than
+ * the two of them the middle is dead space — a 700px column drew a 178px plot and 300px of nothing.
+ * Given a container height, the plot takes everything except this.
+ */
+const PANEL_BOTTOM_RESERVE = 106;
+/** Below this the plot stops being a plot, so the panel keeps its own size and scrolls instead. */
+const PANEL_MIN_MAIN_HEIGHT = 96;
 // The legend is `type: 'scroll'`, and a horizontal scroll legend never wraps — it lays every entry
 // out on one line and pages the overflow away behind its own ‹ 1/5 › control. So its height is one
 // row's, whatever the series count is. This used to be computed as `ceil(series.length / 4)` rows,
@@ -1151,7 +1195,7 @@ const PANEL_MAIN_HEIGHT = 178;
 // band of nothing under it, and a chart squashed into the bottom third of the card.
 const PANEL_LEGEND_HEIGHT = PANEL_MAIN_TOP_WITH_LEGEND - PANEL_LEGEND_TOP - 8;
 const PANEL_MAIN_SERIES_ID_PREFIX = 'main-series-';
-const PANEL_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
+export const PANEL_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 const PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR = 0.82;
 const PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR = 1.22;
 const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } };
@@ -1657,6 +1701,13 @@ export function buildDataViewerEChartOption({
     timeFormat = DEFAULT_TIME_FORMAT,
     timeZone = DEFAULT_TIME_ZONE,
     baseKind = 'time',
+    /**
+     * The container's own height, when the caller knows it.
+     *
+     * Without it the plot keeps the fixed `PANEL_MAIN_HEIGHT` it has always had — which is right
+     * for a panel sized to that number and wrong for anything taller.
+     */
+    panelHeight,
     // Tag-name keyed colours, so a split panel keeps the colour the tag has in the main chart.
     // `color: PANEL_COLORS` below only decides a panel's *own* palette order, and a split panel
     // holds exactly one series — so without this map every split panel takes the palette's first
@@ -1664,6 +1715,7 @@ export function buildDataViewerEChartOption({
     // line in the main chart or its dot in the raw grid. Falls back to this panel's own palette
     // position for names the map does not cover.
     seriesColors = {},
+    arrayElements = false,
 }: {
     series?: Array<{ name: string; data: Array<[number, number | null]> }>;
     timeRange?: { from?: unknown; to?: unknown };
@@ -1671,8 +1723,14 @@ export function buildDataViewerEChartOption({
     timeFormat?: string;
     timeZone?: string;
     baseKind?: DataViewerBaseKind;
+    panelHeight?: number;
     seriesColors?: Record<string, string>;
+    /** Keep ARRAY gaps and isolated points, without a misleading partial navigator line. */
+    arrayElements?: boolean;
 } = {}) {
+    const mainHeight = Number.isFinite(panelHeight)
+        ? Math.max(PANEL_MIN_MAIN_HEIGHT, Math.round(Number(panelHeight) - PANEL_MAIN_TOP_WITH_LEGEND - PANEL_BOTTOM_RESERVE))
+        : PANEL_MAIN_HEIGHT;
     const colorFor = (item: { name?: unknown } | undefined, index: number) => seriesColors[String(item?.name ?? '')] || PANEL_COLORS[index % PANEL_COLORS.length];
     const allPoints = series.flatMap((item) => (Array.isArray(item?.data) ? item.data : []));
     const panelRange = getPanelRange(allPoints, displayRange || timeRange, baseKind) as Required<DataViewerChartRangeMs>;
@@ -1700,7 +1758,7 @@ export function buildDataViewerEChartOption({
         textStyle: { fontFamily: 'Open Sans, Helvetica, Arial, sans-serif' },
         color: PANEL_COLORS,
         grid: [
-            { id: 'panel-main-grid', left: PANEL_GRID_SIDE, right: PANEL_GRID_SIDE, top: PANEL_MAIN_TOP_WITH_LEGEND, height: PANEL_MAIN_HEIGHT, containLabel: true },
+            { id: 'panel-main-grid', left: PANEL_GRID_SIDE, right: PANEL_GRID_SIDE, top: PANEL_MAIN_TOP_WITH_LEGEND, height: mainHeight, containLabel: true },
             { id: 'panel-navigator-grid', left: PANEL_NAVIGATOR_GRID_SIDE, right: PANEL_NAVIGATOR_GRID_SIDE, bottom: PANEL_GRID_BOTTOM, height: PANEL_SLIDER_HEIGHT },
         ],
         legend: {
@@ -1748,6 +1806,12 @@ export function buildDataViewerEChartOption({
                 axisLabel: {
                     ...PANEL_AXIS_LABEL_STYLE,
                     formatter: formatBaseAxisLabel,
+                    // The label width is a formatted timestamp; the number of labels comes from the
+                    // axis. Put that axis in a narrow box — the detail view's chart column at a
+                    // 1024px window is 465px — and the stamps run into each other into an unreadable
+                    // band. ECharts drops the ones that would collide when asked to; it is not asked
+                    // to by default.
+                    hideOverlap: true,
                 },
                 splitLine: { show: true, lineStyle: AXIS_SPLIT_LINE_STYLE },
                 axisPointer: { label: { show: false } },
@@ -1832,6 +1896,8 @@ export function buildDataViewerEChartOption({
                 brushSelect: false,
                 backgroundColor: 'rgba(0, 0, 0, 0)',
                 borderColor: '#7a828c',
+                // v6 changed the slider default from 3 to 0; pin it so the navigator looks the same on both.
+                borderRadius: 3,
                 fillerColor: 'rgba(104, 119, 138, 0.28)',
                 showDataShadow: false,
                 handleSize: 24,
@@ -1851,17 +1917,25 @@ export function buildDataViewerEChartOption({
                 xAxisIndex: 0,
                 yAxisIndex: 0,
                 symbol: 'circle',
-                showSymbol: false,
-                symbolSize: 6,
+                showSymbol: arrayElements,
+                // Only a value with no drawable neighbour needs a marker to remain visible.
+                symbolSize: arrayElements ? (_value: unknown, params: { dataIndex: number }) => {
+                    const drawable = (position: number) => {
+                        const point = item.data[position];
+                        return point != null && Number.isFinite(point[0]) && point[1] !== null && Number.isFinite(point[1]);
+                    };
+                    const position = params.dataIndex;
+                    return drawable(position) && !drawable(position - 1) && !drawable(position + 1) ? 6 : 0;
+                } : 6,
                 animation: false,
-                sampling: item.data?.length > 1000 ? 'lttb' : undefined,
+                sampling: !arrayElements && item.data?.length > 1000 ? 'lttb' : undefined,
                 lineStyle: { width: 1, color: colorFor(item, index), opacity: 1 },
                 itemStyle: { color: colorFor(item, index), opacity: 1 },
                 connectNulls: false,
                 triggerEvent: true,
                 z: 2,
             })),
-            ...series.map((item, index) => ({
+            ...(arrayElements ? [] : series).map((item, index) => ({
                 id: `navigator-series-${index}`,
                 name: item.name,
                 type: 'line',
@@ -1873,7 +1947,7 @@ export function buildDataViewerEChartOption({
                 silent: true,
                 tooltip: { show: false },
                 animation: false,
-                sampling: item.data?.length > 1000 ? 'lttb' : undefined,
+                sampling: !arrayElements && item.data?.length > 1000 ? 'lttb' : undefined,
                 lineStyle: { width: 1, color: colorFor(item, index), opacity: 0.85 },
                 itemStyle: { color: colorFor(item, index), opacity: 0.85 },
                 emphasis: { disabled: true },

@@ -7,6 +7,7 @@ import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
+import { sqlIdentifier, sqlIdentifierPath, sqlString } from '@/utils/queryText';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
 import { Refresh } from '@/assets/icons/Icon';
 import MaterialIcon from '@/components/common/MaterialIcon';
@@ -234,7 +235,17 @@ const RollupPredicateCell = ({ row, columns }: { row: (string | number)[]; colum
     );
 };
 
-export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab: boolean }) => {
+type DBTablePageProps = { pCode: any; pIsActiveTab: boolean };
+
+// The tab is reused, but each table owns its loaded metadata. A late request
+// from the previous table must not write into the next table's state.
+export const DBTablePage = (props: DBTablePageProps) => {
+    const info = props.pCode?.code?.tableInfo;
+    const identity = info ? `${info[E_TABLE_INFO.DB_ID]}:${info[E_TABLE_INFO.TB_ID]}` : 'none';
+    return <DBTableContent key={identity} {...props} />;
+};
+
+const DBTableContent = ({ pCode, pIsActiveTab }: DBTablePageProps) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sLastFetchTime, setLastFetchTime] = useState<string>('');
@@ -403,7 +414,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             // `WHERE NAME IN (...)` is what turns this into a scan); here it would only add a
             // second query, and its ROW_COUNT lags `COUNT(*)` — measured 52,803 against 54,372 on
             // TEST — so the record count has to come from the table either way.
-            sSubCol = `, MIN(${mBaseColumn.name}) as MIN, MAX(${mBaseColumn.name}) as MAX`;
+            sSubCol = `, MIN(${sqlIdentifier(mBaseColumn.name)}) as MIN, MAX(${sqlIdentifier(mBaseColumn.name)}) as MAX`;
         // v8.7 renamed V$STORAGE_DC_TABLE_INDEXES.DATABASE_ID to TABLESPACE_ID, so joining on
         // the old column no longer compiles (ERR-2056). Scoping by TABLE_ID instead is not a
         // workaround but the narrower statement: this panel shows the indexes of one table, and
@@ -413,7 +424,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         // serves v8.5 and v8.7 alike.
         if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.LOG)
             sSubCol = ', MIN(_ARRIVAL_TIME) as MIN, MAX(_ARRIVAL_TIME) as MAX';
-        const sQuery = `SELECT COUNT(*) as CNT ${sSubCol} FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]}`;
+        const sQuery = `SELECT COUNT(*) as CNT ${sSubCol} FROM ${sqlIdentifierPath(mTableInfo[E_TABLE_INFO.DB_NM], mTableInfo[E_TABLE_INFO.USER_NM], mTableInfo[E_TABLE_INFO.TB_NM])}`;
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) {
             setRecordInfo({
@@ -463,12 +474,10 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     };
     const FetchIndexGapForTag = async () => {
         // Match the full internal data-table name; LIKE treats underscores as wildcards.
-        const sTableNamePattern = mTableInfo[E_TABLE_INFO.TB_NM]
-            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-            .replace(/'/g, "''");
-        const sQuery = `SELECT TABLE_ID AS 'TABLE', INDEX_STATE AS STATE, (TABLE_END_RID-DISK_INDEX_END_RID) AS DISK_GAP, (TABLE_END_RID-MEMORY_INDEX_END_RID) AS MEMORY_GAP FROM V$STORAGE_TAG_INDEX WHERE INDEX_ID = 4294967295 AND TABLE_ID IN (SELECT ID FROM m$SYS_TABLES WHERE NAME REGEXP '^_${sTableNamePattern}_DATA_[0-9]+$' AND DATABASE_ID=${mTableInfo[E_TABLE_INFO.DB_ID]} AND USER_ID=(SELECT USER_ID FROM M$SYS_USERS WHERE NAME=upper('${
+        const sTableNamePattern = mTableInfo[E_TABLE_INFO.TB_NM].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const sQuery = `SELECT TABLE_ID AS 'TABLE', INDEX_STATE AS STATE, (TABLE_END_RID-DISK_INDEX_END_RID) AS DISK_GAP, (TABLE_END_RID-MEMORY_INDEX_END_RID) AS MEMORY_GAP FROM V$STORAGE_TAG_INDEX WHERE INDEX_ID = 4294967295 AND TABLE_ID IN (SELECT ID FROM m$SYS_TABLES WHERE NAME REGEXP ${sqlString(`^_${sTableNamePattern}_DATA_[0-9]+$`)} AND DATABASE_ID=${mTableInfo[E_TABLE_INFO.DB_ID]} AND USER_ID=(SELECT USER_ID FROM M$SYS_USERS WHERE NAME=upper(${sqlString(
             mTableInfo[E_TABLE_INFO.USER_NM]
-        }') limit 1)) ORDER BY TABLE_ID`;
+        )}) limit 1)) ORDER BY TABLE_ID`;
         const { svrState, svrData } = await fetchQuery(sQuery);
         if (svrState) {
             svrData.rows.map((row: (string | number)[], idx: number) => {
@@ -600,9 +609,9 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         ${sDatabaseIdCondition}
                         A.NAME=C.SOURCE_TABLE
                         AND C.USER_ID=A.USER_ID
-                        AND C.USER_ID=(SELECT USER_ID FROM M$SYS_USERS WHERE NAME=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') limit 1)
+                        AND C.USER_ID=(SELECT USER_ID FROM M$SYS_USERS WHERE NAME=upper(${sqlString(mTableInfo[E_TABLE_INFO.USER_NM])}) limit 1)
                         AND A.ID=B.ID
-                        AND C.ROOT_TABLE=upper('${mTableInfo[E_TABLE_INFO.TB_NM]}')
+                        AND C.ROOT_TABLE=upper(${sqlString(mTableInfo[E_TABLE_INFO.TB_NM])})
                         ORDER BY ROLLUP_TABLE, SOURCE_TABLE;`;
 
         const { svrState, svrData } = await fetchQuery(sQuery);
@@ -731,9 +740,9 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         } else setRetentionInfo(undefined);
     };
     const FetchViewSql = async () => {
-        const sQuery = `select VIEW_SQL from M$SYS_VIEWS where DB_NAME=upper('${
+        const sQuery = `select VIEW_SQL from M$SYS_VIEWS where DB_NAME=upper(${sqlString(
             mTableInfo[E_TABLE_INFO.DB_NM]
-        }') and USER_NAME=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and VIEW_NAME=upper('${mTableInfo[E_TABLE_INFO.TB_NM]}') limit 1`;
+        )}) and USER_NAME=upper(${sqlString(mTableInfo[E_TABLE_INFO.USER_NM])}) and VIEW_NAME=upper(${sqlString(mTableInfo[E_TABLE_INFO.TB_NM])}) limit 1`;
         const { svrState, svrData } = await fetchQuery(sQuery);
         const sViewSqlIdx =
             svrData?.columns?.findIndex(
@@ -755,7 +764,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         setViewSqlInfo(undefined);
     };
     const FetchRollupState = async (aRollupName: string, aCommand: string) => {
-        const sQuery = `EXEC ${aCommand}(${aRollupName})`;
+        const sQuery = `EXEC ${aCommand}(${sqlIdentifier(aRollupName)})`;
         const { svrState, svrReason } = await fetchTqlWithoutConsole(
             sQuery,
             String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
@@ -869,8 +878,12 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         }
     }, []);
 
+    // A board restored without its table row has nothing to show; the effects above already
+    // cleared their state for this case.
+    if (!mTableInfo) return <Page data-testid="db-table-detail" pRef={sBodyRef}>{null}</Page>;
+
     return (
-        <Page pRef={sBodyRef}>
+        <Page data-testid="db-table-detail" pRef={sBodyRef}>
             <SplitPane
                 sashRender={() => Resizer()}
                 split={isVertical ? 'vertical' : 'horizontal'}
@@ -933,7 +946,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     }}
                                 >
                                     <Page.DpRow style={{ gap: '4px' }}>
-                                        <Page.ContentDesc>
+                                        <Page.ContentDesc data-testid="record-count">
                                             Record: {sRecordInfo?.cnt?.toLocaleString() ?? '0'}
                                         </Page.ContentDesc>
                                         <Button

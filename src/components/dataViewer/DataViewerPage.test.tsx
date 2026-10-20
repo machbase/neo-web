@@ -6,6 +6,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { RecoilRoot } from 'recoil';
 import DataViewerPage from './DataViewerPage';
 import { buildRawColumnWidths, buildRawResultColumns, buildRawRowNameColors } from './dataViewerModel';
+import { __setEchartsRuntimeForTest } from '@/plugin/echartsRuntime';
+
+// TagEChart takes the runtime from the shared loader, not a bundled `import * as echarts`.
+// Seed the global slot with the module mocked above so `echartsMock.init` assertions and the
+// single shared instance keep working, and so useEcharts() reports ready synchronously.
+beforeEach(() => {
+    __setEchartsRuntimeForTest(jest.requireMock('echarts') as never);
+});
 
 // react-virtuoso measures its viewport through `offsetParent`, which jsdom hard-codes to null,
 // so an unassisted render mounts zero rows and every row assertion below would pass vacuously.
@@ -32,14 +40,22 @@ jest.mock('react-virtuoso', () => {
 
 // The page's data access is stubbed at the module boundary so this test stays independent of how
 // dataViewerApi builds its SQL.
+// The name builders are pure string helpers, not requests, so the real ones are kept: stubbing them
+// would only give the page names it could never have produced.
 jest.mock('./dataViewerApi', () => ({
+    ...jest.requireActual<typeof import('./dataViewerApi')>('./dataViewerApi'),
     listTableTags: jest.fn(),
     listTableColumns: jest.fn(),
+    fetchDataViewerArrayMetadata: jest.fn(),
+    queryTagArrayElementData: jest.fn(),
+    queryTagArrayBoundaryRange: jest.fn(),
     queryTagData: jest.fn(),
     queryTagDataTotal: jest.fn(),
     queryTagBoundaryTime: jest.fn(),
     queryTagBaseColumnBounds: jest.fn(),
+    queryTagJsonKeyData: jest.fn(),
 }));
+
 
 // TimeRangeModal is shared with the dashboards, which legitimately allow an open-ended side, so it
 // cannot be the place the Data Viewer's both-edges-required rule lives. Standing in for it here
@@ -125,7 +141,7 @@ jest.mock('echarts', () => {
 // The Tag Analyzer hand-off is the thing being blocked, so it is stubbed at its own boundary:
 // asserting on this mock is the difference between "the button did not open a board" and "the
 // button was not there", and only the first of those is the guarantee.
-jest.mock('@/components/tagAnalyzer/integration', () => ({
+jest.mock('@/components/tagAnalyzer/application/adapters', () => ({
     createTagAnalyzerBoardFromPayload: jest.fn(() => ({ status: 'ok', board: { id: 'board-1' } })),
 }));
 
@@ -142,13 +158,17 @@ beforeAll(() => {
 const dataViewerApi = jest.requireMock('./dataViewerApi') as {
     listTableTags: jest.Mock;
     listTableColumns: jest.Mock;
+    fetchDataViewerArrayMetadata: jest.Mock;
+    queryTagArrayElementData: jest.Mock;
+    queryTagArrayBoundaryRange: jest.Mock;
     queryTagData: jest.Mock;
     queryTagDataTotal: jest.Mock;
     queryTagBoundaryTime: jest.Mock;
     queryTagBaseColumnBounds: jest.Mock;
+    queryTagJsonKeyData: jest.Mock;
 };
 
-const tagAnalyzerBridge = jest.requireMock('@/components/tagAnalyzer/integration') as {
+const tagAnalyzerBridge = jest.requireMock('@/components/tagAnalyzer/application/adapters') as {
     createTagAnalyzerBoardFromPayload: jest.Mock;
 };
 
@@ -241,6 +261,7 @@ beforeEach(() => {
     // The distance editor's slider extent. `null` — "extent unknown" — is the default so that every
     // test that is not about the slider sees the same editor it saw before it existed.
     dataViewerApi.queryTagBaseColumnBounds.mockResolvedValue(null);
+    dataViewerApi.queryTagJsonKeyData.mockResolvedValue({ rows: [] });
 });
 
 describe('DataViewerPage raw grid', () => {
@@ -3172,5 +3193,210 @@ describe('DataViewerPage split tag chip legibility', () => {
         expect(chip.querySelector('.truncate')?.textContent).toBe(TAG_NAME);
         // The × stays outside it, so it keeps the accent and the chip still reads as removable.
         expect(chip.querySelector('.material-symbols-outlined')?.textContent).toBe('close');
+    });
+});
+
+/**
+ * Row → keys → detail → Tag Analyzer, on the page rather than on the parts.
+ *
+ * Each modal is covered on its own in `jsonKeyModals.test.tsx`; what only the page can answer is
+ * whether they hand off to each other — that the picker is built from the row that was clicked,
+ * that the detail is queried for the keys ticked in it, and that the board is opened on the same
+ * keys in the form Tag Analyzer reads.
+ */
+describe('DataViewerPage JSON key chain', () => {
+    const JSON_ROWS = Array.from({ length: 5 }, (_, index) => ({
+        time: `2026-06-01T10:00:0${index}.000Z`,
+        name: TAG_NAME,
+        value: JSON.stringify({ status: 'running', sensor: { temperature: { value: 20 + index } } }),
+    }));
+
+    // The row click is the whole entry point: on a JSON value column it lands on the picker, not on
+    // an inspector whose only useful control would be a button to this same modal.
+    const openKeyPicker = async (container: HTMLElement) => {
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        fireEvent.click(getDataRows(container)[0]);
+        return screen.findByLabelText('Filter keys');
+    };
+
+    const pickTemperature = () => fireEvent.click(screen.getByRole('checkbox', { name: 'sensor.temperature.value' }));
+
+    const renderJson = () => {
+        dataViewerApi.listTableColumns.mockResolvedValue(JSON_VALUE_COLUMNS);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: JSON_ROWS });
+        return renderPage();
+    };
+
+    test('the picker is built from the row that was clicked', async () => {
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        expect(screen.getByText('Select keys')).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'status' })).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeInTheDocument();
+    });
+
+    test('a JSON table keeps its Asset hierarchy tab', async () => {
+        dataViewerApi.listTableTags.mockResolvedValue({
+            tags: [{ name: TAG_NAME, dataType: 'json' }],
+            assetHierarchy: { column: 'asset', schema: ['site'] },
+        });
+        renderJson();
+
+        expect(await screen.findByRole('tab', { name: 'Hierarchy' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: 'Hierarchy' }));
+        expect(screen.getByRole('tab', { name: 'Hierarchy' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    // A table whose value column is not a document has no keys to pick, and there the inspector is
+    // the whole answer — so the same click has to reach two different places.
+    test('a non-JSON table still opens the row inspector', async () => {
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+
+        fireEvent.click(getDataRows(container)[0]);
+
+        expect(await screen.findByText(/row 1 of/)).toBeInTheDocument();
+        expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
+    });
+
+    test('a JSON document with only empty branches opens the row inspector', async () => {
+        dataViewerApi.listTableColumns.mockResolvedValue(JSON_VALUE_COLUMNS);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: [{ ...JSON_ROWS[0], value: '{"a":{},"b":[]}' }] });
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+
+        fireEvent.click(getDataRows(container)[0]);
+
+        expect(await screen.findByText(/row 1 of/)).toBeInTheDocument();
+        expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
+    });
+
+    test.each(['{}', '[]', 'null', '123', null])('opens manual entry from the inspector for JSON %s without stacking dialogs', async (value) => {
+        dataViewerApi.listTableColumns.mockResolvedValue(JSON_VALUE_COLUMNS);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: [{ ...JSON_ROWS[0], value }] });
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        fireEvent.click(getDataRows(container)[0]);
+        fireEvent.click(await screen.findByRole('button', { name: 'Select keys' }));
+        expect(screen.queryByText(/row 1 of/)).not.toBeInTheDocument();
+        const input = screen.getByLabelText('Filter keys');
+        fireEvent.change(input, { target: { value: 'future.value' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+        await waitFor(() => expect(dataViewerApi.queryTagJsonKeyData).toHaveBeenCalledWith(expect.objectContaining({ paths: ['[future][value]'] })));
+        fireEvent.click(screen.getByRole('button', { name: 'Back to keys' }));
+        expect(screen.getByRole('button', { name: 'Remove future.value' })).toBeInTheDocument();
+    });
+
+    test('the detail is read for the keys that were ticked, over the page window', async () => {
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        pickTemperature();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        await waitFor(() => expect(dataViewerApi.queryTagJsonKeyData).toHaveBeenCalled());
+        const args = dataViewerApi.queryTagJsonKeyData.mock.calls[0][0] as { paths: string[]; tagName: string };
+        expect(args.paths).toEqual(['[sensor][temperature][value]']);
+        expect(args.tagName).toBe(TAG_NAME);
+    });
+
+    // The key has to arrive in the field Tag Analyzer projects from, and this page's dialogs have to
+    // get out of the way — the tab has already changed by the time they would be read again.
+    test('the board opens on the key, and the dialogs close behind it', async () => {
+        const { createTagAnalyzerBoardFromPayload } = tagAnalyzerBridge;
+        createTagAnalyzerBoardFromPayload.mockClear();
+
+        // The handoff offers only what the chart could draw, so the read has to have landed with a
+        // number in it before the button is anything but disabled.
+        dataViewerApi.queryTagJsonKeyData.mockResolvedValue({
+            rows: [{ base: '2026-06-01 10:00:00.000', values: [21] }],
+        });
+
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        pickTemperature();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        await waitFor(() => expect(screen.getByRole('button', { name: /Open in Tag Analyzer/ })).toBeEnabled());
+        fireEvent.click(screen.getByRole('button', { name: /Open in Tag Analyzer/ }));
+
+        expect(createTagAnalyzerBoardFromPayload).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('button', { name: /Open in Tag Analyzer/ })).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Filter keys')).not.toBeInTheDocument();
+        const payload = createTagAnalyzerBoardFromPayload.mock.calls[0][0] as { tags: { colName: { jsonKey: string; value: string } }[] };
+        expect(payload.tags).toHaveLength(1);
+        // Plain segments stay unquoted — the same spelling `.taz`/`.dsh` files already carry, so a
+        // board opened from here reads identically to one saved by hand.
+        expect(payload.tags[0].colName.jsonKey).toBe('[sensor][temperature][value]');
+        expect(payload.tags[0].colName.value).toBe('VALUE');
+    });
+
+    // Going back has to land on the tree as it was left, or it is indistinguishable from starting
+    // over — which is the whole reason the selection outlives the picker.
+    test('back to keys returns to the selection the detail was opened from', async () => {
+        const { container } = renderJson();
+        await openKeyPicker(container);
+
+        pickTemperature();
+        fireEvent.click(screen.getByRole('button', { name: 'View detail' }));
+
+        fireEvent.click(await screen.findByRole('button', { name: /Back to keys/ }));
+
+        expect(screen.getByRole('checkbox', { name: 'sensor.temperature.value' })).toBeChecked();
+        expect(screen.getByText('1 key selected · 1 numeric in this row')).toBeInTheDocument();
+    });
+});
+
+
+describe('ARRAY value entry', () => {
+    beforeEach(() => {
+        // ARRAY's opt-in transport preserves every JSON numeric token, including time, as text.
+        dataViewerApi.queryTagBoundaryTime.mockResolvedValue(String(BigInt(BOUNDARY_BASE_MS) * 1_000_000n));
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: ROWS.map((row) => ({ ...row, time: String(BigInt(Date.parse(row.time)) * 1_000_000n) })) });
+    });
+    test('preserves raw array brackets, NULL positions and exact number spelling', async () => {
+        dataViewerApi.listTableColumns.mockResolvedValue([['NAME', 5, 0], ['TIME', 6, BASETIME_FLAG], ['VALUE', 153, 0]]);
+        dataViewerApi.fetchDataViewerArrayMetadata.mockResolvedValue({ kind: 'array', elementType: 12, cardinality: 3 });
+        dataViewerApi.queryTagData.mockResolvedValue({ rows: [{ ...ROWS[0], time: String(BigInt(Date.parse(ROWS[0].time)) * 1_000_000n), value: ['9007199254740993', null, '30'] }] });
+        renderPage();
+        await waitFor(() => expect(screen.getByText('[9007199254740993, NULL, 30]')).toBeInTheDocument());
+        expect(dataViewerApi.queryTagData.mock.calls.at(-1)[0].preserveArrayNumbers).toBe(true);
+    });
+    test('fails closed when declared length is unavailable and offers metadata retry', async () => {
+        dataViewerApi.listTableColumns.mockResolvedValue([['NAME', 5, 0], ['TIME', 6, BASETIME_FLAG], ['VALUE', 165, 0]]);
+        dataViewerApi.fetchDataViewerArrayMetadata.mockRejectedValue(new Error('Declared array length unavailable'));
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        expect(screen.queryByRole('tab', { name: 'Chart' })).not.toBeInTheDocument();
+        fireEvent.click(getDataRows(container)[0]);
+        expect(screen.queryByRole('dialog', { name: /Array elements/ })).not.toBeInTheDocument();
+        expect(dataViewerApi.queryTagArrayElementData).not.toHaveBeenCalled();
+        dataViewerApi.fetchDataViewerArrayMetadata.mockResolvedValue({ kind: 'array', elementType: 20, cardinality: 4 });
+        fireEvent.click(screen.getByRole('button', { name: 'Retry array metadata' }));
+        await waitFor(() => expect(dataViewerApi.fetchDataViewerArrayMetadata).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry array metadata' })).not.toBeInTheDocument());
+        fireEvent.click(getDataRows(container)[0]);
+        expect(screen.getByRole('dialog', { name: /Array elements/ })).toBeInTheDocument();
+        expect(screen.getAllByRole('checkbox').filter((entry) => entry.closest('.array-element-modal'))).toHaveLength(4);
+    });
+    test.each(['0', '2678400000000000'])('resolves last and raw paging using explicit server ns from %s', async (first) => {
+        dataViewerApi.listTableColumns.mockResolvedValue([['NAME', 5, 0], ['TIME', 6, BASETIME_FLAG], ['VALUE', 165, 0]]);
+        dataViewerApi.fetchDataViewerArrayMetadata.mockResolvedValue({ kind: 'array', elementType: 20, cardinality: 1 });
+        const rows = ROWS.map((row, index) => ({ ...row, time: String(BigInt(first) + BigInt(index) * 1_000_000n), value: ['10'] }));
+        const last = rows[rows.length - 1].time;
+        dataViewerApi.queryTagBoundaryTime.mockResolvedValue(last);
+        dataViewerApi.queryTagData.mockResolvedValue({ rows });
+        const { container } = renderPage();
+        await waitFor(() => expect(getDataRows(container).length).toBeGreaterThan(0));
+        expect(dataViewerApi.queryTagBoundaryTime.mock.calls[0][0].preserveArrayNumbers).toBe(true);
+        expect(dataViewerApi.queryTagData.mock.calls[0][0].to).toBe(Number(BigInt(last) / 1_000_000n) + 1);
+        expect(getDataRows(container)[0].querySelector('td')?.textContent).toContain('1970-');
+        gotoPage(2);
+        await waitFor(() => expect(dataViewerApi.queryTagData).toHaveBeenCalledTimes(2));
+        expect(dataViewerApi.queryTagData.mock.calls[1][0]).toMatchObject({ cursorTime: last, preserveArrayNumbers: true });
+        expect(dataViewerApi.queryTagBoundaryTime).toHaveBeenCalledTimes(1);
     });
 });

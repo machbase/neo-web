@@ -137,6 +137,8 @@ const CommonTable = (props: CommonTableProps) => {
         activeRow = false,
         onRowSelect,
         onRowDelete,
+        getRowTestId,
+        getCellTestId,
         onRowAction,
         hideRowAction = false,
         editable = false,
@@ -341,6 +343,7 @@ const CommonTable = (props: CommonTableProps) => {
                             {data.rows.map((rowList: any, rowIdx: number) => (
                                 <tr
                                     key={'tbody-row-' + rowList[0] + rowIdx}
+                                    data-testid={getRowTestId?.(rowList)}
                                     className={getRowClass(rowIdx)}
                                     tabIndex={0}
                                     onDoubleClick={(e) => handleMod(e, rowList, rowIdx)}
@@ -355,9 +358,10 @@ const CommonTable = (props: CommonTableProps) => {
                                         // round-trip — editing it would save the flattened string back.
                                         const editableCell = !isObject(cellData);
                                         return (
-                                            <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined}>
+                                            <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                 {data?.columns?.[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx && editableCell ? (
                                                     <Page.Input
+                                                        data-testid={`input-${encodeURIComponent(String(data?.columns?.[cellIdx] ?? ''))}`}
                                                         pAutoFocus={cellIdx === 1}
                                                         pValue={modInfo?.modAfterInfo?.row?.[cellIdx] ?? ''}
                                                         pWidth={'100%'}
@@ -379,6 +383,7 @@ const CommonTable = (props: CommonTableProps) => {
                                                 {v$Callback && <td />}
                                                 <td>
                                                     <Button
+                                                        data-testid="save"
                                                         tabIndex={0}
                                                         size="side"
                                                         variant="ghost"
@@ -413,6 +418,7 @@ const CommonTable = (props: CommonTableProps) => {
                                                 {editable && (
                                                     <td>
                                                         <Button
+                                                            data-testid="edit"
                                                             size="side"
                                                             variant="ghost"
                                                             icon={<BiEdit width={16} height={16} />}
@@ -426,6 +432,7 @@ const CommonTable = (props: CommonTableProps) => {
                                         (modInfo.modBeforeInfo.rowIdx === rowIdx ? (
                                             <td>
                                                 <Button
+                                                    data-testid="cancel"
                                                     size="side"
                                                     variant="ghost"
                                                     icon={<GiCancel width={16} height={16} />}
@@ -438,6 +445,7 @@ const CommonTable = (props: CommonTableProps) => {
                                             editable && (
                                                 <td>
                                                     <Button
+                                                        data-testid="delete"
                                                         size="side"
                                                         variant="ghost"
                                                         icon={<MdDelete width={16} height={16} />}
@@ -591,7 +599,7 @@ const CommonTable = (props: CommonTableProps) => {
                                 const renderer = getCellRenderer(data?.columns?.[rIdx]);
                                 const numeric = shouldAlignNumeric(data?.types?.[rIdx], cellData);
                                 return (
-                                    <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()}>
+                                    <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} data-testid={getCellTestId?.(data?.columns?.[rIdx])}>
                                         {renderer ? (
                                             renderer(rowList)
                                         ) : (
@@ -604,7 +612,7 @@ const CommonTable = (props: CommonTableProps) => {
                                 );
                             })}
                             {onRowDelete && (
-                                <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} onClick={(e) => handleDelete(e, rowList)}>
+                                <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} data-testid="delete" onClick={(e) => handleDelete(e, rowList)}>
                                     <MdDelete />
                                 </td>
                             )}
@@ -635,6 +643,7 @@ const CommonTable = (props: CommonTableProps) => {
                             return (
                                 <tr
                                     {...props}
+                                    data-testid={getRowTestId?.(rowList)}
                                     className={activeRow ? checkActiveRow(rowList, rowIdx) : getRowClass(rowIdx)}
                                     onClick={activeRow ? (e) => handleRowClick(e, rowList) : undefined}
                                 />
@@ -721,6 +730,7 @@ const CommonTable = (props: CommonTableProps) => {
                               return (
                                   <tr
                                       key={'tbody-row' + rowIdx}
+                                      data-testid={getRowTestId?.(rowList)}
                                       className={activeRow ? checkActiveRow(rowList, rowIdx) : getResultRowClass(rowIdx)}
                                       onClick={activeRow ? (e) => handleRowClick(e, rowList) : undefined}
                                   >
@@ -747,7 +757,7 @@ const CommonTable = (props: CommonTableProps) => {
                                           if (renderer) {
                                               const numericRenderer = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                               return (
-                                                  <td className={['result-table-item', numericRenderer ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} style={wrapStyle}>
+                                                  <td className={['result-table-item', numericRenderer ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} style={wrapStyle} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                       {renderer(rowList)}
                                                   </td>
                                               );
@@ -755,7 +765,7 @@ const CommonTable = (props: CommonTableProps) => {
 
                                           const numeric = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                           return (
-                                              <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle}>
+                                              <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                   <div className={styles['cell-content']}>
                                                       {renderCellText(cellData)}
                                                       {renderCellCopy(cellData, cellIdx)}
@@ -765,7 +775,7 @@ const CommonTable = (props: CommonTableProps) => {
                                       })}
                                       {/* Delete action */}
                                       {onRowDelete && (
-                                          <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} onClick={(e) => handleDelete(e, rowList)}>
+                                          <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} data-testid="delete" onClick={(e) => handleDelete(e, rowList)}>
                                               <MdDelete />
                                           </td>
                                       )}

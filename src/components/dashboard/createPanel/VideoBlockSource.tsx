@@ -24,20 +24,20 @@ export const VideoBlockSource = ({ sourceInfo, cameraList, isLoadingCameras, onC
                     disabled={isLoadingCameras}
                     style={{ width: '200px' }}
                 >
-                    <Dropdown.Trigger />
-                    <Dropdown.Menu>
+                    <Dropdown.Trigger data-testid="camera" />
+                    <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                         <Dropdown.List />
                     </Dropdown.Menu>
                 </Dropdown.Root>
             </Page.DpRow>
             <Page.Space />
             <Page.DpRow style={{ gap: '8px', alignItems: 'center' }}>
-                <Page.Switch pState={sourceInfo.liveModeOnStart} pCallback={() => onChangeVideoInfo('liveModeOnStart', !sourceInfo.liveModeOnStart)} />
+                <Page.Switch pState={sourceInfo.liveModeOnStart} pCallback={() => onChangeVideoInfo('liveModeOnStart', !sourceInfo.liveModeOnStart)} data-testid="live-on-start" />
                 <Page.ContentDesc>Live Mode on Start</Page.ContentDesc>
             </Page.DpRow>
             <Page.Space />
             <Page.DpRow style={{ gap: '8px', alignItems: 'center' }}>
-                <Page.Switch pState={sourceInfo.enableSync} pCallback={() => onChangeVideoInfo('enableSync', !sourceInfo.enableSync)} />
+                <Page.Switch pState={sourceInfo.enableSync} pCallback={() => onChangeVideoInfo('enableSync', !sourceInfo.enableSync)} data-testid="enable-sync" />
                 <Page.ContentDesc>Enable Synchronization</Page.ContentDesc>
             </Page.DpRow>
         </Page.ContentBlock>

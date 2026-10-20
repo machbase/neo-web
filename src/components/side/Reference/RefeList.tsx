@@ -1,45 +1,30 @@
-import { getTutorial, postFileList } from '@/api/repository/api';
-import { gBoardList, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
+import { getTutorial } from '@/api/repository/api';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { binaryCodeEncodeBase64, getId, isImage } from '@/utils';
 import icons from '@/utils/icons';
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { VscCloudDownload } from 'react-icons/vsc';
 import { Loader } from '../../loader';
-import { gFileTree } from '@/recoil/fileTree';
-import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 import { Toast } from '@/design-system/components';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { Button, Side } from '@/design-system/components';
-
-type REFERENCE_ITEM = {
-    title: string;
-    address: string;
-    type: string;
-    target?: string;
-};
-const SUPPORT_QUICK_INSTALL_LIST = ['Tutorials', 'Demo web app', 'Education'];
+import { isQuickInstallable, openReferenceUrl, REFERENCE_ITEM, useQuickInstall } from './referenceActions';
 
 const RefList = ({ pValue }: any) => {
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const [sFileTree, setFileTree] = useRecoilState(gFileTree);
-    const [sProcessingList, setProcessingList] = useState<string[]>([]);
-    const quickInstallQueueRef = useRef<Promise<void>>(Promise.resolve());
-    const fileTreeRef = useRef(sFileTree);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
-    const setSelectedExtension = useSetRecoilState<string>(gSelectedExtension);
-
-    useEffect(() => {
-        fileTreeRef.current = sFileTree;
-    }, [sFileTree]);
+    const { install, isInstalling, prompt: sClonePrompt } = useQuickInstall();
+    const sLoadingReferences = useRef(new Set<string>());
 
     const openReference = async (pValue: any) => {
         const sId = getId();
         let sTmpBoard: any = { id: sId, name: pValue.title, type: pValue.type, path: '', savedCode: false, code: '' };
         if (pValue.type === 'url') {
-            window.open(pValue.address, pValue.target);
+            openReferenceUrl(pValue);
             return;
         } else {
             // Every board opened from here is tagged _CHEAT_SHEET, so re-clicking an entry focuses the tab
@@ -51,108 +36,82 @@ const RefList = ({ pValue }: any) => {
                 setSelectedTab(sAlreadyExist.id);
                 return;
             }
-            const sContentResult: any = await getTutorial(pValue.address);
-            // References are served from /web/tutorials, not /web/api/files, so the raw-text
-            // transformResponse in api/core does not apply and axios has already JSON.parse'd the body.
-            // The .dsh/.taz loaders below are the file explorer's, which take the file as a string.
-            const sRawContent = typeof sContentResult === 'string' ? sContentResult : JSON.stringify(sContentResult);
-            if (pValue.type === 'wrk') {
-                setBoardList([
-                    ...sBoardList,
-                    {
-                        id: sId,
-                        type: pValue.type,
-                        name: pValue.title,
-                        code: '',
-                        _CHEAT_SHEET: true,
-                        panels: [],
-                        path: '',
-                        sheet: sContentResult.data,
-                        savedCode: JSON.stringify(sContentResult.data),
-                        range_bgn: '',
-                        range_end: '',
-                    },
-                ]);
-                setSelectedTab(sId);
-                return;
-            } else if (isImage(pValue.title + '.' + pValue.type)) {
-                const base64 = binaryCodeEncodeBase64(sContentResult);
-                const updateBoard = {
-                    ...sTmpBoard,
-                    code: base64,
-                    savedCode: base64,
-                    type: pValue.type,
-                    _CHEAT_SHEET: true,
-                };
-
-                sTmpBoard = updateBoard;
-
-                setBoardList([...sBoardList, sTmpBoard]);
-            } else if (pValue.type === 'dsh') {
-                // A .dsh stores the whole board object, and Dashboard dereferences pInfo.dashboard during
-                // render — without the file's `dashboard` the tab throws before it paints. Run the same
-                // migration the file explorer runs (variables/distanceRange backfill, panel validate &
-                // repair, version stamp), then re-apply the tab's own identity: the file carries its own
-                // id/name/path ('NEO_STATZ.dsh', '/'), which would otherwise leave setSelectedTab pointing
-                // at a stale id and Save writing back to the file's original path.
-                const sTmpData: any = CheckDataCompatibility(sRawContent, 'dsh');
-                sTmpBoard = { ...sTmpData, id: sId, type: pValue.type, name: pValue.title, path: '', savedCode: JSON.stringify(JSON.parse(sRawContent).dashboard), _CHEAT_SHEET: true };
-                setBoardList([...sBoardList, sTmpBoard]);
-            } else if (pValue.type === 'taz') {
-                try {
-                    sTmpBoard = { ...loadTazBoard(JSON.parse(sRawContent), sId, pValue.title, ''), _CHEAT_SHEET: true };
-                } catch (error) {
-                    Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
+            // Repeated clicks share the in-flight open instead of adding another tab.
+            if (sLoadingReferences.current.has(pValue.address)) return;
+            sLoadingReferences.current.add(pValue.address);
+            try {
+                const sContentResult: any = await getTutorial(pValue.address);
+                const sFailure = getFileRequestFailure(sContentResult, 'Failed to load reference.');
+                if (sFailure) {
+                    Toast.error(sFailure.reason, { testId: 'reference-error-toast', id: 'reference-open' });
                     return;
                 }
-                setBoardList([...sBoardList, sTmpBoard]);
-            } else {
-                setBoardList([
-                    ...sBoardList,
-                    { id: sId, type: pValue.type, name: pValue.title, code: sContentResult, path: '', panels: [], sheet: [], savedCode: false, range_bgn: '', range_end: '', _CHEAT_SHEET: true },
-                ]);
-            }
-            setSelectedTab(sId);
-        }
-    };
-    const checkQuickInstall = (aName?: string): boolean => {
-        let sResult = false;
-        SUPPORT_QUICK_INSTALL_LIST.forEach((supItem: string) => {
-            if (supItem?.toUpperCase() === aName?.toUpperCase()) sResult = true;
-        });
-        return sResult;
-    };
+                // References are served from /web/tutorials, not /web/api/files, so the raw-text
+                // transformResponse in api/core does not apply and axios has already JSON.parse'd the body.
+                // The .dsh/.taz loaders below are the file explorer's, which take the file as a string.
+                const sRawContent = typeof sContentResult === 'string' ? sContentResult : JSON.stringify(sContentResult);
+                if (pValue.type === 'wrk') {
+                    setBoardList((boards: any[]) => [
+                        ...boards,
+                        {
+                            id: sId,
+                            type: pValue.type,
+                            name: pValue.title,
+                            code: '',
+                            _CHEAT_SHEET: true,
+                            panels: [],
+                            path: '',
+                            sheet: sContentResult.data,
+                            savedCode: JSON.stringify(sContentResult.data),
+                            range_bgn: '',
+                            range_end: '',
+                        },
+                    ]);
+                    setSelectedTab(sId);
+                    return;
+                } else if (isImage(pValue.title + '.' + pValue.type)) {
+                    const base64 = binaryCodeEncodeBase64(sContentResult);
+                    const updateBoard = {
+                        ...sTmpBoard,
+                        code: base64,
+                        savedCode: base64,
+                        type: pValue.type,
+                        _CHEAT_SHEET: true,
+                    };
 
-    const FetchQuickInstall = async (aFileNm: string, aPayload: { url: string; command: string }) => {
-        try {
-            const sResult: any = await postFileList(aPayload, `/${aFileNm}`, '');
-            if (sResult && sResult?.success) {
-                quickInstallQueueRef.current = quickInstallQueueRef.current.then(async () => {
-                    const currentFileTree = fileTreeRef.current;
-                    const sDrillRes = await TreeFetchDrilling(currentFileTree, `/${aFileNm}`);
-                    if (sDrillRes?.tree) {
-                        setFileTree(sDrillRes.tree);
-                        fileTreeRef.current = sDrillRes.tree;
+                    sTmpBoard = updateBoard;
+
+                    setBoardList((boards: any[]) => [...boards, sTmpBoard]);
+                } else if (pValue.type === 'dsh') {
+                    // A .dsh stores the whole board object, and Dashboard dereferences pInfo.dashboard during
+                    // render — without the file's `dashboard` the tab throws before it paints. Run the same
+                    // migration the file explorer runs (variables/distanceRange backfill, panel validate &
+                    // repair, version stamp), then re-apply the tab's own identity: the file carries its own
+                    // id/name/path ('NEO_STATZ.dsh', '/'), which would otherwise leave setSelectedTab pointing
+                    // at a stale id and Save writing back to the file's original path.
+                    const sTmpData: any = CheckDataCompatibility(sRawContent, 'dsh');
+                    sTmpBoard = { ...sTmpData, id: sId, type: pValue.type, name: pValue.title, path: '', savedCode: JSON.stringify(JSON.parse(sRawContent).dashboard), _CHEAT_SHEET: true };
+                    setBoardList((boards: any[]) => [...boards, sTmpBoard]);
+                } else if (pValue.type === 'taz') {
+                    try {
+                        sTmpBoard = { ...loadTazBoard(JSON.parse(sRawContent), sId, pValue.title, ''), _CHEAT_SHEET: true };
+                    } catch (error) {
+                        Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
+                        return;
                     }
-                });
-                await quickInstallQueueRef.current;
-                setSelectedExtension('EXPLORER');
-                Toast.success(`Creating in ${aFileNm} folder`);
+                    setBoardList((boards: any[]) => [...boards, sTmpBoard]);
+                } else {
+                    setBoardList((boards: any[]) => [
+                        ...boards,
+                        { id: sId, type: pValue.type, name: pValue.title, code: sContentResult, path: '', panels: [], sheet: [], savedCode: false, range_bgn: '', range_end: '', _CHEAT_SHEET: true },
+                    ]);
+                }
+                setSelectedTab(sId);
+            } finally {
+                sLoadingReferences.current.delete(pValue.address);
             }
-        } catch (error) {
-            Toast.error(`Quick install failed: ${error}`);
-        } finally {
-            setProcessingList((prev) => prev.filter((item) => item !== aFileNm));
         }
     };
-    const handleQuickInstall = async (aFileNm: string, aPayload: { url: string; command: string }) => {
-        setProcessingList((prev) => [...prev, aFileNm]);
-        await FetchQuickInstall(aFileNm, aPayload);
-    };
-    const checkProcessing = (aItem: REFERENCE_ITEM): boolean => {
-        return sProcessingList?.some((item) => item === aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1));
-    };
-
     return (
         <>
             <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
@@ -162,14 +121,14 @@ const RefList = ({ pValue }: any) => {
                 <Side.List>
                     {pValue.items.map((aItem: REFERENCE_ITEM, aIdx: number) => {
                         return (
-                            <Side.Item key={aIdx} onClick={() => openReference(aItem)}>
+                            <Side.Item data-testid={`reference-item-${encodeURIComponent(aItem.address)}`} key={aIdx} onClick={() => openReference(aItem)}>
                                 <Side.ItemContent>
                                     <Side.ItemIcon>{icons(aItem?.type)}</Side.ItemIcon>
                                     <Side.ItemText>{aItem?.title}</Side.ItemText>
                                 </Side.ItemContent>
-                                {checkQuickInstall(aItem?.title) ? (
+                                {isQuickInstallable(aItem?.title) ? (
                                     <Side.ItemAction>
-                                        <QuickInstall pItem={aItem} pIsProcessing={checkProcessing(aItem)} pQuickInstall={handleQuickInstall} />
+                                        <QuickInstall pItem={aItem} pIsProcessing={isInstalling(aItem)} pQuickInstall={install} />
                                     </Side.ItemAction>
                                 ) : null}
                             </Side.Item>
@@ -177,26 +136,17 @@ const RefList = ({ pValue }: any) => {
                     })}
                 </Side.List>
             )}
+            {sClonePrompt}
         </>
     );
 };
 export default RefList;
 
-const QuickInstall = ({
-    pItem,
-    pIsProcessing,
-    pQuickInstall,
-}: {
-    pItem: REFERENCE_ITEM;
-    pIsProcessing: boolean;
-    pQuickInstall: (aFileNm: string, aPayload: { url: string; command: string }) => Promise<void>;
-}) => {
+const QuickInstall = ({ pItem, pIsProcessing, pQuickInstall }: { pItem: REFERENCE_ITEM; pIsProcessing: boolean; pQuickInstall: (aItem: REFERENCE_ITEM) => Promise<void> }) => {
     const handleQuickInstall = async (e: React.MouseEvent<HTMLDivElement>, aItem: REFERENCE_ITEM) => {
         if (pIsProcessing) return;
         e.stopPropagation();
-        const lastPath = aItem?.address?.substring(aItem?.address?.lastIndexOf('/') + 1);
-        const sPaylod = { url: aItem?.address, command: 'clone' };
-        await pQuickInstall(lastPath, sPaylod);
+        await pQuickInstall(aItem);
     };
 
     return (
@@ -205,6 +155,7 @@ const QuickInstall = ({
             variant="ghost"
             isToolTip
             toolTipContent="Quick install"
+            data-testid={`quick-install-${encodeURIComponent(pItem.address)}`}
             icon={pIsProcessing ? <Loader width="14px" height="14px" /> : <VscCloudDownload size={16} />}
             onClick={(e: any) => handleQuickInstall(e, pItem)}
         />

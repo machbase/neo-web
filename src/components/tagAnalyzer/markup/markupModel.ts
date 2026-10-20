@@ -1,5 +1,5 @@
 import type { ContextMenuPosition } from '@/design-system/components';
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 
 export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
 export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
@@ -18,6 +18,11 @@ export type PanelHighlight = {
 export type PanelAnnotation = PanelHighlight & {
     seriesKey: string;
     clip: boolean;
+};
+
+export type AnnotationSeriesOption = {
+    key: string;
+    label: string;
 };
 
 export function createPanelHighlightDraft(

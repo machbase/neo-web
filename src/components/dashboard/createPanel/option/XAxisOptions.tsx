@@ -98,7 +98,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
     return (
         <>
             <Page.Divi />
-            <Page.Collapse title="xAxis">
+            <Page.Collapse title="xAxis" data-testid="xaxis-section">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Dropdown.Root
                         label="Interval type"
@@ -107,8 +107,8 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                         onChange={(value: string) => handleAxisInterval(value, pPanelOption.axisInterval.IntervalValue)}
                         fullWidth
                     >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
+                        <Dropdown.Trigger data-testid="interval-type" />
+                        <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                             <Dropdown.List />
                         </Dropdown.Menu>
                     </Dropdown.Root>
@@ -119,11 +119,12 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                         placeholder="auto"
                         value={pPanelOption.axisInterval.IntervalValue.toString() ?? ''}
                         onChange={(aEvent) => handleAxisInterval(pPanelOption.axisInterval.IntervalType, aEvent.target.value)}
+                        data-testid="interval-value"
                     />
                     {sShowValueAxisOptions && (
                         <>
                             <Page.Divi />
-                            <Page.Collapse title="Options">
+                            <Page.Collapse title="Options" data-testid="options-section">
                                 <Page.ContentBlock pHoverNone style={{ padding: 0, gap: '8px', display: 'flex', flexDirection: 'column' }}>
                                     <HierarchicalCombobox.Root
                                         label="Unit"
@@ -143,6 +144,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                                         placeholder="auto"
                                         value={pPanelOption?.xAxisOptions[0]?.label?.decimals ?? ''}
                                         onChange={(aEvent) => handleXAxisOption('decimals', aEvent)}
+                                        data-testid="decimals"
                                     />
                                     <Input
                                         label="Min"
@@ -151,6 +153,7 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                                         placeholder="auto"
                                         value={pPanelOption?.xAxisOptions[0]?.min ?? ''}
                                         onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value)}
+                                        data-testid="min"
                                     />
                                     <Input
                                         label="Max"
@@ -159,12 +162,14 @@ export const XAxisOptions = (props: XAxisOptionProps) => {
                                         placeholder="auto"
                                         value={pPanelOption?.xAxisOptions[0]?.max ?? ''}
                                         onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value)}
+                                        data-testid="max"
                                     />
                                     <Checkbox
                                         size="sm"
                                         label="Start at zero"
                                         defaultChecked={!pPanelOption?.xAxisOptions[0]?.scale}
                                         onChange={(aEvent: any) => handleXAxisOption('scale', aEvent)}
+                                        data-testid="start-at-zero"
                                     />
                                 </Page.ContentBlock>
                             </Page.Collapse>

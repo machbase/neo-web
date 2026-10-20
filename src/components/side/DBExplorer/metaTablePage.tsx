@@ -1,7 +1,7 @@
 import { Page, Toast, CommonTable } from '@/design-system/components';
 import { isDatabaseWritable, normalizeDatabaseId } from '@/utils/currentDatabaseState';
 import { isMountedTableName } from '@/utils/qualifiedTableName';
-import { createTagAnalyzerBoardFromDatabaseSeries } from '@/components/tagAnalyzer/integration';
+import { createTagAnalyzerBoardFromDatabaseSeries } from '@/components/tagAnalyzer/application/adapters';
 import { canOpenTagAnalyzerFromMetaColumns, createTagAnalyzerColumnsFromDbExplorer, getTagNameFromMetaRow } from './TagAnalyzerUtil';
 import { buildQualifiedTableName, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -16,6 +16,7 @@ import { StatzTableModal } from './statzTableModal';
 import { StatzFilterMode, StatzModalInfo } from './statzTableQuery';
 import { TagHierarchyPage } from '@/components/tagHierarchy/TagHierarchyPage';
 import { HIERARCHY_RESERVED_NAME } from '@/api/repository/tagHierarchy';
+import { sqlContains, sqlIdentifier, sqlIdentifierPath, sqlString } from '@/utils/queryText';
 
 type META_MOD_TYPE = 'INSERT' | 'UPDATE' | 'DELETE';
 const IGNORE_COL_LIST = ['_ID'];
@@ -121,17 +122,23 @@ export const MetaTablePage = ({
         [mTableInfo, mCanEditMeta]
     );
 
+    // The list and its count read the same rows, so they share one statement tail.
+    const buildMetaSearchTarget = useCallback(
+        (aFilter: string) => {
+            const sTagColumn = sqlIdentifier(pMColInfo?.rows?.[0]?.[0]);
+            const sMetaTable = sqlIdentifierPath(mTableInfo[E_TABLE_INFO.DB_NM], mTableInfo[E_TABLE_INFO.USER_NM], `_${mTableInfo[E_TABLE_INFO.TB_NM]}_META`);
+            return `${sMetaTable} WHERE ${sTagColumn} <> ${sqlString(HIERARCHY_RESERVED_NAME)}${aFilter ? ` AND ${sTagColumn} LIKE ${sqlContains(aFilter)}` : ''}`;
+        },
+        [mTableInfo, pMColInfo]
+    );
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
             const sFetchSeq = ++sMetaFetchSeq.current;
             setIsLoading(true);
             const currentPage = opt?.page !== undefined ? opt?.page : sPage;
             const currentFilter = opt?.filter !== undefined ? opt.filter : sFilter;
-            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
-                pMColInfo?.rows?.[0]?.[0]
-            } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
-            const sQuery = `select * from ${sTargetTable} order by _id asc`;
-            const { svrState, svrData } = await fetchTqlQuery(sQuery, currentPage);
+            const sQuery = `select * from ${buildMetaSearchTarget(currentFilter)} order by _id asc`;
+            const { svrState, svrData, svrReason } = await fetchTqlQuery(sQuery, currentPage);
 
             // A newer fetch already took over; keep its rows and its loading state.
             if (sFetchSeq !== sMetaFetchSeq.current) return;
@@ -145,20 +152,21 @@ export const MetaTablePage = ({
                     rows: currentPage === 0 ? newRows : (prevInfo?.rows || []).concat(newRows),
                 }));
                 setHasMoreData(hasMoreData);
-            } else setMetaTableInfo(undefined);
+            } else {
+                // A failed read is not an empty result; the count beside it fails with it and stays quiet.
+                setMetaTableInfo(undefined);
+                Toast.error(svrReason, { testId: 'db-meta-error-toast' });
+            }
 
             setIsLoading(false);
         },
-        [mTableInfo, pMColInfo]
+        [buildMetaSearchTarget]
     );
     const FetchMetaTableCnt = useCallback(
         async (filter: string) => {
             const sFetchSeq = ++sMetaCntFetchSeq.current;
             const currentFilter = filter !== undefined ? filter : sFilter;
-            const sTargetTable = `${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}._${mTableInfo[E_TABLE_INFO.TB_NM]}_META WHERE ${
-                pMColInfo?.rows?.[0]?.[0]
-            } <> '${HIERARCHY_RESERVED_NAME}' AND ${pMColInfo?.rows?.[0]?.[0]} LIKE '%${currentFilter ? currentFilter + '%' : ''}'`;
-            const sQuery = `select count(*) from ${sTargetTable}`;
+            const sQuery = `select count(*) from ${buildMetaSearchTarget(currentFilter)}`;
             const { svrState, svrData } = await fetchQuery(sQuery);
 
             // Same guard as FetchMetaTable: a late count must not overwrite a newer one.
@@ -167,7 +175,7 @@ export const MetaTablePage = ({
             if (svrState) setMetaTableCnt(svrData?.rows?.[0]?.[0] ?? 0);
             else setMetaTableCnt(0);
         },
-        [mTableInfo, pMColInfo]
+        [buildMetaSearchTarget]
     );
     const convertTagMetaForInsert = (aValues: STR_NUM_ARR_TYPE) => {
         const sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
@@ -176,7 +184,7 @@ export const MetaTablePage = ({
                 else return aValues[idx];
             } else {
                 if (aValues[idx] === null || aValues[idx] === undefined) return "''";
-                else return `'${aValues[idx]}'`;
+                else return sqlString(aValues[idx]);
             }
         });
         return sResultList;
@@ -184,11 +192,11 @@ export const MetaTablePage = ({
     const convertTagMetaForUpdate = (aValues: STR_NUM_ARR_TYPE) => {
         const sResultList = mMetaColumnListWithoutID?.map((colNm: string, idx: number) => {
             if (DATA_NUMBER_TYPE.includes(sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(colNm) as number] as string)) {
-                if (aValues[idx] === null || aValues[idx] === undefined || aValues[idx] === '') return `${colNm}=NULL`;
-                else return `${colNm}=${Number(aValues[idx])}`;
+                if (aValues[idx] === null || aValues[idx] === undefined || aValues[idx] === '') return `${sqlIdentifier(colNm)}=NULL`;
+                else return `${sqlIdentifier(colNm)}=${Number(aValues[idx])}`;
             } else {
-                if (aValues[idx] === null || aValues[idx] === undefined) return `${colNm}=''`;
-                else return `${colNm}='${aValues[idx]}'`;
+                if (aValues[idx] === null || aValues[idx] === undefined) return `${sqlIdentifier(colNm)}=''`;
+                else return `${sqlIdentifier(colNm)}=${sqlString(aValues[idx])}`;
             }
         });
         return sResultList;
@@ -199,24 +207,24 @@ export const MetaTablePage = ({
         return aRow.filter((_, index) => index !== idIndex);
     };
     const ModMeta = async (aCommand: META_MOD_TYPE, aTagNm: string, aValues?: STR_NUM_ARR_TYPE) => {
+        const sTable = sqlIdentifierPath(mTableInfo[E_TABLE_INFO.DB_NM], mTableInfo[E_TABLE_INFO.USER_NM], mTableInfo[E_TABLE_INFO.TB_NM]);
+        // IN, not `=`: for a tag name holding a backslash `sqlString` is an expression, and the engine's
+        // METADATA UPDATE matches no row for `name = <expression>` while it does for `name IN (<expression>)`.
+        const sTagCondition = `${sqlIdentifier(pMColInfo?.rows?.[0]?.[0])} IN (${sqlString(aTagNm)})`;
         let sQuery = '';
         if (aCommand === 'INSERT') {
-            sQuery = `INSERT INTO ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA VALUES(${convertTagMetaForInsert(
+            sQuery = `INSERT INTO ${sTable} METADATA VALUES(${convertTagMetaForInsert(
                 aValues as STR_NUM_ARR_TYPE
             )})`;
         }
         if (aCommand === 'UPDATE') {
             const sConvertedStr = convertTagMetaForUpdate(aValues as STR_NUM_ARR_TYPE);
-            sQuery = `UPDATE ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA SET ${sConvertedStr} WHERE ${
-                pMColInfo?.rows?.[0]?.[0]
-            }='${aTagNm}'`;
+            sQuery = `UPDATE ${sTable} METADATA SET ${sConvertedStr} WHERE ${sTagCondition}`;
         }
         if (aCommand === 'DELETE') {
             // Close modal
             setIsOpenConfirm(false);
-            sQuery = `DELETE FROM ${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]}.${mTableInfo[E_TABLE_INFO.TB_NM]} METADATA WHERE ${
-                pMColInfo?.rows?.[0]?.[0]
-            }='${aTagNm}'`;
+            sQuery = `DELETE FROM ${sTable} METADATA WHERE ${sTagCondition}`;
         }
 
         const { svrState, svrReason } = await fetchQuery(sQuery);
@@ -240,7 +248,7 @@ export const MetaTablePage = ({
                 });
 
             if (aCommand === 'INSERT' || aCommand === 'DELETE') {
-                Toast.success(svrReason);
+                Toast.success(svrReason, { testId: 'db-meta-toast' });
                 FetchMetaTableCnt(sFilter);
             }
         } else {
@@ -412,6 +420,7 @@ export const MetaTablePage = ({
         <div
             key={mTableInfo[E_TABLE_INFO.DB_NM] + mTableInfo[E_TABLE_INFO.USER_NM] + mTableInfo[E_TABLE_INFO.TB_NM]}
             style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 40px)' }}
+            data-testid="db-meta-table"
         >
             {CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG ? (
                 pMetaView !== 'hierarchy' ? (
@@ -442,6 +451,7 @@ export const MetaTablePage = ({
                                                             ) : null}
                                                         </Page.DpRow>
                                                         <Page.Input
+                                                            data-testid={`input-${encodeURIComponent(column)}`}
                                                             pValue={sModUpdateInfo?.values?.[colIdx] ?? ''}
                                                             pWidth={'400px'}
                                                             pCallback={(event: React.FormEvent<HTMLInputElement>) => handleMetaPayload(colIdx, event)}
@@ -451,8 +461,8 @@ export const MetaTablePage = ({
                                             })}
                                             <Page.ContentBlock>
                                                 <Page.DpRow>
-                                                    <Page.TextButton pIsDisable={!sModUpdateInfo?.values?.[0]} pText="SAVE" pType="CREATE" pCallback={handleInsertMeta} />
-                                                    <Page.TextButton pText="CANCEL" pType="DELETE" pCallback={() => setModUpdateInfo({ isOpen: false, values: [], msg: undefined })} />
+                                                    <Page.TextButton data-testid="save" pIsDisable={!sModUpdateInfo?.values?.[0]} pText="SAVE" pType="CREATE" pCallback={handleInsertMeta} />
+                                                    <Page.TextButton data-testid="cancel" pText="CANCEL" pType="DELETE" pCallback={() => setModUpdateInfo({ isOpen: false, values: [], msg: undefined })} />
                                                 </Page.DpRow>
                                                 {sModUpdateInfo?.msg ? <Page.TextResErr pText={sModUpdateInfo?.msg} /> : null}
                                             </Page.ContentBlock>
@@ -461,7 +471,7 @@ export const MetaTablePage = ({
                                     ) : null}
                                     <Page.ContentBlock pHoverNone>
                                         <Page.DpRowBetween>
-                                            <Page.ContentDesc>count: {sMetaTableCnt?.toLocaleString() ?? 0}</Page.ContentDesc>
+                                            <Page.ContentDesc data-testid="count">count: {sMetaTableCnt?.toLocaleString() ?? 0}</Page.ContentDesc>
                                             {sModUpdateInfo.isOpen ? (
                                                 <div />
                                             ) : (
@@ -471,6 +481,7 @@ export const MetaTablePage = ({
                                                 <Page.DpRow>
                                                     {allowedV$() ? (
                                                         <Page.TextButton
+                                                            data-testid="info"
                                                             pText="Info"
                                                             mr={mCanEditMeta ? '8px' : '0'}
                                                             pType="STATUS"
@@ -478,11 +489,12 @@ export const MetaTablePage = ({
                                                             pCallback={() => handleVirtualModal(sFilter, 'search')}
                                                         />
                                                     ) : null}
-                                                    {mCanEditMeta ? <Page.TextButton pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} /> : null}
+                                                    {mCanEditMeta ? <Page.TextButton data-testid="insert" pText="+ Insert" mr="0" pType="CREATE" pCallback={handleInsertBlock} /> : null}
                                                 </Page.DpRow>
                                             )}
                                         </Page.DpRowBetween>
                                         <Page.Input
+                                            data-testid="search"
                                             pPlaceholder={'Search'}
                                             pValue={sFilter}
                                             pWidth={'100%'}
@@ -501,6 +513,7 @@ export const MetaTablePage = ({
                                         editable={mCanEditMeta}
                                         showRowNumber
                                         showCopyButton
+                                        getRowTestId={(aRow: STR_NUM_ARR_TYPE) => `row-${encodeURIComponent(String(aRow?.[mMetaColumnList?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number] ?? ''))}`}
                                         onRowAction={handleMoveTaz}
                                         hideRowAction={!sCanOpenTagAnalyzer}
                                         onRowDelete={mCanEditMeta ? handleDeleteMeta : undefined}
@@ -512,6 +525,7 @@ export const MetaTablePage = ({
                                 ) : null}
                                 {sIsOpenConfirm ? (
                                     <ConfirmModal
+                                        data-testid="db-meta-delete-dialog"
                                         pIsDarkMode
                                         setIsOpen={setIsOpenConfirm}
                                         pCallback={() => ModMeta('DELETE', sDelInfo)}

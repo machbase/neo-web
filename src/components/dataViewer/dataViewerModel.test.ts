@@ -4,6 +4,7 @@ import {
     buildDataViewerEChartOption,
     buildDataViewerGlobalTimeUpdate,
     buildDataViewerTagAnalyzerRange,
+    buildDataViewerJsonKeyTagAnalyzerRange,
     resolveDataViewerBaseColumnType,
     buildDataViewerTagAnalyzerTableName,
     buildDataViewerChartResultsFromRawRows,
@@ -59,6 +60,7 @@ import {
     isDataViewerRangeReversed,
     parseDataViewerDistanceValue,
 } from './dataViewerModel';
+import { createTagAnalyzerBoardFromPayload } from '@/components/tagAnalyzer/application/adapters';
 
 describe('data viewer chart helpers', () => {
     test('shouldFetchDataViewerRowsForMode keeps raw rows active for raw and chart', () => {
@@ -997,6 +999,28 @@ describe('data viewer chart helpers', () => {
             endEpochMs: Date.parse('2026-06-01T01:00:00.000Z'),
         });
         expect(buildDataViewerTagAnalyzerRange({ startTime: 2000, endTime: 1000 })).toBeUndefined();
+    });
+
+    test('JSON key handoff keeps displayed milliseconds in the created board', () => {
+        const start = Date.parse('2026-09-21T12:00:01.163Z');
+        const end = Date.parse('2026-09-21T12:00:02.839Z');
+        const range = buildDataViewerJsonKeyTagAnalyzerRange({ from: start, to: end });
+        expect(range).toEqual({ startIso: '2026-09-21T12:00:01.163Z', endIso: '2026-09-21T12:00:02.839Z' });
+
+        const result = createTagAnalyzerBoardFromPayload({
+            range,
+            tags: [{
+                tagName: 'sensor', table: 'MACHBASEDB.SYS.TAG', calculationMode: 'avg', alias: '', weight: 1,
+                colName: { name: 'NAME', time: 'TIME', value: 'VALUE', timeType: 6, timeBaseTime: true, jsonKey: '[temperature]' },
+            }],
+        });
+        expect(result.status).toBe('ok');
+        if (result.status === 'ok') {
+            expect(result.board.boardTimeRange).toEqual({
+                start: '2026-09-21T12:00:01.163Z',
+                end: '2026-09-21T12:00:02.839Z',
+            });
+        }
     });
 
     test('buildDataViewerTagAnalyzerRange sends a distance window in the numeric vocabulary', () => {
@@ -2230,5 +2254,32 @@ describe('distance slider edge snapping', () => {
         expect(snapDataViewerDistanceEdge({ value: 42 })).toBe(42);
         expect(snapDataViewerDistanceEdge({ ...wide, value: 'abc' })).toBe(0);
         expect(snapDataViewerDistanceEdge()).toBe(0);
+    });
+});
+
+describe('ARRAY chart rendering', () => {
+    test.each([
+        [[1, 2, 3], [0, 0, 0]],
+        [[null, 2, null], [0, 6, 0]],
+        [[1], [6]],
+        [[1, null, 3, 4, null, 6], [6, 0, 0, 0, 0, 6]],
+        [[null, null], [0, 0]],
+        [[0, null], [6, 0]],
+    ])('marks only isolated values in %j', (values, sizes) => {
+        const data = values.map((value, index) => [index, value] as [number, number | null]);
+        const options = buildDataViewerEChartOption({ arrayElements: true, series: [{name: 'VALUE[0]', data}] });
+        const main = options.series[0];
+        if (!('symbolSize' in main)) throw new Error('Missing main series');
+        const size = main.symbolSize as (value: unknown, params: {dataIndex: number}) => number;
+        expect(data.map((point, dataIndex) => size(point, {dataIndex}))).toEqual(sizes);
+    });
+    test('keeps isolated points and disables sampling without drawing a partial navigator', () => {
+        const data: Array<[number, number | null]> = Array.from({ length: 1001 }, (_, index) => [index, index % 2 ? null : index]);
+        const options = buildDataViewerEChartOption({ arrayElements: true, baseKind: 'distance', series: [{ name: 'VALUE[0]', data }], timeRange: { from: 0, to: 2000 } });
+        expect(options.series).toHaveLength(1);
+        expect(options.series[0]).toMatchObject({ showSymbol: true, connectNulls: false, sampling: undefined, data });
+        const existing = buildDataViewerEChartOption({ baseKind: 'distance', series: [{ name: 'scalar', data }] });
+        expect(existing.series).toHaveLength(2);
+        expect(existing.series[0]).toMatchObject({ showSymbol: false, sampling: 'lttb' });
     });
 });

@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import { sqlContains, sqlIdentifier, sqlIdentifierPath, sqlQueryUrl, sqlString, tqlString } from '@/utils/queryText';
 import { qualifyTableName, qualifySiblingObject } from '@/utils/qualifiedTableName';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { getCurrentDatabaseId, hasLogicalDatabases } from '@/utils/currentDatabaseState';
@@ -78,7 +79,7 @@ const postTerminalSize = async (aTerminalId: number, aSize: { cols: number; rows
     });
 };
 const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?: any) => {
-    const sSQL = 'INPUT(SQL(`' + aSql + '`))\n' + 'DROP(' + (aLimit * 50 - 50) + ')\n' + 'TAKE(50)\n' + "OUTPUT(JSON(timeformat('" + aFormat + "'), tz('" + aTimezone + "')))";
+    const sSQL = `INPUT(SQL(${tqlString(aSql)}))\nDROP(${aLimit * 50 - 50})\nTAKE(50)\nOUTPUT(JSON(timeformat(${tqlString(aFormat)}), tz(${tqlString(aTimezone)})))`;
     return await request({
         method: 'POST',
         url: `/api/tql`,
@@ -102,18 +103,16 @@ const fetchTableName = async (aTable: string) => {
         }
     } else {
         DBName = hasLogicalDatabases()
-            ? `(select DATABASE_ID from V$DATABASES WHERE NAME = '${sTableInfos[0]}')`
-            : `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = '${sTableInfos[0]}')`;
+            ? `(select DATABASE_ID from V$DATABASES WHERE NAME = ${sqlString(sTableInfos[0])})`
+            : `(select BACKUP_TBSID from V$STORAGE_MOUNT_DATABASES WHERE MOUNTDB = ${sqlString(sTableInfos[0])})`;
         sTableName = sTableInfos[sTableInfos.length - 1];
         sUserName = sTableInfos[1];
     }
-    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
-
-    const queryString = `/api/query?q=${sSql}`;
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER(${sqlString(sUserName)}) AND MC.DATABASE_ID = ${DBName} AND MT.NAME = ${sqlString(sTableName)} AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
     const sData = await request({
         method: 'GET',
-        url: encodeURI(queryString),
+        url: sqlQueryUrl(sSql),
     });
 
     return sData;
@@ -123,8 +122,8 @@ const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName, RollupList } = params;
     const sCurrentUserName = getUserName();
     const sTableName = isCurUserEqualAdmin() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
-    const sName = colName.name;
-    const sTime = colName.time;
+    const sName = sqlIdentifier(colName.name);
+    const sTime = sqlIdentifier(colName.time);
     const sValue = toSqlValueExpressionForAggregator(colName.value, CalculationMode, colName.jsonKey);
     const sRollup = Rollup && canUseTagAnalyzerRollup(colName);
     const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
@@ -168,7 +167,7 @@ const fetchCalculationData = async (params: any) => {
             return createJsonRollupAggregationMetric({
                 aggregator: CalculationMode,
                 outputAlias: 'VALUE',
-                jsonColumn: sBaseJsonRollupValue.column,
+                jsonColumn: sqlIdentifier(sBaseJsonRollupValue.column),
                 jsonPath: sBaseJsonRollupValue.path,
                 timeExpression: sTime,
             });
@@ -201,7 +200,7 @@ const fetchCalculationData = async (params: any) => {
             start: sStartTime,
             end: sEndTime,
         },
-        baseConditions: [`${sName} in ('${TagNames}')`],
+        baseConditions: [`${sName} in (${sqlString(TagNames)})`],
         intervalType: IntervalType,
         intervalValue: IntervalValue,
         rollupTimeExpression: buildRollupTimeExpression(sTime, IntervalType, IntervalValue),
@@ -215,7 +214,7 @@ const fetchCalculationData = async (params: any) => {
     // UTC+${-1 * (getTimeZoneValue() / 60)}
     // const sTimezone = String(-1 * (getTimeZoneValue() / 60));
 
-    const sLastQuery = `SQL("${sMainQuery}")\nCSV()`;
+    const sLastQuery = `SQL(${tqlString(sMainQuery)})\nCSV()`;
     const sData = await request({
         method: 'POST',
         url: '/api/tql/taz',
@@ -259,9 +258,9 @@ const fetchRawData = async (params: any) => {
     const sCheckEndTime = End.toString().includes('.');
     const sTimeRange = (End - Start) / 2;
 
-    const sNameCol = colName.name;
-    const sTimeCol = colName.time;
-    const sValueCol = colName.jsonKey ? jsonValueFieldToNumericSql(colName.value, colName.jsonKey) : colName.value;
+    const sNameCol = sqlIdentifier(colName.name);
+    const sTimeCol = sqlIdentifier(colName.time);
+    const sValueCol = colName.jsonKey ? jsonValueFieldToNumericSql(colName.value, colName.jsonKey) : sqlIdentifier(colName.value);
     const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
 
     if (!sUseNumericBaseTime) {
@@ -299,7 +298,7 @@ const fetchRawData = async (params: any) => {
 
     let sQuery = `SELECT${
         UseSampling ? '/*+ SAMPLING(' + sampleValue + ') */' : ''
-    } ${sTimeQ}, ${sValueQ} FROM ${Table} WHERE ${sNameCol} = '${TagNames}' AND ${sTimeCol} BETWEEN ${sStartTime} AND ${sEndTime}`;
+    } ${sTimeQ}, ${sValueQ} FROM ${sqlIdentifierPath(Table)} WHERE ${sNameCol} = ${sqlString(TagNames)} AND ${sTimeCol} BETWEEN ${sStartTime} AND ${sEndTime}`;
 
     if (sOrderBy !== '') {
         sQuery = sQuery + ' ORDER BY ' + sOrderBy;
@@ -316,7 +315,7 @@ const fetchRawData = async (params: any) => {
     }
 
     // const queryString = `/machbase?q=${encodeURIComponent(sQuery)}&timeformat=ns`;
-    const sLastQuery = `SQL("${sQuery}")\nCSV()`;
+    const sLastQuery = `SQL(${tqlString(sQuery)})\nCSV()`;
 
     const sData = await request({
         method: 'POST',
@@ -347,10 +346,10 @@ const fetchRawData = async (params: any) => {
 
 export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
     const sTime = aTargetInfo.time || aTargetInfo.tableInfo[1][0];
-    const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
+    const sQuery = `select min(${sqlIdentifier(sTime)}), max(${sqlIdentifier(sTime)}) from ${sqlIdentifierPath(aTargetInfo.table)}`;
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(sQuery),
+        url: sqlQueryUrl(sQuery),
     });
 
     if (sData.status >= 400) {
@@ -374,7 +373,7 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
 const requestMinMaxQuery = async (aQuery: string) =>
     request({
         method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(aQuery),
+        url: sqlQueryUrl(aQuery),
     });
 
 const isFailedMinMaxResponse = (aData: any) => (aData?.status ?? 0) >= 400 || aData?.data?.success === false;
@@ -416,7 +415,7 @@ const fetchTagTimeMinMaxResponse = async (aTargetInfo: any) => {
     const sSourceTable = sIsVirtualTable
         ? qualifySiblingObject(aTargetInfo.userName, aTargetInfo.table, (n) => removeV$Table(n))
         : qualifyTableName(aTargetInfo.userName, aTargetInfo.table);
-    const sScanQuery = `select min(${sTime}), max(${sTime}) from ${sSourceTable} where ${sName} in ('${aTargetInfo.tag}')`;
+    const sScanQuery = `select min(${sqlIdentifier(sTime)}), max(${sqlIdentifier(sTime)}) from ${sqlIdentifierPath(sSourceTable)} where ${sqlIdentifier(sName)} in (${sqlString(aTargetInfo.tag)})`;
 
     // A time base has to be on the default TIME column: MIN_TIME describes BASETIME, and for any
     // other datetime column the view would answer a question nobody asked — successfully. A distance
@@ -428,7 +427,7 @@ const fetchTagTimeMinMaxResponse = async (aTargetInfo: any) => {
 
     // Aggregated because the view answers one row per tag, and one row per warehouse per tag on a
     // cluster; the aggregate is the extent either way and always a single row.
-    const sStatQuery = (aBaseKind: TagStatBaseKind) => `select ${buildTagStatExtentSelect(aBaseKind, 'mn', 'mx')} from ${sStatView} where name in ('${aTargetInfo.tag}')`;
+    const sStatQuery = (aBaseKind: TagStatBaseKind) => `select ${buildTagStatExtentSelect(aBaseKind, 'mn', 'mx')} from ${sqlIdentifierPath(sStatView)} where name in (${sqlString(aTargetInfo.tag)})`;
     const sStatData = await requestMinMaxQuery(sStatQuery(sBaseKind));
     if (!isFailedMinMaxResponse(sStatData)) return sStatData;
 
@@ -476,10 +475,10 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
 };
 
 export const fetchDashboardJsonColumnSamples = async (aTable: string, aColumn: string) => {
-    const sQuery = `select ${aColumn} from ${aTable} where ${aColumn} is not null limit 50`;
+    const sQuery = `select ${sqlIdentifier(aColumn)} from ${sqlIdentifierPath(aTable)} where ${sqlIdentifier(aColumn)} is not null limit 50`;
     return await request({
         method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(sQuery),
+        url: sqlQueryUrl(sQuery),
     });
 };
 
@@ -550,7 +549,7 @@ const fetchRollUp = async (table: string) => {
 const fetchOnRollupTable = async (table: string) => {
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=select * from v$rollup where root_table = '${table}' and ENABLED = 1 `,
+        url: sqlQueryUrl(`select * from v$rollup where root_table = ${sqlString(table)} and ENABLED = 1 `),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -598,7 +597,7 @@ order by user_name, root_table asc, interval_time desc`;
 
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=${sUrl}`,
+        url: sqlQueryUrl(sUrl),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -649,14 +648,13 @@ order by user_name, root_table asc, interval_time desc`;
  */
 export const getTagPagination = async (aTable: string, aFilter: string, aPage: number, aColName: string) => {
     const DEFAULT_LIMIT = 10;
-    const sFilter = aFilter ? `${aColName} like '%${aFilter}%'` : '';
+    const sFilter = aFilter ? `${sqlIdentifier(aColName)} like ${sqlContains(aFilter)}` : '';
     const sLimit = `${(aPage - 1) * DEFAULT_LIMIT}, ${DEFAULT_LIMIT}`;
     const sTableName = getMetaTableName(aTable);
     const sData = await request({
         method: 'GET',
         url:
-            `/api/query?q=` +
-            encodeURIComponent(`select * from ${sTableName}${sFilter !== '' ? ' where ' + sFilter + ` ORDER BY ${aColName} ` : ` ORDER BY ${aColName} `} LIMIT ${sLimit}`),
+            sqlQueryUrl(`select * from ${sqlIdentifierPath(sTableName)}${sFilter !== '' ? ' where ' + sFilter + ` ORDER BY ${sqlIdentifier(aColName)} ` : ` ORDER BY ${sqlIdentifier(aColName)} `} LIMIT ${sLimit}`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {
@@ -678,10 +676,10 @@ const getMetaTableName = (aTableName: string) => {
 
 export const getTagTotal = async (aTable: string, aFilter: string, aColName: string) => {
     const sTableName = getMetaTableName(aTable);
-    const sFilter = aFilter ? `${aColName} like '%${aFilter}%'` : '';
+    const sFilter = aFilter ? `${sqlIdentifier(aColName)} like ${sqlContains(aFilter)}` : '';
     const sData = await request({
         method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(`select count(*) from ${sTableName}${sFilter !== '' ? ' where ' + sFilter : ''}`),
+        url: sqlQueryUrl(`select count(*) from ${sqlIdentifierPath(sTableName)}${sFilter !== '' ? ' where ' + sFilter : ''}`),
     });
     if (sData.status >= 400) {
         if (typeof sData.data === 'object') {

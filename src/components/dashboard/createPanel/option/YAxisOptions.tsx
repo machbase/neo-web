@@ -105,6 +105,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                     color: block.color,
                     idx: idx,
                     type: E_BLOCK_TYPE.STD,
+                    testId: `series-${encodeURIComponent(block.id)}`,
                 };
             }) ?? [];
 
@@ -114,6 +115,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                 color: trxB?.color,
                 idx: idx + 100,
                 type: E_BLOCK_TYPE.TRX,
+                testId: `transform-${encodeURIComponent(trxB?.id ?? '')}`,
             };
         });
 
@@ -167,10 +169,15 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
     return (
         <>
             <Page.Divi />
-            <Page.Collapse title="yAxis">
+            <Page.Collapse title="yAxis" data-testid="yaxis-section">
                 {pPanelOption.yAxisOptions.map((aItem: any, aIndex: number) => (
-                    <Page.ContentBlock pHoverNone key={aItem.type + aIndex} style={{ flex: 1, border: 'solid 1px #454545', borderRadius: '4px' }}>
-                        {aIndex === 1 && <Button size="icon" variant="ghost" icon={<Close />} onClick={addRemoveYAixs} />}
+                    <Page.ContentBlock
+                        pHoverNone
+                        key={aItem.type + aIndex}
+                        style={{ flex: 1, border: 'solid 1px #454545', borderRadius: '4px' }}
+                        data-testid={aIndex === 0 ? 'y-axis-primary' : 'y-axis-secondary'}
+                    >
+                        {aIndex === 1 && <Button size="icon" variant="ghost" icon={<Close />} onClick={addRemoveYAixs} data-testid="remove-y-axis" />}
                         <Input
                             label="Name"
                             type="text"
@@ -178,6 +185,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             placeholder="none"
                             value={aItem?.label?.title ?? ''}
                             onChange={(aEvent) => handleYAxisOption('title', aEvent, aIndex)}
+                            data-testid="name"
                         />
                         <Page.Space />
                         <Dropdown.Root
@@ -187,8 +195,8 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             onChange={(value: string) => handleYAxisPosition(value, aIndex)}
                             fullWidth
                         >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
+                            <Dropdown.Trigger data-testid="position" />
+                            <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                 <Dropdown.List />
                             </Dropdown.Menu>
                         </Dropdown.Root>
@@ -200,10 +208,11 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             placeholder="auto"
                             value={aItem?.offset ?? ''}
                             onChange={(aEvent) => handleYAxisOption('offset', aEvent, aIndex)}
+                            data-testid="offset"
                         />
                         <Page.Divi />
                         {/* TICK  */}
-                        <Page.Collapse title="Tick options" size="sm">
+                        <Page.Collapse title="Tick options" size="sm" data-testid="tick-options-section">
                             <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                                 <HierarchicalCombobox.Root
                                     label="Unit"
@@ -224,6 +233,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     placeholder="auto"
                                     value={aItem?.label?.decimals ?? ''}
                                     onChange={(aEvent) => handleYAxisOption('decimals', aEvent, aIndex)}
+                                    data-testid="decimals"
                                 />
                                 <Page.Space />
                                 <Input
@@ -233,6 +243,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     placeholder="auto"
                                     value={aItem?.min ?? ''}
                                     onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
+                                    data-testid="min"
                                 />
                                 <Page.Space />
                                 <Input
@@ -242,30 +253,33 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     placeholder="auto"
                                     value={aItem?.max ?? ''}
                                     onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
+                                    data-testid="max"
                                 />
                                 <Page.Space />
-                                <Checkbox size="sm" label="Start at zero" defaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
+                                <Checkbox size="sm" label="Start at zero" defaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} data-testid="start-at-zero" />
                             </Page.ContentBlock>
                         </Page.Collapse>
                         {/* Threshold  */}
                         {sUseThreshold ? (
                             <>
                                 <Page.Divi />
-                                <Page.Collapse title="Thresholds" size="sm">
+                                <Page.Collapse title="Thresholds" size="sm" data-testid="thresholds-section">
                                     <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                                        <Button fullWidth variant="secondary" icon={<PlusCircle size={16} />} onClick={() => addThreshold(aIndex)}>
+                                        <Button fullWidth variant="secondary" icon={<PlusCircle size={16} />} onClick={() => addThreshold(aIndex)} data-testid="add-threshold">
                                             Add threshold
                                         </Button>
                                         {aItem.thresholds?.map((threshold: { color: string; value: number }, tIdx: number) => (
-                                            <div key={tIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+                                            // Thresholds carry no key of their own; rows are told apart by order.
+                                            <div key={tIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }} data-testid="threshold">
                                                 <Input
                                                     type="number"
                                                     fullWidth
                                                     value={threshold.value}
                                                     onChange={(e) => handleThresholdChange(aIndex, tIdx, 'value', Number(e.target.value))}
+                                                    data-testid="value"
                                                 />
-                                                <ColorPicker color={threshold.color} onChange={(color) => handleThresholdChange(aIndex, tIdx, 'color', color)} />
-                                                <Button size="icon" variant="ghost" icon={<Close />} onClick={() => removeThreshold(aIndex, tIdx)} />
+                                                <ColorPicker color={threshold.color} onChange={(color) => handleThresholdChange(aIndex, tIdx, 'color', color)} data-testid="color" />
+                                                <Button size="icon" variant="ghost" icon={<Close />} onClick={() => removeThreshold(aIndex, tIdx)} data-testid="remove" />
                                             </div>
                                         ))}
                                     </Page.ContentBlock>
@@ -275,14 +289,21 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                         {aIndex === 1 && (
                             <>
                                 <Page.Divi />
-                                <BadgeSelect label="Series" selectedList={pPanelOption.yAxisOptions[1]?.useBlockList || [0]} list={getBlockList} onChange={handleUseSecondYAxis} />
+                                <BadgeSelect
+                                    label="Series"
+                                    selectedList={pPanelOption.yAxisOptions[1]?.useBlockList || [0]}
+                                    list={getBlockList}
+                                    onChange={handleUseSecondYAxis}
+                                    data-testid="series-select"
+                                    menuTestId="dashboard-panel-editor-series-menu"
+                                />
                             </>
                         )}
                         <Page.Space />
                     </Page.ContentBlock>
                 ))}
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                    {pPanelOption.yAxisOptions.length < 2 && <Button size="icon" variant="ghost" icon={<PlusCircle size={16} />} onClick={addRemoveYAixs} />}
+                    {pPanelOption.yAxisOptions.length < 2 && <Button size="icon" variant="ghost" icon={<PlusCircle size={16} />} onClick={addRemoveYAixs} data-testid="add-y-axis" />}
                 </Page.ContentBlock>
             </Page.Collapse>
         </>

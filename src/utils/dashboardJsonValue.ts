@@ -1,3 +1,6 @@
+import { sqlString } from './queryText';
+import { toSqlColumnName } from './dashboardSqlName';
+
 export const JSON_COLUMN_TYPE = 61;
 
 export const isJsonTypeColumn = (aType: number) => aType === JSON_COLUMN_TYPE;
@@ -9,9 +12,77 @@ const stripJsonRoot = (aPath: string) => {
     return sPath;
 };
 
-const pathSegment = (aSegment: string) => {
-    const sSegment = String(aSegment ?? '').trim();
-    return sSegment ? `[${sSegment}]` : '';
+// A key needs quoting when a bare reader could not find its end, or when the quote character
+// itself would be ambiguous. Keys that need none keep their historical spelling exactly, so every
+// path already stored in a .taz or .dsh round-trips unchanged.
+const needsQuoting = (aSegment: string) => aSegment.length === 0 || aSegment.trim() !== aSegment || aSegment.startsWith('"') || /[\[\]\\']/.test(aSegment);
+
+export const jsonPathSegment = (aSegment: string) => {
+    const sSegment = String(aSegment ?? '');
+    if (!needsQuoting(sSegment)) return `[${sSegment}]`;
+    // These are JSONPath delimiters, not SQL string delimiters. Doubling an apostrophe
+    // inside JSONPath changes the key; SQL escaping happens only when building SQL below.
+    if (sSegment.includes("'") && !sSegment.includes('"')) return `["${sSegment}"]`;
+    if (sSegment.includes("'") && sSegment.includes('"') && !sSegment.includes(']') && !/^["']/.test(sSegment)) return `[${sSegment}]`;
+    return `['${sSegment.replace(/'/g, "''")}']`;
+};
+
+/**
+ * Read a bracket path into its segments, quoted or not.
+ *
+ * The plain `/\[([^\]]+)\]/g` this replaced stops at the first `]`, so a key named `[TEST] RENAME_1`
+ * was silently cut down to `[TEST` — a dozen distinct keys collapsing onto one wrong path. A quoted
+ * segment `['a]b']` is read to its closing quote instead. Old saved paths with `''` are
+ * decoded to their original key, then written using a delimiter Machbase can read.
+ */
+const readPathSegments = (aPath: string, strict = false): string[] => {
+    const sPath = String(aPath ?? '');
+    const sSegments: string[] = [];
+    let sIndex = 0;
+
+    while (sIndex < sPath.length) {
+        const sOpen = sPath.indexOf('[', sIndex);
+        if (sOpen !== sIndex) {
+            if (strict) throw new Error(`Invalid JSON path: ${sPath}`);
+            break;
+        }
+
+        if (sPath[sOpen + 1] === "'" || sPath[sOpen + 1] === '"') {
+            const sQuote = sPath[sOpen + 1];
+            let sCursor = sOpen + 2;
+            let sValue = '';
+            while (sCursor < sPath.length) {
+                if (sPath[sCursor] === sQuote) {
+                    if (sQuote === "'" && sPath[sCursor + 1] === "'") {
+                        sValue += "'";
+                        sCursor += 2;
+                        continue;
+                    }
+                    break;
+                }
+                sValue += sPath[sCursor];
+                sCursor += 1;
+            }
+            if (sPath[sCursor] !== sQuote || sPath[sCursor + 1] !== ']') {
+                if (strict) throw new Error(`Invalid JSON path: ${sPath}`);
+                break;
+            }
+            sSegments.push(sValue);
+            sIndex = sCursor + 2;
+            continue;
+        }
+
+        const sClose = sPath.indexOf(']', sOpen + 1);
+        if (sClose < 0) {
+            if (strict) throw new Error(`Invalid JSON path: ${sPath}`);
+            break;
+        }
+        const sValue = sPath.slice(sOpen + 1, sClose);
+        sSegments.push(sValue);
+        sIndex = sClose + 1;
+    }
+
+    return sSegments;
 };
 
 const legacyPathToBracketPath = (aPath: string) => {
@@ -34,15 +105,11 @@ const legacyPathToBracketPath = (aPath: string) => {
 
             return sSegments.length ? sSegments : [sPart];
         })
-        .map(pathSegment)
+        .map(jsonPathSegment)
         .join('');
 };
 
-const normalizeBracketPath = (aPath: string) => {
-    const sPath = String(aPath ?? '').trim();
-    const sSegments = [...sPath.matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
-    return sSegments.map(pathSegment).join('');
-};
+const normalizeBracketPath = (aPath: string) => readPathSegments(String(aPath ?? '').trim()).map(jsonPathSegment).join('');
 
 export const normalizeJsonPath = (aPath: string) => {
     const sPath = stripJsonRoot(aPath);
@@ -51,17 +118,23 @@ export const normalizeJsonPath = (aPath: string) => {
     return legacyPathToBracketPath(sPath);
 };
 
-export const getJsonPathSegments = (aPath: string) => {
-    return [...normalizeJsonPath(aPath).matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
+export const getJsonPathSegments = (aPath: string) => readPathSegments(normalizeJsonPath(aPath));
+
+/** Keep labels valid as both manual input and legacy saved-path input. */
+export const displayJsonPathSegments = (sSegments: string[]) => {
+    if (sSegments.length === 0) return '';
+    // Only identifiers accepted by the manual dot-path grammar can use dot notation.
+    if (sSegments.every((segment) => /^[\p{L}_][\p{L}\p{N}_-]*$/u.test(segment))) return sSegments.join('.');
+    return sSegments.map((segment) => {
+        // Keep historical bracket labels for ordinary names, dotted literal keys and indexes.
+        if (/^[\p{L}_][\p{L}\p{N}_.-]*$/u.test(segment) || /^\d+$/.test(segment)) return jsonPathSegment(segment);
+        // Display quoting is independent of storage/SQL quoting. In particular, literal
+        // wildcard/filter characters must never become expressions when pasted back.
+        return `['${segment.replace(/'/g, "''")}']`;
+    }).join('');
 };
 
-export const displayJsonPathLabel = (aPath: string) => {
-    const sSegments = getJsonPathSegments(aPath);
-    if (sSegments.length === 0) return '';
-    if (sSegments.some((aSegment) => aSegment.includes('.'))) return sSegments.map(pathSegment).join('');
-    if (sSegments.length === 1) return sSegments[0];
-    return sSegments.join('.');
-};
+export const displayJsonPathLabel = (aPath: string) => displayJsonPathSegments(getJsonPathSegments(aPath));
 
 export const jsonPathInputToStoredPath = (aInput: string, aKnownPaths: string[] = []) => {
     void aKnownPaths;
@@ -69,7 +142,14 @@ export const jsonPathInputToStoredPath = (aInput: string, aKnownPaths: string[] 
 };
 
 export const jsonPathToSqlPath = (aPath: string) => {
+    const raw = stripJsonRoot(aPath);
+    if (raw.startsWith('[')) readPathSegments(raw, true);
     const sPath = normalizeJsonPath(aPath);
+    // Machbase cannot load a JSON document containing an empty key. Its path parser also
+    // cannot address a key containing both quotes and a closing bracket. Fail clearly
+    // instead of returning NULL for a different key.
+    const unsupported = readPathSegments(sPath).find((segment) => segment === '' || (segment.includes("'") && segment.includes('"') && (segment.includes(']') || /^["']/.test(segment))));
+    if (unsupported !== undefined) throw new Error(`This JSON key cannot be queried: ${JSON.stringify(unsupported)}`);
     return sPath ? `$${sPath}` : '';
 };
 
@@ -96,21 +176,25 @@ export const normalizeJsonValueField = (aValue: string) => {
     return formatJsonValueField(sParsed.column, sParsed.path);
 };
 
-export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
+const resolveJsonValueField = (aValue: string, aJsonKey?: string) => {
     const sParsed = parseJsonValueField(aValue);
-    const sColumn = sParsed?.column ?? aValue;
-    const sPath = normalizeJsonPath(aJsonKey || sParsed?.path || '');
-    if (!sColumn || !sPath) return sColumn;
+    return { column: sParsed?.column ?? aValue, path: normalizeJsonPath(aJsonKey || sParsed?.path || '') };
+};
 
-    return `${sColumn}->'${jsonPathToSqlPath(sPath).replace(/'/g, "''")}'`;
+/** `aValue` is a raw column name (or a stored `column->$path` field); the column is quoted here. */
+export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
+    const { column: sColumn, path: sPath } = resolveJsonValueField(aValue, aJsonKey);
+    if (!sColumn || !sPath) return toSqlColumnName(sColumn);
+
+    return `${toSqlColumnName(sColumn)}->${sqlString(jsonPathToSqlPath(sPath))}`;
 };
 
 export const toSqlValueExpression = (aValue: string, aJsonKey?: string) => jsonValueFieldToSql(aValue, aJsonKey);
 
 export const jsonValueFieldToNumericSql = (aValue: string, aJsonKey?: string) => {
-    const sSqlValue = jsonValueFieldToSql(aValue, aJsonKey);
-    if (sSqlValue === aValue) return aValue;
-    return `TO_NUMBER_SAFE(${sSqlValue})`;
+    const { column: sColumn, path: sPath } = resolveJsonValueField(aValue, aJsonKey);
+    if (!sColumn || !sPath) return toSqlColumnName(sColumn);
+    return `TO_NUMBER_SAFE(${jsonValueFieldToSql(aValue, aJsonKey)})`;
 };
 
 const JSON_NUMERIC_AGGREGATOR_LIST = ['sum', 'min', 'max', 'avg', 'sumsq', 'stddev', 'stddev_pop', 'stddev (pop)', 'variance', 'var_pop', 'variance (pop)'];
@@ -132,13 +216,33 @@ const parseSample = (aSample: any) => {
     }
 };
 
-export const extractJsonPathsFromSamples = (aSamples: any[]) => {
+/**
+ * The JSON type a leaf value carries, as one character.
+ *
+ * `n` number, `s` string, `b` boolean, `x` anything else. A key can then say what it holds before a
+ * single row has been fetched — a JSON collector knows this from its own config, and a table filled
+ * by SQL or an external writer has nowhere else it could come from.
+ */
+export const jsonSampleValueType = (aValue: any): 'n' | 's' | 'b' | 'a' | 'x' => {
+    if (typeof aValue === 'number') return 'n';
+    if (typeof aValue === 'string') return 's';
+    if (typeof aValue === 'boolean') return 'b';
+    if (Array.isArray(aValue)) return 'a';
+    return 'x';
+};
+
+export const extractJsonPathsFromSamples = (aSamples: any[]) => extractJsonPathEntriesFromSamples(aSamples).paths;
+
+/** Paths and their observed types, found in one walk so the two stay index-aligned. */
+export const extractJsonPathEntriesFromSamples = (aSamples: any[]) => {
     const sPaths: string[] = [];
+    const sTypes: string[] = [];
     const sSeen = new Set<string>();
-    const addPath = (aPath: string) => {
+    const addPath = (aPath: string, aValue?: any) => {
         if (!aPath || sSeen.has(aPath)) return;
         sSeen.add(aPath);
         sPaths.push(aPath);
+        sTypes.push(jsonSampleValueType(aValue));
     };
     const isObjectValue = (aValue: any) => aValue !== null && typeof aValue === 'object';
     const walk = (aValue: any, aPrefix = '') => {
@@ -148,22 +252,22 @@ export const extractJsonPathsFromSamples = (aSamples: any[]) => {
                 if (isObjectValue(aItem)) {
                     walk(aItem, sPath);
                 } else {
-                    addPath(sPath);
+                    addPath(sPath, aItem);
                 }
             });
             return;
         }
         if (!isObjectValue(aValue)) {
-            addPath(aPrefix);
+            addPath(aPrefix, aValue);
             return;
         }
 
         Object.keys(aValue).forEach((aKey) => {
-            const sPath = `${aPrefix}${pathSegment(aKey)}`;
+            const sPath = `${aPrefix}${jsonPathSegment(aKey)}`;
             if (isObjectValue(aValue[aKey])) {
                 walk(aValue[aKey], sPath);
             } else {
-                addPath(sPath);
+                addPath(sPath, aValue[aKey]);
             }
         });
     };
@@ -173,5 +277,5 @@ export const extractJsonPathsFromSamples = (aSamples: any[]) => {
         if (sParsedSample !== undefined) walk(sParsedSample);
     });
 
-    return sPaths;
+    return { paths: sPaths, types: sTypes.join('') };
 };

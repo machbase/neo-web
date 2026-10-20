@@ -17,14 +17,15 @@ export const MultiColorPkr = (props: MultiColorPkrStyle) => {
     const { aIdx, aAxisColor, HandleItemColor, HandleItem, itemLen, alwayRmBtn, min = undefined, max = undefined, prefix } = props;
 
     return (
-        <Page.DpRow style={{ gap: '8px' }}>
+        // Stops are [value, color] pairs with no key of their own; rows are told apart by order.
+        <Page.DpRow style={{ gap: '8px' }} data-testid="color-stop">
             {prefix && <Page.ContentDesc style={{ textWrap: 'nowrap' }}>{prefix}</Page.ContentDesc>}
-            <Input type="number" size="sm" min={min} max={max} value={aAxisColor[0] as string} onChange={(aEvent) => HandleItemColor('l', aEvent.target.value, aIdx)} />
-            <ColorPicker color={aAxisColor[1] as string} onChange={(color: string) => HandleItemColor('r', color, aIdx)} />
+            <Input type="number" size="sm" min={min} max={max} value={aAxisColor[0] as string} onChange={(aEvent) => HandleItemColor('l', aEvent.target.value, aIdx)} data-testid="value" />
+            <ColorPicker color={aAxisColor[1] as string} onChange={(color: string) => HandleItemColor('r', color, aIdx)} data-testid="color" />
             {itemLen === aIdx + 1 ? (
-                <Button size="side" variant="ghost" icon={<PlusCircle size={16} />} onClick={() => HandleItem('add', aIdx)} />
+                <Button size="side" variant="ghost" icon={<PlusCircle size={16} />} onClick={() => HandleItem('add', aIdx)} data-testid="add" />
             ) : (
-                <Button size="side" variant="ghost" icon={<Close size={16} />} onClick={() => HandleItem('remove', aIdx)} />
+                <Button size="side" variant="ghost" icon={<Close size={16} />} onClick={() => HandleItem('remove', aIdx)} data-testid="remove" />
             )}
             {itemLen === aIdx + 1 && alwayRmBtn && <Button size="side" variant="ghost" icon={<Close size={16} />} onClick={() => HandleItem('remove', aIdx)} />}
         </Page.DpRow>

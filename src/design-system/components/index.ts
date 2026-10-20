@@ -112,3 +112,6 @@ export type { ToastVariant, ToastOptions } from './Toast';
 
 export { StatusIndicator } from './StatusIndicator';
 export type { StatusIndicatorProps, StatusIndicatorVariant, StatusIndicatorSize } from './StatusIndicator';
+
+export { ErrorBoundary, ErrorCard } from './ErrorBoundary';
+export type { ErrorBoundaryProps, ErrorBoundaryVariant, ErrorBoundaryAction, ErrorCardProps } from './ErrorBoundary';

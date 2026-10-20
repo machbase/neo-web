@@ -4,9 +4,11 @@ import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
-import TagAnalyzer from '@/components/tagAnalyzer/TagAnalyzer';
+import LegacyNewBoard from '../newBoard/legacy';
+import { useExperiment } from '@/hooks/useExperiment';
+import TagAnalyzer from '@/components/tagAnalyzer/application/TagAnalyzer';
 import type { BoardInfo } from '@/components/tagAnalyzer/board/boardModel';
-import { Button, Tabs } from '@/design-system/components';
+import { Button, ErrorBoundary, Tabs } from '@/design-system/components';
 import Tab from '@/design-system/components/Tabs/Tab';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import useSaveCommand from '@/hooks/useSaveCommand';
@@ -65,6 +67,7 @@ const DEFAULT_CONTEXT_MENU_STATE = {
 const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
+    const { getExperiment } = useExperiment();
     const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
     const [sIsSaveModal, setIsSaveModal] = useState<boolean>(false);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
@@ -185,6 +188,10 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         }
     };
 
+    const closeFailedDialog = (aClose: (aOpen: boolean) => void, aError: Error) => {
+        aClose(false);
+        Toast.error(`The file dialog failed to open: ${aError?.message ?? aError}`);
+    };
     const handleIsSaveModal = (aBool: boolean, aPath: string) => {
         setIsSaveModal(aBool);
         pGetInfo();
@@ -373,6 +380,15 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 return (
                                     <Tabs.Tab key={aBoard.id} tab={{ id: aBoard.id, ...aBoard }} index={aIdx}>
                                         {() => (
+                                            // One tab's title failing keeps to its own slot (#1547): the other tabs, and the
+                                            // tab bodies, stay reachable — and this one can still be closed.
+                                            <ErrorBoundary
+                                                name={`tab-title:${aBoard.id}`}
+                                                variant="inline"
+                                                resetKeys={[aBoard]}
+                                                actions={[{ label: 'Close', testId: 'close-tab', onClick: () => closeTabById(aBoard.id) }]}
+                                                fallbackStyle={{ width: 200, height: 40 }}
+                                            >
                                             <Tab
                                                 pBoard={aBoard}
                                                 pSelectedTab={sSelectedTab}
@@ -383,6 +399,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                                 pOnCloseTab={closeTabById}
                                                 pOnContextMenu={handleTabContextMenu}
                                             />
+                                            </ErrorBoundary>
                                         )}
                                     </Tabs.Tab>
                                 );
@@ -403,153 +420,165 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     {sBoardList.map((aItem) => {
                         return (
                             <Tabs.Panel key={aItem.id} tabId={aItem.id}>
-                                {checkExtension(aItem.type, 'new') && (
-                                    <NewBoard
-                                        pExtentionList={pExtentionList}
-                                        pGetInfo={pGetInfo}
-                                        setIsOpenModal={setIsOpenModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'sql') && (
-                                    <Sql
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pSetDragStat={pSetDragStat}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        pInfo={aItem}
-                                        setIsSaveModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'tql') && (
-                                    <Tql
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pCode={aItem.code}
-                                        pIsSave={aItem.path}
-                                        pSetDragStat={pSetDragStat}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsSaveModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'taz') && (
-                                    <TagAnalyzer
-                                        info={aItem as unknown as BoardInfo}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'term') && (
-                                    <Shell
-                                        pSelectedTab={sSelectedTab}
-                                        pInfo={aItem}
-                                        pId={aItem.id}
-                                        pWidth={sBodyWidth}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'dsh') && (
-                                    <Dashboard
-                                        pDragStat={pDragStat}
-                                        pWidth={sBodyWidth}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        pInfo={aItem}
-                                        pSetIsSaveModal={setIsSaveModal}
-                                        pDraged={pDraged}
-                                        pId={aItem.id}
-                                        pSideSizes={pSideSizes}
-                                        pIsSave={aItem.path}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'wrk') && (
-                                    <WorkSheet
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pId={aItem.id}
-                                        pSheet={aItem.sheet}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsSaveModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'json') && (
-                                    <TextExtension
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="json"
-                                        pCode={aItem.code}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsOpenModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'csv') && (
-                                    <TextExtension
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="go"
-                                        pCode={aItem.code}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsOpenModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'md') && (
-                                    <TextExtension
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="markdown"
-                                        pCode={aItem.code}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsOpenModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'txt') && (
-                                    <TextExtension
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="go"
-                                        pCode={aItem.code}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsOpenModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'html') && (
-                                    <TextExtension
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="html"
-                                        pCode={aItem.code}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsOpenModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'css') && (
-                                    <TextExtension
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="css"
-                                        pCode={aItem.code}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsOpenModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'js') && (
-                                    <TextExtension
-                                        pIsActiveTab={aItem.id === sSelectedTab}
-                                        pLang="jsh"
-                                        pCode={aItem.code}
-                                        pHandleSaveModalOpen={handleSaveModalOpen}
-                                        setIsOpenModal={setIsSaveModal}
-                                    />
-                                )}
-                                {checkExtension(aItem.type, 'image') && (
-                                    <ImageBox pBase64Code={aItem.code} pType={aItem.type} />
-                                )}
-                                {checkExtension(aItem.type, 'key') && <SecurityKey pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'token') && <ApiToken pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'timer') && <Timer pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'shell-manage') && <ShellManage pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'bridge') && <Bridge pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'ssh-key') && <SSHKey />}
-                                {checkExtension(aItem.type, 'subscriber') && <Subscriber pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'backupdb') && <BackupDatabase pCode={aItem} />}
-                                {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'appView') && <AppView pAppName={aItem.code?.appName} pIsActiveTab={aItem.id === sSelectedTab} />}
-                                {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
-                                {checkExtension(aItem.type, 'DataViewer') && <DataViewerPage pCode={aItem.code} embedded />}
-                                {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
-                                {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'event') && (
-                                    <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />
-                                )}
-                                {checkExtension(aItem.type, 'unknown') && (
-                                    <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />
-                                )}
+                                <ErrorBoundary
+                                    name={`tab:${aItem.type}:${aItem.name || aItem.id}`}
+                                    variant="tab"
+                                    resetKeys={[aItem.refreshKey]}
+                                    actions={[{ label: 'Close tab', testId: 'close-tab', onClick: () => closeTabById(aItem.id) }]}
+                                >
+                                    {/* The widget board New tab is still experimental; without the experiment flag the original one shows. */}
+                                    {checkExtension(aItem.type, 'new') &&
+                                        (getExperiment() ? (
+                                            <NewBoard
+                                                pExtentionList={pExtentionList}
+                                                pIsActiveTab={aItem.id === sSelectedTab}
+                                                pGetInfo={pGetInfo}
+                                                setIsOpenModal={setIsOpenModal}
+                                            />
+                                        ) : (
+                                            <LegacyNewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} />
+                                        ))}
+                                    {checkExtension(aItem.type, 'sql') && (
+                                        <Sql
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pSetDragStat={pSetDragStat}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            pInfo={aItem}
+                                            setIsSaveModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'tql') && (
+                                        <Tql
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pCode={aItem.code}
+                                            pIsSave={aItem.path}
+                                            pSetDragStat={pSetDragStat}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsSaveModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'taz') && (
+                                        <TagAnalyzer
+                                            info={aItem as unknown as BoardInfo}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'term') && (
+                                        <Shell
+                                            pSelectedTab={sSelectedTab}
+                                            pInfo={aItem}
+                                            pId={aItem.id}
+                                            pWidth={sBodyWidth}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'dsh') && (
+                                        <Dashboard
+                                            pDragStat={pDragStat}
+                                            pWidth={sBodyWidth}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            pInfo={aItem}
+                                            pSetIsSaveModal={setIsSaveModal}
+                                            pDraged={pDraged}
+                                            pId={aItem.id}
+                                            pSideSizes={pSideSizes}
+                                            pIsSave={aItem.path}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'wrk') && (
+                                        <WorkSheet
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pId={aItem.id}
+                                            pSheet={aItem.sheet}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsSaveModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'json') && (
+                                        <TextExtension
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pLang="json"
+                                            pCode={aItem.code}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsOpenModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'csv') && (
+                                        <TextExtension
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pLang="go"
+                                            pCode={aItem.code}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsOpenModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'md') && (
+                                        <TextExtension
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pLang="markdown"
+                                            pCode={aItem.code}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsOpenModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'txt') && (
+                                        <TextExtension
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pLang="go"
+                                            pCode={aItem.code}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsOpenModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'html') && (
+                                        <TextExtension
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pLang="html"
+                                            pCode={aItem.code}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsOpenModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'css') && (
+                                        <TextExtension
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pLang="css"
+                                            pCode={aItem.code}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsOpenModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'js') && (
+                                        <TextExtension
+                                            pIsActiveTab={aItem.id === sSelectedTab}
+                                            pLang="jsh"
+                                            pCode={aItem.code}
+                                            pHandleSaveModalOpen={handleSaveModalOpen}
+                                            setIsOpenModal={setIsSaveModal}
+                                        />
+                                    )}
+                                    {checkExtension(aItem.type, 'image') && (
+                                        <ImageBox pBase64Code={aItem.code} pType={aItem.type} />
+                                    )}
+                                    {checkExtension(aItem.type, 'key') && <SecurityKey pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'token') && <ApiToken pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'timer') && <Timer pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'shell-manage') && <ShellManage pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'bridge') && <Bridge pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'ssh-key') && <SSHKey />}
+                                    {checkExtension(aItem.type, 'subscriber') && <Subscriber pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'backupdb') && <BackupDatabase pCode={aItem} />}
+                                    {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'appView') && <AppView pAppName={aItem.code?.appName} pIsActiveTab={aItem.id === sSelectedTab} />}
+                                    {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
+                                    {checkExtension(aItem.type, 'DataViewer') && <DataViewerPage pCode={aItem.code} embedded />}
+                                    {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
+                                    {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
+                                    {checkExtension(aItem.type, 'event') && (
+                                        <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />
+                                    )}
+                                    {checkExtension(aItem.type, 'unknown') && (
+                                        <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />
+                                    )}
+                                </ErrorBoundary>
                             </Tabs.Panel>
                         );
                     })}
@@ -572,8 +601,18 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     </ContextMenu.Item>
                 </ContextMenu>
             </Tabs.Root>
-            {sIsSaveModal ? <SaveModal pIsSave setIsOpen={handleIsSaveModal} /> : null}
-            {sIsOpenModal ? <SaveModal pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
+            {/* These dialogs sit outside every tab, so without their own boundary a failure would reach
+                region:main and take the whole tab strip with it. Close the dialog and say so instead. */}
+            {sIsSaveModal ? (
+                <ErrorBoundary name="dialog:save" variant="unit" onError={(aError) => closeFailedDialog(setIsSaveModal, aError)}>
+                    <SaveModal pIsSave setIsOpen={handleIsSaveModal} />
+                </ErrorBoundary>
+            ) : null}
+            {sIsOpenModal ? (
+                <ErrorBoundary name="dialog:open" variant="unit" onError={(aError) => closeFailedDialog(setIsOpenModal, aError)}>
+                    <SaveModal pIsSave={false} setIsOpen={handleIsOpenModal} />
+                </ErrorBoundary>
+            ) : null}
         </div>
     );
 };

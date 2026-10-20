@@ -103,21 +103,6 @@ var zlib = optionalRequire("zlib");
 // this one line.
 var ARCHIVE_DIR = "/work/public/";
 
-// THE LOCAL-ONLY POLICY FILE. Same directory as the archives, on purpose: the one
-// place an operator already drops package files is the one place they will look
-// for the switch that turns the hub off.
-//
-// TQL roots at /work, so this is \`/public/.pkg-conf.json\` as the browser spells it.
-//
-// MEASURED (v8.5.10-snapshot): a DOT FILE IS INVISIBLE TO /api/files.
-//   POST /api/files/_t/.pkg-conf.json  → created
-//   GET  /api/files/_t/.pkg-conf.json  → {"localOnly":true}   (readable by name)
-//   GET  /api/files/_t/                → EMPTY                (not listed)
-// so the file api can never be used to discover it. \`fs.readdirSync\` /
-// \`fs.readFileSync\` in here see it fine, which is why the flag rides along with
-// the archive scan instead of costing a second round trip.
-var PKG_CONF_PATH = ARCHIVE_DIR + ".pkg-conf.json";
-
 // $.params values may arrive as a string or as a single-element array depending
 // on how the query string is decoded; normalise both to a plain string.
 function param(key) {
@@ -170,33 +155,6 @@ function toText(d) {
         /* not valid UTF-8 — keep the latin1 reading */
     }
     return s;
-}
-
-// ---------------------------------------------------------------------------
-// LOCAL-ONLY MODE — ONE RULE, AND ONLY ONE
-// ---------------------------------------------------------------------------
-// true  ⇔  the file exists AND parses AND says exactly { "localOnly": true }.
-// EVERYTHING else is false: no file (the normal install), a typo'd key, a string
-// "true", unparseable json, an unreadable file. There is no second spelling and no
-// coercion, because the failure mode of a permissive reader here is a site that
-// believes it is air-gapped and is not.
-//
-// The cost of that strictness is that a typo fails OPEN and silently, which is why
-// the banner states the resolved mode instead of only speaking up on failure.
-function readLocalOnlyFlag() {
-    try {
-        // existsSync keeps the normal case (no file at all) from going through the
-        // catch; a build without it just lets readFileSync throw instead.
-        if (typeof fs.existsSync === "function" && !fs.existsSync(PKG_CONF_PATH)) return false;
-        // toText for the same reason the archive members need it: this runtime may
-        // answer with an ArrayBuffer, and String(arrayBuffer) is "[object ArrayBuffer]".
-        var conf = JSON.parse(toText(fs.readFileSync(PKG_CONF_PATH, "utf8")));
-        return !!conf && conf.localOnly === true;
-    } catch (e) {
-        // Missing / unreadable / malformed ⇒ ONLINE. A broken policy file must not
-        // be able to cut a site off from its package hub.
-        return false;
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -563,7 +521,7 @@ function readInstalledManifest(dirPath) {
     try {
         var p = dirPath + "/package.json";
         if (typeof fs.existsSync === "function" && !fs.existsSync(p)) return null;
-        // toText for the same reason readLocalOnlyFlag needs it: this runtime may
+        // toText for the same reason the archive members need it: this runtime may
         // answer with an ArrayBuffer even for "utf8".
         var meta = JSON.parse(toText(fs.readFileSync(p, "utf8")));
         if (!meta || typeof meta.name !== "string" || meta.name === "") return null;

@@ -15,9 +15,21 @@ import { Checkbox as DSCheckbox } from '../Checkbox';
 import { Textarea as DSTextarea } from '../Textarea';
 import { Alert as DSAlert } from '../Alert';
 
-export const Page = ({ children, pRef, style, className }: { children: React.ReactNode; pRef?: React.MutableRefObject<any>; style?: React.CSSProperties; className?: string }) => {
+export const Page = ({
+    children,
+    pRef,
+    style,
+    className,
+    'data-testid': testId,
+}: {
+    children: React.ReactNode;
+    pRef?: React.MutableRefObject<any>;
+    style?: React.CSSProperties;
+    className?: string;
+    'data-testid'?: string;
+}) => {
     return (
-        <div ref={pRef} className={[styles['page-wrapper'], className].filter(Boolean).join(' ')} style={style}>
+        <div ref={pRef} className={[styles['page-wrapper'], className].filter(Boolean).join(' ')} style={style} data-testid={testId}>
             {children}
         </div>
     );
@@ -165,17 +177,19 @@ const ContentBlock = ({
     pHoverNone = false,
     pSticky = false,
     style,
+    'data-testid': testId,
 }: {
     children?: React.ReactNode;
     pActive?: boolean;
     pHoverNone?: boolean;
     pSticky?: boolean;
     style?: React.CSSProperties;
+    'data-testid'?: string;
 }) => {
     const blockClass = pHoverNone ? 'page-content-block-none' : 'page-content-block';
     const wrapperClass = pSticky ? 'page-block-wrapper-sticky' : 'page-block-wrapper';
     return (
-        <div className={styles[wrapperClass]}>
+        <div className={styles[wrapperClass]} data-testid={testId}>
             <div className={[styles[blockClass], pActive && styles['active-content-block']].filter(Boolean).join(' ')} style={style}>
                 {children}
             </div>
@@ -190,9 +204,9 @@ const ContentTitle = ({ children }: { children: React.ReactNode }) => {
         </div>
     );
 };
-const ContentDesc = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => {
+const ContentDesc = ({ children, style, 'data-testid': testId }: { children: React.ReactNode; style?: React.CSSProperties; 'data-testid'?: string }) => {
     return (
-        <div className={styles['page-content-block-desc']} style={style}>
+        <div className={styles['page-content-block-desc']} style={style} data-testid={testId}>
             <span>{children}</span>
         </div>
     );
@@ -209,6 +223,7 @@ const TextButton = ({
     mt = '0px',
     pLoad = false,
     pIcon = undefined,
+    'data-testid': testId,
 }: {
     pText: string;
     pType: string;
@@ -221,6 +236,7 @@ const TextButton = ({
     mt?: string;
     pIcon?: any;
     pLoad?: boolean;
+    'data-testid'?: string;
 }) => {
     const handleCallback = (e: any) => {
         if (pIsDisable) return;
@@ -243,6 +259,7 @@ const TextButton = ({
             }}
             onClick={handleCallback}
             onMouseOut={onMouseOut}
+            data-testid={testId}
         >
             {pLoad ? <Loader width="12px" height="12px" /> : pIcon ? pIcon : null}
             <span>{pText}</span>
@@ -264,6 +281,7 @@ const Input = ({
     pMaxLen,
     pPlaceholder = '',
     pEnter = () => {},
+    'data-testid': testId,
 }: {
     pAutoFocus?: boolean;
     pCallback?: (e: React.FormEvent<HTMLInputElement>) => void;
@@ -272,6 +290,7 @@ const Input = ({
     pMaxLen?: number;
     pPlaceholder?: string;
     pEnter?: () => void;
+    'data-testid'?: string;
 }) => {
     const handleEnter = (e: React.KeyboardEvent) => {
         if (e.type === 'keydown') {
@@ -284,7 +303,7 @@ const Input = ({
     };
     return (
         <div className={styles['page-input-wrapper']} style={{ width: '100%', maxWidth: pWidth }}>
-            <input placeholder={pPlaceholder} autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} onKeyDown={handleEnter} />
+            <input placeholder={pPlaceholder} autoFocus={pAutoFocus} onChange={pCallback} value={pValue} maxLength={pMaxLen} onKeyDown={handleEnter} data-testid={testId} />
         </div>
     );
 };
@@ -313,9 +332,9 @@ const TextArea = ({
         />
     );
 };
-const DpRow = ({ children, style, className }: { children: React.ReactNode; style?: React.CSSProperties; className?: string }) => {
+const DpRow = ({ children, style, className, 'data-testid': testId }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; 'data-testid'?: string }) => {
     return (
-        <div className={[styles['page-dp-row'], className].filter(Boolean).join(' ')} style={style}>
+        <div className={[styles['page-dp-row'], className].filter(Boolean).join(' ')} style={style} data-testid={testId}>
             {children}
         </div>
     );
@@ -595,6 +614,7 @@ const Checkbox = ({ pCallback, pValue, pDisable, label }: { pCallback?: (value: 
     );
 };
 const Selector = <T,>({
+    'data-testid': testId,
     pList,
     pSelectedItem,
     pCallback,
@@ -611,6 +631,7 @@ const Selector = <T,>({
      * `hint` is the reason, shown beside the option — the place someone actually looks when a row
      * will not take a click.
      */
+    'data-testid'?: string;
     pList: { name: string; data: T; disabled?: boolean; hint?: string }[];
     pSelectedItem: any;
     pCallback: (eTarget: T) => void;
@@ -635,8 +656,8 @@ const Selector = <T,>({
     useOutsideClick(selectorRef, () => setIsOpen(false));
 
     const selectorContent = (
-        <div ref={selectorRef} className={styles['page-selector-wrapper']} style={{ width: 'auto', maxWidth: pWidth, textTransform: capitalize ? 'capitalize' : 'none' }}>
-            <div className={[styles['page-selector-header'], sIsOpen && styles['page-selector-header--open']].filter(Boolean).join(' ')} onClick={handleOpen}>
+        <div data-testid={testId} ref={selectorRef} className={styles['page-selector-wrapper']} style={{ width: 'auto', maxWidth: pWidth, textTransform: capitalize ? 'capitalize' : 'none' }}>
+            <div data-testid={testId ? "trigger" : undefined} className={[styles['page-selector-header'], sIsOpen && styles['page-selector-header--open']].filter(Boolean).join(' ')} onClick={handleOpen}>
                 <span>{pSelectedItem}</span>
                 <ArrowDown />
             </div>
@@ -645,6 +666,7 @@ const Selector = <T,>({
                     {pList.map((pItem, aIdx: number) => {
                         return (
                             <div
+                                data-testid={testId ? `option-${encodeURIComponent(String(pItem.data))}` : undefined}
                                 key={pItem.name + aIdx + ''}
                                 className={[
                                     styles['page-selector-body-item'],
@@ -693,12 +715,15 @@ const Switch = ({
     pBadge,
     pBadgeL = false,
     pReadOnly = false,
+    'data-testid': testId,
 }: {
     pState: boolean;
     pCallback: (aItem: any) => void;
     pBadge?: string;
     pBadgeL?: boolean;
     pReadOnly?: boolean;
+    /** Set on the label, the switch's clickable part; `data-checked` mirrors its state. */
+    'data-testid'?: string;
 }) => {
     const switchId = `switch-${React.useId().replace(/:/g, '')}`;
 
@@ -711,7 +736,13 @@ const Switch = ({
         <div className={styles['page-switch-wrapper']}>
             {!!pBadge && pBadgeL && <span className={[styles['page-badge'], pBadge && styles['page-badge-active']].filter(Boolean).join(' ')}>{pBadge}</span>}
             <input type="checkbox" id={switchId} className={styles['page-switch-input']} readOnly checked={pState} />
-            <label htmlFor={switchId} className={[styles['page-switch-label'], pReadOnly && styles['page-switch-readonly']].filter(Boolean).join(' ')} onClick={handleSwitch}>
+            <label
+                htmlFor={switchId}
+                className={[styles['page-switch-label'], pReadOnly && styles['page-switch-readonly']].filter(Boolean).join(' ')}
+                onClick={handleSwitch}
+                data-testid={testId}
+                data-checked={pState}
+            >
                 <span className={styles['page-switch-label-btn']} />
             </label>
             {!!pBadge && !pBadgeL && <span className={[styles['page-badge'], pBadge && styles['page-badge-active']].filter(Boolean).join(' ')}>{pBadge}</span>}
@@ -766,19 +797,22 @@ const Collapse = ({
     children,
     title,
     size = 'md',
+    'data-testid': testId,
 }: {
     pInitOpen?: boolean;
     pTrigger?: React.ReactNode;
     children: React.ReactNode;
     title?: string;
     size?: 'sm' | 'md' | 'lg';
+    /** Test ID of the section; its open/close trigger is `toggle` inside it. */
+    'data-testid'?: string;
 }) => {
     const [sIsOpen, setIsOpen] = useState<boolean>(pInitOpen);
 
     return (
-        <div className={styles['page-collapse']}>
+        <div className={styles['page-collapse']} data-testid={testId} data-open={sIsOpen}>
             <div className={styles['page-collapse-trigger-wrapper']}>
-                <div className={`${styles['page-collapse-trigger']} ${styles[`page-collapse-trigger--${size}`]}`} onClick={() => setIsOpen(!sIsOpen)}>
+                <div className={`${styles['page-collapse-trigger']} ${styles[`page-collapse-trigger--${size}`]}`} onClick={() => setIsOpen(!sIsOpen)} data-testid="toggle">
                     <div className={`${styles['page-collapse-trigger-icon']} ${sIsOpen ? styles['page-collapse-trigger-icon--open'] : ''}`}>
                         <MdKeyboardArrowRight />
                     </div>
@@ -862,6 +896,7 @@ const TabItem = ({
     badge,
     style,
     className,
+    'data-testid': testId,
 }: {
     children: React.ReactNode;
     active?: boolean;
@@ -869,9 +904,15 @@ const TabItem = ({
     badge?: string | number;
     style?: React.CSSProperties;
     className?: string;
+    'data-testid'?: string;
 }) => {
     return (
-        <div className={[styles['page-tab-item'], active ? styles['active-tab'] : styles['inactive-tab'], className].filter(Boolean).join(' ')} onClick={onClick} style={style}>
+        <div
+            className={[styles['page-tab-item'], active ? styles['active-tab'] : styles['inactive-tab'], className].filter(Boolean).join(' ')}
+            onClick={onClick}
+            style={style}
+            data-testid={testId}
+        >
             {children}
             {badge !== undefined && <span className={styles['page-tab-badge']}>{badge}</span>}
         </div>

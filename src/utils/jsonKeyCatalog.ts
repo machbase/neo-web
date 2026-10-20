@@ -1,0 +1,55 @@
+import { displayJsonPathLabel, jsonPathToSqlPath, normalizeJsonPath } from './dashboardJsonValue';
+
+/**
+ * Addressing the keys inside a JSON value column.
+ *
+ * A JSON value is a document, so a tag alone does not name a series — a key has to be picked before
+ * there is anything to chart. The keys are not stored or discovered ahead of time: the row the user
+ * opened carries its own complete key set, and parsing that row is the whole of it.
+ */
+
+/**
+ * Human label for a type character, or an empty string when there is nothing worth saying.
+ *
+ * No `ARRAY`: an array is a container, and the only caller reaches this having already established
+ * that the value is not one.
+ */
+export const jsonKeyTypeLabel = (type: string | undefined): string =>
+    type === 'n' ? 'NUMBER' : type === 's' ? 'STRING' : type === 'b' ? 'BOOLEAN' : '';
+
+/**
+ * A json path Machbase can follow.
+ *
+ * Paths use bracket segments. A key containing an apostrophe uses double quotes around that
+ * segment; SQL string escaping is applied later, when the path is placed in a query.
+ */
+export const jsonKeyPathToSql = (path: string): string => jsonPathToSqlPath(path);
+
+/**
+ * Longest text Tag Analyzer accepts for a value field.
+ *
+ * A handoff-only limit: querying a longer key is fine, so it is checked when the key is handed over
+ * rather than when it is found.
+ */
+export const TAG_ANALYZER_MAX_JSON_KEY_TEXT = 256;
+
+/** A path in the form Tag Analyzer takes, or the reason it cannot be handed over. */
+export const toTagAnalyzerJsonKeyPath = (path: string): { ok: true; path: string } | { ok: false; reason: string } => {
+    const normalized = normalizeJsonPath(path);
+    if (!normalized) return { ok: false, reason: 'A JSON key is required.' };
+    if (normalized.length > TAG_ANALYZER_MAX_JSON_KEY_TEXT) {
+        return { ok: false, reason: `JSON key is too long for Tag Analyzer (max ${TAG_ANALYZER_MAX_JSON_KEY_TEXT - 2} characters).` };
+    }
+    return { ok: true, path: normalized };
+};
+
+/**
+ * The key a bracket path names, for display.
+ *
+ * The shared path parser reads quoted segments, so a key containing brackets — an OPC UA node is
+ * free to be called `[TEST] RENAME_1`, whose path is `[[TEST] RENAME_1]` — survives the round trip
+ * and does not have to be recovered by hand here.
+ */
+export const jsonKeyPathLabel = (path: string): string => {
+    return displayJsonPathLabel(path);
+};

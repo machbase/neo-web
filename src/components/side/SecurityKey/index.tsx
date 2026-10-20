@@ -99,7 +99,7 @@ export const SecurityKeySide = () => {
     }, []);
 
     return (
-        <Side.Container>
+        <Side.Container data-testid="security-side">
             {/* TOKENS — listed first: bearer tokens are the credential most clients actually need */}
             <Side.Section>
                 <Side.Collapse pCallback={() => setCollapseToken(!sCollapseToken)} pCollapseState={sCollapseToken}>
@@ -108,8 +108,8 @@ export const SecurityKeySide = () => {
                         <span className={styles.count}>{sTokenList?.length ?? 0}</span>
                     </span>
                     <Button.Group>
-                        <Button size="side" variant="ghost" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={16} />} onClick={(aEvent: MouseEvent) => tokenList(aEvent)} aria-label="Refresh tokens" />
-                        <Button size="side" variant="ghost" isToolTip toolTipContent="New token" icon={<GoPlus size={16} />} onClick={(aEvent: MouseEvent) => createToken(aEvent)} aria-label="New token" />
+                        <Button size="side" variant="ghost" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={16} />} onClick={(aEvent: MouseEvent) => tokenList(aEvent)} data-testid="security-token-refresh" aria-label="Refresh tokens" />
+                        <Button size="side" variant="ghost" isToolTip toolTipContent="New token" icon={<GoPlus size={16} />} onClick={(aEvent: MouseEvent) => createToken(aEvent)} data-testid="security-new-token" aria-label="New token" />
                     </Button.Group>
                 </Side.Collapse>
                 {sCollapseToken && (
@@ -119,6 +119,7 @@ export const SecurityKeySide = () => {
                                 const sState = expiryState(aToken.notAfter);
                                 return (
                                     <Side.Item
+                                        data-testid={`security-token-${encodeURIComponent(aToken.name)}`}
                                         key={aToken.id}
                                         active={sActiveToken === aToken.id}
                                         onClick={() => openToken(aToken)}
@@ -129,7 +130,7 @@ export const SecurityKeySide = () => {
                                             <Side.ItemIcon>
                                                 <TokenIcon size={14} />
                                             </Side.ItemIcon>
-                                            <Side.ItemText>{aToken.name}</Side.ItemText>
+                                            <Side.ItemText><span data-testid={`security-token-id-${aToken.id}`}>{aToken.name}</span></Side.ItemText>
                                         </Side.ItemContent>
                                         <span className={`${styles.meta} ${styles.hint} ${sState !== 'ok' ? styles[`meta--${sState}`] : ''}`}>
                                             <span className={styles.hintText}>{aToken.hint}</span>
@@ -155,7 +156,7 @@ export const SecurityKeySide = () => {
                     </span>
                     <Button.Group>
                         <Button size="side" variant="ghost" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={16} />} onClick={(aEvent: MouseEvent) => certList(aEvent)} aria-label="Refresh certificates" />
-                        <Button size="side" variant="ghost" isToolTip toolTipContent="New certificate" icon={<GoPlus size={16} />} onClick={(aEvent: MouseEvent) => createCert(aEvent)} aria-label="New certificate" />
+                        <Button size="side" variant="ghost" isToolTip toolTipContent="New certificate" icon={<GoPlus size={16} />} onClick={(aEvent: MouseEvent) => createCert(aEvent)} data-testid="security-new-certificate" aria-label="New certificate" />
                     </Button.Group>
                 </Side.Collapse>
                 {sCollapseCert && (

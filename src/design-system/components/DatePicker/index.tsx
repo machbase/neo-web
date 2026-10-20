@@ -13,6 +13,7 @@ import { Input } from '../Input';
 import { TimePicker } from '../TimePicker';
 
 export interface DatePickerProps {
+    pTestId?: string;
     pTimeValue?: string;
     onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
     pSetApply?: (formattedDate: string) => void;
@@ -26,6 +27,7 @@ export interface DatePickerProps {
 }
 
 export const DatePicker = ({
+    pTestId,
     pTimeValue = '',
     onChange,
     pSetApply,
@@ -176,6 +178,7 @@ export const DatePicker = ({
     return (
         <div ref={wrapperRef} className={wrapperClasses}>
             <Input
+                data-testid={pTestId}
                 label={pLabel}
                 labelPosition={labelPosition}
                 ref={inputRef}

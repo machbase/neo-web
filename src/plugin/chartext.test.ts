@@ -21,6 +21,14 @@ jest.mock('echarts', () => ({
 }));
 
 import setChartext, { disposeChartext } from './chartext';
+import { __setEchartsRuntimeForTest } from './echartsRuntime';
+
+// The runtime is no longer a bundled import, so `jest.mock('echarts')` cannot reach chartext.
+// Put the same stub in the global slot the loader reads; loadEcharts() then short-circuits and
+// never appends a <script> jsdom could not fetch anyway.
+beforeEach(() => {
+    __setEchartsRuntimeForTest(jest.requireMock('echarts') as never);
+});
 
 // Mirrors a real server bootstrap script: find its own <script> via window.__chartextCurrentScript,
 // then "init" a chart on the sibling .chartext-echarts node.

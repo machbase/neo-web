@@ -12,16 +12,15 @@
  * query has run and the next page of rows still comes from the database the first page came from.
  */
 
-/** The `env` the splitter reports, narrowed to what the merge reads. */
-type EnvLike = {
-    bridge?: string;
-    use?: string;
-    named?: Record<string, string>;
-    error?: string;
-};
+import type { SqlStatementEnv } from './sqlFormatter';
 
+/**
+ * The `env` the splitter reports — the same type the TQL builders take, not a local narrowing of
+ * it. A copy here would drop whatever the builders learn next on the way through this merge, which
+ * is the shape of bug #1532.
+ */
 export type TargetStatementLike = {
-    env?: EnvLike | null;
+    env?: SqlStatementEnv | null;
     isComment?: boolean;
 };
 

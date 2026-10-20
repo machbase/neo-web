@@ -8,6 +8,10 @@ import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
 import { unitFormatter } from './Chart/formatters';
 import { compareVersions } from './version/utils';
 import { isNumericBaseTimeBlock } from './timeFieldColumns';
+
+// With no position given, v6 lays the slider out 8px higher than v5 did, onto the x-axis labels of a
+// grid whose bottom is fixed at 50. `bottom: 14` is where v5 put it; both versions render it there.
+const DATA_ZOOM_SLIDER = { type: 'slider', bottom: 14 };
 // import { generateTooltipAxisFunction } from './Chart/formatters/tooltipFormatter';
 // structure of chart common option
 const StructureOfCommonOption = `{
@@ -338,7 +342,7 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string, aTagList?: any[], aUseV
     const sDataType = SqlResDataType(aPanelType);
     let sParsedOpt: any = StructureOfCommonOption;
     sCommOptList.map((aOpt: string) => {
-        if (aOpt === 'isDataZoom') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isDataZoom ? JSON.stringify([{ type: 'slider' }]) : false);
+        if (aOpt === 'isDataZoom') sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt.isDataZoom ? JSON.stringify([DATA_ZOOM_SLIDER]) : false);
         else if (aOpt === 'title') sParsedOpt = sParsedOpt.replace(`"$${aOpt}$"`, aCommonOpt.isInsideTitle ? JSON.stringify(aCommonOpt[aOpt]) : '""');
         else sParsedOpt = sParsedOpt.replace(`$${aOpt}$`, aCommonOpt[aOpt]);
     });

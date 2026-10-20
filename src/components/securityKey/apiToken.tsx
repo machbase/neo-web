@@ -29,7 +29,7 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
         const sRes = await delApiToken(pCode.id);
         if (!sRes.success) {
             // toast, not inline — same below-the-fold problem the certificate page had
-            Toast.error(resMessage(sRes, `Failed to delete token '${pCode.name}'`), { id: 'token-delete' });
+            Toast.error(resMessage(sRes, `Failed to delete token '${pCode.name}'`), { id: 'token-delete', testId: 'token-delete-error-toast' });
             setIsDeleteModal(false);
             return;
         }
@@ -74,7 +74,7 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
     return (
         <>
             {sHasSelection && (
-                <Page>
+                <Page data-testid="token-detail">
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
@@ -91,7 +91,7 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
                                         </div>
                                         <div className={styles.actions}>
                                             {/* <Page.TextButton pText="Reissue" pWidth="80px" pType="CREATE" mr="0px" mb="0px" pCallback={handleReissue} /> */}
-                                            <Page.TextButton pText="Delete" pWidth="70px" pType="DELETE" mr="0px" mb="0px" pCallback={handleDelete} />
+                                            <Page.TextButton data-testid="token-delete" pText="Delete" pWidth="70px" pType="DELETE" mr="0px" mb="0px" pCallback={handleDelete} />
                                         </div>
                                     </div>
                                 </Page.ContentBlock>
@@ -145,7 +145,7 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
             )}
             {!sHasSelection && <CreateToken pInitialName={pCode?.reissueName} />}
             {sIsDeleteModal && (
-                <ConfirmModal
+                <ConfirmModal data-testid="token-delete-dialog"
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
                     pCallback={deleteToken}

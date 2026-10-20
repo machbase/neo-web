@@ -4,7 +4,7 @@ import { E_TABLE_INFO, FetchCommonType } from './utils';
 import { Modal, Page, Pagination, CommonTable } from '@/design-system/components';
 import { useSchedule } from '@/hooks/useSchedule';
 import { formatStatzResult } from './statzTableRows';
-import { buildStatzTableQuery, StatzModalInfo } from './statzTableQuery';
+import { buildStatzCountQuery, buildStatzTableQuery, StatzModalInfo } from './statzTableQuery';
 import moment from 'moment';
 
 interface VirtualTableProps {
@@ -19,6 +19,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
     const [sPage, setPage] = useState<number>(1);
     const [sPageInput, setPageInput] = useState<string>('1');
     const [sLastUpdated, setLastUpdated] = useState<Date>(new Date());
+    const [sRecordCnt, setRecordCnt] = useState<number>(pModalInfo.recordCnt);
 
     const FetchTable = async () => {
         let sCurPage = sPage ? sPage : 1;
@@ -29,7 +30,8 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
         // distance one, so naming either set makes the panel fail outright on the other. The
         // datetime formatting `TO_CHAR` was doing moved to `formatStatzResult`.
         const sQuery = buildStatzTableQuery(pModalInfo, (sCurPage - 1) * FETCH_LIMIT, FETCH_LIMIT);
-        const { svrState, svrData } = await fetchQuery(sQuery);
+        const [{ svrState, svrData }, sCount] = await Promise.all([fetchQuery(sQuery), fetchQuery(buildStatzCountQuery(pModalInfo))]);
+        if (sCount.svrState) setRecordCnt(Number(sCount.svrData?.rows?.[0]?.[0] ?? 0));
         if (svrState) setStatzInfo(formatStatzResult(svrData));
         else setStatzInfo(undefined);
         setLastUpdated(new Date());
@@ -49,8 +51,8 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
     };
 
     const getMaxPageNum = useMemo(() => {
-        return Math.ceil(pModalInfo.recordCnt / FETCH_LIMIT);
-    }, [pModalInfo.recordCnt]);
+        return Math.ceil(sRecordCnt / FETCH_LIMIT);
+    }, [sRecordCnt]);
 
     useEffect(() => {
         FetchTable();
@@ -63,7 +65,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
     useSchedule(FetchTable, 1000 * 3); // 3s
 
     return pModalInfo.state ? (
-        <Modal.Root isOpen={pModalInfo.state} onClose={handleClose} size="lg" style={{ width: '80vw' }}>
+        <Modal.Root isOpen={pModalInfo.state} onClose={handleClose} size="lg" style={{ width: '80vw' }} data-testid="db-statz-modal">
             <Modal.Header>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', width: '100%' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -78,7 +80,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
             <Modal.Body>
                 <Page>
                     {sStatzList && sStatzList?.rows && sStatzList?.rows?.length > 0 ? (
-                        <CommonTable data={sStatzList} stickyHeader />
+                        <CommonTable data={sStatzList} stickyHeader getRowTestId={(aRow) => `row-${encodeURIComponent(String(aRow?.[0] ?? ''))}`} />
                     ) : (
                         <Page.ContentBlock>
                             <Page.ContentText pContent="N/A" />
@@ -91,7 +93,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
                     <Page.ContentDesc>Last updated: {moment(sLastUpdated)?.format('YYYY-MM-DD HH:mm:ss')}</Page.ContentDesc>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <Pagination currentPage={sPage} totalPages={getMaxPageNum} onPageChange={handlePageChange} onPageInputChange={handlePageInputChange} inputValue={sPageInput} />
+                    <Pagination data-testid="pagination" currentPage={sPage} totalPages={getMaxPageNum} onPageChange={handlePageChange} onPageInputChange={handlePageInputChange} inputValue={sPageInput} />
                 </div>
             </Modal.Footer>
         </Modal.Root>

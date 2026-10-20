@@ -88,8 +88,8 @@ export const DistanceRangeBlock = ({ pPanelOption, pSetPanelOption }: DistanceRa
                             onChange={setRefresh}
                             placeholder="Select refresh time"
                         >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
+                            <Dropdown.Trigger data-testid="refresh" />
+                            <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                                 <Dropdown.List />
                             </Dropdown.Menu>
                         </Dropdown.Root>

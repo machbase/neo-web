@@ -45,7 +45,7 @@ export const EulaModal = ({ set }: { set: React.Dispatch<SetStateAction<boolean>
     }, []);
 
     return (
-        <Modal.Root isOpen={true} onClose={() => set(false)} closeOnEscape closeOnOutsideClick style={{ minHeight: '80vh', maxHeight: '80vh' }}>
+        <Modal.Root isOpen={true} onClose={() => set(false)} data-testid="eula-dialog" closeOnEscape closeOnOutsideClick style={{ minHeight: '80vh', maxHeight: '80vh' }}>
             <Modal.Header>
                 <Modal.Title>
                     <Key />
@@ -62,7 +62,7 @@ export const EulaModal = ({ set }: { set: React.Dispatch<SetStateAction<boolean>
                 </div>
             )}
             <Modal.Footer>
-                <Button variant="primary" onClick={handleAccept} loading={svrState}>
+                <Button data-testid="agree" variant="primary" onClick={handleAccept} loading={svrState}>
                     Agree
                 </Button>
                 <Button variant="danger" onClick={() => set(false)}>

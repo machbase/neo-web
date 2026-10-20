@@ -100,13 +100,13 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
                 </span>
                 <span style={{ width: '16px' }}>
                     {sHover ? (
-                        <span className={styles['tab_close']} onClick={closeTab}>
+                        <span className={styles['tab_close']} onClick={closeTab} data-testid="close">
                             {icons('close')}
                         </span>
                     ) : sIsSaved ? (
-                        <span className={styles['default-form']} />
+                        <span className={styles['default-form']} data-testid="saved" />
                     ) : (
-                        <span className={styles['off-saved']}>
+                        <span className={styles['off-saved']} data-testid="unsaved">
                             <SaveCricle size={10} style={{ paddingRight: '6px' }} />
                         </span>
                     )}

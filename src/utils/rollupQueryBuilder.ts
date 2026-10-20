@@ -1,4 +1,6 @@
 import { jsonPathToSqlPath } from './dashboardJsonValue';
+import { toSqlTableName } from './dashboardSqlName';
+import { sqlString } from './queryText';
 
 export type RollupQuerySourceMode = 'raw' | 'rollup' | 'split';
 
@@ -47,7 +49,6 @@ const sanitizeAlias = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '_').to
 
 const createMetricAlias = (prefix: string, outputAlias: string) => `${prefix}_${sanitizeAlias(outputAlias)}`;
 
-const escapeSqlString = (value: string) => value.replace(/'/g, "''");
 
 const getIntervalNanoseconds = (intervalType: string, intervalValue: number) => {
     switch (intervalType.toLowerCase()) {
@@ -84,7 +85,7 @@ export const buildRollupTimeExpression = (timeColumn: string, intervalType: stri
             timeUnit = intervalType.toUpperCase();
     }
 
-    return `ROLLUP('${timeUnit}', ${intervalValue}, ${timeColumn})`;
+    return `ROLLUP(${sqlString(timeUnit)}, ${intervalValue}, ${timeColumn})`;
 };
 
 const getDateBinUnit = (intervalType: string): string => {
@@ -103,7 +104,7 @@ const getDateBinUnit = (intervalType: string): string => {
 };
 
 export const buildDateBinTimeExpression = (timeColumn: string, intervalType: string, intervalValue: number | string): string => {
-    return `DATE_BIN('${getDateBinUnit(intervalType)}', ${intervalValue}, ${timeColumn})`;
+    return `DATE_BIN(${sqlString(getDateBinUnit(intervalType))}, ${intervalValue}, ${timeColumn})`;
 };
 
 export const buildRawTimeExpression = (timeColumn: string, intervalType: string, intervalValue: number): string => buildDateBinTimeExpression(timeColumn, intervalType, intervalValue);
@@ -219,7 +220,7 @@ export const createJsonRollupAggregationMetric = ({
 }: CreateJsonRollupAggregationMetricOptions): RollupAggregationMetric => {
     const normalizedAggregator = aggregator.toLowerCase();
     const jsonAlias = createMetricAlias('JSONVAL', outputAlias);
-    const jsonValueExpression = `TO_NUMBER_SAFE(${jsonAlias}->'${escapeSqlString(jsonPathToSqlPath(jsonPath))}')`;
+    const jsonValueExpression = `TO_NUMBER_SAFE(${jsonAlias}->${sqlString(jsonPathToSqlPath(jsonPath))})`;
 
     if (normalizedAggregator === 'count' || normalizedAggregator === 'count(*)') {
         return {
@@ -257,6 +258,8 @@ export const buildRollupAwareAggregationSql = ({
     outerOrderBy = 'ORDER BY TIME',
     limit,
 }: BuildRollupAwareAggregationSqlOptions) => {
+    // `tableName` is the raw (possibly `db.user.table`) name; every other option is an SQL fragment.
+    const sqlTableName = toSqlTableName(tableName);
     const resolvedOuterTimeExpression = outerTimeExpression ?? buildDefaultOuterTimeExpression();
 
     const buildWhereClause = (extraCondition?: string) => {
@@ -266,7 +269,7 @@ export const buildRollupAwareAggregationSql = ({
     };
 
     const buildInnerQuery = (timeExpression: string, selectList: string[], extraCondition?: string) =>
-        `select ${timeExpression} as mTime, ${selectList.join(', ')} from ${tableName} where ${buildWhereClause(extraCondition)} group by mTime`;
+        `select ${timeExpression} as mTime, ${selectList.join(', ')} from ${sqlTableName} where ${buildWhereClause(extraCondition)} group by mTime`;
 
     const rollupSelects = metrics.map((metric) => metric.rollupSelect);
     const rawSelects = metrics.map((metric) => metric.rawSelect ?? metric.rollupSelect);

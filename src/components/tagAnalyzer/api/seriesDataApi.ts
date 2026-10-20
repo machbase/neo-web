@@ -1,3 +1,4 @@
+import { validateSeriesSchema } from './seriesSchemaValidation';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
 import { getCurrentDatabaseName } from '@/utils/currentDatabaseState';
 import { qualifyThreePart } from '@/utils/qualifiedTableName';
@@ -5,27 +6,31 @@ import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { parseFiniteNumber } from '../objectGuards';
 import {
-    findRollupTableEntry,
+    assertSqlIdentifierPath,
     hasMixedXAxisValueKinds,
     isNumericBaseTimeSourceColumns,
-    parseSqlIdentifierPath,
     PanelSeriesCalculationMode,
-    validatePanelSeriesSourceColumns,
     type PanelSeriesDefinition,
     type PanelSeriesSourceColumns,
-    type RollupDefinition,
-    type RollupTableEntry,
-    type RollupTableMap,
-    type SqlIdentifierPath,
     type ValidatedPanelSeriesSourceColumns,
 } from '../seriesModel';
 import {
+    findRollupTableEntry,
+    type RollupDefinition,
+    type RollupTableEntry,
+    type RollupTableMap,
+} from './rollupMetadata';
+import {
     getIntervalMs,
     type IntervalOption,
-} from '../range/intervalResolver';
-import { createNonEmptyAxisRange } from '../range/rangeBuilder';
-import type { AxisRange } from '../range/rangeModel';
-import { getEnclosingRange } from '../range/rangeArithmetic';
+} from '../rangeExpression/intervalResolver';
+import { createNonEmptyAxisRange } from '../rangeExpression/rangeBuilder';
+import {
+    SINGLE_POINT_TIME_WIDTH_MS,
+    SINGLE_POINT_NUMERIC_WIDTH,
+    type AxisRange,
+} from '../rangeExpression/rangeModel';
+import { getEnclosingRange } from '../rangeExpression/rangeArithmetic';
 import {
     getUnknownErrorMessage,
     parseQueryResponse,
@@ -44,7 +49,40 @@ import {
     type RollupMode,
 } from './seriesSql';
 
-type SeriesDataRow = [timestamp: number, value: number | null];
+export type PanelDataFetchResult = PanelSeriesFetchResult[];
+export type SeriesDataRow = [axisValue: number, value: number | null];
+
+export type SeriesRowsQuery =
+    | {
+          kind: 'raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'sampled-raw';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          sampleCount: number;
+          useOrderBy: boolean;
+      }
+    | {
+          kind: 'calculated';
+          seriesList: PanelSeriesDefinition[];
+          range: AxisRange;
+          interval: IntervalOption;
+          rowLimit: number;
+          rollupTables: RollupTableMap;
+          numericBucketWidth?: number;
+      };
+
+export const seriesDataApi = {
+    rawRowLimit: RAW_SERIES_ROW_LIMIT,
+    fetchSeriesFullRange,
+    fetchSeriesRows,
+};
+
+// -------------------- Local --------------------
 
 const MALFORMED_CHART_DATA_MESSAGE: string =
     'Chart data response contained malformed rows.';
@@ -131,8 +169,6 @@ type PanelSeriesFetchResult = {
     };
 };
 
-export type PanelDataFetchResult = PanelSeriesFetchResult[];
-
 const DATA_DOES_NOT_EXIST_PREFIX: string = 'Data does not exist';
 
 type CalculatedSeriesFetchOptions = {
@@ -151,12 +187,12 @@ async function fetchRawSeriesRowsByQuery(
         seriesList,
         signal,
         async (series) => {
-            const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
+            const tableName: string = assertSqlIdentifierPath(
                 addAdminSchemaIfNeeded(series.table),
                 'SQL table name',
             );
             const columns: ValidatedPanelSeriesSourceColumns =
-                validatePanelSeriesSourceColumns(series.sourceColumns);
+                await validateSeriesSchema(series.table, series.sourceColumns, signal);
             const querySql: string = buildRawSeriesSql(
                 tableName,
                 series.sourceTagName,
@@ -244,8 +280,8 @@ async function fetchCalculatedSeriesData(
     options?: CalculatedSeriesFetchOptions,
 ): Promise<PanelSeriesFetchResult> {
     const columns: ValidatedPanelSeriesSourceColumns =
-        validatePanelSeriesSourceColumns(series.sourceColumns);
-    const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
+        await validateSeriesSchema(series.table, series.sourceColumns, options?.signal);
+    const tableName: string = assertSqlIdentifierPath(
         addAdminSchemaIfNeeded(series.table),
         'SQL table name',
     );
@@ -258,19 +294,22 @@ async function fetchCalculatedSeriesData(
                   rollupTables,
               )
             : undefined;
-    const rows: SeriesDataRow[] = await fetchChartRows(
-        buildCalculatedSeriesSql(
-            tableName,
-            series.sourceTagName,
-            columns,
-            timeRange,
-            series.calculationMode,
-            interval,
-            rowLimit,
-            rollupMode,
-            options?.numericBucketWidth,
+    const rows: SeriesDataRow[] = keepLeadingCalculatedBucketInRange(
+        await fetchChartRows(
+            buildCalculatedSeriesSql(
+                tableName,
+                series.sourceTagName,
+                columns,
+                timeRange,
+                series.calculationMode,
+                interval,
+                rowLimit,
+                rollupMode,
+                options?.numericBucketWidth,
+            ),
+            options?.signal,
         ),
-        options?.signal,
+        timeRange.start,
     );
     const usesRollup: boolean = rollupMode !== undefined;
     const usesBoundedNumericBuckets: boolean =
@@ -303,9 +342,19 @@ async function fetchCalculatedSeriesData(
     };
 }
 
+function keepLeadingCalculatedBucketInRange(
+    rows: SeriesDataRow[],
+    rangeStart: number,
+): SeriesDataRow[] {
+    const firstRow: SeriesDataRow | undefined = rows[0];
+    if (firstRow === undefined || firstRow[0] >= rangeStart) return rows;
+
+    return [[rangeStart, firstRow[1]], ...rows.slice(1)];
+}
+
 async function fetchCalculatedSeriesEdgeRows(
     series: PanelSeriesDefinition,
-    tableName: SqlIdentifierPath,
+    tableName: string,
     columns: ValidatedPanelSeriesSourceColumns,
     timeRange: AxisRange,
     interval: IntervalOption,
@@ -404,7 +453,7 @@ function resolveCalculatedRollupMode(
     interval: IntervalOption,
     rollupTables: RollupTableMap,
 ): RollupMode | undefined {
-    if (columns.timeBaseTime !== true) {
+    if (columns.arrayIndex !== undefined || columns.timeBaseTime !== true) {
         return undefined;
     }
 
@@ -473,8 +522,6 @@ const RANGE_REQUEST_FAILED_MESSAGE: string =
     'Series full-range request failed.';
 const MALFORMED_RANGE_MESSAGE: string =
     'Series full-range response contained malformed rows.';
-export const SINGLE_POINT_TIME_WIDTH_MS = 1_000;
-export const SINGLE_POINT_NUMERIC_WIDTH = 1;
 
 type SeriesFullRangeSource = {
     table: string;
@@ -509,7 +556,9 @@ async function fetchSeriesFullRange(
     };
     const rangeRequests: Map<string, Promise<AxisRange | undefined>> =
         new Map();
-    for (const series of seriesList) {
+    const schemas = seriesList.map((series) => validateSeriesSchema(series.table, series.sourceColumns)
+        .then((columns) => ({ columns, error: undefined }), (error: unknown) => ({ columns: undefined, error })));
+    for (const [index, series] of seriesList.entries()) {
         try {
             if (!series.table.trim()) {
                 throw new Error('Series table is missing.');
@@ -518,12 +567,13 @@ async function fetchSeriesFullRange(
                 throw new Error('Series tag is missing.');
             }
 
-            const tableName: SqlIdentifierPath = parseSqlIdentifierPath(
+            const tableName: string = assertSqlIdentifierPath(
                 series.table,
                 'SQL table name',
             );
-            const columns: ValidatedPanelSeriesSourceColumns =
-                validatePanelSeriesSourceColumns(series.sourceColumns);
+            const schema = await schemas[index];
+            if (!schema.columns) throw schema.error;
+            const columns: ValidatedPanelSeriesSourceColumns = schema.columns;
             const usesNumericTime: boolean =
                 isNumericBaseTimeSourceColumns(columns);
             const sqlQueries: SeriesFullRangeSqlQueries =
@@ -686,30 +736,6 @@ function getSeriesFullRangeErrorMessage(
     )}`;
 }
 
-export type SeriesRowsQuery =
-    | {
-          kind: 'raw';
-          seriesList: PanelSeriesDefinition[];
-          range: AxisRange;
-          useOrderBy: boolean;
-      }
-    | {
-          kind: 'sampled-raw';
-          seriesList: PanelSeriesDefinition[];
-          range: AxisRange;
-          sampleCount: number;
-          useOrderBy: boolean;
-      }
-    | {
-          kind: 'calculated';
-          seriesList: PanelSeriesDefinition[];
-          range: AxisRange;
-          interval: IntervalOption;
-          rowLimit: number;
-          rollupTables: RollupTableMap;
-          numericBucketWidth?: number;
-      };
-
 function fetchSeriesRows(
     query: SeriesRowsQuery,
     { signal }: { signal?: AbortSignal } = {},
@@ -739,9 +765,3 @@ function fetchSeriesRows(
         signal,
     );
 }
-
-export const seriesDataApi = {
-    rawRowLimit: RAW_SERIES_ROW_LIMIT,
-    fetchSeriesFullRange,
-    fetchSeriesRows,
-};

@@ -6,7 +6,7 @@ import { gActiveShellManage, gBoardList, gSelectedTab, gShellList, gShowShellLis
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { generateUUID } from '@/utils';
 import { resMessage } from '@/utils/resMessage';
-import { SHELL_ICON_LIST } from '@/components/ShellManage/constants';
+import { useOpenShellCreate } from './useOpenShellCreate';
 import { GoPlus } from 'react-icons/go';
 import icons from '@/utils/icons';
 import { Button, Side, Toast } from '@/design-system/components';
@@ -14,7 +14,7 @@ import { Button, Side, Toast } from '@/design-system/components';
 export const ShellSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const getShowShellList = useRecoilValue<any>(gShowShellList);
-    const [sShellList, setShellList] = useRecoilState<any>(gShellList);
+    const setShellList = useSetRecoilState<any>(gShellList);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [, setActiveShellName] = useRecoilState<any>(gActiveShellManage);
@@ -71,59 +71,11 @@ export const ShellSide = () => {
             return;
         }
     };
-    /** Handle create shell — opens the create form (ShellManage create mode); the actual
-     *  creation happens there via shell.add (+ shell.update when theme/icon are customized). */
+    const openShellCreate = useOpenShellCreate();
+    /** Handle create shell — opens the create form (see useOpenShellCreate). */
     const handleCreateShell = (aEvent?: MouseEvent) => {
         if (aEvent) aEvent.stopPropagation();
-        // prefill command from the built-in SHELL entry (the server's default shell command,
-        // e.g. `<machbase-neo path> shell`) — same source the old copy flow cloned from
-        const sDefaultShell = sShellList?.find((aShell: any) => aShell.id === 'SHELL');
-        // no `id` → ShellManage renders in create mode; the first icon comes preselected
-        const sCreateTemplate = {
-            label: '',
-            command: sDefaultShell?.command ?? '',
-            theme: 'default',
-            icon: SHELL_ICON_LIST[0],
-        };
-        setActiveShellName('create');
-
-        const sExistShellManageTab = sBoardList.reduce((prev: boolean, cur: any) => {
-            return prev || cur.type === 'shell-manage';
-        }, false);
-
-        if (sExistShellManageTab) {
-            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'shell-manage');
-            setBoardList((aBoardList: any) => {
-                return aBoardList.map((aBoard: any) => {
-                    if (aBoard.id === aTarget.id) {
-                        return {
-                            ...aTarget,
-                            name: `SHELL: create`,
-                            code: sCreateTemplate,
-                            savedCode: false,
-                        };
-                    }
-                    return aBoard;
-                });
-            });
-            setSelectedTab(aTarget.id);
-            return;
-        } else {
-            const sId = generateUUID();
-            setBoardList([
-                ...sBoardList,
-                {
-                    id: sId,
-                    type: 'shell-manage',
-                    name: `SHELL: create`,
-                    code: sCreateTemplate,
-                    savedCode: false,
-                    path: '',
-                },
-            ]);
-            setSelectedTab(sId);
-            return;
-        }
+        openShellCreate();
     };
 
     /** init key list */
@@ -132,7 +84,7 @@ export const ShellSide = () => {
     }, []);
 
     return (
-        <Side.Container>
+        <Side.Container data-testid="shell-side">
             <Side.Section>
                 <Side.Collapse pCallback={() => setCollapseTree(!sCollapseTree)} pCollapseState={sCollapseTree}>
                     <span>SHELL</span>
@@ -142,10 +94,10 @@ export const ShellSide = () => {
                             variant="ghost"
                             icon={<GoPlus size={16} />}
                             isToolTip
-                            toolTipContent="New shell"
+                            data-testid="shell-new" toolTipContent="New shell"
                             onClick={(aEvent: MouseEvent) => handleCreateShell(aEvent)}
                         />
-                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={(aEvent: MouseEvent) => shellList(aEvent)} />
+                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip data-testid="shell-refresh" toolTipContent="Refresh" onClick={(aEvent: MouseEvent) => shellList(aEvent)} />
                     </Button.Group>
                 </Side.Collapse>
 
@@ -155,7 +107,7 @@ export const ShellSide = () => {
                             getShowShellList.length !== 0 &&
                             getShowShellList.map((aShell: any, aIdx: number) => {
                                 return (
-                                    <Side.Item key={aIdx} onClick={() => openShell(aShell)}>
+                                    <Side.Item key={aIdx} data-testid={`shell-item-${encodeURIComponent(aShell.label)}`} onClick={() => openShell(aShell)}>
                                         <Side.ItemContent>
                                             <Side.ItemIcon>{icons(aShell.icon)}</Side.ItemIcon>
                                             <Side.ItemText>{aShell.label}</Side.ItemText>

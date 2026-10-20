@@ -5,6 +5,8 @@ import {
 } from '@/components/tagAnalyzer/persistence/tazFormat';
 import type { PanelInfo } from '@/components/tagAnalyzer/panel/panelModel';
 import { isBoardSaved } from './boardSaveStatus';
+import { CheckDataCompatibility, getPanelLoadError } from './CheckDataCompatibility';
+import { CheckDataCompatibility as CheckPublicDataCompatibility, getPanelLoadError as getPublicPanelLoadError } from '@/public-dashboard/utils/CheckDataCompatibility';
 
 
 beforeAll(() => {
@@ -291,5 +293,77 @@ describe('loadTazBoard', () => {
         expect(() => loadTazBoard({}, loadId, loadName, loadPath)).toThrow(
             'Invalid TagAnalyzer .taz board panels structure.',
         );
+    });
+});
+
+// #1547: a board or panel saved without `timeRange` crashed the whole app on its first render.
+describe.each([
+    ['editor', CheckDataCompatibility],
+    ['public dashboard', CheckPublicDataCompatibility],
+])('dashboard timeRange backfill (%s)', (_aName, aCheck) => {
+    const sPanel = { id: 'p1', type: 'Text', title: 'Text', x: 0, y: 0, w: 7, h: 7, chartOptions: {}, xAxisOptions: [{ type: 'time' }], yAxisOptions: [{}], blockList: [] };
+
+    it('fills a missing board timeRange with the new-dashboard default', () => {
+        const sResult: any = aCheck(JSON.stringify({ dashboard: { panels: [] } }), 'dsh');
+
+        expect(sResult.dashboard.timeRange).toEqual({ start: 'now-3h', end: 'now', refresh: 'Off' });
+    });
+
+    it('keeps a board timeRange that is already there', () => {
+        const sTimeRange = { start: 1, end: 2, refresh: '5 seconds' };
+        const sResult: any = aCheck(JSON.stringify({ dashboard: { timeRange: sTimeRange, panels: [] } }), 'dsh');
+
+        expect(sResult.dashboard.timeRange).toEqual(sTimeRange);
+    });
+
+    it('fills a missing panel timeRange', () => {
+        const sResult: any = aCheck(JSON.stringify({ dashboard: { timeRange: { start: 'now-1h', end: 'now', refresh: 'Off' }, panels: [sPanel] } }), 'dsh');
+
+        expect(sResult.dashboard.panels[0].timeRange).toEqual({ start: '', end: '', refresh: 'Off' });
+    });
+});
+
+// #1547: a panel the loader cannot repair stays exactly as saved and does not take the board with it.
+describe.each([
+    ['editor', CheckDataCompatibility, getPanelLoadError],
+    ['public dashboard', CheckPublicDataCompatibility, getPublicPanelLoadError],
+])('panel the loader cannot repair (%s)', (_aName, aCheck, aGetError) => {
+    const sGood = { id: 'good', type: 'Text', title: 'Good', x: 0, y: 0, w: 7, h: 7, chartOptions: {}, xAxisOptions: [{ type: 'time' }], yAxisOptions: [{}], blockList: [], transformBlockList: [] };
+    const open = (aBroken: any) => aCheck(JSON.stringify({ dashboard: { panels: [aBroken, sGood] } }), 'dsh') as any;
+
+    it.each([
+        ['an unknown type', { ...sGood, id: 'bad', type: 'Nonexistent' }],
+        ['a block that is not a block', { ...sGood, id: 'bad', blockList: [7] }],
+    ])('keeps a panel with %s as saved, still repairs the others, and reports it', (_aCase, aBroken) => {
+        const sResult = open(aBroken);
+
+        expect(sResult.dashboard.panels).toHaveLength(2);
+        expect(sResult.dashboard.panels[0]).toEqual(aBroken);
+        expect(sResult.dashboard.panels[1].id).toBe('good');
+        expect(aGetError(sResult.dashboard.panels[0])).toEqual(expect.any(String));
+        expect(aGetError(sResult.dashboard.panels[1])).toBeUndefined();
+    });
+});
+
+// #1547: a key of the wrong shape is repaired like a missing one, so the panel loads instead of failing.
+describe('wrong-shape keys (editor loader)', () => {
+    const sGood = { id: 'p', type: 'Text', title: 'T', x: 0, y: 0, w: 7, h: 7, chartOptions: {}, xAxisOptions: [{ type: 'time' }], yAxisOptions: [{}], blockList: [], transformBlockList: [] };
+    const open = (aPanel: any) => (CheckDataCompatibility(JSON.stringify({ dashboard: { panels: [aPanel] } }), 'dsh') as any).dashboard.panels[0];
+
+    it.each([
+        ['timeRange', 'Off', { start: '', end: '', refresh: 'Off' }],
+        ['timeRange', {}, { start: '', end: '', refresh: 'Off' }],
+        ['timeRange', { start: 'now-1h' }, { start: 'now-1h', end: '', refresh: 'Off' }],
+        ['blockList', 'x', []],
+        ['transformBlockList', 7, []],
+    ])('repairs %s = %j', (aKey, aValue, aExpected) => {
+        const sPanel = open({ ...sGood, [aKey]: aValue });
+
+        expect(sPanel[aKey]).toEqual(aExpected);
+        expect(getPanelLoadError(sPanel)).toBeUndefined();
+    });
+
+    it('leaves primitive keys of another type alone', () => {
+        expect(open({ ...sGood, w: '5', theme: 3 })).toMatchObject({ w: '5', theme: 3 });
     });
 });

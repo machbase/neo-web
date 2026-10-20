@@ -1,6 +1,6 @@
 import './Home.scss';
 import Console from '@/components/console/index';
-import { SplitPane, Pane } from '@/design-system/components';
+import { ErrorBoundary, SplitPane, Pane, Toast } from '@/design-system/components';
 import { useEffect, useRef, useState } from 'react';
 import { getLogin } from '@/api/repository/login';
 import MainContent from '@/components/mainContent/MainContent';
@@ -156,7 +156,14 @@ const HomeContent = () => {
 
     return (
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
-            <GNBPanel pOpenSideBar={handleOpenSideBar} pCloseSideBar={handleCloseSideBar} pIsSidebar={sIsSidebar} pSetEula={setOpenEula} />
+            {/* Fixed to the GNB's own width: without it the error card is a flex item with nothing to size
+                it, and takes half the screen from the workspace. Being a size container lets the card
+                drop its text and keep only Retry in this column. */}
+            <div style={{ display: 'flex', flex: 'none', width: 52, containerType: 'inline-size' }}>
+                <ErrorBoundary name="region:gnb" variant="region">
+                    <GNBPanel pOpenSideBar={handleOpenSideBar} pCloseSideBar={handleCloseSideBar} pIsSidebar={sIsSidebar} pSetEula={setOpenEula} />
+                </ErrorBoundary>
+            </div>
             <div className="body-form">
                 <SplitPane split="vertical" allowResize={sIsSidebar} sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     {/* THE 200–440px BAND IS THE APP STORE'S, NOT EVERY PANEL'S.
@@ -174,13 +181,16 @@ const HomeContent = () => {
                         maxSize={sSelectedExtension === 'APPSTORE' ? 440 : '50%'}
                     >
                         {sHome ? (
-                            <SidePanel
-                                pServer={sServer}
-                                pNeoUpdateStatus={sNeoUpdateStatus}
-                                pGetInfo={getInfo}
-                                pSavedPath={sSavedPath}
-                                pSelectedExtension={sSelectedExtension}
-                            />
+                            // The side frame itself (header, server status); each panel inside has its own boundary.
+                            <ErrorBoundary name="region:side" variant="region">
+                                <SidePanel
+                                    pServer={sServer}
+                                    pNeoUpdateStatus={sNeoUpdateStatus}
+                                    pGetInfo={getInfo}
+                                    pSavedPath={sSavedPath}
+                                    pSelectedExtension={sSelectedExtension}
+                                />
+                            </ErrorBoundary>
                         ) : null}
                     </Pane>
                     <Pane>
@@ -202,31 +212,52 @@ const HomeContent = () => {
                                 }}
                             >
                                 <Pane minSize={50}>
-                                    <MainContent
-                                        pDragStat={sDragStat}
-                                        pSetDragStat={setDragStat}
-                                        pExtentionList={sTabList}
-                                        pTerminalSizes={sTerminalSizes}
-                                        pSideSizes={sSideSizes}
-                                        pDraged={sDraged}
-                                        pGetInfo={getInfo}
-                                        pGetPath={getPath}
-                                    />
+                                    <ErrorBoundary name="region:main" variant="region">
+                                        <MainContent
+                                            pDragStat={sDragStat}
+                                            pSetDragStat={setDragStat}
+                                            pExtentionList={sTabList}
+                                            pTerminalSizes={sTerminalSizes}
+                                            pSideSizes={sSideSizes}
+                                            pDraged={sDraged}
+                                            pGetInfo={getInfo}
+                                            pGetPath={getPath}
+                                        />
+                                    </ErrorBoundary>
                                 </Pane>
                                 <Pane minSize={40}>
-                                    <Console
-                                        pExtentionList={sTabList && sTabList.filter((aItem: any) => aItem.type === 'term')}
-                                        pTerminalSizes={sTerminalSizes}
-                                        pSetTerminalSizes={setTerminalSizes}
-                                    />
+                                    <ErrorBoundary name="region:console" variant="region">
+                                        <Console
+                                            pExtentionList={sTabList && sTabList.filter((aItem: any) => aItem.type === 'term')}
+                                            pTerminalSizes={sTerminalSizes}
+                                            pSetTerminalSizes={setTerminalSizes}
+                                        />
+                                    </ErrorBoundary>
                                 </Pane>
                             </SplitPane>
                         </div>
                     </Pane>
                 </SplitPane>
             </div>
-            {sHome && <GlobalChecker />}
-            {getLicense?.eulaRequired && openEula && <EulaModal set={setOpenEula} />}
+            {/* Both sit outside every region, so without these a failure here took the whole app down (#1547).
+                The checker draws nothing, and neither does its failure. */}
+            {sHome && (
+                <ErrorBoundary name="region:global-checker" variant="unit" fallbackStyle={{ display: 'none' }}>
+                    <GlobalChecker />
+                </ErrorBoundary>
+            )}
+            {getLicense?.eulaRequired && openEula && (
+                <ErrorBoundary
+                    name="dialog:eula"
+                    variant="unit"
+                    onError={(aError) => {
+                        setOpenEula(false);
+                        Toast.error(`The license dialog failed to open: ${aError?.message ?? aError}`);
+                    }}
+                >
+                    <EulaModal set={setOpenEula} />
+                </ErrorBoundary>
+            )}
         </div>
     );
 };

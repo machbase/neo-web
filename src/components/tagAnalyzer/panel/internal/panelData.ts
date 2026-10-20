@@ -1,10 +1,10 @@
+import type { RangeState, ResolvedRangeState } from '../rangeControl/rangeControlModel';
 import { useMemo, useState } from 'react';
 import {
     seriesDataApi,
     type PanelDataFetchResult,
 } from '../../api/seriesDataApi';
 import {
-    filterChartDataByRange,
     mapFetchResultToChartData,
     type ChartSeriesData,
 } from '../../chart/chartData';
@@ -15,27 +15,22 @@ import {
 import {
     fitRangeWithinBounds,
     isRangeWithin,
-} from '../../range/rangeArithmetic';
+} from '../../rangeExpression/rangeArithmetic';
 import type {
     AxisRange,
-    RangeState,
-    ResolvedRangeState,
-} from '../../range/rangeModel';
-import { enforceNavigatorTrackWidth } from '../../range/rangeResolver';
-import { getNavigatorTrackWidth } from '../../chart/chartGeometry';
+} from '../../rangeExpression/rangeModel';
+import { enforceNavigatorTrackWidth } from '../rangeControl/rangeTransitions';
 import {
     getSeriesListAxisKind,
     type PanelSeriesDefinition,
-    type RollupTableMap,
 } from '../../seriesModel';
+import type { RollupTableMap } from '../../api/rollupMetadata';
 import type { PanelInfo } from '../panelModel';
 import {
     resolvePanelSeriesRequest,
     type PanelQueryResolution,
     type PanelSeriesDataRequest,
 } from '../series/panelSeriesRequest';
-
-type PanelDataTarget = 'main' | 'navigator';
 
 export type PanelIntervalInfo = Exclude<
     PanelQueryResolution,
@@ -61,6 +56,80 @@ export type PanelDataState = {
     issue: PanelDataIssue | undefined;
 };
 
+export function usePanelData(params: UsePanelDataParams): PanelDataState {
+    const { panelInfo } = params;
+    const seriesList = panelInfo.query.tagSet;
+    const isRaw = panelInfo.mode.isRaw;
+    const axisKind = getSeriesListAxisKind(seriesList);
+    const chartWidth = params.chartAreaWidth;
+    const mainRange = params.rangeState?.range.mainRange;
+    const requestContext: UsePanelDataParams | undefined =
+        params.isActive &&
+        axisKind !== undefined &&
+        chartWidth !== undefined
+            ? params
+            : undefined;
+    const main = usePanelDataLane(
+        'main',
+        requestContext,
+        mainRange,
+    );
+    const mainSeries = useMemo(
+        () => mapPanelSeries(main.state.result, seriesList, isRaw),
+        [isRaw, main.state.result, seriesList],
+    );
+    const rawLimitRange = useMemo(
+        () =>
+            resolveRawRangeConstraint(
+                params.rangeState?.range,
+                params.navigatorTrackWidth,
+                isRaw,
+                main.state.result,
+            ),
+        [params.navigatorTrackWidth, isRaw, main.state.result, params.rangeState?.range],
+    );
+    const renderRange = rawLimitRange ?? params.rangeState?.range;
+    const navigator = usePanelDataLane(
+        'navigator',
+        requestContext,
+        renderRange?.navigatorRange,
+    );
+    const navigatorSeries = useMemo(
+        () => mapPanelSeries(navigator.state.result, seriesList, isRaw),
+        [isRaw, navigator.state.result, seriesList],
+    );
+    const hasRequestGeometry =
+        params.rangeState !== undefined && chartWidth !== undefined;
+    return {
+        main: {
+            series: mainSeries,
+            status: hasRequestGeometry ? main.state.status : 'loading',
+            interval:
+                main.request?.resolution.kind === 'raw'
+                    ? undefined
+                    : main.request?.resolution,
+        },
+        navigator: {
+            series: navigatorSeries,
+            status: hasRequestGeometry ? navigator.state.status : 'loading',
+        },
+        rawLimitRange,
+        issue: resolvePanelDataIssue(
+            main.state,
+            mainSeries,
+            navigator.state,
+            navigatorSeries,
+            renderRange?.mainRange,
+            renderRange?.navigatorRange,
+            rawLimitRange !== undefined,
+        ),
+    };
+}
+
+// -------------------- Local --------------------
+
+type PanelDataTarget = 'main' | 'navigator';
+
 type PanelQueryInfo = Pick<PanelInfo, 'query' | 'mode' | 'display'>;
 
 type UsePanelDataParams = {
@@ -68,6 +137,7 @@ type UsePanelDataParams = {
     isActive: boolean;
     rangeState: ResolvedRangeState | undefined;
     chartAreaWidth: number | undefined;
+    navigatorTrackWidth: number | undefined;
     rollupTables: RollupTableMap;
     dataRefreshVersion: number;
 };
@@ -96,148 +166,22 @@ type PanelDataLane = {
     state: PanelRequestState;
 };
 
-type PanelDataStateInput = {
-    main: PanelDataLane;
-    mainSeries: ChartSeriesData[];
-    navigator: PanelDataLane;
-    navigatorSeries: ChartSeriesData[];
-    renderRange: RangeState | undefined;
-    rawLimitRange: RangeState | undefined;
-    hasRequestGeometry: boolean;
-};
-
 const NAVIGATOR_DEBOUNCE_MS = 100;
 
-export function usePanelData(params: UsePanelDataParams): PanelDataState {
-    const [retainedMain, setRetainedMain] = useState<RetainedPanelRequest>({});
-    const [retainedNavigator, setRetainedNavigator] =
-        useState<RetainedPanelRequest>({});
-    const { panelInfo } = params;
-    const seriesList = panelInfo.query.tagSet;
-    const isRaw = panelInfo.mode.isRaw;
-    const axisKind = getSeriesListAxisKind(seriesList);
-    const chartWidth = params.chartAreaWidth;
-    const mainRange = params.rangeState?.range.mainRange;
-    const requestContext: UsePanelDataParams | undefined =
-        params.isActive &&
-        axisKind !== undefined &&
-        chartWidth !== undefined
-            ? params
-            : undefined;
-    const main = resolvePanelDataLane(
-        'main',
-        requestContext,
-        mainRange,
-        retainedMain,
-    );
-    useLatestAsyncRequest(
-        createPanelRequestEffect('main', main.request, setRetainedMain),
-    );
-    const mainSeries = useMemo(
-        () => mapPanelSeries(main.state.result, seriesList, isRaw),
-        [isRaw, main.state.result, seriesList],
-    );
-    const rawLimitRange = useMemo(
-        () =>
-            resolveRawRangeConstraint(
-                params.rangeState?.range,
-                chartWidth,
-                isRaw,
-                main.state.result,
-            ),
-        [chartWidth, isRaw, main.state.result, params.rangeState?.range],
-    );
-    const renderRange = rawLimitRange ?? params.rangeState?.range;
-    const navigator = resolvePanelDataLane(
-        'navigator',
-        requestContext,
-        renderRange?.navigatorRange,
-        retainedNavigator,
-    );
-    useLatestAsyncRequest(
-        createPanelRequestEffect(
-            'navigator',
-            navigator.request,
-            setRetainedNavigator,
-        ),
-    );
-    const navigatorSeries = useMemo(
-        () => mapPanelSeries(navigator.state.result, seriesList, isRaw),
-        [isRaw, navigator.state.result, seriesList],
-    );
-    const hasRequestGeometry =
-        params.rangeState !== undefined && chartWidth !== undefined;
-    return createPanelDataState({
-        main,
-        mainSeries,
-        navigator,
-        navigatorSeries,
-        renderRange,
-        rawLimitRange,
-        hasRequestGeometry,
-    });
-}
-
-function createPanelDataState({
-    main,
-    mainSeries,
-    navigator,
-    navigatorSeries,
-    renderRange,
-    rawLimitRange,
-    hasRequestGeometry,
-}: PanelDataStateInput): PanelDataState {
-    return {
-        main: {
-            series: mainSeries,
-            status: hasRequestGeometry ? main.state.status : 'loading',
-            interval:
-                main.request?.resolution.kind === 'raw'
-                    ? undefined
-                    : main.request?.resolution,
-        },
-        navigator: {
-            series: navigatorSeries,
-            status: hasRequestGeometry ? navigator.state.status : 'loading',
-        },
-        rawLimitRange,
-        issue: resolvePanelDataIssue(
-            main.state,
-            mainSeries,
-            navigator.state,
-            navigatorSeries,
-            renderRange?.mainRange,
-            renderRange?.navigatorRange,
-            rawLimitRange !== undefined,
-        ),
-    };
-}
-
-function resolvePanelDataLane(
+function usePanelDataLane(
     target: PanelDataTarget,
     context: UsePanelDataParams | undefined,
     visibleRange: AxisRange | undefined,
-    retained: RetainedPanelRequest,
 ): PanelDataLane {
+    const [retained, setRetained] = useState<RetainedPanelRequest>({});
     const input = resolvePanelDataRequest(context, target, visibleRange);
     const requested = input && !('error' in input) ? input : undefined;
     const request = selectPanelRequest(target, requested, retained);
-    return {
-        request,
-        state: resolvePanelRequestState(input, request, retained),
-    };
-}
-
-function createPanelRequestEffect(
-    target: PanelDataTarget,
-    request: PanelSeriesDataRequest | undefined,
-    setRetained: (retained: RetainedPanelRequest) => void,
-) {
     const retain = (outcome?: PanelRequestOutcome) => {
         if (request) setRetained({ request, outcome });
     };
 
-    return {
+    useLatestAsyncRequest({
         enabled: request !== undefined,
         requestKey: request?.key ?? `${target}:idle`,
         delay: target === 'navigator' ? NAVIGATOR_DEBOUNCE_MS : undefined,
@@ -253,6 +197,10 @@ function createPanelRequestEffect(
                     `Failed to load ${target} panel data.`,
                 ),
             }),
+    });
+    return {
+        request,
+        state: resolvePanelRequestState(input, request, retained),
     };
 }
 
@@ -348,11 +296,11 @@ function resolvePanelDataRequest(
 
 function resolveRawRangeConstraint(
     requestedRange: RangeState | undefined,
-    chartWidth: number | undefined,
+    navigatorTrackWidth: number | undefined,
     isRaw: boolean,
     result: PanelDataFetchResult | undefined,
 ): RangeState | undefined {
-    if (!requestedRange || !isRaw || chartWidth === undefined) {
+    if (!requestedRange || !isRaw || navigatorTrackWidth === undefined) {
         return undefined;
     }
 
@@ -373,7 +321,7 @@ function resolveRawRangeConstraint(
             },
             navigatorRange: requestedRange.navigatorRange,
         },
-        getNavigatorTrackWidth(chartWidth),
+        navigatorTrackWidth,
         'main',
     );
     return {
@@ -409,8 +357,10 @@ function findRawLimitEnd(
     return limitedEnd;
 }
 
-function countPoints(series: ChartSeriesData[]): number {
-    return series.reduce((count, entry) => count + entry.data.length, 0);
+function hasVisiblePoints(series: ChartSeriesData[], range: AxisRange): boolean {
+    return series.some(({ data }) =>
+        data.some(([timestamp]) => timestamp >= range.start && timestamp <= range.end),
+    );
 }
 
 function resolvePanelDataIssue(
@@ -426,7 +376,7 @@ function resolvePanelDataIssue(
         return { kind: 'error', message: main.error };
     }
     if (main.status !== 'ready' || !mainRange) return undefined;
-    if (countPoints(filterChartDataByRange(mainSeries, mainRange)) === 0) {
+    if (!hasVisiblePoints(mainSeries, mainRange)) {
         return main.result?.some(
             ({ error }) => error?.kind === 'request-failed',
         )
@@ -438,12 +388,7 @@ function resolvePanelDataIssue(
         navigator.status === 'failed' ||
         (navigator.status === 'ready' &&
             (!navigatorRange ||
-                countPoints(
-                    filterChartDataByRange(
-                        navigatorSeries,
-                        navigatorRange,
-                    ),
-                ) === 0 ||
+                !hasVisiblePoints(navigatorSeries, navigatorRange) ||
                 hasPartialResult(navigator.result)))
         ? { kind: 'partialData' }
         : undefined;

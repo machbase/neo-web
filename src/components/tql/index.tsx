@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { SplitPane, Pane, Page, Tabs, Button } from '@/design-system/components';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { ErrorBoundary, SplitPane, Pane, Page, Tabs, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -8,6 +8,7 @@ import { Table } from './Table';
 import './index.scss';
 import { Markdown } from '../worksheet/Markdown';
 import { isValidJSON } from '@/utils';
+import { JSON_TOO_DEEP_TO_FORMAT, stringifyJsonSafely } from '@/utils/safeJson';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import {
     AiOutlineFileDone,
@@ -55,6 +56,13 @@ const Tql = (props: TqlProps) => {
     const [sResultType, setResultType] = useState<string>('text');
     const [sTextField, setTextField] = useState<string>('');
     const [sIsPrettier, setIsPrettier] = useState<boolean>(false);
+    // Whether the result is JSON, and its indented form — undefined when it is nested too deeply to
+    // print back. Such a result is shown as received, and the format button says why it cannot help.
+    const { sIsJsonText, sPrettyText } = useMemo(() => {
+        if (!isValidJSON(sTextField)) return { sIsJsonText: false, sPrettyText: undefined };
+        return { sIsJsonText: true, sPrettyText: stringifyJsonSafely(JSON.parse(sTextField), 4) };
+    }, [sTextField]);
+    const sCannotFormatJson = sIsJsonText && sPrettyText === undefined;
     const [sizes, setSizes] = useState<string[] | number[]>(['50%', '50%']);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const setConsoleList = useSetRecoilState<any>(gWsLog);
@@ -104,7 +112,7 @@ const Tql = (props: TqlProps) => {
         try {
             const sResult: any = await getTqlChart(aText, undefined, signal);
 
-            const { parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.TQL, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+            const { parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.TQL, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data, text: sResult?.request?.response });
 
             setResultType(parsedType);
             if (parsedType === TqlResType.VISUAL) {
@@ -138,6 +146,14 @@ const Tql = (props: TqlProps) => {
             setLoadState(false);
         }
     }, [createSignal]);
+
+    // A tab opened from a New-tab example runs once on arrival, so its result is already showing.
+    useEffect(() => {
+        const sBoardId = sSelectedTab;
+        if (!sBoardList.find((aBoard) => aBoard.id === sBoardId)?.autoRun) return;
+        setBoardList((aPrev) => aPrev.map((aBoard) => (aBoard.id === sBoardId ? { ...aBoard, autoRun: false } : aBoard)));
+        getTqlData(pCode);
+    }, []);
 
     const handleChangeText = (aText: any) => {
         setText(aText);
@@ -177,6 +193,7 @@ const Tql = (props: TqlProps) => {
         <Page>
             <SplitPane
                 sashRender={() => Resizer()}
+                className="split-pane--below-header"
                 split={isVertical ? 'vertical' : 'horizontal'}
                 sizes={sizes}
                 onDragEnd={() => pSetDragStat(false)}
@@ -192,6 +209,7 @@ const Tql = (props: TqlProps) => {
                             toolTipContent={sLoadState ? 'Stop code' : 'Run code'}
                             icon={sLoadState ? <FaStop size={14} /> : <Play size={16} />}
                             onClick={() => (sLoadState ? abort() : getTqlData(sText))}
+                            data-testid="tql-run"
                             aria-label={sLoadState ? 'Stop code' : 'Run code'}
                         />
                         <Button.Group>
@@ -223,100 +241,106 @@ const Tql = (props: TqlProps) => {
                     </Page.Body>
                 </Pane>
                 <Pane style={{ overflow: 'initial' }} minSize={50}>
-                    <Page.Header>
-                        <Tabs.Root selectedTab="RESULT" onTabSelect={() => {}}>
-                            <Tabs.Header variant="sub">
-                                <Tabs.List>
-                                    <Tabs.Item value="RESULT" variant="sub">
-                                        {sResultType === 'text' || sResultType === 'ndjson' ? <AiOutlineFileDone size={12} /> : null}
-                                        {sResultType === 'mrk' ? <AiOutlineFileMarkdown size={12} /> : null}
-                                        {sResultType === 'csv' ? <PiFileCsvThin size={12} /> : null}
-                                        {sResultType === 'html' ? <BarChart size={12} /> : null}
-                                        <span>RESULT</span>
-                                    </Tabs.Item>
-                                </Tabs.List>
-                            </Tabs.Header>
-                        </Tabs.Root>
-                        <Button.Group>
-                            {sResultType === 'text' && sTextField !== '' && !sLoadState ? (
+                    {/* The result side on its own: a result that cannot be shown no longer takes the query editor with
+                        it, so the query can be fixed and run again — the next result is shown afresh. */}
+                    <ErrorBoundary name="tab-result:tql" variant="region" resetKeys={[sResultType, sTextField, sCsv, sMarkdown, sVisualData]}>
+                        <Page.Header>
+                            <Tabs.Root selectedTab="RESULT" onTabSelect={() => {}}>
+                                <Tabs.Header variant="sub">
+                                    <Tabs.List>
+                                        <Tabs.Item value="RESULT" variant="sub">
+                                            {sResultType === 'text' || sResultType === 'ndjson' ? <AiOutlineFileDone size={12} /> : null}
+                                            {sResultType === 'mrk' ? <AiOutlineFileMarkdown size={12} /> : null}
+                                            {sResultType === 'csv' ? <PiFileCsvThin size={12} /> : null}
+                                            {sResultType === 'html' ? <BarChart size={12} /> : null}
+                                            <span>RESULT</span>
+                                        </Tabs.Item>
+                                    </Tabs.List>
+                                </Tabs.Header>
+                            </Tabs.Root>
+                            <Button.Group>
+                                {sResultType === 'text' && sTextField !== '' && !sLoadState ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        isToolTip
+                                        toolTipContent={sCannotFormatJson ? JSON_TOO_DEEP_TO_FORMAT : 'JSON format'}
+                                        icon={<VscJson size={16} />}
+                                        active={sIsPrettier && !sCannotFormatJson}
+                                        disabled={sCannotFormatJson}
+                                        onClick={() => setIsPrettier(!sIsPrettier)}
+                                        aria-label="JSON format"
+                                        data-testid="tql-json-format"
+                                    />
+                                ) : null}
+                                {sResultType === 'csv' && sCsv.length > 0 ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        isToolTip
+                                        toolTipContent={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                        icon={sIsHeader ? <TableHeader size={16} /> : <TableNotHeader size={16} />}
+                                        active={sIsHeader}
+                                        onClick={() => handleChangeHeader(sCsv)}
+                                        aria-label={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                    />
+                                ) : null}
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     isToolTip
-                                    toolTipContent="JSON format"
-                                    icon={<VscJson size={16} />}
-                                    active={sIsPrettier}
-                                    onClick={() => setIsPrettier(!sIsPrettier)}
-                                    aria-label="JSON format"
+                                    toolTipContent="Vertical"
+                                    icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
+                                    active={isVertical}
+                                    onClick={handleSplitVertical}
+                                    aria-label="Vertical"
                                 />
-                            ) : null}
-                            {sResultType === 'csv' && sCsv.length > 0 ? (
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     isToolTip
-                                    toolTipContent={`${sIsHeader ? 'Hide' : 'Show'} header`}
-                                    icon={sIsHeader ? <TableHeader size={16} /> : <TableNotHeader size={16} />}
-                                    active={sIsHeader}
-                                    onClick={() => handleChangeHeader(sCsv)}
-                                    aria-label={`${sIsHeader ? 'Hide' : 'Show'} header`}
+                                    toolTipContent="Horizontal"
+                                    icon={<LuFlipVertical size={16} />}
+                                    active={!isVertical}
+                                    onClick={handleSplitHorizontal}
+                                    aria-label="Horizontal"
                                 />
+                            </Button.Group>
+                        </Page.Header>
+                        <Page.Body style={{ padding: '2px 4px' }}>
+                            {sResultType === 'csv' ? (
+                                sCsv.length === 0 ? (
+                                    <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
+                                ) : (
+                                    <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} />
+                                )
                             ) : null}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                isToolTip
-                                toolTipContent="Vertical"
-                                icon={<LuFlipVertical size={16} style={{ transform: 'rotate(90deg)' }} />}
-                                active={isVertical}
-                                onClick={handleSplitVertical}
-                                aria-label="Vertical"
-                            />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                isToolTip
-                                toolTipContent="Horizontal"
-                                icon={<LuFlipVertical size={16} />}
-                                active={!isVertical}
-                                onClick={handleSplitHorizontal}
-                                aria-label="Horizontal"
-                            />
-                        </Button.Group>
-                    </Page.Header>
-                    <Page.Body style={{ padding: '2px 4px' }}>
-                        {sResultType === 'csv' ? (
-                            sCsv.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
-                            ) : (
-                                <Table headers={sCsvHeader} items={sIsHeader ? sCsv : sCsv.filter((_, aIdx) => aIdx !== 0)} />
-                            )
-                        ) : null}
-                        {sResultType === 'text' && sTextField ? (
-                            sIsPrettier && isValidJSON(sTextField) ? (
-                                <pre className="tql-result-text-pre">{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
-                            ) : (
-                                <div style={{ margin: '-2px -4px', padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
-                                    <pre className="tql-result-text-pre">{sTextField}</pre>
-                                    {sLoadState && (
-                                        <div style={{ marginLeft: '4px' }}>
-                                            <Loader width="12px" height="12px" borderRadius="90%" />
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        ) : null}
-                        {sResultType === 'ndjson' &&
-                            (sTextField && String(sTextField).trim() !== '' ? (
-                                <pre>{sTextField}</pre>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
-                            ))}
-                        {/* Map & Chart */}
-                        {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
-                        {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
-                        {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
-                    </Page.Body>
+                            {sResultType === 'text' && sTextField ? (
+                                sIsPrettier && sPrettyText !== undefined ? (
+                                    <pre className="tql-result-text-pre" data-testid="tql-result-text">{sPrettyText}</pre>
+                                ) : (
+                                    <div style={{ margin: '-2px -4px', padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                        <pre className="tql-result-text-pre" data-testid="tql-result-text">{sTextField}</pre>
+                                        {sLoadState && (
+                                            <div style={{ marginLeft: '4px' }}>
+                                                <Loader width="12px" height="12px" borderRadius="90%" />
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            ) : null}
+                            {sResultType === 'ndjson' &&
+                                (sTextField && String(sTextField).trim() !== '' ? (
+                                    <pre>{sTextField}</pre>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '20px' }}>No record</div>
+                                ))}
+                            {/* Map & Chart */}
+                            {sResultType === 'visual' ? <ShowVisualization pData={sVisualData} pLoopMode={false} /> : null}
+                            {sResultType === 'mrk' ? <Markdown pIdx={1} pContents={sMarkdown} pType="mrk" /> : null}
+                            {sResultType === 'xhtml' ? <Markdown pIdx={1} pContents={sMarkdown} /> : null}
+                        </Page.Body>
+                    </ErrorBoundary>
                 </Pane>
             </SplitPane>
         </Page>

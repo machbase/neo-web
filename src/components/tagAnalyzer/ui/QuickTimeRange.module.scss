@@ -1,0 +1,52 @@
+@use '@/design-system/tokens' as t;
+@use '../TextStyle' as text;
+
+.root {
+    width: 100%;
+    min-width: 0;
+
+    &[data-layout='responsive'] .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 2px 8px;
+    }
+}
+
+.title {
+    width: 100px;
+    flex-shrink: 0;
+    color: t.$text-secondary;
+}
+
+.grid {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+}
+
+.group { flex: 1; }
+
+.button {
+    @include text.role(label);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: t.$primary-light;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-align: left;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+    outline: none;
+
+    &:hover {
+        color: t.$primary-hover;
+        background-color: t.$bg-hover;
+    }
+    &:active { opacity: 0.5; }
+    &:focus-visible {
+        outline: 2px solid t.$border-color-focus;
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+}

@@ -11,9 +11,7 @@ import { RecoilRoot, type MutableSnapshot } from 'recoil';
 import { AppItem } from './item';
 import { gCatalogStatus, gServerVersion, type CatalogMode } from '@/recoil/appStore';
 
-jest.mock('@/api/repository/appStore', () => ({
-    isGrandfatheredPkg: jest.fn(() => false),
-}));
+jest.mock('@/api/repository/appStore', () => ({}));
 jest.mock('@/hooks/useExperiment', () => ({
     useExperiment: () => ({ getExperiment: () => false }),
 }));

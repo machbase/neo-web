@@ -1,6 +1,7 @@
 // Video Sync Hook
 import { useEffect, useRef, useCallback } from 'react';
 import { PanelIdParser } from '@/utils/dashboardUtil';
+import { getEcharts } from '@/plugin/echartsRuntime';
 
 export type SyncCommand = 'play' | 'pause' | 'seek' | 'timeRangeChange' | 'loop';
 
@@ -89,7 +90,7 @@ export const clearTimeLineX = (dependentPanelIdList: string[]) => {
             const dom = document.getElementById(panelId);
             if (dom) {
                 drawSyncBorder(dom, '', false);
-                const _chart = (echarts as any)['getInstanceByDom'](dom as any) as any;
+                const _chart = getEcharts()?.getInstanceByDom(dom as any) as any;
                 if (_chart) {
                     const graphicId = 'timeline-marker-' + panelId;
                     _chart.setOption({
@@ -113,7 +114,7 @@ export const drawTimeLineX = (dependentPanelIdList: string[], color: string, cur
 
             drawSyncBorder(dom, color, sync);
 
-            const _chart = (echarts as any)['getInstanceByDom'](dom as any) as any;
+            const _chart = getEcharts()?.getInstanceByDom(dom as any) as any;
             if (!_chart) {
                 return;
             }

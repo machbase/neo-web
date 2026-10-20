@@ -1,9 +1,13 @@
 import '@testing-library/jest-dom';
-import { TextEncoder } from 'node:util';
+import { TextDecoder, TextEncoder } from 'node:util';
 import { deserialize as v8Deserialize, serialize as v8Serialize } from 'node:v8';
 
 if (typeof global.TextEncoder === 'undefined') {
     (global as any).TextEncoder = TextEncoder;
+}
+// jsdom has no TextDecoder either; the file error helper decodes ArrayBuffer error bodies with it (browsers have it)
+if (typeof global.TextDecoder === 'undefined') {
+    (global as any).TextDecoder = TextDecoder;
 }
 
 // jsdom exposes no structuredClone, but the panel code deep-copies its shared default options with it

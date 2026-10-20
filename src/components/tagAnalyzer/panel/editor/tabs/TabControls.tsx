@@ -1,42 +1,5 @@
-import type { ReactNode } from 'react';
-import { Input } from '@/design-system/components';
+import controls from '../../../ui/Controls.module.scss';
 import styles from '../PanelEditorTab.module.scss';
-
-export function Section({
-    title,
-    headerAddon,
-    className,
-    testId,
-    children,
-}: {
-    title: string;
-    headerAddon?: ReactNode;
-    className?: string;
-    testId?: string;
-    children: ReactNode;
-}) {
-    return (
-        <section
-            data-testid={testId}
-            className={[styles.section, className].filter(Boolean).join(' ')}
-        >
-            <div className={styles.sectionHeader}>
-                <h4 className={styles.sectionTitle}>{title}</h4>
-                {headerAddon}
-            </div>
-            {children}
-        </section>
-    );
-}
-
-const NUMBER_INPUT_WIDTH_CLASS = {
-    compact: styles.numberInputCompact,
-    threshold: styles.numberInputThreshold,
-    standard: styles.numberInputStandard,
-    auto: undefined,
-} as const;
-
-type NumberInputWidth = keyof typeof NUMBER_INPUT_WIDTH_CLASS;
 
 export function NumberInput({
     value,
@@ -45,6 +8,7 @@ export function NumberInput({
     width,
     error,
     placeholder,
+    'data-testid': testId,
 }: {
     value: number | undefined;
     onChange: (value: number | undefined) => void;
@@ -52,6 +16,7 @@ export function NumberInput({
     width: NumberInputWidth;
     error?: boolean;
     placeholder?: string;
+    'data-testid'?: string;
 }) {
     const sCharacterCount = Math.max(
         2,
@@ -59,11 +24,11 @@ export function NumberInput({
     );
 
     return (
-        <Input
+        <input
+            data-testid={testId}
             type="number"
             disabled={disabled}
             value={Number.isFinite(value) ? value : ''}
-            variant={error ? 'error' : 'default'}
             placeholder={placeholder}
             aria-invalid={error}
             onChange={(event) =>
@@ -73,8 +38,7 @@ export function NumberInput({
                         : Number(event.target.value),
                 )
             }
-            size="sm"
-            className={NUMBER_INPUT_WIDTH_CLASS[width]}
+            className={[controls.input, NUMBER_INPUT_WIDTH_CLASS[width]].filter(Boolean).join(' ')}
             style={
                 width === 'auto'
                     ? {
@@ -87,3 +51,14 @@ export function NumberInput({
         />
     );
 }
+
+// -------------------- Local --------------------
+
+const NUMBER_INPUT_WIDTH_CLASS = {
+    compact: styles.numberInputCompact,
+    threshold: styles.numberInputThreshold,
+    standard: styles.numberInputStandard,
+    auto: undefined,
+};
+
+type NumberInputWidth = keyof typeof NUMBER_INPUT_WIDTH_CLASS;

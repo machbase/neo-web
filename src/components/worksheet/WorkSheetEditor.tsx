@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
 import { useAbortController } from '@/hooks/useAbortController';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
+import { stringifyJsonSafely } from '@/utils/safeJson';
 import { envDirectiveWarning, sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { applyTargetDatabase } from '@/utils/sqlTargetDatabase';
 import { isKnownDatabase } from '@/components/database/targetDatabase';
 import { CommonTable } from '@/design-system/components';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
-import { Button, DragHandle, Menu, Page } from '@/design-system/components';
+import { Button, DragHandle, ErrorBoundary, Menu, Page } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
@@ -97,6 +98,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sSelectedLang, setSelectedLang] = useState<Lang | undefined>(undefined);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(pData.tqlType ?? 'text');
     const [sTqlTextResult, setTqlTextResult] = useState<string>('');
+    // Undefined when the result is not JSON, or is JSON nested too deeply to print back — the raw
+    // text is shown either way.
+    const sTqlPrettyText = useMemo(() => (isValidJSON(sTqlTextResult) ? stringifyJsonSafely(JSON.parse(sTqlTextResult), 4) : undefined), [sTqlTextResult]);
     const [sShellResult, setShellTextResult] = useState<string[] | undefined>(undefined);
     const [sTqlVisualData, setTqlVisualData] = useState<string>('');
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
@@ -159,7 +163,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === undefined) return;
         if (sMonacoLanguage === undefined) return;
         const sCopyWorkSheets = JSON.parse(JSON.stringify(pWorkSheets));
-        const sIndex = sCopyWorkSheets.findIndex((aSheet: any) => aSheet.id === pData.id);
+        const sIndex = sCopyWorkSheets.findIndex((aSheet: any) => aSheet?.id === pData.id);
         const sPayload: any = {
             id: pData.id ?? getId(),
             contents: sText,
@@ -461,7 +465,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
         try {
             const sResult: any = await getTqlChart(aText, undefined, signal);
-            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data, text: sResult?.request?.response });
 
             if (parsedStatus) {
                 if (pAllRunCodeStatus) pAllRunCodeCallback(true);
@@ -607,8 +611,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     : null}
                 {sTqlResultType === 'text' ? (
                     sTqlTextResult ? (
-                        isValidJSON(sTqlTextResult) ? (
-                            <pre>{JSON.stringify(JSON.parse(sTqlTextResult), null, 4)}</pre>
+                        sTqlPrettyText !== undefined ? (
+                            <pre>{sTqlPrettyText}</pre>
                         ) : (
                             <div className="result-worksheet-pre">
                                 <pre>{sTqlTextResult}</pre>
@@ -741,7 +745,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
 
     return (
-        <div className="worksheet-editor-wrapper">
+        <div className="worksheet-editor-wrapper" data-testid={`cell-${encodeURIComponent(String(pData?.id ?? pIdx))}`}>
             <div ref={wrkEditorRef} className="worksheet-editor">
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
                     <div ref={worksheetContentRef} className={`worksheet-content`} style={{ display: !sCollapse ? 'block' : 'none' }}>
@@ -853,8 +857,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 </div>
                 <DragHandle onMouseDown={initValue} onMouseMove={resize} onMouseUp={setHeight} style={{ visibility: sCollapse ? 'hidden' : 'visible' }} />
                 {sShouldRenderResult && (
-                    <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
-                        {Result()}
+                    <div data-testid="result" style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                        {/* The result on its own: one that cannot be shown leaves the cell's editor in place, and the
+                            next run shows its result afresh. */}
+                        <ErrorBoundary
+                            name={`wrk-result:${pData.id ?? pIdx}`}
+                            variant="unit"
+                            resetKeys={[sSelectedLang, sResultContentType, sSql, sSqlReason, sMarkdown, sShellResult, sTqlResultType, sTqlTextResult, sTqlVisualData, sTqlMarkdown, sTqlCsv]}
+                        >
+                            {Result()}
+                        </ErrorBoundary>
                         <div style={{ margin: '1rem 0 1rem 24px' }}>
                             <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
                         </div>

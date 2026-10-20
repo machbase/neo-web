@@ -1,5 +1,6 @@
 import {
     canUseTagAnalyzerRollup,
+    createTagAnalyzerColumnInfo,
     createTagAnalyzerColumnInfoFromDashboardBlock,
     getTagAnalyzerTimeColumns,
     hasTagAnalyzerEligibleBlock,
@@ -178,4 +179,14 @@ describe('isTagAnalyzerEligibleBlock', () => {
             expect(hasTagAnalyzerEligibleBlock(null as any)).toBe(false);
         });
     });
+});
+
+
+it('marks new ARRAY selections and clears that marker when switching back to a scalar', () => {
+    const columns = [{ name: 'NAME', type: 5 }, { name: 'TIME', type: 6 }, { name: 'READINGS', type: 165 }, { name: 'SCALAR', type: 20 }];
+    const array = createTagAnalyzerColumnInfo(columns, { value: 'READINGS', arrayIndex: 0 });
+    expect(array).toMatchObject({ value: 'READINGS', arrayType: 165, arrayIndex: 0 });
+    const scalar = createTagAnalyzerColumnInfo(columns, { ...array, value: 'SCALAR', arrayIndex: undefined });
+    expect(scalar.arrayType).toBeUndefined();
+    expect(scalar.arrayIndex).toBeUndefined();
 });

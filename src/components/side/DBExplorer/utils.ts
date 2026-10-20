@@ -3,6 +3,7 @@ import { getColumnType } from '@/utils/dashboardUtil';
 import { formatDistanceReadout } from '@/utils/distanceRange';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import moment from 'moment';
+import { sqlIdentifierPath, sqlString } from '@/utils/queryText';
 
 // Doubles as the tree's bucket order and as the sort key for getTableType results, so the
 // entries must match DBExplorer's TableTypeConverter output exactly. 'transaction' sits
@@ -144,8 +145,8 @@ export const buildDropObjectQuery = ({
     // deletes the current database's copy of a table the tree showed under another one. There
     // is no statement that means what the user clicked, so build none and let the caller say so.
     if (qualified.split('.').length < 3) return '';
-    if (CheckTableFlag(tableType) === E_TABLE_TYPE.VIEW) return `DROP VIEW ${qualified}`;
-    return `DROP TABLE ${qualified}${cascade ? ' CASCADE' : ''}`;
+    if (CheckTableFlag(tableType) === E_TABLE_TYPE.VIEW) return `DROP VIEW ${sqlIdentifierPath(qualified)}`;
+    return `DROP TABLE ${sqlIdentifierPath(qualified)}${cascade ? ' CASCADE' : ''}`;
 };
 
 /**
@@ -186,7 +187,7 @@ export const buildRetentionQuery = ({
     // column that never holds it. Anything else leaves the statement in its pre-v8.7 shape.
     const sDatabaseId = String(databaseId ?? '').trim();
     const sDatabaseCondition = /^[0-9]+$/.test(sDatabaseId) ? ` and DATABASE_ID=${sDatabaseId}` : '';
-    return `select j.POLICY_NAME as 'POLICY', r.'DURATION' as "DURATION", r.'INTERVAL' as "INTERVAL", j.STATE, j.LAST_DELETED_TIME from M$retention r, V$retention_job j where r.policy_name=j.policy_name and table_name=upper('${tableName}') and user_name=upper('${userName}')${sDatabaseCondition}`;
+    return `select j.POLICY_NAME as 'POLICY', r.'DURATION' as "DURATION", r.'INTERVAL' as "INTERVAL", j.STATE, j.LAST_DELETED_TIME from M$retention r, V$retention_job j where r.policy_name=j.policy_name and table_name=upper(${sqlString(tableName)}) and user_name=upper(${sqlString(userName)})${sDatabaseCondition}`;
 };
 
 export const getTableTypeColor = (aTableType: string) => {

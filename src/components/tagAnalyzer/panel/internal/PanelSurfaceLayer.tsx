@@ -1,31 +1,18 @@
 import type { MutableRefObject } from 'react';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
-import type { PanelChartHandle } from '../../chart/PanelChart';
+import type { PanelChartHandle } from '../../chart/chartModel';
 import {
     filterChartDataByRange,
     type ChartSeriesData,
 } from '../../chart/chartData';
 import { EditAnnotationModal, EditHighlightModal } from '../../markup/MarkupModals';
-import type { AxisRange } from '../../range/rangeModel';
+import { getPanelSeriesDisplayName } from '../../seriesModel';
+import type { AxisRange } from '../../rangeExpression/rangeModel';
 import type { PanelInfo } from '../panelModel';
 import { PanelContextMenu } from './PanelContextMenu';
 import type { PanelActionKey, PanelActionState } from './panelActions';
 import type { PanelSurface } from './panelInteraction';
-
-type PanelSurfaceLayerProps = {
-    surface: PanelSurface | undefined;
-    panelInfo: PanelInfo;
-    actionState: PanelActionState;
-    isNumericXAxis: boolean;
-    mainChartData: ChartSeriesData[];
-    renderMainRange: AxisRange | undefined;
-    panelChartApiRef: MutableRefObject<PanelChartHandle | null>;
-    onPanelAction: (actionKey: PanelActionKey) => void;
-    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
-    onDeletePanel: () => void;
-    onDismiss: (surfaceId: number) => void;
-};
 
 export function PanelSurfaceLayer({
     surface,
@@ -79,7 +66,10 @@ export function PanelSurfaceLayer({
                         : surface.session.annotationIndex}
                     session={surface.session}
                     annotations={panelInfo.annotations}
-                    annotationSeriesList={panelInfo.query.tagSet}
+                    annotationSeriesList={panelInfo.query.tagSet.map((series) => ({
+                        key: series.key,
+                        label: getPanelSeriesDisplayName(series),
+                    }))}
                     onChange={(annotations) =>
                         onApplyPanelInfo({ ...panelInfo, annotations })
                     }
@@ -90,6 +80,7 @@ export function PanelSurfaceLayer({
         case 'deleteConfirm':
             return (
                 <ConfirmModal
+                    data-testid="tag-analyzer-delete-panel-dialog"
                     pIsDarkMode
                     setIsOpen={dismissOnClose}
                     pCallback={onDeletePanel}
@@ -114,3 +105,19 @@ export function PanelSurfaceLayer({
             ) : null;
     }
 }
+
+// -------------------- Local --------------------
+
+type PanelSurfaceLayerProps = {
+    surface: PanelSurface | undefined;
+    panelInfo: PanelInfo;
+    actionState: PanelActionState;
+    isNumericXAxis: boolean;
+    mainChartData: ChartSeriesData[];
+    renderMainRange: AxisRange | undefined;
+    panelChartApiRef: MutableRefObject<PanelChartHandle | null>;
+    onPanelAction: (actionKey: PanelActionKey) => void;
+    onApplyPanelInfo: (panelInfo: PanelInfo) => void;
+    onDeletePanel: () => void;
+    onDismiss: (surfaceId: number) => void;
+};

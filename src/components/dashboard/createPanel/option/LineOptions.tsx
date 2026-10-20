@@ -28,6 +28,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 label="Fill area"
                 defaultChecked={pPanelOption.chartOptions?.areaStyle ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'areaStyle', true)}
+                data-testid="fill-area"
             />
             <div style={{ height: '10px' }} />
             {pPanelOption.chartOptions?.areaStyle ? (
@@ -41,6 +42,7 @@ export const LineOptions = (props: LineOptionProps) => {
                             max={1}
                             value={pPanelOption.chartOptions?.fillOpacity}
                             onChange={(aEvent: any) => handleLineOption(aEvent, 'fillOpacity', false)}
+                            data-testid="fill-opacity"
                         />
                     </Page.ContentBlock>
                     <div style={{ height: '10px' }} />
@@ -53,6 +55,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 label="Smooth line"
                 defaultChecked={pPanelOption.chartOptions?.smooth ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'smooth', true)}
+                data-testid="smooth-line"
             />
             <div style={{ height: '10px' }} />
             <Checkbox
@@ -60,6 +63,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 label="Step line"
                 defaultChecked={pPanelOption.chartOptions?.isStep ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'isStep', true)}
+                data-testid="step-line"
             />
             <div style={{ height: '10px' }} />
             <Checkbox
@@ -67,6 +71,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 label="Stack mode"
                 defaultChecked={pPanelOption.chartOptions?.isStack ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'isStack', true)}
+                data-testid="stack-mode"
             />
             <div style={{ height: '10px' }} />
             <Checkbox
@@ -74,6 +79,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 label="Large data mode"
                 defaultChecked={pPanelOption.chartOptions?.isSampling ?? false}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'isSampling', true)}
+                data-testid="large-data-mode"
             />
             <Page.Divi />
             <Checkbox
@@ -81,6 +87,7 @@ export const LineOptions = (props: LineOptionProps) => {
                 label="Symbol"
                 defaultChecked={pPanelOption.chartOptions?.isSymbol ?? true}
                 onChange={(aEvent: any) => handleLineOption(aEvent, 'isSymbol', true)}
+                data-testid="symbol"
             />
             <div style={{ height: '10px' }} />
             <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
@@ -92,8 +99,8 @@ export const LineOptions = (props: LineOptionProps) => {
                     fullWidth
                     disabled={!pPanelOption.chartOptions?.isSymbol}
                 >
-                    <Dropdown.Trigger />
-                    <Dropdown.Menu>
+                    <Dropdown.Trigger data-testid="type" />
+                    <Dropdown.Menu data-testid="dashboard-panel-editor-dropdown-menu">
                         <Dropdown.List />
                     </Dropdown.Menu>
                 </Dropdown.Root>
@@ -104,6 +111,7 @@ export const LineOptions = (props: LineOptionProps) => {
                     disabled={pPanelOption.chartOptions?.symbol === 'none' || !pPanelOption.chartOptions?.isSymbol}
                     value={pPanelOption.chartOptions?.symbolSize}
                     onChange={(aEvent: any) => handleLineOption(aEvent, 'symbolSize', false)}
+                    data-testid="size"
                 />
             </Page.ContentBlock>
         </div>

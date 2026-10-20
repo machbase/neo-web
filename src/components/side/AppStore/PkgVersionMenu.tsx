@@ -1,6 +1,6 @@
 import './PkgVersionMenu.scss';
 import { useState } from 'react';
-import { VscEdit, VscArrowRight, VscDebugDisconnect, VscShield } from 'react-icons/vsc';
+import { VscEdit, VscArrowRight, VscDebugDisconnect } from 'react-icons/vsc';
 import { ContextMenu, Input, IconButton } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
 import { stripVPrefix, type PkgVersionRow } from '@/utils/version/utils';
@@ -17,13 +17,6 @@ type Props = {
      * callers that never go offline keep the original rendering.
      */
     online?: boolean;
-    /**
-     * The hub is off by POLICY rather than broken (issue #1452). Only changes the
-     * wording of the note above: telling an operator the hub is "unreachable" when
-     * they deliberately disabled it sends them to debug a healthy network.
-     * `online` still does the masking — both non-online modes mask identically.
-     */
-    localOnly?: boolean;
     rows: PkgVersionRow[];
     onSelect: (version: string) => void;
     onClose: () => void;
@@ -39,7 +32,7 @@ type Props = {
  * In experiment mode a "Custom version" input is pinned to the bottom so devs can
  * install/update to an arbitrary tag (e.g. a `-dev` build) that isn't in the catalog.
  */
-export const PkgVersionMenu = ({ isOpen, position, mode, serverVersion, online = true, localOnly = false, rows, onSelect, onClose }: Props) => {
+export const PkgVersionMenu = ({ isOpen, position, mode, serverVersion, online = true, rows, onSelect, onClose }: Props) => {
     const { getExperiment } = useExperiment();
     const [custom, setCustom] = useState('');
     if (!isOpen) return null;
@@ -60,12 +53,8 @@ export const PkgVersionMenu = ({ isOpen, position, mode, serverVersion, online =
             </div>
             {!online && (
                 <div className="pkg-version-menu-offline">
-                    {localOnly ? <VscShield size={12} /> : <VscDebugDisconnect size={12} />}
-                    <span>
-                        {localOnly
-                            ? 'Local-only mode — only locally archived versions can be installed.'
-                            : 'Hub unreachable — only locally archived versions can be installed.'}
-                    </span>
+                    <VscDebugDisconnect size={12} />
+                    <span>Hub unreachable — only locally archived versions can be installed.</span>
                 </div>
             )}
             {rows.length === 0 && (

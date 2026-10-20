@@ -1,20 +1,15 @@
+import type { ResolvedRangeState } from '../panel/rangeControl/rangeControlModel';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ensureUniquePanelKeys,
     type PanelInfo,
 } from '../panel/panelModel';
 import type { BoardInfo } from './boardModel';
-import { isSameRange } from '../range/rangeArithmetic';
+import { isSameRange } from '../rangeExpression/rangeArithmetic';
 import {
     type AxisKind,
     type RangeExpressionInput,
-    type ResolvedRangeState,
-} from '../range/rangeModel';
-
-type BoardRuntimeState = {
-    info: BoardInfo;
-    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
-};
+} from '../rangeExpression/rangeModel';
 
 export function useBoardState(boardInfo: BoardInfo) {
     const [state, setState] = useState<BoardRuntimeState>(() =>
@@ -67,6 +62,14 @@ export function useBoardState(boardInfo: BoardInfo) {
                 ),
             }, current);
         }),
+        // A panel the loader could not read, removed from its error card (#1547).
+        removeUnreadablePanel: (index: number) => setState((current) => ({
+            ...current,
+            info: {
+                ...current.info,
+                unreadablePanels: current.info.unreadablePanels?.filter((panel) => panel.index !== index),
+            },
+        })),
         setPanelOverlapSelected: (
             panelKey: string,
             isSelected: boolean,
@@ -119,6 +122,13 @@ export function useBoardState(boardInfo: BoardInfo) {
         commands,
     };
 }
+
+// -------------------- Local --------------------
+
+type BoardRuntimeState = {
+    info: BoardInfo;
+    panelRanges: { [panelKey: string]: ResolvedRangeState | undefined };
+};
 
 function createBoardRuntimeState(
     boardInfo: BoardInfo,
@@ -175,13 +185,14 @@ function mergeSavedBoardMetadata(
     currentInfo: BoardInfo,
     savedInfo: BoardInfo,
 ): BoardInfo {
-    const { panels, boardTimeRange, boardNumericRange } = currentInfo;
+    const { panels, boardTimeRange, boardNumericRange, unreadablePanels } = currentInfo;
 
     return {
         ...savedInfo,
         panels,
         boardTimeRange,
         boardNumericRange,
+        unreadablePanels,
     };
 }
 

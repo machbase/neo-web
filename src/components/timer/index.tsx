@@ -72,7 +72,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         } else {
             // the confirm modal closes either way — without this the failure is indistinguishable
             // from a no-op
-            Toast.error(resMessage(sRes, `Failed to delete timer '${pCode.name}'`), { id: 'timer-delete' });
+            Toast.error(resMessage(sRes, `Failed to delete timer '${pCode.name}'`), { id: 'timer-delete', testId: 'timer-delete-error-toast' });
         }
 
         setIsDeleteModal(false);
@@ -178,7 +178,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         <>
             {/* Show info */}
             {sActiveTimer && sPayload && (
-                <Page>
+                <Page data-testid="timer-detail">
                     <SplitPane sashRender={() => Resizer()} split={'vertical'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>
                             <Page.Header />
@@ -219,13 +219,13 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                 <Page.ContentBlock>
                                     {/* Schedule */}
                                     <Page.ContentTitle>schedule</Page.ContentTitle>
-                                    <Page.Input pValue={sPayload.schedule} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)} />
+                                    <Page.Input data-testid="timer-detail-schedule" pValue={sPayload.schedule} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)} />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
                                     {/* Task */}
                                     <Page.ContentTitle>task</Page.ContentTitle>
                                     <Page.DpRow>
-                                        <Page.Input pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
+                                        <Page.Input data-testid="timer-detail-task" pValue={sPayload.task} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('task', event)} />
                                         <Button.Group>
                                             <div />
                                             <SelectFileBtn pType="tql" pCallback={handleTql} />
@@ -237,7 +237,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                 <Page.ContentBlock>
                                     {/* BTN */}
                                     <Page.DpRow>
-                                        <Page.TextButton pText="Delete" pType="DELETE" pCallback={handleDelete} />
+                                        <Page.TextButton data-testid="timer-delete" pText="Delete" pType="DELETE" pCallback={handleDelete} />
                                         <Page.TextButton pText="Save" pType="CREATE" pCallback={editItem} />
                                     </Page.DpRow>
                                     {sResMessage && <Alert variant="error" message={sResMessage} />}
@@ -253,7 +253,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             {/* Show create */}
             {!sActiveTimer && <EditTimer />}
             {sIsDeleteModal && (
-                <ConfirmModal
+                <ConfirmModal data-testid="timer-delete-dialog"
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
                     pCallback={deleteTimer}

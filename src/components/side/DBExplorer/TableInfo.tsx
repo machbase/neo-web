@@ -8,7 +8,7 @@ import { generateUUID, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { TbDatabaseMinus, TbDatabasePlus, TbFileDatabase } from 'react-icons/tb';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Loader } from '@/components/loader';
-import { Toast } from '@/design-system/components';
+import { ErrorBoundary, Toast } from '@/design-system/components';
 import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -20,8 +20,14 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Tooltip } from 'react-tooltip';
 import { Virtuoso } from 'react-virtuoso';
 import { Alert, Button, Input, Page, Side } from '@/design-system/components';
+import { VscFilter, VscFilterFilled } from 'react-icons/vsc';
+import { DbFilterStat, formatCount, normalizeQuery } from './explorerFilter';
+import { HighlightedName } from './HighlightedName';
+import { TableTypeFilterMenu } from './TableTypeFilterMenu';
 
 const TAB_TYPE = 'DBTable';
+/** The type menu's outer width — its 184px body plus the shared Popover's 8px side padding. */
+const TYPE_MENU_WIDTH = 200;
 
 export const BackupTableInfo = ({ pValue, pRefresh, pBackupRefresh }: any) => {
     const [sBkCollapseTree, setBkCollapseTree] = useState(true);
@@ -192,11 +198,50 @@ const BACKUP_DB_DIV = ({ backupInfo, pUpdate }: { backupInfo: { path: string; is
     );
 };
 
-export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextMenu }: any) => {
+export const TableInfo = ({
+    pShowHiddenObj,
+    pValue,
+    pRefresh,
+    pUpdate,
+    pContextMenu,
+    pQuery = '',
+    pStat,
+    pIsNarrow = false,
+    pOnToggleType,
+    pOnSelectAllTypes,
+    pOnClearTypes,
+}: any) => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [isUnmount, setIsUnmount] = useState<boolean>(false);
+    const [sFilterMenu, setFilterMenu] = useState<{ open: boolean; x: number; y: number }>({ open: false, x: 0, y: 0 });
+
+    const sNormalizedQuery = normalizeQuery(pQuery);
+    // Searching expands the tree so the hits are visible without clicking, but it does not
+    // overwrite the collapse the user chose — clearing the query puts it straight back.
+    const sIsExpanded = sNormalizedQuery.length > 0 ? true : sCollapseTree;
+    const sStat: DbFilterStat | undefined = pStat;
+    const sSelectedCount = sStat?.selectedTypes.length ?? 0;
+    const sHasFilter = sSelectedCount > 0;
+    // The database row carries its table count at all times; search or a filter turns it
+    // into `shown / total`, which is what says the list on screen is not the whole list.
+    const sIsNarrowed = sHasFilter || sNormalizedQuery.length > 0;
+    const sShowCount = !!sStat && sStat.total > 0 && !pIsNarrow;
+    // Only while the filter is the sole cause. With a search running too, "N hidden by type
+    // filter" would blame the filter for rows the query excluded, and its Clear link would
+    // not bring them back — the `shown / total` count carries that case instead.
+    const sHiddenByFilter = !!sStat && sHasFilter && sNormalizedQuery.length === 0 && sStat.shown === 0 && sStat.total > 0;
+
+    const handleOpenFilterMenu = (aEvent: React.MouseEvent) => {
+        // The row's own click toggles the database node; opening the menu must not.
+        aEvent.stopPropagation();
+        aEvent.preventDefault();
+        const sRect = (aEvent.currentTarget as HTMLElement).getBoundingClientRect();
+        // Anchored under the trigger and right-aligned to it, so the menu opens over the
+        // tree rather than off the panel's narrow edge. Popover clamps to the viewport.
+        setFilterMenu({ open: true, x: sRect.right - TYPE_MENU_WIDTH, y: sRect.bottom + 4 });
+    };
 
     const handleDBTablePage = (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => {
         const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
@@ -321,14 +366,37 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
         <>
             {/* DB */}
             {pValue && pValue.dbName && (
-                <Side.Item onClick={() => setCollapseTree(!sCollapseTree)}>
+                <Side.Item data-testid={`db-node-${encodeURIComponent(pValue.dbName)}`} onClick={() => setCollapseTree(!sCollapseTree)}>
                     <Side.ItemContent>
-                        <Side.ItemArrow isOpen={sCollapseTree} />
+                        <Side.ItemArrow isOpen={sIsExpanded} />
                         <Side.ItemIcon>
                             <FaDatabase size={13} />
                         </Side.ItemIcon>
-                        <Side.ItemText>{pValue.dbName}</Side.ItemText>
+                        <Side.ItemText>
+                            <HighlightedName pText={pValue.dbName} pQuery={sNormalizedQuery} />
+                        </Side.ItemText>
                     </Side.ItemContent>
+                    <div className="db-explorer-db-tail">
+                        {!!sStat && (
+                            <button
+                                type="button"
+                                className={`db-explorer-filter-trigger ${sHasFilter ? 'is-active' : ''}`}
+                                data-testid="type-filter"
+                                aria-label={sHasFilter ? `Table type filter (${sSelectedCount} selected)` : 'Filter table types'}
+                                aria-haspopup="true"
+                                aria-expanded={sFilterMenu.open}
+                                onClick={handleOpenFilterMenu}
+                            >
+                                {sHasFilter ? <VscFilterFilled size={11} /> : <VscFilter size={11} />}
+                                {sHasFilter && <span className="db-explorer-filter-trigger-count">{sSelectedCount}</span>}
+                            </button>
+                        )}
+                        {sShowCount && (
+                            <span className={`db-explorer-db-count ${sIsNarrowed ? 'is-narrowed' : ''}`}>
+                                {sIsNarrowed ? `${formatCount(sStat!.shown)}/${formatCount(sStat!.total)}` : formatCount(sStat!.total)}
+                            </span>
+                        )}
+                    </div>
                     <Side.ItemAction>
                         {/* Unmount applies to attached backups only. The old test — "not named MACHBASEDB" —
                                 becomes wrong the moment a server holds a second *active* database: FACTORY_A
@@ -338,6 +406,29 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
                         )}
                     </Side.ItemAction>
                 </Side.Item>
+            )}
+            {/* A database whose filter leaves nothing to show. Without this the node reads as
+                empty, and the dropdown that caused it is the one place the filter can be seen. */}
+            {sHiddenByFilter && sIsExpanded && (
+                <div className={`db-explorer-filter-blocked ${pIsNarrow ? 'is-narrow' : ''}`}>
+                    <span className="db-explorer-filter-blocked-text">{formatCount(sStat!.total)} hidden by type filter</span>
+                    <span>·</span>
+                    <button type="button" className="db-explorer-inline-link" onClick={() => pOnClearTypes?.(pValue.dbName)}>
+                        Clear
+                    </button>
+                </div>
+            )}
+            {!!sStat && (
+                <TableTypeFilterMenu
+                    pIsOpen={sFilterMenu.open}
+                    pPosition={{ x: sFilterMenu.x, y: sFilterMenu.y }}
+                    pDbName={pValue?.dbName ?? ''}
+                    pOptions={sStat.typeOptions}
+                    pOnToggle={(aType: string) => pOnToggleType?.(pValue.dbName, aType)}
+                    pOnSelectAll={() => pOnSelectAllTypes?.(pValue.dbName)}
+                    pOnClear={() => pOnClearTypes?.(pValue.dbName)}
+                    pOnClose={() => setFilterMenu((aPrev) => ({ ...aPrev, open: false }))}
+                />
             )}
             {/* DELETE CONFIRM MODAL */}
             {isUnmount && (
@@ -354,11 +445,11 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
             )}
             {/* USER */}
             {pValue &&
-                sCollapseTree &&
+                sIsExpanded &&
                 pValue.userList.map((aUser: { userName: string; total: number; tableList: any }) => {
                     return (
+                        <ErrorBoundary key={aUser.userName + '-user'} name={`db-row:${pValue.dbName}:${aUser.userName}`} variant="inline" resetKeys={[aUser]} fallbackStyle={{ height: 22 }}>
                         <UserDiv
-                            key={aUser.userName + '-user'}
                             pShowUserIcon={pValue.userList.length > 1}
                             pUserData={aUser}
                             pShowHiddenObj={pShowHiddenObj}
@@ -366,7 +457,9 @@ export const TableInfo = ({ pShowHiddenObj, pValue, pRefresh, pUpdate, pContextM
                             pHandleDBTablePage={handleDBTablePage}
                             pHandleOpenDataViewer={handleOpenDataViewer}
                             pContextMenu={pContextMenu}
+                            pQuery={sNormalizedQuery}
                         />
+                        </ErrorBoundary>
                     );
                 })}
         </>
@@ -381,9 +474,13 @@ interface UserDivPropsType {
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
     pHandleOpenDataViewer: (e: React.MouseEvent, aTableInfo: (number | string)[]) => void;
     pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string | number) => void;
+    /** Already normalised by TableInfo — lowercase and trimmed. */
+    pQuery?: string;
 }
 const UserDiv = (props: UserDivPropsType): JSX.Element => {
     const [sCollapseTree, setCollapseTree] = useState(true);
+    const sQuery = props.pQuery ?? '';
+    const sIsExpanded = sQuery.length > 0 ? true : sCollapseTree;
 
     let sUserName = getUserName();
     if (sUserName) sUserName = sUserName?.toUpperCase();
@@ -399,15 +496,17 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
             {props.pUserData && props.pShowUserIcon && props.pUserData.total > 0 && (
                 <Side.Item paddingLeft={28} onClick={() => setCollapseTree(!sCollapseTree)}>
                     <Side.ItemContent>
-                        <Side.ItemArrow isOpen={sCollapseTree} />
+                        <Side.ItemArrow isOpen={sIsExpanded} />
                         <Side.ItemIcon>
                             <FaUser size={13} />
                         </Side.ItemIcon>
-                        <Side.ItemText>{props.pUserData.userName}</Side.ItemText>
+                        <Side.ItemText>
+                            <HighlightedName pText={props.pUserData.userName} pQuery={sQuery} />
+                        </Side.ItemText>
                     </Side.ItemContent>
                 </Side.Item>
             )}
-            {props.pUserData && props.pUserData.tableList && props.pUserData.total > 0 && sCollapseTree && (
+            {props.pUserData && props.pUserData.tableList && props.pUserData.total > 0 && sIsExpanded && (
                 <div className="table-wrap db-exp-comm">
                     {TableTypeOrderList.map((aTableType: string, aIdx: number) => {
                         return (
@@ -416,6 +515,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                     return (
                                         <div className="table-wrap-content" key={`table-${aTableType}-${aIdx}-${bIdx}`} style={{ display: checkDisplay(aTable[5]) ? '' : 'none' }}>
                                             {sUserName && (
+                                                <ErrorBoundary name={`db-row:${sUserName}:${aTable[3] ?? bIdx}`} variant="inline" resetKeys={[aTable]} fallbackStyle={{ height: 22 }}>
                                                 <TableDiv
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
@@ -428,7 +528,9 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     pHandleDBTablePage={props.pHandleDBTablePage}
                                                     pHandleOpenDataViewer={props.pHandleOpenDataViewer}
                                                     pContextMenu={props.pContextMenu}
+                                                    pQuery={sQuery}
                                                 />
+                                                </ErrorBoundary>
                                             )}
                                         </div>
                                     );
@@ -454,6 +556,7 @@ interface TableDivPropsType {
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
     pHandleOpenDataViewer: (e: React.MouseEvent, aTableInfo: (number | string)[]) => void;
     pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string | number) => void;
+    pQuery?: string;
 }
 const DISABLED_TABLE_TYPES = ['exception'];
 
@@ -509,6 +612,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     return (
         <>
             <Side.Item
+                data-testid={`db-table-${encodeURIComponent([props.pTable[E_TABLE_INFO.DB_NM], props.pTable[E_TABLE_INFO.USER_NM], props.pTable[E_TABLE_INFO.TB_NM]].join("."))}`}
                 className="db-explorer-row"
                 paddingLeft={40}
                 onClick={handleTableDetail}
@@ -526,7 +630,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                         delayShow={700}
                         style={{ zIndex: 9999 }}
                     />
-                    <TableNameText pTable={props.pTable} disabled={sIsDisabled} qualifiedName={sQualifiedName} />
+                    <TableNameText pTable={props.pTable} disabled={sIsDisabled} qualifiedName={sQualifiedName} query={props.pQuery ?? ''} />
                 </Side.ItemContent>
                 <div className="db-explorer-row-tail">
                     {!sIsDisabled && <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>}
@@ -563,14 +667,14 @@ interface ColumnDivPropsType {
     pDatabaseId: string;
     pTableId: string;
 }
-const TableNameText = ({ pTable, disabled, qualifiedName }: { pTable: (string | number)[]; disabled: boolean; qualifiedName: string }) => {
+const TableNameText = ({ pTable, disabled, qualifiedName, query }: { pTable: (string | number)[]; disabled: boolean; qualifiedName: string; query: string }) => {
     const tableName = String(pTable[E_TABLE_INFO.TB_NM] ?? '');
     const tooltipId = `table-name-${pTable[E_TABLE_INFO.TB_ID]}`;
 
     return (
         <Side.ItemText>
             <div className={`table-name-text tooltip-${tooltipId}`} style={disabled ? { color: 'darkgray' } : undefined}>
-                {tableName}
+                <HighlightedName pText={tableName} pQuery={query} />
             </div>
             <Tooltip place="top" positionStrategy="fixed" anchorSelect={`.tooltip-${tooltipId}`} content={qualifiedName} delayShow={700} style={{ zIndex: 9999 }} />
         </Side.ItemText>

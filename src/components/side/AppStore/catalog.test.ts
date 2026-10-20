@@ -1,11 +1,11 @@
 import { buildCatalog, mergeVersions, resetCatalogSyncTime } from './catalog';
 import { fetchPkgHubList, type APP_INFO } from '@/api/repository/appStore';
-import { fetchLocalArchiveEntries, getInstalledDirs, getInstalledIcons, getLastArchiveScanErrors, isLocalOnlyMode } from '@/api/repository/onpremCatalog';
+import { fetchLocalArchiveEntries, getInstalledDirs, getInstalledIcons, getLastArchiveScanErrors } from '@/api/repository/onpremCatalog';
 import { getFiles } from '@/api/repository/fileTree';
 import { readManifest } from './pkgLifecycle';
 
-// Only the three source legs are stubbed; the merge, the experiment gate and the
-// search filter all run for real.
+// Only the three source legs are stubbed; the merge and the search filter run for
+// real.
 jest.mock('@/api/repository/appStore', () => ({
     ...jest.requireActual('@/api/repository/appStore'),
     fetchPkgHubList: jest.fn(),
@@ -13,11 +13,8 @@ jest.mock('@/api/repository/appStore', () => ({
 jest.mock('@/api/repository/onpremCatalog', () => ({
     ...jest.requireActual('@/api/repository/onpremCatalog'),
     fetchLocalArchiveEntries: jest.fn(),
-    // The local-only flag is a side channel on the cached scan, so with the scan
-    // stubbed the real reader would always answer false. Stubbed alongside it.
-    isLocalOnlyMode: jest.fn(),
-    // Same deal for the installed copies' icon file names (issue #1452) — one more
-    // side channel on the same stubbed scan.
+    // The installed copies' icon file names (issue #1452) are a side channel on the
+    // cached scan, so with the scan stubbed they are stubbed alongside it.
     getInstalledIcons: jest.fn(),
     // …and for what each /public/ directory's own package.json claims, which is
     // what the stray-directory classification runs on (issue #1452).
@@ -32,7 +29,6 @@ jest.mock('./pkgLifecycle', () => ({ readManifest: jest.fn() }));
 
 const mockHub = fetchPkgHubList as jest.MockedFunction<typeof fetchPkgHubList>;
 const mockLocal = fetchLocalArchiveEntries as jest.MockedFunction<typeof fetchLocalArchiveEntries>;
-const mockLocalOnly = isLocalOnlyMode as jest.MockedFunction<typeof isLocalOnlyMode>;
 const mockInstalledIcons = getInstalledIcons as jest.MockedFunction<typeof getInstalledIcons>;
 const mockInstalledDirs = getInstalledDirs as jest.MockedFunction<typeof getInstalledDirs>;
 const mockScanErrors = getLastArchiveScanErrors as jest.MockedFunction<typeof getLastArchiveScanErrors>;
@@ -82,7 +78,6 @@ beforeEach(() => {
     resetCatalogSyncTime();
     mockHub.mockResolvedValue([]);
     mockLocal.mockResolvedValue(NO_LOCAL);
-    mockLocalOnly.mockReturnValue(false);
     // Default: the scan said nothing about icons — the pre-#1452 world, in which
     // every card falls back to the `icon.png` guess.
     mockInstalledIcons.mockReturnValue(undefined);
@@ -99,7 +94,7 @@ describe('buildCatalog — hub reachable', () => {
     test('with no local archives the result is the plain hub catalog', async () => {
         mockHub.mockResolvedValue([hubCard('pkg-a'), hubCard('pkg-b')]);
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         expect(res.pkgs.map((p) => p.name)).toEqual(['pkg-a', 'pkg-b']);
         expect(res.mode).toBe('online');
@@ -114,7 +109,7 @@ describe('buildCatalog — hub reachable', () => {
         mockGetFiles.mockResolvedValue(publicListing(['pkg-a']));
         mockManifest.mockResolvedValue({ version: '0.9.0', packageService: { managed: false, reason: 'child services' } });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0]).toMatchObject({ name: 'pkg-a', installed_frontend: true, installed_version: '0.9.0' });
         expect(pkgs[0].installed_packageService).toEqual({ managed: false, reason: 'child services' });
@@ -134,7 +129,7 @@ describe('buildCatalog — installed_icon', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-dbus', 'neo-pkg-opcua-client']));
         mockInstalledIcons.mockReturnValue({ 'neo-pkg-dbus': 'icon.svg', 'neo-pkg-opcua-client': 'icon.png' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => [p.name, p.installed_icon])).toEqual([
             ['neo-pkg-dbus', 'icon.svg'],
@@ -147,7 +142,7 @@ describe('buildCatalog — installed_icon', () => {
         mockGetFiles.mockResolvedValue(publicListing(['pkg-a']));
         mockInstalledIcons.mockReturnValue({ 'pkg-b': 'icon.svg' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0].installed_icon).toBe('');
     });
@@ -157,7 +152,7 @@ describe('buildCatalog — installed_icon', () => {
         mockGetFiles.mockResolvedValue(publicListing(['pkg-a']));
         mockInstalledIcons.mockReturnValue(undefined);
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0].installed_frontend).toBe(true);
         expect(pkgs[0].installed_icon).toBeUndefined();
@@ -168,7 +163,7 @@ describe('buildCatalog — installed_icon', () => {
         mockGetFiles.mockResolvedValue(publicListing([]));
         mockInstalledIcons.mockReturnValue({ 'pkg-a': 'icon.svg' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0].installed_icon).toBeUndefined();
     });
@@ -181,7 +176,7 @@ describe('buildCatalog — installed_icon', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-dbus']));
         mockInstalledIcons.mockReturnValue({ 'neo-pkg-dbus': 'icon.svg' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => [p.name, p.installed_icon])).toEqual([['neo-pkg-dbus', 'icon.svg']]);
     });
@@ -194,7 +189,7 @@ describe('buildCatalog — hub unreachable (the #1452 regression)', () => {
         offline();
         mockLocal.mockResolvedValue([localCard('pkg-a'), localCard('pkg-b')]);
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         expect(res.pkgs.map((p) => p.name)).toEqual(['pkg-a', 'pkg-b']);
         expect(res.mode).toBe('offline');
@@ -209,7 +204,7 @@ describe('buildCatalog — hub unreachable (the #1452 regression)', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-installed']));
         mockManifest.mockResolvedValue({ version: '1.2.3' });
 
-        const { pkgs, mode } = await buildCatalog({ experimentOn: false });
+        const { pkgs, mode } = await buildCatalog();
 
         expect(mode).toBe('offline');
         expect(pkgs).toHaveLength(1);
@@ -227,7 +222,7 @@ describe('buildCatalog — hub unreachable (the #1452 regression)', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-installed']));
         mockManifest.mockResolvedValue({ name: 'neo-pkg-installed', version: '1.2.3', description: 'shipped in a zip' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0].github.description).toBe('shipped in a zip');
         expect(pkgs[0].installed_frontend).toBe(true);
@@ -241,7 +236,7 @@ describe('buildCatalog — hub unreachable (the #1452 regression)', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-installed']));
         mockManifest.mockResolvedValue({ name: 'neo-pkg-installed', version: '1.0.8' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false, search: 'INSTALLED' });
+        const { pkgs } = await buildCatalog({ search: 'INSTALLED' });
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-installed']);
         expect(pkgs[0].github.description).toBe('');
@@ -257,7 +252,7 @@ describe('buildCatalog — hub unreachable (the #1452 regression)', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-installed']));
         mockManifest.mockRejectedValue(new Error('unreadable manifest'));
 
-        const { pkgs, mode } = await buildCatalog({ experimentOn: false });
+        const { pkgs, mode } = await buildCatalog();
 
         expect(mode).toBe('offline');
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-installed']);
@@ -269,17 +264,17 @@ describe('buildCatalog — hub unreachable (the #1452 regression)', () => {
         mockLocal.mockResolvedValue([localCard('pkg-a')]);
         mockGetFiles.mockRejectedValue(new Error('404'));
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
         expect(pkgs.map((p) => p.name)).toEqual(['pkg-a']);
         expect(pkgs[0].installed_frontend).toBeUndefined();
     });
 
     test('lastSyncAt keeps reporting the last SUCCESSFUL sync after the hub drops', async () => {
         mockHub.mockResolvedValue([hubCard('pkg-a')]);
-        const { lastSyncAt: first } = await buildCatalog({ experimentOn: false });
+        const { lastSyncAt: first } = await buildCatalog();
 
         offline();
-        const { lastSyncAt: second, mode } = await buildCatalog({ experimentOn: false });
+        const { lastSyncAt: second, mode } = await buildCatalog();
 
         expect(mode).toBe('offline');
         expect(second).toBe(first);
@@ -289,135 +284,13 @@ describe('buildCatalog — hub unreachable (the #1452 regression)', () => {
 // `/public/` is a web root, not a package registry — real servers keep backend
 // work directories (`stage`) next to the installed packages, and synthesizing a
 // card for those hands the user uninstall controls for a non-package.
-// ---------------------------------------------------------------------------
-// LOCAL-ONLY MODE (issue #1452)
-// ---------------------------------------------------------------------------
-// The deliverable is NEGATIVE: with `/public/.pkg-conf.json` saying
-// `{ "localOnly": true }`, no request may leave the machine. Filtering the hub's
-// answer afterwards would look identical on screen and be exactly wrong — the
-// packets are what the customer is air-gapping.
-describe('buildCatalog — local-only mode', () => {
-    const policyOn = () => mockLocalOnly.mockReturnValue(true);
-
-    // THE CORE REGRESSION TEST FOR THIS FEATURE.
-    test('the hub fetch is NEVER CALLED — not called and filtered, not called at all', async () => {
-        policyOn();
-        mockLocal.mockResolvedValue([localCard('pkg-a')]);
-
-        const res = await buildCatalog({ experimentOn: false });
-
-        expect(mockHub).not.toHaveBeenCalled();
-        expect(res.mode).toBe('localOnly');
-        expect(res.pkgs.map((p) => p.name)).toEqual(['pkg-a']);
-    });
-
-    // The ordering guard. The legs used to fire together under Promise.allSettled,
-    // which meant the flag arrived AFTER the request it was supposed to prevent.
-    // A cold cache (nothing scanned yet) is precisely the case that would leak.
-    test('a cold first scan still gets the policy in before the hub leg could fire', async () => {
-        policyOn();
-        let scanResolved = false;
-        mockLocal.mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    setTimeout(() => {
-                        scanResolved = true;
-                        resolve([localCard('pkg-a')]);
-                    }, 10);
-                })
-        );
-        // If the hub leg ever runs, prove the scan had already finished — i.e. the
-        // decision was made with the flag in hand, never speculatively.
-        mockHub.mockImplementation(async () => {
-            expect(scanResolved).toBe(true);
-            return [];
-        });
-
-        await buildCatalog({ experimentOn: false });
-
-        expect(mockHub).not.toHaveBeenCalled();
-    });
-
-    test('hubError stays undefined — nothing failed', async () => {
-        policyOn();
-
-        const res = await buildCatalog({ experimentOn: false });
-        expect(res.hubError).toBeUndefined();
-    });
-
-    // lastSyncAt is the last SUCCESSFUL hub sync. Local-only performs none, so an
-    // earlier one must survive untouched rather than be refreshed by a build that
-    // never talked to the hub.
-    test('lastSyncAt is not advanced by a local-only build', async () => {
-        mockHub.mockResolvedValue([hubCard('pkg-a')]);
-        const { lastSyncAt: first } = await buildCatalog({ experimentOn: false });
-
-        policyOn();
-        const { lastSyncAt: second, mode } = await buildCatalog({ experimentOn: false });
-
-        expect(mode).toBe('localOnly');
-        expect(second).toBe(first);
-    });
-
-    // Installed packages must keep their cards — start / stop / uninstall live
-    // there, and an air-gapped site is exactly where that matters most.
-    test('installed packages are still listed and annotated', async () => {
-        policyOn();
-        mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-installed']));
-        mockManifest.mockResolvedValue({ version: '1.2.3' });
-
-        const { pkgs, mode } = await buildCatalog({ experimentOn: false });
-
-        expect(mode).toBe('localOnly');
-        expect(pkgs[0]).toMatchObject({ name: 'neo-pkg-installed', installed_frontend: true, installed_version: '1.2.3' });
-        expect(mockHub).not.toHaveBeenCalled();
-    });
-
-    test('an empty archive directory in local-only mode is an empty catalog, still localOnly', async () => {
-        policyOn();
-
-        const res = await buildCatalog({ experimentOn: false });
-
-        expect(res.pkgs).toEqual([]);
-        expect(res.mode).toBe('localOnly');
-        expect(mockHub).not.toHaveBeenCalled();
-    });
-
-    // The flag rides on the scan, so a scan that never completed cannot have
-    // established the policy. Failing closed here would let a TQL hiccup hide the
-    // entire hub catalog.
-    test('a scan that throws falls back to the hub rather than to a fake air gap', async () => {
-        mockLocal.mockRejectedValue(new Error('boom'));
-        mockHub.mockResolvedValue([hubCard('pkg-a')]);
-
-        const res = await buildCatalog({ experimentOn: false });
-
-        expect(mockHub).toHaveBeenCalled();
-        expect(res.mode).toBe('online');
-        expect(res.pkgs.map((p) => p.name)).toEqual(['pkg-a']);
-    });
-
-    test('turning the policy off restores the hub leg', async () => {
-        policyOn();
-        await buildCatalog({ experimentOn: false });
-        expect(mockHub).not.toHaveBeenCalled();
-
-        mockLocalOnly.mockReturnValue(false);
-        mockHub.mockResolvedValue([hubCard('pkg-a')]);
-        const res = await buildCatalog({ experimentOn: false });
-
-        expect(mockHub).toHaveBeenCalledTimes(1);
-        expect(res.mode).toBe('online');
-    });
-});
-
 describe('buildCatalog — /public/ directories that are not packages', () => {
     test('an unknown directory becomes a card only when it is named like a package', async () => {
         mockHub.mockRejectedValue(new Error('offline'));
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-a', 'stage']));
         mockManifest.mockResolvedValue({ version: '1.0.0' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-a']);
         expect(pkgs.map((p) => p.name)).not.toContain('stage');
@@ -426,7 +299,7 @@ describe('buildCatalog — /public/ directories that are not packages', () => {
     test('a non-package directory is never even read off disk', async () => {
         mockGetFiles.mockResolvedValue(publicListing(['stage']));
 
-        await buildCatalog({ experimentOn: false });
+        await buildCatalog();
 
         expect(mockManifest).not.toHaveBeenCalled();
     });
@@ -440,9 +313,10 @@ describe('buildCatalog — /public/ directories that are not packages', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-a', 'legacy-tool', 'zipped-tool', 'stage']));
         mockManifest.mockResolvedValue({ version: '0.9.0' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
-        expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-a', 'legacy-tool', 'zipped-tool']);
+        // All three are installed, so all three are local cards: listed by name.
+        expect(pkgs.map((p) => p.name)).toEqual(['legacy-tool', 'neo-pkg-a', 'zipped-tool']);
         expect(pkgs.every((p) => p.installed_frontend === true)).toBe(true);
         expect(pkgs.find((p) => p.name === 'legacy-tool')?.installed_version).toBe('0.9.0');
     });
@@ -457,7 +331,7 @@ describe('buildCatalog — /public/ directories that are not packages', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-halfcopied']));
         mockManifest.mockResolvedValue(null);
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-halfcopied']);
         expect(pkgs[0].installed_frontend).toBe(true);
@@ -486,7 +360,7 @@ describe('buildCatalog — stray directories', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-main']));
         mockInstalledDirs.mockReturnValue(unpacked('neo-pkg-foo-main', 'neo-pkg-foo'));
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         // Named after the PACKAGE, identified by the DIRECTORY.
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-foo']);
@@ -501,7 +375,7 @@ describe('buildCatalog — stray directories', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-1.0.5']));
         mockInstalledDirs.mockReturnValue({ 'neo-pkg-foo-1.0.5': { name: 'neo-pkg-foo', version: '2.3.4', description: 'unpacked by hand', git: false } });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0]).toMatchObject({ name: 'neo-pkg-foo', latest_version: '2.3.4' });
         expect(pkgs[0].github.description).toBe('unpacked by hand');
@@ -515,7 +389,7 @@ describe('buildCatalog — stray directories', () => {
         mockManifest.mockResolvedValue({ version: '1.0.0' });
         mockInstalledDirs.mockReturnValue({ 'neo-pkg-foo': { name: 'something-else', git: false } });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-foo']);
         expect(pkgs[0].stray).toBeUndefined();
@@ -530,7 +404,7 @@ describe('buildCatalog — stray directories', () => {
         mockManifest.mockResolvedValue(null);
         mockInstalledDirs.mockReturnValue({});
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-halfcopied']);
         expect(pkgs[0].installed_frontend).toBe(true);
@@ -543,7 +417,7 @@ describe('buildCatalog — stray directories', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-dev']));
         mockInstalledDirs.mockReturnValue(unpacked('neo-pkg-foo-dev', 'neo-pkg-foo', { git: true }));
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0].stray).toEqual({ dir: 'neo-pkg-foo-dev', removable: false, duplicate: false });
     });
@@ -552,7 +426,7 @@ describe('buildCatalog — stray directories', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-main']));
         mockInstalledDirs.mockReturnValue({ 'neo-pkg-foo-main': { name: 'neo-pkg-foo' } });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0].stray?.removable).toBe(false);
     });
@@ -570,7 +444,7 @@ describe('buildCatalog — stray directories', () => {
         mockGetFiles.mockResolvedValue(publicListing(['stage']));
         mockInstalledDirs.mockReturnValue({ stage: { name: 'neo-pkg-opcua-client', git: false } });
 
-        const { pkgs, scanWarnings } = await buildCatalog({ experimentOn: false });
+        const { pkgs, scanWarnings } = await buildCatalog();
 
         expect(pkgs).toEqual([]);
         expect(scanWarnings).toEqual([]);
@@ -586,7 +460,7 @@ describe('buildCatalog — stray directories', () => {
             stage: { name: 'neo-pkg-opcua-client', git: false },
         });
 
-        const { pkgs, scanWarnings } = await buildCatalog({ experimentOn: false });
+        const { pkgs, scanWarnings } = await buildCatalog();
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-foo']);
         expect(scanWarnings).toEqual([]);
@@ -599,7 +473,7 @@ describe('buildCatalog — stray directories', () => {
         mockManifest.mockResolvedValue({ version: '1.0.0' });
         mockInstalledDirs.mockReturnValue({ 'neo-pkg-orphan': { name: 'neo-pkg-orphan', git: false } });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-orphan']);
         expect(pkgs[0].stray).toBeUndefined();
@@ -617,7 +491,7 @@ describe('buildCatalog — stray directories', () => {
             ...unpacked('neo-pkg-foo-main', 'neo-pkg-foo'),
         });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs).toHaveLength(2);
         const real = pkgs.find((p) => !p.stray)!;
@@ -627,6 +501,8 @@ describe('buildCatalog — stray directories', () => {
         expect(stray.installed_frontend).toBeUndefined();
     });
 
+    // Strays are the cards with a problem, so they go below everything that works —
+    // including `neo-pkg-foo`, which only the hub knows.
     test('several strays are ordered by directory, after every real card', async () => {
         mockHub.mockResolvedValue([hubCard('neo-pkg-foo')]);
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-zed-main', 'neo-pkg-foo-main']));
@@ -635,7 +511,7 @@ describe('buildCatalog — stray directories', () => {
             ...unpacked('neo-pkg-foo-main', 'neo-pkg-foo'),
         });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => p.stray?.dir ?? p.name)).toEqual(['neo-pkg-foo', 'neo-pkg-foo-main', 'neo-pkg-zed-main']);
     });
@@ -644,7 +520,7 @@ describe('buildCatalog — stray directories', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-main']));
         mockInstalledDirs.mockReturnValue(unpacked('neo-pkg-foo-main', 'neo-pkg-foo'));
 
-        await buildCatalog({ experimentOn: false });
+        await buildCatalog();
 
         expect(mockManifest).not.toHaveBeenCalled();
     });
@@ -654,7 +530,7 @@ describe('buildCatalog — stray directories', () => {
         mockInstalledDirs.mockReturnValue(unpacked('neo-pkg-foo-main', 'neo-pkg-foo'));
         mockInstalledIcons.mockReturnValue({ 'neo-pkg-foo-main': 'icon.svg' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0].installed_icon).toBe('icon.svg');
     });
@@ -663,7 +539,7 @@ describe('buildCatalog — stray directories', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-main']));
         mockInstalledDirs.mockReturnValue(unpacked('neo-pkg-foo-main', 'neo-pkg-foo'));
 
-        const { pkgs } = await buildCatalog({ experimentOn: false, search: 'foo-main' });
+        const { pkgs } = await buildCatalog({ search: 'foo-main' });
 
         expect(pkgs.map((p) => p.stray?.dir)).toEqual(['neo-pkg-foo-main']);
     });
@@ -675,7 +551,7 @@ describe('buildCatalog — stray directories', () => {
         mockManifest.mockResolvedValue({ version: '1.0.0' });
         mockInstalledDirs.mockReturnValue({});
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-foo-main']);
         expect(pkgs[0].stray).toBeUndefined();
@@ -692,7 +568,7 @@ describe('buildCatalog — stray directories', () => {
 // so the value has to be ON the result.
 describe('buildCatalog — scanWarnings', () => {
     test('a clean scan reports an empty list, never undefined', async () => {
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
         expect(res.scanWarnings).toEqual([]);
     });
 
@@ -704,7 +580,7 @@ describe('buildCatalog — scanWarnings', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-main']));
         mockInstalledDirs.mockReturnValue({ 'neo-pkg-foo-main': { name: 'neo-pkg-foo', git: false } });
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         expect(res.pkgs.map((p) => p.stray?.dir ?? p.name)).toEqual(['neo-pkg-foo', 'neo-pkg-foo-main']);
         expect(res.scanWarnings).toEqual([]);
@@ -723,7 +599,7 @@ describe('buildCatalog — scanWarnings', () => {
         mockInstalledDirs.mockReturnValue({ stage: { name: 'neo-pkg-opcua-client', git: false } });
         mockScanErrors.mockReturnValue(archiveWarnings);
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         expect(res.scanWarnings).toEqual(archiveWarnings);
         expect(res.scanWarnings.map((w) => w.archive)).not.toContain('stage');
@@ -741,7 +617,7 @@ describe('buildCatalog — scanWarnings', () => {
     ])('%s is still reported', async (_label, warning) => {
         mockScanErrors.mockReturnValue([warning]);
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         expect(res.scanWarnings).toEqual([warning]);
     });
@@ -752,7 +628,7 @@ describe('buildCatalog — scanWarnings', () => {
         mockHub.mockResolvedValue([hubCard('pkg-a')]);
         mockScanErrors.mockReturnValue([{ archive: 'weird.tar.zst', error: 'unsupported compression' }]);
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         expect(res.mode).toBe('online');
         expect(res.scanWarnings).toEqual([{ archive: 'weird.tar.zst', error: 'unsupported compression' }]);
@@ -764,7 +640,7 @@ describe('buildCatalog — scanWarnings', () => {
         mockHub.mockResolvedValue([hubCard('pkg-a')]);
         mockScanErrors.mockReturnValue([{ archive: 'broken.zip', error: 'zip: not a valid zip file' }]);
 
-        const res = await buildCatalog({ search: 'nothing-matches-this', experimentOn: false });
+        const res = await buildCatalog({ search: 'nothing-matches-this' });
 
         expect(res.pkgs).toEqual([]);
         expect(res.scanWarnings).toHaveLength(1);
@@ -775,7 +651,7 @@ describe('buildCatalog — scanWarnings', () => {
     test('a scan that throws yields no findings rather than a crash', async () => {
         mockLocal.mockRejectedValue(new Error('scan exploded'));
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         expect(res.scanWarnings).toEqual([]);
     });
@@ -786,7 +662,7 @@ describe('buildCatalog — name-keyed union', () => {
         mockHub.mockResolvedValue([hubCard('pkg-a', { versions: [{ version: '2.0.0', minServer: '8.6.0' }, { version: '1.0.0', minServer: '8.5.0' }] })]);
         mockLocal.mockResolvedValue([localCard('pkg-a', ['1.0.0'])]);
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs).toHaveLength(1);
         // Union, newest first; the shared version folds into ONE row.
@@ -804,18 +680,20 @@ describe('buildCatalog — name-keyed union', () => {
         mockHub.mockResolvedValue([hubCard('pkg-a', { icon: 'hub.png', docs: 'HUB.md' })]);
         mockLocal.mockResolvedValue([localCard('pkg-a', ['1.0.0'], { icon: 'zip.png', docs: 'ZIP.md' })]);
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
+        const { pkgs } = await buildCatalog();
 
         expect(pkgs[0]).toMatchObject({ icon: 'hub.png', docs: 'HUB.md' });
         expect(pkgs[0].github.description).toBe('pkg-a desc');
     });
 
-    test('hub ordering is preserved and local-only packages follow it', async () => {
+    // `a` has an archive on this server, so it is a LOCAL card even though the hub
+    // knows it too; `b` exists only in the hub.
+    test('local cards come first (by name), hub-only packages follow in hub order', async () => {
         mockHub.mockResolvedValue([hubCard('b'), hubCard('a')]);
         mockLocal.mockResolvedValue([localCard('a'), localCard('z')]);
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
-        expect(pkgs.map((p) => p.name)).toEqual(['b', 'a', 'z']);
+        const { pkgs } = await buildCatalog();
+        expect(pkgs.map((p) => p.name)).toEqual(['a', 'z', 'b']);
     });
 
     // issue #1452 — the local leg publishes CARDS ONLY. It used to return an
@@ -825,7 +703,7 @@ describe('buildCatalog — name-keyed union', () => {
     test('the result carries no file paths for the caller to thread anywhere', async () => {
         mockLocal.mockResolvedValue([localCard('pkg-a')]);
 
-        const res = await buildCatalog({ experimentOn: false });
+        const res = await buildCatalog();
 
         // `scanWarnings` joined this list (issue #1452) and is NOT a path channel:
         // it holds the scan's DIAGNOSTIC records, which name a file only to say it
@@ -838,37 +716,140 @@ describe('buildCatalog — name-keyed union', () => {
     });
 });
 
-describe('buildCatalog — experiment gate (issue #1438 preserved)', () => {
-    // The archive's package.json is a packaging-time snapshot: it cannot know the
-    // hub pulled the package back for revalidation after the archive was cut.
-    test('the hub experiment flag overrides the local one', async () => {
-        mockHub.mockResolvedValue([hubCard('pkg-a', { experiment: true })]);
-        mockLocal.mockResolvedValue([localCard('pkg-a', ['1.0.0'], { experiment: false })]);
+// ---------------------------------------------------------------------------
+// LOCAL FIRST — two passes over one merge
+// ---------------------------------------------------------------------------
+// The panel used to stay blank until the hub answered, and on a closed network the
+// hub answers only by timing out. Now the local legs land first (`onLocal`) and the
+// hub's answer is merged in afterwards — which is also why there is no longer a
+// policy switch to skip the hub: it is always asked, and waiting on it is never
+// visible.
+describe('buildCatalog — local first', () => {
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const names = (pkgs: APP_INFO[]) => pkgs.map((p) => p.name);
 
-        const on = await buildCatalog({ experimentOn: true });
-        expect(on.pkgs[0].experiment).toBe(true);
+    test('onLocal lands once, with the local cards, BEFORE the hub has answered', async () => {
+        let answerHub!: (pkgs: APP_INFO[]) => void;
+        mockHub.mockReturnValue(new Promise<APP_INFO[]>((resolve) => (answerHub = resolve)));
+        mockLocal.mockResolvedValue([localCard('pkg-zip')]);
+        const onLocal = jest.fn();
 
-        // …and with experiment mode off, the merged flag hides the card.
-        const off = await buildCatalog({ experimentOn: false });
-        expect(off.pkgs).toEqual([]);
+        const pending = buildCatalog({ onLocal });
+        await flush();
+
+        expect(onLocal).toHaveBeenCalledTimes(1);
+        expect(names(onLocal.mock.calls[0][0].pkgs)).toEqual(['pkg-zip']);
+
+        answerHub([hubCard('pkg-hub')]);
+        const res = await pending;
+        expect(res.mode).toBe('online');
+        expect(names(res.pkgs)).toEqual(['pkg-zip', 'pkg-hub']);
+        expect(onLocal).toHaveBeenCalledTimes(1);
     });
 
-    test('an installed experiment package keeps its card with the mode off (grandfathered)', async () => {
-        mockHub.mockResolvedValue([hubCard('pkg-a', { experiment: true })]);
-        mockGetFiles.mockResolvedValue(publicListing(['pkg-a']));
+    // The ordering is what makes two passes safe: the hub's cards land below every
+    // local card, so a card the user is already reading never moves.
+    test('the second pass never moves a local card', async () => {
+        mockHub.mockResolvedValue([hubCard('b-hub'), hubCard('neo-pkg-installed')]);
+        mockLocal.mockResolvedValue([localCard('z-zip')]);
+        mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-installed']));
+        mockManifest.mockResolvedValue({ version: '1.0.0' });
+        const onLocal = jest.fn();
+
+        const { pkgs } = await buildCatalog({ onLocal });
+
+        expect(names(onLocal.mock.calls[0][0].pkgs)).toEqual(['neo-pkg-installed', 'z-zip']);
+        expect(names(pkgs)).toEqual(['neo-pkg-installed', 'z-zip', 'b-hub']);
+    });
+
+    // Installed packages sit at the very top, even when a package that is only
+    // archived here sorts before them by name.
+    test('installed cards come first, then packages archived on this server', async () => {
+        mockHub.mockResolvedValue([hubCard('neo-pkg-hub')]);
+        mockLocal.mockResolvedValue([localCard('neo-pkg-a-zip')]);
+        mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-z-installed']));
         mockManifest.mockResolvedValue({ version: '1.0.0' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false });
-        expect(pkgs.map((p) => p.name)).toEqual(['pkg-a']);
-        expect(pkgs[0].installed_frontend).toBe(true);
+        const { pkgs } = await buildCatalog();
+
+        expect(names(pkgs)).toEqual(['neo-pkg-z-installed', 'neo-pkg-a-zip', 'neo-pkg-hub']);
     });
 
-    test('a local-only experiment package is gated by its own flag', async () => {
-        mockHub.mockRejectedValue(new Error('offline'));
-        mockLocal.mockResolvedValue([localCard('pkg-a', ['1.0.0'], { experiment: true })]);
+    // The one card the hub's answer DOES push down: strays are kept last in both
+    // passes, below the hub-only cards too.
+    test('strays stay at the very bottom in both passes', async () => {
+        mockHub.mockResolvedValue([hubCard('neo-pkg-hub')]);
+        mockLocal.mockResolvedValue([localCard('neo-pkg-zip')]);
+        mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-foo-main']));
+        mockInstalledDirs.mockReturnValue({ 'neo-pkg-foo-main': { name: 'neo-pkg-foo', git: false } });
+        const onLocal = jest.fn();
+        const label = (p: APP_INFO) => p.stray?.dir ?? p.name;
 
-        expect((await buildCatalog({ experimentOn: false })).pkgs).toEqual([]);
-        expect((await buildCatalog({ experimentOn: true })).pkgs).toHaveLength(1);
+        const { pkgs } = await buildCatalog({ onLocal });
+
+        expect(onLocal.mock.calls[0][0].pkgs.map(label)).toEqual(['neo-pkg-zip', 'neo-pkg-foo-main']);
+        expect(pkgs.map(label)).toEqual(['neo-pkg-zip', 'neo-pkg-hub', 'neo-pkg-foo-main']);
+    });
+
+    test('the hub is asked in parallel with the scan, not after it', async () => {
+        let scanDone = false;
+        let hubAskedDuringScan = false;
+        mockLocal.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    setTimeout(() => {
+                        scanDone = true;
+                        resolve([]);
+                    }, 10);
+                })
+        );
+        mockHub.mockImplementation(async () => {
+            hubAskedDuringScan = !scanDone;
+            return [];
+        });
+
+        await buildCatalog();
+
+        expect(hubAskedDuringScan).toBe(true);
+    });
+
+    test('a failed hub leaves the local list as the answer, mode offline', async () => {
+        mockHub.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'));
+        mockLocal.mockResolvedValue([localCard('pkg-zip')]);
+        const onLocal = jest.fn();
+
+        const res = await buildCatalog({ onLocal });
+
+        expect(res.mode).toBe('offline');
+        expect(res.hubError).toBe('getaddrinfo ENOTFOUND');
+        expect(names(res.pkgs)).toEqual(names(onLocal.mock.calls[0][0].pkgs));
+    });
+
+    test('each installed manifest is read once across both passes', async () => {
+        mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-a', 'neo-pkg-b']));
+        mockManifest.mockResolvedValue({ version: '1.0.0' });
+
+        await buildCatalog({ onLocal: () => {} });
+
+        expect(mockManifest).toHaveBeenCalledTimes(2);
+    });
+
+    test('onLocal applies the same search filter', async () => {
+        mockLocal.mockResolvedValue([localCard('pkg-a'), localCard('pkg-b')]);
+        const onLocal = jest.fn();
+
+        await buildCatalog({ search: 'PKG-B', onLocal });
+
+        expect(names(onLocal.mock.calls[0][0].pkgs)).toEqual(['pkg-b']);
+    });
+
+    test('a throwing onLocal does not cost the caller the finished catalog', async () => {
+        mockHub.mockResolvedValue([hubCard('pkg-a')]);
+        const onLocal = () => {
+            throw new Error('render blew up');
+        };
+
+        await expect(buildCatalog({ onLocal })).resolves.toMatchObject({ mode: 'online' });
     });
 });
 
@@ -876,9 +857,9 @@ describe('buildCatalog — search filter', () => {
     test('matches on name and on github.description, case-insensitively', async () => {
         mockHub.mockResolvedValue([hubCard('pkg-a', { github: github('pkg-a', 'Collects OPC UA tags') }), hubCard('pkg-b')]);
 
-        expect((await buildCatalog({ experimentOn: false, search: 'PKG-A' })).pkgs.map((p) => p.name)).toEqual(['pkg-a']);
-        expect((await buildCatalog({ experimentOn: false, search: 'opc ua' })).pkgs.map((p) => p.name)).toEqual(['pkg-a']);
-        expect((await buildCatalog({ experimentOn: false, search: 'nothing' })).pkgs).toEqual([]);
+        expect((await buildCatalog({ search: 'PKG-A' })).pkgs.map((p) => p.name)).toEqual(['pkg-a']);
+        expect((await buildCatalog({ search: 'opc ua' })).pkgs.map((p) => p.name)).toEqual(['pkg-a']);
+        expect((await buildCatalog({ search: 'nothing' })).pkgs).toEqual([]);
     });
 
     // Local entries come from a file on disk that may have no github block at all.
@@ -888,7 +869,7 @@ describe('buildCatalog — search filter', () => {
         mockHub.mockRejectedValue(new Error('offline'));
         mockLocal.mockResolvedValue([localCard('pkg-a', ['1.0.0'], { github: {} as any })]);
 
-        const { pkgs } = await buildCatalog({ experimentOn: false, search: 'pkg' });
+        const { pkgs } = await buildCatalog({ search: 'pkg' });
         expect(pkgs.map((p) => p.name)).toEqual(['pkg-a']);
         expect(pkgs[0].github.description).toBe('');
     });
@@ -898,7 +879,7 @@ describe('buildCatalog — search filter', () => {
         mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-installed']));
         mockManifest.mockResolvedValue({ version: '1.2.3' });
 
-        const { pkgs } = await buildCatalog({ experimentOn: false, search: 'installed' });
+        const { pkgs } = await buildCatalog({ search: 'installed' });
         expect(pkgs.map((p) => p.name)).toEqual(['neo-pkg-installed']);
     });
 });

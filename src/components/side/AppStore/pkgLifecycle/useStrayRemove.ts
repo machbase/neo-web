@@ -19,7 +19,6 @@ import { Toast } from '@/design-system/components';
 import type { SEARCH_RES } from '@/api/repository/appStore';
 import { invalidateLocalArchiveCache } from '@/api/repository/onpremCatalog';
 import { isCurUserEqualAdmin } from '@/utils';
-import { useExperiment } from '@/hooks/useExperiment';
 import { gCatalogScanWarnings, gCatalogStatus, gSearchPkgName, gSearchPkgs } from '@/recoil/appStore';
 import { buildCatalog } from '../catalog';
 import { runStrayRemove } from './strayRemove';
@@ -61,7 +60,6 @@ const removableStrayDirs = (pkgs: SEARCH_RES): Set<string> => {
  * remove). Never throws.
  */
 export function useStrayRemove() {
-    const { getExperiment } = useExperiment();
     return useRecoilCallback(
         ({ snapshot, set }) =>
             async (dir: string): Promise<StepResult | null> => {
@@ -84,7 +82,7 @@ export function useStrayRemove() {
                     try {
                         invalidateLocalArchiveCache();
                         const search = await snapshot.getPromise(gSearchPkgName);
-                        const { pkgs, mode, hubError, lastSyncAt, scanWarnings } = await buildCatalog({ search, experimentOn: getExperiment() });
+                        const { pkgs, mode, hubError, lastSyncAt, scanWarnings } = await buildCatalog({ search });
                         set(gCatalogStatus, { mode, hubError, lastSyncAt });
                         set(gCatalogScanWarnings, scanWarnings);
                         set(gSearchPkgs, { installed: [], exact: [], possibles: pkgs, broken: [] } as SEARCH_RES);

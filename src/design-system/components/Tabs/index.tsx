@@ -180,7 +180,7 @@ const TabsPanel = ({ tabId, children, className }: TabsPanelProps) => {
     const isActive = selectedTab === tabId;
 
     return (
-        <div className={[styles.tabs__panel, className].filter(Boolean).join(' ')} style={isActive ? {} : { display: 'none' }}>
+        <div className={[styles.tabs__panel, className].filter(Boolean).join(' ')} style={isActive ? {} : { display: 'none' }} data-testid={`main-panel-${tabId}`}>
             {children}
         </div>
     );

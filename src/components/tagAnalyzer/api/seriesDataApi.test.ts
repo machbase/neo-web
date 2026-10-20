@@ -1,5 +1,5 @@
 import request from '@/api/core';
-import { TimeUnit } from '../range/intervalResolver';
+import { TimeUnit } from '../rangeExpression/intervalResolver';
 import {
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
@@ -180,6 +180,30 @@ describe('seriesDataApi.fetchSeriesRows', () => {
             data: rows,
             metadata: { kind: 'raw', isLimitReached: false },
         });
+    });
+
+    it('keeps the leading calculated bucket inside the requested range', async () => {
+        mockedRequest.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [[-5, 10.5], [90, 20.5]],
+                columns: [],
+            },
+        });
+
+        const result = await seriesDataApi.fetchSeriesRows({
+            kind: 'calculated',
+            seriesList: [SERIES],
+            range: RANGE,
+            interval: {
+                IntervalType: TimeUnit.Second,
+                IntervalValue: 1,
+            },
+            rowLimit: 100,
+            rollupTables: {},
+        });
+
+        expect(result?.[0].data).toEqual([[0, 10.5], [90, 20.5]]);
     });
 });
 

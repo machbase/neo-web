@@ -1,5 +1,6 @@
 import { SQL_BASE_LIMIT } from '@/utils/sqlFormatter';
 import request from '../core';
+import { tqlString } from '@/utils/queryText';
 
 const parseTqlResponse = (data: any) => {
     if (typeof data === 'string') {
@@ -25,16 +26,13 @@ const getReasonText = (data: any) => {
 };
 
 /**
- * A database name is safe to interpolate into `use('...')` only if it is an identifier.
+ * The `use(...)` directive for a database, or nothing when there is none to name.
  *
  * (Named `build…` rather than `use…` so the react-hooks lint rule does not read it as a hook.)
- *
- * The engine has no placeholder for this position, so anything else is dropped rather than
- * quoted — a name that could close the literal must never reach the statement.
  */
 const buildUseDirective = (aDatabase?: string) => {
     const sName = String(aDatabase ?? '').trim();
-    return /^[A-Za-z_][A-Za-z0-9_]*$/.test(sName) ? `use('${sName}')` : '';
+    return sName ? `use(${tqlString(sName)})` : '';
 };
 
 /**
@@ -54,17 +52,27 @@ const buildUseDirective = (aDatabase?: string) => {
  */
 const wrapSqlForTql = (sql: string, database?: string) => {
     const sUse = buildUseDirective(database);
-    return `SQL(${sUse ? sUse + ', ' : ''}\`${sql.replace(/`/g, '\\`')}\`)\nJSON()`;
+    return `SQL(${sUse ? sUse + ', ' : ''}${tqlString(sql)})\nJSON()`;
 };
 
-export const fetchQuery = async (query: string) => {
+export const fetchQuery = async (query: string, preserveArrayNumbers = false) => {
     const sData: any = await request({
         method: 'GET',
         url: `/api/query?q=` + encodeURIComponent(query),
-    });
+        ...(preserveArrayNumbers ? { preserveArrayNumbers: true } : {}),
+    } as any);
     return { svrState: sData?.success ?? false, svrData: sData?.data, svrReason: sData?.data?.reason ?? sData?.reason ?? sData?.toString() };
 };
-export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string) => {
+/**
+ * Run SQL through TQL over POST.
+ *
+ * The body carries the statement, so nothing about its length reaches a URL — which is what makes
+ * this the transport for queries whose size is driven by user selection (a JSON key projection adds
+ * one `->` expression per selected key, and `fetchQuery` would percent-encode all of it into
+ * `?q=`). `signal` abandons a read the caller has already moved on from. `aDatabase` keeps logical
+ * database routing identical to the other TQL callers.
+ */
+export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string, signal?: AbortSignal, preserveArrayNumbers = false) => {
     const query = wrapSqlForTql(aSql, aDatabase);
     const consoleId = localStorage.getItem('consoleId');
 
@@ -72,6 +80,8 @@ export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string) =
         method: 'POST',
         url: `/api/tql`,
         data: query,
+        signal,
+        ...(preserveArrayNumbers ? { preserveArrayNumbers: true } : {}),
     };
 
     requestConfig.headers = {
@@ -86,12 +96,12 @@ export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string) =
 };
 
 export const fetchTqlQuery = async (aSql: string, aPage: number, aTake: number | undefined = SQL_BASE_LIMIT) => {
-    const query = 'SQL(' + '`' + aSql + '`)\n' + 'DROP(' + aPage * SQL_BASE_LIMIT + `)\nTAKE(${aTake})\nJSON()`;
+    const query = `SQL(${tqlString(aSql)})\nDROP(${aPage * SQL_BASE_LIMIT})\nTAKE(${aTake})\nJSON()`;
     const sData: any = await request({
         method: 'POST',
         url: `/api/tql/dsh`,
         data: query,
     });
 
-    return { svrState: sData?.data?.success ?? false, svrData: sData?.data?.data, svrReason: sData?.data?.reason ?? sData?.reason ?? sData?.toString() };
+    return { svrState: sData?.data?.success ?? false, svrData: sData?.data?.data, svrReason: getReasonText(sData) };
 };

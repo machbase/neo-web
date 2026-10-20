@@ -102,7 +102,9 @@ const Popover = ({
     useEffect(() => {
         if (!isOpen || !closeOnScroll) return;
 
-        const handleScroll = () => {
+        const handleScroll = (event: Event) => {
+            // A scroll inside the popover itself (a list or an input) must not close it.
+            if (event.target instanceof Node && popoverRef.current?.contains(event.target)) return;
             onClose?.();
         };
 

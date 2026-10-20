@@ -1,3 +1,4 @@
+import type { ResolvedRangeState } from '../panel/rangeControl/rangeControlModel';
 import {
     useCallback,
     useEffect,
@@ -5,28 +6,17 @@ import {
 } from 'react';
 import { Toast } from '@/design-system/components';
 import type { PanelInfo } from '../panel/panelModel';
+import { buildPanelSeriesQuery } from '../panel/series/panelSeriesRequest';
 import {
     getSeriesListAxisKind,
-    hasMixedXAxisValueKinds,
     MIXED_X_AXIS_KIND_WARNING,
 } from '../seriesModel';
 import {
     type AxisKind,
-    type ResolvedRangeState,
-} from '../range/rangeModel';
+    type AxisRange,
+} from '../rangeExpression/rangeModel';
 import { useStableCallback } from '../hooks/useStableCallback';
 import type { OverlapPanelInput } from '../overlap/overlapModel';
-
-const OVERLAP_AXIS_MISMATCH_MESSAGE =
-    'Overlap can only compare panels with the same x-axis type.';
-const OVERLAP_AXIS_REQUIRED_MESSAGE =
-    'Overlap requires a panel with one x-axis type.';
-
-type OpenOverlapSession = {
-    panels: OverlapPanelInput[];
-    isNumericXAxis: boolean;
-    includeZeroInYAxisRange: boolean;
-};
 
 export function useBoardOverlapSelection(
     panels: readonly PanelInfo[],
@@ -89,7 +79,7 @@ export function useBoardOverlapSelection(
         if (!sSelection.axisKind) return;
 
         setOpenSession({
-            panels: sSelection.panels,
+            panels: sSelection.panels.map(prepareOverlapPanel),
             isNumericXAxis: sSelection.axisKind === 'numeric',
             includeZeroInYAxisRange: sSelection.panels.some(
                 ({ panelInfo }) => panelInfo.axes.leftY.zeroBase,
@@ -109,6 +99,52 @@ export function useBoardOverlapSelection(
     };
 }
 
+// -------------------- Local --------------------
+
+const OVERLAP_AXIS_MISMATCH_MESSAGE =
+    'Overlap can only compare panels with the same x-axis type.';
+const OVERLAP_AXIS_REQUIRED_MESSAGE =
+    'Overlap requires a panel with one x-axis type.';
+const OVERLAP_CHART_FETCH_WIDTH_PX = 1000;
+
+type SelectedOverlapPanel = {
+    panelInfo: PanelInfo;
+    visibleRange: AxisRange;
+};
+
+type OpenOverlapSession = {
+    panels: OverlapPanelInput[];
+    isNumericXAxis: boolean;
+    includeZeroInYAxisRange: boolean;
+};
+
+function prepareOverlapPanel({
+    panelInfo,
+    visibleRange,
+}: SelectedOverlapPanel): OverlapPanelInput {
+    const panel = { key: panelInfo.key, title: panelInfo.title, visibleRange };
+    try {
+        return {
+            ...panel,
+            query: buildPanelSeriesQuery(
+                'main',
+                panelInfo,
+                visibleRange,
+                OVERLAP_CHART_FETCH_WIDTH_PX,
+                {},
+            ),
+        };
+    } catch (error) {
+        // Keep preparation errors in the dialog's existing async error flow.
+        return {
+            ...panel,
+            error: error instanceof Error && error.message
+                ? error.message
+                : 'Failed to load overlap data.',
+        };
+    }
+}
+
 function getOverlapSelectionError(
     panel: PanelInfo,
     rangeState: ResolvedRangeState | undefined,
@@ -117,12 +153,12 @@ function getOverlapSelectionError(
     if (!rangeState) {
         return 'Overlap requires a loaded chart range.';
     }
-    if (hasMixedXAxisValueKinds(panel.query.tagSet)) {
-        return `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled for this panel.`;
-    }
-
     const sPanelAxisKind = getSeriesListAxisKind(panel.query.tagSet);
-    if (!sPanelAxisKind) return OVERLAP_AXIS_REQUIRED_MESSAGE;
+    if (!sPanelAxisKind) {
+        return panel.query.tagSet.length === 0
+            ? OVERLAP_AXIS_REQUIRED_MESSAGE
+            : `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled for this panel.`;
+    }
 
     return selectedAxisKind && selectedAxisKind !== sPanelAxisKind
         ? OVERLAP_AXIS_MISMATCH_MESSAGE
@@ -135,7 +171,7 @@ function deriveOverlapSelection(
         Record<string, ResolvedRangeState | undefined>
     >,
 ) {
-    const sSelectedPanels = panels.flatMap((panel): OverlapPanelInput[] => {
+    const sSelectedPanels = panels.flatMap((panel): SelectedOverlapPanel[] => {
         if (!panel.isOverlapSelected || panel.query.tagSet.length === 0) {
             return [];
         }
@@ -148,21 +184,17 @@ function deriveOverlapSelection(
             visibleRange: sRangeState.range.mainRange,
         }];
     });
-    const sHasMixedAxisKinds = sSelectedPanels.some(({ panelInfo }) =>
-        hasMixedXAxisValueKinds(panelInfo.query.tagSet),
-    );
     const sSelectedAxisKinds = new Set(
         sSelectedPanels.map(({ panelInfo }) =>
             getSeriesListAxisKind(panelInfo.query.tagSet),
         ),
     );
-    const sCompatibilityMessage = sHasMixedAxisKinds
-        ? `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled.`
-        : sSelectedAxisKinds.has(undefined)
-            ? OVERLAP_AXIS_REQUIRED_MESSAGE
-            : sSelectedAxisKinds.size > 1
-                ? OVERLAP_AXIS_MISMATCH_MESSAGE
-                : undefined;
+    let sCompatibilityMessage: string | undefined;
+    if (sSelectedAxisKinds.has(undefined)) {
+        sCompatibilityMessage = `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled.`;
+    } else if (sSelectedAxisKinds.size > 1) {
+        sCompatibilityMessage = OVERLAP_AXIS_MISMATCH_MESSAGE;
+    }
 
     return {
         panels: sSelectedPanels,

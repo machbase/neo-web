@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import { sqlQueryUrl } from '@/utils/queryText';
 import { getErrorMessageFromValue } from '../errorMessage';
 import { isPlainObject } from '../objectGuards';
 
@@ -7,20 +8,10 @@ export type QueryResponse = {
     columns: unknown[] | undefined;
 };
 
-type QueryResponseEnvelope = {
-    status?: unknown;
-    statusText?: unknown;
-    success?: unknown;
-    data?: unknown;
-    reason?: unknown;
-    message?: unknown;
-    error?: unknown;
-};
-
 export function requestSqlQuery(sql: string, signal?: AbortSignal): Promise<unknown> {
     return request({
         method: 'GET',
-        url: `/api/query?q=${encodeURIComponent(sql)}`,
+        url: sqlQueryUrl(sql),
         ...(signal ? { signal } : {}),
     });
 }
@@ -65,6 +56,25 @@ export function parseQueryResponse(
     };
 }
 
+export function getUnknownErrorMessage(
+    error: unknown,
+    fallbackMessage: string,
+): string {
+    return getOptionalErrorMessageFromValue(error)?.trim() || fallbackMessage;
+}
+
+// -------------------- Local --------------------
+
+type QueryResponseEnvelope = {
+    status?: unknown;
+    statusText?: unknown;
+    success?: unknown;
+    data?: unknown;
+    reason?: unknown;
+    message?: unknown;
+    error?: unknown;
+};
+
 function getResponseErrorMessage(
     response: QueryResponseEnvelope,
 ): string | undefined {
@@ -82,11 +92,4 @@ function getResponseErrorMessage(
 function getOptionalErrorMessageFromValue(value: unknown): string | undefined {
     const message = getErrorMessageFromValue(value);
     return message && message !== '{}' ? message : undefined;
-}
-
-export function getUnknownErrorMessage(
-    error: unknown,
-    fallbackMessage: string,
-): string {
-    return getOptionalErrorMessageFromValue(error)?.trim() || fallbackMessage;
 }

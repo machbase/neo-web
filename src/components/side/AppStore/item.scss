@@ -205,22 +205,9 @@
             background-color: #bf7b00;
             color: #fff;
         }
-        // package kept visible only because it is installed, while the experiment
-        // gate would otherwise hide it (issue #1438)
-        span.experiment {
-            background-color: rgba(137, 111, 217, 0.18);
-            color: #a892e8;
-            gap: 3px;
-            cursor: help;
-
-            svg {
-                flex-shrink: 0;
-            }
-        }
-
         // the default button's target version is backed by the server's local
         // package archive (issue #1452) — informational, so a neutral blue that
-        // reads apart from `.experiment` (violet) and `.incompat` (amber).
+        // reads apart from `.incompat` (amber).
         // Padding/height/radius come from the shared `span` rule above, which is
         // what keeps it aligned with the neighbouring chips.
         span.local {

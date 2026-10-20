@@ -77,6 +77,9 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pHeight={30}
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
                     pOptions={sChartTypeOptions}
+                    data-testid="chart-type"
+                    menuTestId="dashboard-panel-editor-type-menu"
+                    confirmTestId="dashboard-panel-type-confirm"
                 />
                 {sUseCommOpt ? <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
                 {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
@@ -99,7 +102,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         ) : null}
                     </>
                 ) : (
-                    <Page.Collapse pTrigger="Chart option">
+                    <Page.Collapse pTrigger="Chart option" data-testid="chart-options">
                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                             {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                             {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}

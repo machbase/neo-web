@@ -1,67 +1,62 @@
 import { defineConfig } from '@playwright/test';
-import { readFileSync, statSync } from 'node:fs';
-import { isAbsolute, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 
-const { host, paths: { temporaryData }, ports: { vite } } = JSON.parse(
+const platform = process.platform === 'win32' ? 'win'
+    : process.platform === 'linux' ? 'linux'
+    : process.platform === 'darwin' ? 'mac' : undefined;
+if (!platform) throw new Error(`Unsupported test platform: ${process.platform}`);
+const { host, ports: { http, vite } } = JSON.parse(
     readFileSync(
-        new URL('./test_config/test-environment.json', import.meta.url),
+        new URL(`./test_config/${platform}/test_env_${platform}.json`, import.meta.url),
         'utf8',
     ),
 );
 if (
     typeof host !== 'string' || !/^[a-z\d.-]+$/i.test(host) ||
-    !Number.isInteger(vite) || vite < 1 || vite > 65_535 ||
-    typeof temporaryData !== 'string' || temporaryData.trim() === ''
+    ![http, vite].every((port) => Number.isInteger(port) && port >= 1 && port <= 65_535)
 ) {
-    throw new TypeError('Invalid Playwright host, port, or temporary-data path.');
+    throw new TypeError('Invalid Playwright host or port.');
 }
 
-const expandedTemporaryData = temporaryData.replace(
-    /%([^%]+)%/g,
-    (match: string, name: string) => process.env[name] ?? match,
-);
-const temporaryDataPath = isAbsolute(expandedTemporaryData)
-    ? expandedTemporaryData
-    : resolve(
-        fileURLToPath(new URL('./test_config/', import.meta.url)),
-        expandedTemporaryData,
-    );
-const fileStoragePath = resolve(temporaryDataPath, 'files');
-
-if (!process.argv.includes('--list')) {
-    try {
-        if (!statSync(fileStoragePath).isDirectory()) throw new Error();
-    } catch {
-        throw new Error(
-            `Test file storage is unavailable at ${fileStoragePath}. ` +
-            'Run .\\test_config\\configure-test-environment.ps1 first.',
-        );
-    }
-}
+// Tests access Neo storage through HTTP; the server may run in WSL or on another host.
 
 const executablePath =
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 const slowMo = Number(process.env.PLAYWRIGHT_SLOW_MO ?? 0);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ??
     new URL(`http://${host}:${vite}`).origin;
+const apiBaseURL = process.env.PLAYWRIGHT_API_BASE_URL ??
+    process.env.PLAYWRIGHT_BASE_URL ??
+    new URL(`http://${host}:${http}`).origin;
 
 export default defineConfig({
-    testDir: './playwright_test',
+    testDir: './tests',
+    testMatch: '**/*.spec.ts',
     reporter: [
-        ['./playwright_test/featureReporter.ts'],
+        ['./tests/featureReporter.ts'],
     ],
     timeout: 30_000,
     workers: 2,
 
-    use: {
-        baseURL,
-        actionTimeout: 5_000,
-        screenshot: 'only-on-failure',
-        trace: 'retain-on-failure',
-        launchOptions: {
-            slowMo,
-            ...(executablePath ? { executablePath } : {}),
+    projects: [
+        {
+            name: 'integration',
+            testDir: './tests/integration',
+            use: { baseURL: apiBaseURL },
         },
-    },
+        {
+            name: 'e2e',
+            testDir: './tests/e2e',
+            use: {
+                baseURL,
+                actionTimeout: 5_000,
+                screenshot: 'only-on-failure',
+                trace: 'retain-on-failure',
+                launchOptions: {
+                    slowMo,
+                    ...(executablePath ? { executablePath } : {}),
+                },
+            },
+        },
+    ],
 });

@@ -1,5 +1,5 @@
 import type { ChartSeriesData } from '../chart/chartData';
-import type { AxisRange } from '../range/rangeModel';
+import type { AxisRange } from '../rangeExpression/rangeModel';
 import type { PanelSeriesDefinition } from '../seriesModel';
 
 export const FFT_MINIMUM_SAMPLE_COUNT = 16;

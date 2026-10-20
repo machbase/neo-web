@@ -1,15 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
-type LatestAsyncRequest<Result> = {
-    enabled: boolean;
-    requestKey: string;
-    delay?: number;
-    fetch: (signal: AbortSignal) => Promise<Result>;
-    onStart?: () => void;
-    onSuccess: (result: Result) => void;
-    onError: (error: unknown) => void;
-};
-
 export function useLatestAsyncRequest<Result>(
     request: LatestAsyncRequest<Result>,
 ): void {
@@ -38,29 +28,24 @@ export function useLatestAsyncRequest<Result>(
         const abortController = new AbortController();
         let timerId: number | undefined;
 
+        function isCurrentRequest(): boolean {
+            const committedRequest = committedRequestRef.current;
+            return !abortController.signal.aborted &&
+                committedRequest?.enabled === true &&
+                committedRequest.requestKey === currentRequest.requestKey;
+        }
+
         if (currentRequest.enabled) {
             const execute = () => {
                 currentRequest.onStart?.();
                 void currentRequest.fetch(abortController.signal).then(
                     (result) => {
-                        const committedRequest = committedRequestRef.current;
-                        if (
-                            !abortController.signal.aborted &&
-                            committedRequest?.enabled &&
-                            committedRequest.requestKey ===
-                                currentRequest.requestKey
-                        ) {
+                        if (isCurrentRequest()) {
                             requestRef.current.onSuccess(result);
                         }
                     },
                     (error: unknown) => {
-                        const committedRequest = committedRequestRef.current;
-                        if (
-                            !abortController.signal.aborted &&
-                            committedRequest?.enabled &&
-                            committedRequest.requestKey ===
-                                currentRequest.requestKey
-                        ) {
+                        if (isCurrentRequest()) {
                             requestRef.current.onError(error);
                         }
                     },
@@ -87,3 +72,15 @@ export function getAsyncRequestErrorMessage(
 ): string {
     return error instanceof Error && error.message ? error.message : fallback;
 }
+
+// -------------------- Local --------------------
+
+type LatestAsyncRequest<Result> = {
+    enabled: boolean;
+    requestKey: string;
+    delay?: number;
+    fetch: (signal: AbortSignal) => Promise<Result>;
+    onStart?: () => void;
+    onSuccess: (result: Result) => void;
+    onError: (error: unknown) => void;
+};

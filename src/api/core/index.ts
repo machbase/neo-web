@@ -2,6 +2,8 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 import { reLogin } from '@/api/repository/login';
 import { isImage } from '@/utils';
 import { Toast } from '@/design-system/components';
+import { parseArrayJsonLosslessly } from '@/utils/arrayValue';
+import { RASTER_IMAGE_EXTENSIONS } from '@/utils/fileName';
 
 // Define custom type for headers
 interface CustomHeaders {
@@ -23,11 +25,6 @@ request.interceptors.request.use(
         const sHeaders = config.headers as CustomHeaders;
         const sUrlSplit = config.url?.split('?');
         const sFileOption = sUrlSplit[0].indexOf('/api/files');
-        const sFileSql = sUrlSplit[0].indexOf('.sql');
-        const sFileTql = sUrlSplit[0].indexOf('.tql');
-        const sFileTaz = sUrlSplit[0].indexOf('.taz');
-        const sFileDsh = sUrlSplit[0].indexOf('.dsh');
-        const sFileWrk = sUrlSplit[0].indexOf('.wrk');
         const sFileImg = isImage(sUrlSplit[0]);
         // Detect directory-creation POSTs to /api/files/.../ (trailing slash)
         const isFilesApi = sUrlSplit[0].startsWith('/api/files');
@@ -74,18 +71,26 @@ request.interceptors.request.use(
         }
         // Only apply file Content-Type overrides for actual file uploads
         if (!isDirCreationPost && config.method === 'post') {
-            if (['taz', 'wrk', 'dsh', 'sql', 'tql', 'md', 'csv', 'txt'].includes(lastExt)) {
+            // Every text extension the URL download can store (SERVER_FILE_EXTENSIONS) needs a non-JSON Content-Type:
+            // under the instance default 'application/json' axios JSON.stringify()s a string body
+            // ("print(1)\n" → "\"print(1)\\n\"") and the file is saved as a quoted JSON literal.
+            if (['taz', 'wrk', 'dsh', 'sql', 'tql', 'md', 'markdown', 'csv', 'txt', 'py', 'sh'].includes(lastExt)) {
                 sHeaders['Content-Type'] = 'text/plain';
-            } else if (lastExt === 'html') {
+            } else if (lastExt === 'html' || lastExt === 'htm') {
                 sHeaders['Content-Type'] = 'text/html';
             } else if (lastExt === 'css') {
                 sHeaders['Content-Type'] = 'text/css';
-            } else if (lastExt === 'js') {
+            } else if (lastExt === 'js' || lastExt === 'mjs') {
                 sHeaders['Content-Type'] = 'text/javascript';
+            } else if (lastExt === 'svg') {
+                sHeaders['Content-Type'] = 'image/svg+xml';
+            } else if (RASTER_IMAGE_EXTENSIONS.includes(lastExt)) {
+                sHeaders['Content-Type'] = 'application/octet-stream';
             }
         }
         // Only treat as file GET when path does not denote a directory (no trailing slash)
-        if (sFileOption !== -1 && (sFileSql !== -1 || sFileTql !== -1 || sFileTaz !== -1 || sFileDsh !== -1 || sFileWrk !== -1) && config.method === 'get' && !endsWithSlash) {
+        // Raw-text files are judged by the last segment's extension, case-insensitively (same rule as validateName).
+        if (sFileOption !== -1 && ['sql', 'tql', 'taz', 'dsh', 'wrk'].includes(lastExt) && config.method === 'get' && !endsWithSlash) {
             config.transformResponse = function (data: any) {
                 return data;
             };
@@ -94,6 +99,10 @@ request.interceptors.request.use(
         if (config.url === '/api/tql') {
             sHeaders['Content-Type'] = 'text/plain';
             config.responseType = 'text';
+        }
+        if (config.preserveArrayNumbers === true) {
+            config.responseType = 'text';
+            config.transformResponse = [(data: string) => data];
         }
 
         if (sHeaders && config.url !== `${baseURL}/api/login` && config.url !== `${baseURL}/api/login`) {
@@ -169,6 +178,10 @@ export const executeReLogin = async (): Promise<any> => {
 // Response interceptor
 request.interceptors.response.use(
     (response: AxiosResponse) => {
+        if ((response.config as any).preserveArrayNumbers === true) {
+            const parsed = typeof response.data === 'string' ? parseArrayJsonLosslessly(response.data) : response.data;
+            return response.config.url === '/api/tql' ? { ...response, data: parsed } : parsed;
+        }
         if (sTqlFilePattern.test(response.config.url as string) && response.config.method === 'get') return response;
         if (response.config.url === '/api/tql') {
             if (isJsonString(response.data)) {

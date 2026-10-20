@@ -1,6 +1,12 @@
+import type { SqlStatementEnv } from './sqlFormatter';
 import { applyTargetDatabase, isDatabaseNameSafe } from './sqlTargetDatabase';
 
-type TestEnv = { bridge?: string; use?: string; named?: Record<string, string> };
+/**
+ * The splitter's `env`, not a local narrowing of it — the same reason `sqlFormatter.test.ts`
+ * aliases it. This merge spreads whatever the splitter reported, so a copy that cannot name
+ * `timeformat` cannot notice the day the spread stops carrying it.
+ */
+type TestEnv = SqlStatementEnv;
 
 const stmt = (aOverrides: { env?: TestEnv; isComment?: boolean } = {}) => ({
     text: 'select 1',
@@ -47,6 +53,30 @@ describe('applyTargetDatabase', () => {
     test('other env fields survive the merge', () => {
         const sResult = applyTargetDatabase([stmt({ env: { named: { tag: 'x' } } })], 'FACTORY_A');
         expect(sResult[0].env).toEqual({ named: { tag: 'x' }, use: 'FACTORY_A' });
+    });
+
+    // REGRESSION (#1532): the merge rebuilds `env` with a spread, so every directive the splitter
+    // reported has to come out the other side. `timeformat`, `tz` and `binaryformat` were added to
+    // that type after this module was written, and a statement carrying them still has no `use` of
+    // its own — so it is exactly the statement the chip applies to, and exactly the one a narrowed
+    // spread would quietly strip on the way to the sink.
+    test('the output directives survive the chip merge', () => {
+        const sResult = applyTargetDatabase([stmt({ env: { timeformat: 'ns', tz: 'Asia/Seoul', binaryformat: 'hex' } })], 'FACTORY_A');
+        expect(sResult[0].env).toEqual({ timeformat: 'ns', tz: 'Asia/Seoul', binaryformat: 'hex', use: 'FACTORY_A' });
+    });
+
+    test('a statement with output directives still receives the chip', () => {
+        const sResult = applyTargetDatabase([stmt({ env: { timeformat: 'ns' } }), stmt({ env: { binaryformat: 'hex' } })], 'FACTORY_A');
+        expect(sResult.map((aItem) => aItem.env.use)).toEqual(['FACTORY_A', 'FACTORY_A']);
+    });
+
+    // The three do not change who accepts the chip: a bridge statement is still left alone and an
+    // explicit `-- env: use=` still wins, directives or no directives.
+    test('output directives do not change which statements accept the chip', () => {
+        const sBridge = [stmt({ env: { bridge: 'my-bridge', timeformat: 'ns' } })];
+        expect(applyTargetDatabase(sBridge, 'FACTORY_A')).toBe(sBridge);
+        const sExplicit = applyTargetDatabase([stmt({ env: { use: 'EDGE_GW01', tz: 'UTC' } })], 'FACTORY_A');
+        expect(sExplicit[0].env).toEqual({ use: 'EDGE_GW01', tz: 'UTC' });
     });
 
     test('does not mutate the input statements', () => {

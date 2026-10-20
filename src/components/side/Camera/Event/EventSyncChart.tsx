@@ -6,12 +6,13 @@ import {
     // useCallback
 } from 'react';
 import { getTqlChart } from '@/api/repository/machiot';
+import { getEcharts } from '@/plugin/echartsRuntime';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import type { CameraInfo } from '@/api/repository/mediaSvr';
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
+import { sqlIdentifierPath, sqlString, tqlString } from '@/utils/queryText';
 
-declare const echarts: any;
 
 export interface EventSyncChartProps {
     cameraId: string;
@@ -122,7 +123,9 @@ export const EventSyncChart = ({
                     },
                     animation: false,
                     backgroundColor: '#252525',
-                    grid: { left: 50, right: 20, top: 50, bottom: 50 },
+                    // No containLabel, so v6's default outerBoundsMode ('auto') would pull the grid inward
+                    // whenever a label overflows; 'none' keeps it where these margins put it, as in v5.
+                    grid: { left: 50, right: 20, top: 50, bottom: 50, outerBoundsMode: 'none' },
                     xAxis: {
                         type: 'time',
                         min: chartStart.getTime(),
@@ -151,10 +154,9 @@ export const EventSyncChart = ({
 
                 // Build SQL query per detect_object (reference: DashboardChartCodeParser)
                 const queryList = detectObjects.map((obj, idx) => ({
-                    query: `SQL("SELECT TO_TIMESTAMP(time)/1000000 as TIME, value FROM ${table} WHERE IDENT = '${obj.replace(
-                        /'/g,
-                        "''"
-                    )}' AND CAMERA_ID='${cameraId}' AND time BETWEEN ${startNs} AND ${endNs}")\nJSON()`,
+                    query: `SQL(${tqlString(
+                        `SELECT TO_TIMESTAMP(time)/1000000 as TIME, value FROM ${sqlIdentifierPath(table)} WHERE IDENT = ${sqlString(obj)} AND CAMERA_ID=${sqlString(cameraId)} AND time BETWEEN ${startNs} AND ${endNs}`
+                    )})\nJSON()`,
                     idx,
                     alias: obj,
                 }));
@@ -206,6 +208,7 @@ CHART(
                         status: result?.status,
                         headers: result?.headers,
                         data: result?.data,
+                        text: result?.request?.response,
                     });
 
                     if (parsedType === TqlResType.VISUAL) {
@@ -237,10 +240,11 @@ CHART(
         if (!hasData || !visualData) return;
 
         const findInstance = () => {
-            if (typeof echarts === 'undefined') return false;
+            const sEcharts = getEcharts();
+            if (!sEcharts) return false;
             const dom = document.getElementById(chartIdRef.current);
             if (!dom) return false;
-            const instance = echarts.getInstanceByDom(dom);
+            const instance = sEcharts.getInstanceByDom(dom);
             if (!instance) return false;
             chartInstanceRef.current = instance;
             markerInitializedRef.current = false;

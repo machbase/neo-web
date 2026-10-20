@@ -3,7 +3,7 @@ import Panel from '../panels/Panel';
 
 const CreatePanelBody = ({ pLoopMode, pType, pPanelInfo, pBoardInfo, pInsetDraging, pModifyState, pSetModifyState, pBoardTimeMinMax }: any) => {
     return (
-        <Page style={{ padding: '8px 8px 8px 16px' }}>
+        <Page style={{ padding: '8px 8px 8px 16px' }} data-testid="preview">
             {pPanelInfo && (
                 <Panel
                     pLoopMode={pLoopMode}

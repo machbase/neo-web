@@ -5,11 +5,12 @@ import {
     type PanelEChartType,
     type PanelInfo,
 } from '../panel/panelModel';
-import { formatAbsoluteTime, formatNumericValue } from '../persistence/serializeRange';
+import { formatAbsoluteTime } from '../format/timeFormat';
+import { formatNumericValue } from '../rangeExpression/expressionFormat';
 import {
     type RangeExpressionInput,
     type AxisRange,
-} from '../range/rangeModel';
+} from '../rangeExpression/rangeModel';
 import {
     assertValidPanelSeriesIdentifiers,
     createPanelSeriesDefinition,
@@ -31,32 +32,16 @@ export type BoardInfo = {
     savedCode: string | false;
     version?: string;
     loadWarning?: string;
+    /** Panels in the file that could not be read (#1547): shown as error cards, written back unchanged on save. */
+    unreadablePanels?: UnreadableTazPanel[];
 };
 
-type TagAnalyzerDefaultBoardOptions = {
-    tag: string;
-    timeRange: AxisRange;
-    table: string;
-    sourceColumns: PanelSeriesSourceColumns;
-};
-
-type TazBoardCreationOptions = {
-    id: string;
-    name: string;
-    path: string;
-    chartTitle: string;
-    chartType?: PanelEChartType;
-    seriesList: PanelSeriesDefinition[];
-};
-
-type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
-    timeRange: RangeExpressionInput;
-};
-
-type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
-    boardTimeRange: RangeExpressionInput;
-    boardNumericRange: RangeExpressionInput;
-    mainRange: RangeExpressionInput;
+/** A saved panel the loader could not decode, kept exactly as it was in the file. */
+export type UnreadableTazPanel = {
+    /** Its position in the file's panel list, where it is written back. */
+    index: number;
+    raw: unknown;
+    error: string;
 };
 
 export function createDefaultTazBoard(
@@ -107,7 +92,7 @@ export function createTazBoardFromTimeRange(
     });
 }
 
-function createTazBoardFromSeries(
+export function createTazBoardFromSeries(
     options: CreateTazBoardFromSeriesOptions,
 ): BoardInfo {
     const {
@@ -141,6 +126,34 @@ function createTazBoardFromSeries(
         savedCode: false,
     };
 }
+
+// -------------------- Local --------------------
+
+type TagAnalyzerDefaultBoardOptions = {
+    tag: string;
+    timeRange: AxisRange;
+    table: string;
+    sourceColumns: PanelSeriesSourceColumns;
+};
+
+type TazBoardCreationOptions = {
+    id: string;
+    name: string;
+    path: string;
+    chartTitle: string;
+    chartType?: PanelEChartType;
+    seriesList: PanelSeriesDefinition[];
+};
+
+type CreateTazBoardFromTimeRangeOptions = TazBoardCreationOptions & {
+    timeRange: RangeExpressionInput;
+};
+
+type CreateTazBoardFromSeriesOptions = TazBoardCreationOptions & {
+    boardTimeRange: RangeExpressionInput;
+    boardNumericRange: RangeExpressionInput;
+    mainRange: RangeExpressionInput;
+};
 
 function resolveDefaultMainRange(
     timeRange: AxisRange,

@@ -119,9 +119,11 @@ const DropdownTrigger = ({ className, style, children, 'data-testid': dataTestId
 interface DropdownMenuProps {
     children: ReactNode;
     className?: string;
+    /** Test ID of the portaled menu. */
+    'data-testid'?: string;
 }
 
-const DropdownMenu = ({ children, className }: DropdownMenuProps) => {
+const DropdownMenu = ({ children, className, 'data-testid': testId }: DropdownMenuProps) => {
     const dropdown = useDropdownContext();
     const [position, setPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 300, showAbove: false });
     const menuRef = useRef<HTMLDivElement>(null);
@@ -213,6 +215,7 @@ const DropdownMenu = ({ children, className }: DropdownMenuProps) => {
         <div
             ref={menuRef}
             className={`${styles['dropdown__menu']} scrollbar-dark ${className ?? ''}`}
+            data-testid={testId}
             style={{
                 position: 'fixed',
                 ...(position.showAbove
@@ -270,7 +273,8 @@ const DropdownOption = ({ option, index, className, children }: DropdownOptionPr
     return (
         <li
             {...props}
-            data-testid={option.testId}
+            // Without its own ID an option is keyed by its value, which is what a test selects it by.
+            data-testid={option.testId ?? `option-${encodeURIComponent(String(option.value))}`}
             className={`${styles['dropdown__option']} ${className ?? ''} ${isSelected ? styles['dropdown__option--selected'] : ''} ${
                 isFocused ? styles['dropdown__option--focused'] : ''
             } ${isDisabled ? styles['dropdown__option--disabled'] : ''}`}

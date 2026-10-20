@@ -1,0 +1,39 @@
+@use '@/design-system/tokens' as t;
+@use '../ui/theme';
+@use '../TextStyle' as text;
+
+/* Shared by panel-owned analysis, markup, and range popovers. */
+
+.popover { @include text.role(body); z-index: t.$z-index-modal; touch-action: none; color: theme.$text-secondary; }
+.frame {
+    min-width: 280px;
+    background: theme.$surface-bg; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+
+    &[data-size='wide'] { min-width: 360px; }
+}
+.header { margin-bottom: 12px; padding-left: 24px; }
+.title { min-width: 0; flex: 1; }
+.headerAction { flex: none; }
+.actions { margin-top: 12px; }
+
+.dragHandle {
+    position: absolute; top: 8px; left: 8px; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; padding: 0; border: 0; border-radius: 4px;
+    background: transparent; color: theme.$text-muted;
+    cursor: grab;
+
+    &:hover {
+        background: theme.$surface-hover;
+        color: theme.$text-primary;
+    }
+
+    &:active {
+        cursor: grabbing;
+    }
+}
+
+.dragging,
+.dragging * {
+    cursor: grabbing !important; user-select: none;
+}

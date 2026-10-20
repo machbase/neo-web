@@ -41,13 +41,13 @@ export interface QuickTimeRangeProps {
  */
 export const QuickTimeRange: React.FC<QuickTimeRangeProps> = ({ options, onSelect, title = 'Quick Range', className }) => {
     return (
-        <div className={`${styles['quick-time-range']} ${className ?? ''}`}>
+        <div className={`${styles['quick-time-range']} ${className ?? ''}`} data-testid="quick-time-range">
             {title && <div className={styles['quick-time-range__title']}>{title}</div>}
             <div className={styles['quick-time-range__grid']}>
                 {options.map((group, groupIdx) => (
                     <div key={groupIdx} className={styles['quick-time-range__group']}>
                         {group.map((option) => (
-                            <button key={option.key} className={styles['quick-time-range__button']} onClick={() => onSelect(option)} type="button">
+                            <button key={option.key} data-testid={`preset-${option.value.map(encodeURIComponent).join(':')}`} className={styles['quick-time-range__button']} onClick={() => onSelect(option)} type="button">
                                 {option.name}
                             </button>
                         ))}

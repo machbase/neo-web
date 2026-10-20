@@ -1,6 +1,6 @@
 import './ShowVisualization.scss';
 import { useEffect, useRef, useState } from 'react';
-import { ExistCommonScript, loadScriptsSequentially } from '../../assets/ts/ScriptRegister';
+import { getEcharts, loadChartAssets, loadEcharts } from '../../../plugin/echartsRuntime';
 import { CheckObjectKey, E_VISUAL_LOAD_ID, PanelIdParser } from '../../utils/dashboardUtil';
 
 interface ShowChartProps {
@@ -72,7 +72,8 @@ export const ShowVisualization = (props: ShowChartProps) => {
     const AddRenderCompleteAttr = () => {
         pPanelRef?.current && pPanelRef.current.setAttribute('data-processed', true);
     };
-    const OverrideChartTheme = () => CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && GetElementByResId() && echarts.init(GetElementByResId() as any, pTheme ?? 'white');
+    const OverrideChartTheme = () =>
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && GetElementByResId() && getEcharts()?.init(GetElementByResId() as any, pTheme ?? 'white');
     const EchartInstance = (domElement: any) => {
         const sCommand = pLoopMode ? 'resize' : 'clear';
         const sSize = GetPanelSize();
@@ -81,10 +82,10 @@ export const ShowVisualization = (props: ShowChartProps) => {
         domElement.style.height = sSize.h;
 
         if (GetIsTqlType()) domElement.id = pData[GetVisualID()];
-        if (sCommand === 'clear') CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.['resize']();
+        if (sCommand === 'clear') CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && getEcharts()?.getInstanceByDom(domElement)?.resize();
 
         if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART)) {
-            const sChart = echarts['getInstanceByDom'](domElement);
+            const sChart = getEcharts()?.getInstanceByDom(domElement) as any;
             // clear() wipes the option (including legend.selected). Capture
             // current selection synchronously beforehand so RestoreLegendSelection
             // can re-inject after the next setOption from jsCodeAssets executes.
@@ -106,7 +107,9 @@ export const ShowVisualization = (props: ShowChartProps) => {
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance(sDomElement);
     };
     const LoadCommonScripts = async () => {
-        if (pData?.jsAssets) await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
+        // Same as the main copy: only a chart payload needs the runtime for its own bookkeeping.
+        if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART)) await loadEcharts();
+        await loadChartAssets(pData?.jsAssets, []);
     };
     const LoadCodeScripts = async () => {
         let sCodeAsset = pData.jsCodeAssets;
@@ -172,7 +175,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         const sDomElement = GetIsTqlType() ? GetElementByPanelName()[0] : GetElementByResId();
         if (!sDomElement) return undefined;
         try {
-            return (echarts as any)?.getInstanceByDom?.(sDomElement);
+            return getEcharts()?.getInstanceByDom?.(sDomElement);
         } catch {
             return undefined;
         }
@@ -408,7 +411,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
 
     return (
         <div className="tql-form">
-            {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} />}
+            {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} data-testid="text-value" />}
             {pPanelType === 'Geomap' && (
                 <div className={'geomap-panel-title'} style={{ color: pTitle?.color && pTitle.color !== '' ? pTitle?.color : '#000000' }}>
                     {pTitle?.title}
@@ -419,11 +422,11 @@ export const ShowVisualization = (props: ShowChartProps) => {
                 pData?.cssAssets?.map((cssAsset: string, idx: number) => {
                     return <link key={`css-asset-${idx?.toString()}`} rel="stylesheet" href={cssAsset} />;
                 })}
-            {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && <div className="chart_container" ref={wrapRef} />}
+            {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && <div className="chart_container" ref={wrapRef} data-testid="chart-host" />}
             {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && (
                 <>
                     <style>.leaflet-tile-pane{`{-webkit-filter: grayscale(${pData?.style?.grayscale}%); filter: grayscale(${pData?.style?.grayscale}%);}`}</style>
-                    <div id="map_container" className="map_container" ref={wrapRef} />
+                    <div id="map_container" className="map_container" ref={wrapRef} data-testid="geomap-host" />
                 </>
             )}
         </div>

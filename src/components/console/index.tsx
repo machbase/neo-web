@@ -12,7 +12,7 @@ import moment from 'moment';
 import { Button } from '@/design-system/components/Button';
 import { Menu } from '@/design-system/components/Menu';
 import { gWsLog } from '@/recoil/websocket';
-import { Page } from '@/design-system/components';
+import { ErrorBoundary, Page } from '@/design-system/components';
 
 const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => {
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
@@ -121,15 +121,24 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                     <div className="console-form-tab">
                         {sConsoleTab.map((aItem: any, aIdx: number) => {
                             return (
+                                // Each console tab, log line and terminal keeps its own failure (#1547), so one of
+                                // them breaking leaves the rest of the console where it was.
+                                <ErrorBoundary
+                                    key={aIdx}
+                                    name={`console-tab:${aItem.id}`}
+                                    variant="inline"
+                                    resetKeys={[aItem]}
+                                    actions={aItem.type === 'console' ? [] : [{ label: 'Close', testId: 'close-tab', onClick: () => deleteConsoleTab({ stopPropagation: () => undefined }, aItem) }]}
+                                >
                                 <ConsoleTab
                                     pDeleteConsoleTab={deleteConsoleTab}
                                     pSelectedTab={sSelectedTab}
-                                    key={aIdx}
                                     pNewLog={sNewLog}
                                     pConsoleList={sConsoleList}
                                     pHandleSelectedTab={() => handleSelectedTab(aItem.id)}
                                     pTab={aItem}
                                 />
+                                </ErrorBoundary>
                             );
                         })}
                     </div>
@@ -198,8 +207,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                     {!isEmpty(sConsoleList) &&
                                         sConsoleList.map((bItem: any, aIdx: number) => {
                                             return (
+                                                <ErrorBoundary key={aIdx} name={`console-log:${aIdx}`} variant="inline" resetKeys={[bItem]}>
                                                 <div
-                                                    key={aIdx}
                                                     onClick={() => setSelectTask(bItem.task)}
                                                     className="task"
                                                     style={{
@@ -224,10 +233,15 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                                     )}
                                                     <span>{bItem.message}</span>
                                                 </div>
+                                                </ErrorBoundary>
                                             );
                                         })}
                                 </div>
-                                {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />}
+                                {aItem.type === 'shell' && (
+                                    <ErrorBoundary name={`console-shell:${aItem.id}`} variant="region">
+                                        <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />
+                                    </ErrorBoundary>
+                                )}
                             </div>
                         );
                     })}

@@ -32,6 +32,155 @@ export const RefreshUnitSnapshots = (aValue: any): any => {
     return sResult;
 };
 
+/**
+ * Repairs one dashboard panel in place and returns it. Throws when the panel cannot be repaired
+ * (unknown type, a list field that is not a list, …) — the caller decides what a failure means.
+ */
+const repairDashboardPanel = (aRawPanel: any) => {
+    // Phase 1: Validate and repair (structural integrity)
+    const sValidated = validateAndRepairDashboardPanel(aRawPanel);
+    if (!sValidated.valid) throw new Error(sValidated.errors.join(' '));
+
+    // Phase 2: Semantic compatibility patches (type-aware)
+    // Re-read every persisted unit snapshot from UNITS before anything reads a suffix off it.
+    const aPanel = RefreshUnitSnapshots(sValidated.panel);
+
+    // Version stamp (all types)
+    aPanel.version = getVersionByKey(aPanel);
+
+    // Geomap titleColor
+    if (aPanel.type === 'Geomap' && !CheckObjectKey(aPanel, 'titleColor')) aPanel.titleColor = '#000000';
+
+    // Axis patches: only for types that use axes
+    if (AXIS_CHART_TYPES.has(aPanel.type)) {
+        if (aPanel.xAxisOptions?.[0]?.type === 'category') aPanel.xAxisOptions[0].type = 'time';
+
+        // X-Axis opt
+        aPanel.xAxisOptions = aPanel.xAxisOptions.map((xAxisOpt: any) => {
+            const sTmpXAxis = JSON.parse(JSON.stringify(xAxisOpt));
+            if (!xAxisOpt?.axisLabel) sTmpXAxis.axisLabel = { hideOverlap: true };
+            if (!xAxisOpt?.useBlockList) sTmpXAxis.useBlockList = [0];
+            if (!xAxisOpt?.axisLine) sTmpXAxis.axisLine = { show: true, onZero: false };
+            if (!xAxisOpt?.label) sTmpXAxis.label = { name: 'value', key: 'value', title: '', unit: '', decimals: undefined, squared: 0 };
+            return sTmpXAxis;
+        });
+        // Y-Axis opt
+        aPanel.yAxisOptions = aPanel.yAxisOptions.map((yAxisOpt: any) => {
+            const sTmpYAxis = JSON.parse(JSON.stringify(yAxisOpt));
+            if (!yAxisOpt?.axisLabel) sTmpYAxis.axisLabel = { offset: '' };
+            if (!yAxisOpt?.axisLine) sTmpYAxis.axisLine = { show: true, onZero: false };
+            return sTmpYAxis;
+        });
+    }
+
+    // Block patches: only for types that use blocks
+    if (BLOCK_CHART_TYPES.has(aPanel.type)) {
+        const sResultPanel = aPanel;
+        const sBlockList: any = aPanel.blockList;
+        const sTrxBlockList: TransformBlockType[] = aPanel.transformBlockList;
+        const sChartType: string = chartTypeConverter(aPanel.type);
+        const sResDataType: string = SqlResDataType(sChartType);
+
+        const sValidBlockList = sBlockList.map((aBlock: any) => {
+            // Set block formula valid
+            if (!CheckObjectKey(aBlock, 'isValidMath')) aBlock.isValidMath = true;
+            // Set block visibility
+            if (!CheckObjectKey(aBlock, 'isVisible')) aBlock.isVisible = true;
+            // Skip validate variableBlock
+            const sIsVariableBlock = aBlock.table.match(VARIABLE_REGEX);
+            if (sIsVariableBlock) return aBlock;
+            // Check full query
+            const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
+            const sResult: any = sHasKeyFullQuery
+                ? {
+                      ...aBlock,
+                      customFullTyping: {
+                          ...aBlock.customFullTyping,
+                          dirty: aBlock.customFullTyping.dirty ?? aBlock.customFullTyping.text?.trim() !== '',
+                      },
+                  }
+                : { ...aBlock, customFullTyping: { use: false, text: '', dirty: false } };
+            let DEFAULT_AGGREGATOR: string = 'count';
+            let sAggList: string[] = [];
+            if (sResDataType === 'TIME_VALUE') {
+                const sAggregatorList = aBlock.type === 'tag' ? tagAggregatorList : logAggregatorList;
+                sAggList = SEPARATE_DIFF ? sAggregatorList : [...sAggregatorList, ...DIFF_LIST];
+            }
+            if (sResDataType === 'NAME_VALUE') {
+                if (aBlock.table.includes('V$')) {
+                    DEFAULT_AGGREGATOR = 'sum';
+                    sAggList = nameValueVirtualAggList;
+                } else {
+                    DEFAULT_AGGREGATOR = 'last value';
+                    sAggList = nameValueAggregatorList;
+                }
+            }
+            if (aPanel.type === 'Geomap') {
+                DEFAULT_AGGREGATOR = 'value';
+                sAggList = geomapAggregatorList;
+            }
+
+            if (aBlock.useCustom) {
+                // Values
+                const sValueList = aBlock.values;
+                const sValidValueList = sValueList.map((aValue: any) => {
+                    if (sAggList.includes(aValue.aggregator)) return aValue;
+                    else {
+                        return {
+                            ...aValue,
+                            aggregator: DEFAULT_AGGREGATOR,
+                        };
+                    }
+                });
+                sResult.values = sValidValueList;
+                // Duration
+                sResult.duration = sResult?.duration ?? { from: '', to: '' };
+            } else {
+                // NAME column
+                if (aBlock.name === '' || typeof aBlock.name !== 'string') sResult.name = aBlock.tableInfo?.[0]?.[0] ?? '';
+                // TIME column
+                if (aBlock.time === '' || typeof aBlock.time !== 'string') sResult.time = getDefaultTimeFieldColumn(aBlock.tableInfo) || (aBlock.tableInfo?.[1]?.[0] ?? 'TIME');
+                // VALUE column
+                if (aBlock.value === '' || typeof aBlock.value !== 'string') sResult.value = aBlock.tableInfo?.[2]?.[0] ?? 'VALUE';
+                // AGG
+                if (!sAggList.includes(aBlock.aggregator)) sResult.aggregator = DEFAULT_AGGREGATOR;
+            }
+
+            return sResult;
+        });
+        const sValidTrxBlockList = sTrxBlockList.map((aTrxBlock: TransformBlockType) => {
+            if (!CheckObjectKey(aTrxBlock, 'isVisible')) aTrxBlock.isVisible = true;
+            return aTrxBlock;
+        });
+        sResultPanel.blockList = sValidBlockList;
+        sResultPanel.transformBlockList = sValidTrxBlockList;
+        return sResultPanel;
+    }
+
+    return aPanel;
+};
+
+/**
+ * Why this panel cannot be shown, or undefined when it can — the loader's own repair, run on a copy.
+ * The loader keeps a panel it cannot repair exactly as it was in the file (#1547): dropping it lost it
+ * on the next save, and throwing lost the whole board. The panel renders through this check so it
+ * shows as an error card in its own grid cell. Nothing is stored on the panel, so nothing extra
+ * reaches the saved file.
+ */
+const sPanelLoadErrors = new WeakMap<object, string | undefined>();
+export const getPanelLoadError = (aPanel: any): string | undefined => {
+    // Panels in state are replaced, never mutated, so the answer for one object never changes.
+    if (aPanel !== null && typeof aPanel === 'object' && sPanelLoadErrors.has(aPanel)) return sPanelLoadErrors.get(aPanel);
+    let sError: string | undefined;
+    try {
+        repairDashboardPanel(JSON.parse(JSON.stringify(aPanel ?? null)));
+    } catch (aError) {
+        sError = aError instanceof Error ? aError.message : String(aError);
+    }
+    if (aPanel !== null && typeof aPanel === 'object') sPanelLoadErrors.set(aPanel, sError);
+    return sError;
+};
+
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
 
@@ -43,6 +192,15 @@ const DashboardCompatibility = (aData: any) => {
         };
     }
 
+    // Backfill the board time range. Every reader dereferences `dashboard.timeRange.refresh` directly,
+    // so a board saved without it took the whole app down on open (#1547). Same value a new dashboard gets.
+    if (!sDashboardInfo?.dashboard?.timeRange) {
+        sDashboardInfo.dashboard = {
+            ...sDashboardInfo.dashboard,
+            timeRange: { start: 'now-3h', end: 'now', refresh: 'Off' },
+        };
+    }
+
     // Backfill distance (numeric base) range for pre-distance dashboards. '' = full [first, last].
     if (!sDashboardInfo?.dashboard?.distanceRange) {
         sDashboardInfo.dashboard = {
@@ -51,144 +209,18 @@ const DashboardCompatibility = (aData: any) => {
         };
     }
 
-    if (sDashboardInfo?.dashboard?.panels?.length > 0) {
-        // Phase 1: Validate and repair all panels (structural integrity)
-        sDashboardInfo.dashboard.panels = sDashboardInfo.dashboard.panels
-            .map((aPanel: any) => {
-                const result = validateAndRepairDashboardPanel(aPanel);
-                if (result.repaired) {
-                }
-                if (!result.valid) {
-                    aPanel._validationError = true;
-                }
-                return result.panel;
-            })
-            .filter((p: any) => !p._validationError);
-
-        // Phase 2: Semantic compatibility patches (type-aware)
-        const sPanelList = sDashboardInfo.dashboard.panels;
-
-        const sVaildPanelList = sPanelList.map((aRawPanel: any) => {
-            // Re-read every persisted unit snapshot from UNITS before anything reads a suffix off it.
-            const aPanel = RefreshUnitSnapshots(aRawPanel);
-
-            // Version stamp (all types)
-            aPanel.version = getVersionByKey(aPanel);
-
-            // Geomap titleColor
-            if (aPanel.type === 'Geomap' && !CheckObjectKey(aPanel, 'titleColor')) aPanel.titleColor = '#000000';
-
-            // Axis patches: only for types that use axes
-            if (AXIS_CHART_TYPES.has(aPanel.type)) {
-                if (aPanel.xAxisOptions?.[0]?.type === 'category') aPanel.xAxisOptions[0].type = 'time';
-
-                // X-Axis opt
-                aPanel.xAxisOptions = aPanel.xAxisOptions.map((xAxisOpt: any) => {
-                    const sTmpXAxis = JSON.parse(JSON.stringify(xAxisOpt));
-                    if (!xAxisOpt?.axisLabel) sTmpXAxis.axisLabel = { hideOverlap: true };
-                    if (!xAxisOpt?.useBlockList) sTmpXAxis.useBlockList = [0];
-                    if (!xAxisOpt?.axisLine) sTmpXAxis.axisLine = { show: true, onZero: false };
-                    if (!xAxisOpt?.label) sTmpXAxis.label = { name: 'value', key: 'value', title: '', unit: '', decimals: undefined, squared: 0 };
-                    return sTmpXAxis;
-                });
-                // Y-Axis opt
-                aPanel.yAxisOptions = aPanel.yAxisOptions.map((yAxisOpt: any) => {
-                    const sTmpYAxis = JSON.parse(JSON.stringify(yAxisOpt));
-                    if (!yAxisOpt?.axisLabel) sTmpYAxis.axisLabel = { offset: '' };
-                    if (!yAxisOpt?.axisLine) sTmpYAxis.axisLine = { show: true, onZero: false };
-                    return sTmpYAxis;
-                });
+    if (Array.isArray(sDashboardInfo?.dashboard?.panels)) {
+        sDashboardInfo.dashboard.panels = sDashboardInfo.dashboard.panels.map((aRawPanel: any) => {
+            const sOriginal = JSON.parse(JSON.stringify(aRawPanel ?? null));
+            try {
+                return repairDashboardPanel(aRawPanel);
+            } catch (aError) {
+                console.error('[DashboardLoad]', `panel "${aRawPanel?.title || aRawPanel?.id}" kept as saved: ${aError instanceof Error ? aError.message : aError}`);
+                return sOriginal;
             }
-
-            // Block patches: only for types that use blocks
-            if (BLOCK_CHART_TYPES.has(aPanel.type)) {
-                const sResultPanel = aPanel;
-                const sBlockList: any = aPanel.blockList;
-                const sTrxBlockList: TransformBlockType[] = aPanel.transformBlockList;
-                const sChartType: string = chartTypeConverter(aPanel.type);
-                const sResDataType: string = SqlResDataType(sChartType);
-
-                const sValidBlockList = sBlockList.map((aBlock: any) => {
-                    // Set block formula valid
-                    if (!CheckObjectKey(aBlock, 'isValidMath')) aBlock.isValidMath = true;
-                    // Set block visibility
-                    if (!CheckObjectKey(aBlock, 'isVisible')) aBlock.isVisible = true;
-                    // Skip validate variableBlock
-                    const sIsVariableBlock = aBlock.table.match(VARIABLE_REGEX);
-                    if (sIsVariableBlock) return aBlock;
-                    // Check full query
-                    const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
-                    const sResult: any = sHasKeyFullQuery
-                        ? {
-                              ...aBlock,
-                              customFullTyping: {
-                                  ...aBlock.customFullTyping,
-                                  dirty: aBlock.customFullTyping.dirty ?? aBlock.customFullTyping.text?.trim() !== '',
-                              },
-                          }
-                        : { ...aBlock, customFullTyping: { use: false, text: '', dirty: false } };
-                    let DEFAULT_AGGREGATOR: string = 'count';
-                    let sAggList: string[] = [];
-                    if (sResDataType === 'TIME_VALUE') {
-                        const sAggregatorList = aBlock.type === 'tag' ? tagAggregatorList : logAggregatorList;
-                        sAggList = SEPARATE_DIFF ? sAggregatorList : [...sAggregatorList, ...DIFF_LIST];
-                    }
-                    if (sResDataType === 'NAME_VALUE') {
-                        if (aBlock.table.includes('V$')) {
-                            DEFAULT_AGGREGATOR = 'sum';
-                            sAggList = nameValueVirtualAggList;
-                        } else {
-                            DEFAULT_AGGREGATOR = 'last value';
-                            sAggList = nameValueAggregatorList;
-                        }
-                    }
-                    if (aPanel.type === 'Geomap') {
-                        DEFAULT_AGGREGATOR = 'value';
-                        sAggList = geomapAggregatorList;
-                    }
-
-                    if (aBlock.useCustom) {
-                        // Values
-                        const sValueList = aBlock.values;
-                        const sValidValueList = sValueList.map((aValue: any) => {
-                            if (sAggList.includes(aValue.aggregator)) return aValue;
-                            else {
-                                return {
-                                    ...aValue,
-                                    aggregator: DEFAULT_AGGREGATOR,
-                                };
-                            }
-                        });
-                        sResult.values = sValidValueList;
-                        // Duration
-                        sResult.duration = sResult?.duration ?? { from: '', to: '' };
-                    } else {
-                        // NAME column
-                        if (aBlock.name === '' || typeof aBlock.name !== 'string') sResult.name = aBlock.tableInfo?.[0]?.[0] ?? '';
-                        // TIME column
-                        if (aBlock.time === '' || typeof aBlock.time !== 'string') sResult.time = getDefaultTimeFieldColumn(aBlock.tableInfo) || (aBlock.tableInfo?.[1]?.[0] ?? 'TIME');
-                        // VALUE column
-                        if (aBlock.value === '' || typeof aBlock.value !== 'string') sResult.value = aBlock.tableInfo?.[2]?.[0] ?? 'VALUE';
-                        // AGG
-                        if (!sAggList.includes(aBlock.aggregator)) sResult.aggregator = DEFAULT_AGGREGATOR;
-                    }
-
-                    return sResult;
-                });
-                const sValidTrxBlockList = sTrxBlockList.map((aTrxBlock: TransformBlockType) => {
-                    if (!CheckObjectKey(aTrxBlock, 'isVisible')) aTrxBlock.isVisible = true;
-                    return aTrxBlock;
-                });
-                sResultPanel.blockList = sValidBlockList;
-                sResultPanel.transformBlockList = sValidTrxBlockList;
-                return sResultPanel;
-            }
-
-            return aPanel;
         });
-        sDashboardInfo.dashboard.panels = sVaildPanelList;
-        return sDashboardInfo;
-    } else return sDashboardInfo;
+    }
+    return sDashboardInfo;
 };
 
 const WorkSheetCompatibility = (aData: any) => {

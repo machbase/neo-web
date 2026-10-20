@@ -1,12 +1,13 @@
 @use '@/design-system/tokens' as t;
-@import '/src/assets/scss/theme.scss';
+@use '../TextStyle' as text;
+@use '../ui/theme';
 
 .panel-form {
     container: tag-analyzer-panel / inline-size;
     width: 100%;
     min-height: 300px;
     position: relative;
-    border-radius: 4px;
+    border-radius: theme.$radius;
     overflow: hidden;
     box-shadow: t.$shadow-md;
 
@@ -18,13 +19,12 @@
         padding-bottom: 8px;
     }
     .panel-x-axis-warning {
-        padding: 6px 10px;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(255, 255, 255, 0.035);
-        color: rgba(255, 255, 255, 0.76);
-        font-size: 12px;
-        line-height: 16px;
+        @include text.role(body);
+        padding: 8px 12px;
+        border-top: 1px solid theme.$border-color;
+        border-bottom: 1px solid theme.$border-color;
+        background: theme.$surface-inset;
+        color: theme.$text-secondary;
 
         strong {
             color: #ff8a3d;
@@ -53,15 +53,14 @@
     z-index: 2;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     pointer-events: none;
-    padding: 5px 8px;
+    padding: 4px 8px;
     border: 1px solid rgba(253, 181, 50, 0.45);
     border-radius: 4px;
     background: rgba(22, 22, 22, 0.92);
-    color: #fdb532;
-    font-size: 11px;
-    line-height: 14px;
+    color: theme.$warning;
+    @include text.role(caption);
     white-space: nowrap;
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
 
@@ -88,20 +87,20 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border-radius: 3px;
-    font-size: 12px;
+    border-radius: theme.$radius;
+    @include text.role(body);
 }
 
 .panel-main-chart-loading-overlay {
     pointer-events: auto;
     background: rgba(37, 37, 37, 0.22);
-    color: #d6d6d6;
+    color: theme.$text-secondary;
 }
 
 .panel-main-chart-notice-overlay {
     pointer-events: none;
     background: rgba(37, 37, 37, 0.58);
-    color: #f2f2f2;
+    color: theme.$text-primary;
     font-weight: 600;
 }
 

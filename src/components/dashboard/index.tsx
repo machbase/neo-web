@@ -31,7 +31,10 @@ import { VariablePreview } from './variable/preview';
 import { SiVectorworks } from 'react-icons/si';
 import { IoMdOptions } from 'react-icons/io';
 import ShareModal from './ShareModal';
-import { Button, Input, Page, Drawer } from '@/design-system/components';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { Button, Input, Page, Drawer, ErrorBoundary, ErrorCard } from '@/design-system/components';
+import { getGridPanels, toGridLayout, toGridPosition } from '@/utils/dashboardGridPosition';
+import { getPanelLoadError } from '@/utils/CheckDataCompatibility';
 import { clearBoardVideoStore } from '@/hooks/useVideoSync';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
@@ -43,6 +46,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sLoadedRollupTable, setLoadedRollupTable] = useState<boolean>(false);
     const [sCreateModal, setCreateModal] = useState(false);
     const [sPanelId, setPanelId] = useState('');
+    // Delete asked from a panel's error card; confirmed like the panel menu's own Delete.
+    const [sDeletePanelId, setDeletePanelId] = useState<string | undefined>(undefined);
     const [sThisPanelStatus, setThisPanelStatus] = useState<'create' | 'edit' | undefined>(undefined);
     const [sModifyState, setModifyState] = useState<any>({ id: '', state: false });
     const [sIsPanelHeader, setIsPanelHeader] = useState<boolean>(true);
@@ -58,6 +63,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const [sRingCycleId, setRingCycleId] = useState<number>(0);
 
     const moveTimeRange = (aItem: string) => {
+        // A board opened with no panels never loads data bounds; "last" and unset ranges then
+        // resolve against the last hour, as the board does elsewhere without data.
+        const sMinMax = sBoardTimeMinMax ?? getNowMinMax();
         let sStartTimeBeforeStart = pInfo.dashboard.timeRange.start;
         let sStartTimeBeforeEnd = pInfo.dashboard.timeRange.end;
 
@@ -66,12 +74,12 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
         if (String(sStartTimeBeforeStart).includes('last') || String(sStartTimeBeforeEnd).includes('last')) {
-            sStartTimeBeforeStart = setUnitTime(sBoardTimeMinMax.min);
-            sStartTimeBeforeEnd = setUnitTime(sBoardTimeMinMax.max);
+            sStartTimeBeforeStart = setUnitTime(sMinMax.min);
+            sStartTimeBeforeEnd = setUnitTime(sMinMax.max);
         }
         if (String(sStartTimeBeforeStart) === '' || String(sStartTimeBeforeEnd) === '') {
-            sStartTimeBeforeStart = sBoardTimeMinMax.min;
-            sStartTimeBeforeEnd = sBoardTimeMinMax.max;
+            sStartTimeBeforeStart = sMinMax.min;
+            sStartTimeBeforeEnd = sMinMax.max;
         }
 
         const sCalcTime = (Number(sStartTimeBeforeEnd) - Number(sStartTimeBeforeStart)) / 2;
@@ -116,6 +124,15 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sNewTo = Math.round(sTo + sShift);
         setBoardList(
             sBoardList.map((aItem: any) => (aItem.id === pInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, distanceRange: { start: sNewFrom, end: sNewTo } } } : aItem))
+        );
+    };
+    // Way out of a panel that keeps failing to render: its header (and the delete button in it) is
+    // gone along with the rest of the panel, so the error card offers this instead.
+    const removePanel = (aPanelId: string) => {
+        setBoardList((aPrev: any) =>
+            aPrev.map((aItem: any) =>
+                aItem.id === pInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, panels: aItem.dashboard.panels.filter((aPanel: any) => aPanel.id !== aPanelId) } } : aItem
+            )
         );
     };
     const showEditPanel = (aType: 'create' | 'edit' | undefined, aId?: string) => {
@@ -293,10 +310,10 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         // Render after rollup info load
         sLoadedRollupTable && (
             <>
-                <Page>
+                <Page data-testid="dashboard-board">
                     <Page.Header>
                         <Button.Group style={{ overflow: 'hidden' }}>
-                            <Input size="sm" style={{ width: '200px' }} variant="default" value={pInfo.dashboard.title} onChange={changeDashboardName} />
+                            <Input size="sm" style={{ width: '200px' }} variant="default" value={pInfo.dashboard.title} onChange={changeDashboardName} data-testid="title-input" />
                             {pInfo && pInfo?.dashboard && pInfo?.dashboard?.variables && pInfo?.dashboard?.variables?.length > 0 && (
                                 <>
                                     <Button
@@ -304,23 +321,30 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                         variant="ghost"
                                         isToolTip
                                         toolTipContent="Variables"
+                                        data-testid="variables-toggle"
                                         icon={<IoMdOptions size={16} />}
                                         onClick={() => handleSplitPaneSize()}
                                     />
-                                    <VariablePreview pBoardInfo={pInfo} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />
+                                    <ErrorBoundary name="dsh-header:variables" variant="inline" resetKeys={[pInfo.dashboard.variables]}>
+                                        <VariablePreview pBoardInfo={pInfo} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />
+                                    </ErrorBoundary>
                                 </>
                             )}
                         </Button.Group>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <Button size="icon" variant="ghost" icon={<TbSquarePlus size={16} />} isToolTip toolTipContent="New panel" onClick={() => showEditPanel('create')} />
+                            <Button size="icon" variant="ghost" icon={<TbSquarePlus size={16} />} isToolTip toolTipContent="New panel" data-testid="new-panel" onClick={() => showEditPanel('create')} />
                             <Button
                                 size="icon"
                                 variant="ghost"
                                 icon={<MdRefresh size={16} />}
                                 isToolTip
                                 toolTipContent="Refresh"
+                                data-testid="refresh"
                                 onClick={() => HandleRefresh(pInfo.dashboard.timeRange)}
                             />
+                            {/* Header controls each keep their own failure (#1547): a range the chips cannot show
+                                must not take the panels — or the Save buttons beside them — down with it. */}
+                            <ErrorBoundary name="dsh-header:range" variant="inline" resetKeys={[pInfo.dashboard.timeRange, pInfo.dashboard.distanceRange]}>
                             <RangeChips
                                 pBoardInfo={pInfo}
                                 pOnShiftTime={moveTimeRange}
@@ -334,19 +358,23 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     setTimeRangeModal(true);
                                 }}
                             />
+                            </ErrorBoundary>
                             <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
-                            <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
+                            <ErrorBoundary name="dsh-header:refresh" variant="inline" resetKeys={[pInfo.dashboard.timeRange]}>
+                                <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
+                            </ErrorBoundary>
                             <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
-                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Sava" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
-                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => pSetIsSaveModal(true)} />
+                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Sava" data-testid="save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
+                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" data-testid="save-as" icon={<SaveAs size={16} />} onClick={() => pSetIsSaveModal(true)} />
                             {pIsSave ? (
-                                <Button size="icon" variant="ghost" isToolTip toolTipContent="Share" icon={<Share size={16} />} onClick={() => setShareModal(true)} />
+                                <Button size="icon" variant="ghost" isToolTip toolTipContent="Share" data-testid="share" icon={<Share size={16} />} onClick={() => setShareModal(true)} />
                             ) : null}
                             <Button
                                 size="icon"
                                 variant="ghost"
                                 isToolTip
                                 toolTipContent="Variable config"
+                                data-testid="variable-config"
                                 icon={<SiVectorworks size={16} />}
                                 onClick={() => setVariableModal(!sVariableModal)}
                             />
@@ -357,7 +385,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             <GridLayout
                                 className="layout"
                                 useCSSTransforms={false}
-                                layout={pInfo && pInfo.dashboard.panels}
+                                layout={pInfo && toGridLayout(pInfo.dashboard.panels)}
                                 cols={GRID_LAYOUT_COLS}
                                 autoSize={true}
                                 rowHeight={GRID_LAYOUT_ROW_HEIGHT}
@@ -368,28 +396,50 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 draggableHandle=".board-panel-header, .draggable-panel-header"
                             >
                                 {pInfo.dashboard &&
-                                    pInfo.dashboard.panels &&
-                                    pInfo.dashboard.panels.map((aItem: any) => {
+                                    getGridPanels(pInfo.dashboard.panels).map((aItem: any) => {
+                                        // A panel the loader could not repair is kept as saved; it shows as its own error card.
+                                        const sLoadError = getPanelLoadError(aItem);
+                                        const sPosition = toGridPosition(aItem);
                                         return (
                                             // `minW`/`minH` keep a panel from being dragged down to a size that has no room
                                             // left to grab it by — see `resolvePanelMinSize` for why the floor is capped at
                                             // the panel's own saved size.
-                                            <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h, ...resolvePanelMinSize(aItem) }}>
-                                                <Panel
-                                                    pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
-                                                    pDragStat={pDragStat}
-                                                    pType={sThisPanelStatus}
-                                                    pShowEditPanel={showEditPanel}
-                                                    pBoardInfo={pInfo}
-                                                    pPanelInfo={aItem}
-                                                    pModifyState={sModifyState}
-                                                    pSetModifyState={setModifyState}
-                                                    pParentWidth={pWidth}
-                                                    pIsHeader={sIsPanelHeader}
-                                                    pChartVariableId={sChartVariableId}
-                                                    pBoardTimeMinMax={sBoardTimeMinMax}
-                                                    pIsActiveTab={sActiveTabId === pInfo.id}
-                                                />
+                                            <div key={aItem.id} data-grid={{ ...sPosition, ...resolvePanelMinSize({ ...aItem, ...sPosition }) }} data-testid={`panel-${encodeURIComponent(aItem.id)}`}>
+                                                {sLoadError ? (
+                                                    <ErrorCard
+                                                        name={`dsh-panel:${aItem.id}`}
+                                                        variant="unit"
+                                                        title="Can't load this panel."
+                                                        message={`Its saved settings can't be read, so it can't be shown or edited here. Delete it, or fix it in the file. (${sLoadError})`}
+                                                        actions={[{ label: 'Delete panel', testId: 'delete-panel', onClick: () => setDeletePanelId(aItem.id) }]}
+                                                    />
+                                                ) : (
+                                                    <ErrorBoundary
+                                                        name={`dsh-panel:${aItem.id}`}
+                                                        variant="unit"
+                                                        resetKeys={[aItem]}
+                                                        actions={[
+                                                            { label: 'Edit panel', testId: 'edit-panel', onClick: () => showEditPanel('edit', aItem.id) },
+                                                            { label: 'Delete panel', testId: 'delete-panel', onClick: () => setDeletePanelId(aItem.id) },
+                                                        ]}
+                                                    >
+                                                        <Panel
+                                                            pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange?.refresh !== 'Off' ? true : false}
+                                                            pDragStat={pDragStat}
+                                                            pType={sThisPanelStatus}
+                                                            pShowEditPanel={showEditPanel}
+                                                            pBoardInfo={pInfo}
+                                                            pPanelInfo={aItem}
+                                                            pModifyState={sModifyState}
+                                                            pSetModifyState={setModifyState}
+                                                            pParentWidth={pWidth}
+                                                            pIsHeader={sIsPanelHeader}
+                                                            pChartVariableId={sChartVariableId}
+                                                            pBoardTimeMinMax={sBoardTimeMinMax}
+                                                            pIsActiveTab={sActiveTabId === pInfo.id}
+                                                        />
+                                                    </ErrorBoundary>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -399,6 +449,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 <div style={{ display: 'flex', width: '100%', height: 'calc(100% - 10px)', justifyContent: 'center', alignItems: 'center' }}>
                                     <Button
                                         aria-label="Create New Panel"
+                                        data-testid="create-first-panel"
                                         variant="secondary"
                                         size="lg"
                                         icon={<TbSquarePlus size={60} />}
@@ -414,7 +465,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     <Drawer.Close onClick={() => setVariableCollapse(false)} />
                                 </Drawer.Header>
                                 <Drawer.Body>
-                                    <VariableHeader pBoardInfo={pInfo} callback={initDashboard} pSelectVariable={sSelectVariable} />
+                                    <ErrorBoundary name="dsh-variables" variant="region">
+                                        <VariableHeader pBoardInfo={pInfo} callback={initDashboard} pSelectVariable={sSelectVariable} />
+                                    </ErrorBoundary>
                                 </Drawer.Body>
                             </Drawer.Root>
                         </Page.Body>
@@ -422,6 +475,18 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                 </Page>
                 {sTimeRangeModal && (
                     <TimeRangeModal pUseRecoil={true} pType={'dashboard'} pInitialTab={sInitialRangeTab} pSetTimeRangeModal={setTimeRangeModal} pSaveCallback={handleSaveTimeRange} />
+                )}
+                {sDeletePanelId !== undefined && (
+                    <ConfirmModal
+                        pIsDarkMode
+                        data-testid="dashboard-panel-delete-confirm"
+                        setIsOpen={() => setDeletePanelId(undefined)}
+                        pCallback={() => {
+                            removePanel(sDeletePanelId);
+                            setDeletePanelId(undefined);
+                        }}
+                        pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}
+                    />
                 )}
                 {sCreateModal && (
                     <CreatePanel

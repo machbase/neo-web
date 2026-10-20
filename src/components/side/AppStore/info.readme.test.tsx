@@ -1,22 +1,18 @@
-// issue #1452 — the detail view's README must come from disk first on an
-// air-gapped server, and must not be blocked by the github-metadata guard.
+// issue #1452 — an INSTALLED package's README comes from disk and nowhere else
+// (the same rule as its icon), and must not be blocked by the github-metadata
+// guard. Only a package that is not installed goes to GitHub.
 
 import { render, screen, waitFor } from '@testing-library/react';
-import { RecoilRoot, type MutableSnapshot } from 'recoil';
+import { RecoilRoot } from 'recoil';
 import { AppInfo } from './info';
 import { getPkgMarkdown } from '@/api/repository/appStore';
 import { readLocalReadme } from '@/api/repository/onpremCatalog';
-import { gCatalogStatus, type CatalogMode } from '@/recoil/appStore';
 
 jest.mock('@/api/repository/appStore', () => ({
     getPkgMarkdown: jest.fn(),
-    isGrandfatheredPkg: jest.fn(() => false),
 }));
 jest.mock('@/api/repository/onpremCatalog', () => ({
     readLocalReadme: jest.fn(),
-}));
-jest.mock('@/hooks/useExperiment', () => ({
-    useExperiment: () => ({ getExperiment: () => false }),
 }));
 jest.mock('./pkgLifecycle/usePkgCommand', () => ({
     usePkgCommand: () => jest.fn(),
@@ -39,17 +35,12 @@ const mockReadLocalReadme = readLocalReadme as jest.MockedFunction<any>;
 
 const GITHUB = { full_name: 'machbase/neo-pkg-demo', default_branch: 'main' };
 
-// AppInfo reads gCatalogStatus (issue #1452, local-only mode), so the detail view
-// now needs a store. The mode defaults to `online`, which is what every case
-// written before local-only mode existed assumes.
-const renderInfo = (app: any, mode: CatalogMode = 'online') => {
-    const init = ({ set }: MutableSnapshot) => set(gCatalogStatus, { mode });
-    return render(
-        <RecoilRoot initializeState={init}>
+const renderInfo = (app: any) =>
+    render(
+        <RecoilRoot>
             <AppInfo pCode={{ app }} />
         </RecoilRoot>
     );
-};
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -65,21 +56,24 @@ test('installed package with a local README never touches the remote path', asyn
     expect(mockGetPkgMarkdown).not.toHaveBeenCalled();
 });
 
-test('local README missing ⇒ falls back to the remote README', async () => {
+// THE RULE: an installed package never falls through to GitHub. The pane would
+// otherwise follow the network rather than what is installed, and show the
+// default branch's README instead of the installed version's.
+test('installed package with NO local README says so — and never goes remote', async () => {
     mockReadLocalReadme.mockResolvedValue(null);
     mockGetPkgMarkdown.mockResolvedValue('# from hub');
 
     renderInfo({ name: 'neo-pkg-demo', installed_frontend: true, github: GITHUB });
 
-    await waitFor(() => expect(screen.getByTestId('readme')).toHaveTextContent('from hub'));
-    expect(mockGetPkgMarkdown).toHaveBeenCalledWith('machbase/neo-pkg-demo/main/README.md');
+    await waitFor(() => expect(screen.getByText('This package has no README.md installed on this server.')).toBeInTheDocument());
+    expect(mockGetPkgMarkdown).not.toHaveBeenCalled();
+    expect(screen.queryByText('No repository information available.')).not.toBeInTheDocument();
 });
 
-test('both sources failing keeps the existing error message', async () => {
-    mockReadLocalReadme.mockResolvedValue(null);
+test('a failing remote README (not installed) keeps the existing error message', async () => {
     mockGetPkgMarkdown.mockRejectedValue(new Error('Network Error'));
 
-    renderInfo({ name: 'neo-pkg-demo', installed_frontend: true, github: GITHUB });
+    renderInfo({ name: 'neo-pkg-demo', installed_frontend: false, github: GITHUB });
 
     await waitFor(() => expect(screen.getByText('Network Error')).toBeInTheDocument());
     expect(screen.queryByTestId('readme')).not.toBeInTheDocument();
@@ -107,10 +101,8 @@ test('not-installed package skips the local read entirely', async () => {
     expect(mockReadLocalReadme).not.toHaveBeenCalled();
 });
 
-test('no local README and no github metadata keeps the original message', async () => {
-    mockReadLocalReadme.mockResolvedValue(null);
-
-    renderInfo({ name: 'neo-pkg-demo', installed_frontend: true });
+test('not installed and no github metadata keeps the original message', async () => {
+    renderInfo({ name: 'neo-pkg-demo', installed_frontend: false });
 
     await waitFor(() => expect(screen.getByText('No repository information available.')).toBeInTheDocument());
     expect(mockGetPkgMarkdown).not.toHaveBeenCalled();
@@ -123,65 +115,4 @@ test('the local README is rendered verbatim — no raw.githubusercontent rewriti
 
     await waitFor(() => expect(screen.getByTestId('readme')).toHaveTextContent('![shot](./docs/shot.png)'));
     expect(screen.getByTestId('readme').textContent).not.toContain('raw.githubusercontent.com');
-});
-
-// ---------------------------------------------------------------------------
-// LOCAL-ONLY MODE (issue #1452)
-// ---------------------------------------------------------------------------
-// `getPkgMarkdown` goes to raw.githubusercontent. In local-only mode that call must
-// not happen — and the empty pane it leaves behind has to explain itself, in words
-// that do not read as a failure.
-describe('local-only mode', () => {
-    test('the local README still renders — same-origin reads are never restricted', async () => {
-        mockReadLocalReadme.mockResolvedValue('# from disk');
-
-        renderInfo({ name: 'neo-pkg-demo', installed_frontend: true, github: GITHUB }, 'localOnly');
-
-        await waitFor(() => expect(screen.getByTestId('readme')).toHaveTextContent('from disk'));
-        expect(mockGetPkgMarkdown).not.toHaveBeenCalled();
-    });
-
-    // THE REGRESSION TEST FOR THIS ITEM: with no local copy, the remote fallback is
-    // skipped rather than attempted and failed.
-    test('no local README ⇒ getPkgMarkdown is NOT called', async () => {
-        mockReadLocalReadme.mockResolvedValue(null);
-
-        renderInfo({ name: 'neo-pkg-demo', installed_frontend: true, github: GITHUB }, 'localOnly');
-
-        await waitFor(() => expect(screen.getByText(/Local-only mode/)).toBeInTheDocument());
-        expect(mockGetPkgMarkdown).not.toHaveBeenCalled();
-    });
-
-    test('a package that is not installed skips the remote fetch too', async () => {
-        renderInfo({ name: 'neo-pkg-demo', installed_frontend: false, github: GITHUB }, 'localOnly');
-
-        await waitFor(() => expect(screen.getByText(/Local-only mode/)).toBeInTheDocument());
-        expect(mockGetPkgMarkdown).not.toHaveBeenCalled();
-        expect(mockReadLocalReadme).not.toHaveBeenCalled();
-    });
-
-    // The message must be distinguishable from the generic errors: those describe a
-    // fault and invite a retry; this describes a setting, and names where it lives.
-    test('the message names the policy and the file, not a failure', async () => {
-        mockReadLocalReadme.mockResolvedValue(null);
-
-        renderInfo({ name: 'neo-pkg-demo', installed_frontend: true, github: GITHUB }, 'localOnly');
-
-        await waitFor(() => expect(screen.getByText(/Local-only mode/)).toBeInTheDocument());
-        expect(screen.getByText(/\/public\/\.pkg-conf\.json/)).toBeInTheDocument();
-        expect(screen.queryByText('No repository information available.')).not.toBeInTheDocument();
-        expect(screen.queryByText('Failed to load README.')).not.toBeInTheDocument();
-    });
-
-    // The github guard is an early return, so the policy check has to sit BEFORE it
-    // — otherwise a locally-archived package with no github block would report
-    // "no repository information" instead of the real reason.
-    test('a package with no github block gets the policy message, not the metadata one', async () => {
-        mockReadLocalReadme.mockResolvedValue(null);
-
-        renderInfo({ name: 'neo-pkg-demo', installed_frontend: true }, 'localOnly');
-
-        await waitFor(() => expect(screen.getByText(/Local-only mode/)).toBeInTheDocument());
-        expect(screen.queryByText('No repository information available.')).not.toBeInTheDocument();
-    });
 });

@@ -118,7 +118,12 @@ $version-accent: #4199ff;
 
 .sideContainer {
     height: 100%;
-    overflow: auto;
+    // Vertical only. A single-section panel's content sits directly in here, so plain
+    // `overflow: auto` let it scroll sideways and take the section header with it —
+    // whereas a two-section panel puts the same content in a split pane that clips.
+    // Nothing in the tree wants horizontal scrolling: every row already ellipsises.
+    overflow-x: hidden;
+    overflow-y: auto;
 
     span {
         user-select: none; /* standard syntax */
@@ -159,6 +164,23 @@ $version-accent: #4199ff;
     border-bottom: 0.5px solid c.$border-color-default;
     // border-top: 0.5px solid c.$border-color-default;
     white-space: nowrap;
+    // Without this the header row sets the panel's minimum width: its title and its
+    // button group are both `nowrap` and neither used to shrink, pinning min-content
+    // at ~165px. Narrower than that, single-section panels (DB Explorer, References)
+    // grew a horizontal scrollbar and could scroll their own header out of view, while
+    // the split-pane ones (Explorer, Security) just sliced the last button in half.
+    min-width: 0;
+}
+
+// The title text yields before the buttons do. The action icons are fixed-size targets
+// — squeezing them is what produced the half-cut refresh button — so the label is the
+// only thing here that can give, and it ellipsises like every other name in the panel.
+%sideSubTitleLabel {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 // Standard subtitle without collapse functionality
@@ -168,9 +190,17 @@ $version-accent: #4199ff;
 
     .filesOpenOption {
         width: 100%;
+        min-width: 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 4px;
+
+        // Direct children only: the label yields, anything else (button groups, badges)
+        // keeps its size. Scoped with `>` so it cannot reach a span inside a button.
+        > span {
+            @extend %sideSubTitleLabel;
+        }
 
         // svg {
         //     color: c.$text-secondary;
@@ -222,9 +252,15 @@ $version-accent: #4199ff;
 
     .filesOpenOption {
         width: 100%;
+        min-width: 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 4px;
+
+        > span {
+            @extend %sideSubTitleLabel;
+        }
     }
 }
 

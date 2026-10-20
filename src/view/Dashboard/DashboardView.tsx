@@ -1,4 +1,5 @@
 import { getFiles } from '@/api/repository/fileTree';
+import { toDshPath } from '@/utils/filePath';
 import Panel from '@/components/dashboard/panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -14,12 +15,13 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
 import { pickBlockNameFilterValue, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
-import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
+import { CheckDataCompatibility, getPanelLoadError } from '@/utils/CheckDataCompatibility';
 import { VariableHeader } from '@/components/dashboard/variable/header';
 import { VARIABLE_TYPE } from '@/components/dashboard/variable';
 import { IoMdOptions } from 'react-icons/io';
 import { VariablePreview } from '@/components/dashboard/variable/preview';
-import { Button, Page, Drawer } from '@/design-system/components';
+import { Button, Page, Drawer, ErrorBoundary, ErrorCard, Toast } from '@/design-system/components';
+import { getGridPanels, toGridLayout, toGridPosition } from '@/utils/dashboardGridPosition';
 
 const DashboardView = () => {
     const sParams = useParams();
@@ -40,7 +42,7 @@ const DashboardView = () => {
 
     const getDshFile = async (aFileName: string | undefined) => {
         if (!aFileName) return;
-        const sResult: any = await getFiles('/' + aFileName + '.dsh');
+        const sResult: any = await getFiles('/' + toDshPath(aFileName));
         if (typeof sResult === 'string') {
             const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
             await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
@@ -210,96 +212,123 @@ const DashboardView = () => {
         GenChartVariableId();
     }, []);
 
+
+    // A dialog sits outside the page's regions; one that fails closes and says so rather than
+    // taking the page down (#1547).
+    const closeFailedDialog = (aClose: (aOpen: boolean) => void) => (aError: Error) => {
+        aClose(false);
+        Toast.error(`The dialog failed to open: ${aError?.message ?? aError}`);
+    };
     return sNotfound ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
-            <span>404 not found file name</span>
+            <span data-testid="dashboard-not-found">404 not found file name</span>
         </div>
     ) : (
         <>
-            <Page style={{ width: '100vw', height: '100vh' }}>
+            <Page style={{ width: '100vw', height: '100vh' }} data-testid="view-dashboard-board">
                 <Page.Header>
-                    <Button.Group>
-                        <Page.DpRow style={{ display: 'flex', flex: 1, textWrap: 'nowrap' }}>
-                            <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }}>{sBoardInformation?.dashboard?.title || ''}</span>
-                        </Page.DpRow>
-                        {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
-                            <>
-                                <div ref={variableButtonRef}>
-                                    <Button size="sm" variant="ghost" isToolTip toolTipContent="Variables" icon={<IoMdOptions size={16} />} onClick={() => handleSplitPaneSize()} />
-                                </div>
-                                {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />}
-                            </>
-                        )}
-                    </Button.Group>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
-                        <Button variant="ghost" size="icon" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} />
-                        <Button size="sm" variant="ghost" onClick={() => setIsTimeRangeModal(true)}>
-                            <Calendar style={{ paddingRight: '8px' }} />
-                            {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
+                    <ErrorBoundary name="view:header" variant="region">
+                        <Button.Group>
+                            <Page.DpRow style={{ display: 'flex', flex: 1, textWrap: 'nowrap' }}>
+                                <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }} data-testid="title">
+                                    {sBoardInformation?.dashboard?.title || ''}
+                                </span>
+                            </Page.DpRow>
+                            {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
                                 <>
-                                    {(typeof sBoardInformation.dashboard.timeRange.start === 'string' &&
-                                    (sBoardInformation.dashboard.timeRange.start.includes('now') || sBoardInformation.dashboard.timeRange.start.includes('last'))
-                                        ? sBoardInformation.dashboard.timeRange.start
-                                        : moment(sBoardInformation.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
-                                        '~' +
-                                        (typeof sBoardInformation.dashboard.timeRange.end === 'string' &&
-                                        (sBoardInformation.dashboard.timeRange.end.includes('now') || sBoardInformation.dashboard.timeRange.end.includes('last'))
-                                            ? sBoardInformation.dashboard.timeRange.end
-                                            : moment(sBoardInformation.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
+                                    <div ref={variableButtonRef}>
+                                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Variables" icon={<IoMdOptions size={16} />} onClick={() => handleSplitPaneSize()} />
+                                    </div>
+                                    {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />}
                                 </>
-                            ) : (
-                                <span>Time range not set</span>
                             )}
-                        </Button>
-                        <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} />
-                        <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
-                        <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
-                    </div>
+                        </Button.Group>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" data-testid="refresh" />
+                            <Button variant="ghost" size="icon" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} data-testid="shift-backward" />
+                            <Button size="sm" variant="ghost" onClick={() => setIsTimeRangeModal(true)} data-testid="time-range">
+                                <Calendar style={{ paddingRight: '8px' }} />
+                                {sBoardInformation && sBoardInformation.dashboard.timeRange.start ? (
+                                    <>
+                                        {(typeof sBoardInformation.dashboard.timeRange.start === 'string' &&
+                                        (sBoardInformation.dashboard.timeRange.start.includes('now') || sBoardInformation.dashboard.timeRange.start.includes('last'))
+                                            ? sBoardInformation.dashboard.timeRange.start
+                                            : moment(sBoardInformation.dashboard.timeRange.start).format('yyyy-MM-DD HH:mm:ss')) +
+                                            '~' +
+                                            (typeof sBoardInformation.dashboard.timeRange.end === 'string' &&
+                                            (sBoardInformation.dashboard.timeRange.end.includes('now') || sBoardInformation.dashboard.timeRange.end.includes('last'))
+                                                ? sBoardInformation.dashboard.timeRange.end
+                                                : moment(sBoardInformation.dashboard.timeRange.end).format('yyyy-MM-DD HH:mm:ss'))}
+                                    </>
+                                ) : (
+                                    <span>Time range not set</span>
+                                )}
+                            </Button>
+                            <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} data-testid="shift-forward" />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                            <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
+                        </div>
+                    </ErrorBoundary>
                 </Page.Header>
                 <Page.Body ref={sBodyRef}>
-                    <GridLayout
-                        className="layout"
-                        useCSSTransforms={false}
-                        layout={sBoardInformation && sBoardInformation.dashboard.panels}
-                        cols={GRID_LAYOUT_COLS}
-                        autoSize={true}
-                        rowHeight={GRID_LAYOUT_ROW_HEIGHT}
-                        width={sBodyRef.current?.clientWidth}
-                        isResizable={false}
-                        isDraggable={false}
-                    >
-                        {sBoardInformation &&
-                            sBoardInformation.dashboard &&
-                            sBoardInformation.dashboard.panels &&
-                            sBoardInformation.dashboard.panels.map((aItem: any) => {
-                                return (
-                                    <div
-                                        key={aItem.id}
-                                        data-grid={{
-                                            x: sIsMobile ? 0 : aItem.x,
-                                            y: aItem.y,
-                                            w: sIsMobile ? sBodyRef.current?.clientWidth : aItem.w,
-                                            h: aItem.h,
-                                        }}
-                                    >
-                                        <Panel
-                                            pIsView
-                                            pBoardInfo={sBoardInformation}
-                                            pPanelInfo={aItem}
-                                            pModifyState={{ id: '', state: false }}
-                                            pSetModifyState={() => null}
-                                            pParentWidth={!sIsMobile && sBodyRef?.current?.clientWidth ? sBodyRef.current.clientWidth : aItem.w}
-                                            pChartVariableId={sChartVariableId}
-                                            pIsHeader={false}
-                                            pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
-                                            pBoardTimeMinMax={sBoardTimeMinMax}
-                                            pIsActiveTab={true}
-                                        />
-                                    </div>
-                                );
-                            })}
-                    </GridLayout>
+                    <ErrorBoundary name="view:board" variant="region">
+                        <GridLayout
+                            className="layout"
+                            useCSSTransforms={false}
+                            layout={sBoardInformation && toGridLayout(sBoardInformation.dashboard.panels)}
+                            cols={GRID_LAYOUT_COLS}
+                            autoSize={true}
+                            rowHeight={GRID_LAYOUT_ROW_HEIGHT}
+                            width={sBodyRef.current?.clientWidth}
+                            isResizable={false}
+                            isDraggable={false}
+                        >
+                            {sBoardInformation &&
+                                sBoardInformation.dashboard &&
+                                getGridPanels(sBoardInformation.dashboard.panels).map((aItem: any) => {
+                                    // A panel the loader could not repair is kept as saved; it shows as its own error card.
+                                    const sLoadError = getPanelLoadError(aItem);
+                                    const sPosition = toGridPosition(aItem);
+                                    return (
+                                        <div
+                                            key={aItem.id}
+                                            data-testid={`panel-${encodeURIComponent(aItem.id)}`}
+                                            data-grid={{
+                                                x: sIsMobile ? 0 : sPosition.x,
+                                                y: sPosition.y,
+                                                w: sIsMobile ? sBodyRef.current?.clientWidth : sPosition.w,
+                                                h: sPosition.h,
+                                            }}
+                                        >
+                                            {sLoadError ? (
+                                                <ErrorCard
+                                                    name={`dsh-panel:${aItem.id}`}
+                                                    variant="unit"
+                                                    title="Can't load this panel."
+                                                    message={`Its saved settings can't be read, so it can't be shown here. (${sLoadError})`}
+                                                />
+                                            ) : (
+                                                <ErrorBoundary name={`dsh-panel:${aItem.id}`} variant="unit" resetKeys={[aItem]}>
+                                                    <Panel
+                                                        pIsView
+                                                        pBoardInfo={sBoardInformation}
+                                                        pPanelInfo={aItem}
+                                                        pModifyState={{ id: '', state: false }}
+                                                        pSetModifyState={() => null}
+                                                        pParentWidth={!sIsMobile && sBodyRef?.current?.clientWidth ? sBodyRef.current.clientWidth : aItem.w}
+                                                        pChartVariableId={sChartVariableId}
+                                                        pIsHeader={false}
+                                                        pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
+                                                        pBoardTimeMinMax={sBoardTimeMinMax}
+                                                        pIsActiveTab={true}
+                                                    />
+                                                </ErrorBoundary>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                        </GridLayout>
+                    </ErrorBoundary>
 
                     <Drawer.Root isOpen={sVariableCollapse} onClose={() => setVariableCollapse(false)} position="left" width={300} overlay={false} usePortal={false}>
                         <Drawer.Header>
@@ -307,23 +336,27 @@ const DashboardView = () => {
                             <Drawer.Close onClick={() => setVariableCollapse(false)} />
                         </Drawer.Header>
                         <Drawer.Body>
-                            <div ref={variableRef}>
-                                <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
-                            </div>
+                            <ErrorBoundary name="view:variables" variant="region">
+                                <div ref={variableRef}>
+                                    <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
+                                </div>
+                            </ErrorBoundary>
                         </Drawer.Body>
                     </Drawer.Root>
                 </Page.Body>
             </Page>
 
             {sIsTimeRangeModal && (
-                <TimeRangeModal
-                    pSetTimeRangeModal={setIsTimeRangeModal}
-                    pStartTime={sBoardInformation?.dashboard.timeRange.start}
-                    pEndTime={sBoardInformation?.dashboard.timeRange.end}
-                    pSetTime={setBoardInformation}
-                    pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
-                    pSaveCallback={handleDashboardTimeRange}
-                />
+                <ErrorBoundary name="dialog:time-range" variant="unit" onError={closeFailedDialog(setIsTimeRangeModal)}>
+                    <TimeRangeModal
+                        pSetTimeRangeModal={setIsTimeRangeModal}
+                        pStartTime={sBoardInformation?.dashboard.timeRange.start}
+                        pEndTime={sBoardInformation?.dashboard.timeRange.end}
+                        pSetTime={setBoardInformation}
+                        pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
+                        pSaveCallback={handleDashboardTimeRange}
+                    />
+                </ErrorBoundary>
             )}
         </>
     );

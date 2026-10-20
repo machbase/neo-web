@@ -18,7 +18,8 @@ import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchBlockTimeMinMax } from '../../api/repository/machiot';
 import { pickBlockNameFilterValue, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
-import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
+import { CheckDataCompatibility, getPanelLoadError } from '../../utils/CheckDataCompatibility';
+import { toDshPath } from '@/utils/filePath';
 import { VariableHeader } from '../variable/VariableHeader';
 import { VARIABLE_TYPE } from '../variable';
 import { IoMdOptions } from 'react-icons/io';
@@ -29,6 +30,8 @@ import { Page } from '../../../design-system/components/Page';
 import { Drawer } from '../../../design-system/components/Drawer';
 import { Share } from '../../assets/icons/Icon';
 import ShareModal from '../../components/modal/ShareModal';
+import { ErrorBoundary, ErrorCard, Toast } from '@/design-system/components';
+import { getGridPanels, toGridLayout, toGridPosition } from '@/utils/dashboardGridPosition';
 
 const DashboardView = () => {
     const sParams = useParams();
@@ -54,7 +57,8 @@ const DashboardView = () => {
         if (!aFileName) return;
         try {
             const cleanFileName = aFileName.replace('board/', '');
-            const response = await fetch(`/db/tql/${cleanFileName}.dsh`);
+            // share links (/web/ui/board/...) land here: real file name now, old extension-less links still work
+            const response = await fetch(`/db/tql/${toDshPath(cleanFileName)}`);
             if (response.ok) {
                 const sResult = await response.text();
                 const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
@@ -330,85 +334,112 @@ const DashboardView = () => {
         GenChartVariableId();
     }, []);
 
+
+    // A dialog sits outside the page's regions; one that fails closes and says so rather than
+    // taking the page down (#1547).
+    const closeFailedDialog = (aClose: (aOpen: boolean) => void) => (aError: Error) => {
+        aClose(false);
+        Toast.error(`The dialog failed to open: ${aError?.message ?? aError}`);
+    };
     return sNotfound ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
-            <span>404 not found file name</span>
+            <span data-testid="dashboard-not-found">404 not found file name</span>
         </div>
     ) : (
         <>
-            <Page style={{ width: '100vw', height: '100vh' }}>
+            <Page style={{ width: '100vw', height: '100vh' }} data-testid="public-dashboard-board">
                 <Page.Header>
-                    <Button.Group>
-                        <Page.DpRow style={{ display: 'flex', flex: 1, textWrap: 'nowrap' }}>
-                            <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }}>{sBoardInformation?.dashboard?.title || ''}</span>
-                        </Page.DpRow>
-                        {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
-                            <>
-                                <div ref={variableButtonRef}>
-                                    <Button size="sm" variant="ghost" isToolTip toolTipContent="Variables" icon={<IoMdOptions size={16} />} onClick={() => handleSplitPaneSize()} />
-                                </div>
-                                {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />}
-                            </>
-                        )}
-                    </Button.Group>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <Button variant="ghost" size="icon" icon={<Share size={16} />} onClick={() => setIsShareModal(true)} isToolTip toolTipContent="Share" />
-                        <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
-                        {/* Both axes, as in the dashboard: a distance board could be read here but its
-                            window could not be moved or edited, because the header only ever offered
-                            the time one. */}
-                        <RangeChips
-                            pBoardInfo={sBoardInformation}
-                            pOnShiftTime={moveTimeRange}
-                            pOnShiftDist={moveDistanceRange}
-                            pOnEditTime={() => setIsTimeRangeModal(true)}
-                            pOnEditDist={() => setIsDistanceModal(true)}
-                        />
-                        <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
-                        <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
-                    </div>
+                    <ErrorBoundary name="view:header" variant="region">
+                        <Button.Group>
+                            <Page.DpRow style={{ display: 'flex', flex: 1, textWrap: 'nowrap' }}>
+                                <span style={{ maxWidth: '200px', overflow: 'hidden', textWrap: 'nowrap', textOverflow: 'ellipsis' }} data-testid="title">
+                                    {sBoardInformation?.dashboard?.title || ''}
+                                </span>
+                            </Page.DpRow>
+                            {sBoardInformation && sBoardInformation?.dashboard && sBoardInformation?.dashboard?.variables && sBoardInformation?.dashboard?.variables?.length > 0 && (
+                                <>
+                                    <div ref={variableButtonRef}>
+                                        <Button size="sm" variant="ghost" isToolTip toolTipContent="Variables" icon={<IoMdOptions size={16} />} onClick={() => handleSplitPaneSize()} />
+                                    </div>
+                                    {!sIsMobile && <VariablePreview pBoardInfo={sBoardInformation} callback={(selectVarId) => handleSplitPaneSize(selectVarId)} />}
+                                </>
+                            )}
+                        </Button.Group>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <Button variant="ghost" size="icon" icon={<Share size={16} />} onClick={() => setIsShareModal(true)} isToolTip toolTipContent="Share" />
+                            <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" data-testid="refresh" />
+                            {/* Both axes, as in the dashboard: a distance board could be read here but its
+                                window could not be moved or edited, because the header only ever offered
+                                the time one. */}
+                            <RangeChips
+                                pBoardInfo={sBoardInformation}
+                                pOnShiftTime={moveTimeRange}
+                                pOnShiftDist={moveDistanceRange}
+                                pOnEditTime={() => setIsTimeRangeModal(true)}
+                                pOnEditDist={() => setIsDistanceModal(true)}
+                            />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                            <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
+                        </div>
+                    </ErrorBoundary>
                 </Page.Header>
                 <Page.Body ref={sBodyRef} footer>
-                    <GridLayout
-                        className="layout"
-                        useCSSTransforms={false}
-                        layout={sBoardInformation && sBoardInformation.dashboard.panels}
-                        cols={GRID_LAYOUT_COLS}
-                        autoSize={true}
-                        rowHeight={GRID_LAYOUT_ROW_HEIGHT}
-                        width={sBodyRef.current?.clientWidth}
-                        isResizable={false}
-                        isDraggable={false}
-                    >
-                        {sBoardInformation &&
-                            sBoardInformation.dashboard &&
-                            sBoardInformation.dashboard.panels &&
-                            sBoardInformation.dashboard.panels.map((aItem: any) => {
-                                return (
-                                    <div
-                                        key={aItem.id}
-                                        data-grid={{
-                                            x: sIsMobile ? 0 : aItem.x,
-                                            y: aItem.y,
-                                            w: sIsMobile ? sBodyRef.current?.clientWidth : aItem.w,
-                                            h: aItem.h,
-                                        }}
-                                    >
-                                        <Panel
-                                            pBoardInfo={sBoardInformation}
-                                            pPanelInfo={aItem}
-                                            pParentWidth={!sIsMobile && sBodyRef?.current?.clientWidth ? sBodyRef.current.clientWidth : aItem.w}
-                                            pChartVariableId={sChartVariableId}
-                                            pIsHeader={false}
-                                            pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
-                                            pBoardTimeMinMax={sBoardTimeMinMax}
-                                            pIsActiveTab={true}
-                                            pOnChangePanelRefresh={changePanelRefresh}
-                                        />
-                                    </div>
-                                );
-                            })}
-                    </GridLayout>
+                    <ErrorBoundary name="view:board" variant="region">
+                        <GridLayout
+                            className="layout"
+                            useCSSTransforms={false}
+                            layout={sBoardInformation && toGridLayout(sBoardInformation.dashboard.panels)}
+                            cols={GRID_LAYOUT_COLS}
+                            autoSize={true}
+                            rowHeight={GRID_LAYOUT_ROW_HEIGHT}
+                            width={sBodyRef.current?.clientWidth}
+                            isResizable={false}
+                            isDraggable={false}
+                        >
+                            {sBoardInformation &&
+                                sBoardInformation.dashboard &&
+                                getGridPanels(sBoardInformation.dashboard.panels).map((aItem: any) => {
+                                    // A panel the loader could not repair is kept as saved; it shows as its own error card.
+                                    const sLoadError = getPanelLoadError(aItem);
+                                    const sPosition = toGridPosition(aItem);
+                                    return (
+                                        <div
+                                            key={aItem.id}
+                                            data-testid={`panel-${encodeURIComponent(aItem.id)}`}
+                                            data-grid={{
+                                                x: sIsMobile ? 0 : sPosition.x,
+                                                y: sPosition.y,
+                                                w: sIsMobile ? sBodyRef.current?.clientWidth : sPosition.w,
+                                                h: sPosition.h,
+                                            }}
+                                        >
+                                            {sLoadError ? (
+                                                <ErrorCard
+                                                    name={`dsh-panel:${aItem.id}`}
+                                                    variant="unit"
+                                                    title="Can't load this panel."
+                                                    message={`Its saved settings can't be read, so it can't be shown here. (${sLoadError})`}
+                                                />
+                                            ) : (
+                                                <ErrorBoundary name={`dsh-panel:${aItem.id}`} variant="unit" resetKeys={[aItem]}>
+                                                    <Panel
+                                                        pBoardInfo={sBoardInformation}
+                                                        pPanelInfo={aItem}
+                                                        pParentWidth={!sIsMobile && sBodyRef?.current?.clientWidth ? sBodyRef.current.clientWidth : aItem.w}
+                                                        pChartVariableId={sChartVariableId}
+                                                        pIsHeader={false}
+                                                        pLoopMode={sBoardInformation?.dashboard.timeRange.refresh !== 'Off' || aItem?.timeRange?.refresh !== 'Off' ? true : false}
+                                                        pBoardTimeMinMax={sBoardTimeMinMax}
+                                                        pIsActiveTab={true}
+                                                        pOnChangePanelRefresh={changePanelRefresh}
+                                                    />
+                                                </ErrorBoundary>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                        </GridLayout>
+                    </ErrorBoundary>
 
                     <Drawer.Root isOpen={sVariableCollapse} onClose={() => setVariableCollapse(false)} position="left" width={300} overlay={false} usePortal={false}>
                         <Drawer.Header>
@@ -416,9 +447,11 @@ const DashboardView = () => {
                             <Drawer.Close onClick={() => setVariableCollapse(false)} />
                         </Drawer.Header>
                         <Drawer.Body>
-                            <div ref={variableRef}>
-                                <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
-                            </div>
+                            <ErrorBoundary name="view:variables" variant="region">
+                                <div ref={variableRef}>
+                                    <VariableHeader pBoardInfo={sBoardInformation} callback={handleUpdateVariable} pSelectVariable={sSelectVariable} />
+                                </div>
+                            </ErrorBoundary>
                         </Drawer.Body>
                     </Drawer.Root>
                 </Page.Body>
@@ -430,19 +463,29 @@ const DashboardView = () => {
             </Page>
 
             {sIsTimeRangeModal && (
-                <TimeRangeModal
-                    pSetTimeRangeModal={setIsTimeRangeModal}
-                    pStartTime={sBoardInformation?.dashboard.timeRange.start}
-                    pEndTime={sBoardInformation?.dashboard.timeRange.end}
-                    pSetTime={setBoardInformation}
-                    pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
-                    pSaveCallback={handleDashboardTimeRange}
-                />
+                <ErrorBoundary name="dialog:time-range" variant="unit" onError={closeFailedDialog(setIsTimeRangeModal)}>
+                    <TimeRangeModal
+                        pSetTimeRangeModal={setIsTimeRangeModal}
+                        pStartTime={sBoardInformation?.dashboard.timeRange.start}
+                        pEndTime={sBoardInformation?.dashboard.timeRange.end}
+                        pSetTime={setBoardInformation}
+                        pRefresh={sBoardInformation?.dashboard.timeRange.refresh}
+                        pSaveCallback={handleDashboardTimeRange}
+                    />
+                </ErrorBoundary>
             )}
 
-            {sIsDistanceModal && <DistanceRangeModal pBoardInfo={sBoardInformation} pOnApply={applyDistanceRange} pOnClose={() => setIsDistanceModal(false)} />}
+            {sIsDistanceModal && (
+                <ErrorBoundary name="dialog:distance-range" variant="unit" onError={closeFailedDialog(setIsDistanceModal)}>
+                    <DistanceRangeModal pBoardInfo={sBoardInformation} pOnApply={applyDistanceRange} pOnClose={() => setIsDistanceModal(false)} />
+                </ErrorBoundary>
+            )}
 
-            {sIsShareModal && <ShareModal isOpen={sIsShareModal} onClose={() => setIsShareModal(false)} />}
+            {sIsShareModal && (
+                <ErrorBoundary name="dialog:share" variant="unit" onError={closeFailedDialog(setIsShareModal)}>
+                    <ShareModal isOpen={sIsShareModal} onClose={() => setIsShareModal(false)} />
+                </ErrorBoundary>
+            )}
         </>
     );
 };

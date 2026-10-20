@@ -134,9 +134,8 @@ export const getTimerItem = async (aTimerId: number): Promise<TimerItemResType> 
  * differ — the RPC now answers with the created id, which the caller should keep instead of
  * looking the new timer up by name.
  *
- * Two backend behaviours changed here and surface as plain `reason` text:
- * - a duplicate name is now an error (`schedule name '…' already exists`); it used to overwrite
- *   the existing timer silently.
+ * Neo v8.7.1 accepts equal names with different IDs, so callers must address timers by ID.
+ * Backend validation errors surface as plain `reason` text:
  * - a `command` whose tql file does not exist fails BEFORE the definition is stored, so a failed
  *   create leaves nothing behind.
  */

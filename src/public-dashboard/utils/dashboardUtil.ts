@@ -1,4 +1,5 @@
 import { getId } from '.';
+import { tqlString } from '@/utils/queryText';
 import {
     DefaultBarChartOption,
     DefaultLineChartOption,
@@ -25,6 +26,10 @@ import { ChartType } from '../type/eChart';
 import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
 import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
+
+// With no position given, v6 lays the slider out 8px higher than v5 did, onto the x-axis labels of a
+// grid whose bottom is fixed at 50. `bottom: 14` is where v5 put it; both versions render it there.
+const DATA_ZOOM_SLIDER = { type: 'slider', bottom: 14 };
 
 export enum E_VISUAL_LOAD_ID {
     CHART = 'chartID',
@@ -223,7 +228,7 @@ export const createCommonOption = (aCommonOptions: any) => {
     sCommon.legend.show = aCommonOptions.isLegend;
     sCommon.tooltip.show = aCommonOptions.isTooltip;
     sCommon.tooltip.trigger = aCommonOptions.tooltipTrigger;
-    sCommon.dataZoom = aCommonOptions.isDataZoom ? [{ type: 'slider' }] : false;
+    sCommon.dataZoom = aCommonOptions.isDataZoom ? [DATA_ZOOM_SLIDER] : false;
     if (aCommonOptions.isTooltip && aCommonOptions.tooltipTrigger === 'axis') {
         sCommon.tooltip.formatter = ChartAxisTooltipFormatter;
     }
@@ -451,7 +456,7 @@ export const createMapValueForTag = (aTags: any, aIsStack: boolean) => {
     for (let i = 0; i < sTagNum; i++) {
         // when select name, time, value
         // time, name , value
-        sMapValueString += `MAPVALUE(${i + 3}, value(1) == '${aTags[i]}' ? value(2) : NULL)\n`;
+        sMapValueString += `MAPVALUE(${i + 3}, value(1) == ${tqlString(aTags[i])} ? value(2) : NULL)\n`;
     }
     sResultString = sMapValueString + `POPVALUE(1, 2)\n`;
     if (aIsStack) {

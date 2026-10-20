@@ -1,19 +1,32 @@
+@use 'sass:list';
+@use 'sass:map';
+
+$text-styles: (
+    title: (16px, 600, 20px),
+    section: (13px, 600, 18px),
+    body: (12px, 400, 16px),
+    label: (12px, 500, 16px),
+    caption: (11px, 400, 14px),
+);
+
+@mixin role($name) {
+    $style: map.get($text-styles, $name);
+    font-size: list.nth($style, 1);
+    font-weight: list.nth($style, 2);
+    line-height: list.nth($style, 3);
+}
+
 @mixin title {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 20px;
+    @include role(title);
 }
 
 @mixin section-title {
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 18px;
+    @include role(section);
 }
 
 @mixin control($weight: 400) {
-    font-size: 12px;
+    @include role(body);
     font-weight: $weight;
-    line-height: 16px;
 }
 
 @mixin control-surface {
@@ -27,13 +40,13 @@
         label,
         label > span:last-child
     ) {
-        font-size: 12px;
-        line-height: 16px;
+        $style: map.get($text-styles, body);
+        font-size: list.nth($style, 1);
+        line-height: list.nth($style, 3);
     }
 }
 
 @mixin support($weight: 400) {
-    font-size: 11px;
+    @include role(caption);
     font-weight: $weight;
-    line-height: 14px;
 }

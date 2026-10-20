@@ -59,6 +59,9 @@ interface TableInputSelectProps {
     onInputChange: (aValue: string) => void;
     onSelectChange: (aValue: string) => void;
     style?: React.CSSProperties;
+    'data-testid'?: string;
+    /** Test ID of the portaled table list. */
+    menuTestId?: string;
 }
 
 /**
@@ -73,7 +76,7 @@ interface TableInputSelectProps {
  * What the collapse drops — the database and owner — reappears under the label, which has room for
  * a second line without making the field taller than the ones below it.
  */
-export const TableInputSelect = ({ label, options, value, onInputChange, onSelectChange, style }: TableInputSelectProps) => {
+export const TableInputSelect = ({ label, options, value, onInputChange, onSelectChange, style, 'data-testid': testId, menuTestId }: TableInputSelectProps) => {
     const [sIsEditing, setIsEditing] = useState(false);
 
     const sMatched = useMemo(() => options.find((aOption) => aOption.value === value), [options, value]);
@@ -110,6 +113,8 @@ export const TableInputSelect = ({ label, options, value, onInputChange, onSelec
             searchable
             searchPlaceholder="Search tables..."
             style={style}
+            data-testid={testId}
+            menuTestId={menuTestId}
         />
     );
 };

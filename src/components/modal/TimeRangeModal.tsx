@@ -220,7 +220,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         // Distance tab → write the kind-separated dashboard.distanceRange (numeric start/end).
         if (sTab === 'distance') {
             if (sDistNotice) {
-                Toast.error(sDistNotice);
+                Toast.error(sDistNotice, { testId: 'time-range-error-toast' });
                 return;
             }
             // Only two coordinates can be put in order; an anchored pair is already ordered by what
@@ -250,7 +250,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         } else {
             sStart = moment(sStartTime).unix() * 1000;
             if ((!pAllowNegativeTime && sStart < 0) || isNaN(sStart)) {
-                Toast.error('Please check the entered time.');
+                Toast.error('Please check the entered time.', { testId: 'time-range-error-toast' });
                 return;
             }
         }
@@ -259,7 +259,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
         } else {
             sEnd = moment(sEndTime).unix() * 1000;
             if ((!pAllowNegativeTime && sEnd < 0) || isNaN(sEnd)) {
-                Toast.error('Please check the entered time.');
+                Toast.error('Please check the entered time.', { testId: 'time-range-error-toast' });
                 return;
             }
         }
@@ -305,6 +305,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
 
     return (
         <Modal.Root
+            data-testid="time-range-dialog"
             isOpen={true}
             onClose={() => pSetTimeRangeModal(false)}
             // Enter applies, which is what the Data Viewer's own distance dialog did before it was
@@ -326,7 +327,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                     {sLockTab === 'distance' ? <MaterialIcon name="straighten" size={16} /> : <Calendar />}
                     {sLockTab === 'distance' ? 'Distance Range' : sLockTab === 'time' ? 'Time Range' : sHasDistance ? 'Range' : 'Time Range'}
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close data-testid="close-button" />
             </Modal.Header>
 
             <Modal.Body>
@@ -335,6 +336,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                         {(['time', 'distance'] as const).map((aKey) => (
                             <button
                                 key={aKey}
+                                data-testid={`kind-${aKey}`}
                                 type="button"
                                 onClick={() => setTab(aKey)}
                                 style={{
@@ -370,8 +372,8 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                     />
                 ) : (
                     <>
-                        <DatePicker pLabel="From" pTopPixel={32} pTimeValue={sStartTime} onChange={(date: any) => handleStartTime(date)} pSetApply={(date: any) => setStartTime(date)} />
-                        <DatePicker pLabel="To" pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
+                        <DatePicker pTestId="from-input" pLabel="From" pTopPixel={32} pTimeValue={sStartTime} onChange={(date: any) => handleStartTime(date)} pSetApply={(date: any) => setStartTime(date)} />
+                        <DatePicker pTestId="to-input" pLabel="To" pTopPixel={32} pTimeValue={sEndTime} onChange={(date: any) => handleEndTime(date)} pSetApply={(date: any) => setEndTime(date)} />
                         {pShowRefresh && (
                             <Dropdown.Root
                                 label="Refresh"
@@ -395,8 +397,8 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             </Modal.Body>
 
             <Modal.Footer>
-                <Modal.Confirm onClick={setGlobalTime}>Apply</Modal.Confirm>
-                <Modal.Cancel>Cancel</Modal.Cancel>
+                <Modal.Confirm data-testid="apply-button" onClick={setGlobalTime}>Apply</Modal.Confirm>
+                <Modal.Cancel data-testid="cancel-button">Cancel</Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );

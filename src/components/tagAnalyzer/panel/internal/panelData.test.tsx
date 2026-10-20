@@ -8,8 +8,8 @@ import {
     PanelSeriesCalculationMode,
     type PanelSeriesDefinition,
 } from '../../seriesModel';
-import { TimeUnit } from '../../range/intervalResolver';
-import { getRangeWidth } from '../../range/rangeArithmetic';
+import { TimeUnit } from '../../rangeExpression/intervalResolver';
+import { getRangeWidth } from '../../rangeExpression/rangeArithmetic';
 import type { PanelInfo } from '../panelModel';
 import { usePanelData } from './panelData';
 
@@ -79,6 +79,7 @@ function createParams(
             navigatorRangeInput: { start: '0', end: '1000' },
         },
         chartAreaWidth: 300,
+        navigatorTrackWidth: 244,
         rollupTables: {},
         dataRefreshVersion: 0,
     };
@@ -255,6 +256,7 @@ describe('usePanelData', () => {
         const params = {
             ...createParams(createPanelInfo(true)),
             chartAreaWidth: 100,
+            navigatorTrackWidth: 44,
         };
         const { result, rerender } = renderHook(
             ({ currentParams }) => usePanelData(currentParams),

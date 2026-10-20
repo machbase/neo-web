@@ -129,7 +129,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
     useDebounce([sTagPagination, sSearchText], getTagList, 200);
 
     return (
-        <Modal.Root isOpen={pIsOpen} onClose={pCloseModal} closeOnEscape={true} closeOnOutsideClick={true}>
+        <Modal.Root isOpen={pIsOpen} onClose={pCloseModal} closeOnEscape={true} closeOnOutsideClick={true} data-testid="dashboard-tag-picker">
             <Modal.Header className="tag-select-header">
                 <Modal.Title>
                     <BiSolidChart />
@@ -141,6 +141,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
             <Modal.Body>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '4px' }}>
                     <Input
+                        data-testid="search"
                         value={sTagInputValue}
                         onChange={(e) => {
                             setTagInputValue(e.target.value);
@@ -164,6 +165,7 @@ const TagSelectDialog = ({ pTable, pCallback, pBlockOption, pIsOpen, pCloseModal
                         id: aItem[1],
                         label: aItem[1],
                         tooltip: aItem[1],
+                        testId: `option-${encodeURIComponent(aItem[1])}`,
                     }))}
                     onItemClick={(itemId) => setTag(itemId as string)}
                     emptyMessage="no-data"
