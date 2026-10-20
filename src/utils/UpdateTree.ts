@@ -2,6 +2,7 @@ import { getFileList, postFileList } from '@/api/repository/api';
 import { fileTreeParser } from './fileTreeParser';
 import { isJsonString } from './utils';
 import { generateCopyName } from './fileNameUtils';
+import { findExistingEntry } from './fileExistence';
 
 export const UpdateTree = async ({ path, name }: { path: string; name: string }) => {
     const sPath = path.replace(name, '');
@@ -117,12 +118,10 @@ export const FileCopy = async (aTargetFile: any) => {
     const sTargetFolderInfo: any = await getFileList('', aTargetFile.path, '');
     if (!sTargetFolderInfo?.success || !Array.isArray(sTargetFolderInfo.data?.children)) return undefined;
     const sTargetFileInfo: any = await getFileList('', aTargetFile.path, aTargetFile.name);
-    const sParsedTargetFolder = fileTreeParser(sTargetFolderInfo.data, aTargetFile.path, aTargetFile.depth - 1, aTargetFile.parentId);
-    const sExistingNames = new Set([...sParsedTargetFolder.files, ...sParsedTargetFolder.dirs].map((aEntry) => aEntry.name));
     // A deleted copy leaves a gap, so file counts cannot identify an unused name.
     let sCopyNumber = 1;
     let sCopyName = generateCopyName(aTargetFile.name, sCopyNumber);
-    while (sExistingNames.has(sCopyName)) {
+    while (findExistingEntry(sTargetFolderInfo.data.children, sCopyName)) {
         sCopyName = generateCopyName(aTargetFile.name, ++sCopyNumber);
     }
     let payload = undefined;

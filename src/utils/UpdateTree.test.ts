@@ -8,10 +8,13 @@ const target = (name = 'sample.sql') => ({ name, id: name, path: '/copies/', dep
 describe('FileCopy preserves existing files when choosing a copy name', () => {
     beforeEach(() => jest.resetAllMocks());
 
-    const storage = (entries: Record<string, string>, directories: string[] = []) => {
+    const storage = (entries: Record<string, string>, directories: string[] = [], caseInsensitive = false) => {
         const files = new Map(Object.entries(entries));
+        const storedName = (name: string) => caseInsensitive
+            ? Array.from(files.keys()).find((existing) => existing.toLowerCase() === name.toLowerCase()) ?? name
+            : name;
         (getFileList as jest.Mock).mockImplementation(async (_filter: string, _path: string, name: string) => {
-            if (name) return files.get(name);
+            if (name) return files.get(storedName(name));
             return {
                 success: true,
                 data: {
@@ -26,7 +29,7 @@ describe('FileCopy preserves existing files when choosing a copy name', () => {
         });
         // The real save API can overwrite. Keep that behavior here so a name collision fails the assertions.
         (postFileList as jest.Mock).mockImplementation(async (contents: string, _path: string, name: string) => {
-            files.set(name, contents);
+            files.set(storedName(name), contents);
             return { success: true };
         });
         return files;
@@ -77,6 +80,27 @@ describe('FileCopy preserves existing files when choosing a copy name', () => {
 
         expect(await FileCopy(target())).toMatchObject({ name: 'sample (2).sql' });
         expect(files.has('sample (1).sql')).toBe(false);
+    });
+
+    it.each([false, true])('preserves a case-variant copy with case-insensitive storage=%s', async (caseInsensitive) => {
+        const files = storage({ 'sample.sql': 'original', 'Sample (1).sql': 'must survive' }, [], caseInsensitive);
+
+        expect(await FileCopy(target())).toMatchObject({ name: 'sample (2).sql' });
+        expect(files.get('Sample (1).sql')).toBe('must survive');
+        expect(files.get('sample (2).sql')).toBe('original');
+        expect(files.get('sample.sql')).toBe('original');
+        expect(files.has('sample (1).sql')).toBe(false);
+        expect(postFileList).toHaveBeenCalledWith('original', '/copies/', 'sample (2).sql');
+    });
+
+    it('skips case-variant extensions and directories while filling the first free number', async () => {
+        const files = storage({ 'sample.sql': 'original', 'sample (1).SQL': 'keep uppercase extension', 'SAMPLE (3).Sql': 'keep third' }, ['Sample (2).sql'], true);
+
+        expect(await FileCopy(target())).toMatchObject({ name: 'sample (4).sql' });
+        expect(files.get('sample (1).SQL')).toBe('keep uppercase extension');
+        expect(files.get('SAMPLE (3).Sql')).toBe('keep third');
+        expect(files.get('sample (4).sql')).toBe('original');
+        expect(files.has('sample (2).sql')).toBe(false);
     });
 
     it.each([
