@@ -188,6 +188,51 @@ describe('dashboard name emitters', () => {
         expect(toSqlColumnName('')).toBe('');
         expect(toSqlColumnName('q"t')).toBe('"q""t"');
     });
+
+    // #1558 (F-138): the Value field also takes a typed expression. Against the block's own columns a
+    // value that is one of them is a name, anything else is the expression as typed (as before 5fae6b7f).
+    const COLUMNS = [...TAG_COLUMNS, ['T-1', 20, 0, 3, 0]];
+    test('against the block columns, a column is quoted and an expression is written as typed', () => {
+        expect(toSqlColumnName('T-1', COLUMNS)).toBe('"T-1"');
+        expect(toSqlColumnName('VALUE*2', COLUMNS)).toBe('VALUE*2');
+        expect(toSqlColumnName('abs(VALUE)', COLUMNS)).toBe('abs(VALUE)');
+        expect(toSqlColumnName('VALUE', COLUMNS)).toBe('VALUE');
+        expect(toSqlColumnName('{{col}}', COLUMNS)).toBe('{{col}}');
+    });
+
+    test('without the block columns nothing changes', () => {
+        expect(toSqlColumnName('T-1')).toBe('"T-1"');
+        expect(toSqlColumnName('T-1', [])).toBe('"T-1"');
+    });
+});
+
+describe.each([
+    ['editor', DashboardQueryParser],
+    ['public', PublicDashboardQueryParser],
+])('%s Value field expression (#1558)', (_, parser) => {
+    const withValue = (value: string, aggregator: string) => createBlock({ value, aggregator, values: [{ id: 'value-1', alias: '', value, jsonKey: '', aggregator }] });
+
+    test.each([
+        ['VALUE*2', 'none', 'VALUE*2 as VALUE'],
+        ['abs(VALUE)', 'none', 'abs(VALUE) as VALUE'],
+        ['VALUE*2', 'sum', 'sum(VALUE*2)'],
+    ])('%s with %s is written as typed', (value, aggregator, expected) => {
+        const { sql } = parse(parser, withValue(value, aggregator));
+        expect(sql).toContain(expected);
+        expect(sql).not.toContain('"VALUE*2"');
+    });
+
+    test('a column the table really has is still quoted', () => {
+        const block = withValue('T-1', 'none');
+        block.tableInfo = [...TAG_COLUMNS, ['T-1', 20, 0, 3, 0]];
+        expect(parse(parser, block).sql).toContain('"T-1" as VALUE');
+    });
+});
+
+test('full typing template writes a typed Value field expression as typed (#1558)', () => {
+    const sql = buildFullTypingQuery(createBlock({ value: 'VALUE*2', aggregator: 'avg' }));
+    expect(sql).toContain('VALUE*2 AS VALUE');
+    expect(sql).not.toContain('"VALUE*2"');
 });
 
 describe.each([

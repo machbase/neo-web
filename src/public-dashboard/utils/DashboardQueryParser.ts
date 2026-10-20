@@ -274,10 +274,10 @@ const GetFilter = (aTableInfo: any) => {
 const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: string, aTableInfo: any, aSelectedTime?: string) => {
     return aValueList.map((aValue: any, aIdx: number) => {
         const sValue = `VALUE${aIdx > 0 ? aIdx + 1 : ''}`;
-        const sRawSqlValue = toSqlValueExpression(aValue.value, aValue.jsonKey);
+        const sRawSqlValue = toSqlValueExpression(aValue.value, aValue.jsonKey, aTableInfo);
         if (isValueOrNoneAggregator(aValue.aggregator) || aDiff) return `${sRawSqlValue} as ${sValue}`;
         else {
-            const sSqlValue = toSqlValueExpressionForAggregator(aValue.value, aValue.aggregator, aValue.jsonKey);
+            const sSqlValue = toSqlValueExpressionForAggregator(aValue.value, aValue.aggregator, aValue.jsonKey, aTableInfo);
             const sFallbackFirstLastTime = aTableType === 'log' ? '_ARRIVAL_TIME' : aTableInfo?.[1]?.[0] ?? 'TIME';
             const sFirstLastTime = toSqlColumnName(aSelectedTime || sFallbackFirstLastTime);
             if (isFirstOrLastAggregator(aValue.aggregator))
@@ -440,7 +440,7 @@ const GetTimeValueMetricList = (aQuery: any, aSourceMode: 'raw' | 'rollup') => {
             });
         }
 
-        const sValueExpression = isCountAllAggregator(aValue.aggregator) ? undefined : toSqlValueExpressionForAggregator(aValue.value, sAggregator, aValue.jsonKey);
+        const sValueExpression = isCountAllAggregator(aValue.aggregator) ? undefined : toSqlValueExpressionForAggregator(aValue.value, sAggregator, aValue.jsonKey, aQuery.tableInfo);
 
         return createRollupAggregationMetric({
             aggregator: sAggregator,

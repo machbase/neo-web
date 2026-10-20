@@ -80,8 +80,8 @@ export const buildFullTypingQuery = (blockInfo: any) => {
         whereClauses = [`${nameColumn} IN (${sqlString(blockInfo?.tag)})`];
     }
 
-    const sqlValueExpression = valueColumn ? toSqlValueExpression(String(valueColumn), jsonKey) : valueColumn;
-    const sqlAggregateValueExpression = valueColumn ? toSqlValueExpressionForAggregator(String(valueColumn), aggregator, jsonKey) : valueColumn;
+    const sqlValueExpression = valueColumn ? toSqlValueExpression(String(valueColumn), jsonKey, blockInfo?.tableInfo) : valueColumn;
+    const sqlAggregateValueExpression = valueColumn ? toSqlValueExpressionForAggregator(String(valueColumn), aggregator, jsonKey, blockInfo?.tableInfo) : valueColumn;
     let valueExpression = useAgg && valueColumn ? `${aggregator}(${sqlAggregateValueExpression}) AS ${alias}` : !useCountAll ? `(${sqlValueExpression}) AS ${alias}` : `COUNT(*) AS ${alias}`;
 
     if (aggregator && valueColumn && (aggregator?.toUpperCase() === 'FIRST' || aggregator?.toUpperCase() === 'LAST')) {
