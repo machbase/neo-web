@@ -1,7 +1,7 @@
 import { getFileList, postFileList } from '@/api/repository/api';
 import { fileTreeParser } from './fileTreeParser';
 import { isJsonString } from './utils';
-import { getFileNameAndExtension, generateCopyName } from './fileNameUtils';
+import { generateCopyName } from './fileNameUtils';
 
 export const UpdateTree = async ({ path, name }: { path: string; name: string }) => {
     const sPath = path.replace(name, '');
@@ -114,19 +114,17 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
 };
 
 export const FileCopy = async (aTargetFile: any) => {
-    const sTargetFolderInfo = await getFileList('', aTargetFile.path, '');
+    const sTargetFolderInfo: any = await getFileList('', aTargetFile.path, '');
+    if (!sTargetFolderInfo?.success || !Array.isArray(sTargetFolderInfo.data?.children)) return undefined;
     const sTargetFileInfo: any = await getFileList('', aTargetFile.path, aTargetFile.name);
     const sParsedTargetFolder = fileTreeParser(sTargetFolderInfo.data, aTargetFile.path, aTargetFile.depth - 1, aTargetFile.parentId);
-    const sTargetFileList = sParsedTargetFolder.files;
-    const { fileName } = getFileNameAndExtension(aTargetFile.name);
-    const sDuplList = sTargetFileList.filter(
-        (aFile: any) =>
-            aFile.path === aTargetFile.path &&
-            aFile.depth === aTargetFile.depth &&
-            aFile.parentId === aTargetFile.parentId &&
-            (aFile.path + aFile.name).includes(aTargetFile.path + fileName)
-    );
-    const sCopyName = generateCopyName(aTargetFile.name, sDuplList.length);
+    const sExistingNames = new Set([...sParsedTargetFolder.files, ...sParsedTargetFolder.dirs].map((aEntry) => aEntry.name));
+    // A deleted copy leaves a gap, so file counts cannot identify an unused name.
+    let sCopyNumber = 1;
+    let sCopyName = generateCopyName(aTargetFile.name, sCopyNumber);
+    while (sExistingNames.has(sCopyName)) {
+        sCopyName = generateCopyName(aTargetFile.name, ++sCopyNumber);
+    }
     let payload = undefined;
 
     if (isJsonString(sTargetFileInfo)) {
