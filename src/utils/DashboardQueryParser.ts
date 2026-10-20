@@ -25,6 +25,7 @@ import { parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggre
 import { isNonDateTimeBaseTimeColumn, isNumericBaseTimeBlock } from './timeFieldColumns';
 import { isTaglessTableType } from './dashboardTableKind';
 import { getBaseJsonRollupValue } from './rollupColumnCandidates';
+import { variableKeyRegExp } from '@/utils/dashboardVariableText';
 
 interface BlockTimeType {
     interval: {
@@ -90,16 +91,16 @@ const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
 };
 export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType) => {
     const defineVar = aVariables?.map((variable: any) => {
-        return { key: variable.key, value: variable.use.value, regEx: new RegExp(variable.key, 'g') };
+        return { key: variable.key, value: variable.use.value, regEx: variableKeyRegExp(variable.key) };
     });
     const defaultVar = DEFAULT_VARIABLE_LIST.map((defVar) => {
-        return { key: defVar.key, value: variableValueConverter(defVar.key, aTime), regEx: new RegExp(defVar.key, 'g') };
+        return { key: defVar.key, value: variableValueConverter(defVar.key, aTime), regEx: variableKeyRegExp(defVar.key) };
     });
     return defineVar.concat(defaultVar);
 };
 export const VariableParserForTql = (aVariables: VARIABLE_TYPE[]) => {
     const defineVar = aVariables?.map((variable: any) => {
-        return { key: variable.key, value: variable.use.value, regEx: new RegExp(variable.key, 'g') };
+        return { key: variable.key, value: variable.use.value, regEx: variableKeyRegExp(variable.key) };
     });
     return defineVar;
 };

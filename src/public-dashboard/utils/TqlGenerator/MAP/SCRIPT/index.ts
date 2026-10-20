@@ -1,4 +1,5 @@
 import { E_TQL_MAP } from '..';
+import { literalReplacement } from '@/utils/dashboardVariableText';
 
 export enum E_TQL_SCRIPT_LANGUAGE {
     JS = 'js',
@@ -30,10 +31,12 @@ const RequestDo = (aReq: { method: 'POST'; url: string; body: string }, aDo: { m
     let doOpt = template[E_TQL_SCRIPT_JS_UTILS.DO];
     if (aReq.method) reqOpt = reqOpt.replace(`\${METHOD}`, aReq.method);
     if (aReq.url) reqOpt = reqOpt.replace(`\${URL}`, window.location.origin + aReq.url);
-    if (aReq.body) reqOpt = reqOpt.replace(`\${BODY}`, aReq.body);
+    if (aReq.body) reqOpt = reqOpt.replace(`\${BODY}`, literalReplacement(aReq.body));
     reqOpt = reqOpt.replace(`\${TOKEN}`, localStorage.getItem('accessToken') || '');
     if (aDo) doOpt = doOpt.replace('${METHOD}', aDo.method).replace('${CALLBACK}', aDo.callback);
-    return template[E_TQL_SCRIPT_JS_UTILS.REQUEST_DO].replace(`\${${E_TQL_SCRIPT_JS_UTILS.REQUEST}}`, reqOpt).replace(`\${${E_TQL_SCRIPT_JS_UTILS.DO}}`, doOpt);
+    return template[E_TQL_SCRIPT_JS_UTILS.REQUEST_DO]
+        .replace(`\${${E_TQL_SCRIPT_JS_UTILS.REQUEST}}`, literalReplacement(reqOpt))
+        .replace(`\${${E_TQL_SCRIPT_JS_UTILS.DO}}`, literalReplacement(doOpt));
 };
 const RequestDoQuick = (aBody: string, opt?: { isSave: boolean }) => {
     const sURL = E_URL.DEFALUT;
