@@ -4,6 +4,7 @@ import type { BoardInfo } from './boardModel';
 import * as boardSave from './boardDocuments';
 import * as boardSnapshot from '../persistence/tazBoardSnapshot';
 import { useBoardSave } from './useBoardSave';
+import { createTagAnalyzerBoardFromPayload } from '../application/adapters';
 
 function createBoard(overrides: Partial<BoardInfo> = {}): BoardInfo {
     return {
@@ -60,6 +61,35 @@ afterEach(() => {
 });
 
 describe('useBoardSave', () => {
+    it.each(['button', 'ctrl+s', 'meta+s'])('opens Save As for a new Data Viewer board via %s without writing a file', async (trigger) => {
+        const result = createTagAnalyzerBoardFromPayload({
+            title: 'Selected Tags',
+            tags: [{
+                tagName: 'MEMORY',
+                table: 'TAG_TEST',
+                colName: { name: 'NAME', time: 'TIME', value: 'VALUE', timeType: 6, timeBaseTime: true },
+            }],
+        });
+        if (result.status !== 'ok') throw new Error(result.reason);
+        const saveSpy = jest.spyOn(boardSave, 'saveTazBoard');
+        const hook = renderBoardSave(result.board);
+
+        await act(async () => {
+            if (trigger === 'button') {
+                expect(await hook.result.current.save()).toBe(false);
+            } else {
+                document.dispatchEvent(new KeyboardEvent('keydown', {
+                    key: 's', ctrlKey: trigger === 'ctrl+s', metaKey: trigger === 'meta+s', cancelable: true,
+                }));
+            }
+        });
+
+        expect(hook.result.current.isSaveAsOpen).toBe(true);
+        expect(saveSpy).not.toHaveBeenCalled();
+        expect(hook.applySaveResult).not.toHaveBeenCalled();
+        expect(hook.onSavedBoard).not.toHaveBeenCalled();
+    });
+
     it('opens Save As instead of persisting a pathless board', async () => {
         const saveSpy = jest.spyOn(boardSave, 'saveTazBoard');
         const hook = renderBoardSave(createBoard({ path: '' }));
@@ -86,9 +116,10 @@ describe('useBoardSave', () => {
         expect(hook.result.current.isSaveAsOpen).toBe(false);
     });
 
-    it('applies a successful direct save without refreshing the file tree', async () => {
-        const savedBoard = createBoard({ savedCode: 'saved' });
-        jest.spyOn(boardSave, 'saveTazBoard')
+    it('directly saves an existing root file without opening Save As or refreshing the file tree', async () => {
+        const existingBoard = createBoard({ name: 'Selected Tags.taz', savedCode: 'previous snapshot' });
+        const savedBoard = { ...existingBoard, savedCode: 'saved' };
+        const saveSpy = jest.spyOn(boardSave, 'saveTazBoard')
             .mockResolvedValue(savedBoard);
         const successToast = jest.spyOn(Toast, 'success');
         const {
@@ -96,7 +127,7 @@ describe('useBoardSave', () => {
             applySaveResult,
             onSavedBoard,
             onFileSaved,
-        } = renderBoardSave();
+        } = renderBoardSave(existingBoard);
 
         let didSave: boolean | undefined;
         await act(async () => {
@@ -104,6 +135,8 @@ describe('useBoardSave', () => {
         });
 
         expect(didSave).toBe(true);
+        expect(result.current.isSaveAsOpen).toBe(false);
+        expect(saveSpy).toHaveBeenCalledWith(existingBoard);
         expect(applySaveResult).toHaveBeenCalledWith(savedBoard);
         expect(onSavedBoard).toHaveBeenCalledWith(savedBoard, { overwritten: false });
         expect(onFileSaved).not.toHaveBeenCalled();

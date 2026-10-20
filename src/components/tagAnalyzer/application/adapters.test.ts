@@ -1,4 +1,4 @@
-import { createTagAnalyzerBoardFromPayload } from './adapters';
+import { createTagAnalyzerBoardFromDashboard, createTagAnalyzerBoardFromPayload } from './adapters';
 
 // The Data Viewer hand-off, stated as the payload it actually sends. The two branches that meet
 // here were developed apart — the Data Viewer learned a distance axis on one, the board learned a
@@ -39,7 +39,7 @@ describe('createTagAnalyzerBoardFromPayload — time base', () => {
         expect(board).toMatchObject({
             type: 'taz',
             name: 'Data Viewer.taz',
-            path: '/',
+            path: '',
             code: '',
             savedCode: false,
             boardTimeRange: { start: 'now-1h', end: 'now' },
@@ -96,6 +96,23 @@ describe('createTagAnalyzerBoardFromPayload — time base', () => {
         const board = expectOk(createTagAnalyzerBoardFromPayload({ tags: [buildTag(DATETIME_TYPE)] }));
 
         expect(board.boardTimeRange).toEqual({ start: 'now-1h', end: 'now' });
+    });
+});
+
+describe('createTagAnalyzerBoardFromDashboard', () => {
+    test('leaves a new board without a save destination while preserving its suggested name', () => {
+        const board = createTagAnalyzerBoardFromDashboard({
+            name: 'Selected Tags',
+            seriesList: [{
+                sourceTagName: 'CPU',
+                table: 'TAG_TEST',
+                sourceColumns: { name: 'NAME', time: 'TIME', value: 'VALUE', timeType: DATETIME_TYPE, timeBaseTime: true },
+            }],
+            timeRange: { start: 'now-1h', end: 'now' },
+        });
+
+        expect(board).toMatchObject({ path: '', name: 'Selected Tags.taz', savedCode: false });
+        expect(board.panels[0].query.tagSet[0].sourceTagName).toBe('CPU');
     });
 });
 
