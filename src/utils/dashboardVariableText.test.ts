@@ -5,6 +5,8 @@ import { VariableParser } from './DashboardQueryParser';
 import { VariableParser as PublicVariableParser } from '../public-dashboard/utils/DashboardQueryParser';
 import SCRIPT from './TqlGenerator/MAP/SCRIPT';
 import PUBLIC_SCRIPT from '../public-dashboard/utils/TqlGenerator/MAP/SCRIPT';
+import { TqlChartParser } from './DashboardTqlChartParser';
+import { TqlChartParser as PublicTqlChartParser } from '../public-dashboard/utils/DashboardTqlChartParser';
 
 const time = { interval: { IntervalType: 'min', IntervalValue: 10 }, start: 1700000000000, end: 1700003600000 };
 const variable = (key: string, value: string) => ({ id: key, label: key, key, type: 'SELECT', use: { id: 'u', type: 'CSV', value }, valueList: [{ id: 'u', type: 'CSV', value }] }) as any;
@@ -52,5 +54,22 @@ describe.each([
     test('a body with $& $\' $1 is kept as typed', () => {
         const body = JSON.stringify("SQL(\"SELECT '$&' , '$1', 'it$'s' FROM T\")");
         expect(script.RequestDoQuick(body)).toContain(body);
+    });
+});
+
+describe.each([
+    ['editor', TqlChartParser],
+    ['public', PublicTqlChartParser],
+])('%s TQL chart parameters (#1558)', (_, parse) => {
+    const interval = { IntervalType: 'min', IntervalValue: 10 };
+    const chart = (name: string) => ({ path: '/a.tql', params: [{ name, value: 'tag' }] });
+
+    test('an ordinary variable fills its parameter', () => {
+        expect(parse(chart('{{tag}}'), time, interval, [variable('{{tag}}', 'sine-a')])).toBe('/a.tql?tag=sine-a');
+    });
+
+    test('a value with $& and a name with ( are kept as typed', () => {
+        expect(parse(chart('{{tag}}'), time, interval, [variable('{{tag}}', 'a$&b')])).toBe('/a.tql?tag=a$&b');
+        expect(parse(chart('{{t(}}'), time, interval, [variable('{{t(}}', 'x')])).toBe('/a.tql?tag=x');
     });
 });
