@@ -23,7 +23,6 @@ import {
 } from './eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter } from './constants';
 import { ChartType } from '../type/eChart';
-import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
 import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
 
@@ -73,49 +72,8 @@ export const checkValueBracket = (value: string) => {
     }
 };
 
-export const setUnitTime = (aTime: any) => {
-    const sMomentValid = ['YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD HH', 'YYYY-MM-DD', 'YYYY-MM', 'YYYY'];
-
-    // Convert 'last' to 'now' for backward compatibility
-    if (typeof aTime === 'string' && aTime.toLowerCase().includes('last')) {
-        aTime = aTime.toLowerCase().replace('last', 'now');
-    }
-
-    if (aTime === 'now') return new Date().getTime();
-    else if (!isNaN(Number(aTime))) return Number(aTime);
-    else if (moment(aTime, sMomentValid, true).isValid()) return moment(aTime).unix() * 1000;
-    else {
-        let sAggrPlus = true;
-
-        if (aTime.includes('-')) sAggrPlus = false;
-
-        const sCalcTime = aTime.slice(0, -1).split(sAggrPlus ? '+' : '-')[1];
-
-        let sSecTime = -1;
-        switch (aTime.slice(-1)) {
-            case 's':
-                sSecTime = sCalcTime * 1000;
-                break;
-            case 'm':
-                sSecTime = sCalcTime * 1000 * 60;
-                break;
-            case 'h':
-                sSecTime = sCalcTime * 1000 * 3600;
-                break;
-            case 'd':
-                sSecTime = sCalcTime * 1000 * 24 * 3600;
-                break;
-            case 'M':
-                sSecTime = sCalcTime * 1000 * 24 * 3600 * 30;
-                break;
-            case 'y':
-                sSecTime = sCalcTime * 1000 * 24 * 3600 * 365;
-                break;
-        }
-
-        return new Date().getTime() - sSecTime;
-    }
-};
+// The editor's setUnitTime: an unset (null/'') or malformed time resolves to now instead of 0/NaN (#1558).
+export { setUnitTime } from '@/utils/dashboardUtil';
 
 export const tagTableValue = () => {
     return {
