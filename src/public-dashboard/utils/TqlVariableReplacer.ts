@@ -1,5 +1,6 @@
 import { VARIABLE_TYPE } from '../components/variable';
 import { VariableParser } from './DashboardQueryParser';
+import { literalReplacement } from '@/utils/dashboardVariableText';
 
 export interface BlockTimeType {
     interval: {
@@ -20,7 +21,7 @@ export const replaceVariablesInTql = (
     let processedTql = tqlString;
     
     parsedVariables.forEach(variable => {
-        processedTql = processedTql.replaceAll(variable.regEx, variable.value);
+        processedTql = processedTql.replaceAll(variable.regEx, literalReplacement(variable.value));
     });
     
     return processedTql;

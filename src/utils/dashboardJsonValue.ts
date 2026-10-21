@@ -181,28 +181,31 @@ const resolveJsonValueField = (aValue: string, aJsonKey?: string) => {
     return { column: sParsed?.column ?? aValue, path: normalizeJsonPath(aJsonKey || sParsed?.path || '') };
 };
 
-/** `aValue` is a raw column name (or a stored `column->$path` field); the column is quoted here. */
-export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
+/**
+ * `aValue` is a raw column name (or a stored `column->$path` field); the column is quoted here.
+ * `aColumns` is the block's `tableInfo`, which tells a column from a typed expression (see toSqlColumnName).
+ */
+export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string, aColumns?: any[]) => {
     const { column: sColumn, path: sPath } = resolveJsonValueField(aValue, aJsonKey);
-    if (!sColumn || !sPath) return toSqlColumnName(sColumn);
+    if (!sColumn || !sPath) return toSqlColumnName(sColumn, aColumns);
 
-    return `${toSqlColumnName(sColumn)}->${sqlString(jsonPathToSqlPath(sPath))}`;
+    return `${toSqlColumnName(sColumn, aColumns)}->${sqlString(jsonPathToSqlPath(sPath))}`;
 };
 
-export const toSqlValueExpression = (aValue: string, aJsonKey?: string) => jsonValueFieldToSql(aValue, aJsonKey);
+export const toSqlValueExpression = (aValue: string, aJsonKey?: string, aColumns?: any[]) => jsonValueFieldToSql(aValue, aJsonKey, aColumns);
 
-export const jsonValueFieldToNumericSql = (aValue: string, aJsonKey?: string) => {
+export const jsonValueFieldToNumericSql = (aValue: string, aJsonKey?: string, aColumns?: any[]) => {
     const { column: sColumn, path: sPath } = resolveJsonValueField(aValue, aJsonKey);
-    if (!sColumn || !sPath) return toSqlColumnName(sColumn);
-    return `TO_NUMBER_SAFE(${jsonValueFieldToSql(aValue, aJsonKey)})`;
+    if (!sColumn || !sPath) return toSqlColumnName(sColumn, aColumns);
+    return `TO_NUMBER_SAFE(${jsonValueFieldToSql(aValue, aJsonKey, aColumns)})`;
 };
 
 const JSON_NUMERIC_AGGREGATOR_LIST = ['sum', 'min', 'max', 'avg', 'sumsq', 'stddev', 'stddev_pop', 'stddev (pop)', 'variance', 'var_pop', 'variance (pop)'];
 
-export const toSqlValueExpressionForAggregator = (aValue: string, aAggregator: string, aJsonKey?: string) => {
+export const toSqlValueExpressionForAggregator = (aValue: string, aAggregator: string, aJsonKey?: string, aColumns?: any[]) => {
     const sAggregator = String(aAggregator ?? '').toLowerCase();
-    if (JSON_NUMERIC_AGGREGATOR_LIST.includes(sAggregator)) return jsonValueFieldToNumericSql(aValue, aJsonKey);
-    return toSqlValueExpression(aValue, aJsonKey);
+    if (JSON_NUMERIC_AGGREGATOR_LIST.includes(sAggregator)) return jsonValueFieldToNumericSql(aValue, aJsonKey, aColumns);
+    return toSqlValueExpression(aValue, aJsonKey, aColumns);
 };
 
 const parseSample = (aSample: any) => {

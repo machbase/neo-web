@@ -33,6 +33,7 @@ import { qualifyTableName } from '@/utils/qualifiedTableName';
 import { insertPanelAfterSource } from '@/utils/dashboardPanelLayout';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 import { tqlString } from '@/utils/queryText';
+import { literalReplacement } from '@/utils/dashboardVariableText';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -133,7 +134,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                         const sTargetVar = sParsedVar.find((parsedItem) => aTag.sourceTagName.match(parsedItem.regEx));
                         return {
                             ...aTag,
-                            sourceTagName: sTargetVar ? aTag.sourceTagName.replaceAll(sTargetVar.regEx, sTargetVar.value) : aTag.sourceTagName,
+                            sourceTagName: sTargetVar ? aTag.sourceTagName.replaceAll(sTargetVar.regEx, literalReplacement(sTargetVar.value)) : aTag.sourceTagName,
                         };
                     }
 

@@ -2,6 +2,7 @@ import { VARIABLE_TYPE } from '@/components/dashboard/variable';
 import moment from 'moment';
 import { VariableParser } from './DashboardQueryParser';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
+import { literalReplacement } from '@/utils/dashboardVariableText';
 
 export const TqlChartParser = (
     aTqlChartInfo: any,
@@ -59,7 +60,7 @@ export const TqlChartParser = (
             if (parsedParam.match(VARIABLE_REGEX)) {
                 const sortedVariables = parsedVariableList.sort((a, b) => b.key.length - a.key.length);
                 sortedVariables.map((parsedVariable) => {
-                    if (parsedParam.match(parsedVariable.regEx)) tmpParam = tmpParam.replaceAll(parsedVariable.regEx, parsedVariable.value);
+                    if (parsedParam.match(parsedVariable.regEx)) tmpParam = tmpParam.replaceAll(parsedVariable.regEx, literalReplacement(parsedVariable.value));
                 });
             }
             return tmpParam;
