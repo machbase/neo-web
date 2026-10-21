@@ -41,7 +41,7 @@ export function createTagAnalyzerBoardFromDashboard({
 
     return createTazBoardFromTimeRange({
         id: getId(),
-        path: '/',
+        path: '',
         name: `${name}.taz`,
         chartTitle: name,
         seriesList: sPanelSeriesList,
@@ -107,7 +107,7 @@ export const createTagAnalyzerBoardFromPayload = (aPayload: unknown): Exclude<Br
         board: {
             ...createTazBoardFromSeries({
                 id: getId(),
-                path: '/',
+                path: '',
                 name: `${title}.taz`,
                 chartTitle: title,
                 seriesList: tags,
