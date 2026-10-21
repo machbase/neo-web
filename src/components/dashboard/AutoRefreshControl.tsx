@@ -26,7 +26,7 @@ const abbreviate = (aValue: string): string => {
 const AUTO_REFRESH_OPTIONS: AutoRefreshOption[] = refreshTimeList.map((aItem) => ({
     value: aItem,
     short: abbreviate(aItem),
-    seconds: aItem === 'Off' ? null : calcRefreshTime(aItem) / 1000,
+    seconds: aItem === 'Off' ? null : (calcRefreshTime(aItem) ?? 0) / 1000,
 }));
 
 interface AutoRefreshControlProps {

@@ -261,16 +261,29 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             sAliasList = sAliasList.filter((alias: any) => alias?.useQuery);
             sParsedQuery = sParsedQuery.filter((item: any) => item?.useQuery);
 
-            const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
-            const sParsedChartCode = DashboardChartCodeParser(
-                pPanelInfo.chartOptions,
-                chartTypeConverter(pPanelInfo.type),
-                sParsedQuery,
-                pPanelInfo.version,
-                false,
-                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
-                pPanelInfo.yAxisOptions
-            );
+            // A chart option the parsers cannot turn into a chart (a value the option JSON or chart
+            // script cannot hold) ends this run with the reason on the panel. Thrown past here, it
+            // left the panel on "Loading..." for good and kept auto refresh from ever retrying (#1561).
+            let sParsedChartOption: any;
+            let sParsedChartCode: any;
+            try {
+                sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+                sParsedChartCode = DashboardChartCodeParser(
+                    pPanelInfo.chartOptions,
+                    chartTypeConverter(pPanelInfo.type),
+                    sParsedQuery,
+                    pPanelInfo.version,
+                    false,
+                    PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
+                    pPanelInfo.yAxisOptions
+                );
+            } catch (aError) {
+                setIsMessage(`Cannot apply the chart options: ${aError instanceof Error ? aError.message : String(aError)}`);
+                setIsError(true);
+                setIsChartData(false);
+                setIsLoading(false);
+                return;
+            }
 
             let sResult: any = undefined;
 

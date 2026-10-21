@@ -39,6 +39,8 @@ const DashboardView = () => {
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
+    // The file exists but is not a board that can be read — told apart from a missing one (#1561).
+    const [sUnreadable, setUnreadable] = useState<boolean>(false);
     const [sIsTimeRangeModal, setIsTimeRangeModal] = useState<boolean>(false);
     const sIsMobile = isMobile();
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
@@ -61,7 +63,13 @@ const DashboardView = () => {
             const response = await fetch(`/db/tql/${toDshPath(cleanFileName)}`);
             if (response.ok) {
                 const sResult = await response.text();
-                const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
+                let sParsedRes: any;
+                try {
+                    sParsedRes = CheckDataCompatibility(sResult, 'dsh');
+                } catch {
+                    setUnreadable(true);
+                    return;
+                }
                 await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
 
                 // Filter panels by video query parameter
@@ -221,18 +229,21 @@ const DashboardView = () => {
             aPrev ? { ...aPrev, dashboard: { ...aPrev.dashboard, timeRange: { ...aPrev.dashboard.timeRange, refresh: aRefresh } } } : aPrev
         );
     };
-    const setIntervalTime = (aTimeRange: any): number => {
+    const setIntervalTime = (aTimeRange: any): number | null => {
         return calcRefreshTime(aTimeRange.refresh);
     };
     const ctrBoardInterval = (aTimeRange: any) => {
         clearInterval(sBoardRef.current);
+        const sDelay = setIntervalTime(aTimeRange);
+        // No usable period ('' or an unreadable value) means no timer — a 0 ms interval re-queried nonstop (#1561).
+        if (sDelay === null) return;
         sBoardRef.current = setInterval(() => {
             // Restart the header's countdown ring on the tick itself. The animation otherwise runs
             // from whenever the control mounted, which has nothing to do with when this interval
             // was armed, so the ring empties at a moment the data does not arrive.
             setRingCycleId((aId) => aId + 1);
             handleDashboardTimeRange(aTimeRange.start, aTimeRange.end, undefined, true);
-        }, setIntervalTime(aTimeRange));
+        }, sDelay);
     };
     const handleSplitPaneSize = (varId: string = 'ALL') => {
         setSelectVariable(varId);
@@ -247,6 +258,9 @@ const DashboardView = () => {
         if (sBoardInformation && sBoardInformation.dashboard.timeRange && sBoardInformation.dashboard.timeRange.refresh !== 'Off')
             ctrBoardInterval(sBoardInformation.dashboard.timeRange);
         else sBoardRef && clearInterval(sBoardRef.current);
+        // Leaving the board has to stop its timer too. Without this every visit left one behind,
+        // still querying the server after the page was gone (#1561).
+        return () => clearInterval(sBoardRef.current);
     }, [sBoardInformation]);
 
     useEffect(() => {
@@ -341,9 +355,13 @@ const DashboardView = () => {
         aClose(false);
         Toast.error(`The dialog failed to open: ${aError?.message ?? aError}`);
     };
-    return sNotfound ? (
+    return sNotfound || sUnreadable ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'fixed', inset: '16px' }}>
-            <span data-testid="dashboard-not-found">404 not found file name</span>
+            {sUnreadable ? (
+                <span data-testid="dashboard-unreadable">Cannot read this dashboard file. The file may be damaged.</span>
+            ) : (
+                <span data-testid="dashboard-not-found">404 not found file name</span>
+            )}
         </div>
     ) : (
         <>

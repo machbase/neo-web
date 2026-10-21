@@ -1,5 +1,6 @@
 import { unitFormatter } from './Chart/formatters';
 import { compareVersions } from './version/utils';
+import { liquidFillRatioCode } from './chartOptionNumber';
 
 const ERR_COLOR = '#fa6464';
 const ERR_FONT_SIZE = '16';
@@ -220,7 +221,7 @@ const LiquidNameValueFunc = (aChartOptions: any, aVersion: string, aTime: { star
         \t\tconst unitFormatter = ${sFormatter.formatter};
         \t\t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)')}
         \t\tlet sValue = obj?.data?.rows?.[0]?.[0]?.value;
-        \t\t_chartOption.series[aIdx].data = sValue ? [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ] : 'No-data';
+        \t\t_chartOption.series[aIdx].data = sValue ? ${liquidFillRatioCode('sValue', aChartOptions.minData, aChartOptions.maxData)} : 'No-data';
         \t\t_chartOption.series[aIdx].label.formatter = function() {
         \t\t\tif (isNaN(Number.parseFloat(sValue))) return 'No-data';
         \t\t\telse return unitFormatter(sValue)

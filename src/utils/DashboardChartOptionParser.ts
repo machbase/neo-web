@@ -9,6 +9,7 @@ import { unitFormatter } from './Chart/formatters';
 import { compareVersions } from './version/utils';
 import { isNumericBaseTimeBlock } from './timeFieldColumns';
 import { literalReplacement } from '@/utils/dashboardVariableText';
+import { chartOptionNumber } from '@/utils/chartOptionNumber';
 
 // With no position given, v6 lays the slider out 8px higher than v5 did, onto the x-axis labels of a
 // grid whose bottom is fixed at 50. `bottom: 14` is where v5 put it; both versions render it there.
@@ -278,6 +279,8 @@ const ReplaceTypeOpt = (
             sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt] ? `{"opacity": ${aChartOption['fillOpacity']}}` : 'null');
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
         else if (aOpt === 'isSampling' && !aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "sampling": "lttb"`;
+        else if (aChartType === E_CHART_TYPE.GAUGE && (aOpt === 'min' || aOpt === 'max'))
+            sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, String(chartOptionNumber(aChartOption[aOpt], (getDefaultSeriesOption(aChartType) as any)[aOpt])));
         else if (aOpt === 'symbol')
             sChartSeriesStructure = sChartSeriesStructure.replaceAll(
                 `$${aOpt}$`,
