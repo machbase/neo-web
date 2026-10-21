@@ -4,7 +4,7 @@ import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import moment from 'moment';
 import { Toast } from '@/design-system/components';
-import { refreshTimeOptions } from '@/utils/dashboardUtil';
+import { isTimeRangeOutOfOrder, refreshTimeOptions } from '@/utils/dashboardUtil';
 import { TIME_RANGE } from '@/utils/constants';
 import { DatePicker, Dropdown, Modal, Page, QuickTimeRange, type QuickTimeRangeOption } from '@/design-system/components';
 
@@ -123,6 +123,11 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                 Toast.error('Please check the entered time.');
                 return;
             }
+        }
+
+        if (isTimeRangeOutOfOrder(sStart, sEnd)) {
+            Toast.error('The start time must be earlier than the end time.');
+            return;
         }
 
         if (pUseRecoil) {

@@ -321,6 +321,13 @@ describe.each([
 
         expect(sResult.dashboard.panels[0].timeRange).toEqual({ start: '', end: '', refresh: 'Off' });
     });
+
+    // #1561: without a panel list the board read `panels.length` on open and the tab stayed blank.
+    it('fills a missing panel list with an empty one', () => {
+        const sResult: any = aCheck(JSON.stringify({ dashboard: {} }), 'dsh');
+
+        expect(sResult.dashboard.panels).toEqual([]);
+    });
 });
 
 // #1547: a panel the loader cannot repair stays exactly as saved and does not take the board with it.

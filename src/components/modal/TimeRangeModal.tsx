@@ -5,7 +5,7 @@ import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import moment from 'moment';
 import { Toast } from '@/design-system/components';
-import { refreshTimeOptions } from '@/utils/dashboardUtil';
+import { isTimeRangeOutOfOrder, refreshTimeOptions } from '@/utils/dashboardUtil';
 import { TIME_RANGE } from '@/utils/constants';
 import { DatePicker, Dropdown, Modal, Page, QuickTimeRange, type QuickTimeRangeOption } from '@/design-system/components';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
@@ -223,6 +223,12 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                 Toast.error(sDistNotice, { testId: 'time-range-error-toast' });
                 return;
             }
+            // Two equal coordinates are a zero-width window, which the board reads as "no range" and so
+            // dropped the range it had (#1561).
+            if (typeof sDistFrom === 'number' && sDistFrom === sDistTo) {
+                Toast.error('The start and end of the range must be different.', { testId: 'time-range-error-toast' });
+                return;
+            }
             // Only two coordinates can be put in order; an anchored pair is already ordered by what
             // it means (`first…` opens, `last…` closes) and reordering it would rewrite the anchors.
             const sBothNumeric = typeof sDistFrom === 'number' && typeof sDistTo === 'number';
@@ -262,6 +268,11 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                 Toast.error('Please check the entered time.', { testId: 'time-range-error-toast' });
                 return;
             }
+        }
+
+        if (isTimeRangeOutOfOrder(sStart, sEnd)) {
+            Toast.error('The start time must be earlier than the end time.', { testId: 'time-range-error-toast' });
+            return;
         }
 
         if (pUseRecoil) {

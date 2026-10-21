@@ -1,6 +1,16 @@
 // Scale Formatter
 // Handles formatting based on different scales (SI, IEC, dateTime, duration)
 
+/**
+ * A unit suffix as JavaScript source for the formatter strings below. A plain suffix stays a
+ * single-quoted literal, unchanged. One holding a quote, backslash or line break — a legacy free-text
+ * unit such as "it's" — ended the literal early and the whole panel failed to draw (#1561); it is
+ * spelled out as character codes instead, which survives both the raw chart script and the option
+ * JSON these strings are embedded in (neither a quote nor a backslash appears in it).
+ */
+const suffixSource = (aSuffix: string): string =>
+    /['\\\r\n\u2028\u2029]/.test(aSuffix) ? `String.fromCharCode(${aSuffix.split('').map((aChar) => aChar.charCodeAt(0)).join(', ')})` : `'${aSuffix}'`;
+
 // Base units and scale factors for different scale types
 const SCALE_CONFIG = {
     short: {
@@ -32,7 +42,7 @@ export const generateScaleFormatterFunction = (scaleType: 'SI' | 'IEC' | 'short'
         `if (!+params) return '0';` +
         `const scaleFactor = ${config.scaleFactor};` +
         `const baseUnits = ${config.baseUnits};` +
-        `const suffix = '${suffix}';` +
+        `const suffix = ${suffixSource(suffix)};` +
         `const decimals = ${decimals};` +
         `const sign = Math.sign(params) === -1 ? '-' : '';` +
         `const absValue = Math.abs(params);` +
@@ -70,7 +80,7 @@ export const generateTimeFormatterFunction = (sourceScale: number = 1, suffix: s
         `function (params) {` +
         `if (!+params) return '0 ';` +
         `const sourceScale = ${sourceScale};` +
-        `const suffix = '${suffix}';` +
+        `const suffix = ${suffixSource(suffix)};` +
         `const decimals = ${decimals};` +
         `const seconds = params * sourceScale;` +
         `const absSeconds = Math.abs(seconds);` +
@@ -301,5 +311,5 @@ export const generateDurationFormatterFunction = (formatType: string = 'duration
 };
 
 export const generateStringFormatterFunction = (sourceScale: number = 1, suffix: string, decimals?: number): string => {
-    return `function (params) { return (params / ${sourceScale})${decimals !== undefined && decimals >= 0 ? `.toFixed(${decimals})` : ''} + ' ${suffix ?? ''}'}`;
+    return `function (params) { return (params / ${sourceScale})${decimals !== undefined && decimals >= 0 ? `.toFixed(${decimals})` : ''} + ${suffixSource(' ' + (suffix ?? ''))}}`;
 };

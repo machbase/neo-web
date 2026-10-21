@@ -156,6 +156,18 @@ export const setUnitTime = (aTime: any) => {
     }
 };
 
+/**
+ * Whether a time range ends at or before it starts. Only edges that mean the same instant to everyone
+ * are compared — epoch ms, or 'now' with an optional offset (now-1h). 'last…' depends on the data and
+ * '' on whatever fills it, so a pair with either is left alone. A reversed range was applied as typed
+ * and every panel then reported "No data available" for data that was there (#1561).
+ */
+export const isTimeRangeOutOfOrder = (aStart: unknown, aEnd: unknown): boolean => {
+    const sIsComparable = (aEdge: unknown) => (typeof aEdge === 'number' && Number.isFinite(aEdge)) || (typeof aEdge === 'string' && /^now([+-]\d+(\.\d+)?[smhdMy])?$/.test(aEdge));
+    if (!sIsComparable(aStart) || !sIsComparable(aEnd)) return false;
+    return setUnitTime(aStart) >= setUnitTime(aEnd);
+};
+
 export const tagTableValue = () => {
     return {
         id: getId(),
@@ -414,12 +426,22 @@ export const createMapValueForPie = () => {
     return 'MAPVALUE(0, list(value(1), value(2)))\n';
 };
 
-export const calcRefreshTime = (aTime: string) => {
-    const sTime = aTime.split(' ')[0];
-    const sType = aTime.split(' ')[1];
-    if (sType === 'seconds') return Number(sTime) * 1000;
-    else if (sType === 'minute' || sType === 'minutes') return Number(sTime) * 1000 * 60;
-    else return Number(sTime) * 1000 * 60 * 60;
+/** Shortest refresh period a board or panel timer runs at. */
+const MIN_REFRESH_MS = 1000;
+/**
+ * The refresh period in ms for a stored `timeRange.refresh`, or null when the value gives no usable
+ * period. An empty or unreadable value used to come out as 0 or NaN — a timer that re-queried as soon
+ * as the last query returned, hundreds of times a second, while the ring showed Off (#1561). Values
+ * that give a real period of at least a second keep working whether or not they are on the menu.
+ */
+export const calcRefreshTime = (aTime: string): number | null => {
+    const sTime = String(aTime ?? '').split(' ')[0];
+    const sType = String(aTime ?? '').split(' ')[1];
+    let sMs: number;
+    if (sType === 'seconds') sMs = Number(sTime) * 1000;
+    else if (sType === 'minute' || sType === 'minutes') sMs = Number(sTime) * 1000 * 60;
+    else sMs = Number(sTime) * 1000 * 60 * 60;
+    return Number.isFinite(sMs) && sMs >= MIN_REFRESH_MS ? sMs : null;
 };
 
 // Distance (numeric base) interval: a "nice" step (1/2/5 × 10ⁿ) sized so the bucket count tracks the

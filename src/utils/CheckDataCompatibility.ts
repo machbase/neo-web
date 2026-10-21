@@ -201,6 +201,15 @@ const DashboardCompatibility = (aData: any) => {
         };
     }
 
+    // Backfill the panel list. A board saved without one opened as a blank tab, toolbar and all,
+    // because the board reads `dashboard.panels.length` on open (#1561). Same value a new dashboard gets.
+    if (sDashboardInfo?.dashboard?.panels == null) {
+        sDashboardInfo.dashboard = {
+            ...sDashboardInfo.dashboard,
+            panels: [],
+        };
+    }
+
     // Backfill distance (numeric base) range for pre-distance dashboards. '' = full [first, last].
     if (!sDashboardInfo?.dashboard?.distanceRange) {
         sDashboardInfo.dashboard = {

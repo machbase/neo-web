@@ -4,13 +4,19 @@ import { E_UNIT_OUT_FORMAT, UnitItem } from '../AxisConstants';
 import { generateDurationFormatterFunction, generateScaleFormatterFunction, generateStringFormatterFunction, generateTimeFormatterFunction } from './scaleFormatter';
 import { generateTooltipAxisFunction, generateTooltipItemFunction } from './tooltipFormatter';
 
+/** The most digits Number.prototype.toFixed() accepts. */
+const TO_FIXED_MAX_DIGITS = 100;
+
 // Central export point for all formatter utilities
 // export { generateScaleFormatterFunction, generateTimeFormatterFunction, generateDurationFormatterFunction, generateStringFormatterFunction } from './scaleFormatter';
 
 export const unitFormatter = (aUnit: UnitItem, aDecimals: any, aType: 'TICK' | 'TOOLTIP' = 'TICK', opt?: any) => {
     let sFormatter: any = { formatter: '' };
     const sIsNumber = Number.isFinite(parseInt(aDecimals));
-    const decimalsValue = sIsNumber ? aDecimals : undefined;
+    // toFixed() throws past 100 digits, and the generated formatter calls it on every label and tooltip,
+    // so a saved Decimals of 101 left the panel without either (#1561). Larger values are capped there;
+    // anything else reaches the formatter as before.
+    const decimalsValue = sIsNumber ? (Number(aDecimals) > TO_FIXED_MAX_DIGITS ? TO_FIXED_MAX_DIGITS : aDecimals) : undefined;
 
     switch (aUnit?.outFormat) {
         case E_UNIT_OUT_FORMAT.SI:

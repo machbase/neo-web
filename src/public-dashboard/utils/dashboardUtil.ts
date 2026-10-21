@@ -440,13 +440,7 @@ export const createMapValueForPie = () => {
     return 'MAPVALUE(0, list(value(1), value(2)))\n';
 };
 
-export const calcRefreshTime = (aTime: string) => {
-    const sTime = aTime.split(' ')[0];
-    const sType = aTime.split(' ')[1];
-    if (sType === 'seconds') return Number(sTime) * 1000;
-    else if (sType === 'minute' || sType === 'minutes') return Number(sTime) * 1000 * 60;
-    else return Number(sTime) * 1000 * 60 * 60;
-};
+export { calcRefreshTime } from '@/utils/dashboardUtil';
 
 // Distance (numeric base) interval: a "nice" step (1/2/5 × 10ⁿ) sized so the bucket count tracks the
 // pixel width the same way the time axis does (~one bucket per 3px, i.e. width/3), rather than being
