@@ -78,7 +78,15 @@ export default function PanelEditor({
         time: sTimeDraft,
     } = sEditorDraft;
     const sEditorConfig = useMemo<PanelInfo>(
-        () => ({ ...pPanelInfo, ...sEditorDraft }),
+        () => {
+            const sSeriesKeys = new Set(sEditorDraft.query.tagSet.map((series) => series.key));
+            return {
+                ...pPanelInfo,
+                ...sEditorDraft,
+                // Both series editors use the draft; keep the original annotations until Apply.
+                annotations: pPanelInfo.annotations.filter((annotation) => sSeriesKeys.has(annotation.seriesKey)),
+            };
+        },
         [pPanelInfo, sEditorDraft],
     );
     const sEditorConfigKey = useMemo(
