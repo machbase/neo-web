@@ -11,6 +11,7 @@ import type { ComponentProps } from 'react';
 import { usePanelRangeRuntime } from '../rangeControl/rangeRuntime';
 import { seriesDataApi } from '../../api/seriesDataApi';
 import { createPanelRangeConfig } from '../panelRangeConfig';
+import { tableMetadataApi } from '../../api/tableMetadataApi';
 
 const TIME_SERIES: PanelSeriesDefinition = {
     key: 'time-series',
@@ -880,5 +881,113 @@ describe('PanelEditor data tab', () => {
             apply.mock.calls[0][0].query.tagSet.map((series) => [series.key, series.color]),
         );
         expect(colors).toEqual({ [TIME_SERIES.key]: '#f44e3b', [second.key]: '#009ce0' });
+    });
+});
+
+describe('PanelEditor annotations after series removal', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    function createAnnotatedPanel(): PanelInfo {
+        const panel = createNewPanelInfo([
+            TIME_SERIES,
+            {
+                ...TIME_SERIES,
+                key: 'second-series',
+                calculationMode: PanelSeriesCalculationMode.Sum,
+                color: '#009ce0',
+                useSecondaryAxis: true,
+            },
+        ], 'Annotated panel', 'Line');
+        panel.axes.rightY.enabled = true;
+        panel.axes.rightY.valueRange = { min: -10, max: 100 };
+        panel.display.stroke = 3;
+        panel.time = {
+            ...panel.time,
+            useLastViewedRange: true,
+            lastViewedRange: LAST_VIEWED_RANGE,
+        };
+        panel.annotations = ['time-series', 'second-series', 'time-series', 'second-series'].map((seriesKey, index) => ({
+            seriesKey,
+            text: `Note ${index}`,
+            timeRange: { start: index + 1, end: index + 1 },
+            fillColor: index % 2 ? '#fff4b8' : '#ff0000',
+            textColor: '#161616',
+            clip: index % 2 === 0,
+        }));
+        panel.highlights = [{
+            text: 'Keep highlight', timeRange: { start: 2, end: 5 },
+            fillColor: '#fdb532', textColor: '#161616',
+        }];
+        return panel;
+    }
+
+    it.each(['Data row', 'Edit Series dialog'])(
+        'removes only annotations for the deleted series through %s',
+        async (route) => {
+            const panel = createAnnotatedPanel();
+            const original = JSON.stringify(panel);
+            const apply = jest.fn<void, [PanelInfo]>();
+            const view = renderEditor(panel, apply);
+            fireEvent.click(screen.getByTestId('editor-tab-data'));
+
+            if (route === 'Data row') {
+                fireEvent.click(within(screen.getByTestId('series-time-series')).getByTestId('remove'));
+            } else {
+                const fetchNames = jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([]);
+                fireEvent.click(screen.getByTestId('add-series'));
+                await waitFor(() => expect(fetchNames).toHaveBeenCalled());
+                fireEvent.click(screen.getByTestId('selected-series-time-series'));
+                fireEvent.click(within(screen.getByTestId('editor-series-dialog')).getByTestId('apply'));
+            }
+
+            fireEvent.click(screen.getByTestId('editor-apply'));
+
+            expect(apply).toHaveBeenCalledTimes(1);
+            expect(apply.mock.calls[0][0]).toEqual({
+                ...panel,
+                query: { ...panel.query, tagSet: [panel.query.tagSet[1]] },
+                annotations: [panel.annotations[1], panel.annotations[3]],
+            });
+            expect(JSON.stringify(panel)).toBe(original);
+            view.rerender(createEditor(apply.mock.calls[0][0], apply));
+            expect(screen.getByTestId('editor-apply')).toBeDisabled();
+        },
+    );
+
+    it('preserves all annotations when series settings change without removing a series', () => {
+        const panel = createAnnotatedPanel();
+        const apply = jest.fn<void, [PanelInfo]>();
+        renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-data'));
+        fireEvent.change(within(screen.getByTestId('series-time-series')).getByTestId('alias'), {
+            target: { value: 'Renamed series' },
+        });
+        fireEvent.click(screen.getByTestId('editor-apply'));
+
+        expect(apply).toHaveBeenCalledWith({
+            ...panel,
+            query: {
+                ...panel.query,
+                tagSet: [{ ...panel.query.tagSet[0], alias: 'Renamed series' }, panel.query.tagSet[1]],
+            },
+        });
+    });
+
+    it('keeps the series and its annotations when a deletion in Edit Series is cancelled', async () => {
+        const fetchNames = jest.spyOn(tableMetadataApi, 'fetchTableNames').mockResolvedValue([]);
+        const panel = createAnnotatedPanel();
+        const apply = jest.fn<void, [PanelInfo]>();
+        renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-data'));
+        fireEvent.click(screen.getByTestId('add-series'));
+        await waitFor(() => expect(fetchNames).toHaveBeenCalled());
+        fireEvent.click(screen.getByTestId('selected-series-time-series'));
+        fireEvent.click(within(screen.getByTestId('editor-series-dialog')).getByTestId('cancel'));
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+
+        fireEvent.click(screen.getByTestId('editor-tab-general'));
+        changeTitle('Changed title');
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply).toHaveBeenCalledWith({ ...panel, title: 'Changed title' });
     });
 });
