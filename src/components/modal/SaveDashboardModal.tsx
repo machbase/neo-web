@@ -350,7 +350,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
     const HandleOutput = (aValue: 'CHART' | 'DATA(JSON)' | 'DATA(CSV)') => {
         if (aValue === 'CHART') setSelectedBlock({ idx: 0, name: '', value: '' });
-        else setSelectedBlock(sBlockList[0] ? { idx: 0, name: sBlockList[0].namne, value: sBlockList[0].namne } : '');
+        else setSelectedBlock(sBlockList[0] ? { idx: 0, name: sBlockList[0].name, value: '0' } : '');
         setOutput(aValue);
     };
 
@@ -367,7 +367,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
 
     return (
         <>
-            <Modal.Root isOpen={true} onClose={handleClose} size="md" style={{ height: '55vh' }}>
+            <Modal.Root isOpen={true} onClose={handleClose} size="md" style={{ height: '55vh' }} data-testid="dashboard-save-tql-modal">
                 <Modal.Header>
                     <Modal.Title>
                         <Save />
@@ -485,7 +485,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                 <Modal.Footer style={{ flexDirection: 'column', gap: '16px' }}>
                     <div className="save-dashboard-modal__options">
                         <div className="save-dashboard-modal__option-group">
-                            <Input label="File Name" labelPosition="top" value={sSaveFileName} onChange={changeSaveFileName} autoFocus />
+                            <Input label="File Name" labelPosition="top" value={sSaveFileName} onChange={changeSaveFileName} autoFocus data-testid="file-name" />
                         </div>
                         <div className="save-dashboard-modal__option-group">
                             <Dropdown.Root
@@ -500,8 +500,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                                 fullWidth
                                 onChange={(value) => HandleOutput(value as 'CHART' | 'DATA(JSON)' | 'DATA(CSV)')}
                             >
-                                <Dropdown.Trigger />
-                                <Dropdown.Menu>
+                                <Dropdown.Trigger data-testid="output" />
+                                <Dropdown.Menu data-testid="dashboard-save-tql-output-menu">
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
@@ -509,13 +509,14 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                         <div className="save-dashboard-modal__option-group" style={sOutput === 'CHART' ? { opacity: 0.5, pointerEvents: 'none' } : {}}>
                             <Dropdown.Root
                                 label="Block"
-                                options={sBlockList.map((aAlias: any) => ({ label: aAlias.name, value: aAlias.name }))}
+                                // Keyed by position: the saved query is the parsed block at this index, and two series can share a name.
+                                options={sBlockList.map((aAlias: any, aIdx: number) => ({ label: aAlias.name, value: String(aIdx) }))}
                                 value={sSelectedBlock.value}
                                 fullWidth
-                                onChange={(value) => setSelectedBlock({ ...sSelectedBlock, value })}
+                                onChange={(value) => setSelectedBlock({ idx: Number(value), name: sBlockList[Number(value)]?.name ?? '', value })}
                             >
-                                <Dropdown.Trigger />
-                                <Dropdown.Menu>
+                                <Dropdown.Trigger data-testid="block" />
+                                <Dropdown.Menu data-testid="dashboard-save-tql-block-menu">
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
@@ -523,6 +524,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                     </div>
                     <Button.Group style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
                         <Modal.Confirm
+                            data-testid="ok"
                             disabled={!sIsValidSaveName}
                             onClick={sIsValidSaveName ? saveFile : () => null}
                         >

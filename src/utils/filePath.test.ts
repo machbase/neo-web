@@ -1,4 +1,4 @@
-import { buildFilesUrl, encodeFilePath } from './filePath';
+import { buildFilesUrl, encodeFilePath, toTqlFileUrlPath } from './filePath';
 
 describe('buildFilesUrl', () => {
     it('appends the query unencoded', () => {
@@ -50,5 +50,19 @@ describe('encodeFilePath', () => {
     });
     it('encodes korean', () => {
         expect(encodeFilePath('/한글/')).toBe('/' + encodeURIComponent('한글') + '/');
+    });
+});
+
+// #1565: the TQL and HTML editors' Copy link / Run code joined the name as is.
+describe('toTqlFileUrlPath', () => {
+    it('keeps a # or ? in a file name inside the path', () => {
+        expect(toTqlFileUrlPath('/TEST/r#1.tql')).toBe('/db/tql/TEST/r%231.tql');
+        expect(toTqlFileUrlPath('/TEST/q?x.html')).toBe('/db/tql/TEST/q%3Fx.html');
+    });
+    it('leaves a plain path as it was', () => {
+        expect(toTqlFileUrlPath('/TEST/CHART/plain.tql')).toBe('/db/tql/TEST/CHART/plain.tql');
+    });
+    it('reads back as the same path once decoded', () => {
+        expect(decodeURIComponent(toTqlFileUrlPath('/sub dir/한글 a.html'))).toBe('/db/tql/sub dir/한글 a.html');
     });
 });

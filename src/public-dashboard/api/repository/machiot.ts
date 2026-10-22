@@ -52,10 +52,13 @@ const getTqlChart = async (aData: string, _aType?: 'dsh') => {
                 headers: Object.fromEntries(response.headers.entries()),
             };
         } else {
+            // The server says why it refused the query in the body ({ success:false, reason }); keep it
+            // for the panel instead of a status text that never reached the screen (#1565).
             return {
-                data: `Request failed: ${response.statusText}`,
+                data: await response.text(),
                 success: false,
                 status: response.status,
+                statusText: response.statusText,
                 headers: Object.fromEntries(response.headers.entries()),
             };
         }

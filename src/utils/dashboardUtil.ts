@@ -163,11 +163,12 @@ export const setUnitTime = (aTime: any) => {
  * and every panel then reported "No data available" for data that was there (#1561).
  * 'now+N' is left alone too: setUnitTime reads it as now-N, so a range ending at now+1h was refused as
  * reversed although it was applied before the check existed (#1563).
+ * `allowEqual` accepts a range whose two edges are the same instant, as the Data Viewer always has (#1565).
  */
-export const isTimeRangeOutOfOrder = (aStart: unknown, aEnd: unknown): boolean => {
+export const isTimeRangeOutOfOrder = (aStart: unknown, aEnd: unknown, { allowEqual = false }: { allowEqual?: boolean } = {}): boolean => {
     const sIsComparable = (aEdge: unknown) => (typeof aEdge === 'number' && Number.isFinite(aEdge)) || (typeof aEdge === 'string' && /^now(-\d+(\.\d+)?[smhdMy])?$/.test(aEdge));
     if (!sIsComparable(aStart) || !sIsComparable(aEnd)) return false;
-    return setUnitTime(aStart) >= setUnitTime(aEnd);
+    return allowEqual ? setUnitTime(aStart) > setUnitTime(aEnd) : setUnitTime(aStart) >= setUnitTime(aEnd);
 };
 
 export const tagTableValue = () => {

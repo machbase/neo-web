@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import { getFileRequestFailure } from './fileRequestResult';
+import { getChartRequestFailureReason, getFileRequestFailure } from './fileRequestResult';
 
 describe('getFileRequestFailure', () => {
     it('success body → null', () => {
@@ -41,5 +41,28 @@ describe('getFileRequestFailure — ArrayBuffer error body (r20 L5)', () => {
         const sBytes = new TextEncoder().encode('oops');
         const sRes = { status: 502, statusText: 'Bad Gateway', headers: {}, data: sBytes.buffer.slice(0, sBytes.byteLength) };
         expect(getFileRequestFailure(sRes)).toEqual({ reason: 'Bad Gateway', transport: false });
+    });
+});
+
+describe('getChartRequestFailureReason (#1565)', () => {
+    it('a drawn chart is not a failure', () => {
+        expect(getChartRequestFailureReason({ status: 200, statusText: 'OK', headers: {}, data: { chartID: 'c' } })).toBeNull();
+        // the public board's own fetch wrapper
+        expect(getChartRequestFailureReason({ status: 200, headers: {}, success: true, data: { chartID: 'c' } })).toBeNull();
+    });
+    it('keeps the reason of a refused query in a 200 body', () => {
+        expect(getChartRequestFailureReason({ status: 200, headers: {}, data: { success: false, reason: 'no such table' } })).toBe('no such table');
+    });
+    it('reads the reason of an HTTP error the editor receives as text', () => {
+        expect(getChartRequestFailureReason({ status: 500, statusText: 'Internal Server Error', headers: {}, data: '{"success":false,"reason":"busy"}' })).toBe('busy');
+    });
+    it('reads the reason of an HTTP error on the public board', () => {
+        expect(getChartRequestFailureReason({ success: false, status: 500, statusText: 'Internal Server Error', headers: {}, data: '{"success":false,"reason":"busy"}' })).toBe('busy');
+        expect(getChartRequestFailureReason({ success: false, status: 502, statusText: 'Bad Gateway', headers: {}, data: '<html>' })).toBe('Bad Gateway');
+    });
+    it('reports a request that never reached the server', () => {
+        expect(getChartRequestFailureReason(new AxiosError('Network Error', 'ERR_NETWORK'))).toBe('Network Error');
+        expect(getChartRequestFailureReason({ success: false, data: { reason: 'Network error: TypeError: Failed to fetch' } })).toBe('Network error: TypeError: Failed to fetch');
+        expect(getChartRequestFailureReason(undefined)).toBe('Failed to load the chart.');
     });
 });

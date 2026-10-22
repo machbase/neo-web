@@ -18,6 +18,11 @@ interface TimeRangeModalPropsBase {
     pShowRefresh?: boolean;
     /** Allow pre-1970 absolute timestamps. Off by default to preserve existing callers. */
     pAllowNegativeTime?: boolean;
+    /**
+     * Accept a range whose start and end are the same point. The Data Viewer reads that point; a
+     * dashboard board reads a zero-width range as no range, so it stays refused there (#1561, #1565).
+     */
+    pAllowPointRange?: boolean;
     /** Which tab to open initially (dashboard mode with a distance panel). */
     pInitialTab?: 'time' | 'distance';
     /** Lock the modal to a single axis tab (panel editor: one panel = one base). Hides the tab bar. */
@@ -62,7 +67,7 @@ interface TimeRangeModalPropsRecoil extends TimeRangeModalPropsBase {
 type TimeRangeModalProps = TimeRangeModalPropsExternal | TimeRangeModalPropsRecoil;
 
 const TimeRangeModal = (props: TimeRangeModalProps) => {
-    const { pSetTimeRangeModal, pSaveCallback, pShowRefresh = false, pUseRecoil = false, pAllowNegativeTime = false } = props;
+    const { pSetTimeRangeModal, pSaveCallback, pShowRefresh = false, pUseRecoil = false, pAllowNegativeTime = false, pAllowPointRange = false } = props;
 
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -225,7 +230,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             }
             // Two equal coordinates are a zero-width window, which the board reads as "no range" and so
             // dropped the range it had (#1561).
-            if (typeof sDistFrom === 'number' && sDistFrom === sDistTo) {
+            if (!pAllowPointRange && typeof sDistFrom === 'number' && sDistFrom === sDistTo) {
                 Toast.error('The start and end of the range must be different.', { testId: 'time-range-error-toast' });
                 return;
             }
@@ -270,7 +275,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
             }
         }
 
-        if (isTimeRangeOutOfOrder(sStart, sEnd)) {
+        if (isTimeRangeOutOfOrder(sStart, sEnd, { allowEqual: pAllowPointRange })) {
             Toast.error('The start time must be earlier than the end time.', { testId: 'time-range-error-toast' });
             return;
         }

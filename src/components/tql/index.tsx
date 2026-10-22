@@ -32,6 +32,7 @@ import { ShowVisualization } from './ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { gWsLog } from '@/recoil/websocket';
 import { useAbortController } from '@/hooks/useAbortController';
+import { toTqlFileUrlPath } from '@/utils/filePath';
 interface TqlProps {
     pIsActiveTab: boolean;
     pCode: string;
@@ -185,7 +186,7 @@ const Tql = (props: TqlProps) => {
 
     const handleCopyLink = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === sSelectedTab);
-        const sTargetPath = `${window.location.origin + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name}`;
+        const sTargetPath = window.location.origin + toTqlFileUrlPath(sTargetBoard!.path + sTargetBoard!.name);
         ClipboardCopy(sTargetPath);
     };
 
@@ -231,6 +232,7 @@ const Tql = (props: TqlProps) => {
                                     isToolTip
                                     toolTipContent="Copy link"
                                     onClick={handleCopyLink}
+                                    data-testid="tql-copy-link"
                                     aria-label="Copy link"
                                 />
                             )}
