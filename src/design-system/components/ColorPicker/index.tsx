@@ -150,6 +150,7 @@ export const ColorPicker = ({ color, onChange, disabled = false, tooltipContent 
                     />
                 }
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label={tooltipContent}
                 isToolTip
                 toolTipContent={tooltipContent}
             />

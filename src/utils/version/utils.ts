@@ -1,5 +1,6 @@
 import { coerce as semverCoerce, compare as semverCompare, valid as semverValid } from 'semver';
 import { E_VERSIONED_EXTENSION, NEWEST_VERSION, VERSION_PATTERN, VersionChangeReason, VERSIONED_EXTENSION_TYPE } from './constants';
+import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 
 // NOTE: We intentionally import from the 'semver' main namespace (not 'semver/functions/compare')
 // because the repo currently resolves a transitive semver@6.3.1 at runtime, which does not expose
@@ -97,7 +98,45 @@ export function migrateToNewest(extension: VERSIONED_EXTENSION_TYPE, fromVersion
     return migratedPanel;
 }
 
+/**
+ * A free-text unit from before 1.0.1 as the unit object later versions read. A unit of the current
+ * list with the same suffix and scale is used as is (the editor can then show it); anything else keeps
+ * its text and scale as a plain suffix unit.
+ */
+function legacyUnit(aSuffix: unknown, aScale = 1): any {
+    const sSuffix = typeof aSuffix === 'string' ? aSuffix : '';
+    // Nothing to carry: an empty unit stays as it was saved.
+    if (!sSuffix && aScale === 1) return aSuffix;
+    const sListed = UNITS.flatMap((aGroup) => aGroup.items ?? []).find((aItem) => aItem.suffix === sSuffix && aItem.sourceScale === aScale && (aItem.outFormat === 'percent' || aItem.outFormat === 'temperature'));
+    return sListed ?? { suffix: sSuffix, sourceScale: aScale };
+}
+
+/** An axis `label` from before 1.0.1 ({ name, unit, squared, … }) as a unit object. */
+function legacyAxisUnit(aLabel: any): any {
+    if (aLabel?.name === 'byte') return findUnitById(String(aLabel?.key ?? '').includes('IEC') ? 'bytes_IEC' : 'bytes_SI');
+    return legacyUnit(aLabel?.unit, Math.pow(10, Number(aLabel?.squared) || 0));
+}
+
+/**
+ * Panels before 1.0.1 kept units as free text — axis `label.unit` (with a power-of-ten `squared`), the
+ * tooltip unit and the Gauge / Liquid fill / Text unit — and Gauge decimals in `gaugeValueLimit`. The
+ * editor stamps the current version on every Apply and Save, and from then on those are read from the
+ * unit objects instead, so a legacy panel saved without a single change lost its units (#1563). They
+ * are carried over here; a unit already chosen in the editor is kept.
+ */
 function dshMig(panel: any) {
+    const sMigrateAxes = (aAxes: any) =>
+        Array.isArray(aAxes)
+            ? aAxes.map((aAxis: any) => {
+                  const sUnit = aAxis && !aAxis.unit && aAxis.label ? legacyAxisUnit(aAxis.label) : undefined;
+                  return sUnit && typeof sUnit === 'object' ? { ...aAxis, unit: sUnit } : aAxis;
+              })
+            : aAxes;
+    panel.yAxisOptions = sMigrateAxes(panel.yAxisOptions);
+    panel.xAxisOptions = sMigrateAxes(panel.xAxisOptions);
+    if (panel.commonOptions && typeof panel.commonOptions.tooltipUnit !== 'object') panel.commonOptions.tooltipUnit = legacyUnit(panel.commonOptions.tooltipUnit);
+    if (panel.chartOptions && 'unit' in panel.chartOptions && typeof panel.chartOptions.unit !== 'object') panel.chartOptions.unit = legacyUnit(panel.chartOptions.unit);
+    if (panel.type === 'Gauge' && panel.chartOptions && panel.chartOptions.gaugeValueLimit !== undefined) panel.chartOptions.digit = panel.chartOptions.gaugeValueLimit;
     return panel;
 }
 
@@ -115,6 +154,13 @@ function tqlMig(panel: any) {
 
 function sqlMig(panel: any) {
     return panel;
+}
+
+/** A dashboard panel as the editor writes it: migrated from its own version, stamped with the current one. */
+export function upgradeDashboardPanel(panel: any): any {
+    const sPanel = migrateToNewest(E_VERSIONED_EXTENSION.DSH, getVersionByKey(panel), panel);
+    sPanel.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
+    return sPanel;
 }
 
 /**

@@ -5,7 +5,8 @@ import { ChartSeriesColorList, ChartThemeBackgroundColor, ChartThemeTextColor } 
 import { chartTypeConverter, getDefaultSeriesOption } from './eChartHelper';
 import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
-import { unitFormatter } from './Chart/formatters';
+import { legacyToFixedSource, unitFormatter } from './Chart/formatters';
+import { suffixSource } from './Chart/formatters/scaleFormatter';
 import { compareVersions } from './version/utils';
 import { isNumericBaseTimeBlock } from '../../utils/timeFieldColumns';
 import { literalReplacement } from '@/utils/dashboardVariableText';
@@ -203,6 +204,17 @@ const VisualMapOption = {
     list: ['seriesIndex', 'pieces'],
 };
 /** replace type opt */
+/**
+ * The value written into a series slot. A slot outside quotes takes the value as JSON, so a number
+ * option cleared in the editor ('') or holding text left `"amplitude": ,` behind and the panel was
+ * not drawn (#1561 Gauge Min/Max, #1563 the others). An option whose chart-type default is a number
+ * falls back to that default; quoted slots and every other option are written as before.
+ */
+const numberSlotValue = (aStructure: string, aChartType: string, aOpt: string, aValue: any): any => {
+    const sDefault = (getDefaultSeriesOption(aChartType as any) as any)?.[aOpt];
+    if (typeof sDefault !== 'number' || aStructure.includes(`"$${aOpt}$`)) return aValue;
+    return String(chartOptionNumber(aValue, sDefault));
+};
 const ReplaceTypeOpt = (
     aChartType: string,
     aDataType: string,
@@ -273,11 +285,12 @@ const ReplaceTypeOpt = (
     sChartOptList.map((aOpt: string) => {
         if (aOpt === 'markLine') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
         else if (aOpt === 'areaStyle')
-            sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt] ? `{"opacity": ${aChartOption['fillOpacity']}}` : 'null');
+            sChartSeriesStructure = sChartSeriesStructure.replaceAll(
+                `$${aOpt}$`,
+                aChartOption[aOpt] ? `{"opacity": ${chartOptionNumber(aChartOption['fillOpacity'], (getDefaultSeriesOption(aChartType as any) as any)?.fillOpacity)}}` : 'null'
+            );
         else if (aOpt === 'isPolar' && aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "coordinateSystem": "polar"`;
         else if (aOpt === 'isSampling' && !aChartOption[aOpt]) sChartSeriesStructure = sChartSeriesStructure + `, "sampling": "lttb"`;
-        else if (aChartType === E_CHART_TYPE.GAUGE && (aOpt === 'min' || aOpt === 'max'))
-            sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, String(chartOptionNumber(aChartOption[aOpt], (getDefaultSeriesOption(aChartType) as any)[aOpt])));
         else if (aOpt === 'symbol')
             sChartSeriesStructure = sChartSeriesStructure.replaceAll(
                 `$${aOpt}$`,
@@ -291,7 +304,7 @@ const ReplaceTypeOpt = (
                 ? sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: aChartOption['axisLineStyleColor'] } }))
                 : sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify({ lineStyle: { width: 10, color: [[1, '#c2c2c2']] } }));
         else if (aOpt === 'coorLat' || aOpt === 'coorLon') sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, JSON.stringify(aChartOption[aOpt]));
-        else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, aChartOption[aOpt]);
+        else sChartSeriesStructure = sChartSeriesStructure.replaceAll(`$${aOpt}$`, numberSlotValue(sChartSeriesStructure, aChartType, aOpt, aChartOption[aOpt]));
     });
 
     // Set visualMap only use line chart
@@ -440,14 +453,14 @@ const LabelFormatter = (aLabel: CHART_AXIS_UNITS) => {
                     `function (params) {` +
                     `const sSquared =  Math.abs(Math.trunc(params)).toString().length - 1;` +
                     `const sOverflow = params.toString().includes('+');` +
-                    `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' PB';` +
+                    `if (sOverflow || sSquared >= 15) return (params / Math.pow(1000, 5))${legacyToFixedSource(aLabel?.decimals)} + ' PB';` +
                     `if (params === 0) return (params);` +
                     `if (sSquared === 0) return (params) + ' B';` +
-                    `if (sSquared < 3) return (params)${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' B';` +
-                    `if (sSquared < 6) return (params / 1000)${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' kB';` +
-                    `if (sSquared < 9) return (params / Math.pow(1000, 2))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' MB';` +
-                    `if (sSquared < 12) return (params / Math.pow(1000, 3))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' GB';` +
-                    `if (sSquared < 15) return (params / Math.pow(1000, 4))${aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''} + ' TB';` +
+                    `if (sSquared < 3) return (params)${legacyToFixedSource(aLabel?.decimals)} + ' B';` +
+                    `if (sSquared < 6) return (params / 1000)${legacyToFixedSource(aLabel?.decimals)} + ' kB';` +
+                    `if (sSquared < 9) return (params / Math.pow(1000, 2))${legacyToFixedSource(aLabel?.decimals)} + ' MB';` +
+                    `if (sSquared < 12) return (params / Math.pow(1000, 3))${legacyToFixedSource(aLabel?.decimals)} + ' GB';` +
+                    `if (sSquared < 15) return (params / Math.pow(1000, 4))${legacyToFixedSource(aLabel?.decimals)} + ' TB';` +
                     `}`,
             };
         }
@@ -463,7 +476,7 @@ const LabelFormatter = (aLabel: CHART_AXIS_UNITS) => {
                     `const abs = Math.abs(params);` +
                     `const i = Math.floor(Math.log(abs) / Math.log(k));` +
                     `return ('' + sign + (parseFloat((abs / Math.pow(k, (i > 5 ? 5 : i < 0 ? 0 : i))))${
-                        aLabel?.decimals ? '.toFixed(' + aLabel?.decimals + ')' : ''
+                        legacyToFixedSource(aLabel?.decimals)
                     }).toString() + sizes[(i > 5 ? 5 : i < 0 ? 0 : i)]);` +
                     `}`,
             };
@@ -471,8 +484,8 @@ const LabelFormatter = (aLabel: CHART_AXIS_UNITS) => {
     } else {
         const sSign = Math.sign(aLabel?.squared) === -1 ? '*' : '/';
         return {
-            formatter: `function (params) { return (params ${sSign} ${Math.pow(10, Math.abs(aLabel?.squared))})${aLabel?.decimals ? `.toFixed(${aLabel?.decimals})` : ''}${
-                aLabel?.unit ? " + '" + aLabel?.unit.replaceAll("'", '"') + "'" : ''
+            formatter: `function (params) { return (params ${sSign} ${Math.pow(10, Math.abs(aLabel?.squared))})${legacyToFixedSource(aLabel?.decimals)}${
+                aLabel?.unit ? ' + ' + suffixSource(String(aLabel.unit)) : ''
             }}`,
         };
     }

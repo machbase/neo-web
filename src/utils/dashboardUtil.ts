@@ -158,12 +158,14 @@ export const setUnitTime = (aTime: any) => {
 
 /**
  * Whether a time range ends at or before it starts. Only edges that mean the same instant to everyone
- * are compared — epoch ms, or 'now' with an optional offset (now-1h). 'last…' depends on the data and
+ * are compared — epoch ms, or 'now' with an optional offset back (now-1h). 'last…' depends on the data and
  * '' on whatever fills it, so a pair with either is left alone. A reversed range was applied as typed
  * and every panel then reported "No data available" for data that was there (#1561).
+ * 'now+N' is left alone too: setUnitTime reads it as now-N, so a range ending at now+1h was refused as
+ * reversed although it was applied before the check existed (#1563).
  */
 export const isTimeRangeOutOfOrder = (aStart: unknown, aEnd: unknown): boolean => {
-    const sIsComparable = (aEdge: unknown) => (typeof aEdge === 'number' && Number.isFinite(aEdge)) || (typeof aEdge === 'string' && /^now([+-]\d+(\.\d+)?[smhdMy])?$/.test(aEdge));
+    const sIsComparable = (aEdge: unknown) => (typeof aEdge === 'number' && Number.isFinite(aEdge)) || (typeof aEdge === 'string' && /^now(-\d+(\.\d+)?[smhdMy])?$/.test(aEdge));
     if (!sIsComparable(aStart) || !sIsComparable(aEnd)) return false;
     return setUnitTime(aStart) >= setUnitTime(aEnd);
 };
@@ -462,7 +464,9 @@ export const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aIsNume
     if (aIsNumericBase) return calcNumericInterval(aBgn, aEnd, aWidth);
     const sDiff = aEnd - aBgn;
     const sSecond = Math.floor(sDiff / 1000);
-    const sCalc = sSecond / (aWidth / 3);
+    // A panel squeezed to no width (a very narrow window) gave a 0 here and an Infinity interval in the
+    // query, which the server rejects (#1563). Same fallback width as calcNumericInterval.
+    const sCalc = sSecond / ((aWidth > 0 ? aWidth : 300) / 3);
     const sRet = { type: 'sec', value: 1 };
     if (sCalc > 60 * 60 * 12) {
         // interval > 12H

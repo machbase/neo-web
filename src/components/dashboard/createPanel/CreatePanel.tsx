@@ -20,10 +20,15 @@ import { isDashboardSelectableTable } from '@/utils/dashboardTableKind';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { Toast } from '@/design-system/components';
-import { getDefaultVersionForExtension } from '@/utils/version/utils';
-import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
+import { upgradeDashboardPanel } from '@/utils/version/utils';
 import { handlePanelEdit } from '@/hooks/useVideoSync';
-import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage, getTimeFieldValidationMessage, getValueFieldValidationMessage } from './validation';
+import {
+    getFirstMissingTagSelectionBlockId,
+    getPanelTimeRangeValidationMessage,
+    getTagSelectionValidationMessage,
+    getTimeFieldValidationMessage,
+    getValueFieldValidationMessage,
+} from './validation';
 import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import RangeChips from '../RangeChips';
 
@@ -87,6 +92,9 @@ const CreatePanel = ({
         if (!validateValueField(sPanelOption)) {
             return;
         }
+        if (!validatePanelTimeRange(sPanelOption)) {
+            return;
+        }
 
         if (sPanelOption.useCustomTime) {
             let sStart: any;
@@ -112,8 +120,7 @@ const CreatePanel = ({
         }
         sPanelOption.w = getChartDefaultWidthSize(sPanelOption.type, !!sPanelOption.chartOptions?.isPolar);
 
-        const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
-        sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
+        const sTmpPanelInfo = upgradeDashboardPanel(checkXAxisInterval(sPanelOption));
 
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
         if (sSaveTarget?.path !== '') {
@@ -187,10 +194,12 @@ const CreatePanel = ({
         if (!validateValueField(sPanelOption)) {
             return;
         }
+        if (!validatePanelTimeRange(sPanelOption)) {
+            return;
+        }
 
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
-        const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
-        sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
+        const sTmpPanelInfo = upgradeDashboardPanel(checkXAxisInterval(sPanelOption));
 
         const sNewPanelId = generateUUID();
         const isNewTypeVideo = sTmpPanelInfo.type === 'Video';
@@ -309,6 +318,13 @@ const CreatePanel = ({
         return false;
     };
 
+    const validatePanelTimeRange = (aPanelInfo: any) => {
+        const sMessage = getPanelTimeRangeValidationMessage(aPanelInfo);
+        if (!sMessage) return true;
+        Toast.error(sMessage, { testId: 'dashboard-panel-editor-toast' });
+        return false;
+    };
+
     useEffect(() => {
         if (!sMissingTagBlockId) return;
         if (getFirstMissingTagSelectionBlockId(sPanelOption) !== sMissingTagBlockId) {
@@ -330,9 +346,11 @@ const CreatePanel = ({
         if (!validateValueField(sPanelOption)) {
             return;
         }
+        if (!validatePanelTimeRange(sPanelOption)) {
+            return;
+        }
 
-        const sTmpPanelOption = checkXAxisInterval(sPanelOption);
-        sTmpPanelOption.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
+        const sTmpPanelOption = upgradeDashboardPanel(checkXAxisInterval(sPanelOption));
 
         if (sPanelOption.type === 'Tql chart') {
             if (sTmpPanelOption.useCustomTime) {
@@ -536,7 +554,7 @@ const CreatePanel = ({
             <Page.Header>
                 <Page.DpRow>
                     <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={handleDiscard} data-testid="back" />
-                    Create panel
+                    {pType === 'edit' ? 'Edit panel' : 'Create panel'}
                 </Page.DpRow>
                 <Page.DpRow>
                     <RangeChips

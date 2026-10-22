@@ -8,7 +8,7 @@
  * spelled out as character codes instead, which survives both the raw chart script and the option
  * JSON these strings are embedded in (neither a quote nor a backslash appears in it).
  */
-const suffixSource = (aSuffix: string): string =>
+export const suffixSource = (aSuffix: string): string =>
     /['\\\r\n\u2028\u2029]/.test(aSuffix) ? `String.fromCharCode(${aSuffix.split('').map((aChar) => aChar.charCodeAt(0)).join(', ')})` : `'${aSuffix}'`;
 
 // Base units and scale factors for different scale types

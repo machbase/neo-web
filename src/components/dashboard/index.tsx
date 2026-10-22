@@ -364,7 +364,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                 <AutoRefreshControl pValue={pInfo.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                             </ErrorBoundary>
                             <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
-                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Sava" data-testid="save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
+                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" data-testid="save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
                             <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" data-testid="save-as" icon={<SaveAs size={16} />} onClick={() => pSetIsSaveModal(true)} />
                             {pIsSave ? (
                                 <Button size="icon" variant="ghost" isToolTip toolTipContent="Share" data-testid="share" icon={<Share size={16} />} onClick={() => setShareModal(true)} />

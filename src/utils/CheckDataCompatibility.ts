@@ -181,8 +181,22 @@ export const getPanelLoadError = (aPanel: any): string | undefined => {
     return sError;
 };
 
+/**
+ * Why a parsed `.dsh` is not a dashboard, or null when it is one. The repair below fills keys a
+ * dashboard is missing; it cannot turn `[]`, `{}` or `{"dashboard": null}` into one, and those used to
+ * open as an empty board with no notice, or (panels not a list) fail further in (#1563).
+ */
+export const dashboardShapeError = (aParsed: unknown): string | null => {
+    const sDashboard = (aParsed as any)?.dashboard;
+    if (!sDashboard || typeof sDashboard !== 'object' || Array.isArray(sDashboard)) return 'Not a dashboard file: "dashboard" is missing.';
+    if (sDashboard.panels != null && !Array.isArray(sDashboard.panels)) return 'Not a dashboard file: "panels" is not a list.';
+    return null;
+};
+
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
+    const sShapeError = dashboardShapeError(sDashboardInfo);
+    if (sShapeError) throw new Error(sShapeError);
 
     // Check variables
     if (!sDashboardInfo?.dashboard?.variables) {
