@@ -923,6 +923,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                     }
                                     onClick={handleFormulaIconBtn}
                                     data-testid="formula-toggle"
+                                    aria-label="Formula"
                                     isToolTip
                                     toolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 />
@@ -970,6 +971,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 icon={pBlockInfo?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
                                 onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
                                 data-testid="visibility-toggle"
+                                aria-label={pBlockInfo?.isVisible ? 'Hide series' : 'Show series'}
                                 isToolTip
                                 toolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
                             />
@@ -990,6 +992,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
                                 onClick={isCollapsibleTableType(sSelectedTableType) ? () => HandleFold() : () => {}}
                                 data-testid="fold-toggle"
+                                aria-label={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                                 isToolTip
                                 toolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             />
@@ -1000,8 +1003,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                 icon={<Close size={16} />}
                                 onClick={pPanelOption.blockList.length !== 1 ? () => deleteSeries() : () => {}}
                                 data-testid="delete"
+                                aria-label="Delete series"
                                 isToolTip
-                                toolTipContent="Delete"
+                                toolTipContent={
+                                    pPanelOption.blockList.length === 1
+                                        ? 'Delete (a panel needs at least one series)'
+                                        : checkTransformDataUsage()
+                                          ? 'Delete (a transform uses this series)'
+                                          : 'Delete'
+                                }
                             />
                         </Button.Group>
                     </Page.DpRow>

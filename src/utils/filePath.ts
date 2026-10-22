@@ -36,3 +36,10 @@ export const toDshPath = (aNameOrPath: string): string => {
     const sDot = sLast.lastIndexOf('.');
     return sDot > 0 && sLast.slice(sDot + 1).toLowerCase() === 'dsh' ? aNameOrPath : aNameOrPath + '.dsh';
 };
+
+/**
+ * A board path as it goes into a share link or the public board's file request: the share-link name
+ * (toDshPath), segment-encoded. A name holding `#` or `?` used to end the path there, so the link
+ * asked for another file (`d#1.dsh` → `d.dsh`) and showed "404 not found file name" (#1563).
+ */
+export const toDshUrlPath = (aNameOrPath: string): string => encodeFilePath(toDshPath(aNameOrPath));

@@ -1,5 +1,5 @@
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
-import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
+import { CheckDataCompatibility, dashboardShapeError } from '@/utils/CheckDataCompatibility';
 
 export const TEXT_OPEN_EXTENSIONS = ['sql', 'tql', 'json', 'csv', 'md', 'txt'];
 
@@ -12,11 +12,7 @@ export const OPEN_FILE_ACCEPT = OPENABLE_EXTENSIONS.map((aExt) => '.' + aExt).jo
  * so both refuse the same broken boards. Returns an error message, or null when the shape is valid.
  */
 export const validateBoardContent = (aExt: string, aParsed: unknown): string | null => {
-    if (aExt === 'dsh') {
-        const sDashboard = (aParsed as any)?.dashboard;
-        if (!sDashboard || typeof sDashboard !== 'object' || Array.isArray(sDashboard)) return 'Not a dashboard file: "dashboard" is missing.';
-        return null;
-    }
+    if (aExt === 'dsh') return dashboardShapeError(aParsed);
     if (aExt === 'wrk') {
         if (!Array.isArray((aParsed as any)?.data)) return 'Not a worksheet file: "data" is missing.';
         return null;

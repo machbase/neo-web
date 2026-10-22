@@ -1,6 +1,7 @@
 import { isBaseTimeColumn } from '@/utils/timeFieldColumns';
 import { isJsonTypeColumn } from '@/utils/dashboardJsonValue';
-import { isNumberTypeColumn } from '@/utils/dashboardUtil';
+import { isNumberTypeColumn, isTimeRangeOutOfOrder } from '@/utils/dashboardUtil';
+import moment from 'moment';
 import { visibleColumnsForTableType } from '@/utils/dashboardTableKind';
 
 export const TAG_SELECTION_REQUIRED_MESSAGE = 'Please select tag.';
@@ -125,4 +126,17 @@ export const getFirstMissingValueFieldBlockId = (panelOption: any) => {
 
 export const getValueFieldValidationMessage = (panelOption: any) => {
     return getFirstMissingValueFieldBlockId(panelOption) ? VALUE_FIELD_REQUIRED_MESSAGE : undefined;
+};
+
+/**
+ * A panel's own time range (Custom Time Range) that ends at or before it starts. The board range dialog
+ * refuses one since #1561; the panel editor applied and saved it, and the panel then showed
+ * "No data available" for data that was there (#1563). Edges are read as the editor reads them on Apply:
+ * now/last expressions as written, anything else as a date.
+ */
+export const getPanelTimeRangeValidationMessage = (panelOption: any) => {
+    if (!panelOption?.useCustomTime) return '';
+    const sEdge = (aValue: any) => (typeof aValue === 'string' && (aValue.includes('now') || aValue.includes('last')) ? aValue : moment(aValue).valueOf());
+    const { start, end } = panelOption.timeRange ?? {};
+    return isTimeRangeOutOfOrder(sEdge(start), sEdge(end)) ? 'The start time must be earlier than the end time.' : '';
 };

@@ -154,6 +154,9 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                                         icon={<PlusCircle size={16} />}
                                         onClick={HandleAddBlock}
                                         data-testid="add-series"
+                                        aria-label="Add series"
+                                        isToolTip={!getBlockCount.addable}
+                                        toolTipContent={`A panel holds up to ${getBlockCount.limit} series`}
                                         style={{ height: '60px' }}
                                     />
                                 ) : (

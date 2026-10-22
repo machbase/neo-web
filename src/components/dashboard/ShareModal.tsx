@@ -3,7 +3,7 @@ import { Share } from '../../assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { useState } from 'react';
 import { Button, Modal, Textarea } from '@/design-system/components';
-import { toDshPath } from '@/utils/filePath';
+import { toDshUrlPath } from '@/utils/filePath';
 
 interface ShareModalProps {
     isOpen: boolean;
@@ -13,7 +13,7 @@ interface ShareModalProps {
 
 export const ShareModal = ({ isOpen, onClose, boardInfo }: ShareModalProps) => {
     // the real file name through the one share-link rule (no split('.')[0] + '.dsh' rebuild)
-    const currentUrl = `${window.location.origin + '/web/ui/board' + boardInfo?.path + toDshPath(boardInfo!.name)}`;
+    const currentUrl = `${window.location.origin + '/web/ui/board' + toDshUrlPath(boardInfo?.path + boardInfo!.name)}`;
     const [activeTab, setActiveTab] = useState<'iframe' | 'embed'>('iframe');
 
     const createIframeCode = (url: string) => `<iframe width="100%" height="100%" src="${url}" frameborder="0" allowfullscreen></iframe>`;

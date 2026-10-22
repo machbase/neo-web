@@ -4,4 +4,5 @@ export {
     generateTimeFormatterFunction,
     generateDurationFormatterFunction,
     generateStringFormatterFunction,
+    suffixSource,
 } from '@/utils/Chart/formatters/scaleFormatter';
