@@ -7,6 +7,7 @@ import { findDatabaseByName, LEGACY_DATABASE } from '@/utils/currentDatabaseStat
 import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
 import type { BackupRequest } from '@/components/database/backup/backupPayload';
 import { buildFilesUrl } from '@/utils/filePath';
+import { cancelPendingFileWrites, queueFileWrite } from './fileWriteQueue';
 import { sqlIdentifierPath, sqlQueryUrl, sqlString } from '@/utils/queryText';
 
 
@@ -23,27 +24,12 @@ const getReferenceList = () => {
     });
 };
 
-// All writers (ordinary Save, Save As and TAZ) share one queue per file.
-// Ignoring an old response cannot stop its POST from overwriting a newer file.
-const fileWrites = new Map<string, Promise<unknown>>();
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
-    const url = buildFilesUrl(`${aDir}/${aFileName}`);
-    // Conservatively serialize case aliases too: they can be the same file on
-    // macOS/Windows. Distinct files on Linux still keep both writes.
-    const key = url.toLowerCase();
-    const previous = fileWrites.get(key);
-    const write = () => request({ method: 'POST', url, data: aContents });
-    // Keep the first request immediate for callers that refresh after creating
-    // a folder. Only a write to an already-busy file needs to wait.
-    const result = previous ? previous.catch(() => undefined).then(write) : write();
-    fileWrites.set(key, result);
-    const release = () => {
-        if (fileWrites.get(key) === result) fileWrites.delete(key);
-    };
-    void result.then(release, release);
-    return result;
+    const path = `${aDir}/${aFileName}`;
+    return queueFileWrite(path, () => request({ method: 'POST', url: buildFilesUrl(path), data: aContents }));
 };
 const deleteFileList = (aDir: string, aFileName: string) => {
+    cancelPendingFileWrites(`${aDir}/${aFileName}`);
     return request({
         method: 'DELETE',
         url: buildFilesUrl(`${aDir}/${aFileName}`),

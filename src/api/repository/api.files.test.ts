@@ -84,3 +84,81 @@ describe('file write ordering', () => {
         expect(lastCall().data).toBe('NEXT');
     });
 });
+
+describe('pending writes across file and login changes', () => {
+    const { deleteFile, moveFile } = require('./fileTree');
+    const { logOut, postLogin } = require('./login');
+    const { cancelAllPendingFileWrites } = require('./fileWriteQueue');
+    beforeEach(() => {
+        cancelAllPendingFileWrites();
+        (request as unknown as jest.Mock).mockReset().mockResolvedValue({ success: true });
+    });
+    const hold = () => {
+        let finish!: (value: unknown) => void;
+        (request as unknown as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        return () => finish({ success: true });
+    };
+
+    it.each(['repository', 'explorer'])('cancels every queued write when %s deletes the file, and allows a new file at that path', async repository => {
+        const finish = hold();
+        const first = postFileList('FIRST', '/d/', 'a.sql');
+        const second = postFileList('STALE_2', '/D/', 'A.SQL');
+        const third = postFileList('STALE_3', '/d/', 'a.sql');
+        if (repository === 'repository') await deleteFileList('/d/', 'a.sql');
+        else await deleteFile('/d/', 'a.sql');
+        await postFileList('NEW_FILE', '/d/', 'a.sql');
+        finish(); await first;
+        expect(await second).toMatchObject({ success: false });
+        expect(await third).toMatchObject({ success: false });
+        expect((request as unknown as jest.Mock).mock.calls.filter(([config]) => config.method === 'POST').map(([config]) => config.data)).toEqual(['FIRST', 'NEW_FILE']);
+    });
+
+    it('cancels folder descendants but keeps a similarly named neighbouring folder', async () => {
+        const finish = hold();
+        const first = postFileList('FIRST', '/d/nested/', 'a.sql');
+        const pending = postFileList('STALE', '/d/nested/', 'a.sql');
+        await deleteFile('/', 'D', { recursive: true });
+        await postFileList('NEIGHBOUR', '/d2/', 'a.sql');
+        finish(); await first;
+        expect(await pending).toMatchObject({ success: false });
+        expect((request as unknown as jest.Mock).mock.calls.some(([config]) => config.data === 'STALE')).toBe(false);
+        expect(lastCall().data).toBe('NEIGHBOUR');
+    });
+
+    it('invalidates the source and destination when a file moves, then accepts saves at its new path', async () => {
+        const finishSource = hold();
+        const source = postFileList('SOURCE', '/d/', 'a.sql');
+        const pendingSource = postFileList('STALE_SOURCE', '/d/', 'a.sql');
+        const finishDestination = hold();
+        const destination = postFileList('DESTINATION', '/d/', 'b.sql');
+        const pendingDestination = postFileList('STALE_DESTINATION', '/d/', 'b.sql');
+        await moveFile('/d/a.sql', '/d/b.sql');
+        await postFileList('AFTER_MOVE', '/d/', 'b.sql');
+        finishSource(); finishDestination(); await Promise.all([source, destination]);
+        expect(await pendingSource).toMatchObject({ success: false });
+        expect(await pendingDestination).toMatchObject({ success: false });
+        expect((request as unknown as jest.Mock).mock.calls.some(([config]) => String(config.data).startsWith('STALE'))).toBe(false);
+    });
+
+    it('a logout and another login cancel all older chains without blocking the next account', async () => {
+        const finish = hold();
+        const first = postFileList('ACCOUNT_A_FIRST', '/', 'a.sql');
+        const pending = postFileList('ACCOUNT_A_PENDING', '/', 'a.sql');
+        await logOut(); await postLogin({ loginName: 'USER_B', password: 'test-password' });
+        await postFileList('ACCOUNT_B', '/', 'a.sql');
+        finish(); await first;
+        expect(await pending).toMatchObject({ success: false });
+        expect((request as unknown as jest.Mock).mock.calls.filter(([config]) => config.url === '/api/files/a.sql').map(([config]) => config.data)).toEqual(['ACCOUNT_A_FIRST', 'ACCOUNT_B']);
+    });
+
+    it('changing refresh/access tokens within the same login does not discard a pending save', async () => {
+        const finish = hold();
+        const first = postFileList('FIRST', '/', 'a.sql');
+        const pending = postFileList('LATEST', '/', 'a.sql');
+        localStorage.setItem('accessToken', 'refreshed-access-token');
+        localStorage.setItem('refreshToken', 'rotated-refresh-token');
+        finish(); await first;
+        expect(await pending).toEqual({ success: true });
+        localStorage.clear();
+    });
+});

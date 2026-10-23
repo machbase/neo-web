@@ -58,7 +58,11 @@ export const SaveModal = (props: SaveModalProps) => {
     // File name, format, content and result updates belong to the tab that
     // opened this dialog, even if a tab shortcut changes the active tab.
     const sSaveOwner = useRef(sSelectedBoard).current;
+    const getCurrentBoards = useRecoilCallback(({ snapshot }) => () => snapshot.getLoadable(gBoardList).getValue(), []);
+    const isSaveOwner = (board: GBoardListType) => board.id === sSaveOwner?.id &&
+        board.path === sSaveOwner.path && board.name === sSaveOwner.name && board.type === sSaveOwner.type;
     const sDialogOpen = useRef(true);
+    const sSaveInProgress = useRef(false);
     useEffect(() => {
         sDialogOpen.current = true;
         return () => { sDialogOpen.current = false; };
@@ -194,57 +198,67 @@ export const SaveModal = (props: SaveModalProps) => {
     // No "tab's own file" exception (r12): Save As onto the tab's own file asks too. Only the plain Save of an
     // already-saved tab (MainContent direct save, no dialog) writes without a question.
     // A failed lookup / folder conflict is shown inside this dialog (r13), not as a toast.
-    const checkSaveTarget = async (aPath: string, aFileName: string): Promise<OverwriteDecision> => {
+    const checkSaveTarget = async (aPath: string, aFileName: string, canSave: () => boolean): Promise<OverwriteDecision> => {
         setSaveError(undefined);
-        const sDecision = await resolveOverwrite(aPath, aFileName, askOverwrite);
-        if (sDecision.status === 'folder' || sDecision.status === 'failed') setSaveError(sDecision.reason);
+        const sDecision = await resolveOverwrite(aPath, aFileName, name => canSave() ? askOverwrite(name) : Promise.resolve(false));
+        if (canSave() && (sDecision.status === 'folder' || sDecision.status === 'failed')) setSaveError(sDecision.reason);
         return sDecision;
     };
 
     const saveFile = async () => {
-        const sTab = sBoardList.find((aItem) => aItem.id === sSaveOwner?.id);
-        if (!sTab || sTab.path !== sSaveOwner.path || sTab.name !== sSaveOwner.name || sTab.type !== sSaveOwner.type) {
+        if (sSaveInProgress.current) return;
+        const sCurrentBoards = getCurrentBoards();
+        const sTab = sCurrentBoards.find(isSaveOwner);
+        if (!sTab) {
             setSaveError('The source tab was closed or changed. Please reopen Save As.');
             return;
         }
         const sSaveData = getBoardSaveData(sTab, sFileType);
-        const sOverwriteBoards = new Map(sBoardList.map(board => [board.id, board]));
+        const sOverwriteBoards = new Map(sCurrentBoards.map(board => [board.id, board]));
         const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-
-        const sDecision = await checkSaveTarget(sPath, sSaveFileName);
-        if (sDecision.status !== 'none' && sDecision.status !== 'confirmed') return;
-        // r20 M1: written under the name the user typed — POST, tab and Recent; the server's file system decides the case
-        const sFileName = sSaveFileName;
+        sSaveInProgress.current = true;
         const sSignal = sSaveRequests.createSignal(sTab.id);
-        // Reuse overwrite handling against the current tabs. Only the submitted
-        // snapshot becomes saved; edits made after Apply remain unsaved.
-        const applyTabs = (aSubmitted: any) => applyCurrentTabs((aBoards) => {
-            if (sSignal.aborted || !aBoards.some((aBoard) =>
-                aBoard.id === sTab.id && aBoard.path === sTab.path && aBoard.name === sTab.name,
-            )) return aBoards;
-            const sTarget = { path: sPath, name: sFileName };
-            const sCurrentBoards = sDecision.status === 'confirmed' ? aBoards.map(board => {
-                if (board.id === sTab.id || !isTabOnFile(board, sTarget)) return board;
-                const previous = sOverwriteBoards.get(board.id);
-                // The confirmation did not authorize discarding later edits or
-                // newly opened tabs. Keep them as drafts, separate from the file
-                // now owned by the writer. Their next Save opens Save As.
-                return !previous || hasBoardContentChanged(board, previous)
-                    ? { ...board, path: '', savedCode: false }
-                    : board;
-            }) : aBoards;
-            return afterOverwrite(
-                sCurrentBoards,
-                { ...sTarget, currentTabId: sTab.id, confirmed: sDecision.status === 'confirmed' },
-                (aBoard) => ({
-                    ...applyBoardSaveResult(aBoard, sFileType, aSubmitted),
-                    name: sFileName,
-                    path: sPath,
-                }),
-            );
-        }, sTab.id);
-
+        const canSave = () => sDialogOpen.current && !sSignal.aborted && getCurrentBoards().some(isSaveOwner);
         try {
+            const sDecision = await checkSaveTarget(sPath, sSaveFileName, canSave);
+            // Lookup and overwrite confirmation can outlive their dialog/source.
+            // Check again before sending any request, not only when applying its result.
+            if (!sDialogOpen.current || sSignal.aborted) return;
+            if (!getCurrentBoards().some(isSaveOwner)) {
+                setSaveError('The source tab was closed or changed. Please reopen Save As.');
+                return;
+            }
+            if (sDecision.status !== 'none' && sDecision.status !== 'confirmed') return;
+            // r20 M1: written under the name the user typed — POST, tab and Recent; the server's file system decides the case
+            const sFileName = sSaveFileName;
+            // Reuse overwrite handling against the current tabs. Only the submitted
+            // snapshot becomes saved; edits made after Apply remain unsaved.
+            const applyTabs = (aSubmitted: any) => applyCurrentTabs((aBoards) => {
+                if (sSignal.aborted || !aBoards.some((aBoard) =>
+                    aBoard.id === sTab.id && aBoard.path === sTab.path && aBoard.name === sTab.name,
+                )) return aBoards;
+                const sTarget = { path: sPath, name: sFileName };
+                const sCurrentBoards = sDecision.status === 'confirmed' ? aBoards.map(board => {
+                    if (board.id === sTab.id || !isTabOnFile(board, sTarget)) return board;
+                    const previous = sOverwriteBoards.get(board.id);
+                    // The confirmation did not authorize discarding later edits or
+                    // newly opened tabs. Keep them as drafts, separate from the file
+                    // now owned by the writer. Their next Save opens Save As.
+                    return !previous || hasBoardContentChanged(board, previous)
+                        ? { ...board, path: '', savedCode: false }
+                        : board;
+                }) : aBoards;
+                return afterOverwrite(
+                    sCurrentBoards,
+                    { ...sTarget, currentTabId: sTab.id, confirmed: sDecision.status === 'confirmed' },
+                    (aBoard) => ({
+                        ...applyBoardSaveResult(aBoard, sFileType, aSubmitted),
+                        name: sFileName,
+                        path: sPath,
+                    }),
+                );
+            }, sTab.id);
+
             if (sFileType === 'taz') {
                 const sBoardToSave: BoardInfo = { ...(sTab as unknown as BoardInfo), name: sFileName, path: sPath };
                 const sSavedBoard = await saveTazBoard(sBoardToSave);
@@ -271,6 +285,7 @@ export const SaveModal = (props: SaveModalProps) => {
         } catch {
             if (!sSignal.aborted) Toast.error('save file fail retry please');
         } finally {
+            sSaveInProgress.current = false;
             sSaveRequests.releaseSignal(sSignal, sTab.id);
         }
     };
