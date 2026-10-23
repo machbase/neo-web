@@ -440,6 +440,12 @@ const GetAlias = (aValue: any) => {
             aValue.aggregator?.toUpperCase() !== 'value'.toUpperCase() && aValue.aggregator?.toUpperCase() !== 'none'.toUpperCase() ? '(' + aValue.aggregator + ')' : ''
         }`;
 };
+/**
+ * The name a query block's series has in the chart legend: its alias, else the tag (or, expanded, the
+ * value column) with the aggregator - `tag-a(avg)`. Lists that pick a series by block show this name so
+ * two blocks on the same table and column can be told apart (#1566).
+ */
+export const getBlockLegendName = (aBlock: any): string => (aBlock?.useCustom ? GetAlias(aBlock?.values?.[0]) : GetCollapsedSeriesName(aBlock)) ?? '';
 const UseCountAll = (aValueList: any) => {
     const sUseCountAll = aValueList.reduce((preV: boolean, aValue: any) => {
         return preV || isCountAllAggregator(aValue.aggregator) ? true : false;
