@@ -203,6 +203,17 @@ describe('dashboard name emitters', () => {
     test('without the block columns nothing changes', () => {
         expect(toSqlColumnName('T-1')).toBe('"T-1"');
         expect(toSqlColumnName('T-1', [])).toBe('"T-1"');
+        expect(toSqlColumnName('VALUE*2')).toBe('"VALUE*2"');
+    });
+
+    // #1566 (F-138): a typed-in or `{{variable}}` table is saved with `tableInfo: []`.
+    test('with an empty column list, call and arithmetic syntax is an expression; other names stay quoted', () => {
+        expect(toSqlColumnName('VALUE*2', [])).toBe('VALUE*2');
+        expect(toSqlColumnName('abs(VALUE)', [])).toBe('abs(VALUE)');
+        expect(toSqlColumnName('VALUE/2+1', [])).toBe('VALUE/2+1');
+        expect(toSqlColumnName('VALUE', [])).toBe('VALUE');
+        expect(toSqlColumnName('my value', [])).toBe('"my value"');
+        expect(toSqlColumnName('온도', [])).toBe('"온도"');
     });
 });
 
@@ -220,6 +231,19 @@ describe.each([
         const { sql } = parse(parser, withValue(value, aggregator));
         expect(sql).toContain(expected);
         expect(sql).not.toContain('"VALUE*2"');
+    });
+
+    test.each([
+        ['typed-in table', 'Q1545'],
+        ['variable table', '{{tbl}}'],
+    ])('a %s (no column list) writes it as typed too (#1566)', (_name, table) => {
+        const block = { ...withValue('VALUE*2', 'sum'), table, customTable: true, tableInfo: [] };
+        const { sql } = parse(parser, block);
+        expect(sql).toContain('sum(VALUE*2)');
+        expect(sql).not.toContain('"VALUE*2"');
+        const abs = { ...withValue('abs(VALUE)', 'avg'), table, customTable: true, tableInfo: [] };
+        expect(parse(parser, abs).sql).toContain('sum(abs(VALUE))');
+        expect(parse(parser, abs).sql).not.toContain('"abs(VALUE)"');
     });
 
     test('a column the table really has is still quoted', () => {
