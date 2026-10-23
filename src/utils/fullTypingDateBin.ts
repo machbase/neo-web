@@ -3,6 +3,7 @@ import { toSqlValueExpression, toSqlValueExpressionForAggregator } from '@/utils
 import { isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import { toSqlColumnName, toSqlTableName } from '@/utils/dashboardSqlName';
 import { sqlString } from '@/utils/queryText';
+import { filterValueSql } from '@/utils/dashboardFilterOperators';
 
 const ADMIN_ID = 'SYS';
 
@@ -68,14 +69,24 @@ export const buildFullTypingQuery = (blockInfo: any) => {
         aggregator = blockInfo?.values?.[0]?.aggregator !== '' ? blockInfo?.values?.[0]?.aggregator : '';
         alias = blockInfo?.values?.[0]?.alias !== '' ? blockInfo?.values?.[0]?.alias : "'SERIES(0)'";
         const activeFilters = blockInfo?.filter?.filter((item: any) => item?.useFilter) ?? [];
-        whereClauses = activeFilters.map((filter: any) => {
-            if (filter.useTyping) return filter.typingValue;
+        // Several NAME `in` rows are one list, as the panel query builds them: a comma is part of a tag
+        // name, so several tags are several rows (#1566). The list takes the place of the first row.
+        const nameInValues: string[] = [];
+        const NAME_IN_LIST = '\u0000NAME_IN_LIST';
+        whereClauses = activeFilters
+            .flatMap((filter: any) => {
+                if (filter.useTyping) return [filter.typingValue];
 
-            const useQuote = blockInfo.tableInfo.find((tableInfo: any) => tableInfo[0] === filter.column)?.[1] === 5;
-            const value = useQuote ? filter.value.split(',').map(sqlString).join(',') : filter.value;
-            const column = toSqlColumnName(filter.column);
-            return filter.column === 'NAME' && filter.operator === 'in' ? `${column} ${filter.operator} (${value})` : `${column} ${filter.operator} ${value}`;
-        });
+                const useQuote = blockInfo.tableInfo.find((tableInfo: any) => tableInfo[0] === filter.column)?.[1] === 5;
+                const value = filterValueSql(filter.value, useQuote);
+                const column = toSqlColumnName(filter.column);
+                if (filter.column === 'NAME' && filter.operator === 'in') {
+                    nameInValues.push(value);
+                    return nameInValues.length === 1 ? [NAME_IN_LIST] : [];
+                }
+                return [`${column} ${filter.operator} ${value}`];
+            })
+            .map((clause: string) => (clause === NAME_IN_LIST ? `${toSqlColumnName('NAME')} in (${nameInValues.join(',')})` : clause));
     } else if (blockInfo?.tag !== '') {
         whereClauses = [`${nameColumn} IN (${sqlString(blockInfo?.tag)})`];
     }

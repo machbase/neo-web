@@ -54,9 +54,10 @@ const parse = (parser: typeof DashboardQueryParser, block: Record<string, any>, 
     return queries[0] as { sql: string; query: string };
 };
 
-const expandFilter = (value: string) => ({
+// One Filter row per value: a comma belongs to the value (#1566), several values are several rows.
+const expandFilter = (...values: string[]) => ({
     useCustom: true,
-    filter: [{ id: 'filter-1', column: 'NAME', operator: 'in', value, useFilter: true, useTyping: false, typingValue: '' }],
+    filter: values.map((value, idx) => ({ id: `filter-${idx + 1}`, column: 'NAME', operator: 'in', value, useFilter: true, useTyping: false, typingValue: '' })),
 });
 
 describe.each([
@@ -79,7 +80,12 @@ describe.each([
     });
 
     test('an expanded in-list quotes each value', () => {
-        expect(parse(parser, createBlock(expandFilter("o'brien,p_0"))).sql).toContain("NAME in ('o''brien','p_0')");
+        expect(parse(parser, createBlock(expandFilter("o'brien", 'p_0'))).sql).toContain("NAME in ('o''brien','p_0')");
+    });
+
+    test('a comma in an expanded in value is part of one tag name (#1566)', () => {
+        expect(parse(parser, createBlock(expandFilter('a,b'))).sql).toContain("NAME in ('a,b')");
+        expect(parse(parser, createBlock(expandFilter('a,b', 'c'))).sql).toContain("NAME in ('a,b','c')");
     });
 
     test('the TQL wrapper escapes what the SQL carries', () => {
@@ -120,7 +126,8 @@ describe('buildFullTypingQuery', () => {
     });
 
     test('quotes expanded filter values', () => {
-        expect(buildFullTypingQuery(createBlock({ ...expandFilter("o'brien,tail\\") }))).toContain(String.raw`NAME in ('o''brien',('tail' || RTRIM('\\ ')))`);
+        expect(buildFullTypingQuery(createBlock({ ...expandFilter("o'brien", 'tail\\') }))).toContain(String.raw`NAME in ('o''brien',('tail' || RTRIM('\\ ')))`);
+        expect(buildFullTypingQuery(createBlock({ ...expandFilter('a,b') }))).toContain("NAME in ('a,b')");
     });
 });
 

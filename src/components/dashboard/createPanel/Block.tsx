@@ -21,7 +21,7 @@ import {
 } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { isCollapsibleTableType, isTaglessTableType, visibleColumnsForTableType } from '@/utils/dashboardTableKind';
-import { DEFAULT_FILTER_OPERATOR, normalizeFilterOperator } from '@/utils/dashboardFilterOperators';
+import { DEFAULT_FILTER_OPERATOR, filterValueSql, normalizeFilterOperator } from '@/utils/dashboardFilterOperators';
 import { TIME_FIELD_MISSING_MESSAGE, VALUE_FIELD_MISSING_MESSAGE } from './validation';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
@@ -492,7 +492,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                               return { ...bItem, operator: sOperator, useFilter: sUseFilter, typingValue: '', [aKey]: aData.target.value };
                                           // Check varchar type
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
-                                          const sValue = sUseQuote ? bItem.value.split(',').map(sqlString).join(',') : bItem.value;
+                                          const sValue = filterValueSql(bItem.value, sUseQuote);
                                           const sTypingValue = sOperator === 'in' ? `${bItem.column} ${sOperator} (${sValue})` : `${bItem.column} ${sOperator} ${sValue}`;
                                           return { ...bItem, operator: sOperator, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
                                       }

@@ -8,11 +8,11 @@ import TQL from './TqlGenerator';
 import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE, DSH_JSON_MS_TIMEFORMAT } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
-import { normalizeFilterOperator } from './dashboardFilterOperators';
+import { filterValueSql, normalizeFilterOperator } from './dashboardFilterOperators';
 import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
-import { sqlString, tqlString } from '@/utils/queryText';
+import { tqlString } from '@/utils/queryText';
 import { toSqlColumnName, toSqlTableName } from '@/utils/dashboardSqlName';
 import {
     buildRawTimeExpression,
@@ -405,18 +405,13 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
             const sTargetColumnInfo = aQuery.tableInfo && aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column);
             const sUseQuote = sTargetColumnInfo ? sTargetColumnInfo[1] === 5 : false;
             const sColumn = toSqlColumnName(aFilter.column);
-            const toFilterValue = (aValue: any) => (sUseQuote ? sqlString(aValue) : aValue);
+            const toFilterValue = (aValue: any) => filterValueSql(aValue, sUseQuote);
             // Expand mode
             if (aUseCustom) {
                 if (aFilter.useTyping) return aFilter.typingValue.replaceAll('"', "'");
                 else {
-                    if (sUseInOperator) {
-                        const sParseValueList = aFilter.valueList.map((pValue: any) => {
-                            if (pValue.includes(',')) return pValue.split(',');
-                            else return pValue;
-                        });
-                        return `${sColumn} ${aFilter.operator} (${sParseValueList.flat().map(toFilterValue).join(',')})`;
-                    } else
+                    if (sUseInOperator) return `${sColumn} ${aFilter.operator} (${aFilter.valueList.map(toFilterValue).join(',')})`;
+                    else
                         return aFilter.valueList
                             .map((aValue: any) => {
                                 return `${sColumn} ${aFilter.operator} ${toFilterValue(aValue)}`;
