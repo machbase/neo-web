@@ -49,3 +49,13 @@ export const getFileRequestFailure = (aRes: any, aFallback: string = 'Request fa
     // unknown object shape without a success flag — treat as success (e.g. parsed JSON file content)
     return null;
 };
+
+/**
+ * Why a dashboard panel's chart request failed, or null when it can be drawn. A refused query comes
+ * back as a body with `reason`, as an HTTP error, or as a transport failure; the last two used to pass
+ * as a success with no chart data, so a failed Refresh left every panel blank and silent (#1565).
+ */
+export const getChartRequestFailureReason = (aRes: any): string | null => {
+    if (aRes?.data?.reason) return String(aRes.data.reason);
+    return getFileRequestFailure(aRes, 'Failed to load the chart.')?.reason ?? null;
+};

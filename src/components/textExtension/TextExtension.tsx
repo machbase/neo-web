@@ -6,6 +6,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Button, Page, ErrorBoundary } from '@/design-system/components';
+import { toTqlFileUrlPath } from '@/utils/filePath';
 
 type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html' | 'javascript' | 'jsh';
 
@@ -50,7 +51,7 @@ export const TextExtension = (props: TextExtensionProps) => {
             return;
         }
 
-        const sTargetPath = `${window.location.origin + '/db/tql' + sTargetBoard.path + sTargetBoard.name}`;
+        const sTargetPath = window.location.origin + toTqlFileUrlPath(sTargetBoard.path + sTargetBoard.name);
         ClipboardCopy(sTargetPath);
     };
 
@@ -63,7 +64,7 @@ export const TextExtension = (props: TextExtensionProps) => {
         const isPkg = /\/apps\//.test(sTargetBoard.path);
         let sOpenUrl: string = '';
         if (isPkg) sOpenUrl = window.location.origin + '/web' + sTargetBoard.path;
-        else sOpenUrl = window.location.origin + '/db/tql' + sTargetBoard.path + sTargetBoard.name;
+        else sOpenUrl = window.location.origin + toTqlFileUrlPath(sTargetBoard.path + sTargetBoard.name);
         // url, target
         window.open(sOpenUrl, sOpenUrl);
     };
@@ -71,7 +72,7 @@ export const TextExtension = (props: TextExtensionProps) => {
     return (
         <Page>
             <Page.Header>
-                <div>{pLang === 'html' && <Button size="icon" variant="ghost" isToolTip toolTipContent="Run code" icon={<Play size={16} />} onClick={handleWindowOpen} />}</div>
+                <div>{pLang === 'html' && <Button size="icon" variant="ghost" isToolTip toolTipContent="Run code" icon={<Play size={16} />} onClick={handleWindowOpen} data-testid="html-run" />}</div>
                 <Button.Group>
                     {pLang === 'markdown' ? (
                         <Button
@@ -86,7 +87,7 @@ export const TextExtension = (props: TextExtensionProps) => {
                     ) : null}
                     <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
                     <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => setIsOpenModal(true)} />
-                    {pLang === 'html' ? <Button size="icon" variant="ghost" isToolTip toolTipContent="Copy link" onClick={handleCopyLink} icon={<MdLink size={16} />} /> : null}
+                    {pLang === 'html' ? <Button size="icon" variant="ghost" isToolTip toolTipContent="Copy link" onClick={handleCopyLink} icon={<MdLink size={16} />} data-testid="html-copy-link" /> : null}
                 </Button.Group>
             </Page.Header>
             <Page.Body>

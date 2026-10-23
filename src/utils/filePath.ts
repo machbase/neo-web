@@ -43,3 +43,9 @@ export const toDshPath = (aNameOrPath: string): string => {
  * asked for another file (`d#1.dsh` → `d.dsh`) and showed "404 not found file name" (#1563).
  */
 export const toDshUrlPath = (aNameOrPath: string): string => encodeFilePath(toDshPath(aNameOrPath));
+
+/**
+ * The link that runs a saved file on the server (`/db/tql/<path>`), as the TQL and HTML editors copy
+ * and open it. Segment-encoded like the share link: a `#` or `?` in a name cut the link short (#1565).
+ */
+export const toTqlFileUrlPath = (aPath: string): string => '/db/tql' + encodeFilePath(aPath);

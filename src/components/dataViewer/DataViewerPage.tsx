@@ -379,6 +379,8 @@ function RangeEditorModal({
             }
             pSetTime={() => undefined}
             pAllowNegativeTime={!distance}
+            // A single point (From = To) is a range here, as isDataViewerRangeReversed has always allowed.
+            pAllowPointRange
             pSaveCallback={(from, to) =>
                 onApply({
                     from: distance

@@ -27,6 +27,7 @@ import { CommonTable } from '@/design-system/components';
 import { TqlCsvParser } from '../../../utils/tqlCsvParser';
 import { FakeTextBlock } from '../../../utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
+import { getChartRequestFailureReason } from '../../../../utils/fileRequestResult';
 
 // Parent-width changes arrive from a ResizeObserver, i.e. once per frame while dragging. Wait for
 // them to settle for this long before re-running the query.
@@ -346,12 +347,13 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                 sResult = await getTqlChart(sFinalTql, 'dsh');
             }
 
-            if (sResult && !sResult?.data?.reason) {
+            const sFailureReason = getChartRequestFailureReason(sResult);
+            if (!sFailureReason) {
                 setChartData(sResult.data);
                 setIsError(false);
                 setIsChartData(true);
             } else {
-                setIsMessage(sResult?.data?.reason);
+                setIsMessage(sFailureReason);
                 setIsError(true);
                 setIsChartData(false);
             }

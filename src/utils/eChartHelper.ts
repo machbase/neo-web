@@ -3,6 +3,7 @@ import { ChartTheme, ChartType, E_CUSTOM_CHART_TYPE, CustomChartType } from '@/t
 import { ChartTypeList } from './constants';
 import { getDefaultColor } from './helpers/tags';
 import { DEFAULT_FILTER_OPERATOR } from '@/utils/dashboardFilterOperators';
+import { NEWEST_VERSION } from './version/constants';
 
 // The legend/tooltip/grid a panel starts with. Shared by every panel that has not overridden them, so
 // callers must clone it rather than hand it straight to panel state - see buildPanelOptionForType.
@@ -278,6 +279,10 @@ export const DefaultChartOption = {
     y: 0 as number, // y-position
     w: 7 as number, // width
     h: 7 as number, // height
+
+    // A new panel is in the current format. Without a version the editor reads it as a panel saved
+    // before 1.0.1 and migrates its default free-text units, so a new Liquid fill showed "50 %" (#1565).
+    version: NEWEST_VERSION.DSH as string,
 };
 
 // Blackbox panel option - independent from chart system

@@ -1,7 +1,7 @@
 // #1563: dashboard values the code used without checking, and older (< 1.0.1) panels.
 import { DashboardChartOptionParser } from './DashboardChartOptionParser';
 import { DashboardChartOptionParser as PublicDashboardChartOptionParser } from '@/public-dashboard/utils/DashboardChartOptionParser';
-import { DefaultCommonOption, DefaultXAxisOption, DefaultYAxisOption, getDefaultSeriesOption } from './eChartHelper';
+import { DefaultChartOption, DefaultCommonOption, DefaultXAxisOption, DefaultYAxisOption, getDefaultSeriesOption } from './eChartHelper';
 import { legacyToFixedSource } from './Chart/formatters';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
 import { calcInterval, isTimeRangeOutOfOrder } from './dashboardUtil';
@@ -159,3 +159,24 @@ describe('zero-width panels and share links', () => {
         expect(toDshUrlPath('TEST/v1.2')).toBe('/TEST/v1.2.dsh');
     });
 });
+
+// #1565: a panel the editor creates is in the current format, so its default free-text units are not
+// migrated as if it had been saved before 1.0.1.
+describe('new panels', () => {
+    const newPanel = (aType: string, aChartType: string) => ({ ...structuredClone(DefaultChartOption), type: aType, chartOptions: structuredClone(getDefaultSeriesOption(aChartType as any)) });
+
+    it('start in the current version', () => {
+        expect(DefaultChartOption.version).toBe('1.0.1');
+    });
+
+    it('keep the Liquid fill default unit as it was before 1.0.1 migration existed', () => {
+        expect(upgradeDashboardPanel(newPanel('Liquid fill', 'liquidFill')).chartOptions.unit).toBe('%');
+    });
+
+    it('still migrate a panel saved without a version', () => {
+        const sLegacy: Record<string, unknown> = newPanel('Liquid fill', 'liquidFill');
+        delete sLegacy.version;
+        expect(upgradeDashboardPanel(sLegacy).chartOptions.unit).toMatchObject({ suffix: '%' });
+    });
+});
+

@@ -32,6 +32,7 @@ import { CommonTable } from '@/design-system/components';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
+import { getChartRequestFailureReason } from '@/utils/fileRequestResult';
 // import TQL from '@/utils/TqlGenerator';
 // import { Toast } from '@/design-system/components';
 
@@ -459,12 +460,13 @@ const LineChart = ({
                 sResult = await getTqlChart(sFinalTql, 'dsh');
             }
 
-            if (sResult && !sResult?.data?.reason) {
+            const sFailureReason = getChartRequestFailureReason(sResult);
+            if (!sFailureReason) {
                 setChartData(sResult.data);
                 setIsError(false);
                 setIsChartData(true);
             } else {
-                setIsMessage(sResult?.data?.reason);
+                setIsMessage(sFailureReason);
                 setIsError(true);
                 setIsChartData(false);
             }
