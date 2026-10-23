@@ -4,6 +4,7 @@ import { Button, CommonTable, ContextMenu, Modal } from '@/design-system/compone
 import { Copy, Monitor, VscJson } from '@/assets/icons/Icon';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { JSON_TOO_DEEP_TO_FORMAT, stringifyJsonSafely } from '@/utils/safeJson';
+import { tqlCsvColumnTypes } from '@/utils/tqlCsvParser';
 
 const parseStructuredJSON = (s: string): unknown | undefined => {
     try {
@@ -20,6 +21,7 @@ interface TableProps {
 }
 export const Table = (props: TableProps) => {
     const { items, headers /*pType, pTimezone*/ } = props;
+    const sColumnTypes = useMemo(() => tqlCsvColumnTypes(items), [items]);
     const [sCellValue, setCellValue] = useState<string>('');
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
     const [sMenuX, setMenuX] = useState<number>(0);
@@ -69,7 +71,7 @@ export const Table = (props: TableProps) => {
 
     return (
         <div className="table-wrapper" style={{ height: '100%' }} onContextMenu={handleContextMenu} data-testid="tql-result-table">
-            <CommonTable data={{ columns: headers as string[] ?? [], rows: items }} showRowNumber showCopyButton cellWidthFix style={{ height: '100%' }} getCellTestId={(aColumn) => `cell-${encodeURIComponent(aColumn ?? '')}`} />
+            <CommonTable data={{ columns: headers as string[] ?? [], rows: items, types: sColumnTypes }} showRowNumber showCopyButton cellWidthFix style={{ height: '100%' }} getCellTestId={(aColumn) => `cell-${encodeURIComponent(aColumn ?? '')}`} />
             <ContextMenu isOpen={sIsContextMenu} position={{ x: sMenuX, y: sMenuY }} onClose={closeContextMenu} data-testid="tql-cell-menu">
                 <ContextMenu.Item onClick={showFullContent} data-testid="show-full-contents">
                     <Monitor />
