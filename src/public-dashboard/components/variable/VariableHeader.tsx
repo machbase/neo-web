@@ -16,14 +16,10 @@ export const VariableHeader = ({
     const updateVariableCode = () => {
         callback && callback(sUpdateVarList);
     };
+    // Built on the choices made so far in this window: starting again from the board's saved
+    // variables put back every value picked before the last one (#1566).
     const handleValueUse = (variable: VARIABLE_TYPE, item: VARIABLE_ITEM_TYPE) => {
-        const tmpVarList = pBoardInfo?.dashboard?.variables?.map((varInfo: VARIABLE_TYPE) => {
-            if (variable.id === varInfo.id) {
-                varInfo;
-                return { ...varInfo, use: item };
-            } else return varInfo;
-        });
-        setUpdateVarList(tmpVarList);
+        setUpdateVarList((aPrev) => aPrev.map((varInfo: VARIABLE_TYPE) => (variable.id === varInfo.id ? { ...varInfo, use: item } : varInfo)));
     };
 
     useEffect(() => {
