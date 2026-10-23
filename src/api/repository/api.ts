@@ -23,12 +23,25 @@ const getReferenceList = () => {
     });
 };
 
+// All writers (ordinary Save, Save As and TAZ) share one queue per file.
+// Ignoring an old response cannot stop its POST from overwriting a newer file.
+const fileWrites = new Map<string, Promise<unknown>>();
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
-    return request({
-        method: 'POST',
-        url: buildFilesUrl(`${aDir}/${aFileName}`),
-        data: aContents,
-    });
+    const url = buildFilesUrl(`${aDir}/${aFileName}`);
+    // Conservatively serialize case aliases too: they can be the same file on
+    // macOS/Windows. Distinct files on Linux still keep both writes.
+    const key = url.toLowerCase();
+    const previous = fileWrites.get(key);
+    const write = () => request({ method: 'POST', url, data: aContents });
+    // Keep the first request immediate for callers that refresh after creating
+    // a folder. Only a write to an already-busy file needs to wait.
+    const result = previous ? previous.catch(() => undefined).then(write) : write();
+    fileWrites.set(key, result);
+    const release = () => {
+        if (fileWrites.get(key) === result) fileWrites.delete(key);
+    };
+    void result.then(release, release);
+    return result;
 };
 const deleteFileList = (aDir: string, aFileName: string) => {
     return request({
