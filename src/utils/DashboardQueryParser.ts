@@ -57,6 +57,17 @@ const timeConverter = (aTime: string | number, aReturnTypeString: boolean) => {
         return moment(sTmpTime).format('YYYY-MM-DD HH:mm:ss');
     } else return Math.floor((aTime as number) / 1000);
 };
+/**
+ * `{{period}}` / TQL `$period`: the x-axis interval as value + unit letter (`10m`). A panel saved with
+ * no unit (an old or hand-edited board) has no letter to add; `10 + undefined` came out as `NaN` or
+ * `undefined` in the query (#1566), so such a period is empty instead.
+ */
+export const periodText = (aInterval: { IntervalType?: string; IntervalValue?: number | string } | undefined): string => {
+    const sUnit = String(aInterval?.IntervalType ?? '');
+    const sValue = aInterval?.IntervalValue;
+    if (!sUnit || sValue === undefined || sValue === null || sValue === '') return '';
+    return `${sValue}${sUnit[0]}`;
+};
 const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
     switch (aValue) {
         case '{{from_str}}':
@@ -80,7 +91,7 @@ const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
         case '{{to_ns}}':
             return (timeConverter(aTime.end, false) as number) * 1000000000;
         case '{{period}}':
-            return aTime.interval.IntervalValue + aTime.interval.IntervalType[0];
+            return periodText(aTime.interval);
         case '{{period_unit}}':
             return aTime.interval.IntervalType;
         case '{{period_value}}':

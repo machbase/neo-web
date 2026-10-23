@@ -1,6 +1,5 @@
-import { VARIABLE_TYPE } from '@/components/dashboard/variable';
 import moment from 'moment';
-import { VariableParser } from './DashboardQueryParser';
+import { VariableParser, periodText } from './DashboardQueryParser';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { literalReplacement } from '@/utils/dashboardVariableText';
 
@@ -8,7 +7,7 @@ export const TqlChartParser = (
     aTqlChartInfo: any,
     aTimeParams: { start: number | string; end: number | string },
     aInterval: { IntervalType: string; IntervalValue: number },
-    aVariableList: VARIABLE_TYPE[]
+    aVariableList: Parameters<typeof VariableParser>[0]
 ) => {
     const timeConverter = (aTime: string | number, aReturnTypeString: boolean) => {
         if (aReturnTypeString) {
@@ -39,7 +38,7 @@ export const TqlChartParser = (
             case '$to_ns':
                 return (timeConverter(aTimeParams.end, false) as number) * 1000000000;
             case '$period':
-                return aInterval.IntervalValue + aInterval.IntervalType[0];
+                return periodText(aInterval);
             case '$period_unit':
                 return aInterval.IntervalType;
             case '$period_value':
@@ -48,7 +47,7 @@ export const TqlChartParser = (
                 return aValue;
         }
     };
-    const paramsFilter = (aParamList: any, aVariableList: VARIABLE_TYPE[]) => {
+    const paramsFilter = (aParamList: any, aVariableList: Parameters<typeof VariableParser>[0]) => {
         const parsedVariableList = VariableParser(aVariableList, { start: aTimeParams.start, end: aTimeParams.end, interval: aInterval });
         const useParamList = aParamList.filter((aParam: any) => aParam.name !== '' && aParam.value !== '');
         let parsedParamList = useParamList.map((bParam: any) => {
