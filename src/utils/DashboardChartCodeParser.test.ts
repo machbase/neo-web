@@ -144,17 +144,29 @@ describe('DashboardChartCodeParser — static substring assertions', () => {
     });
 });
 
-describe('DashboardChartCodeParser — public-dashboard mirror lacks NO_DATA', () => {
-    test('mirror does not export NO_DATA aggregation (intentional asymmetry)', async () => {
-        // Use require to inspect the mirror module's source-emitted code: call it with the same args
-        // and check that the mirror string does not contain NO_DATA-final sentinels.
-        // The mirror has a different TimeValueFunc signature so we just sanity check the export exists.
+describe('DashboardChartCodeParser — shared link draws the same chart script (#1566)', () => {
+    test('the public board gets the same No-data notice as the editor', () => {
         const mirror = require('../public-dashboard/utils/DashboardChartCodeParser');
-        expect(typeof mirror.DashboardChartCodeParser).toBe('function');
-        // The mirror's TimeValueFunc accepts only (aYAxisOptions) — passing extra args is harmless.
         const code = mirror.DashboardChartCodeParser({}, 'line', [makeQuery('A', 0)], '1.0.1', false, 'panel-x', []);
-        expect(code).not.toContain('sEmptyFlags');
-        expect(code).not.toContain('No data available');
+        expect(code).toBe(DashboardChartCodeParser({}, 'line', [makeQuery('A', 0)], '1.0.1', false, 'panel-x', []));
+        expect(code).toContain('sEmptyFlags');
+        expect(code).toContain('No data available');
+    });
+
+    test('the editor posts to /web/api/tql, a saved script and a shared link to /db/tql', () => {
+        const sPath = window.location.pathname;
+        try {
+            window.history.replaceState(null, '', '/web/ui/');
+            expect(DashboardChartCodeParser({}, 'line', [makeQuery('A', 0)], '1.0.1', false, 'p', [])).toContain('/web/api/tql"');
+            expect(DashboardChartCodeParser({}, 'line', [makeQuery('A', 0)], '1.0.1', true, 'p', [])).toContain('/db/tql"');
+            window.history.replaceState(null, '', '/web/ui/board/A.dsh');
+            const sPublic = DashboardChartCodeParser({}, 'line', [makeQuery('A', 0)], '1.0.1', false, 'p', []);
+            expect(sPublic).toContain('/db/tql"');
+            // A viewer who is logged in still sends the session token, as the public copy did.
+            expect(sPublic).toContain('"Authorization": "Bearer ');
+        } finally {
+            window.history.replaceState(null, '', sPath);
+        }
     });
 });
 
@@ -260,5 +272,20 @@ describe('DashboardChartCodeParser — runtime sandbox evaluation', () => {
         const { chartOption } = await runGeneratedCode(code, fetchMock, { seriesLen: 1 });
         const graphicText = JSON.stringify(chartOption.graphic ?? '');
         expect(graphicText).toContain('No data available');
+    });
+
+    // #1566: a value of 0 is data. The shared link drew it before it used this script; a count can be 0.
+    test.each([['pie'], ['gauge']])('NameValue (%s): every series 0 draws 0, no No-data overlay', async (type) => {
+        const queries = [makeQuery('Z_A', 0, 'NAME_VALUE'), makeQuery('Z_B', 1, 'NAME_VALUE')];
+        const code = DashboardChartCodeParser({ unit: '', digit: 0 }, type, queries, '1.0.1', false, 'panel-zero', []);
+        const { chartOption } = await runGeneratedCode(code, fetchByAlias({ Z_A: makeNameValue(0), Z_B: makeNameValue(0) }), { seriesLen: 1 });
+        expect(JSON.stringify(chartOption.graphic ?? '')).not.toContain('No data available');
+    });
+
+    test('LiquidFill 0 fills to 0, no No-data overlay', async () => {
+        const code = DashboardChartCodeParser({ unit: '', digit: 0, minData: 0, maxData: 100 }, 'liquidFill', [makeQuery('LZ', 0, 'NAME_VALUE')], '1.0.1', false, 'panel-lz', []);
+        const { chartOption } = await runGeneratedCode(code, fetchByAlias({ LZ: makeNameValue(0) }), { seriesLen: 1 });
+        expect(JSON.stringify(chartOption.graphic ?? '')).not.toContain('No data available');
+        expect(chartOption.series[0].data).not.toBe('No-data');
     });
 });

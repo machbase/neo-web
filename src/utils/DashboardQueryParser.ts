@@ -89,7 +89,9 @@ const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
             return aValue;
     }
 };
-export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType) => {
+// Only the key and the chosen value are read, so the public board's lighter variable type fits too.
+type ParsedVariable = Pick<VARIABLE_TYPE, 'key'> & { use: Pick<VARIABLE_TYPE['use'], 'value'> };
+export const VariableParser = (aVariables: ParsedVariable[], aTime: BlockTimeType) => {
     const defineVar = aVariables?.map((variable: any) => {
         return { key: variable.key, value: variable.use.value, regEx: variableKeyRegExp(variable.key) };
     });
@@ -98,7 +100,7 @@ export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType
     });
     return defineVar.concat(defaultVar);
 };
-export const VariableParserForTql = (aVariables: VARIABLE_TYPE[]) => {
+export const VariableParserForTql = (aVariables: ParsedVariable[]) => {
     const defineVar = aVariables?.map((variable: any) => {
         return { key: variable.key, value: variable.use.value, regEx: variableKeyRegExp(variable.key) };
     });
