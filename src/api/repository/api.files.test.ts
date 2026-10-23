@@ -46,3 +46,41 @@ describe('api.ts /api/files URLs', () => {
         expect(lastCall().url).toBe('/api/files/a/b.sql');
     });
 });
+
+
+describe('file write ordering', () => {
+    beforeEach(() => (request as unknown as jest.Mock).mockReset().mockResolvedValue({ success: true }));
+
+    it('serializes canonical path and case aliases while keeping each submitted payload', async () => {
+        let finish!: (value: unknown) => void;
+        (request as unknown as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        const first = postFileList({ data: ['FIRST'] }, 'd/', 'a.wrk');
+        await Promise.resolve(); await Promise.resolve();
+        const second = postFileList({ data: ['LATEST'] }, '/d//', 'A.WRK');
+        await Promise.resolve(); await Promise.resolve();
+        expect(request).toHaveBeenCalledTimes(1);
+        finish({ success: true }); await first; await second;
+        expect((request as unknown as jest.Mock).mock.calls.map(call => call[0].data)).toEqual([{ data: ['FIRST'] }, { data: ['LATEST'] }]);
+        expect(lastCall().url).toBe('/api/files/d/A.WRK');
+    });
+
+    it('allows another file to save while one file waits', async () => {
+        let finish!: (value: unknown) => void;
+        (request as unknown as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        const first = postFileList('FIRST', '/', 'a.sql');
+        await Promise.resolve(); await Promise.resolve();
+        await postFileList('OTHER', '/', 'b.sql');
+        expect(request).toHaveBeenCalledTimes(2);
+        finish({ success: true }); await first;
+    });
+
+    it('continues after a failed write and releases the queue for the next save', async () => {
+        (request as unknown as jest.Mock).mockRejectedValueOnce(new Error('write failed'));
+        const first = postFileList('FIRST', '/', 'a.sql');
+        const second = postFileList('LATEST', '/', 'a.sql');
+        await expect(first).rejects.toThrow('write failed'); await expect(second).resolves.toEqual({ success: true });
+        await postFileList('NEXT', '/', 'a.sql');
+        expect(request).toHaveBeenCalledTimes(3);
+        expect(lastCall().data).toBe('NEXT');
+    });
+});

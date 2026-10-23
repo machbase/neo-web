@@ -1,23 +1,31 @@
 import { useRef, useCallback, useEffect } from 'react';
 
-export const useAbortController = () => {
-    const controllerRef = useRef<AbortController | null>(null);
+const DEFAULT_REQUEST_KEY = '';
 
-    const createSignal = useCallback(() => {
-        controllerRef.current?.abort();
+export const useAbortController = () => {
+    const controllersRef = useRef(new Map<string, AbortController>());
+
+    // A new request supersedes only the previous request for the same owner.
+    // Callers without a key retain the original single-request behavior.
+    const createSignal = useCallback((key = DEFAULT_REQUEST_KEY) => {
+        controllersRef.current.get(key)?.abort();
         const controller = new AbortController();
-        controllerRef.current = controller;
+        controllersRef.current.set(key, controller);
         return controller.signal;
     }, []);
 
+    const releaseSignal = useCallback((signal: AbortSignal, key = DEFAULT_REQUEST_KEY) => {
+        if (controllersRef.current.get(key)?.signal === signal) {
+            controllersRef.current.delete(key);
+        }
+    }, []);
+
     const abort = useCallback(() => {
-        controllerRef.current?.abort();
-        controllerRef.current = null;
+        for (const controller of controllersRef.current.values()) controller.abort();
+        controllersRef.current.clear();
     }, []);
 
-    useEffect(() => {
-        return () => controllerRef.current?.abort();
-    }, []);
+    useEffect(() => abort, [abort]);
 
-    return { createSignal, abort };
+    return { createSignal, releaseSignal, abort };
 };
