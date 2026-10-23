@@ -1,3 +1,4 @@
+import { enteredFormulaError } from '@/utils/fileRequestResult';
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
 import { getCurrentDatabaseId, isSameDatabaseId } from '@/utils/currentDatabaseState';
 import { fetchDashboardJsonColumnSamples, getRollupTableList, getTqlChart } from '@/api/repository/machiot';
@@ -641,19 +642,19 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
             };
         });
     };
-    const validationFormula = async (aFormula: string): Promise<boolean> => {
+    // The check run's response, kept so a failed check can show the server's reason.
+    const validationFormula = async (aFormula: string): Promise<{ ok: boolean; res?: any }> => {
         const sParsedFormula = replaceVariablesInTql(aFormula, pVariables, {
             interval: { IntervalType: '', IntervalValue: 0 },
             start: '',
             end: '',
         });
-        if (sParsedFormula.match(VARIABLE_REGEX)) return false;
+        if (sParsedFormula.match(VARIABLE_REGEX)) return { ok: false };
         const sResult: any = await getTqlChart(
             `FAKE(json({[1709779542, 1]}))\nMAPVALUE(2, ${mathValueConverter(SqlResDataType(pPanelOption.type) === 'TIME_VALUE' ? '1' : '2', sParsedFormula)})\nJSON()`,
             'dsh'
         );
-        if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) return false;
-        else return true;
+        return { ok: Boolean(sResult?.data?.success && sResult?.data?.data?.rows?.length), res: sResult };
     };
     const handleFormulaIconBtn = () => {
         if (sIsMath) {
@@ -675,12 +676,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         if (!sIsMath) return;
         if (!pBlockInfo?.math || pBlockInfo?.math === '') return setIsMath(false);
         const sResValidation = await validationFormula(pBlockInfo?.math);
-        if (sResValidation) {
+        if (sResValidation.ok) {
             setIsMath(false);
             setOption('isValidMath', true);
         } else {
             setOption('isValidMath', false);
-            Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
+            Toast.error(enteredFormulaError(sResValidation.res), { testId: 'dashboard-panel-editor-toast' });
             setIsMath(false);
         }
     };
@@ -856,7 +857,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
         if (sQuery === '') return setIsValidCustomQuery(true);
         const sResult: any = await getTqlChart(`SQL(${tqlString(sQuery)})\nJSON()`, 'dsh');
         if (!sResult?.data?.success) {
-            Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
+            Toast.error(enteredFormulaError(sResult), { testId: 'dashboard-panel-editor-toast' });
             setIsValidCustomQuery(false);
             return;
         }

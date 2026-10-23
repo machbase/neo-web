@@ -1,3 +1,4 @@
+import { enteredFormulaError } from '@/utils/fileRequestResult';
 import './index.scss';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { useMemo, useState } from 'react';
@@ -167,7 +168,7 @@ const TransformBlock = ({
             const sink = TQL.SINK._JSON();
             const sResult: any = await getTqlChart(`${src}\n${map}\n${sink}`);
             if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) {
-                Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
+                Toast.error(enteredFormulaError(sResult), { testId: 'dashboard-panel-editor-toast' });
                 handleItem('valid', false);
             } else handleItem('valid', true);
         } else handleItem('valid', false);
