@@ -12,11 +12,12 @@ import { Button, ErrorBoundary, Tabs } from '@/design-system/components';
 import Tab from '@/design-system/components/Tabs/Tab';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import useSaveCommand from '@/hooks/useSaveCommand';
+import { useAbortController } from '@/hooks/useAbortController';
+import { applyBoardSaveResult, getBoardSaveData } from '@/utils/boardSaveResult';
 import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
 import { extractionExtension } from '@/utils';
 import { postFileList } from '@/api/repository/api';
-import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Close, PlusCircle, VscMultipleWindows } from '@/assets/icons/Icon';
 import { ContextMenu, Toast } from '@/design-system/components';
 import { ImageBox } from '@/components/imageBox/ImageBox';
@@ -72,7 +73,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const [sIsSaveModal, setIsSaveModal] = useState<boolean>(false);
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const [sBodyWidth, setBodyWidth] = useState<number>(0);
-    const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
+    const sSaveRequests = useAbortController();
     const sTabRef = useRef(null);
     const [sTabContextMenu, setTabContextMenu] = useState(DEFAULT_CONTEXT_MENU_STATE);
     const [sTabDragInfo, setTabDragInfo] = useState<{
@@ -122,55 +123,36 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
             if (sIsAlreadySave) {
                 const sFileType = extractionExtension(sFilterBoard.name);
 
-                if (sFileType === 'taz') {
-                    try {
-                        const sSavedBoard = await saveTazBoard(sFilterBoard);
-                        if (sSavedBoard) {
-                            const sIndex = sBoardList.findIndex((aBoard) => aBoard.id === sSelectedTab);
-                            const sTempBoardList = JSON.parse(JSON.stringify(sBoardList));
-                            sTempBoardList[sIndex] = sSavedBoard as any;
-                            setBoardList(sTempBoardList);
-                        } else {
-                            Toast.error('save file fail retry please');
-                        }
-                    } catch {
-                        Toast.error('save file fail retry please');
-                    }
-                    return;
-                }
-
-                let sSaveData: any =
-                    sFileType === 'wrk'
-                        ? { data: sSaveWorkSheet }
-                        : sFileType === 'dsh'
-                          ? sFilterBoard
-                          : sFilterBoard?.code;
+                const sSignal = sSaveRequests.createSignal(sFilterBoard.id);
+                const applySavedResult = (aSubmitted: any) => {
+                    setBoardList((aBoards) =>
+                        sSignal.aborted ? aBoards : aBoards.map((aBoard) =>
+                            aBoard.id === sFilterBoard.id && aBoard.path === sFilterBoard.path && aBoard.name === sFilterBoard.name
+                                ? applyBoardSaveResult(aBoard, sFileType, aSubmitted)
+                                : aBoard,
+                        ),
+                    );
+                };
                 try {
+                    if (sFileType === 'taz') {
+                        const sSavedBoard = await saveTazBoard(sFilterBoard);
+                        if (sSignal.aborted) return;
+                        if (sSavedBoard) applySavedResult(sSavedBoard);
+                        else Toast.error('save file fail retry please');
+                        return;
+                    }
+
+                    const sSaveData = getBoardSaveData(sFilterBoard, sFileType);
                     const sResult: any = await postFileList(
                         sSaveData,
                         sFilterBoard.path.replace('/', ''),
                         sFilterBoard.name,
                     );
-                    if (sResult.success) {
-                        const sIndex = sBoardList.findIndex((aBoard) => aBoard.id === sSelectedTab);
-                        const sTempBoardList = JSON.parse(JSON.stringify(sBoardList));
-                        if (sFileType === 'wrk') {
-                            sTempBoardList[sIndex].sheet = sSaveWorkSheet;
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveWorkSheet);
-                        } else if (sFileType === 'json' && typeof sSaveData === 'object') {
-                            sTempBoardList[sIndex].code = JSON.stringify(sSaveData, null, 4);
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData, null, 4);
-                        } else if (sFileType === 'dsh') {
-                            sTempBoardList[sIndex].code = '';
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData.dashboard);
-                        } else {
-                            sTempBoardList[sIndex].code = sSaveData;
-                            sTempBoardList[sIndex].savedCode = sSaveData;
-                        }
-                        setBoardList(sTempBoardList);
-                    }
-                } catch (aError) {
-                    Toast.error('save file fail retry please');
+                    if (!sSignal.aborted && sResult.success) applySavedResult(sSaveData);
+                } catch {
+                    if (!sSignal.aborted) Toast.error('save file fail retry please');
+                } finally {
+                    sSaveRequests.releaseSignal(sSignal, sFilterBoard.id);
                 }
             } else {
                 setIsSaveModal(true);
@@ -605,12 +587,12 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                 region:main and take the whole tab strip with it. Close the dialog and say so instead. */}
             {sIsSaveModal ? (
                 <ErrorBoundary name="dialog:save" variant="unit" onError={(aError) => closeFailedDialog(setIsSaveModal, aError)}>
-                    <SaveModal pIsSave setIsOpen={handleIsSaveModal} />
+                    <SaveModal pIsSave setIsOpen={handleIsSaveModal} saveRequests={sSaveRequests} />
                 </ErrorBoundary>
             ) : null}
             {sIsOpenModal ? (
                 <ErrorBoundary name="dialog:open" variant="unit" onError={(aError) => closeFailedDialog(setIsOpenModal, aError)}>
-                    <SaveModal pIsSave={false} setIsOpen={handleIsOpenModal} />
+                    <SaveModal pIsSave={false} setIsOpen={handleIsOpenModal} saveRequests={sSaveRequests} />
                 </ErrorBoundary>
             ) : null}
         </div>

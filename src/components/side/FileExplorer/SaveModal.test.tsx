@@ -3,7 +3,7 @@
 // overwrite its tab filter (`name !== x && path !== y`) dropped unrelated tabs (issue-1544).
 
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
-import { RecoilRoot, useRecoilValue } from 'recoil';
+import { RecoilRoot, useRecoilState } from 'recoil';
 import { SaveModal } from './SaveModal';
 import { getFileList, postFileList } from '@/api/repository/api';
 import { getFiles } from '@/api/repository/fileTree';
@@ -30,8 +30,16 @@ jest.mock('@/components/tagAnalyzer/persistence/tazDocumentService', () => ({
 }));
 
 let sLatestBoards: any[] = [];
+let updateBoards: (updater: any) => void;
+let selectTab: (id: string) => void;
+let latestSelectedTab: string;
 const BoardSpy = () => {
-    sLatestBoards = useRecoilValue(gBoardList) as any[];
+    const [boards, setBoards] = useRecoilState(gBoardList);
+    sLatestBoards = boards;
+    updateBoards = setBoards;
+    const [selected, setSelected] = useRecoilState(gSelectedTab);
+    latestSelectedTab = selected;
+    selectTab = setSelected;
     return null;
 };
 
@@ -287,4 +295,137 @@ describe('SaveModal — type list (r19)', () => {
         expect(listRequestFilters().length).toBeGreaterThan(0);
         expect(listRequestFilters().every((aF) => !String(aF).includes('?filter='))).toBe(true);
     });
+});
+
+
+it('Save As applies its submitted snapshot to the current tabs and keeps later source edits', async () => {
+    mockListing([], []);
+    let resolveSave!: (result: any) => void;
+    (postFileList as jest.Mock).mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
+    renderSave([SQL_TAB], SQL_TAB.id);
+    await screen.findByDisplayValue('q.sql');
+    typeName('q.sql', 'new.sql');
+    await clickApply();
+    await waitFor(() => expect(resolveSave).toBeDefined());
+    const draft = { ...SQL_TAB, id: 'draft', path: '', name: 'SQL', code: 'NEW TAB DRAFT', savedCode: '' };
+    act(() => updateBoards((boards: any[]) => [...boards.map((board) => ({ ...board, code: 'LATER SOURCE EDIT' })), draft]));
+    await act(async () => resolveSave({ success: true }));
+    await waitFor(() => expect(sLatestBoards[0].name).toBe('new.sql'));
+    expect(sLatestBoards.map((board) => board.id)).toEqual([SQL_TAB.id, 'draft']);
+    expect(sLatestBoards[0]).toMatchObject({ code: 'LATER SOURCE EDIT', savedCode: SQL_TAB.code, path: '/' });
+    expect(sLatestBoards[1]).toEqual(draft);
+});
+
+it.each(['closed', 'renamed'])('Save As does not restore or rename a source tab that was %s while waiting', async (change) => {
+    mockListing([], []);
+    let resolveSave!: (result: any) => void;
+    (postFileList as jest.Mock).mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
+    renderSave([SQL_TAB], SQL_TAB.id);
+    await screen.findByDisplayValue('q.sql');
+    typeName('q.sql', 'new.sql');
+    await clickApply();
+    await waitFor(() => expect(resolveSave).toBeDefined());
+    const current = change === 'closed' ? [] : [{ ...SQL_TAB, name: 'renamed.sql', code: 'LATER EDIT' }];
+    act(() => updateBoards(current));
+    await act(async () => resolveSave({ success: true }));
+    expect(sLatestBoards).toEqual(current);
+});
+
+it('Save As keeps the opening worksheet when another file type becomes selected', async () => {
+    jest.clearAllMocks();
+    mockListing([], []);
+    (postFileList as jest.Mock).mockResolvedValue({ success: true });
+    const source = { ...SQL_TAB, type: 'wrk', name: 'a.wrk', code: '', sheet: [{ id: 'a', contents: 'WORKSHEET A' }] };
+    const other = { ...SQL_TAB, id: 'other', name: 'b.sql', code: 'SELECT B' };
+    renderSave([source, other], source.id);
+    await screen.findByDisplayValue('a.wrk');
+    act(() => selectTab(other.id));
+    typeName('a.wrk', 'copy.wrk');
+    await clickApply();
+    await waitFor(() => expect(postFileList).toHaveBeenCalledWith({ data: source.sheet }, '/', 'copy.wrk'));
+    expect(sLatestBoards).toEqual([{ ...source, name: 'copy.wrk', savedCode: JSON.stringify(source.sheet) }, other]);
+    expect(latestSelectedTab).toBe(other.id);
+});
+
+it('selects the saving tab if a confirmed overwrite closes the active destination tab', async () => {
+    jest.clearAllMocks();
+    mockListing([], [{ name: 'b.sql', type: '.sql' }]);
+    (postFileList as jest.Mock).mockResolvedValue({ success: true });
+    const other = { ...SQL_TAB, id: 'other', name: 'b.sql', code: 'SELECT B' };
+    renderSave([SQL_TAB, other], SQL_TAB.id);
+    await screen.findByDisplayValue('q.sql');
+    act(() => selectTab(other.id));
+    typeName('q.sql', 'b.sql'); await clickApply();
+    const dialog = await screen.findByTestId('file-overwrite-dialog');
+    await act(async () => fireEvent.click(within(dialog).getByTestId('confirm')));
+    await waitFor(() => expect(sLatestBoards.map(board => board.id)).toEqual([SQL_TAB.id]));
+    expect(latestSelectedTab).toBe(SQL_TAB.id);
+});
+
+it.each(['closed', 'renamed'])('Save As refuses to save an opening tab that was %s before Apply', async change => {
+    jest.clearAllMocks();
+    mockListing([], []);
+    (postFileList as jest.Mock).mockResolvedValue({ success: true });
+    const other = { ...SQL_TAB, id: 'other', name: 'b.sql', code: 'SELECT B' };
+    renderSave([SQL_TAB, other], SQL_TAB.id);
+    await screen.findByDisplayValue('q.sql');
+    const current = change === 'closed' ? [other] : [{ ...SQL_TAB, name: 'renamed.sql' }, other];
+    act(() => { updateBoards(current); selectTab(other.id); });
+    typeName('q.sql', 'copy.sql');
+    await clickApply();
+    expect(postFileList).not.toHaveBeenCalled();
+    expect(screen.getByTestId('save-modal-error')).toHaveTextContent('The source tab was closed or changed');
+    expect(sLatestBoards).toEqual(current);
+});
+
+
+it.each(['later-edit', 'new-tab'])('preserves a destination %s after overwrite approval as an unsaved draft', async change => {
+    jest.clearAllMocks(); mockListing([], [{ name: 'b.sql', type: '.sql' }]);
+    let finish!: (value: any) => void;
+    (postFileList as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const other = { ...SQL_TAB, id: 'other', name: 'b.sql', code: 'APPROVED B' };
+    renderSave(change === 'later-edit' ? [SQL_TAB, other] : [SQL_TAB], SQL_TAB.id);
+    await screen.findByDisplayValue('q.sql'); typeName('q.sql', 'b.sql'); await clickApply();
+    await act(async () => fireEvent.click(within(await screen.findByTestId('file-overwrite-dialog')).getByTestId('confirm')));
+    await waitFor(() => expect(finish).toBeDefined());
+    const draft = { ...other, code: 'B AFTER CONFIRM' };
+    act(() => { updateBoards([SQL_TAB, draft]); selectTab(other.id); });
+    await act(async () => finish({ success: true }));
+    expect(sLatestBoards).toEqual([{ ...SQL_TAB, name: 'b.sql', savedCode: SQL_TAB.code }, { ...draft, path: '', savedCode: false }]);
+    expect(latestSelectedTab).toBe(other.id);
+});
+
+describe('Save As preflight still belongs to its open source', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        (postFileList as jest.Mock).mockResolvedValue({ success: true });
+        mockListing([], []);
+    });
+    it.each(['cancel', 'close-source', 'rename-source', 'change-type'])('does not POST after %s during its target lookup', async action => {
+        let finish!: (value: unknown) => void;
+        (getFiles as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+        renderSave([SQL_TAB], SQL_TAB.id);
+        await screen.findByDisplayValue('q.sql'); typeName('q.sql', 'copy.sql');
+        await clickApply(); await waitFor(() => expect(getFiles).toHaveBeenCalledTimes(1));
+        await act(async () => {
+            if (action === 'cancel') fireEvent.click(within(screen.getByTestId('file-save-dialog')).getByRole('button', { name: /^Cancel$/ }));
+            else if (action === 'close-source') updateBoards([]);
+            else updateBoards((boards: any[]) => boards.map(board => ({ ...board, ...(action === 'rename-source' ? { name: 'renamed.sql' } : { type: 'tql' }) })));
+        });
+        await act(async () => { finish({ success: true, data: { isDir: true, children: [] } }); });
+        expect(postFileList).not.toHaveBeenCalled();
+        if (action !== 'cancel') await screen.findByText('The source tab was closed or changed. Please reopen Save As.');
+    });
+});
+
+it('a second Apply during preflight cannot supersede the first save attempt', async () => {
+    jest.clearAllMocks(); mockListing([], []);
+    (postFileList as jest.Mock).mockResolvedValue({ success: true });
+    let finish!: (value: unknown) => void;
+    (getFiles as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    renderSave([SQL_TAB], SQL_TAB.id); await screen.findByDisplayValue('q.sql'); typeName('q.sql', 'copy.sql');
+    await clickApply(); await clickApply();
+    expect(getFiles).toHaveBeenCalledTimes(1);
+    await act(async () => { finish({ success: true, data: { isDir: true, children: [] } }); });
+    await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
 });

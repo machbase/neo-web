@@ -24,6 +24,15 @@ const Harness = ({ onResult }: { onResult: (aOk: boolean) => void }) => {
 };
 
 describe('useOverwritePrompt', () => {
+    it('answers no when its enclosing dialog unmounts while a question is pending', async () => {
+        const onResult = jest.fn();
+        const view = render(<Harness onResult={onResult} />);
+        await act(async () => { fireEvent.click(screen.getByTestId('save')); });
+        expect(onResult).not.toHaveBeenCalled();
+        await act(async () => { view.unmount(); });
+        expect(onResult).toHaveBeenCalledTimes(1);
+        expect(onResult).toHaveBeenCalledWith(false);
+    });
     it('L3: a second ask while one is pending resolves false at once; the first still waits for the user', async () => {
         const sResults: boolean[] = [];
         render(<Harness onResult={(aOk) => sResults.push(aOk)} />);

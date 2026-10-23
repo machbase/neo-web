@@ -15,6 +15,12 @@ const useNamePrompt = (aMessage: (aName: string) => string, aTestId: string) => 
     const sReturnFocusRef = useRef<HTMLElement | null>(null);
     const sRestoreFocusRef = useRef(false);
 
+    useEffect(() => () => {
+        // An enclosing save dialog can close while its question is pending.
+        sResolveRef.current?.(false);
+        sResolveRef.current = null;
+    }, []);
+
     const ask = (aName: string) => {
         if (sResolveRef.current) return Promise.resolve(false);
         return new Promise<boolean>((resolve) => {

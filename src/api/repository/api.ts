@@ -7,6 +7,7 @@ import { findDatabaseByName, LEGACY_DATABASE } from '@/utils/currentDatabaseStat
 import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
 import type { BackupRequest } from '@/components/database/backup/backupPayload';
 import { buildFilesUrl } from '@/utils/filePath';
+import { cancelPendingFileWrites, queueFileWrite } from './fileWriteQueue';
 import { sqlIdentifierPath, sqlQueryUrl, sqlString } from '@/utils/queryText';
 
 
@@ -24,13 +25,11 @@ const getReferenceList = () => {
 };
 
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
-    return request({
-        method: 'POST',
-        url: buildFilesUrl(`${aDir}/${aFileName}`),
-        data: aContents,
-    });
+    const path = `${aDir}/${aFileName}`;
+    return queueFileWrite(path, () => request({ method: 'POST', url: buildFilesUrl(path), data: aContents }));
 };
 const deleteFileList = (aDir: string, aFileName: string) => {
+    cancelPendingFileWrites(`${aDir}/${aFileName}`);
     return request({
         method: 'DELETE',
         url: buildFilesUrl(`${aDir}/${aFileName}`),
