@@ -63,6 +63,18 @@ export const envDirectiveWarning = (aStatements?: readonly { env?: { error?: str
 const tqlSingleQuoted = (aValue: string) => `'${String(aValue ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
 
 /**
+ * The statement as the TQL `SQL()` argument.
+ *
+ * A backtick literal is raw, so it carries the SQL untouched — but it cannot hold a backtick of its own: `'a`b'`
+ * closed it early and the server answered 400 *unclosed string literal* (F-11). Only such a statement switches to
+ * the single-quoted form, which a raw newline would also end, so line breaks and tabs are written as escapes.
+ * Measured against the engine: backslashes, `''`, comments, CRLF and non-ASCII come back the same through either
+ * form. Every statement without a backtick keeps the backtick literal, byte for byte.
+ */
+const tqlSqlLiteral = (aSql: string) =>
+    aSql.includes('`') ? tqlSingleQuoted(aSql).replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') : '`' + aSql + '`';
+
+/**
  * `named()` arguments, which unlike `bridge()` and `use()` follow the statement rather than
  * precede it — `SQL(use('db'), \`… :tag …\`, named('tag', 'x'))`.
  *
@@ -121,9 +133,7 @@ export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string,
         'SQL(' +
         bridgeText +
         useText +
-        '`' +
-        aSql +
-        '`' +
+        tqlSqlLiteral(aSql) +
         namedArguments(env?.named) +
         ')\n' +
         'DROP(' +
@@ -161,9 +171,7 @@ export const sqlSheetFormatter = ({
         'SQL(' +
         bridgeText +
         useText +
-        '`' +
-        aSql +
-        '`' +
+        tqlSqlLiteral(aSql) +
         namedArguments(env?.named) +
         ')\n' +
         `MARKDOWN(html(true), rownum(true), heading(true), brief(${aBrief}), timeformat(${tqlSingleQuoted(sOutput.timeformat)}), tz(${tqlSingleQuoted(sOutput.tz)})${sBinaryFormat})`
@@ -224,7 +232,8 @@ export const sqlCsvDownloadUrl = ({
         .filter(([aKey, aValue]) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(aKey) && aValue !== undefined && aValue !== null)
         .map(([aKey, aValue]) => encodeURI(`, named('${aKey}', '`) + fixedEncodeURIComponent(String(aValue).replace(/\\/g, '\\\\').replace(/'/g, "\\'")) + encodeURI(`')`))
         .join('');
-    const sEncodedText = fixedEncodeURIComponent(aSql);
+    // The literal's own quotes are encoded with it — '`' encodes to %60 either way, so the backtick form is unchanged.
+    const sSqlText = fixedEncodeURIComponent(tqlSqlLiteral(aSql));
     const sOutput = resolveOutputOptions(env, aTimeFormat, aTimeZone);
     const sTimeFormat = tqlDoubleQuotedValue(sOutput.timeformat);
     const sTimeZone = tqlDoubleQuotedValue(sOutput.tz);
@@ -237,9 +246,7 @@ export const sqlCsvDownloadUrl = ({
         encodeURI(`${aUrl}?$=SQL(`) +
         bridgeText +
         useText +
-        encodeURI(`\u0060`) +
-        sEncodedText +
-        encodeURI(`\u0060`) +
+        sSqlText +
         sNamedText +
         encodeURI(`)\u000ACSV(timeformat("${sTimeFormat}"), tz("${sTimeZone}"), httpHeader("Content-Disposition", "attachment"), heading(true)${sBinaryFormat})\u0026$token=${aToken}`)
     );
@@ -287,9 +294,7 @@ export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: str
         'SQL(' +
         bridgeText +
         useText +
-        '`' +
-        aSql +
-        '`' +
+        tqlSqlLiteral(aSql) +
         namedArguments(env?.named) +
         ')\n' +
         'TAKE(5000)\n' +

@@ -532,3 +532,27 @@ describe('output format env', () => {
         );
     });
 });
+
+// F-11: a backtick inside the SQL closed the backtick literal — the server answered 400 "unclosed string literal".
+describe('SQL with a backtick', () => {
+    const SQL = "select 'a`b' as V,\n\t'c\\'d' as W\r\nfrom example";
+    const LITERAL = "'select \\'a`b\\' as V,\\n\\t\\'c\\\\\\'d\\' as W\\r\\nfrom example'";
+
+    test('sqlBasicFormatter writes it single-quoted with escapes', () => {
+        expect(sqlBasicFormatter(SQL, 1, 'ns', 'UTC')).toEqual(basic().replace('`select * from example`', LITERAL));
+    });
+    test('sqlSheetFormatter writes it single-quoted with escapes', () => {
+        expect(sqlSheetFormatter({ aSql: SQL, aBrief: false, aTimeFormat: 'ns', aTimeZone: 'UTC' })).toEqual(sheet().replace('`select * from example`', LITERAL));
+    });
+    test('sqlBasicChartFormatter writes it single-quoted with escapes', () => {
+        const AXIS = { x: 'TIME', y: 'VALUE', xIndex: 0, yIndex: 1, list: ['TIME', 'VALUE'] };
+        expect(sqlBasicChartFormatter(SQL, AXIS)).toEqual(sqlBasicChartFormatter('select * from example', AXIS).replace('`select * from example`', LITERAL));
+    });
+    test('sqlCsvDownloadUrl encodes the single-quoted literal', () => {
+        const sUrl = sqlCsvDownloadUrl({ aUrl: 'u', aSql: SQL, aTimeFormat: 'ns', aTimeZone: 'UTC', aToken: 't' });
+        expect(decodeURIComponent(sUrl)).toContain('SQL(' + LITERAL + ')\nCSV(');
+    });
+    test('a statement without a backtick keeps the backtick literal', () => {
+        expect(sqlBasicFormatter("select 'a''b'\nfrom example", 1, 'ns', 'UTC')).toContain("SQL(`select 'a''b'\nfrom example`)");
+    });
+});
