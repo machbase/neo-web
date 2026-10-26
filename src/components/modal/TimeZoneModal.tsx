@@ -12,6 +12,10 @@ export interface TimeZoneModalProps {
     zoneInitValue: string;
 }
 
+// The dropdowns open in a portal, so each option carries a feature-qualified test ID keyed by its value.
+const FORMAT_OPTIONS = TIME_FORMAT_LIST.map((aOption) => ({ ...aOption, testId: `time-format-${encodeURIComponent(aOption.value)}` }));
+const ZONE_OPTIONS = IANA_TIMEZONES.map((aOption) => ({ ...aOption, testId: `time-zone-${encodeURIComponent(aOption.value)}` }));
+
 export const TimeZoneModal = ({ isOpen, onClose, formatInitValue = '2006-01-02 15:04:05', zoneInitValue = 'LOCAL' }: TimeZoneModalProps) => {
     const [sTimeFormat, setTimeFormat] = useState(formatInitValue ?? '2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState(zoneInitValue ?? 'LOCAL');
@@ -32,7 +36,7 @@ export const TimeZoneModal = ({ isOpen, onClose, formatInitValue = '2006-01-02 1
     };
 
     return (
-        <Modal.Root isOpen={isOpen} onClose={handleClose}>
+        <Modal.Root isOpen={isOpen} onClose={handleClose} data-testid="time-format-modal">
             <Modal.Header>
                 <Modal.Title>
                     <RiTimeZoneLine size={16} />
@@ -41,15 +45,15 @@ export const TimeZoneModal = ({ isOpen, onClose, formatInitValue = '2006-01-02 1
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
-                <Combobox.Root label="Time format" labelPosition="left" options={TIME_FORMAT_LIST} value={sTimeFormat} onChange={setTimeFormat} placeholder="Select time format">
-                    <Combobox.Input />
+                <Combobox.Root label="Time format" labelPosition="left" options={FORMAT_OPTIONS} value={sTimeFormat} onChange={setTimeFormat} placeholder="Select time format">
+                    <Combobox.Input data-testid="format" />
                     <Combobox.Trigger icon={<VscChevronDown size={14} />} />
                     <Combobox.Dropdown>
                         <Combobox.List />
                     </Combobox.Dropdown>
                 </Combobox.Root>
-                <Combobox.Root label="Time zone" labelPosition="left" options={IANA_TIMEZONES} value={sTimeZone} onChange={setTimeZone} placeholder="Select time zone">
-                    <Combobox.Input />
+                <Combobox.Root label="Time zone" labelPosition="left" options={ZONE_OPTIONS} value={sTimeZone} onChange={setTimeZone} placeholder="Select time zone">
+                    <Combobox.Input data-testid="zone" />
                     <Combobox.Trigger icon={<VscChevronDown size={14} />} />
                     <Combobox.Dropdown>
                         <Combobox.List />
@@ -57,8 +61,8 @@ export const TimeZoneModal = ({ isOpen, onClose, formatInitValue = '2006-01-02 1
                 </Combobox.Root>
             </Modal.Body>
             <Modal.Footer>
-                <Modal.Confirm onClick={handleSave}>Apply</Modal.Confirm>
-                <Modal.Cancel onClick={handleClose}>Cancel</Modal.Cancel>
+                <Modal.Confirm onClick={handleSave} data-testid="apply">Apply</Modal.Confirm>
+                <Modal.Cancel onClick={handleClose} data-testid="cancel">Cancel</Modal.Cancel>
             </Modal.Footer>
         </Modal.Root>
     );

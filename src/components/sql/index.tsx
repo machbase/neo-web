@@ -425,6 +425,7 @@ const Sql = ({
                                         toolTipContent="Time format / Time zone"
                                         icon={<RiTimeZoneLine size={16} />}
                                         onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                                        data-testid="sql-time-format"
                                     />
                                 </Button.Group>
                                 <span className="editor-header-divider" />
@@ -517,7 +518,7 @@ const Sql = ({
                                         {sEnvWarnLog ? <div className="sql-env-warn-body">{sEnvWarnLog}</div> : null}
                                         <div className="sql-result-body-content">
                                             {sErrLog ? (
-                                                <div className={sDbNotFound ? 'sql-error-body sql-error-body--db-not-found' : 'sql-error-body'} style={{ padding: '0 1rem' }}>
+                                                <div className={sDbNotFound ? 'sql-error-body sql-error-body--db-not-found' : 'sql-error-body'} style={{ padding: '0 1rem' }} data-testid="sql-error">
                                                     {sErrLog}
                                                 </div>
                                             ) : sTextField ? (
