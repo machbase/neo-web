@@ -88,7 +88,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
 
         setConsoleTab(sConsoleTab.filter((aItem: any) => aItem.id !== aValue.id));
 
-        setSelectedTab(sConsoleTab[0].id);
+        // Closing a tab in the background keeps the one being viewed; only closing that one moves to Console (F-33).
+        if (aValue.id === sSelectedTab) setSelectedTab(sConsoleTab[0].id);
     };
 
     const changeUtcToText = (aUtcDate: number): string => {
