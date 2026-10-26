@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { executeReLogin } from '@/api/core';
+import { executeReLogin, showSessionExpiredToast } from '@/api/core';
 import { isImage } from '../../utils';
 
 // Define custom type for headers
@@ -151,13 +151,15 @@ request.interceptors.response.use(
                 // token, instead of one relogin each (F-46). It stores the new tokens itself.
                 const sRefresh: any = await executeReLogin();
 
-                if (sRefresh.success) {
+                if (sRefresh?.success) {
                     if (error.response.config.url !== `/api/login`) {
                         sData = request(error.config);
                     } else {
                         return error;
                     }
                 } else {
+                    // As the signed-in view does: say the session is over, rather than leave blank panels (F-47).
+                    showSessionExpiredToast('Session expired. Please log in again.');
                     window.dispatchEvent(new Event('logoutEvent'));
                     return error;
                 }
