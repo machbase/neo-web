@@ -364,6 +364,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const fetchSplitter = async (atxt: string, signal?: AbortSignal) => {
         const splitRes: any = await postSplitter(atxt, signal);
         if (splitRes?.success) return splitRes.data.statements;
+        // A split that did not reach the server (offline) ran nothing — say so instead of an empty result (F-102).
+        if (!signal?.aborted) setSqlReason(splitRes?.reason || 'Request failed.');
         return undefined;
     };
     const getSqlData = async (aText: string, aOpt: { aLocation?: LocationType; aRunAll?: boolean }) => {

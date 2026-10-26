@@ -7,6 +7,7 @@ import { findDatabaseByName, LEGACY_DATABASE } from '@/utils/currentDatabaseStat
 import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
 import type { BackupRequest } from '@/components/database/backup/backupPayload';
 import { buildFilesUrl } from '@/utils/filePath';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { sqlIdentifierPath, sqlQueryUrl, sqlString } from '@/utils/queryText';
 
 
@@ -319,6 +320,11 @@ export const postSplitter = async (txt: string, signal?: AbortSignal) => {
     try {
         const res = await rpcCall<any[]>(RpcMethod.sql.split, [txt], signal);
         if (res?.error) return { success: false, reason: res.error.message, elapse: '', data: { statements: undefined } };
+        // The request layer resolves a failed request (offline, HTTP error) instead of rejecting it. That value is not a
+        // JSON-RPC body — read as an empty script it ran nothing and said nothing (F-102).
+        if (!res || typeof res !== 'object' || !('result' in res)) {
+            return { success: false, reason: getFileRequestFailure(res, 'Request failed.')?.reason ?? 'Request failed.', elapse: '', data: { statements: undefined } };
+        }
         return { success: true, reason: 'success', elapse: '', data: { statements: res?.result ?? [] } };
     } catch (e) {
         return { success: false, reason: e instanceof Error ? e.message : String(e), elapse: '', data: { statements: undefined } };

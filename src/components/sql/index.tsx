@@ -223,6 +223,8 @@ const Sql = ({
     const fetchSplitter = async (signal?: AbortSignal) => {
         const splitRes: any = await postSplitter(sSqlQueryTxt, signal);
         if (splitRes?.success) return splitRes.data.statements;
+        // A split that did not reach the server (offline) ran nothing — say so instead of an empty result (F-102).
+        if (!signal?.aborted) setErrLog(splitRes?.reason || 'Request failed.');
         return undefined;
     };
 
