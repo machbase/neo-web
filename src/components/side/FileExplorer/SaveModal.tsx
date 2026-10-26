@@ -1,15 +1,16 @@
+import { useAbortController } from '@/hooks/useAbortController';
+import { applyBoardSaveResult, getBoardSaveData, hasBoardContentChanged } from '@/utils/boardSaveResult';
 import { useState, useEffect, useRef } from 'react';
 import { recordRecentFile } from '@/utils/recentFiles';
 import { getFileList, postFileList } from '@/api/repository/api';
 import { gFileTree, gRecentModalPath } from '@/recoil/fileTree';
-import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { gBoardList, gSelectedBoard, gSelectedTab, type GBoardListType } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState, useRecoilCallback } from 'recoil';
 import { getId, extractionExtension, elapsedTime, elapsedSize } from '@/utils';
 import { FileType, FileTreeType, fileTreeParser } from '@/utils/fileTreeParser';
 import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
 import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Toast } from '@/design-system/components';
 import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, TbFolderPlus, FolderOpen } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
@@ -17,7 +18,7 @@ import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { validateName } from '@/utils/fileName';
 import { getTypedFileList, resolveOverwrite, type OverwriteDecision } from '@/utils/fileExistence';
-import { afterOverwrite } from '@/utils/boardAfterOverwrite';
+import { afterOverwrite, isTabOnFile } from '@/utils/boardAfterOverwrite';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import { Alert, Button, Input, Modal, FileListHeader } from '@/design-system/components';
 import {
@@ -30,10 +31,13 @@ import './SaveModal.scss';
 export interface SaveModalProps {
     setIsOpen: any;
     pIsSave: boolean;
+    saveRequests?: ReturnType<typeof useAbortController>;
 }
 
 export const SaveModal = (props: SaveModalProps) => {
     const { setIsOpen, pIsSave } = props;
+    const sLocalSaveRequests = useAbortController();
+    const sSaveRequests = props.saveRequests ?? sLocalSaveRequests;
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sDeletePath, setDeletePath] = useState<string[]>([]);
     const [sSelectedFile, setSelectedFile] = useState<any>();
@@ -41,7 +45,7 @@ export const SaveModal = (props: SaveModalProps) => {
     const [sFilterFileList, setFilterFileList] = useState<any[]>([]);
     const [sSaveFileName, setSaveFileName] = useState<string>('');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-    const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
+    const setSelectedTab = useSetRecoilState(gSelectedTab);
     const [sMenuX, setMenuX] = useState<number>(0);
     const [sMenuY, setMenuY] = useState<number>(0);
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -49,12 +53,34 @@ export const SaveModal = (props: SaveModalProps) => {
     const [sIsSearchMode, setIsSearchMode] = useState<boolean>(false);
     const MenuRef = useRef<HTMLDivElement>(null);
     const [sFileType, setFileType] = useState<string>('');
-    const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const [sFileTree, setFileTree] = useRecoilState(gFileTree);
     const sSelectedBoard = useRecoilValue(gSelectedBoard);
+    // File name, format, content and result updates belong to the tab that
+    // opened this dialog, even if a tab shortcut changes the active tab.
+    const sSaveOwner = useRef(sSelectedBoard).current;
+    const getCurrentBoards = useRecoilCallback(({ snapshot }) => () => snapshot.getLoadable(gBoardList).getValue(), []);
+    const isSaveOwner = (board: GBoardListType) => board.id === sSaveOwner?.id &&
+        board.path === sSaveOwner.path && board.name === sSaveOwner.name && board.type === sSaveOwner.type;
+    const sDialogOpen = useRef(true);
+    const sSaveInProgress = useRef(false);
+    useEffect(() => {
+        sDialogOpen.current = true;
+        return () => { sDialogOpen.current = false; };
+    }, []);
     const [sModalPath, setModalPath] = useRecoilState(gRecentModalPath);
     const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
     const [sSaveError, setSaveError] = useState<string | undefined>(undefined);
+    // Read current state when the response arrives. Update the tabs and their
+    // selection together if an overwrite removes the active destination tab.
+    const applyCurrentTabs = useRecoilCallback(({ snapshot, set }) => (
+        update: (boards: GBoardListType[]) => GBoardListType[], ownerId: string,
+    ) => {
+        const current = snapshot.getLoadable(gBoardList).getValue();
+        const next = update(current);
+        if (next === current) return;
+        set(gBoardList, next);
+        set(gSelectedTab, selected => next.some(board => board.id === selected) ? selected : ownerId);
+    }, []);
 
     const sCheckType = (aValue: string) =>
         aValue === 'sql' ||
@@ -71,19 +97,22 @@ export const SaveModal = (props: SaveModalProps) => {
         aValue === 'txt';
 
     useEffect(() => {
-        sSelectedBoard && sSelectedBoard.type ? setFileType(sSelectedBoard.type) : setFileType('');
+        sSaveOwner && sSaveOwner.type ? setFileType(sSaveOwner.type) : setFileType('');
         setSaveFileName(
-            sSelectedBoard ? (sCheckType(extractionExtension(sSelectedBoard.name)) ? sSelectedBoard.name : sSelectedBoard.name + `.${sSelectedBoard.type}`) : `new.${sFileType}`
+            sSaveOwner ? (sCheckType(extractionExtension(sSaveOwner.name)) ? sSaveOwner.name : sSaveOwner.name + `.${sSaveOwner.type}`) : `new.${sFileType}`
         );
-        const sInitPath = sSelectedBoard.path !== '' ? sSelectedBoard.path : sModalPath;
+        const sInitPath = sSaveOwner.path !== '' ? sSaveOwner.path : sModalPath;
         setSelectedDir(sInitPath.split('/').filter((aPath: string) => !!aPath));
         getFiles(
-            sSelectedBoard.type ?? '',
+            sSaveOwner.type ?? '',
             sInitPath.split('/').filter((aPath: string) => !!aPath)
         );
     }, []);
 
     const handleClose = () => {
+        // A dismissed dialog may finish saving, but cannot close its successor.
+        if (!sDialogOpen.current) return;
+        sDialogOpen.current = false;
         setIsOpen(false);
     };
 
@@ -169,64 +198,95 @@ export const SaveModal = (props: SaveModalProps) => {
     // No "tab's own file" exception (r12): Save As onto the tab's own file asks too. Only the plain Save of an
     // already-saved tab (MainContent direct save, no dialog) writes without a question.
     // A failed lookup / folder conflict is shown inside this dialog (r13), not as a toast.
-    const checkSaveTarget = async (aPath: string, aFileName: string): Promise<OverwriteDecision> => {
+    const checkSaveTarget = async (aPath: string, aFileName: string, canSave: () => boolean): Promise<OverwriteDecision> => {
         setSaveError(undefined);
-        const sDecision = await resolveOverwrite(aPath, aFileName, askOverwrite);
-        if (sDecision.status === 'folder' || sDecision.status === 'failed') setSaveError(sDecision.reason);
+        const sDecision = await resolveOverwrite(aPath, aFileName, name => canSave() ? askOverwrite(name) : Promise.resolve(false));
+        if (canSave() && (sDecision.status === 'folder' || sDecision.status === 'failed')) setSaveError(sDecision.reason);
         return sDecision;
     };
 
     const saveFile = async () => {
-        const sTab = sBoardList.find((aItem) => aItem.id === sSelectedTab);
-        const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'dsh' ? sTab : sTab?.code;
+        if (sSaveInProgress.current) return;
+        const sCurrentBoards = getCurrentBoards();
+        const sTab = sCurrentBoards.find(isSaveOwner);
+        if (!sTab) {
+            setSaveError('The source tab was closed or changed. Please reopen Save As.');
+            return;
+        }
+        const sSaveData = getBoardSaveData(sTab, sFileType);
+        const sOverwriteBoards = new Map(sCurrentBoards.map(board => [board.id, board]));
         const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-
-        if (sFileType === 'taz' && !sTab) {
-            Toast.error('No TAZ tab is selected.');
-            return;
-        }
-
-        const sDecision = await checkSaveTarget(sPath, sSaveFileName);
-        if (sDecision.status !== 'none' && sDecision.status !== 'confirmed') return;
-        // r20 M1: written under the name the user typed — POST, tab and Recent; the server's file system decides the case
-        const sFileName = sSaveFileName;
-        // r13: the tab being saved stays (updated); only OTHER tabs open on the overwritten file are closed
-        const applyTabs = (aUpdate: (aTab: any) => any) =>
-            setBoardList(afterOverwrite(sBoardList as any[], { path: sPath, name: sFileName, currentTabId: sSelectedTab, confirmed: sDecision.status === 'confirmed' }, aUpdate));
-
-        if (sFileType === 'taz') {
-            const sBoardToSave: BoardInfo = {
-                ...(sTab as unknown as BoardInfo),
-                name: sFileName,
-                path: sPath,
-            };
-            const sSavedBoard = await saveTazBoard(sBoardToSave);
-            setModalPath(sPath);
-            if (sSavedBoard) {
-                handleClose();
-                const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
-                setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
-                applyTabs(() => sSavedBoard);
-            } else {
-                Toast.error('Failed to save TAZ file. Please try again.');
+        sSaveInProgress.current = true;
+        const sSignal = sSaveRequests.createSignal(sTab.id);
+        const canSave = () => sDialogOpen.current && !sSignal.aborted && getCurrentBoards().some(isSaveOwner);
+        try {
+            const sDecision = await checkSaveTarget(sPath, sSaveFileName, canSave);
+            // Lookup and overwrite confirmation can outlive their dialog/source.
+            // Check again before sending any request, not only when applying its result.
+            if (!sDialogOpen.current || sSignal.aborted) return;
+            if (!getCurrentBoards().some(isSaveOwner)) {
+                setSaveError('The source tab was closed or changed. Please reopen Save As.');
+                return;
             }
-            return;
-        }
+            if (sDecision.status !== 'none' && sDecision.status !== 'confirmed') return;
+            // r20 M1: written under the name the user typed — POST, tab and Recent; the server's file system decides the case
+            const sFileName = sSaveFileName;
+            // Reuse overwrite handling against the current tabs. Only the submitted
+            // snapshot becomes saved; edits made after Apply remain unsaved.
+            const applyTabs = (aSubmitted: any) => applyCurrentTabs((aBoards) => {
+                if (sSignal.aborted || !aBoards.some((aBoard) =>
+                    aBoard.id === sTab.id && aBoard.path === sTab.path && aBoard.name === sTab.name,
+                )) return aBoards;
+                const sTarget = { path: sPath, name: sFileName };
+                const sCurrentBoards = sDecision.status === 'confirmed' ? aBoards.map(board => {
+                    if (board.id === sTab.id || !isTabOnFile(board, sTarget)) return board;
+                    const previous = sOverwriteBoards.get(board.id);
+                    // The confirmation did not authorize discarding later edits or
+                    // newly opened tabs. Keep them as drafts, separate from the file
+                    // now owned by the writer. Their next Save opens Save As.
+                    return !previous || hasBoardContentChanged(board, previous)
+                        ? { ...board, path: '', savedCode: false }
+                        : board;
+                }) : aBoards;
+                return afterOverwrite(
+                    sCurrentBoards,
+                    { ...sTarget, currentTabId: sTab.id, confirmed: sDecision.status === 'confirmed' },
+                    (aBoard) => ({
+                        ...applyBoardSaveResult(aBoard, sFileType, aSubmitted),
+                        name: sFileName,
+                        path: sPath,
+                    }),
+                );
+            }, sTab.id);
 
-        // one post-processing for a new file and a confirmed overwrite (r13)
-        const sResult: any = await postFileList(sSaveData, sPath, sFileName);
-        setModalPath(sPath);
-        if (sResult.success) {
+            if (sFileType === 'taz') {
+                const sBoardToSave: BoardInfo = { ...(sTab as unknown as BoardInfo), name: sFileName, path: sPath };
+                const sSavedBoard = await saveTazBoard(sBoardToSave);
+                if (sSignal.aborted) return;
+                setModalPath(sPath);
+                if (!sSavedBoard) {
+                    Toast.error('Failed to save TAZ file. Please try again.');
+                    return;
+                }
+                applyTabs(sSavedBoard);
+            } else {
+                const sResult: any = await postFileList(sSaveData, sPath, sFileName);
+                if (sSignal.aborted) return;
+                setModalPath(sPath);
+                if (!sResult.success) return;
+                applyTabs(sSaveData);
+                recordRecentFile({ name: sFileName, path: sPath });
+            }
+            // A file is saved before refreshing the explorer; a slow listing
+            // must not postpone its tab metadata or later replace new tabs.
             handleClose();
-            recordRecentFile({ name: sFileName, path: sPath });
             const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
-            setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
-            applyTabs((aItem: any) => ({
-                ...aItem,
-                name: sFileName,
-                savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : sFileType === 'dsh' ? JSON.stringify(aItem.dashboard) : aItem.code,
-                path: sPath,
-            }));
+            if (!sSignal.aborted) setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
+        } catch {
+            if (!sSignal.aborted) Toast.error('save file fail retry please');
+        } finally {
+            sSaveInProgress.current = false;
+            sSaveRequests.releaseSignal(sSignal, sTab.id);
         }
     };
 
