@@ -90,3 +90,36 @@ describe('request interceptor — POST Content-Type for the URL download extensi
         }
     });
 });
+
+// F-154: a .json save went out under 'application/json' — text that is not strict JSON was quoted into one string
+// literal, text that is JSON was trimmed. Both now reach the server as typed (like .txt).
+describe('request interceptor — .json save body', () => {
+    const capture = async (aConfig: any) => {
+        let sCaptured: any;
+        const sAdapter = (request as any).defaults.adapter;
+        (request as any).defaults.adapter = async (aSent: any) => {
+            sCaptured = aSent;
+            return { data: { success: true }, status: 200, statusText: 'OK', headers: {}, config: aSent };
+        };
+        try {
+            await request(aConfig);
+        } finally {
+            (request as any).defaults.adapter = sAdapter;
+        }
+        return sCaptured;
+    };
+    it.each([
+        ['trailing comma', '{\n  "a": 1,\n}\n\n'],
+        ['comment', '// comment\n{"a": 1}\n'],
+        ['JSON Lines', '{"a": 1}\n{"a": 2}\n'],
+        ['valid JSON with outer whitespace', ' {"a": 1}\n\n'],
+    ])('%s goes on the wire unchanged as text/plain', async (_aCase, aText) => {
+        const sSent = await capture({ url: '/api/files/d/x.json', method: 'POST', data: aText });
+        expect(sSent.data).toBe(aText);
+        expect(sSent.headers['Content-Type']).toBe('text/plain');
+    });
+    it('an object body (URL download of a .json) is still serialized', async () => {
+        const sSent = await capture({ url: '/api/files/d/x.JSON', method: 'POST', data: { a: 1 } });
+        expect(sSent.data).toBe('{"a":1}');
+    });
+});

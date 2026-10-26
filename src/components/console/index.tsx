@@ -88,7 +88,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
 
         setConsoleTab(sConsoleTab.filter((aItem: any) => aItem.id !== aValue.id));
 
-        setSelectedTab(sConsoleTab[0].id);
+        // Closing a tab in the background keeps the one being viewed; only closing that one moves to Console (F-33).
+        if (aValue.id === sSelectedTab) setSelectedTab(sConsoleTab[0].id);
     };
 
     const changeUtcToText = (aUtcDate: number): string => {
@@ -116,7 +117,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
 
     return (
         <Page>
-            <div className="console-form">
+            <div className="console-form" data-testid="console-panel">
                 <div className="console-header">
                     <div className="console-form-tab">
                         {sConsoleTab.map((aItem: any, aIdx: number) => {
@@ -153,6 +154,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                         </>
                                     }
                                     aria-label="Open shell"
+                                    data-testid="open-shell"
                                     variant="ghost"
                                     size="fit"
                                     isToolTip
@@ -160,10 +162,10 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                     toolTipPlace="bottom-end"
                                 />
                             </Menu.Trigger>
-                            <Menu.Content>
+                            <Menu.Content data-testid="console-shell-menu">
                                 {getShellList.map((aItem: any) => {
                                     return (
-                                        <Menu.Item key={aItem.id} onClick={() => handleAddShell(aItem)} icon={icons(aItem?.icon) ?? ''}>
+                                        <Menu.Item key={aItem.id} onClick={() => handleAddShell(aItem)} icon={icons(aItem?.icon) ?? ''} data-testid={`shell-${encodeURIComponent(aItem.id)}`}>
                                             {aItem?.label ?? ''}
                                         </Menu.Item>
                                     );

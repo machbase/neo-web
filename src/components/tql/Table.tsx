@@ -39,8 +39,10 @@ export const Table = (props: TableProps) => {
 
     const handleContextMenu = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
-        const cellText = target.closest('td')?.textContent?.trim() || '';
-        if (!cellText) return;
+        // The cell's text as it is, like its copy button: trimmed, '  padded  ' copied as 'padded' and a cell of
+        // spaces opened no menu at all (F-136).
+        const cellText = target.closest('td')?.textContent ?? '';
+        if (cellText === '') return;
         e.preventDefault();
         setMenuX(e.pageX);
         setMenuY(e.pageY);

@@ -1,6 +1,6 @@
 import { getFileList, postFileList } from '@/api/repository/api';
+import { getFiles } from '@/api/repository/fileTree';
 import { fileTreeParser } from './fileTreeParser';
-import { isJsonString } from './utils';
 import { generateCopyName } from './fileNameUtils';
 import { findExistingEntry } from './fileExistence';
 
@@ -117,22 +117,16 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
 export const FileCopy = async (aTargetFile: any) => {
     const sTargetFolderInfo: any = await getFileList('', aTargetFile.path, '');
     if (!sTargetFolderInfo?.success || !Array.isArray(sTargetFolderInfo.data?.children)) return undefined;
-    const sTargetFileInfo: any = await getFileList('', aTargetFile.path, aTargetFile.name);
+    // Read the bytes as stored: parsed by axios (any body that looks like JSON) and serialized again, a copy
+    // loses the original's layout, and a .json that is not strict JSON was saved as a quoted string.
+    const sTargetFileInfo: any = await getFiles(`${aTargetFile.path}${aTargetFile.name}`, { rawText: true });
     // A deleted copy leaves a gap, so file counts cannot identify an unused name.
     let sCopyNumber = 1;
     let sCopyName = generateCopyName(aTargetFile.name, sCopyNumber);
     while (findExistingEntry(sTargetFolderInfo.data.children, sCopyName)) {
         sCopyName = generateCopyName(aTargetFile.name, ++sCopyNumber);
     }
-    let payload = undefined;
-
-    if (isJsonString(sTargetFileInfo)) {
-        payload = JSON.parse(sTargetFileInfo);
-    } else {
-        payload = sTargetFileInfo;
-    }
-
-    const sResult: any = await postFileList(payload, aTargetFile.path, sCopyName);
+    const sResult: any = await postFileList(sTargetFileInfo, aTargetFile.path, sCopyName);
     if (sResult.success) {
         const sCopyFile = JSON.parse(JSON.stringify(aTargetFile));
         sCopyFile.name = sCopyName;

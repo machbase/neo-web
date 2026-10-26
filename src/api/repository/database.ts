@@ -84,8 +84,10 @@ export const fetchTqlWithoutConsole = async (aSql: string, aDatabase?: string, s
         ...(preserveArrayNumbers ? { preserveArrayNumbers: true } : {}),
     };
 
+    // `consoleId + '…' || ''` never reached its `|| ''` (`+` binds first), so before the console connected this sent
+    // "null, console-log-level=NONE". With no console id there is nothing to name: leave the header out (F-49).
     requestConfig.headers = {
-        'X-Console-Id': consoleId + ', console-log-level=NONE' || '',
+        ...(consoleId ? { 'X-Console-Id': consoleId + ', console-log-level=NONE' } : {}),
         'X-Console-Log-Level': 'NONE',
     };
 

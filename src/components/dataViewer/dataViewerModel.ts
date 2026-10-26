@@ -208,7 +208,7 @@ export const TIME_FORMATS = [
     { label: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', value: '2006-01-02 15:04:05.000000000' },
     { label: 'YYYY-MM-DD HH', value: '2006-01-02 15' },
     { label: 'YYYY-MM-DD HH:MI', value: '2006-01-02 15:04' },
-    { label: 'HH:MI:SS', value: '03:04:05' },
+    { label: 'HH:MI:SS', value: '15:04:05' }, // the value the shared Format & Timezone modal (TIME_FORMAT_LIST) hands back
 ];
 
 const supportedValuesOf = (Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
@@ -2203,7 +2203,7 @@ export function formatDataViewerTime(value: unknown, timeFormat: string, timeZon
         }, {});
 
     const base = `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
-    if (timeFormat === '03:04:05') return `${parts.hour}:${parts.minute}:${parts.second}`;
+    if (timeFormat === '15:04:05') return `${parts.hour}:${parts.minute}:${parts.second}`;
     if (timeFormat === '2006-01-02') return `${parts.year}-${parts.month}-${parts.day}`;
     if (timeFormat === '2006-02-01') return `${parts.year}-${parts.day}-${parts.month}`;
     if (timeFormat === '02-01-2006') return `${parts.day}-${parts.month}-${parts.year}`;
@@ -2230,7 +2230,7 @@ export function formatDataViewerAxisTime(value: unknown, range: { min?: unknown;
     const span = Number.isFinite(startTime) && Number.isFinite(endTime) ? endTime - startTime : 0;
 
     if (span <= HOUR_MS) {
-        return formatDataViewerTime(value, '03:04:05', timeZone);
+        return formatDataViewerTime(value, '15:04:05', timeZone);
     }
 
     if (span <= DAY_MS) {

@@ -9,6 +9,7 @@ import { useExperiment } from '@/hooks/useExperiment';
 import { Input } from '@/design-system/components/Input';
 import { Alert } from '@/design-system/components/Alert';
 import { Button, Page, PasswordInput, Checkbox } from '@/design-system/components';
+import { readViewPath } from './loginRedirect';
 
 const Login = () => {
     const sNavigate = useNavigate();
@@ -65,8 +66,11 @@ const Login = () => {
             localStorage.setItem('accessToken', sReturn.accessToken);
             localStorage.setItem('refreshToken', sReturn.refreshToken);
             sReturn.option && sReturn.option.experimentMode ? setExperiment(sReturn.option.experimentMode) : rmExperiment();
-            if (sIsView) {
-                sNavigate(JSON.parse(sIsView).path);
+            const sViewPath = readViewPath(sIsView);
+            // A broken value is dropped too, or every later sign-in would trip over it again.
+            if (sIsView !== null && !sViewPath) localStorage.removeItem('view');
+            if (sViewPath) {
+                sNavigate(sViewPath);
                 localStorage.removeItem('view');
             } else if (sPkg) {
                 window.location.replace(sPkg);

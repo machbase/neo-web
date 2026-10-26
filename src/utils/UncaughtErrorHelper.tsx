@@ -5,7 +5,10 @@ export const UncaughtErrorObserver = (setConsoleList: any) => {
     window.onerror = function (message) {
         if (typeof message === 'string' && message.includes("Uncaught TypeError: Cannot read properties of null (reading 'getAttribute')")) return true;
         if (typeof message === 'string' && message.includes("Uncaught TypeError: Cannot read properties of undefined (reading 'findNearestPointBy')")) return true;
-        if (typeof message === 'string' && message.includes('Maximum update depth exceeded. This can happen when a component calls setState inside useEffect')) return true;
+        // A render loop reaches window.onerror as "… repeatedly calls setState inside componentWillUpdate or
+        // componentDidUpdate …"; the "… calls setState inside useEffect" wording is React's console.error warning, which
+        // never comes here — matching it hid nothing (F-24). The shared opening matches the error that does arrive.
+        if (typeof message === 'string' && message.includes('Maximum update depth exceeded.')) return true;
         if (typeof message === 'string' && message.includes('ResizeObserver loop completed with undelivered notifications.')) return true;
         setConsoleList((preData: any) => [
             ...preData,
@@ -16,7 +19,9 @@ export const UncaughtErrorObserver = (setConsoleList: any) => {
                 message: message,
             },
         ]);
-        return true;
+        // false keeps the browser's own report (the "Uncaught …" line with file, line and stack); true cancelled it
+        // for every error, so only the hidden ones above should return true (F-24).
+        return false;
     };
     window.console.warn = (message, loc) => {
         // ECharts 4.0+ deprecation notices (itemStyle.emphasis / label.normal / controlStyle …) come from

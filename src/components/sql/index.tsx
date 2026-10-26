@@ -16,6 +16,7 @@ import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 import { postSplitter } from '@/api/repository/api';
+import { getChartRequestFailureReason } from '@/utils/fileRequestResult';
 import { Loader } from '../loader';
 import { SqlSplitHelper, SplitItemType } from '@/utils/TQL/SqlSplitHelper';
 import { RiTimeZoneLine } from 'react-icons/ri';
@@ -222,6 +223,8 @@ const Sql = ({
     const fetchSplitter = async (signal?: AbortSignal) => {
         const splitRes: any = await postSplitter(sSqlQueryTxt, signal);
         if (splitRes?.success) return splitRes.data.statements;
+        // A split that did not reach the server (offline) ran nothing — say so instead of an empty result (F-102).
+        if (!signal?.aborted) setErrLog(splitRes?.reason || 'Request failed.');
         return undefined;
     };
 
@@ -239,7 +242,8 @@ const Sql = ({
                 }
             } catch (e: any) {
                 if (e?.code === 'ERR_CANCELED') throw e;
-                setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
+                // An HTTP 4xx keeps its body as text (only 2xx is parsed), so `.data.reason` alone missed it (F-12).
+                setErrLog(getChartRequestFailureReason(sQueryReslutList?.at(-1)));
                 setTextField('');
                 setProcessing(false);
                 return false;
@@ -421,6 +425,7 @@ const Sql = ({
                                         toolTipContent="Time format / Time zone"
                                         icon={<RiTimeZoneLine size={16} />}
                                         onClick={() => setIsTimeZoneModal(!sIsTimeZoneModal)}
+                                        data-testid="sql-time-format"
                                     />
                                 </Button.Group>
                                 <span className="editor-header-divider" />
@@ -513,7 +518,7 @@ const Sql = ({
                                         {sEnvWarnLog ? <div className="sql-env-warn-body">{sEnvWarnLog}</div> : null}
                                         <div className="sql-result-body-content">
                                             {sErrLog ? (
-                                                <div className={sDbNotFound ? 'sql-error-body sql-error-body--db-not-found' : 'sql-error-body'} style={{ padding: '0 1rem' }}>
+                                                <div className={sDbNotFound ? 'sql-error-body sql-error-body--db-not-found' : 'sql-error-body'} style={{ padding: '0 1rem' }} data-testid="sql-error">
                                                     {sErrLog}
                                                 </div>
                                             ) : sTextField ? (
