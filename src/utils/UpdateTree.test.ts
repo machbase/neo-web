@@ -1,7 +1,9 @@
 import { getFileList, postFileList } from '@/api/repository/api';
+import { getFiles } from '@/api/repository/fileTree';
 import { FileCopy } from './UpdateTree';
 
 jest.mock('@/api/repository/api', () => ({ getFileList: jest.fn(), postFileList: jest.fn() }));
+jest.mock('@/api/repository/fileTree', () => ({ getFiles: jest.fn() }));
 
 const target = (name = 'sample.sql') => ({ name, id: name, path: '/copies/', depth: 1, parentId: 'copies', type: 0 });
 
@@ -13,8 +15,8 @@ describe('FileCopy preserves existing files when choosing a copy name', () => {
         const storedName = (name: string) => caseInsensitive
             ? Array.from(files.keys()).find((existing) => existing.toLowerCase() === name.toLowerCase()) ?? name
             : name;
-        (getFileList as jest.Mock).mockImplementation(async (_filter: string, _path: string, name: string) => {
-            if (name) return files.get(storedName(name));
+        (getFiles as jest.Mock).mockImplementation(async (path: string) => files.get(storedName(path.slice('/copies/'.length))));
+        (getFileList as jest.Mock).mockImplementation(async () => {
             return {
                 success: true,
                 data: {
@@ -119,5 +121,20 @@ describe('FileCopy preserves existing files when choosing a copy name', () => {
 
         expect(await FileCopy(target())).toBeUndefined();
         expect(postFileList).not.toHaveBeenCalled();
+    });
+
+    // F-154: the copy is the stored bytes, whatever they hold — not re-parsed and re-serialized.
+    it.each([
+        ['bad.json', '{\n  "a": 1,\n}\n'],
+        ['lines.json', '{"a": 1}\n{"a": 2}\n'],
+        ['spaced.json', ' {\n    "a": 1\n}\n\n'],
+        ['board.dsh', '{\n    "dashboard": {}\n}\n'],
+    ])('copies %s byte for byte', async (name, text) => {
+        const files = storage({ [name]: text });
+
+        const copied = await FileCopy(target(name));
+
+        expect(getFiles).toHaveBeenCalledWith(`/copies/${name}`, { rawText: true });
+        expect(files.get(copied!.name)).toBe(text);
     });
 });

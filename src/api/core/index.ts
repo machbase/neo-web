@@ -74,7 +74,9 @@ request.interceptors.request.use(
             // Every text extension the URL download can store (SERVER_FILE_EXTENSIONS) needs a non-JSON Content-Type:
             // under the instance default 'application/json' axios JSON.stringify()s a string body
             // ("print(1)\n" → "\"print(1)\\n\"") and the file is saved as a quoted JSON literal.
-            if (['taz', 'wrk', 'dsh', 'sql', 'tql', 'md', 'markdown', 'csv', 'txt', 'py', 'sh'].includes(lastExt)) {
+            // .json too: editor text that is not strict JSON (trailing comma, comments, JSON Lines) was quoted the same
+            // way, and text that is JSON was trimmed. An object body is still serialized by axios either way.
+            if (['taz', 'wrk', 'dsh', 'json', 'sql', 'tql', 'md', 'markdown', 'csv', 'txt', 'py', 'sh'].includes(lastExt)) {
                 sHeaders['Content-Type'] = 'text/plain';
             } else if (lastExt === 'html' || lastExt === 'htm') {
                 sHeaders['Content-Type'] = 'text/html';
