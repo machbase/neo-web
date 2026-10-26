@@ -8,6 +8,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import RESULT from './result';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
+
+jest.mock('@/utils/ClipboardCopy', () => ({ ClipboardCopy: jest.fn() }));
 
 const openCell = (aCellText: string) => {
     render(
@@ -32,5 +35,26 @@ describe('SQL result "Show full contents"', () => {
         expect(screen.getByRole('button', { name: 'JSON format' })).toBeDisabled();
         expect(document.querySelector('pre')).toBeNull();
         expect(screen.getAllByText(sDeep).length).toBeGreaterThan(0);
+    });
+});
+
+// F-136: the menu read the cell's text trimmed — '  padded  ' copied as 'padded', and a cell of spaces had no menu.
+describe('SQL result cell menu keeps the value as it is', () => {
+    const rightClick = (aValue: string) => {
+        render(<RESULT pDisplay="" pSqlResponseData={{ columns: ['V'], rows: [[aValue]], types: ['string'] }} pShowRowNumber={false} onMoreResult={jest.fn()} />);
+        const sCell = Array.from(document.querySelectorAll('td')).find((td) => td.textContent === aValue);
+        fireEvent.contextMenu(sCell!);
+    };
+    beforeEach(() => (ClipboardCopy as jest.Mock).mockClear());
+
+    it.each(['  padded  ', '   ', 'plain'])('Copy puts %p on the clipboard', (aValue) => {
+        rightClick(aValue);
+        fireEvent.click(screen.getByTestId('copy'));
+        expect(ClipboardCopy).toHaveBeenCalledWith(aValue);
+    });
+    it('Show full contents shows the surrounding spaces', () => {
+        rightClick('  padded  ');
+        fireEvent.click(screen.getByText('Show full contents'));
+        expect(screen.getByTestId('content').textContent).toBe('  padded  ');
     });
 });
