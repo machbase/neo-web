@@ -18,6 +18,7 @@ import { ConfirmModal } from '../modal/ConfirmModal';
 import { Loader } from '../loader';
 import { GrClearOption } from 'react-icons/gr';
 import { postSplitter } from '@/api/repository/api';
+import { getChartRequestFailureReason } from '@/utils/fileRequestResult';
 import { ShowVisualization } from '../tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { LocationType, PositionType, SelectionType, SplitItemType, SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
@@ -423,7 +424,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             }
         } catch (e: any) {
             if (e?.code === 'ERR_CANCELED') throw e;
-            setSqlReason(sQueryReslutList.at(-1)?.data?.reason);
+            // An HTTP 4xx keeps its body as text (only 2xx is parsed), so `.data.reason` alone missed it (F-12).
+            setSqlReason(getChartRequestFailureReason(sQueryReslutList.at(-1)) ?? '');
         }
 
         if (sQueryReslutList.at(-1)?.status === 200 && aParsedQuery.length === sQueryReslutList.length) {

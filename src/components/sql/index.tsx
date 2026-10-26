@@ -16,6 +16,7 @@ import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader } from '@/utils/sqlOriginDataDownloader';
 import { postSplitter } from '@/api/repository/api';
+import { getChartRequestFailureReason } from '@/utils/fileRequestResult';
 import { Loader } from '../loader';
 import { SqlSplitHelper, SplitItemType } from '@/utils/TQL/SqlSplitHelper';
 import { RiTimeZoneLine } from 'react-icons/ri';
@@ -239,7 +240,8 @@ const Sql = ({
                 }
             } catch (e: any) {
                 if (e?.code === 'ERR_CANCELED') throw e;
-                setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
+                // An HTTP 4xx keeps its body as text (only 2xx is parsed), so `.data.reason` alone missed it (F-12).
+                setErrLog(getChartRequestFailureReason(sQueryReslutList?.at(-1)));
                 setTextField('');
                 setProcessing(false);
                 return false;
