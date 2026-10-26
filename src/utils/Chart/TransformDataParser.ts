@@ -45,7 +45,9 @@ type ResTrxType = {
     sql: string;
     dataType: E_CHART_DATA_TYPE;
 };
-export const TRX_REPLACE_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+// One letter per query block, up to the panel's block limit (BlockHelper: 12). 'L' was missing, so the
+// 12th block could not be named in a Transform formula and was sent to TQL as a bare L (#1566).
+export const TRX_REPLACE_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 export const ALLOWED_TRX_CHART_TYPE = [
     E_ALLOW_CHART_TYPE.LINE,
     E_ALLOW_CHART_TYPE.BAR,

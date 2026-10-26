@@ -24,7 +24,7 @@ import { Markdown } from '../../../components/worksheet/Markdown';
 import { isValidJSON } from '../../../utils';
 import { stringifyJsonSafely } from '@/utils/safeJson';
 import { CommonTable } from '@/design-system/components';
-import { TqlCsvParser } from '../../../utils/tqlCsvParser';
+import { TqlCsvParser, tqlCsvColumnTypes } from '../../../utils/tqlCsvParser';
 import { FakeTextBlock } from '../../../utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
 import { getChartRequestFailureReason } from '../../../../utils/fileRequestResult';
@@ -44,6 +44,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
     const [sTqlData, setTqlData] = useState<any>(undefined);
+    const sTqlCsvTypes = useMemo(() => (Array.isArray(sTqlData) ? tqlCsvColumnTypes(sTqlData) : []), [sTqlData]);
     // Undefined unless a TEXT result is JSON that can be printed back — too deeply nested JSON falls
     // back to the raw text, same as a result that is not JSON at all.
     const sTqlPrettyText = useMemo(
@@ -198,24 +199,13 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                 setIsLoading(false);
                 return;
             }
-            let [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
-                chartTypeConverter(pPanelInfo.type),
-                SqlResDataType(chartTypeConverter(pPanelInfo.type)),
-                pPanelInfo.blockList,
-                pPanelInfo.transformBlockList,
-                sRollupTableList,
-                pPanelInfo.xAxisOptions,
-                {
-                    interval: sIntervalInfo,
-                    start: sStartTime,
-                    end: sEndTime,
-                },
-                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
-            );
-            if (pPanelInfo.type === 'Text') {
-                const [sTxtParsedQuery, sTxtAliasList] = DashboardQueryParser(
+            // Building the queries can throw on a board the parser does not expect. Uncaught, it left the
+            // panel on "Loading..." with no request sent and nothing in the console (#1566).
+            let sParsedQuery: any, sAliasList: any, sInjectionSrc: any;
+            try {
+                [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
                     chartTypeConverter(pPanelInfo.type),
-                    'NAME_VALUE',
+                    SqlResDataType(chartTypeConverter(pPanelInfo.type)),
                     pPanelInfo.blockList,
                     pPanelInfo.transformBlockList,
                     sRollupTableList,
@@ -227,36 +217,58 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                     },
                     PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
                 );
-                const sTmpParsedQuery = [];
-                const sTmpAliasList = [];
+                if (pPanelInfo.type === 'Text') {
+                    const [sTxtParsedQuery, sTxtAliasList] = DashboardQueryParser(
+                        chartTypeConverter(pPanelInfo.type),
+                        'NAME_VALUE',
+                        pPanelInfo.blockList,
+                        pPanelInfo.transformBlockList,
+                        sRollupTableList,
+                        pPanelInfo.xAxisOptions,
+                        {
+                            interval: sIntervalInfo,
+                            start: sStartTime,
+                            end: sEndTime,
+                        },
+                        PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
+                    );
+                    const sTmpParsedQuery = [];
+                    const sTmpAliasList = [];
 
-                // TEXT
-                const sTxtIdx = pPanelInfo.chartOptions.textSeries;
-                const sTxtTrx = sTxtParsedQuery.filter((item: any) => item.trx);
-                const sTxtQuery = sTxtParsedQuery.filter((item: any) => !item.trx);
+                    // TEXT
+                    const sTxtIdx = pPanelInfo.chartOptions.textSeries;
+                    const sTxtTrx = sTxtParsedQuery.filter((item: any) => item.trx);
+                    const sTxtQuery = sTxtParsedQuery.filter((item: any) => !item.trx);
 
-                if (sTxtIdx < 100) {
-                    sTmpParsedQuery[0] = sTxtQuery?.[sTxtIdx]?.useQuery ? sTxtQuery[sTxtIdx] : FakeTextBlock.block;
-                    sTmpAliasList[0] = sTxtQuery?.[sTxtIdx]?.useQuery ? sTxtAliasList[sTxtQuery[sTxtIdx].idx] : FakeTextBlock.alias;
-                } else {
-                    sTmpParsedQuery[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtTrx[sTxtIdx - 100] : FakeTextBlock.block;
-                    sTmpAliasList[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtAliasList[sTxtTrx[sTxtIdx - 100].idx] : FakeTextBlock.alias;
+                    if (sTxtIdx < 100) {
+                        sTmpParsedQuery[0] = sTxtQuery?.[sTxtIdx]?.useQuery ? sTxtQuery[sTxtIdx] : FakeTextBlock.block;
+                        sTmpAliasList[0] = sTxtQuery?.[sTxtIdx]?.useQuery ? sTxtAliasList[sTxtQuery[sTxtIdx].idx] : FakeTextBlock.alias;
+                    } else {
+                        sTmpParsedQuery[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtTrx[sTxtIdx - 100] : FakeTextBlock.block;
+                        sTmpAliasList[0] = sTxtTrx[sTxtIdx - 100]?.useQuery ? sTxtAliasList[sTxtTrx[sTxtIdx - 100].idx] : FakeTextBlock.alias;
+                    }
+
+                    // CHART
+                    const sChartIdx = pPanelInfo.chartOptions.chartSeries;
+                    const sChartTrx = sParsedQuery.filter((item: any) => item.trx);
+                    const sChartQuery = sParsedQuery.filter((item: any) => !item.trx);
+
+                    if (sChartIdx < 100) {
+                        sTmpParsedQuery[1] = sChartQuery[sChartIdx]?.useQuery ? sChartQuery[sChartIdx] : FakeTextBlock.block;
+                        sTmpAliasList[1] = sChartQuery[sChartIdx]?.useQuery ? sAliasList[sChartQuery[sChartIdx].idx] : FakeTextBlock.alias;
+                    } else {
+                        sTmpParsedQuery[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sChartTrx[sChartIdx - 100] : FakeTextBlock.block;
+                        sTmpAliasList[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sAliasList[sChartTrx[sChartIdx - 100].idx] : FakeTextBlock.alias;
+                    }
+                    sParsedQuery = sTmpParsedQuery;
+                    sAliasList = sTmpAliasList;
                 }
-
-                // CHART
-                const sChartIdx = pPanelInfo.chartOptions.chartSeries;
-                const sChartTrx = sParsedQuery.filter((item: any) => item.trx);
-                const sChartQuery = sParsedQuery.filter((item: any) => !item.trx);
-
-                if (sChartIdx < 100) {
-                    sTmpParsedQuery[1] = sChartQuery[sChartIdx]?.useQuery ? sChartQuery[sChartIdx] : FakeTextBlock.block;
-                    sTmpAliasList[1] = sChartQuery[sChartIdx]?.useQuery ? sAliasList[sChartQuery[sChartIdx].idx] : FakeTextBlock.alias;
-                } else {
-                    sTmpParsedQuery[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sChartTrx[sChartIdx - 100] : FakeTextBlock.block;
-                    sTmpAliasList[1] = sChartTrx[sChartIdx - 100]?.useQuery ? sAliasList[sChartTrx[sChartIdx - 100].idx] : FakeTextBlock.alias;
-                }
-                sParsedQuery = sTmpParsedQuery;
-                sAliasList = sTmpAliasList;
+            } catch (aError) {
+                setIsMessage(`Cannot build the panel query: ${aError instanceof Error ? aError.message : String(aError)}`);
+                setIsError(true);
+                setIsChartData(false);
+                setIsLoading(false);
+                return;
             }
 
             sAliasList = sAliasList.filter((alias: any) => alias?.useQuery);
@@ -471,7 +483,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
                 <div key={sSinkRenderKey} className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
-                    {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: [] }} showRowNumber showCopyButton /> : null}
+                    {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: sTqlCsvTypes }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
                     {sTqlResultType === TqlResType.NDJSON ? <pre>{sTqlData}</pre> : null}

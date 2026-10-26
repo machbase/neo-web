@@ -1,6 +1,7 @@
 import { unitFormatter } from './Chart/formatters';
 import { compareVersions } from './version/utils';
 import { liquidFillRatioCode } from './chartOptionNumber';
+import { dashboardTqlPath } from './dashboardTqlEndpoint';
 
 const ERR_COLOR = '#fa6464';
 const ERR_FONT_SIZE = '16';
@@ -62,6 +63,12 @@ const SYNTAX_ERR_TEXT = (aPanelId?: string) => {
         \t\t\t\t\t}
         \t\t\t\t}`;
 };
+/**
+ * The JS test for "this row has no value": the query came back empty or NULL. 0 is a value - a count
+ * over the range can be 0, and the public board's own copy drew it before it used this script (#1566).
+ */
+const NO_VALUE = (aValue: string) => `(${aValue} === undefined || ${aValue} === null || ${aValue} === '')`;
+const FIRST_VALUE = 'obj?.data?.rows?.[0]?.[0]?.value';
 /** NO DATA — flag-only: marks per-series empty state, never touches graphic directly. */
 const NO_DATA = (trigger: string) => {
     return `
@@ -123,7 +130,7 @@ const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string,
     const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj?.data?.rows?.[0]?.[0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}} else {_chartOption.series[0].detail.formatter = ${sFormatter.formatter}}`;
     return `(obj) => {
         \t${SYNTAX_ERR('!obj.success', sPosition)}
-        \t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)')}
+        \t${NO_DATA(NO_VALUE(FIRST_VALUE))}
         \t\t${sIsGauge && sGaugeNaNFormatter}
         \t\tsData[aIdx] = obj?.data?.rows?.[0]?.[0] ?? 0;
         \t\tsCount += 1;
@@ -219,9 +226,9 @@ const LiquidNameValueFunc = (aChartOptions: any, aVersion: string, aTime: { star
     return `(obj) => {
         \t${SYNTAX_ERR('!obj.success', 'bottom')}
         \t\tconst unitFormatter = ${sFormatter.formatter};
-        \t\t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)')}
+        \t\t${NO_DATA(NO_VALUE(FIRST_VALUE))}
         \t\tlet sValue = obj?.data?.rows?.[0]?.[0]?.value;
-        \t\t_chartOption.series[aIdx].data = sValue ? ${liquidFillRatioCode('sValue', aChartOptions.minData, aChartOptions.maxData)} : 'No-data';
+        \t\t_chartOption.series[aIdx].data = !${NO_VALUE('sValue')} ? ${liquidFillRatioCode('sValue', aChartOptions.minData, aChartOptions.maxData)} : 'No-data';
         \t\t_chartOption.series[aIdx].label.formatter = function() {
         \t\t\tif (isNaN(Number.parseFloat(sValue))) return 'No-data';
         \t\t\telse return unitFormatter(sValue)
@@ -259,9 +266,9 @@ const TextFunc = (aChartOptions: any, aVersion: string, aTime: { start: string; 
         \t\t\tconst sDOM = document.getElementById('${aPanelId}-text');
         \t\t\tif (sDOM) {
         \t\t\t\tvar sFontSize = ${aChartOptions?.fontSize ?? 100};
-        \t\t\t\tvar sValue = obj?.data?.rows?.[0]?.[0]?.value ? unitFormatter(obj?.data?.rows?.[0]?.[0]?.value) : '';
+        \t\t\t\tvar sValue = !${NO_VALUE(FIRST_VALUE)} ? unitFormatter(obj?.data?.rows?.[0]?.[0]?.value) : '';
         \t\t\t\tvar sColor = setColor(sValue);
-        \t\t\t\tif (!obj?.data?.rows?.[0]?.[0]?.value) {sValue = 'No data available\\n' + new Date(${aTime.start}).toLocaleString('en-GB') + ' ~ ' + new Date(${
+        \t\t\t\tif (${NO_VALUE(FIRST_VALUE)}) {sValue = 'No data available\\n' + new Date(${aTime.start}).toLocaleString('en-GB') + ' ~ ' + new Date(${
         aTime.end
     }).toLocaleString('en-GB'); 
     sFontSize = ${ERR_FONT_SIZE}; 
@@ -377,7 +384,7 @@ export const DashboardChartCodeParser = (
 
     // GEN func
     const sFunction = `function getData(aTql, aIdx) {
-        \tfetch("${window.location.origin}/${isSave ? 'db' : 'web/api'}/tql", {
+        \tfetch("${window.location.origin}${dashboardTqlPath(isSave)}", {
             \tmethod: "POST",
             \theaders: {"Accept": "application/json, text/plain, */*", "Content-Type": "text/plain" ${
                 isSave ? '' : `, "Authorization": "Bearer ${sAccToken}", "X-Console-Id": "${sXConsoleId}, console-log-level=NONE"`

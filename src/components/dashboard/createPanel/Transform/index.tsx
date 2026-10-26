@@ -1,3 +1,4 @@
+import { enteredFormulaError } from '@/utils/fileRequestResult';
 import './index.scss';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { useMemo, useState } from 'react';
@@ -9,7 +10,7 @@ import { Toast } from '@/design-system/components';
 import { BadgeStatus } from '@/components/badge';
 import { RxQuestionMark } from 'react-icons/rx';
 import { TRX_REPLACE_LIST } from '@/utils/Chart/TransformDataParser';
-import { getChartSeriesName } from '@/utils/dashboardUtil';
+import { getBlockLegendName } from '@/utils/DashboardQueryParser';
 import { TRX_FORMULA_EX } from './constants';
 import { Tooltip } from 'react-tooltip';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
@@ -89,14 +90,8 @@ export const Transform = ({
         return (
             pPanelOption?.blockList?.map((block: any, idx: number) => ({
                 label: TRX_REPLACE_LIST[idx],
-                name: block.customFullTyping.use
-                    ? `custom(${idx})`
-                    : getChartSeriesName({
-                          alias: block?.useCustom ? block?.values[0]?.alias : block?.alias,
-                          table: block?.table,
-                          column: block?.useCustom ? block?.values[0]?.value : block?.value,
-                          aggregator: block?.useCustom ? block?.values[0]?.aggregator : block?.aggregator,
-                      }),
+                // The legend's name for the block, so two blocks on one table and column read as their tags (#1566).
+                name: block.customFullTyping.use ? `custom(${idx})` : getBlockLegendName(block),
                 color: block.color,
                 idx: idx,
                 testId: `series-${encodeURIComponent(block.id)}`,
@@ -167,7 +162,7 @@ const TransformBlock = ({
             const sink = TQL.SINK._JSON();
             const sResult: any = await getTqlChart(`${src}\n${map}\n${sink}`);
             if (!sResult?.data?.success || !sResult?.data?.data?.rows?.length) {
-                Toast.error('Please check the entered formula.', { testId: 'dashboard-panel-editor-toast' });
+                Toast.error(enteredFormulaError(sResult), { testId: 'dashboard-panel-editor-toast' });
                 handleItem('valid', false);
             } else handleItem('valid', true);
         } else handleItem('valid', false);

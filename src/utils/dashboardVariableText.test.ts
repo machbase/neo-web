@@ -73,3 +73,18 @@ describe.each([
         expect(parse(chart('{{t(}}'), time, interval, [variable('{{t(}}', 'x')])).toBe('/a.tql?tag=x');
     });
 });
+
+// #1566 (F-39): a panel saved with an empty x-axis unit (old or hand-edited board).
+describe.each([
+    ['editor', replaceVariablesInTql, TqlChartParser],
+    ['public', replacePublicVariablesInTql, PublicTqlChartParser],
+])('%s {{period}} / $period with no unit', (_, replace, parseChart) => {
+    test.each([
+        [{ IntervalType: 'min', IntervalValue: 10 }, '10m'],
+        [{ IntervalType: '', IntervalValue: 10 }, ''],
+        [{ IntervalType: '', IntervalValue: '' }, ''],
+    ])('%o gives %p', (interval, expected) => {
+        expect(replace("'{{period}}'", [], { ...time, interval } as any)).toBe(`'${expected}'`);
+        expect(parseChart({ path: '/a.tql', params: [{ name: '$period', value: 'p' }] }, time, interval as any, [])).toBe(`/a.tql?p=${expected}`);
+    });
+});

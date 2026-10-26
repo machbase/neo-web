@@ -120,3 +120,55 @@ describe('variable table', () => {
         expect(screen.getByTestId('variable-v1')).toHaveTextContent('{{tag}}');
     });
 });
+
+// #1566 (F-112): Import asks first, reports what it left out, and leaves saving to the board's Save.
+describe('variable CSV import', () => {
+    const { postFileList } = jest.requireMock('@/api/repository/api');
+    const importCsv = (aText: string) => {
+        const sFile = new File([aText], 'vars.csv', { type: 'text/csv' });
+        fireEvent.change(screen.getByTestId('import-input'), { target: { files: [sFile] } });
+    };
+    const CSV = 'LABEL,VARIABLE NAME,VALUES\nCity,{{city}},"""Seoul, Korea"",Busan"\nEmpty,{{empty}},\n';
+
+    beforeEach(() => postFileList.mockClear());
+
+    it('changes nothing until Replace or Merge is chosen, and Cancel keeps the board', async () => {
+        renderEditor([OTHER_VARIABLE]);
+        importCsv(CSV);
+        const sDialog = await screen.findByTestId('variable-import-dialog');
+        expect(sDialog).toHaveTextContent('"Seoul, Korea", "Busan"');
+        expect(within(sDialog).getByTestId('skipped')).toHaveTextContent('row 3 (Empty)');
+        expect(screen.getByTestId('variable-v1')).toBeInTheDocument();
+        fireEvent.click(within(sDialog).getByTestId('cancel'));
+        expect(screen.queryByTestId('variable-import-dialog')).not.toBeInTheDocument();
+        expect(screen.getByTestId('variable-v1')).toBeInTheDocument();
+        expect(screen.getByTestId('variable-v2')).toBeInTheDocument();
+    });
+
+    it('Replace swaps the variables without writing the file', async () => {
+        renderEditor([OTHER_VARIABLE]);
+        importCsv(CSV);
+        fireEvent.click(within(await screen.findByTestId('variable-import-dialog')).getByTestId('replace'));
+        expect(screen.queryByTestId('variable-v1')).not.toBeInTheDocument();
+        expect(screen.getByText('{{city}}')).toBeInTheDocument();
+        expect(postFileList).not.toHaveBeenCalled();
+    });
+
+    it('Merge keeps the board variables and adds the new ones', async () => {
+        renderEditor([OTHER_VARIABLE]);
+        importCsv(CSV);
+        fireEvent.click(within(await screen.findByTestId('variable-import-dialog')).getByTestId('merge'));
+        expect(screen.getByTestId('variable-v1')).toBeInTheDocument();
+        expect(screen.getByTestId('variable-v2')).toBeInTheDocument();
+        expect(screen.getByText('{{city}}')).toBeInTheDocument();
+        expect(postFileList).not.toHaveBeenCalled();
+    });
+
+    it('a file with another header opens no dialog and changes nothing', async () => {
+        renderEditor();
+        importCsv('label,variable name,values\nCity,{{city}},"Seoul"\n');
+        await new Promise((r) => setTimeout(r, 50));
+        expect(screen.queryByTestId('variable-import-dialog')).not.toBeInTheDocument();
+        expect(screen.getByTestId('variable-v1')).toBeInTheDocument();
+    });
+});

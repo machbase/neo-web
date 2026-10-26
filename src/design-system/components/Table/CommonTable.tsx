@@ -24,7 +24,7 @@ const EMPTY_DATA = { columns: [] as string[], rows: [] as any[][] };
 
 // Check if a value is a displayable number (not undefined, null, empty string, or NaN)
 // Also handles locale-formatted numbers with commas (e.g. "5,295")
-const isNumericValue = (value: any): boolean => {
+export const isNumericValue = (value: any): boolean => {
     if (value === undefined || value === null || value === '') return false;
     if (typeof value === 'number') return isFinite(value);
     if (typeof value === 'string') {

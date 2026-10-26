@@ -1,3 +1,5 @@
+import { sqlString } from './queryText';
+
 /**
  * The comparison operators a dashboard panel's Filter row offers, and the one it starts on.
  *
@@ -24,3 +26,10 @@ export const DEFAULT_FILTER_OPERATOR = '=';
 
 /** A stored operator, or the default for one a saved board (or an old default) left empty. */
 export const normalizeFilterOperator = (aOperator: unknown): string => String(aOperator ?? '').trim() || DEFAULT_FILTER_OPERATOR;
+
+/**
+ * A Filter row's value as SQL: one row is one value, quoted for a varchar column. A comma is part of
+ * the value - a tag named `a,b` is one tag - so several values under `in` are several rows, which the
+ * query builder joins into one `in (...)` (#1566). The typed-SQL conversions use the same rule.
+ */
+export const filterValueSql = (aValue: unknown, aQuote: boolean): string => (aQuote ? sqlString(aValue) : String(aValue ?? ''));

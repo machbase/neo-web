@@ -1,4 +1,5 @@
 import { DashboardQueryParser } from './DashboardQueryParser';
+import { DashboardQueryParser as PublicDashboardQueryParser } from '../public-dashboard/utils/DashboardQueryParser';
 import { DefaultTagTableOption } from './eChartHelper';
 import { renumberBlockIndicesAfterDelete, renumberXAxisAfterDelete } from './helpers/Dashboard/BlockHelper';
 
@@ -90,5 +91,30 @@ describe('deleting a block renumbers the series indices the axes hold', () => {
     test('the rest of the x-axis options are preserved', () => {
         const sResult = renumberXAxisAfterDelete([{ useBlockList: [2], type: 'value', scale: true }], 0);
         expect(sResult[0]).toMatchObject({ type: 'value', scale: true, useBlockList: [1] });
+    });
+});
+
+describe('a shared link reads the same Adv scatter (#1566)', () => {
+    const sTime = { interval: { IntervalType: '', IntervalValue: '' }, start: 1, end: 2 } as any;
+    test('an index left over from a deleted block falls back to the first series there too', () => {
+        const sArgs = ['advScatter', 'TIME_VALUE' as any, [tagBlock('a', 't1')], [], [], [{ useBlockList: [1] }], sTime] as Parameters<typeof DashboardQueryParser>;
+        expect(() => PublicDashboardQueryParser(...sArgs)).not.toThrow();
+        expect(PublicDashboardQueryParser(...sArgs)).toEqual(DashboardQueryParser(...sArgs));
+    });
+
+    test('its x-axis fetch inside the TQL goes to /db/tql, the editor\'s to /web/api/tql', () => {
+        const sPath = window.location.pathname;
+        const sArgs = ['advScatter', 'TIME_VALUE' as any, [tagBlock('a', 't1'), tagBlock('b', 't2')], [], [], [{ useBlockList: [1] }], sTime] as Parameters<typeof DashboardQueryParser>;
+        try {
+            window.history.replaceState(null, '', '/web/ui/');
+            const [sEditor]: any = DashboardQueryParser(...sArgs);
+            expect(sEditor[0].query).toContain('/web/api/tql');
+            window.history.replaceState(null, '', '/web/ui/board/A.dsh');
+            const [sPublic]: any = PublicDashboardQueryParser(...sArgs);
+            expect(sPublic[0].query).toContain('/db/tql');
+            expect(sPublic[0].query).not.toContain('/web/api/tql');
+        } finally {
+            window.history.replaceState(null, '', sPath);
+        }
     });
 });

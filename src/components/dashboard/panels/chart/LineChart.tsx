@@ -29,7 +29,7 @@ import { Markdown } from '@/components/worksheet/Markdown';
 import { isValidJSON } from '@/utils';
 import { stringifyJsonSafely } from '@/utils/safeJson';
 import { CommonTable } from '@/design-system/components';
-import { TqlCsvParser } from '@/utils/tqlCsvParser';
+import { TqlCsvParser, tqlCsvColumnTypes } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { getChartRequestFailureReason } from '@/utils/fileRequestResult';
@@ -67,6 +67,7 @@ const LineChart = ({
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
     const [sTqlData, setTqlData] = useState<any>(undefined);
+    const sTqlCsvTypes = useMemo(() => (Array.isArray(sTqlData) ? tqlCsvColumnTypes(sTqlData) : []), [sTqlData]);
     // Undefined unless a TEXT result is JSON that can be printed back — too deeply nested JSON falls
     // back to the raw text, same as a result that is not JSON at all.
     const sTqlPrettyText = useMemo(
@@ -702,7 +703,7 @@ const LineChart = ({
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
                 <div key={sSinkRenderKey} className="dashboard-tql-panel-sink-wrap" data-testid="tql-sink" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
-                    {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: [] }} showRowNumber showCopyButton /> : null}
+                    {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: sTqlCsvTypes }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
                     {sTqlResultType === TqlResType.NDJSON ? <pre>{sTqlData}</pre> : null}

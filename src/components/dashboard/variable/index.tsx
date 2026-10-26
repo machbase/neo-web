@@ -1,4 +1,4 @@
-import { Button, Page, CommonTable } from '@/design-system/components';
+import { Button, Page, CommonTable, Modal, Toast } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { LuFlipVertical } from 'react-icons/lu';
 import { useEffect, useRef, useState } from 'react';
@@ -11,6 +11,7 @@ import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader as Downloader } from '@/utils/sqlOriginDataDownloader';
 import Papa from 'papaparse';
 import { VARIABLE_RM_REGEX } from '@/utils/CheckDataCompatibility';
+import { mergeVariables, parseVariableCsv, VARIABLE_CSV_HEADER, variableCsvRow } from './variableCsv';
 
 export enum VARIABLE_DEFAULT_TYPE {
     DEFAULT_DEFINED = 'DEFAULT_DEFINED',
@@ -82,6 +83,7 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
     const [sUpdateVariable, setUpdateVariable] = useState<{ open: boolean; mode: MODE_TYPE; data: VARIABLE_TYPE }>(DEFAULT_VARIABLE);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [sImportPending, setImportPending] = useState<{ variables: VARIABLE_TYPE[]; skipped: string[] } | null>(null);
 
     const updateVariableCode = (updateVarList: VARIABLE_TYPE[]) => {
         const sCurrentBoard = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
@@ -243,36 +245,35 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                 return { ...prev, data: { ...prev.data, valueList: tmp } };
             });
     };
-    const createVariableList = (result: unknown[]) => {
-        try {
-            const checkColumn = result.shift();
-            if ((checkColumn as string[]).join(',') !== 'LABEL,VARIABLE NAME,VALUES') return;
-
-            const rowList = result.filter((row: any) => row[0] && row[1] && row[2]);
-            const tmpRes: VARIABLE_TYPE[] = rowList.map((row: any) => {
-                const useComma = row[2] ? row[2]?.split(',') : [];
-                const valList = useComma?.map((value: string) => {
-                    return {
-                        id: generateUUID(),
-                        type: 'CSV',
-                        value: value,
-                    };
-                });
-                return { id: generateUUID(), label: row[0], key: row[1], type: 'SELECT', use: valList[0], valueList: valList };
-            });
-            updateVariableCode(tmpRes ?? []);
-        } catch {
+    // Import asks before it touches the board (#1566): it used to replace every variable and save the
+    // file on the spot. The choice only changes the open board; the file is written by the board's Save.
+    const createVariableList = (result: unknown[][]) => {
+        const { headerError, variables, skipped } = parseVariableCsv(result);
+        if (headerError) {
+            Toast.error(`Cannot import: ${headerError}`, { testId: 'variable-import-toast' });
             return;
         }
+        if (variables.length === 0) {
+            Toast.error(`Nothing to import: ${skipped.length ? `${skipped.join(', ')} left out (empty label, name or values).` : 'the file has no variables.'}`, {
+                testId: 'variable-import-toast',
+            });
+            return;
+        }
+        setImportPending({ variables, skipped });
+    };
+    const applyImport = (aMode: 'REPLACE' | 'MERGE') => {
+        if (!sImportPending) return;
+        const sCurrent: VARIABLE_TYPE[] = pBoardInfo?.dashboard?.variables ?? [];
+        const sNextList = aMode === 'REPLACE' ? sImportPending.variables : mergeVariables(sCurrent, sImportPending.variables);
+        setBoardList((aPrev) =>
+            aPrev.map((aItem): GBoardListType => (aItem.id === pBoardInfo.id ? { ...aItem, dashboard: { ...aItem.dashboard, variables: sNextList } } : aItem))
+        );
+        setImportPending(null);
+        Toast.success(`Imported ${sImportPending.variables.length} variable(s). Save the board to keep them.`, { testId: 'variable-import-toast' });
     };
     const handleExport = () => {
-        const DEFAULT_COLUMN = 'LABEL,VARIABLE NAME,VALUES\n';
-        const tmpExportCSV = pBoardInfo?.dashboard?.variables
-            .map((variable: VARIABLE_TYPE) => {
-                const valueStringList = variable?.valueList.map((value) => value.value).join(',');
-                return `${variable.label},${variable.key},"${valueStringList}"`;
-            })
-            .join('\n');
+        const DEFAULT_COLUMN = `${VARIABLE_CSV_HEADER.join(',')}\n`;
+        const tmpExportCSV = pBoardInfo?.dashboard?.variables.map(variableCsvRow).join('\n');
         const sBlob = new Blob([DEFAULT_COLUMN + tmpExportCSV], { type: `text/csv` });
         Downloader(URL.createObjectURL(sBlob), DOWNLOADER_EXTENSION.CSV);
     };
@@ -285,12 +286,14 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                 Papa.parse(text, {
                     header: false,
                     complete: (result) => {
-                        createVariableList(result.data);
+                        createVariableList(result.data as unknown[][]);
                     },
                 });
             };
             reader.readAsText(file);
         }
+        // Picking the same file again (after Cancel) has to start another import.
+        event.target.value = '';
     };
     const handleFileButtonWrapperClick = () => {
         if (fileInputRef.current) {
@@ -448,6 +451,35 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                     </Page.Header>
                 </Pane>
             </SplitPane>
+            {sImportPending && (
+                <Modal.Root isOpen onClose={() => setImportPending(null)} data-testid="variable-import-dialog">
+                    <Modal.Header>
+                        <Modal.Title>Import variables</Modal.Title>
+                        <Modal.Close data-testid="close" />
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div>{`The file has ${sImportPending.variables.length} variable(s):`}</div>
+                        <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+                            {sImportPending.variables.map((aVariable) => (
+                                <li key={aVariable.id}>{`${aVariable.label} ${aVariable.key}: ${aVariable.valueList.map((aValue) => JSON.stringify(aValue.value)).join(', ')}`}</li>
+                            ))}
+                        </ul>
+                        {sImportPending.skipped.length > 0 && <div data-testid="skipped">{`Left out (empty label, name or values): ${sImportPending.skipped.join(', ')}`}</div>}
+                        <div>{`Replace the board's ${pBoardInfo?.dashboard?.variables?.length ?? 0} variable(s), or merge (a variable with the same name is replaced)?`}</div>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Modal.Confirm data-testid="replace" onClick={() => applyImport('REPLACE')}>
+                            Replace
+                        </Modal.Confirm>
+                        <Modal.Confirm data-testid="merge" onClick={() => applyImport('MERGE')}>
+                            Merge
+                        </Modal.Confirm>
+                        <Modal.Cancel data-testid="cancel" autoFocus onClick={() => setImportPending(null)}>
+                            Cancel
+                        </Modal.Cancel>
+                    </Modal.Footer>
+                </Modal.Root>
+            )}
         </Page>
     );
 };

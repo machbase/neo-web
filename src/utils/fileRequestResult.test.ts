@@ -1,5 +1,5 @@
 import { AxiosError } from 'axios';
-import { getChartRequestFailureReason, getFileRequestFailure } from './fileRequestResult';
+import { enteredFormulaError, getChartRequestFailureReason, getFileRequestFailure } from './fileRequestResult';
 
 describe('getFileRequestFailure', () => {
     it('success body → null', () => {
@@ -64,5 +64,21 @@ describe('getChartRequestFailureReason (#1565)', () => {
         expect(getChartRequestFailureReason(new AxiosError('Network Error', 'ERR_NETWORK'))).toBe('Network Error');
         expect(getChartRequestFailureReason({ success: false, data: { reason: 'Network error: TypeError: Failed to fetch' } })).toBe('Network error: TypeError: Failed to fetch');
         expect(getChartRequestFailureReason(undefined)).toBe('Failed to load the chart.');
+    });
+});
+
+describe('enteredFormulaError (#1566)', () => {
+    const httpError = (reason: string) => ({ status: 500, headers: {}, statusText: 'Internal Server Error', data: { success: false, reason } });
+
+    test('a failed check run shows the server reason', () => {
+        expect(enteredFormulaError(httpError('MACHCLI-ERR-2025, Table NO_SUCH_TABLE does not exist.'))).toBe(
+            'Please check the entered formula. MACHCLI-ERR-2025, Table NO_SUCH_TABLE does not exist.'
+        );
+        expect(enteredFormulaError({ data: { success: false, reason: 'unbalanced parenthesis' } })).toBe('Please check the entered formula. unbalanced parenthesis');
+    });
+
+    test('no run, or a run that only returned no row, keeps the sentence alone', () => {
+        expect(enteredFormulaError()).toBe('Please check the entered formula.');
+        expect(enteredFormulaError({ status: 200, headers: {}, data: { success: true, data: { rows: [] } } })).toBe('Please check the entered formula.');
     });
 });

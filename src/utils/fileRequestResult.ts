@@ -59,3 +59,13 @@ export const getChartRequestFailureReason = (aRes: any): string | null => {
     if (aRes?.data?.reason) return String(aRes.data.reason);
     return getFileRequestFailure(aRes, 'Failed to load the chart.')?.reason ?? null;
 };
+
+/**
+ * The panel editor's message for a formula or typed query that did not pass its check run: with the
+ * server's reason when the run failed, rather than the fixed sentence alone (#1566). A run that
+ * succeeded but returned no row has no reason to add.
+ */
+export const enteredFormulaError = (aRes?: any): string => {
+    const sReason = aRes?.data?.success === true ? null : aRes === undefined ? null : getChartRequestFailureReason(aRes);
+    return sReason ? `Please check the entered formula. ${sReason}` : 'Please check the entered formula.';
+};

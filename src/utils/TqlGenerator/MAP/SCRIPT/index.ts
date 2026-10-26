@@ -1,5 +1,6 @@
 import { E_TQL_MAP } from '..';
 import { literalReplacement } from '@/utils/dashboardVariableText';
+import { dashboardTqlPath } from '@/utils/dashboardTqlEndpoint';
 
 export enum E_TQL_SCRIPT_LANGUAGE {
     JS = 'js',
@@ -10,10 +11,6 @@ enum E_TQL_SCRIPT_JS_UTILS {
     REQUEST = 'REQUEST',
     DO = 'DO',
     YIELD = 'YIELD',
-}
-enum E_URL {
-    DEFALUT = '/web/api/tql',
-    SAVE = '/db/tql',
 }
 
 /////////////////////// TEMPLATE ///////////////////////
@@ -40,7 +37,7 @@ const RequestDo = (aReq: { method: 'POST'; url: string; body: string }, aDo: { m
         .replace(`\${${E_TQL_SCRIPT_JS_UTILS.DO}}`, literalReplacement(doOpt));
 };
 const RequestDoQuick = (aBody: string, opt?: { isSave: boolean }) => {
-    const sURL = opt?.isSave ? E_URL.SAVE : E_URL.DEFALUT;
+    const sURL = dashboardTqlPath(opt?.isSave);
     return RequestDo(
         {
             method: 'POST',

@@ -13,7 +13,7 @@ import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 import { Button, DragHandle, ErrorBoundary, Menu, Page } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
-import { TqlCsvParser } from '@/utils/tqlCsvParser';
+import { TqlCsvParser, tqlCsvColumnTypes } from '@/utils/tqlCsvParser';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { Loader } from '../loader';
 import { GrClearOption } from 'react-icons/gr';
@@ -106,6 +106,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sTqlMarkdown, setTqlMarkdown] = useState<any>('');
     const [sTqlCsv, setTqlCsv] = useState<string[][]>([]);
     const [sTqlCsvHeader, setTqlCsvHeader] = useState<string[]>([]);
+    const sTqlCsvTypes = useMemo(() => tqlCsvColumnTypes(sTqlCsv), [sTqlCsv]);
     const [sMonacoLanguage, setMonacoLanguage] = useState<MonacoLang | undefined>(undefined);
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
@@ -579,7 +580,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     sTqlCsv ? (
                         <>
                             <div className="result-worksheet">
-                                <CommonTable data={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} showRowNumber showCopyButton />
+                                <CommonTable data={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: sTqlCsvTypes }} showRowNumber showCopyButton />
                             </div>
                             <div className="result-worksheet-total">
                                 <span>{`Total ${sTqlCsv && sTqlCsv.length} records`}</span>

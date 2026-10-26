@@ -8,11 +8,11 @@ import TQL from './TqlGenerator';
 import { DSH_CACHE_TIME, DSH_CHART_VALUE_VALUE_SCRIPT_MODULE, DSH_JSON_MS_TIMEFORMAT } from './TqlGenerator/constants';
 import { TransformBlockType } from '@/components/dashboard/createPanel/Transform/type';
 import { getChartSeriesName } from './dashboardUtil';
-import { normalizeFilterOperator } from './dashboardFilterOperators';
+import { filterValueSql, normalizeFilterOperator } from './dashboardFilterOperators';
 import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
-import { sqlString, tqlString } from '@/utils/queryText';
+import { tqlString } from '@/utils/queryText';
 import { toSqlColumnName, toSqlTableName } from '@/utils/dashboardSqlName';
 import {
     buildRawTimeExpression,
@@ -57,6 +57,17 @@ const timeConverter = (aTime: string | number, aReturnTypeString: boolean) => {
         return moment(sTmpTime).format('YYYY-MM-DD HH:mm:ss');
     } else return Math.floor((aTime as number) / 1000);
 };
+/**
+ * `{{period}}` / TQL `$period`: the x-axis interval as value + unit letter (`10m`). A panel saved with
+ * no unit (an old or hand-edited board) has no letter to add; `10 + undefined` came out as `NaN` or
+ * `undefined` in the query (#1566), so such a period is empty instead.
+ */
+export const periodText = (aInterval: { IntervalType?: string; IntervalValue?: number | string } | undefined): string => {
+    const sUnit = String(aInterval?.IntervalType ?? '');
+    const sValue = aInterval?.IntervalValue;
+    if (!sUnit || sValue === undefined || sValue === null || sValue === '') return '';
+    return `${sValue}${sUnit[0]}`;
+};
 const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
     switch (aValue) {
         case '{{from_str}}':
@@ -80,7 +91,7 @@ const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
         case '{{to_ns}}':
             return (timeConverter(aTime.end, false) as number) * 1000000000;
         case '{{period}}':
-            return aTime.interval.IntervalValue + aTime.interval.IntervalType[0];
+            return periodText(aTime.interval);
         case '{{period_unit}}':
             return aTime.interval.IntervalType;
         case '{{period_value}}':
@@ -89,7 +100,9 @@ const variableValueConverter = (aValue: string, aTime: BlockTimeType) => {
             return aValue;
     }
 };
-export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType) => {
+// Only the key and the chosen value are read, so the public board's lighter variable type fits too.
+type ParsedVariable = Pick<VARIABLE_TYPE, 'key'> & { use: Pick<VARIABLE_TYPE['use'], 'value'> };
+export const VariableParser = (aVariables: ParsedVariable[], aTime: BlockTimeType) => {
     const defineVar = aVariables?.map((variable: any) => {
         return { key: variable.key, value: variable.use.value, regEx: variableKeyRegExp(variable.key) };
     });
@@ -98,7 +111,7 @@ export const VariableParser = (aVariables: VARIABLE_TYPE[], aTime: BlockTimeType
     });
     return defineVar.concat(defaultVar);
 };
-export const VariableParserForTql = (aVariables: VARIABLE_TYPE[]) => {
+export const VariableParserForTql = (aVariables: ParsedVariable[]) => {
     const defineVar = aVariables?.map((variable: any) => {
         return { key: variable.key, value: variable.use.value, regEx: variableKeyRegExp(variable.key) };
     });
@@ -392,18 +405,13 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
             const sTargetColumnInfo = aQuery.tableInfo && aQuery.tableInfo.find((aTable: any) => aTable[0] === aFilter.column);
             const sUseQuote = sTargetColumnInfo ? sTargetColumnInfo[1] === 5 : false;
             const sColumn = toSqlColumnName(aFilter.column);
-            const toFilterValue = (aValue: any) => (sUseQuote ? sqlString(aValue) : aValue);
+            const toFilterValue = (aValue: any) => filterValueSql(aValue, sUseQuote);
             // Expand mode
             if (aUseCustom) {
                 if (aFilter.useTyping) return aFilter.typingValue.replaceAll('"', "'");
                 else {
-                    if (sUseInOperator) {
-                        const sParseValueList = aFilter.valueList.map((pValue: any) => {
-                            if (pValue.includes(',')) return pValue.split(',');
-                            else return pValue;
-                        });
-                        return `${sColumn} ${aFilter.operator} (${sParseValueList.flat().map(toFilterValue).join(',')})`;
-                    } else
+                    if (sUseInOperator) return `${sColumn} ${aFilter.operator} (${aFilter.valueList.map(toFilterValue).join(',')})`;
+                    else
                         return aFilter.valueList
                             .map((aValue: any) => {
                                 return `${sColumn} ${aFilter.operator} ${toFilterValue(aValue)}`;
@@ -432,6 +440,12 @@ const GetAlias = (aValue: any) => {
             aValue.aggregator?.toUpperCase() !== 'value'.toUpperCase() && aValue.aggregator?.toUpperCase() !== 'none'.toUpperCase() ? '(' + aValue.aggregator + ')' : ''
         }`;
 };
+/**
+ * The name a query block's series has in the chart legend: its alias, else the tag (or, expanded, the
+ * value column) with the aggregator - `tag-a(avg)`. Lists that pick a series by block show this name so
+ * two blocks on the same table and column can be told apart (#1566).
+ */
+export const getBlockLegendName = (aBlock: any): string => (aBlock?.useCustom ? GetAlias(aBlock?.values?.[0]) : GetCollapsedSeriesName(aBlock)) ?? '';
 const UseCountAll = (aValueList: any) => {
     const sUseCountAll = aValueList.reduce((preV: boolean, aValue: any) => {
         return preV || isCountAllAggregator(aValue.aggregator) ? true : false;
