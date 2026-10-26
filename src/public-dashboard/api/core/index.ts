@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { reLogin } from '../repository/login';
+import { executeReLogin } from '@/api/core';
 import { isImage } from '../../utils';
 
 // Define custom type for headers
@@ -147,12 +147,11 @@ request.interceptors.response.use(
         let sData;
         if (error.response && error.response.status === 401) {
             if (error.response.config.url !== `/api/relogin`) {
-                const sRefresh: any = await reLogin();
+                // The editor's single-flight refresh: panels that hit 401 together wait for one relogin and retry with its
+                // token, instead of one relogin each (F-46). It stores the new tokens itself.
+                const sRefresh: any = await executeReLogin();
 
                 if (sRefresh.success) {
-                    localStorage.setItem('accessToken', sRefresh.accessToken);
-                    localStorage.setItem('refreshToken', sRefresh.refreshToken);
-
                     if (error.response.config.url !== `/api/login`) {
                         sData = request(error.config);
                     } else {
