@@ -19,7 +19,7 @@ const TIME_FORMAT_LIST: ComboboxOption[] = [
     { label: 'YYYY-MM-DD HH:MI:SS.SSSSSSSSS', value: '2006-01-02 15:04:05.000000000' },
     { label: 'YYYY-MM-DD HH', value: '2006-01-02 15' },
     { label: 'YYYY-MM-DD HH:MI', value: '2006-01-02 15:04' },
-    { label: 'HH:MI:SS', value: '03:04:05' },
+    { label: 'HH:MI:SS', value: '15:04:05' }, // Go layout: 15 is the 24-hour clock, 03 the 12-hour one with no AM/PM (F-175)
 ];
 
 export { TIME_FORMAT_LIST };
