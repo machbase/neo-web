@@ -74,3 +74,25 @@ describe('fetchTqlQuery reports why a read failed', () => {
         expect(svrReason).toBe('forced failure');
     });
 });
+
+// F-49: before the console connected the header read "null, console-log-level=NONE".
+describe('fetchTqlWithoutConsole X-Console-Id', () => {
+    const sentHeaders = () => mockedRequest.mock.calls[0][0].headers;
+    beforeEach(() => {
+        mockedRequest.mockReset();
+        mockedRequest.mockResolvedValue({ status: 200, data: '{"success":true,"data":{"columns":[],"rows":[]}}' });
+        localStorage.removeItem('consoleId');
+    });
+    afterAll(() => localStorage.removeItem('consoleId'));
+
+    test('no console yet: no console id header, log level still NONE', async () => {
+        await fetchTqlWithoutConsole('select 1');
+        expect(sentHeaders()).not.toHaveProperty('X-Console-Id');
+        expect(sentHeaders()['X-Console-Log-Level']).toBe('NONE');
+    });
+    test('a connected console is named as before', async () => {
+        localStorage.setItem('consoleId', 'abc');
+        await fetchTqlWithoutConsole('select 1');
+        expect(sentHeaders()['X-Console-Id']).toBe('abc, console-log-level=NONE');
+    });
+});
