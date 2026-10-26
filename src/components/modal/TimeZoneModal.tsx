@@ -1,5 +1,5 @@
 import { Modal, Combobox } from '@/design-system/components';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RiTimeZoneLine } from 'react-icons/ri';
 import { TIME_FORMAT_LIST } from '@/assets/ts/timeFormat';
 import { IANA_TIMEZONES } from '@/assets/ts/timezones';
@@ -15,6 +15,14 @@ export interface TimeZoneModalProps {
 export const TimeZoneModal = ({ isOpen, onClose, formatInitValue = '2006-01-02 15:04:05', zoneInitValue = 'LOCAL' }: TimeZoneModalProps) => {
     const [sTimeFormat, setTimeFormat] = useState(formatInitValue ?? '2006-01-02 15:04:05');
     const [sTimeZone, setTimeZone] = useState(zoneInitValue ?? 'LOCAL');
+
+    // The modal stays mounted between openings, so a pick left by Cancel was still selected next time and Apply then
+    // applied it (F-176). Each opening starts from the values in use.
+    useEffect(() => {
+        if (!isOpen) return;
+        setTimeFormat(formatInitValue ?? '2006-01-02 15:04:05');
+        setTimeZone(zoneInitValue ?? 'LOCAL');
+    }, [isOpen, formatInitValue, zoneInitValue]);
 
     const handleClose = () => {
         onClose({ timeFormat: formatInitValue, timeZone: zoneInitValue });
