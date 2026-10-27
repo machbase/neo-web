@@ -184,7 +184,6 @@ export function buildChartOption(
         xAxis: buildChartXAxisOption(
             ranges.mainRange,
             ranges.navigatorRange,
-            config.display,
             config.axes,
             rendering.isNumericXAxis,
         ),
@@ -319,7 +318,6 @@ function resolveAxisRange(
 function buildChartXAxisOption(
     mainRange: AxisRange,
     navigatorRange: AxisRange,
-    display: RuntimePanelDisplay,
     axes: RuntimePanelAxes,
     isNumericXAxis: boolean,
 ): XAXisComponentOption[] {
@@ -340,7 +338,7 @@ function buildChartXAxisOption(
                     formatAxisTick(xAxisValue, mainRange, isNumericXAxis),
             },
             splitLine: {
-                show: display.useZoom && axes.x.showTickline,
+                show: axes.x.showTickline,
                 lineStyle: CHART_AXIS_STYLE.splitLine,
             },
             axisPointer: { label: DEFAULT_NOT_SHOW },

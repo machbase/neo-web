@@ -120,6 +120,19 @@ describe('panel chart presentation', () => {
         })).toEqual([expect.objectContaining({ text: 'On second', seriesIndex: 1, anchorValue: 9 })]);
     });
 
+    it.each([
+        [true, true, true],
+        [false, true, true],
+        [true, false, false],
+        [false, false, false],
+    ])('shows X grid lines from the tick setting only (zoom %s, ticks %s)', (useZoom, showTickline, expected) => {
+        const panel = createPanel();
+        panel.display.useZoom = useZoom;
+        panel.axes.x.showTickline = showTickline;
+        const xAxis = buildChartOption(createRuntime(panel)).xAxis as { splitLine?: { show?: boolean } }[];
+        expect(xAxis[0].splitLine?.show).toBe(expected);
+    });
+
     it('defaults blank editable numbers without changing the stored values', () => {
         const panel = createPanel();
         panel.display.pointRadius = undefined;
