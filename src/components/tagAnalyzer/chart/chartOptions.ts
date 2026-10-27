@@ -532,7 +532,7 @@ function buildMainSeriesOption(
                       }
                     : undefined,
         });
-    });
+    }).filter((_, seriesIndex) => !chartData[seriesIndex].isUnavailable);
 }
 
 function buildNavigatorSeriesOption(
@@ -571,7 +571,7 @@ function buildNavigatorSeriesOption(
                 disabled: true,
             },
         });
-    });
+    }).filter((_, seriesIndex) => !chartData[seriesIndex].isUnavailable);
 }
 
 const PANEL_INSIDE_DATA_ZOOM_ID = 'panel-inside-data-zoom';

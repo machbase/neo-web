@@ -89,6 +89,17 @@ test('returns no payload when the selection contains no values', () => {
     ).toBeUndefined();
 });
 
+test('summarizes the remaining series when one series failed to load', () => {
+    const second = { key: 'series-2', sourceTagName: 'pressure' } as PanelSeriesDefinition;
+    expect(
+        buildSelectionSummaryPayload(
+            { start: 10, end: 20 },
+            [{ ...chartData([]), isUnavailable: true }, chartData([[10, 3], [20, 5]])],
+            [SERIES, second],
+        )?.seriesSummaries,
+    ).toEqual([expect.objectContaining({ series: second, min: '3.00000', max: '5.00000' })]);
+});
+
 test('rejects mismatched chart and panel series', () => {
     expect(() =>
         buildSelectionSummaryPayload(

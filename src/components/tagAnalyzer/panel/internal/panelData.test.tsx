@@ -225,6 +225,8 @@ describe('usePanelData', () => {
             errorKind: 'no-data' as const,
             expectedStatus: 'ready',
             expectedIssue: { kind: 'noData' as const },
+            // The series keeps its slot, empty and marked, so later series keep their indexes.
+            expectedSeries: [expect.objectContaining({ data: [], isUnavailable: true })],
         },
         {
             errorKind: 'request-failed' as const,
@@ -233,10 +235,11 @@ describe('usePanelData', () => {
                 kind: 'error' as const,
                 message: 'Series unavailable.',
             },
+            expectedSeries: [],
         },
     ])(
         'classifies an all-$errorKind response',
-        async ({ errorKind, expectedStatus, expectedIssue }) => {
+        async ({ errorKind, expectedStatus, expectedIssue, expectedSeries }) => {
             jest.spyOn(seriesDataApi, 'fetchSeriesRows').mockResolvedValue([{
                 seriesKey: TIME_SERIES.key,
                 data: [],
@@ -251,7 +254,7 @@ describe('usePanelData', () => {
                 expect(result.current.navigator.status).toBe(expectedStatus);
             });
 
-            expect(result.current.main.series).toEqual([]);
+            expect(result.current.main.series).toEqual(expectedSeries);
             expect(result.current.issue).toEqual(expectedIssue);
         },
     );
@@ -436,6 +439,7 @@ describe('usePanelData', () => {
             expect(result.current.main.status).toBe('ready'),
         );
         expect(result.current.main.series[0]?.data).toEqual([]);
+        expect(result.current.main.series.map((series) => series.isUnavailable)).toEqual([undefined, true]);
         expect(result.current.issue).toEqual({ kind: 'partialData' });
     });
 

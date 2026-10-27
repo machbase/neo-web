@@ -247,10 +247,10 @@ function mapPanelSeries(
     isRaw: boolean,
 ): ChartSeriesData[] {
     return mapFetchResultToChartData(
-        result?.filter(({ error }) => !error),
+        result?.map((series) => (series.error ? { ...series, data: [] } : series)),
         seriesList,
         isRaw,
-    );
+    ).map((series, index) => (result?.[index]?.error ? { ...series, isUnavailable: true } : series));
 }
 
 function selectPanelRequest(

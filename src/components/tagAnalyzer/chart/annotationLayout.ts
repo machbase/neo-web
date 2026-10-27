@@ -109,7 +109,7 @@ function buildAnnotationAnchors({
 
         if (
             chartSeries &&
-            visibleSeries[chartSeries.echartsName] === false
+            (chartSeries.isUnavailable || visibleSeries[chartSeries.echartsName] === false)
         ) {
             return [];
         }
