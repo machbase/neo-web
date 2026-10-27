@@ -68,9 +68,16 @@ export const Button = ({
         .filter(Boolean)
         .join(' ');
 
+    // A tooltip button shows only its icon, so the tooltip text is its name too — otherwise screen
+    // readers announced it as just "button". A name the caller gives (or a label) stays as it is.
+    const tooltipName =
+        isToolTip && icon && typeof toolTipContent === 'string' && toolTipContent.trim() && props['aria-label'] === undefined && props['aria-labelledby'] === undefined && !props.title && !label
+            ? toolTipContent
+            : undefined;
+
     const buttonElement = (
         <>
-            <button id={buttonId} className={buttonClasses} disabled={disabled || loading} {...props}>
+            <button id={buttonId} className={buttonClasses} disabled={disabled || loading} aria-label={tooltipName} {...props}>
                 {loading ? (
                     <svg className={styles['button__spinner']} width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeDasharray="10 20" />
