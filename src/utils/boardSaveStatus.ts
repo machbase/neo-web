@@ -30,7 +30,8 @@ export const isBoardSaved = (board: any): boolean => {
             }
             return false;
         case 'taz':
-            return isTagAnalyzerBoardSaved(board);
+            // The open board reports its own edits; the list entry itself changes only on save.
+            return board.hasUnsavedTazChanges !== true && isTagAnalyzerBoardSaved(board);
         case 'new':
         case 'term':
             return board.savedCode === board.savedCode;

@@ -213,6 +213,9 @@ describe('loadTazBoard', () => {
         expect(boardInfo.type).toBe('taz');
         expect(boardInfo.version).toBe(TAZ_FORMAT_VERSION);
         expect(isBoardSaved(boardInfo)).toBe(true);
+        // The open board reports edits it holds outside this list entry (F-171).
+        expect(isBoardSaved({ ...boardInfo, hasUnsavedTazChanges: true })).toBe(false);
+        expect(isBoardSaved({ ...boardInfo, hasUnsavedTazChanges: false })).toBe(true);
     });
 
     it('loads legacy flat TAZ JSON as runtime BoardInfo', () => {

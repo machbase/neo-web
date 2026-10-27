@@ -49,6 +49,7 @@ export default function Board({
     isActiveTab,
     onSavedBoard,
     onFileSaved,
+    onUnsavedChangesChange,
     rollupTableList,
 }: BoardProps) {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -137,6 +138,10 @@ export default function Board({
         onSavedBoard,
         onFileSaved,
     });
+
+    useEffect(() => {
+        onUnsavedChangesChange?.(boardSave.hasUnsavedChanges);
+    }, [boardSave.hasUnsavedChanges, onUnsavedChangesChange]);
 
     useEffect(() => {
         if (isActiveTab) return;
@@ -461,6 +466,8 @@ type BoardProps = {
     isActiveTab: boolean;
     onSavedBoard: (savedBoard: BoardInfo, opts: { overwritten: boolean }) => void;
     onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
+    /** The edits live in this board; the tab and OPEN EDITORS learn of them only through this. */
+    onUnsavedChangesChange?: (hasUnsavedChanges: boolean) => void;
     rollupTableList: RollupTableMap;
 };
 
