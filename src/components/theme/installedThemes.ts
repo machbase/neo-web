@@ -9,15 +9,19 @@ import { parseThemeManifest, type ThemeChoice } from '@/design-system/theme';
 
 type Listing = { children?: { name?: unknown; isDir?: unknown }[] };
 
-/** Every installed theme, by label. Packages that cannot be read are left out, not reported. */
-export const listInstalledThemes = async (): Promise<ThemeChoice[]> => {
+/**
+ * Every installed theme, by label; null when `/public/` itself cannot be listed (that is not
+ * "no theme installed"). A package whose manifest cannot be read is left out.
+ */
+export const listInstalledThemes = async (): Promise<ThemeChoice[] | null> => {
     let sDirs: string[] = [];
     try {
         const sRes: any = await getFileList('', '/public/', '');
         const sListing: Listing | undefined = sRes?.data ?? sRes;
-        sDirs = (sListing?.children ?? []).filter((c) => c.isDir === true && typeof c.name === 'string').map((c) => c.name as string);
+        if (!Array.isArray(sListing?.children)) return null;
+        sDirs = sListing.children.filter((c) => c.isDir === true && typeof c.name === 'string').map((c) => c.name as string);
     } catch {
-        return [];
+        return null;
     }
     const sThemes = await Promise.all(sDirs.map(async (aDir) => parseThemeManifest(aDir, await readManifest(aDir))));
     return sThemes.filter((t): t is ThemeChoice => t !== null).sort((a, b) => a.label.localeCompare(b.label));

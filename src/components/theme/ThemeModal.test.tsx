@@ -48,3 +48,24 @@ test('no theme package installed: says where themes come from', async () => {
     render(<ThemeModal isOpen onClose={() => {}} />);
     await waitFor(() => expect(screen.getByText(/No theme package is installed/)).toBeInTheDocument());
 });
+
+test('a remembered theme that is no longer installed is forgotten: Dark is selected', async () => {
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ pkg: 'neo-pkg-theme-gone', stylesheet: 'theme.css', label: 'Gone', scheme: 'light' }));
+    applyTheme({ pkg: 'neo-pkg-theme-gone', stylesheet: 'theme.css', label: 'Gone', scheme: 'light' });
+    render(<ThemeModal isOpen onClose={() => {}} />);
+    await screen.findByTestId('theme-option-neo-pkg-theme-light');
+    expect(screen.getByTestId('theme-option-default')).toHaveAttribute('aria-checked', 'true');
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
+    expect(document.getElementById(THEME_LINK_ID)).toBeNull();
+});
+
+test('the package list cannot be read: the remembered theme is kept, not forgotten', async () => {
+    mockGetFileList.mockImplementation(async () => {
+        throw new Error('network');
+    });
+    const sStored = { pkg: 'neo-pkg-theme-light', stylesheet: 'theme.css', label: 'Light', scheme: 'light' };
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(sStored));
+    render(<ThemeModal isOpen onClose={() => {}} />);
+    expect(await screen.findByText(/could not be read/)).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(THEME_STORAGE_KEY) ?? '{}').pkg).toBe('neo-pkg-theme-light');
+});
