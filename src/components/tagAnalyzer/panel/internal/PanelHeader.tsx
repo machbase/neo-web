@@ -42,6 +42,7 @@ export function PanelHeader({
     onToggleOverlap,
     onRenamePanelTitle,
     onOpenMainRangeModal,
+    menuCloseKey,
 }: PanelHeaderProps) {
     const { getExperiment } = useExperiment();
     const [titleDraft, setTitleDraft] = useState<string | undefined>();
@@ -197,11 +198,13 @@ export function PanelHeader({
                     </span>
                 ))}
                 <PanelHeaderMenu
+                    key={`extra-${menuCloseKey ?? 0}`}
                     variant="extra"
                     actions={sActions.filter((action) => action.showInExtraMenu)}
                     onAction={onAction}
                 />
                 <PanelHeaderMenu
+                    key={`more-${menuCloseKey ?? 0}`}
                     variant="more"
                     actions={sDirectActions.filter((action) => action.showInMoreMenu)}
                     onAction={onAction}
@@ -309,4 +312,6 @@ type PanelHeaderProps = {
     onToggleOverlap: () => void;
     onRenamePanelTitle: (title: string) => void;
     onOpenMainRangeModal: () => void;
+    /** Changing it closes the open header menus (the chart keeps right presses from reaching them). */
+    menuCloseKey?: number;
 };

@@ -99,4 +99,23 @@ describe('PanelHeader', () => {
         expect(screen.getByTestId(`action-${PanelActionKey.TOGGLE_ANNOTATION}`)).toHaveAttribute('aria-pressed', 'false');
         expect(screen.getByTestId(`action-${PanelActionKey.SET_GLOBAL_RANGE}`)).not.toHaveAttribute('aria-pressed');
     });
+
+    it('closes an open header menu when asked to', () => {
+        const header = (menuCloseKey: number) => (
+            <PanelHeader
+                state={HEADER_STATE}
+                onAction={jest.fn()}
+                onToggleOverlap={jest.fn()}
+                onRenamePanelTitle={jest.fn()}
+                onOpenMainRangeModal={jest.fn()}
+                menuCloseKey={menuCloseKey}
+            />
+        );
+        const view = render(header(0));
+        fireEvent.click(screen.getByRole('button', { name: 'Extra panel actions' }));
+        expect(screen.getByTestId('tag-analyzer-panel-extra-menu')).toBeInTheDocument();
+
+        view.rerender(header(1));
+        expect(screen.queryByTestId('tag-analyzer-panel-extra-menu')).not.toBeInTheDocument();
+    });
 });

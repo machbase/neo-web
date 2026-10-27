@@ -69,6 +69,7 @@ export default memo(function Panel({
         session: number;
     }>({ phase: 'closed', session: 0 });
     const isEditorOpen = editorState.phase === 'open';
+    const [headerMenuCloseKey, setHeaderMenuCloseKey] = useState(0);
 
     function closeEditor(): void {
         setEditorState({ ...editorState, phase: 'closing' });
@@ -297,6 +298,7 @@ export default memo(function Panel({
     function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
         event.stopPropagation();
+        setHeaderMenuCloseKey((key) => key + 1);
         showContextMenu({ x: event.clientX, y: event.clientY });
     }
 
@@ -344,6 +346,7 @@ export default memo(function Panel({
                     onApplyPanelInfo({ ...panelInfo, title })
                 }
                 onOpenMainRangeModal={rangeDialog.openMain}
+                menuCloseKey={headerMenuCloseKey}
             />
             {hasMixedXAxisKinds && (
                 <div className="panel-x-axis-warning">
