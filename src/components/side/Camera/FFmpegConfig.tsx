@@ -125,7 +125,7 @@ export const FFmpegConfig = ({ value = FFMPEG_DEFAULT_CONFIG, onChange, readOnly
                 // pTrigger={<Page.ContentTitle>FFmpeg configuration</Page.ContentTitle>}
             >
                 <Page.Space />
-                <Page.ContentBlock pHoverNone style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'column' }}>
+                <Page.ContentBlock pHoverNone style={{ border: 'solid 0.5px var(--neo-border-color-light, #454545)', borderRadius: '4px', flexDirection: 'column' }}>
                     <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                         {/* Input & Network Settings */}
                         <Page.ContentDesc>
@@ -264,7 +264,7 @@ export const FFmpegConfig = ({ value = FFMPEG_DEFAULT_CONFIG, onChange, readOnly
                             <TextHighlight variant="primary">Generated parameters</TextHighlight>
                         </Page.ContentDesc>
                         <Page.Space />
-                        <Page.DpRow style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'row', margin: 0, flexWrap: 'wrap' }}>
+                        <Page.DpRow style={{ border: 'solid 0.5px var(--neo-border-color-light, #454545)', borderRadius: '4px', flexDirection: 'row', margin: 0, flexWrap: 'wrap' }}>
                             <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                                 <Badge variant="primary" size="lg">
                                     <TextHighlight variant="neutral">-rtsp_transport {value.rtspTransport}</TextHighlight>

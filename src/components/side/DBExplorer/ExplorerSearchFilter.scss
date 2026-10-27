@@ -20,7 +20,7 @@ $explorer-link-fg: #4199ff;
 $search-match-bg: rgba(65, 153, 255, 0.3);
 // On a selected row (#005fb8) a blue wash is invisible, so the highlight inverts
 // to a white one rather than tinting blue on blue.
-$search-match-bg-onsel: rgba(255, 255, 255, 0.28);
+$search-match-bg-onsel: var(--neo-bg-hover-light, rgba(255, 255, 255, 0.28));
 $filter-summary-bg: rgba(65, 153, 255, 0.06);
 $filter-badge-active: rgb(0, 83, 160);
 // Below this the panel drops to 6px side padding and gives up the secondary

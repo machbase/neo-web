@@ -174,7 +174,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                     <Page.ContentBlock
                         pHoverNone
                         key={aItem.type + aIndex}
-                        style={{ flex: 1, border: 'solid 1px #454545', borderRadius: '4px' }}
+                        style={{ flex: 1, border: 'solid 1px var(--neo-border-color-light, #454545)', borderRadius: '4px' }}
                         data-testid={aIndex === 0 ? 'y-axis-primary' : 'y-axis-secondary'}
                     >
                         {aIndex === 1 && <Button size="icon" variant="ghost" icon={<Close />} onClick={addRemoveYAixs} data-testid="remove-y-axis" />}

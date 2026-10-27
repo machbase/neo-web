@@ -1,6 +1,6 @@
 .react-grid-item > .react-resizable-handle::after {
-    border-right: 2px solid rgba(255, 255, 255, 0.4) !important;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.4) !important;
+    border-right: 2px solid var(--neo-border-color-medium, rgba(255, 255, 255, 0.4)) !important;
+    border-bottom: 2px solid var(--neo-border-color-medium, rgba(255, 255, 255, 0.4)) !important;
 }
 
 .non-set-panel {
@@ -58,7 +58,7 @@
                 cursor: pointer;
             }
             .plus-btn {
-                border: 0.5px solid rgba(255, 255, 255, 0.5);
+                border: 0.5px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
                 display: flex;
                 border-radius: 6px;
                 height: 24px;
@@ -86,7 +86,7 @@
                 display: flex;
                 align-items: center;
                 background-color: transparent;
-                border: 0.5px solid rgba(255, 255, 255, 0.5);
+                border: 0.5px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
                 height: 26px;
                 font-size: 13px;
                 border-radius: 6px;
@@ -106,7 +106,7 @@
         position: relative;
     }
     .variable-header-warp {
-        border-top: solid 1px rgb(60, 69, 73);
+        border-top: solid 1px var(--neo-border-color-light, rgb(60, 69, 73));
         position: absolute;
         display: flex;
         top: 40px;

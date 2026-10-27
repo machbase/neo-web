@@ -17,7 +17,7 @@ $d-background: var(--neo-bg-elevated, rgba(38, 40, 49, 1));
 $d-btn-hover-bg: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
 $d-text-main-title: var(--neo-text-primary, rgba(255, 255, 255, 1));
 $d-text-sub-title: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
-$d-home-drop-bg: rgba(255, 255, 255, 0.3);
+$d-home-drop-bg: var(--neo-btn-copy, rgba(255, 255, 255, 0.3));
 $d-tab-bg: var(--neo-bg-hover-light, #404557);
 $d-sql-bg: var(--neo-bg-primary, #1b1c21);
 $d-modal-bg: var(--neo-dropdown-option-hover-bg, #333643);

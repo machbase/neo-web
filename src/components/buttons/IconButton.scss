@@ -24,7 +24,7 @@
     cursor: auto;
     svg,
     .tooltip-icon {
-        color: rgba(255, 255, 255, 0.205) !important;
+        color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 20.5%, transparent) !important;
     }
 }
 

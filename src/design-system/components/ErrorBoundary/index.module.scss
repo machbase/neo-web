@@ -23,8 +23,8 @@
     &--unit {
         padding: t.$spacing-8;
         gap: t.$spacing-6;
-        background-color: rgba(220, 53, 69, 0.08);
-        border: 1px dashed rgba(220, 53, 69, 0.4);
+        background-color: color-mix(in srgb, var(--neo-btn-delete, rgb(220, 53, 69)) 8%, transparent);
+        border: 1px dashed color-mix(in srgb, var(--neo-btn-delete, rgb(220, 53, 69)) 40%, transparent);
     }
 
     &__title {
@@ -79,8 +79,8 @@
     white-space: nowrap;
     font-size: t.$font-size-sm;
     color: t.$text-secondary;
-    background-color: rgba(220, 53, 69, 0.08);
-    border: 1px dashed rgba(220, 53, 69, 0.4);
+    background-color: color-mix(in srgb, var(--neo-btn-delete, rgb(220, 53, 69)) 8%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--neo-btn-delete, rgb(220, 53, 69)) 40%, transparent);
 
     &__title {
         overflow: hidden;

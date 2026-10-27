@@ -56,7 +56,7 @@
     gap: 4px;
     pointer-events: none;
     padding: 4px 8px;
-    border: 1px solid rgba(253, 181, 50, 0.45);
+    border: 1px solid color-mix(in srgb, var(--neo-warning-main, rgb(253, 181, 50)) 45%, transparent);
     border-radius: 4px;
     background: var(--neo-bg-primary, rgba(22, 22, 22, 0.92));
     color: theme.$warning;
@@ -70,12 +70,12 @@
 }
 
 .panel-chart-interaction-hint--valid {
-    border-color: rgba(87, 214, 141, 0.5);
+    border-color: color-mix(in srgb, var(--neo-success-main, rgb(87, 214, 141)) 50%, transparent);
     color: var(--neo-success-main, #57d68d);
 }
 
 .panel-chart-interaction-hint--invalid {
-    border-color: rgba(255, 138, 61, 0.5);
+    border-color: color-mix(in srgb, var(--neo-error-light, rgb(255, 138, 61)) 50%, transparent);
     color: var(--neo-error-light, #ff8a3d);
 }
 

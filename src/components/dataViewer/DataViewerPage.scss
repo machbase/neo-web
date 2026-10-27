@@ -28,9 +28,9 @@
     --color-primary-hover: #0075e2;
     --color-primary-light: rgb(0, 108, 210);
     --color-success: #71e071;
-    --color-success-muted: rgba(113, 224, 113, 0.15);
+    --color-success-muted: color-mix(in srgb, var(--neo-success-main, rgb(113, 224, 113)) 15%, transparent);
     --color-error: rgb(255, 83, 83);
-    --color-error-muted: rgba(255, 83, 83, 0.15);
+    --color-error-muted: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 15%, transparent);
     --color-switch-off: #3a3a3a;
     --color-switch-on: #005fb8;
     --color-switch-on-hover: #0075e2;
@@ -124,7 +124,7 @@
 
 .neo-data-viewer-badge-success {
     color: #a7f3d0;
-    background: rgba(16, 185, 129, 0.18);
+    background: color-mix(in srgb, var(--neo-btn-status, rgb(16, 185, 129)) 18%, transparent);
 }
 
 .neo-data-viewer-body {
@@ -992,14 +992,14 @@
 }
 
 .neo-data-viewer .badge-success {
-    border-color: rgba(113, 224, 113, 0.3);
+    border-color: color-mix(in srgb, var(--neo-success-main, rgb(113, 224, 113)) 30%, transparent);
     background-color: var(--color-success-muted);
     color: var(--color-success);
 }
 
 .neo-data-viewer .badge-info {
-    border-color: rgba(0, 117, 226, 0.35);
-    background-color: rgba(0, 117, 226, 0.15);
+    border-color: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 35%, transparent);
+    background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 15%, transparent);
     color: #6cb6ff;
 }
 
@@ -1414,7 +1414,7 @@
        and it is Chrome 111 / Safari 16.2 / Firefox 113. The literal above it is what anything older
        paints: the same blue this rule used before the accent existed, so the panel degrades to the
        previous appearance rather than to no header background at all. */
-    background-color: rgba(0, 95, 184, 0.14);
+    background-color: color-mix(in srgb, var(--neo-primary-base, rgb(0, 95, 184)) 14%, transparent);
     background-color: color-mix(in srgb, var(--split-accent, var(--color-primary)) 14%, transparent);
 }
 
@@ -1609,7 +1609,7 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    border: 1px solid #454545;
+    border: 1px solid var(--neo-border-color-light, #454545);
     border-radius: var(--radius-base);
     background-color: var(--neo-bg-primary, rgba(31, 29, 29, 0.86));
     color: var(--color-on-surface-secondary);
@@ -1696,7 +1696,7 @@
 .neo-data-viewer .data-viewer-chart-toolbar-group {
     display: inline-flex;
     align-items: center;
-    border: 1px solid #454545;
+    border: 1px solid var(--neo-border-color-light, #454545);
     border-radius: var(--radius-base);
     background-color: var(--neo-bg-primary, rgba(31, 29, 29, 0.86));
     pointer-events: auto;
@@ -1761,7 +1761,7 @@
 
 .neo-data-viewer .data-viewer-chart-drag-preview-zoom-out {
     border-color: rgba(255, 196, 87, 0.9);
-    background-color: rgba(255, 196, 87, 0.14);
+    background-color: color-mix(in srgb, var(--neo-event-match-main, rgb(255, 196, 87)) 14%, transparent);
 }
 
 .neo-data-viewer .data-viewer-chart > div {
@@ -2804,7 +2804,7 @@
    rail is an inset shadow rather than a border so it takes no part in layout; the row carries no
    radius, or the rail's ends would round and break the run into separate chips. */
 .neo-data-viewer .json-key-row.is-active {
-    background-color: rgba(0, 117, 226, 0.16);
+    background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 16%, transparent);
     color: var(--color-on-surface);
     box-shadow: inset 3px 0 0 var(--color-primary-hover);
 }
@@ -3042,7 +3042,7 @@
    itself stays white — it is the value being read, and tinting it to match its own frame is what
    made the chosen chip harder to read than the two beside it. */
 .json-key-detail-chip.is-active {
-    background-color: rgba(0, 117, 226, 0.16);
+    background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 16%, transparent);
     border-color: var(--color-primary-hover);
     color: var(--color-on-surface);
 }
@@ -3638,7 +3638,7 @@
     flex: 0 0 auto;
     padding: var(--spacing-4) var(--spacing-4) var(--spacing-4) var(--spacing-8);
     border-radius: 0;
-    background-color: rgba(0, 117, 226, 0.16);
+    background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 16%, transparent);
     box-shadow: inset 2px 0 0 var(--color-primary-hover);
 }
 
@@ -3751,7 +3751,7 @@
 
 .neo-data-viewer .json-key-manual-entry {
     padding: 10px 12px;
-    border-top: 1px solid var(--border-color, #333);
+    border-top: 1px solid var(--border-color, var(--neo-border-color-default, #333));
     font-size: 12px;
     .json-key-manual-add {
         display: flex;

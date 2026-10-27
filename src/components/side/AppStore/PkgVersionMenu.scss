@@ -17,7 +17,7 @@
     padding: 6px 10px;
     background-color: t.$menu-bg;
     box-shadow: 0 -8px 0 0 t.$menu-bg;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--neo-border-color-default, #333);
     font-size: 11px;
     color: var(--neo-text-tertiary, #9a9a9a);
 
@@ -97,7 +97,7 @@
     z-index: 2;
     margin: 2px -#{t.$spacing-4} 0;
     padding: 8px 10px;
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--neo-border-color-default, #333);
     background-color: t.$menu-bg;
     box-shadow: 0 8px 0 0 t.$menu-bg;
 
@@ -142,7 +142,7 @@
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.3px;
-    background-color: rgba(209, 134, 22, 0.2);
+    background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 20%, transparent);
     color: var(--neo-warning-main, #d6943a);
 }
 
@@ -155,7 +155,7 @@
     white-space: nowrap;
 
     &--default {
-        background-color: rgba(63, 185, 80, 0.18);
+        background-color: color-mix(in srgb, var(--neo-success-main, rgb(63, 185, 80)) 18%, transparent);
         color: var(--neo-success-main, #4ac26b);
     }
     &--current {
@@ -163,7 +163,7 @@
         color: #4aa3e0;
     }
     &--ineligible {
-        background-color: rgba(209, 134, 22, 0.18);
+        background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 18%, transparent);
         color: var(--neo-warning-main, #d6943a);
     }
     // issue #1452 — this version's archive sits in the local package directory, so
@@ -172,7 +172,7 @@
     // version, and two different colours for one meaning reads as two meanings.
     // Distinct from the green "default" target, since a row can be both.
     &--local {
-        background-color: rgba(45, 156, 219, 0.18);
+        background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(45, 156, 219)) 18%, transparent);
         color: #7cc4f0;
     }
     // ...and its opposite: hub-only version, hub unreachable → nothing to install from.
@@ -189,7 +189,7 @@
     gap: 6px;
     margin: 0 -#{t.$spacing-4} 2px;
     padding: 6px 10px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--neo-border-color-default, #333);
     font-size: 11px;
     line-height: 1.4;
     color: var(--neo-warning-main, #d6943a);

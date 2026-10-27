@@ -23,7 +23,7 @@
         min-height: 32px;
         resize: vertical;
         padding: 8px;
-        border: solid 0.5px rgba(255, 255, 255, 0.5);
+        border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
         flex-grow: 1;
     }
     .divider {

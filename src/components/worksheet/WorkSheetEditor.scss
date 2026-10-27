@@ -21,9 +21,9 @@
                 background-color: var(--neo-bg-primary, #1e1e1e);
                 border-top-right-radius: 4px;
                 border-top-left-radius: 4px;
-                border-top: solid 0.5px #454545;
-                border-left: solid 0.5px #454545;
-                border-right: solid 0.5px #454545;
+                border-top: solid 0.5px var(--neo-border-color-light, #454545);
+                border-left: solid 0.5px var(--neo-border-color-light, #454545);
+                border-right: solid 0.5px var(--neo-border-color-light, #454545);
 
                 .worksheet-ctr-verti-divi {
                     width: 1px;

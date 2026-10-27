@@ -337,10 +337,10 @@
                 background:
                     repeating-linear-gradient(
                         -45deg,
-                        rgba(239, 68, 68, 0.22) 0px,
-                        rgba(239, 68, 68, 0.22) 6px,
-                        rgba(239, 68, 68, 0.42) 6px,
-                        rgba(239, 68, 68, 0.42) 12px
+                        color-mix(in srgb, var(--neo-btn-delete, rgb(239, 68, 68)) 22%, transparent) 0px,
+                        color-mix(in srgb, var(--neo-btn-delete, rgb(239, 68, 68)) 22%, transparent) 6px,
+                        color-mix(in srgb, var(--neo-btn-delete, rgb(239, 68, 68)) 42%, transparent) 6px,
+                        color-mix(in srgb, var(--neo-btn-delete, rgb(239, 68, 68)) 42%, transparent) 12px
                     );
                 box-sizing: border-box;
             }

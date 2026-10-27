@@ -44,7 +44,7 @@
     background-color: var(--neo-bg-hover-light, #404457);
     color: white;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(0, 0, 0, 0.3);
-    border: solid 0.5px rgba(255, 255, 255, 0.5);
+    border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
 
     svg {
         color: white;
@@ -55,7 +55,7 @@
     background-color: var(--neo-color-white, #ebebec);
     color: black;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(255, 255, 255, 0.3);
-    border: solid 0.5px rgba(38, 40, 49, 0.5);
+    border: solid 0.5px var(--neo-border-color-default, rgba(38, 40, 49, 0.5));
 
     svg {
         color: black;

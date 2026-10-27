@@ -52,7 +52,7 @@
     // Color variants
     &--primary {
         border-color: t.$primary-base;
-        background-color: rgba(0, 95, 184, 0.1);
+        background-color: color-mix(in srgb, var(--neo-primary-base, rgb(0, 95, 184)) 10%, transparent);
 
         .text {
             color: t.$primary-base;
@@ -65,8 +65,8 @@
     }
 
     &--success {
-        border-color: rgba(113, 224, 113, 0.3);
-        background-color: rgba(113, 224, 113, 0.15);
+        border-color: color-mix(in srgb, var(--neo-success-main, rgb(113, 224, 113)) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-success-main, rgb(113, 224, 113)) 15%, transparent);
 
         .text {
             color: t.$success-main;
@@ -78,8 +78,8 @@
     }
 
     &--error {
-        border-color: rgba(255, 83, 83, 0.3);
-        background-color: rgba(255, 83, 83, 0.15);
+        border-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 15%, transparent);
 
         .text {
             color: t.$error-main;
@@ -91,8 +91,8 @@
     }
 
     &--warning {
-        border-color: rgba(255, 152, 0, 0.3);
-        background-color: rgba(255, 152, 0, 0.15);
+        border-color: color-mix(in srgb, var(--neo-warning-main, rgb(255, 152, 0)) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-warning-main, rgb(255, 152, 0)) 15%, transparent);
 
         .text {
             color: t.$warning-main;
@@ -104,8 +104,8 @@
     }
 
     &--info {
-        border-color: rgba(0, 95, 184, 0.3);
-        background-color: rgba(0, 95, 184, 0.15);
+        border-color: color-mix(in srgb, var(--neo-border-color-active, rgb(0, 95, 184)) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-primary-base, rgb(0, 95, 184)) 15%, transparent);
 
         .text {
             color: t.$info-main;

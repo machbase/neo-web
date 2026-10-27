@@ -211,7 +211,7 @@
         // Padding/height/radius come from the shared `span` rule above, which is
         // what keeps it aligned with the neighbouring chips.
         span.local {
-            background-color: rgba(45, 156, 219, 0.18);
+            background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(45, 156, 219)) 18%, transparent);
             color: #7cc4f0;
             gap: 3px;
             cursor: help;
@@ -225,7 +225,7 @@
         // Amber, like `.incompat`: both say "this is not the state you think it
         // is", and both are conditions the user has to act on rather than choices.
         span.stray {
-            background-color: rgba(209, 134, 22, 0.18);
+            background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 18%, transparent);
             color: var(--neo-event-match-main, #e0a458);
             gap: 3px;
             cursor: help;
@@ -237,7 +237,7 @@
 
         // server-downgrade incompatibility warning (issue #1369)
         span.incompat {
-            background-color: rgba(209, 134, 22, 0.18);
+            background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 18%, transparent);
             color: var(--neo-event-match-main, #e0a458);
             gap: 3px;
             cursor: help;
@@ -257,9 +257,9 @@
     // ground, which is the conventional "provisional / not part of the set"
     // treatment and survives the theme without new tokens.
     &--stray {
-        border: 1px dashed rgba(224, 164, 88, 0.38);
-        border-bottom: 1px dashed rgba(224, 164, 88, 0.38);
-        background-color: rgba(209, 134, 22, 0.04);
+        border: 1px dashed color-mix(in srgb, var(--neo-error-light, rgb(224, 164, 88)) 38%, transparent);
+        border-bottom: 1px dashed color-mix(in srgb, var(--neo-error-light, rgb(224, 164, 88)) 38%, transparent);
+        background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 4%, transparent);
 
         // issue #1452 — INERT, AND IT MUST LOOK INERT. The base `.app-store-item`
         // is a clickable row (pointer cursor + hover tint) because clicking it
@@ -271,7 +271,7 @@
         cursor: default;
 
         &:hover {
-            background-color: rgba(209, 134, 22, 0.04);
+            background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 4%, transparent);
         }
     }
 
@@ -344,7 +344,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #555;
+            color: var(--neo-status-none, #555);
         }
 
         &--on {

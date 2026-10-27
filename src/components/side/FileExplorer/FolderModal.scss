@@ -31,7 +31,7 @@
 
         .dark {
             &-border {
-                border: 1px solid rgba(255, 255, 255, 0.5);
+                border: 1px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
             }
             svg {
                 color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
@@ -54,7 +54,7 @@
             align-items: center;
 
             border-radius: 5px;
-            border: 1px solid rgba(38, 40, 49, 0.5);
+            border: 1px solid var(--neo-border-color-default, rgba(38, 40, 49, 0.5));
 
             svg {
                 font-size: 20px;
@@ -78,13 +78,13 @@
     .folder {
         border-top: 0.5px solid #8d8e92;
         border-bottom: 0.5px solid #8d8e92;
-        background-color: rgba(255, 255, 255, 0.5);
+        background-color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
 
         &-header {
             display: flex;
             align-items: center;
             padding: 0px 32px;
-            border-bottom: 0.5px solid rgba(38, 40, 49, 0.5);
+            border-bottom: 0.5px solid var(--neo-border-color-default, rgba(38, 40, 49, 0.5));
             color: rgba(38, 40, 49, 0.5);
             font-size: 12px;
             height: 26px;
@@ -140,7 +140,7 @@
             display: flex;
             align-items: center;
             padding: 0px 32px;
-            border-bottom: 0.5px solid rgba(255, 255, 255, 0.5);
+            border-bottom: 0.5px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
             color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
             font-size: 12px;
             height: 26px;
@@ -204,14 +204,14 @@
 
         border-radius: 8px;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
-        border: solid 0.5px rgba(38, 40, 49, 0.5);
+        border: solid 0.5px var(--neo-border-color-default, rgba(38, 40, 49, 0.5));
         background-color: var(--neo-color-white, #fcfcfc);
 
         padding: 0.5rem;
 
         &-dark {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
-            border: solid 0.5px rgba(255, 255, 255, 0.5);
+            border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
             background-color: var(--neo-bg-secondary, rgba(38, 40, 49, 0.5));
 
             input {

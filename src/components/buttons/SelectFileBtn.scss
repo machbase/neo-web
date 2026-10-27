@@ -22,7 +22,7 @@
         overflow-y: hidden;
         height: 32px;
         gap: t.$spacing-4;
-        border: solid 0.5px #454545;
+        border: solid 0.5px var(--neo-border-color-light, #454545);
         border-radius: 4px;
         padding: 0 4px;
 

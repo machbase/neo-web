@@ -620,7 +620,7 @@ $nb-fog-duration: 0.25s;
     font-size: 12.5px;
     color: t.$text-secondary;
     border: 1px solid var(--neo-primary-dark, rgba(0, 117, 226, 0.45));
-    background: rgba(0, 117, 226, 0.09);
+    background: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 9%, transparent);
     border-radius: t.$border-radius-md;
 }
 
@@ -634,8 +634,8 @@ $nb-fog-duration: 0.25s;
     padding: 10px 14px;
     font-size: 12.5px;
     color: t.$text-secondary;
-    border: 1px solid rgba(252, 118, 118, 0.45);
-    background: rgba(252, 118, 118, 0.08);
+    border: 1px solid color-mix(in srgb, var(--neo-error-light, rgb(252, 118, 118)) 45%, transparent);
+    background: color-mix(in srgb, var(--neo-error-light, rgb(252, 118, 118)) 8%, transparent);
     border-radius: t.$border-radius-md;
 }
 
@@ -1106,7 +1106,7 @@ $nb-fog-duration: 0.25s;
     // Hover lightens the outline of the innermost section or widget under the pointer only, so the
     // sections around it stay as they are. `:where` keeps it below the selected, drop and drag outlines.
     .nb-section:where(:hover:not(:has(.nb-node:hover))) {
-        outline-color: rgba(255, 255, 255, 0.55);
+        outline-color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 55%, transparent);
     }
     .nb-section.is-selected {
         outline: 2px solid $nb-accent;
@@ -1128,7 +1128,7 @@ $nb-fog-duration: 0.25s;
         outline: 2px solid $nb-accent;
     }
     .nb-section.is-drop-into > .nb-section-frame > .nb-section-body {
-        background: rgba(0, 117, 226, 0.08);
+        background: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 8%, transparent);
         border-radius: t.$border-radius-md;
     }
     .nb-section-body.is-empty {
@@ -1198,7 +1198,7 @@ $nb-fog-duration: 0.25s;
         margin-top: 8px;
     }
     .nb-widget:hover {
-        outline-color: rgba(255, 255, 255, 0.55);
+        outline-color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 55%, transparent);
     }
     // The node being dragged keeps an accent outline until it is dropped.
     .nb-widget.is-dragging,
@@ -2748,7 +2748,7 @@ $nb-fog-duration: 0.25s;
 
     &.is-checked {
         border-color: $nb-accent;
-        background: rgba(0, 117, 226, 0.08);
+        background: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 8%, transparent);
     }
     input {
         margin-top: 3px;
@@ -2995,8 +2995,8 @@ $nb-fog-duration: 0.25s;
     padding: 10px 12px;
     font-size: t.$font-size-base;
     color: t.$text-secondary;
-    background: rgba(250, 100, 100, 0.07);
-    border: 1px solid rgba(250, 100, 100, 0.4);
+    background: color-mix(in srgb, var(--neo-error-light, rgb(250, 100, 100)) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--neo-error-light, rgb(250, 100, 100)) 40%, transparent);
     border-radius: t.$border-radius-base;
 }
 .nb-confirm-actions {

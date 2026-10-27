@@ -60,12 +60,12 @@
 
 .badge--soon {
     color: t.$warning-main;
-    background-color: rgba(255, 152, 0, 0.14);
+    background-color: color-mix(in srgb, var(--neo-warning-main, rgb(255, 152, 0)) 14%, transparent);
 }
 
 .badge--expired {
     color: t.$error-main;
-    background-color: rgba(255, 83, 83, 0.14);
+    background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 14%, transparent);
 }
 
 .subline {

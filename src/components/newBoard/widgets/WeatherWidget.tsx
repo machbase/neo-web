@@ -65,7 +65,7 @@ const WeatherIcon = ({ pIcon, pIsDay }: { pIcon: ReturnType<typeof describe>['ic
             {pIcon === 'fog' ? (
                 <>
                     {cloud(0, -4)}
-                    <path d="M8 32h24M11 36h18" stroke="#818181" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M8 32h24M11 36h18" strokeWidth="2" strokeLinecap="round"  style={{ stroke: 'var(--neo-border-color-medium, #818181)' }}/>
                 </>
             ) : null}
             {pIcon === 'rain' || pIcon === 'storm' ? (

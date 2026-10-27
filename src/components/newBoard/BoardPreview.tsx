@@ -47,7 +47,7 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
                 const sHeight = aHeight * (0.8 + 0.2 * Math.sin(p * 2 + i));
                 return <rect key={i} x={sRight + 8 + i * sBarStep} y={46 - sHeight} width={sBarStep * 0.6} height={sHeight} fill="#8ea4ff" opacity="0.85" />;
             })}
-            <circle cx="44" cy="78" r="13" fill="none" stroke="#333" strokeWidth="6" />
+            <circle cx="44" cy="78" r="13" fill="none" strokeWidth="6"  style={{ stroke: 'var(--neo-border-color-default, #333)' }}/>
             <circle cx="44" cy="78" r="13" fill="none" stroke="#b3c1ff" strokeWidth="6" strokeDasharray={`${54 + 6 * Math.sin(p)} 90`} transform="rotate(-90 44 78)" />
             <text x="68" y="83" fontSize="15" fontWeight="600" style={{ fill: 'var(--neo-text-primary, #f1f1f1)' }}>
                 74.8%

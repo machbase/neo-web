@@ -53,7 +53,7 @@ $on-surface-disabled: var(--neo-btn-copy, #818181);
     margin-left: 10px;
     padding: 2px 7px;
     border-radius: 10px;
-    background: rgba(0, 108, 210, 0.18);
+    background: color-mix(in srgb, var(--neo-bg-active-hover, rgb(0, 108, 210)) 18%, transparent);
     color: #6fb0ff;
     font-size: 11px;
     font-weight: 600;
@@ -357,9 +357,9 @@ $on-surface-disabled: var(--neo-btn-copy, #818181);
 
 .notice {
     padding: 6px 10px;
-    border: 1px solid rgba(255, 83, 83, 0.35);
+    border: 1px solid color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 35%, transparent);
     border-radius: 4px;
-    background-color: rgba(255, 83, 83, 0.15);
+    background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 15%, transparent);
     color: var(--neo-error-light, rgb(255, 133, 133));
     font-size: 12px;
 }

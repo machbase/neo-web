@@ -354,7 +354,7 @@ CHART(
             )}
             {!isLoading && !hasData && !error && (
                 <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>No detection data available</span>
+                    <span style={{ fontSize: '11px', color: 'var(--neo-status-none, rgba(255,255,255,0.3))' }}>No detection data available</span>
                 </div>
             )}
             {error && (

@@ -245,7 +245,7 @@
         width: 10px;
         height: 10px;
         border-radius: 20px;
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--neo-btn-copy, rgba(255, 255, 255, 0.3));
         transition: 0.2s;
         cursor: inherit !important;
     }
