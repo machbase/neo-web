@@ -30,8 +30,8 @@ import {
     type FFTSeriesSummary,
 } from './analysisModel';
 
-import { fftApi, type FftChartData } from '../api/fftApi';
-import { useLatestAsyncRequest } from '../hooks/useLatestAsyncRequest';
+import { FFT_CHART_REQUEST_FAILED_MESSAGE, fftApi, type FftChartData } from '../api/fftApi';
+import { getAsyncRequestErrorMessage, useLatestAsyncRequest } from '../hooks/useLatestAsyncRequest';
 import { Inline, Stack, Text } from '../ui/Presentation';
 import styles from './AnalysisModals.module.scss';
 import controls from '../ui/Controls.module.scss';
@@ -179,6 +179,7 @@ type FftLoadTask = {
 };
 type FftChartDataController = {
     chartData: FftChartData | null;
+    loadError: string | undefined;
     isLoading: boolean;
     loadChartData: (
         series: PanelSeriesDefinition,
@@ -206,6 +207,7 @@ function FFTModal({
     const sAppliedValuesRef = useRef({ ...DEFAULT_FFT_APPLIED_VALUES });
     const {
         chartData: sChartData,
+        loadError: sLoadError,
         isLoading: sIsLoading,
         loadChartData,
     } = fftChartData;
@@ -496,6 +498,15 @@ function FFTModal({
                             />
                         </div>
                     )}
+                    {!sIsLoading && !sFftWarning && sLoadError && (
+                        <div
+                            data-testid="tag-analyzer-fft-error"
+                            className={styles.fftLoading}
+                            role="alert"
+                        >
+                            <Alert variant="error" message={formatFftLoadError(sLoadError)} />
+                        </div>
+                    )}
                     {!sIsLoading && !sFftWarning && sChartData && (
                         <ShowVisualization pData={sChartData} pLoopMode={false} />
                     )}
@@ -543,6 +554,7 @@ function FFTModal({
 }
 function useFftChartData() {
     const [sChartData, setChartData] = useState<FftChartData | null>(null);
+    const [sLoadError, setLoadError] = useState<string>();
     const [sIsLoading, setIsLoading] = useState(false);
     const [sLoadTask, setLoadTask] = useState<FftLoadTask>();
     const sIsLoadingRef = useRef(false);
@@ -565,13 +577,16 @@ function useFftChartData() {
         onSuccess: (chartData) => {
             sIsLoadingRef.current = false;
             setChartData(chartData);
+            setLoadError(undefined);
             setIsLoading(false);
         },
-        onError: () => {
+        onError: (error) => {
+            const message = getAsyncRequestErrorMessage(error, FFT_CHART_REQUEST_FAILED_MESSAGE);
             sIsLoadingRef.current = false;
             setChartData(null);
+            setLoadError(message);
             setIsLoading(false);
-            Toast.error('Failed to load FFT chart.', {
+            Toast.error(formatFftLoadError(message), {
                 testId: 'tag-analyzer-fft-load-error',
             });
         },
@@ -594,7 +609,7 @@ function useFftChartData() {
         }));
     }, []);
 
-    return { chartData: sChartData, isLoading: sIsLoading, loadChartData };
+    return { chartData: sChartData, loadError: sLoadError, isLoading: sIsLoading, loadChartData };
 }
 
 function parseNonNegativeNumber(value: string): number | undefined {
@@ -622,3 +637,9 @@ function getFftIntervalWarning(
 }
 
 const SUMMARY_FIELD_LABELS = ['Name', 'Min', 'Max', 'Avg'] as const;
+
+function formatFftLoadError(message: string): string {
+    return message === FFT_CHART_REQUEST_FAILED_MESSAGE
+        ? message
+        : `${FFT_CHART_REQUEST_FAILED_MESSAGE} ${message}`;
+}
