@@ -1406,3 +1406,19 @@ describe('usePanelRangeRuntime', () => {
         expect(fetchFullRange).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('panel range load failure', () => {
+    it('keeps the reason of a failed first range load as the panel state until a new load starts', async () => {
+        mockLoadFullRange.mockRejectedValueOnce(new Error('Table T does not exist.'));
+        const runtime = renderPanelRangeRuntime({ rangeState: undefined });
+        act(() => runtime.result.current.actions.setChartWidths(400, 344));
+
+        await waitFor(() => expect(runtime.result.current.rangeLoadError).toBe('Table T does not exist.'));
+        expect(runtime.onBroadcastError).toHaveBeenCalledWith(expect.any(String), 'Table T does not exist.');
+
+        act(() => runtime.result.current.actions.refreshRange());
+        expect(runtime.result.current.rangeLoadError).toBeUndefined();
+        await waitFor(() => expect(runtime.result.current.rangeState?.fullRange).toEqual(FULL_RANGE));
+        expect(runtime.result.current.rangeLoadError).toBeUndefined();
+    });
+});

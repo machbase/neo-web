@@ -143,6 +143,20 @@ describe('usePanelData', () => {
         mixed.unmount();
     });
 
+    it('fails both charts with the reason when the panel range could not be loaded', () => {
+        const fetchSpy = jest.spyOn(seriesDataApi, 'fetchSeriesRows');
+        const { result } = renderHook(() =>
+            usePanelData({ ...createParams(), rangeState: undefined, rangeLoadError: 'Table T does not exist.' }),
+        );
+
+        expect(result.current).toMatchObject({
+            main: { status: 'failed' },
+            navigator: { status: 'failed' },
+            issue: { kind: 'error', message: 'Table T does not exist.' },
+        });
+        expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     it('surfaces invalid enabled sampling as a request error', () => {
         const panelInfo = createPanelInfo(true);
         panelInfo.display.mainChartSampling = {

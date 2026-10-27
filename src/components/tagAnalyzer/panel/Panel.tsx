@@ -145,6 +145,7 @@ export default memo(function Panel({
         panelInfo,
         isActive,
         rangeState,
+        rangeLoadError: rangeRuntime.rangeLoadError,
         chartAreaWidth,
         navigatorTrackWidth,
         rollupTables: rollupTableList,
