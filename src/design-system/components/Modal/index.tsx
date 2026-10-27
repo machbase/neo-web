@@ -40,6 +40,7 @@ const ModalRoot = ({ children, className, style, size = 'fit', 'data-testid': da
         <ModalContext.Provider value={modal}>
             <div {...modal.getOverlayProps()} className={styles['modal__overlay']} data-testid="modal-overlay">
                 <div {...modal.getContentProps()} data-testid={dataTestId} onKeyDown={onKeyDown} className={`${styles.modal} ${sizeClass} ${className ?? ''}`} style={style}>
+                    <span {...modal.getFocusStartProps()} className={styles['modal__focus-start']} />
                     {/* A dialog that fails to render keeps its failure inside the dialog — closing it
                         leaves the screen behind as it was (#1547). */}
                     <ErrorBoundary name={`dialog:${dataTestId ?? 'modal'}`} variant="unit" actions={[{ label: 'Close', testId: 'close-dialog', onClick: modal.close }]}>

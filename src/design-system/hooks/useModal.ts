@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useId } from 'react';
+import { focusables, isShown } from './focusable';
 
 // Global modal stack to track open modals
 const modalStack: string[] = [];
@@ -23,6 +24,12 @@ export interface UseModalReturn {
         role: string;
         'aria-modal': boolean;
     };
+    /** Props for the spot inside the dialog that takes focus when it opens and no field of it already has. */
+    getFocusStartProps: () => {
+        ref: React.RefObject<HTMLSpanElement>;
+        tabIndex: number;
+        'data-modal-focus-start': boolean;
+    };
     getCloseButtonProps: () => {
         onClick: () => void;
         'aria-label': string;
@@ -33,7 +40,14 @@ export interface UseModalReturn {
 export const useModal = ({ isOpen, onClose, closeOnEscape = true, closeOnOutsideClick = true }: UseModalProps): UseModalReturn => {
     const contentRef = useRef<HTMLDivElement>(null);
     const mouseDownInsideRef = useRef(false);
+    const focusStartRef = useRef<HTMLSpanElement>(null);
     const modalId = useId();
+
+    // What had focus when the dialog opened, read while it first renders: by the time effects run
+    // an autoFocus field inside it has already taken focus.
+    const openerRef = useRef<HTMLElement | null>(null);
+    if (!isOpen) openerRef.current = null;
+    else if (!openerRef.current) openerRef.current = (document.activeElement as HTMLElement | null) ?? document.body;
 
     // Track modal in stack
     useEffect(() => {
@@ -68,6 +82,61 @@ export const useModal = ({ isOpen, onClose, closeOnEscape = true, closeOnOutside
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
     }, [isOpen, closeOnEscape, onClose, modalId]);
+
+    // Focus belongs to the dialog while it is open. Without this, keys typed right after it opened
+    // (from a shortcut such as Cmd+S) went to the editor behind it, Tab never reached it, and closing
+    // it dropped focus on the page.
+    useEffect(() => {
+        if (!isOpen) return;
+        const sOpener = openerRef.current;
+
+        // Into the dialog unless one of its fields already took focus (autoFocus).
+        if (contentRef.current && !contentRef.current.contains(document.activeElement)) focusStartRef.current?.focus({ preventScroll: true });
+
+        const isTopmost = () => modalStack[modalStack.length - 1] === modalId;
+        // Focus left on the page behind the dialog (the overlay was clicked, or nothing took it yet).
+        // Lists and menus a dialog control opens are portaled next to the page, not inside it, so they are left alone.
+        const isBehind = (aEl: Element | null) => !aEl || aEl === document.body || !!document.getElementById('root')?.contains(aEl);
+
+        // Capture: Tab from behind the dialog comes back to it before the page (an editor there) takes the key.
+        const handleTabFromBehind = (event: KeyboardEvent) => {
+            if (event.key !== 'Tab' || !isTopmost() || !contentRef.current || !isBehind(document.activeElement)) return;
+            const sItems = focusables(contentRef.current);
+            event.preventDefault();
+            (event.shiftKey ? sItems[sItems.length - 1] : sItems[0])?.focus();
+        };
+        // Bubble: Tab past either end of the dialog wraps around, unless a control inside used the key itself.
+        const handleTabAtEdge = (event: KeyboardEvent) => {
+            if (event.key !== 'Tab' || event.defaultPrevented || !isTopmost() || !contentRef.current) return;
+            const sActive = document.activeElement as HTMLElement | null;
+            if (!sActive || !contentRef.current.contains(sActive)) return;
+            const sItems = focusables(contentRef.current);
+            if (!sItems.length) {
+                event.preventDefault();
+                return;
+            }
+            if (event.shiftKey && (sActive === sItems[0] || !sItems.includes(sActive))) {
+                event.preventDefault();
+                sItems[sItems.length - 1].focus();
+            } else if (!event.shiftKey && sActive === sItems[sItems.length - 1]) {
+                event.preventDefault();
+                sItems[0].focus();
+            }
+        };
+        document.addEventListener('keydown', handleTabFromBehind, true);
+        document.addEventListener('keydown', handleTabAtEdge);
+        return () => {
+            document.removeEventListener('keydown', handleTabFromBehind, true);
+            document.removeEventListener('keydown', handleTabAtEdge);
+            // Back to where it was before the dialog — only when focus would otherwise be lost, so a
+            // dialog that hands focus somewhere on close (or opens the next dialog) keeps that.
+            requestAnimationFrame(() => {
+                const sNow = document.activeElement;
+                if (sNow && sNow !== document.body) return;
+                if (sOpener && sOpener !== document.body && isShown(sOpener)) sOpener.focus({ preventScroll: true });
+            });
+        };
+    }, [isOpen, modalId]);
 
     // Lock body scroll when modal is open
     useEffect(() => {
@@ -141,6 +210,15 @@ export const useModal = ({ isOpen, onClose, closeOnEscape = true, closeOnOutside
         [handleContentClick]
     );
 
+    const getFocusStartProps = useCallback(
+        () => ({
+            ref: focusStartRef,
+            tabIndex: -1,
+            'data-modal-focus-start': true as boolean,
+        }),
+        []
+    );
+
     const getCloseButtonProps = useCallback(
         () => ({
             onClick: close,
@@ -155,6 +233,7 @@ export const useModal = ({ isOpen, onClose, closeOnEscape = true, closeOnOutside
         close,
         getOverlayProps,
         getContentProps,
+        getFocusStartProps,
         getCloseButtonProps,
     };
 };

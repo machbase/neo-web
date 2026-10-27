@@ -288,3 +288,16 @@ describe('SaveModal — type list (r19)', () => {
         expect(listRequestFilters().every((aF) => !String(aF).includes('?filter='))).toBe(true);
     });
 });
+
+// F-174: opened with Cmd+S from the editor, the dialog left focus behind it — a name typed right away
+// went into the code. The File name field takes focus as the dialog opens.
+describe('SaveModal — focus (F-174)', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('puts focus on the File name field when the save dialog opens', async () => {
+        mockListing([], []);
+        renderSave([SQL_TAB], 't1');
+        expect(document.activeElement).toBe(screen.getByDisplayValue('q.sql'));
+        await screen.findByText('Apply');
+    });
+});
