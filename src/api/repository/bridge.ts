@@ -9,6 +9,7 @@
 // now addressed by numeric `id` instead of name — a name string answers `-32602`.
 // The external signatures and return envelopes ({ data, success, reason, elapse }) are kept as-is so
 // the bridge components render unchanged; only the internals are swapped to RPC + adapters.
+import { resMessage } from '@/utils/resMessage';
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 
 export type BridgeType = 'SQLite' | 'PostgreSQL' | 'MySQL' | 'MSSQL' | 'MQTT' | 'NATS';
@@ -99,6 +100,10 @@ export const getBridge = async (): Promise<BridgeListResType> => {
         const res = await rpcCall<any[]>(RpcMethod.bridge.list, []);
         const err = rpcErrMessage(res);
         if (err) return { success: false, reason: err, elapse: '', data: [] };
+        // the api core RESOLVES with the axios error (network failure) or the error response (HTTP
+        // error) instead of rejecting, so a body that is not JSON-RPC is a failed read, not an empty
+        // list (issue #1570 F-29)
+        if ((res as any)?.jsonrpc !== '2.0') return { success: false, reason: resMessage(res, (res as any)?.message || 'Failed to load bridges'), elapse: '', data: [] };
         const rows = (res?.result ?? []) as any[];
         const data: BridgeItemType[] = rows.map((it) => ({
             name: it?.name ?? it?.Name ?? '',
