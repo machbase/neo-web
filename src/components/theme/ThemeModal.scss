@@ -1,0 +1,58 @@
+@use '@/design-system/tokens' as t;
+
+.theme-modal__list {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-4;
+    min-width: 320px;
+}
+
+.theme-modal__option {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-8;
+    width: 100%;
+    padding: t.$spacing-8 t.$spacing-12;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-sm;
+    background: transparent;
+    color: t.$text-primary;
+    font-size: t.$font-size-base;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+        background: t.$bg-hover;
+    }
+
+    &--selected {
+        border-color: t.$border-color-focus;
+    }
+}
+
+.theme-modal__radio {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    border: 1px solid t.$text-tertiary;
+    border-radius: 50%;
+
+    .theme-modal__option--selected & {
+        border: 4px solid t.$primary-light;
+    }
+}
+
+.theme-modal__label {
+    flex: 1;
+}
+
+.theme-modal__detail {
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+}
+
+.theme-modal__note {
+    margin: t.$spacing-8 0 0;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+}

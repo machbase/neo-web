@@ -1,3 +1,4 @@
+@use '../../tokens/themed' as th;
 @use '../../tokens/colors' as c;
 @use '../../tokens/mixins' as m;
 @use '../../tokens/scrollbar' as sb;
@@ -85,7 +86,7 @@ $version-accent: #4199ff;
         flex-shrink: 0;
         height: 20px;
         padding: 0 8px;
-        border: 1px solid rgba(c.$primary-light, 0.32);
+        border: 1px solid th.alpha(c.$primary-light, 0.32);
         border-radius: 5px;
         background: transparent;
         color: $version-accent;
@@ -101,7 +102,7 @@ $version-accent: #4199ff;
 
         @media (prefers-reduced-motion: reduce) {
             animation: none;
-            border-color: rgba(c.$primary-light, 0.5);
+            border-color: th.alpha(c.$primary-light, 0.5);
         }
     }
 }
@@ -109,7 +110,7 @@ $version-accent: #4199ff;
 @keyframes sideVersionPulse {
     0%,
     100% {
-        border-color: rgba(c.$primary-light, 0.28);
+        border-color: th.alpha(c.$primary-light, 0.28);
     }
     50% {
         border-color: rgba(64, 153, 255, 0.62);

@@ -4,6 +4,7 @@ import Editor, { useMonaco } from '@monaco-editor/react';
 import type { OnChange } from '@monaco-editor/react';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import scrollbar from '@/design-system/tokens/scrollbar.module.scss';
+import { currentScheme, resolveCssColor, useThemeVersion } from '@/design-system/theme';
 import { registerLspLanguages } from '@/lsp/languages';
 import { registerLspProviders } from '@/lsp/monacoProviders';
 export interface MonacoEditorProps {
@@ -75,23 +76,31 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
         if (!sMonaco) return;
         registerLspLanguages(sMonaco);
         registerLspProviders(sMonaco);
-        sMonaco.editor.defineTheme('my-theme', {
-            base: 'vs-dark',
-            inherit: true,
-            rules: [],
-            colors: {
-                'editor.background': '#252525',
-                'scrollbarSlider.background': scrollbar.thumb,
-                'scrollbarSlider.hoverBackground': scrollbar.thumbHover,
-                'scrollbarSlider.activeBackground': scrollbar.thumbHover,
-            },
-        });
-        sMonaco.editor.setTheme('my-theme');
 
         new sMonaco.Position(0, 0);
         new sMonaco.Selection(0, 0, 0, 0);
         setCurrentLang(pLang);
     }, [sMonaco]);
+
+    // Monaco takes hex colours, not CSS variables: resolve the tokens against the theme in
+    // force, again whenever it changes. The editor theme is global to Monaco, so every editor
+    // defining it once per change is the same definition.
+    const sThemeVersion = useThemeVersion();
+    useEffect(() => {
+        if (!sMonaco) return;
+        sMonaco.editor.defineTheme('my-theme', {
+            base: currentScheme() === 'light' ? 'vs' : 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: {
+                'editor.background': resolveCssColor('var(--neo-bg-secondary, #252525)', '#252525'),
+                'scrollbarSlider.background': resolveCssColor(scrollbar.thumb, '#5c5c5c'),
+                'scrollbarSlider.hoverBackground': resolveCssColor(scrollbar.thumbHover, '#868686'),
+                'scrollbarSlider.activeBackground': resolveCssColor(scrollbar.thumbHover, '#868686'),
+            },
+        });
+        sMonaco.editor.setTheme('my-theme');
+    }, [sMonaco, sThemeVersion]);
 
     useEffect(() => {
         if (!sMonaco) return;

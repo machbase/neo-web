@@ -225,13 +225,13 @@
         align-items: center;
         justify-content: center;
         color: t.$primary-light !important;
-        background-color: rgba(t.$primary-light, 0.14) !important;
-        border-color: rgba(t.$primary-light, 0.45) !important;
+        background-color: t.alpha(t.$primary-light, 0.14) !important;
+        border-color: t.alpha(t.$primary-light, 0.45) !important;
 
         &:hover:not(:disabled) {
             color: t.$color-white !important;
-            background-color: rgba(t.$primary-light, 0.28) !important;
-            border-color: rgba(t.$primary-light, 0.7) !important;
+            background-color: t.alpha(t.$primary-light, 0.28) !important;
+            border-color: t.alpha(t.$primary-light, 0.7) !important;
         }
     }
 
