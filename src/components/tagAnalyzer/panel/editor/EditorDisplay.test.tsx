@@ -123,18 +123,29 @@ describe('PanelEditor Display controls', () => {
         expectChartTypeSelected('Line');
     });
 
-    it('TAZ-EDITOR-DISPLAY-011: accepts a blank optional display number', () => {
-        const { onApply } = renderPanelEditor('display');
-        fireEvent.change(displayField('pointRadius'), { target: { value: '3' } });
+    it('TAZ-EDITOR-DISPLAY-011: rejects a blank display number', () => {
+        renderPanelEditor('display');
+        fireEvent.change(displayField('stroke'), { target: { value: '' } });
 
-        fireEvent.change(displayField('pointRadius'), { target: { value: '' } });
+        expect(displayField('stroke')).toHaveValue(null);
+        expect(displayField('stroke')).toHaveAttribute('aria-invalid', 'true');
+        expect(screen.getByText('Enter a number.')).toBeInTheDocument();
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+        expect(screen.getByTestId('editor-tab-display')).toHaveAttribute('aria-label', 'Display, invalid settings');
+    });
 
-        expect(displayField('pointRadius')).toHaveValue(null);
-        expect(screen.getByTestId('editor-apply')).toBeEnabled();
-        fireEvent.click(screen.getByTestId('editor-apply'));
-        expect(onApply).toHaveBeenCalledWith(expect.objectContaining({
-            display: expect.objectContaining({ pointRadius: undefined, chartType: 'Custom' }),
-        }));
+    it.each([
+        ['fill', '5', 'Enter a value from 0 to 1.'],
+        ['fill', '-0.1', 'Enter a value from 0 to 1.'],
+        ['stroke', '-2', 'Enter 0 or a larger value.'],
+        ['pointRadius', '-3', 'Enter 0 or a larger value.'],
+    ] as const)('TAZ-EDITOR-DISPLAY-013: rejects %s %s outside its range', (field, value, message) => {
+        renderPanelEditor('display');
+        fireEvent.change(displayField(field), { target: { value } });
+
+        expect(displayField(field)).toHaveAttribute('aria-invalid', 'true');
+        expect(screen.getByText(message)).toBeInTheDocument();
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
     });
 
     it('TAZ-EDITOR-DISPLAY-012: accepts a finite display number without marking the tab invalid', () => {

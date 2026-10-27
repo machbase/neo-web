@@ -50,8 +50,8 @@ export function validatePanelEditorDraft(
     const validSampling = [display.mainChartSampling, display.rawNavigatorSampling].every(
         ({ enabled, sampleCount }) => !enabled || isValidPositiveNumber(sampleCount),
     );
-    const validDisplay = [display.pointRadius, display.fill, display.stroke].every(
-        (value) => value === undefined || Number.isFinite(value),
+    const validDisplay = DISPLAY_NUMBER_FIELDS.every(
+        (field) => getDisplayNumberError(field, display[field]) === undefined,
     );
     const validMainRange = isEditorRangeValid(time.rangeInput, axisKind, context.dataRange, context.mainRange, context.referenceTimeMs);
     const validNavigatorRange = isEditorRangeValid(time.navigatorRangeInput, axisKind, context.dataRange, context.navigatorRange ?? context.dataRange, context.referenceTimeMs);
@@ -82,11 +82,25 @@ export function isEditorRangeValid(
     return resolveRangeInput(input, axisKind, dataRange, currentRange, referenceTimeMs) !== undefined;
 }
 
+export type DisplayNumberField = 'pointRadius' | 'fill' | 'stroke';
+
+/** Fill is an opacity; line width and point radius are sizes. A blank field has no value to draw. */
+export function getDisplayNumberError(
+    field: DisplayNumberField,
+    value: number | undefined,
+): string | undefined {
+    if (value === undefined || !Number.isFinite(value)) return 'Enter a number.';
+    if (field === 'fill') return value >= 0 && value <= 1 ? undefined : 'Enter a value from 0 to 1.';
+    return value >= 0 ? undefined : 'Enter 0 or a larger value.';
+}
+
 export function isValidPositiveNumber(value: number | undefined): value is number {
     return value !== undefined && Number.isFinite(value) && value > 0;
 }
 
 // -------------------- Local --------------------
+
+const DISPLAY_NUMBER_FIELDS: DisplayNumberField[] = ['pointRadius', 'fill', 'stroke'];
 
 function isYAxisValid(axis: PanelYAxis): boolean {
     return (

@@ -136,6 +136,41 @@ const INVALID_TAB_CASES: Array<{
             panelInfo.display.stroke = Number.NEGATIVE_INFINITY;
         },
     },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.stroke = undefined;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.stroke = -2;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.fill = 5;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.fill = -1;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.pointRadius = -3;
+        },
+    },
 ];
 
 const VALID_TAB_CASES: Array<{
@@ -171,10 +206,12 @@ const VALID_TAB_CASES: Array<{
         },
     },
     {
-        name: 'a finite negative display value',
+        name: 'zero display sizes and a full fill opacity',
         testId: 'editor-tab-display',
         mutate: (panelInfo) => {
-            panelInfo.display.fill = -1;
+            panelInfo.display.pointRadius = 0;
+            panelInfo.display.stroke = 0;
+            panelInfo.display.fill = 1;
         },
     },
 ];
