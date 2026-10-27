@@ -144,7 +144,8 @@ export const ApiToken = ({ pCode }: { pCode: ApiTokenItemType & { reissueName?: 
                 </Page>
             )}
             {!sHasSelection && <CreateToken pInitialName={pCode?.reissueName} />}
-            {sIsDeleteModal && (
+            {/* deleting the last token turns pCode into undefined while the dialog is still open (issue #1570 F-187) */}
+            {sIsDeleteModal && pCode && (
                 <ConfirmModal data-testid="token-delete-dialog"
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
