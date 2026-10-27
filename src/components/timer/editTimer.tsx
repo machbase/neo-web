@@ -3,7 +3,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { SplitPane, Pane, Page, Alert, Checkbox, Button, CommonTable, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { CreatePayloadType, TimerItemType, genTimer, getTimer } from '@/api/repository/timer';
-import { gBoardList, gTimerList } from '@/recoil/recoil';
+import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { LuFlipVertical } from 'react-icons/lu';
 import { AUTO_START_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
@@ -24,39 +24,62 @@ export const EditTimer = () => {
         path: '', ///sql_select_log.tql
     });
     const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
+    const setActiveTimer = useSetRecoilState<any>(gActiveTimer);
+    const sCreatingRef = useRef<boolean>(false);
+    const [sIsCreating, setIsCreating] = useState<boolean>(false);
 
     /** create timer */
     const createTimer = async () => {
-        // Validation errors (such as a missing TQL file) arrive as plain `reason` text.
-        // Names are not identities: Neo v8.7.1 can store equal names under different IDs.
-        const sRes = await genTimer(sCreatePayload, sCreateName);
-        if (sRes?.success) {
-            setResErrMessage(undefined);
-            Toast.success(`Timer '${sCreateName}' created`, { id: 'timer-create' });
-        } else {
-            // failure stays inline so the invalid field can be corrected in the form
-            setResErrMessage(resMessage(sRes, 'Failed to create timer'));
-        }
+        // one request at a time: a second click while `timer.add` is in flight created a second
+        // timer with the same name (issue #1570 F-144)
+        if (sCreatingRef.current) return;
+        sCreatingRef.current = true;
+        setIsCreating(true);
+        try {
+            // Validation errors (such as a missing TQL file) arrive as plain `reason` text.
+            // Names are not identities: Neo v8.7.1 can store equal names under different IDs.
+            const sRes = await genTimer(sCreatePayload, sCreateName);
+            if (sRes?.success) {
+                setResErrMessage(undefined);
+                Toast.success(`Timer '${sCreateName}' created`, { id: 'timer-create' });
+            } else {
+                // failure stays inline so the invalid field can be corrected in the form
+                setResErrMessage(resMessage(sRes, 'Failed to create timer'));
+            }
 
-        const sResTimerList: any = await getTimer();
-        if (sResTimerList?.success) {
-            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
-            setBoardList((aBoardList: any) => {
-                return aBoardList.map((aBoard: any) => {
-                    if (aBoard.id === aTarget.id) {
-                        return {
-                            ...aTarget,
-                            name: `TIMER: create`,
-                            // `timer.add` answers with the created id — carry it so anything that
-                            // later addresses this timer has an id rather than only a name.
-                            code: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
-                            savedCode: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
-                        };
-                    }
-                    return aBoard;
+            const sResTimerList: any = await getTimer();
+            if (sResTimerList?.success) {
+                setTimerList(sResTimerList.data);
+                // `timer.add` answers with the created id: open that timer's detail, as the side
+                // tree does, so the filled form is not left behind to be submitted again
+                const sCreated = sRes?.success && sRes?.id !== undefined ? sResTimerList.data.find((aTimer: TimerItemType) => aTimer.id === sRes.id) : undefined;
+                if (sCreated) {
+                    setActiveTimer(sCreated.id);
+                    setBoardList((aBoardList: any) =>
+                        aBoardList.map((aBoard: any) => (aBoard.type === 'timer' ? { ...aBoard, name: `TIMER: ${sCreated.name}`, code: sCreated, savedCode: sCreated } : aBoard))
+                    );
+                    return;
+                }
+                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
+                setBoardList((aBoardList: any) => {
+                    return aBoardList.map((aBoard: any) => {
+                        if (aBoard.id === aTarget.id) {
+                            return {
+                                ...aTarget,
+                                name: `TIMER: create`,
+                                // `timer.add` answers with the created id — carry it so anything that
+                                // later addresses this timer has an id rather than only a name.
+                                code: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
+                                savedCode: { ...sCreatePayload, name: sCreateName, id: sRes?.id },
+                            };
+                        }
+                        return aBoard;
+                    });
                 });
-            });
-            setTimerList(sResTimerList.data);
+            }
+        } finally {
+            sCreatingRef.current = false;
+            setIsCreating(false);
         }
     };
     /** handle timer info */
@@ -172,7 +195,7 @@ export const EditTimer = () => {
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
-                            <Page.TextButton data-testid="timer-create-submit" pText="Create" pType="CREATE" pCallback={createTimer} />
+                            <Page.TextButton data-testid="timer-create-submit" pText="Create" pType="CREATE" pCallback={createTimer} pIsDisable={sIsCreating} pLoad={sIsCreating} />
                         </Page.ContentBlock>
 
                         {sResErrMessage && (
