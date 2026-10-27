@@ -239,8 +239,16 @@ export const DBExplorer = () => {
             return;
         }
         const { svrState, svrReason } = await fetchQuery(sQuery);
-        if (svrState) init();
-        else Toast.error(svrReason);
+        const sLabel = sDropTableInfo?.label;
+        if (svrState) {
+            Toast.success(`'${sLabel}' dropped`, { id: 'db-explorer-drop', testId: 'db-explorer-drop-toast' });
+            init();
+        } else if (/ERR-2025\b|does not exist/i.test(String(svrReason))) {
+            // already gone (dropped elsewhere since the tree was read): say so in plain words and
+            // re-read the tree so the stale node goes away (issue #1570 F-123)
+            Toast.error(`'${sLabel}' no longer exists. The tree has been refreshed.`, { id: 'db-explorer-drop', testId: 'db-explorer-drop-toast' });
+            init();
+        } else Toast.error(svrReason, { id: 'db-explorer-drop', testId: 'db-explorer-drop-toast' });
         /** Initial */
         setDropTableInfo({ label: '', table: [], cascade: false });
         setIsDrop(false);
