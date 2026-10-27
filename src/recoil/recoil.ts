@@ -255,9 +255,10 @@ export const gDelSubr = selector({
                     set(gActiveSubr, sChildList.at(-1).id);
                     sApplyBoardList = sTmpBoardList.map((aBoard) => {
                         if (aBoard.type === 'subscriber') {
+                            // the tab now shows the remaining subscriber, so it carries that name (issue #1570 F-146)
                             return {
                                 ...aBoard,
-                                name: `SUBR: ${newValue.subr.name}`,
+                                name: `SUBR: ${sChildList.at(-1).name}`,
                                 code: { bridge: newValue.bridge, subr: sChildList.at(-1) },
                                 savedCode: false,
                             };
