@@ -7,12 +7,13 @@ export async function stepPkgCopy(ctx: LifecycleContext, opts?: { force?: boolea
     const force = opts?.force ? ' -f' : '';
     // Pin the checkout to the hub-advertised release tag instead of HEAD when
     // available. Falls back to HEAD when ctx.tag is empty (hub entry missing
-    // `version`), so legacy hub rows keep working.
-    const tagSuffix = ctx.tag ? `@${ctx.tag}` : '';
+    // `version`), so legacy hub rows keep working. The tag can be typed by the
+    // user (experiment mode), so it travels as a shell argument, not as text.
+    const tagSuffix = ctx.tag ? '@{tag}' : '';
     const cmd = `pkg copy${force} github.com/${ctx.fullName}${tagSuffix} /work/public/${ctx.appName}`;
-    ctx.logs.push(`== ${cmd} ==`);
+    ctx.logs.push(`== ${ctx.tag ? cmd.replace('{tag}', ctx.tag) : cmd} ==`);
 
-    const r = await runShell(cmd);
+    const r = await runShell(cmd, ctx.tag ? { tag: ctx.tag } : undefined);
     ctx.logs.push(r.log);
     if (!r.ok) return r;
 
