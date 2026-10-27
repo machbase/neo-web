@@ -96,14 +96,21 @@ export function usePanelRangeRuntime(
                 Date.now(),
             ));
         },
-        onError: (error) =>
+        onError: (error) => {
+            const message = getAsyncRequestErrorMessage(
+                error,
+                PANEL_RANGE_REQUEST_FAILED_MESSAGE,
+            );
+            setMachine((current) =>
+                current.rangeReloadRequest.generation === rangeReloadRequest.generation
+                    ? { ...current, rangeLoadFailure: { generation: rangeReloadRequest.generation, message } }
+                    : current,
+            );
             reportBroadcastError(
                 createRangeReloadErrorKey(rangeReloadRequest),
-                getAsyncRequestErrorMessage(
-                    error,
-                    PANEL_RANGE_REQUEST_FAILED_MESSAGE,
-                ),
-            ),
+                message,
+            );
+        },
     });
 
     useEffect(() => {
@@ -153,6 +160,12 @@ export function usePanelRangeRuntime(
 
     return {
         rangeState: machine.rangeState,
+        // Without a range the panel has nothing to draw, so a failed range load is the panel's state.
+        rangeLoadError:
+            !machine.rangeState &&
+            machine.rangeLoadFailure?.generation === machine.rangeReloadRequest.generation
+                ? machine.rangeLoadFailure.message
+                : undefined,
         rangeOrigin: machine.rangeOrigin,
         chartAreaWidth: machine.chartAreaWidth,
         navigatorTrackWidth: machine.navigatorTrackWidth,
@@ -339,6 +352,7 @@ type RangeMachineState = {
     handledCommandVersions: PanelBroadcastRequests['commandVersions'];
     rangeRevision: number;
     issues: RangeIssue[];
+    rangeLoadFailure?: { generation: number; message: string };
 };
 
 type PanelRangeRuntimeInputs = PanelBroadcastRequests & {

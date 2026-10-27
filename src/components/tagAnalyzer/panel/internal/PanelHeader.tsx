@@ -42,6 +42,7 @@ export function PanelHeader({
     onToggleOverlap,
     onRenamePanelTitle,
     onOpenMainRangeModal,
+    menuCloseKey,
 }: PanelHeaderProps) {
     const { getExperiment } = useExperiment();
     const [titleDraft, setTitleDraft] = useState<string | undefined>();
@@ -197,11 +198,13 @@ export function PanelHeader({
                     </span>
                 ))}
                 <PanelHeaderMenu
+                    key={`extra-${menuCloseKey ?? 0}`}
                     variant="extra"
                     actions={sActions.filter((action) => action.showInExtraMenu)}
                     onAction={onAction}
                 />
                 <PanelHeaderMenu
+                    key={`more-${menuCloseKey ?? 0}`}
                     variant="more"
                     actions={sDirectActions.filter((action) => action.showInMoreMenu)}
                     onAction={onAction}
@@ -270,6 +273,7 @@ function PanelHeaderMenu({
                         isToolTip={!sIsExtra}
                         toolTipContent={sIsExtra ? undefined : 'More'}
                         active={sIsExtra ? sIsActive : undefined}
+                        aria-pressed={sIsExtra ? sIsActive : undefined}
                         icon={sIsExtra
                             ? <CiCircleMore size={15} />
                             : <VscThreeBars size={15} />}
@@ -287,6 +291,7 @@ function PanelHeaderMenu({
                                 ? HEADER_MENU_ACTIVE_ITEM_CLASS[variant]
                                 : undefined}
                             disabled={action.disabled}
+                            aria-pressed={action.active}
                             icon={action.icon}
                             onClick={() => onAction(action.key)}
                         >
@@ -307,4 +312,6 @@ type PanelHeaderProps = {
     onToggleOverlap: () => void;
     onRenamePanelTitle: (title: string) => void;
     onOpenMainRangeModal: () => void;
+    /** Changing it closes the open header menus (the chart keeps right presses from reaching them). */
+    menuCloseKey?: number;
 };

@@ -143,6 +143,20 @@ describe('usePanelData', () => {
         mixed.unmount();
     });
 
+    it('fails both charts with the reason when the panel range could not be loaded', () => {
+        const fetchSpy = jest.spyOn(seriesDataApi, 'fetchSeriesRows');
+        const { result } = renderHook(() =>
+            usePanelData({ ...createParams(), rangeState: undefined, rangeLoadError: 'Table T does not exist.' }),
+        );
+
+        expect(result.current).toMatchObject({
+            main: { status: 'failed' },
+            navigator: { status: 'failed' },
+            issue: { kind: 'error', message: 'Table T does not exist.' },
+        });
+        expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     it('surfaces invalid enabled sampling as a request error', () => {
         const panelInfo = createPanelInfo(true);
         panelInfo.display.mainChartSampling = {
@@ -211,6 +225,8 @@ describe('usePanelData', () => {
             errorKind: 'no-data' as const,
             expectedStatus: 'ready',
             expectedIssue: { kind: 'noData' as const },
+            // The series keeps its slot, empty and marked, so later series keep their indexes.
+            expectedSeries: [expect.objectContaining({ data: [], isUnavailable: true })],
         },
         {
             errorKind: 'request-failed' as const,
@@ -219,10 +235,11 @@ describe('usePanelData', () => {
                 kind: 'error' as const,
                 message: 'Series unavailable.',
             },
+            expectedSeries: [],
         },
     ])(
         'classifies an all-$errorKind response',
-        async ({ errorKind, expectedStatus, expectedIssue }) => {
+        async ({ errorKind, expectedStatus, expectedIssue, expectedSeries }) => {
             jest.spyOn(seriesDataApi, 'fetchSeriesRows').mockResolvedValue([{
                 seriesKey: TIME_SERIES.key,
                 data: [],
@@ -237,7 +254,7 @@ describe('usePanelData', () => {
                 expect(result.current.navigator.status).toBe(expectedStatus);
             });
 
-            expect(result.current.main.series).toEqual([]);
+            expect(result.current.main.series).toEqual(expectedSeries);
             expect(result.current.issue).toEqual(expectedIssue);
         },
     );
@@ -422,6 +439,7 @@ describe('usePanelData', () => {
             expect(result.current.main.status).toBe('ready'),
         );
         expect(result.current.main.series[0]?.data).toEqual([]);
+        expect(result.current.main.series.map((series) => series.isUnavailable)).toEqual([undefined, true]);
         expect(result.current.issue).toEqual({ kind: 'partialData' });
     });
 

@@ -10,6 +10,7 @@ export default function TagAnalyzer({ info }: { info: BoardInfo }) {
         rollupTableList,
         handleFileSaved,
         updateSavedBoard: handleSavedBoard,
+        reportUnsavedChanges,
     } = useTagAnalyzerAppState(info);
 
     if (isLoading) return null;
@@ -27,6 +28,7 @@ export default function TagAnalyzer({ info }: { info: BoardInfo }) {
                     rollupTableList={rollupTableList}
                     onSavedBoard={handleSavedBoard}
                     onFileSaved={handleFileSaved}
+                    onUnsavedChangesChange={reportUnsavedChanges}
                 />
             </Page>
         </div>

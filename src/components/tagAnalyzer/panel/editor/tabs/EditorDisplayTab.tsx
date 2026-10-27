@@ -8,6 +8,7 @@ import { Inline, Section } from '../../../ui/Presentation';
 import { PANEL_CHART_TYPES } from '../../chartTypeOptions';
 import styles from '../PanelEditorTab.module.scss';
 import controls from '../../../ui/Controls.module.scss';
+import { getDisplayNumberError } from '../editorValidation';
 
 export default function EditorDisplayTab({
     pDisplayConfig,
@@ -101,6 +102,8 @@ export default function EditorDisplayTab({
                                         : Number(event.target.value),
                             })
                         }
+                        error={getDisplayNumberError(field, pDisplayConfig[field])}
+                        aria-invalid={getDisplayNumberError(field, pDisplayConfig[field]) ? true : undefined}
                         size="md"
                         fullWidth
                     />

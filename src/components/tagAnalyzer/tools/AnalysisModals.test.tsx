@@ -10,6 +10,7 @@ import {
 } from './analysisModel';
 
 jest.mock('../api/fftApi', () => ({
+    FFT_CHART_REQUEST_FAILED_MESSAGE: 'Failed to load FFT chart.',
     fftApi: {
         fetchFftChartData: jest.fn(),
     },
@@ -89,6 +90,17 @@ test('returns no payload when the selection contains no values', () => {
     ).toBeUndefined();
 });
 
+test('summarizes the remaining series when one series failed to load', () => {
+    const second = { key: 'series-2', sourceTagName: 'pressure' } as PanelSeriesDefinition;
+    expect(
+        buildSelectionSummaryPayload(
+            { start: 10, end: 20 },
+            [{ ...chartData([]), isUnavailable: true }, chartData([[10, 3], [20, 5]])],
+            [SERIES, second],
+        )?.seriesSummaries,
+    ).toEqual([expect.objectContaining({ series: second, min: '3.00000', max: '5.00000' })]);
+});
+
 test('rejects mismatched chart and panel series', () => {
     expect(() =>
         buildSelectionSummaryPayload(
@@ -134,6 +146,26 @@ describe('FFT interactions', () => {
         await waitFor(() => expect(show3d).toBeEnabled());
         fireEvent.click(show3d);
     }
+
+    test('keeps the server reason of a rejected FFT request in the chart area', async () => {
+        jest.mocked(fftApi.fetchFftChartData).mockRejectedValue(
+            new Error('MACHCLI-ERR-2025, Table T does not exist.'),
+        );
+        render(
+            <SelectionSummaryPopover
+                selection={SELECTION}
+                position={{ x: 0, y: 0 }}
+                isNumericXAxis={false}
+                isRaw
+                onClose={jest.fn()}
+            />,
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Open FFT chart' }));
+
+        expect(await screen.findByTestId('tag-analyzer-fft-error')).toHaveTextContent(
+            'Failed to load FFT chart. MACHCLI-ERR-2025, Table T does not exist.',
+        );
+    });
 
     test('keeps FFT disabled and nonfunctional outside Raw mode', () => {
         render(

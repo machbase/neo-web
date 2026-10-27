@@ -54,14 +54,23 @@ export default function PanelPopover({
         );
 
         const handleViewportResize = (): void => {
+            const popoverRect = popoverElement.getBoundingClientRect();
             setAdjustedPosition((currentPosition) => clampPopoverPosition(
                 currentPosition,
-                popoverElement.getBoundingClientRect(),
+                popoverRect,
             ));
         };
 
         window.addEventListener('resize', handleViewportResize);
-        return () => window.removeEventListener('resize', handleViewportResize);
+        // Content can grow after opening (a long label wraps into more lines); keep it on screen.
+        const sizeObserver = typeof ResizeObserver === 'undefined'
+            ? undefined
+            : new ResizeObserver(handleViewportResize);
+        sizeObserver?.observe(popoverElement);
+        return () => {
+            window.removeEventListener('resize', handleViewportResize);
+            sizeObserver?.disconnect();
+        };
     }, [position]);
 
     function handlePopoverDragStart(event: ReactPointerEvent<HTMLButtonElement>): void {

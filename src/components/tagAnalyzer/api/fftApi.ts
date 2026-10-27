@@ -22,7 +22,7 @@ export const fftApi = { fetchFftChartData };
 
 // -------------------- Local --------------------
 
-const FFT_CHART_REQUEST_FAILED_MESSAGE: string = 'Failed to fetch FFT chart.';
+export const FFT_CHART_REQUEST_FAILED_MESSAGE: string = 'Failed to load FFT chart.';
 
 const FFT_2D_QUERY_TEMPLATE: string = `MAPKEY('fft')
 GROUPBYKEY()
@@ -129,7 +129,9 @@ function parseFftChartData(value: unknown): FftChartData {
         headers?.['x-chart-type'] !== 'echarts' ||
         typeof data?.chartID !== 'string'
     ) {
-        throw new Error(FFT_CHART_REQUEST_FAILED_MESSAGE);
+        // The server explains a rejected TQL request in `reason`; keep it for the user.
+        const reason = typeof data?.reason === 'string' ? data.reason.trim() : '';
+        throw new Error(reason || FFT_CHART_REQUEST_FAILED_MESSAGE);
     }
 
     return {

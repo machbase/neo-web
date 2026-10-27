@@ -53,3 +53,25 @@ it('not confirmed (Ctrl+S / new file): only the saving tab changes', async () =>
     expect(result.current.boards.map((aB) => aB.id)).toEqual(['cur', 'stale', 'caseOnly', 'elsewhere']);
     expect(result.current.boards[0].name).toBe('b.taz');
 });
+
+it('marks only its own tab unsaved while the board holds edits (F-171)', async () => {
+    const { result } = setup(sTabs);
+    await act(async () => {
+        result.current.app.reportUnsavedChanges(true);
+    });
+    expect(result.current.boards.map((aB) => [aB.id, aB.hasUnsavedTazChanges])).toEqual([
+        ['cur', true],
+        ['stale', undefined],
+        ['caseOnly', undefined],
+        ['elsewhere', undefined],
+    ]);
+    const sBoardsAfterMark = result.current.boards;
+    await act(async () => {
+        result.current.app.reportUnsavedChanges(true);
+    });
+    expect(result.current.boards).toBe(sBoardsAfterMark);
+    await act(async () => {
+        result.current.app.reportUnsavedChanges(false);
+    });
+    expect(result.current.boards[0].hasUnsavedTazChanges).toBe(false);
+});

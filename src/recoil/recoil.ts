@@ -19,6 +19,8 @@ export interface GBoardListType {
     mode?: any,
     /** Set by the New tab's examples: the SQL/TQL editor runs the code once when it first mounts, then clears it. */
     autoRun?: boolean,
+    /** Set by an open Tag Analyzer board while it holds edits not yet saved to its .taz file. */
+    hasUnsavedTazChanges?: boolean,
     
 }
 

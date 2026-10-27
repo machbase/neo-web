@@ -100,6 +100,15 @@ export function usePanelData(params: UsePanelDataParams): PanelDataState {
     );
     const hasRequestGeometry =
         params.rangeState !== undefined && chartWidth !== undefined;
+    const rangeLoadError = params.rangeState ? undefined : params.rangeLoadError;
+    if (rangeLoadError !== undefined) {
+        return {
+            main: { series: [], status: 'failed', interval: undefined },
+            navigator: { series: [], status: 'failed' },
+            rawLimitRange: undefined,
+            issue: { kind: 'error', message: rangeLoadError },
+        };
+    }
     return {
         main: {
             series: mainSeries,
@@ -136,6 +145,7 @@ type UsePanelDataParams = {
     panelInfo: PanelQueryInfo;
     isActive: boolean;
     rangeState: ResolvedRangeState | undefined;
+    rangeLoadError?: string;
     chartAreaWidth: number | undefined;
     navigatorTrackWidth: number | undefined;
     rollupTables: RollupTableMap;
@@ -237,10 +247,10 @@ function mapPanelSeries(
     isRaw: boolean,
 ): ChartSeriesData[] {
     return mapFetchResultToChartData(
-        result?.filter(({ error }) => !error),
+        result?.map((series) => (series.error ? { ...series, data: [] } : series)),
         seriesList,
         isRaw,
-    );
+    ).map((series, index) => (result?.[index]?.error ? { ...series, isUnavailable: true } : series));
 }
 
 function selectPanelRequest(

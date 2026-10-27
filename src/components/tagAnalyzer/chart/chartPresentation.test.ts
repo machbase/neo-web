@@ -97,6 +97,47 @@ describe('panel chart presentation', () => {
         ]);
     });
 
+    it('keeps series indexes and annotation anchors when an earlier series failed', () => {
+        const panel = createPanel();
+        panel.annotations = [
+            { text: 'On second', seriesKey: 'second', timeRange: { start: 20, end: 20 }, fillColor: '#112233', textColor: '#445566', clip: true },
+            { text: 'On first', seriesKey: 'first', timeRange: { start: 20, end: 20 }, fillColor: '#112233', textColor: '#445566', clip: true },
+        ];
+        const runtime = createRuntime(panel);
+        const chartData = [
+            { ...runtime.data.chartData[0], data: [], isUnavailable: true },
+            { ...runtime.data.chartData[1], data: [[0, 7], [20, 9]] as [number, number][] },
+        ];
+        const failedRuntime = { ...runtime, data: { chartData, navigatorChartData: chartData } };
+        expect(buildChartSeriesOption(failedRuntime).filter((series) => String(series.id).startsWith(MAIN_PANEL_SERIES_ID_PREFIX))
+            .map((series) => series.id)).toEqual([`${MAIN_PANEL_SERIES_ID_PREFIX}1`]);
+        expect(buildRenderableSeriesAnnotations({
+            annotations: failedRuntime.config.annotations,
+            series: failedRuntime.config.series,
+            chartData,
+            yAxisOptions: [{ min: 0, max: 10 }, { min: 0, max: 10 }],
+            visibleRange: failedRuntime.ranges.mainRange,
+        })).toEqual([expect.objectContaining({ text: 'On second', seriesIndex: 1, anchorValue: 9 })]);
+    });
+
+    it.each([
+        [true, true, true],
+        [false, true, true],
+        [true, false, false],
+        [false, false, false],
+    ])('shows X grid lines from the tick setting only (zoom %s, ticks %s)', (useZoom, showTickline, expected) => {
+        const panel = createPanel();
+        panel.display.useZoom = useZoom;
+        panel.axes.x.showTickline = showTickline;
+        const xAxis = buildChartOption(createRuntime(panel)).xAxis as { splitLine?: { show?: boolean } }[];
+        expect(xAxis[0].splitLine?.show).toBe(expected);
+    });
+
+    it('hides main X labels that would overlap on a narrow chart', () => {
+        const xAxis = buildChartOption(createRuntime(createPanel())).xAxis as { axisLabel?: { hideOverlap?: boolean } }[];
+        expect(xAxis[0].axisLabel?.hideOverlap).toBe(true);
+    });
+
     it('defaults blank editable numbers without changing the stored values', () => {
         const panel = createPanel();
         panel.display.pointRadius = undefined;

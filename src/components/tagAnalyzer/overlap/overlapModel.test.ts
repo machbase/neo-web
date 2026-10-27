@@ -1,6 +1,7 @@
 import {
     buildOverlapChartOption,
     createOverlapChartSeriesGroup,
+    formatOverlapElapsedDurationLabel,
     type OverlapSeriesData,
 } from './overlapModel';
 
@@ -83,5 +84,18 @@ describe('overlap chart series groups', () => {
             visibleRange: { start: 90, end: 130 },
         }, [createSeries([]), createSeries([[100, null]])]);
         expect(buildOverlapChartOption([group], false, true)).toBeUndefined();
+    });
+});
+
+describe('formatOverlapElapsedDurationLabel', () => {
+    it.each([
+        [0, '0:00:00:00'],
+        [5 * 60_000, '0:00:05:00'],
+        [5 * 60_000 + 500, '0:00:05:00.500'],
+        [20, '0:00:00:00.020'],
+        [-1_500, '-0:00:00:01.500'],
+        [86_400_000 + 1, '1:00:00:00.001'],
+    ])('formats %s ms as %s', (value, label) => {
+        expect(formatOverlapElapsedDurationLabel(value)).toBe(label);
     });
 });

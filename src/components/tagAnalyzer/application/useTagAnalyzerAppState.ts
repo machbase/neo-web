@@ -50,6 +50,22 @@ export function useTagAnalyzerAppState(info: BoardInfo) {
         [updateBoardList],
     );
 
+    // Board list entries are what the tab and OPEN EDITORS read; the edits themselves stay in the board.
+    const reportUnsavedChanges = useCallback(
+        (hasUnsavedChanges: boolean): void => {
+            updateBoardList((boards) =>
+                boards.some((board) => board.id === info.id && Boolean(board.hasUnsavedTazChanges) !== hasUnsavedChanges)
+                    ? boards.map((board) =>
+                          board.id === info.id
+                              ? { ...board, hasUnsavedTazChanges: hasUnsavedChanges }
+                              : board,
+                      )
+                    : boards,
+            );
+        },
+        [info.id, updateBoardList],
+    );
+
     const handleFileSaved = useCallback(
         async (directoryPath: string, fileName: string): Promise<void> => {
             const updatedTree = await refreshTazFileTreeAfterSave(
@@ -68,6 +84,7 @@ export function useTagAnalyzerAppState(info: BoardInfo) {
         rollupTableList: rollupTableList ?? EMPTY_ROLLUP_TABLE_LIST,
         handleFileSaved,
         updateSavedBoard,
+        reportUnsavedChanges,
     };
 }
 

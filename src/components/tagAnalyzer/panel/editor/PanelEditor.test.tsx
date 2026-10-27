@@ -136,6 +136,41 @@ const INVALID_TAB_CASES: Array<{
             panelInfo.display.stroke = Number.NEGATIVE_INFINITY;
         },
     },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.stroke = undefined;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.stroke = -2;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.fill = 5;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.fill = -1;
+        },
+    },
+    {
+        name: 'Display',
+        testId: 'editor-tab-display',
+        mutate: (panelInfo) => {
+            panelInfo.display.pointRadius = -3;
+        },
+    },
 ];
 
 const VALID_TAB_CASES: Array<{
@@ -171,10 +206,12 @@ const VALID_TAB_CASES: Array<{
         },
     },
     {
-        name: 'a finite negative display value',
+        name: 'zero display sizes and a full fill opacity',
         testId: 'editor-tab-display',
         mutate: (panelInfo) => {
-            panelInfo.display.fill = -1;
+            panelInfo.display.pointRadius = 0;
+            panelInfo.display.stroke = 0;
+            panelInfo.display.fill = 1;
         },
     },
 ];
@@ -989,5 +1026,73 @@ describe('PanelEditor annotations after series removal', () => {
         changeTitle('Changed title');
         fireEvent.click(screen.getByTestId('editor-apply'));
         expect(apply).toHaveBeenCalledWith({ ...panel, title: 'Changed title' });
+    });
+});
+
+describe('PanelEditor header changes', () => {
+    it('keeps a RAW toggle and a title rename from the panel header when another setting is applied', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        const view = renderEditor(panel, apply);
+        const headerChanged = { ...panel, title: 'Header title', mode: { ...panel.mode, isRaw: true } };
+        view.rerender(createEditor(headerChanged, apply));
+        expect(screen.getByTestId('editor-title-input')).toHaveValue('Header title');
+        expect(screen.getByTestId('editor-order-raw-checkbox')).toBeEnabled();
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+
+        fireEvent.click(screen.getByLabelText('Use Zoom when dragging'));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[0][0]).toMatchObject({
+            title: 'Header title',
+            mode: { isRaw: true },
+            display: { useZoom: !panel.display.useZoom },
+        });
+    });
+
+    it('keeps a title typed in the editor over a later header rename', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        const view = renderEditor(panel, apply);
+        changeTitle('Editor title');
+        view.rerender(createEditor({ ...panel, title: 'Header title', mode: { ...panel.mode, isRaw: true } }, apply));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[0][0]).toMatchObject({ title: 'Editor title', mode: { isRaw: true } });
+    });
+});
+
+describe('PanelEditor automatic Nav range', () => {
+    it('clears the Nav range it filled in for a Main range when Main is reset', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        const view = renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'From' }), { target: { value: '150' } });
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'To' }), { target: { value: '200' } });
+        const filledNav = within(screen.getByTestId('editor-nav-range')).getByRole('textbox', { name: 'To' });
+        expect(filledNav).not.toHaveValue('');
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        view.rerender(createEditor(apply.mock.calls[0][0], apply, { pMainRange: { start: 150, end: 200 }, pNavigatorRange: { start: 0, end: 200 } }));
+
+        fireEvent.click(mainRangeSection().getByRole('button', { name: 'Reset' }));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[1][0].time).toMatchObject({
+            rangeInput: { start: '', end: '' },
+            navigatorRangeInput: { start: '', end: '' },
+        });
+    });
+
+    it('keeps a Nav range the user typed when Main is reset', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        const nav = within(screen.getByTestId('editor-nav-range'));
+        fireEvent.change(nav.getByRole('textbox', { name: 'From' }), { target: { value: '0' } });
+        fireEvent.change(nav.getByRole('textbox', { name: 'To' }), { target: { value: '300' } });
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'From' }), { target: { value: '150' } });
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'To' }), { target: { value: '200' } });
+        fireEvent.click(mainRangeSection().getByRole('button', { name: 'Reset' }));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[0][0].time.navigatorRangeInput).toEqual({ start: '0', end: '300' });
     });
 });

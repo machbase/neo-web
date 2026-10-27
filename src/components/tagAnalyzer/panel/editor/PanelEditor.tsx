@@ -14,7 +14,7 @@ import styles from './PanelEditor.module.scss';
 import { areConfiguredPanelRangesEqual, type PanelInfo } from '../panelModel';
 import { getSeriesListAxisKind } from '../../seriesModel';
 import type { RollupTableMap } from '../../api/rollupMetadata';
-import { type AxisKind, type AxisRange } from '../../rangeExpression/rangeModel';
+import { type AxisKind, type AxisRange, type RangeExpressionInput } from '../../rangeExpression/rangeModel';
 import { isSameRange } from '../../rangeExpression/rangeArithmetic';
 import { formatRangeInputValue } from '../../rangeExpression/expressionFormat';
 
@@ -58,6 +58,20 @@ export default function PanelEditor({
     const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState<string | undefined>(() =>
         pRangeOrigin === 'chart' ? undefined : createEditorChangeKey(pPanelInfo),
     );
+    const [sAutoNavigatorInput, setAutoNavigatorInput] = useState<RangeExpressionInput | undefined>();
+    const [sSyncedPanelInfo, setSyncedPanelInfo] = useState(pPanelInfo);
+    if (sSyncedPanelInfo !== pPanelInfo) {
+        setSyncedPanelInfo(pPanelInfo);
+        // The panel header edits the title and mode while the editor is open; keep those newer
+        // values in the fields the draft has not changed, so Apply does not undo them.
+        const sNextDraft = withHeaderChanges(sEditorDraft, sSyncedPanelInfo, pPanelInfo);
+        if (sNextDraft !== sEditorDraft) {
+            setEditorDraft(sNextDraft);
+            if (sAppliedEditorConfigKey === createEditorChangeKey(createEditorConfig(sSyncedPanelInfo, sEditorDraft))) {
+                setAppliedEditorConfigKey(createEditorChangeKey(createEditorConfig(pPanelInfo, sNextDraft)));
+            }
+        }
+    }
     if (
         !isSameRange(sObservedChartRange.mainRange, pMainRange) ||
         !isSameRange(sObservedChartRange.navigatorRange, pNavigatorRange)
@@ -78,15 +92,7 @@ export default function PanelEditor({
         time: sTimeDraft,
     } = sEditorDraft;
     const sEditorConfig = useMemo<PanelInfo>(
-        () => {
-            const sSeriesKeys = new Set(sEditorDraft.query.tagSet.map((series) => series.key));
-            return {
-                ...pPanelInfo,
-                ...sEditorDraft,
-                // Both series editors use the draft; keep the original annotations until Apply.
-                annotations: pPanelInfo.annotations.filter((annotation) => sSeriesKeys.has(annotation.seriesKey)),
-            };
-        },
+        () => createEditorConfig(pPanelInfo, sEditorDraft),
         [pPanelInfo, sEditorDraft],
     );
     const sEditorConfigKey = useMemo(
@@ -325,6 +331,8 @@ export default function PanelEditor({
                         pNavigatorRange={pNavigatorRange}
                         pDataValidationMessage={sTabMessages.Data}
                         pOnChangeTimeConfig={updateEditorDraft('time')}
+                        pAutoNavigatorInput={sAutoNavigatorInput}
+                        pOnAutoNavigatorInputChange={setAutoNavigatorInput}
                         pIsActive={sSelectedTab === 'Range'}
                     />
                 </Stack>
@@ -343,6 +351,29 @@ type PanelEditorDraft = Pick<
 function createEditorDraft(config: PanelInfo): PanelEditorDraft {
     const { title, mode, query, axes, display, time } = config;
     return { title, mode, query, axes, display, time };
+}
+
+function createEditorConfig(panelInfo: PanelInfo, draft: PanelEditorDraft): PanelInfo {
+    const sSeriesKeys = new Set(draft.query.tagSet.map((series) => series.key));
+    return {
+        ...panelInfo,
+        ...draft,
+        // Both series editors use the draft; keep the original annotations until Apply.
+        annotations: panelInfo.annotations.filter((annotation) => sSeriesKeys.has(annotation.seriesKey)),
+    };
+}
+
+function withHeaderChanges(draft: PanelEditorDraft, previous: PanelInfo, next: PanelInfo): PanelEditorDraft {
+    const sTitle = draft.title === previous.title ? next.title : draft.title;
+    const sModeEntries = (Object.keys(draft.mode) as (keyof PanelInfo['mode'])[]).filter(
+        (key) => draft.mode[key] === previous.mode[key] && next.mode[key] !== previous.mode[key],
+    );
+    if (sTitle === draft.title && sModeEntries.length === 0) return draft;
+    const sMode = { ...draft.mode };
+    sModeEntries.forEach((key) => {
+        sMode[key] = next.mode[key];
+    });
+    return { ...draft, title: sTitle, mode: sModeEntries.length ? sMode : draft.mode };
 }
 
 function withChartRanges(draft: PanelEditorDraft, axisKind: AxisKind | undefined, range: RangeState): PanelEditorDraft {

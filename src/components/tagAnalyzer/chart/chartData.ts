@@ -14,6 +14,8 @@ export type ChartSeriesData = {
     data: ChartRow[];
     yAxis: 0 | 1;
     color: string | undefined;
+    /** The series' request failed; it keeps its place so indexes still match the panel series. */
+    isUnavailable?: boolean;
 };
 
 export type ChartSeriesVisibilityMap = Record<string, boolean>;

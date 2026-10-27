@@ -1,7 +1,10 @@
 import { act, render } from '@testing-library/react';
 import { useEffect, type ReactNode } from 'react';
+import { useRecoilValue } from 'recoil';
 import { RecoilRoot, useSetRecoilState } from 'recoil';
-import { gSelectedTab } from '@/recoil/recoil';
+import { gBoardList, gSelectedTab, type GBoardListType } from '@/recoil/recoil';
+import { isBoardSaved } from '@/utils/boardSaveStatus';
+import { createTazBoardSnapshot } from '../persistence/tazBoardSnapshot';
 import { Toast } from '@/design-system/components';
 import { tableMetadataApi } from '../api/tableMetadataApi';
 import type { RollupTableMap } from '../api/rollupMetadata';
@@ -152,4 +155,30 @@ it.each(['success', 'failure'] as const)('ignores an obsolete %s after changing 
     await act(async () => currentRequest.resolve(ROLLUPS));
     expect(workspace.isLoading).toBe(false);
     expect(workspace.metadata).toBe(ROLLUPS);
+});
+
+it('marks its board list entry unsaved while the board reports edits (F-171)', () => {
+    const info = createTazBoardSnapshot({
+        id: 'board-dirty', name: 'dirty.taz', type: 'taz', path: '/', code: '', savedCode: false, panels: [],
+        boardTimeRange: { start: '', end: '' },
+        boardNumericRange: { start: '', end: '' },
+    });
+    let boards: GBoardListType[] = [];
+    function BoardList() {
+        boards = useRecoilValue(gBoardList);
+        return null;
+    }
+    render(
+        <RecoilRoot initializeState={({ set }) => set(gBoardList, [info as unknown as GBoardListType])}>
+            <Workspace isActive={false} info={info} />
+            <BoardList />
+        </RecoilRoot>,
+    );
+    const props = jest.mocked(Board).mock.calls.at(-1)?.[0];
+    expect(isBoardSaved(boards[0])).toBe(true);
+
+    act(() => props?.onUnsavedChangesChange?.(true));
+    expect(isBoardSaved(boards[0])).toBe(false);
+    act(() => props?.onUnsavedChangesChange?.(false));
+    expect(isBoardSaved(boards[0])).toBe(true);
 });

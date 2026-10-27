@@ -181,6 +181,9 @@ export function EditAnnotationModal({
                     backgroundColor: state.fillColor,
                     borderColor: state.fillColor,
                     color: state.textColor,
+                    overflowWrap: 'anywhere',
+                    maxHeight: '30vh',
+                    overflowY: 'auto',
                 }}
             >
                 {state.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL}
@@ -306,6 +309,9 @@ export function EditHighlightModal({
                     backgroundColor: `${state.fillColor}29`,
                     borderColor: state.fillColor,
                     color: state.textColor,
+                    overflowWrap: 'anywhere',
+                    maxHeight: '30vh',
+                    overflowY: 'auto',
                 }}
             >
                 {state.labelText.trim() || DEFAULT_PANEL_HIGHLIGHT_LABEL}

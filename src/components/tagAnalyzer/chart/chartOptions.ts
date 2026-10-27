@@ -184,7 +184,6 @@ export function buildChartOption(
         xAxis: buildChartXAxisOption(
             ranges.mainRange,
             ranges.navigatorRange,
-            config.display,
             config.axes,
             rendering.isNumericXAxis,
         ),
@@ -319,7 +318,6 @@ function resolveAxisRange(
 function buildChartXAxisOption(
     mainRange: AxisRange,
     navigatorRange: AxisRange,
-    display: RuntimePanelDisplay,
     axes: RuntimePanelAxes,
     isNumericXAxis: boolean,
 ): XAXisComponentOption[] {
@@ -336,11 +334,13 @@ function buildChartXAxisOption(
             axisTick: CHART_AXIS_STYLE.line,
             axisLabel: {
                 ...CHART_AXIS_STYLE.xLabel,
+                // A narrow panel cannot fit every tick label; drop the ones that would overlap.
+                hideOverlap: true,
                 formatter: (xAxisValue: number) =>
                     formatAxisTick(xAxisValue, mainRange, isNumericXAxis),
             },
             splitLine: {
-                show: display.useZoom && axes.x.showTickline,
+                show: axes.x.showTickline,
                 lineStyle: CHART_AXIS_STYLE.splitLine,
             },
             axisPointer: { label: DEFAULT_NOT_SHOW },
@@ -532,7 +532,7 @@ function buildMainSeriesOption(
                       }
                     : undefined,
         });
-    });
+    }).filter((_, seriesIndex) => !chartData[seriesIndex].isUnavailable);
 }
 
 function buildNavigatorSeriesOption(
@@ -571,7 +571,7 @@ function buildNavigatorSeriesOption(
                 disabled: true,
             },
         });
-    });
+    }).filter((_, seriesIndex) => !chartData[seriesIndex].isUnavailable);
 }
 
 const PANEL_INSIDE_DATA_ZOOM_ID = 'panel-inside-data-zoom';
