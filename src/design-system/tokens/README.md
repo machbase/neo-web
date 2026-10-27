@@ -475,3 +475,162 @@ src/design-system/tokens/
     padding: t.$spacing-8 t.$spacing-16;
 }
 ```
+
+---
+
+## Themes
+
+The web UI's colours are design tokens (`src/design-system/tokens`), and every colour token is a
+CSS variable: `$bg-primary` compiles to `var(--neo-bg-primary, #1e1e1e)`. With no theme loaded
+none of the variables is set, so each falls back to its dark default and the screen is the
+built-in dark theme. A theme sets the variables it changes.
+
+### A theme package
+
+A theme is an ordinary package installed from the App Store (`/public/<package>/`). Its
+`package.json` declares it:
+
+```json
+{
+    "name": "neo-pkg-theme-light",
+    "version": "1.0.0",
+    "neoTheme": { "label": "Light", "stylesheet": "theme.css", "scheme": "light" }
+}
+```
+
+- `stylesheet` — a `.css` file inside the package (relative, no `..`).
+- `scheme` — `light` or `dark`: the code editor's base colours and the page's `color-scheme`.
+- `label` — what Settings → Theme shows (defaults to the package name).
+
+The stylesheet sets variables on `:root`:
+
+```css
+:root {
+    --neo-bg-primary: #ffffff;
+    --neo-text-primary: #1f1f1f;
+}
+```
+
+A variable it leaves out keeps the dark default, so a theme can change one colour or all of them.
+
+### Choosing a theme
+
+Settings → Theme lists the built-in Dark and every installed theme. The choice is kept per
+browser (localStorage `neo.theme`, with the stylesheet path) and applied before the first render,
+so a reload paints in the theme from its first frame. A theme whose package was uninstalled
+falls back to Dark; the Theme dialog then forgets it.
+
+### In the code
+
+- A token: `color: t.$text-primary;` — follows the theme.
+- A colour that is not a token yet: `color: t.themed(text-secondary, #c3c3c3);` — stays `#c3c3c3`
+  on the dark screen and follows `--neo-text-secondary` under a theme. In plain CSS and in
+  `style={{ }}` objects the same is written `var(--neo-text-secondary, #c3c3c3)`.
+- A token at an alpha: `t.alpha(t.$primary-light, 0.14)` (`color-mix`; Sass's `rgba($token, a)`
+  cannot take a variable). A translucent literal is written the same way:
+  `color-mix(in srgb, var(--neo-btn-delete, rgb(239, 68, 68)) 12%, transparent)`.
+- Where colours are data, not CSS (Monaco's editor theme): `resolveCssColor()` reads the value the
+  current theme gives, and `useThemeVersion()` changes when the theme does.
+- Chart options, canvas drawing and saved defaults are left as written: `var()` there breaks them.
+
+### Variables
+
+| Variable | Dark default |
+| --- | --- |
+| `--neo-bg-primary` | `#1e1e1e` |
+| `--neo-bg-secondary` | `#252525` |
+| `--neo-bg-header` | `$bg-primary` |
+| `--neo-bg-elevated` | `#2c2c2c` |
+| `--neo-bg-panel` | `#252525` |
+| `--neo-bg-tab-active` | `#252525` |
+| `--neo-bg-sub-tab-active` | `#2e2e2e` |
+| `--neo-bg-tab-hover` | `rgba(255, 255, 255, 0.08)` |
+| `--neo-bg-input` | `rgba(255, 255, 255, 0.13)` |
+| `--neo-bg-input-dark` | `#353535` |
+| `--neo-bg-hover` | `rgba(255, 255, 255, 0.08)` |
+| `--neo-bg-hover-light` | `rgb(75, 75, 75)` |
+| `--neo-bg-hover-block` | `rgba(255, 255, 255, 0.13)` |
+| `--neo-bg-active` | `rgb(0, 83, 160)` |
+| `--neo-bg-active-hover` | `rgb(0, 108, 210)` |
+| `--neo-bg-user-message` | `rgb(50, 50, 51)` |
+| `--neo-text-primary` | `#f1f1f1` |
+| `--neo-text-secondary` | `#c4c4c4` |
+| `--neo-text-tertiary` | `#a3a3a3` |
+| `--neo-text-disabled` | `#818181` |
+| `--neo-text-muted` | `#727272` |
+| `--neo-text-hint` | `#aaaaaa` |
+| `--neo-text-row-number` | `#3b3b3b` |
+| `--neo-text-active` | `rgb(243, 243, 243)` |
+| `--neo-border-color-default` | `rgba(255, 255, 255, 0.13)` |
+| `--neo-border-color-light` | `#f1f1f125` |
+| `--neo-border-color-medium` | `#626263` |
+| `--neo-border-color-focus` | `rgb(0, 108, 210)` |
+| `--neo-border-color-active` | `#005fb8` |
+| `--neo-primary-base` | `#005fb8` |
+| `--neo-primary-hover` | `#0075e2` |
+| `--neo-primary-light` | `rgb(0, 108, 210)` |
+| `--neo-primary-dark` | `rgb(0, 83, 160)` |
+| `--neo-success-main` | `#71e071` |
+| `--neo-success-light` | `#9df486` |
+| `--neo-error-main` | `rgb(255, 83, 83)` |
+| `--neo-error-light` | `#fa6464` |
+| `--neo-warning-main` | `#ff9800` |
+| `--neo-info-main` | `#005fb8` |
+| `--neo-event-match-main` | `#ffdc72` |
+| `--neo-btn-delete` | `#ff4747` |
+| `--neo-btn-create` | `#005fb8` |
+| `--neo-btn-copy` | `#6f7173` |
+| `--neo-btn-status` | `#009688` |
+| `--neo-btn-disabled` | `#6f7173` |
+| `--neo-btn-send` | `#5b5b5b` |
+| `--neo-btn-send-border` | `#626263` |
+| `--neo-status-true` | `#9df486` |
+| `--neo-status-false` | `#fa6464` |
+| `--neo-status-none` | `#717171` |
+| `--neo-scrollbar-thumb` | `#5c5c5c` |
+| `--neo-scrollbar-thumb-hover` | `#868686` |
+| `--neo-scrollbar-border` | `#686868` |
+| `--neo-scrollbar-track-bg` | `#2a2a2a` |
+| `--neo-scrollbar-thumb-light` | `#ffffffcc` |
+| `--neo-scrollbar-thumb-light-hover` | `#ffffff` |
+| `--neo-scrollbar-border-light` | `#ffffffcc` |
+| `--neo-scrollbar-track-light-bg` | `#ffffff0f` |
+| `--neo-switch-bg` | `rgba(255, 255, 255, 0.13)` |
+| `--neo-switch-bg-hover` | `rgba(255, 255, 255, 0.1)` |
+| `--neo-switch-bg-active` | `#005fb8` |
+| `--neo-switch-bg-active-hover` | `#0075e2` |
+| `--neo-switch-thumb` | `rgba(255, 255, 255, 0.3)` |
+| `--neo-switch-thumb-active` | `#f1f1f1` |
+| `--neo-switch-border` | `rgba(255, 255, 255, 0.13)` |
+| `--neo-switch-border-active` | `#0075e2` |
+| `--neo-selector-bg` | `rgba(255, 255, 255, 0.13)` |
+| `--neo-selector-border` | `rgba(255, 255, 255, 0.13)` |
+| `--neo-selector-hover` | `#005fb8` |
+| `--neo-selector-selected` | `#005fb8` |
+| `--neo-overlay-shadow` | `#00000020` |
+| `--neo-color-black` | `#000000` |
+| `--neo-color-white` | `#ffffff` |
+| `--neo-mui-selected` | `#005fb8` |
+| `--neo-mui-text` | `#c4c4c4` |
+| `--neo-dropdown-bg` | `#2d2d2d` |
+| `--neo-dropdown-border` | `$border-color-default` |
+| `--neo-dropdown-shadow` | `0 4px 12px rgba(0, 0, 0, 0.3)` |
+| `--neo-dropdown-option-hover-bg` | `#3d3d3d` |
+| `--neo-dropdown-trigger-icon-color` | `#7a7a7a` |
+| `--neo-dropdown-option-hover-bg-light` | `rgba(255, 255, 255, 0.05)` |
+| `--neo-menu-bg` | `$dropdown-bg` |
+| `--neo-menu-border` | `$dropdown-border` |
+| `--neo-menu-item-text` | `#e8e8e8` |
+| `--neo-menu-item-hover-bg` | `$dropdown-option-hover-bg` |
+| `--neo-menu-item-icon` | `#b0b0b0` |
+| `--neo-modal-border` | `$border-color-default` |
+| `--neo-tag-table` | `$info-main` |
+| `--neo-log-table` | `$btn-delete` |
+| `--neo-kv-table` | `$btn-status` |
+| `--neo-vol-table` | `$warning-main` |
+| `--neo-etc-table` | `#ffdc72` |
+| `--neo-shadow-switch` | `1px 2px 3px #00000020` |
+| `--neo-shadow-sm` | `0 2px 2px rgba(0, 0, 0, 0.25)` |
+| `--neo-shadow-md` | `0 4px 4px rgba(0, 0, 0, 0.25)` |
+| `--neo-shadow-lg` | `0 8px 8px rgba(0, 0, 0, 0.25)` |
+| `--neo-shadow-xl` | `0 10px 25px rgba(0, 0, 0, 0.5)` |
