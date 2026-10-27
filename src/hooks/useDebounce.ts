@@ -1,16 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 
+// The pending call is dropped when the inputs change again or the screen goes away: a check or a
+// search for a screen that was already closed sent its request and showed its error toast late.
 const useDebounce = (aDebounceList: any[], aCallback: () => void, aTime: number | undefined = 200, aIIFE?: boolean) => {
-    const [sDebounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
-
     useEffect(() => {
-        if (sDebounceTimer) clearTimeout(sDebounceTimer);
         if (aIIFE) return aCallback();
-        setDebounceTimer(
-            setTimeout(() => {
-                aCallback();
-            }, aTime)
-        );
+        const sTimer = setTimeout(() => {
+            aCallback();
+        }, aTime);
+        return () => clearTimeout(sTimer);
     }, [...aDebounceList, aIIFE]);
 };
 

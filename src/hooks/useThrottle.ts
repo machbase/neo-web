@@ -1,15 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 
+// Like useDebounce: the pending call is dropped when the value changes again or the screen goes away.
 const useThrottle = (aObserve: string, aCallback: () => void, aTime: number | undefined = 1000) => {
-    const [sThrottleTimer, setThrottleTimer] = useState<any>(null);
-
     useEffect(() => {
-        if (sThrottleTimer) clearTimeout(sThrottleTimer);
-        setThrottleTimer(
-            setTimeout(() => {
-                aCallback();
-            }, aTime)
-        );
+        const sTimer = setTimeout(() => {
+            aCallback();
+        }, aTime);
+        return () => clearTimeout(sTimer);
     }, [aObserve]);
 };
 
