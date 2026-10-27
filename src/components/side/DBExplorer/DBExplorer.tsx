@@ -17,6 +17,7 @@ import { buildDatabaseNodeList, buildDropObjectQuery, buildQualifiedTableName, C
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
 import { Toast, ErrorBoundary } from '@/design-system/components';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Side, Checkbox } from '@/design-system/components';
 import { ExplorerSearchBar } from './ExplorerSearchBar';
@@ -98,6 +99,14 @@ export const DBExplorer = () => {
         // same refresh already sends; and this path is user-initiated, never polled.
         await refreshDatabases();
         const [sData, sConnectable] = await Promise.all([getTableList(), getConnectableDatabases()]);
+        // the request layer resolves a network failure or an HTTP error instead of rejecting; either
+        // used to rebuild the tree from nothing, so it read as an empty database. Keep the tree the
+        // user had and say why it was not refreshed, as the file explorer does (issue #1570 F-180).
+        const sFailure = getFileRequestFailure(sData, 'Failed to load the table list.');
+        if (sFailure || !sData?.data) {
+            Toast.error(sFailure?.reason ?? 'Failed to load the table list.', { id: 'db-explorer-refresh', testId: 'db-explorer-error-toast' });
+            return;
+        }
         if (sData && sData.data) {
             // neo's own `_NEO_*` tables leave the catalogue here and never reach the tree. Every
             // read below works off this array — the database nodes, the user nodes and the per-user
@@ -142,7 +151,7 @@ export const DBExplorer = () => {
                 });
             });
             setDBList(DB_LIST);
-        } else setDBList([]);
+        }
     };
     /** Get backup database list */
     const getBackupDatabaseList = async () => {
@@ -158,7 +167,6 @@ export const DBExplorer = () => {
         setMountModalOpen(true);
     };
     const init = (aEvent?: any) => {
-        setDBList([]);
         if (aEvent) aEvent.stopPropagation();
         getDatabaseList();
         getBackupDatabaseList();
