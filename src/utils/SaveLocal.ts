@@ -12,7 +12,7 @@ export const SavedToCSV = (saveName: string, data: any[], visibleList: { name: s
             item.data.length > 0 &&
             sVisibleNameList.includes(item.name) &&
             item.data.map((series: any) => {
-                sData += `${item.name}, ${series.join(', ')}\n`;
+                sData += `${[item.name, ...series].map(toCsvField).join(', ')}\n`;
             });
     });
     const sBlob = new Blob([sData], { type: `text/csv` });
@@ -22,4 +22,10 @@ export const SavedToCSV = (saveName: string, data: any[], visibleList: { name: s
     sLink.click();
     URL.revokeObjectURL(sLink.href);
     callback();
+};
+
+// RFC 4180: a field holding the separator, a quote, or a line break is quoted, with quotes doubled.
+const toCsvField = (aValue: unknown): string => {
+    const sText = aValue === null || aValue === undefined ? '' : String(aValue);
+    return /[",\r\n]/.test(sText) ? `"${sText.replace(/"/g, '""')}"` : sText;
 };
