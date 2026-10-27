@@ -8,7 +8,7 @@
 // reading it for.
 
 import './AppReadmePanel.scss';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { VscClose } from 'react-icons/vsc';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { stripVPrefix } from '@/utils/version/utils';
@@ -72,6 +72,34 @@ export const AppReadmePanel = ({ pAppName, pReadme, pVersion, onClose }: AppRead
 
     /** Width of the area the panel floats over — the cap the drag is clamped to. */
     const containerWidth = () => (panelRef.current?.offsetParent as HTMLElement | null)?.clientWidth;
+
+    // THE CAP IS RE-APPLIED WHENEVER THE AREA CHANGES, not only during a drag
+    // (issue #1570 F-178). A width saved in a wide window used to come back
+    // as-is after the window shrank or the drawer reopened, covering the whole
+    // app and pushing the handle off screen. The saved preference is kept — it
+    // comes back when there is room again; only the width SHOWN is capped.
+    const [sContainerWidth, setContainerWidth] = useState<number | undefined>(undefined);
+    // layout effect: measured before the first paint, so a reopened drawer never flashes at the saved width
+    useLayoutEffect(() => {
+        const sPanel = panelRef.current;
+        if (!sPanel) return;
+        // a hidden tab has no offsetParent and measures 0 — keep the last real width then
+        const measure = () => {
+            const sMeasured = containerWidth();
+            if (sMeasured) setContainerWidth(sMeasured);
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        const sObserver = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure);
+        // the panel itself too: it reports when a hidden tab becomes visible again
+        sObserver?.observe(sPanel);
+        if (sPanel.parentElement) sObserver?.observe(sPanel.parentElement);
+        return () => {
+            window.removeEventListener('resize', measure);
+            sObserver?.disconnect();
+        };
+    }, []);
+    const sShownWidth = clampReadmeWidth(sWidth, sContainerWidth);
 
     const resizeTo = useCallback(
         (next: number) => {
@@ -149,7 +177,7 @@ export const AppReadmePanel = ({ pAppName, pReadme, pVersion, onClose }: AppRead
     }, [sDragging, resizeTo, persist]);
 
     return (
-        <aside className="app-readme-panel" aria-label={`${pAppName} README`} ref={panelRef} style={{ width: sWidth }}>
+        <aside className="app-readme-panel" aria-label={`${pAppName} README`} ref={panelRef} style={{ width: sShownWidth }}>
             {/* THE DRAG HANDLE, ON THE PANEL'S LEFT EDGE. The panel is anchored to the
                 right, so dragging LEFT makes it wider — hence `startWidth - delta`.
                 It only STARTS the drag; the window listeners above run it. */}
@@ -158,7 +186,7 @@ export const AppReadmePanel = ({ pAppName, pReadme, pVersion, onClose }: AppRead
                 role="separator"
                 aria-orientation="vertical"
                 aria-label="Resize README panel"
-                aria-valuenow={Math.round(sWidth)}
+                aria-valuenow={Math.round(sShownWidth)}
                 aria-valuemin={README_PANEL_MIN_WIDTH}
                 aria-valuemax={README_PANEL_MAX_WIDTH}
                 tabIndex={0}
@@ -167,7 +195,7 @@ export const AppReadmePanel = ({ pAppName, pReadme, pVersion, onClose }: AppRead
                     // drag that the context menu then leaves hanging.
                     if (e.button !== 0) return;
                     e.preventDefault();
-                    dragRef.current = { startX: e.clientX, startWidth: sWidth, latestX: e.clientX, latest: sWidth, raf: null };
+                    dragRef.current = { startX: e.clientX, startWidth: sShownWidth, latestX: e.clientX, latest: sShownWidth, raf: null };
                     setDragging(true);
                 }}
                 // Operable without a mouse, and cheap: the handle is already focusable
@@ -175,7 +203,7 @@ export const AppReadmePanel = ({ pAppName, pReadme, pVersion, onClose }: AppRead
                 onKeyDown={(e) => {
                     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
                     e.preventDefault();
-                    const next = clampReadmeWidth(sWidth + (e.key === 'ArrowLeft' ? KEY_STEP : -KEY_STEP), containerWidth());
+                    const next = clampReadmeWidth(sShownWidth + (e.key === 'ArrowLeft' ? KEY_STEP : -KEY_STEP), containerWidth());
                     setWidth(next);
                     // Keyboard resizing has no "drag end", so it persists per press.
                     persist(next);
