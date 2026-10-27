@@ -44,7 +44,7 @@
     /* Other colors */
     --color-neutral-muted: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 13%, transparent);
     --color-accent-fg: var(--neo-primary-hover, #0075e2);
-    --color-accent-emphasis: #005fb8;
+    --color-accent-emphasis: var(--neo-primary-base, #005fb8);
     --color-attention-subtle: rgba(255, 152, 0, 0.15);
     --color-danger-fg: var(--neo-error-main, #ff5353);
 }
@@ -91,7 +91,7 @@
         --color-border-muted: hsla(210, 18%, 87%, 1);
         --color-neutral-muted: rgba(175, 184, 193, 0.2);
         --color-accent-fg: var(--neo-primary-light, #0969da);
-        --color-accent-emphasis: #0969da;
+        --color-accent-emphasis: var(--neo-primary-light, #0969da);
         --color-attention-subtle: #fff8c5;
         --color-danger-fg: var(--neo-btn-delete, #cf222e);
     }
