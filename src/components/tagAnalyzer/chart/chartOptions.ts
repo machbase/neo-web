@@ -334,6 +334,8 @@ function buildChartXAxisOption(
             axisTick: CHART_AXIS_STYLE.line,
             axisLabel: {
                 ...CHART_AXIS_STYLE.xLabel,
+                // A narrow panel cannot fit every tick label; drop the ones that would overlap.
+                hideOverlap: true,
                 formatter: (xAxisValue: number) =>
                     formatAxisTick(xAxisValue, mainRange, isNumericXAxis),
             },

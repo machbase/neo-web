@@ -133,6 +133,11 @@ describe('panel chart presentation', () => {
         expect(xAxis[0].splitLine?.show).toBe(expected);
     });
 
+    it('hides main X labels that would overlap on a narrow chart', () => {
+        const xAxis = buildChartOption(createRuntime(createPanel())).xAxis as { axisLabel?: { hideOverlap?: boolean } }[];
+        expect(xAxis[0].axisLabel?.hideOverlap).toBe(true);
+    });
+
     it('defaults blank editable numbers without changing the stored values', () => {
         const panel = createPanel();
         panel.display.pointRadius = undefined;
