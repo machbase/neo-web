@@ -418,12 +418,12 @@ export const CameraSide = () => {
                         </Button.Group>
                     </Side.Collapse>
                     {sIsLoading && (
-                        <div style={{ width: '100%', height: '2px', overflow: 'hidden', backgroundColor: 'var(--color-bg-tertiary, #2a2a2a)' }}>
+                        <div style={{ width: '100%', height: '2px', overflow: 'hidden', backgroundColor: 'var(--color-bg-tertiary, var(--neo-bg-elevated, #2a2a2a))' }}>
                             <div
                                 style={{
                                     width: '40%',
                                     height: '100%',
-                                    backgroundColor: 'var(--color-primary, #007acc)',
+                                    backgroundColor: 'var(--color-primary, var(--neo-bg-active-hover, #007acc))',
                                     animation: 'indeterminate-progress 1.2s ease-in-out infinite',
                                 }}
                             />
@@ -449,7 +449,7 @@ export const CameraSide = () => {
                                                 onClick={hasError ? undefined : () => handleServerClick(config)}
                                                 style={{
                                                     ...(hasError ? { cursor: 'default' } : undefined),
-                                                    ...(isActiveServer ? { boxShadow: 'inset 2px 0 0 0 #007acc', backgroundColor: 'rgba(255, 255, 255, 0.1)' } : undefined),
+                                                    ...(isActiveServer ? { boxShadow: 'inset 2px 0 0 0 #007acc', backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.1))' } : undefined),
                                                 }}
                                             >
                                                 <Side.ItemContent>

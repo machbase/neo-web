@@ -2,7 +2,7 @@
 .edit-shell-modal-cover {
     width: 100vw;
     height: 100vh;
-    background-color: #121212;
+    background-color: var(--neo-bg-primary, #121212);
     opacity: 0.4;
     top: 0;
     left: 0;
@@ -16,7 +16,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #404457;
+    background-color: var(--neo-bg-hover-light, #404457);
     z-index: $modal-idx;
     border-radius: 8px;
     border: solid 0.5px rgba(255, 255, 255, 0.5);

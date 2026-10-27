@@ -140,7 +140,7 @@ export const EditTimer = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>Timer id</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>Task’s name</Page.ContentDesc>
@@ -161,7 +161,7 @@ export const EditTimer = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>timer spec</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>
@@ -179,7 +179,7 @@ export const EditTimer = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>tql path</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>The tql script as a task</Page.ContentDesc>

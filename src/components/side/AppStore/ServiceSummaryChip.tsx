@@ -38,7 +38,7 @@ export const ServiceSummaryChip = ({ summary, pkgName }: Props) => {
             </span>
             {hasErrors && (
                 <>
-                    <VscWarning data-tooltip-id={tooltipId} style={{ color: '#FDB532', flexShrink: 0, cursor: 'help' }} />
+                    <VscWarning data-tooltip-id={tooltipId} style={{ color: 'var(--neo-warning-main, #FDB532)', flexShrink: 0, cursor: 'help' }} />
                     <Tooltip id={tooltipId} content={errors.join('\n')} style={{ whiteSpace: 'pre-line' }} />
                 </>
             )}

@@ -12,15 +12,15 @@
         border: 1px solid rgba(220, 53, 69, 0.4);
 
         .alert__icon {
-            color: #dc3545;
+            color: var(--neo-btn-delete, #dc3545);
         }
 
         .alert__title {
-            color: #ff6b6b;
+            color: var(--neo-error-light, #ff6b6b);
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, rgba(255, 255, 255, 0.8));
         }
     }
 
@@ -30,15 +30,15 @@
         border: 1px solid rgba(255, 193, 7, 0.4);
 
         .alert__icon {
-            color: #ffc107;
+            color: var(--neo-warning-main, #ffc107);
         }
 
         .alert__title {
-            color: #ffdb4d;
+            color: var(--neo-event-match-main, #ffdb4d);
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, rgba(255, 255, 255, 0.8));
         }
     }
 
@@ -48,7 +48,7 @@
         border: 1px solid rgba(13, 110, 253, 0.4);
 
         .alert__icon {
-            color: #0d6efd;
+            color: var(--neo-primary-hover, #0d6efd);
         }
 
         .alert__title {
@@ -56,7 +56,7 @@
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, rgba(255, 255, 255, 0.8));
         }
     }
 
@@ -66,15 +66,15 @@
         border: 1px solid rgba(25, 135, 84, 0.4);
 
         .alert__icon {
-            color: #198754;
+            color: var(--neo-btn-status, #198754);
         }
 
         .alert__title {
-            color: #4dba7d;
+            color: var(--neo-success-main, #4dba7d);
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, rgba(255, 255, 255, 0.8));
         }
     }
 
@@ -111,7 +111,7 @@
         flex-shrink: 0;
         background: transparent;
         border: none;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--neo-text-tertiary, rgba(255, 255, 255, 0.6));
         font-size: 24px;
         line-height: 1;
         cursor: pointer;
@@ -124,7 +124,7 @@
         transition: color 0.2s ease;
 
         &:hover {
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--neo-text-primary, rgba(255, 255, 255, 0.9));
         }
     }
 }

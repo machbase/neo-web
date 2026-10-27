@@ -50,7 +50,7 @@
         transition: background-color 0.15s ease;
 
         &:hover {
-            background-color: rgba(0, 0, 0, 0.12);
+            background-color: var(--neo-bg-hover, rgba(0, 0, 0, 0.12));
         }
 
         &:focus-visible {

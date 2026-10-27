@@ -2,7 +2,7 @@
 .modal-overlay {
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.5));
     position: fixed;
     top: 0;
     left: 0;
@@ -41,7 +41,7 @@
 }
 
 .modal-theme-dark {
-    background-color: #404457;
+    background-color: var(--neo-bg-hover-light, #404457);
     color: white;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(0, 0, 0, 0.3);
     border: solid 0.5px rgba(255, 255, 255, 0.5);
@@ -52,7 +52,7 @@
 }
 
 .modal-theme-white {
-    background-color: #ebebec;
+    background-color: var(--neo-color-white, #ebebec);
     color: black;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(255, 255, 255, 0.3);
     border: solid 0.5px rgba(38, 40, 49, 0.5);

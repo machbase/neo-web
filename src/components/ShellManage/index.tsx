@@ -318,7 +318,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                         {sIsCreateMode && (
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>
@@ -344,7 +344,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
                                         {sIsCreateMode && (
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>

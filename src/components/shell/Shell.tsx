@@ -325,7 +325,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 <Page.Header>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <GoDotFill size={10} style={{ color: wsStatusColor }} />
-                        <span style={{ fontSize: '12px', color: '#9a9ba0' }}>{wsStatusLabel}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--neo-text-tertiary, #9a9ba0)' }}>{wsStatusLabel}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Dropdown.Root options={THEME_OPTIONS} value={sCurrentTheme} onChange={handleThemeChange}>
@@ -337,7 +337,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                         <Button size="icon" variant="ghost" onClick={() => handleFontSizeChange(-1)} style={{ fontSize: '12px', fontWeight: 700 }}>
                             A-
                         </Button>
-                        <span style={{ fontSize: '11px', color: '#9a9ba0', minWidth: '24px', textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: '28px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--neo-text-tertiary, #9a9ba0)', minWidth: '24px', textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: '28px' }}>
                             {sFontSize}
                         </span>
                         <Button size="icon" variant="ghost" onClick={() => handleFontSizeChange(1)} style={{ fontSize: '12px', fontWeight: 700 }}>

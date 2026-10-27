@@ -283,7 +283,7 @@ const DashboardView = () => {
                                 )}
                             </Button>
                             <Button variant="ghost" size="icon" icon={<VscChevronRight size={16} />} onClick={() => moveTimeRange('r')} data-testid="shift-forward" />
-                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'var(--neo-bg-input, rgba(255, 255, 255, 0.13))' }} />
                             <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                         </div>
                     </ErrorBoundary>

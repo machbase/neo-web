@@ -881,12 +881,12 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                             ) : visibleColumns.length > 50 ? (
                                 <Virtuoso
                                     className="scrollbar-dark"
-                                    style={{ height: '40vh', backgroundColor: '#2d2d2d' }}
+                                    style={{ height: '40vh', backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}
                                     data={visibleColumns}
                                     itemContent={(index, bColumn) => <ColumnRow pColumn={bColumn} pIsLast={index === visibleColumns.length - 1} />}
                                 />
                             ) : (
-                                <div style={{ backgroundColor: '#2d2d2d' }}>
+                                <div style={{ backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}>
                                     {visibleColumns.map((bColumn, index) => (
                                         <ColumnRow key={`${props.pKey}-col-${index}`} pColumn={bColumn} pIsLast={index === visibleColumns.length - 1} />
                                     ))}
@@ -907,12 +907,12 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                     {visibleIndexes.length > 50 ? (
                                         <Virtuoso
                                             className="scrollbar-dark"
-                                            style={{ height: '40vh', backgroundColor: '#2d2d2d' }}
+                                            style={{ height: '40vh', backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}
                                             data={visibleIndexes}
                                             itemContent={(index, aIndex) => <IndexRow pIndex={aIndex} pIsLast={index === visibleIndexes.length - 1} />}
                                         />
                                     ) : (
-                                        <div style={{ backgroundColor: '#2d2d2d' }}>
+                                        <div style={{ backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}>
                                             {visibleIndexes.map((aIndex, index) => (
                                                 <IndexRow key={`${props.pKey}-idx-${index}`} pIndex={aIndex} pIsLast={index === visibleIndexes.length - 1} />
                                             ))}

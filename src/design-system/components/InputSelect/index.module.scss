@@ -59,7 +59,7 @@
     @include t.interactive-field-base;
 
     &:hover:not(&--disabled) {
-        border-color: #5a5a5a;
+        border-color: var(--neo-border-color-medium, #5a5a5a);
     }
 
     &:focus-within:not(&--disabled) {
@@ -98,10 +98,10 @@
 
     // Variants
     &--error {
-        border-color: #e53935;
+        border-color: var(--neo-btn-delete, #e53935);
 
         &:focus-within {
-            border-color: #e53935;
+            border-color: var(--neo-btn-delete, #e53935);
             outline: 2px solid rgba(229, 57, 53, 0.1);
         }
 
@@ -111,7 +111,7 @@
          * is about, so that saying it costs the row no height. So it is coloured as the error.
          */
         .input-select-input::placeholder {
-            color: #e53935;
+            color: var(--neo-btn-delete, #e53935);
         }
     }
 
@@ -127,7 +127,7 @@
     &--disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        background-color: #1e1e1e;
+        background-color: var(--neo-bg-primary, #1e1e1e);
     }
 
     // With left icon
@@ -202,7 +202,7 @@
     transition: background-color 0.2s ease, color 0.2s ease;
 
     &:hover:not(:disabled) {
-        background-color: rgba(255, 255, 255, 0.08);
+        background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
         color: t.$text-primary;
     }
 
@@ -218,7 +218,7 @@
     margin-top: -4px;
 
     &--error {
-        color: #e53935;
+        color: var(--neo-btn-delete, #e53935);
     }
 }
 

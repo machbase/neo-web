@@ -34,12 +34,12 @@
                 border: 1px solid rgba(255, 255, 255, 0.5);
             }
             svg {
-                color: rgba(255, 255, 255, 0.5);
+                color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
             }
         }
 
         .active {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
             svg {
                 color: white;
             }
@@ -126,7 +126,7 @@
             &-false {
                 font-size: small;
                 margin-top: 5px;
-                color: rgb(255, 105, 105);
+                color: var(--neo-error-light, rgb(255, 105, 105));
             }
         }
     }
@@ -134,14 +134,14 @@
     .folder-dark {
         border-top: 0.5px solid #9c9da6;
         border-bottom: 0.5px solid #9c9da6;
-        background-color: rgba(38, 40, 49, 0.5);
+        background-color: var(--neo-bg-secondary, rgba(38, 40, 49, 0.5));
 
         &-header {
             display: flex;
             align-items: center;
             padding: 0px 32px;
             border-bottom: 0.5px solid rgba(255, 255, 255, 0.5);
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
             font-size: 12px;
             height: 26px;
 
@@ -152,7 +152,7 @@
         }
 
         &-content {
-            color: #fff;
+            color: var(--neo-text-primary, #fff);
             max-height: 300px;
             padding: 20px 32px;
             overflow-y: auto;
@@ -181,7 +181,7 @@
             &-false {
                 font-size: small;
                 margin-top: 5px;
-                color: rgb(255, 105, 105);
+                color: var(--neo-error-light, rgb(255, 105, 105));
             }
         }
     }
@@ -205,17 +205,17 @@
         border-radius: 8px;
         box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
         border: solid 0.5px rgba(38, 40, 49, 0.5);
-        background-color: #fcfcfc;
+        background-color: var(--neo-color-white, #fcfcfc);
 
         padding: 0.5rem;
 
         &-dark {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
             border: solid 0.5px rgba(255, 255, 255, 0.5);
-            background-color: rgba(38, 40, 49, 0.5);
+            background-color: var(--neo-bg-secondary, rgba(38, 40, 49, 0.5));
 
             input {
-                color: rgba(255, 255, 255, 0.5) !important;
+                color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5)) !important;
             }
         }
 

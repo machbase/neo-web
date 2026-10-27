@@ -23,7 +23,7 @@
     width: 100%;
     overflow: auto;
     height: calc(100%);
-    background: #1b1c21;
+    background: var(--neo-bg-primary, #1b1c21);
     position: relative;
     .react-split {
         height: calc(100% - 40px) !important;
@@ -35,7 +35,7 @@
         gap: 1px;
         position: relative;
         height: 40px;
-        background-color: #262831;
+        background-color: var(--neo-bg-elevated, #262831);
         padding: 0 16px;
         display: flex;
         justify-content: space-between;
@@ -68,21 +68,21 @@
                 svg {
                     height: 16px;
                     width: 16px;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
                 }
 
                 &:hover {
                     svg {
-                        color: #f8f8f8;
+                        color: var(--neo-text-primary, #f8f8f8);
                     }
-                    border-color: #f8f8f8;
+                    border-color: var(--neo-color-white, #f8f8f8);
                 }
             }
             .set-global-option-btn {
                 &:hover {
-                    color: #f8f8f8;
+                    color: var(--neo-text-primary, #f8f8f8);
                 }
-                color: #939498;
+                color: var(--neo-text-tertiary, #939498);
                 display: flex;
                 align-items: center;
                 background-color: transparent;
@@ -117,7 +117,7 @@
         flex-direction: column;
 
         .variable-header-close {
-            background-color: #262831;
+            background-color: var(--neo-bg-elevated, #262831);
             padding: 4px 16px;
             justify-content: end;
             display: flex;
@@ -130,11 +130,11 @@
         gap: 4px;
         font-size: 14px;
         align-items: center;
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
         padding-left: 5px;
 
         &:hover {
-            color: #f8f8f8;
+            color: var(--neo-text-primary, #f8f8f8);
         }
     }
 }

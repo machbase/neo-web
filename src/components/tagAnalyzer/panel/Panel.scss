@@ -27,7 +27,7 @@
         color: theme.$text-secondary;
 
         strong {
-            color: #ff8a3d;
+            color: var(--neo-error-light, #ff8a3d);
             font-weight: 600;
         }
     }
@@ -58,7 +58,7 @@
     padding: 4px 8px;
     border: 1px solid rgba(253, 181, 50, 0.45);
     border-radius: 4px;
-    background: rgba(22, 22, 22, 0.92);
+    background: var(--neo-bg-primary, rgba(22, 22, 22, 0.92));
     color: theme.$warning;
     @include text.role(caption);
     white-space: nowrap;
@@ -71,12 +71,12 @@
 
 .panel-chart-interaction-hint--valid {
     border-color: rgba(87, 214, 141, 0.5);
-    color: #57d68d;
+    color: var(--neo-success-main, #57d68d);
 }
 
 .panel-chart-interaction-hint--invalid {
     border-color: rgba(255, 138, 61, 0.5);
-    color: #ff8a3d;
+    color: var(--neo-error-light, #ff8a3d);
 }
 
 .panel-main-chart-loading-overlay,
@@ -93,13 +93,13 @@
 
 .panel-main-chart-loading-overlay {
     pointer-events: auto;
-    background: rgba(37, 37, 37, 0.22);
+    background: var(--neo-bg-primary, rgba(37, 37, 37, 0.22));
     color: theme.$text-secondary;
 }
 
 .panel-main-chart-notice-overlay {
     pointer-events: none;
-    background: rgba(37, 37, 37, 0.58);
+    background: var(--neo-bg-secondary, rgba(37, 37, 37, 0.58));
     color: theme.$text-primary;
     font-weight: 600;
 }

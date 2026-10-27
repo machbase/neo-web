@@ -319,7 +319,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     }, []);
 
     return (
-        <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
+        <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: 'var(--neo-bg-elevated, #262831)' }}>
             <Tabs.Root
                 selectedTab={sSelectedTab}
                 onTabSelect={(tab) => setSelectTab(tab.id)}

@@ -154,7 +154,7 @@
 .tab_none_select {
     &::after {
         content: '';
-        background-color: rgba(255, 255, 255, 0.13);
+        background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
         width: 1px;
         height: 24px;
         position: absolute;

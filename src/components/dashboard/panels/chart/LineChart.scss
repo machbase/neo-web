@@ -43,7 +43,7 @@
     }
 }
 .chart-message-error {
-    color: rgb(231, 65, 131);
+    color: var(--neo-error-light, rgb(231, 65, 131));
 }
 
 .chart-message-success {

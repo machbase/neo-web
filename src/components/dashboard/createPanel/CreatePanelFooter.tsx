@@ -122,7 +122,7 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                             <span className="page-tab-badge" style={{ width: '36px' }} data-testid="block-total">{`${getBlockCount.total} / ${getBlockCount.limit}`}</span>
                         </Page.TabInfo>
                     </Page.TabContainer>
-                    <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid #b8c8da41', padding: '6px', gap: '8px' }}>
+                    <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid var(--neo-border-color-light, #b8c8da41)', padding: '6px', gap: '8px' }}>
                         {sTab === 'Series' ? (
                             <>
                                 {pTableList.length !== 0 &&

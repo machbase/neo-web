@@ -113,7 +113,7 @@ $version-accent: #4199ff;
         border-color: th.alpha(c.$primary-light, 0.28);
     }
     50% {
-        border-color: rgba(64, 153, 255, 0.62);
+        border-color: var(--neo-border-color-active, rgba(64, 153, 255, 0.62));
     }
 }
 

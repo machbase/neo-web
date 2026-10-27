@@ -38,7 +38,7 @@ $chip-accent: #4199ff;
         overflow: hidden;
 
         &:hover:not(&--open) {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-medium, #5a5a5a);
         }
 
         &:focus-visible {
@@ -109,7 +109,7 @@ $chip-accent: #4199ff;
             }
 
             .target-db__chip-label {
-                color: #e0e0e0;
+                color: var(--neo-text-primary, #e0e0e0);
             }
         }
 
@@ -154,8 +154,8 @@ $chip-accent: #4199ff;
         width: 100%;
         height: $chip-height;
         padding: 0 t.$spacing-8;
-        background-color: #2b2b2b;
-        border: 1px solid #3a3a3a;
+        background-color: var(--neo-bg-elevated, #2b2b2b);
+        border: 1px solid var(--neo-border-color-default, #3a3a3a);
         border-radius: t.$border-radius-base;
         color: t.$text-primary;
         font-family: t.$font-family-pretendard;
@@ -252,7 +252,7 @@ $chip-accent: #4199ff;
         display: inline-flex;
         align-items: center;
         flex-shrink: 0;
-        color: #e0e0e0;
+        color: var(--neo-text-primary, #e0e0e0);
     }
 }
 
@@ -345,5 +345,5 @@ $chip-accent: #4199ff;
     display: block;
     width: 1px;
     height: 18px;
-    background-color: #393b41;
+    background-color: var(--neo-dropdown-option-hover-bg, #393b41);
 }

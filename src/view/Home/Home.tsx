@@ -197,7 +197,7 @@ const HomeContent = () => {
                         <div
                             style={{
                                 ...layoutCSS,
-                                background: '#ffffff',
+                                background: 'var(--neo-color-white, #ffffff)',
                             }}
                         >
                             <SplitPane

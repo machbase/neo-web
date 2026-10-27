@@ -10,11 +10,11 @@
 
         // Override default button styles for compact appearance
         &:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
         }
 
         &:active {
-            background-color: rgba(255, 255, 255, 0.15);
+            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.15));
         }
     }
 }

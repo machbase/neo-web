@@ -52,7 +52,7 @@
     &--hover {
         .page-copy-block {
             &:hover {
-                border-color: #5a5a5a;
+                border-color: var(--neo-border-color-medium, #5a5a5a);
             }
         }
     }
@@ -62,7 +62,7 @@
     // stays neutral — a coloured edge competes with the warning banner sitting right above it.
     &--accent {
         .page-copy-block {
-            border-color: rgba(255, 255, 255, 0.3);
+            border-color: var(--neo-border-color-medium, rgba(255, 255, 255, 0.3));
         }
 
         .page-copy-block-frame {
@@ -232,7 +232,7 @@
         transition: 0.2s;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
             border: 1px solid t.$bg-input;
             border-radius: 20px;
         }
@@ -313,12 +313,12 @@
                 font-size: 14px;
                 font-weight: 600;
                 font-family: initial;
-                color: #818181;
+                color: var(--neo-text-disabled, #818181);
                 th {
                     min-width: 20px;
                     padding: 4px;
                     padding-left: 8px;
-                    background-color: rgb(44, 44, 44);
+                    background-color: var(--neo-bg-elevated, rgb(44, 44, 44));
                 }
 
                 &-action {
@@ -331,8 +331,8 @@
                 font-size: 13px;
 
                 .active-row {
-                    background-color: rgb(0, 83, 160) !important;
-                    color: rgb(243, 243, 243);
+                    background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
+                    color: var(--neo-text-primary, rgb(243, 243, 243));
                 }
                 tr {
                     &:hover {
@@ -350,9 +350,9 @@
                         }
 
                         &:hover {
-                            background-color: rgb(0, 108, 210);
+                            background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
                             svg {
-                                fill: #ffffff;
+                                fill: var(--neo-text-primary, #ffffff);
                             }
                         }
                     }
@@ -386,12 +386,12 @@
                 text-align: left;
                 font-weight: 600;
                 font-family: initial;
-                color: #818181;
+                color: var(--neo-text-disabled, #818181);
                 th {
                     min-width: 10px;
                     padding: 4px;
                     padding-left: 8px;
-                    background-color: rgb(44, 44, 44);
+                    background-color: var(--neo-bg-elevated, rgb(44, 44, 44));
                 }
 
                 .row-num {
@@ -419,8 +419,8 @@
                 }
 
                 .active-row {
-                    background-color: rgb(0, 83, 160) !important;
-                    color: rgb(243, 243, 243);
+                    background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
+                    color: var(--neo-text-primary, rgb(243, 243, 243));
                 }
                 tr {
                     /* Performance optimizations */
@@ -434,9 +434,9 @@
                         }
                         &:hover,
                         &:focus {
-                            background-color: rgb(0, 108, 210);
+                            background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
                             svg {
-                                fill: #ffffff;
+                                fill: var(--neo-text-primary, #ffffff);
                             }
                         }
                     }
@@ -448,15 +448,15 @@
                         }
                         &:hover,
                         &:focus {
-                            background-color: rgb(255, 83, 83);
+                            background-color: var(--neo-error-main, rgb(255, 83, 83));
                             svg {
-                                fill: #ffffff;
+                                fill: var(--neo-text-primary, #ffffff);
                             }
                         }
                     }
                     &:hover,
                     &:focus {
-                        background-color: rgb(64, 64, 64);
+                        background-color: var(--neo-dropdown-option-hover-bg, rgb(64, 64, 64));
                     }
                 }
                 td {
@@ -632,7 +632,7 @@
         padding: 0 t.$spacing-12;
 
         &:hover {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-medium, #5a5a5a);
         }
 
         &:focus-within {
@@ -904,7 +904,7 @@
             width: 150px;
             height: 100%;
             border-right: 1px inset t.$bg-input;
-            color: #aaaaaa;
+            color: var(--neo-text-hint, #aaaaaa);
         }
 
         .page-body-content {
@@ -973,7 +973,7 @@
             white-space: nowrap;
             text-overflow: ellipsis;
             overflow-wrap: break-word;
-            color: #dfdfdf;
+            color: var(--neo-text-primary, #dfdfdf);
             overflow: hidden;
         }
     }
@@ -1042,7 +1042,7 @@
             transition: border-color 0.15s ease;
 
             &:hover:not(&--open) {
-                border-color: #5a5a5a;
+                border-color: var(--neo-border-color-medium, #5a5a5a);
             }
 
             &--open {
@@ -1149,13 +1149,13 @@
             min-height: 16px;
             width: 16px;
             height: 16px;
-            fill: rgb(255, 83, 83);
+            fill: var(--neo-error-main, rgb(255, 83, 83));
         }
         span {
             margin-left: 4px;
             font-family: 'Pretendard';
             font-size: 14px;
-            color: rgb(255, 83, 83);
+            color: var(--neo-error-main, rgb(255, 83, 83));
         }
     }
     .page-res-success {
@@ -1169,13 +1169,13 @@
             min-height: 16px;
             width: 16px;
             height: 16px;
-            fill: #71e071;
+            fill: var(--neo-success-main, #71e071);
         }
         span {
             margin-left: 4px;
             font-family: 'Pretendard';
             font-size: 14px;
-            color: #71e071;
+            color: var(--neo-success-main, #71e071);
         }
     }
 
@@ -1207,7 +1207,7 @@
     }
 
     .active-tab {
-        border-bottom: 2px solid #005fb8;
+        border-bottom: 2px solid var(--neo-border-color-active, #005fb8);
     }
 
     .inactive-tab {
@@ -1216,9 +1216,9 @@
     }
 
     .page-tab-badge {
-        background-color: #a4a4a46e;
+        background-color: var(--neo-bg-hover-light, #a4a4a46e);
         border-radius: 40%;
-        color: #e4e4e4;
+        color: var(--neo-text-primary, #e4e4e4);
         display: flex;
         width: 22px;
         height: 14px;
@@ -1244,7 +1244,7 @@
     }
 }
 .page-content-block-desc {
-    color: #a3a3a3;
+    color: var(--neo-text-tertiary, #a3a3a3);
     font-size: 14px;
 }
 

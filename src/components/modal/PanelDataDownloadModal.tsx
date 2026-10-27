@@ -253,7 +253,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                                     <input autoFocus onChange={changeSaveFileName} value={sSaveFileName}></input>
                                 </div>
                             </div>
-                            <span style={{ color: '#ccc', fontSize: '12px', paddingBottom: '8px' }}> .csv</span>
+                            <span style={{ color: 'var(--neo-text-secondary, #ccc)', fontSize: '12px', paddingBottom: '8px' }}> .csv</span>
                         </div>
                         <div className="save-file-block">
                             <span>Block</span>

@@ -125,7 +125,7 @@ $readme-accent: #0075e2;
     padding: 1px 6px;
     border-radius: 3px;
     background-color: $readme-accent;
-    color: #fff;
+    color: var(--neo-text-primary, #fff);
     font-size: 10px;
     font-weight: 600;
 }
@@ -194,11 +194,11 @@ $readme-accent: #0075e2;
     &--on {
         border-color: $readme-accent;
         background-color: $readme-accent;
-        color: #fff;
+        color: var(--neo-text-primary, #fff);
 
         &:hover {
             background-color: color.adjust($readme-accent, $lightness: 6%);
-            color: #fff;
+            color: var(--neo-text-primary, #fff);
         }
     }
 }

@@ -58,7 +58,7 @@
     @include t.interactive-field-base;
 
     &:hover:not(&--disabled) {
-        border-color: #5a5a5a;
+        border-color: var(--neo-border-color-medium, #5a5a5a);
     }
 
     &:focus-within:not(&--disabled) {
@@ -96,10 +96,10 @@
 
     // Variants
     &--error {
-        border-color: #e53935;
+        border-color: var(--neo-btn-delete, #e53935);
 
         &:focus-within {
-            border-color: #e53935;
+            border-color: var(--neo-btn-delete, #e53935);
             outline: 2px solid rgba(229, 57, 53, 0.1);
         }
     }
@@ -116,7 +116,7 @@
     &--disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        background-color: #1e1e1e;
+        background-color: var(--neo-bg-primary, #1e1e1e);
     }
 
     // With icons
@@ -179,7 +179,7 @@
     margin-top: 4px;
 
     &--error {
-        color: #e53935;
+        color: var(--neo-btn-delete, #e53935);
         font-size: t.$font-size-sm;
     }
 }

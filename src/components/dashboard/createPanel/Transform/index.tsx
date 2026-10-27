@@ -170,7 +170,7 @@ const TransformBlock = ({
 
     return (
         <Page
-            style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}
+            style={{ borderRadius: '4px', border: '1px solid var(--neo-border-color-light, #b8c8da41)', gap: '6px', height: 'auto', display: 'table' }}
             data-testid={`transform-${encodeURIComponent(pTransformItem.id)}`}
         >
             <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
@@ -282,14 +282,14 @@ const TrxHelpModal = ({ callback }: { callback: () => void }) => {
             </Modal.Header>
             <Modal.Body>
                 <Modal.Content style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <span style={{ fontSize: '13px', color: '#b8b8b8' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--neo-text-secondary, #b8b8b8)' }}>
                         The formula field in Transform supports arithmetic operations and{' '}
                         <a onClick={handleLink} style={{ color: '#4a9eff', cursor: 'pointer', textDecoration: 'underline' }}>
                             mathematical functions
                         </a>
                         .
                     </span>
-                    <span style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>examples)</span>
+                    <span style={{ fontSize: '12px', color: 'var(--neo-text-tertiary, #999)', marginTop: '4px' }}>examples)</span>
                     <Page.CopyBlock pContent={TRX_FORMULA_EX.EX_1} pHover />
                     <Page.CopyBlock pContent={TRX_FORMULA_EX.EX_2} pHover />
                     <Page.CopyBlock pContent={TRX_FORMULA_EX.EX_3} pHover />

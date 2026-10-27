@@ -18,7 +18,7 @@ const DEFAULT_KEY = '';
  */
 export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
     const [sThemes, setThemes] = useState<ThemeChoice[] | undefined>(undefined);
-    const [sSelected, setSelected] = useState<string>(readStoredTheme()?.pkg ?? DEFAULT_KEY);
+    const [sSelected, setSelected] = useState<string>(() => readStoredTheme()?.pkg ?? DEFAULT_KEY);
 
     useEffect(() => {
         let sAlive = true;

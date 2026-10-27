@@ -4,9 +4,9 @@
    literally here so the two editors read as one control rather than two. */
 
 $accent: rgb(0, 108, 210);
-$on-surface: #f1f1f1;
+$on-surface: var(--neo-color-white, #f1f1f1);
 $on-surface-tertiary: #a3a3a3;
-$on-surface-disabled: #818181;
+$on-surface-disabled: var(--neo-btn-copy, #818181);
 
 .wrapper {
     display: flex;
@@ -45,7 +45,7 @@ $on-surface-disabled: #818181;
 /* Inherited numbers: shown so the editor opens on what is on screen, dimmed so they do not read as
    a choice somebody made here. */
 .readoutMuted {
-    color: #8a8d94;
+    color: var(--neo-text-disabled, #8a8d94);
 }
 
 /* Whose range these numbers are. */
@@ -62,8 +62,8 @@ $on-surface-disabled: #818181;
 }
 
 .badgeInherited {
-    background: rgba(255, 255, 255, 0.08);
-    color: #9aa0a6;
+    background: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
+    color: var(--neo-text-tertiary, #9aa0a6);
 }
 
 .dash {
@@ -97,19 +97,19 @@ $on-surface-disabled: #818181;
     gap: 4px;
     height: 24px;
     padding: 0 8px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid var(--neo-border-color-light, rgba(255, 255, 255, 0.18));
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.04);
-    color: #c8ccd6;
+    background: var(--neo-bg-hover, rgba(255, 255, 255, 0.04));
+    color: var(--neo-text-secondary, #c8ccd6);
     font-size: 11px;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 
     &:hover {
-        border-color: rgba(255, 255, 255, 0.32);
-        background: rgba(255, 255, 255, 0.1);
-        color: #f1f1f1;
+        border-color: var(--neo-border-color-medium, rgba(255, 255, 255, 0.32));
+        background: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
+        color: var(--neo-text-primary, #f1f1f1);
     }
 }
 
@@ -118,13 +118,13 @@ $on-surface-disabled: #818181;
 .resetDisabled {
     border-color: transparent;
     background: transparent;
-    color: #6f737c;
+    color: var(--neo-text-muted, #6f737c);
     cursor: default;
 
     &:hover {
         border-color: transparent;
         background: transparent;
-        color: #6f737c;
+        color: var(--neo-text-muted, #6f737c);
     }
 }
 
@@ -146,7 +146,7 @@ $on-surface-disabled: #818181;
     right: 0;
     height: 6px;
     border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.12));
 }
 
 .fill {
@@ -180,7 +180,7 @@ $on-surface-disabled: #818181;
         /* Stated, not inherited: the global `button, input { border-radius: 8px }` in src/index.css
            would otherwise round this 8px-wide bar into a circle. */
         border-radius: 3px;
-        border: 2px solid #1b1b1b;
+        border: 2px solid var(--neo-color-black, #1b1b1b);
         background-color: $accent;
         cursor: ew-resize;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -191,7 +191,7 @@ $on-surface-disabled: #818181;
         width: 8px;
         height: 22px;
         border-radius: 3px;
-        border: 2px solid #1b1b1b;
+        border: 2px solid var(--neo-color-black, #1b1b1b);
         background-color: $accent;
         cursor: ew-resize;
     }
@@ -254,7 +254,7 @@ $on-surface-disabled: #818181;
 .tickMark {
     width: 1px;
     height: 5px;
-    background-color: rgba(255, 255, 255, 0.22);
+    background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.22));
 }
 
 .tickLabel {
@@ -279,20 +279,20 @@ $on-surface-disabled: #818181;
         height: 32px;
         min-width: 0;
         padding: 0 12px;
-        border: 1px solid #3e3e3e;
+        border: 1px solid var(--neo-border-color-light, #3e3e3e);
         /* The global `button, input { border-radius: 8px }` in src/index.css leaks into every
            control in the app; stating the radius here keeps this field on the same one as the
            controls beside it. */
         border-radius: 4px;
         outline: none;
-        background-color: #2a2a2a;
+        background-color: var(--neo-bg-elevated, #2a2a2a);
         color: $on-surface;
         font-size: 13px;
         font-variant-numeric: tabular-nums;
         transition: border-color 0.3s ease;
 
         &:hover {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-medium, #5a5a5a);
         }
         &:focus {
             border-color: $accent;
@@ -340,17 +340,17 @@ $on-surface-disabled: #818181;
 .quickButton {
     min-height: 30px;
     padding: 0 8px;
-    border: 1px solid #3e3e3e;
+    border: 1px solid var(--neo-border-color-light, #3e3e3e);
     border-radius: 4px;
-    background-color: #2a2a2a;
-    color: #c4c4c4;
+    background-color: var(--neo-bg-elevated, #2a2a2a);
+    color: var(--neo-text-secondary, #c4c4c4);
     font-size: 12px;
     cursor: pointer;
     transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 
     &:hover {
-        border-color: #5a5a5a;
-        background-color: #343434;
+        border-color: var(--neo-border-color-medium, #5a5a5a);
+        background-color: var(--neo-bg-input-dark, #343434);
         color: $on-surface;
     }
 }
@@ -360,6 +360,6 @@ $on-surface-disabled: #818181;
     border: 1px solid rgba(255, 83, 83, 0.35);
     border-radius: 4px;
     background-color: rgba(255, 83, 83, 0.15);
-    color: rgb(255, 133, 133);
+    color: var(--neo-error-light, rgb(255, 133, 133));
     font-size: 12px;
 }

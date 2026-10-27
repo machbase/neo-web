@@ -6,7 +6,7 @@
     border-radius: t.$border-radius-md;
     margin: 0 !important;
     padding: 0 !important;
-    border: 0.5px solid rgba(60, 60, 60, 0.5);
+    border: 0.5px solid var(--neo-border-color-default, rgba(60, 60, 60, 0.5));
     box-shadow: t.$shadow-xl;
     background-color: t.$bg-elevated;
     animation: toastSlideIn t.$transition-duration-normal ease-out;

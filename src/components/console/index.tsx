@@ -214,8 +214,8 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                                     onClick={() => setSelectTask(bItem.task)}
                                                     className="task"
                                                     style={{
-                                                        color: sSelectTask === bItem.task ? '#f4f4f4' : '#d1d1d1',
-                                                        background: sSelectTask === bItem.task ? 'rgba(12, 12, 12, 0.6)' : '',
+                                                        color: sSelectTask === bItem.task ? 'var(--neo-text-primary, #f4f4f4)' : 'var(--neo-text-secondary, #d1d1d1)',
+                                                        background: sSelectTask === bItem.task ? 'var(--neo-bg-primary, rgba(12, 12, 12, 0.6))' : '',
                                                     }}
                                                 >
                                                     <span className="nowrap">

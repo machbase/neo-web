@@ -76,7 +76,7 @@
 
     &:hover {
         color: var(--gnb-item-hover-color, t.$text-primary);
-        background-color: var(--gnb-item-hover-bg, rgba(255, 255, 255, 0.08));
+        background-color: var(--gnb-item-hover-bg, var(--neo-bg-hover, rgba(255, 255, 255, 0.08)));
     }
 
     &:focus-visible {

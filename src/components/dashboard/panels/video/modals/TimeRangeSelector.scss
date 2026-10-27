@@ -304,7 +304,7 @@
     .master-timeline {
         position: relative;
         height: 70px;
-        background: rgba(0, 0, 0, 0.2);
+        background: var(--neo-bg-primary, rgba(0, 0, 0, 0.2));
         border: 1px solid $d-modal-gray-btn;
         border-radius: 4px;
         margin-bottom: 8px;
@@ -333,7 +333,7 @@
                 position: absolute;
                 top: 0;
                 bottom: 0;
-                border: 1px solid rgba(239, 68, 68, 0.85);
+                border: 1px solid var(--neo-btn-delete, rgba(239, 68, 68, 0.85));
                 background:
                     repeating-linear-gradient(
                         -45deg,

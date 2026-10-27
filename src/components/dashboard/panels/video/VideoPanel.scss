@@ -64,7 +64,7 @@
                     background: t.$error-main;
                     border: 1.5px solid t.$menu-bg;
                     border-radius: 8px;
-                    color: #fff;
+                    color: var(--neo-text-primary, #fff);
                     font-size: 11px;
                     font-weight: 600;
                     pointer-events: none;
@@ -86,14 +86,14 @@
                     width: 6px;
                     height: 6px;
                     border-radius: 50%;
-                    background: #22c55e;
+                    background: var(--neo-btn-status, #22c55e);
                     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
                 }
 
                 span {
                     font-size: t.$font-size-xs;
                     font-weight: t.$font-weight-bold;
-                    color: #22c55e;
+                    color: var(--neo-btn-status, #22c55e);
                     letter-spacing: 0.05em;
                 }
             }
@@ -303,7 +303,7 @@
                         .timeline-track {
                             width: 100%;
                             height: 4px;
-                            background: rgba(148, 163, 184, 0.35);
+                            background: var(--neo-bg-hover-light, rgba(148, 163, 184, 0.35));
                             border-radius: 2px;
                             position: relative;
                             cursor: pointer;
@@ -400,7 +400,7 @@
                                 height: 0;
                                 border-left: 6px solid transparent;
                                 border-right: 6px solid transparent;
-                                border-bottom: 8px solid #ef4444;
+                                border-bottom: 8px solid var(--neo-btn-delete, #ef4444);
                                 filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
                             }
 
@@ -416,7 +416,7 @@
                         }
 
                         &.is-disabled {
-                            background: rgba(148, 163, 184, 0.22);
+                            background: var(--neo-bg-input, rgba(148, 163, 184, 0.22));
                             cursor: not-allowed;
 
                             .timeline-missing-overlay {
@@ -425,7 +425,7 @@
 
                             .timeline-progress {
                                 width: 0 !important;
-                                background: rgba(148, 163, 184, 0.35);
+                                background: var(--neo-bg-hover-light, rgba(148, 163, 184, 0.35));
                             }
 
                             .timeline-thumb {
@@ -538,7 +538,7 @@
 
     // Fullscreen Styles
     &.fullscreen {
-        background-color: #000;
+        background-color: var(--neo-color-black, #000);
         justify-content: center;
         z-index: 9999;
 
@@ -549,7 +549,7 @@
         .video-container {
             height: 100%;
             width: 100%;
-            background: #000;
+            background: var(--neo-color-black, #000);
 
             video {
                 object-fit: contain;
@@ -564,7 +564,7 @@
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--neo-color-black, rgba(0, 0, 0, 0.6));
             backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
@@ -572,7 +572,7 @@
             opacity: 0;
             transition: opacity 0.3s ease, transform 0.3s ease;
             z-index: 96;
-            color: #fff;
+            color: var(--neo-text-primary, #fff);
             pointer-events: none;
 
             &.visible {
@@ -872,11 +872,11 @@
             background: t.$text-muted;
 
             &.value-2 {
-                background: #ffdc72;
+                background: var(--neo-event-match-main, #ffdc72);
             }
 
             &.value-1 {
-                background: #ff9800;
+                background: var(--neo-warning-main, #ff9800);
             }
 
             &.value-0 {

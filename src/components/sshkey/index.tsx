@@ -140,7 +140,7 @@ export const SSHKey = () => {
                                             </Page.ContentTitle>
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>
@@ -162,7 +162,7 @@ export const SSHKey = () => {
                                             </Page.ContentTitle>
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>
@@ -208,7 +208,7 @@ export const SSHKey = () => {
                                 <Page.ContentTitle>{INFO_SSH_KEY.info_title}</Page.ContentTitle>
                                 <Page.ContentDesc>{INFO_SSH_KEY.info_content}</Page.ContentDesc>
                                 <Page.Space pHeight="12px" />
-                                <div style={{ border: 'solid 1px #f1f1f125', borderRadius: '3px' }}>
+                                <div style={{ border: 'solid 1px var(--neo-border-color-light, #f1f1f125)', borderRadius: '3px' }}>
                                     {sSSHKeyList &&
                                         sSSHKeyList.map((aSSHKey, aIdx) => {
                                             return (

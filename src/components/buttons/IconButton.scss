@@ -9,13 +9,13 @@
     svg,
     img,
     div {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
     }
 
     &:hover {
         svg,
         div {
-            color: #f8f8f8;
+            color: var(--neo-text-primary, #f8f8f8);
         }
     }
 }
@@ -29,7 +29,7 @@
 }
 
 .tooltip-div {
-    color: rgba(255, 255, 255, 1) !important;
+    color: var(--neo-text-primary, rgba(255, 255, 255, 1)) !important;
     max-width: 500px;
     width: auto;
     overflow: hidden;
@@ -50,6 +50,6 @@
 .icon-btn-active-hover {
     background-color: transparent;
     &:hover {
-        background-color: #52535a;
+        background-color: var(--neo-bg-hover-light, #52535a);
     }
 }

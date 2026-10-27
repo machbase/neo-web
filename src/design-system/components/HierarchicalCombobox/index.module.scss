@@ -69,15 +69,15 @@
         min-width: 0;
         height: t.$input-height;
         padding: 0 t.$spacing-32 0 t.$spacing-12;
-        background-color: #2b2b2b;
-        border: 1px solid #3a3a3a;
+        background-color: var(--neo-bg-elevated, #2b2b2b);
+        border: 1px solid var(--neo-border-color-default, #3a3a3a);
         border-radius: t.$border-radius-base;
         cursor: pointer;
         box-sizing: border-box;
         transition: border-color 0.15s ease;
 
         &:hover:not(:disabled) {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-medium, #5a5a5a);
         }
 
         &:focus {
@@ -167,7 +167,7 @@
         min-width: 150px;
         overflow-y: auto;
         overflow-x: hidden;
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.1));
         @include t.scrollbar-dark;
     }
 

@@ -75,7 +75,7 @@ export const CreateBridge = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>name</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.Input data-testid="bridge-name" pValue={sCreatePayload.name} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('name', event)} />
@@ -85,7 +85,7 @@ export const CreateBridge = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>type</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.Selector
@@ -101,7 +101,7 @@ export const CreateBridge = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>Connection string</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.Input data-testid="bridge-path" pValue={sCreatePayload.path} pWidth={'400px'} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('path', event)} />

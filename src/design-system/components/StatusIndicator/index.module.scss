@@ -23,26 +23,26 @@
 
     // Color variants - based on Alert component colors
     &--success {
-        background-color: #198754;
+        background-color: var(--neo-btn-status, #198754);
     }
 
     &--error {
-        background-color: #dc3545;
+        background-color: var(--neo-btn-delete, #dc3545);
     }
 
     &--warning {
-        background-color: #ffc107;
+        background-color: var(--neo-warning-main, #ffc107);
     }
 
     &--info {
-        background-color: #0d6efd;
+        background-color: var(--neo-primary-hover, #0d6efd);
     }
 
     &--running {
-        background-color: #22c55e;
+        background-color: var(--neo-btn-status, #22c55e);
     }
 
     &--neutral {
-        background-color: rgb(117, 117, 120);
+        background-color: var(--neo-btn-copy, rgb(117, 117, 120));
     }
 }

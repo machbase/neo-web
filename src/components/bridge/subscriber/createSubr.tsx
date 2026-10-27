@@ -200,7 +200,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             <Page.DpRow>
                                 <Page.ContentTitle>name</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>{`The name of the subscriber.`}</Page.ContentDesc>
@@ -249,7 +249,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                     {sCreatePayload.bridge_type === 'mqtt' ? 'Topic' : 'Subject'}
                                 </Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>
@@ -307,7 +307,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                             <Page.DpRow>
                                 <Page.ContentTitle>Destination</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: '#f35b5b' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.DpRow>
@@ -343,7 +343,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             <Page.ContentTitle>Tql path</Page.ContentTitle>
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>
@@ -393,7 +393,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             <Page.ContentTitle>Method</Page.ContentTitle>
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>
@@ -419,7 +419,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             <Page.ContentTitle>Table name</Page.ContentTitle>
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>
@@ -439,7 +439,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                             <Page.ContentTitle>Format</Page.ContentTitle>
                                             <Page.ContentDesc>
                                                 <span
-                                                    style={{ marginLeft: '4px', color: '#f35b5b' }}
+                                                    style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}
                                                 >
                                                     *
                                                 </span>

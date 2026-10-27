@@ -34,17 +34,17 @@
         }
 
         &.twitter {
-            background: #000000;
+            background: var(--neo-color-black, #000000);
             color: white;
         }
 
         &.facebook {
-            background: #1877f2;
+            background: var(--neo-primary-hover, #1877f2);
             color: white;
         }
 
         &.email {
-            background: #ea4335;
+            background: var(--neo-btn-delete, #ea4335);
             color: white;
         }
 
@@ -84,11 +84,11 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: normal;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
             transition: color 0.2s ease;
 
             &:hover {
-                color: #f8f8f8;
+                color: var(--neo-text-primary, #f8f8f8);
             }
 
             &.active {

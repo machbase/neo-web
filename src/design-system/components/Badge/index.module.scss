@@ -130,8 +130,8 @@
     }
 
     &--muted {
-        border-color: rgba(128, 128, 128, 0.2);
-        background-color: rgba(128, 128, 128, 0.1);
+        border-color: var(--neo-border-color-default, rgba(128, 128, 128, 0.2));
+        background-color: var(--neo-bg-hover, rgba(128, 128, 128, 0.1));
 
         .text {
             color: t.$text-disabled;

@@ -5,7 +5,7 @@
         // --focus: 2px rgba(39, 94, 254, 0.3);
         --border: #bbc1e1;
         // --border-hover: #99c8ff;
-        --background: #3b3b3b;
+        --background: var(--neo-dropdown-option-hover-bg, #3b3b3b);
         --disabled: #f6f8ff;
         --disabled-inner: #e1e6f9;
         -webkit-appearance: none;

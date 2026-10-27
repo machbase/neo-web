@@ -129,7 +129,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'gitOpenDirectory':
             return <MuiFolderGitOpen />;
         case 'readOnlyClosedDirectory':
-            return <FaBox style={{ width: '13px', height: '13px', fill: '#FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
+            return <FaBox style={{ width: '13px', height: '13px', fill: 'var(--neo-warning-main, #FF9800)', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
         case 'readOnlyOpenDirectory':
             return <FaBoxOpen style={{ width: '16px', height: '16px', color: 'FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
         case 'publicClosedDirectory':

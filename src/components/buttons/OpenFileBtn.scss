@@ -5,16 +5,16 @@
     font-size: 12px;
 
     &-button {
-        color: #dbdbdb;
-        background: rgba(255, 255, 255, 0.13);
-        border: 1px solid rgba(255, 255, 255, 0.13);
+        color: var(--neo-text-primary, #dbdbdb);
+        background: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+        border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
         min-width: 74px;
 
         &:hover {
-            background-color: #262831;
+            background-color: var(--neo-bg-elevated, #262831);
         }
     }
 }

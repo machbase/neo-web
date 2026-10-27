@@ -3,27 +3,27 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: #1e1e1e;
-    color: #f1f1f1;
+    background: var(--neo-bg-primary, #1e1e1e);
+    color: var(--neo-text-primary, #f1f1f1);
     font-size: var(--font-size-base);
-    --color-surface: #1e1e1e;
-    --color-surface-alt: #252525;
-    --color-surface-elevated: #2c2c2c;
-    --color-surface-input: #353535;
-    --color-surface-hover: rgba(255, 255, 255, 0.08);
-    --color-surface-hover-block: rgba(255, 255, 255, 0.13);
+    --color-surface: var(--neo-bg-primary, #1e1e1e);
+    --color-surface-alt: var(--neo-bg-secondary, #252525);
+    --color-surface-elevated: var(--neo-bg-elevated, #2c2c2c);
+    --color-surface-input: var(--neo-bg-input-dark, #353535);
+    --color-surface-hover: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
+    --color-surface-hover-block: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
     /* Hover for rows that already sit on --color-surface-hover-block; the two translucent
        hover tints are both dimmer than that, so they would darken a selected row on hover. */
-    --color-surface-hover-light: rgb(75, 75, 75);
-    --color-surface-active: rgb(0, 83, 160);
-    --color-on-surface: #f1f1f1;
+    --color-surface-hover-light: var(--neo-bg-hover-light, rgb(75, 75, 75));
+    --color-surface-active: var(--neo-bg-active, rgb(0, 83, 160));
+    --color-on-surface: var(--neo-color-white, #f1f1f1);
     --color-on-surface-secondary: #c4c4c4;
     --color-on-surface-tertiary: #a3a3a3;
-    --color-on-surface-disabled: #818181;
+    --color-on-surface-disabled: var(--neo-btn-copy, #818181);
     --color-on-primary: #f1f1f1;
-    --color-border: rgba(255, 255, 255, 0.13);
-    --color-border-light: #f1f1f125;
-    --color-border-focus: rgb(0, 108, 210);
+    --color-border: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+    --color-border-light: var(--neo-border-color-light, #f1f1f125);
+    --color-border-focus: var(--neo-border-color-focus, rgb(0, 108, 210));
     --color-primary: #005fb8;
     --color-primary-hover: #0075e2;
     --color-primary-light: rgb(0, 108, 210);
@@ -36,8 +36,8 @@
     --color-switch-on-hover: #0075e2;
     --color-switch-thumb: #888888;
     --color-switch-thumb-active: #f1f1f1;
-    --color-switch-border: #4a4a4a;
-    --color-switch-border-active: #0075e2;
+    --color-switch-border: var(--neo-border-color-medium, #4a4a4a);
+    --color-switch-border-active: var(--neo-primary-hover, #0075e2);
     --color-white: #ffffff;
     --spacing-2: 2px;
     --spacing-4: 4px;
@@ -82,7 +82,7 @@
 .neo-data-viewer-embedded-tab {
     width: 100%;
     height: 100%;
-    background: #1e1e1e;
+    background: var(--neo-bg-primary, #1e1e1e);
 }
 
 .neo-data-viewer-header {
@@ -93,7 +93,7 @@
     justify-content: space-between;
     gap: 8px;
     padding: 24px 40px;
-    background: #191b1f;
+    background: var(--neo-bg-primary, #191b1f);
 }
 
 .neo-data-viewer-header-title {
@@ -117,8 +117,8 @@
     display: inline-flex;
     align-items: center;
     border-radius: 4px;
-    color: #9da3ad;
-    background: #2b2d31;
+    color: var(--neo-text-tertiary, #9da3ad);
+    background: var(--neo-dropdown-bg, #2b2d31);
     font-size: 12px;
 }
 
@@ -164,9 +164,9 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    border: 1px solid #34363a;
+    border: 1px solid var(--neo-border-color-default, #34363a);
     border-radius: 6px;
-    background: #202226;
+    background: var(--neo-bg-secondary, #202226);
     padding: 32px;
     overflow: hidden;
 }
@@ -199,10 +199,10 @@
     width: 100%;
     height: 32px;
     padding: 0 8px;
-    border: 1px solid #404247;
+    border: 1px solid var(--neo-border-color-light, #404247);
     border-radius: 6px;
-    background: #24262b;
-    color: #e7e8ea;
+    background: var(--neo-bg-secondary, #24262b);
+    color: var(--neo-text-primary, #e7e8ea);
     font-size: 12px;
 }
 
@@ -211,9 +211,9 @@
     flex: 1;
     overflow: auto;
     padding: 0;
-    border: 1px solid #34363a;
+    border: 1px solid var(--neo-border-color-default, #34363a);
     border-radius: 6px;
-    background: #191b1f;
+    background: var(--neo-bg-primary, #191b1f);
 }
 
 .neo-data-viewer-tag-row {
@@ -226,7 +226,7 @@
     padding-bottom: 6px;
     border-radius: 4px;
     background: transparent;
-    color: #c3c7ce;
+    color: var(--neo-text-secondary, #c3c7ce);
     text-align: left;
     cursor: pointer;
     margin: 0 8px;
@@ -234,7 +234,7 @@
 
 .neo-data-viewer-tag-row:hover,
 .neo-data-viewer-tag-row.is-active {
-    background: #32353a;
+    background: var(--neo-bg-input-dark, #32353a);
 }
 
 .neo-data-viewer-tag-name {
@@ -253,17 +253,17 @@
     padding-bottom: 4px;
     margin: 0 8px;
     border-radius: 4px;
-    color: #e7e8ea;
+    color: var(--neo-text-primary, #e7e8ea);
     font-size: 13px;
     user-select: none;
 }
 
 .neo-node-tree-row:hover {
-    background: #272a30;
+    background: var(--neo-bg-elevated, #272a30);
 }
 
 .neo-node-tree-row-folder {
-    color: #c3c7ce;
+    color: var(--neo-text-secondary, #c3c7ce);
 }
 
 .neo-node-tree-toggle {
@@ -276,7 +276,7 @@
     border: 0;
     padding: 0;
     background: transparent;
-    color: #8e949c;
+    color: var(--neo-text-tertiary, #8e949c);
 }
 
 .neo-node-tree-label {
@@ -359,7 +359,7 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: #9da3ad;
+    color: var(--neo-text-tertiary, #9da3ad);
     font-size: 12px;
     font-weight: 500;
     line-height: 1;
@@ -373,11 +373,11 @@
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    color: #8e949c;
+    color: var(--neo-text-tertiary, #8e949c);
 }
 
 .neo-data-viewer-scan-label.is-active {
-    color: #e7e8ea;
+    color: var(--neo-text-primary, #e7e8ea);
 }
 
 .neo-data-viewer-switch {
@@ -386,9 +386,9 @@
     height: 20px;
     padding: 0;
     margin: 0 2px;
-    border: 1px solid #55585f;
+    border: 1px solid var(--neo-border-color-medium, #55585f);
     border-radius: 999px;
-    background: #33363b;
+    background: var(--neo-bg-input-dark, #33363b);
     cursor: pointer;
     appearance: none;
 }
@@ -407,7 +407,7 @@
 .neo-data-viewer-switch.active .neo-data-viewer-switch-thumb {
     left: auto;
     right: 3px;
-    background: #ffffff;
+    background: var(--neo-color-white, #ffffff);
 }
 
 .neo-data-viewer-btn {
@@ -415,7 +415,7 @@
     border: 0;
     border-radius: 4px;
     background: transparent;
-    color: #d6d9de;
+    color: var(--neo-text-secondary, #d6d9de);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -424,7 +424,7 @@
 }
 
 .neo-data-viewer-btn:hover {
-    background: #2b2e34;
+    background: var(--neo-dropdown-bg, #2b2e34);
 }
 
 .neo-data-viewer-format-button {
@@ -447,7 +447,7 @@
 .neo-data-viewer-segment {
     display: flex;
     align-items: center;
-    border: 1px solid #3b3d42;
+    border: 1px solid var(--neo-border-color-light, #3b3d42);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -456,9 +456,9 @@
     height: 28px;
     padding: 0 10px;
     border: 0;
-    border-right: 1px solid #3b3d42;
-    background: #202124;
-    color: #afb5bc;
+    border-right: 1px solid var(--neo-border-color-light, #3b3d42);
+    background: var(--neo-bg-secondary, #202124);
+    color: var(--neo-text-hint, #afb5bc);
     font-size: 12px;
     cursor: pointer;
 }
@@ -468,17 +468,17 @@
 }
 
 .neo-data-viewer-segment button.is-active {
-    background: #3b3f46;
-    color: #ffffff;
+    background: var(--neo-dropdown-option-hover-bg, #3b3f46);
+    color: var(--neo-text-primary, #ffffff);
 }
 
 .neo-data-viewer-table-wrap {
     min-height: 0;
     flex: 1;
     overflow: auto;
-    border: 1px solid #34363a;
+    border: 1px solid var(--neo-border-color-default, #34363a);
     border-radius: 6px 6px 0 0;
-    background: #191b1f;
+    background: var(--neo-bg-primary, #191b1f);
 }
 
 .neo-data-viewer-table {
@@ -492,7 +492,7 @@
 .neo-data-viewer-table td {
     height: 25px;
     padding: 0 16px;
-    border-bottom: 1px solid #34363a;
+    border-bottom: 1px solid var(--neo-border-color-default, #34363a);
     white-space: nowrap;
     text-align: left;
 }
@@ -501,14 +501,14 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background: #191b1f;
-    color: #e7e8ea;
+    background: var(--neo-bg-primary, #191b1f);
+    color: var(--neo-text-primary, #e7e8ea);
     font-weight: 700;
     text-transform: none;
 }
 
 .neo-data-viewer-table td {
-    color: #e7e8ea;
+    color: var(--neo-text-primary, #e7e8ea);
     font-family: D2Coding, monospace;
     font-weight: 300;
 }
@@ -518,18 +518,18 @@
 }
 
 .neo-data-viewer-table tbody tr:hover td {
-    background: #272a30;
+    background: var(--neo-bg-elevated, #272a30);
 }
 
 .neo-data-viewer-empty,
 .neo-data-viewer-error {
     padding: 16px;
-    color: #9aa1aa;
+    color: var(--neo-text-tertiary, #9aa1aa);
     font-size: 13px;
 }
 
 .neo-data-viewer-error {
-    color: #ff8a8a;
+    color: var(--neo-error-light, #ff8a8a);
 }
 
 .neo-data-viewer-pagination {
@@ -540,10 +540,10 @@
     justify-content: flex-end;
     gap: 4px;
     padding: 0 8px;
-    border: 1px solid #34363a;
+    border: 1px solid var(--neo-border-color-default, #34363a);
     border-top: 0;
     border-radius: 0 0 6px 6px;
-    background: #191b1f;
+    background: var(--neo-bg-primary, #191b1f);
 }
 
 .neo-data-viewer-modal-backdrop {
@@ -553,14 +553,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--neo-bg-primary, rgba(0, 0, 0, 0.45));
 }
 
 .neo-data-viewer-modal {
     width: min(560px, calc(100vw - 32px));
-    border: 1px solid #3b3d42;
+    border: 1px solid var(--neo-border-color-light, #3b3d42);
     border-radius: 6px;
-    background: #252629;
+    background: var(--neo-bg-secondary, #252629);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -571,13 +571,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #34363a;
+    border-bottom: 1px solid var(--neo-border-color-default, #34363a);
 }
 
 .neo-data-viewer-modal-footer {
     justify-content: flex-end;
     gap: 8px;
-    border-top: 1px solid #34363a;
+    border-top: 1px solid var(--neo-border-color-default, #34363a);
     border-bottom: 0;
 }
 
@@ -590,7 +590,7 @@
 .neo-data-viewer-modal label {
     display: grid;
     gap: 4px;
-    color: #c6cad0;
+    color: var(--neo-text-secondary, #c6cad0);
     font-size: 12px;
 }
 
@@ -920,7 +920,7 @@
     top: 1px;
     width: 4px;
     height: 7px;
-    border: solid #fff;
+    border: solid var(--neo-color-white, #fff);
     border-width: 0 1.5px 1.5px 0;
     transform: rotate(45deg);
 }
@@ -1004,8 +1004,8 @@
 }
 
 .neo-data-viewer .badge-muted {
-    border-color: rgba(128, 128, 128, 0.2);
-    background-color: rgba(128, 128, 128, 0.1);
+    border-color: var(--neo-border-color-default, rgba(128, 128, 128, 0.2));
+    background-color: var(--neo-bg-hover, rgba(128, 128, 128, 0.1));
     color: var(--color-on-surface-disabled);
 }
 
@@ -1217,7 +1217,7 @@
 }
 
 .neo-data-viewer .data-viewer-range-chip-distance .data-viewer-range-chip-axis {
-    color: #fdb532;
+    color: var(--neo-warning-main, #fdb532);
 }
 
 /* Sits on top of the chip-wide hover, so it needs a stronger tint to stay legible as its own
@@ -1239,7 +1239,7 @@
 }
 
 .neo-data-viewer .data-viewer-range-chip-chevron:hover:not(:disabled) {
-    background-color: var(--color-surface-active, rgba(255, 255, 255, 0.14));
+    background-color: var(--color-surface-active, var(--neo-bg-input, rgba(255, 255, 255, 0.14)));
     color: var(--color-on-surface);
 }
 
@@ -1596,7 +1596,7 @@
     height: 100%;
     min-height: 260px;
     padding: 0 48px;
-    background-color: #252525;
+    background-color: var(--neo-bg-secondary, #252525);
 }
 
 .neo-data-viewer .data-viewer-chart-range-shift {
@@ -1611,7 +1611,7 @@
     padding: 0;
     border: 1px solid #454545;
     border-radius: var(--radius-base);
-    background-color: rgba(31, 29, 29, 0.86);
+    background-color: var(--neo-bg-primary, rgba(31, 29, 29, 0.86));
     color: var(--color-on-surface-secondary);
     cursor: pointer;
 }
@@ -1698,7 +1698,7 @@
     align-items: center;
     border: 1px solid #454545;
     border-radius: var(--radius-base);
-    background-color: rgba(31, 29, 29, 0.86);
+    background-color: var(--neo-bg-primary, rgba(31, 29, 29, 0.86));
     pointer-events: auto;
 }
 
@@ -1742,7 +1742,7 @@
     height: 100%;
     min-height: 260px;
     padding: 0;
-    background-color: #252525;
+    background-color: var(--neo-bg-secondary, #252525);
     cursor: crosshair;
 }
 
@@ -1947,7 +1947,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.5));
 }
 
 .neo-data-viewer .modal {
@@ -2020,7 +2020,7 @@
 }
 
 .neo-data-viewer .data-viewer-time-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: var(--neo-color-black, rgba(0, 0, 0, 0.7));
 }
 
 .neo-data-viewer .data-viewer-time-modal.modal {
@@ -2029,7 +2029,7 @@
     max-width: 80vw;
     max-height: 80vh;
     border-radius: var(--radius-md);
-    background-color: #2a2a2a;
+    background-color: var(--neo-bg-elevated, #2a2a2a);
     color: var(--color-on-surface);
     cursor: default;
 }
@@ -2047,7 +2047,7 @@
 
 .neo-data-viewer .data-viewer-time-modal .modal-body {
     padding: var(--spacing-16) var(--spacing-32);
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--neo-text-secondary, rgba(255, 255, 255, 0.7));
     gap: var(--spacing-12);
     background:
         linear-gradient(#2a2a2a 30%, rgba(42, 42, 42, 0)) center top,
@@ -2077,8 +2077,8 @@
 }
 
 .neo-data-viewer .btn-primary {
-    border: 1px solid rgb(0, 108, 210);
-    background-color: rgb(0, 108, 210);
+    border: 1px solid var(--neo-border-color-focus, rgb(0, 108, 210));
+    background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
     color: var(--color-white);
 }
 
@@ -2097,14 +2097,14 @@
 }
 
 .neo-data-viewer .data-viewer-time-modal .btn-primary {
-    border: 1px solid rgb(0, 108, 210);
-    background-color: rgb(0, 108, 210);
+    border: 1px solid var(--neo-border-color-focus, rgb(0, 108, 210));
+    background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
     color: var(--color-white);
 }
 
 .neo-data-viewer .data-viewer-time-modal .btn-primary:hover:not(:disabled) {
-    border-color: rgb(0, 90, 180);
-    background-color: rgb(0, 90, 180);
+    border-color: var(--neo-border-color-active, rgb(0, 90, 180));
+    background-color: var(--neo-primary-base, rgb(0, 90, 180));
 }
 
 .neo-data-viewer .data-viewer-time-modal .btn-secondary {
@@ -2205,14 +2205,14 @@
     right: 0;
     height: 6px;
     border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.12));
 }
 
 .neo-data-viewer .data-viewer-distance-fill {
     position: absolute;
     height: 6px;
     border-radius: 3px;
-    background-color: rgb(0, 108, 210);
+    background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
 }
 
 .neo-data-viewer .data-viewer-distance-thumb {
@@ -2240,8 +2240,8 @@
     /* Stated, not inherited: the global `button, input { border-radius: 8px }` in src/index.css
        would otherwise round this 8px-wide bar into a circle. */
     border-radius: 3px;
-    border: 2px solid #1b1b1b;
-    background-color: rgb(0, 108, 210);
+    border: 2px solid var(--neo-color-black, #1b1b1b);
+    background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
     cursor: ew-resize;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
@@ -2251,8 +2251,8 @@
     width: 8px;
     height: 22px;
     border-radius: 3px;
-    border: 2px solid #1b1b1b;
-    background-color: rgb(0, 108, 210);
+    border: 2px solid var(--neo-color-black, #1b1b1b);
+    background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
     cursor: ew-resize;
 }
 
@@ -2304,7 +2304,7 @@
 .neo-data-viewer .data-viewer-distance-tick-mark {
     width: 1px;
     height: 5px;
-    background-color: rgba(255, 255, 255, 0.22);
+    background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.22));
 }
 
 .neo-data-viewer .data-viewer-distance-tick-max .data-viewer-distance-tick-mark {
@@ -2338,13 +2338,13 @@
     height: 32px;
     min-width: 0;
     padding: 0 var(--spacing-12);
-    border: 1px solid #3e3e3e;
+    border: 1px solid var(--neo-border-color-light, #3e3e3e);
     /* The global `button, input { border-radius: 8px }` in src/index.css leaks into every control in
        the app; stating the token here keeps this field on the same radius as the selects beside it
        instead of inheriting that 8px. */
     border-radius: var(--radius-base);
     outline: none;
-    background-color: #2a2a2a;
+    background-color: var(--neo-bg-elevated, #2a2a2a);
     color: var(--color-on-surface);
     font-size: var(--font-size-base);
     font-variant-numeric: tabular-nums;
@@ -2352,7 +2352,7 @@
 }
 
 .neo-data-viewer .data-viewer-distance-field input:hover {
-    border-color: #5a5a5a;
+    border-color: var(--neo-border-color-medium, #5a5a5a);
 }
 
 .neo-data-viewer .data-viewer-distance-field input:focus {
@@ -2417,14 +2417,14 @@
     width: 100%;
     height: 32px;
     min-width: 0;
-    border: 1px solid #3e3e3e;
+    border: 1px solid var(--neo-border-color-light, #3e3e3e);
     border-radius: var(--radius-base);
-    background-color: #2a2a2a;
+    background-color: var(--neo-bg-elevated, #2a2a2a);
     color: var(--color-on-surface);
 }
 
 .neo-data-viewer .data-viewer-select-field select:hover {
-    border-color: #5a5a5a;
+    border-color: var(--neo-border-color-medium, #5a5a5a);
 }
 
 .neo-data-viewer .data-viewer-time-field .input-icon-wrap {
@@ -2433,14 +2433,14 @@
     padding: 0 var(--spacing-2) 0 var(--spacing-12);
     display: flex;
     align-items: center;
-    border: 1px solid #3e3e3e;
+    border: 1px solid var(--neo-border-color-light, #3e3e3e);
     border-radius: var(--radius-base);
-    background-color: #2a2a2a;
+    background-color: var(--neo-bg-elevated, #2a2a2a);
     transition: border-color 0.3s ease;
 }
 
 .neo-data-viewer .data-viewer-time-field .input-icon-wrap:hover {
-    border-color: #5a5a5a;
+    border-color: var(--neo-border-color-medium, #5a5a5a);
 }
 
 .neo-data-viewer .data-viewer-time-field .input-icon-wrap:focus-within {
@@ -2828,7 +2828,7 @@
     top: 5px;
     width: 7px;
     height: 0;
-    border-top: 1.5px solid #fff;
+    border-top: 1.5px solid var(--neo-color-white, #fff);
 }
 
 /* Every control in the row resets the project's global `button` rule, which would otherwise paint a
@@ -2904,7 +2904,7 @@
 
 /* The path a filtered match came from. Dimmed because it is context, not the thing that matched. */
 .json-key-prefix {
-    color: #777;
+    color: var(--neo-text-muted, #777);
 }
 
 /* The value, kept to one line: it is here to tell two similar keys apart at a glance, and the
@@ -3034,7 +3034,7 @@
 }
 
 .json-key-detail-chip:hover:not(.is-active) {
-    border-color: var(--color-border-strong, #555);
+    border-color: var(--color-border-strong, var(--neo-border-color-medium, #555));
     color: var(--color-on-surface);
 }
 
@@ -3090,7 +3090,7 @@
 
 .json-key-detail-handoff:hover:not(:disabled) {
     background-color: var(--color-surface-hover);
-    border-color: var(--color-border-strong, #555);
+    border-color: var(--color-border-strong, var(--neo-border-color-medium, #555));
 }
 
 .json-key-detail-handoff:disabled {
@@ -3176,14 +3176,14 @@
 .json-key-detail-note {
     flex: 0 0 auto;
     margin: 6px 4px 0;
-    color: #a3a3a3;
+    color: var(--neo-text-tertiary, #a3a3a3);
     font-size: 11px;
 }
 
 .json-key-detail-error {
     flex: 0 0 auto;
     margin: 8px 16px 0;
-    color: #f08a80;
+    color: var(--neo-error-light, #f08a80);
     font-size: 12px;
 }
 
@@ -3214,8 +3214,8 @@
     z-index: 2;
     /* Opaque, and it has to stay that way: rows scroll under this and a translucent ground would
        show them through it. */
-    background-color: #252525;
-    color: #a3a3a3;
+    background-color: var(--neo-bg-secondary, #252525);
+    color: var(--neo-text-tertiary, #a3a3a3);
     font-family: var(--font-family-mono);
     font-size: 11px;
     font-weight: 500;
@@ -3267,9 +3267,9 @@
 .json-key-detail-step {
     appearance: none;
     background: none;
-    border: 1px solid #3a3a3a;
+    border: 1px solid var(--neo-border-color-default, #3a3a3a);
     border-radius: 4px;
-    color: #c4c4c4;
+    color: var(--neo-text-secondary, #c4c4c4);
     cursor: pointer;
     font-size: 12px;
     line-height: 1;
@@ -3278,8 +3278,8 @@
 }
 
 .json-key-detail-step:hover:not(:disabled) {
-    border-color: #555;
-    color: #f1f1f1;
+    border-color: var(--neo-border-color-medium, #555);
+    color: var(--neo-text-primary, #f1f1f1);
 }
 
 .json-key-detail-step:disabled {
@@ -3302,7 +3302,7 @@
 .json-key-modal .empty-state {
     padding: 24px;
     text-align: center;
-    color: #818181;
+    color: var(--neo-text-disabled, #818181);
     font-size: 12px;
 }
 
@@ -3321,7 +3321,7 @@
     align-items: stretch;
     gap: 0;
     padding: 14px 16px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
 }
 
 .raw-row-modal-head {
@@ -3427,7 +3427,7 @@
     gap: var(--spacing-12);
     align-items: start;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
 }
 
 .raw-row-modal-field:last-child {
@@ -3504,7 +3504,7 @@
 
 .neo-data-viewer .raw-row-modal-copy.is-failed {
     opacity: 1;
-    color: var(--color-error, #f08a80);
+    color: var(--color-error, var(--neo-error-light, #f08a80));
 }
 
 .neo-data-viewer .modal-footer.raw-row-modal-foot {
@@ -3512,7 +3512,7 @@
     justify-content: space-between;
     gap: var(--spacing-12);
     padding: 12px 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
 }
 
 .raw-row-modal-hint {
@@ -3774,7 +3774,7 @@
 }
 .neo-data-viewer .json-key-manual-hint {
     display: block;
-    color: var(--text-muted, #9299a5);
+    color: var(--text-muted, var(--neo-text-tertiary, #9299a5));
     font-size: 11px;
     font-weight: normal;
     padding: 4px 0;

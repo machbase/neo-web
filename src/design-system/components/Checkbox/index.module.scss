@@ -46,8 +46,8 @@
 
     // Checked state - background changes to match design system primary button
     &:checked + .checkbox-checkmark {
-        background-color: rgb(0, 108, 210);
-        border-color: rgb(0, 108, 210);
+        background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+        border-color: var(--neo-border-color-focus, rgb(0, 108, 210));
 
         svg {
             opacity: 1;
@@ -56,12 +56,12 @@
 
     // Hover state
     &:not(:disabled):hover + .checkbox-checkmark {
-        border-color: rgb(0, 108, 210);
+        border-color: var(--neo-border-color-focus, rgb(0, 108, 210));
     }
 
     &:checked:not(:disabled):hover + .checkbox-checkmark {
-        background-color: rgb(0, 90, 180);
-        border-color: rgb(0, 90, 180);
+        background-color: var(--neo-primary-base, rgb(0, 90, 180));
+        border-color: var(--neo-border-color-active, rgb(0, 90, 180));
     }
 
     // Focus state
@@ -72,8 +72,8 @@
 
     // Indeterminate state
     &:indeterminate + .checkbox-checkmark {
-        background-color: rgb(0, 108, 210);
-        border-color: rgb(0, 108, 210);
+        background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+        border-color: var(--neo-border-color-focus, rgb(0, 108, 210));
 
         svg {
             opacity: 1;

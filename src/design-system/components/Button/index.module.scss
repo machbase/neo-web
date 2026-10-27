@@ -54,13 +54,13 @@
 
     // Variants
     &--primary {
-        background-color: rgb(0, 108, 210);
-        color: #ffffff;
-        border: 1px solid rgb(0, 108, 210);
+        background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+        color: var(--neo-text-primary, #ffffff);
+        border: 1px solid var(--neo-border-color-focus, rgb(0, 108, 210));
 
         &:hover:not(:disabled) {
-            background-color: rgb(0, 90, 180);
-            border-color: rgb(0, 90, 180);
+            background-color: var(--neo-primary-base, rgb(0, 90, 180));
+            border-color: var(--neo-border-color-active, rgb(0, 90, 180));
         }
 
         &:focus,
@@ -110,19 +110,19 @@
     }
 
     &--danger {
-        background-color: #e53935;
-        color: #ffffff;
-        border: 1px solid #e53935;
+        background-color: var(--neo-btn-delete, #e53935);
+        color: var(--neo-text-primary, #ffffff);
+        border: 1px solid var(--neo-btn-delete, #e53935);
 
         &:hover:not(:disabled) {
-            background-color: #c62828;
-            border-color: #c62828;
+            background-color: var(--neo-btn-delete, #c62828);
+            border-color: var(--neo-btn-delete, #c62828);
         }
     }
 
     &--success {
         background-color: #2e7d32;
-        color: #ffffff;
+        color: var(--neo-text-primary, #ffffff);
         border: 1px solid #2e7d32;
 
         &:hover:not(:disabled) {

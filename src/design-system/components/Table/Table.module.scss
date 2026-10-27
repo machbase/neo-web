@@ -29,13 +29,13 @@
     font-size: 14px;
     font-weight: 600;
     font-family: initial;
-    color: #818181;
+    color: var(--neo-text-disabled, #818181);
 
     th {
         min-width: 20px;
         padding: 4px;
         padding-left: 8px;
-        background-color: rgb(44, 44, 44);
+        background-color: var(--neo-bg-elevated, rgb(44, 44, 44));
     }
 
     &-action {
@@ -50,8 +50,8 @@
     font-size: 13px;
 
     .active-row {
-        background-color: rgb(0, 83, 160) !important;
-        color: rgb(243, 243, 243);
+        background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
+        color: var(--neo-text-primary, rgb(243, 243, 243));
     }
 
     tr {
@@ -71,9 +71,9 @@
             }
 
             &:hover {
-                background-color: rgb(0, 108, 210);
+                background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
                 svg {
-                    fill: #ffffff;
+                    fill: var(--neo-text-primary, #ffffff);
                 }
             }
         }
@@ -96,13 +96,13 @@
     text-align: left;
     font-weight: 600;
     font-family: initial;
-    color: #818181;
+    color: var(--neo-text-disabled, #818181);
 
     th {
         min-width: 10px;
         padding: 4px;
         padding-left: 8px;
-        background-color: rgb(44, 44, 44);
+        background-color: var(--neo-bg-elevated, rgb(44, 44, 44));
     }
 
     .row-num {
@@ -131,8 +131,8 @@
     }
 
     .active-row {
-        background-color: rgb(0, 83, 160) !important;
-        color: rgb(243, 243, 243);
+        background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
+        color: var(--neo-text-primary, rgb(243, 243, 243));
     }
 
     tr {
@@ -146,9 +146,9 @@
             }
             &:hover,
             &:focus {
-                background-color: rgb(0, 108, 210);
+                background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
                 svg {
-                    fill: #ffffff;
+                    fill: var(--neo-text-primary, #ffffff);
                 }
             }
         }
@@ -161,16 +161,16 @@
             }
             &:hover,
             &:focus {
-                background-color: rgb(255, 83, 83);
+                background-color: var(--neo-error-main, rgb(255, 83, 83));
                 svg {
-                    fill: #ffffff;
+                    fill: var(--neo-text-primary, #ffffff);
                 }
             }
         }
 
         &:hover,
         &:focus {
-            background-color: rgb(64, 64, 64);
+            background-color: var(--neo-dropdown-option-hover-bg, rgb(64, 64, 64));
         }
     }
 
@@ -312,14 +312,14 @@
 :global {
     .result-body-tr {
         &.dark-odd {
-            background-color: rgb(43, 43, 43);
+            background-color: var(--neo-bg-elevated, rgb(43, 43, 43));
         }
     }
 
     .row-num {
         margin-left: 4px;
         cursor: default;
-        color: #888888;
+        color: var(--neo-text-disabled, #888888);
     }
 
     .result-table-item {
@@ -365,13 +365,13 @@
             cursor: pointer;
 
             svg {
-                fill: #818181;
+                fill: var(--neo-text-disabled, #818181);
             }
 
             &:hover {
-                background-color: rgb(0, 108, 210);
+                background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
                 svg {
-                    fill: #ffffff;
+                    fill: var(--neo-text-primary, #ffffff);
                 }
             }
         }

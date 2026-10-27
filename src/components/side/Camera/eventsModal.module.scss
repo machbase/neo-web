@@ -35,7 +35,7 @@
     transition: background-color 0.15s;
 
     &:hover {
-        background-color: rgba(255, 255, 255, 0.15);
+        background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.15));
     }
 }
 
@@ -127,7 +127,7 @@
 
     // Color variants
     &--blue {
-        background-color: #1565c0;
+        background-color: var(--neo-primary-base, #1565c0);
     }
 
     &--green {
@@ -135,7 +135,7 @@
     }
 
     &--cyan {
-        background-color: #00838f;
+        background-color: var(--neo-btn-status, #00838f);
     }
 
     &--orange {
@@ -147,15 +147,15 @@
     }
 
     &--red {
-        background-color: #c62828;
+        background-color: var(--neo-btn-delete, #c62828);
     }
 
     &--teal {
-        background-color: #00695c;
+        background-color: var(--neo-btn-status, #00695c);
     }
 
     &--indigo {
-        background-color: #283593;
+        background-color: var(--neo-bg-active, #283593);
     }
 }
 
@@ -188,7 +188,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.25));
     border: 1px solid t.$border-color-default;
     border-radius: t.$border-radius-base;
     overflow: hidden;
@@ -357,7 +357,7 @@
         }
 
         tbody tr {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.05));
             transition: background-color 0.15s;
 
             &:hover {

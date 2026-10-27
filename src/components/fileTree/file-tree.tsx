@@ -396,8 +396,8 @@ export const FileTree = (props: FileTreeProps) => {
                 delayShow={500}
                 border="1px solid #454545"
                 style={{
-                    backgroundColor: '#2d2d30',
-                    color: '#cccccc',
+                    backgroundColor: 'var(--neo-dropdown-bg, #2d2d30)',
+                    color: 'var(--neo-text-secondary, #cccccc)',
                     borderRadius: '4px',
                     fontSize: '12px',
                     maxWidth: '300px',

@@ -19,7 +19,7 @@
     box-shadow: 0 -8px 0 0 t.$menu-bg;
     border-bottom: 1px solid #333;
     font-size: 11px;
-    color: #9a9a9a;
+    color: var(--neo-text-tertiary, #9a9a9a);
 
     strong {
         color: #4aa3e0; // current server version → blue
@@ -35,7 +35,7 @@
     padding: 8px 10px;
     font-size: 11px;
     line-height: 1.5;
-    color: #9a9a9a;
+    color: var(--neo-text-tertiary, #9a9a9a);
 }
 
 // Row content wrapper — bleeds over the menu__item padding so hovering anywhere
@@ -70,7 +70,7 @@
 .pkg-version-menu-min {
     margin-left: auto;
     padding-left: 8px;
-    color: #8a8a8a;
+    color: var(--neo-text-disabled, #8a8a8a);
     font-size: 11px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -81,7 +81,7 @@
     display: none;
     margin-left: auto;
     padding-left: 8px;
-    color: #4ac26b;
+    color: var(--neo-success-main, #4ac26b);
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
@@ -107,7 +107,7 @@
         gap: 6px;
         margin-bottom: 6px;
         font-size: 11px;
-        color: #9a9a9a;
+        color: var(--neo-text-tertiary, #9a9a9a);
     }
 
     // design-system Input (fullWidth) + IconButton
@@ -143,7 +143,7 @@
     font-weight: 700;
     letter-spacing: 0.3px;
     background-color: rgba(209, 134, 22, 0.2);
-    color: #d6943a;
+    color: var(--neo-warning-main, #d6943a);
 }
 
 // state badge — sits right after the package version
@@ -156,7 +156,7 @@
 
     &--default {
         background-color: rgba(63, 185, 80, 0.18);
-        color: #4ac26b;
+        color: var(--neo-success-main, #4ac26b);
     }
     &--current {
         background-color: rgba(74, 163, 224, 0.18);
@@ -164,7 +164,7 @@
     }
     &--ineligible {
         background-color: rgba(209, 134, 22, 0.18);
-        color: #d6943a;
+        color: var(--neo-warning-main, #d6943a);
     }
     // issue #1452 — this version's archive sits in the local package directory, so
     // it installs with no network. The blue MUST stay in sync with `span.local` in
@@ -177,8 +177,8 @@
     }
     // ...and its opposite: hub-only version, hub unreachable → nothing to install from.
     &--offline {
-        background-color: rgba(140, 140, 140, 0.18);
-        color: #9a9a9a;
+        background-color: var(--neo-bg-hover, rgba(140, 140, 140, 0.18));
+        color: var(--neo-text-tertiary, #9a9a9a);
     }
 }
 
@@ -192,7 +192,7 @@
     border-bottom: 1px solid #333;
     font-size: 11px;
     line-height: 1.4;
-    color: #d6943a;
+    color: var(--neo-warning-main, #d6943a);
 
     svg {
         flex-shrink: 0;

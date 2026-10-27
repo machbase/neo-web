@@ -4,7 +4,7 @@
     flex-grow: 1;
     align-items: center;
     justify-content: center;
-    background-color: #323644;
+    background-color: var(--neo-dropdown-option-hover-bg, #323644);
     border: solid 0.5px rgba(255, 255, 255, 0.5);
     border-radius: 8px;
     position: relative;
@@ -18,7 +18,7 @@
         justify-content: space-between;
         input {
             border-radius: 4px;
-            color: #f8f8f8;
+            color: var(--neo-text-primary, #f8f8f8);
             width: 100%;
             padding: 0.3rem calc(0.5rem + 2px);
             outline: none;
@@ -43,7 +43,7 @@
         left: 0;
         display: flex;
         padding: 0.25rem;
-        background-color: #323644;
+        background-color: var(--neo-dropdown-option-hover-bg, #323644);
         border: solid 0.5px rgba(255, 255, 255, 0.5);
         border-radius: 8px;
         z-index: $dropdown-idx;
@@ -58,14 +58,14 @@
                 padding: 0 0.5rem;
                 border-radius: 8px;
                 &:hover {
-                    background-color: rgb(128, 128, 128);
+                    background-color: var(--neo-btn-copy, rgb(128, 128, 128));
                 }
             }
             button {
                 width: 100%;
                 margin: 0;
                 padding: 0;
-                background-color: #323644;
+                background-color: var(--neo-dropdown-option-hover-bg, #323644);
                 color: white;
 
                 .select-text {

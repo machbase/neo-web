@@ -52,7 +52,7 @@
             }
             .add-terminal:hover {
                 border-radius: 6px;
-                background-color: rgba(0, 0, 0, 0.2);
+                background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.2));
             }
         }
     }
@@ -65,10 +65,10 @@
         .tabs {
             display: flex;
             align-items: center;
-            color: #c4c4c4;
+            color: var(--neo-text-secondary, #c4c4c4);
         }
         .tabs:hover {
-            color: #f8f8f8;
+            color: var(--neo-text-primary, #f8f8f8);
         }
         .tab_close {
             margin-left: 4px;

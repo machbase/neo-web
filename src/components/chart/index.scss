@@ -14,7 +14,7 @@
             justify-content: center;
 
             span {
-                color: #fdb532;
+                color: var(--neo-warning-main, #fdb532);
             }
 
             .chart-control-drop {
@@ -24,7 +24,7 @@
 
             .chart-control-select-wrapper {
                 display: flex;
-                background-color: #404457;
+                background-color: var(--neo-bg-hover-light, #404457);
                 border: solid 1px rgba(255, 255, 255, 0.5);
                 height: 22px;
                 border-radius: 4px;
@@ -33,8 +33,8 @@
 
                 select {
                     padding: 0 2px;
-                    background-color: #404457;
-                    color: rgba(255, 255, 255, 0.8);
+                    background-color: var(--neo-bg-hover-light, #404457);
+                    color: var(--neo-text-secondary, rgba(255, 255, 255, 0.8));
                     border: none;
                     min-width: 86px;
                     font-size: 12px;
@@ -49,11 +49,11 @@
             justify-content: center;
 
             .chart-control-play-btn-item {
-                fill: #fdb532;
+                fill: var(--neo-warning-main, #fdb532);
             }
 
             :hover {
-                background-color: rgba(255, 255, 255, 0.2);
+                background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.2));
                 border-radius: 5px;
             }
         }

@@ -4,7 +4,7 @@
     height: calc(100% - 30px);
     min-height: 30px;
     align-items: start;
-    background-color: #262831;
+    background-color: var(--neo-bg-elevated, #262831);
     flex-direction: column;
 
     .board-header-variable-overflow {
@@ -29,7 +29,7 @@
                 padding-bottom: 10px;
 
                 &-label {
-                    color: rgba(255, 255, 255, 0.8);
+                    color: var(--neo-text-secondary, rgba(255, 255, 255, 0.8));
                     padding-right: 4px;
                     display: flex;
                     align-items: center;
@@ -48,7 +48,7 @@
         .extension-tab-wrapper {
             align-items: end;
             justify-content: end;
-            background-color: #262831 !important;
+            background-color: var(--neo-bg-elevated, #262831) !important;
         }
     }
 }

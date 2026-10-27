@@ -1,9 +1,9 @@
 a {
-    color: #dfdfdf !important;
+    color: var(--neo-text-primary, #dfdfdf) !important;
     text-decoration: underline !important;
 
     &:hover {
-        color: #0471d6 !important;
+        color: var(--neo-primary-light, #0471d6) !important;
     }
 }
 .app-store-item-info {
@@ -59,7 +59,7 @@ a {
                 white-space: nowrap;
                 text-overflow: ellipsis;
                 font-size: 14px;
-                color: #dfdfdf;
+                color: var(--neo-text-primary, #dfdfdf);
             }
             &-version {
                 margin-left: 8px;
@@ -67,7 +67,7 @@ a {
                 padding: 0px 6px;
                 border-radius: 4px;
                 font-size: 10px;
-                background-color: #434343;
+                background-color: var(--neo-dropdown-option-hover-bg, #434343);
             }
             &-update {
                 margin-left: 8px;
@@ -75,14 +75,14 @@ a {
                 padding: 0px 6px;
                 border-radius: 4px;
                 font-size: 10px;
-                background-color: #bf7b00;
-                color: #fff;
+                background-color: var(--neo-warning-main, #bf7b00);
+                color: var(--neo-text-primary, #fff);
             }
         }
 
         &-desc {
             font-size: 12px;
-            color: #a3a3a3;
+            color: var(--neo-text-tertiary, #a3a3a3);
         }
         &-bottom {
             display: flex;
@@ -96,7 +96,7 @@ a {
                 display: block;
                 white-space: nowrap;
                 text-overflow: ellipsis;
-                color: #aaaaaa;
+                color: var(--neo-text-hint, #aaaaaa);
             }
             &-status {
                 .install {
@@ -106,7 +106,7 @@ a {
                     min-width: 30px;
                     padding: 0 4px;
                     border-radius: 4px;
-                    background-color: #005fb8;
+                    background-color: var(--neo-primary-base, #005fb8);
                 }
                 .uninstall {
                     display: flex;
@@ -130,7 +130,7 @@ a {
                 }
 
                 &:hover {
-                    background-color: #404457;
+                    background-color: var(--neo-bg-hover-light, #404457);
                     border-radius: 4px;
                 }
             }

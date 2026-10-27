@@ -1,7 +1,7 @@
 .home-form {
     width: 100vw;
     height: 100vh;
-    background: #f8f8f8;
+    background: var(--neo-color-white, #f8f8f8);
     display: flex;
 }
 .check-draged {

@@ -6,9 +6,9 @@
     align-items: center;
     height: 28px;
 
-    --auto-refresh-fg: #e6e6e6;
-    --auto-refresh-muted: #c4c4c4;
-    --auto-refresh-track: rgba(255, 255, 255, 0.1);
+    --auto-refresh-fg: var(--neo-text-primary, #e6e6e6);
+    --auto-refresh-muted: var(--neo-text-secondary, #c4c4c4);
+    --auto-refresh-track: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
     --auto-refresh-hover: rgba(255, 255, 255, 0.08);
 }
 
@@ -23,18 +23,18 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    color: #a9adb4;
+    color: var(--neo-text-hint, #a9adb4);
     transition: background 0.15s ease;
 
     /* Literal, not `--auto-refresh-hover`: the menu is portaled to <body>, outside the wrapper those
        variables are declared on, so a var() here resolves to nothing and the row loses its hover.
        It is also always on the same dark popup surface, whatever theme the trigger is sitting on. */
     &:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
     }
 
     &:focus-visible {
-        outline: 2px solid #006cd2;
+        outline: 2px solid var(--neo-border-color-focus, #006cd2);
         outline-offset: 1px;
     }
 }
@@ -66,7 +66,7 @@
 .label {
     font-family: 'Pretendard';
     font-size: 12px;
-    color: #a9adb4;
+    color: var(--neo-text-hint, #a9adb4);
     white-space: nowrap;
 }
 
@@ -103,7 +103,7 @@
 .progress {
     fill: none;
     /* matches the active tab's top-edge blue ($primary-base) — muted, not attention-grabbing */
-    stroke: #005fb8;
+    stroke: var(--neo-primary-base, #005fb8);
     stroke-width: 2.5;
     stroke-linecap: round;
     stroke-dasharray: 100;
@@ -152,8 +152,8 @@
     /* The surface of the design system's Menu — the panel's own ⋮ menu opens right beside this one,
        and the two were carrying different shadows (this one had the Dropdown's softer 0 4px 12px /
        0.3). Same background, border, radius and drop shadow, so they read as one kind of thing. */
-    background: #2d2d2d;
-    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: var(--neo-dropdown-bg, #2d2d2d);
+    border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     border-radius: 4px;
     box-shadow: 8px 8px 8px rgba(0, 0, 0, 0.6);
     animation: autoRefreshMenuIn 0.15s ease;
@@ -176,7 +176,7 @@
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    color: #7f8289;
+    color: var(--neo-text-disabled, #7f8289);
 }
 
 .menuItem {
@@ -192,7 +192,7 @@
     cursor: pointer;
     font-family: 'Pretendard';
     font-size: 12px;
-    color: #d4d4d4;
+    color: var(--neo-text-secondary, #d4d4d4);
     text-align: left;
     transition: background 0.15s ease;
 
@@ -200,20 +200,20 @@
        variables are declared on, so a var() here resolves to nothing and the row loses its hover.
        It is also always on the same dark popup surface, whatever theme the trigger is sitting on. */
     &:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
     }
 
     &:focus-visible {
-        outline: 2px solid #006cd2;
+        outline: 2px solid var(--neo-border-color-focus, #006cd2);
         outline-offset: -2px;
     }
 }
 
 .menuItemActive {
-    color: #ffffff;
+    color: var(--neo-text-primary, #ffffff);
 }
 
 .check {
-    color: #ffffff;
+    color: var(--neo-text-primary, #ffffff);
     flex: none;
 }

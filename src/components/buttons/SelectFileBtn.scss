@@ -7,7 +7,7 @@
         flex-direction: row;
         padding: 0 t.$spacing-20 t.$spacing-4 t.$spacing-20;
         gap: t.$spacing-8;
-        border-bottom: 1px solid #3e3e3e;
+        border-bottom: 1px solid var(--neo-border-color-light, #3e3e3e);
         align-items: center;
     }
 
@@ -45,7 +45,7 @@
             transition: all 0.15s ease;
 
             &:hover {
-                background-color: rgba(255, 255, 255, 0.1);
+                background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
                 color: t.$text-primary;
             }
 
@@ -81,11 +81,11 @@
         transition: background-color 0.15s ease;
 
         &:hover {
-            background-color: rgba(255, 255, 255, 0.05);
+            background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.05));
         }
 
         &--selected {
-            background-color: rgba(255, 255, 255, 0.08);
+            background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
         }
     }
 

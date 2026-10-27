@@ -32,7 +32,7 @@
 // `item.tsx` puts them on the same element rather than nesting them.
 .app-store-row--selected {
     box-shadow: inset 2px 0 0 0 t.$primary-base;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--neo-bg-input, rgba(255, 255, 255, 0.15));
 }
 
 .app-store-item {
@@ -42,7 +42,7 @@
     width: 100%;
     cursor: pointer;
     gap: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
 
     &:hover {
         background-color: t.$bg-hover;
@@ -95,7 +95,7 @@
             text-overflow: ellipsis;
             font-size: 13px;
             font-weight: 500;
-            color: #dfdfdf;
+            color: var(--neo-text-primary, #dfdfdf);
             min-width: 0;
             flex: 1;
 
@@ -110,7 +110,7 @@
             display: flex;
             gap: 2px;
             flex-shrink: 0;
-            color: #a3a3a3;
+            color: var(--neo-text-tertiary, #a3a3a3);
         }
         .app-store-item-head-publisher {
             display: flex;
@@ -118,7 +118,7 @@
             justify-content: space-between;
             gap: 6px;
             font-size: 11px;
-            color: #aaaaaa;
+            color: var(--neo-text-hint, #aaaaaa);
             min-width: 0;
             width: 100%;
 
@@ -139,7 +139,7 @@
             }
 
             .app-store-item-verified {
-                color: #1d9bf0;
+                color: var(--neo-primary-hover, #1d9bf0);
                 flex-shrink: 0;
             }
         }
@@ -162,7 +162,7 @@
         white-space: nowrap;
         text-overflow: ellipsis;
         font-size: 12px;
-        color: #a3a3a3;
+        color: var(--neo-text-tertiary, #a3a3a3);
 
         span {
             overflow: hidden;
@@ -194,16 +194,16 @@
             padding: 0 6px;
             height: 18px;
             border-radius: 4px;
-            background-color: #606060;
-            color: #ffffff;
+            background-color: var(--neo-btn-copy, #606060);
+            color: var(--neo-text-primary, #ffffff);
             white-space: nowrap;
         }
         span.install {
-            background-color: #005fb8;
+            background-color: var(--neo-primary-base, #005fb8);
         }
         span.update {
-            background-color: #bf7b00;
-            color: #fff;
+            background-color: var(--neo-warning-main, #bf7b00);
+            color: var(--neo-text-primary, #fff);
         }
         // the default button's target version is backed by the server's local
         // package archive (issue #1452) — informational, so a neutral blue that
@@ -226,7 +226,7 @@
         // is", and both are conditions the user has to act on rather than choices.
         span.stray {
             background-color: rgba(209, 134, 22, 0.18);
-            color: #e0a458;
+            color: var(--neo-event-match-main, #e0a458);
             gap: 3px;
             cursor: help;
 
@@ -238,7 +238,7 @@
         // server-downgrade incompatibility warning (issue #1369)
         span.incompat {
             background-color: rgba(209, 134, 22, 0.18);
-            color: #e0a458;
+            color: var(--neo-event-match-main, #e0a458);
             gap: 3px;
             cursor: help;
 
@@ -303,7 +303,7 @@
         flex: 1;
         min-width: 0;
         font-size: 11px;
-        color: #a3a3a3;
+        color: var(--neo-text-tertiary, #a3a3a3);
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -318,14 +318,14 @@
         height: 12px;
         padding: 0;
         border: none;
-        background-color: #555;
+        background-color: var(--neo-bg-hover-light, #555);
         border-radius: 6px;
         cursor: pointer;
         transition: background-color 0.15s ease;
         flex-shrink: 0;
 
         &:hover:not(:disabled) {
-            background-color: #6a6a6a;
+            background-color: var(--neo-btn-copy, #6a6a6a);
         }
         &:disabled {
             opacity: 0.55;
@@ -338,7 +338,7 @@
             left: 2px;
             width: 8px;
             height: 8px;
-            background-color: #ffffff;
+            background-color: var(--neo-color-white, #ffffff);
             border-radius: 50%;
             transition: left 0.15s ease;
             display: flex;
@@ -348,13 +348,13 @@
         }
 
         &--on {
-            background-color: #0e639c;
+            background-color: var(--neo-bg-active, #0e639c);
             &:hover:not(:disabled) {
-                background-color: #1177bb;
+                background-color: var(--neo-primary-base, #1177bb);
             }
             .app-store-item-switch-thumb {
                 left: 12px;
-                color: #0e639c;
+                color: var(--neo-primary-dark, #0e639c);
             }
         }
     }
@@ -370,7 +370,7 @@
         font-size: 11px;
         font-weight: 500;
         line-height: 1;
-        color: #ffffff;
+        color: var(--neo-text-primary, #ffffff);
         border-radius: 3px;
         cursor: pointer;
         white-space: nowrap;
@@ -382,15 +382,15 @@
         }
 
         &--default {
-            background-color: #3a3a3a;
+            background-color: var(--neo-dropdown-option-hover-bg, #3a3a3a);
             &:hover:not(:disabled) {
-                background-color: #4a4a4a;
+                background-color: var(--neo-bg-hover-light, #4a4a4a);
             }
         }
         &--primary {
-            background-color: #0e639c;
+            background-color: var(--neo-bg-active, #0e639c);
             &:hover:not(:disabled) {
-                background-color: #1177bb;
+                background-color: var(--neo-primary-base, #1177bb);
             }
         }
         &--danger {
@@ -416,7 +416,7 @@
             // each half's inner corners and makes the split look like two detached
             // pills — flatten them so only the container's radius rounds the outer edge.
             border-radius: 0;
-            color: #ffffff;
+            color: var(--neo-text-primary, #ffffff);
             font-size: 11px;
             font-weight: 500;
             line-height: 1;
@@ -442,15 +442,15 @@
         }
 
         &--primary button {
-            background-color: #0e639c;
+            background-color: var(--neo-bg-active, #0e639c);
             &:hover:not(:disabled) {
-                background-color: #1177bb;
+                background-color: var(--neo-primary-base, #1177bb);
             }
         }
         &--update button {
-            background-color: #bf7b00;
+            background-color: var(--neo-warning-main, #bf7b00);
             &:hover:not(:disabled) {
-                background-color: #d68b00;
+                background-color: var(--neo-warning-main, #d68b00);
             }
         }
     }
@@ -467,6 +467,6 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    color: #a3a3a3;
+    color: var(--neo-text-tertiary, #a3a3a3);
     white-space: nowrap;
 }

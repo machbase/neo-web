@@ -69,7 +69,7 @@
         overflow: hidden;
 
         &:hover:not(:disabled):not(&--open) {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-medium, #5a5a5a);
         }
 
         &:active:not(:disabled) {
@@ -98,7 +98,7 @@
 
         // Has value state
         &--has-value {
-            color: #e0e0e0;
+            color: var(--neo-text-primary, #e0e0e0);
         }
     }
 
@@ -206,7 +206,7 @@
     // Option checkmark
     &__option-check {
         flex-shrink: 0;
-        color: #e0e0e0;
+        color: var(--neo-text-primary, #e0e0e0);
     }
 }
 

@@ -41,7 +41,7 @@ const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) 
                 boxShadow: `inset 2px 0 0 0  ${item.color}`,
                 width: 'auto',
                 padding: '0 8px',
-                backgroundColor: '#454545',
+                backgroundColor: 'var(--neo-bg-hover-light, #454545)',
                 borderTopRightRadius: '4px',
                 borderBottomRightRadius: '4px',
             }}
@@ -104,7 +104,7 @@ const RollupNameCell = ({ row, columns }: { row: (string | number)[]; columns: s
                         data-tooltip-id={tooltipId}
                         style={{
                             cursor: 'help',
-                            color: '#888',
+                            color: 'var(--neo-text-disabled, #888)',
                             minWidth: '12px',
                             maxWidth: '12px',
                         }}
@@ -161,7 +161,7 @@ const RollupGapCell = ({ row, columns }: { row: (string | number)[]; columns: st
                         data-tooltip-id={tooltipId}
                         style={{
                             cursor: 'help',
-                            color: '#888',
+                            color: 'var(--neo-text-disabled, #888)',
                             minWidth: '12px',
                             maxWidth: '12px',
                         }}
@@ -174,7 +174,7 @@ const RollupGapCell = ({ row, columns }: { row: (string | number)[]; columns: st
                         </div>
                         <div
                             style={{
-                                borderTop: '1px solid rgba(255,255,255,0.2)',
+                                borderTop: '1px solid var(--neo-border-color-light, rgba(255,255,255,0.2))',
                                 paddingTop: '8px',
                             }}
                         >
@@ -221,7 +221,7 @@ const RollupPredicateCell = ({ row, columns }: { row: (string | number)[]; colum
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <BiInfoCircle
                     data-tooltip-id={tooltipId}
-                    style={{ cursor: 'help', color: '#888', minWidth: '12px', maxWidth: '12px' }}
+                    style={{ cursor: 'help', color: 'var(--neo-text-disabled, #888)', minWidth: '12px', maxWidth: '12px' }}
                 />
             </div>
             <Tooltip

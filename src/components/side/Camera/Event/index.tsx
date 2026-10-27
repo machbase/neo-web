@@ -365,7 +365,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     </div>
                 </Page.Body>
                 <Page.Footer style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-                    {totalCount > 0 && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Total {totalCount}</span>}
+                    {totalCount > 0 && <span style={{ fontSize: '12px', color: 'var(--neo-text-disabled, rgba(255,255,255,0.5))' }}>Total {totalCount}</span>}
                     {totalPages > 1 && (
                         <Pagination
                             showTotalPage
