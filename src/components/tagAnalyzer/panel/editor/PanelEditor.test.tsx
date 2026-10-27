@@ -991,3 +991,34 @@ describe('PanelEditor annotations after series removal', () => {
         expect(apply).toHaveBeenCalledWith({ ...panel, title: 'Changed title' });
     });
 });
+
+describe('PanelEditor header changes', () => {
+    it('keeps a RAW toggle and a title rename from the panel header when another setting is applied', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        const view = renderEditor(panel, apply);
+        const headerChanged = { ...panel, title: 'Header title', mode: { ...panel.mode, isRaw: true } };
+        view.rerender(createEditor(headerChanged, apply));
+        expect(screen.getByTestId('editor-title-input')).toHaveValue('Header title');
+        expect(screen.getByTestId('editor-order-raw-checkbox')).toBeEnabled();
+        expect(screen.getByTestId('editor-apply')).toBeDisabled();
+
+        fireEvent.click(screen.getByLabelText('Use Zoom when dragging'));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[0][0]).toMatchObject({
+            title: 'Header title',
+            mode: { isRaw: true },
+            display: { useZoom: !panel.display.useZoom },
+        });
+    });
+
+    it('keeps a title typed in the editor over a later header rename', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        const view = renderEditor(panel, apply);
+        changeTitle('Editor title');
+        view.rerender(createEditor({ ...panel, title: 'Header title', mode: { ...panel.mode, isRaw: true } }, apply));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[0][0]).toMatchObject({ title: 'Editor title', mode: { isRaw: true } });
+    });
+});
