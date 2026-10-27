@@ -97,11 +97,11 @@ export const ClockWidget = ({ pSettings, pActive }: { pSettings?: ClockSettings;
             <svg viewBox="0 0 120 120" className="nb-clock-face" role="img" aria-label={sSpoken}>
                 <defs>
                     <radialGradient id="nb-clock-dial" cx="50%" cy="40%" r="65%">
-                        <stop offset="0" stopColor="#2a2a2a" />
-                        <stop offset="1" stopColor="#171717" />
+                        <stop offset="0" style={{ stopColor: 'var(--neo-bg-elevated, #2a2a2a)' }} />
+                        <stop offset="1" style={{ stopColor: 'var(--neo-bg-primary, #171717)' }} />
                     </radialGradient>
                 </defs>
-                <circle cx="60" cy="60" r="57" fill="url(#nb-clock-dial)" stroke="rgba(255,255,255,0.14)" strokeWidth="1" />
+                <circle cx="60" cy="60" r="57" fill="url(#nb-clock-dial)" strokeWidth="1" style={{ stroke: 'var(--neo-border-color-light, rgba(255,255,255,0.14))' }} />
                 {Array.from({ length: 60 }, (_, aIndex) => {
                     const sHourMark = aIndex % 5 === 0;
                     return (
@@ -124,14 +124,14 @@ export const ClockWidget = ({ pSettings, pActive }: { pSettings?: ClockSettings;
                     ['6', 60, 101],
                     ['9', 24, 64],
                 ].map(([aText, aX, aY]) => (
-                    <text key={aText} x={aX} y={aY} textAnchor="middle" fontSize="10" fill="#8a8a8a" fontFamily="Pretendard, sans-serif">
+                    <text key={aText} x={aX} y={aY} textAnchor="middle" fontSize="10" fontFamily="Pretendard, sans-serif" style={{ fill: 'var(--neo-text-disabled, #8a8a8a)' }}>
                         {aText}
                     </text>
                 ))}
                 <line x1="60" y1="64" x2="60" y2="34" stroke="#f1f1f1" strokeWidth="4" strokeLinecap="round" transform={`rotate(${sHourAngle} 60 60)`} />
                 <line x1="60" y1="66" x2="60" y2="20" stroke="#f1f1f1" strokeWidth="2.4" strokeLinecap="round" transform={`rotate(${sMinuteAngle} 60 60)`} />
                 <line x1="60" y1="72" x2="60" y2="16" stroke="#6d8bff" strokeWidth="1.1" strokeLinecap="round" transform={`rotate(${sSecondAngle} 60 60)`} />
-                <circle cx="60" cy="60" r="3.2" fill="#6d8bff" stroke="#171717" strokeWidth="1.2" />
+                <circle cx="60" cy="60" r="3.2" fill="#6d8bff" strokeWidth="1.2" style={{ stroke: 'var(--neo-color-black, #171717)' }} />
             </svg>
             <span className="nb-clock-caption">{sCaption}</span>
             <span className="nb-clock-date">

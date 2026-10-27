@@ -86,7 +86,7 @@
                 background-image: linear-gradient(
                     90deg,
                     rgba(255, 255, 255, 0) 0%,
-                    rgba(255, 255, 255, 0.92) 50%,
+                    var(--neo-color-white, rgba(255, 255, 255, 0.92)) 50%,
                     rgba(255, 255, 255, 0) 100%
                 );
                 background-repeat: no-repeat;

@@ -2050,10 +2050,10 @@
     color: var(--neo-text-secondary, rgba(255, 255, 255, 0.7));
     gap: var(--spacing-12);
     background:
-        linear-gradient(#2a2a2a 30%, rgba(42, 42, 42, 0)) center top,
-        linear-gradient(rgba(42, 42, 42, 0), #2a2a2a 70%) center bottom,
-        radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0)) center top,
-        radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0)) center bottom;
+        linear-gradient(var(--neo-bg-elevated, #2a2a2a) 30%, rgba(42, 42, 42, 0)) center top,
+        linear-gradient(rgba(42, 42, 42, 0), var(--neo-bg-elevated, #2a2a2a) 70%) center bottom,
+        radial-gradient(farthest-side at 50% 0, var(--neo-bg-primary, rgba(0, 0, 0, 0.3)), rgba(0, 0, 0, 0)) center top,
+        radial-gradient(farthest-side at 50% 100%, var(--neo-bg-primary, rgba(0, 0, 0, 0.3)), rgba(0, 0, 0, 0)) center bottom;
     background-repeat: no-repeat;
     background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
     background-attachment: local, local, scroll, scroll;

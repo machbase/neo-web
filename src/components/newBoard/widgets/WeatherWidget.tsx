@@ -39,11 +39,11 @@ const describe = (aCode: number): { text: string; icon: 'sun' | 'cloud' | 'fog' 
 };
 
 const WeatherIcon = ({ pIcon, pIsDay }: { pIcon: ReturnType<typeof describe>['icon']; pIsDay: boolean }) => {
-    const sun = pIsDay ? <circle cx="16" cy="16" r="7" fill="#f5c142" /> : <path d="M20 9a8 8 0 1 0 5 13 7 7 0 0 1-5-13z" fill="#c4c4c4" />;
+    const sun = pIsDay ? <circle cx="16" cy="16" r="7" style={{ fill: 'var(--neo-event-match-main, #f5c142)' }} /> : <path d="M20 9a8 8 0 1 0 5 13 7 7 0 0 1-5-13z" fill="#c4c4c4" />;
     // Clear sky gets the whole tile: a bigger sun with rays (or the moon at night).
     const bigSun = pIsDay ? (
         <g>
-            <circle cx="20" cy="20" r="8.5" fill="#f5c142" />
+            <circle cx="20" cy="20" r="8.5" style={{ fill: 'var(--neo-event-match-main, #f5c142)' }} />
             {Array.from({ length: 8 }, (_, aIndex) => (
                 <line key={aIndex} x1="20" y1="4" x2="20" y2="8" stroke="#f5c142" strokeWidth="2" strokeLinecap="round" transform={`rotate(${aIndex * 45} 20 20)`} />
             ))}
@@ -77,7 +77,7 @@ const WeatherIcon = ({ pIcon, pIsDay }: { pIcon: ReturnType<typeof describe>['ic
             {pIcon === 'snow' ? (
                 <>
                     {cloud(0, -4)}
-                    <path d="M14 32h0M21 35h0M28 32h0" stroke="#f1f1f1" strokeWidth="3" strokeLinecap="round" />
+                    <path d="M14 32h0M21 35h0M28 32h0" strokeWidth="3" strokeLinecap="round" style={{ stroke: 'var(--neo-color-white, #f1f1f1)' }} />
                 </>
             ) : null}
         </svg>

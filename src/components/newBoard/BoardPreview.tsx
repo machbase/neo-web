@@ -25,7 +25,7 @@ const wave = (x0: number, yc: number, width: number, amp: number, phase: number,
 };
 
 const Frame = ({ x, y, w, h }: { x: number; y: number; w: number; h: number }) => (
-    <rect x={x} y={y} width={w} height={h} rx="4" fill="#232323" stroke="rgba(255,255,255,0.08)" />
+    <rect x={x} y={y} width={w} height={h} rx="4" style={{ fill: 'var(--neo-bg-secondary, #232323)', stroke: 'var(--neo-border-color-default, rgba(255,255,255,0.08))' }} />
 );
 
 const BARS = [10, 18, 14, 24, 16, 28, 20];
@@ -49,7 +49,7 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
             })}
             <circle cx="44" cy="78" r="13" fill="none" stroke="#333" strokeWidth="6" />
             <circle cx="44" cy="78" r="13" fill="none" stroke="#b3c1ff" strokeWidth="6" strokeDasharray={`${54 + 6 * Math.sin(p)} 90`} transform="rotate(-90 44 78)" />
-            <text x="68" y="83" fill="#f1f1f1" fontSize="15" fontWeight="600">
+            <text x="68" y="83" fontSize="15" fontWeight="600" style={{ fill: 'var(--neo-text-primary, #f1f1f1)' }}>
                 74.8%
             </text>
             <polyline points={wave(sRight + 6, 80, sCol - 12, 9, p + 1, 1)} fill="none" stroke="#fac858" strokeWidth="1.4" />
@@ -60,17 +60,17 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
         <>
             <text x="12" y="20" fontFamily={MONO} fontSize="10">
                 <tspan fill="#569cd6">SELECT</tspan>
-                <tspan fill="#c4c4c4"> TIME, VALUE </tspan>
+                <tspan style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }}> TIME, VALUE </tspan>
                 <tspan fill="#569cd6">FROM</tspan>
-                <tspan fill="#c4c4c4"> _NEO_STATZ</tspan>
+                <tspan style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }}> _NEO_STATZ</tspan>
             </text>
-            <rect x="10" y="32" width={w - 20} height="64" fill="#202020" stroke="rgba(255,255,255,0.08)" />
-            <rect x="10" y="32" width={w - 20} height="14" fill="#2a2a2a" />
-            <text x="16" y="42" fill="#a3a3a3" fontSize="8" fontFamily={MONO}>
+            <rect x="10" y="32" width={w - 20} height="64" style={{ fill: 'var(--neo-bg-primary, #202020)', stroke: 'var(--neo-border-color-default, rgba(255,255,255,0.08))' }} />
+            <rect x="10" y="32" width={w - 20} height="14" style={{ fill: 'var(--neo-bg-elevated, #2a2a2a)' }} />
+            <text x="16" y="42" fontSize="8" fontFamily={MONO} style={{ fill: 'var(--neo-text-tertiary, #a3a3a3)' }}>
                 TIME                         VALUE
             </text>
             {SQL_ROWS.map((aRow, i) => (
-                <text key={i} x="16" y={57 + i * 11} fill="#c4c4c4" fontSize="8" fontFamily={MONO} xmlSpace="preserve">
+                <text key={i} x="16" y={57 + i * 11} fontSize="8" fontFamily={MONO} xmlSpace="preserve" style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }}>
                     {`2026-10-01 ${aRow}`}
                 </text>
             ))}
@@ -78,13 +78,13 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
     ),
     tql: (p, w) => (
         <>
-            <text x="12" y="20" fill="#c4c4c4" fontFamily={MONO} fontSize="9">
-                <tspan fill="#dcdcaa">FAKE</tspan>( oscillator(...) )
+            <text x="12" y="20" fontFamily={MONO} fontSize="9" style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }}>
+                <tspan style={{ fill: 'var(--neo-event-match-main, #dcdcaa)' }}>FAKE</tspan>( oscillator(...) )
             </text>
-            <text x="12" y="33" fill="#dcdcaa" fontFamily={MONO} fontSize="9">
+            <text x="12" y="33" fontFamily={MONO} fontSize="9" style={{ fill: 'var(--neo-event-match-main, #dcdcaa)' }}>
                 CHART_LINE()
             </text>
-            <line x1="12" x2={w - 12} y1="70" y2="70" stroke="rgba(255,255,255,0.08)" />
+            <line x1="12" x2={w - 12} y1="70" y2="70" style={{ stroke: 'var(--neo-border-color-default, rgba(255,255,255,0.08))' }} />
             <polyline points={wave(12, 70, w - 24, 22, p, 2)} fill="none" stroke="#8ea4ff" strokeWidth="1.8" />
         </>
     ),
@@ -92,21 +92,21 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
         <>
             <polyline points={wave(10, 38, w - 20, 20, p, 3)} fill="none" stroke="#6d8bff" strokeWidth="1.6" />
             <polyline points={wave(10, 42, w - 20, 13, p + 2, 4)} fill="none" stroke="#fac858" strokeWidth="1.2" opacity="0.8" />
-            <rect x="10" y="74" width={w - 20} height="20" rx="3" fill="#202020" stroke="rgba(255,255,255,0.08)" />
-            <polyline points={wave(10, 84, w - 20, 6, 0, 3)} fill="none" stroke="#5c5c5c" strokeWidth="1" />
+            <rect x="10" y="74" width={w - 20} height="20" rx="3" style={{ fill: 'var(--neo-bg-primary, #202020)', stroke: 'var(--neo-border-color-default, rgba(255,255,255,0.08))' }} />
+            <polyline points={wave(10, 84, w - 20, 6, 0, 3)} fill="none" strokeWidth="1" style={{ stroke: 'var(--neo-border-color-medium, #5c5c5c)' }} />
             <rect x={w / 2 - 40 + Math.sin(p) * 60} y="74" width="70" height="20" fill="rgba(109,139,255,0.22)" stroke="#6d8bff" />
         </>
     ),
     wrk: (p, w) => (
         <>
             <Frame x={10} y={8} w={w - 20} h={24} />
-            <text x="18" y="24" fill="#c4c4c4" fontSize="9" fontFamily={MONO}>
+            <text x="18" y="24" fontSize="9" fontFamily={MONO} style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }}>
                 ## Daily check
             </text>
             <Frame x={10} y={38} w={w - 20} h={24} />
             <text x="18" y="54" fontSize="9" fontFamily={MONO}>
                 <tspan fill="#569cd6">SELECT</tspan>
-                <tspan fill="#c4c4c4"> count(*) FROM ...</tspan>
+                <tspan style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }}> count(*) FROM ...</tspan>
             </text>
             <Frame x={10} y={68} w={w - 20} h={28} />
             <polyline points={wave(18, 82, w - 36, 8, p, 5)} fill="none" stroke="#b3c1ff" strokeWidth="1.4" />
@@ -114,7 +114,7 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
     ),
     open: (_p, w) => (
         <>
-            <rect x={w / 2 - 50} y="16" width="100" height="72" rx="8" fill="none" stroke="#5c5c5c" strokeDasharray="5 4" />
+            <rect x={w / 2 - 50} y="16" width="100" height="72" rx="8" fill="none" strokeDasharray="5 4" style={{ stroke: 'var(--neo-border-color-medium, #5c5c5c)' }} />
             <path d={`M${w / 2} 34 v30 M${w / 2 - 12} 52 l12 12 l12 -12`} fill="none" stroke="#a3a3a3" strokeWidth="2" />
         </>
     ),
