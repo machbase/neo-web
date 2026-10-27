@@ -171,9 +171,11 @@ interface MenuItemProps {
     rightIcon?: ReactNode;
     disabled?: boolean;
     className?: string;
+    /** On/off state of a toggle item, for assistive technology. */
+    'aria-pressed'?: boolean;
 }
 
-const MenuItem = ({ children, onClick, icon, disabled = false, className, rightIcon, 'data-testid': testId }: MenuItemProps) => {
+const MenuItem = ({ children, onClick, icon, disabled = false, className, rightIcon, 'data-testid': testId, 'aria-pressed': ariaPressed }: MenuItemProps) => {
     const { setIsOpen } = useMenuContext();
 
     const handleClick = () => {
@@ -185,7 +187,7 @@ const MenuItem = ({ children, onClick, icon, disabled = false, className, rightI
     const itemClasses = [styles['menu__item'], disabled && styles['menu__item--disabled'], className].filter(Boolean).join(' ');
 
     return (
-        <button type="button" data-testid={testId} className={itemClasses} onClick={handleClick} disabled={disabled}>
+        <button type="button" data-testid={testId} className={itemClasses} onClick={handleClick} disabled={disabled} aria-pressed={ariaPressed}>
             {icon && <span className={styles['menu__item-icon']}>{icon}</span>}
             <span className={styles['menu__item-label']}>{children}</span>
             {rightIcon && <span className={styles['menu__item-icon']}>{rightIcon}</span>}

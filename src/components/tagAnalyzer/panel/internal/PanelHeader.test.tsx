@@ -80,4 +80,23 @@ describe('PanelHeader', () => {
             PanelActionKey.SET_GLOBAL_RANGE,
         );
     });
+
+    it('tells assistive technology which Extra modes are on', () => {
+        render(
+            <PanelHeader
+                state={{ ...HEADER_STATE, actionState: { active: [PanelActionKey.TOGGLE_HIGHLIGHT], disabled: [] } }}
+                onAction={jest.fn()}
+                onToggleOverlap={jest.fn()}
+                onRenamePanelTitle={jest.fn()}
+                onOpenMainRangeModal={jest.fn()}
+            />,
+        );
+
+        const trigger = screen.getByRole('button', { name: 'Extra panel actions' });
+        expect(trigger).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(trigger);
+        expect(screen.getByTestId(`action-${PanelActionKey.TOGGLE_HIGHLIGHT}`)).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByTestId(`action-${PanelActionKey.TOGGLE_ANNOTATION}`)).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.getByTestId(`action-${PanelActionKey.SET_GLOBAL_RANGE}`)).not.toHaveAttribute('aria-pressed');
+    });
 });

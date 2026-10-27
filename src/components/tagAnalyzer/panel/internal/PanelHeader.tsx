@@ -270,6 +270,7 @@ function PanelHeaderMenu({
                         isToolTip={!sIsExtra}
                         toolTipContent={sIsExtra ? undefined : 'More'}
                         active={sIsExtra ? sIsActive : undefined}
+                        aria-pressed={sIsExtra ? sIsActive : undefined}
                         icon={sIsExtra
                             ? <CiCircleMore size={15} />
                             : <VscThreeBars size={15} />}
@@ -287,6 +288,7 @@ function PanelHeaderMenu({
                                 ? HEADER_MENU_ACTIVE_ITEM_CLASS[variant]
                                 : undefined}
                             disabled={action.disabled}
+                            aria-pressed={action.active}
                             icon={action.icon}
                             onClick={() => onAction(action.key)}
                         >
