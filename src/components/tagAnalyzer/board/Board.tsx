@@ -100,18 +100,18 @@ export default function Board({
         setPanelOverlapSelected,
     );
     const { closeOverlapChart } = overlap;
-    const sTimeRangeReference = getBoardRangeReference(
+    const sTimePanelRangeReference = getBoardRangeReference(
         sPanels,
         sPanelRanges,
         'time',
-    ) ?? createBoardRangeEditorReference('time', sBoardRangeModalOpenedAt ?? Date.now());
+    );
+    const sTimeRangeReference = sTimePanelRangeReference ??
+        createBoardRangeEditorReference(sBoardRangeModalOpenedAt ?? Date.now());
     const sNumericPanelRangeReference = getBoardRangeReference(
         sPanels,
         sPanelRanges,
         'numeric',
     );
-    const sNumericRangeReference = sNumericPanelRangeReference ??
-        createBoardRangeEditorReference('numeric', sBoardRangeModalOpenedAt ?? Date.now());
     const sRangeChipsBoardInfo = {
         dashboard: {
             timeRange: sBoardInfo.boardTimeRange,
@@ -182,8 +182,10 @@ export default function Board({
 
     function shiftBoardRange(rangeKind: AxisKind, direction: 'l' | 'r'): void {
         const reference = rangeKind === 'time'
-            ? sTimeRangeReference
-            : sNumericRangeReference;
+            ? sTimePanelRangeReference
+            : sNumericPanelRangeReference;
+        // Before any panel has a range there is no width to move by; the editor placeholder is not one.
+        if (!reference) return;
         const width = reference.currentRange.end - reference.currentRange.start;
         const offset = width * (direction === 'l' ? -1 : 1);
         applyBoardRange(rangeKind, {
@@ -521,12 +523,9 @@ function getBoardRangeReference(
 }
 
 function createBoardRangeEditorReference(
-    axisKind: AxisKind,
     openedAt: number,
 ): { currentRange: AxisRange; fullRange: AxisRange } {
-    const range = axisKind === 'time'
-        ? { start: 0, end: openedAt }
-        : { start: 0, end: Number.MAX_SAFE_INTEGER };
+    const range = { start: 0, end: openedAt };
 
     return { currentRange: range, fullRange: range };
 }
